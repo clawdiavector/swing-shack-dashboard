@@ -352,6 +352,82 @@ body {
 .modal-actions .right { margin-left: auto; }
 .calendar-posts { background: var(--bg-3); padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 12px; margin-top: 0.5rem; }
 
+/* ─── Compact strategic strip ─── */
+.strip-section {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 0.9rem 1.25rem;
+}
+.strip-h { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem; }
+.active-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.3rem 0.7rem; border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  background: var(--bg-3); border: 1px solid var(--line);
+  color: var(--tx);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.active-pill.mkt { border-left: 3px solid var(--marketing); }
+.active-pill.adv { border-left: 3px solid var(--advertising); }
+.active-pill .trend-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.active-pill .trend-dot.strengthening { background: var(--green); }
+.active-pill .trend-dot.flat { background: var(--tx-3); }
+.active-pill .trend-dot.weakening { background: var(--orange); }
+.active-pill .trend-dot.disproved { background: var(--red); }
+.active-pill .trend-dot.gathering { background: var(--tx-3); }
+.strip-days {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.4rem;
+}
+.strip-day {
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 6px;
+  padding: 0.4rem; min-height: 50px;
+  font-size: 10px;
+}
+.strip-day .day-h {
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--tx-3); margin-bottom: 0.3rem; font-weight: 700;
+}
+.strip-day.today { border-color: var(--gold); background: rgba(251,191,36,0.08); }
+.strip-day.weekend { opacity: 0.55; }
+.strip-day .ship {
+  display: block; padding: 0.15rem 0; font-size: 10px; color: var(--tx);
+  border-top: 1px dashed var(--line);
+}
+.strip-day .ship:first-of-type { border-top: none; }
+.strip-day .ship.lane-marketing { border-left: 2px solid var(--marketing); padding-left: 4px; }
+.strip-day .ship.lane-advertising { border-left: 2px solid var(--advertising); padding-left: 4px; }
+.strip-day .ship.milestone-launch::before { content: '🚀 '; }
+.strip-day .ship.milestone-review::before { content: '🔍 '; }
+.strip-day .ship.milestone-decision::before { content: '⚖️ '; }
+.strip-day .ship.milestone-test_start::before { content: '🧪 '; }
+.strip-day .ship.milestone-test_end::before { content: '🧪✓ '; }
+.strip-day .empty { color: var(--tx-3); font-style: italic; font-size: 10px; }
+
+/* Replay modal timeline */
+.replay-stats { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; padding: 0.75rem; background: var(--bg-3); border-radius: 8px; }
+.replay-stats div { font-size: 11px; color: var(--tx-3); }
+.replay-stats b { color: var(--gold); font-size: 16px; display: block; }
+.timeline-event {
+  padding: 0.75rem 1rem; background: var(--bg-3); border-radius: 6px;
+  margin-bottom: 0.5rem; border-left: 3px solid var(--line);
+  position: relative;
+}
+.timeline-event.snapshot { border-left-color: var(--blue); }
+.timeline-event.decision { border-left-color: var(--gold); }
+.timeline-event.lesson { border-left-color: var(--purple); }
+.timeline-event.execution { border-left-color: var(--green); }
+.timeline-event.milestone { border-left-color: var(--orange); }
+.timeline-event .ev-date {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--tx-3); margin-bottom: 0.3rem;
+}
+.timeline-event .ev-title {
+  font-size: 13px; color: var(--tx); font-weight: 600;
+}
+.timeline-event .ev-detail { font-size: 11px; color: var(--tx-2); margin-top: 0.3rem; }
+
 .empty-state { color: var(--tx-3); font-size: 13px; font-style: italic; padding: 2rem; text-align: center; background: var(--bg-3); border: 1px dashed var(--line); border-radius: 10px; }
 </style>
 </head>
@@ -375,6 +451,15 @@ body {
       <div class="positioning-text" id="positioning-text"></div>
     </div>
   </div>
+</div>
+
+<!-- Compact strategic strip — always visible -->
+<div class="strip-section" id="strip-section" style="margin-bottom:1.5rem">
+  <div class="strip-h">
+    <span style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--tx-3);margin-right:0.75rem">Active this week</span>
+    <span id="strip-active"></span>
+  </div>
+  <div class="strip-days" id="strip-days"></div>
 </div>
 
 <div class="zoom-bar">
@@ -469,6 +554,7 @@ async function loadStrategy() {
   if (!d.ok) return;
   strategy = d.strategy;
   renderHeader();
+  await renderStrip();  // strategic strip — always visible
   renderSwimlanes();
   renderLessons();
   await loadCalendar();
@@ -477,6 +563,40 @@ async function loadStrategy() {
     trendsRequested = true;
     loadTrends();
   }
+}
+
+async function renderStrip() {
+  try {
+    const r = await fetch(`/api/strategy/strip?brand=${BRAND_ID}&weeks_ahead=0`);
+    const d = await r.json();
+    if (!d.ok) return;
+    const strip = d.strip;
+
+    // Active pills
+    const pills = (strip.active || []).map(p => {
+      const t = p.trend || 'gathering';
+      const trendIcon = {strengthening: '↑', weakening: '↓', disproved: '×', flat: '—', gathering: '·'}[t] || '·';
+      return `<span class="active-pill ${p.workhorse === 'advertising' ? 'adv' : 'mkt'}" title="${esc(p.reason || '')}">${esc(p.title)} <span class="trend-dot ${t}" title="${t}"></span>${trendIcon}</span>`;
+    }).join('');
+    document.getElementById('strip-active').innerHTML = pills || '<span style="color:var(--tx-3);font-style:italic;font-size:11px">No active moves this week.</span>';
+
+    // Day-by-day strip
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    document.getElementById('strip-days').innerHTML = (strip.day_strip || []).map((day, i) => {
+      const dObj = new Date(day.date);
+      const isWeekend = [0, 6].includes(dObj.getDay());
+      const isToday = day.date === todayIso;
+      const ships = (day.ships || []).map(s => {
+        const cls = `lane-${s.lane} milestone-${s.type || ''}`;
+        return `<span class="ship ${cls}">${esc(s.label)}</span>`;
+      }).join('');
+      return `<div class="strip-day ${isWeekend ? 'weekend' : ''} ${isToday ? 'today' : ''}">
+        <div class="day-h">${days[i]} ${dObj.getDate()}</div>
+        ${ships || '<div class="empty">—</div>'}
+      </div>`;
+    }).join('');
+  } catch (e) { console.error('renderStrip', e); }
 }
 
 async function loadTrends() {
@@ -1162,6 +1282,7 @@ function openMoveModal(id, workhorse) {
       <button class="btn" onclick="saveMove('${id || ''}', '${workhorse || 'marketing'}')">${id ? 'Save' : 'Create'}</button>
       ${id ? `<button class="btn secondary" onclick="retireRecord('move', '${id}')">Retire</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openBetModal(null, '${id}')">+ Add bet</button>` : ''}
+      ${id ? `<button class="btn secondary" onclick="openReplay('move', '${id}')">📼 Replay history</button>` : ''}
       <button class="btn secondary right" onclick="closeModal()">Close</button>
       ${id ? `<button class="btn danger" onclick="deleteRecord('market_move', '${id}')">Delete</button>` : ''}
     </div>
@@ -1260,6 +1381,7 @@ function openBetModal(id, parentMoveId) {
     <div class="modal-actions">
       <button class="btn" onclick="saveBet('${id || ''}')">${id ? 'Save' : 'Create'}</button>
       ${id ? `<button class="btn secondary" onclick="retireRecord('bet', '${id}')">Retire</button>` : ''}
+      ${id ? `<button class="btn secondary" onclick="openReplay('bet', '${id}')">📼 Replay history</button>` : ''}
       <button class="btn secondary right" onclick="closeModal()">Close</button>
       ${id ? `<button class="btn danger" onclick="deleteRecord('bet', '${id}')">Delete</button>` : ''}
     </div>
@@ -1379,6 +1501,36 @@ async function mineLessons() {
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function openReplay(type, id) {
+  const r = await fetch(`/api/strategy/replay/${type}/${id}?brand=${BRAND_ID}`);
+  const d = await r.json();
+  if (!d.ok) { alert('Could not load replay: ' + (d.error || 'unknown')); return; }
+  const rep = d.replay;
+  const events = rep.timeline.map(e => {
+    const det = e.detail || e.note || (e.evidence_for !== undefined ? `evidence: +${e.evidence_for || 0}/−${e.evidence_against || 0}, net ${e.net}` : '');
+    return `<div class="timeline-event ${e.type}">
+      <div class="ev-date">${esc(e.date || '—')} · ${e.type}</div>
+      <div class="ev-title">${esc(e.title)}</div>
+      ${det ? `<div class="ev-detail">${esc(det)}</div>` : ''}
+    </div>`;
+  }).join('') || '<div class="empty-state">No history yet. Snapshots accumulate weekly.</div>';
+  document.getElementById('modal-content').innerHTML = `
+    <div class="modal-meta">Replay · ${type} · ${rep.snapshots_count} snapshots · ${rep.decisions_count} decisions · ${rep.lessons_count} lessons</div>
+    <div class="modal-h">${esc(rep.title)}</div>
+    ${rep.hypothesis ? `<div class="modal-section"><h4>Hypothesis</h4><p>${esc(rep.hypothesis)}</p></div>` : ''}
+    ${rep.what_proves_it ? `<div class="modal-section"><h4>What proves it</h4><p>${esc(rep.what_proves_it)}</p></div>` : ''}
+    ${rep.what_kills_it ? `<div class="modal-section"><h4>What kills it</h4><p>${esc(rep.what_kills_it)}</p></div>` : ''}
+    ${rep.next_action ? `<div class="modal-section"><h4>Next action</h4><p>${esc(rep.next_action)}</p></div>` : ''}
+    <div class="modal-section">
+      <h4>Timeline</h4>
+      ${events}
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary right" onclick="closeModal()">Close</button>
+    </div>
+  `;
+}
 
 function esc(s) {
   if (s == null) return '';

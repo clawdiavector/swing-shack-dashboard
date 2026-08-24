@@ -14795,6 +14795,50 @@ def strategy_plan_vs_actual():
     return jsonify({"ok": True, "plan_vs_actual": pva}), 200
 
 
+
+# ─── Monday brief + strategic strip + replay ─────────────────────────
+
+@app.route('/api/strategy/brief/weekly', methods=['GET'])
+def strategy_weekly_brief():
+    """The Monday brief. Composed on-the-fly from current state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    snapshot_first = request.args.get('snapshot', 'true').lower() == 'true'
+    fmt = request.args.get('format', 'json')
+    from _lib import weekly_brief as wb
+    brief = wb.compose_monday_brief(bid, snapshot_first=snapshot_first)
+    if fmt == 'markdown':
+        return Response(wb.render_brief_markdown(brief), mimetype='text/markdown'), 200
+    return jsonify({"ok": True, "brief": brief}), 200
+
+
+@app.route('/api/strategy/strip', methods=['GET'])
+def strategy_compact_strip():
+    """Compact strategic strip — Mon-Sun row + active-this-week pills.
+    ?weeks_ahead=0 (this week), 1 (next), -1 (last)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    weeks_ahead = request.args.get('weeks_ahead', 0, type=int)
+    from _lib import weekly_brief as wb
+    strip = wb.build_compact_strip(bid, weeks_ahead=weeks_ahead)
+    return jsonify({"ok": True, "strip": strip}), 200
+
+
+@app.route('/api/strategy/replay/<record_type>/<record_id>', methods=['GET'])
+def strategy_replay(record_type, record_id):
+    """Full chronological history of a move or bet — snapshots, decisions, lessons."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import weekly_brief as wb
+    replay = wb.build_replay(bid, record_type, record_id)
+    if not replay:
+        return jsonify({"ok": False, "error": "record not found"}), 404
+    return jsonify({"ok": True, "replay": replay}), 200
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
     _boot_selfheal_windsor()

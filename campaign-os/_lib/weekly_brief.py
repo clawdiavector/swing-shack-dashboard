@@ -1,0 +1,788 @@
+"""
+weekly_brief.py — Monday-morning strategic brief generator.
+
+This is the proactive OS layer. Runs Monday 06:00 SAST (04:00 UTC).
+
+The brief is the OS preparing the argument so Christelle can make the
+decision, not the OS making the decision. The brief contains:
+
+  1. WHAT CHANGED — only the deltas since last Monday:
+       - Trend signal moves (flat → strengthening, etc.)
+       - New evidence against a thesis
+       - Disproved signals
+       - Decisions/review dates approaching
+       - Missed execution (planned vs actual gap)
+       - Strategy density warnings (3+ bets/month)
+       - Lessons strong enough to promote to a bet
+
+  2. THIS WEEK — mini calendar showing what's in play:
+       Marketing swimlane (moves + content)
+       Advertising swimlane (moves + content)
+       Milestones for the week (launch / review / decision)
+
+  3. DECISIONS THIS WEEK — full argument per decision:
+       Current signal · Evidence for · Evidence against · Last lesson
+       Recommended decision with one-line rationale
+
+  4. THIS WEEK'S MARKETING PRIORITIES — max 3:
+       The OS's synthesis of what should actually ship this week.
+
+The cron runs strategy_store.snapshot_evidence() first so the change
+detection has a fresh baseline to diff against.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import datetime
+from pathlib import Path
+from typing import Any, Optional, List, Dict
+
+import sys
+HERE = Path(__file__).resolve()
+sys.path.insert(0, str(HERE.parent))  # _lib is sibling
+
+from strategy_store import (
+    load_strategy,
+    load_trend,
+    save_trend,
+    snapshot_evidence,
+    compute_trend_signal,
+    compute_strategy_density,
+    get_decision_queue,
+    EVIDENCE_CATEGORIES,
+    VALID_DECISIONS,
+)
+
+
+def _now() -> str:
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+def _today_date() -> datetime.date:
+    return datetime.datetime.now(datetime.timezone.utc).date()
+
+
+def _week_range(d: datetime.date = None) -> tuple:
+    """Return (monday, sunday) of the week containing d."""
+    d = d or _today_date()
+    monday = d - datetime.timedelta(days=d.weekday())
+    sunday = monday + datetime.timedelta(days=6)
+    return monday, sunday
+
+
+def _format_date(d) -> str:
+    if isinstance(d, str):
+        try: d = datetime.date.fromisoformat(d[:10])
+        except ValueError: return d[:10] if d else ""
+    if isinstance(d, datetime.datetime):
+        d = d.date()
+    if isinstance(d, datetime.date):
+        return d.strftime("%d %b")
+    return str(d)[:10]
+
+
+# ─── Change detection ─────────────────────────────────────────────────
+
+def detect_changes(brand_id: str) -> List[Dict[str, Any]]:
+    """Compare the current state against the last weekly snapshot.
+    Returns a list of {category, severity, summary, detail, refs[]} dicts.
+    Categories: trend_shift | new_evidence_against | disproved | decision_due
+                | execution_missed | density_warning | promotable_lesson"""
+    s = load_strategy(brand_id)
+    trend = load_trend(brand_id)
+    snapshots = trend.get("snapshots", [])
+
+    changes = []
+
+    # 1. Trend signal shifts (compare each record's current signal to last week's)
+    last_snap = snapshots[-1] if snapshots else None
+    for m in s.get("market_moves", []):
+        cur = compute_trend_signal(brand_id, m["id"], "move")
+        prev_signal = last_snap["moves"].get(m["id"], {}).get("trend_signal") if last_snap and "trend_signal" in last_snap.get("moves", {}).get(m["id"], {}) else None
+        # Fallback: derive prev from prev snapshot's evidence counts
+        if not prev_signal and last_snap:
+            prev_data = last_snap.get("moves", {}).get(m["id"], {})
+            prev_for = prev_data.get("evidence_for", 0)
+            prev_against = prev_data.get("evidence_against", 0)
+            prev_net = prev_for - prev_against
+            prev_signal = "disproved" if prev_net <= -3 else ("weakening" if prev_net < 0 else ("strengthening" if prev_net > 0 else "flat"))
+
+        cur_signal = cur.get("signal", "flat")
+        if cur_signal != prev_signal:
+            changes.append({
+                "category": "trend_shift",
+                "severity": "high" if cur_signal == "disproved" else "medium",
+                "summary": f"Move '{m['title']}' trend moved {prev_signal or 'new'} → {cur_signal}",
+                "detail": cur.get("reason", ""),
+                "refs": [{"type": "move", "id": m["id"], "title": m["title"]}],
+            })
+
+    for b in s.get("bets", []):
+        cur = compute_trend_signal(brand_id, b["id"], "bet")
+        prev_signal = None
+        if last_snap and b["id"] in last_snap.get("bets", {}):
+            prev_data = last_snap["bets"][b["id"]]
+            if "trend_signal" in prev_data:
+                prev_signal = prev_data["trend_signal"]
+            else:
+                prev_net = prev_data.get("evidence_for", 0) - prev_data.get("evidence_against", 0)
+                prev_signal = "disproved" if prev_net <= -3 else ("weakening" if prev_net < 0 else ("strengthening" if prev_net > 0 else "flat"))
+        cur_signal = cur.get("signal", "flat")
+        if cur_signal != prev_signal:
+            changes.append({
+                "category": "trend_shift",
+                "severity": "high" if cur_signal == "disproved" else "medium",
+                "summary": f"Bet '{b['title']}' trend moved {prev_signal or 'new'} → {cur_signal}",
+                "detail": cur.get("reason", ""),
+                "refs": [{"type": "bet", "id": b["id"], "title": b["title"]}],
+            })
+
+    # 2. New evidence against a thesis (compared to last snapshot)
+    if last_snap:
+        for m in s.get("market_moves", []):
+            cur_ev = m.get("evidence_against", [])
+            prev_count = last_snap.get("moves", {}).get(m["id"], {}).get("evidence_against", 0)
+            if len(cur_ev) > prev_count and cur_ev:
+                new_items = cur_ev[prev_count:]
+                changes.append({
+                    "category": "new_evidence_against",
+                    "severity": "high" if any("disproved" in (e.get("value", "") + e.get("source", "")).lower() for e in new_items) else "medium",
+                    "summary": f"{len(new_items)} new piece(s) of evidence against move '{m['title']}'",
+                    "detail": "; ".join(e.get("value", "")[:80] for e in new_items[:2]),
+                    "refs": [{"type": "move", "id": m["id"], "title": m["title"], "evidence": new_items}],
+                })
+
+        for b in s.get("bets", []):
+            cur_ev = b.get("evidence", [])
+            prev_count = last_snap.get("bets", {}).get(b["id"], {}).get("evidence_for", 0)
+            if len(cur_ev) > prev_count and cur_ev:
+                new_items = cur_ev[prev_count:]
+                # Categorise: are they for or against?
+                # We don't have a separate against list on bets, so assume neutral.
+                changes.append({
+                    "category": "new_evidence",
+                    "severity": "low",
+                    "summary": f"{len(new_items)} new evidence item(s) for bet '{b['title']}'",
+                    "detail": "; ".join(e.get("value", "")[:80] for e in new_items[:2]),
+                    "refs": [{"type": "bet", "id": b["id"], "title": b["title"], "evidence": new_items}],
+                })
+
+    # 3. Decisions/review dates approaching (within 14 days)
+    queue = get_decision_queue(brand_id, within_days=14)
+    for item in queue:
+        if item.get("decision_already_recorded"):
+            continue
+        severity = "high" if item.get("overdue") else ("medium" if item["days_away"] <= 7 else "low")
+        verb = "OVERDUE" if item.get("overdue") else f"in {item['days_away']}d"
+        changes.append({
+            "category": "decision_due",
+            "severity": severity,
+            "summary": f"Decision {verb}: {item['title']}",
+            "detail": f"decision_date {item['decision_date']} · KPI: {item.get('primary_kpi', '—')}",
+            "refs": [{"type": "bet", "id": item["bet_id"], "title": item["title"]}],
+        })
+
+    # 4. Missed execution (planned vs actual)
+    for b in s.get("bets", []):
+        log = b.get("execution_log", [])
+        missed = [e for e in log if e.get("delta") == "missed"]
+        if missed:
+            changes.append({
+                "category": "execution_missed",
+                "severity": "medium",
+                "summary": f"{len(missed)} missed execution entries on bet '{b['title']}'",
+                "detail": "; ".join(f"planned '{e['planned']}'" for e in missed[:2]),
+                "refs": [{"type": "bet", "id": b["id"], "title": b["title"]}],
+            })
+
+    # 5. Strategy density (3+ bets in same month — current or upcoming)
+    density = compute_strategy_density(brand_id)
+    for w in density.get("warnings", []):
+        # Only surface months that are current or upcoming (within 90 days)
+        try:
+            month_num = w["month_num"]
+            today = _today_date()
+            current_month = today.month
+            if month_num < current_month or month_num > current_month + 3:
+                continue
+        except (KeyError, TypeError):
+            continue
+        changes.append({
+            "category": "density_warning",
+            "severity": w.get("severity", "medium"),
+            "summary": w.get("message", ""),
+            "detail": "; ".join(b["title"] for b in w.get("bets", [])[:5]),
+            "refs": [{"type": "month_warning", "id": str(w["month_num"]), "title": w.get("message", "")}],
+        })
+
+    # 6. Lessons strong enough to promote
+    for l in s.get("lessons", []):
+        if not l.get("still_valid", True): continue
+        if l.get("promoted_to_bet_id"): continue
+        if l.get("category") in ("worked", "retry_with_different_approach") and len(l.get("evidence", [])) >= 2:
+            changes.append({
+                "category": "promotable_lesson",
+                "severity": "low",
+                "summary": f"Lesson ready to promote: {l['claim'][:60]}…",
+                "detail": f"category={l['category']} · {len(l.get('evidence', []))} pieces of evidence",
+                "refs": [{"type": "lesson", "id": l["id"], "title": l.get("claim", "")[:80]}],
+            })
+
+    # Dedupe (same summary)
+    seen = set()
+    deduped = []
+    for c in changes:
+        key = (c["category"], c.get("summary", ""))
+        if key in seen: continue
+        seen.add(key)
+        deduped.append(c)
+
+    # Sort by severity then category
+    severity_order = {"high": 0, "medium": 1, "low": 2}
+    deduped.sort(key=lambda c: (severity_order.get(c["severity"], 3), c["category"]))
+    return deduped
+
+
+# ─── This-week calendar ───────────────────────────────────────────────
+
+def build_week_calendar(brand_id: str, monday: datetime.date = None) -> Dict[str, Any]:
+    """Build the 'THIS WEEK' mini calendar with marketing/advertising
+    swimlanes and milestones for the upcoming 7 days."""
+    s = load_strategy(brand_id)
+    today = _today_date()
+    monday = monday or (today - datetime.timedelta(days=today.weekday()))
+    sunday = monday + datetime.timedelta(days=6)
+
+    marketing = []
+    advertising = []
+
+    for b in s.get("bets", []):
+        if b.get("status") not in ("in_flight", "planned"):
+            continue
+        bs = b.get("start_date") or ""
+        be = b.get("target_end_date") or bs
+        try:
+            bs_d = datetime.date.fromisoformat(bs[:10]) if bs else None
+            be_d = datetime.date.fromisoformat(be[:10]) if be else None
+        except ValueError:
+            continue
+        if not bs_d or not be_d:
+            continue
+        if be_d < monday or bs_d > sunday:
+            continue  # bet doesn't touch this week
+        # Find milestones in this week
+        ms = []
+        for m in b.get("milestones", []):
+            try:
+                md = datetime.date.fromisoformat(m["date"][:10])
+                if monday <= md <= sunday:
+                    ms.append({"date": md.isoformat(), "type": m.get("type"), "label": m.get("label", "")})
+            except (ValueError, TypeError):
+                continue
+        for m in s.get("market_moves", []):
+            if m.get("id") != b.get("links_to_market_move"):
+                continue
+            for mm in m.get("milestones", []):
+                try:
+                    md = datetime.date.fromisoformat(mm["date"][:10])
+                    if monday <= md <= sunday:
+                        ms.append({"date": md.isoformat(), "type": mm.get("type"), "label": f"[move] {mm.get('label', '')}"})
+                except (ValueError, TypeError):
+                    continue
+
+        # Themes → ship-this-week plan
+        themes = b.get("content_themes", [])[:3]
+
+        item = {
+            "bet_id": b["id"],
+            "title": b["title"],
+            "horizon": b.get("horizon", "quarter"),
+            "start": bs_d.isoformat(),
+            "end": be_d.isoformat(),
+            "milestones_this_week": sorted(ms, key=lambda x: x["date"]),
+            "themes": themes,
+            "watch_metrics": b.get("watch_metrics", [])[:3],
+        }
+        if b.get("workhorse") == "advertising":
+            advertising.append(item)
+        else:
+            marketing.append(item)
+
+    # Day-by-day strip (Mon..Sun)
+    day_strip = []
+    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    for i in range(7):
+        d = monday + datetime.timedelta(days=i)
+        day_label = day_names[i]
+        # What ships that day? Milestones on that date.
+        ships = []
+        for lane in marketing + advertising:
+            for ms in lane.get("milestones_this_week", []):
+                if ms["date"] == d.isoformat():
+                    ships.append({"lane": "marketing" if lane in marketing else "advertising",
+                                  "bet": lane["title"], "label": ms["label"], "type": ms["type"]})
+        day_strip.append({"date": d.isoformat(), "day": day_label, "ships": ships})
+
+    return {
+        "week_of": monday.isoformat(),
+        "week_to": sunday.isoformat(),
+        "marketing": marketing,
+        "advertising": advertising,
+        "day_strip": day_strip,
+    }
+
+
+# ─── Decisions-this-week argument builder ───────────────────────────
+
+def build_decision_arguments(brand_id: str) -> List[Dict[str, Any]]:
+    """For every decision due in the next 14 days, build the full
+    argument: current signal, evidence for, evidence against, last
+    lesson, recommended outcome, rationale."""
+    s = load_strategy(brand_id)
+    queue = get_decision_queue(brand_id, within_days=14)
+    arguments = []
+    for item in queue:
+        if item.get("decision_already_recorded"):
+            continue
+        bet = next((b for b in s.get("bets", []) if b["id"] == item["bet_id"]), None)
+        if not bet:
+            continue
+        trend = compute_trend_signal(brand_id, bet["id"], "bet")
+        signal = trend.get("signal", "flat")
+        evidence_for = bet.get("evidence", [])
+        evidence_for_str = "; ".join(e.get("value", "")[:120] for e in evidence_for[:3]) or "—"
+
+        # Find evidence against from linked market move
+        move = next((m for m in s.get("market_moves", []) if m["id"] == bet.get("links_to_market_move")), None)
+        evidence_against = move.get("evidence_against", []) if move else []
+        evidence_against_str = "; ".join(e.get("value", "")[:120] for e in evidence_against[:3]) or "—"
+
+        # Last lesson
+        related_lessons = [
+            l for l in s.get("lessons", [])
+            if l.get("from_bet") == bet["id"] or l.get("id") in (bet.get("linked_lesson_ids") or [])
+        ]
+        last_lesson = related_lessons[-1] if related_lessons else None
+        last_lesson_str = ""
+        if last_lesson:
+            last_lesson_str = f"[{last_lesson['category']}] {last_lesson['claim'][:140]}"
+        else:
+            last_lesson_str = "No lessons attached yet."
+
+        # Recommend based on signal + evidence
+        # Rules:
+        #   - disproved signal + against evidence → KILL
+        #   - strengthening signal + meaningful for-evidence → SCALE
+        #   - flat signal with evidence on both sides → REFINE
+        #   - weakening with execution_log gap → RETRY DIFFERENTLY
+        #   - new bet (gathering) → REFINE if hypothesis still valid
+        for_count = len(evidence_for)
+        against_count = len(evidence_against)
+        execution_misses = sum(1 for e in bet.get("execution_log", []) if e.get("delta") == "missed")
+
+        if signal == "disproved":
+            recommended = "kill"
+            rationale = "Trend disproved. Hypothesis invalidated by data."
+        elif signal == "weakening" and execution_misses >= 2:
+            recommended = "retry_differently"
+            rationale = f"Signal weakening with {execution_misses} missed executions — execution failing but hypothesis may still hold."
+        elif signal == "strengthening" and for_count >= 3:
+            recommended = "scale"
+            rationale = f"Trend strengthening with {for_count} pieces of supporting evidence."
+        elif signal == "strengthening":
+            recommended = "scale"
+            rationale = "Trend strengthening — consider scaling."
+        elif for_count >= 2 and against_count == 0 and signal != "disproved":
+            recommended = "scale"
+            rationale = f"{for_count} pieces of supporting evidence, none against — scale."
+        else:
+            recommended = "refine"
+            rationale = "Mixed signal — refine the execution angle."
+
+        arguments.append({
+            "bet_id": bet["id"],
+            "title": bet["title"],
+            "workhorse": bet.get("workhorse", "marketing"),
+            "decision_date": bet.get("decision_date"),
+            "days_away": item["days_away"],
+            "overdue": item.get("overdue", False),
+            "current_signal": signal,
+            "evidence_for": evidence_for_str,
+            "evidence_against": evidence_against_str,
+            "last_lesson": last_lesson_str,
+            "recommended": recommended,
+            "rationale": rationale,
+            "kpi": bet.get("primary_kpi", "—"),
+            "threshold": bet.get("success_threshold", "—"),
+        })
+    return arguments
+
+
+# ─── Marketing priorities synthesis ─────────────────────────────────
+
+def synthesize_priorities(brand_id: str, max_priorities: int = 3) -> List[Dict[str, Any]]:
+    """Given the current state of the strategy (trends, decisions due,
+    missed execution, density warnings), synthesize the max-3 marketing
+    priorities for this week. Each priority is a {title, bet_id, why,
+    action_first_step} dict.
+
+    Algorithm:
+      1. Every decision due in next 14 days contributes one priority
+         whose action is to make the decision (the bet itself).
+      2. If a bet has the next-action text and a status of in_flight
+         with no execution_log entry this week, that's a priority.
+      3. If a move has weakening/disproved trend AND no decision_date
+         approaching, surface "review and decide whether to keep"
+      4. Cap at max_priorities (default 3).
+    """
+    s = load_strategy(brand_id)
+    priorities = []
+
+    # 1. Decisions due → make those decisions
+    decisions = build_decision_arguments(brand_id)
+    for d in decisions[:1]:  # max 1 priority slot for the most urgent decision
+        priorities.append({
+            "title": f"Decide on '{d['title']}'",
+            "bet_id": d["bet_id"],
+            "why": f"Decision {('OVERDUE' if d['overdue'] else 'in ' + str(d['days_away']) + 'd')}. Signal: {d['current_signal']}. Recommended: {d['recommended'].upper()}.",
+            "action_first_step": f"Open the bet, review the evidence, record the {d['recommended']} decision.",
+        })
+
+    # 2. In-flight bets with concrete next actions
+    in_flight = [b for b in s.get("bets", []) if b.get("status") == "in_flight"]
+    # Pick the bet with the most-recent next_action that's not yet covered
+    used_ids = {p.get("bet_id") for p in priorities}
+    for b in in_flight:
+        if len(priorities) >= max_priorities:
+            break
+        if b["id"] in used_ids:
+            continue
+        next_action = (b.get("next_action") or "").strip()
+        if not next_action:
+            continue
+        # Check execution_log freshness — if no entry in last 14 days, this is a priority
+        log = b.get("execution_log", [])
+        recent_log = [e for e in log if (e.get("date") or "") >= (_today_date() - datetime.timedelta(days=14)).isoformat()]
+        if recent_log:
+            continue  # already logged something recently
+        priorities.append({
+            "title": f"Prove '{b['title']}'",
+            "bet_id": b["id"],
+            "why": f"Next action pending. KPI: {b.get('primary_kpi', '—')}. Threshold: {b.get('success_threshold', '—')}.",
+            "action_first_step": next_action[:140],
+        })
+        used_ids.add(b["id"])
+
+    # 3. Capacity protection (density warning)
+    density = compute_strategy_density(brand_id)
+    cur_month = _today_date().month
+    current_warnings = [w for w in density.get("warnings", []) if w.get("month_num") == cur_month]
+    if current_warnings and len(priorities) < max_priorities:
+        w = current_warnings[0]
+        priorities.append({
+            "title": "Protect capacity",
+            "bet_id": None,
+            "why": f"{w['count']} active bets in {w['month']}. Don't add another until one reaches a decision.",
+            "action_first_step": "Review the decision queue and resolve the most overdue bet first.",
+        })
+
+    # 4. Fill remaining slots with high-impact in-flight bets
+    for b in in_flight:
+        if len(priorities) >= max_priorities:
+            break
+        if b["id"] in used_ids:
+            continue
+        # Skip bets with no hypothesis / evidence
+        if not b.get("hypothesis"):
+            continue
+        priorities.append({
+            "title": f"Advance '{b['title']}'",
+            "bet_id": b["id"],
+            "why": f"In-flight bet. KPI: {b.get('primary_kpi', '—')}.",
+            "action_first_step": (b.get("next_action") or "Take one step toward KPI")[:140],
+        })
+        used_ids.add(b["id"])
+
+    return priorities[:max_priorities]
+
+
+# ─── Compact strip (for company-profile header) ─────────────────────
+
+def build_compact_strip(brand_id: str, weeks_ahead: int = 0) -> Dict[str, Any]:
+    """Compact strategic strip — Mon-Sun row + active-this-week pills.
+    weeks_ahead: 0 = this week, 1 = next week, etc."""
+    today = _today_date()
+    monday = today - datetime.timedelta(days=today.weekday()) + datetime.timedelta(weeks=weeks_ahead)
+    week_cal = build_week_calendar(brand_id, monday=monday)
+    s = load_strategy(brand_id)
+
+    # Active this week pills (moves + bets with trend signal)
+    active_pills = []
+    for m in s.get("market_moves", []):
+        if m.get("status") not in ("active", "planned"):
+            continue
+        bs = m.get("start_date") or ""
+        be = m.get("target_end_date") or bs
+        try:
+            bs_d = datetime.date.fromisoformat(bs[:10])
+            be_d = datetime.date.fromisoformat(be[:10])
+        except ValueError:
+            continue
+        if be_d < monday or bs_d > monday + datetime.timedelta(days=6):
+            continue
+        trend = compute_trend_signal(brand_id, m["id"], "move")
+        active_pills.append({
+            "id": m["id"], "type": "move", "title": m["title"],
+            "workhorse": m.get("workhorse", "marketing"),
+            "trend": trend.get("signal", "flat"),
+            "reason": trend.get("reason", ""),
+        })
+    for b in s.get("bets", []):
+        if b.get("status") not in ("in_flight", "planned"):
+            continue
+        bs = b.get("start_date") or ""
+        be = b.get("target_end_date") or bs
+        try:
+            bs_d = datetime.date.fromisoformat(bs[:10])
+            be_d = datetime.date.fromisoformat(be[:10])
+        except ValueError:
+            continue
+        if be_d < monday or bs_d > monday + datetime.timedelta(days=6):
+            continue
+        trend = compute_trend_signal(brand_id, b["id"], "bet")
+        active_pills.append({
+            "id": b["id"], "type": "bet", "title": b["title"],
+            "workhorse": b.get("workhorse", "marketing"),
+            "trend": trend.get("signal", "flat"),
+            "reason": trend.get("reason", ""),
+        })
+
+    return {
+        "week_of": monday.isoformat(),
+        "week_to": (monday + datetime.timedelta(days=6)).isoformat(),
+        "day_strip": week_cal["day_strip"],
+        "active": active_pills,
+    }
+
+
+# ─── Replay view ─────────────────────────────────────────────────────
+
+def build_replay(brand_id: str, record_type: str, record_id: str) -> Dict[str, Any]:
+    """Full chronological history of a record:
+      - All snapshot data (evidence_for/against over time)
+      - Trend signal over time
+      - All decisions made on it
+      - All lessons attached to it
+      - Execution log entries
+    """
+    s = load_strategy(brand_id)
+    trend = load_trend(brand_id)
+    snapshots = trend.get("snapshots", [])
+
+    if record_type == "move":
+        rec = next((m for m in s.get("market_moves", []) if m["id"] == record_id), None)
+    elif record_type == "bet":
+        rec = next((b for b in s.get("bets", []) if b["id"] == record_id), None)
+    else:
+        raise ValueError(f"record_type must be move or bet, got {record_type}")
+
+    if not rec:
+        return None
+
+    # Build chronological timeline
+    timeline = []
+
+    # Snapshot-based trend signal at each snapshot
+    for snap in snapshots:
+        key = "moves" if record_type == "move" else "bets"
+        if record_id not in snap.get(key, {}):
+            continue
+        snap_data = snap[key][record_id]
+        ev_for = snap_data.get("evidence_for", 0)
+        ev_against = snap_data.get("evidence_against", 0)
+        net = ev_for - ev_against
+        if net <= -3:
+            signal = "disproved"
+        elif net > 0:
+            signal = "strengthening"
+        elif net < 0:
+            signal = "weakening"
+        else:
+            signal = "flat"
+        timeline.append({
+            "date": snap["date"],
+            "type": "snapshot",
+            "title": f"Trend snapshot: {signal}",
+            "evidence_for": ev_for,
+            "evidence_against": ev_against,
+            "net": net,
+        })
+
+    # Decisions
+    if record_type == "bet" and rec.get("decision"):
+        d = rec["decision"]
+        timeline.append({
+            "date": d.get("decided_at"),
+            "type": "decision",
+            "title": f"Decision: {d.get('outcome', '').upper()}",
+            "detail": d.get("note", ""),
+        })
+
+    # Lessons
+    for l in s.get("lessons", []):
+        if l.get("from_bet") == record_id or (record_type == "bet" and record_id in (l.get("linked_lesson_ids") or []) if isinstance(l.get("linked_lesson_ids"), list) else False):
+            timeline.append({
+                "date": l.get("learned_at"),
+                "type": "lesson",
+                "title": f"Lesson ({l['category']}): {l.get('claim', '')[:80]}",
+                "still_valid": l.get("still_valid", True),
+            })
+
+    # Execution log
+    if record_type == "bet":
+        for e in rec.get("execution_log", []):
+            timeline.append({
+                "date": e.get("date"),
+                "type": "execution",
+                "title": f"Execution: planned '{e.get('planned', '')}' → actual '{e.get('actual', '')}'",
+                "delta": e.get("delta"),
+                "note": e.get("note", ""),
+            })
+
+    # Milestones
+    for m in rec.get("milestones", []):
+        timeline.append({
+            "date": m.get("date"),
+            "type": "milestone",
+            "title": f"Milestone ({m.get('type')}): {m.get('label', '')}",
+        })
+
+    timeline.sort(key=lambda t: t.get("date") or "")
+
+    return {
+        "record_id": record_id,
+        "record_type": record_type,
+        "title": rec.get("title", ""),
+        "current_status": rec.get("status", ""),
+        "hypothesis": rec.get("hypothesis", ""),
+        "what_proves_it": rec.get("what_proves_it", ""),
+        "what_kills_it": rec.get("what_kills_it", ""),
+        "next_action": rec.get("next_action", ""),
+        "timeline": timeline,
+        "snapshots_count": len([t for t in timeline if t["type"] == "snapshot"]),
+        "decisions_count": len([t for t in timeline if t["type"] == "decision"]),
+        "lessons_count": len([t for t in timeline if t["type"] == "lesson"]),
+    }
+
+
+# ─── Compose the full Monday brief ──────────────────────────────────
+
+def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = True) -> Dict[str, Any]:
+    """Compose the complete Monday brief. If snapshot_first is True,
+    takes a fresh weekly snapshot before generating."""
+    if snapshot_first:
+        snapshot_evidence(brand_id)
+
+    changes = detect_changes(brand_id)
+    week_cal = build_week_calendar(brand_id)
+    decisions = build_decision_arguments(brand_id)
+    priorities = synthesize_priorities(brand_id)
+    strip = build_compact_strip(brand_id)
+
+    return {
+        "brand_id": brand_id,
+        "generated_at": _now(),
+        "week_of": week_cal["week_of"],
+        "week_to": week_cal["week_to"],
+        "what_changed": changes,
+        "this_week": week_cal,
+        "decisions_this_week": decisions,
+        "priorities": priorities,
+        "strip": strip,
+    }
+
+
+# ─── Markdown formatter for Discord / shell output ─────────────────
+
+def render_brief_markdown(brief: Dict[str, Any]) -> str:
+    """Render the brief as Discord-friendly markdown."""
+    md = []
+    md.append(f"## Strategy brief · week of {brief['week_of']} → {brief['week_to']}")
+    md.append("")
+
+    # What changed
+    md.append("### What changed")
+    if not brief["what_changed"]:
+        md.append("_No changes detected this week — every thesis is holding._")
+    else:
+        for c in brief["what_changed"][:8]:
+            emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(c["severity"], "·")
+            md.append(f"- {emoji} **{c['summary']}**")
+            if c.get("detail"):
+                md.append(f"  _{c['detail'][:140]}_")
+    md.append("")
+
+    # This week
+    md.append("### This week")
+    md.append("")
+    if brief["this_week"]["marketing"]:
+        md.append("**Marketing**")
+        for b in brief["this_week"]["marketing"]:
+            themes = ", ".join(b["themes"][:3]) or "—"
+            md.append(f"- {b['title']} · themes: {themes}")
+            for ms in b["milestones_this_week"]:
+                d = _format_date(ms["date"])
+                emoji = {"launch": "🚀", "review": "🔍", "decision": "⚖️", "test_start": "🧪", "test_end": "🧪✓"}.get(ms["type"], "·")
+                md.append(f"  - {emoji} **{d}** {ms['label']}")
+        md.append("")
+    if brief["this_week"]["advertising"]:
+        md.append("**Advertising**")
+        for b in brief["this_week"]["advertising"]:
+            themes = ", ".join(b["themes"][:3]) or "—"
+            md.append(f"- {b['title']} · themes: {themes}")
+            for ms in b["milestones_this_week"]:
+                d = _format_date(ms["date"])
+                emoji = {"launch": "🚀", "review": "🔍", "decision": "⚖️"}.get(ms["type"], "·")
+                md.append(f"  - {emoji} **{d}** {ms['label']}")
+        md.append("")
+
+    # Decisions
+    md.append("### Decisions this week")
+    if not brief["decisions_this_week"]:
+        md.append("_No decisions due. Every bet has a clear runway._")
+    else:
+        for d in brief["decisions_this_week"]:
+            verb = "OVERDUE" if d["overdue"] else f"in {d['days_away']}d"
+            md.append(f"**{d['title']}** — {verb}")
+            md.append(f"- Signal: {d['current_signal']}")
+            md.append(f"- Evidence for: {d['evidence_for'][:140]}")
+            md.append(f"- Evidence against: {d['evidence_against'][:140]}")
+            md.append(f"- Last lesson: {d['last_lesson'][:140]}")
+            md.append(f"- Recommended: **{d['recommended'].upper()}** — {d['rationale']}")
+            md.append("")
+
+    # Priorities
+    md.append("### This week's marketing priorities")
+    if not brief["priorities"]:
+        md.append("_No priorities synthesised — every bet is running smoothly._")
+    else:
+        for i, p in enumerate(brief["priorities"], 1):
+            md.append(f"{i}. **{p['title']}**")
+            md.append(f"   _Why:_ {p['why']}")
+            md.append(f"   _First step:_ {p['action_first_step']}")
+    md.append("")
+
+    return "\n".join(md)
+
+
+# ─── CLI entry point ───────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import sys
+    brand = sys.argv[1] if len(sys.argv) > 1 else "swing-shack"
+    brief = compose_monday_brief(brand)
+    print(json.dumps(brief, indent=2, default=str)[:5000])
+    print("\n--- markdown ---\n")
+    print(render_brief_markdown(brief))
