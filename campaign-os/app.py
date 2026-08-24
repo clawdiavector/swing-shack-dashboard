@@ -14684,6 +14684,117 @@ def strategy_promotion_candidates():
 
 
 
+
+# ─── Strategic calendar API ──────────────────────────────────────────
+
+@app.route('/api/strategy/calendar', methods=['GET'])
+def strategy_calendar():
+    """Return the strategic calendar view. ?view=year|quarter|month|week
+    ?year=2026&quarter=3&month=9 optional scope filters."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    view = request.args.get('view', 'year')
+    year = request.args.get('year', type=int)
+    quarter = request.args.get('quarter', type=int)
+    month = request.args.get('month', type=int)
+    from _lib import strategy_store as ss
+    cal = ss.get_calendar_view(bid, view=view, year=year, quarter=quarter, month=month)
+    return jsonify({"ok": True, "calendar": cal}), 200
+
+
+@app.route('/api/strategy/density', methods=['GET'])
+def strategy_density():
+    """Detect strategy density warnings — too many bets in one month."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    year = request.args.get('year', type=int)
+    from _lib import strategy_store as ss
+    density = ss.compute_strategy_density(bid, year=year)
+    return jsonify({"ok": True, "density": density}), 200
+
+
+@app.route('/api/strategy/decision-queue', methods=['GET'])
+def strategy_decision_queue():
+    """Bets approaching their decision_date — prompts SCALE/REFINE/RETRY/KILL."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    within = request.args.get('within_days', 30, type=int)
+    from _lib import strategy_store as ss
+    queue = ss.get_decision_queue(bid, within_days=within)
+    return jsonify({"ok": True, "queue": queue}), 200
+
+
+@app.route('/api/strategy/decision', methods=['POST'])
+def strategy_log_decision():
+    """Record a SCALE/REFINE/RETRY/KILL decision on a bet. Creates a lesson."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    bet_id = body.get('bet_id')
+    outcome = body.get('outcome')
+    note = body.get('note', '')
+    from _lib import strategy_store as ss
+    try:
+        result = ss.log_decision(bid, bet_id, outcome, note)
+        return jsonify({"ok": True, "strategy": result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/execution-log', methods=['POST'])
+def strategy_execution_log():
+    """Record what actually shipped vs what was planned. Powers PLAN vs ACTUAL."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    try:
+        result = ss.append_execution_log(bid, body.get('bet_id'),
+                                          body.get('planned', ''),
+                                          body.get('actual', ''),
+                                          body.get('note', ''))
+        return jsonify({"ok": True, "strategy": result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/milestone', methods=['POST'])
+def strategy_add_milestone():
+    """Add a milestone marker (launch / test_start / test_end / review /
+    decision / peak / seasonal / product / partnership)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    try:
+        result = ss.add_milestone(bid,
+                                   body.get('record_type'),  # 'move' or 'bet'
+                                   body.get('record_id'),
+                                   body.get('date'),
+                                   body.get('type'),
+                                   body.get('label'))
+        return jsonify({"ok": True, "strategy": result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/plan-vs-actual', methods=['GET'])
+def strategy_plan_vs_actual():
+    """Compare planned vs actual across all bets."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    pva = ss.compute_plan_vs_actual(bid)
+    return jsonify({"ok": True, "plan_vs_actual": pva}), 200
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
     _boot_selfheal_windsor()

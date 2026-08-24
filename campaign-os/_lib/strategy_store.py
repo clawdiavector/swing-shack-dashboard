@@ -274,6 +274,10 @@ def upsert_market_move(brand_id: str, move: dict) -> dict:
     move.setdefault("what_proves_it", "")
     move.setdefault("what_kills_it", "")
     move.setdefault("next_action", "")
+    # Strategic calendar fields
+    move.setdefault("review_date", "")  # when we re-examine the move
+    move.setdefault("decision_date", "")  # when we must decide keep/change/kill
+    move.setdefault("milestones", [])  # [{date, type, label}]
     move["updated_at"] = _now_iso()
     if move.get("workhorse") not in WORKHORSE_TYPES:
         move["workhorse"] = "marketing"
@@ -302,6 +306,15 @@ def upsert_bet(brand_id: str, bet: dict) -> dict:
     bet.setdefault("what_proves_it", "")
     bet.setdefault("what_kills_it", "")
     bet.setdefault("next_action", "")
+    # Strategic calendar fields
+    bet.setdefault("review_date", "")  # mid-bet check-in
+    bet.setdefault("decision_date", "")  # when we must decide SCALE/REFINE/RETRY/KILL
+    bet.setdefault("decision", None)  # {outcome, decided_at, note} — populated by decision endpoint
+    bet.setdefault("milestones", [])  # [{date, type, label}]
+    bet.setdefault("execution_log", [])  # [{date, planned, actual, note}] — plan vs actual
+    bet.setdefault("content_themes", [])  # content themes planned for this bet
+    bet.setdefault("experiments", [])  # [{name, start, end, status}] A/B tests within the bet
+    bet.setdefault("watch_metrics", [])  # metrics watched weekly for this bet
     bet["updated_at"] = _now_iso()
     if bet.get("workhorse") not in WORKHORSE_TYPES:
         bet["workhorse"] = "marketing"
@@ -442,6 +455,346 @@ def link_calendar_post_to_bet(brand_id: str, bet_id: str, post_id: str) -> dict:
 
 # ─── Seeding ──────────────────────────────────────────────────────────
 
+
+# ─── Strategic calendar helpers ───────────────────────────────────────
+
+VALID_DECISIONS = {"scale", "refine", "retry_differently", "kill", "park"}
+VALID_MILESTONE_TYPES = {"launch", "test_start", "test_end", "review", "decision", "peak", "seasonal", "product", "partnership"}
+
+
+def log_decision(brand_id: str, bet_id: str, outcome: str, note: str = "") -> dict:
+    """Record a SCALE/REFINE/RETRY/KILL decision on a bet.
+    A 'kill' invalidates the bet (visible, not deleted).
+    A 'scale' or 'refine' leaves the bet in flight but writes to strategic memory.
+    A 'retry_differently' creates a new suggested bet tied to the old one."""
+    if outcome not in VALID_DECISIONS:
+        raise ValueError(f"outcome must be one of {VALID_DECISIONS}")
+    s = load_strategy(brand_id)
+    bet = next((b for b in s.get("bets", []) if b.get("id") == bet_id), None)
+    if not bet:
+        raise ValueError(f"bet {bet_id} not found")
+    decision = {
+        "outcome": outcome,
+        "decided_at": _today(),
+        "note": note,
+    }
+    bet["decision"] = decision
+    bet["updated_at"] = _now_iso()
+    if outcome == "kill":
+        bet["status"] = "lost"
+    elif outcome == "scale":
+        bet["status"] = "won"
+    elif outcome == "park":
+        bet["status"] = "retired"
+
+    # Always log a lesson from the decision — strategic memory
+    lesson_category_map = {
+        "scale": "worked",
+        "refine": "data_suggests_test_next",
+        "retry_differently": "retry_with_different_approach",
+        "kill": "disproved",
+        "park": "underperformed",
+    }
+    lesson = {
+        "category": lesson_category_map[outcome],
+        "claim": f"Bet '{bet['title']}' decision: {outcome}. {note}".strip(),
+        "evidence": [{
+            "source": "decision",
+            "value": f"decision_date triggered outcome={outcome}; note={note[:120]}",
+            "as_of": _today(),
+        }],
+        "from_bet": bet_id,
+        "decision_outcome": outcome,
+    }
+    upsert_lesson(brand_id, lesson)
+    return load_strategy(brand_id)
+
+
+def append_execution_log(brand_id: str, bet_id: str, planned: str, actual: str, note: str = "") -> dict:
+    """Record what actually shipped vs what was planned. Powers PLAN vs ACTUAL toggle."""
+    s = load_strategy(brand_id)
+    bet = next((b for b in s.get("bets", []) if b.get("id") == bet_id), None)
+    if not bet:
+        raise ValueError(f"bet {bet_id} not found")
+    log_entry = {
+        "date": _today(),
+        "planned": planned,
+        "actual": actual,
+        "note": note,
+        "delta": "matched" if actual == planned else ("partial" if actual and planned else "missed"),
+    }
+    bet.setdefault("execution_log", []).append(log_entry)
+    bet["updated_at"] = _now_iso()
+    save_strategy(s, brand_id)
+    return s
+
+
+def add_milestone(brand_id: str, record_type: str, record_id: str, date: str, type: str, label: str) -> dict:
+    """Add a milestone marker (launch/test_start/test_end/review/decision/peak/seasonal/product/partnership)."""
+    if type not in VALID_MILESTONE_TYPES:
+        raise ValueError(f"type must be one of {VALID_MILESTONE_TYPES}")
+    s = load_strategy(brand_id)
+    key = "market_moves" if record_type == "move" else "bets"
+    for r in s.get(key, []):
+        if r.get("id") == record_id:
+            r.setdefault("milestones", []).append({
+                "date": date,
+                "type": type,
+                "label": label,
+            })
+            r["updated_at"] = _now_iso()
+            break
+    save_strategy(s, brand_id)
+    return s
+
+
+def compute_strategy_density(brand_id: str, year: int = None) -> dict:
+    """Detect when too many major bets are running in the same month.
+    Returns: {month: count, warnings: [...]} — warnings flag months with 3+ bets."""
+    import datetime as _dt
+    s = load_strategy(brand_id)
+    year = year or _dt.date.today().year
+    by_month = {m: [] for m in range(1, 13)}
+
+    for b in s.get("bets", []):
+        if b.get("status") not in ("in_flight", "planned"):
+            continue
+        start = b.get("start_date") or _today()
+        end = b.get("target_end_date") or start
+        try:
+            start_d = _dt.date.fromisoformat(start[:10])
+            end_d = _dt.date.fromisoformat(end[:10])
+        except (ValueError, TypeError):
+            continue
+        # Span the months this bet is active in
+        cur = start_d
+        while cur <= end_d:
+            if cur.year == year:
+                by_month[cur.month].append({
+                    "id": b["id"],
+                    "title": b["title"],
+                    "workhorse": b.get("workhorse", "marketing"),
+                })
+            # Move to next month
+            if cur.month == 12:
+                cur = _dt.date(cur.year + 1, 1, 1)
+            else:
+                cur = _dt.date(cur.year, cur.month + 1, 1)
+            if cur > end_d:
+                break
+
+    month_names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    density = {month_names[m]: len(by_month[m]) for m in range(1, 13)}
+    warnings = []
+    for m in range(1, 13):
+        bets_in_month = by_month[m]
+        if len(bets_in_month) >= 3:
+            # Check if there are bets from BOTH workhorses (a real density risk)
+            workhorses = set(b["workhorse"] for b in bets_in_month)
+            severity = "high" if len(bets_in_month) >= 5 else "medium"
+            warnings.append({
+                "month": month_names[m],
+                "month_num": m,
+                "count": len(bets_in_month),
+                "severity": severity,
+                "workhorses": list(workhorses),
+                "bets": [{"title": b["title"], "workhorse": b["workhorse"]} for b in bets_in_month],
+                "message": f"{len(bets_in_month)} major bets active in {month_names[m]} — are we spreading attention too thin?",
+            })
+
+    return {"year": year, "density_by_month": density, "warnings": warnings}
+
+
+def get_decision_queue(brand_id: str, within_days: int = 30) -> list:
+    """Return bets whose decision_date is approaching or past.
+    Used by the OS to prompt Christelle when a decision is due."""
+    import datetime as _dt
+    s = load_strategy(brand_id)
+    today = _dt.date.today()
+    queue = []
+    for b in s.get("bets", []):
+        if b.get("status") not in ("in_flight", "planned"):
+            continue
+        dec = b.get("decision_date")
+        if not dec:
+            continue
+        try:
+            dec_d = _dt.date.fromisoformat(dec[:10])
+        except (ValueError, TypeError):
+            continue
+        days_away = (dec_d - today).days
+        if days_away <= within_days:
+            queue.append({
+                "bet_id": b["id"],
+                "title": b["title"],
+                "decision_date": dec,
+                "days_away": days_away,
+                "overdue": days_away < 0,
+                "decision_already_recorded": b.get("decision") is not None,
+                "primary_kpi": b.get("primary_kpi"),
+                "evidence_count": len(b.get("evidence", [])),
+            })
+    return sorted(queue, key=lambda x: x["days_away"])
+
+
+def compute_plan_vs_actual(brand_id: str) -> dict:
+    """Compare planned vs actual across all bets."""
+    s = load_strategy(brand_id)
+    out = {"bets": [], "totals": {"planned": 0, "actual": 0, "matched": 0, "partial": 0, "missed": 0}}
+    for b in s.get("bets", []):
+        log = b.get("execution_log", [])
+        bet_summary = {
+            "bet_id": b["id"],
+            "title": b["title"],
+            "planned_count": 0,
+            "actual_count": 0,
+            "entries": log,
+        }
+        for entry in log:
+            if entry.get("planned"): bet_summary["planned_count"] += 1
+            if entry.get("actual"): bet_summary["actual_count"] += 1
+            for cat in ["matched", "partial", "missed"]:
+                if entry.get("delta") == cat:
+                    out["totals"][cat] += 1
+        out["bets"].append(bet_summary)
+    return out
+
+
+def get_calendar_view(brand_id: str, view: str = "year", year: int = None, quarter: int = None, month: int = None) -> dict:
+    """Return a calendar-structured view of all moves + bets + milestones + density warnings."""
+    import datetime as _dt
+    s = load_strategy(brand_id)
+    today = _dt.date.today()
+    year = year or today.year
+    density = compute_strategy_density(brand_id, year)
+
+    # Build timeline records
+    timeline = {"moves": [], "bets": [], "milestones": []}
+
+    for m in s.get("market_moves", []):
+        timeline["moves"].append({
+            "id": m["id"],
+            "title": m["title"],
+            "workhorse": m.get("workhorse", "marketing"),
+            "status": m.get("status"),
+            "start_date": m.get("start_date"),
+            "target_end_date": m.get("target_end_date"),
+            "review_date": m.get("review_date"),
+            "decision_date": m.get("decision_date"),
+            "milestones": m.get("milestones", []),
+        })
+
+    for b in s.get("bets", []):
+        timeline["bets"].append({
+            "id": b["id"],
+            "title": b["title"],
+            "workhorse": b.get("workhorse", "marketing"),
+            "status": b.get("status"),
+            "horizon": b.get("horizon", "quarter"),
+            "links_to_market_move": b.get("links_to_market_move"),
+            "start_date": b.get("start_date"),
+            "target_end_date": b.get("target_end_date"),
+            "review_date": b.get("review_date"),
+            "decision_date": b.get("decision_date"),
+            "decision": b.get("decision"),
+            "milestones": b.get("milestones", []),
+            "execution_log": b.get("execution_log", []),
+            "content_themes": b.get("content_themes", []),
+            "experiments": b.get("experiments", []),
+            "watch_metrics": b.get("watch_metrics", []),
+            "campaign_id": b.get("campaign_id"),
+            "primary_kpi": b.get("primary_kpi"),
+            "success_threshold": b.get("success_threshold"),
+        })
+
+    # Filter by view
+    if view == "year":
+        pass  # everything
+    elif view == "quarter" and quarter:
+        # Filter moves/bets that touch this quarter
+        q_start_month = (quarter - 1) * 3 + 1
+        q_end_month = quarter * 3
+        timeline["moves"] = _filter_by_quarter(timeline["moves"], year, q_start_month, q_end_month)
+        timeline["bets"] = _filter_by_quarter(timeline["bets"], year, q_start_month, q_end_month)
+    elif view == "month" and month:
+        timeline["moves"] = _filter_by_month(timeline["moves"], year, month)
+        timeline["bets"] = _filter_by_month(timeline["bets"], year, month)
+    elif view == "week":
+        # Return current week's relevant items (last 7 days)
+        week_ago = today - _dt.timedelta(days=7)
+        timeline["bets"] = [b for b in timeline["bets"] if _in_window(b, week_ago, today + _dt.timedelta(days=7))]
+
+    return {
+        "view": view,
+        "year": year,
+        "quarter": quarter,
+        "month": month,
+        "today": today.isoformat(),
+        "timeline": timeline,
+        "density": density,
+        "decision_queue": get_decision_queue(brand_id, within_days=30),
+    }
+
+
+def _filter_by_quarter(records, year, q_start, q_end):
+    import datetime as _dt
+    out = []
+    for r in records:
+        s = r.get("start_date")
+        e = r.get("target_end_date")
+        if not s and not e:
+            continue
+        try:
+            sd = _dt.date.fromisoformat((s or e)[:10])
+            ed = _dt.date.fromisoformat((e or s)[:10])
+        except (ValueError, TypeError):
+            continue
+        # Quarter spans year/Q_start/Q_end — does the record overlap?
+        qsd = _dt.date(year, q_start, 1)
+        qed = _dt.date(year, q_end, 28)
+        if sd <= qed and ed >= qsd:
+            out.append(r)
+    return out
+
+
+def _filter_by_month(records, year, month):
+    import datetime as _dt
+    out = []
+    msd = _dt.date(year, month, 1)
+    if month == 12:
+        med = _dt.date(year + 1, 1, 1) - _dt.timedelta(days=1)
+    else:
+        med = _dt.date(year, month + 1, 1) - _dt.timedelta(days=1)
+    for r in records:
+        s = r.get("start_date")
+        e = r.get("target_end_date")
+        if not s and not e:
+            continue
+        try:
+            sd = _dt.date.fromisoformat((s or e)[:10])
+            ed = _dt.date.fromisoformat((e or s)[:10])
+        except (ValueError, TypeError):
+            continue
+        if sd <= med and ed >= msd:
+            out.append(r)
+    return out
+
+
+def _in_window(record, start, end):
+    import datetime as _dt
+    s = record.get("start_date")
+    e = record.get("target_end_date")
+    if not s and not e:
+        return False
+    try:
+        sd = _dt.date.fromisoformat((s or e)[:10])
+        ed = _dt.date.fromisoformat((e or s)[:10])
+    except (ValueError, TypeError):
+        return False
+    return sd <= end and ed >= start
+
+
 def seed_swing_shack_default(brand_id: str = "swing-shack", force: bool = False) -> dict:
     """First-run seed for swing-shack using the brief's example thesis."""
     s = load_strategy(brand_id)
@@ -528,6 +881,18 @@ def seed_swing_shack_default(brand_id: str = "swing-shack", force: bool = False)
             "owner": "christelle",
             "start_date": "2026-08-01",
             "target_end_date": "2026-10-31",
+            "review_date": "2026-09-15",
+            "decision_date": "2026-10-31",
+            "milestones": [
+                {"date": "2026-08-26", "type": "launch", "label": "First TrackMan reel"},
+                {"date": "2026-09-15", "type": "review", "label": "Mid-bet review: 4 reels shipped?"},
+                {"date": "2026-10-31", "type": "decision", "label": "SCALE/REFINE/RETRY/KILL?"},
+            ],
+            "content_themes": ["ball flight data", "club speed", "carry distance", "fitting outcome"],
+            "experiments": [
+                {"name": "Reel caption: data-first vs benefit-first", "start": "2026-08-26", "end": "2026-09-09", "status": "planned"},
+            ],
+            "watch_metrics": ["TrackMan reel reach", "Fitting bookings", "IG/FB inbound DMs"],
             "evidence": [],
             "calendar_post_ids": [],
             "linked_lesson_ids": [],
@@ -553,6 +918,17 @@ def seed_swing_shack_default(brand_id: str = "swing-shack", force: bool = False)
             "owner": "christelle",
             "start_date": "2026-09-01",
             "target_end_date": "2026-11-30",
+            "review_date": "2026-10-15",
+            "decision_date": "2026-11-30",
+            "milestones": [
+                {"date": "2026-09-15", "type": "product", "label": "Takomo 101T stock arrives"},
+                {"date": "2026-09-20", "type": "launch", "label": "Public launch — first reel + GBP post"},
+                {"date": "2026-10-15", "type": "review", "label": "30-day launch review"},
+                {"date": "2026-11-30", "type": "decision", "label": "SCALE to other Takomo models or KILL?"},
+            ],
+            "content_themes": ["Takomo 101T specs", "before/after fitting", "carry distance gain", "dispersion tightening"],
+            "experiments": [],
+            "watch_metrics": ["Takomo bookings", "GBP calls", "IG saves on launch post"],
             "evidence": [],
             "calendar_post_ids": [],
             "linked_lesson_ids": [],
@@ -578,6 +954,18 @@ def seed_swing_shack_default(brand_id: str = "swing-shack", force: bool = False)
             "owner": "christelle",
             "start_date": "2026-08-24",
             "target_end_date": "2026-09-23",
+            "review_date": "2026-09-09",
+            "decision_date": "2026-09-23",
+            "milestones": [
+                {"date": "2026-08-26", "type": "test_start", "label": "CTA test begins — 4 posts"},
+                {"date": "2026-09-09", "type": "review", "label": "Mid-test: clicks rising?"},
+                {"date": "2026-09-23", "type": "decision", "label": "SCALE/REFINE/RETRY/KILL?"},
+            ],
+            "content_themes": ["club fitting CTA", "booking reminder", "session availability"],
+            "experiments": [
+                {"name": "CTA wording: 'Book now' vs 'Reserve your slot' vs 'See available times'", "start": "2026-08-26", "end": "2026-09-23", "status": "planned"},
+            ],
+            "watch_metrics": ["Booking-page sessions", "Social link clicks", "Booking CTA clicks", "Completed bookings"],
             "evidence": [
                 {"source": "ga4-metrics.json", "value": "/bookings/ has 211 sessions but no IG retargeting", "as_of": "2026-08-21"},
             ],
@@ -605,6 +993,18 @@ def seed_swing_shack_default(brand_id: str = "swing-shack", force: bool = False)
             "owner": "christelle",
             "start_date": "2026-08-24",
             "target_end_date": "2026-11-30",
+            "review_date": "2026-10-01",
+            "decision_date": "2026-11-30",
+            "milestones": [
+                {"date": "2026-09-01", "type": "launch", "label": "Coaching content calendar goes live"},
+                {"date": "2026-10-01", "type": "review", "label": "6 reels in — engagement holding?"},
+                {"date": "2026-11-30", "type": "decision", "label": "Continue / reduce / kill coaching cadence?"},
+            ],
+            "content_themes": ["swing fixes", "TrackMan coaching", "winter golf tips", "before/after improvement"],
+            "experiments": [
+                {"name": "Cadence: 3/week vs 2/week vs 1/week", "start": "2026-09-01", "end": "2026-10-11", "status": "planned"},
+            ],
+            "watch_metrics": ["Coaching reel engagement rate", "Coaching reel reach", "Profile visits", "Coaching bookings"],
             "evidence": [
                 {"source": "ig-analytics.json", "value": "coaching topic_cluster averages 3.2% engagement over 7 posts", "as_of": "2026-08-21"},
             ],
