@@ -810,11 +810,17 @@ def simulate_opportunity_cost(brand_id: str, proposed: Dict[str, Any]) -> Dict[s
     proposed_areas = classify_strategic_areas(" ".join([proposed.get("title", "")] + proposed_themes))
 
     # Simulate: add this item, recompute percentages
-    total_after = total_before + 1
+    # Areas: items can have 1-2 areas each, so total area-slots = sum
+    total_area_slots_before = sum(v for v in before_areas.values())
+    # Estimate after slots
+    total_area_slots_after = total_area_slots_before + len(proposed_areas)
     after_areas = dict(before_areas)
     for area in proposed_areas:
         after_areas[area] = after_areas.get(area, 0) + 1
-    after_areas = {k: round(100 * v / total_after) for k, v in after_areas.items()}
+    if total_area_slots_after > 0:
+        after_areas = {k: round(100 * v / total_area_slots_after) for k, v in after_areas.items()}
+    else:
+        after_areas = {}
 
     after_themes = dict(before_themes)
     for t in proposed_themes:
