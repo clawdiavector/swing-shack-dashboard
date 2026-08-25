@@ -14549,6 +14549,9 @@ def strategy_clear():
         for candidate in [
             runtime_data_dir / "strategy" / f"{bid}.json",
             runtime_data_dir / "strategy" / f"{bid}_trend.json",
+            runtime_data_dir / "spend.json",
+            runtime_data_dir / "spend-swing-shack.json",
+            runtime_data_dir / f"spend-{bid}.json",
         ]:
             if candidate.exists():
                 try:
