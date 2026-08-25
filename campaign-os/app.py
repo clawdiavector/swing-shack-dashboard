@@ -15024,8 +15024,24 @@ def spend_seed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = request.args.get('brand') or get_brand_id()
     from _lib import spend as sp
+    if request.args.get('reset', 'false').lower() == 'true':
+        # Wipe before re-seed
+        from pathlib import Path
+        sp._spend_path(bid).unlink(missing_ok=True)
     doc = sp.seed_sample_spend(bid)
     return jsonify({"ok": True, "doc": doc}), 200
+
+
+@app.route('/api/spend/reset', methods=['POST'])
+def spend_reset():
+    """Wipe all spend data for the brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    path = sp._spend_path(bid)
+    path.unlink(missing_ok=True)
+    return jsonify({"ok": True, "wiped": str(path)}), 200
 
 
 @app.route('/api/spend/campaigns', methods=['GET'])
