@@ -14974,8 +14974,21 @@ def seo_refresh():
         from _lib import ubersuggest_mcp as _us
         import datetime as _dt2
         # Make sure credentials are in place (writes file from env vars if present)
-        _ensure_ubersuggest_token_file()
+        env_tok = os.environ.get("UBERSUGGEST_ACCESS_TOKEN", "")
+        env_ref = os.environ.get("UBERSUGGEST_REFRESH_TOKEN", "")
+        ensured = _ensure_ubersuggest_token_file()
         if not _us.ubersuggest_credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Ubersuggest credentials not configured",
+                "hint": "run scripts/ubersuggest_oauth.py on this machine to authorise",
+                "debug": {
+                    "env_access_token_set": bool(env_tok),
+                    "env_refresh_token_set": bool(env_ref),
+                    "ensure_token_file_ok": ensured,
+                    "token_file_path": os.environ.get("UBERSUGGEST_TOKEN_FILE", "?"),
+                },
+            }), 503
             return jsonify({
                 "ok": False,
                 "error": "Ubersuggest credentials not configured",
