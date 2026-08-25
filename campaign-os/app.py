@@ -14909,30 +14909,45 @@ def seo_competitors():
 
 @app.route('/api/seo/refresh', methods=['POST'])
 def seo_refresh():
-    """Force a fresh Ubersuggest pull right now."""
+    """Force a fresh Ubersuggest pull. Runs the wrapper inline so Railway does not need a separate scripts/ entry."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     try:
-        import subprocess
-        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ubersuggest.py')
-        if not os.path.isfile(script):
-            return jsonify({"ok": False, "error": f"fetch script not found at {script}"}), 500
-        result = subprocess.run(
-            ['python3', script],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
+        from _lib import ubersuggest_mcp as _us
+        import datetime as _dt2
+        if not _us.ubersuggest_credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Ubersuggest credentials not configured",
+                "hint": "run scripts/ubersuggest_oauth.py on this machine to authorise"
+            }), 503
+        project_id = _us.find_project_id_for_domain("swingshack.co.za")
+        end = _dt2.date.today().isoformat()
+        start = (_dt2.date.today() - _dt2.timedelta(days=60)).isoformat()
+        logs = []
+        pos_info = _us.project_position_info(project_id, start, end, language="en", device="desktop")
+        logs.append("project_position_info: %d keywords" % len((pos_info or {}).get("keywords", [])))
+        domain = _us.domain_overview("swingshack.co.za", country="ZA")
+        logs.append("domain_overview: DA %s" % domain.get("domainAuthority", "?"))
+        bl = _us.backlinks_overview("swingshack.co.za", country="ZA")
+        logs.append("backlinks: %s" % bl.get("backlinks", "?"))
+        comps = _us.competitors("swingshack.co.za")
+        n_comps = len(comps) if isinstance(comps, list) else len((comps or {}).get("competitors", []))
+        logs.append("competitors: %d" % n_comps)
         return jsonify({
-            "ok": result.returncode == 0,
-            "stdout": result.stdout[-2000:],
-            "stderr": result.stderr[-1000:],
-            "exit_code": result.returncode,
+            "ok": True,
+            "project_id": project_id,
+            "window": {"start": start, "end": end},
+            "logs": logs,
+            "summary": {
+                "domain_authority": domain.get("domainAuthority"),
+                "backlinks": bl.get("backlinks"),
+                "tracked_keywords": len((pos_info or {}).get("keywords", [])),
+            },
         }), 200
-    except subprocess.TimeoutExpired:
-        return jsonify({"ok": False, "error": "fetch timed out (>120s)"}), 500
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        import traceback
+        return jsonify({"ok": False, "error": str(e), "trace": traceback.format_exc()[-1000:]}), 500
 
 
 @app.route('/api/seo/report', methods=['GET'])
