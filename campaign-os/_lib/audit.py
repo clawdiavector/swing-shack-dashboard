@@ -14,7 +14,7 @@ questions:
   6. What should happen next?
 
 Each item gets:
-  - An audit_status: keep | update | scale | retest | pause | retire | delete
+  - An audit_status: keep | update | do more | try again | pause | retire | delete
   - An audit_score: 0-100
   - A reason_for_existence: free-text "Why is this still here?"
   - A next_action: one concrete thing to do
@@ -76,7 +76,7 @@ def _today() -> str:
 
 def discover_all_items(brand_id: str = "swing-shack") -> List[Dict[str, Any]]:
     """Walk every item in the OS: market moves, bets, campaigns,
-    recurring themes, content ideas, lessons. Returns a flat list
+    recurring themes, content ideas, lessons. Returns a holding steady list
     of dicts with {item_id, item_type, item, meta} for auditing."""
     s = load_strategy(brand_id)
     items = []
@@ -660,7 +660,7 @@ def _build_reason_for_existence(item: Dict[str, Any], answers: Dict[str, Any]) -
         reasons.append(f"Decision: {d.get('outcome', '').upper()} on {d.get('decided_at', '')}")
 
     if not reasons:
-        reasons.append("⚠ No strong reason to keep this active. Recommended: RETIRE.")
+        reasons.append("⚠ No strong reason to keep this active. Suggestion: Stop.")
 
     return " · ".join(reasons)
 
@@ -738,7 +738,7 @@ def _build_clutter_report(audited: List[Dict[str, Any]], brand_id: str) -> Dict[
     if stale_90d > 5:
         recommendations.append(f"{stale_90d} items score <30/100 — review for clean-up.")
     if not recommendations:
-        recommendations.append("Strategy is clean. No clean-up required.")
+        recommendations.append("Strategy looks healthy. Nothing to clean up.")
 
     return {
         "total": total,
@@ -775,7 +775,7 @@ def why_still_here(item_type: str, item_id: str, brand_id: str = "swing-shack") 
 # ─── Audit decision → strategic memory ──────────────────────────────
 
 def record_audit_decision(item_type: str, item_id: str, decision: str, note: str, brand_id: str = "swing-shack") -> Dict[str, Any]:
-    """Record a KEEP/UPDATE/PAUSE/RETIRE/DELETE decision. Writes to strategic memory."""
+    """Record a Keep/Update/Pause/RETIRE/Delete decision. Writes to strategic memory."""
     if decision not in AUDIT_STATUSES:
         raise ValueError(f"decision must be one of {AUDIT_STATUSES}")
     items = discover_all_items(brand_id)
@@ -924,10 +924,10 @@ def render_audit_markdown(audit: Dict[str, Any], section: str = "summary") -> st
     md = []
 
     if section in ("summary", "all"):
-        md.append(f"## Strategy audit · {audit['audit_date']}")
+        md.append(f"## Strategy check-up · {audit['audit_date']}")
         md.append(f"_Total items: {audit['total_items']}_")
         md.append("")
-        md.append("**By status:**")
+        md.append("**By verdict:**")
         for status in AUDIT_STATUSES:
             count = audit["by_status"].get(status, 0)
             if count:
@@ -936,7 +936,7 @@ def render_audit_markdown(audit: Dict[str, Any], section: str = "summary") -> st
 
     if section in ("clutter", "all"):
         c = audit["clutter_report"]
-        md.append("### Strategy clutter report")
+        md.append("### Activity review")
         md.append(f"- **{c['total']}** active ideas")
         md.append(f"- **{c['linked_to_strategy']}** directly support active bets")
         md.append(f"- **{c['orphaned']}** have no strategy link")
@@ -945,7 +945,7 @@ def render_audit_markdown(audit: Dict[str, Any], section: str = "summary") -> st
         md.append(f"- **{c['seasonal_expired']}** are seasonal and expired")
         md.append(f"- **{c['valid_keep']}** remain valid")
         md.append("")
-        md.append("**Recommendations:**")
+        md.append("**What to clean up:**")
         for r in c["recommendations"]:
             md.append(f"- {r}")
         md.append("")

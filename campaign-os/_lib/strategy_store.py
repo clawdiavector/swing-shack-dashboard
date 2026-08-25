@@ -194,7 +194,7 @@ def compute_trend_signal(brand_id: str = "swing-shack", record_id: str = None, r
     trend = load_trend(brand_id)
     snapshots = trend.get("snapshots", [])
     if len(snapshots) < 2:
-        return {"signal": "flat", "history": [], "reason": "Not enough history (need 2+ weekly snapshots)."}
+        return {"signal": "flat", "history": [], "reason": "Not enough history yet — we need 2 or more weekly snapshots."}
 
     key = "moves" if record_type == "move" else "bets"
     history = []
@@ -207,7 +207,7 @@ def compute_trend_signal(brand_id: str = "swing-shack", record_id: str = None, r
             })
 
     if len(history) < 2:
-        return {"signal": "flat", "history": history, "reason": "Need 2+ snapshots for this record."}
+        return {"signal": "flat", "history": history, "reason": "We need 2 or more snapshots for this record before drawing a conclusion."}
 
     # Compare net signal over recent history
     # Take last 4 vs prior 4 (if available)

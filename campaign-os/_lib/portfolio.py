@@ -1,5 +1,5 @@
 """
-portfolio.py — Marketing Portfolio Balance Layer.
+portfolio.py — Marketing Activity mix Balance Layer.
 
 This is the brain that judges the MIX, not the pieces.
 
@@ -682,7 +682,7 @@ def detect_opportunities(brand_id: str = "swing-shack") -> List[Dict[str, Any]]:
         opportunities.append({
             "id": "opp-retention",
             "type": "crm",
-            "signal": "No active retention / winback bet — but customers repeat visits to the booking page.",
+            "signal": "No retention or win-back plan is active, even though customers keep visiting the booking page.",
             "evidence": ["ga4-metrics.json: returning user sessions visible"],
             "current_effort": "0% retention-themed bets in flight.",
             "strategic_fit": "Lifecycle / loyalty workhorses.",
@@ -1112,7 +1112,7 @@ def _decide_next_bets(brand_id: str, missing: List, scale: List, fix: List) -> t
     if has_strong_dont_add:
         return [{
             "type": "no_new_bet",
-            "recommendation": "Don't add anything. Finish the current bets first.",
+            "recommendation": "Don't add anything new yet. Finish the current things first.",
             "reasons": dont_add_reasons,
             "rationale": (
                 f"{n_active} active bets already running. "
@@ -1215,67 +1215,67 @@ def _suggest_replacements(brand_id: str, next_bets: List[Dict]) -> List[Dict]:
 def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
     """Render the monthly meeting in the order Christelle specified."""
     md = []
-    md.append(f"## Monthly strategy meeting · {meeting['month']}")
+    md.append(f"## Monthly review · {meeting['month']}")
     md.append("")
 
     # 1. What changed
-    md.append("### 1. What changed?")
+    md.append("### 1. What changed this month")
     if meeting.get("what_changed"):
         for w in meeting["what_changed"][:5]:
             md.append(f"- {w.get('summary', w.get('bet', ''))}")
     else:
-        md.append("_No major changes this month._")
+        md.append("_Nothing major changed this month._")
     md.append("")
 
     # 2. KEEP
-    md.append("### 2. KEEP")
+    md.append("### 2. Keep doing")
     if meeting["keep"]:
         for k in meeting["keep"][:5]:
             md.append(f"- **{k['bet']}** — {k['reason']}")
     else:
-        md.append("_No clear keepers._")
+        md.append("_Nothing obvious to keep doing._")
     md.append("")
 
     # 3. KILL
-    md.append("### 3. KILL")
+    md.append("### 3. Stop doing")
     if meeting["kill"]:
         for k in meeting["kill"][:5]:
             md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
     else:
-        md.append("_Nothing on the kill list._")
+        md.append("_Nothing on the list to stop._")
     md.append("")
 
     # 4. SCALE
-    md.append("### 4. SCALE")
+    md.append("### 4. Do more of")
     if meeting["scale"]:
         for k in meeting["scale"][:5]:
             md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
     else:
-        md.append("_No clear scale candidates._")
+        md.append("_Nothing obvious to do more of._")
     md.append("")
 
     # 5. FIX
-    md.append("### 5. FIX")
+    md.append("### 5. Fix this")
     if meeting["fix"]:
         for k in meeting["fix"][:5]:
             md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
     else:
-        md.append("_Nothing to fix._")
+        md.append("_Nothing obvious to fix._")
     md.append("")
 
     # 6. MISSING
-    md.append("### 6. MISSING")
+    md.append("### 6. Worth considering")
     if meeting["missing"]:
         for m in meeting["missing"][:5]:
             md.append(f"- **[{m['type']}]** {m['signal'][:120]}")
-            md.append(f"  Hypothesis: {m['hypothesis'][:120]}")
+            md.append(f"  Idea to test: {m['hypothesis'][:120]}")
             md.append(f"  Confidence: {m['confidence']}")
     else:
-        md.append("_No clear opportunities._")
+        md.append("_Nothing obvious to consider._")
     md.append("")
 
     # 7. PORTFOLIO BALANCE
-    md.append("### 7. PORTFOLIO BALANCE")
+    md.append("### 7. Where time is going")
     pb = meeting.get("portfolio_balance", {})
     if pb.get("effort_by_area"):
         for area, pct in sorted(pb["effort_by_area"].items(), key=lambda x: -x[1])[:6]:
@@ -1283,21 +1283,21 @@ def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
     md.append("")
 
     # 8. NEXT BETS
-    md.append("### 8. NEXT BETS")
+    md.append("### 8. New things to try")
     if meeting.get("dont_add_recommendation", {}).get("active"):
-        md.append(f"⚠ **{meeting['dont_add_recommendation']['summary']}**")
-        md.append(f"_Recommendation: Don't add anything. Finish the current bets first._")
+        md.append(f"⚠️ **{meeting['dont_add_recommendation']['summary']}**")
+        md.append(f"_Suggestion: don't add anything new yet. Finish the current things first._")
     elif meeting["next_bets"]:
         for nb in meeting["next_bets"][:3]:
             md.append(f"- **{nb.get('title', '')}**")
             md.append(f"  Hypothesis: {nb.get('hypothesis', '')[:140]}")
             md.append(f"  Confidence: {nb.get('confidence', 'medium')} ({nb.get('evidence_layer', '?')})")
     else:
-        md.append("_No new bets proposed._")
+        md.append("_No new things to try proposed._")
     md.append("")
 
     # 9. WHAT THIS REPLACES
-    md.append("### 9. WHAT DOES THIS REPLACE?")
+    md.append("### 9. What gets replaced?")
     if meeting.get("what_this_replaces"):
         for rep in meeting["what_this_replaces"]:
             md.append(f"_{rep['new_bet']}_ would displace:")

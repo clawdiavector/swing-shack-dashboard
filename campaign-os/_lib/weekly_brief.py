@@ -7,7 +7,7 @@ The brief is the OS preparing the argument so Christelle can make the
 decision, not the OS making the decision. The brief contains:
 
   1. WHAT CHANGED — only the deltas since last Monday:
-       - Trend signal moves (flat → strengthening, etc.)
+       - Trend signal moves (holding steady → getting stronger, etc.)
        - New evidence against a thesis
        - Disproved signals
        - Decisions/review dates approaching
@@ -124,7 +124,7 @@ def detect_changes(brand_id: str) -> List[Dict[str, Any]]:
             changes.append({
                 "category": "trend_shift",
                 "severity": "high" if cur_signal == "disproved" else "medium",
-                "summary": f"Move '{m['title']}' trend moved {prev_signal or 'new'} → {cur_signal}",
+                "summary": f"Goal '{m['title']}' trend: {prev_signal or 'new'} → {cur_signal}",
                 "detail": cur.get("reason", ""),
                 "refs": [{"type": "move", "id": m["id"], "title": m["title"]}],
             })
@@ -144,7 +144,7 @@ def detect_changes(brand_id: str) -> List[Dict[str, Any]]:
             changes.append({
                 "category": "trend_shift",
                 "severity": "high" if cur_signal == "disproved" else "medium",
-                "summary": f"Bet '{b['title']}' trend moved {prev_signal or 'new'} → {cur_signal}",
+                "summary": f"Plan '{b['title']}' trend: {prev_signal or 'new'} → {cur_signal}",
                 "detail": cur.get("reason", ""),
                 "refs": [{"type": "bet", "id": b["id"], "title": b["title"]}],
             })
@@ -841,13 +841,13 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
 def render_brief_markdown(brief: Dict[str, Any]) -> str:
     """Render the brief as Discord-friendly markdown."""
     md = []
-    md.append(f"## Strategy brief · week of {brief['week_of']} → {brief['week_to']}")
+    md.append(f"## This week's update · week of {brief['week_of']} → {brief['week_to']}")
     md.append("")
 
     # What changed
-    md.append("### What changed")
+    md.append("### What's different this week")
     if not brief["what_changed"]:
-        md.append("_No changes detected this week — every thesis is holding._")
+        md.append("_Nothing has changed this week — everything is holding steady._")
     else:
         for c in brief["what_changed"][:8]:
             emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(c["severity"], "·")
@@ -857,20 +857,20 @@ def render_brief_markdown(brief: Dict[str, Any]) -> str:
     md.append("")
 
     # This week
-    md.append("### This week")
+    md.append("### What's planned this week")
     md.append("")
     if brief["this_week"]["marketing"]:
-        md.append("**Marketing**")
+        md.append("**Marketing work**")
         for b in brief["this_week"]["marketing"]:
             themes = ", ".join(b["themes"][:3]) or "—"
-            md.append(f"- {b['title']} · themes: {themes}")
+            md.append(f"- {b['title']} · topics: {themes}")
             for ms in b["milestones_this_week"]:
                 d = _format_date(ms["date"])
                 emoji = {"launch": "🚀", "review": "🔍", "decision": "⚖️", "test_start": "🧪", "test_end": "🧪✓"}.get(ms["type"], "·")
                 md.append(f"  - {emoji} **{d}** {ms['label']}")
         md.append("")
     if brief["this_week"]["advertising"]:
-        md.append("**Advertising**")
+        md.append("**Advertising work**")
         for b in brief["this_week"]["advertising"]:
             themes = ", ".join(b["themes"][:3]) or "—"
             md.append(f"- {b['title']} · themes: {themes}")
@@ -881,9 +881,9 @@ def render_brief_markdown(brief: Dict[str, Any]) -> str:
         md.append("")
 
     # Decisions
-    md.append("### Decisions this week")
+    md.append("### Decisions needed this week")
     if not brief["decisions_this_week"]:
-        md.append("_No decisions due. Every bet has a clear runway._")
+        md.append("_No decisions needed this week. Everything has time to run._")
     else:
         for d in brief["decisions_this_week"]:
             verb = "OVERDUE" if d["overdue"] else f"in {d['days_away']}d"
@@ -917,25 +917,25 @@ def render_brief_markdown(brief: Dict[str, Any]) -> str:
         md.append("")
 
     # Needs cleaning (audit)
-    md.append("### Needs cleaning")
+    md.append("### Things to clean up")
     if brief.get("needs_cleaning"):
         for nc in brief["needs_cleaning"]:
             md.append(f"- **{nc['title']}** → {nc['audit_status'].upper()}")
             md.append(f"  _{nc.get('reason', '')[:140]}_")
             md.append(f"  _Action:_ {nc.get('next_action', '')}")
     else:
-        md.append("_Nothing needs cleaning this week. Strategy is healthy._")
+        md.append("_Nothing to clean up this week. Everything is healthy._")
     md.append("")
 
     # Priorities
-    md.append("### This week's marketing priorities")
+    md.append("### This week's top priorities")
     if not brief["priorities"]:
-        md.append("_No priorities synthesised — every bet is running smoothly._")
+        md.append("_No priorities needed — every bet is running smoothly._")
     else:
         for i, p in enumerate(brief["priorities"], 1):
             md.append(f"{i}. **{p['title']}**")
             md.append(f"   _Why:_ {p['why']}")
-            md.append(f"   _First step:_ {p['action_first_step']}")
+            md.append(f"   _What to do first:_ {p['action_first_step']}")
     md.append("")
 
     return "\n".join(md)

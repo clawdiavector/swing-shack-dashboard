@@ -26,7 +26,7 @@ def main():
     meeting = kill_meeting(brand)
 
     md = []
-    md.append("## Monthly strategy audit + kill meeting")
+    md.append("## Monthly strategy check-up + clean-up")
     md.append("")
     md.append(render_audit_markdown(audit, "all"))
     md.append("")
@@ -39,8 +39,8 @@ def main():
     else:
         for i, c in enumerate(meeting["candidates"], 1):
             md.append(f"{i}. **{c['title']}** ({c['item_type']})")
-            md.append(f"   - Status: {c['audit_status'].upper()} · Score: {c['audit_score']}/100")
-            md.append(f"   - Why surface: {c['why_surface']}")
+            md.append(f"   - Verdict: {c['audit_status'].upper()} · Score: {c['audit_score']}/100")
+            md.append(f"   - Why flagged: {c['why_surface']}")
             md.append(f"   - Reason for existence: {c['reason_for_existence'][:160]}")
             md.append(f"   - Next action: {c['next_action']}")
             if c.get("flags"):

@@ -120,7 +120,7 @@ body {
 .card-meta .trend { padding: 1px 6px; border-radius: 3px; font-weight: 700; }
 .trend.strengthening { background: rgba(93,255,157,0.15); color: var(--green); }
 .trend.flat { background: rgba(174,184,197,0.15); color: var(--tx-2); }
-.trend.weakening { background: rgba(251,146,60,0.15); color: var(--orange); }
+.trend.thin supportening { background: rgba(251,146,60,0.15); color: var(--orange); }
 .trend.disproved { background: rgba(255,107,107,0.15); color: var(--red); }
 .card-title { font-family: 'Fraunces', Georgia, serif; font-size: 18px; font-weight: 700; margin-bottom: 0.4rem; }
 .card-hypothesis { font-size: 12px; color: var(--tx-2); font-style: italic; margin-bottom: 0.6rem; line-height: 1.45; }
@@ -139,7 +139,7 @@ body {
 .evidence-counts .against b { color: var(--red); }
 .sparkline { display: inline-block; width: 50px; height: 14px; vertical-align: middle; margin-left: 0.5rem; }
 
-/* ─── Strategic calendar ─── */
+/* ─── Timeline of what's planned ─── */
 .calendar-section {
   background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
   padding: 1.5rem; margin-bottom: 2rem;
@@ -468,10 +468,10 @@ body {
   font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
   padding: 2px 6px; border-radius: 3px;
 }
-.rating.strong { background: rgba(93,255,157,0.15); color: var(--green); }
-.rating.moderate { background: rgba(251,191,36,0.15); color: var(--gold); }
+.rating.well-supported { background: rgba(93,255,157,0.15); color: var(--green); }
+.rating.some support { background: rgba(251,191,36,0.15); color: var(--gold); }
 .rating.weak { background: rgba(251,146,60,0.15); color: var(--orange); }
-.rating.orphan { background: rgba(255,107,107,0.15); color: var(--red); }
+.rating.no support { background: rgba(255,107,107,0.15); color: var(--red); }
 
 .matrix-row {
   display: grid; grid-template-columns: 1fr 60px 60px;
@@ -629,10 +629,10 @@ body {
 
 <div class="strategy-header">
   <div class="brand-line" id="brand-line">Brand</div>
-  <h1 class="strategy-h1">Where are we <em>going</em>?</h1>
+  <h1 class="strategy-h1">Where are we heading?</h1>
   <div class="north-star-card">
     <div class="north-star-block">
-      <div class="label">North star</div>
+      <div class="label">Where we want to go</div>
       <div class="north-star-text" id="north-star-text">Loading…</div>
       <span class="edit-link" onclick="editNorthStar()">edit</span>
     </div>
@@ -681,12 +681,12 @@ body {
 <div class="swimlanes" id="swimlanes">
   <div class="swimlane mkt" id="swimlane-mkt">
     <div class="swimlane-h"><h2>Marketing</h2><button class="btn secondary" onclick="openMoveModal(null, 'marketing')">+ move</button></div>
-    <div class="swimlane-sub">Brand · positioning · content · SEO · partnerships · CRM · customer behaviour</div>
+    <div class="swimlane-sub">Brand · positioning · content · SEO · partnerships · customer relationships · how customers act</div>
     <div id="mkt-cards"></div>
   </div>
   <div class="swimlane adv" id="swimlane-adv">
     <div class="swimlane-h"><h2>Advertising</h2><button class="btn secondary" onclick="openMoveModal(null, 'advertising')">+ move</button></div>
-    <div class="swimlane-sub">Paid distribution · audiences · creative tests · spend · CAC/CPL · retargeting</div>
+    <div class="swimlane-sub">Paid ads · audience targeting · creative testing · ad spend · cost per lead · retargeting</div>
     <div id="adv-cards"></div>
   </div>
 </div>
@@ -699,8 +699,8 @@ body {
       <div class="sub" id="cal-sub">Year view · click any bar to open its strategy card</div>
     </div>
     <div class="btn-group">
-      <button class="btn secondary" onclick="snapshotNow()">Snapshot week</button>
-      <button class="btn" onclick="mineLessons()">Mine live data</button>
+      <button class="btn secondary" onclick="snapshotNow()">Save this week's progress</button>
+      <button class="btn" onclick="mineLessons()">Look for new lessons in the data</button>
     </div>
   </div>
   <div id="density-warnings"></div>
@@ -710,14 +710,14 @@ body {
 <!-- ─── Decision queue ─── -->
 <div class="decision-queue" id="decision-queue-section">
   <h2>Decisions due</h2>
-  <div class="sub" id="dec-sub">Bets whose decision_date is approaching — SCALE, REFINE, RETRY DIFFERENTLY, or KILL.</div>
+  <div class="sub" id="dec-sub">Bets whose decision_date is approaching — Worth doing more, REFINE, RETRY DIFFERENTLY, or Should be stopped.</div>
   <div id="decision-list"></div>
 </div>
 
 <!-- ─── Audit + kill meeting ─── -->
 <div class="audit-section" style="background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:1.5rem;margin-bottom:2rem">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:800">Audit & kill meeting</h2>
+    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:800">Audit & clean-up</h2>
     <button class="btn" onclick="runAudit()">Run audit</button>
   </div>
   <div class="audit-summary" id="audit-summary"></div>
@@ -727,7 +727,7 @@ body {
 <!-- ─── Marketing portfolio ─── -->
 <div class="portfolio-section" style="background:var(--bg-2);border:1px solid var(--line);border-radius:14px;padding:1.5rem;margin-bottom:2rem">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem">
-    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:800">Portfolio balance</h2>
+    <h2 style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:800">Activity mix</h2>
     <div class="btn-group">
       <button class="mode-chip active" data-period="month" onclick="setPortfolioPeriod('month')">Month</button>
       <button class="mode-chip" data-period="quarter" onclick="setPortfolioPeriod('quarter')">Quarter</button>
@@ -738,13 +738,13 @@ body {
   <div class="portfolio-grid">
     <!-- Left: effort allocation -->
     <div class="portfolio-card">
-      <h4>Effort by area</h4>
+      <h4>Where time is going</h4>
       <div id="effort-bars"></div>
     </div>
 
     <!-- Middle: funnel split -->
     <div class="portfolio-card">
-      <h4>Funnel split</h4>
+      <h4>Customer journey split</h4>
       <div id="funnel-bars"></div>
     </div>
 
@@ -757,33 +757,33 @@ body {
 
   <div class="portfolio-grid" style="margin-top:1rem">
     <div class="portfolio-card">
-      <h4>Demand / content mismatch</h4>
+      <h4>What people want vs what we're posting</h4>
       <div id="mismatch"></div>
     </div>
     <div class="portfolio-card">
-      <h4>Strategic coverage</h4>
+      <h4>How well each goal is supported</h4>
       <div id="coverage"></div>
     </div>
     <div class="portfolio-card">
-      <h4>Priority vs Effort</h4>
+      <h4>Priority vs effort spent</h4>
       <div id="priority-effort"></div>
     </div>
   </div>
 
   <div style="margin-top:1.5rem">
-    <h4 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:0.5rem">Opportunities</h4>
+    <h4 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:0.5rem">Opportunities we haven't acted on yet</h4>
     <div id="opportunities"></div>
   </div>
 
   <div style="margin-top:1.5rem">
-    <h4 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:0.5rem">Monthly strategy meeting</h4>
+    <h4 style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:0.5rem">Monthly review</h4>
     <div id="meeting-m"></div>
   </div>
 </div>
 
 <!-- ─── Lessons ledger (kept) ─── -->
 <div class="lessons-bar">
-  <h2>The ledger</h2>
+  <h2>What we've learned</h2>
   <div class="btn-group">
     <button class="btn secondary" onclick="snapshotNow()">Snapshot week</button>
     <button class="btn" onclick="mineLessons()">Mine live data</button>
@@ -1066,7 +1066,7 @@ function renderCalendar() {
     let html = '';
     // Header row
     html += `<div class="cal-row cal-row-header" style="grid-template-columns: 200px repeat(12, 1fr)">
-      <div class="cal-row-label" style="background:var(--bg-4)">Strategic item</div>
+      <div class="cal-row-label" style="background:var(--bg-4)">What it is</div>
       ${MONTHS.slice(1).map((m, i) => `<div class="cal-cell" style="background:var(--bg-4)">${m}</div>`).join('')}
     </div>`;
     // Marketing section
@@ -1409,7 +1409,7 @@ function showMsTooltip(ms, e) {
   moveCalTooltip(e);
 }
 
-// ─── Density warnings ────────────────────────────────────────────────
+// ─── Capacity warnings ────────────────────────────────────────────────
 
 function renderDensityWarnings() {
   const cont = document.getElementById('density-warnings');
@@ -1434,7 +1434,7 @@ function renderDensityWarnings() {
 function renderDecisionQueue() {
   const cont = document.getElementById('decision-list');
   if (!decisionQueue.length) {
-    cont.innerHTML = `<div style="color:var(--tx-3);font-size:12px;font-style:italic;padding:1rem;text-align:center">No decisions due in the next 120 days. Every bet has a clear runway.</div>`;
+    cont.innerHTML = `<div style="color:var(--tx-3);font-size:12px;font-style:italic;padding:1rem;text-align:center">No decisions due in the next 120 days. Everything has time to run.</div>`;
     return;
   }
   cont.innerHTML = decisionQueue.map(item => {
@@ -1545,7 +1545,7 @@ function openMoveModal(id, workhorse) {
       ${id ? `<button class="btn secondary" onclick="retireRecord('move', '${id}')">Retire</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openBetModal(null, '${id}')">+ Add bet</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openReplay('move', '${id}')">📼 Replay history</button>` : ''}
-      ${id ? `<button class="btn secondary" onclick="whyStillHere('market_move', '${id}')">🔍 Why is this still here?</button>` : ''}
+      ${id ? `<button class="btn secondary" onclick="whyStillHere('market_move', '${id}')">🔍 Why is this still active?</button>` : ''}
       <button class="btn secondary right" onclick="closeModal()">Close</button>
       ${id ? `<button class="btn danger" onclick="deleteRecord('market_move', '${id}')">Delete</button>` : ''}
     </div>
@@ -1621,7 +1621,7 @@ function openBetModal(id, parentMoveId) {
     <div class="modal-section"><label>What proves it</label><textarea id="bet-proves">${esc(b?.what_proves_it || '')}</textarea></div>
     <div class="modal-section"><label>What kills it</label><textarea id="bet-kills">${esc(b?.what_kills_it || '')}</textarea></div>
     <div class="modal-section"><label>Next action</label><textarea id="bet-next">${esc(b?.next_action || '')}</textarea></div>
-    <div class="modal-section"><label>Watch metrics (comma-separated)</label><input id="bet-watch" value="${esc((b?.watch_metrics || []).join(', '))}"></div>
+    <div class="modal-section"><label>What to measure (comma-separated)</label><input id="bet-watch" value="${esc((b?.watch_metrics || []).join(', '))}"></div>
     <div class="modal-section"><label>Content themes (comma-separated)</label><input id="bet-themes" value="${esc((b?.content_themes || []).join(', '))}"></div>
     ${id && b.decision ? `<div class="modal-section" style="background:var(--bg-3);padding:1rem;border-radius:8px">
       <h4>Recorded decision</h4>
@@ -1645,7 +1645,7 @@ function openBetModal(id, parentMoveId) {
       <button class="btn" onclick="saveBet('${id || ''}')">${id ? 'Save' : 'Create'}</button>
       ${id ? `<button class="btn secondary" onclick="retireRecord('bet', '${id}')">Retire</button>` : ''}
       ${id ? `<button class="btn secondary" onclick="openReplay('bet', '${id}')">📼 Replay history</button>` : ''}
-      ${id ? `<button class="btn secondary" onclick="whyStillHere('bet', '${id}')">🔍 Why is this still here?</button>` : ''}
+      ${id ? `<button class="btn secondary" onclick="whyStillHere('bet', '${id}')">🔍 Why is this still active?</button>` : ''}
       <button class="btn secondary right" onclick="closeModal()">Close</button>
       ${id ? `<button class="btn danger" onclick="deleteRecord('bet', '${id}')">Delete</button>` : ''}
     </div>
@@ -1875,8 +1875,8 @@ function renderOpportunities(opps) {
       <div class="opp-evidence">📊 ${o.evidence.map(esc).join(' · ')}</div>
       <div class="opp-hypothesis">${esc(o.hypothesis)}</div>
       <div class="opp-actions">
-        <button class="create" onclick="oppDecide('${esc(o.id)}', 'create_bet')">Create bet</button>
-        <button class="watch" onclick="oppDecide('${esc(o.id)}', 'watch')">Watch</button>
+        <button class="create" onclick="oppDecide('${esc(o.id)}', 'create_bet')">Try this</button>
+        <button class="watch" onclick="oppDecide('${esc(o.id)}', 'watch')">Keep watching</button>
         <button class="ignore" onclick="oppDecide('${esc(o.id)}', 'ignore')">Ignore</button>
       </div>
     </div>`
@@ -1898,12 +1898,12 @@ async function oppDecide(id, decision) {
 
 function renderMeeting(m) {
   const cols = [
-    {key: 'keep', label: 'KEEP', items: m.keep, cls: 'keep'},
+    {key: 'keep', label: 'Working well', items: m.keep, cls: 'keep'},
     {key: 'kill', label: 'KILL', items: m.kill, cls: 'kill'},
     {key: 'scale', label: 'SCALE', items: m.scale, cls: 'scale'},
-    {key: 'fix', label: 'FIX', items: m.fix, cls: 'fix'},
-    {key: 'missing', label: 'MISSING', items: m.missing, cls: 'missing'},
-    {key: 'bet', label: 'BET', items: m.bet, cls: 'bet'},
+    {key: 'fix', label: 'Needs fixing', items: m.fix, cls: 'fix'},
+    {key: 'missing', label: 'Opportunities', items: m.missing, cls: 'missing'},
+    {key: 'bet', label: 'Try a new bet', items: m.bet, cls: 'bet'},
   ];
   document.getElementById('meeting-m').innerHTML = `<div class="meeting-grid">${cols.map(c => `
     <div class="meeting-col">
