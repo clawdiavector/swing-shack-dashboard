@@ -1,0 +1,421 @@
+<!--
+_nav.html — Global navigation shared across Campaign OS surfaces.
+
+Design contract:
+  - One global nav bar visible on every page
+  - Brand selector stays sticky (current brand context)
+  - Sections: Overview | Strategy | Calendar | Marketing | Advertising | Analytics
+  - Active section is highlighted
+  - Compact "this week" strip below nav (active bets + next decision)
+  - Breadcrumbs above page content
+  - Mobile: hamburger / bottom nav
+
+The rule:
+  > I should always know which company I'm in, which section I'm in,
+    and how to get back.
+-->
+
+<nav id="os-nav" class="os-nav" data-active-section="overview">
+  <div class="os-nav-inner">
+    <div class="os-nav-brand" id="os-nav-brand">
+      <a href="/" class="os-nav-brand-link">
+        <span class="os-nav-brand-mark" id="os-nav-brand-mark">⛳</span>
+        <span class="os-nav-brand-text">
+          <span class="os-nav-brand-name" id="os-nav-brand-name">Swing Shack</span>
+          <span class="os-nav-brand-sub">Campaign OS</span>
+        </span>
+      </a>
+      <button class="os-nav-brand-chev" id="os-nav-brand-chev" aria-label="Switch company">▾</button>
+      <div class="os-nav-brand-dropdown" id="os-nav-brand-dropdown" hidden></div>
+    </div>
+    <div class="os-nav-sections" id="os-nav-sections">
+      <a href="/" class="os-nav-link" data-section="overview">Overview</a>
+      <a href="/strategy" class="os-nav-link" data-section="strategy">Strategy</a>
+      <a href="/calendar" class="os-nav-link" data-section="calendar">Calendar</a>
+      <a href="/marketing" class="os-nav-link" data-section="marketing">Marketing</a>
+      <a href="/advertising" class="os-nav-link" data-section="advertising">Advertising</a>
+      <a href="/analytics" class="os-nav-link" data-section="analytics">Analytics</a>
+      <button class="os-nav-more" id="os-nav-more" aria-label="More">⋯</button>
+    </div>
+    <div class="os-nav-data-health" id="os-nav-data-health" hidden>
+      <span class="os-nav-data-health-score">--</span>
+    </div>
+  </div>
+
+  <!-- Compact strategic strip — what is the business currently trying to prove -->
+  <div class="os-nav-strip" id="os-nav-strip">
+    <div class="os-nav-strip-section">
+      <span class="os-nav-strip-label">Active this week</span>
+      <span class="os-nav-strip-pills" id="os-nav-strip-pills">…</span>
+    </div>
+    <div class="os-nav-strip-section">
+      <span class="os-nav-strip-label">Next decision</span>
+      <span class="os-nav-strip-pill" id="os-nav-strip-next-decision">—</span>
+    </div>
+  </div>
+</nav>
+
+<!-- Breadcrumbs (rendered by JS based on current page) -->
+<nav class="os-breadcrumbs" id="os-breadcrumbs" aria-label="Breadcrumb"></nav>
+
+<style>
+.os-nav {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--bg, #0a0e1a);
+  border-bottom: 1px solid var(--line, #1f2937);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--tx, #e5e7eb);
+}
+.os-nav-inner {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.5rem 1.25rem;
+  max-width: 100%;
+}
+.os-nav-brand { position: relative; }
+.os-nav-brand-link {
+  display: flex; align-items: center; gap: 0.5rem;
+  text-decoration: none; color: var(--tx);
+}
+.os-nav-brand-mark {
+  font-size: 18px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-2, #111827);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+.os-nav-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.os-nav-brand-name { font-weight: 700; font-size: 14px; }
+.os-nav-brand-sub { font-size: 10px; color: var(--tx-3, #9ca3af); text-transform: uppercase; letter-spacing: 0.1em; }
+.os-nav-brand-chev {
+  background: none; border: none; color: var(--tx-3); cursor: pointer;
+  font-size: 14px; margin-left: 0.25rem; padding: 0 0.25rem;
+}
+.os-nav-brand-chev:hover { color: var(--tx); }
+.os-nav-brand-dropdown {
+  position: absolute; top: 100%; left: 0; min-width: 240px;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 0.4rem; margin-top: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 250;
+}
+.os-nav-brand-dropdown .brand-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.75rem; border-radius: 6px;
+  cursor: pointer; text-decoration: none; color: var(--tx);
+}
+.os-nav-brand-dropdown .brand-item:hover { background: var(--bg-3); }
+.os-nav-brand-dropdown .brand-item.active { background: var(--bg-3); border-left: 2px solid var(--gold); }
+
+.os-nav-sections {
+  display: flex; align-items: center; gap: 0.25rem;
+  margin-left: auto;
+}
+.os-nav-link {
+  display: inline-block; padding: 0.5rem 0.85rem;
+  border-radius: 6px; text-decoration: none;
+  color: var(--tx-2); font-size: 13px; font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+.os-nav-link:hover { background: var(--bg-2); color: var(--tx); }
+.os-nav-link.active {
+  background: var(--bg-2);
+  color: var(--gold, #fbbf24);
+  border-bottom: 2px solid var(--gold);
+  border-radius: 6px 6px 0 0;
+}
+.os-nav-more {
+  display: none;
+  background: none; border: none; color: var(--tx-3); cursor: pointer;
+  font-size: 18px; padding: 0.25rem 0.5rem;
+}
+
+.os-nav-data-health {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.3rem 0.6rem; border-radius: 6px;
+  background: var(--bg-2); border: 1px solid var(--line);
+  font-size: 11px; cursor: pointer;
+}
+.os-nav-data-health.healthy { border-color: var(--green, #5dff9d); }
+.os-nav-data-health.warning { border-color: var(--orange, #fb923c); }
+.os-nav-data-health.unhealthy { border-color: var(--red, #ff6b6b); }
+.os-nav-data-health-score { font-weight: 700; font-size: 12px; }
+
+.os-nav-strip {
+  display: flex; gap: 1rem; align-items: center;
+  padding: 0.4rem 1.25rem;
+  background: var(--bg-2, #0f172a);
+  border-bottom: 1px solid var(--line);
+  font-size: 11px; overflow-x: auto;
+}
+.os-nav-strip-section {
+  display: flex; align-items: center; gap: 0.5rem;
+  white-space: nowrap;
+}
+.os-nav-strip-label {
+  color: var(--tx-3); text-transform: uppercase; letter-spacing: 0.1em;
+  font-weight: 700; font-size: 10px;
+}
+.os-nav-strip-pills { display: inline-flex; gap: 0.4rem; }
+.os-nav-strip-pill {
+  display: inline-block; padding: 2px 8px;
+  background: var(--bg-3, #1f2937);
+  border-radius: 12px; font-size: 11px; font-weight: 600;
+  color: var(--tx-2); cursor: pointer;
+  transition: background 0.15s;
+}
+.os-nav-strip-pill:hover { background: var(--line); color: var(--tx); }
+.os-nav-strip-pill.trend-strengthening { border-left: 2px solid var(--green); }
+.os-nav-strip-pill.trend-flat { border-left: 2px solid var(--tx-3); }
+.os-nav-strip-pill.trend-weakening { border-left: 2px solid var(--orange); }
+.os-nav-strip-pill.trend-disproved { border-left: 2px solid var(--red); }
+.os-nav-strip-pill.urgent { background: rgba(251,191,36,0.15); color: var(--gold); }
+.os-nav-strip-empty { color: var(--tx-3); font-style: italic; }
+
+.os-breadcrumbs {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--bg);
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.os-breadcrumbs a {
+  color: var(--tx-3); text-decoration: none;
+}
+.os-breadcrumbs a:hover { color: var(--tx); text-decoration: underline; }
+.os-breadcrumbs span.sep { color: var(--tx-3); }
+.os-breadcrumbs .current { color: var(--tx); font-weight: 600; }
+.os-breadcrumbs .back-link { color: var(--tx-2); }
+.os-breadcrumbs .back-link::before { content: "← "; }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .os-nav-inner { flex-wrap: wrap; padding: 0.4rem 0.75rem; }
+  .os-nav-sections { display: none; flex-wrap: wrap; gap: 0.25rem; width: 100%; margin-left: 0; }
+  .os-nav-sections.expanded { display: flex; }
+  .os-nav-link { padding: 0.4rem 0.6rem; font-size: 12px; }
+  .os-nav-more { display: inline-block; }
+  .os-nav-data-health { font-size: 10px; padding: 0.2rem 0.4rem; }
+  .os-nav-strip { flex-wrap: wrap; padding: 0.4rem 0.75rem; gap: 0.5rem; }
+}
+@media (max-width: 480px) {
+  .os-nav-brand-text { display: none; }
+  .os-nav-strip-section { font-size: 10px; }
+}
+</style>
+
+<script>
+// ─── Global OS Navigation ───────────────────────────────────────────
+(function() {
+  const BRAND_KEY = 'campaign_os_active_brand';
+  const SECTION_KEY = 'campaign_os_active_section';
+
+  function getBrand() {
+    const fromUrl = new URLSearchParams(location.search).get('brand') || new URLSearchParams(location.search).get('brand_id');
+    if (fromUrl) {
+      localStorage.setItem(BRAND_KEY, fromUrl);
+      return fromUrl;
+    }
+    return localStorage.getItem(BRAND_KEY) || 'swing-shack';
+  }
+
+  function setBrand(brand_id) {
+    localStorage.setItem(BRAND_KEY, brand_id);
+    // Reload current page with new brand
+    const url = new URL(location.href);
+    url.searchParams.set('brand', brand_id);
+    url.searchParams.set('brand_id', brand_id);
+    location.href = url.toString();
+  }
+
+  function getSection() {
+    if (location.pathname === '/' || location.pathname === '') return 'overview';
+    if (location.pathname.startsWith('/strategy')) return 'strategy';
+    if (location.pathname.startsWith('/calendar')) return 'calendar';
+    if (location.pathname.startsWith('/marketing')) return 'marketing';
+    if (location.pathname.startsWith('/advertising')) return 'advertising';
+    if (location.pathname.startsWith('/analytics')) return 'analytics';
+    return 'overview';
+  }
+
+  async function loadBrands() {
+    try {
+      const r = await fetch('/api/brands');
+      if (!r.ok) return null;
+      const d = await r.json();
+      return d.brands || [];
+    } catch (e) { return null; }
+  }
+
+  async function renderBrandSelector() {
+    const brands = await loadBrands();
+    if (!brands) return;
+    const current = getBrand();
+    const currentBrand = brands.find(b => b.id === current) || brands[0];
+
+    // Update nav brand
+    const nameEl = document.getElementById('os-nav-brand-name');
+    const markEl = document.getElementById('os-nav-brand-mark');
+    if (nameEl) nameEl.textContent = currentBrand.display_name || currentBrand.id;
+    if (markEl) markEl.textContent = currentBrand.icon || currentBrand.mark || '⛳';
+
+    // Render dropdown
+    const dropdown = document.getElementById('os-nav-brand-dropdown');
+    if (dropdown) {
+      dropdown.innerHTML = brands.map(b => `
+        <a class="brand-item ${b.id === current ? 'active' : ''}" data-brand="${b.id}">
+          <span>${b.icon || b.mark || '⛳'}</span>
+          <span>${b.display_name || b.id}</span>
+        </a>
+      `).join('');
+      dropdown.querySelectorAll('.brand-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.preventDefault();
+          setBrand(el.dataset.brand);
+        });
+      });
+    }
+  }
+
+  function bindBrandDropdown() {
+    const chev = document.getElementById('os-nav-brand-chev');
+    const dropdown = document.getElementById('os-nav-brand-dropdown');
+    if (!chev || !dropdown) return;
+    chev.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.hidden = !dropdown.hidden;
+    });
+    document.addEventListener('click', () => { dropdown.hidden = true; });
+  }
+
+  function bindSectionLinks() {
+    const section = getSection();
+    const nav = document.getElementById('os-nav');
+    if (nav) nav.dataset.activeSection = section;
+    document.querySelectorAll('.os-nav-link').forEach(a => {
+      if (a.dataset.section === section) a.classList.add('active');
+      // Attach brand to each section link
+      const brand = getBrand();
+      const url = new URL(a.href);
+      url.searchParams.set('brand', brand);
+      url.searchParams.set('brand_id', brand);
+      a.href = url.toString();
+    });
+  }
+
+  function bindMore() {
+    const more = document.getElementById('os-nav-more');
+    const sections = document.getElementById('os-nav-sections');
+    if (!more || !sections) return;
+    more.addEventListener('click', () => {
+      sections.classList.toggle('expanded');
+    });
+  }
+
+  // ─── Compact strategic strip — active this week + next decision ────
+  async function loadStrategicStrip() {
+    const brand = getBrand();
+    try {
+      const r = await fetch(`/api/strategy/strip?brand=${brand}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const pills = document.getElementById('os-nav-strip-pills');
+      const nextDec = document.getElementById('os-nav-strip-next-decision');
+      if (!pills || !nextDec) return;
+
+      const active = d.active_this_week || [];
+      if (active.length) {
+        pills.innerHTML = active.slice(0, 5).map(a => {
+          const trendCls = a.trend ? `trend-${a.trend}` : '';
+          return `<span class="os-nav-strip-pill ${trendCls}" onclick="location.href='/strategy?brand=${brand}&record=${a.id}'">${a.title || a.id}</span>`;
+        }).join('');
+      } else {
+        pills.innerHTML = `<span class="os-nav-strip-empty">No active bets this week</span>`;
+      }
+      nextDec.innerHTML = d.next_decision
+        ? `<span class="os-nav-strip-pill urgent" onclick="location.href='/strategy?brand=${brand}&record=${d.next_decision.id}'">${d.next_decision.title} · ${d.next_decision.due}</span>`
+        : `<span class="os-nav-strip-empty">No upcoming decisions</span>`;
+    } catch (e) { /* silent */ }
+  }
+
+  // ─── Data Health chip on nav ──────────────────────────────────────
+  async function loadNavDataHealth() {
+    const brand = getBrand();
+    try {
+      const r = await fetch(`/api/integrity/data-health?brand=${brand}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const chip = document.getElementById('os-nav-data-health');
+      if (!chip || !d.health) return;
+      const score = d.health.score;
+      let cls = 'healthy';
+      if (score < 70) cls = 'warning';
+      if (score < 50) cls = 'unhealthy';
+      chip.className = `os-nav-data-health ${cls}`;
+      chip.hidden = false;
+      chip.innerHTML = `<span class="os-nav-data-health-score">${score}%</span> <span style="color:var(--tx-3)">data</span>`;
+      chip.title = `Data health: ${d.health.verdict}. Click for details.`;
+      chip.onclick = () => location.href = `/strategy?brand=${brand}&view=data-health`;
+    } catch (e) { /* silent */ }
+  }
+
+  // ─── Breadcrumbs ──────────────────────────────────────────────────
+  function renderBreadcrumbs() {
+    const bc = document.getElementById('os-breadcrumbs');
+    if (!bc) return;
+    const section = getSection();
+    const brand = getBrand();
+    const sectionLabels = {
+      overview: 'Overview',
+      strategy: 'Strategy',
+      calendar: 'Calendar',
+      marketing: 'Marketing',
+      advertising: 'Advertising',
+      analytics: 'Analytics',
+    };
+    // If we're on / strategy-page or campaign-os main, build breadcrumbs from URL params
+    const params = new URLSearchParams(location.search);
+    const record = params.get('record');
+
+    if (section === 'overview') {
+      bc.innerHTML = `<span class="current">${sectionLabels[section]}</span>`;
+      return;
+    }
+    if (record) {
+      bc.innerHTML = `
+        <a href="/?brand=${brand}">${brand.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</a>
+        <span class="sep">/</span>
+        <a href="/${section}?brand=${brand}">${sectionLabels[section]}</a>
+        <span class="sep">/</span>
+        <span class="current">${record}</span>
+      `;
+    } else {
+      bc.innerHTML = `
+        <a href="/?brand=${brand}" class="back-link">Back to Overview</a>
+        <span class="sep">·</span>
+        <span class="current">${sectionLabels[section]}</span>
+      `;
+    }
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────
+  function initOSNav() {
+    renderBrandSelector();
+    bindBrandDropdown();
+    bindSectionLinks();
+    bindMore();
+    renderBreadcrumbs();
+    loadStrategicStrip();
+    loadNavDataHealth();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOSNav);
+  } else {
+    // Already loaded — try once now, retry once after a tick if elements aren't there yet
+    if (document.getElementById('os-nav')) initOSNav();
+    else setTimeout(() => { if (document.getElementById('os-nav')) initOSNav(); }, 50);
+  }
+  // Also listen for the explicit re-fire when the nav is injected dynamically
+  window.addEventListener('os-nav-loaded', initOSNav);
+})();
+</script>

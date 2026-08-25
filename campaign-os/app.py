@@ -8320,6 +8320,47 @@ def index():
 def home_alias():
     return send_from_directory('.', 'campaign-os.html')
 
+
+@app.route('/overview')
+def overview_launchpad():
+    """Main OS Overview / Launchpad — the home of the wayfinding layer."""
+    overview_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_overview.html')
+    nav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_nav.html')
+    try:
+        with open(overview_path) as f:
+            overview = f.read()
+        with open(nav_path) as f:
+            nav = f.read()
+        # Minimal page shell so the Overview renders standalone
+        page = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaign OS · Overview</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <style>
+    :root {{
+      --bg: #0a0e1a; --bg-2: #0f172a; --bg-3: #1f2937; --bg-4: #374151;
+      --tx: #e5e7eb; --tx-2: #d1d5db; --tx-3: #9ca3af;
+      --line: #1f2937; --gold: #fbbf24; --green: #5dff9d;
+      --blue: #63b3ff; --orange: #fb923c; --red: #ff6b6b;
+      --purple: #a78bfa;
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{ background: var(--bg); color: var(--tx); margin: 0; font-family: 'Inter', -apple-system, sans-serif; }}
+    a {{ color: var(--gold); }}
+  </style>
+</head>
+<body>
+{nav}
+{overview}
+</body>
+</html>"""
+        return page, 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route('/cockpit-operational')
 @app.route('/cockpit-operational.html')
 @app.route('/cockpit.html')
@@ -14844,7 +14885,165 @@ def strategy_compact_strip():
     weeks_ahead = request.args.get('weeks_ahead', 0, type=int)
     from _lib import weekly_brief as wb
     strip = wb.build_compact_strip(bid, weeks_ahead=weeks_ahead)
-    return jsonify({"ok": True, "strip": strip}), 200
+
+    # Shape for the global nav: active_this_week as a flat list + next_decision
+    active_pills = []
+    for a in strip.get('active_this_week', []) or []:
+        active_pills.append({
+            'id': a.get('id'),
+            'title': a.get('title', a.get('id', '')),
+            'trend': a.get('trend', ''),
+        })
+    result = dict(strip)
+    result['active_this_week'] = active_pills
+
+    # Next decision
+    try:
+        from _lib import strategy_store as ss
+        import datetime as _dt
+        s = ss.load_strategy(bid)
+        today = _dt.date.today()
+        candidates = []
+        for b in s.get('bets', []):
+            dd = b.get('decision_date')
+            if dd:
+                try:
+                    dd_d = _dt.datetime.fromisoformat(dd[:10]).date()
+                    if dd_d >= today:
+                        candidates.append((dd_d, {
+                            'id': b['id'],
+                            'title': b.get('title', ''),
+                            'due': dd,
+                            'kind': 'bet',
+                        }))
+                except Exception:
+                    pass
+        if candidates:
+            candidates.sort()
+            result['next_decision'] = candidates[0][1]
+        else:
+            result['next_decision'] = None
+    except Exception:
+        result['next_decision'] = None
+
+    return jsonify({"ok": True, "strip": result}), 200
+
+
+@app.route('/api/os/nav-fragment', methods=['GET'])
+def nav_fragment():
+    """Serve the global nav HTML fragment. Pages include this then call the JS."""
+    if not _is_authed():
+        return ("", 401)
+    nav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_nav.html')
+    if not os.path.isfile(nav_path):
+        return ("", 404)
+    with open(nav_path) as f:
+        return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+
+@app.route('/api/brands', methods=['GET'])
+def brands_list():
+    """List all brands from data/brands.json — used for the global brand selector."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import intelligence as _intel
+        reg = _intel._load_brands_registry()
+        brands_raw = (reg or {}).get('brands', {}) or {}
+        default_id = (reg or {}).get('default_brand_id', 'swing-shack')
+        brands = []
+        for bid, b in brands_raw.items():
+            brands.append({
+                'id': bid,
+                'display_name': b.get('display_name') or bid,
+                'tagline': b.get('tagline') or '',
+                'icon': b.get('icon') or b.get('mark') or '⛳',
+                'primary_color': b.get('primary_color'),
+                'is_default': bid == default_id,
+            })
+        return jsonify({
+            'ok': True,
+            'brands': brands,
+            'default_brand_id': default_id,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/os/overview', methods=['GET'])
+def os_overview():
+    """Launchpad data for the main Overview page — compact summary cards."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    out = {'brand': bid}
+
+    try:
+        from _lib import strategy_store as ss
+        import datetime as _dt
+        s = ss.load_strategy(bid)
+        bets = s.get('bets', [])
+        decisions_approaching = 0
+        today = _dt.date.today()
+        for b in bets:
+            dd = b.get('decision_date')
+            if dd:
+                try:
+                    d = _dt.datetime.fromisoformat(dd[:10]).date()
+                    if 0 <= (d - today).days <= 14:
+                        decisions_approaching += 1
+                except Exception:
+                    pass
+        out['strategy'] = {
+            'active_bets': sum(1 for b in bets if b.get('status') not in ('retired', 'won', 'lost', 'killed')),
+            'moves': len(s.get('moves', [])),
+            'decisions_approaching': decisions_approaching,
+        }
+    except Exception:
+        out['strategy'] = {'active_bets': 0, 'moves': 0, 'decisions_approaching': 0}
+
+    try:
+        from _lib import weekly_brief as wb
+        cal = wb.build_calendar_strip(bid)
+        shipping = sum(1 for d in cal.get('day_strip', []) if d.get('ships'))
+        out['calendar'] = {'shipping_this_week': shipping}
+    except Exception:
+        out['calendar'] = {'shipping_this_week': 0}
+
+    try:
+        from _lib import strategy_store as ss
+        s = ss.load_strategy(bid)
+        marketing_active = sum(
+            1 for b in s.get('bets', [])
+            if b.get('status') not in ('retired', 'won', 'lost', 'killed')
+            and b.get('workhorse', 'marketing') == 'marketing'
+        )
+        out['marketing'] = {'active_initiatives': marketing_active}
+    except Exception:
+        out['marketing'] = {'active_initiatives': 0}
+
+    try:
+        from _lib import spend as sp
+        doc = sp.load_spend(bid)
+        active = [c for c in doc.get('campaigns', []) if c.get('status') in ('active', 'running')]
+        out['advertising'] = {
+            'active_spend_rands': sum(c.get('spend_rands', 0) for c in active),
+            'active_campaigns': len(active),
+        }
+    except Exception:
+        out['advertising'] = {'active_spend_rands': 0, 'active_campaigns': 0}
+
+    try:
+        from _lib import integrity as it
+        h = it.data_health(bid)
+        out['data_health'] = {
+            'score': h['score'],
+            'verdict': h['verdict'],
+        }
+    except Exception:
+        out['data_health'] = {'score': 0, 'verdict': 'unknown'}
+
+    return jsonify({'ok': True, 'overview': out}), 200
 
 
 @app.route('/api/strategy/replay/<record_type>/<record_id>', methods=['GET'])

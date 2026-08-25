@@ -1,0 +1,318 @@
+<!--
+_overview.html — Main OS Overview / Launchpad.
+
+The Information Architecture the OS now has:
+
+  Top-level nav: Overview | Strategy | Calendar | Marketing | Advertising | Analytics
+
+  Overview shows compact summary cards for each section:
+    - Strategy: active bets, decisions approaching
+    - Calendar: things shipping this week
+    - Marketing: active initiatives
+    - Advertising: active spend
+    - Data health: score + verdict
+  Click into any card to drill into the relevant section.
+
+  Below the cards: ACTIVE THIS WEEK strip + DATA HEALTH summary.
+-->
+
+<div class="overview-launchpad">
+  <header class="overview-header">
+    <h1 class="overview-h1" id="overview-h1">Campaign OS</h1>
+    <p class="overview-sub" id="overview-sub">Loading company context…</p>
+  </header>
+
+  <section class="overview-grid">
+    <a class="overview-card" data-section="strategy" id="card-strategy">
+      <div class="overview-card-icon">🎯</div>
+      <div class="overview-card-label">Strategy</div>
+      <div class="overview-card-value" id="card-strategy-value">—</div>
+      <div class="overview-card-meta" id="card-strategy-meta">—</div>
+    </a>
+    <a class="overview-card" data-section="calendar" id="card-calendar">
+      <div class="overview-card-icon">📅</div>
+      <div class="overview-card-label">Calendar</div>
+      <div class="overview-card-value" id="card-calendar-value">—</div>
+      <div class="overview-card-meta" id="card-calendar-meta">—</div>
+    </a>
+    <a class="overview-card" data-section="marketing" id="card-marketing">
+      <div class="overview-card-icon">📣</div>
+      <div class="overview-card-label">Marketing</div>
+      <div class="overview-card-value" id="card-marketing-value">—</div>
+      <div class="overview-card-meta" id="card-marketing-meta">—</div>
+    </a>
+    <a class="overview-card" data-section="advertising" id="card-advertising">
+      <div class="overview-card-icon">💰</div>
+      <div class="overview-card-label">Advertising</div>
+      <div class="overview-card-value" id="card-advertising-value">—</div>
+      <div class="overview-card-meta" id="card-advertising-meta">—</div>
+    </a>
+    <a class="overview-card" data-section="analytics" id="card-analytics">
+      <div class="overview-card-icon">📊</div>
+      <div class="overview-card-label">Analytics</div>
+      <div class="overview-card-value">Open →</div>
+      <div class="overview-card-meta">Channel ranking, IG/FB metrics, weekly report</div>
+    </a>
+    <a class="overview-card" data-section="strategy" data-view="data-health" id="card-data-health">
+      <div class="overview-card-icon">🩺</div>
+      <div class="overview-card-label">Data health</div>
+      <div class="overview-card-value" id="card-data-health-value">—</div>
+      <div class="overview-card-meta" id="card-data-health-meta">—</div>
+    </a>
+  </section>
+
+  <section class="overview-section">
+    <h2 class="overview-section-h">Active this week</h2>
+    <div class="overview-active-strip" id="overview-active-strip">
+      <span class="overview-loading">Loading…</span>
+    </div>
+  </section>
+
+  <section class="overview-section">
+    <h2 class="overview-section-h">Strategic state</h2>
+    <div class="overview-state-grid" id="overview-state-grid">
+      <span class="overview-loading">Loading north star + bets…</span>
+    </div>
+  </section>
+</div>
+
+<style>
+.overview-launchpad {
+  padding: 2rem 1.25rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.overview-header { margin-bottom: 2rem; }
+.overview-h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4rem;
+}
+.overview-sub {
+  color: var(--tx-3, #9ca3af);
+  font-size: 14px;
+  margin: 0;
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.overview-card {
+  display: block;
+  background: var(--bg-2, #111827);
+  border: 1px solid var(--line, #1f2937);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-decoration: none;
+  color: var(--tx);
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.overview-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold, #fbbf24);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.overview-card-icon {
+  font-size: 24px;
+  margin-bottom: 0.5rem;
+}
+.overview-card-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+.overview-card-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 0.3rem;
+}
+.overview-card-meta {
+  font-size: 12px;
+  color: var(--tx-2);
+}
+
+.overview-section { margin-bottom: 2rem; }
+.overview-section-h {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  color: var(--tx);
+}
+
+.overview-active-strip {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.overview-loading { color: var(--tx-3); font-style: italic; font-size: 13px; }
+.overview-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+.overview-state-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+}
+.overview-state-card .label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+.overview-state-card .value {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.overview-pill {
+  display: inline-block;
+  padding: 0.4rem 0.85rem;
+  background: var(--bg-3, #1f2937);
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx-2);
+  text-decoration: none;
+}
+.overview-pill:hover { background: var(--gold); color: var(--bg); }
+.overview-pill.trend-strengthening { border-left: 3px solid var(--green); }
+.overview-pill.trend-flat { border-left: 3px solid var(--tx-3); }
+.overview-pill.trend-weakening { border-left: 3px solid var(--orange); }
+.overview-pill.trend-gathering { border-left: 3px solid var(--blue); }
+</style>
+
+<script>
+(function() {
+  function getBrand() {
+    const fromUrl = new URLSearchParams(location.search).get('brand') || new URLSearchParams(location.search).get('brand_id');
+    if (fromUrl) {
+      localStorage.setItem('campaign_os_active_brand', fromUrl);
+      return fromUrl;
+    }
+    return localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  }
+
+  async function loadOverview() {
+    const brand = getBrand();
+    const r = await fetch(`/api/os/overview?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok) return;
+    const o = d.overview;
+
+    document.getElementById('overview-sub').textContent = `${brand.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} — current company context`;
+
+    if (o.strategy) {
+      const sv = document.getElementById('card-strategy-value');
+      const sm = document.getElementById('card-strategy-meta');
+      sv.textContent = `${o.strategy.active_bets} active`;
+      const decisionText = o.strategy.decisions_approaching > 0
+        ? `${o.strategy.decisions_approaching} decision${o.strategy.decisions_approaching === 1 ? '' : 's'} approaching`
+        : 'No decisions due';
+      sm.textContent = `${o.strategy.moves} market move${o.strategy.moves === 1 ? '' : 's'} · ${decisionText}`;
+    }
+    if (o.calendar) {
+      document.getElementById('card-calendar-value').textContent = `${o.calendar.shipping_this_week}`;
+      document.getElementById('card-calendar-meta').textContent = 'things shipping this week';
+    }
+    if (o.marketing) {
+      document.getElementById('card-marketing-value').textContent = `${o.marketing.active_initiatives}`;
+      document.getElementById('card-marketing-meta').textContent = 'active marketing initiatives';
+    }
+    if (o.advertising) {
+      const av = document.getElementById('card-advertising-value');
+      const am = document.getElementById('card-advertising-meta');
+      const spend = o.advertising.active_spend_rands;
+      av.textContent = spend > 0 ? `R${spend.toLocaleString('en-ZA', {maximumFractionDigits: 0})}` : 'R0';
+      am.textContent = `${o.advertising.active_campaigns} active campaign${o.advertising.active_campaigns === 1 ? '' : 's'}`;
+    }
+    if (o.data_health) {
+      const dhv = document.getElementById('card-data-health-value');
+      const dhm = document.getElementById('card-data-health-meta');
+      dhv.textContent = `${o.data_health.score}/100`;
+      dhm.textContent = o.data_health.verdict;
+      // Color the card
+      const card = document.getElementById('card-data-health');
+      card.style.borderColor = o.data_health.score >= 80 ? 'var(--green)' : o.data_health.score >= 50 ? 'var(--orange)' : 'var(--red)';
+    }
+
+    // Wire card links to brand-scoped URLs
+    document.querySelectorAll('.overview-card').forEach(c => {
+      const section = c.dataset.section;
+      const view = c.dataset.view;
+      if (section === 'overview') {
+        c.href = `/?brand=${brand}`;
+      } else if (section === 'strategy') {
+        c.href = view ? `/strategy?brand=${brand}&view=${view}` : `/strategy?brand=${brand}`;
+      } else if (section === 'analytics') {
+        c.href = `/weekly-report?brand=${brand}`;
+      } else {
+        c.href = `/${section}?brand=${brand}`;
+      }
+    });
+  }
+
+  async function loadActiveStrip() {
+    const brand = getBrand();
+    try {
+      const r = await fetch(`/api/strategy/strip?brand=${brand}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const strip = d.strip || {};
+      const container = document.getElementById('overview-active-strip');
+      const active = strip.active_this_week || [];
+      if (!active.length) {
+        container.innerHTML = '<span class="overview-loading">No active bets this week.</span>';
+        return;
+      }
+      container.innerHTML = active.map(a => {
+        const trendCls = a.trend ? `trend-${a.trend}` : '';
+        return `<a class="overview-pill ${trendCls}" href="/strategy?brand=${brand}&record=${a.id}">${a.title || a.id}</a>`;
+      }).join('');
+    } catch (e) { /* silent */ }
+  }
+
+  async function loadStrategicState() {
+    const brand = getBrand();
+    try {
+      const r = await fetch(`/api/strategy?brand=${brand}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const s = d.strategy || {};
+      const grid = document.getElementById('overview-state-grid');
+      const cards = [];
+      cards.push(`<div class="overview-state-card"><div class="label">North Star</div><div class="value">${s.north_star || '—'}</div></div>`);
+      const moves = s.moves || [];
+      if (moves.length) {
+        cards.push(`<div class="overview-state-card"><div class="label">Market move</div><div class="value">${moves[0].title || moves[0].id}</div></div>`);
+      }
+      const bets = (s.bets || []).filter(b => b.status === 'active' || !b.status).slice(0, 3);
+      if (bets.length) {
+        cards.push(`<div class="overview-state-card"><div class="label">Active bets</div><div class="value">${bets.map(b => b.title).join(' · ')}</div></div>`);
+      }
+      grid.innerHTML = cards.join('');
+    } catch (e) { /* silent */ }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadOverview();
+    loadActiveStrip();
+    loadStrategicState();
+  });
+})();
+</script>

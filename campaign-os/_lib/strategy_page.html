@@ -807,6 +807,21 @@ body {
 </head>
 <body>
 
+<!-- Global OS nav — wayfinding shared across Campaign OS surfaces -->
+<div id="os-nav-mount"></div>
+<script>
+fetch('/api/os/nav-fragment').then(r => r.ok ? r.text() : '').then(html => {
+  const m = document.getElementById('os-nav-mount');
+  if (m && html) {
+    m.outerHTML = html;
+    // Re-trigger DOMContentLoaded listeners for the dynamically-injected nav
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    // Also dispatch a custom event
+    window.dispatchEvent(new Event('os-nav-loaded'));
+  }
+});
+</script>
+
 <div class="strategy-header">
   <div id="data-health-chip" class="data-health" style="display:none;margin-bottom:0.75rem"><span class="data-health-score">--</span><span>Loading…</span></div>
   <div class="brand-line" id="brand-line">Brand</div>
