@@ -8321,46 +8321,6 @@ def home_alias():
     return send_from_directory('.', 'campaign-os.html')
 
 
-@app.route('/overview')
-def overview_launchpad():
-    """Main OS Overview / Launchpad — the home of the wayfinding layer."""
-    overview_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_overview.html')
-    nav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_nav.html')
-    try:
-        with open(overview_path) as f:
-            overview = f.read()
-        with open(nav_path) as f:
-            nav = f.read()
-        # Minimal page shell so the Overview renders standalone
-        page = f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Campaign OS · Overview</title>
-  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <style>
-    :root {{
-      --bg: #0a0e1a; --bg-2: #0f172a; --bg-3: #1f2937; --bg-4: #374151;
-      --tx: #e5e7eb; --tx-2: #d1d5db; --tx-3: #9ca3af;
-      --line: #1f2937; --gold: #fbbf24; --green: #5dff9d;
-      --blue: #63b3ff; --orange: #fb923c; --red: #ff6b6b;
-      --purple: #a78bfa;
-    }}
-    * {{ box-sizing: border-box; }}
-    body {{ background: var(--bg); color: var(--tx); margin: 0; font-family: 'Inter', -apple-system, sans-serif; }}
-    a {{ color: var(--gold); }}
-  </style>
-</head>
-<body>
-{nav}
-{overview}
-</body>
-</html>"""
-        return page, 200, {'Content-Type': 'text/html; charset=utf-8'}
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
 @app.route('/cockpit-operational')
 @app.route('/cockpit-operational.html')
 @app.route('/cockpit.html')
@@ -14614,9 +14574,80 @@ def strategy_evaluate(bet_id):
 
 @app.route('/strategy', methods=['GET'])
 def strategy_page():
-    """The Strategy page UI — big-picture view above the calendar."""
+    """The Strategy page UI — rendered INSIDE the existing OS shell.
+
+    The strategy content (north star, market moves, bets, calendar,
+    audit, portfolio balance, strategic efficiency, data health) is
+    injected into the campaign-os main content area. The existing
+    sidebar/header/brand-switcher remains exactly as the user
+    configured — Strategy is a workspace inside the same app, not
+    a separate application.
+    """
     bid = request.args.get('brand') or get_brand_id()
-    return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
+    # Load the campaign-os shell — same chrome the user already sees
+    os_shell_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-os.html')
+    try:
+        with open(os_shell_path) as f:
+            shell = f.read()
+    except Exception:
+        return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
+
+    # The strategy HTML is rendered as a string and injected INSIDE
+    # the existing <main class="main"> of the OS shell. The JavaScript
+    # inside campaign-os.html detects the active section by URL hash
+    # and highlights the Strategy nav entry. The brand-switcher is
+    # the existing one in the sidebar — no duplicate.
+    strategy_html = render_template_string(STRATEGY_PAGE_HTML, brand_id=bid)
+
+    # Strip the <head>, <body> opening/closing from the strategy HTML
+    # so we can splice its content into the shell's <main>.
+    # Easiest: extract just the body content (between <body> and </body>)
+    import re as _re
+    body_match = _re.search(r'<body[^>]*>(.*)</body>', strategy_html, _re.DOTALL)
+    if body_match:
+        strategy_body = body_match.group(1)
+    else:
+        strategy_body = strategy_html
+
+    # Inject strategy body INSIDE the existing <main> of the OS shell
+    # Use a sentinel that the shell template never contains.
+    sentinel = '<!-- STRATEGY_CONTENT_INJECTION_POINT -->'
+    if sentinel in shell:
+        shell_with_strategy = shell.replace(sentinel, strategy_body)
+    else:
+        # Fallback: inject right after <main class="main">
+        shell_with_strategy = shell.replace(
+            '<main class="main">',
+            '<main class="main">' + strategy_body,
+            1,
+        )
+
+    # Tell the OS which section is active so the sidebar can highlight it
+    shell_with_strategy = shell_with_strategy.replace(
+        'data-active-section="overview"',
+        'data-active-section="strategy"',
+        1,
+    )
+
+    # Update the page title
+    shell_with_strategy = shell_with_strategy.replace(
+        'id="title">Morning Brief',
+        'id="title">Strategy',
+        1,
+    )
+
+    # Update the breadcrumbs
+    shell_with_strategy = shell_with_strategy.replace(
+        'id="crumbs">Today',
+        'id="crumbs">Strategy',
+        1,
+    )
+
+    # Add ?brand= to all in-shell anchor hrefs that don't already have a brand param
+    # (preserves the active brand context across in-OS navigation)
+    # Skipped for now — campaign-os.html reads brand from localStorage / URL
+
+    return shell_with_strategy, 200
 
 
 @app.route('/api/strategy/snapshot', methods=['POST'])
@@ -14939,82 +14970,6 @@ def nav_fragment():
         return ("", 404)
     with open(nav_path) as f:
         return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
-
-
-@app.route('/api/os/overview', methods=['GET'])
-def os_overview():
-    """Launchpad data for the main Overview page — compact summary cards."""
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "auth required"}), 401
-    bid = request.args.get('brand') or get_brand_id()
-    out = {'brand': bid}
-
-    try:
-        from _lib import strategy_store as ss
-        import datetime as _dt
-        s = ss.load_strategy(bid)
-        bets = s.get('bets', [])
-        decisions_approaching = 0
-        today = _dt.date.today()
-        for b in bets:
-            dd = b.get('decision_date')
-            if dd:
-                try:
-                    d = _dt.datetime.fromisoformat(dd[:10]).date()
-                    if 0 <= (d - today).days <= 14:
-                        decisions_approaching += 1
-                except Exception:
-                    pass
-        out['strategy'] = {
-            'active_bets': sum(1 for b in bets if b.get('status') not in ('retired', 'won', 'lost', 'killed')),
-            'moves': len(s.get('moves', [])),
-            'decisions_approaching': decisions_approaching,
-        }
-    except Exception:
-        out['strategy'] = {'active_bets': 0, 'moves': 0, 'decisions_approaching': 0}
-
-    try:
-        from _lib import weekly_brief as wb
-        cal = wb.build_calendar_strip(bid)
-        shipping = sum(1 for d in cal.get('day_strip', []) if d.get('ships'))
-        out['calendar'] = {'shipping_this_week': shipping}
-    except Exception:
-        out['calendar'] = {'shipping_this_week': 0}
-
-    try:
-        from _lib import strategy_store as ss
-        s = ss.load_strategy(bid)
-        marketing_active = sum(
-            1 for b in s.get('bets', [])
-            if b.get('status') not in ('retired', 'won', 'lost', 'killed')
-            and b.get('workhorse', 'marketing') == 'marketing'
-        )
-        out['marketing'] = {'active_initiatives': marketing_active}
-    except Exception:
-        out['marketing'] = {'active_initiatives': 0}
-
-    try:
-        from _lib import spend as sp
-        doc = sp.load_spend(bid)
-        active = [c for c in doc.get('campaigns', []) if c.get('status') in ('active', 'running')]
-        out['advertising'] = {
-            'active_spend_rands': sum(c.get('spend_rands', 0) for c in active),
-            'active_campaigns': len(active),
-        }
-    except Exception:
-        out['advertising'] = {'active_spend_rands': 0, 'active_campaigns': 0}
-
-    try:
-        from _lib import integrity as it
-        h = it.data_health(bid)
-        out['data_health'] = {
-            'score': h['score'],
-            'verdict': h['verdict'],
-        }
-    except Exception:
-        out['data_health'] = {'score': 0, 'verdict': 'unknown'}
-
-    return jsonify({'ok': True, 'overview': out}), 200
 
 
 @app.route('/api/strategy/replay/<record_type>/<record_id>', methods=['GET'])

@@ -314,7 +314,7 @@ a:hover{text-decoration:underline}
 /* SA context chip — see /api/intel/sa_context. Always visible in the
    topbar so the user knows the current loadshedding stage, season,
    school holiday, and public holiday before publishing anything. */
-.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
+.strategy-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:600;color:var(--tx-2);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s;margin-left:.25rem;white-space:nowrap}.strategy-chip:hover{background:var(--bg-3);border-color:var(--gold);color:var(--tx)}.strategy-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}.strategy-chip-dot.has-decision{background:var(--gold)}.strategy-chip-dot.empty{background:var(--tx-3)}.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
 .sa-chip .sa-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
 .sa-chip .sa-chip-dot.warn{background:var(--amber,#d97706);box-shadow:0 0 0 3px rgba(217,119,6,.15)}
 .sa-chip .sa-chip-dot.bad{background:var(--red,#dc2626);box-shadow:0 0 0 3px rgba(220,38,38,.18);animation:pulse 1.8s infinite}
@@ -966,7 +966,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       </div>
       <div class="nav-group" id="nav-group-insight">
         <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
-        <a class="nav nav-link" href="/strategy" data-help-title="Strategy" data-help="Where are we heading? Market moves, bets, decisions. The strategic brain of the OS — north star, evidence ladder, portfolio balance."><span class="nav-icon">🎯</span> Strategy <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/strategy" data-section="strategy" data-help-title="Strategy" data-help="Where are we heading? Market moves, bets, decisions. The strategic brain of the OS — north star, evidence ladder, portfolio balance."><span class="nav-icon">🎯</span> Strategy <span class="ext-mark">↗</span></a>
         <a class="nav nav-link" href="/weekly-report" data-help-title="Weekly Report" data-help="Brand-aware weekly marketing report. Compares this week vs last. Downloadable as HTML, Markdown, or PDF."><span class="nav-icon">📅</span> Weekly Report <span class="ext-mark">↗</span></a>
         <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
         <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
@@ -1117,6 +1117,11 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <span class="sa-chip-sep" id="sa-chip-pub-sep" style="display:none">·</span>
         <span id="sa-chip-pub" style="display:none"></span>
       </div>
+      <!-- Strategy status chip: "X active bets · next decision Y" — click opens Strategy -->
+      <a class="strategy-chip" id="strategy-chip" href="/strategy" data-help="Strategic context for the current company. Shows active bets + next decision." title="Open Strategy">
+        <span class="strategy-chip-dot"></span>
+        <span id="strategy-chip-text">Strategy —</span>
+      </a>
       <div class="theme-switch" id="theme-switch" role="group" aria-label="Color theme" data-help="Pick the color theme. Dark for low-light focus, Light for daytime, Auto to follow your system preference. Saved per browser." data-help-title="Theme">
         <button data-theme-val="dark" title="Dark theme"><span class="ico">🌙</span>Dark</button>
         <button data-theme-val="light" title="Light theme"><span class="ico">☀️</span>Light</button>
@@ -1197,6 +1202,17 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
           <div class="muted rail-skel-hint">Pulling live signals…</div>
         </div>
       </aside>
+      <!-- Strategy summary card — visible from the main OS Overview. Click → Strategy. -->
+      <a class="card strategy-card-link" id="strategy-summary-card" href="/strategy" style="display:block;margin-top:1rem;text-decoration:none;color:inherit;border-left:3px solid var(--gold);transition:transform .15s">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+          <div>
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);font-weight:700;margin-bottom:.4rem">Strategy</div>
+            <div style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:.3rem" id="strategy-card-title">Where are we heading?</div>
+            <div style="font-size:13px;color:var(--tx-2);line-height:1.5" id="strategy-card-meta">Loading strategic context…</div>
+          </div>
+          <div style="font-size:24px;color:var(--gold)">�</div>
+        </div>
+      </a>
       </section>
 
     <!-- ── REVIEW ────────────────────────────────────────── -->
@@ -13372,5 +13388,126 @@ window.addEventListener('DOMContentLoaded', () => {
   maybeShowWelcome();
 });
 </script>
+<script>
+// Populate the Strategy summary card on the main overview
+async function loadStrategyCard() {
+  const urlParams = new URLSearchParams(location.search);
+  const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  const card = document.getElementById('strategy-summary-card');
+  if (!card) return;
+  card.href = `/strategy?brand=${brand}`;
+  try {
+    const r = await fetch(`/api/strategy?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const s = d.strategy || {};
+    const title = document.getElementById('strategy-card-title');
+    const meta = document.getElementById('strategy-card-meta');
+    const bets = (s.bets || []).filter(b => !b.status || b.status === 'active');
+    const moves = s.moves || [];
+    const decisionCount = bets.filter(b => {
+      try {
+        const dd = new Date(b.decision_date);
+        const days = (dd - new Date()) / (1000*60*60*24);
+        return days >= 0 && days <= 14;
+      } catch (e) { return false; }
+    }).length;
+    if (title) {
+      title.textContent = s.north_star ? s.north_star.slice(0, 80) + (s.north_star.length > 80 ? '…' : '') : 'Where are we heading?';
+    }
+    if (meta) {
+      const moveTitle = moves[0] ? moves[0].title : '—';
+      meta.innerHTML = `<strong>${bets.length}</strong> active bet${bets.length === 1 ? '' : 's'} · <strong>${decisionCount}</strong> decision${decisionCount === 1 ? '' : 's'} approaching · <em>Current move: ${moveTitle}</em>`;
+    }
+  } catch (e) { /* silent */ }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadStrategyCard);
+} else {
+  loadStrategyCard();
+}
+
+// Load the strategy chip data
+async function loadStrategyChip() {
+  const urlParams = new URLSearchParams(location.search);
+  const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  try {
+    const r = await fetch(`/api/strategy/strip?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const strip = d.strip || {};
+    const active = strip.active_this_week || [];
+    const nextDec = strip.next_decision;
+    const text = document.getElementById('strategy-chip-text');
+    const chip = document.getElementById('strategy-chip');
+    const dot = chip ? chip.querySelector('.strategy-chip-dot') : null;
+    if (!text) return;
+    let label = `${active.length} active bet${active.length === 1 ? '' : 's'}`;
+    if (nextDec) {
+      try {
+        const due = new Date(nextDec.due);
+        const days = Math.ceil((due - new Date()) / (1000*60*60*24));
+        label += ` · next: ${days}d`;
+      } catch (e) { label += ` · next decision soon`; }
+    } else {
+      label += ` · no upcoming decisions`;
+    }
+    text.textContent = label;
+    if (chip) chip.href = `/strategy?brand=${brand}`;
+    if (dot) {
+      dot.classList.toggle('has-decision', !!nextDec);
+      dot.classList.toggle('empty', active.length === 0 && !nextDec);
+    }
+  } catch (e) { /* silent */ }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadStrategyChip);
+} else {
+  loadStrategyChip();
+}
+
+// Highlight the active section in the OS sidebar based on the current URL.
+(function() {
+  function highlightActiveSection() {
+    const path = location.pathname;
+    let active = null;
+    if (path.startsWith('/strategy')) active = 'strategy';
+    else if (path.startsWith('/calendar')) active = 'calendar';
+    else if (path.startsWith('/marketing')) active = 'marketing';
+    else if (path.startsWith('/advertising')) active = 'advertising';
+    else if (path.startsWith('/analytics') || path.startsWith('/weekly-report')) active = 'analytics';
+    else if (path === '/' || path === '') active = 'overview';
+    if (!active) return;
+    // Mark the active nav link
+    document.querySelectorAll('.nav-link[data-section]').forEach(a => {
+      if (a.dataset.section === active) a.classList.add('active');
+      else a.classList.remove('active');
+    });
+    // Auto-open the relevant nav group
+    document.querySelectorAll('.nav-group-h').forEach(g => {
+      const group = g.dataset.navGroup;
+      const groupForSection = {
+        strategy: 'insight',
+        analytics: 'insight',
+        calendar: 'reach',
+        marketing: 'build',
+        advertising: 'reach',
+      };
+      const target = groupForSection[active];
+      if (target && group === target) {
+        g.setAttribute('aria-expanded', 'true');
+        const child = document.getElementById('nav-group-' + group);
+        if (child) child.hidden = false;
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', highlightActiveSection);
+  } else {
+    highlightActiveSection();
+  }
+})();
+</script>
+
 </body>
 </html>
