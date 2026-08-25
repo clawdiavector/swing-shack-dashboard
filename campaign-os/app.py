@@ -15094,11 +15094,23 @@ def seo_debug():
             d = json.load(f)
         keys = list(d.keys())
         kws = d.get("keywords", []) or []
+        # Show all keywords briefly
+        all_kws = []
+        for k in kws:
+            np_ = k.get("new_position") or {}
+            op = k.get("old_position") or {}
+            all_kws.append({
+                "keyword": k.get("keyword"),
+                "current": np_.get("position") if isinstance(np_, dict) else k.get("current_rank"),
+                "previous": op.get("position") if isinstance(op, dict) else k.get("previous_rank"),
+                "volume": k.get("volume") or k.get("search_volume") or 0,
+            })
         sample = kws[0] if kws else {}
         return jsonify({
             "ok": True,
             "top_level_keys": keys,
             "keywords_count": len(kws),
+            "all_keywords": all_kws,
             "sample_keyword": sample,
             "sample_keys": list(sample.keys()) if sample else [],
         }), 200
