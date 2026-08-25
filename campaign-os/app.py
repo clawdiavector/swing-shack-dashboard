@@ -14998,24 +14998,41 @@ def seo_refresh():
         end = _dt2.date.today().isoformat()
         start = (_dt2.date.today() - _dt2.timedelta(days=60)).isoformat()
         logs = []
-        pos_info = _us.project_position_info(project_id, start_date=start, end_date=end, language="en", device="desktop")
-        logs.append("project_position_info: %d keywords" % len((pos_info or {}).get("keywords", [])))
-        domain = _us.domain_overview("swingshack.co.za")
-        logs.append("domain_overview: DA %s" % domain.get("domainAuthority", "?"))
-        bl = _us.backlinks_overview("swingshack.co.za")
-        logs.append("backlinks: %s" % bl.get("backlinks", "?"))
-        comps = _us.competitors("swingshack.co.za")
-        n_comps = len(comps) if isinstance(comps, list) else len((comps or {}).get("competitors", []))
+        def _unpack(raw):
+            """Unwrap MCP-format response to the inner JSON dict."""
+            if not isinstance(raw, dict):
+                return raw or {}
+            content = raw.get("content")
+            if isinstance(content, list) and content and isinstance(content[0], dict):
+                txt = content[0].get("text", "{}")
+                try:
+                    return json.loads(txt) if isinstance(txt, str) else txt
+                except Exception:
+                    return raw
+            return raw
+
+        pos_raw = _unpack(_us.project_position_info(project_id, start_date=start, end_date=end, language="en", device="desktop"))
+        domain = _unpack(_us.domain_overview("swingshack.co.za"))
+        bl = _unpack(_us.backlinks_overview("swingshack.co.za"))
+        comps_raw = _unpack(_us.competitors("swingshack.co.za"))
+
+        n_keywords = len((pos_raw or {}).get("keywords", []) or [])
+        n_comps = len(comps_raw) if isinstance(comps_raw, list) else len((comps_raw or {}).get("competitors", []))
+
+        logs.append("project_position_info: %d keywords" % n_keywords)
+        logs.append("domain_overview: DA %s" % (domain or {}).get("domainAuthority", "?"))
+        logs.append("backlinks: %s" % (bl or {}).get("backlinks", "?"))
         logs.append("competitors: %d" % n_comps)
+
         return jsonify({
             "ok": True,
             "project_id": project_id,
             "window": {"start": start, "end": end},
             "logs": logs,
             "summary": {
-                "domain_authority": domain.get("domainAuthority"),
-                "backlinks": bl.get("backlinks"),
-                "tracked_keywords": len((pos_info or {}).get("keywords", [])),
+                "domain_authority": (domain or {}).get("domainAuthority"),
+                "backlinks": (bl or {}).get("backlinks"),
+                "tracked_keywords": n_keywords,
             },
         }), 200
     except Exception as e:
