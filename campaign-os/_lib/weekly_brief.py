@@ -70,6 +70,12 @@ from spend import (
     spend_concentration_warnings,
     budget_burn_vs_maturity,
 )
+from integrity import (
+    reconcile as integrity_reconcile,
+    degrade_confidence,
+    detect_anomalies,
+    render_integrity_warning_section,
+)
 
 
 def _now() -> str:
@@ -915,10 +921,28 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
 
 # ─── Markdown formatter for Discord / shell output ─────────────────
 
+def _brand_id_from_brief(brief: dict) -> str:
+    return brief.get("brand_id", "swing-shack")
+
+
+def esc(text):
+    """Minimal HTML/markdown escape for safety."""
+    if not text:
+        return ""
+    return (str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
 def render_brief_markdown(brief: Dict[str, Any]) -> str:
     """Render the brief as Discord-friendly markdown."""
     md = []
     md.append(f"## This week's update · week of {brief['week_of']} → {brief['week_to']}")
+    md.append("")
+
+    # ─── DATA INTEGRITY WARNING first — silent when healthy ──────────
+    integrity_warning = render_integrity_warning_section(_brand_id_from_brief(brief))
+    if integrity_warning:
+        md.append(integrity_warning)
+        md.append("")
     md.append("")
 
     # What changed

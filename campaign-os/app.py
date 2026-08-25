@@ -15244,6 +15244,139 @@ def spend_r1_buy(campaign_id):
     return jsonify({"ok": True, "claim": claim.to_dict()}), 200
 
 
+
+# ─── Integrity / Data Health API ────────────────────────────────────────
+
+@app.route('/api/integrity/run', methods=['GET'])
+def integrity_run():
+    """Severity-graded reconciliation. Silent when healthy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    recon = it.reconcile(bid)
+    return jsonify({"ok": True, "reconciliation": recon}), 200
+
+
+@app.route('/api/integrity/data-health', methods=['GET'])
+def integrity_data_health():
+    """Overall data health score + per-source status."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    h = it.data_health(bid)
+    return jsonify({"ok": True, "health": h}), 200
+
+
+@app.route('/api/integrity/measurement-debt', methods=['GET'])
+def integrity_measurement_debt():
+    """Per-layer status + 'what would unlock the next claim'."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    debt = it.measurement_debt(bid)
+    return jsonify({"ok": True, "debt": debt}), 200
+
+
+@app.route('/api/integrity/anomalies', methods=['GET'])
+def integrity_anomalies():
+    """Extreme value sanity checks."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    anomalies = it.detect_anomalies(bid)
+    return jsonify({"ok": True, "anomalies": anomalies}), 200
+
+
+@app.route('/api/integrity/drift', methods=['GET'])
+def integrity_drift():
+    """Weekly drift detection."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    return jsonify({"ok": True, "drift": it.detect_drift(bid)}), 200
+
+
+@app.route('/api/integrity/attribution-disagreements', methods=['GET'])
+def integrity_attribution_disagreements():
+    """Surface Meta/GA4/CRM/booking numbers without averaging."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    return jsonify({"ok": True, "disagreements": it.detect_attribution_disagreements(bid)}), 200
+
+
+@app.route('/api/integrity/evidence-chain/<bet_id>', methods=['GET'])
+def integrity_evidence_chain(bet_id):
+    """Meta → UTM → GA4 → Booking path per bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    chain = it.evidence_chain(bid, bet_id)
+    return jsonify({"ok": True, "chain": chain}), (200 if "error" not in chain else 404)
+
+
+@app.route('/api/integrity/gaps', methods=['GET', 'POST'])
+def integrity_gaps():
+    """Measurement gap work-tracking. POST creates a gap, GET lists open gaps."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        gap = it.add_measurement_gap(
+            bid,
+            body.get('problem', ''),
+            body.get('strategic_impact', ''),
+            body.get('priority', 'medium'),
+            body.get('owner', 'unassigned'),
+        )
+        return jsonify({"ok": True, "gap": gap}), 200
+    else:
+        gaps = it.open_measurement_gaps(bid)
+        return jsonify({"ok": True, "open_gaps": gaps, "count": len(gaps)}), 200
+
+
+@app.route('/api/integrity/gaps/<gap_id>/resolve', methods=['POST'])
+def integrity_gap_resolve(gap_id):
+    """Mark a measurement gap as resolved."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import integrity as it
+    it.resolve_measurement_gap(bid, gap_id, body.get('note', ''))
+    return jsonify({"ok": True}), 200
+
+
+@app.route('/api/integrity/corrections', methods=['GET', 'POST'])
+def integrity_corrections():
+    """Historical evidence corrections. POST records a correction, GET lists them."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        c = it.record_evidence_correction(
+            bid,
+            body.get('bet_id'),
+            body.get('metric'),
+            body.get('original_value'),
+            body.get('corrected_value'),
+            body.get('reason', ''),
+        )
+        return jsonify({"ok": True, "correction": c}), 200
+    return jsonify({"ok": True, "corrections": it.list_corrections(bid)}), 200
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
     _boot_selfheal_windsor()
