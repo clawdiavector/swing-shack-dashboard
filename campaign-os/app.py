@@ -15082,6 +15082,20 @@ def seo_refresh():
         return jsonify({"ok": False, "error": str(e), "trace": traceback.format_exc()[-1000:]}), 500
 
 
+@app.route('/api/seo/debug/full', methods=['GET'])
+def seo_debug_full():
+    """Dump the raw seo-rankings.json so we can see exactly what's on disk."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        path = os.path.join(data_dir, "seo-rankings.json")
+        with open(path) as f:
+            return jsonify(json.load(f)), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/seo/debug', methods=['GET'])
 def seo_debug():
     """Inspect what's actually on disk."""
