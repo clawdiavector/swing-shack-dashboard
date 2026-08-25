@@ -670,16 +670,32 @@ def decision_debt(brand_id: str) -> Dict[str, Any]:
 def clear_my_desk_sequence(brand_id: str) -> Dict[str, Any]:
     """Build a step-by-step sequence for clearing the desk.
 
-    Returns:
+    Skips items that already have a recent decision/defer (the OS knows
+    they were handled). Returns:
       {
         brand, steps: [{order, decision_id, what, ...}],
         summary_template: "Desk clear. X decisions, Y deferred, Z measurement tasks."
       }
     """
     queue = build_decision_queue(brand_id)
-    ordered = [c for c in queue.get("queue", []) if c.get("priority") == PRIORITY_DECIDE_NOW]
+    # Filter out items already decided/deferred within the last 7 days
+    log = load_decisions(brand_id)
+    handled_ids = set()
+    for entry in (log.get("history") or [])[-20:]:
+        try:
+            dt_then = _dt.datetime.fromisoformat(entry["decided_at"][:19])
+            if (_dt.datetime.now(_dt.timezone.utc) - dt_then).days < 7:
+                ctx = entry.get("context", {}) or {}
+                # Build the same stable id and skip it
+                sid = _stable_id(entry.get("source", ""), ctx)
+                handled_ids.add(sid)
+        except Exception:
+            pass
+
+    candidates = [c for c in queue.get("queue", []) if c.get("id") not in handled_ids]
+    ordered = [c for c in candidates if c.get("priority") == PRIORITY_DECIDE_NOW]
     if not ordered:
-        ordered = [c for c in queue.get("queue", []) if c.get("priority") == PRIORITY_THIS_WEEK]
+        ordered = [c for c in candidates if c.get("priority") == PRIORITY_THIS_WEEK]
 
     steps = []
     for i, card in enumerate(ordered, 1):
