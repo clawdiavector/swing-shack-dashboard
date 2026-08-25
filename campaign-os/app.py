@@ -2392,6 +2392,22 @@ _SECRET_DROP_SLOTS = {
         "mint_oauth_file": False,
         "validate": lambda v: len(v) >= 50,
     },
+    "ubersuggest_access_token": {
+        "label": "Ubersuggest OAuth Access Token (Swing Shack)",
+        "env_var": "UBERSUGGEST_ACCESS_TOKEN",
+        "cred_file_key": "access_token",
+        "cred_filename": "ubersuggest-api.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: v.startswith("ubs_") or len(v) >= 32,
+    },
+    "ubersuggest_refresh_token": {
+        "label": "Ubersuggest OAuth Refresh Token (Swing Shack)",
+        "env_var": "UBERSUGGEST_REFRESH_TOKEN",
+        "cred_file_key": "refresh_token",
+        "cred_filename": "ubersuggest-api.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: v.startswith("ubs_") or len(v) >= 32,
+    },
 }
 
 def _secret_drop_fernet():
@@ -14905,6 +14921,49 @@ def seo_competitors():
         return jsonify({"ok": True, "competitors": comps, "count": len(comps)}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _ensure_ubersuggest_token_file():
+    """Make UBERSUGGEST_ACCESS_TOKEN / UERSUGGEST_REFRESH_TOKEN env vars into a real
+    token file at the canonical path so the wrapper finds it."""
+    tok = os.environ.get("UBERSUGGEST_ACCESS_TOKEN")
+    ref = os.environ.get("UBERSUGGEST_REFRESH_TOKEN")
+    if not tok:
+        return False
+    cred_path = os.path.expanduser(
+        "~/.openclaw-instance2/workspace/clients/swing-shack/credentials/ubersuggest-api.json"
+    )
+    os.makedirs(os.path.dirname(cred_path), exist_ok=True)
+    if os.path.exists(cred_path):
+        try:
+            with open(cred_path) as f:
+                existing = json.load(f)
+            if existing.get("access_token") == tok:
+                return True  # already current
+        except Exception:
+            pass
+    payload = {
+        "access_token": tok,
+        "refresh_token": ref or "",
+        "token_type": "Bearer",
+        "obtained_at": int(_dt_cls.now(_tz.utc).timestamp()),
+        "expires_in": 172800,
+        "expires_at": int(_dt_cls.now(_tz.utc).timestamp()) + 172800,
+        "refreshed_at": int(_dt_cls.now(_tz.utc).timestamp()),
+        "scope": "profile domain keywords serp backlinks site_audit content projects utility",
+        "_source": "UBERSUGGEST_ACCESS_TOKEN env var",
+    }
+    try:
+        with open(cred_path, "w") as f:
+            json.dump(payload, f, indent=2)
+        os.chmod(cred_path, 0o600)
+        # Also point the wrapper to this path so it knows where to look
+        os.environ["UBERSUGGEST_TOKEN_FILE"] = cred_path
+        return True
+    except Exception:
+        return False
+
+_ensure_ubersuggest_token_file()
 
 
 @app.route('/api/seo/refresh', methods=['POST'])
