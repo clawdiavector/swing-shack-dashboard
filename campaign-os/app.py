@@ -14941,35 +14941,6 @@ def nav_fragment():
         return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 
-@app.route('/api/brands', methods=['GET'])
-def brands_list():
-    """List all brands from data/brands.json — used for the global brand selector."""
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "auth required"}), 401
-    try:
-        from _lib import intelligence as _intel
-        reg = _intel._load_brands_registry()
-        brands_raw = (reg or {}).get('brands', {}) or {}
-        default_id = (reg or {}).get('default_brand_id', 'swing-shack')
-        brands = []
-        for bid, b in brands_raw.items():
-            brands.append({
-                'id': bid,
-                'display_name': b.get('display_name') or bid,
-                'tagline': b.get('tagline') or '',
-                'icon': b.get('icon') or b.get('mark') or '⛳',
-                'primary_color': b.get('primary_color'),
-                'is_default': bid == default_id,
-            })
-        return jsonify({
-            'ok': True,
-            'brands': brands,
-            'default_brand_id': default_id,
-        }), 200
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
 @app.route('/api/os/overview', methods=['GET'])
 def os_overview():
     """Launchpad data for the main Overview page — compact summary cards."""

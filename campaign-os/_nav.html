@@ -243,7 +243,20 @@ The rule:
       const r = await fetch('/api/brands');
       if (!r.ok) return null;
       const d = await r.json();
-      return d.brands || [];
+      // Adapt to either {brands: [{id,...}]} or {brands: {id: {...}}}
+      const b = d.brands;
+      if (Array.isArray(b)) {
+        return b;
+      }
+      if (b && typeof b === 'object') {
+        return Object.entries(b).map(([id, v]) => ({
+          id,
+          display_name: v.display_name || id,
+          tagline: v.tagline || '',
+          icon: v.icon || v.mark || '⛳',
+        }));
+      }
+      return [];
     } catch (e) { return null; }
   }
 
