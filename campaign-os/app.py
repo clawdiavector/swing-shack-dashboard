@@ -14619,6 +14619,160 @@ def strategy_page():
     return shell, 200
 
 
+@app.route('/api/decisions/queue', methods=['GET'])
+def decisions_queue():
+    """Build the OS-wide decision queue for the brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        q = dc.build_decision_queue(bid)
+        return jsonify({"ok": True, "queue": q}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/header', methods=['GET'])
+def decisions_header():
+    """Morning Brief header — 'Good morning, BRAND' + counts."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        h = dc.morning_brief_header(bid)
+        return jsonify({"ok": True, "header": h}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/top-three', methods=['GET'])
+def decisions_top_three():
+    """Top 3 decision cards for the Morning Brief."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        top = dc.morning_brief_top_three(bid)
+        return jsonify({"ok": True, "top_three": top}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>', methods=['GET'])
+def decision_detail(decision_id):
+    """Full decision card detail."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        q = dc.build_decision_queue(bid)
+        card = next((c for c in q.get('queue', []) if c.get('id') == decision_id), None)
+        if not card:
+            return jsonify({"ok": False, "error": "not found"}), 404
+        return jsonify({"ok": True, "decision": card}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/decide', methods=['POST'])
+def decision_decide(decision_id):
+    """Record a human decision."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        result = dc.record_decision(
+            bid,
+            decision_id,
+            action=body.get('action', 'HOLD'),
+            reason=body.get('reason', ''),
+            person=body.get('person', 'christelle'),
+            context_patch=body.get('context'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/defer', methods=['POST'])
+def decision_defer(decision_id):
+    """Defer a decision with a wait condition."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        result = dc.defer_decision(
+            bid,
+            decision_id,
+            until=body.get('until'),
+            wait_for_bookings=body.get('wait_for_bookings'),
+            wait_for_spend=body.get('wait_for_spend'),
+            wait_for_measurement_fix=body.get('wait_for_measurement_fix', False),
+            reason=body.get('reason', ''),
+            person=body.get('person', 'christelle'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/disagree', methods=['POST'])
+def decision_disagree(decision_id):
+    """Disagree with the OS recommendation."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        result = dc.disagree_with_os(
+            bid,
+            decision_id,
+            chosen_action=body.get('chosen_action', 'HOLD'),
+            reason=body.get('reason', ''),
+            person=body.get('person', 'christelle'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/debt', methods=['GET'])
+def decisions_debt():
+    """Decision Debt — overdue + upcoming defers."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        d = dc.decision_debt(bid)
+        return jsonify({"ok": True, "debt": d}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/clear-my-desk', methods=['GET'])
+def decisions_clear_my_desk():
+    """Step-by-step sequence for clearing the desk."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        seq = dc.clear_my_desk_sequence(bid)
+        return jsonify({"ok": True, "sequence": seq}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/workspace/strategy', methods=['GET'])
 def workspace_strategy():
     """The Strategy workspace fragment — loaded into <main> on demand.
