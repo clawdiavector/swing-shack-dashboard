@@ -15024,6 +15024,42 @@ def seo_refresh():
         logs.append("backlinks: %s" % (bl or {}).get("backlinks", "?"))
         logs.append("competitors: %d" % n_comps)
 
+        # Persist to disk so /seo-audit picks up the fresh data
+        try:
+            data_dir = os.environ.get("DATA_DIR", "/data")
+            fetched_at = _dt_cls.now(_tz.utc).isoformat()
+            # Position info
+            pos_doc = dict(pos_raw or {})
+            pos_doc["metadata"] = {
+                "domain": "swingshack.co.za",
+                "fetched_at": fetched_at,
+                "startDate": start,
+                "endDate": end,
+                "project_id": project_id,
+            }
+            with open(os.path.join(data_dir, "seo-rankings.json"), "w") as f:
+                json.dump(pos_doc, f, indent=2, default=str)
+            # Domain overview
+            dom_doc = dict(domain or {})
+            dom_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, "ubersuggest-domain.json"), "w") as f:
+                json.dump(dom_doc, f, indent=2, default=str)
+            # Backlinks
+            bl_doc = dict(bl or {})
+            bl_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, "ubersuggest-backlinks.json"), "w") as f:
+                json.dump(bl_doc, f, indent=2, default=str)
+            # Competitors
+            comps_doc = {
+                "competitors": comps_raw if isinstance(comps_raw, list) else (comps_raw or {}).get("competitors", []),
+                "_meta": {"domain": "swingshack.co.za", "fetched_at": fetched_at, "count": n_comps},
+            }
+            with open(os.path.join(data_dir, "ubersuggest-competitors.json"), "w") as f:
+                json.dump(comps_doc, f, indent=2, default=str)
+            logs.append("persisted: data/seo-rankings.json + 3x ubersuggest-*.json")
+        except Exception as exc:
+            logs.append(f"persistence failed: {exc}")
+
         return jsonify({
             "ok": True,
             "project_id": project_id,
