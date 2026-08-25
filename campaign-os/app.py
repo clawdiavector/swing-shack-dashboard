@@ -14541,6 +14541,20 @@ def strategy_clear():
             "cleared_at": "2026-08-25",
         }
         save_strategy(empty, bid)
+        # Also delete the runtime strategy file so the empty bundled file
+        # in the repo takes over on the next load.
+        import os as _os
+        from pathlib import Path as _Path
+        runtime_data_dir = _Path(_os.environ.get("DATA_DIR", "/data"))
+        for candidate in [
+            runtime_data_dir / "strategy" / f"{bid}.json",
+            runtime_data_dir / "strategy" / f"{bid}_trend.json",
+        ]:
+            if candidate.exists():
+                try:
+                    candidate.unlink()
+                except Exception:
+                    pass
         return jsonify({"ok": True, "cleared": True}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
