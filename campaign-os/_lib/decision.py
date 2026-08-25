@@ -116,6 +116,16 @@ def save_decisions(brand_id: str, doc: Dict[str, Any]) -> None:
 
 
 # ─── Decision card shape ───────────────────────────────────────────────
+import hashlib
+
+def _stable_id(source: str, ctx: Dict[str, Any]) -> str:
+    """Deterministic decision id based on source + context. Same situation
+    = same id, so the human can record a decision and the OS won't lose
+    track of which card it was for."""
+    sig = json.dumps({"src": source, "ctx": ctx}, sort_keys=True, default=str)
+    return hashlib.sha1(sig.encode("utf-8")).hexdigest()[:8]
+
+
 def new_decision(
     *,
     source: str,                 # 'strategy' | 'advertising' | 'portfolio' | ...
@@ -136,7 +146,7 @@ def new_decision(
 ) -> Dict[str, Any]:
     """Build a new decision card."""
     return {
-        "id": str(uuid.uuid4())[:8],
+        "id": _stable_id(source, context or {}),
         "source": source,
         "priority": priority,
         "what": what,
