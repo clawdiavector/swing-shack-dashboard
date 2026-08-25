@@ -731,6 +731,8 @@ def morning_brief_top_three(brand_id: str) -> List[Dict[str, Any]]:
             "recommendation": c.get("recommendation"),
             "why_now": c.get("why_now"),
             "blocked_by": c.get("blocked_by"),
+            "priority": c.get("priority"),
+            "confidence": c.get("confidence"),
             "actions": [a for a in c.get("actions", []) if a.get("action") not in (ACTION_OPEN_STRATEGY, ACTION_OPEN_ADVERTISING, ACTION_OPEN_PORTFOLIO, ACTION_OPEN_DATA_HEALTH)][:4],
         })
     return top3
