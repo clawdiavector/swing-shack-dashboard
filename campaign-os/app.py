@@ -14443,9 +14443,7 @@ def strategy_get():
     bid = request.args.get('brand') or get_brand_id()
     from _lib import strategy_store as ss
     s = ss.load_strategy(bid)
-    if not (s.get('market_moves') or s.get('bets') or s.get('lessons')):
-        ss.seed_from_campaign_data(bid)
-        s = ss.load_strategy(bid)
+    # Auto-seed disabled — real data must flow in via /api/strategy/bet etc.
     return jsonify({"ok": True, "strategy": s}), 200
 
 
