@@ -14974,6 +14974,8 @@ def seo_refresh():
     try:
         from _lib import ubersuggest_mcp as _us
         import datetime as _dt2
+        # Make sure credentials are in place (writes file from env vars if present)
+        _ensure_ubersuggest_token_file()
         if not _us.ubersuggest_credentials_present():
             return jsonify({
                 "ok": False,
