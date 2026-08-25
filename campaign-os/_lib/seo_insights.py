@@ -96,13 +96,33 @@ def freshness() -> Dict[str, Any]:
     return fresh
 
 
+def _cur(k: Dict[str, Any]):
+    """Get current rank from either current_rank (legacy) or new_position.position (live)."""
+    if k.get("current_rank") is not None:
+        return k.get("current_rank")
+    np_ = k.get("new_position") or {}
+    return np_.get("position") if isinstance(np_, dict) else None
+
+
+def _prev(k: Dict[str, Any]):
+    """Get previous rank from either previous_rank (legacy) or old_position.position (live)."""
+    if k.get("previous_rank") is not None:
+        return k.get("previous_rank")
+    op = k.get("old_position") or {}
+    return op.get("position") if isinstance(op, dict) else None
+
+
+def _vol(k: Dict[str, Any]):
+    return k.get("search_volume") or k.get("volume") or 0
+
+
 def winning_keywords(rankings: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Top 10 positions OR improved rank this period."""
     kws = rankings.get("keywords", []) or []
     out = []
     for k in kws:
-        cur = k.get("current_rank")
-        prev = k.get("previous_rank")
+        cur = _cur(k)
+        prev = _prev(k)
         if cur is None:
             continue
         if cur is not None and cur <= 10:
@@ -131,8 +151,8 @@ def leaking_keywords(rankings: Dict[str, Any]) -> List[Dict[str, Any]]:
     kws = rankings.get("keywords", []) or []
     out = []
     for k in kws:
-        cur = k.get("current_rank")
-        prev = k.get("previous_rank")
+        cur = _cur(k)
+        prev = _prev(k)
         if cur is None or prev is None:
             continue
         if cur > prev:
@@ -161,8 +181,8 @@ def missing_keywords(rankings: Dict[str, Any]) -> List[Dict[str, Any]]:
     kws = rankings.get("keywords", []) or []
     out = []
     for k in kws:
-        cur = k.get("current_rank")
-        vol = k.get("search_volume") or 0
+        cur = _cur(k)
+        vol = _vol(k)
         if cur is None and vol >= 100:
             out.append({
                 "keyword": k.get("keyword"),
@@ -187,8 +207,8 @@ def quick_wins(rankings: Dict[str, Any]) -> List[Dict[str, Any]]:
     kws = rankings.get("keywords", []) or []
     out = []
     for k in kws:
-        cur = k.get("current_rank")
-        vol = k.get("search_volume") or 0
+        cur = _cur(k)
+        vol = _vol(k)
         if cur is None:
             continue
         if 11 <= cur <= 20 and vol >= 50:
