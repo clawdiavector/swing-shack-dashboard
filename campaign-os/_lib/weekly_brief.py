@@ -903,11 +903,28 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
     except Exception:
         advertising_watch = []
 
+    # ─── Run integrity validation FIRST ────────────────────────────────
+    # The OS's hierarchy: DATA → IS DATA TRUSTWORTHY → WHAT DOES IT
+    # PROVE → WHAT MIGHT IT MEAN → WHAT SHOULD WE DO. Never reverse.
+    try:
+        integrity = integrity_reconcile(brand_id)
+        priorities = [degrade_confidence(p, brand_id) for p in priorities]
+        decisions = [degrade_confidence(d, brand_id) for d in decisions]
+    except Exception:
+        integrity = {"is_clean": True, "issues": [], "issue_count": 0}
+
+    try:
+        anomalies = detect_anomalies(brand_id)
+    except Exception:
+        anomalies = []
+
     return {
         "brand_id": brand_id,
         "generated_at": _now(),
         "week_of": week_cal["week_of"],
         "week_to": week_cal["week_to"],
+        "integrity": integrity,
+        "anomalies": anomalies,
         "what_changed": changes,
         "this_week": week_cal,
         "decisions_this_week": decisions,
