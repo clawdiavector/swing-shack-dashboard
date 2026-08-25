@@ -14998,7 +14998,7 @@ def seo_refresh():
         end = _dt2.date.today().isoformat()
         start = (_dt2.date.today() - _dt2.timedelta(days=60)).isoformat()
         logs = []
-        pos_info = _us.project_position_info(project_id, start, end, language="en", device="desktop")
+        pos_info = _us.project_position_info(project_id, start_date=start, end_date=end, language="en", device="desktop")
         logs.append("project_position_info: %d keywords" % len((pos_info or {}).get("keywords", [])))
         domain = _us.domain_overview("swingshack.co.za", country="ZA")
         logs.append("domain_overview: DA %s" % domain.get("domainAuthority", "?"))
