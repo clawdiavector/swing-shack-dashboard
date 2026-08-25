@@ -484,7 +484,7 @@ def _since_last_review(card: Dict[str, Any], log: Dict[str, Any]) -> Optional[Di
                 days = (dt_now - dt_then).days
                 return {
                     "since": h.get("decided_at"),
-                    "decision_then": h.get("decision"),
+                    "decision_then": h.get("context", {}).get("chosen_action") or h.get("decision"),
                     "reason_then": h.get("reason", ""),
                     "days_ago": days,
                 }
@@ -527,6 +527,13 @@ def record_decision(
     elif action == ACTION_DISAGREE:
         status = STATUS_DISAGREED
 
+    # Preserve the original context so future since_last_review lookups still match.
+    merged_context = {**(card.get("context") or {})}
+    merged_context["chosen_action"] = action  # Record what was chosen
+    if context_patch:
+        for k, v in context_patch.items():
+            if v is not None:
+                merged_context[k] = v
     entry = {
         "id": decision_id,
         "source": card.get("source"),
@@ -538,7 +545,7 @@ def record_decision(
         "decided_at": _now_iso(),
         "evidence_at_decision": card.get("evidence"),
         "confidence": confidence or card.get("confidence"),
-        "context": {**(card.get("context") or {}), **(context_patch or {})},
+        "context": merged_context,
     }
 
     log = load_decisions(brand_id)
