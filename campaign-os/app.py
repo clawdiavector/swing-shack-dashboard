@@ -15028,7 +15028,7 @@ def seo_refresh():
         try:
             data_dir = os.environ.get("DATA_DIR", "/data")
             fetched_at = _dt_cls.now(_tz.utc).isoformat()
-            # Position info
+            # Position info — pos_raw is already unpacked to the inner dict
             pos_doc = dict(pos_raw or {})
             pos_doc["metadata"] = {
                 "domain": "swingshack.co.za",
@@ -15039,6 +15039,12 @@ def seo_refresh():
             }
             with open(os.path.join(data_dir, "seo-rankings.json"), "w") as f:
                 json.dump(pos_doc, f, indent=2, default=str)
+            # Force a fresh read so the insights engine picks up the new file
+            try:
+                from _lib import seo_insights as _si
+                _si.load_seo_rankings.cache_clear() if hasattr(_si.load_seo_rankings, 'cache_clear') else None
+            except Exception:
+                pass
             # Domain overview
             dom_doc = dict(domain or {})
             dom_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
