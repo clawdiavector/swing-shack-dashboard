@@ -14924,24 +14924,18 @@ def seo_competitors():
 
 
 def _ensure_ubersuggest_token_file():
-    """Make UBERSUGGEST_ACCESS_TOKEN / UERSUGGEST_REFRESH_TOKEN env vars into a real
-    token file at the canonical path so the wrapper finds it."""
+    """Mint a real token file at a writable path so the wrapper can find it.
+    Prefers the canonical path; falls back to /tmp/ubersuggest-api.json on
+    ephemeral filesystems (Railway)."""
     tok = os.environ.get("UBERSUGGEST_ACCESS_TOKEN")
     ref = os.environ.get("UBERSUGGEST_REFRESH_TOKEN")
     if not tok:
         return False
-    cred_path = os.path.expanduser(
+    # Try the canonical path first
+    canonical = os.path.expanduser(
         "~/.openclaw-instance2/workspace/clients/swing-shack/credentials/ubersuggest-api.json"
     )
-    os.makedirs(os.path.dirname(cred_path), exist_ok=True)
-    if os.path.exists(cred_path):
-        try:
-            with open(cred_path) as f:
-                existing = json.load(f)
-            if existing.get("access_token") == tok:
-                return True  # already current
-        except Exception:
-            pass
+    candidates = [canonical, "/tmp/ubersuggest-api.json", "/app/ubersuggest-api.json"]
     payload = {
         "access_token": tok,
         "refresh_token": ref or "",
@@ -14953,15 +14947,20 @@ def _ensure_ubersuggest_token_file():
         "scope": "profile domain keywords serp backlinks site_audit content projects utility",
         "_source": "UBERSUGGEST_ACCESS_TOKEN env var",
     }
-    try:
-        with open(cred_path, "w") as f:
-            json.dump(payload, f, indent=2)
-        os.chmod(cred_path, 0o600)
-        # Also point the wrapper to this path so it knows where to look
-        os.environ["UBERSUGGEST_TOKEN_FILE"] = cred_path
-        return True
-    except Exception:
-        return False
+    for path_ in candidates:
+        try:
+            os.makedirs(os.path.dirname(path_), exist_ok=True)
+            with open(path_, "w") as f:
+                json.dump(payload, f, indent=2)
+            try:
+                os.chmod(path_, 0o600)
+            except Exception:
+                pass
+            os.environ["UBERSUGGEST_TOKEN_FILE"] = path_
+            return True
+        except Exception:
+            continue
+    return False
 
 _ensure_ubersuggest_token_file()
 
