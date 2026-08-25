@@ -132,13 +132,13 @@ def winning_keywords(rankings: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "current_position": cur,
                 "previous_position": prev,
                 "delta": delta,
-                "volume": k.get("search_volume") or 0,
+                "volume": _vol(k),
                 "url": k.get("current_url"),
                 "seo_difficulty": k.get("seo_difficulty"),
                 "opportunity_label": "winning",
                 "manager_read": (
                     f"#{cur} for '{k.get('keyword')}' "
-                    f"({k.get('search_volume', 0)} searches/mo). "
+                    f"({_vol(k)} searches/mo). "
                     + (f"Up from #{prev}." if prev and prev > cur else "Holding top 10.")
                 ),
             })
@@ -162,13 +162,13 @@ def leaking_keywords(rankings: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "current_position": cur,
                 "previous_position": prev,
                 "delta": delta,
-                "volume": k.get("search_volume") or 0,
+                "volume": _vol(k),
                 "url": k.get("current_url"),
                 "seo_difficulty": k.get("seo_difficulty"),
                 "opportunity_label": "leaking",
                 "manager_read": (
                     f"Dropped #{prev} -> #{cur} for '{k.get('keyword')}' "
-                    f"({k.get('search_volume', 0)} searches/mo). "
+                    f"({_vol(k)} searches/mo). "
                     + ("Page 2+ - needs attention." if cur > 10 else "Still on page 1 but slipping.")
                 ),
             })
