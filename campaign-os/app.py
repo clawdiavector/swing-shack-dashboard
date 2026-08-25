@@ -14914,7 +14914,7 @@ def seo_refresh():
         return jsonify({"ok": False, "error": "auth required"}), 401
     try:
         import subprocess
-        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scripts', 'fetch_ubersuggest.py')
+        script = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ubersuggest.py')
         if not os.path.isfile(script):
             return jsonify({"ok": False, "error": f"fetch script not found at {script}"}), 500
         result = subprocess.run(
