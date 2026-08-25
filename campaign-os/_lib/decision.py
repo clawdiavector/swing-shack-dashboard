@@ -724,12 +724,26 @@ def clear_my_desk_sequence(brand_id: str) -> Dict[str, Any]:
             "since_last_review": card.get("since_last_review"),
         })
 
-    n = len(steps)
+    summary = {
+        "decisions_to_review": len(steps),
+        "blocked_remaining": len(blocked_remain),
+        "automated_actions": automated_count,
+        "summary_template": (
+            "DESK CLEAR\n"
+            "{n} decisions reviewed.\n"
+            "{blocked} blocked items remain.\n"
+            "{auto} automated actions completed.\n"
+            "End of queue."
+        ),
+    }
+
     return {
         "brand": brand_id,
         "steps": steps,
-        "step_count": n,
-        "summary_template": "Desk clear. {n} decision{s} made. {y} deferred. {z} measurement task{s2} created.",
+        "step_count": len(steps),
+        "summary": summary,
+        "blocked_remaining": blocked_remain,
+        "automated_actions": automated_count,
     }
 
 
@@ -772,19 +786,87 @@ def morning_brief_top_three(brand_id: str) -> List[Dict[str, Any]]:
 
 
 def morning_brief_header(brand_id: str) -> Dict[str, Any]:
-    """The very top of the Morning Brief — 'Good morning, BRAND' + counts."""
+    """The very top of the Morning Brief — 'Good morning, BRAND' + counts.
+
+    Reconciliation discipline:
+      - needs_you = same collection that gets rendered as Top 3 cards
+      - os_action = items the OS can safely act on (with active policy)
+      - blocked = items blocked by broken evidence
+      - The three counts NEVER mix
+    """
     queue = build_decision_queue(brand_id)
     debt = decision_debt(brand_id)
-    counts = queue.get("counts", {})
+
+    cards = queue.get("queue", [])
+
+    # Try to import governance so we can accurately count OS-action items
+    needs_you = []
+    os_action = []
+    blocked = []
+    try:
+        from governance import check_authority
+        for c in cards:
+            if c.get("status") == "blocked" or c.get("blocked_by"):
+                blocked.append(c)
+                continue
+            # What action would the human take? Look at actions.
+            # Use the first non-navigation action as the recommended one
+            action = None
+            for a in c.get("actions", []):
+                act = a.get("action")
+                if act and act not in (ACTION_OPEN_STRATEGY, ACTION_OPEN_ADVERTISING, ACTION_OPEN_PORTFOLIO, ACTION_OPEN_DATA_HEALTH):
+                    action = act
+                    break
+            if not action:
+                continue
+            auth = check_authority(brand_id, action, human_approved=False)
+            if auth.get("can_execute"):
+                os_action.append(c)
+            else:
+                needs_you.append(c)
+    except Exception:
+        # Governance unavailable — fall back to: all non-blocked → needs_you
+        for c in cards:
+            if c.get("status") == "blocked" or c.get("blocked_by"):
+                blocked.append(c)
+            else:
+                needs_you.append(c)
+
     brand_display = brand_id.replace("-", " ").title()
-    n_decisions = counts.get("decide_now", 0) + counts.get("this_week", 0)
-    header_line = "needs you today" if n_decisions == 1 else "need you today"
+    n_needs = len(needs_you)
+    n_os = len(os_action)
+    n_blocked = len(blocked)
     n_overdue = debt.get("overdue_count", 0)
+
+    if n_needs == 1:
+        lead = "1 thing needs you today."
+    elif n_needs > 1:
+        lead = f"{n_needs} things need you today."
+    else:
+        lead = "Nothing needs you today."
+
+    extras = []
+    if n_os:
+        extras.append(f"{n_os} OS action{'s' if n_os != 1 else ''}")
+    if n_blocked:
+        extras.append(f"{n_blocked} blocked")
+    if n_overdue:
+        extras.append(f"{n_overdue} overdue")
+    if extras:
+        lead += " " + " · ".join(extras) + "."
+
     return {
         "brand": brand_id,
         "greeting": f"Good morning — {brand_display}",
-        "lead": f"{n_decisions} thing{'s' if n_decisions != 1 else ''} {header_line}."
-                + (f" {n_overdue} overdue." if n_overdue else ""),
-        "counts": counts,
-        "decision_debt": debt.get("overdue_count", 0),
+        "lead": lead,
+        "counts": {
+            "needs_you": n_needs,
+            "os_action": n_os,
+            "blocked": n_blocked,
+            "watch": sum(1 for c in cards if c.get("priority") == "watch"),
+        },
+        "needs_you_count": n_needs,
+        "os_action_count": n_os,
+        "blocked_count": n_blocked,
+        "decision_debt": n_overdue,
     }

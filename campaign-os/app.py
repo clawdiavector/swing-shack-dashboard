@@ -14759,6 +14759,206 @@ def decisions_debt():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/governance')
+def governance_page():
+    """The Governance view — authority model, policies, receipts, conflicts."""
+    gov_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_governance.html')
+    try:
+        with open(gov_path) as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/status', methods=['GET'])
+def governance_status():
+    """Snapshot of the OS authority model for the brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        return jsonify({"ok": True, "status": gv.governance_status(bid)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/policies', methods=['GET'])
+def governance_policies_list():
+    """List automation policies."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        doc = gv.load_policies(bid)
+        return jsonify({"ok": True, "policies": doc.get("policies", [])}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/policies', methods=['POST'])
+def governance_policies_create():
+    """Create an explicit automation policy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.add_policy(
+            bid,
+            rule=body.get('rule', ''),
+            scope=body.get('scope', '*'),
+            action=body.get('action', ''),
+            expires=body.get('expires'),
+            notify=body.get('notify', 'immediately'),
+            description=body.get('description'),
+            created_by=body.get('created_by', 'christelle'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/policies/<policy_id>', methods=['DELETE'])
+def governance_policies_delete(policy_id):
+    """Remove an automation policy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.remove_policy(bid, policy_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/conflicts', methods=['GET'])
+def governance_conflicts():
+    """Detect conflicting subsystem recommendations."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        conflicts = gv.detect_conflicts(bid)
+        return jsonify({"ok": True, "conflicts": conflicts}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/preview', methods=['GET'])
+def decision_preview(decision_id):
+    """Build the 'YOU ARE ABOUT TO' approval preview."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    action = request.args.get('action', 'PAUSE')
+    try:
+        from _lib import governance as gv
+        preview = gv.build_approval_preview(bid, decision_id, action)
+        return jsonify({"ok": True, "preview": preview}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/execute', methods=['POST'])
+def decision_execute(decision_id):
+    """Execute a decision through the full hierarchy. Requires human_approved=True unless a matching policy exists."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    action = body.get('action', 'PAUSE')
+    try:
+        from _lib import governance as gv
+        result = gv.execute_decision(
+            bid,
+            decision_id,
+            action=action,
+            human_approved=body.get('human_approved', True),
+            person=body.get('person', 'christelle'),
+            reason=body.get('reason', ''),
+            previous_state=body.get('previous_state'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/quality', methods=['GET'])
+def decision_quality(decision_id):
+    """Assess decision quality for this card."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        q = gv.assess_decision_quality(bid, decision_id)
+        return jsonify(q), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/review', methods=['GET'])
+def decision_review_outcome(decision_id):
+    """Outcome review for a previously-decided item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.review_decision_outcome(bid, decision_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/review', methods=['POST'])
+def decision_mark_outcome(decision_id):
+    """Mark the outcome verdict (evidence_supports / reconsider / mixed)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.mark_outcome(bid, decision_id, body.get('verdict', ''), body.get('notes', ''))
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/receipts', methods=['GET'])
+def decisions_receipts():
+    """List action receipts (what was actually executed)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        docs = gv.load_receipts(bid)
+        return jsonify({"ok": True, "receipts": docs.get("receipts", [])}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/receipts/<receipt_id>/undo', methods=['POST'])
+def decisions_receipts_undo(receipt_id):
+    """Undo a reversible execution."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.undo_execution(bid, receipt_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/decisions/clear-my-desk', methods=['GET'])
 def decisions_clear_my_desk():
     """Step-by-step sequence for clearing the desk."""

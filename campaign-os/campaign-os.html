@@ -508,7 +508,43 @@ a:hover{text-decoration:underline}
 }
 .clear-desk-progress strong { color: var(--gold); }
 
-.strategy-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:600;color:var(--tx-2);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s;margin-left:.25rem;white-space:nowrap}.strategy-chip:hover{background:var(--bg-3);border-color:var(--gold);color:var(--tx)}.strategy-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}.strategy-chip-dot.has-decision{background:var(--gold)}.strategy-chip-dot.empty,.strategy-chip-dot.quiet{background:var(--tx-3)}.strategy-chip-dot.urgent{background:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.25)}.strategy-chip-dot.evidence-issue{background:var(--red);box-shadow:0 0 0 3px rgba(255,107,107,.25)}.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
+.strategy-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:600;color:var(--tx-2);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s;margin-left:.25rem;white-space:nowrap}.strategy-chip:hover{background:var(--bg-3);border-color:var(--gold);color:var(--tx)}.strategy-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}.strategy-chip-dot.has-decision{background:var(--gold)}.strategy-chip-dot.empty,.strategy-chip-dot.quiet{background:var(--tx-3)}.strategy-chip-dot.urgent{background:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.25)}.strategy-chip-dot.evidence-issue{background:var(--red);box-shadow:0 0 0 3px rgba(255,107,107,.25)}
+
+/* Governance chip */
+.governance-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.3rem 0.7rem; background: var(--bg-2);
+  border: 1px solid var(--bd); border-radius: 6px;
+  font-size: 11px; font-weight: 600; color: var(--tx-2);
+  text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s;
+  margin-left: .25rem; white-space: nowrap;
+}
+.governance-chip:hover { background: var(--bg-3); border-color: var(--blue); color: var(--tx); }
+
+/* Conflict banner */
+.brief-conflicts {
+  background: rgba(255,107,107,0.08);
+  border: 1px solid var(--red);
+  border-left: 4px solid var(--red);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 13px;
+}
+.brief-conflicts h4 { margin: 0 0 0.5rem; color: var(--red); }
+.brief-conflicts ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+
+/* Approval preview */
+.approval-preview-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 700; display: flex; align-items: center; justify-content: center; }
+.approval-preview { background: var(--bg); border: 1px solid var(--gold); border-radius: 12px; width: 90%; max-width: 600px; padding: 1.5rem; }
+.approval-preview h2 { margin-top: 0; color: var(--gold); font-family: 'Fraunces', Georgia, serif; }
+.approval-preview .state { background: var(--bg-2); border-radius: 4px; padding: 0.5rem 0.8rem; margin: 0.5rem 0; font-size: 13px; }
+.approval-preview .state strong { color: var(--gold); }
+.approval-preview .effect { background: rgba(251,146,60,0.1); border-left: 3px solid var(--orange); padding: 0.6rem 0.8rem; border-radius: 4px; font-size: 13px; }
+.approval-preview .actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.approval-preview button { padding: 0.6rem 1.2rem; border-radius: 6px; border: 1px solid var(--line); background: var(--bg-2); color: var(--tx); cursor: pointer; font-size: 13px; font-weight: 600; }
+.approval-preview button.primary { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.approval-preview button:hover { filter: brightness(1.15); }.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
 .sa-chip .sa-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
 .sa-chip .sa-chip-dot.warn{background:var(--amber,#d97706);box-shadow:0 0 0 3px rgba(217,119,6,.15)}
 .sa-chip .sa-chip-dot.bad{background:var(--red,#dc2626);box-shadow:0 0 0 3px rgba(220,38,38,.18);animation:pulse 1.8s infinite}
@@ -1161,6 +1197,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       <div class="nav-group" id="nav-group-insight">
         <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
         <a class="nav nav-link" href="/strategy" data-section="strategy" data-help-title="Strategy" data-help="Where are we heading? Market moves, bets, decisions. The strategic brain of the OS — north star, evidence ladder, portfolio balance."><span class="nav-icon">🎯</span> Strategy <span class="ext-mark">↗</span></a>
+        <a class="nav nav-link" href="/governance" data-section="governance" data-help-title="Governance" data-help="OS authority model: what it may observe, recommend, prepare, and execute. Active automation policies. Action receipts. Conflict detection."><span class="nav-icon">🔒</span> Governance <span class="ext-mark">↗</span></a>
         <a class="nav nav-link" href="/weekly-report" data-help-title="Weekly Report" data-help="Brand-aware weekly marketing report. Compares this week vs last. Downloadable as HTML, Markdown, or PDF."><span class="nav-icon">📅</span> Weekly Report <span class="ext-mark">↗</span></a>
         <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
         <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
@@ -1312,6 +1349,9 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <span id="sa-chip-pub" style="display:none"></span>
       </div>
       <!-- Strategy status chip: "X active bets · next decision Y" — click opens Strategy -->
+      <a class="governance-chip" id="governance-chip" href="/governance" data-help="OS authority model — what the OS may observe, recommend, prepare, and execute. Active automation policies." title="Open Governance">
+        <span style="font-size:13px">🔒</span> <span id="governance-chip-text">Governance</span>
+      </a>
       <a class="strategy-chip" id="strategy-chip" href="/strategy" data-help="Strategic context for the current company. Shows active bets + next decision." title="Open Strategy">
         <span class="strategy-chip-dot"></span>
         <span id="strategy-chip-text">Strategy —</span>
@@ -1335,6 +1375,9 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       <div class="decision-top3" id="decision-top3">
         <div class="decision-loading">Loading 3 things that need you today…</div>
       </div>
+
+      <!-- Conflict detection banner — only shows when subsystems disagree -->
+      <div class="brief-conflicts" id="brief-conflicts" style="display:none"></div>
 
       <!-- Clear my desk button — walk through all decisions one by one -->
       <div class="brief-clear-desk">
@@ -13688,11 +13731,21 @@ async function loadDecisionHeader() {
     const lead = document.getElementById('brief-lead');
     if (greeting) greeting.textContent = d.header.greeting;
     if (lead) {
-      const n = d.header.counts.decide_now + d.header.counts.this_week;
-      let html = `<strong>${n}</strong> thing${n !== 1 ? 's' : ''} ${n === 1 ? 'needs' : 'need'} you today.`;
-      if (d.header.decision_debt > 0) {
-        html += ` <span class="overdue">${d.header.decision_debt} overdue.</span>`;
+      const n = d.header.needs_you_count || 0;
+      const osN = d.header.os_action_count || 0;
+      const blocked = d.header.blocked_count || 0;
+      const overdue = d.header.decision_debt || 0;
+      let html;
+      if (n === 0) {
+        html = `Nothing needs you today. <span style="color:var(--tx-3)">The OS is monitoring.</span>`;
+      } else {
+        html = `<strong>${n}</strong> thing${n !== 1 ? 's' : ''} ${n === 1 ? 'needs' : 'need'} you today.`;
       }
+      const extras = [];
+      if (osN) extras.push(`<span style="color:var(--blue)">${osN} OS-action${osN !== 1 ? 's' : ''}</span>`);
+      if (blocked) extras.push(`<span style="color:var(--orange)">${blocked} blocked</span>`);
+      if (overdue) extras.push(`<span style="color:var(--red)">${overdue} overdue</span>`);
+      if (extras.length) html += ' ' + extras.join(' · ') + '.';
       lead.innerHTML = html;
     }
   } catch (e) { /* silent */ }
@@ -13746,26 +13799,133 @@ function escHtml(s) {
 }
 
 async function doDecisionAction(decisionId, action) {
+  // Build approval preview first — never execute without it
+  const brand = new URLSearchParams(location.search).get('brand') || 'swing-shack';
+  try {
+    const previewR = await fetch(`/api/decisions/${decisionId}/preview?brand=${brand}&action=${action}`);
+    if (!previewR.ok) {
+      alert('Could not load approval preview.');
+      return;
+    }
+    const pd = await previewR.json();
+    if (!pd.ok || !pd.preview) {
+      alert('Approval preview unavailable.');
+      return;
+    }
+    showApprovalPreview(decisionId, action, pd.preview);
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+function showApprovalPreview(decisionId, action, preview) {
+  const existing = document.getElementById('approval-preview-bg');
+  if (existing) existing.remove();
+
+  const state = preview.current_state || {};
+  const stateHtml = `
+    Current spend: <strong>R${(state.current_spend_rands || 0).toFixed(0)}</strong><br>
+    ${state.campaign_id ? `Campaign: ${escHtml(state.campaign_id)}<br>` : ''}
+    ${state.bet_id ? `Bet: ${escHtml(state.bet_id)}<br>` : ''}
+    ${state.evidence ? 'Evidence: ' + state.evidence.slice(0, 2).map(escHtml).join('; ') : ''}
+  `;
+  const bg = document.createElement('div');
+  bg.id = 'approval-preview-bg';
+  bg.className = 'approval-preview-bg';
+  bg.onclick = (e) => { if (e.target === bg) closeApprovalPreview(); };
+  bg.innerHTML = `
+    <div class="approval-preview">
+      <h2>YOU ARE ABOUT TO ${escHtml(action)}</h2>
+      <div style="font-size:15px;font-weight:700;margin-bottom:0.5rem">${escHtml(preview.target)}</div>
+      <div class="state">${stateHtml}</div>
+      <div class="effect">Effect: ${escHtml(preview.effect)}</div>
+      <div style="margin-top:0.5rem;font-size:13px">
+        OS recommendation: <strong>${escHtml(preview.os_recommendation)}</strong><br>
+        Confidence: <strong>${escHtml(preview.confidence)}</strong><br>
+        Reversible: <strong>${preview.reversible ? 'Yes' : 'No — this cannot be automatically undone.'}</strong>
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="confirmExecution('${decisionId}', '${action}')">Approve action</button>
+        <button onclick="closeApprovalPreview()">Cancel</button>
+        <button onclick="closeApprovalPreview(); closeDecisionModal();">Open campaign</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(bg);
+}
+
+function closeApprovalPreview() {
+  const el = document.getElementById('approval-preview-bg');
+  if (el) el.remove();
+}
+
+async function confirmExecution(decisionId, action) {
   const reason = prompt(`Why are you choosing ${action}? (required for memory)`);
   if (!reason) return;
   const brand = new URLSearchParams(location.search).get('brand') || 'swing-shack';
+  closeApprovalPreview();
+  closeDecisionModal();
   try {
-    const r = await fetch(`/api/decisions/${decisionId}/decide`, {
+    const r = await fetch(`/api/decisions/${decisionId}/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, reason, brand_id: brand }),
+      body: JSON.stringify({ action, reason, brand_id: brand, human_approved: true }),
     });
     const d = await r.json();
     if (d.ok) {
       loadDecisionTop3();
       loadDecisionHeader();
-      closeDecisionModal();
     } else {
-      alert('Could not record decision: ' + (d.error || 'unknown'));
+      alert('Could not execute: ' + (d.error || 'unknown'));
     }
   } catch (e) {
     alert('Network error: ' + e.message);
   }
+}
+
+async function loadConflicts() {
+  const urlParams = new URLSearchParams(location.search);
+  const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  const el = document.getElementById('brief-conflicts');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/governance/conflicts?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const conflicts = d.conflicts || [];
+    if (conflicts.length === 0) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = `
+      <h4>⚠ ${conflicts.length} conflicting recommendation${conflicts.length !== 1 ? 's' : ''}</h4>
+      ${conflicts.map(c => `
+        <div style="margin-bottom:0.5rem">
+          <strong>${escHtml(c.target)}</strong> — ${escHtml(c.subsystems.join(', '))} disagree.<br>
+          ${c.recommendations.map(([src, rec, what]) => `<span style="display:inline-block;margin-right:0.5rem"><em>${escHtml(src)}</em>: <strong>${escHtml(rec)}</strong></span>`).join('')}
+          <br><em>${escHtml(c.manager_read)}</em><br>
+          <strong>Recommended (after precedence):</strong> ${escHtml(c.recommended)} (confidence: ${escHtml(c.confidence)})
+        </div>
+      `).join('')}
+    `;
+  } catch (e) { el.style.display = 'none'; }
+}
+
+async function loadGovernanceChip() {
+  const urlParams = new URLSearchParams(location.search);
+  const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  const chip = document.getElementById('governance-chip');
+  if (!chip) return;
+  chip.href = `/governance?brand=${brand}`;
+  try {
+    const r = await fetch(`/api/governance/status?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok || !d.status) return;
+    const text = document.getElementById('governance-chip-text');
+    const policies = d.status.active_policies_count || 0;
+    if (text) {
+      text.textContent = policies ? `Governance · ${policies} polic${policies === 1 ? 'y' : 'ies'}` : 'Governance';
+    }
+  } catch (e) { /* silent */ }
 }
 
 async function openDecisionModal(decisionId) {
@@ -13876,10 +14036,14 @@ function showClearDeskProgress(seq) {
 document.addEventListener('DOMContentLoaded', () => {
   loadDecisionHeader();
   loadDecisionTop3();
+  loadConflicts();
+  loadGovernanceChip();
 });
 window.addEventListener('workspace-returned', () => {
   loadDecisionHeader();
   loadDecisionTop3();
+  loadConflicts();
+  loadGovernanceChip();
 });
 
 async function loadStrategyChip() {
@@ -14175,6 +14339,7 @@ if (document.readyState === 'loading') {
     const path = location.pathname;
     let active = null;
     if (path.startsWith('/strategy')) active = 'strategy';
+    else if (path.startsWith('/governance')) active = 'governance';
     else if (path.startsWith('/calendar')) active = 'calendar';
     else if (path.startsWith('/marketing')) active = 'marketing';
     else if (path.startsWith('/advertising')) active = 'advertising';
