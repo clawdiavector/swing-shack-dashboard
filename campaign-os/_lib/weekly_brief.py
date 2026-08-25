@@ -64,6 +64,12 @@ from portfolio import (
     detect_opportunities,
     compute_strategy_density,
 )
+from spend import (
+    load_spend,
+    detect_orphaned_spend,
+    spend_concentration_warnings,
+    budget_burn_vs_maturity,
+)
 
 
 def _now() -> str:
@@ -794,6 +800,70 @@ def build_portfolio_watch(brand_id: str) -> list:
     return [o.to_dict() if hasattr(o, "to_dict") else o for o in observations[:2]]
 
 
+# ─── Advertising Watch (Monday brief) ─────────────────────────────────
+
+def build_advertising_watch(brand_id: str) -> list:
+    """Max 2 items. Only show something if money requires attention.
+    Triggers:
+      - Budget burn at >=70% AND maturity 'early' AND outcome_layer < visit
+      - Spend concentration >=50% on one bet
+      - Orphaned spend with link/review/pause decision needed
+      - Booking bet approaching decision date with spend but no booking data
+    """
+    doc = load_spend(brand_id)
+    items = []
+    if not doc.get("campaigns"):
+        return items
+
+    # Trigger 1: burn vs maturity
+    s = load_strategy(brand_id)
+    active_bets = [b for b in s.get("bets", []) if b.get("status") in ("in_flight", "planned")]
+    for b in active_bets[:5]:
+        bvm = budget_burn_vs_maturity(brand_id, b["id"])
+        if not bvm or "error" in bvm:
+            continue
+        burn = bvm.get("burn_pct", 0) or 0
+        maturity = bvm.get("evidence_maturity", "")
+        outcome = bvm.get("outcome_layer", "")
+        if burn >= 70 and maturity == "early" and outcome in ("impression", "engagement", "click"):
+            items.append({
+                "type": "burn_warning",
+                "title": b["title"],
+                "burn_pct": burn,
+                "outcome_layer": outcome,
+                "recommendation": bvm.get("recommendation", ""),
+                "summary": f"{burn}% of budget spent on '{b['title']}' while evidence is still at the {outcome} layer.",
+            })
+            break
+
+    # Trigger 2: spend concentration
+    concentration = spend_concentration_warnings(brand_id)
+    if concentration:
+        c = concentration[0]
+        items.append({
+            "type": "concentration",
+            "title": c["title"],
+            "share_pct": c["spend_share_pct"],
+            "question": c["question"],
+            "context": c["context"],
+            "summary": f"{c['spend_share_pct']:.0f}% of monthly paid spend supports '{c['title']}'. Is this deliberate or accidental concentration?",
+        })
+
+    # Trigger 3: orphans with action needed
+    orphans = detect_orphaned_spend(brand_id)
+    if orphans:
+        o = orphans[0]
+        items.append({
+            "type": "orphan",
+            "title": o["name"],
+            "spend_rands": o["spend_rands"],
+            "summary": o["message"],
+            "actions": o["actions"],
+        })
+
+    return items[:2]
+
+
 # ─── Compose the full Monday brief ──────────────────────────────────
 
 def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = True) -> Dict[str, Any]:
@@ -821,6 +891,12 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
     except Exception:
         portfolio_watch = []
 
+    # Advertising Watch (max 2)
+    try:
+        advertising_watch = build_advertising_watch(brand_id)
+    except Exception:
+        advertising_watch = []
+
     return {
         "brand_id": brand_id,
         "generated_at": _now(),
@@ -833,6 +909,7 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
         "strip": strip,
         "needs_cleaning": needs_cleaning,
         "portfolio_watch": portfolio_watch,
+        "advertising_watch": advertising_watch,
     }
 
 
@@ -914,6 +991,29 @@ def render_brief_markdown(brief: Dict[str, Any]) -> str:
     else:
         md.append("### Portfolio watch")
         md.append("_Nothing to flag this week. No meaningful imbalances._")
+        md.append("")
+
+    # Advertising watch
+    if brief.get("advertising_watch"):
+        md.append("### Advertising watch")
+        md.append("")
+        for item in brief["advertising_watch"]:
+            if item["type"] == "burn_warning":
+                md.append(f"**{esc(item['title'])}**")
+                md.append(f"  {esc(item['summary'])}")
+                md.append(f"  Suggestion: {esc(item.get('recommendation', ''))}")
+            elif item["type"] == "concentration":
+                md.append(f"**{esc(item['title'])}**")
+                md.append(f"  {esc(item['summary'])}")
+                md.append(f"  Context: {esc(str(item.get('context', {})))}")
+            elif item["type"] == "orphan":
+                md.append(f"**{esc(item['title'])}**")
+                md.append(f"  {esc(item['summary'])}")
+                md.append(f"  Actions: Link to strategy / Review / Pause")
+            md.append("")
+    else:
+        md.append("### Advertising watch")
+        md.append("_Nothing to flag this week. Money is on plan._")
         md.append("")
 
     # Needs cleaning (audit)

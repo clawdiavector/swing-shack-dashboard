@@ -1011,6 +1011,10 @@ def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
     # 7. Portfolio balance (the live view)
     portfolio_balance = _summarise_portfolio_for_meeting(brand_id)
 
+    # 8. Money — paid spend review
+    from spend import render_money_section as _render_money_section
+    money_section = _render_money_section(brand_id)
+
     # 8. Next bets (with the 'no new bet' check first)
     next_bets, dont_add = _decide_next_bets(brand_id, missing, scale, fix)
 
@@ -1028,6 +1032,7 @@ def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
         "fix": fix,
         "missing": missing,
         "portfolio_balance": portfolio_balance,
+        "money_section": money_section,
         "next_bets": next_bets,
         "dont_add_recommendation": dont_add,
         "what_this_replaces": replacement,
@@ -1297,7 +1302,7 @@ def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
     md.append("")
 
     # 9. WHAT THIS REPLACES
-    md.append("### 9. What gets replaced?")
+    md.append("### 10. What gets replaced?")
     if meeting.get("what_this_replaces"):
         for rep in meeting["what_this_replaces"]:
             md.append(f"_{rep['new_bet']}_ would displace:")
@@ -1353,64 +1358,6 @@ def render_portfolio_markdown(data: Dict[str, Any], section: str = "summary") ->
             if top_theme[1] >= 25:
                 md.append(f"**Theme concentration:** '{top_theme[0]}' = {top_theme[1]}% — deliberate or fatigue?")
                 md.append("")
-    return "\n".join(md)
-
-
-def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
-    md = []
-    md.append(f"## Monthly strategy meeting · {meeting['month']}")
-    md.append("")
-
-    md.append("### KEEP")
-    if meeting["keep"]:
-        for k in meeting["keep"][:5]:
-            md.append(f"- **{k['bet']}** — {k['reason']}")
-    else:
-        md.append("_No clear keepers._")
-    md.append("")
-
-    md.append("### KILL")
-    if meeting["kill"]:
-        for k in meeting["kill"][:5]:
-            md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
-    else:
-        md.append("_Nothing on the kill list._")
-    md.append("")
-
-    md.append("### SCALE")
-    if meeting["scale"]:
-        for k in meeting["scale"][:5]:
-            md.append(f"- **{k['bet']}** — {k['reason'][:120]}")
-    else:
-        md.append("_No clear scale candidates._")
-    md.append("")
-
-    md.append("### FIX")
-    if meeting["fix"]:
-        for k in meeting["fix"][:5]:
-            md.append(f"- **{k['bet']}** — {k['reason'][:120]}")
-    else:
-        md.append("_Nothing to fix._")
-    md.append("")
-
-    md.append("### MISSING")
-    if meeting["missing"]:
-        for m in meeting["missing"][:5]:
-            md.append(f"- **[{m['type']}]** {m['signal'][:120]}")
-            md.append(f"  Hypothesis: {m['hypothesis'][:120]}")
-            md.append(f"  Confidence: {m['confidence']}")
-    else:
-        md.append("_No clear opportunities._")
-    md.append("")
-
-    md.append("### BET")
-    if meeting["bet"]:
-        for b in meeting["bet"][:3]:
-            md.append(f"- **{b['theme']}** — {b['hypothesis'][:100]}")
-            md.append(f"  _Evidence:_ {b['evidence'][:100]}")
-    else:
-        md.append("_No new bet proposals._")
-
     return "\n".join(md)
 
 

@@ -15014,6 +15014,173 @@ def portfolio_monthly_meeting():
     return jsonify({"ok": True, "meeting": meeting}), 200
 
 
+
+# ─── Spend / Money API ────────────────────────────────────────────────
+
+@app.route('/api/spend/seed', methods=['POST'])
+def spend_seed():
+    """Seed sample spend data for swing-shack so the UI shows real numbers."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    doc = sp.seed_sample_spend(bid)
+    return jsonify({"ok": True, "doc": doc}), 200
+
+
+@app.route('/api/spend/campaigns', methods=['GET'])
+def spend_campaigns():
+    """List paid campaigns with attribution + performance + spend."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    doc = sp.load_spend(bid)
+    return jsonify({"ok": True, "campaigns": doc.get("campaigns", [])}), 200
+
+
+@app.route('/api/spend/record', methods=['POST'])
+def spend_record():
+    """Record or update a paid campaign."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import spend as sp
+    try:
+        doc = sp.record_campaign(
+            bid,
+            body.get('campaign_id'),
+            body.get('platform'),
+            body.get('spend_rands'),
+            body.get('period_start'),
+            body.get('period_end'),
+            body.get('strategy_link'),
+            body.get('attribution_source', 'platform'),
+            body.get('attribution_confidence', 'low'),
+            body.get('performance'),
+            body.get('name'),
+            body.get('status', 'active'),
+        )
+        return jsonify({"ok": True, "doc": doc}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/spend/orphans', methods=['GET'])
+def spend_orphans():
+    """Paid campaigns with no strategic link."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    orphans = sp.detect_orphaned_spend(bid)
+    return jsonify({"ok": True, "orphans": orphans, "count": len(orphans)}), 200
+
+
+@app.route('/api/spend/efficiency/<bet_id>', methods=['GET'])
+def spend_efficiency(bet_id):
+    """5-layer Strategic Efficiency for a single bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    eff = sp.strategic_efficiency(bid, bet_id)
+    return jsonify({"ok": True, "efficiency": eff}), (200 if "error" not in eff else 404)
+
+
+@app.route('/api/spend/spend-vs-priority', methods=['GET'])
+def spend_vs_priority():
+    """Per-area priority vs spend share matrix."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    svp = sp.spend_vs_priority(bid)
+    return jsonify({"ok": True, "matrix": svp}), 200
+
+
+@app.route('/api/spend/burn-vs-maturity/<bet_id>', methods=['GET'])
+def spend_burn_vs_maturity(bet_id):
+    """% of budget spent vs evidence maturity vs decision date."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    bvm = sp.budget_burn_vs_maturity(bid, bet_id)
+    return jsonify({"ok": True, "burn": bvm}), (200 if "error" not in bvm else 404)
+
+
+@app.route('/api/spend/creative/<campaign_id>', methods=['GET'])
+def spend_creative_efficiency(campaign_id):
+    """Creative-level evidence + recommendations."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    ce = sp.creative_efficiency(bid, campaign_id)
+    return jsonify({"ok": True, "creative_efficiency": ce}), (200 if "error" not in ce else 404)
+
+
+@app.route('/api/spend/handoff', methods=['GET'])
+def spend_handoff():
+    """Marketing ↔ Advertising handoff opportunities."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    h = sp.marketing_advertising_handoff(bid)
+    return jsonify({"ok": True, "handoff": h}), 200
+
+
+@app.route('/api/spend/opportunity-cost', methods=['POST'])
+def spend_opportunity_cost():
+    """Where would the proposed R come from?"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import spend as sp
+    oc = sp.budget_opportunity_cost(bid, body.get('budget', 0), body.get('for_proposed'))
+    return jsonify({"ok": True, "opportunity_cost": oc}), 200
+
+
+@app.route('/api/spend/attribution-disagreements', methods=['GET'])
+def spend_attribution_disagreements():
+    """When platform/GA4/UTM/CRM numbers disagree, show the disagreement."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    disagreements = sp.attribution_disagreements(bid)
+    return jsonify({"ok": True, "disagreements": disagreements}), 200
+
+
+@app.route('/api/spend/concentration', methods=['GET'])
+def spend_concentration():
+    """Spend concentration warnings."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    return jsonify({"ok": True, "warnings": sp.spend_concentration_warnings(bid)}), 200
+
+
+@app.route('/api/spend/r1-buy/<campaign_id>', methods=['GET'])
+def spend_r1_buy(campaign_id):
+    """What did R1 buy us? Staged attribution per Rand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    doc = sp.load_spend(bid)
+    campaign = next((c for c in doc["campaigns"] if c["campaign_id"] == campaign_id), None)
+    if not campaign:
+        return jsonify({"ok": False, "error": "campaign not found"}), 404
+    claim = sp.what_did_r1_buy(campaign)
+    return jsonify({"ok": True, "claim": claim.to_dict()}), 200
+
+
 if __name__ == '__main__':
     _boot_load_persisted_secrets()
     _boot_selfheal_windsor()
