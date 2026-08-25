@@ -14523,6 +14523,60 @@ def strategy_delete(record_type, record_id):
     return jsonify({"ok": True, "strategy": s}), 200
 
 
+@app.route('/api/strategy/clear', methods=['POST'])
+def strategy_clear():
+    """Clear all strategy state for a brand. Reset to empty."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from strategy_store import load_strategy, save_strategy
+        s = load_strategy(bid)
+        if not s:
+            s = {"brand_id": bid}
+        s["north_star"] = ""
+        s["market_moves"] = []
+        s["bets"] = []
+        s["lessons"] = []
+        s["trend"] = {"bets": {}, "market_moves": {}, "generated_at": None}
+        s["cleared_at"] = "2026-08-25"
+        save_strategy(bid, s)
+        return jsonify({"ok": True, "cleared": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/clear', methods=['POST'])
+def decisions_clear():
+    """Clear all decision history for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from decision import load_decisions, save_decisions
+        empty = {"brand": bid, "open": [], "history": [], "deferred": [], "cleared_at": "2026-08-25"}
+        save_decisions(bid, empty)
+        return jsonify({"ok": True, "cleared": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/clear', methods=['POST'])
+def governance_clear():
+    """Clear all governance policies + receipts for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from governance import load_policies, save_policies, load_receipts, save_receipts, load_outcomes, save_outcomes
+        save_policies(bid, {"brand": bid, "policies": [], "cleared_at": "2026-08-25"})
+        save_receipts(bid, {"brand": bid, "receipts": [], "cleared_at": "2026-08-25"})
+        save_outcomes(bid, {"brand": bid, "outcomes": [], "disagreement_lessons": [], "cleared_at": "2026-08-25"})
+        return jsonify({"ok": True, "cleared": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/strategy/mine', methods=['POST'])
 def strategy_mine():
     """Walk real data sources and derive new lessons. Returns the diff
@@ -15011,7 +15065,12 @@ def strategy_trend(record_type, record_id):
 
 
 @app.route('/api/strategy/seed', methods=['POST'])
-def strategy_seed_default():
+def strategy_seed():
+    """Seed endpoint disabled. Real data must flow in via /api/strategy/bet etc."""
+    return jsonify({"ok": False, "error": "seed disabled. Real data must flow in via /api/strategy/bet etc."}), 410
+
+@app.route('/api/strategy/_seed_disabled', methods=['POST'])
+def strategy_seed_disabled_marker():
     """Seed the swing-shack default thesis + bets.
     ?force=true wipes the existing strategy first."""
     if not _is_authed():
@@ -15501,6 +15560,11 @@ def portfolio_monthly_meeting():
 
 @app.route('/api/spend/seed', methods=['POST'])
 def spend_seed():
+    """Seed endpoint disabled. Real data must flow in via /api/spend/campaign etc."""
+    return jsonify({"ok": False, "error": "seed disabled. Real data must flow in via /api/spend/campaign etc."}), 410
+
+@app.route('/api/spend/_seed_disabled', methods=['POST'])
+def spend_seed_disabled_marker():
     """Seed sample spend data for swing-shack so the UI shows real numbers."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
