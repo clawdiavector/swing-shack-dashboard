@@ -1015,6 +1015,11 @@ def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
     from spend import render_money_section as _render_money_section
     money_section = _render_money_section(brand_id)
 
+    # 8b. Measurement health
+    from integrity import render_measurement_health_section, data_health as _data_health
+    measurement_health = render_measurement_health_section(brand_id)
+    data_health_summary = _data_health(brand_id)
+
     # 8. Next bets (with the 'no new bet' check first)
     next_bets, dont_add = _decide_next_bets(brand_id, missing, scale, fix)
 
@@ -1033,6 +1038,8 @@ def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
         "missing": missing,
         "portfolio_balance": portfolio_balance,
         "money_section": money_section,
+        "measurement_health": measurement_health,
+        "data_health": data_health_summary,
         "next_bets": next_bets,
         "dont_add_recommendation": dont_add,
         "what_this_replaces": replacement,
@@ -1287,8 +1294,16 @@ def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
             md.append(f"- {area}: {pct}%")
     md.append("")
 
-    # 8. NEXT BETS
-    md.append("### 8. New things to try")
+    # 9. MEASUREMENT HEALTH
+    md.append("### 9. Measurement health")
+    if meeting.get("measurement_health"):
+        md.append(meeting["measurement_health"])
+    else:
+        md.append("_No measurement health data yet._")
+    md.append("")
+
+    # 10. NEXT BETS
+    md.append("### 10. New things to try")
     if meeting.get("dont_add_recommendation", {}).get("active"):
         md.append(f"⚠️ **{meeting['dont_add_recommendation']['summary']}**")
         md.append(f"_Suggestion: don't add anything new yet. Finish the current things first._")
@@ -1302,7 +1317,7 @@ def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
     md.append("")
 
     # 9. WHAT THIS REPLACES
-    md.append("### 10. What gets replaced?")
+    md.append("### 11. What gets replaced?")
     if meeting.get("what_this_replaces"):
         for rep in meeting["what_this_replaces"]:
             md.append(f"_{rep['new_bet']}_ would displace:")
