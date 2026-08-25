@@ -956,16 +956,25 @@ def budget_opportunity_cost(brand_id: str, proposed_budget_rands: float, propose
 # ─── Seed sample data for swing-shack ────────────────────────────────
 
 def seed_sample_spend(brand_id: str = "swing-shack") -> dict:
-    """Seed sample spend data so the UI shows real numbers."""
+    """Seed sample spend data so the UI shows real numbers.
+    Dynamically links to whatever bet IDs exist in the live strategy."""
     doc = load_spend(brand_id)
     if doc.get("campaigns"):
         return doc
+
+    # Look up live bet IDs
+    s = load_strategy(brand_id)
+    live_bets = {b.get("campaign_id"): b["id"] for b in s.get("bets", []) if b.get("campaign_id")}
+    live_move = s["market_moves"][0]["id"] if s.get("market_moves") else "mship-001"
+
+    # Match by campaign_id
+    def _bet(cid):
+        return live_bets.get(cid, live_bets.get(list(live_bets.keys())[0]) if live_bets else "mship-001")
 
     today = datetime.date.today()
     month_start = today.replace(day=1).isoformat()
     month_end = (today.replace(day=28) + datetime.timedelta(days=4)).replace(day=1).isoformat()
 
-    # Sample campaigns linked to the seeded bets
     sample = [
         {
             "campaign_id": "ig-warm-retarget-001",
@@ -974,15 +983,15 @@ def seed_sample_spend(brand_id: str = "swing-shack") -> dict:
             "spend_rands": 3900,
             "period_start": month_start,
             "period_end": month_end,
-            "strategy_link": {"bet_id": "bet-fitting-cta", "move_id": "mship-001"},
+            "strategy_link": {"bet_id": _bet("use-the-right-equipment-mq5l90bk"), "move_id": live_move},
             "attribution_source": "platform",
             "attribution_confidence": "low",
             "performance": {
                 "impressions": 145000,
                 "reach": 82000,
                 "clicks": 1280,
-                "visits": 312,  # booking-page attributed sessions
-                "leads": 0,  # none yet
+                "visits": 312,
+                "leads": 0,
                 "bookings": 0,
             },
             "status": "active",
@@ -994,7 +1003,7 @@ def seed_sample_spend(brand_id: str = "swing-shack") -> dict:
             "spend_rands": 5200,
             "period_start": month_start,
             "period_end": month_end,
-            "strategy_link": {"bet_id": "bet-trackman", "move_id": "mship-001"},
+            "strategy_link": {"bet_id": _bet("trackman-intelligence"), "move_id": live_move},
             "attribution_source": "platform",
             "attribution_confidence": "low",
             "performance": {
@@ -1014,7 +1023,7 @@ def seed_sample_spend(brand_id: str = "swing-shack") -> dict:
             "spend_rands": 1800,
             "period_start": month_start,
             "period_end": month_end,
-            "strategy_link": {"bet_id": "bet-takomo", "move_id": "mship-001"},
+            "strategy_link": {"bet_id": _bet("takomo-101t"), "move_id": live_move},
             "attribution_source": "utm",
             "attribution_confidence": "medium",
             "performance": {
