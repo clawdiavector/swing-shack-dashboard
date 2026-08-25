@@ -139,6 +139,138 @@ body {
 .evidence-counts .against b { color: var(--red); }
 .sparkline { display: inline-block; width: 50px; height: 14px; vertical-align: middle; margin-left: 0.5rem; }
 
+/* ─── Strategic Efficiency panel ─── */
+.strat-eff {
+  background: var(--bg-2);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+}
+.strat-eff-h {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--gold);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+.strat-eff-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+@media (max-width: 1000px) { .strat-eff-grid { grid-template-columns: 1fr 1fr; } }
+.strat-eff-layer {
+  background: var(--bg-3);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid var(--gold);
+}
+.strat-eff-layer.attention { border-left-color: var(--blue); }
+.strat-eff-layer.traffic { border-left-color: var(--blue); }
+.strat-eff-layer.intent { border-left-color: var(--gold); }
+.strat-eff-layer.outcome { border-left-color: var(--green); }
+.strat-eff-layer .label {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--tx-3); margin-bottom: 0.3rem; font-weight: 700;
+}
+.strat-eff-layer .value {
+  font-size: 16px; font-weight: 700; color: var(--tx);
+}
+.strat-eff-layer .sub {
+  font-size: 11px; color: var(--tx-3); margin-top: 0.2rem;
+}
+.strat-eff-evidence {
+  background: var(--bg-3);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.strat-eff-evidence .claim {
+  font-size: 13px; margin-bottom: 0.3rem;
+}
+.strat-eff-evidence .claim b { color: var(--gold); }
+.strat-eff-evidence .cannot {
+  font-size: 12px; color: var(--red); font-style: italic;
+}
+.strat-eff-rungs {
+  display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem;
+  font-size: 10px;
+  flex-wrap: wrap;
+}
+.strat-eff-rung {
+  display: flex; align-items: center; gap: 0.2rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  background: var(--bg-4);
+}
+.strat-eff-rung.present { background: rgba(93,255,157,0.15); color: var(--green); }
+.strat-eff-rung.absent { opacity: 0.45; }
+.strat-eff-cost {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.strat-eff-cost-item {
+  background: var(--bg-3);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 11px;
+}
+.strat-eff-cost-item.valid { border-left: 3px solid var(--gold); cursor: pointer; }
+.strat-eff-cost-item.invalid { opacity: 0.5; }
+.strat-eff-cost-item .name {
+  color: var(--tx-3); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.strat-eff-cost-item .value {
+  font-weight: 700; font-size: 14px;
+}
+.strat-eff-cost-item .formula {
+  font-size: 10px; color: var(--tx-3); margin-top: 0.2rem;
+  font-family: monospace;
+}
+.strat-eff-decisions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.strat-eff-decision {
+  background: var(--bg-3);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  border-left: 3px solid var(--line);
+}
+.strat-eff-decision.strategic { border-left-color: var(--purple); }
+.strat-eff-decision.advertising { border-left-color: var(--orange); }
+.strat-eff-decision .label {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--tx-3); margin-bottom: 0.3rem;
+}
+.strat-eff-decision .verdict {
+  font-size: 14px; font-weight: 700;
+}
+.strat-eff-manager {
+  background: var(--bg-3);
+  border-left: 3px solid var(--gold);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--tx-2);
+  margin-bottom: 0.5rem;
+}
+.strat-eff-gaps {
+  background: rgba(255,107,107,0.08);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
+  color: var(--tx);
+}
+.strat-eff-gaps .gap {
+  padding: 0.2rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.strat-eff-gaps .gap:last-child { border-bottom: none; }
+
 /* ─── Timeline of what's planned ─── */
 .calendar-section {
   background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
@@ -172,6 +304,54 @@ body {
 /* Month view columns */
 .cal-table.month-view { grid-template-columns: 200px repeat(35, 1fr); }
 .cal-table.month-view .cal-cell { padding: 0.4rem 0.1rem; font-size: 9px; }
+
+/* Condensed Strategic Efficiency in Month view */
+.cal-bar-eff {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -10px;
+  height: 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  gap: 4px;
+  overflow: hidden;
+  z-index: 1;
+}
+.cal-bar-eff .spend {
+  color: var(--gold);
+  font-weight: 700;
+}
+.cal-bar-eff .signal {
+  font-size: 9px;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+.cal-bar-eff .signal.intent { background: rgba(93,255,157,0.15); color: var(--green); }
+.cal-bar-eff .signal.traffic { background: rgba(174,184,197,0.15); color: var(--tx-2); }
+.cal-bar-eff .signal.attention { background: rgba(99,179,255,0.15); color: var(--blue); }
+.cal-bar-eff .signal.booking { background: rgba(93,255,157,0.2); color: var(--green); }
+.cal-bar-eff .signal.none { background: rgba(174,184,197,0.1); color: var(--tx-3); }
+.cal-bar-eff .decision {
+  margin-left: auto;
+  color: var(--tx-3);
+  font-size: 9px;
+}
+
+/* Calendar warning chips */
+.cal-warning {
+  margin: 0.5rem 0;
+  background: rgba(255,107,107,0.08);
+  border-left: 3px solid var(--red);
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--tx);
+}
 
 /* Week view columns */
 .cal-table.week-view { grid-template-columns: 200px repeat(7, 1fr); }
@@ -1319,6 +1499,18 @@ function monthBarRow(record, kind, month, daysInMonth) {
       const leftPctM = ((md.getDate() - 1) / daysInMonth) * 100;
       return `<div class="milestone ${m.type}" style="left: calc(200px + ${leftPctM}% * (100% - 200px) / 100)" title="${esc(m.label)} · ${esc(m.type)}"></div>`;
     }).join('');
+    // Condensed Strategic Efficiency underneath the bar (Month view only)
+    const spend = record.spend_rands || 0;
+    const evLayer = record.evidence_layer || '';
+    const advDecision = record.advertising_decision || '';
+    const warning = record.calendar_warning || '';
+    const signalLabel = evLayer || 'none';
+    const spendStr = spend > 0 ? (spend >= 1000 ? `R${(spend/1000).toFixed(1)}k` : `R${Math.round(spend)}`) : '';
+    const decisionShort = advDecision ? advDecision.split(' ')[0].toUpperCase() : '';
+    const effBar = (spend > 0 || evLayer)
+      ? `<div class="cal-bar-eff"><span class="spend">${esc(spendStr)}</span><span class="signal ${esc(signalLabel)}">${esc(signalLabel)}</span>${decisionShort ? `<span class="decision">${esc(decisionShort)}</span>` : ''}</div>`
+      : '';
+    const warningBar = warning ? `<div class="cal-warning">⚠ ${esc(warning)}</div>` : '';
     return `
       <div class="cal-row" style="grid-template-columns: 200px repeat(${daysInMonth}, 1fr); position: relative">
         <div class="cal-row-label">${label}</div>
@@ -1326,6 +1518,8 @@ function monthBarRow(record, kind, month, daysInMonth) {
         <div class="${cls}" style="left: calc(200px + ${leftPct}% * (100% - 200px) / 100); width: calc(${widthPct}% * (100% - 200px) / 100)"
              data-id="${record.id}" data-kind="${kind}" onclick="event.stopPropagation(); openRecordByKind('${kind}', '${record.id}', '${record.workhorse || 'marketing'}')">${label}</div>
         ${milestones}
+        ${effBar}
+        ${warningBar}
       </div>
     `;
   } catch (err) { return ''; }
@@ -1629,6 +1823,7 @@ function openBetModal(id, parentMoveId) {
       <b>Decided at:</b> ${esc(b.decision.decided_at)}<br>
       <b>Note:</b> ${esc(b.decision.note || '—')}</p>
     </div>` : ''}
+    ${id ? `<div id="strat-eff-${id}" style="margin-top:1rem"><div class="empty-state" style="padding:1rem">Loading efficiency…</div></div>` : ''}
     ${id ? `<div class="modal-section"><h4>Execution log (plan vs actual)</h4>
       <ul>${(b.execution_log || []).map(e => `<li><span class="src">${esc(e.date)}</span> planned: ${esc(e.planned)} → actual: ${esc(e.actual)} <span class="src">${esc(e.delta)}</span></li>`).join('') || '<li>No entries yet.</li>'}</ul>
       <div class="modal-row">
@@ -1652,6 +1847,15 @@ function openBetModal(id, parentMoveId) {
   `;
   document.getElementById('modal').classList.add('open');
 }
+
+// Hook the strategic efficiency loader into the bet modal opening
+const _origOpenBetModal = openBetModal;
+openBetModal = async function(id, parentMoveId) {
+  await _origOpenBetModal(id, parentMoveId);
+  if (id) {
+    setTimeout(() => loadStrategicEfficiency(id, 'strat-eff-' + id), 50);
+  }
+};
 
 async function saveBet(id) {
   const payload = {
@@ -2005,6 +2209,124 @@ async function whyStillHere(itemType, itemId) {
     </div>
   `;
   document.getElementById('modal').classList.add('open');
+}
+
+async function loadStrategicEfficiency(betId, containerId) {
+  const r = await fetch(`/api/spend/efficiency/${betId}?brand=${BRAND_ID}`);
+  const d = await r.json();
+  if (!d.ok || !d.efficiency) {
+    const el = document.getElementById(containerId);
+    if (el) el.innerHTML = `<div style="color:var(--tx-3);font-size:11px;padding:1rem;text-align:center">No spend data linked to this bet yet.</div>`;
+    return;
+  }
+  renderStrategicEfficiency(d.efficiency, containerId);
+}
+
+function renderStrategicEfficiency(eff, containerId) {
+  const cost = eff.cost || {};
+  const ladder = eff.evidence_ladder?.rungs || [];
+  const ladderHtml = ladder.map(r => {
+    const icon = r.present ? '✓' : '—';
+    return `<div class="strat-eff-rung ${r.present ? 'present' : 'absent'}">${icon} ${esc(r.layer)}</div>`;
+  }).join('');
+
+  const costHtml = ['cpm', 'cpc', 'cost_per_visit', 'cpl', 'cpa', 'roas'].map(metric => {
+    const c = cost[metric];
+    if (!c) return '';
+    if (!c.valid) {
+      return `<div class="strat-eff-cost-item invalid" title="${esc(c.reason || '')}">
+        <div class="name">${esc(metric.toUpperCase().replace(/_/g, ' '))}</div>
+        <div class="value">Data unavailable</div>
+        <div class="formula">${esc(c.reason || '')}</div>
+      </div>`;
+    }
+    return `<div class="strat-eff-cost-item valid" title="${esc(c.formula || '')}">
+      <div class="name">${esc(metric.toUpperCase().replace(/_/g, ' '))}</div>
+      <div class="value">R${c.value.toFixed(2)}</div>
+      <div class="formula">${esc(c.formula || '')}</div>
+    </div>`;
+  }).join('');
+
+  const layerConfHtml = (eff.layer_confidence || []).map(l =>
+    `<div class="strat-eff-rung ${l.confidence === 'unknown' ? 'absent' : 'present'}">
+      ${l.confidence === 'high' ? '✓' : l.confidence === 'medium' ? '~' : l.confidence === 'low' ? '?' : '—'} ${esc(l.layer)}
+    </div>`
+  ).join('');
+
+  const gapsHtml = (eff.measurement_gaps || []).length
+    ? `<div class="strat-eff-gaps">
+        <div style="font-weight:700;margin-bottom:0.3rem;color:var(--red)">⚠ What's missing in measurement:</div>
+        ${eff.measurement_gaps.map(g => `<div class="gap">${esc(g)}</div>`).join('')}
+      </div>`
+    : '';
+
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = `
+    <div class="strat-eff">
+      <div class="strat-eff-h">Strategic efficiency</div>
+      <div class="strat-eff-grid">
+        <div class="strat-eff-layer attention">
+          <div class="label">Attention</div>
+          <div class="value">${eff.attention.impressions ? eff.attention.impressions.toLocaleString() + ' impressions' : '—'}</div>
+          ${eff.attention.reach ? `<div class="sub">${eff.attention.reach.toLocaleString()} reach</div>` : ''}
+        </div>
+        <div class="strat-eff-layer traffic">
+          <div class="label">Traffic</div>
+          <div class="value">${eff.traffic.clicks ? eff.traffic.clicks.toLocaleString() + ' clicks' : '—'}</div>
+        </div>
+        <div class="strat-eff-layer intent">
+          <div class="label">Intent</div>
+          <div class="value">${eff.intent.booking_page_visits ? eff.intent.booking_page_visits.toLocaleString() + ' booking visits' : '—'}</div>
+        </div>
+        <div class="strat-eff-layer outcome">
+          <div class="label">Outcome</div>
+          <div class="value">${eff.outcome.leads ? eff.outcome.leads + ' leads' : 'Lead data unavailable'}</div>
+          <div class="sub">${eff.outcome.bookings ? eff.outcome.bookings + ' bookings' : (eff.outcome.leads ? 'Booking data unavailable' : '—')}</div>
+        </div>
+        <div class="strat-eff-layer attention">
+          <div class="label">Effort</div>
+          <div class="value">${eff.effort.posts_planned || 0} executions planned</div>
+          <div class="sub">${eff.effort.experiments || 0} experiments</div>
+        </div>
+        <div class="strat-eff-layer intent">
+          <div class="label">Money</div>
+          <div class="value">R${eff.money.total_rands.toLocaleString()}</div>
+          <div class="sub">${(eff.money.linked_campaigns || []).length} campaigns</div>
+        </div>
+      </div>
+
+      <div class="strat-eff-evidence">
+        <div class="claim"><b>Strongest supported claim:</b> ${esc(eff.strongest_supported_claim)}</div>
+        ${eff.cannot_yet_claim ? `<div class="cannot">Cannot yet claim: ${esc(eff.cannot_yet_claim)}</div>` : ''}
+        <div class="strat-eff-rungs">
+          <span style="color:var(--tx-3);margin-right:0.5rem">Evidence ladder:</span>
+          ${ladderHtml}
+        </div>
+      </div>
+
+      ${costHtml ? `<div class="strat-eff-cost">${costHtml}</div>` : ''}
+
+      <div class="strat-eff-decisions">
+        <div class="strat-eff-decision strategic">
+          <div class="label">Strategic bet decision</div>
+          <div class="verdict">${esc(eff.strategic_decision)}</div>
+        </div>
+        <div class="strat-eff-decision advertising">
+          <div class="label">Paid execution decision</div>
+          <div class="verdict">${esc(eff.advertising_decision)}</div>
+        </div>
+      </div>
+
+      <div class="strat-eff-manager">${esc(eff.manager_read)}</div>
+      <div class="strat-eff-rungs" style="margin-bottom:0.5rem">
+        <span style="color:var(--tx-3);margin-right:0.5rem">Layer confidence:</span>
+        ${layerConfHtml}
+      </div>
+
+      ${gapsHtml}
+    </div>
+  `;
 }
 
 async function openReplay(type, id) {

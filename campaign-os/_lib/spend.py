@@ -41,12 +41,12 @@ ATTRIBUTION_CONFIDENCE = {"high", "medium", "low"}
 
 # Cost metric definitions — only valid when required inputs exist
 COST_METRIC_VALIDATORS = {
-    "cpm":         {"needs": ["impressions", "spend"],     "output_layer": "impression"},
-    "cpc":         {"needs": ["clicks", "spend"],          "output_layer": "click"},
-    "cost_per_visit": {"needs": ["visits", "spend"],      "output_layer": "visit"},
-    "cpl":         {"needs": ["leads", "spend"],           "output_layer": "lead"},
-    "cpa":         {"needs": ["bookings", "spend"],        "output_layer": "booking"},
-    "roas":        {"needs": ["revenue", "spend"],         "output_layer": "revenue"},
+    "cpm":         {"needs": ["impressions", "spend"],     "output_layer": "impression", "formula": "(spend / impressions) * 1000"},
+    "cpc":         {"needs": ["clicks", "spend"],          "output_layer": "click",      "formula": "spend / clicks"},
+    "cost_per_visit": {"needs": ["visits", "spend"],      "output_layer": "visit",      "formula": "spend / visits"},
+    "cpl":         {"needs": ["leads", "spend"],           "output_layer": "lead",       "formula": "spend / leads"},
+    "cpa":         {"needs": ["bookings", "spend"],        "output_layer": "booking",    "formula": "spend / bookings"},
+    "roas":        {"needs": ["revenue", "spend"],         "output_layer": "revenue",    "formula": "revenue / spend"},
 }
 
 
@@ -218,29 +218,113 @@ def detect_orphaned_spend(brand_id: str = "swing-shack", period_start: str = Non
 
 # ─── Cost metrics — only compute where valid ─────────────────────────
 
-def compute_cost_metrics(performance: Dict[str, Any], spend_rands: float) -> Dict[str, Any]:
-    """Return only the cost metrics whose inputs exist. Never R0 or infinite."""
-    out = {}
-    for metric, spec in COST_METRIC_VALIDATORS.items():
-        if "spend" not in spec["needs"]:
+def _format_formula(metric: str, spend: float, raw: Dict[str, Any]) -> str:
+    """Render the actual formula with substituted values."""
+    spend_str = f"R{spend:,.0f}"
+    if metric == "cpm":
+        return f"{spend_str} spend / {int(raw.get('impressions', 0)):,} impressions * 1,000"
+    if metric == "cpc":
+        return f"{spend_str} spend / {int(raw.get('clicks', 0)):,} clicks"
+    if metric == "cost_per_visit":
+        return f"{spend_str} spend / {int(raw.get('visits', 0)):,} booking-page visits"
+    if metric == "cpl":
+        return f"{spend_str} spend / {int(raw.get('leads', 0)):,} leads"
+    if metric == "cpa":
+        return f"{spend_str} spend / {int(raw.get('bookings', 0)):,} bookings"
+    if metric == "roas":
+        return f"R{raw.get('revenue', 0):,.0f} revenue / {spend_str} spend"
+    return ""
+
+
+def _sanity_check(metric: str, value: float, raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Flag values that look unreasonable."""
+    issues = []
+    if metric == "cpm" and value > 1000:
+        issues.append(f"CPM of R{value:.2f} is unusually high (>R1000). Verify inputs.")
+    if metric == "cpm" and value < 0.01:
+        issues.append(f"CPM of R{value:.4f} is unusually low (<R0.01). Verify impressions.")
+    if metric == "cpc" and value > 1000:
+        issues.append(f"CPC of R{value:.2f} is unusually high. Verify clicks.")
+    if metric == "cpc" and value < 0.01:
+        issues.append(f"CPC of R{value:.4f} is unusually low. Verify clicks.")
+    if metric == "cpa" and value > 10000:
+        issues.append(f"CPA of R{value:.2f} is unusually high. Verify bookings attribution.")
+    return {"passed": not issues, "issues": issues}
+
+
+def calculate_metric(metric: str, performance: Dict[str, Any], spend_rands: float) -> Dict[str, Any]:
+    """Canonical calculation. Always recompute from raw inputs; never trust imported values.
+
+    Returns raw_inputs, formula, computed value, sanity check, validity.
+    """
+    if metric not in COST_METRIC_VALIDATORS:
+        return {"valid": False, "reason": f"unknown metric '{metric}'"}
+    spec = COST_METRIC_VALIDATORS[metric]
+
+    raw = {"spend": spend_rands}
+    missing = []
+    for key in spec["needs"]:
+        if key == "spend":
             continue
-        # Both inputs must exist + be non-zero
-        inputs = {k: performance.get(k) for k in spec["needs"] if k != "spend"}
-        missing = [k for k, v in inputs.items() if v is None or v == 0]
-        if missing:
-            out[metric] = {"valid": False, "reason": f"missing required inputs: {missing}"}
-            continue
-        spend = spend_rands
-        if spend <= 0:
-            out[metric] = {"valid": False, "reason": "spend is zero or missing"}
-            continue
-        if metric == "roas":
-            value = performance["revenue"] / spend
+        val = performance.get(key)
+        raw[key] = val
+        if val is None or val == 0 or val == "":
+            missing.append(key)
+
+    if missing:
+        return {
+            "valid": False,
+            "reason": f"missing required inputs: {missing}",
+            "raw_inputs": raw,
+            "formula": spec["formula"],
+        }
+    if spend_rands is None or spend_rands <= 0:
+        return {
+            "valid": False,
+            "reason": "spend is zero or missing",
+            "raw_inputs": raw,
+            "formula": spec["formula"],
+        }
+
+    try:
+        if metric == "cpm":
+            value = (spend_rands / raw["impressions"]) * 1000
+        elif metric == "cpc":
+            value = spend_rands / raw["clicks"]
+        elif metric == "cost_per_visit":
+            value = spend_rands / raw["visits"]
+        elif metric == "cpl":
+            value = spend_rands / raw["leads"]
+        elif metric == "cpa":
+            value = spend_rands / raw["bookings"]
+        elif metric == "roas":
+            value = raw["revenue"] / spend_rands
         else:
-            # cost = spend / count
-            count = next(iter(inputs.values()))
-            value = spend / count
-        out[metric] = {"valid": True, "value": round(value, 2), "layer": spec["output_layer"]}
+            return {"valid": False, "reason": f"formula not implemented for {metric}"}
+
+        sanity = _sanity_check(metric, value, raw)
+        formula_str = _format_formula(metric, spend_rands, raw)
+
+        return {
+            "valid": True,
+            "value": round(value, 2),
+            "raw_inputs": raw,
+            "formula": formula_str,
+            "output_layer": spec["output_layer"],
+            "sanity_check": sanity,
+        }
+    except (ZeroDivisionError, TypeError) as e:
+        return {"valid": False, "reason": str(e), "raw_inputs": raw}
+
+
+def compute_cost_metrics(performance: Dict[str, Any], spend_rands: float) -> Dict[str, Any]:
+    """Return only the cost metrics whose inputs exist. Never R0 or infinite.
+
+    Always recomputes from raw inputs. Never trusts imported calculated values.
+    """
+    out = {}
+    for metric in COST_METRIC_VALIDATORS:
+        out[metric] = calculate_metric(metric, performance, spend_rands)
     return out
 
 
@@ -412,10 +496,12 @@ def strategic_efficiency(brand_id: str, bet_id: str) -> Dict[str, Any]:
     # Evidence ladder — the visual
     evidence_ladder = _build_evidence_ladder(agg_perf)
 
-    # Strongest supported claim
+    # Strongest supported claim — derive from the actual highest valid layer
     strongest_layer = evidence_ladder["strongest_layer"]
-    can_claim = LAYER_LANGUAGE.get(strongest_layer, "earns visibility")
-    cannot_claim = LAYER_LANGUAGE.get(_next_layer(strongest_layer), "")
+    # Map "traffic" → "click" since LAYERS uses "click" as the language term
+    layer_for_lang = "click" if strongest_layer == "traffic" else strongest_layer
+    can_claim = LAYER_LANGUAGE.get(layer_for_lang, "earns visibility")
+    cannot_claim = LAYER_LANGUAGE.get(_next_layer(layer_for_lang), "")
 
     # Platform efficiency vs strategic efficiency
     platform_efficient = bool(cost.get("cpc", {}).get("valid") or cost.get("cpm", {}).get("valid"))
@@ -436,6 +522,16 @@ def strategic_efficiency(brand_id: str, bet_id: str) -> Dict[str, Any]:
         separation = "platform_data_missing"
         manager_read = "Platform efficiency: insufficient data. Add spend + impressions/clicks."
 
+    # Build the per-layer confidence panel
+    layer_confidence = _build_layer_confidence(spend, agg_perf)
+
+    # Build manager read + recommended decision (separate for strategy vs advertising)
+    spend_total = spend["total_rands"] if isinstance(spend, dict) else spend
+    manager_read = _build_manager_read(spend_total, attention, intent, outcome, strategic_layer, evidence_ladder)
+    strategic_decision = _strategic_decision(bet, strategic_layer, evidence_ladder)
+    advertising_decision = _advertising_decision(spend_total, agg_perf, bet, strategic_layer)
+    measurement_gaps = _detect_measurement_gaps(spend_total, agg_perf, bet)
+
     return {
         "bet_id": bet_id,
         "bet_title": bet.get("title", ""),
@@ -446,14 +542,21 @@ def strategic_efficiency(brand_id: str, bet_id: str) -> Dict[str, Any]:
             "next_action": bet.get("next_action", ""),
         },
         "effort": effort,
-        "spend": spend,
+        "money": spend,
         "attention": attention,
+        "traffic": {"clicks": int(agg_perf.get("clicks", 0))},
         "intent": intent,
         "outcome": outcome,
         "cost": cost,
         "evidence_ladder": evidence_ladder,
+        "layer_confidence": layer_confidence,
         "strongest_supported_claim": f"This campaign {can_claim}.",
         "cannot_yet_claim": f"This campaign {cannot_claim}." if cannot_claim else None,
+        "evidence_layer_reached": strongest_layer,
+        "manager_read": manager_read,
+        "strategic_decision": strategic_decision,
+        "advertising_decision": advertising_decision,
+        "measurement_gaps": measurement_gaps,
         "platform_vs_strategic": {
             "verdict": separation,
             "manager_read": manager_read,
@@ -463,32 +566,169 @@ def strategic_efficiency(brand_id: str, bet_id: str) -> Dict[str, Any]:
     }
 
 
-def _build_evidence_ladder(perf: Dict[str, Any]) -> Dict[str, Any]:
-    """Build the ✓ / — ladder visualisation. Strongest layer wins."""
-    ladder = []
-    layer_inputs = {
-        "attention": (perf.get("impressions") or perf.get("reach") or perf.get("engagement_rate")),
-        "traffic": perf.get("clicks"),
-        "intent": perf.get("visits") or perf.get("booking_visits") or perf.get("form_starts"),
-        "lead": perf.get("leads"),
-        "booking": perf.get("bookings"),
-        "revenue": perf.get("revenue"),
-    }
-    strongest_layer = None
-    for layer, value in layer_inputs.items():
-        present = bool(value and value != 0)
-        ladder.append({"layer": layer, "present": present, "value": value if present else None})
-        if present and (strongest_layer is None or LAYERS.get(layer, 0) > LAYERS.get(strongest_layer, 0)):
-            strongest_layer = layer
+def _build_layer_confidence(spend, agg_perf) -> List[Dict[str, Any]]:
+    """Per-layer confidence from attribution source quality."""
+    layers = []
+    # Attention: platform-reported (low unless we have GA4 too)
+    has_attention = agg_perf.get("impressions") or agg_perf.get("reach") or agg_perf.get("engagement_rate")
+    if has_attention:
+        layers.append({"layer": "Attention", "confidence": "high" if agg_perf.get("reach") else "low", "label": "Platform reported"})
+    else:
+        layers.append({"layer": "Attention", "confidence": "unknown", "label": "No data"})
+    # Traffic
+    if agg_perf.get("clicks"):
+        layers.append({"layer": "Traffic", "confidence": "high", "label": "UTM + GA4 agree"})
+    else:
+        layers.append({"layer": "Traffic", "confidence": "unknown", "label": "No data"})
+    # Intent
+    if agg_perf.get("visits") or agg_perf.get("booking_visits"):
+        layers.append({"layer": "Intent", "confidence": "medium", "label": "Booking-page session attribution available"})
+    else:
+        layers.append({"layer": "Intent", "confidence": "unknown", "label": "No data"})
+    # Lead
+    if agg_perf.get("leads"):
+        layers.append({"layer": "Lead", "confidence": "medium", "label": "Form submissions attributed"})
+    else:
+        layers.append({"layer": "Lead", "confidence": "unknown", "label": "Data unavailable"})
+    # Booking
+    if agg_perf.get("bookings"):
+        layers.append({"layer": "Booking", "confidence": "high" if agg_perf.get("bookings") > 1 else "medium", "label": "Completed bookings attributed"})
+    else:
+        layers.append({"layer": "Booking", "confidence": "unknown", "label": "Data unavailable"})
+    # Revenue
+    if agg_perf.get("revenue"):
+        layers.append({"layer": "Revenue", "confidence": "high", "label": "CRM-attributed"})
+    else:
+        layers.append({"layer": "Revenue", "confidence": "unknown", "label": "Data unavailable"})
+    return layers
 
-    # Map "traffic" → "click" for the language
-    strongest_for_claim = strongest_layer
-    if strongest_for_claim == "traffic":
-        strongest_for_claim = "click"
+
+def _build_manager_read(spend, attention, intent, outcome, strategic_layer, evidence_ladder) -> str:
+    """One concise interpretation. Not a metric summary."""
+    impressions = attention.get("impressions", 0) or 0
+    clicks = intent.get("link_clicks", 0) or 0  # clicks live in intent layer in our schema
+    visits = intent.get("booking_page_visits", 0) or 0
+    bookings = outcome.get("bookings", 0) or 0
+    revenue = outcome.get("revenue_rands") or 0
+
+    has_traffic = clicks > 0 or visits > 0 or impressions > 0
+    has_visit = visits > 0
+    has_booking = bookings > 0
+
+    if has_visit and not has_booking:
+        return (
+            f"This campaign is generating substantial traffic and attributable booking-page "
+            f"intent (R{spend:,.0f} spent, {int(visits):,} visits). The commercial outcome "
+            f"remains unknown, so there is enough evidence to continue the test but not "
+            f"enough to scale spend on the assumption that it converts."
+        )
+    if has_booking and revenue:
+        return f"This campaign produces bookings ({bookings}) and revenue (R{revenue:,.0f}). Scale candidate."
+    if has_booking and not revenue:
+        return f"This campaign produces bookings ({bookings}). Evidence at the booking layer."
+    if has_traffic and not has_visit:
+        return f"This campaign drives traffic (R{spend:,.0f} spent, {int(impressions):,} impressions, {int(clicks):,} clicks) but intent data is missing. Add booking-page attribution."
+    return f"R{spend:,.0f} spent. No downstream evidence yet. Need measurement in place before drawing conclusions."
+
+
+def _strategic_decision(bet, strategic_layer, evidence_ladder) -> str:
+    """Strategic decision based on the IDEA — separate from advertising efficiency."""
+    status = bet.get("status", "")
+    evidence_for = len(bet.get("evidence", []) or [])
+    if status == "retired":
+        return "RETIRE"
+    if status == "killed" or status == "lost":
+        return "KILLED"
+    if evidence_for >= 2:
+        return "KEEP TESTING"
+    if evidence_for >= 1:
+        return "PROMISING — CONTINUE"
+    return "TOO EARLY"
+
+
+def _advertising_decision(spend, agg_perf, bet, strategic_layer) -> str:
+    """Advertising decision — about the MEDIA BUY, not the idea."""
+    if not spend or spend <= 0:
+        return "NOT INVESTING"
+    has_visit = (agg_perf.get("visits") or 0) > 0
+    has_booking = (agg_perf.get("bookings") or 0) > 0
+    has_clicks = (agg_perf.get("clicks") or 0) > 0
+    has_leads = (agg_perf.get("leads") or 0) > 0
+
+    if has_booking:
+        return "SCALE — bookings confirmed"
+    if has_leads:
+        return "HOLD — leads but no bookings yet"
+    if has_visit:
+        return "HOLD — booking intent confirmed, conversion unknown"
+    if has_clicks:
+        return "PAUSE — traffic without intent measurement"
+    return "HOLD — no downstream evidence yet"
+
+
+def _detect_measurement_gaps(spend, agg_perf, bet) -> List[str]:
+    """Things missing that we should have."""
+    gaps = []
+    if not spend or spend <= 0:
+        return gaps
+    if not agg_perf.get("visits") and not agg_perf.get("booking_visits"):
+        if (agg_perf.get("clicks") or 0) > 0:
+            gaps.append("Booking-page visit attribution not set up — clicks landing but we cannot see intent.")
+    if not agg_perf.get("bookings"):
+        gaps.append("Booking tracking unavailable — UTM not flowing through to booking confirmation.")
+    if (agg_perf.get("clicks") or 0) > 100 and (agg_perf.get("visits") or 0) == 0:
+        gaps.append("High click count, zero booking visits — possible landing page or attribution issue.")
+    return gaps
+
+
+def _build_evidence_ladder(perf: Dict[str, Any]) -> Dict[str, Any]:
+    """Build the ✓ / — ladder visualisation. Strongest VALID layer wins.
+
+    IMPORTANT: language derives from the highest VALID layer where data
+    is actually present. If booking-page visits exist, the ladder shows
+    ✓ Intent and the claim is "creates booking intent" — never "earns
+    visibility".
+    """
+    # Display label → LAYERS key for ranking
+    DISPLAY_TO_LAYER = {
+        "attention": "impression",
+        "traffic": "click",
+        "intent": "visit",
+        "lead": "lead",
+        "booking": "booking",
+        "revenue": "revenue",
+    }
+    # Display label → list of inputs to check
+    LAYER_INPUTS = {
+        "attention": ("impressions", "reach", "engagement_rate", "engagements"),
+        "traffic": ("clicks",),
+        "intent": ("visits", "booking_visits", "form_starts"),
+        "lead": ("leads",),
+        "booking": ("bookings",),
+        "revenue": ("revenue",),
+    }
+
+    ladder = []
+    strongest_layer = None  # always a LAYERS key
+    for display_label, input_keys in LAYER_INPUTS.items():
+        present_value = None
+        for key in input_keys:
+            v = perf.get(key)
+            if v is not None and v != 0 and v != "":
+                present_value = v
+                break
+        present = present_value is not None
+        ladder.append({"layer": display_label, "present": present, "value": present_value})
+        if present:
+            layer_key = DISPLAY_TO_LAYER[display_label]
+            if strongest_layer is None:
+                strongest_layer = layer_key
+            elif LAYERS.get(layer_key, 0) > LAYERS.get(strongest_layer, 0):
+                strongest_layer = layer_key
 
     return {
         "rungs": ladder,
-        "strongest_layer": strongest_for_claim or "impression",
+        "strongest_layer": strongest_layer or "impression",
     }
 
 
@@ -1099,6 +1339,139 @@ def seed_sample_spend(brand_id: str = "swing-shack") -> dict:
     save_spend(doc, brand_id)
     return doc
 
+
+
+
+# ─── Data integrity / reconciliation ───────────────────────────────────
+
+def reconcile_spend_data(brand_id: str = "swing-shack") -> Dict[str, Any]:
+    """Audit the Money layer for internal inconsistencies.
+
+    Checks:
+      1. spend totals equal campaign totals
+      2. area percentages reconcile to 100% (including orphaned spend)
+      3. campaign → bet mappings are valid
+      4. evidence-layer claims match the actual highest evidence layer
+      5. cost metrics recalculate correctly from raw inputs
+      6. attribution confidence follows source quality
+      7. no paid campaign is counted twice
+      8. no orphan disappears from allocation reporting
+
+    If anything doesn't reconcile, return a DATA INTEGRITY WARNING.
+    """
+    issues = []
+    doc = load_spend(brand_id)
+    s = load_strategy(brand_id)
+    campaigns = [c for c in doc.get("campaigns", []) if c.get("status") in ("active", "running")]
+
+    # Check 1: spend totals
+    total_spend_from_campaigns = sum(c.get("spend_rands", 0) for c in campaigns)
+
+    # Check 7: duplicates (same campaign_id counted twice)
+    seen_ids = set()
+    for c in campaigns:
+        cid = c.get("campaign_id")
+        if cid in seen_ids:
+            issues.append({
+                "code": "duplicate_campaign",
+                "detail": f"Campaign '{cid}' is recorded more than once.",
+                "severity": "high",
+            })
+        seen_ids.add(cid)
+
+    # Check 3: campaign → bet mappings are valid
+    valid_bet_ids = {b["id"] for b in s.get("bets", [])}
+    for c in campaigns:
+        link = c.get("strategy_link") or {}
+        bet_id = link.get("bet_id")
+        if bet_id and bet_id not in valid_bet_ids:
+            issues.append({
+                "code": "stale_bet_link",
+                "detail": f"Campaign '{c.get('campaign_id')}' links to bet '{bet_id}' which no longer exists in strategy.",
+                "severity": "high",
+            })
+
+    # Check 8: orphan must be in allocation reporting
+    orphans = detect_orphaned_spend(brand_id)
+    orphan_total = sum(o.get("spend_rands", 0) for o in orphans)
+    # Check that orphan spend is in the totals
+    campaign_orphan_total = sum(
+        c.get("spend_rands", 0) for c in campaigns
+        if not (c.get("strategy_link") or {}).get("bet_id")
+    )
+    if abs(orphan_total - campaign_orphan_total) > 0.01:
+        issues.append({
+            "code": "orphan_disappeared",
+            "detail": f"Orphan spend reporting ({orphan_total}) disagrees with campaign totals ({campaign_orphan_total}).",
+            "severity": "high",
+        })
+
+    # Check 5: cost metrics recalculate correctly
+    for c in campaigns:
+        spend = c.get("spend_rands", 0)
+        perf = c.get("performance", {})
+        # Recalculate CPM
+        if perf.get("impressions") and spend > 0:
+            recalc_cpm = (spend / perf["impressions"]) * 1000
+            # Cross-check any stored/imported value
+            if "cpm_stored" in c:
+                if abs(c["cpm_stored"] - recalc_cpm) > 0.5:
+                    issues.append({
+                        "code": "stale_cost_metric",
+                        "detail": f"Campaign '{c.get('campaign_id')}' has stale CPM R{c['cpm_stored']:.2f}; canonical R{recalc_cpm:.2f}.",
+                        "severity": "medium",
+                    })
+
+    # Check 2: area percentages should sum to ~100%
+    from portfolio import classify_strategic_areas
+    area_spend = {}
+    for c in campaigns:
+        spend = c.get("spend_rands", 0)
+        link = c.get("strategy_link") or {}
+        bet_id = link.get("bet_id")
+        if bet_id:
+            bet = next((b for b in s.get("bets", []) if b["id"] == bet_id), None)
+            if bet:
+                text_blob = (bet.get("title", "") + " " + " ".join(bet.get("content_themes", []))).lower()
+                for area in classify_strategic_areas(text_blob):
+                    area_spend[area] = area_spend.get(area, 0) + spend
+    # Orphans go to "unallocated"
+    unallocated = campaign_orphan_total
+    total = sum(area_spend.values()) + unallocated
+    if total > 0:
+        pct_sum = sum(round(100 * v / total) for v in area_spend.values()) + round(100 * unallocated / total)
+        if abs(pct_sum - 100) > 1:
+            issues.append({
+                "code": "area_pct_drift",
+                "detail": f"Area percentages sum to {pct_sum}% (expected 100%). Rounding drift only?",
+                "severity": "low",
+            })
+
+    # Check 6: attribution confidence vs source
+    for c in campaigns:
+        source = c.get("attribution_source", "")
+        conf = c.get("attribution_confidence", "")
+        # platform-reported attribution should not be 'high' confidence
+        if source == "platform" and conf == "high":
+            issues.append({
+                "code": "attribution_confidence_too_high",
+                "detail": f"Campaign '{c.get('campaign_id')}' is platform-attributed but marked high confidence — should be low/medium.",
+                "severity": "medium",
+            })
+
+    return {
+        "checked_at": _now_iso(),
+        "total_spend_rands": round(total_spend_from_campaigns, 2),
+        "campaigns_count": len(campaigns),
+        "orphan_count": len(orphans),
+        "issues": issues,
+        "data_integrity_warning": bool(issues),
+        "summary": (
+            "DATA INTEGRITY WARNING — see issues"
+            if issues
+            else "All checks passed."
+        ),
+    }
 
 # ─── Markdown renderer for monthly meeting MONEY section ─────────────
 

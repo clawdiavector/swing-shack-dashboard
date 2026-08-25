@@ -14690,7 +14690,8 @@ def strategy_promotion_candidates():
 @app.route('/api/strategy/calendar', methods=['GET'])
 def strategy_calendar():
     """Return the strategic calendar view. ?view=year|quarter|month|week
-    ?year=2026&quarter=3&month=9 optional scope filters."""
+    ?year=2026&quarter=3&month=9 optional scope filters.
+    Each bet enriched with spend, evidence_layer, advertising_decision, calendar_warning."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = request.args.get('brand') or get_brand_id()
@@ -14700,6 +14701,26 @@ def strategy_calendar():
     month = request.args.get('month', type=int)
     from _lib import strategy_store as ss
     cal = ss.get_calendar_view(bid, view=view, year=year, quarter=quarter, month=month)
+
+    # Enrich each bet with spend + evidence + decision + warning
+    from _lib import spend as sp
+    for bet in cal.get("timeline", {}).get("bets", []):
+        bid_id = bet["id"]
+        try:
+            eff = sp.strategic_efficiency(bid, bid_id)
+            bet["spend_rands"] = eff["money"]["total_rands"]
+            bet["evidence_layer"] = eff["evidence_layer_reached"]
+            bet["evidence_layer_label"] = sp.LAYER_LANGUAGE.get(eff["evidence_layer_reached"], "—")
+            bet["advertising_decision"] = eff["advertising_decision"]
+            bet["strategic_decision"] = eff["strategic_decision"]
+            if eff["money"]["total_rands"] > 0 and eff["evidence_layer_reached"] in ("impression", "click") and eff["outcome"].get("bookings", 0) == 0:
+                bet["calendar_warning"] = f"R{eff['money']['total_rands']:,.0f} active spend · booking tracking unavailable"
+            else:
+                bet["calendar_warning"] = None
+        except Exception:
+            bet["spend_rands"] = 0
+            bet["evidence_layer"] = None
+            bet["advertising_decision"] = None
     return jsonify({"ok": True, "calendar": cal}), 200
 
 
@@ -15030,6 +15051,32 @@ def spend_seed():
         sp._spend_path(bid).unlink(missing_ok=True)
     doc = sp.seed_sample_spend(bid)
     return jsonify({"ok": True, "doc": doc}), 200
+
+
+@app.route('/api/spend/reconcile', methods=['GET'])
+def spend_reconcile():
+    """Run reconciliation audit on the Money layer."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    r = sp.reconcile_spend_data(bid)
+    return jsonify({"ok": True, "reconciliation": r}), 200
+
+
+@app.route('/api/spend/calculate', methods=['POST'])
+def spend_calculate():
+    """Canonical cost metric calculation. Returns raw inputs + formula + value."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    from _lib import spend as sp
+    result = sp.calculate_metric(
+        body.get('metric'),
+        body.get('performance') or {},
+        body.get('spend', 0),
+    )
+    return jsonify({"ok": True, "result": result}), 200
 
 
 @app.route('/api/spend/reset', methods=['POST'])
