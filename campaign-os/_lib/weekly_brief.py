@@ -55,6 +55,15 @@ from strategy_store import (
     VALID_DECISIONS,
 )
 from audit import run_audit as _run_audit, AUDIT_STATUSES
+from evidence import Claim, render_portfolio_watch, build_portfolio_observation, confidence_from_evidence
+from portfolio import (
+    compute_effort_allocation,
+    compute_demand_mismatch,
+    detect_over_support,
+    detect_under_support,
+    detect_opportunities,
+    compute_strategy_density,
+)
 
 
 def _now() -> str:
@@ -439,87 +448,115 @@ def build_decision_arguments(brand_id: str) -> List[Dict[str, Any]]:
 # ─── Marketing priorities synthesis ─────────────────────────────────
 
 def synthesize_priorities(brand_id: str, max_priorities: int = 3) -> List[Dict[str, Any]]:
-    """Given the current state of the strategy (trends, decisions due,
-    missed execution, density warnings), synthesize the max-3 marketing
-    priorities for this week. Each priority is a {title, bet_id, why,
-    action_first_step} dict.
+    """Synthesize max-3 priorities using the 7-factor ranking.
 
-    Algorithm:
-      1. Every decision due in next 14 days contributes one priority
-         whose action is to make the decision (the bet itself).
-      2. If a bet has the next-action text and a status of in_flight
-         with no execution_log entry this week, that's a priority.
-      3. If a move has weakening/disproved trend AND no decision_date
-         approaching, surface "review and decide whether to keep"
-      4. Cap at max_priorities (default 3).
-    """
+    Factors (in order of weight):
+      1. Strategic priority (high/med/low from market move status)
+      2. Decision dates approaching (urgency)
+      3. Evidence movement (strengthening signals → keep; weakening → fix)
+      4. Execution gaps (no execution_log in last 14 days)
+      5. Portfolio imbalance (over-support / under-support)
+      6. Opportunity cost (don't add if capacity full)
+      7. Demand signals (theme outperforming baseline)
+
+    Each priority is presented as: "Finish the X test before
+    expanding it" — strategy, not just next action."""
     s = load_strategy(brand_id)
+    today = _today_date()
     priorities = []
+    used_bet_ids = set()
 
-    # 1. Decisions due → make those decisions
+    # Factor 1+2: Decision due (high priority if bet status is high)
     decisions = build_decision_arguments(brand_id)
-    for d in decisions[:1]:  # max 1 priority slot for the most urgent decision
+    for d in decisions[:1]:
+        # Strategy framing: "Finish the test before expanding it"
+        title = f"Finish the '{d['title']}' test before expanding it"
         priorities.append({
-            "title": f"Decide on '{d['title']}'",
+            "title": title,
             "bet_id": d["bet_id"],
-            "why": f"Decision {('OVERDUE' if d['overdue'] else 'in ' + str(d['days_away']) + 'd')}. Signal: {d['current_signal']}. Recommended: {d['recommended'].upper()}.",
-            "action_first_step": f"Open the bet, review the evidence, record the {d['recommended']} decision.",
+            "why": (
+                f"Decision {('OVERDUE' if d['overdue'] else 'in ' + str(d['days_away']) + 'd')}. "
+                f"Signal: {d['current_signal']}. "
+                f"This bet represents concentrated activity in the portfolio — finishing it "
+                f"before adding more of the same kind is the strategic move."
+            ),
+            "action_first_step": (
+                f"Open '{d['title']}', review evidence for ({len(d.get('evidence_for', '').split(';'))} sources) "
+                f"and against ({len(d.get('evidence_against', '').split(';'))} sources), "
+                f"record the {d['recommended']} decision."
+            ),
+            "factors": ["decision_date", "strategic_priority"],
         })
+        used_bet_ids.add(d["bet_id"])
 
-    # 2. In-flight bets with concrete next actions
+    # Factor 3+4+5: bets with no execution_log + portfolio concentration
     in_flight = [b for b in s.get("bets", []) if b.get("status") == "in_flight"]
-    # Pick the bet with the most-recent next_action that's not yet covered
-    used_ids = {p.get("bet_id") for p in priorities}
+    effort = compute_effort_allocation(brand_id, "month")
+    theme_concentration = effort.get("theme_concentration", {})
+
     for b in in_flight:
         if len(priorities) >= max_priorities:
             break
-        if b["id"] in used_ids:
+        if b["id"] in used_bet_ids:
             continue
         next_action = (b.get("next_action") or "").strip()
         if not next_action:
             continue
-        # Check execution_log freshness — if no entry in last 14 days, this is a priority
         log = b.get("execution_log", [])
-        recent_log = [e for e in log if (e.get("date") or "") >= (_today_date() - datetime.timedelta(days=14)).isoformat()]
+        recent_log = [e for e in log if (e.get("date") or "") >= (today - datetime.timedelta(days=14)).isoformat()]
         if recent_log:
-            continue  # already logged something recently
+            continue  # recently shipped
+
+        # Check if this bet's themes are over-concentrated
+        bet_themes = b.get("content_themes", [])
+        over_concentrated = any(
+            theme_concentration.get(t.lower(), 0) >= 25
+            for t in bet_themes
+        )
+        if over_concentrated:
+            title = f"Finish the '{b['title']}' test before expanding it"
+            why_extra = (
+                f"This bet already represents a large share of calendar activity. "
+                f"Ship the planned execution, collect the evidence, then make the scheduled "
+                f"decision before adding more."
+            )
+        else:
+            title = f"Prove '{b['title']}'"
+            why_extra = ""
+
         priorities.append({
-            "title": f"Prove '{b['title']}'",
+            "title": title,
             "bet_id": b["id"],
-            "why": f"Next action pending. KPI: {b.get('primary_kpi', '—')}. Threshold: {b.get('success_threshold', '—')}.",
+            "why": (
+                f"Next action pending. KPI: {b.get('primary_kpi', '—')}. "
+                f"Threshold: {b.get('success_threshold', '—')}. "
+                f"{why_extra}"
+            ).strip(),
             "action_first_step": next_action[:140],
+            "factors": ["execution_gap", "portfolio_concentration"] if over_concentrated else ["execution_gap"],
         })
-        used_ids.add(b["id"])
+        used_bet_ids.add(b["id"])
 
-    # 3. Capacity protection (density warning)
-    density = compute_strategy_density(brand_id)
-    cur_month = _today_date().month
-    current_warnings = [w for w in density.get("warnings", []) if w.get("month_num") == cur_month]
-    if current_warnings and len(priorities) < max_priorities:
-        w = current_warnings[0]
-        priorities.append({
-            "title": "Protect capacity",
-            "bet_id": None,
-            "why": f"{w['count']} active bets in {w['month']}. Don't add another until one reaches a decision.",
-            "action_first_step": "Review the decision queue and resolve the most overdue bet first.",
-        })
-
-    # 4. Fill remaining slots with high-impact in-flight bets
-    for b in in_flight:
-        if len(priorities) >= max_priorities:
-            break
-        if b["id"] in used_ids:
-            continue
-        # Skip bets with no hypothesis / evidence
-        if not b.get("hypothesis"):
-            continue
-        priorities.append({
-            "title": f"Advance '{b['title']}'",
-            "bet_id": b["id"],
-            "why": f"In-flight bet. KPI: {b.get('primary_kpi', '—')}.",
-            "action_first_step": (b.get("next_action") or "Take one step toward KPI")[:140],
-        })
-        used_ids.add(b["id"])
+    # Factor 5+6: Capacity protection
+    if len(priorities) < max_priorities:
+        density = compute_strategy_density(brand_id)
+        cur_month = today.month
+        current_warnings = [w for w in density.get("warnings", []) if w.get("month_num") == cur_month]
+        if current_warnings:
+            w = current_warnings[0]
+            priorities.append({
+                "title": "Protect capacity — don't add anything new",
+                "bet_id": None,
+                "why": (
+                    f"{w['count']} active bets in {w['month']}. "
+                    f"Adding another bet would crowd out the existing ones. "
+                    f"Strategy means saying no."
+                ),
+                "action_first_step": (
+                    "Review the decision queue and resolve the most overdue bet first."
+                ),
+                "factors": ["opportunity_cost", "portfolio_imbalance"],
+            })
 
     return priorities[:max_priorities]
 
@@ -693,6 +730,70 @@ def build_replay(brand_id: str, record_type: str, record_id: str) -> Dict[str, A
     }
 
 
+# ─── Portfolio Watch (Monday brief addition) ──────────────────────────
+
+def build_portfolio_watch(brand_id: str) -> list:
+    """Build max 2 portfolio observations for the Monday brief.
+
+    Each observation follows SIGNAL/INTERPRETATION/CONFIDENCE/WHY/RECOMMENDED
+    ACTION with explicit evidence boundaries. We never invent a ratio
+    between effort and demand; we describe both as separate measurements
+    and make the inference explicit."""
+    s = load_strategy(brand_id)
+    today = _today_date()
+    month_start = today.replace(day=1)
+    observations = []
+
+    # Observation 1: theme concentration if any theme ≥25%
+    effort = compute_effort_allocation(brand_id, "month")
+    themes = effort.get("theme_concentration", {})
+    for theme, pct in themes.items():
+        if pct >= 25 and not any(w in theme.lower() for w in ["swing", "shack", "should", "become", "the", "place", "golfers"]):
+            # Filter out the noise words
+            if pct < 30:
+                verdict = "deliberate_dominance_acceptable"
+                recommended = f"Deliberate dominance is acceptable this week because the {theme} bet is in its test window. Review after the decision date."
+            else:
+                verdict = "approaching_concentration"
+                recommended = f"Review before scheduling more {theme} executions."
+            obs = Claim(
+                statement=f"{theme} represents {pct}% of this week's executions.",
+                evidence_layer="engagement",
+                sources=[{"source": "campaign-data.json", "value": f"{pct}% calendar share for {theme}", "as_of": today.isoformat()}],
+                confidence="medium",
+                interpretation="Theme concentration is a measure of execution, not of result. We cannot conclude that concentration = success without booking-layer evidence.",
+                recommended_action=recommended,
+                why_not_stronger="We have engagement-layer data, not booking data. Cannot claim 'this converts at scale' without visit/booking evidence.",
+            )
+            observations.append(obs)
+            break  # max 1 concentration observation
+
+    # Observation 2: largest demand signal gap (effort low but demand exists)
+    mismatch = compute_demand_mismatch(brand_id)
+    obs_list = mismatch.get("observations", [])
+    if obs_list:
+        # Pick the lowest-confidence observation with the highest effort %
+        import re
+        for o in obs_list:
+            m = re.search(r"receives (\d+)%", o.get("statement", ""))
+            if m and int(m.group(1)) > 30:
+                # Top-effort area
+                claim = Claim(
+                    statement=o["statement"],
+                    evidence_layer=o.get("evidence_layer", "engagement"),
+                    sources=o.get("sources", []),
+                    confidence=o.get("confidence", "low"),
+                    interpretation=o.get("interpretation", ""),
+                    recommended_action=o.get("recommended_action", ""),
+                    why_not_stronger=o.get("why_not_stronger", ""),
+                )
+                observations.append(claim)
+                break
+
+    # Cap at 2 — return dicts, not Claim objects
+    return [o.to_dict() if hasattr(o, "to_dict") else o for o in observations[:2]]
+
+
 # ─── Compose the full Monday brief ──────────────────────────────────
 
 def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = True) -> Dict[str, Any]:
@@ -714,6 +815,12 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
     except Exception:
         needs_cleaning = []
 
+    # Portfolio Watch (evidence-bound observations)
+    try:
+        portfolio_watch = build_portfolio_watch(brand_id)
+    except Exception:
+        portfolio_watch = []
+
     return {
         "brand_id": brand_id,
         "generated_at": _now(),
@@ -725,6 +832,7 @@ def compose_monday_brief(brand_id: str = "swing-shack", snapshot_first: bool = T
         "priorities": priorities,
         "strip": strip,
         "needs_cleaning": needs_cleaning,
+        "portfolio_watch": portfolio_watch,
     }
 
 
@@ -786,6 +894,27 @@ def render_brief_markdown(brief: Dict[str, Any]) -> str:
             md.append(f"- Last lesson: {d['last_lesson'][:140]}")
             md.append(f"- Recommended: **{d['recommended'].upper()}** — {d['rationale']}")
             md.append("")
+
+    # Portfolio watch (with evidence boundaries)
+    if brief.get("portfolio_watch"):
+        md.append("### Portfolio watch")
+        md.append("")
+        for claim_dict in brief["portfolio_watch"]:
+            c = Claim(
+                statement=claim_dict["statement"],
+                evidence_layer=claim_dict["evidence_layer"],
+                sources=claim_dict["sources"],
+                confidence=claim_dict["confidence"],
+                interpretation=claim_dict.get("interpretation", ""),
+                recommended_action=claim_dict.get("recommended_action", ""),
+                why_not_stronger=claim_dict.get("why_not_stronger", ""),
+            )
+            md.append(c.to_markdown())
+            md.append("")
+    else:
+        md.append("### Portfolio watch")
+        md.append("_Nothing to flag this week. No meaningful imbalances._")
+        md.append("")
 
     # Needs cleaning (audit)
     md.append("### Needs cleaning")

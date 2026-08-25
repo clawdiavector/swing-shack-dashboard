@@ -40,6 +40,16 @@ from strategy_store import (
     save_strategy,
     upsert_lesson,
     compute_strategy_density,
+    get_decision_queue,
+)
+from evidence import (
+    Claim,
+    claim_from_evidence,
+    safe_claim,
+    build_portfolio_observation,
+    confidence_from_evidence,
+    LAYERS,
+    LAYER_LANGUAGE,
 )
 
 # ─── Strategic area taxonomy ──────────────────────────────────────────
@@ -374,80 +384,145 @@ def _load_json(filename: str) -> Optional[dict]:
 # ─── Demand / Content mismatch ──────────────────────────────────────
 
 def compute_demand_mismatch(brand_id: str = "swing-shack") -> Dict[str, Any]:
-    """Compare where effort goes vs where customers are showing intent."""
+    """Compare where effort goes vs where customers are showing intent.
+
+    EVIDENCE DISCIPLINE: effort and demand are SEPARATE measurements.
+    We never divide them to make a "ratio". Each area is reported as
+    two parallel signals with an explicit conditional interpretation.
+    """
     effort = compute_effort_allocation(brand_id, "month")
     demand = compute_demand_profile(brand_id)
 
-    # Build effort-by-area
     effort_by_area = effort["by_strategic_area"]
 
-    # Build demand-by-area (map signals to strategic areas)
-    demand_by_area = defaultdict(float)
+    # Build demand-by-area as RAW measurements (no percentages)
+    # Each area gets a list of {signal_type, value, source}
+    demand_by_area = defaultdict(list)
     for sig in demand["signals"]:
         label = (sig.get("label") or "").lower()
         if not label:
             continue
         areas = classify_strategic_areas(label)
-        # Weight by intent value
-        weight = float(sig.get("value") or 0)
-        if sig.get("source") == "ig" and sig.get("engagement_rate"):
-            weight = sig["engagement_rate"] * 100  # normalize for engagement
         for area in areas:
-            demand_by_area[area] += weight
+            demand_by_area[area].append({
+                "signal_type": sig.get("type"),
+                "value": sig.get("value"),
+                "source": sig.get("source"),
+                "layer": _infer_signal_layer(sig),
+            })
 
-    # Normalize demand to percentages
-    total_demand = sum(demand_by_area.values())
-    if total_demand > 0:
-        demand_pct = {k: round(100 * v / total_demand) for k, v in demand_by_area.items()}
-    else:
-        demand_pct = {}
-
-    # Find mismatches: high demand, low effort
-    mismatches = []
-    all_areas = set(effort_by_area.keys()) | set(demand_pct.keys())
+    # Build observations per area using Claim discipline
+    observations = []
+    all_areas = set(effort_by_area.keys()) | set(demand_by_area.keys())
     for area in all_areas:
-        e = effort_by_area.get(area, 0)
-        d = demand_pct.get(area, 0)
-        gap = d - e
-        if abs(gap) >= 10:  # significant mismatch
+        e_pct = effort_by_area.get(area, 0)
+        d_signals = demand_by_area.get(area, [])
+        if not d_signals:
+            # No demand signal — explicit low confidence
+            obs = Claim(
+                statement=f"{area} receives {e_pct}% of marketing effort. No demand-side evidence available.",
+                evidence_layer="impression",
+                sources=[],
+                confidence="low",
+                interpretation="Without demand data we cannot say if this is over- or under-supported.",
+                recommended_action=f"Gather downstream evidence for {area} before drawing conclusions.",
+                why_not_stronger="No demand signal at any layer.",
+            )
+        else:
+            # Strongest demand signal for this area
+            strongest = max(d_signals, key=lambda s: LAYERS.get(s["layer"], 0))
+            obs = build_portfolio_observation(
+                topic=area,
+                effort_pct=e_pct,
+                demand_evidence={
+                    "label": strongest.get("signal_type", "signal"),
+                    "value": strongest.get("value"),
+                    "source": strongest.get("source"),
+                },
+                sources=[{
+                    "source": strongest.get("source", "unknown"),
+                    "value": f"{strongest.get('signal_type', '?')}: {strongest.get('value', '?')}",
+                    "as_of": "2026-08-21",
+                }],
+                downstream_evidence_layer=strongest["layer"],
+            )
+        observations.append(obs.to_dict())
+
+    # Sort by absolute imbalance, but with low-confidence observations last
+    def _priority(o):
+        e_pct = o.get("statement", "")
+        # Extract the % from the statement
+        import re
+        m = re.search(r"(\d+)%", e_pct)
+        pct = int(m.group(1)) if m else 0
+        conf = o.get("confidence", "low")
+        return (0 if conf == "high" else (1 if conf == "medium" else 2), -pct)
+
+    observations.sort(key=_priority)
+
+    # Build mismatches view (kept for backward compat) — but flag confidence
+    mismatches = []
+    for area in all_areas:
+        e_pct = effort_by_area.get(area, 0)
+        d_signals = demand_by_area.get(area, [])
+        if d_signals and e_pct > 0:
+            strongest_layer = max((LAYERS.get(s["layer"], 0) for s in d_signals), default=0)
+            d_summary = ", ".join(f"{s['source']}:{s['value']}" for s in d_signals[:2])
+            conf = "high" if strongest_layer >= LAYERS["visit"] else ("medium" if strongest_layer >= LAYERS["engagement"] else "low")
             mismatches.append({
                 "area": area,
-                "effort_pct": e,
-                "demand_pct": d,
-                "gap": gap,
-                "direction": "undersupported" if gap > 0 else "over_supported",
-                "summary": f"{area}: effort {e}% vs demand {d}% (gap {gap:+}%)",
+                "effort_pct": e_pct,
+                "demand_signals": d_summary,
+                "strongest_demand_layer": max((s["layer"] for s in d_signals), key=lambda l: LAYERS.get(l, 0)),
+                "confidence": conf,
+                "summary": f"{area}: effort {e_pct}% (an activity measurement); demand signal {d_summary} (a separate measurement). NOT a ratio.",
             })
-    mismatches.sort(key=lambda m: -abs(m["gap"]))
-
-    # Demand-side narrative
-    narrative = _build_mismatch_narrative(mismatches, effort_by_area)
 
     return {
         "computed_at": _now_iso(),
         "effort_by_area": effort_by_area,
-        "demand_by_area": demand_pct,
-        "mismatches": mismatches,
-        "narrative": narrative,
+        "observations": observations,
+        "mismatches_legacy": mismatches,
+        "narrative": _build_mismatch_narrative_evidence_bound(observations),
     }
 
 
-def _build_mismatch_narrative(mismatches: List[Dict], effort: Dict) -> str:
-    if not mismatches:
-        return "Effort and demand are aligned. No major gaps."
-    top = mismatches[0]
-    if top["direction"] == "undersupported":
-        return (
-            f"{top['area']} shows strong demand ({top['demand_pct']}%) but only "
-            f"{top['effort_pct']}% of marketing effort is dedicated to it. "
-            f"Recommendation: increase {top['area']} activity before adding more awareness."
-        )
-    else:
-        return (
-            f"{top['area']} receives {top['effort_pct']}% of marketing effort while "
-            f"demand is only {top['demand_pct']}%. "
-            f"Recommendation: redistribute effort toward higher-demand areas."
-        )
+def _infer_signal_layer(sig: Dict) -> str:
+    """Infer which evidence layer a demand signal lives at."""
+    source = sig.get("source", "")
+    sig_type = sig.get("type", "")
+    # GA4 page visits with booking-page → visit layer
+    if source == "ga4" and "book" in (sig.get("label") or "").lower():
+        return "visit"
+    # IG topic_cluster engagement rate → engagement layer
+    if source == "ig" and sig_type == "topic_cluster":
+        return "engagement"
+    # SEO impressions → impression layer (we don't see position-clicks here)
+    if source == "seo":
+        return "impression"
+    # GA4 traffic source → impression layer (sessions, not bookings)
+    if source == "ga4" and sig_type == "traffic_source":
+        return "click"
+    return "engagement"  # default cautious
+
+
+def _build_mismatch_narrative_evidence_bound(observations: List[Dict]) -> str:
+    """Build a narrative that respects evidence boundaries."""
+    high_effort = [o for o in observations if "receives" in o["statement"] and "%" in o["statement"]]
+    if not high_effort:
+        return "No effort data available yet."
+    # Find highest-effort area
+    import re
+    high_effort_sorted = sorted(high_effort, key=lambda o: -int(re.search(r"(\d+)%", o["statement"]).group(1)) if re.search(r"(\d+)%", o["statement"]) else 0)
+    if not high_effort_sorted:
+        return "No clear observations."
+    top = high_effort_sorted[0]
+    # Don't divide — narrate both signals explicitly
+    return (
+        f"{top['statement']} "
+        f"Confidence: {top['confidence']} ({top['language_strength']}). "
+        f"Recommendation: {top['recommended_action']}"
+    )
 
 
 # ─── Theme concentration & over/under-support ──────────────────────
@@ -874,18 +949,33 @@ def simulate_opportunity_cost(brand_id: str, proposed: Dict[str, Any]) -> Dict[s
 # ─── Monthly strategy meeting generator ────────────────────────────
 
 def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
-    """The meeting Christelle wants the OS to prepare: KEEP / KILL / SCALE / FIX / MISSING / BET."""
-    s = load_strategy(brand_id)
+    """The monthly strategy meeting, reordered per Christelle's brief:
+    1. What changed?
+    2. Keep / 3. Kill / 4. Scale / 5. Fix / 6. Missing / 7. Portfolio balance /
+    8. Next bets / 9. What does this replace?
 
-    # KEEP: high audit score, in_flight bets with strong evidence
+    The OS must be allowed to conclude 'no new bet' if evidence is
+    immature or capacity is full. 'No new bet' is a valid recommendation.
+    """
+    s = load_strategy(brand_id)
+    from strategy_store import compute_trend_signal, get_decision_queue
+
+    # 1. What changed
+    what_changed = _gather_what_changed(brand_id)
+
+    # 2. KEEP
     keep = []
     for b in s.get("bets", []):
         if b.get("status") == "in_flight":
             ev_count = len(b.get("evidence", []))
             if ev_count >= 1:
-                keep.append({"bet": b["title"], "reason": f"{ev_count} pieces of evidence, in flight."})
+                keep.append({
+                    "bet": b["title"],
+                    "reason": f"{ev_count} pieces of evidence, in flight.",
+                    "claim_layer": "engagement" if ev_count >= 1 else "impression",
+                })
 
-    # KILL: bets past decision_date with disproved status
+    # 3. KILL
     kill = []
     for b in s.get("bets", []):
         if b.get("decision", {}).get("outcome") == "kill":
@@ -893,17 +983,20 @@ def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
         elif b.get("status") in ("lost", "killed"):
             kill.append({"bet": b["title"], "reason": "Status set to lost/killed."})
 
-    # SCALE: bets with strengthening trend
-    from strategy_store import compute_trend_signal
+    # 4. SCALE
     scale = []
     for b in s.get("bets", []):
         if b.get("status") not in ("in_flight", "planned"):
             continue
         trend = compute_trend_signal(brand_id, b["id"], "bet")
         if trend.get("signal") == "strengthening":
-            scale.append({"bet": b["title"], "reason": trend.get("reason", "")})
+            scale.append({
+                "bet": b["title"],
+                "reason": trend.get("reason", ""),
+                "claim_layer": "engagement",  # trend is based on engagement layer
+            })
 
-    # FIX: bets with weakening trend (not yet disproved)
+    # 5. FIX
     fix = []
     for b in s.get("bets", []):
         if b.get("status") not in ("in_flight", "planned"):
@@ -912,28 +1005,311 @@ def generate_monthly_meeting(brand_id: str = "swing-shack") -> Dict[str, Any]:
         if trend.get("signal") == "weakening":
             fix.append({"bet": b["title"], "reason": trend.get("reason", "")})
 
-    # MISSING: opportunities from the opportunity engine
+    # 6. MISSING (opportunities)
     missing = detect_opportunities(brand_id)
 
-    # BET: under-supported themes that warrant a new bet
-    under = detect_under_support(brand_id)
-    bet_proposals = []
-    for u in under[:3]:
-        bet_proposals.append({
-            "theme": u["theme"],
-            "hypothesis": f"Increase {u['theme']} content from current share to 3 pieces/month.",
-            "evidence": f"{u['engagement_rate']}% engagement vs {u['calendar_share_pct']}% calendar share.",
-        })
+    # 7. Portfolio balance (the live view)
+    portfolio_balance = _summarise_portfolio_for_meeting(brand_id)
+
+    # 8. Next bets (with the 'no new bet' check first)
+    next_bets, dont_add = _decide_next_bets(brand_id, missing, scale, fix)
+
+    # 9. What does this replace (only if there are next_bets)
+    replacement = []
+    if next_bets:
+        replacement = _suggest_replacements(brand_id, next_bets)
 
     return {
         "month": _today_date().strftime("%B %Y"),
+        "what_changed": what_changed,
         "keep": keep,
         "kill": kill,
         "scale": scale,
         "fix": fix,
         "missing": missing,
-        "bet": bet_proposals,
+        "portfolio_balance": portfolio_balance,
+        "next_bets": next_bets,
+        "dont_add_recommendation": dont_add,
+        "what_this_replaces": replacement,
     }
+
+
+def _gather_what_changed(brand_id: str) -> List[Dict[str, Any]]:
+    """Compact list of evidence and behaviour changes since last month."""
+    items = []
+    s = load_strategy(brand_id)
+    # Bets with new evidence this month
+    today = _today_date()
+    month_start = today.replace(day=1)
+    for b in s.get("bets", []):
+        ev = b.get("evidence", [])
+        new_ev = [e for e in ev if (e.get("as_of") or "")[:10] >= month_start.isoformat()]
+        if new_ev:
+            items.append({
+                "type": "new_evidence",
+                "bet": b["title"],
+                "count": len(new_ev),
+                "summary": "; ".join(e.get("value", "")[:60] for e in new_ev[:2]),
+            })
+    # Density warnings
+    density = compute_strategy_density(brand_id)
+    for w in density.get("warnings", [])[:3]:
+        items.append({
+            "type": "density",
+            "summary": w.get("message", ""),
+            "severity": w.get("severity", "medium"),
+        })
+    return items
+
+
+def _summarise_portfolio_for_meeting(brand_id: str) -> Dict[str, Any]:
+    """Concise portfolio summary for the meeting."""
+    effort = compute_effort_allocation(brand_id, "month")
+    return {
+        "effort_by_area": effort["by_strategic_area"],
+        "theme_concentration": dict(list(effort["theme_concentration"].items())[:5]),
+        "marketing_vs_advertising": effort["marketing_vs_advertising"],
+    }
+
+
+def _decide_next_bets(brand_id: str, missing: List, scale: List, fix: List) -> tuple:
+    """Decide what new bets to propose. May return ('no new bet recommended', ...).
+
+    The OS must be allowed to conclude 'no new bet' if:
+      - Capacity is full (4+ active bets running)
+      - 2+ decisions arrive within 21 days
+      - Evidence is still immature (most bets are <2 weeks old)
+    """
+    s = load_strategy(brand_id)
+    active_bets = [b for b in s.get("bets", []) if b.get("status") in ("in_flight", "planned")]
+    n_active = len(active_bets)
+
+    # Capacity check
+    capacity_full = n_active >= 4
+    decisions_due = get_decision_queue(brand_id, within_days=21)
+    soon_decisions = len(decisions_due)
+
+    # Evidence maturity
+    today = _today_date()
+    young_bets = []
+    for b in active_bets:
+        bs = _parse_date(b.get("start_date"))
+        if bs and (today - bs).days < 14:
+            young_bets.append(b["title"])
+
+    dont_add_reasons = []
+    if capacity_full:
+        dont_add_reasons.append(f"{n_active} active bets already running")
+    if soon_decisions >= 2:
+        dont_add_reasons.append(f"{soon_decisions} decisions due within 21 days")
+    if len(young_bets) >= 2:
+        dont_add_reasons.append(f"{len(young_bets)} bets less than 2 weeks old — evidence still immature")
+
+    # 'No new bet' triggered if capacity is full AND (decisions due soon OR evidence immature)
+    has_strong_dont_add = (
+        capacity_full and (soon_decisions >= 2 or len(young_bets) >= 2)
+    )
+    if has_strong_dont_add:
+        return [{
+            "type": "no_new_bet",
+            "recommendation": "Don't add anything. Finish the current bets first.",
+            "reasons": dont_add_reasons,
+            "rationale": (
+                f"{n_active} active bets already running. "
+                f"{soon_decisions} decisions due within 21 days. "
+                f"{len(young_bets)} bets less than 2 weeks old — evidence still immature. "
+                f"Good strategy often means saying no."
+            ),
+        }], {
+            "active": True,
+            "reasons": dont_add_reasons,
+            "summary": " · ".join(dont_add_reasons),
+        }
+
+    # Otherwise, propose up to 3 new bets from opportunities + under-supported
+    next_bets = []
+    for opp in missing[:2]:
+        next_bets.append({
+            "type": "opportunity",
+            "id": opp["id"],
+            "title": f"Test: {opp.get('signal', '')[:80]}",
+            "hypothesis": opp.get("hypothesis", ""),
+            "confidence": opp.get("confidence", "medium"),
+            "evidence_layer": _infer_signal_layer({
+                "source": opp.get("source", "ga4"),
+                "type": opp.get("type"),
+            }),
+            "trade_off_to_review": [],
+        })
+    for u in detect_under_support(brand_id)[:1]:
+        next_bets.append({
+            "type": "under_support",
+            "title": f"Test: increase '{u['theme']}' content",
+            "hypothesis": u.get("summary", ""),
+            "confidence": "medium",
+            "evidence_layer": "engagement",
+            "trade_off_to_review": [],
+        })
+
+    # If we still propose additions despite concerns, surface them
+    if next_bets and dont_add_reasons:
+        for nb in next_bets:
+            nb["trade_off_to_review"] = dont_add_reasons
+
+    return next_bets[:3], {
+        "active": False,
+        "reasons": dont_add_reasons,
+        "summary": " · ".join(dont_add_reasons) if dont_add_reasons else "Capacity available.",
+    }
+
+
+def _suggest_replacements(brand_id: str, next_bets: List[Dict]) -> List[Dict]:
+    """For each proposed new bet, suggest what current activity it would replace.
+
+    The discipline: adding more activity means displacing current activity.
+    Force the opportunity-cost question.
+    """
+    s = load_strategy(brand_id)
+    effort = compute_effort_allocation(brand_id, "month")
+    replacements = []
+
+    # Look for themes with lowest calendar share that could be displaced
+    theme_share = effort["theme_concentration"]
+    # Heuristic: weakest items in the audit are candidates for replacement
+    from audit import run_audit as _run_audit
+    audit = _run_audit(brand_id, light=True)
+    weak_items = [
+        a for a in audit.get("items", [])
+        if a["audit_status"] in ("pause", "retire", "delete") or a["audit_score"] < 40
+    ]
+
+    for nb in next_bets:
+        suggestions = []
+        # Suggest low-priority items by score
+        for w in weak_items[:2]:
+            suggestions.append({
+                "candidate": w["title"],
+                "type": w["item_type"],
+                "audit_status": w["audit_status"],
+                "audit_score": w["audit_score"],
+                "reason": f"Score {w['audit_score']}/100, status {w['audit_status']}",
+            })
+        if not suggestions:
+            # Suggest themes with <10% share as candidates
+            for theme, pct in theme_share.items():
+                if pct < 10:
+                    suggestions.append({
+                        "candidate": theme,
+                        "type": "theme",
+                        "reason": f"Only {pct}% calendar share",
+                    })
+        replacements.append({
+            "new_bet": nb.get("title"),
+            "replacement_suggestions": suggestions[:3],
+            "or": "Leave calendar expanded (capacity permitting).",
+        })
+
+    return replacements
+
+
+def render_meeting_markdown(meeting: Dict[str, Any]) -> str:
+    """Render the monthly meeting in the order Christelle specified."""
+    md = []
+    md.append(f"## Monthly strategy meeting · {meeting['month']}")
+    md.append("")
+
+    # 1. What changed
+    md.append("### 1. What changed?")
+    if meeting.get("what_changed"):
+        for w in meeting["what_changed"][:5]:
+            md.append(f"- {w.get('summary', w.get('bet', ''))}")
+    else:
+        md.append("_No major changes this month._")
+    md.append("")
+
+    # 2. KEEP
+    md.append("### 2. KEEP")
+    if meeting["keep"]:
+        for k in meeting["keep"][:5]:
+            md.append(f"- **{k['bet']}** — {k['reason']}")
+    else:
+        md.append("_No clear keepers._")
+    md.append("")
+
+    # 3. KILL
+    md.append("### 3. KILL")
+    if meeting["kill"]:
+        for k in meeting["kill"][:5]:
+            md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
+    else:
+        md.append("_Nothing on the kill list._")
+    md.append("")
+
+    # 4. SCALE
+    md.append("### 4. SCALE")
+    if meeting["scale"]:
+        for k in meeting["scale"][:5]:
+            md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
+    else:
+        md.append("_No clear scale candidates._")
+    md.append("")
+
+    # 5. FIX
+    md.append("### 5. FIX")
+    if meeting["fix"]:
+        for k in meeting["fix"][:5]:
+            md.append(f"- **{k['bet']}** — {k['reason'][:100]}")
+    else:
+        md.append("_Nothing to fix._")
+    md.append("")
+
+    # 6. MISSING
+    md.append("### 6. MISSING")
+    if meeting["missing"]:
+        for m in meeting["missing"][:5]:
+            md.append(f"- **[{m['type']}]** {m['signal'][:120]}")
+            md.append(f"  Hypothesis: {m['hypothesis'][:120]}")
+            md.append(f"  Confidence: {m['confidence']}")
+    else:
+        md.append("_No clear opportunities._")
+    md.append("")
+
+    # 7. PORTFOLIO BALANCE
+    md.append("### 7. PORTFOLIO BALANCE")
+    pb = meeting.get("portfolio_balance", {})
+    if pb.get("effort_by_area"):
+        for area, pct in sorted(pb["effort_by_area"].items(), key=lambda x: -x[1])[:6]:
+            md.append(f"- {area}: {pct}%")
+    md.append("")
+
+    # 8. NEXT BETS
+    md.append("### 8. NEXT BETS")
+    if meeting.get("dont_add_recommendation", {}).get("active"):
+        md.append(f"⚠ **{meeting['dont_add_recommendation']['summary']}**")
+        md.append(f"_Recommendation: Don't add anything. Finish the current bets first._")
+    elif meeting["next_bets"]:
+        for nb in meeting["next_bets"][:3]:
+            md.append(f"- **{nb.get('title', '')}**")
+            md.append(f"  Hypothesis: {nb.get('hypothesis', '')[:140]}")
+            md.append(f"  Confidence: {nb.get('confidence', 'medium')} ({nb.get('evidence_layer', '?')})")
+    else:
+        md.append("_No new bets proposed._")
+    md.append("")
+
+    # 9. WHAT THIS REPLACES
+    md.append("### 9. WHAT DOES THIS REPLACE?")
+    if meeting.get("what_this_replaces"):
+        for rep in meeting["what_this_replaces"]:
+            md.append(f"_{rep['new_bet']}_ would displace:")
+            for s in rep["replacement_suggestions"][:3]:
+                md.append(f"- **{s['candidate']}** ({s['type']}) — {s['reason']}")
+            md.append(f"_Or:_ {rep['or']}")
+    elif meeting.get("dont_add_recommendation", {}).get("active"):
+        md.append("_No new bet → nothing needs replacing._")
+    else:
+        md.append("_No replacements identified._")
+
+    return "\n".join(md)
 
 
 # ─── Opportunity decisions (Ignore → memory) ───────────────────────
