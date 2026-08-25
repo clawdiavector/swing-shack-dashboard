@@ -983,12 +983,68 @@ const BRAND_ID = {{ brand_id|tojson }};
 let strategy = null;
 let trends = {};
 let trendsRequested = false;
-let zoomLevel = 'year';
-let workhorseFilter = 'both';
-let modeFilter = 'plan';  // 'plan' or 'actual'
+
+// ─── URL state — preserve zoom, filter, selected month, opened bet ───
+function _readURLState() {
+  const p = new URLSearchParams(location.search);
+  return {
+    view: p.get('view') || 'year',          // year|quarter|month|week
+    lane: p.get('lane') || 'both',           // marketing|advertising|both
+    month: p.get('month'),                    // YYYY-MM
+    bet: p.get('bet'),                        // bet id (open this bet modal)
+    mode: p.get('mode') || 'plan',            // plan|actual|gap
+  };
+}
+function _writeURLState(patch = {}) {
+  const p = new URLSearchParams(location.search);
+  const s = _readURLState();
+  const next = { ...s, ...patch };
+  if (next.view && next.view !== 'year') p.set('view', next.view); else p.delete('view');
+  if (next.lane && next.lane !== 'both') p.set('lane', next.lane); else p.delete('lane');
+  if (next.month) p.set('month', next.month); else p.delete('month');
+  if (next.bet) p.set('bet', next.bet); else p.delete('bet');
+  if (next.mode && next.mode !== 'plan') p.set('mode', next.mode); else p.delete('mode');
+  const qs = p.toString();
+  const newUrl = qs ? `?${qs}` : location.pathname;
+  // Use replaceState so the back button doesn't fill up with every state mutation
+  history.replaceState({}, '', newUrl);
+}
+
+const _urlState = _readURLState();
+function setZoomLevel(z) {
+  zoomLevel = z;
+  _writeURLState({ view: z });
+}
+function setWorkhorseFilter(w) {
+  workhorseFilter = w;
+  _writeURLState({ lane: w });
+}
+function setModeFilter(m) {
+  modeFilter = m;
+  _writeURLState({ mode: m });
+}
+function setHighlightedBet(id) {
+  highlightedId = id;
+  _writeURLState({ bet: id });
+}
+function setSelectedMonth(ym) {
+  _writeURLState({ month: ym });
+}
+let zoomLevel = _urlState.view;
+let workhorseFilter = _urlState.lane;
+let modeFilter = _urlState.mode;
 let calendarData = null;
 let decisionQueue = [];
-let highlightedId = null;
+let highlightedId = _urlState.bet || null;
+
+async function maybeAutoOpenBet() {
+  if (highlightedId && strategy && strategy.bets) {
+    const bet = strategy.bets.find(b => b.id === highlightedId);
+    if (bet) {
+      openBetModal(bet.id);
+    }
+  }
+}
 
 async function loadStrategy() {
   const r = await fetch(`/api/strategy?brand=${BRAND_ID}`);
@@ -1005,7 +1061,7 @@ async function loadStrategy() {
   if (!trendsRequested) {
     trendsRequested = true;
     loadTrends();
-  }
+  await maybeAutoOpenBet();
 }
 
 async function renderStrip() {
@@ -1773,6 +1829,7 @@ async function saveMove(id, workhorse) {
 }
 
 function openBetModal(id, parentMoveId) {
+  setHighlightedBet(id);
   const b = id ? strategy.bets.find(x => x.id === id) : null;
   const moves = strategy.market_moves || [];
   const lessons = strategy.lessons || [];
@@ -1969,7 +2026,10 @@ async function mineLessons() {
   await loadStrategy();
 }
 
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  setHighlightedBet(null);
+}
 
 let portfolioPeriod = 'month';
 

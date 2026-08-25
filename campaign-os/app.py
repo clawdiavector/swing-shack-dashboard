@@ -14574,17 +14574,24 @@ def strategy_evaluate(bet_id):
 
 @app.route('/strategy', methods=['GET'])
 def strategy_page():
-    """The Strategy page UI — rendered INSIDE the existing OS shell.
+    """The Strategy page UI.
 
-    The strategy content (north star, market moves, bets, calendar,
-    audit, portfolio balance, strategic efficiency, data health) is
-    injected into the campaign-os main content area. The existing
-    sidebar/header/brand-switcher remains exactly as the user
-    configured — Strategy is a workspace inside the same app, not
-    a separate application.
+    Architecture: the campaign-os shell loads ONCE. The Strategy workspace
+    content loads as a separate fragment that the shell injects into
+    <main>. This keeps total page weight sane — the shell is 932KB and
+    the workspace content is 117KB, but they're never concatenated.
+
+    URL state (all preserved when switching workspaces):
+      ?brand=X  → active brand (mandatory)
+      &view=quarter|month|week|year → zoom level
+      &lane=marketing|advertising|both → workhorse filter
+      &month=YYYY-MM → selected month in calendar
+      &bet=bet_id → opened bet modal
+      &plan=plan|actual|gap → execution view mode
     """
     bid = request.args.get('brand') or get_brand_id()
-    # Load the campaign-os shell — same chrome the user already sees
+    # Serve the shell unchanged — campaign-os.html already detects
+    # the /strategy URL via JS and loads the Strategy workspace.
     os_shell_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-os.html')
     try:
         with open(os_shell_path) as f:
@@ -14592,62 +14599,37 @@ def strategy_page():
     except Exception:
         return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
 
-    # The strategy HTML is rendered as a string and injected INSIDE
-    # the existing <main class="main"> of the OS shell. The JavaScript
-    # inside campaign-os.html detects the active section by URL hash
-    # and highlights the Strategy nav entry. The brand-switcher is
-    # the existing one in the sidebar — no duplicate.
-    strategy_html = render_template_string(STRATEGY_PAGE_HTML, brand_id=bid)
-
-    # Strip the <head>, <body> opening/closing from the strategy HTML
-    # so we can splice its content into the shell's <main>.
-    # Easiest: extract just the body content (between <body> and </body>)
-    import re as _re
-    body_match = _re.search(r'<body[^>]*>(.*)</body>', strategy_html, _re.DOTALL)
-    if body_match:
-        strategy_body = body_match.group(1)
-    else:
-        strategy_body = strategy_html
-
-    # Inject strategy body INSIDE the existing <main> of the OS shell
-    # Use a sentinel that the shell template never contains.
-    sentinel = '<!-- STRATEGY_CONTENT_INJECTION_POINT -->'
-    if sentinel in shell:
-        shell_with_strategy = shell.replace(sentinel, strategy_body)
-    else:
-        # Fallback: inject right after <main class="main">
-        shell_with_strategy = shell.replace(
-            '<main class="main">',
-            '<main class="main">' + strategy_body,
-            1,
-        )
-
-    # Tell the OS which section is active so the sidebar can highlight it
-    shell_with_strategy = shell_with_strategy.replace(
+    # Mark the active section so the sidebar can highlight it
+    shell = shell.replace(
         'data-active-section="overview"',
         'data-active-section="strategy"',
         1,
     )
-
-    # Update the page title
-    shell_with_strategy = shell_with_strategy.replace(
+    # Update the page title + crumbs to reflect Strategy workspace
+    shell = shell.replace(
         'id="title">Morning Brief',
         'id="title">Strategy',
         1,
     )
-
-    # Update the breadcrumbs
-    shell_with_strategy = shell_with_strategy.replace(
+    shell = shell.replace(
         'id="crumbs">Today',
         'id="crumbs">Strategy',
         1,
     )
+    return shell, 200
 
-    # Add ?brand= to all in-shell anchor hrefs that don't already have a brand param
-    # (preserves the active brand context across in-OS navigation)
-    # Skipped for now — campaign-os.html reads brand from localStorage / URL
 
-    return shell_with_strategy, 200
+@app.route('/api/workspace/strategy', methods=['GET'])
+def workspace_strategy():
+    """The Strategy workspace fragment — loaded into <main> on demand.
+
+    Returns only the Strategy content (no shell). The shell's JS injects
+    this into <main> on /strategy. Lazy-loaded — never bundled with the shell.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
 
 
 @app.route('/api/strategy/snapshot', methods=['POST'])

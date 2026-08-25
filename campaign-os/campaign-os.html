@@ -314,7 +314,7 @@ a:hover{text-decoration:underline}
 /* SA context chip — see /api/intel/sa_context. Always visible in the
    topbar so the user knows the current loadshedding stage, season,
    school holiday, and public holiday before publishing anything. */
-.strategy-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:600;color:var(--tx-2);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s;margin-left:.25rem;white-space:nowrap}.strategy-chip:hover{background:var(--bg-3);border-color:var(--gold);color:var(--tx)}.strategy-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}.strategy-chip-dot.has-decision{background:var(--gold)}.strategy-chip-dot.empty{background:var(--tx-3)}.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
+.strategy-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:600;color:var(--tx-2);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s;margin-left:.25rem;white-space:nowrap}.strategy-chip:hover{background:var(--bg-3);border-color:var(--gold);color:var(--tx)}.strategy-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}.strategy-chip-dot.has-decision{background:var(--gold)}.strategy-chip-dot.empty,.strategy-chip-dot.quiet{background:var(--tx-3)}.strategy-chip-dot.urgent{background:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.25)}.strategy-chip-dot.evidence-issue{background:var(--red);box-shadow:0 0 0 3px rgba(255,107,107,.25)}.sa-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--tx-2);white-space:nowrap;margin-left:.25rem;letter-spacing:.01em}
 .sa-chip .sa-chip-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
 .sa-chip .sa-chip-dot.warn{background:var(--amber,#d97706);box-shadow:0 0 0 3px rgba(217,119,6,.15)}
 .sa-chip .sa-chip-dot.bad{background:var(--red,#dc2626);box-shadow:0 0 0 3px rgba(220,38,38,.18);animation:pulse 1.8s infinite}
@@ -1205,12 +1205,14 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       <!-- Strategy summary card — visible from the main OS Overview. Click → Strategy. -->
       <a class="card strategy-card-link" id="strategy-summary-card" href="/strategy" style="display:block;margin-top:1rem;text-decoration:none;color:inherit;border-left:3px solid var(--gold);transition:transform .15s">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
-          <div>
-            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);font-weight:700;margin-bottom:.4rem">Strategy</div>
-            <div style="font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:700;margin-bottom:.3rem" id="strategy-card-title">Where are we heading?</div>
-            <div style="font-size:13px;color:var(--tx-2);line-height:1.5" id="strategy-card-meta">Loading strategic context…</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx-3);font-weight:700;margin-bottom:.5rem">Strategy</div>
+            <div style="font-size:13px;margin-bottom:.4rem"><span style="color:var(--tx-3)">Current move</span><br><strong id="strategy-card-move">—</strong></div>
+            <div style="font-size:13px;margin-bottom:.4rem"><span style="color:var(--tx-3)">Active bets</span><br><strong id="strategy-card-active">—</strong></div>
+            <div style="font-size:13px;margin-bottom:.4rem"><span style="color:var(--tx-3)">Next decision</span><br><strong id="strategy-card-decision">—</strong></div>
+            <div style="font-size:12px;margin-top:.5rem;color:var(--tx-2)" id="strategy-card-signal">—</div>
+            <div style="margin-top:.75rem"><span style="font-size:13px;color:var(--gold);font-weight:700">Open Strategy →</span></div>
           </div>
-          <div style="font-size:24px;color:var(--gold)">�</div>
         </div>
       </a>
       </section>
@@ -13389,7 +13391,9 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <script>
-// Populate the Strategy summary card on the main overview
+// Populate the Strategy summary card on the main overview.
+// Format: Current move / Active bets / Next decision / Signal.
+// One button: Open Strategy →. No dashboard copy.
 async function loadStrategyCard() {
   const urlParams = new URLSearchParams(location.search);
   const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
@@ -13397,27 +13401,54 @@ async function loadStrategyCard() {
   if (!card) return;
   card.href = `/strategy?brand=${brand}`;
   try {
-    const r = await fetch(`/api/strategy?brand=${brand}`);
-    if (!r.ok) return;
-    const d = await r.json();
-    const s = d.strategy || {};
-    const title = document.getElementById('strategy-card-title');
-    const meta = document.getElementById('strategy-card-meta');
+    const [stratR, stripR] = await Promise.all([
+      fetch(`/api/strategy?brand=${brand}`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/strategy/strip?brand=${brand}`).then(r => r.ok ? r.json() : null),
+    ]);
+    const s = stratR ? (stratR.strategy || {}) : {};
+    const strip = stripR ? (stripR.strip || {}) : {};
     const bets = (s.bets || []).filter(b => !b.status || b.status === 'active');
     const moves = s.moves || [];
-    const decisionCount = bets.filter(b => {
-      try {
-        const dd = new Date(b.decision_date);
-        const days = (dd - new Date()) / (1000*60*60*24);
-        return days >= 0 && days <= 14;
-      } catch (e) { return false; }
-    }).length;
-    if (title) {
-      title.textContent = s.north_star ? s.north_star.slice(0, 80) + (s.north_star.length > 80 ? '…' : '') : 'Where are we heading?';
+    const active = strip.active_this_week || [];
+    const nextDec = strip.next_decision;
+
+    // Current move
+    const moveEl = document.getElementById('strategy-card-move');
+    if (moveEl) moveEl.textContent = moves[0] ? moves[0].title : '—';
+
+    // Active bets count
+    const activeEl = document.getElementById('strategy-card-active');
+    if (activeEl) activeEl.textContent = String(bets.length);
+
+    // Next decision
+    const decEl = document.getElementById('strategy-card-decision');
+    if (decEl) {
+      if (nextDec) {
+        try {
+          const due = new Date(nextDec.due);
+          const days = Math.ceil((due - new Date()) / (1000*60*60*24));
+          const dateStr = due.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' });
+          decEl.textContent = `${nextDec.title} · ${dateStr}${days <= 14 ? ` (${days}d)` : ''}`;
+        } catch (e) {
+          decEl.textContent = nextDec.title || '—';
+        }
+      } else {
+        decEl.textContent = 'No upcoming decisions';
+      }
     }
-    if (meta) {
-      const moveTitle = moves[0] ? moves[0].title : '—';
-      meta.innerHTML = `<strong>${bets.length}</strong> active bet${bets.length === 1 ? '' : 's'} · <strong>${decisionCount}</strong> decision${decisionCount === 1 ? '' : 's'} approaching · <em>Current move: ${moveTitle}</em>`;
+
+    // Signal — count trends
+    const signalEl = document.getElementById('strategy-card-signal');
+    if (signalEl) {
+      const trends = active.map(a => a.trend).filter(Boolean);
+      const counts = {};
+      trends.forEach(t => counts[t] = (counts[t] || 0) + 1);
+      const parts = [];
+      if (counts.strengthening) parts.push(`${counts.strengthening} strengthening`);
+      if (counts.gathering) parts.push(`${counts.gathering} gathering`);
+      if (counts.flat) parts.push(`${counts.flat} flat`);
+      if (counts.weakening) parts.push(`${counts.weakening} weakening`);
+      signalEl.textContent = parts.length ? parts.join(' · ') : 'No active signals this week';
     }
   } catch (e) { /* silent */ }
 }
@@ -13427,43 +13458,298 @@ if (document.readyState === 'loading') {
   loadStrategyCard();
 }
 
-// Load the strategy chip data
+// Strategy chip — compact summary in the OS topbar.
+// Format:
+//   'Strategy · 4 active · next 24d' (normal)
+//   'Strategy · ⚠ decision due' (urgent)
+//   'Strategy · ⚠ evidence issue' (integrity)
+//   'Strategy · quiet' (nothing active)
+//   'Strategy · loading' (initial load)
 async function loadStrategyChip() {
   const urlParams = new URLSearchParams(location.search);
   const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  const text = document.getElementById('strategy-chip-text');
+  const chip = document.getElementById('strategy-chip');
+  const dot = chip ? chip.querySelector('.strategy-chip-dot') : null;
+  if (!text) return;
+  if (chip) chip.href = `/strategy?brand=${brand}`;
+
+  // Default: quiet
+  let label = `Strategy · quiet`;
+  let state = 'quiet'; // quiet | active | urgent | evidence-issue | loading
+  let dueDays = null;
+
   try {
-    const r = await fetch(`/api/strategy/strip?brand=${brand}`);
-    if (!r.ok) return;
-    const d = await r.json();
-    const strip = d.strip || {};
+    const [stripR, integrityR] = await Promise.all([
+      fetch(`/api/strategy/strip?brand=${brand}`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/integrity/data-health?brand=${brand}`).then(r => r.ok ? r.json() : null),
+    ]);
+    const strip = stripR ? (stripR.strip || {}) : {};
     const active = strip.active_this_week || [];
     const nextDec = strip.next_decision;
-    const text = document.getElementById('strategy-chip-text');
-    const chip = document.getElementById('strategy-chip');
-    const dot = chip ? chip.querySelector('.strategy-chip-dot') : null;
-    if (!text) return;
-    let label = `${active.length} active bet${active.length === 1 ? '' : 's'}`;
+
+    // Compute days-to-decision
     if (nextDec) {
       try {
         const due = new Date(nextDec.due);
-        const days = Math.ceil((due - new Date()) / (1000*60*60*24));
-        label += ` · next: ${days}d`;
-      } catch (e) { label += ` · next decision soon`; }
+        dueDays = Math.ceil((due - new Date()) / (1000*60*60*24));
+      } catch (e) { /* ignore */ }
+    }
+
+    // Evidence issue = data health score below 70
+    const evidenceIssue = integrityR && integrityR.health && integrityR.health.score < 70;
+    const evidenceBroken = integrityR && integrityR.health && integrityR.health.score < 50;
+
+    if (evidenceBroken) {
+      label = `Strategy · ⚠ evidence issue`;
+      state = 'evidence-issue';
+    } else if (dueDays !== null && dueDays <= 7) {
+      label = `Strategy · ⚠ decision due`;
+      state = 'urgent';
+    } else if (active.length > 0) {
+      const nextStr = dueDays !== null ? ` · next ${dueDays}d` : '';
+      label = `Strategy · ${active.length} active${nextStr}`;
+      state = 'active';
     } else {
-      label += ` · no upcoming decisions`;
+      label = `Strategy · quiet`;
+      state = 'quiet';
     }
-    text.textContent = label;
-    if (chip) chip.href = `/strategy?brand=${brand}`;
-    if (dot) {
-      dot.classList.toggle('has-decision', !!nextDec);
-      dot.classList.toggle('empty', active.length === 0 && !nextDec);
-    }
-  } catch (e) { /* silent */ }
+  } catch (e) { label = `Strategy · loading`; state = 'loading'; }
+
+  text.textContent = label;
+  if (dot) {
+    dot.className = 'strategy-chip-dot';
+    if (state === 'urgent') dot.classList.add('urgent');
+    if (state === 'evidence-issue') dot.classList.add('evidence-issue');
+    if (state === 'quiet' || state === 'loading') dot.classList.add('quiet');
+  }
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadStrategyChip);
 } else {
   loadStrategyChip();
+}
+
+// Workspace registry — defines which paths are workspaces inside the OS shell.
+// When the user navigates to one of these, the shell fetches the workspace
+// content and injects it into <main> instead of doing a full page load.
+const WORKSPACE_LOADERS = {
+  '/strategy': { endpoint: '/api/workspace/strategy', title: 'Strategy', crumbs: 'Strategy' },
+};
+
+const ALL_WORKSPACES = [
+  { path: '/', title: 'Morning Brief', crumbs: 'Today' },
+  { path: '/strategy', title: 'Strategy', crumbs: 'Strategy' },
+  { path: '/calendar', title: 'Calendar', crumbs: 'Calendar' },
+  { path: '/marketing', title: 'Marketing', crumbs: 'Marketing' },
+  { path: '/advertising', title: 'Advertising', crumbs: 'Advertising' },
+  { path: '/analytics', title: 'Analytics', crumbs: 'Analytics' },
+];
+
+function injectWorkspaceContent(html, mountPoint) {
+  // Parse out body, style, script tags from the fragment
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Inject <style> blocks (idempotent — appended to head)
+  doc.querySelectorAll('style').forEach(styleEl => {
+    const clone = document.createElement('style');
+    clone.textContent = styleEl.textContent;
+    clone.dataset.workspaceStyle = 'true';
+    document.head.appendChild(clone);
+  });
+
+  // Inject body content
+  const bodyContent = doc.body ? doc.body.innerHTML : html;
+  const wrapper = document.createElement('div');
+  wrapper.id = 'workspace-mount';
+  wrapper.innerHTML = bodyContent;
+  mountPoint.appendChild(wrapper);
+
+  // Execute scripts in order. Script tags inserted via innerHTML don't run;
+  // we have to re-create them so the browser actually executes them.
+  const scripts = doc.querySelectorAll('script');
+  scripts.forEach(oldScript => {
+    const newScript = document.createElement('script');
+    for (const attr of oldScript.attributes) {
+      newScript.setAttribute(attr.name, attr.value);
+    }
+    newScript.textContent = oldScript.textContent;
+    oldScript.parentNode ? oldScript.parentNode.removeChild(oldScript) : null;
+    document.body.appendChild(newScript);
+  });
+
+  return wrapper;
+}
+
+async function loadWorkspace() {
+  const path = location.pathname;
+  const loader = WORKSPACE_LOADERS[path];
+  if (!loader) return; // Morning Brief, Analytics, etc. — already in shell
+  const brand = new URLSearchParams(location.search).get('brand')
+             || new URLSearchParams(location.search).get('brand_id')
+             || localStorage.getItem('campaign_os_active_brand')
+             || 'swing-shack';
+  // Show a brief loading state
+  const main = document.querySelector('main.main, main');
+  if (!main) return;
+  const sections = main.querySelectorAll('.section, .strategy-header');
+  sections.forEach(s => s.style.opacity = '0.4');
+  try {
+    const qs = new URLSearchParams(location.search).toString();
+    const r = await fetch(`${loader.endpoint}?brand=${brand}&${qs}`);
+    if (!r.ok) {
+      sections.forEach(s => s.style.opacity = '');
+      return;
+    }
+    const html = await r.text();
+    // Hide native shell sections to free the main area
+    sections.forEach(s => { s.style.display = 'none'; });
+    // Inject the workspace content into <main>
+    injectWorkspaceContent(html, main);
+    // Update title + crumbs
+    const titleEl = document.getElementById('title');
+    const crumbsEl = document.getElementById('crumbs');
+    if (titleEl) titleEl.textContent = loader.title;
+    if (crumbsEl) crumbsEl.textContent = loader.crumbs;
+    // Update browser tab title
+    document.title = `Campaign OS · ${loader.title}`;
+    window.dispatchEvent(new Event('workspace-loaded'));
+  } catch (e) {
+    sections.forEach(s => s.style.opacity = '');
+    console.error('workspace load failed:', e);
+  }
+}
+
+// ─── In-shell navigation ────────────────────────────────────────────
+// When the user clicks any link whose href matches a known workspace,
+// intercept it: fetch the workspace content and swap it into <main>
+// instead of doing a full page reload. The shell stays loaded; the
+// workspace content is replaced; scroll position resets to top of
+// the workspace area; URL is updated via history.pushState so the
+// new state is bookmarkable and the back button works.
+function isWorkspaceHref(href) {
+  if (!href) return false;
+  if (href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('#')) return false;
+  try {
+    const u = new URL(href, location.origin);
+    if (u.origin !== location.origin) return false;
+    return ALL_WORKSPACES.some(w => w.path === u.pathname);
+  } catch (e) { return false; }
+}
+
+async function navigateToWorkspace(url, replace = false) {
+  const u = new URL(url, location.origin);
+  const loader = WORKSPACE_LOADERS[u.pathname];
+  const workspace = ALL_WORKSPACES.find(w => w.path === u.pathname) || { title: '', crumbs: u.pathname };
+
+  // Tear down current workspace (if any) — remove its mount + style tags
+  const existing = document.getElementById('workspace-mount');
+  if (existing) existing.remove();
+  document.querySelectorAll('style[data-workspace-style="true"]').forEach(s => s.remove());
+
+  // Restore shell sections to visible (in case the user is returning to Morning Brief)
+  const sections = document.querySelectorAll('main .section');
+  sections.forEach(s => { s.style.display = ''; s.style.opacity = ''; });
+
+  if (!loader) {
+    // It's the Morning Brief or another in-shell view — just update URL + title
+    if (replace) history.replaceState({ workspace: u.pathname }, '', u.toString());
+    else history.pushState({ workspace: u.pathname }, '', u.toString());
+    document.title = `Campaign OS · ${workspace.title}`;
+    const titleEl = document.getElementById('title');
+    const crumbsEl = document.getElementById('crumbs');
+    if (titleEl) titleEl.textContent = workspace.title;
+    if (crumbsEl) crumbsEl.textContent = workspace.crumbs;
+    // Re-trigger any Morning Brief data loaders
+    window.dispatchEvent(new Event('workspace-returned'));
+    return;
+  }
+
+  // Fetch + inject workspace content
+  try {
+    const qs = u.searchParams.toString();
+    const r = await fetch(`${loader.endpoint}?${qs}`);
+    if (!r.ok) { location.href = u.toString(); return; }
+    const html = await r.text();
+    const main = document.querySelector('main.main, main');
+    if (!main) { location.href = u.toString(); return; }
+    sections.forEach(s => { s.style.display = 'none'; });
+    injectWorkspaceContent(html, main);
+    document.title = `Campaign OS · ${workspace.title}`;
+    const titleEl = document.getElementById('title');
+    const crumbsEl = document.getElementById('crumbs');
+    if (titleEl) titleEl.textContent = workspace.title;
+    if (crumbsEl) crumbsEl.textContent = workspace.crumbs;
+    if (replace) history.replaceState({ workspace: u.pathname, search: qs }, '', u.toString());
+    else history.pushState({ workspace: u.pathname, search: qs }, '', u.toString());
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.dispatchEvent(new Event('workspace-loaded'));
+  } catch (e) {
+    console.error('workspace nav failed:', e);
+    location.href = u.toString();
+  }
+}
+
+// Intercept all clicks on workspace links (capture phase so we run before other handlers)
+document.addEventListener('click', (e) => {
+  // Skip if user holds modifier keys (open in new tab)
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  // Walk up to find an anchor
+  let el = e.target;
+  while (el && el !== document.body) {
+    if (el.tagName === 'A') {
+      const href = el.getAttribute('href');
+      if (isWorkspaceHref(href)) {
+        e.preventDefault();
+        navigateToWorkspace(new URL(href, location.origin).toString());
+        return;
+      }
+    }
+    el = el.parentElement;
+  }
+});
+
+// Browser back/forward support
+window.addEventListener('popstate', (e) => {
+  navigateToWorkspace(location.href, true);
+});
+
+// Brand switching preserves the current workspace.
+// The existing brand switcher does a full page reload when you change brand.
+// We need to intercept that and just change the brand param in the current URL.
+const _origAssign = location.assign.bind(location);
+const _origReplace = location.replace.bind(location);
+
+function brandAwareNavigation() {
+  // Watch for clicks on the existing brand switcher dropdown
+  document.addEventListener('click', (e) => {
+    // The existing campaign-os brand switcher items have data-brand attribute
+    const brandItem = e.target.closest('[data-brand]');
+    if (brandItem && brandItem.closest('.brand-dropdown')) {
+      // Let the existing handler run first, then we can fix the URL afterwards.
+      // Simplest: when the existing JS sets window.location, replace it.
+      const newBrand = brandItem.dataset.brand;
+      const currentBrand = new URLSearchParams(location.search).get('brand')
+                        || localStorage.getItem('campaign_os_active_brand');
+      if (newBrand !== currentBrand) {
+        setTimeout(() => {
+          // Update URL to keep current workspace + new brand
+          const u = new URL(location.href);
+          u.searchParams.set('brand', newBrand);
+          u.searchParams.set('brand_id', newBrand);
+          history.replaceState({}, '', u.toString());
+        }, 50);
+      }
+    }
+  }, true);
+}
+brandAwareNavigation();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadWorkspace);
+} else {
+  loadWorkspace();
 }
 
 // Highlight the active section in the OS sidebar based on the current URL.
