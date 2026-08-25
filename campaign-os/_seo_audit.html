@@ -1,0 +1,220 @@
+<!--
+_seo_audit.html — Full SEO insights report.
+
+Sections:
+  - Domain Health (DA / backlinks / keyword footprint / freshness)
+  - Winning (top 10 positions, gained rank)
+  - Leaking (lost rank this period)
+  - Missing (high-volume gaps)
+  - Quick wins (page 2 -> page 1)
+  - Competitors
+  - Data freshness
+
+A real report from Ubersuggest MCP. Refreshable. No fake data.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SEO Audit · Swing Shack</title>
+<style>
+:root {
+  --bg: #0a0e1a; --bg-2: #0f172a; --bg-3: #1f2937; --bd: #374151;
+  --tx: #e5e7eb; --tx-2: #d1d5db; --tx-3: #9ca3af;
+  --gold: #fbbf24; --green: #5dff9d;
+  --blue: #63b3ff; --orange: #fb923c; --red: #ff6b6b;
+  --purple: #a78bfa;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--tx); margin: 0; font-family: 'Inter', -apple-system, sans-serif; padding: 2rem; }
+h1 { font-family: 'Fraunces', Georgia, serif; font-size: 28px; margin-top: 0; }
+h2 { font-size: 18px; letter-spacing: 0.04em; margin: 2rem 0 0.8rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--bd); }
+.health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
+.health-stat { background: var(--bg-2); border: 1px solid var(--bd); border-radius: 6px; padding: 0.9rem; }
+.health-stat .num { font-size: 28px; font-weight: 700; color: var(--gold); font-family: 'Fraunces', serif; }
+.health-stat .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tx-3); margin-top: 0.2rem; }
+.manager-read { background: var(--bg-2); border-left: 3px solid var(--gold); padding: 0.9rem 1rem; border-radius: 4px; font-size: 14px; margin-bottom: 1rem; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 0.5rem 0.7rem; text-align: left; border-bottom: 1px solid var(--bd); }
+th { background: var(--bg-2); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tx-3); font-weight: 600; }
+tr:hover { background: var(--bg-2); }
+.winning { color: var(--green); font-weight: 700; }
+.leaking { color: var(--red); font-weight: 700; }
+.missing { color: var(--orange); }
+.quick-win { color: var(--blue); font-weight: 700; }
+.position { font-family: ui-monospace, monospace; font-weight: 700; }
+.url-cell { color: var(--tx-3); font-size: 11px; }
+.fresh-stale { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.fresh-stale.fresh { background: rgba(93,255,157,0.1); color: var(--green); }
+.fresh-stale.stale { background: rgba(255,107,107,0.1); color: var(--red); }
+.actions { display: flex; gap: 0.5rem; margin: 1rem 0; }
+button, .btn { background: var(--bg-3); color: var(--tx); border: 1px solid var(--bd); border-radius: 4px; padding: 0.5rem 0.9rem; cursor: pointer; font-size: 13px; text-decoration: none; }
+button.primary, .btn.primary { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+button:hover, .btn:hover { background: var(--bd); }
+.empty { color: var(--tx-3); font-size: 13px; font-style: italic; padding: 0.8rem 0; }
+</style>
+</head>
+<body>
+
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+  <h1>SEO Audit — swingshack.co.za</h1>
+  <div class="actions">
+    <button class="primary" onclick="refreshSeo()">↻ Refresh now</button>
+    <a class="btn" href="/" data-help="Back to the main OS">← Back to OS</a>
+  </div>
+</div>
+
+<div id="status-banner" style="display:none;background:rgba(251,191,36,0.1);border:1px solid var(--gold);padding:0.7rem 1rem;border-radius:6px;margin-bottom:1rem"></div>
+
+<!-- DOMAIN HEALTH -->
+<h2>Domain health</h2>
+<div class="health-grid" id="health-grid"></div>
+<div class="manager-read" id="health-manager-read"></div>
+
+<!-- WINNING -->
+<h2 id="winning-h">What's winning</h2>
+<div id="winning-table"></div>
+
+<!-- LEAKING -->
+<h2 id="leaking-h">What's leaking</h2>
+<div id="leaking-table"></div>
+
+<!-- MISSING -->
+<h2 id="missing-h">What's missing</h2>
+<div id="missing-table"></div>
+
+<!-- QUICK WINS -->
+<h2 id="quick-h">Quick wins — page 2 → page 1</h2>
+<div id="quick-table"></div>
+
+<!-- COMPETITORS -->
+<h2 id="comp-h">Competitors</h2>
+<div id="competitors-table"></div>
+
+<!-- FRESHNESS -->
+<h2 id="fresh-h">Data freshness</h2>
+<div id="freshness-list"></div>
+
+<script>
+function escHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function shortUrl(u){ if(!u) return '—'; return u.replace(/^https?:\/\//, '').slice(0, 50); }
+function posLabel(cur, prev){
+  if(prev && cur < prev) return `<span class="position winning">${prev}→${cur}</span>`;
+  if(prev && cur > prev) return `<span class="position leaking">${prev}→${cur}</span>`;
+  return `<span class="position winning">${cur}</span>`;
+}
+
+async function loadOverview() {
+  try {
+    const r = await fetch('/api/seo/overview');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok) return;
+
+    const dh = d.domain_health;
+    const kf = dh.keyword_footprint;
+    const wc = dh.weekly_change;
+    const grid = document.getElementById('health-grid');
+    grid.innerHTML = `
+      <div class="health-stat"><div class="num">${dh.domain_authority}</div><div class="label">Domain Authority</div></div>
+      <div class="health-stat"><div class="num">${dh.total_backlinks}</div><div class="label">Total backlinks</div></div>
+      <div class="health-stat"><div class="num">${dh.ref_domains}</div><div class="label">Referring domains</div></div>
+      <div class="health-stat"><div class="num">${kf.tracked}</div><div class="label">Keywords tracked</div></div>
+      <div class="health-stat"><div class="num">${kf.top_3}</div><div class="label">Top-3 positions</div></div>
+      <div class="health-stat"><div class="num">${kf.top_10}</div><div class="label">Top-10 positions</div></div>
+      <div class="health-stat"><div class="num">${wc.up} / ${wc.down} / ${wc.unchanged}</div><div class="label">Up / Down / Same</div></div>
+    `;
+    document.getElementById('health-manager-read').textContent = dh.manager_read;
+    document.getElementById('freshness-list').innerHTML = renderFreshness(d.freshness);
+  } catch (e) { /* silent */ }
+}
+
+async function loadCategory(category, targetId) {
+  try {
+    const r = await fetch(`/api/seo/keywords/${category}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const target = document.getElementById(targetId);
+    if (!d.items || d.items.length === 0) {
+      target.innerHTML = `<div class="empty">None detected this period.</div>`;
+      return;
+    }
+    const rows = d.items.map(it => {
+      if (category === 'missing') {
+        return `<tr><td>${escHtml(it.keyword)}</td><td class="position">—</td><td>${it.volume.toLocaleString()}</td><td class="url-cell">—</td><td>${escHtml(it.manager_read)}</td></tr>`;
+      }
+      return `<tr><td>${escHtml(it.keyword)}</td><td>${posLabel(it.current_position, it.previous_position)}</td><td>${(it.volume||0).toLocaleString()}</td><td class="url-cell">${escHtml(shortUrl(it.url))}</td><td>${escHtml(it.manager_read)}</td></tr>`;
+    }).join('');
+    target.innerHTML = `
+      <table>
+        <thead><tr><th>Keyword</th><th>Position</th><th>Volume</th><th>URL</th><th>Manager read</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  } catch (e) { /* silent */ }
+}
+
+async function loadCompetitors() {
+  try {
+    const r = await fetch('/api/seo/competitors');
+    if (!r.ok) return;
+    const d = await r.json();
+    const target = document.getElementById('competitors-table');
+    if (!d.competitors || d.competitors.length === 0) {
+      target.innerHTML = `<div class="empty">No competitor data.</div>`;
+      return;
+    }
+    const rows = d.competitors.slice(0, 15).map(c => `
+      <tr><td>${escHtml(c.domain)}</td><td class="position">${c.domain_authority || '?'}</td></tr>
+    `).join('');
+    target.innerHTML = `
+      <table>
+        <thead><tr><th>Domain</th><th>DA</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  } catch (e) { /* silent */ }
+}
+
+function renderFreshness(fresh) {
+  return Object.entries(fresh).map(([fn, info]) => {
+    if (!info.exists) return `<div class="empty">${escHtml(fn)} — not present</div>`;
+    const cls = info.fresh ? 'fresh' : 'stale';
+    return `<div style="margin:0.3rem 0"><span class="fresh-stale ${cls}">${escHtml(fn)}</span> — fetched ${info.age_days}d ago (${info.freshed_at ? info.fetched_at.slice(0,19) : '?'})</div>`;
+  }).join('');
+}
+
+async function refreshSeo() {
+  const banner = document.getElementById('status-banner');
+  banner.style.display = 'block';
+  banner.innerHTML = 'Pulling fresh Ubersuggest data...';
+  try {
+    const r = await fetch('/api/seo/refresh', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      banner.style.background = 'rgba(93,255,157,0.1)';
+      banner.style.borderColor = 'var(--green)';
+      banner.innerHTML = '✓ Refreshed. Reloading insights...';
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      banner.style.background = 'rgba(255,107,107,0.1)';
+      banner.style.borderColor = 'var(--red)';
+      banner.innerHTML = '✗ Refresh failed: ' + (d.error || 'unknown');
+    }
+  } catch (e) {
+    banner.innerHTML = '✗ Network error: ' + e.message;
+  }
+}
+
+(async function() {
+  await loadOverview();
+  await loadCategory('winning', 'winning-table');
+  await loadCategory('leaking', 'leaking-table');
+  await loadCategory('missing', 'missing-table');
+  await loadCategory('quick_wins', 'quick-table');
+  await loadCompetitors();
+})();
+</script>
+
+</body>
+</html>

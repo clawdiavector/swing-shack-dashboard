@@ -2,12 +2,75 @@
   "_meta": {
     "count": 15,
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-20"
+    "fetched_at": "2026-08-25"
   },
   "competitors": [
     {
+      "backlinks": 170,
+      "commonKeywordCount": 19,
+      "domain": "justinharding.co.za",
+      "domainAuthority": 12,
+      "gapKeywordCount": 28,
+      "organic": 74,
+      "traffic": 220
+    },
+    {
+      "backlinks": 6,
+      "commonKeywordCount": 19,
+      "domain": "par72.co.za",
+      "domainAuthority": 4,
+      "gapKeywordCount": 0,
+      "organic": 37,
+      "traffic": 776
+    },
+    {
+      "backlinks": 71,
+      "commonKeywordCount": 30,
+      "domain": "foreandfine.org",
+      "domainAuthority": 10,
+      "gapKeywordCount": 48,
+      "organic": 128,
+      "traffic": 23
+    },
+    {
       "backlinks": 18,
-      "commonKeywordCount": 24,
+      "commonKeywordCount": 25,
+      "domain": "golfroom.co.za",
+      "domainAuthority": 3,
+      "gapKeywordCount": 11,
+      "organic": 20,
+      "traffic": 73
+    },
+    {
+      "backlinks": 1383,
+      "commonKeywordCount": 12,
+      "domain": "flightscope.co.za",
+      "domainAuthority": 10,
+      "gapKeywordCount": 12,
+      "organic": 98,
+      "traffic": 260
+    },
+    {
+      "backlinks": 22,
+      "commonKeywordCount": 14,
+      "domain": "thetee.co.za",
+      "domainAuthority": 6,
+      "gapKeywordCount": 21,
+      "organic": 55,
+      "traffic": 22
+    },
+    {
+      "backlinks": 24,
+      "commonKeywordCount": 32,
+      "domain": "hometee.co.za",
+      "domainAuthority": 3,
+      "gapKeywordCount": 18,
+      "organic": 100,
+      "traffic": 715
+    },
+    {
+      "backlinks": 19,
+      "commonKeywordCount": 26,
       "domain": "swinglounge.co.za",
       "domainAuthority": 2,
       "gapKeywordCount": 4,
@@ -15,22 +78,13 @@
       "traffic": 636
     },
     {
-      "backlinks": 1383,
-      "commonKeywordCount": 12,
-      "domain": "flightscope.co.za",
-      "domainAuthority": 10,
-      "gapKeywordCount": 14,
-      "organic": 98,
-      "traffic": 260
-    },
-    {
-      "backlinks": 139,
-      "commonKeywordCount": 20,
-      "domain": "justinharding.co.za",
-      "domainAuthority": 12,
-      "gapKeywordCount": 26,
-      "organic": 74,
-      "traffic": 220
+      "backlinks": 495,
+      "commonKeywordCount": 52,
+      "domain": "worldofgolf.co.za",
+      "domainAuthority": 24,
+      "gapKeywordCount": 354,
+      "organic": 460,
+      "traffic": 14434
     },
     {
       "backlinks": 0,
@@ -42,103 +96,49 @@
       "traffic": 135
     },
     {
-      "backlinks": 4077537,
+      "backlinks": 4076216,
       "commonKeywordCount": 11,
       "domain": "golfmonthly.com",
       "domainAuthority": 69,
-      "gapKeywordCount": 1045,
+      "gapKeywordCount": 1150,
       "organic": 243724,
       "traffic": 557435
     },
     {
-      "backlinks": 483,
-      "commonKeywordCount": 52,
-      "domain": "worldofgolf.co.za",
-      "domainAuthority": 26,
-      "gapKeywordCount": 300,
-      "organic": 460,
-      "traffic": 14434
-    },
-    {
-      "backlinks": 24,
-      "commonKeywordCount": 31,
-      "domain": "hometee.co.za",
-      "domainAuthority": 3,
-      "gapKeywordCount": 16,
-      "organic": 100,
-      "traffic": 715
-    },
-    {
-      "backlinks": 18,
-      "commonKeywordCount": 14,
-      "domain": "thetee.co.za",
-      "domainAuthority": 7,
-      "gapKeywordCount": 17,
-      "organic": 55,
-      "traffic": 22
-    },
-    {
       "backlinks": 28,
-      "commonKeywordCount": 44,
+      "commonKeywordCount": 46,
       "domain": "golfbar.co.za",
       "domainAuthority": 7,
-      "gapKeywordCount": 31,
+      "gapKeywordCount": 39,
       "organic": 103,
       "traffic": 1034
     },
     {
-      "backlinks": 41,
-      "commonKeywordCount": 24,
-      "domain": "humansport.co.za",
-      "domainAuthority": 4,
-      "gapKeywordCount": 21,
-      "organic": 60,
-      "traffic": 61
-    },
-    {
-      "backlinks": 54,
-      "commonKeywordCount": 29,
-      "domain": "foreandfine.org",
-      "domainAuthority": 10,
-      "gapKeywordCount": 37,
-      "organic": 128,
-      "traffic": 23
-    },
-    {
-      "backlinks": 19,
-      "commonKeywordCount": 25,
-      "domain": "golfroom.co.za",
-      "domainAuthority": 3,
-      "gapKeywordCount": 11,
-      "organic": 20,
-      "traffic": 73
-    },
-    {
-      "backlinks": 9150,
-      "commonKeywordCount": 39,
+      "backlinks": 9131,
+      "commonKeywordCount": 38,
       "domain": "randpark.co.za",
       "domainAuthority": 30,
-      "gapKeywordCount": 596,
+      "gapKeywordCount": 692,
       "organic": 727,
       "traffic": 37369
     },
     {
-      "backlinks": 6,
-      "commonKeywordCount": 18,
-      "domain": "par72.co.za",
-      "domainAuthority": 4,
-      "gapKeywordCount": 0,
-      "organic": 37,
-      "traffic": 776
-    },
-    {
-      "backlinks": 4201,
-      "commonKeywordCount": 21,
+      "backlinks": 4205,
+      "commonKeywordCount": 19,
       "domain": "thecountryclub.co.za",
       "domainAuthority": 31,
-      "gapKeywordCount": 692,
+      "gapKeywordCount": 781,
       "organic": 1141,
       "traffic": 18794
+    },
+    {
+      "backlinks": 41,
+      "commonKeywordCount": 25,
+      "domain": "humansport.co.za",
+      "domainAuthority": 4,
+      "gapKeywordCount": 23,
+      "organic": 60,
+      "traffic": 61
     }
   ]
 }

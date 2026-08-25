@@ -1,12 +1,12 @@
 {
   "_meta": {
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-20"
+    "fetched_at": "2026-08-25"
   },
-  "backlinks": 25,
+  "backlinks": 26,
   "domainAuthority": 13,
   "follow": 0,
-  "noFollow": 2,
-  "refDomains": 10,
+  "noFollow": 3,
+  "refDomains": 11,
   "refDomainsGovEdu": 0
 }

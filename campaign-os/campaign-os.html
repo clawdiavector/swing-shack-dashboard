@@ -510,6 +510,17 @@ a:hover{text-decoration:underline}
 
 .strategy-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:600;color:var(--tx-2);text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s;margin-left:.25rem;white-space:nowrap}.strategy-chip:hover{background:var(--bg-3);border-color:var(--gold);color:var(--tx)}.strategy-chip-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}.strategy-chip-dot.has-decision{background:var(--gold)}.strategy-chip-dot.empty,.strategy-chip-dot.quiet{background:var(--tx-3)}.strategy-chip-dot.urgent{background:var(--gold);box-shadow:0 0 0 3px rgba(251,191,36,.25)}.strategy-chip-dot.evidence-issue{background:var(--red);box-shadow:0 0 0 3px rgba(255,107,107,.25)}
 
+/* SEO chip */
+.seo-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.3rem 0.7rem; background: var(--bg-2);
+  border: 1px solid var(--bd); border-radius: 6px;
+  font-size: 11px; font-weight: 600; color: var(--tx-2);
+  text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s;
+  margin-left: .25rem; white-space: nowrap;
+}
+.seo-chip:hover { background: var(--bg-3); border-color: var(--green); color: var(--tx); }
+
 /* Governance chip */
 .governance-chip {
   display: inline-flex; align-items: center; gap: 0.4rem;
@@ -1349,6 +1360,9 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <span id="sa-chip-pub" style="display:none"></span>
       </div>
       <!-- Strategy status chip: "X active bets · next decision Y" — click opens Strategy -->
+      <a class="seo-chip" id="seo-chip" href="/seo-audit" data-help="Search performance for swingshack.co.za — winning keywords, leaks, gaps, opportunities." title="Open SEO Audit">
+        <span style="font-size:13px">📈</span> <span id="seo-chip-text">SEO</span>
+      </a>
       <a class="governance-chip" id="governance-chip" href="/governance" data-help="OS authority model — what the OS may observe, recommend, prepare, and execute. Active automation policies." title="Open Governance">
         <span style="font-size:13px">🔒</span> <span id="governance-chip-text">Governance</span>
       </a>
@@ -13909,6 +13923,31 @@ async function loadConflicts() {
   } catch (e) { el.style.display = 'none'; }
 }
 
+async function loadSeoChip() {
+  const urlParams = new URLSearchParams(location.search);
+  const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  const chip = document.getElementById('seo-chip');
+  if (!chip) return;
+  chip.href = `/seo-audit?brand=${brand}`;
+  try {
+    const r = await fetch(`/api/seo/overview?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok || !d.domain_health) return;
+    const text = document.getElementById('seo-chip-text');
+    const da = d.domain_health.domain_authority || 0;
+    const tracked = d.domain_health.keyword_footprint.tracked || 0;
+    const up = d.domain_health.weekly_change.up || 0;
+    const down = d.domain_health.weekly_change.down || 0;
+    if (text) {
+      text.textContent = `SEO · DA ${da} · ${tracked}kw · ${up}↑ ${down}↓`;
+    }
+    // Color based on weekly change
+    if (up > down) chip.style.borderColor = 'var(--green)';
+    else if (down > up) chip.style.borderColor = 'var(--red)';
+  } catch (e) { /* silent */ }
+}
+
 async function loadGovernanceChip() {
   const urlParams = new URLSearchParams(location.search);
   const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
@@ -14038,12 +14077,14 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDecisionTop3();
   loadConflicts();
   loadGovernanceChip();
+  loadSeoChip();
 });
 window.addEventListener('workspace-returned', () => {
   loadDecisionHeader();
   loadDecisionTop3();
   loadConflicts();
   loadGovernanceChip();
+  loadSeoChip();
 });
 
 async function loadStrategyChip() {
@@ -14176,6 +14217,11 @@ async function loadWorkspace() {
   if (!main) return;
   const sections = main.querySelectorAll('.section, .strategy-header');
   sections.forEach(s => s.style.opacity = '0.4');
+  // is_html workspaces navigate to a real page
+  if (loader.is_html) {
+    location.href = path + location.search;
+    return;
+  }
   try {
     const qs = new URLSearchParams(location.search).toString();
     const r = await fetch(`${loader.endpoint}?brand=${brand}&${qs}`);

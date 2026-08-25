@@ -14839,6 +14839,127 @@ def governance_page():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/seo/overview', methods=['GET'])
+def seo_overview():
+    """SEO overview: DA, keywords, freshness, weekly change."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        insights = seo_insights.build_full_insights()
+        return jsonify({
+            "ok": True,
+            "domain_health": insights["domain_health"],
+            "freshness": insights["freshness"],
+            "summary": insights["summary"],
+            "metadata": insights["metadata"],
+            "generated_at": insights["generated_at"],
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/insights', methods=['GET'])
+def seo_insights_full():
+    """Full SEO insights report — winning, leaking, missing, quick wins."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        insights = seo_insights.build_full_insights()
+        return jsonify({"ok": True, "insights": insights}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/keywords/<category>', methods=['GET'])
+def seo_keywords_category(category):
+    """winning | leaking | missing | quick_wins"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        rank = seo_insights.load_seo_rankings()
+        if category == "winning":
+            items = seo_insights.winning_keywords(rank)
+        elif category == "leaking":
+            items = seo_insights.leaking_keywords(rank)
+        elif category == "missing":
+            items = seo_insights.missing_keywords(rank)
+        elif category == "quick_wins":
+            items = seo_insights.quick_wins(rank)
+        else:
+            return jsonify({"ok": False, "error": f"unknown category: {category}"}), 400
+        return jsonify({"ok": True, "category": category, "items": items, "count": len(items)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/competitors', methods=['GET'])
+def seo_competitors():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        comps = seo_insights.competitors_table()
+        return jsonify({"ok": True, "competitors": comps, "count": len(comps)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/refresh', methods=['POST'])
+def seo_refresh():
+    """Force a fresh Ubersuggest pull right now."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scripts', 'fetch_ubersuggest.py')
+        if not os.path.isfile(script):
+            return jsonify({"ok": False, "error": f"fetch script not found at {script}"}), 500
+        result = subprocess.run(
+            ['python3', script],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "stdout": result.stdout[-2000:],
+            "stderr": result.stderr[-1000:],
+            "exit_code": result.returncode,
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({"ok": False, "error": "fetch timed out (>120s)"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/report', methods=['GET'])
+def seo_report():
+    """Plain-language markdown report — Winning / Leaking / Missing / Quick Wins / Competitors."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        insights = seo_insights.build_full_insights()
+        md = seo_insights.render_markdown(insights)
+        return jsonify({"ok": True, "markdown": md}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/seo-audit')
+def seo_audit_page():
+    """The SEO insights page."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_seo_audit.html')
+    try:
+        with open(path) as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/governance/status', methods=['GET'])
 def governance_status():
     """Snapshot of the OS authority model for the brand."""

@@ -1,9 +1,9 @@
 {
   "_meta": {
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-20"
+    "fetched_at": "2026-08-25"
   },
-  "backlinks": 25,
+  "backlinks": 26,
   "domain": "swingshack.co.za",
   "domainAuthority": 13,
   "domainTraffic": {
@@ -249,26 +249,9 @@
     }
   },
   "follow": 23,
-  "noFollow": 2,
+  "noFollow": 3,
   "organic": 51,
   "organicKeywords": [
-    {
-      "competition": 0.05,
-      "cpc": 1.22,
-      "cpcDollars": 1.22,
-      "domain": "swingshack.co.za:organic:en:2840",
-      "keyword": "swing shack",
-      "path": "/",
-      "pd": 5,
-      "position": 3,
-      "position_group": 3,
-      "sd": 14,
-      "traffic": 9,
-      "type": "organic",
-      "updated_at": 1783090009,
-      "url": "http://swingshack.co.za/",
-      "volume": 390
-    },
     {
       "competition": 0.03,
       "cpc": 0,
@@ -285,6 +268,57 @@
       "updated_at": 1786176208,
       "url": "http://swingshack.co.za/",
       "volume": 880
+    },
+    {
+      "competition": 0.01,
+      "cpc": 0,
+      "cpcDollars": 0,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "swing shack indoor golf",
+      "path": "/",
+      "pd": 1,
+      "position": 4,
+      "position_group": 4,
+      "sd": 17,
+      "traffic": 3,
+      "type": "organic",
+      "updated_at": 1786597472,
+      "url": "http://swingshack.co.za/",
+      "volume": 50
+    },
+    {
+      "competition": 0.08,
+      "cpc": 0,
+      "cpcDollars": 0,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "ga swing shack",
+      "path": "/",
+      "pd": 8,
+      "position": 10,
+      "position_group": 8,
+      "sd": 16,
+      "traffic": 1,
+      "type": "organic",
+      "updated_at": 1787066442,
+      "url": "http://swingshack.co.za/",
+      "volume": 40
+    },
+    {
+      "competition": 0.96,
+      "cpc": 0.81,
+      "cpcDollars": 0.81,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "fujimoto golf clubs",
+      "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "pd": 96,
+      "position": 13,
+      "position_group": 9,
+      "sd": 12,
+      "traffic": 1,
+      "type": "organic",
+      "updated_at": 1787067292,
+      "url": "http://swingshack.co.za/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "volume": 40
     },
     {
       "competition": 0.42,
@@ -306,7 +340,7 @@
   ],
   "paidKeywords": 0,
   "paidTraffic": 2,
-  "refDomains": 10,
+  "refDomains": 11,
   "serviceInfo": {
     "isConnectedToGA": true,
     "isConnectedToGSC": false,
