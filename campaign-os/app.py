@@ -14530,17 +14530,17 @@ def strategy_clear():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
     try:
-        from strategy_store import load_strategy, save_strategy
-        s = load_strategy(bid)
-        if not s:
-            s = {"brand_id": bid}
-        s["north_star"] = ""
-        s["market_moves"] = []
-        s["bets"] = []
-        s["lessons"] = []
-        s["trend"] = {"bets": {}, "market_moves": {}, "generated_at": None}
-        s["cleared_at"] = "2026-08-25"
-        save_strategy(bid, s)
+        from strategy_store import save_strategy
+        empty = {
+            "brand_id": bid,
+            "north_star": "",
+            "market_moves": [],
+            "bets": [],
+            "lessons": [],
+            "trend": {"bets": {}, "market_moves": {}, "generated_at": None},
+            "cleared_at": "2026-08-25",
+        }
+        save_strategy(empty, bid)
         return jsonify({"ok": True, "cleared": True}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
