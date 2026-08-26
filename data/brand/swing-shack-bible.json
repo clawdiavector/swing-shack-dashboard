@@ -1,0 +1,137 @@
+{
+  "brand_id": "swing-shack",
+  "version": "v3",
+  "name": "Swing Shack",
+  "tagline": "GOLF IS MORE FUN WHEN IT MAKES SENSE.",
+  "mission": "We take your golf seriously so you can enjoy it more.",
+  "ambition": "Be the brand that knows more about the serious golfer's actual swing than anyone else in South Africa.",
+  "purpose": "Do everything we can to make golf more enjoyable.",
+  "belief": "The ball tells the truth. Evidence beats guesswork.",
+  "strategic_category": "Johannesburg's golf improvement club",
+  "values": {
+    "should_feel": [
+      "Knowledgeable",
+      "Curious",
+      "Warm",
+      "Useful",
+      "Witty",
+      "Unintimidating",
+      "Obsessed with the golfer, not the equipment"
+    ],
+    "should_never_feel": [
+      "Clinical for the sake of it",
+      "Bro-science",
+      "Golf-snobby",
+      "Over-polished and corporate",
+      "Like TrackMan is a personality",
+      "Like every post is trying to sell something"
+    ]
+  },
+  "voice_summary": "Know the numbers. Speak like a golfer.",
+  "operating_principle": "The brief comes before the footage.",
+  "content_layers": {
+    "intelligence": {
+      "name": "Intelligence",
+      "purpose": "Know the golfer",
+      "examples": [
+        "What Does Your Swing Say?",
+        "The Truth About...",
+        "What the Numbers Say",
+        "Fit Fact",
+        "The Wrong Question",
+        "Your Bag Is Telling Us Something"
+      ]
+    },
+    "human": {
+      "name": "Human",
+      "purpose": "Make Swing Shack feel alive",
+      "examples": [
+        "Shack Sessions",
+        "Coach/fitter reactions",
+        "Real fitting moments",
+        "Quick myths and debates",
+        "10-Ball Truth clips",
+        "Member/golfer moments"
+      ]
+    },
+    "action": {
+      "name": "Action",
+      "purpose": "Give the golfer a next step",
+      "examples": [
+        "Play",
+        "Practise",
+        "Get fitted",
+        "Get coached",
+        "Join"
+      ]
+    }
+  },
+  "flagship_properties": [
+    "10-Ball Truth (Flagship)",
+    "Shack Sessions (Human)",
+    "The Truth About... (Authority)",
+    "Golf Is More Fun When... (Enjoyment)",
+    "Member Nights / Shack League (Community)",
+    "Before / After / Why (Proof)"
+  ],
+  "eyepatch": {
+    "phrase": "WHAT DOES YOUR SWING SAY?",
+    "what": "A recurring memory device \u2014 one golfer / one club / one shot / one simple verdict / one Swing Shack frame.",
+    "why": "The Hathaway eyepatch worked because it made an ordinary category instantly distinctive. Swing Shack needs a repeatable memory device, not a fresh creative invention every week.",
+    "lives_in": [
+      "Fitting",
+      "Coaching",
+      "Social",
+      "Paid media",
+      "Email",
+      "Physical studio"
+    ]
+  },
+  "video_system": {
+    "intros_outros": [
+      {
+        "layer": "What Does Your Swing Say?",
+        "intro": "2\u20133 sec title sting + recurring question lock-up",
+        "outro": "Now you know. What do you do next? + relevant CTA",
+        "use": "Fittings, practice, coaching, swing diagnosis"
+      },
+      {
+        "layer": "The Truth About...",
+        "intro": "Topic reveal: 'THE TRUTH ABOUT DRIVER SPIN'",
+        "outro": "Simple conclusion card + Swing Shack mark",
+        "use": "Education and myth-busting"
+      },
+      {
+        "layer": "Shack Sessions",
+        "intro": "Fast location / episode sting",
+        "outro": "Short Swing Shack sign-off",
+        "use": "Humour, people, debates, natural floor content"
+      },
+      {
+        "layer": "10-Ball Truth",
+        "intro": "Challenge title + 10-ball counter graphic",
+        "outro": "Final verdict / result card",
+        "use": "Flagship property, guests, members, paid social"
+      },
+      {
+        "layer": "Action",
+        "intro": "No intro or very short service identifier",
+        "outro": "Book / Practise / Fit / Coach / Join CTA card",
+        "use": "Commercial posts and retargeting"
+      }
+    ]
+  },
+  "one_pager": {
+    "who_are_we": "Johannesburg's golf improvement club for people who care about their game but still want to enjoy it.",
+    "ambition": "Be the brand that knows more about the serious golfer's actual swing than anyone else in South Africa.",
+    "purpose": "Do everything we can to make golf more enjoyable.",
+    "belief": "Golf is more fun when it makes sense.",
+    "distinctive": "'What Does Your Swing Say?' + The 10-Ball Truth + human Shack Sessions.",
+    "consistency": "A visible year \u2192 quarter \u2192 month \u2192 week \u2192 post map, planned at least three weeks ahead, supported by reusable graphic layouts and designed video intros/outros.",
+    "what_we_sell": "Better understanding, better decisions, more confidence and more enjoyable golf.",
+    "what_we_refuse_to_become": "A clinical lab, a simulator rental venue, or a feed full of disconnected golf posts."
+  },
+  "source_doc": "swing_shack_brand_strategy_2026_2029_v3.html",
+  "saved_at": "2026-08-26",
+  "saved_by": "Heidi"
+}
