@@ -4798,8 +4798,15 @@ def meta_ig_business_overview():
         return jsonify({"ok": False, "error": "auth required"}), 401
     try:
         # Use the canonical file path (handles Railway DATA_DIR override)
-        from _lib.intelligence import _resolve_data_path
-        path = _resolve_data_path('ig-business-analytics.json')
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        candidate = os.path.join(data_dir, 'ig-business-analytics.json')
+        # If the canonical DATA_DIR doesn't have it, try the repo path
+        if not os.path.isfile(candidate):
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            alt = os.path.join(repo_root, 'data', 'ig-business-analytics.json')
+            path = alt if os.path.isfile(alt) else candidate
+        else:
+            path = candidate
         if not os.path.isfile(path):
             return jsonify({"ok": False, "error": "no IG data — run /api/meta/ig-business/refresh first"}), 404
         with open(path) as f:
