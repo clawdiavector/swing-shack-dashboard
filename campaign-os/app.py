@@ -4761,10 +4761,15 @@ def meta_ig_business_refresh():
     try:
         import subprocess
         import io
-        # Find the fetcher script
+        # Find the fetcher script (try multiple paths — Railway may
+        # mount the repo differently than local).
         script_paths = [
             os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ig_business.py'),
             '/app/scripts/fetch_ig_business.py',
+            '/app/campaign-os/../scripts/fetch_ig_business.py',
+            os.path.join(os.getcwd(), 'scripts', 'fetch_ig_business.py'),
+            '/data/scripts/fetch_ig_business.py',
+            '/data/campaign-os/scripts/fetch_ig_business.py',
         ]
         script = next((p for p in script_paths if os.path.isfile(p)), None)
         if not script:
