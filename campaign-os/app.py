@@ -4745,6 +4745,33 @@ def ubersuggest_domain_overview():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/meta/ig-business/find-script', methods=['GET'])
+def meta_ig_business_find_script():
+    """GET /api/meta/ig-business/find-script — debug: where is the script?
+
+    Lists all the candidate paths and whether each one exists.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    script_paths = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ig_business.py'),
+        '/app/scripts/fetch_ig_business.py',
+        '/app/campaign-os/../scripts/fetch_ig_business.py',
+        os.path.join(os.getcwd(), 'scripts', 'fetch_ig_business.py'),
+        '/data/scripts/fetch_ig_business.py',
+        '/data/campaign-os/scripts/fetch_ig_business.py',
+    ]
+    return jsonify({
+        "ok": True,
+        "cwd": os.getcwd(),
+        "__file__": __file__,
+        "candidates": [
+            {"path": p, "exists": os.path.isfile(p)}
+            for p in script_paths
+        ],
+    }), 200
+
+
 @app.route('/api/meta/ig-business/refresh', methods=['POST'])
 def meta_ig_business_refresh():
     """POST /api/meta/ig-business/refresh — re-pull all 6 instagram_business_manage_insights
