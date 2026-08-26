@@ -66,8 +66,21 @@ from urllib.request import Request, urlopen
 
 # ── Paths ─────────────────────────────────────────────────────────────
 
-REPO_ROOT = Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard")
-DATA_DIR = REPO_ROOT / "data"
+# DATA_DIR resolution (2026-08-26):
+#   1. DATA_DIR env var (Railway volume mount path, e.g. /data/campaign-os)
+#   2. SWING_SHACK_DATA_DIR env var (legacy override)
+#   3. SWING_SHACK_DATA_DIR_REPO env var (explicit override for testing)
+#   4. Fall back to the repo root data/ (local dev)
+_env_data = (
+    os.environ.get("DATA_DIR")
+    or os.environ.get("SWING_SHACK_DATA_DIR")
+    or os.environ.get("SWING_SHACK_DATA_DIR_REPO")
+)
+if _env_data:
+    DATA_DIR = Path(_env_data)
+else:
+    REPO_ROOT = Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard")
+    DATA_DIR = REPO_ROOT / "data"
 
 DEFAULT_TOKEN_FILE = (
     "/Users/fivefriday/.openclaw-instance2/workspace/"
