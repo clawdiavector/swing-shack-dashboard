@@ -4772,6 +4772,177 @@ def meta_ig_business_find_script():
     }), 200
 
 
+@app.route('/api/meta/fb-page/refresh', methods=['POST'])
+def meta_fb_page_refresh():
+    """POST /api/meta/fb-page/refresh — re-pull FB Page posts + per-post insights."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess
+        candidate_paths = [
+            '/app/scripts/fetch_facebook_page.py',
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_facebook_page.py'),
+            os.path.join(os.getcwd(), 'scripts', 'fetch_facebook_page.py'),
+            '/data/scripts/fetch_facebook_page.py',
+            '/data/campaign-os/scripts/fetch_facebook_page.py',
+        ]
+        script = next((p for p in candidate_paths if os.path.isfile(p)), None)
+        if not script:
+            return jsonify({"ok": False, "error": "fetch_facebook_page.py not found"}), 500
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        result = subprocess.run(
+            ["python3", script],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "exit_code": result.returncode,
+            "stderr_tail": result.stderr[-1500:] if result.stderr else "",
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({"ok": False, "error": "fetch timed out (>180s)"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/fb-page/overview', methods=['GET'])
+def meta_fb_page_overview():
+    """GET /api/meta/fb-page/overview — latest FB Page summary."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        candidate = os.path.join(data_dir, 'fb-page-analytics.json')
+        if not os.path.isfile(candidate):
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            alt = os.path.join(repo_root, 'data', 'fb-page-analytics.json')
+            path = alt if os.path.isfile(alt) else candidate
+        else:
+            path = candidate
+        if not os.path.isfile(path):
+            return jsonify({"ok": False, "error": "no FB data — run /api/meta/fb-page/refresh first"}), 404
+        with open(path) as f:
+            data = json.load(f)
+        page = data.get('page', {})
+        media = data.get('media', [])
+        # Top post by total engagement
+        top_post = None
+        if media:
+            sorted_media = sorted(media, key=lambda m: (m.get('reactions_total', 0) or 0) + (m.get('clicks', 0) or 0), reverse=True)
+            top = sorted_media[0]
+            top_post = {
+                "id": top.get('id'),
+                "timestamp": top.get('timestamp'),
+                "message_preview": top.get('message_preview'),
+                "permalink": top.get('permalink'),
+                "reactions_total": top.get('reactions_total'),
+                "clicks": top.get('clicks'),
+            }
+        # Aggregates
+        total_reactions = sum(m.get('reactions_total', 0) or 0 for m in media)
+        total_clicks = sum(m.get('clicks', 0) or 0 for m in media)
+        return jsonify({
+            "ok": True,
+            "fetched_at": data.get('metadata', {}).get('fetched_at'),
+            "page": {
+                "id": page.get('id'),
+                "name": page.get('name'),
+                "fan_count": page.get('fan_count'),
+                "category": page.get('category'),
+            },
+            "totals": {
+                "posts": len(media),
+                "reactions": total_reactions,
+                "clicks": total_clicks,
+            },
+            "top_post": top_post,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/daily-bundle', methods=['GET'])
+def meta_daily_bundle():
+    """GET /api/meta/daily-bundle — combined IG + FB summary for the Morning Brief.
+
+    Reads the latest ig-business-analytics.json + fb-page-analytics.json
+    and returns a unified payload for the topbar chip.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        repo_data = os.path.join(repo_root, 'data')
+
+        def _read(name):
+            for d in (data_dir, repo_data):
+                p = os.path.join(d, name)
+                if os.path.isfile(p):
+                    try:
+                        with open(p) as f:
+                            return json.load(f)
+                    except Exception:
+                        pass
+            return None
+
+        ig = _read('ig-business-analytics.json')
+        fb = _read('fb-page-analytics.json')
+
+        ig_block = None
+        if ig:
+            totals = ig.get('window_totals', {})
+            acct = ig.get('account', {})
+            ig_block = {
+                "username": acct.get('username'),
+                "followers": acct.get('followers_count'),
+                "media_count": acct.get('media_count'),
+                "window_totals": totals,
+                "fetched_at": ig.get('metadata', {}).get('fetched_at'),
+            }
+
+        fb_block = None
+        if fb:
+            page = fb.get('page', {})
+            media = fb.get('media', [])
+            fb_block = {
+                "name": page.get('name'),
+                "fan_count": page.get('fan_count'),
+                "posts": len(media),
+                "total_reactions": sum(m.get('reactions_total', 0) or 0 for m in media),
+                "total_clicks": sum(m.get('clicks', 0) or 0 for m in media),
+                "fetched_at": fb.get('metadata', {}).get('fetched_at'),
+            }
+
+        # Freshness
+        def _age(block):
+            if not block:
+                return None
+            from datetime import datetime, timezone
+            try:
+                fetched = datetime.fromisoformat(block.get('fetched_at', '').replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                return int((now - fetched).total_seconds() / 3600)
+            except Exception:
+                return None
+
+        return jsonify({
+            "ok": True,
+            "instagram": ig_block,
+            "facebook": fb_block,
+            "freshness": {
+                "instagram_hours": _age(ig_block),
+                "facebook_hours": _age(fb_block),
+            },
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/meta/ig-business/refresh', methods=['POST'])
 def meta_ig_business_refresh():
     """POST /api/meta/ig-business/refresh — re-pull all 6 instagram_business_manage_insights
