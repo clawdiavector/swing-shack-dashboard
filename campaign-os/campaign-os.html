@@ -1363,6 +1363,10 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       <a class="seo-chip" id="seo-chip" href="/seo-audit" data-help="Search performance for swingshack.co.za — winning keywords, leaks, gaps, opportunities." title="Open SEO Audit">
         <span style="font-size:13px">📈</span> <span id="seo-chip-text">SEO</span>
       </a>
+      <!-- Social status chip: IG + FB Page metrics — click opens Social Brief -->
+      <a class="social-chip" id="social-chip" href="#/social" data-help="Instagram + Facebook Page engagement — followers, fans, reach, clicks, top posts." title="Open Social Brief">
+        <span style="font-size:13px">📱</span> <span id="social-chip-text">Social</span>
+      </a>
       <a class="governance-chip" id="governance-chip" href="/governance" data-help="OS authority model — what the OS may observe, recommend, prepare, and execute. Active automation policies." title="Open Governance">
         <span style="font-size:13px">🔒</span> <span id="governance-chip-text">Governance</span>
       </a>
@@ -13923,6 +13927,33 @@ async function loadConflicts() {
   } catch (e) { el.style.display = 'none'; }
 }
 
+async function loadSocialChip() {
+  const el = document.getElementById('social-chip-text');
+  if (!el) return;
+  try {
+    const urlParams = new URLSearchParams(location.search);
+    const brand = urlParams.get('brand') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+    const r = await fetch(`/api/meta/daily-bundle?brand=${brand}`, { credentials: 'include' });
+    const d = await r.json();
+    if (!d.ok) { el.textContent = 'Social · —'; return; }
+    const ig = d.instagram;
+    const fb = d.facebook;
+    let igLine = '', fbLine = '';
+    if (ig && ig.followers) {
+      const tw = ig.window_totals || {};
+      const reach = (tw.accounts_engaged || 0) + (tw.profile_views || 0);
+      igLine = `IG · ${ig.followers.toLocaleString()} fol · ${reach.toLocaleString()} 30d`;
+    }
+    if (fb && fb.fan_count != null) {
+      fbLine = `FB · ${fb.fan_count} fans · ${(fb.total_clicks||0).toLocaleString()} clicks`;
+    }
+    const parts = [igLine, fbLine].filter(Boolean);
+    el.textContent = parts.length ? parts.join(' · ') : 'Social · quiet';
+  } catch (e) {
+    el.textContent = 'Social · —';
+  }
+}
+
 async function loadSeoChip() {
   const urlParams = new URLSearchParams(location.search);
   const brand = urlParams.get('brand') || urlParams.get('brand_id') || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
@@ -14150,6 +14181,7 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadStrategyChip);
 } else {
   loadStrategyChip();
+  loadSocialChip();
 }
 
 // Workspace registry — defines which paths are workspaces inside the OS shell.
