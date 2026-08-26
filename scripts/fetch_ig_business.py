@@ -155,19 +155,50 @@ def _atomic_write(path: Path, data: dict) -> bool:
 def _read_token_file(path: str) -> Tuple[Optional[str], Dict[str, Any]]:
     """Read the meta-token.json. Returns (user_token, meta_dict).
 
-    Silently returns (None, {}) if the file is missing or unreadable --
+    Preference order (2026-08-26):
+      1. META_SYSTEM_USER_TOKEN env var  — preferred, has
+         instagram_business_manage_insights grant (Server-to-Server).
+      2. META_ACCESS_TOKEN env var       — manual override.
+      3. Canonical credentials file      — long-lived user token (60-day
+         expiry); used for /me/accounts fallback.
+      4. data/meta-tokens.json           — bundled fallback.
+
+    Silently returns (None, {}) if no token source is available --
     the caller treats that as exit code 2.
     """
+    # 1. System User token from env (the one Railway has).
+    env_tok = os.environ.get("META_SYSTEM_USER_TOKEN", "").strip()
+    if env_tok:
+        _LOG.info("using META_SYSTEM_USER_TOKEN env var (System User — has IG insights grant)")
+        return env_tok, {"_source": "META_SYSTEM_USER_TOKEN"}
+    # 2. Manual override.
+    env_tok = os.environ.get("META_ACCESS_TOKEN", "").strip()
+    if env_tok:
+        _LOG.info("using META_ACCESS_TOKEN env var")
+        return env_tok, {"_source": "META_ACCESS_TOKEN"}
+    # 3. Canonical credentials file.
     p = Path(path)
-    if not p.exists():
-        return None, {}
-    try:
-        meta = json.loads(p.read_text())
-        tok = (meta.get("access_token") or "").strip() or None
-        return tok, meta
-    except (json.JSONDecodeError, OSError) as e:
-        _LOG.warning(f"could not parse token file {path}: {e}")
-        return None, {}
+    if p.exists():
+        try:
+            meta = json.loads(p.read_text())
+            tok = (meta.get("access_token") or "").strip() or None
+            if tok:
+                _LOG.info(f"using long-lived user token from {path}")
+                return tok, meta
+        except (json.JSONDecodeError, OSError) as e:
+            _LOG.warning(f"could not parse token file {path}: {e}")
+    # 4. Bundled fallback (data/meta-tokens.json).
+    bundled = Path(__file__).resolve().parent.parent / "data" / "meta-tokens.json"
+    if bundled.exists():
+        try:
+            meta = json.loads(bundled.read_text())
+            tok = (meta.get("access_token") or "").strip() or None
+            if tok:
+                _LOG.info(f"using bundled fallback {bundled}")
+                return tok, meta
+        except Exception:
+            pass
+    return None, {}
 
 
 def _resolve_page_token(user_token: str, page_id: str) -> Optional[str]:

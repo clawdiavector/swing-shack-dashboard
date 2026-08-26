@@ -4745,6 +4745,89 @@ def ubersuggest_domain_overview():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/meta/ig-business/refresh', methods=['POST'])
+def meta_ig_business_refresh():
+    """POST /api/meta/ig-business/refresh — re-pull all 6 instagram_business_manage_insights
+    metrics into data/ig-business-analytics.json.
+
+    Runs the fetcher in-process (subprocess) using whichever token is available:
+      - META_SYSTEM_USER_TOKEN env var (preferred — has the IG insights grant)
+      - canonical credentials file (fallback)
+
+    Returns the fetcher's summary so the operator can confirm the pull worked.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess
+        import io
+        # Find the fetcher script
+        script_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ig_business.py'),
+            '/app/scripts/fetch_ig_business.py',
+        ]
+        script = next((p for p in script_paths if os.path.isfile(p)), None)
+        if not script:
+            return jsonify({"ok": False, "error": "fetch_ig_business.py not found"}), 500
+        # Capture stdout for the summary
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        result = subprocess.run(
+            ["python3", script],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "exit_code": result.returncode,
+            "stdout_tail": result.stdout[-2000:],
+            "stderr_tail": result.stderr[-1000:] if result.stderr else "",
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({"ok": False, "error": "fetch timed out (>180s)"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/ig-business/overview', methods=['GET'])
+def meta_ig_business_overview():
+    """GET /api/meta/ig-business/overview — return the latest IG insights summary."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        # Use the canonical file path (handles Railway DATA_DIR override)
+        from _lib.intelligence import _resolve_data_path
+        path = _resolve_data_path('ig-business-analytics.json')
+        if not os.path.isfile(path):
+            return jsonify({"ok": False, "error": "no IG data — run /api/meta/ig-business/refresh first"}), 404
+        with open(path) as f:
+            data = json.load(f)
+        account = data.get('account', {})
+        totals = data.get('window_totals', {})
+        meta = data.get('metadata', {})
+        return jsonify({
+            "ok": True,
+            "fetched_at": meta.get('fetched_at'),
+            "window": {
+                "since": meta.get('since'),
+                "until": meta.get('until'),
+                "days": meta.get('window_days'),
+            },
+            "account": {
+                "username": account.get('username'),
+                "followers": account.get('followers_count'),
+                "media_count": account.get('media_count'),
+            },
+            "window_totals": totals,
+            "media_count": len(data.get('media', [])),
+            "top_post": data.get('top_post'),
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/meta/posts', methods=['GET'])
 def meta_list_posts():
     """GET /api/meta/posts — list recent Instagram media for the connected account.

@@ -114,17 +114,22 @@ def call_1_account_info(ig_business_id: str) -> dict:
 
 
 def call_2_account_insights(ig_business_id: str) -> dict:
-    """Call 2 — Get account-level insights with metric_type=total_value.
+    """Call 2 — Get account-level insights (instagram_business_manage_insights).
 
     Live-verified shape (scripts/fetch_ig_business.py, 2026-08-13):
-      Total-value metrics: reach, accounts_engaged, total_interactions,
+      Total-value metrics (period=day, metric_type=total_value):
+        reach, accounts_engaged, total_interactions,
         profile_views, profile_links_taps
-      Daily metrics (no metric_type needed): reach, follower_count
+      Daily metrics (period=day, no metric_type):
+        reach, follower_count
+
+    Production fetcher splits these into 6 separate calls (one per metric)
+    so partial failures don't lose the whole window. This script returns
+    ONE call (the canonical one) which is what App Review cares about.
+
     Endpoint: GET /{ig_business_id}/insights?metric=reach&period=day&metric_type=total_value
     Permission required: instagram_business_manage_insights (the one we're testing)
     """
-    # Make ONE call (the most representative) — reach with metric_type=total_value
-    # which is the same call the production fetcher makes.
     return _get(f"/{ig_business_id}/insights", {
         "metric": "reach",
         "period": "day",
