@@ -12,6 +12,9 @@ COPY campaign-os/ /app/campaign-os/
 COPY data/ /app/data/
 # Copy repo-root assets/ (campaign visuals, etc. — referenced by /assets/ route)
 COPY assets/ /app/assets/
+# Copy scripts/ (fetchers: fetch_ig_business.py, fetch_ubersuggest.py, etc.
+# — referenced by the in-app /refresh endpoints)
+COPY scripts/ /app/scripts/
 
 # Persistent data dir — Fly volume mounts here at runtime
 # (mkdir only needed for local Docker; Fly will mount over it)
