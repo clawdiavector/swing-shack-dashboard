@@ -124,7 +124,18 @@ def refresh_models(_krea) -> dict:
 
 # ── Prompt guides per model ─────────────────────────────────────────
 def refresh_prompt_guides(_krea, models: list) -> dict:
-    """For each known model, call get_model_schema + get_prompting_guide."""
+    """For each known model, call get_model_schema + get_prompting_guide.
+
+    Live-tested 2026-08-28:
+    - get_model_schema(model) returns the full input/output contract
+    - get_prompting_guide(model) returns the canonical prompt rules
+      BUT only some models have dedicated guides (Seedance 2, Kling 3.0,
+      video-ad-formats). For other models it returns:
+        {"available_guides": [...], "error": "No prompting guide
+        available for this model or slug"}
+    We capture this as `_no_dedicated_guide: True` so the UI knows
+    the schema is the only source of prompt rules for that model.
+    """
     out: dict = {
         "guides": {},
         "fetched_at": dt.datetime.utcnow().isoformat() + "Z",
@@ -143,19 +154,27 @@ def refresh_prompt_guides(_krea, models: list) -> dict:
         try:
             guide_result = _krea.get_prompting_guide(mid)
             guide = _unwrap_mcp(guide_result)
+            has_dedicated_guide = (
+                isinstance(guide, dict)
+                and "error" not in guide
+                and "available_guides" not in guide
+            )
         except Exception as e:
             _LOG.warning(f"get_prompting_guide({mid}) failed: {e}")
             guide = {"_error": str(e)}
+            has_dedicated_guide = False
         out["guides"][mid] = {
             "schema": schema,
             "prompt_guide": guide,
+            "has_dedicated_guide": has_dedicated_guide,
             "fetched_at": dt.datetime.utcnow().isoformat() + "Z",
             "category": m.get("category"),
         }
-        _LOG.info(f"  cached prompt guide for {mid}")
-        time.sleep(0.5)  # rate-limit courtesy
+        _LOG.info(f"  cached {mid} (dedicated guide: {has_dedicated_guide})")
+        time.sleep(0.3)  # rate-limit courtesy
     _atomic_write(KREA_DIR / "prompt-guides.json", out)
-    _LOG.info(f"refreshed prompt guides for {len(out['guides'])} models")
+    _LOG.info(f"refreshed prompt guides for {len(out['guides'])} models "
+              f"({sum(1 for g in out['guides'].values() if g['has_dedicated_guide'])} with dedicated guides)")
     return out
 
 
