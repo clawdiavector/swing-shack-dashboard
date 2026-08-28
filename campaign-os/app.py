@@ -15201,6 +15201,209 @@ def krea_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/krea/models', methods=['GET'])
+def krea_models():
+    """GET /api/krea/models?category=image|video|enhance|3d — list models."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    category = request.args.get("category")
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.list_models(category)
+        return jsonify({"ok": True, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/model/<model_id>/schema", methods=["GET"])
+def krea_model_schema(model_id):
+    """GET /api/krea/model/<id>/schema — full input/output schema."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.get_model_schema(model_id)
+        return jsonify({"ok": True, "model_id": model_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/model/<model_id>/prompt-guide", methods=["GET"])
+def krea_prompt_guide(model_id):
+    """GET /api/krea/model/<id>/prompt-guide — model-specific prompt rules."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.get_prompting_guide(model_id)
+        return jsonify({"ok": True, "model_id": model_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/status", methods=["GET"])
+def krea_knowledge_status():
+    """GET /api/krea/knowledge/status — snapshot of the knowledge-centre cache."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        status = _kc.knowledge_centre_status(_krea)
+        return jsonify({"ok": True, "status": status}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/refresh", methods=["POST"])
+def krea_knowledge_refresh():
+    """POST /api/krea/knowledge/refresh — re-pull models + prompt guides."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        models = _kc.refresh_models(_krea)
+        _kc.refresh_prompt_guides(_krea, models.get("flat", []))
+        _kc.run_daily_web_research(_krea)
+        status = _kc.knowledge_centre_status(_krea)
+        return jsonify({"ok": True, "status": status}), 200
+    except Exception as e:
+        _app_log.exception("krea_knowledge_refresh failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/models", methods=["GET"])
+def krea_knowledge_models():
+    """GET /api/krea/knowledge/models — cached model list (per category)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        models_path = _kc.KREA_DIR / 'models.json'
+        if not models_path.exists():
+            return jsonify({"ok": False, "error": "no cached models — run /api/krea/knowledge/refresh"}), 404
+        with open(models_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, "models": data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/guides", methods=["GET"])
+def krea_knowledge_guides():
+    """GET /api/krea/knowledge/guides — cached prompt guides + schemas."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        guides_path = _kc.KREA_DIR / 'prompt-guides.json'
+        if not guides_path.exists():
+            return jsonify({"ok": False, "error": "no cached guides — run /api/krea/knowledge/refresh"}), 404
+        with open(guides_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, "guides": data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/model/<model_id>", methods=["GET"])
+def krea_knowledge_model_detail(model_id):
+    """GET /api/krea/knowledge/model/<id> — single model's cached schema + guide."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        guides_path = _kc.KREA_DIR / 'prompt-guides.json'
+        if not guides_path.exists():
+            return jsonify({"ok": False, "error": "no cached guides — run /api/krea/knowledge/refresh"}), 404
+        with open(guides_path) as f:
+            data = json.load(f)
+        guide = data.get('guides', {}).get(model_id)
+        if not guide:
+            return jsonify({"ok": False, "error": f"no guide cached for {model_id}"}), 404
+        return jsonify({"ok": True, "model_id": model_id, "guide": guide}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/research", methods=["GET"])
+def krea_knowledge_research():
+    """GET /api/krea/knowledge/research — daily web-research queue + findings."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        research_path = _kc.KREA_DIR / 'research.json'
+        if not research_path.exists():
+            return jsonify({"ok": False, "error": "no research cached — run /api/krea/knowledge/refresh"}), 404
+        with open(research_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, "research": data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/krea/tools', methods=['GET'])
 def krea_tools():
     """GET /api/krea/tools — list the tools the Krea MCP exposes."""

@@ -342,15 +342,16 @@ def image_generate(
     ).strip()
     # Krea API expects `image_input` shape; the public tool signature uses
     # `prompt` + `model` + optional inputs. Pass through any extras.
-    params = {
+    # Krea MCP expects {input: {prompt, model, ...}} — wrap in input record
+    inner = {
         "prompt": enriched_prompt,
         "model": model,
     }
     if aspect_ratio and aspect_ratio != "1:1":
-        params["aspect_ratio"] = aspect_ratio
+        inner["aspect_ratio"] = aspect_ratio
     if extra:
-        params.update(extra)
-    return mcp_call("tools/call", {"name": "generate_image", "arguments": params}, timeout=180)
+        inner.update(extra)
+    return mcp_call("tools/call", {"name": "generate_image", "arguments": {"input": inner}}, timeout=180)
 
 
 def video_generate(
@@ -374,16 +375,51 @@ def video_generate(
         f"Brand voice: {voice_summary}. "
         f"Brand belief: {belief}."
     ).strip()
-    params = {
+    inner = {
         "prompt": enriched_prompt,
     }
     if aspect_ratio:
-        params["aspect_ratio"] = aspect_ratio
+        inner["aspect_ratio"] = aspect_ratio
     if duration_seconds:
-        params["duration_seconds"] = duration_seconds
+        inner["duration_seconds"] = duration_seconds
     if extra:
-        params.update(extra)
-    return mcp_call("tools/call", {"name": "generate_video", "arguments": params}, timeout=300)
+        inner.update(extra)
+    return mcp_call("tools/call", {"name": "generate_video", "arguments": {"input": inner}}, timeout=300)
+
+
+# ── Model + prompt-guide discovery ────────────────────────────────
+def list_models(category: Optional[str] = None) -> dict:
+    """List Krea generation models.
+
+    Args:
+        category: filter to one of "image", "video", "enhance", "3d".
+                   None returns all models.
+
+    Real Krea tool name: `list_models` (verified 2026-08-28).
+    """
+    args = {}
+    if category:
+        args["category"] = category
+    return mcp_call("tools/call", {"name": "list_models", "arguments": args})
+
+
+def get_model_schema(model_id: str) -> dict:
+    """Return the full input/output schema for a generation model.
+
+    Real Krea tool name: `get_model_schema`. Returns the prompt-engineering
+    contract — which fields are required, optional, valid ranges, etc.
+    """
+    return mcp_call("tools/call", {"name": "get_model_schema", "arguments": {"model": model_id}})
+
+
+def get_prompting_guide(model_id: str) -> dict:
+    """Return model-specific prompt-writing guidance.
+
+    Real Krea tool name: `get_prompting_guide`. Call this ONCE before
+    writing prompts for a new model — it returns the canonical rules
+    (e.g. for Seedance 2 / Kling 3.0 video models).
+    """
+    return mcp_call("tools/call", {"name": "get_prompting_guide", "arguments": {"model": model_id}})
 
 
 # ── Status / diagnostics ───────────────────────────────────────────
