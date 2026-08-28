@@ -343,14 +343,28 @@ def image_generate(
     # Krea API expects `image_input` shape; the public tool signature uses
     # `prompt` + `model` + optional inputs. Pass through any extras.
     # Krea MCP expects the model at the envelope level, prompt + options
-    # inside the `input` record (verified 2026-08-28 via live error:
-    # "Invalid input: expected string, received undefined" at path ["model"]
-    # when model was nested inside input).
-    inner = {
-        "prompt": enriched_prompt,
+    # inside the `input` record. Image models (e.g. bfl/flux-1.1-pro)
+    # require width + height — default to 1024×1024 for square, scaled
+    # to common aspect ratios. Verified 2026-08-28.
+    default_sizes = {
+        "1:1": (1024, 1024), "16:9": (1280, 720), "9:16": (720, 1280),
+        "4:3": (1024, 768), "3:4": (768, 1024), "21:9": (1470, 630),
     }
-    if aspect_ratio and aspect_ratio != "1:1":
-        inner["aspect_ratio"] = aspect_ratio
+    inner = {"prompt": enriched_prompt}
+    ar = aspect_ratio or "1:1"
+    if ar not in default_sizes:
+        ar = "1:1"
+    w, h = default_sizes[ar]
+    if extra and ("width" in extra or "height" in extra):
+        if "width" in extra:
+            inner["width"] = extra.pop("width")
+        if "height" in extra:
+            inner["height"] = extra.pop("height")
+    else:
+        inner["width"] = w
+        inner["height"] = h
+    if ar != "1:1":
+        inner["aspect_ratio"] = ar
     if extra:
         inner.update(extra)
     return mcp_call("tools/call", {
