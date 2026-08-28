@@ -342,16 +342,21 @@ def image_generate(
     ).strip()
     # Krea API expects `image_input` shape; the public tool signature uses
     # `prompt` + `model` + optional inputs. Pass through any extras.
-    # Krea MCP expects {input: {prompt, model, ...}} — wrap in input record
+    # Krea MCP expects the model at the envelope level, prompt + options
+    # inside the `input` record (verified 2026-08-28 via live error:
+    # "Invalid input: expected string, received undefined" at path ["model"]
+    # when model was nested inside input).
     inner = {
         "prompt": enriched_prompt,
-        "model": model,
     }
     if aspect_ratio and aspect_ratio != "1:1":
         inner["aspect_ratio"] = aspect_ratio
     if extra:
         inner.update(extra)
-    return mcp_call("tools/call", {"name": "generate_image", "arguments": {"input": inner}}, timeout=180)
+    return mcp_call("tools/call", {
+        "name": "generate_image",
+        "arguments": {"input": inner, "model": model},
+    }, timeout=180)
 
 
 def video_generate(
@@ -381,10 +386,14 @@ def video_generate(
     if aspect_ratio:
         inner["aspect_ratio"] = aspect_ratio
     if duration_seconds:
-        inner["duration_seconds"] = duration_seconds
+        # Krea uses 'duration' (not 'duration_seconds') per the schema
+        inner["duration"] = duration_seconds
     if extra:
         inner.update(extra)
-    return mcp_call("tools/call", {"name": "generate_video", "arguments": {"input": inner}}, timeout=300)
+    return mcp_call("tools/call", {
+        "name": "generate_video",
+        "arguments": {"input": inner, "model": model},
+    }, timeout=300)
 
 
 # ── Model + prompt-guide discovery ────────────────────────────────
