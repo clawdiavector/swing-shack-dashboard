@@ -409,17 +409,26 @@ def get_model_schema(model_id: str) -> dict:
     Real Krea tool name: `get_model_schema`. Returns the prompt-engineering
     contract — which fields are required, optional, valid ranges, etc.
     """
+    # Verified 2026-08-28: get_model_schema uses {model} only — works.
     return mcp_call("tools/call", {"name": "get_model_schema", "arguments": {"model": model_id}})
 
 
-def get_prompting_guide(model_id: str) -> dict:
+def get_prompting_guide(model_id: str, guide_type: str = "general") -> dict:
     """Return model-specific prompt-writing guidance.
 
     Real Krea tool name: `get_prompting_guide`. Call this ONCE before
     writing prompts for a new model — it returns the canonical rules
     (e.g. for Seedance 2 / Kling 3.0 video models).
+
+    Args:
+        model_id: model identifier (e.g. "bfl/flux-1.1-pro")
+        guide_type: which guide to fetch (e.g. "general", "negative",
+                    "aspect-ratio"). Defaults to "general".
     """
-    return mcp_call("tools/call", {"name": "get_prompting_guide", "arguments": {"model": model_id}})
+    return mcp_call("tools/call", {
+        "name": "get_prompting_guide",
+        "arguments": {"model": model_id, "guide": guide_type},
+    })
 
 
 # ── Status / diagnostics ───────────────────────────────────────────
