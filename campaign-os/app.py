@@ -15168,6 +15168,175 @@ def seo_overview():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/krea/status', methods=['GET'])
+def krea_status():
+    """GET /api/krea/status — is Krea AI connected?
+
+    Returns the connect URL + step-by-step guide so the operator can
+    complete the OAuth connect from the same screen.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        s = _krea.auth_status()
+        return jsonify({
+            "ok": True,
+            "connected": s["connected"],
+            "token_source": s["source"],
+            "base_url": s["base_url"],
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+            "next_step": s["next_step"],
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/tools', methods=['GET'])
+def krea_tools():
+    """GET /api/krea/tools — list the tools the Krea MCP exposes."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Krea MCP not connected. Walk the user through "
+                         "Settings → Connectors → Add custom connector → "
+                         "https://api.krea.ai/mcp. Sign in to Krea to authorize.",
+                "code": "KREA_NOT_CONNECTED",
+                "connect_url": "https://api.krea.ai/mcp",
+                "guide_url": "https://www.krea.ai/mcp",
+            }), 503
+        result = _krea.list_tools()
+        tools = result.get("tools", []) if isinstance(result, dict) else []
+        return jsonify({
+            "ok": True,
+            "tool_count": len(tools),
+            "tools": [
+                {"name": t.get("name"), "description": t.get("description")}
+                for t in tools
+            ],
+        }), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({
+            "ok": False, "error": str(e),
+            "code": "KREA_NOT_CONNECTED",
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+        }), 503
+    except _krea.KreaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream}), 503
+    except _krea.KreaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "status": e.status, "upstream": e.upstream}), 502
+    except _krea.KreaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/image', methods=['POST'])
+def krea_image_generate():
+    """POST /api/krea/image — generate a brand-aware image via Krea.
+
+    Body:
+      prompt: str             — the creative brief
+      brand: str              — brand id (default swing-shack)
+      model: str              — Krea model id (default flux-fast)
+      aspect_ratio: str       — 1:1, 16:9, 9:16, etc. (default 1:1)
+      extra: dict             — passed through to Krea (seed, style_preset, etc.)
+
+    Returns the MCP `tools/call` result, including the image URL.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    prompt = (body.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"ok": False, "error": "prompt is required"}), 400
+    brand = body.get("brand", "swing-shack")
+    model = body.get("model", "flux-fast")
+    aspect_ratio = body.get("aspect_ratio", "1:1")
+    extra = body.get("extra")
+    try:
+        from _lib import krea_mcp as _krea
+        result = _krea.image_generate(
+            prompt=prompt,
+            brand=brand,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            extra=extra,
+        )
+        return jsonify({"ok": True, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({
+            "ok": False, "error": str(e),
+            "code": "KREA_NOT_CONNECTED",
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+        }), 503
+    except _krea.KreaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream}), 503
+    except _krea.KreaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "status": e.status, "upstream": e.upstream}), 502
+    except _krea.KreaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("krea_image failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/video', methods=['POST'])
+def krea_video_generate():
+    """POST /api/krea/video — generate a brand-aware short video via Krea.
+
+    Body:
+      prompt: str             — the creative brief
+      brand: str              — brand id (default swing-shack)
+      duration_seconds: int   — default 6
+      aspect_ratio: str       — default 16:9
+      extra: dict             — passed through to Krea
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    prompt = (body.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"ok": False, "error": "prompt is required"}), 400
+    brand = body.get("brand", "swing-shack")
+    duration = int(body.get("duration_seconds", 6))
+    aspect_ratio = body.get("aspect_ratio", "16:9")
+    extra = body.get("extra")
+    try:
+        from _lib import krea_mcp as _krea
+        result = _krea.video_generate(
+            prompt=prompt,
+            brand=brand,
+            duration_seconds=duration,
+            aspect_ratio=aspect_ratio,
+            extra=extra,
+        )
+        return jsonify({"ok": True, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({
+            "ok": False, "error": str(e),
+            "code": "KREA_NOT_CONNECTED",
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+        }), 503
+    except _krea.KreaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream}), 503
+    except _krea.KreaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "status": e.status, "upstream": e.upstream}), 502
+    except _krea.KreaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("krea_video failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/seo/insights', methods=['GET'])
 def seo_insights_full():
     """Full SEO insights report — winning, leaking, missing, quick wins."""
