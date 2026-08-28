@@ -15274,6 +15274,55 @@ def krea_prompt_guide():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/krea/job-status", methods=["GET"])
+def krea_job_status():
+    """GET /api/krea/job-status?id=<job_id> — poll a previously submitted job."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    job_id = request.args.get("id")
+    if not job_id:
+        return jsonify({"ok": False, "error": "?id=<job_id> required"}), 400
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.get_job(job_id)
+        return jsonify({"ok": True, "job_id": job_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/job-cancel", methods=["POST"])
+def krea_job_cancel():
+    """POST /api/krea/job-cancel — cancel a running generation job."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    job_id = (body.get("job_id") or request.args.get("id") or "").strip()
+    if not job_id:
+        return jsonify({"ok": False, "error": "job_id required"}), 400
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.cancel_job(job_id)
+        return jsonify({"ok": True, "job_id": job_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/krea/knowledge/status", methods=["GET"])
 def krea_knowledge_status():
     """GET /api/krea/knowledge/status — snapshot of the knowledge-centre cache."""

@@ -436,6 +436,30 @@ def get_model_schema(model_id: str) -> dict:
     return mcp_call("tools/call", {"name": "get_model_schema", "arguments": {"model": model_id}})
 
 
+def get_job(job_id: str) -> dict:
+    """Fetch the latest status for a previously submitted Krea generation job.
+
+    Real Krea tool name: `get_job`. Returns the current job state
+    (running / completed / failed) and outputs (image URL, video URL,
+    etc.) when ready.
+    """
+    return mcp_call("tools/call", {
+        "name": "get_job",
+        "arguments": {"job_id": job_id},
+    })
+
+
+def cancel_job(job_id: str) -> dict:
+    """Cancel a running Krea generation job.
+
+    Real Krea tool name: `cancel_job`.
+    """
+    return mcp_call("tools/call", {
+        "name": "cancel_job",
+        "arguments": {"job_id": job_id},
+    })
+
+
 def get_prompting_guide(model_id: str, guide_type: str = "general") -> dict:
     """Return model-specific prompt-writing guidance.
 
