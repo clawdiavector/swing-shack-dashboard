@@ -15223,11 +15223,17 @@ def krea_models():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route("/api/krea/model/<model_id>/schema", methods=["GET"])
-def krea_model_schema(model_id):
-    """GET /api/krea/model/<id>/schema — full input/output schema."""
+@app.route("/api/krea/model-schema", methods=["GET"])
+def krea_model_schema():
+    """GET /api/krea/model-schema?id=<id> — full input/output schema (live).
+
+    Uses a query parameter because Krea model IDs contain '/'.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    model_id = request.args.get("id")
+    if not model_id:
+        return jsonify({"ok": False, "error": "?id=<model_id> required"}), 400
     try:
         from _lib import krea_mcp as _krea
         if not _krea.credentials_present():
@@ -15244,11 +15250,14 @@ def krea_model_schema(model_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route("/api/krea/model/<model_id>/prompt-guide", methods=["GET"])
-def krea_prompt_guide(model_id):
-    """GET /api/krea/model/<id>/prompt-guide — model-specific prompt rules."""
+@app.route("/api/krea/model-prompt-guide", methods=["GET"])
+def krea_prompt_guide():
+    """GET /api/krea/model-prompt-guide?id=<id> — model-specific prompt rules (live)."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    model_id = request.args.get("id")
+    if not model_id:
+        return jsonify({"ok": False, "error": "?id=<model_id> required"}), 400
     try:
         from _lib import krea_mcp as _krea
         if not _krea.credentials_present():
@@ -15355,11 +15364,19 @@ def krea_knowledge_guides():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route("/api/krea/knowledge/model/<model_id>", methods=["GET"])
-def krea_knowledge_model_detail(model_id):
-    """GET /api/krea/knowledge/model/<id> — single model's cached schema + guide."""
+@app.route("/api/krea/knowledge/model-detail", methods=["GET"])
+def krea_knowledge_model_detail():
+    """GET /api/krea/knowledge/model-detail?id=<id> — single model cached detail.
+
+    Uses a query parameter because Krea model IDs contain '/' (e.g.
+    'bfl/flux-1.1-pro') which Flask interprets as path separators
+    under a URL-converter.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    model_id = request.args.get("id")
+    if not model_id:
+        return jsonify({"ok": False, "error": "?id=<model_id> required"}), 400
     try:
         import sys as _sys
         repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15375,7 +15392,7 @@ def krea_knowledge_model_detail(model_id):
             data = json.load(f)
         guide = data.get('guides', {}).get(model_id)
         if not guide:
-            return jsonify({"ok": False, "error": f"no guide cached for {model_id}"}), 404
+            return jsonify({"ok": False, "error": f"no guide cached for {model_id}", "available_count": len(data.get('guides', {}))}), 404
         return jsonify({"ok": True, "model_id": model_id, "guide": guide}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
