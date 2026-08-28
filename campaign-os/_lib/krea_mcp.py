@@ -319,13 +319,16 @@ def image_generate(
     aspect_ratio: str = "1:1",
     extra: Optional[dict] = None,
 ) -> dict:
-    """Generate an image via Krea's MCP image tool, brand-aware.
+    """Generate an image via Krea's MCP `generate_image` tool, brand-aware.
 
     Injects brand-bible voice / colour / property hints into the prompt
     so the generated image lands on-brand automatically.
 
     `extra` is merged into the tool-call params (lets the caller override
     model, seed, dimensions, style_preset, etc.).
+
+    Real Krea tool name is `generate_image` (verified 2026-08-28 against
+    https://api.krea.ai/mcp tools/list — 32 tools available).
     """
     bible = _brand_bible_context(brand)
     belief = bible.get("belief", "Golf is more fun when it makes sense.")
@@ -337,14 +340,17 @@ def image_generate(
         f"Tone: {voice_summary}. "
         f"Visual feel: {feel}."
     ).strip()
+    # Krea API expects `image_input` shape; the public tool signature uses
+    # `prompt` + `model` + optional inputs. Pass through any extras.
     params = {
         "prompt": enriched_prompt,
         "model": model,
-        "aspect_ratio": aspect_ratio,
     }
+    if aspect_ratio and aspect_ratio != "1:1":
+        params["aspect_ratio"] = aspect_ratio
     if extra:
         params.update(extra)
-    return mcp_call("tools/call", {"name": "image_generate", "arguments": params}, timeout=180)
+    return mcp_call("tools/call", {"name": "generate_image", "arguments": params}, timeout=180)
 
 
 def video_generate(
@@ -355,7 +361,11 @@ def video_generate(
     aspect_ratio: str = "16:9",
     extra: Optional[dict] = None,
 ) -> dict:
-    """Generate a short video via Krea's MCP video tool, brand-aware."""
+    """Generate a short video via Krea's MCP `generate_video` tool, brand-aware.
+
+    Real Krea tool name is `generate_video` (verified 2026-08-28).
+    `extra` is merged into the tool-call params for advanced options.
+    """
     bible = _brand_bible_context(brand)
     belief = bible.get("belief", "")
     voice_summary = bible.get("voice_summary", "")
@@ -366,12 +376,14 @@ def video_generate(
     ).strip()
     params = {
         "prompt": enriched_prompt,
-        "duration_seconds": duration_seconds,
-        "aspect_ratio": aspect_ratio,
     }
+    if aspect_ratio:
+        params["aspect_ratio"] = aspect_ratio
+    if duration_seconds:
+        params["duration_seconds"] = duration_seconds
     if extra:
         params.update(extra)
-    return mcp_call("tools/call", {"name": "video_generate", "arguments": params}, timeout=300)
+    return mcp_call("tools/call", {"name": "generate_video", "arguments": params}, timeout=300)
 
 
 # ── Status / diagnostics ───────────────────────────────────────────
