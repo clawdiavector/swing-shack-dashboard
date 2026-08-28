@@ -442,10 +442,14 @@ def get_job(job_id: str) -> dict:
     Real Krea tool name: `get_job`. Returns the current job state
     (running / completed / failed) and outputs (image URL, video URL,
     etc.) when ready.
+
+    Note: Krea expects the field name `jobId` (not `job_id`) — verified
+    2026-08-28 via live 400 'expected string, received undefined' at
+    path ['jobId'].
     """
     return mcp_call("tools/call", {
         "name": "get_job",
-        "arguments": {"job_id": job_id},
+        "arguments": {"jobId": job_id},
     })
 
 
@@ -456,7 +460,7 @@ def cancel_job(job_id: str) -> dict:
     """
     return mcp_call("tools/call", {
         "name": "cancel_job",
-        "arguments": {"job_id": job_id},
+        "arguments": {"jobId": job_id},
     })
 
 
