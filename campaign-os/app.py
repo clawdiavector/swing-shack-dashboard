@@ -2408,6 +2408,14 @@ _SECRET_DROP_SLOTS = {
         "mint_oauth_file": False,
         "validate": lambda v: v.startswith("ubs_") or len(v) >= 32,
     },
+    "krea_mcp_token": {
+        "label": "Krea AI MCP Bearer Token (image + video gen)",
+        "env_var": "KREA_MCP_TOKEN",
+        "cred_file_key": "access_token",
+        "cred_filename": "krea-mcp.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: len(v) >= 32,
+    },
 }
 
 def _secret_drop_fernet():
