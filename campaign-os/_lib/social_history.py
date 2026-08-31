@@ -480,6 +480,8 @@ def search_creative(
             # Each sidecar's filename hint (e.g. JORDAN_BAG) feeds the query.
             _sidecar_count = 0
             _sidecar_matched = 0
+            _sidecar_seen_filter = 0
+            _sidecar_q_filter = 0
             for dna_path in sorted(curated_root.glob("*.visual-dna.json")):
                 _sidecar_count += 1
                 # The sidecar filename is "<image>.<ext>.visual-dna.json"
@@ -495,9 +497,11 @@ def search_creative(
                     continue
                 orig_name = stripped[:last_dot] + "." + stripped[last_dot + 1:]
                 if orig_name in seen_filenames:
+                    _sidecar_seen_filter += 1
                     continue  # already added in first pass
                 fname = orig_name
                 if q_low and q_low not in fname.lower():
+                    _sidecar_q_filter += 1
                     continue
                 # Read the sidecar for palette / orientation / hints
                 try:
@@ -603,6 +607,8 @@ def search_creative(
         ),
         "_sidecar_count": _sidecar_count,
         "_sidecar_matched": _sidecar_matched,
+        "_sidecar_seen_filter": _sidecar_seen_filter,
+        "_sidecar_q_filter": _sidecar_q_filter,
         "published_count": len(load_social_history(brand_id)),
         "generated_count": (
             len(list((_data_root(brand_id) / "images" / "krea").glob("*.json")))
