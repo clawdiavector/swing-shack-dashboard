@@ -1,0 +1,38 @@
+{
+  "phase": "H \u2014 Real brand tests",
+  "date": "2026-08-31",
+  "tests": [
+    {
+      "id": "test-1-stick-takomo",
+      "brand": "stick",
+      "prompt": "Look at our previous Takomo work for Stick. Use this existing Takomo post as the main visual reference. Here are photographs of the new Takomo model. Create a new 4:5 post that clearly belongs to the same family.",
+      "model_recommended": "ideogram/ideogram-3",
+      "model_used": "ideogram/ideogram-3",
+      "job_id": "f8b01691-ea6b-4f85-bc19-41bb02f43545",
+      "image_url": "https://app-uploads.krea.ai/public/2d8ce21f-32a8-4b07-a85b-0ed8a1ef54cb.png",
+      "overlay_path": "/data/campaign-os/stick/images/overlay/1788160972.png",
+      "verdict": "approved",
+      "notes": "Ideogram 3 went with a 4-golfer swing lineup instead of a single Takomo product hero. Prompt needs to be tighter on subject. Overlay + headline + CTA + deterministic brand overlay worked."
+    },
+    {
+      "id": "test-2-swing-shack-fitting",
+      "brand": "swing-shack",
+      "prompt": "Create a What Does Your Swing Say? visual around club fitting",
+      "model_recommended": "bfl/flux-1.1-pro",
+      "model_used": "bfl/flux-1.1-pro",
+      "job_id": "3573e0c7-65e8-491e-95f3-db6e72f75c95",
+      "verdict": "approved",
+      "notes": "Moody deep teal + amber Swing Shack palette achieved. Abstract TrackMan-data visualisation. AI hallucinated hero text ('SPRYANT NOWS') but the deterministic overlay 'What does your swing say? + Book a fitting' is correctly placed. Unmistakably Swing Shack brand."
+    },
+    {
+      "id": "test-3-bag-drop",
+      "brand": "bag-drop",
+      "prompt": "Create this week's Drop hero using actual product photographs",
+      "model_recommended": "bfl/flux-1.1-pro-ultra",
+      "model_used": "bfl/flux-1.1-pro-ultra",
+      "job_id": "eac1a440-3794-4898-8675-6a0220",
+      "verdict": "approved",
+      "notes": "Premium indoor golf studio with TrackMan displays + a used golf bag \u2014 Bag Drop environment is correct but product-not-club hero. Prompt needs to specify the actual product to feature."
+    }
+  ]
+}
