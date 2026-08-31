@@ -478,7 +478,10 @@ def search_creative(
                 })
             # Second pass: visual-dna.json sidecars (when real images absent).
             # Each sidecar's filename hint (e.g. JORDAN_BAG) feeds the query.
+            _sidecar_count = 0
+            _sidecar_matched = 0
             for dna_path in sorted(curated_root.glob("*.visual-dna.json")):
+                _sidecar_count += 1
                 # The sidecar filename is "<image>.<ext>.visual-dna.json"
                 # Strip ".visual-dna.json" then the extension to get the
                 # original image filename.
@@ -509,6 +512,7 @@ def search_creative(
                 if classifications and cls not in classifications:
                     continue
                 score = _score_curated(q_low, fname, cls) - 0.05  # tiny penalty for sidecar-only
+                _sidecar_matched += 1
                 out.append({
                     "source": "curated",
                     "asset_id": fname,
@@ -597,6 +601,8 @@ def search_creative(
             len(list((_data_root(brand_id) / "images").glob("*.visual-dna.json")))
             if (_data_root(brand_id) / "images").exists() else 0
         ),
+        "_sidecar_count": _sidecar_count,
+        "_sidecar_matched": _sidecar_matched,
         "published_count": len(load_social_history(brand_id)),
         "generated_count": (
             len(list((_data_root(brand_id) / "images" / "krea").glob("*.json")))
