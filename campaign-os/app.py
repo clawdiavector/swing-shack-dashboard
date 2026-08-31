@@ -2630,11 +2630,19 @@ def social_debug():
         "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"
     )]:
         brand_dir = c / "brand-directory" / brand
+        images_dir = brand_dir / "images"
+        ext_breakdown = {}
+        if images_dir.exists():
+            for f in images_dir.iterdir():
+                ext = f.suffix.lower()
+                ext_breakdown[ext] = ext_breakdown.get(ext, 0) + 1
         candidates.append({
             "candidate": str(c),
             "exists": c.exists(),
             "brand_dir_exists": brand_dir.exists(),
-            "images_count": len(list((brand_dir / "images").iterdir())) if (brand_dir / "images").exists() else 0,
+            "images_count": len(list(images_dir.iterdir())) if images_dir.exists() else 0,
+            "extension_breakdown": ext_breakdown,
+            "sample_files": sorted([f.name for f in images_dir.iterdir()])[:5] if images_dir.exists() else [],
         })
     return jsonify({
         "ok": True,
