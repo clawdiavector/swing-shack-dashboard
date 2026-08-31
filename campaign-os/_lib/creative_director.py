@@ -291,13 +291,20 @@ def build_negative_prompt(
 def recommend_model(requirements: Dict[str, Any]) -> Dict[str, Any]:
     """Score available models against the job's capability requirements.
 
-    Args:
-      requirements: dict from _infer_requirements()
+    Weights:
+      product_fidelity  -> fidelity * 0.35
+      photorealism      -> photorealism * 0.25
+      speed             -> speed * 0.20
+      typography        -> typography * 0.20
+      cinematic (video) -> 0.10 (always-on for video jobs)
+      ref_image needed  -> +0.15 (only counts if model supports it)
+      edit needed       -> +0.10 (only counts if model supports edit mode)
+      illustration      -> 0.05 if needed (small bonus)
 
     Returns:
       recommended: model id
-      why: list[str]   — reasons for the choice
-      alternative: model id  — fallback
+      why: list[str]
+      alternative: model id
       scores: dict[model_id, score]
     """
     category = requirements.get("category", "image")
@@ -308,21 +315,30 @@ def recommend_model(requirements: Dict[str, Any]) -> Dict[str, Any]:
         score = 0.0
         reasons = []
         if requirements.get("product_fidelity"):
-            score += caps.get("fidelity", 0.5) * 0.4
+            score += caps.get("fidelity", 0.5) * 0.35
+            reasons.append(f"product fidelity (caps.fidelity={caps.get('fidelity', 0.5):.2f})")
         if requirements.get("photorealism"):
-            score += caps.get("photorealism", 0.5) * 0.3
+            score += caps.get("photorealism", 0.5) * 0.25
+            reasons.append(f"photorealism ({caps.get('photorealism', 0.5):.2f})")
         if requirements.get("speed"):
-            score += caps.get("speed", 0.5) * 0.2
+            score += caps.get("speed", 0.5) * 0.20
+            reasons.append(f"speed ({caps.get('speed', 0.5):.2f})")
         if requirements.get("typography"):
-            score += caps.get("typography", 0.3) * 0.3
-        if requirements.get("needs_ref_image") and caps.get("ref_image"):
-            score += 0.3
-            reasons.append("supports reference images")
-        if requirements.get("needs_edit") and caps.get("edit"):
-            score += 0.2
-            reasons.append("supports edit mode")
-        # baseline
-        score += 0.1
+            score += caps.get("typography", 0.3) * 0.20
+            reasons.append(f"typography ({caps.get('typography', 0.3):.2f})")
+        if requirements.get("cinematic"):
+            score += 0.10
+        if requirements.get("illustration"):
+            score += 0.05
+        if requirements.get("needs_ref_image"):
+            if caps.get("ref_image"):
+                score += 0.15
+                reasons.append("supports reference images")
+        if requirements.get("needs_edit"):
+            if caps.get("edit"):
+                score += 0.10
+                reasons.append("supports edit mode")
+        score += 0.10  # baseline
         scored[mid] = (score, reasons)
 
     if not scored:
@@ -351,16 +367,51 @@ def _infer_requirements(
     product_service_item: Optional[dict],
     format_aspect: Optional[str],
 ) -> Dict[str, Any]:
-    """Map a job description to the capabilities required."""
+    """Map a job description to the capabilities required.
+
+    Returns a dict that `recommend_model` consumes to score models:
+      category : 'image' | 'video'
+      product_fidelity : bool
+      photorealism : bool
+      speed : bool
+      typography : bool
+      illustration : bool
+      cinematic : bool
+      needs_ref_image : bool
+      needs_edit : bool
+    """
     job_low = (job or "").lower()
+    is_video = any(w in job_low for w in (
+        "video", "reel", "clip", "motion", "animate",
+        "cinematic", "8-second", "8 second",
+    ))
     reqs: Dict[str, Any] = {
-        "category": "video" if any(w in job_low for w in ("video", "reel", "clip", "motion", "animate")) else "image",
+        "category": "video" if is_video else "image",
         "product_fidelity": bool(product_service_item),
-        "photorealism": any(w in job_low for w in ("photo", "realistic", "real", "lifestyle")),
-        "speed": any(w in job_low for w in ("quick", "fast", "social")),
-        "typography": any(w in job_low for w in ("text", "headline", "poster", "typography")),
+        "photorealism": any(w in job_low for w in (
+            "photo", "realistic", "real", "lifestyle",
+            "studio", "product shot", "editorial",
+        )),
+        "speed": any(w in job_low for w in (
+            "quick", "fast", "social", "story",
+        )),
+        "typography": any(w in job_low for w in (
+            "text", "headline", "poster", "typography",
+            "title", "logo", "wordmark",
+        )),
+        "illustration": any(w in job_low for w in (
+            "illustrat", "drawing", "cartoon", "sketch",
+            "concept art", "art",
+        )),
+        "cinematic": any(w in job_low for w in (
+            "cinematic", "motion", "8-second", "8 second",
+            "film", "movie",
+        )),
         "needs_ref_image": bool(reference_dna),
-        "needs_edit": any(w in job_low for w in ("edit", "restyle", "swap", "replace")),
+        "needs_edit": any(w in job_low for w in (
+            "edit", "restyle", "swap", "replace",
+            "recolour", "background swap",
+        )),
     }
     return reqs
 

@@ -59,6 +59,7 @@ import logging
 import os
 import re
 import time
+import datetime as dt
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
@@ -314,17 +315,38 @@ def _compose_full_prompt(
     product_service_items: Optional[list[dict]] = None,
     learned_signals: Optional[dict] = None,
 ) -> str:
-    """Compose the final prompt by stacking all 4 context layers.
+    """Compose the final prompt.
 
-    Order (matters — each layer constrains the next):
-      1. Learned WIN PROFILE         (self-improvement signal from feedback loop)
-      2. Reference DNA fragments      (visual look the user pointed at)
-      3. Product / service fragments  (what we're selling)
-      4. Brand recipe summary        (palette + mood + object summary)
-      5. User's raw prompt           (the specific ask, last word on subject)
+    Two paths:
+    1. STRUCTURED (creative_director) — when brand_id + (reference OR product)
+       are supplied, delegates to _lib.creative_director for an explicit
+       JOB / BRAND / SUBJECT / REFERENCE_RELATIONSHIP / PRESERVE /
+       COMPOSITION / LIGHTING / OUTPUT STYLE / FORMAT master prompt +
+       a composed negative prompt (global + golf + brand + product rules).
+    2. LEGACY (4-layer stack) — when caller passes brand_recipe +
+       reference_dnas + product_service_items but no brand_id. Stacks
+       learned WIN profile, reference fragments, product fragments,
+       brand recipe summary, then the user's raw prompt.
 
-    All layers are optional and degrade gracefully if missing.
+    Both paths degrade gracefully if inputs are missing.
     """
+    # NEW (2026-08-31): structured creative-director path.
+    if brand_id and (reference_dnas or product_service_items):
+        try:
+            from _lib.creative_director import compose_prompt
+            result = compose_prompt(
+                brand_id=brand_id,
+                job=user_prompt,
+                reference_dna=reference_dnas[0] if reference_dnas else None,
+                product_service_item=product_service_items[0] if product_service_items else None,
+            )
+            composed = result.get("master_prompt", "")
+            if composed:
+                return composed
+        except Exception as e:
+            _LOG.debug("creative_director.compose_prompt fell back to legacy: %s", e)
+
+    # LEGACY: 4-layer stack
     parts: list[str] = [user_prompt.strip()]
 
     # Layer 4: brand recipe (always lowest priority — sets the brand safety net)
@@ -954,18 +976,58 @@ def generate_image_with_persistence(
     """Like generate_image() but always persists (assumes brand_id provided).
 
     Convenience wrapper used by the Flask routes — they know they want a save.
+
+    Sidecar now stores the full creative lineage (prompt + model routing
+    + references + products + negative prompt) so the UI can render the
+    "show me the prompt + negative" panel and so feedback_loop can learn
+    which prompt patterns produced winning assets.
     """
     result = generate_image(*args, **kwargs)
+    # NEW (2026-08-31): extract the structured creative-director output
+    # (negative prompt + sections + model routing) when brand_id is given.
+    negative_prompt = ""
+    sections: list = []
+    model_routing: dict = {}
+    brand_id = kwargs.get("brand_id")
+    if brand_id:
+        try:
+            from _lib.creative_director import compose_prompt
+            cd_result = compose_prompt(
+                brand_id=brand_id,
+                job=kwargs.get("prompt", ""),
+                reference_dna=(kwargs.get("reference_dnas") or [None])[0],
+                product_service_item=(kwargs.get("product_service_items") or [None])[0],
+            )
+            negative_prompt = cd_result.get("negative_prompt", "")
+            sections = cd_result.get("sections", [])
+            model_routing = cd_result.get("model_routing", {})
+        except Exception as e:
+            _LOG.debug("creative_director.compose_prompt failed during persistence: %s", e)
     sidecar = {
         "prompt": kwargs.get("prompt"),
         "prompt_used": result.prompt_used,
         "revised_prompt": result.revised_prompt,
+        "negative_prompt": negative_prompt,
+        "sections": sections,
+        "model_routing": model_routing,
+        "reference_dnas": [
+            {"ref_id": d.get("ref_id"), "filename": d.get("filename")}
+            for d in (kwargs.get("reference_dnas") or [])
+            if isinstance(d, dict)
+        ],
+        "product_service_items": [
+            {"id": i.get("id"), "name": i.get("name")}
+            for i in (kwargs.get("product_service_items") or [])
+            if isinstance(i, dict)
+        ],
         "model": result.model,
         "provider": result.provider,
         "cost_estimate_usd": result.cost_estimate_usd,
         "usage": result.usage,
         "warning": result.warning,
         "size": kwargs.get("size", "1024x1024"),
+        "provider_job_id": result.provider_job_id,
+        "saved_at": dt.utcnow().isoformat() + "Z",
     }
     saved, sidecar_path = _persist(
         brand_id=kwargs.get("brand_id"),
