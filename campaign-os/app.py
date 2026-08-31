@@ -19,7 +19,6 @@ import uuid
 import logging
 import hashlib
 import time
-import datetime
 import base64
 import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
