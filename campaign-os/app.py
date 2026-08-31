@@ -2313,6 +2313,61 @@ def visual_library_generate(brand_id):
 # - GET  /api/image/status          — capabilities + key presence
 
 
+@app.route("/api/image/overlay-brand", methods=["POST"])
+def image_overlay_brand():
+    """POST /api/image/overlay-brand — deterministic post-composition overlay.
+
+    Body:
+      image_bytes_b64: str  — base64-encoded source PNG (the AI output)
+      brand_id: str
+      headline: str        — required, becomes the overlaid headline
+      subhead: str?        — optional
+      cta: str?            — optional, becomes a pill
+      logo_position: str?  — top-left | top-right | bottom-left | bottom-right | center
+
+    Returns:
+      bytes_b64 : str      — base64-encoded composited PNG
+      saved_path : str?    — written under <DATA_DIR>/<brand>/images/overlay/<ts>.png when save=true
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    b64 = body.get("image_bytes_b64", "")
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    headline = (body.get("headline") or "").strip()
+    if not b64 or not headline:
+        return jsonify({"ok": False, "error": "image_bytes_b64 and headline are required"}), 400
+    try:
+        import base64
+        from _lib.brand_overlay import overlay_post
+        img_bytes = base64.b64decode(b64)
+        composited = overlay_post(
+            img_bytes,
+            brand_id,
+            headline=headline,
+            subhead=body.get("subhead", ""),
+            cta=body.get("cta", ""),
+        )
+        out_path = None
+        if body.get("save", True):
+            data_dir = os.environ.get("DATA_DIR", "/data/campaign-os")
+            brand_dir = Path(data_dir) / brand_id / "images" / "overlay"
+            brand_dir.mkdir(parents=True, exist_ok=True)
+            ts = int(time.time())
+            out_path = brand_dir / f"{ts}.png"
+            out_path.write_bytes(composited)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "bytes_b64": base64.b64encode(composited).decode(),
+            "bytes_size": len(composited),
+            "saved_path": str(out_path) if out_path else None,
+        }), 200
+    except Exception as e:
+        _app_log.exception("image_overlay_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/image/poll-krea-job", methods=["POST"])
 def image_poll_krea_job():
     """POST /api/image/poll-krea-job — poll a Krea job and download the result.
