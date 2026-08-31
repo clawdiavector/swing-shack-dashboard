@@ -2411,6 +2411,138 @@ def image_router_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/creative/compile', methods=['POST'])
+def creative_compile():
+    """POST /api/creative/compile — compose master prompt + negative for a creative job.
+
+    Body:
+      brand_id: str
+      job: str                       — what is being created (required)
+      subject: str?
+      reference_dna: dict?           — output from reference_dna.extract_reference_dna()
+      product_service_item: dict?    — output from product_service_library.load_library()
+      composition: dict?
+      environment: str?
+      lighting: str?
+      material_texture: str?
+      human_direction: str?
+      camera: str?
+      output_style: str?
+      format_aspect: str?
+
+    Returns:
+      master_prompt, negative_prompt, sections, model_routing, requirements
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    if not body.get("job"):
+        return jsonify({"ok": False, "error": "job is required"}), 400
+    try:
+        from _lib.creative_director import compose_prompt
+        result = compose_prompt(
+            brand_id=brand_id,
+            job=body.get("job", ""),
+            subject=body.get("subject"),
+            reference_dna=body.get("reference_dna"),
+            product_service_item=body.get("product_service_item"),
+            composition=body.get("composition"),
+            environment=body.get("environment"),
+            lighting=body.get("lighting"),
+            material_texture=body.get("material_texture"),
+            human_direction=body.get("human_direction"),
+            camera=body.get("camera"),
+            output_style=body.get("output_style"),
+            format_aspect=body.get("format_aspect"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_compile failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/from-reference-and-product', methods=['POST'])
+def creative_from_reference_and_product():
+    """POST /api/creative/from-reference-and-product — reference-led creation pipeline.
+
+    Body:
+      brand_id: str
+      reference_dna: dict?     — reference DNA
+      product_service_item: dict?
+      reference_id: str?       — alt: load reference DNA from brand library
+      product_id: str?         — alt: load product from product library
+      format_aspect: str?      — default 1:1
+
+    Resolves reference + product from the brand libraries if the IDs are
+    supplied instead of full dicts, then calls creative_director.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    format_aspect = body.get("format_aspect", "1:1")
+    try:
+        reference_dna = body.get("reference_dna")
+        if not reference_dna and body.get("reference_id"):
+            from _lib.reference_dna import load_reference_dna
+            reference_dna = load_reference_dna(
+                body["reference_id"], brand=brand_id
+            ) or {}
+        product_service_item = body.get("product_service_item")
+        if not product_service_item and body.get("product_id"):
+            from _lib.product_service_library import get_item
+            product_service_item = get_item(
+                brand_id, body["product_id"]
+            ) or {}
+        from _lib.creative_director import from_reference_and_product
+        result = from_reference_and_product(
+            brand_id=brand_id,
+            reference_dna=reference_dna,
+            product_service_item=product_service_item,
+            format_aspect=format_aspect,
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_from_reference_and_product failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/model-route', methods=['POST'])
+def creative_model_route():
+    """POST /api/creative/model-route — score available models against requirements.
+
+    Body:
+      job: str
+      reference_dna: dict?
+      product_service_item: dict?
+      format_aspect: str?
+
+    Returns:
+      recommended, why, alternative, scores
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        from _lib.creative_director import _infer_requirements, recommend_model
+        requirements = _infer_requirements(
+            job=body.get("job", ""),
+            reference_dna=body.get("reference_dna"),
+            product_service_item=body.get("product_service_item"),
+            format_aspect=body.get("format_aspect"),
+        )
+        routing = recommend_model(requirements)
+        return jsonify({
+            "ok": True,
+            "requirements": requirements,
+            "routing": routing,
+        }), 200
+    except Exception as e:
+        _app_log.exception("creative_model_route failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/image/brand-dna/<brand_id>', methods=['GET'])
 def image_brand_dna(brand_id):
     """GET /api/image/brand-dna/<brand> - brand DNA + recipe for the UI Recipe panel.
