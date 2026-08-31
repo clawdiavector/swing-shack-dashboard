@@ -54,10 +54,10 @@ _LOG = logging.getLogger("campaign_os.creative_director")
 # Updated 2026-08-31 from the Krea model schema cache.
 _MODEL_CAPABILITIES = {
     # image models
-    "bfl/flux-1-dev":           {"category": "image", "fidelity": 0.7, "photorealism": 0.8, "speed": 0.5, "typography": 0.3, "ref_image": False},
-    "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False},
-    "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.9, "speed": 0.5, "typography": 0.5, "ref_image": False},
-    "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": True, "edit": True},
+    "bfl/flux-1-dev":           {"category": "image", "fidelity": 0.7, "photorealism": 0.8, "speed": 0.5, "typography": 0.3, "ref_image": False, "edit": False},
+    "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False, "edit": False},
+    "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.9, "speed": 0.5, "typography": 0.5, "ref_image": False, "edit": False},
+    "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": False, "edit": True, "edit_only": True},
     "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False},
     "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True},
     "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True},
@@ -338,6 +338,13 @@ def recommend_model(requirements: Dict[str, Any]) -> Dict[str, Any]:
             if caps.get("edit"):
                 score += 0.10
                 reasons.append("supports edit mode")
+        # NEW (2026-08-31): penalise edit-only models for text-to-image jobs.
+        # Verified: bfl/flux-1-kontext-dev returned 400 'Flux Kontext requires
+        # an input image' when called via generate_image. Edit-only models
+        # belong on the edit endpoint, not the generate endpoint.
+        if caps.get("edit_only"):
+            score -= 0.5
+            reasons.append("edit-only — not suitable for text-to-image")
         score += 0.10  # baseline
         scored[mid] = (score, reasons)
 
