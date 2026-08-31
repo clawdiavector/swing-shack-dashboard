@@ -52,18 +52,20 @@ _LOG = logging.getLogger("campaign_os.creative_director")
 # ── Capability matrix for Krea model selection ───────────────────────
 # Each capability maps a job requirement to a model property.
 # Updated 2026-08-31 from the Krea model schema cache.
+# Capability matrix. Higher = better. The router scores against requirements
+# weighted by JOB TYPE (apparel / equipment / poster / video).
 _MODEL_CAPABILITIES = {
     # image models — 'verified: True' means Krea's MCP accepts generate_image calls.
     # Live-verified 2026-08-31. Models without verified: True returned
     # 'Unsupported image model' from Krea's upstream.
-    "bfl/flux-1-dev":           {"category": "image", "fidelity": 0.7, "photorealism": 0.8, "speed": 0.5, "typography": 0.3, "ref_image": False, "edit": False, "verified": False},
-    "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False, "edit": False, "verified": True},
-    "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.9, "speed": 0.5, "typography": 0.5, "ref_image": False, "edit": False, "verified": True},
-    "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": False, "edit": True, "edit_only": True, "verified": True},
-    "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False, "verified": False},
-    "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False},
-    "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False},
-    "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True},
+    "bfl/flux-1-dev":           {"category": "image", "fidelity": 0.7, "photorealism": 0.8, "speed": 0.5, "typography": 0.3, "ref_image": False, "edit": False, "verified": False, "material": 0.7, "lighting": 0.7, "composition": 0.7, "human": 0.5},
+    "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False, "edit": False, "verified": True, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.75},
+    "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.92, "speed": 0.5, "typography": 0.5, "ref_image": False, "edit": False, "verified": True, "material": 0.9, "lighting": 0.9, "composition": 0.9, "human": 0.85},
+    "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": False, "edit": True, "edit_only": True, "verified": True, "material": 0.7, "lighting": 0.7, "composition": 0.75, "human": 0.65},
+    "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False, "verified": False, "material": 0.7, "lighting": 0.7, "composition": 0.7, "human": 0.6},
+    "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.8},
+    "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False, "material": 0.75, "lighting": 0.8, "composition": 0.8, "human": 0.75},
+    "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True, "material": 0.7, "lighting": 0.75, "composition": 0.8, "human": 0.65},
     "black-forest-labs/flux-3-video": {"category": "video", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.4, "duration_max": 15, "ref_image": True},
     "bytedance/seedance-2":     {"category": "video", "fidelity": 0.85, "photorealism": 0.8, "speed": 0.6, "duration_max": 15, "ref_image": True, "audio": True},
     "bytedance/seedance-2-fast": {"category": "video", "fidelity": 0.8, "photorealism": 0.75, "speed": 0.85, "duration_max": 15, "ref_image": True, "audio": True},
@@ -73,8 +75,8 @@ _MODEL_CAPABILITIES = {
     "minimax/hailuo-2.3":       {"category": "video", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "duration_max": 10, "ref_image": True},
     "google/gemini-omni-flash": {"category": "video", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.8, "duration_max": 8, "ref_image": True},
     "xai/grok-video":           {"category": "video", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.7, "duration_max": 10, "ref_image": False},
-    "google/gemini-2.5-flash-image": {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.9, "typography": 0.6, "ref_image": True, "edit": True},
-    "google/gemini-3-pro-image": {"category": "image", "fidelity": 0.85, "photorealism": 0.9, "speed": 0.5, "typography": 0.7, "ref_image": True, "edit": True},
+    "google/gemini-2.5-flash-image": {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.9, "typography": 0.6, "ref_image": True, "edit": True, "material": 0.75, "lighting": 0.8, "composition": 0.8, "human": 0.7},
+    "google/gemini-3-pro-image": {"category": "image", "fidelity": 0.85, "photorealism": 0.9, "speed": 0.5, "typography": 0.7, "ref_image": True, "edit": True, "material": 0.85, "lighting": 0.9, "composition": 0.9, "human": 0.85},
 }
 
 
@@ -293,42 +295,84 @@ def build_negative_prompt(
 def recommend_model(requirements: Dict[str, Any]) -> Dict[str, Any]:
     """Score available models against the job's capability requirements.
 
-    Weights:
-      product_fidelity  -> fidelity * 0.35
-      photorealism      -> photorealism * 0.25
-      speed             -> speed * 0.20
-      typography        -> typography * 0.20
-      cinematic (video) -> 0.10 (always-on for video jobs)
-      ref_image needed  -> +0.15 (only counts if model supports it)
-      edit needed       -> +0.10 (only counts if model supports edit mode)
-      illustration      -> 0.05 if needed (small bonus)
+    Job-type-aware weights (per user directive PHASE L-2):
+      APPAREL (Style That Belongs / Fabric / Lifestyle):
+        photorealism 0.25 + material 0.20 + lighting 0.15 +
+        human 0.10 + composition 0.10 + fidelity 0.15 + speed 0.05
+        typography = IGNORED (overlay layer adds headline + CTA)
 
-    Returns:
-      recommended: model id
-      why: list[str]
-      alternative: model id
-      scores: dict[model_id, score]
+      EQUIPMENT (Fit First / Geometry / Material):
+        fidelity 0.40 + material 0.25 + photorealism 0.15 +
+        lighting 0.10 + composition 0.10
+        typography = IGNORED
+
+      DESIGNED POSTER (where AI renders the headline + CTA itself):
+        typography 0.40 + composition 0.25 + speed 0.20 +
+        fidelity 0.15
+
+      DEFAULT (no job type):
+        fidelity 0.30 + photorealism 0.25 + speed 0.20 +
+        typography 0.10 + composition 0.15
+
+    ref_image: +0.15 (only counts if model supports it)
+    edit_only: -0.50 (heavily penalised for text-to-image jobs)
     """
     category = requirements.get("category", "image")
+    job_type = requirements.get("job_type", "default")
+    overlay = requirements.get("overlay", True)  # whether deterministic overlay adds text
+
+    # Build weight profile
+    if job_type == "apparel":
+        weights = {
+            "fidelity": 0.15, "photorealism": 0.25, "material": 0.20,
+            "lighting": 0.15, "human": 0.10, "composition": 0.10,
+            "speed": 0.05, "typography": 0.0,
+        }
+    elif job_type == "equipment":
+        weights = {
+            "fidelity": 0.40, "photorealism": 0.15, "material": 0.25,
+            "lighting": 0.10, "human": 0.0, "composition": 0.10,
+            "speed": 0.0, "typography": 0.0,
+        }
+    elif job_type == "poster":
+        weights = {
+            "fidelity": 0.15, "photorealism": 0.0, "material": 0.0,
+            "lighting": 0.0, "human": 0.0, "composition": 0.25,
+            "speed": 0.20, "typography": 0.40,
+        }
+    else:
+        weights = {
+            "fidelity": 0.30, "photorealism": 0.25, "material": 0.0,
+            "lighting": 0.0, "human": 0.0, "composition": 0.15,
+            "speed": 0.20, "typography": 0.10,
+        }
+
     scored = {}
     for mid, caps in _MODEL_CAPABILITIES.items():
         if caps.get("category") != category:
             continue
         score = 0.0
         reasons = []
-        if requirements.get("product_fidelity"):
-            score += caps.get("fidelity", 0.5) * 0.35
-            reasons.append(f"product fidelity (caps.fidelity={caps.get('fidelity', 0.5):.2f})")
-        if requirements.get("photorealism"):
-            score += caps.get("photorealism", 0.5) * 0.25
-            reasons.append(f"photorealism ({caps.get('photorealism', 0.5):.2f})")
-        if requirements.get("speed"):
-            score += caps.get("speed", 0.5) * 0.20
-            reasons.append(f"speed ({caps.get('speed', 0.5):.2f})")
-        if requirements.get("typography"):
-            score += caps.get("typography", 0.3) * 0.20
-            reasons.append(f"typography ({caps.get('typography', 0.3):.2f})")
-        if requirements.get("cinematic"):
+        # Always-on base
+        score += caps.get("fidelity", 0.5) * weights["fidelity"]
+        score += caps.get("photorealism", 0.5) * weights["photorealism"]
+        score += caps.get("material", 0.5) * weights["material"]
+        score += caps.get("lighting", 0.5) * weights["lighting"]
+        score += caps.get("human", 0.5) * weights["human"]
+        score += caps.get("composition", 0.5) * weights["composition"]
+        score += caps.get("speed", 0.5) * weights["speed"]
+        if weights["typography"] > 0:
+            score += caps.get("typography", 0.3) * weights["typography"]
+
+        # Only flag typography dimension when:
+        # - job_type is "poster" (designed, AI renders text) OR
+        # - overlay is explicitly False (no deterministic overlay will be added)
+        if requirements.get("typography") and not overlay and weights["typography"] == 0:
+            # User requested text-rendering but overlay is on — penalise the
+            # 'typography' capability need since the AI won't be expected to render text.
+            pass
+
+        if requirements.get("cinematic") and category == "video":
             score += 0.10
         if requirements.get("illustration"):
             score += 0.05
@@ -381,39 +425,58 @@ def _infer_requirements(
     reference_dna: Optional[dict],
     product_service_item: Optional[dict],
     format_aspect: Optional[str],
+    job_type: Optional[str] = None,
+    overlay: bool = True,
 ) -> Dict[str, Any]:
     """Map a job description to the capabilities required.
 
     Returns a dict that `recommend_model` consumes to score models:
       category : 'image' | 'video'
-      product_fidelity : bool
-      photorealism : bool
-      speed : bool
-      typography : bool
-      illustration : bool
-      cinematic : bool
-      needs_ref_image : bool
-      needs_edit : bool
+      job_type : 'apparel' | 'equipment' | 'poster' | 'default'
+      overlay  : whether the deterministic brand-overlay layer will add
+                 the headline + CTA + logo on top of the AI visual
+      product_fidelity, photorealism, speed, typography, ...
     """
     job_low = (job or "").lower()
     is_video = any(w in job_low for w in (
         "video", "reel", "clip", "motion", "animate",
         "cinematic", "8-second", "8 second",
     ))
+
+    # Auto-detect job_type from product category if not explicit
+    if not job_type:
+        cat = (product_service_item or {}).get("category", "").lower()
+        name = (product_service_item or {}).get("name", "").lower()
+        if any(w in cat + " " + name for w in ("pant", "polo", "shirt", "tee", "apparel", "shoe", "cap", "hat", "umbrella", "hoodie", "jacket")):
+            job_type = "apparel"
+        elif any(w in cat + " " + name for w in ("iron", "wedge", "wood", "driver", "putter", "shaft", "grip", "ball", "club", "bag", "equipment")):
+            job_type = "equipment"
+        elif any(w in job_low for w in ("poster", "flyer", "banner", "infographic", "advert", "logo reveal")):
+            job_type = "poster"
+        else:
+            job_type = "default"
+
+    # When overlay is ON, the AI doesn't need to render text — typography
+    # capability is irrelevant for model selection. The deterministic overlay
+    # adds the real brand headline + CTA + logo afterwards.
+    typography_needed = (
+        any(w in job_low for w in ("text", "headline", "title", "wordmark", "typography"))
+        or any(w in job_low for w in ("logo", "design"))  # only if AI is rendering the logo
+    ) and not overlay
+
     reqs: Dict[str, Any] = {
         "category": "video" if is_video else "image",
+        "job_type": job_type,
+        "overlay": overlay,
         "product_fidelity": bool(product_service_item),
         "photorealism": any(w in job_low for w in (
             "photo", "realistic", "real", "lifestyle",
             "studio", "product shot", "editorial",
-        )),
+        )) or job_type in ("apparel", "equipment"),
         "speed": any(w in job_low for w in (
             "quick", "fast", "social", "story",
         )),
-        "typography": any(w in job_low for w in (
-            "text", "headline", "poster", "typography",
-            "title", "logo", "wordmark",
-        )),
+        "typography": typography_needed,
         "illustration": any(w in job_low for w in (
             "illustrat", "drawing", "cartoon", "sketch",
             "concept art", "art",
