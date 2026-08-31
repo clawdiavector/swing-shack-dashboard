@@ -445,7 +445,9 @@ def search_creative(
     # 1) CURATED — search brand-directory/<brand>/images/
     if "curated" in sources:
         curated_root = _data_root(brand_id) / "images"
+        _LOG.debug(f"curated_root={curated_root} exists={curated_root.exists()}")
         if curated_root.exists():
+            _img_iter_count = 0
             classifications_db = load_classifications(brand_id)
             for img in sorted(curated_root.iterdir()):
                 if not img.is_file():
@@ -455,9 +457,11 @@ def search_creative(
                 # Skip sidecar DNA files
                 if img.name.endswith(".visual-dna.json"):
                     continue
+                _img_iter_count += 1
                 fname = img.name
                 if q_low and q_low not in fname.lower():
                     continue
+                _LOG.debug(f"curated match: {fname}")
                 cls_entry = classifications_db.get(f"curated::{fname}")
                 cls = cls_entry.get("classification") if cls_entry else "curated"
                 if classifications and cls not in classifications:
@@ -532,12 +536,31 @@ def search_creative(
     # Sort by score desc
     out.sort(key=lambda x: -x.get("score", 0))
     out = out[:limit]
+
+    # Build debug stats
+    debug_info = {
+        "data_root_resolved": str(_data_root(brand_id)),
+        "data_root_exists": _data_root(brand_id).exists(),
+        "curated_root": str(_data_root(brand_id) / "images"),
+        "curated_root_exists": (_data_root(brand_id) / "images").exists(),
+        "curated_total_files": (
+            len([f for f in (_data_root(brand_id) / "images").iterdir()
+                 if f.is_file() and f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".heic")])
+            if (_data_root(brand_id) / "images").exists() else 0
+        ),
+        "published_count": len(load_social_history(brand_id)),
+        "generated_count": (
+            len(list((_data_root(brand_id) / "images" / "krea").glob("*.json")))
+            if (_data_root(brand_id) / "images" / "krea").exists() else 0
+        ),
+    }
     return {
         "query": query,
         "brand_id": brand_id,
         "sources_searched": sources,
         "total": len(out),
         "results": out,
+        "debug": debug_info,
     }
 
 
