@@ -493,19 +493,20 @@ def search_creative(
                 stripped = dna_path.name
                 if not stripped.endswith(".visual-dna.json"):
                     continue
-                stripped = stripped[: -len(".visual-dna.json")]  # remove '.visual-dna.json'
-                # Find the LAST remaining dot — that's the boundary between
-                # base filename and original extension (e.g. ".jpg").
-                last_dot = stripped.rfind(".")
-                if last_dot == -1:
-                    _sidecar_q_filter += 1
+                # Strip the trailing ".visual-dna.json" (16 chars).
+                # The dissector embeds the image extension INSIDE the sidecar
+                # filename: "Artboard 1.jpg.visual-dna.json" → orig
+                # "Artboard 1.jpg". So orig_name DOES include the
+                # original extension. Then we strip just the visual-dna
+                # suffix. (LIVE-VERIFIED 2026-08-31 against Railway's
+                # actual sidecar filenames.)
+                orig_name = stripped[: -len(".visual-dna.json")]
+                if not orig_name:
                     continue
-                orig_name = stripped
                 if orig_name in seen_filenames:
                     _sidecar_seen_filter += 1
                     continue  # already added in first pass
-                fname = orig_name
-                if q_low and q_low not in fname.lower():
+                if q_low and q_low not in orig_name.lower():
                     _sidecar_q_filter += 1
                     continue
                 # Read the sidecar for palette / orientation / hints
