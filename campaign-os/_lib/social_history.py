@@ -443,25 +443,25 @@ def search_creative(
     q_low = (query or "").lower().strip()
 
     # 1) CURATED — search brand-directory/<brand>/images/
+    # Fall back to scanning *.visual-dna.json sidecars when no source images
+    # are on disk (live-verified 2026-08-31: bundle ships sidecars only).
     if "curated" in sources:
         curated_root = _data_root(brand_id) / "images"
-        _LOG.debug(f"curated_root={curated_root} exists={curated_root.exists()}")
         if curated_root.exists():
-            _img_iter_count = 0
             classifications_db = load_classifications(brand_id)
+            seen_filenames = set()
+            # First pass: real image files (when present)
             for img in sorted(curated_root.iterdir()):
                 if not img.is_file():
                     continue
                 if img.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp", ".heic"):
                     continue
-                # Skip sidecar DNA files
                 if img.name.endswith(".visual-dna.json"):
                     continue
-                _img_iter_count += 1
+                seen_filenames.add(img.name)
                 fname = img.name
                 if q_low and q_low not in fname.lower():
                     continue
-                _LOG.debug(f"curated match: {fname}")
                 cls_entry = classifications_db.get(f"curated::{fname}")
                 cls = cls_entry.get("classification") if cls_entry else "curated"
                 if classifications and cls not in classifications:
@@ -475,6 +475,51 @@ def search_creative(
                     "match_reason": "curated upload" if not q_low else f"filename contains {q_low!r}",
                     "thumbnail_path": f"brand-directory/{brand_id}/images/{fname}",
                     "media_type": "image",
+                })
+            # Second pass: visual-dna.json sidecars (when real images absent).
+            # Each sidecar's filename hint (e.g. JORDAN_BAG) feeds the query.
+            for dna_path in sorted(curated_root.glob("*.visual-dna.json")):
+                # The sidecar filename is "<image>.<ext>.visual-dna.json"
+                # Strip ".visual-dna.json" then the extension to get the
+                # original image filename.
+                stripped = dna_path.name
+                if not stripped.endswith(".visual-dna.json"):
+                    continue
+                stripped = stripped[: -len(".visual-dna.json")]
+                # Find the last dot — split there to recover base + ext
+                last_dot = stripped.rfind(".")
+                if last_dot == -1:
+                    continue
+                orig_name = stripped[:last_dot] + "." + stripped[last_dot + 1:]
+                if orig_name in seen_filenames:
+                    continue  # already added in first pass
+                fname = orig_name
+                if q_low and q_low not in fname.lower():
+                    continue
+                # Read the sidecar for palette / orientation / hints
+                try:
+                    dna = json.loads(dna_path.read_text())
+                except Exception:
+                    dna = {}
+                palette = dna.get("layer9_palette", {}).get("dominant_colors", [])
+                dominant_hex = palette[0].get("hex", "") if palette else ""
+                orientation = dna.get("layer1_metadata", {}).get("orientation")
+                cls_entry = classifications_db.get(f"curated::{fname}")
+                cls = cls_entry.get("classification") if cls_entry else "curated"
+                if classifications and cls not in classifications:
+                    continue
+                score = _score_curated(q_low, fname, cls) - 0.05  # tiny penalty for sidecar-only
+                out.append({
+                    "source": "curated",
+                    "asset_id": fname,
+                    "score": score,
+                    "classification": cls,
+                    "match_reason": "sidecar-only (image not on disk); palette + composition from .visual-dna.json" if not q_low else f"sidecar filename contains {q_low!r}",
+                    "thumbnail_path": f"brand-directory/{brand_id}/images/{fname}",
+                    "media_type": "image",
+                    "dominant_hex": dominant_hex,
+                    "orientation": orientation,
+                    "sidecar_path": str(dna_path.relative_to(_data_root(brand_id).parent)),
                 })
 
     # 2) PUBLISHED — search persisted social-history records
