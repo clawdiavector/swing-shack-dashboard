@@ -790,8 +790,12 @@ def generate_image(
             aspect_ratio=aspect_ratio,
             timeout_s=timeout_s,
         )
+        # Krea returns the job_id in 3 places — top-level, content[0].text
+        # JSON, and structuredContent. Try all three. Verified 2026-08-31.
+        sc = kresp.get("structuredContent") or {}
         job_id = (
             kresp.get("job_id")
+            or sc.get("job_id")
             or kresp.get("job", {}).get("job_id")
             or ""
         )
@@ -891,8 +895,10 @@ def generate_image(
                     aspect_ratio=size.replace("x", ":"),
                     timeout_s=timeout_s,
                 )
+                _sc = _kresp.get("structuredContent") or {}
                 _job_id = (
                     _kresp.get("job_id")
+                    or _sc.get("job_id")
                     or _kresp.get("job", {}).get("job_id")
                     or ""
                 )
