@@ -50,21 +50,34 @@ _LOG = logging.getLogger("campaign_os.social_history")
 # ── Path resolution ─────────────────────────────────────────────────────
 def _data_root(brand_id: str) -> Path:
     """Resolve the canonical social-history root for a brand.
-    Priority: DATA_DIR env var → /data/campaign-os → bundled repo."""
-    candidates = [
-        Path(os.environ.get("DATA_DIR", "/data/campaign-os")),
+
+    Priority:
+      1. BUNDLED_DATA_DIR env var (set by app.py from REPO_ROOT/data) — bundled repo
+      2. DATA_DIR env var (Railway volume) — runtime-persisted
+      3. Hard-coded local dev path
+
+    The function returns the FIRST existing path that has the brand directory.
+    Falls back to writing to DATA_DIR so new files land on the persistent volume.
+    """
+    bundled = os.environ.get("BUNDLED_DATA_DIR")
+    runtime = os.environ.get("DATA_DIR") or "/data/campaign-os"
+    candidates = []
+    if bundled:
+        candidates.append(Path(bundled))
+    candidates.extend([
         Path("/data/campaign-os"),
+        Path(runtime),
         Path(
             "/Users/fivefriday/.openclaw-instance2/workspace/"
             "swing-shack-dashboard/data"
         ),
-    ]
+    ])
     for c in candidates:
         brand_dir = c / "brand-directory" / brand_id
         if brand_dir.parent.exists():
             return brand_dir
-    # Fallback — last candidate wins
-    return candidates[-1] / "brand-directory" / brand_id
+    # Fallback — write to runtime DATA_DIR
+    return Path(runtime) / "brand-directory" / brand_id
 
 
 def _social_dir(brand_id: str) -> Path:
