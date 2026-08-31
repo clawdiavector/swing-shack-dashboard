@@ -516,19 +516,19 @@ def search_creative(
                 palette = dna.get("layer9_palette", {}).get("dominant_colors", [])
                 dominant_hex = palette[0].get("hex", "") if palette else ""
                 orientation = dna.get("layer1_metadata", {}).get("orientation")
-                cls_entry = classifications_db.get(f"curated::{fname}")
+                cls_entry = classifications_db.get(f"curated::{orig_name}")
                 cls = cls_entry.get("classification") if cls_entry else "curated"
                 if classifications and cls not in classifications:
                     continue
-                score = _score_curated(q_low, fname, cls) - 0.05  # tiny penalty for sidecar-only
+                score = _score_curated(q_low, orig_name, cls) - 0.05  # tiny penalty for sidecar-only
                 _sidecar_matched += 1
                 out.append({
                     "source": "curated",
-                    "asset_id": fname,
+                    "asset_id": orig_name,
                     "score": score,
                     "classification": cls,
                     "match_reason": "sidecar-only (image not on disk); palette + composition from .visual-dna.json" if not q_low else f"sidecar filename contains {q_low!r}",
-                    "thumbnail_path": f"brand-directory/{brand_id}/images/{fname}",
+                    "thumbnail_path": f"brand-directory/{brand_id}/images/{orig_name}",
                     "media_type": "image",
                     "dominant_hex": dominant_hex,
                     "orientation": orientation,
