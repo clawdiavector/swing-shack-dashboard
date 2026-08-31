@@ -755,6 +755,7 @@ def get_calendar_view(
 
 def detect_conflicts(brand_id: str, start: str, end: str, items: list, density: dict) -> list:
     """Surface useful planning signals per user directive #21."""
+    today = datetime.utcnow().date()  # computed once; used by time-aware rules
     conflicts = []
 
     # 1) NO HUMAN CONTENT THIS WEEK
@@ -906,7 +907,6 @@ def detect_conflicts(brand_id: str, start: str, end: str, items: list, density: 
             })
 
     # 7) CONTENT NEEDS CAPTURE IN 3 DAYS (HUMAN lane)
-    today = datetime.utcnow().date()
     for item in items:
         if item.get("lane") != "human":
             continue

@@ -353,12 +353,13 @@ async function loadConnectionStatus() {
   try {
     const postiz = await api('postiz/status');
     const pill = document.getElementById('mw-postiz-pill');
-    if (postiz.configured) {
+    const hasKey = postiz.api_key_present || postiz.oauth_token_brands?.length > 0;
+    if (postiz.ok && hasKey) {
       pill.className = 'mw-conn-pill ok';
-      pill.textContent = `Postiz: connected (${postiz.integration_count || 0} channels)`;
+      pill.textContent = `Postiz: connected${postiz.oauth_token_brands?.length ? ` (${postiz.oauth_token_brands.length} OAuth brands)` : ' (API key)'}`;
     } else {
       pill.className = 'mw-conn-pill bad';
-      pill.textContent = 'Postiz: not connected';
+      pill.textContent = postiz.api_key_present ? 'Postiz: API key only (no OAuth)' : 'Postiz: not connected';
     }
   } catch (e) {
     document.getElementById('mw-postiz-pill').textContent = 'Postiz: error';
@@ -366,9 +367,9 @@ async function loadConnectionStatus() {
   try {
     const krea = await api('krea/status');
     const pill = document.getElementById('mw-krea-pill');
-    if (krea.configured || krea.connected) {
+    if (krea.connected || krea.ok) {
       pill.className = 'mw-conn-pill ok';
-      pill.textContent = `Krea: connected (${krea.model_count || 0} models)`;
+      pill.textContent = `Krea: connected (${krea.base_url ? krea.base_url.replace('https://', '') : ''})`;
     } else {
       pill.className = 'mw-conn-pill bad';
       pill.textContent = 'Krea: not connected';
