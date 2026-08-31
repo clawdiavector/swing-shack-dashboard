@@ -485,17 +485,19 @@ def search_creative(
             for dna_path in sorted(curated_root.glob("*.visual-dna.json")):
                 _sidecar_count += 1
                 # The sidecar filename is "<image>.<ext>.visual-dna.json"
-                # Strip ".visual-dna.json" then the extension to get the
-                # original image filename.
+                # Strip ".visual-dna.json" (18 chars) then split on the
+                # last remaining dot to recover base + ext.
                 stripped = dna_path.name
                 if not stripped.endswith(".visual-dna.json"):
                     continue
-                stripped = stripped[: -len(".visual-dna.json")]
-                # Find the last dot — split there to recover base + ext
+                stripped = stripped[: -len(".visual-dna.json")]  # remove '.visual-dna.json'
+                # Find the LAST remaining dot — that's the boundary between
+                # base filename and original extension (e.g. ".jpg").
                 last_dot = stripped.rfind(".")
                 if last_dot == -1:
+                    _sidecar_q_filter += 1
                     continue
-                orig_name = stripped[:last_dot] + "." + stripped[last_dot + 1:]
+                orig_name = stripped
                 if orig_name in seen_filenames:
                     _sidecar_seen_filter += 1
                     continue  # already added in first pass
