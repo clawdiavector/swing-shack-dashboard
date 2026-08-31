@@ -3072,6 +3072,223 @@ def lanes_queue_for_postiz():
 # ── Existing social_ingest below this line (added earlier in session) ──
 
 
+# ── PHASE L-1 endpoints (Postiz / Social split) ──────────────────────
+@app.route('/api/connection/status', methods=['GET'])
+def connection_status():
+    """GET /api/connection/status — UI-ready connection status.
+
+    Query params:
+      brand_id: str? — focus on a single brand (default: all)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = request.args.get("brand_id")
+    try:
+        from _lib.connection_status import get_connection_status
+        status = get_connection_status(brand_id=brand_id)
+        return jsonify({"ok": True, **status}), 200
+    except Exception as e:
+        _app_log.exception("connection_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/connection/oauth-init-url', methods=['GET'])
+def connection_oauth_init_url():
+    """GET /api/connection/oauth-init-url?brand_id=stick&channel=instagram
+
+    Returns the Postiz OAuth init URL the UI should redirect to.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = request.args.get("brand_id", "")
+    channel = request.args.get("channel", "instagram")
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    try:
+        from _lib.connection_status import oauth_init_url
+        url = oauth_init_url(brand_id, channel)
+        if not url:
+            return jsonify({"ok": False, "error": "Postiz OAuth client_id not configured"}), 400
+        return jsonify({"ok": True, "url": url, "brand_id": brand_id, "channel": channel}), 200
+    except Exception as e:
+        _app_log.exception("connection_oauth_init_url failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/connection/remove-oauth', methods=['POST'])
+def connection_remove_oauth():
+    """POST /api/connection/remove-oauth — disconnect a brand channel."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id")
+    channel = body.get("channel")
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    try:
+        from _lib.connection_status import remove_oauth_connection
+        ok = remove_oauth_connection(brand_id, channel)
+        return jsonify({"ok": ok}), 200 if ok else 404
+    except Exception as e:
+        _app_log.exception("connection_remove_oauth failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── PHASE L-6 endpoints (Smart stock importer) ──────────────────────
+@app.route('/api/lanes/stock/smart-preview', methods=['POST'])
+def lanes_stock_smart_preview():
+    """POST /api/lanes/stock/smart-preview — recognise canonical format."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("store_brand") or "stick").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content required"}), 400
+    try:
+        from _lib.stock_importer import preview_smart_import
+        result = preview_smart_import(
+            csv_content,
+            store_brand=brand_id,
+            default_product_brand=body.get("default_product_brand"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_smart_preview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/smart-commit', methods=['POST'])
+def lanes_stock_smart_commit():
+    """POST /api/lanes/stock/smart-commit — commit smart import."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("store_brand") or "stick").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content required"}), 400
+    try:
+        from _lib.stock_importer import commit_smart_import
+        result = commit_smart_import(
+            csv_content,
+            store_brand=brand_id,
+            default_product_brand=body.get("default_product_brand"),
+            actor=body.get("actor", "christelle"),
+            mark_as_demo=body.get("mark_as_demo", False),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_smart_commit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/clear-demo-data', methods=['POST'])
+def lanes_clear_demo_data():
+    """POST /api/lanes/clear-demo-data — preview + clear test data."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "stick").strip()
+    confirm = bool(body.get("confirm"))
+    try:
+        from _lib.stock_importer import list_demo_data, clear_demo_data
+        if not confirm:
+            # Preview only
+            preview = list_demo_data(brand_id)
+            return jsonify({
+                "ok": True,
+                "preview": True,
+                "demo_product_count": preview["demo_product_count"],
+                "demo_content_count": preview["demo_content_count"],
+                "all_products": preview["all_products"],
+                "all_content_items": preview["all_content_items"],
+                "products_to_remove": [p.get("name") for p in preview["demo_products"]],
+                "items_to_remove": [it.get("id") for it in preview["demo_content_items"]],
+                "message": "Pass confirm=true to clear",
+            }), 200
+        else:
+            result = clear_demo_data(brand_id, confirm=True)
+            return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_clear_demo_data failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── PHASE L-7 endpoints (Brand bible) ──────────────────────────────
+@app.route('/api/bible/get', methods=['GET'])
+def bible_get():
+    """GET /api/bible/get?brand_id=stick — full structured bible."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = request.args.get("brand_id", "stick").strip()
+    try:
+        from _lib.brand_bible import get_bible, get_bible_meta
+        bible = get_bible(brand_id)
+        if not bible:
+            return jsonify({"ok": True, "available": False, "brand_id": brand_id, "meta": get_bible_meta(brand_id)}), 200
+        return jsonify({"ok": True, "available": True, "brand_id": brand_id, "bible": bible, "meta": get_bible_meta(brand_id)}), 200
+    except Exception as e:
+        _app_log.exception("bible_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/bible/upload', methods=['POST'])
+def bible_upload():
+    """POST /api/bible/upload — upload structured JSON, markdown, or freeform."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "stick").strip()
+    fmt = body.get("format", "structured")
+    try:
+        from _lib.brand_bible import save_bible, get_bible_meta
+        bible = save_bible(brand_id, body, format=fmt)
+        return jsonify({"ok": True, "bible": bible, "meta": get_bible_meta(brand_id)}), 200
+    except Exception as e:
+        _app_log.exception("bible_upload failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/bible/retrieve-for-job', methods=['POST'])
+def bible_retrieve_for_job():
+    """POST /api/bible/retrieve-for-job — only relevant bible fields for a job."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "stick").strip()
+    try:
+        from _lib.brand_bible import retrieve_for_job
+        result = retrieve_for_job(
+            brand_id,
+            lane=body.get("lane", "product"),
+            job_type=body.get("job_type", "apparel"),
+            product_category=body.get("product_category", ""),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("bible_retrieve_for_job failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── PHASE L-2 endpoint: with job_type ──────────────────────────────
+# (the existing /api/creative/compile and /api/creative/from-reference-and-product
+# now accept job_type in body; creative_director.py is updated)
+
+
+
 @app.route('/api/social/ingest', methods=['POST'])
 def social_ingest():
     """POST /api/social/ingest — pull fresh social-history records from Meta.

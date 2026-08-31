@@ -42,6 +42,7 @@ label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;le
 .mw-conn-pill{font-size:11px;padding:4px 10px;border-radius:10px;background:var(--bg-3);color:var(--tx-2);border:1px solid var(--bd)}
 .mw-conn-pill.ok{color:var(--grn);border-color:var(--grn)}
 .mw-conn-pill.bad{color:var(--red);border-color:var(--red)}
+.mw-conn-pill.amber{color:var(--org);border-color:var(--org);background:rgba(245,158,11,.08)}
 
 .mw-main{display:grid;grid-template-columns:1fr 360px;min-height:0}
 .mw-canvas{padding:24px;overflow:auto;min-width:0}
@@ -218,6 +219,7 @@ label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;le
     <button data-view="stock">Stock</button>
     <button data-view="products">Products</button>
     <button data-view="references">References</button>
+    <button data-view="bible">Brand Bible</button>
     <button data-view="morning">Morning Brief</button>
   </nav>
   <div class="mw-spacer"></div>
@@ -281,6 +283,9 @@ label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;le
 
     <!-- Morning brief view -->
     <div id="view-morning" style="display:none"></div>
+
+    <!-- Brand Bible view -->
+    <div id="view-bible" style="display:none"></div>
   </section>
 
   <!-- Right side panel -->
@@ -351,16 +356,28 @@ async function init() {
 // ─── Connection pills ──────────────────────────────────────────────────
 async function loadConnectionStatus() {
   try {
-    const postiz = await api('postiz/status');
+    const status = await api('connection/status');
     const pill = document.getElementById('mw-postiz-pill');
-    const hasKey = postiz.api_key_present || postiz.oauth_token_brands?.length > 0;
-    if (postiz.ok && hasKey) {
-      pill.className = 'mw-conn-pill ok';
-      pill.textContent = `Postiz: connected${postiz.oauth_token_brands?.length ? ` (${postiz.oauth_token_brands.length} OAuth brands)` : ' (API key)'}`;
+    const apiState = status.postiz_api?.state || 'missing';
+    const pubOverall = status.publishing_overall;
+    let pillClass, pillText;
+    if (apiState === 'connected' && pubOverall === 'ready') {
+      pillClass = 'mw-conn-pill ok';
+      pillText = `Postiz: ready`;
+    } else if (apiState === 'connected' && pubOverall === 'needs_oauth') {
+      pillClass = 'mw-conn-pill amber';
+      pillText = 'Postiz: needs connection';
+    } else if (apiState === 'needs_setup') {
+      pillClass = 'mw-conn-pill amber';
+      pillText = 'Postiz: partial config';
     } else {
-      pill.className = 'mw-conn-pill bad';
-      pill.textContent = postiz.api_key_present ? 'Postiz: API key only (no OAuth)' : 'Postiz: not connected';
+      pillClass = 'mw-conn-pill bad';
+      pillText = 'Postiz: not connected';
     }
+    pill.className = pillClass;
+    pill.textContent = pillText;
+    pill.onclick = () => openConnectionPanel(status);
+    pill.style.cursor = 'pointer';
   } catch (e) {
     document.getElementById('mw-postiz-pill').textContent = 'Postiz: error';
   }
@@ -662,18 +679,65 @@ async function renderPanel(item) {
     ` : ''}
 
     <div class="mw-panel-section">
-      <h3>Actions</h3>
+      <h3>Status — ${item.status === 'approved' ? 'APPROVED · ready to queue' : item.status === 'queued' ? 'QUEUED in Postiz' : item.status === 'published' ? 'PUBLISHED' : item.status.replace('_', ' ')}</h3>
       <div class="mw-panel-actions">
+        ${item.status === 'draft' || item.status === 'needs_asset' || item.status === 'generating' || item.status === 'idea' ? `<button onclick="changeItemStatus('${item.id}','needs_approval')" class="primary" ${item.creative_url ? '' : 'disabled title="Generate creative first"'}>Accept Creative</button>` : ''}
+        ${item.status === 'needs_approval' ? `<button onclick="changeItemStatus('${item.id}','approved')" class="primary">Approve Post</button>` : ''}
+        ${item.status === 'approved' ? `<button onclick="queueItem('${item.id}')" class="primary">Queue to Postiz</button>` : ''}
+        ${item.status === 'planned' ? `<button onclick="changeItemStatus('${item.id}','needs_approval')" ${item.creative_url ? '' : 'disabled title="Generate creative first"'}>Accept Creative</button>` : ''}
         <button onclick="changeItemStatus('${item.id}','planned')" ${item.status === 'planned' ? 'disabled' : ''}>Mark Planned</button>
-        <button onclick="changeItemStatus('${item.id}','approved')" class="primary" ${item.status === 'approved' ? 'disabled' : ''}>Approve</button>
-        <button onclick="queueItem('${item.id}')" ${item.status === 'queued' ? 'disabled' : ''}>Queue Postiz</button>
         <button onclick="duplicateItem('${item.id}')">Duplicate</button>
         <button onclick="deleteItem('${item.id}')" class="danger">Delete</button>
       </div>
     </div>
+    <div class="mw-panel-section" id="mw-panel-refs">
+      <h3>References used</h3>
+      <div style="font-size:11px;color:var(--tx-3)">Loading…</div>
+    </div>
   `;
-  // Load visual
+  // Load visual + references
   loadItemVisual(item);
+  loadItemReferences(item);
+}
+
+async function loadItemReferences(item) {
+  const wrap = document.getElementById('mw-panel-refs');
+  if (!wrap) return;
+  try {
+    // Search curated + published for this item's product or topic
+    const query = item.product_name || item.headline || item.brief || item.lane;
+    const r = await api('creative/search', {method: 'POST', body: {
+      brand_id: item.brand_id || MW.brand,
+      query: query.split(' ')[0] || '',
+      sources: ['curated', 'published'],
+      limit: 4,
+    }});
+    const refs = (r.results || []).slice(0, 4);
+    if (refs.length === 0) {
+      wrap.innerHTML = `<div style="font-size:11px;color:var(--tx-3)">No matching references yet.</div>`;
+      return;
+    }
+    wrap.innerHTML = refs.map(r => {
+      const isCurated = r.source === 'curated';
+      const color = isCurated ? 'var(--ac)' : 'var(--blu)';
+      const label = isCurated ? 'CURATED' : 'PUBLISHED';
+      const platform = r.platform || (isCurated ? 'Uploaded' : 'social');
+      const date = r.publish_date || r.tagged_date || '';
+      return `
+        <div style="padding:8px 10px;background:var(--bg-3);border-radius:var(--r-s);margin-bottom:6px;border-left:3px solid ${color}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:9px;font-weight:700;letter-spacing:.05em;color:${color};padding:2px 6px;background:var(--bg-4);border-radius:3px">${label}</span>
+            <span style="font-size:10px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em">${escapeHtml(platform)}</span>
+            ${date ? `<span style="font-size:10px;color:var(--tx-3)">· ${escapeHtml(String(date).slice(0, 10))}</span>` : ''}
+          </div>
+          <div style="font-size:12px;font-weight:600;color:var(--tx)">${escapeHtml(r.asset_id || r.source_id || '').slice(0, 50)}</div>
+          <div style="font-size:11px;color:var(--tx-3);margin-top:2px;font-style:italic">${escapeHtml(r.match_reason || '').slice(0, 80)}</div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    wrap.innerHTML = `<div style="font-size:11px;color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
 }
 
 async function loadItemVisual(item) {
@@ -1100,6 +1164,7 @@ function setupNavigation() {
       if (view === 'stock') renderStockView();
       if (view === 'products') renderProductsView();
       if (view === 'references') renderReferencesView();
+      if (view === 'bible') renderBibleView();
       if (view === 'morning') renderMorningBrief();
     });
   });
@@ -1219,38 +1284,140 @@ function renderStockRows(products) {
 }
 
 // ─── Stock upload modal ────────────────────────────────────────────────
-function openStockUpload() {
+function openConnectionPanel(status) {
   const modal = document.createElement('div');
   modal.className = 'mw-modal-backdrop';
+  const apiState = status.postiz_api?.state;
+  const pub = status.publishing || {};
+  const brands = status.brands || [];
+  const channels = ['instagram', 'facebook', 'tiktok', 'linkedin'];
   modal.innerHTML = `
     <div class="mw-modal" onclick="event.stopPropagation()" style="max-width:760px">
       <div class="mw-modal-head">
-        <h2>Upload stock — ${escapeHtml(MW.brand)}</h2>
+        <h2>Connection status</h2>
         <button class="mw-modal-close" onclick="this.closest('.mw-modal-backdrop').remove()">×</button>
       </div>
-      <div class="mw-modal-body" id="upload-step-body">
-        <div class="mw-stepper">
-          <div class="mw-stepper-step active" data-step="1">1. Upload</div>
-          <div class="mw-stepper-step" data-step="2">2. Map columns</div>
-          <div class="mw-stepper-step" data-step="3">3. Preview</div>
-          <div class="mw-stepper-step" data-step="4">4. Confirm</div>
+      <div class="mw-modal-body">
+        <div style="padding:14px;border-radius:var(--r-s);margin-bottom:14px;${apiState === 'connected' ? 'border:1px solid var(--grn);background:rgba(16,185,129,.08)' : 'border:1px solid var(--org);background:rgba(245,158,11,.08)'}">
+          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Postiz API</div>
+          <div style="font-size:18px;font-weight:700;color:${apiState === 'connected' ? 'var(--grn)' : 'var(--org)'}">${status.postiz_api?.label || 'Unknown'}</div>
+          <div style="font-size:11px;color:var(--tx-3);margin-top:4px">${apiState === 'connected' ? 'API key + OAuth client configured.' : 'API key or OAuth client missing.'}</div>
         </div>
-        <div id="upload-step-content">
-          <label>Choose CSV file</label>
-          <input type="file" id="csv-file" accept=".csv,.tsv,.txt">
-          <div style="font-size:11px;color:var(--tx-3);margin-top:6px">Or paste CSV below.</div>
-          <label style="margin-top:14px">Paste CSV</label>
-          <textarea id="csv-paste" rows="8" placeholder="SKU,Item Name,Brand,Category,Price,Qty,Size..."></textarea>
-        </div>
+
+        <h3 style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tx-3);margin-bottom:10px;font-weight:700">Social Publishing</h3>
+
+        <div style="font-size:12px;color:var(--tx-3);margin-bottom:14px">Each brand needs its Instagram + Facebook OAuth-connected via Postiz before you can publish.</div>
+
+        ${brands.length === 0 ? '<div style="color:var(--tx-3);font-size:12px">No brands found.</div>' : ''}
+
+        ${brands.map(b => {
+          const bch = pub[b] || {};
+          return `
+            <div style="border:1px solid var(--bd);border-radius:var(--r-s);padding:14px;margin-bottom:12px">
+              <div style="font-weight:700;font-size:14px;margin-bottom:10px;text-transform:capitalize">${escapeHtml(b)}</div>
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                ${channels.map(c => {
+                  const info = bch[c] || {state: 'needs_oauth'};
+                  const stateColor = info.state === 'ready' ? 'var(--grn)' : info.state === 'missing_api' ? 'var(--red)' : 'var(--org)';
+                  const stateLabel = info.state === 'ready' ? 'Connected' : info.state === 'missing_api' ? 'Needs Postiz API' : 'Needs OAuth';
+                  return `
+                    <div style="padding:10px;background:var(--bg-3);border-radius:var(--r-s);border-left:3px solid ${stateColor}">
+                      <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                          <div style="font-size:12px;font-weight:600">${escapeHtml(c)}</div>
+                          <div style="font-size:11px;color:${stateColor};font-weight:600;margin-top:2px">${stateLabel}</div>
+                          ${info.account_label ? `<div style="font-size:10px;color:var(--tx-3);margin-top:2px">${escapeHtml(info.account_label)}</div>` : ''}
+                        </div>
+                        <button onclick="connectChannel('${escapeHtml(b)}','${c}')" style="font-size:11px;padding:5px 10px" ${apiState !== 'connected' ? 'disabled' : ''}>
+                          ${info.state === 'ready' ? 'Reconnect' : 'Connect'}
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
       <div class="mw-modal-foot">
-        <button onclick="this.closest('.mw-modal-backdrop').remove()">Cancel</button>
-        <button class="primary" id="upload-next-btn">Next →</button>
+        <button onclick="this.closest('.mw-modal-backdrop').remove()">Close</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function connectChannel(brandId, channel) {
+  try {
+    const r = await api(`connection/oauth-init-url?brand_id=${encodeURIComponent(brandId)}&channel=${encodeURIComponent(channel)}`);
+    if (r.ok && r.url) {
+      window.open(r.url, '_blank');
+      toast(`Opening Postiz OAuth for ${brandId}/${channel}…`, 'info');
+    } else {
+      toast(r.error || 'Could not build OAuth URL', 'error');
+    }
+  } catch (e) {
+    toast('OAuth init failed: ' + e.message, 'error');
+  }
+}
+
+function openStockUpload() {
+  const modal = document.createElement('div');
+  modal.className = 'mw-modal-backdrop';
+  modal.innerHTML = `
+    <div class="mw-modal" onclick="event.stopPropagation()" style="max-width:880px">
+      <div class="mw-modal-head">
+        <h2>Upload stock</h2>
+        <button class="mw-modal-close" onclick="this.closest('.mw-modal-backdrop').remove()">×</button>
+      </div>
+      <div class="mw-modal-body" id="upload-step-body">
+        <div class="mw-stepper">
+          <div class="mw-stepper-step active" data-step="1">1. Paste</div>
+          <div class="mw-stepper-step" data-step="2">2. Recognise</div>
+          <div class="mw-stepper-step" data-step="3">3. Preview</div>
+          <div class="mw-stepper-step" data-step="4">4. Confirm</div>
+        </div>
+        <div id="upload-step-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <label>Importing into (store)</label>
+              <select id="upload-store-brand">
+                <option value="stick">stick</option>
+                <option value="swing-shack">swing-shack</option>
+                <option value="bag-drop">bag-drop</option>
+                <option value="takomo">takomo</option>
+              </select>
+            </div>
+            <div>
+              <label>Default product brand (maker)</label>
+              <input id="upload-product-brand" placeholder="e.g. Psycho Bunny, Takomo, Vice">
+              <div style="font-size:11px;color:var(--tx-3);margin-top:4px">Applied to every row unless the source has a Brand column.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+            <label style="margin:0">Paste CSV / TSV</label>
+            <input type="file" id="csv-file" accept=".csv,.tsv,.txt" style="flex:1;font-size:11px">
+          </div>
+          <textarea id="csv-paste" rows="10" placeholder="Location,Product Name,Variant Choices,SKU,Movement Type,Quantity,Alert Level
+,Mens Classic Polo,7;Antique Taupe,ANT7,,3,
+..."></textarea>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;text-transform:none;letter-spacing:normal;color:var(--tx-2);font-weight:400">
+            <input type="checkbox" id="upload-mark-demo" style="width:auto"> Mark these as test/demo data (cleared with CLEAR TEST DATA)
+          </label>
+        </div>
+      </div>
+      <div class="mw-modal-foot">
+        <button onclick="this.closest('.mw-modal-backdrop').remove()">Cancel</button>
+        <button class="primary" id="upload-next-btn">Recognise format →</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  // Default the store brand
+  document.getElementById('upload-store-brand').value = MW.brand;
   document.getElementById('csv-file').addEventListener('change', e => {
     const f = e.target.files[0];
     if (!f) return;
@@ -1266,15 +1433,134 @@ let _uploadPreview = null;
 async function stockUploadNext() {
   const csv = document.getElementById('csv-paste').value.trim();
   if (!csv) { toast('Paste CSV first', 'error'); return; }
+  const store = document.getElementById('upload-store-brand').value;
+  const productBrand = document.getElementById('upload-product-brand').value.trim() || null;
   try {
-    const preview = await api('lanes/stock/preview', {method: 'POST', body: {brand_id: MW.brand, csv_content: csv}});
+    const preview = await api('lanes/stock/smart-preview', {method: 'POST', body: {
+      brand_id: store, csv_content: csv, default_product_brand: productBrand,
+    }});
     _uploadPreview = preview;
-    renderUploadStep(2, preview);
+    renderSmartUploadStep(2, preview);
     document.querySelector('[data-step="1"]').classList.remove('active');
     document.querySelector('[data-step="1"]').classList.add('done');
     document.querySelector('[data-step="2"]').classList.add('active');
   } catch (e) {
-    toast('Preview failed: ' + e.message, 'error');
+    toast('Recognition failed: ' + e.message, 'error');
+  }
+}
+
+function renderSmartUploadStep(step, data) {
+  const content = document.getElementById('upload-step-content');
+  if (step === 2) {
+    // Show the recognition result + auto-mapping
+    const recognised = data.format_recognised;
+    const cols = data.matched_columns || {};
+    const fams = data.product_families || {};
+    const famList = Object.entries(fams);
+    content.innerHTML = `
+      <div style="padding:14px;border:1px solid ${recognised ? 'var(--grn)' : 'var(--org)'};border-radius:var(--r-s);background:${recognised ? 'rgba(16,185,129,.08)' : 'rgba(245,158,11,.08)'};margin-bottom:14px">
+        <div style="font-size:13px;font-weight:700;color:${recognised ? 'var(--grn)' : 'var(--org)'}">
+          ${recognised ? '✓ We recognise this stock format' : '⚠ Generic CSV — auto-mapping by header synonyms'}
+        </div>
+        <div style="font-size:12px;color:var(--tx-2);margin-top:4px">${escapeHtml(data.format_name)}</div>
+        <div style="font-size:11px;color:var(--tx-3);margin-top:6px">${data.rows_with_data} of ${data.total_rows} rows have data</div>
+      </div>
+
+      <label>Auto-detected columns</label>
+      <div style="border:1px solid var(--bd);border-radius:var(--r-s);overflow:hidden;margin-bottom:14px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead style="background:var(--bg-3)">
+            <tr><th style="padding:6px 10px;text-align:left">Source column</th><th style="padding:6px 10px;text-align:left">Example</th><th style="padding:6px 10px;text-align:left">Mapped to</th></tr>
+          </thead>
+          <tbody>
+            ${Object.entries(cols).map(([logical, src]) => {
+              const example = (data.sample_rows?.[0]?.raw?.[src] || data.sample_rows?.[0]?.raw?.[Object.keys(data.sample_rows[0].raw).find(k => k === src)] || '—');
+              return `<tr style="border-top:1px solid var(--bd)"><td style="padding:6px 10px;color:var(--tx-3)">${escapeHtml(src)}</td><td style="padding:6px 10px;font-family:monospace;font-size:11px">${escapeHtml(String(example).slice(0, 40))}</td><td style="padding:6px 10px;font-weight:600;color:var(--ac)">${escapeHtml(logical)}</td></tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${data.optional_absent?.length ? `
+        <div style="padding:10px 14px;background:var(--bg-3);border-radius:var(--r-s);margin-bottom:14px;font-size:12px">
+          <div style="color:var(--tx-3);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:4px">Optional data not in source</div>
+          ${data.optional_absent.map(f => `<span style="display:inline-block;background:var(--bg-4);padding:2px 8px;border-radius:10px;margin:2px;font-size:11px;color:var(--tx-3)">${escapeHtml(f)}</span>`).join('')}
+          <div style="font-size:11px;color:var(--tx-3);margin-top:6px">These can be enriched later. Import does not require them.</div>
+        </div>
+      ` : ''}
+
+      <details style="margin-bottom:14px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--tx-3);font-weight:600">Advanced column mapping (only if you need to override)</summary>
+        <div id="advanced-mapping-grid" style="margin-top:10px"></div>
+      </details>
+
+      ${data.warnings?.length ? `<div style="font-size:11px;color:var(--org);margin-top:6px">${data.warnings.map(w => '⚠ ' + escapeHtml(w)).join('<br>')}</div>` : ''}
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--bd)">
+        <div style="font-size:11px;color:var(--tx-3)">${famList.length} product families detected</div>
+        <div style="font-size:11px;color:var(--tx-3)">${famList.slice(0, 4).map(([f]) => f).join(' · ')}${famList.length > 4 ? '…' : ''}</div>
+      </div>
+    `;
+    // Render advanced mapping grid (collapsed by default)
+    const advanced = document.getElementById('advanced-mapping-grid');
+    const allFields = ['sku', 'name', 'brand', 'category', 'price', 'sale_price', 'stock_quantity', 'size', 'color', 'image_url', 'supplier'];
+    const headerRow = data.header_row || [];
+    advanced.innerHTML = allFields.map(f => `
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:6px">
+        <div style="padding:6px;background:var(--bg-3);font-size:11px;font-weight:600;border-radius:3px">${f}</div>
+        <select data-field="${f}" style="background:var(--bg-3);border:1px solid var(--bd);color:var(--tx);padding:5px 8px;border-radius:3px;font-size:11px">
+          <option value="">— skip —</option>
+          ${headerRow.map(h => `<option value="${escapeHtml(h)}" ${cols[f] === h || cols[f.replace('_', ' ')] === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
+        </select>
+      </div>
+    `).join('');
+  } else if (step === 3) {
+    content.innerHTML = `
+      <div style="padding:14px;border:1px solid var(--bd);border-radius:var(--r-s);background:var(--bg-3);margin-bottom:14px">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px">Preview transformed</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div><div style="font-size:24px;font-weight:700;color:var(--ac)">${data.rows_with_data}</div><div style="font-size:11px;color:var(--tx-3)">Products</div></div>
+          <div><div style="font-size:24px;font-weight:700;color:var(--blu)">${Object.keys(data.product_families || {}).length}</div><div style="font-size:11px;color:var(--tx-3)">Families</div></div>
+          <div><div style="font-size:24px;font-weight:700">${data.total_rows}</div><div style="font-size:11px;color:var(--tx-3)">Total rows</div></div>
+        </div>
+      </div>
+
+      <label>3 example transformed rows</label>
+      ${(data.sample_rows || []).map((r, idx) => `
+        <div style="border:1px solid var(--bd);border-radius:var(--r-s);padding:12px;margin-bottom:10px;background:var(--bg-3)">
+          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;font-weight:600">Example ${idx + 1}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:12px">
+            <div>
+              <div style="color:var(--tx-3);font-size:10px;text-transform:uppercase;font-weight:600;margin-bottom:2px">Raw</div>
+              <div><strong>Product Name:</strong> ${escapeHtml(r.raw['Product Name'] || '—')}</div>
+              <div><strong>Variant Choices:</strong> ${escapeHtml(r.raw['Variant Choices'] || '—')}</div>
+              <div><strong>SKU:</strong> ${escapeHtml(r.raw['SKU'] || '—')}</div>
+              <div><strong>Quantity:</strong> ${escapeHtml(r.raw['Quantity'] || '—')}</div>
+              <div><strong>Alert Level:</strong> ${escapeHtml(r.raw['Alert Level'] || '—')}</div>
+            </div>
+            <div>
+              <div style="color:var(--tx-3);font-size:10px;text-transform:uppercase;font-weight:600;margin-bottom:2px">Mapped</div>
+              <div><strong>Product:</strong> ${escapeHtml(r.mapped.name || '—')}</div>
+              <div><strong>Product brand:</strong> ${escapeHtml(r.mapped.product_brand || '—')}</div>
+              <div><strong>Family:</strong> ${escapeHtml(r.mapped.product_family || '—')}</div>
+              <div><strong>SKU:</strong> ${escapeHtml(r.mapped.sku || '—')}</div>
+              <div><strong>Variant:</strong> colour=${escapeHtml(r.mapped.colour || '—')} · size=${escapeHtml(r.mapped.size || '—')}</div>
+              <div><strong>Stock:</strong> ${r.mapped.stock_quantity} ${r.mapped.in_stock ? '✓ in stock' : '⚠ out of stock'}</div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  } else if (step === 4) {
+    const isDemo = document.getElementById('upload-mark-demo')?.checked;
+    content.innerHTML = `
+      <div style="text-align:center;padding:30px">
+        <h3 style="margin-bottom:10px">Ready to import</h3>
+        <p style="color:var(--tx-3);margin-bottom:8px">${data.rows_with_data} products in ${Object.keys(data.product_families || {}).length} families</p>
+        ${isDemo ? '<p style="color:var(--org);margin-bottom:20px;font-size:12px">⚠ Marked as TEST/DEMO data — cleared with CLEAR TEST DATA</p>' : ''}
+        <button class="primary" onclick="confirmSmartImport()">Confirm import →</button>
+      </div>
+    `;
   }
 }
 
@@ -1329,7 +1615,6 @@ function renderUploadStep(step, data) {
 
 async function confirmStockImport() {
   const csv = document.getElementById('csv-paste').value.trim();
-  // Build mapping from current selection
   const mapping = {};
   document.querySelectorAll('#mw-mapping-grid select').forEach(sel => {
     if (sel.value) mapping[sel.dataset.field] = sel.value;
@@ -1340,9 +1625,33 @@ async function confirmStockImport() {
     document.querySelector('.mw-modal-backdrop')?.remove();
     loadStockList();
     refreshCalendar();
-    // Offer to plan product posts
     setTimeout(() => {
       if (confirm('Stock imported. Plan product posts now?')) openProposeCalendar();
+    }, 800);
+  } catch (e) {
+    toast('Import failed: ' + e.message, 'error');
+  }
+}
+
+async function confirmSmartImport() {
+  const csv = document.getElementById('csv-paste').value.trim();
+  const store = document.getElementById('upload-store-brand').value;
+  const productBrand = document.getElementById('upload-product-brand').value.trim() || null;
+  const isDemo = document.getElementById('upload-mark-demo')?.checked || false;
+  document.querySelector('[data-step="3"]').classList.remove('active');
+  document.querySelector('[data-step="3"]').classList.add('done');
+  document.querySelector('[data-step="4"]').classList.add('active');
+  try {
+    const r = await api('lanes/stock/smart-commit', {method: 'POST', body: {
+      brand_id: store, csv_content: csv, default_product_brand: productBrand,
+      actor: 'christelle', mark_as_demo: isDemo,
+    }});
+    toast(`Imported ${r.created} new · ${r.updated} updated · ${Object.keys(r.product_families || {}).length} families`, 'success');
+    setTimeout(() => {
+      document.querySelector('.mw-modal-backdrop')?.remove();
+      loadStockList();
+      refreshCalendar();
+      if (!isDemo && confirm('Stock imported. Plan product posts now?')) openProposeCalendar();
     }, 800);
   } catch (e) {
     toast('Import failed: ' + e.message, 'error');
@@ -1558,6 +1867,168 @@ async function doRefsSearch() {
     `;
   } catch (e) {
     results.innerHTML = `<div style="color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// ─── Brand Bible view ────────────────────────────────────────────────
+function renderBibleView() {
+  const el = document.getElementById('view-bible');
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <h2 style="font-size:22px;font-weight:700">Brand Bible</h2>
+        <div style="color:var(--tx-3);font-size:13px;margin-top:4px">Structured brand intelligence for Creative Director + planner</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="openBibleUpload()">Upload bible</button>
+        <button onclick="clearTestDataPreview()">Clear test data</button>
+      </div>
+    </div>
+    <div id="bible-content"></div>
+  `;
+  loadBible();
+}
+
+async function loadBible() {
+  const el = document.getElementById('bible-content');
+  el.innerHTML = '<div style="color:var(--tx-3)">Loading…</div>';
+  try {
+    const r = await api(`bible/get?brand_id=${MW.brand}`);
+    if (!r.available) {
+      el.innerHTML = `
+        <div class="mw-empty">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.118 5.477 3 6.253v13C4.118 18.477 5.754 18 7.5 18s2.632.477 3.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.882 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <h3>No bible yet for ${escapeHtml(MW.brand)}</h3>
+          <p>Upload your brand bible as Markdown or JSON. Campaign OS parses it into structured fields (voice, visual language, colours, typography, photography, product fidelity, positive + negative prompts, creative properties, approved + rejected examples) and retrieves only the relevant fields per job.</p>
+          <button class="primary" onclick="openBibleUpload()">Upload your first bible</button>
+        </div>
+      `;
+      return;
+    }
+    const b = r.bible;
+    const meta = r.meta || {};
+    el.innerHTML = `
+      <div style="padding:14px;border:1px solid var(--grn);border-radius:var(--r-s);background:rgba(16,185,129,.08);margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">BRAND BIBLE — ${escapeHtml(MW.brand)}</div>
+            <div style="font-size:13px;color:var(--grn);font-weight:700;margin-top:4px">Last updated: ${escapeHtml(String(meta.last_updated || '').slice(0, 10))}</div>
+          </div>
+          <button onclick="openBibleUpload()">Re-upload</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${renderBibleField('Voice', b.voice)}
+        ${renderBibleField('Visual language', b.visual_language)}
+        ${renderBibleField('Colours', (b.colours || []).join(', '))}
+        ${renderBibleField('Typography', b.typography)}
+        ${renderBibleField('Logo rules', b.logo_rules)}
+        ${renderBibleField('Photography', b.photography)}
+        ${renderBibleField('Product fidelity', b.product_fidelity)}
+        ${renderBibleField('Positive prompts', b.positive_prompts)}
+        ${renderBibleField('Negative prompts', b.negative_prompts)}
+      </div>
+      ${(b.creative_properties || []).length ? `<div style="margin-top:14px">${renderBibleField('Creative properties', (b.creative_properties || []).join(' · '))}</div>` : ''}
+      ${(b.approved_examples || []).length ? `<div style="margin-top:14px">${renderBibleField('Approved examples', (b.approved_examples || []).join(' · '))}</div>` : ''}
+      ${(b.rejected_examples || []).length ? `<div style="margin-top:14px">${renderBibleField('Rejected examples', (b.rejected_examples || []).join(' · '))}</div>` : ''}
+    `;
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderBibleField(label, value) {
+  if (!value) return '';
+  return `
+    <div style="padding:14px;border:1px solid var(--bd);border-radius:var(--r-s);background:var(--bg-3)">
+      <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px">${escapeHtml(label)}</div>
+      <div style="font-size:13px;color:var(--tx);line-height:1.5;white-space:pre-wrap">${escapeHtml(value)}</div>
+    </div>
+  `;
+}
+
+function openBibleUpload() {
+  const modal = document.createElement('div');
+  modal.className = 'mw-modal-backdrop';
+  modal.innerHTML = `
+    <div class="mw-modal" onclick="event.stopPropagation()" style="max-width:760px">
+      <div class="mw-modal-head">
+        <h2>Upload brand bible — ${escapeHtml(MW.brand)}</h2>
+        <button class="mw-modal-close" onclick="this.closest('.mw-modal-backdrop').remove()">×</button>
+      </div>
+      <div class="mw-modal-body">
+        <div style="margin-bottom:14px">
+          <label>Format</label>
+          <select id="bible-format">
+            <option value="markdown">Markdown (auto-parsed into sections)</option>
+            <option value="structured">Structured JSON (direct fields)</option>
+            <option value="freeform">Free-form text (heuristic extraction)</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:var(--tx-3);margin-bottom:10px">
+          Markdown: use ## headings — Voice / Visual Language / Colours / Typography / Photography / Product Fidelity / Positive Prompts / Negative Prompts / Creative Properties / Approved Examples / Rejected Examples.
+        </div>
+        <label>Paste bible</label>
+        <textarea id="bible-paste" rows="14" placeholder="## Voice&#10;Know the numbers. Speak like a golfer.&#10;&#10;## Visual Language&#10;Deep teal + amber&#10;..."></textarea>
+      </div>
+      <div class="mw-modal-foot">
+        <button onclick="this.closest('.mw-modal-backdrop').remove()">Cancel</button>
+        <button class="primary" onclick="confirmBibleUpload()">Upload</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function confirmBibleUpload() {
+  const raw = document.getElementById('bible-paste').value.trim();
+  if (!raw) { toast('Paste bible first', 'error'); return; }
+  const fmt = document.getElementById('bible-format').value;
+  let body = {brand_id: MW.brand, format: fmt};
+  if (fmt === 'markdown') body.raw_markdown = raw;
+  else if (fmt === 'freeform') body.raw_text = raw;
+  else {
+    try { body = {...body, ...JSON.parse(raw)}; }
+    catch (e) { toast('Invalid JSON: ' + e.message, 'error'); return; }
+  }
+  try {
+    const r = await api('bible/upload', {method: 'POST', body});
+    if (r.ok) {
+      toast('Bible uploaded — Creative Director now uses it', 'success');
+      document.querySelector('.mw-modal-backdrop')?.remove();
+      loadBible();
+    } else {
+      toast('Upload failed: ' + (r.error || 'unknown'), 'error');
+    }
+  } catch (e) {
+    toast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+async function clearTestDataPreview() {
+  try {
+    const r = await api('lanes/clear-demo-data', {method: 'POST', body: {brand_id: MW.brand}});
+    if (r.preview) {
+      const ok = confirm(
+        `CLEAR TEST DATA — ${MW.brand}\n\n` +
+        `Will remove:\n` +
+        `  · ${r.demo_product_count} demo products\n` +
+        `  · ${r.demo_content_count} demo content items\n\n` +
+        `Will NOT touch:\n` +
+        `  · ${r.all_products - r.demo_product_count} real products\n` +
+        `  · ${r.all_content_items - r.demo_content_count} real content items\n` +
+        `  · Real social history\n` +
+        `  · Real brand bibles\n\n` +
+        `Proceed?`
+      );
+      if (!ok) return;
+      const r2 = await api('lanes/clear-demo-data', {method: 'POST', body: {brand_id: MW.brand, confirm: true}});
+      toast(`Cleared ${r2.removed_products} products + ${r2.removed_content_items} items`, 'success');
+      refreshCalendar();
+    }
+  } catch (e) {
+    toast('Clear failed: ' + e.message, 'error');
   }
 }
 
