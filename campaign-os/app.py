@@ -2313,6 +2313,156 @@ def visual_library_generate(brand_id):
 # - GET  /api/image/status          — capabilities + key presence
 
 
+@app.route("/api/image/feedback/approve", methods=["POST"])
+def image_feedback_approve():
+    """POST /api/image/feedback/approve — mark a generated asset APPROVED.
+
+    Body:
+      asset_id: str    — the asset id (the krea job_id or saved_path stem)
+      brand_id: str    — brand for the feedback record
+      reason: str?     — optional reason / context
+      url: str?        — the source URL (e.g. Krea result URL)
+
+    Persists to data/brand-directory/<brand>/feedback/approvals.json
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    asset_id = (body.get("asset_id") or "").strip()
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id is required"}), 400
+    try:
+        from _lib.feedback_loop import add_record, load_performance
+        perf = load_performance(brand_id)
+        add_record(perf, {
+            "image_id": asset_id,
+            "kind": "generated",
+            "source": "manual",
+            "verdict": "approved",
+            "reason": body.get("reason", ""),
+            "url": body.get("url", ""),
+        })
+        return jsonify({"ok": True, "brand_id": brand_id, "asset_id": asset_id, "verdict": "approved"}), 200
+    except Exception as e:
+        _app_log.exception("image_feedback_approve failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/image/feedback/reject", methods=["POST"])
+def image_feedback_reject():
+    """POST /api/image/feedback/reject — mark a generated asset REJECTED with a reason.
+
+    Body:
+      asset_id: str
+      brand_id: str
+      reason_category: str   — off_brand | product_wrong | logo_wrong | face_wrong
+                                | too_ai | wrong_composition | wrong_copy
+                                | wrong_colour | bad_lighting | model_failure | other
+      notes: str?
+      url: str?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    asset_id = (body.get("asset_id") or "").strip()
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id is required"}), 400
+    try:
+        from _lib.feedback_loop import add_record, load_performance
+        perf = load_performance(brand_id)
+        add_record(perf, {
+            "image_id": asset_id,
+            "kind": "generated",
+            "source": "manual",
+            "verdict": "rejected",
+            "reason_category": body.get("reason_category", "other"),
+            "notes": body.get("notes", ""),
+            "url": body.get("url", ""),
+        })
+        return jsonify({"ok": True, "brand_id": brand_id, "asset_id": asset_id, "verdict": "rejected"}), 200
+    except Exception as e:
+        _app_log.exception("image_feedback_reject failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/image/lineage", methods=["POST"])
+def image_lineage():
+    """POST /api/image/lineage — list the creative lineage for a brand.
+
+    Body:
+      brand_id: str
+
+    Returns the list of generated assets + their master prompts +
+    negative prompts + reference DNA + product info + approval status.
+    Scans <DATA_DIR>/<brand>/images/krea/* + sidecar JSON files.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.feedback_loop import load_performance
+        data_dir = os.environ.get("DATA_DIR", "/data/campaign-os")
+        brand_dir = Path(data_dir) / brand_id
+        assets = []
+        # scan krea dir for sidecars
+        krea_dir = brand_dir / "images" / "krea"
+        if krea_dir.exists():
+            for jp in sorted(krea_dir.glob("*.json")):
+                try:
+                    meta = json.loads(jp.read_text())
+                    assets.append({
+                        "asset_id": meta.get("job_id", jp.stem),
+                        "kind": "generated",
+                        "provider": meta.get("provider", "krea"),
+                        "url": meta.get("url", ""),
+                        "mime": meta.get("mime", ""),
+                        "saved_at": meta.get("saved_at", ""),
+                        "saved_path": str(jp.with_suffix(".png")),
+                        "sidecar_path": str(jp),
+                    })
+                except Exception:
+                    continue
+        # also scan legacy outputs
+        legacy_dir = brand_dir / "images" / "generated"
+        if legacy_dir.exists():
+            for jp in sorted(legacy_dir.glob("*.json")):
+                try:
+                    meta = json.loads(jp.read_text())
+                    assets.append({
+                        "asset_id": jp.stem,
+                        "kind": "generated",
+                        "saved_at": meta.get("saved_at", ""),
+                        "saved_path": str(jp.with_suffix("")),
+                        "prompt": meta.get("prompt"),
+                        "negative_prompt": meta.get("negative_prompt"),
+                        "sections": meta.get("sections", []),
+                        "model_routing": meta.get("model_routing", {}),
+                        "reference_dnas": meta.get("reference_dnas", []),
+                        "product_service_items": meta.get("product_service_items", []),
+                        "model": meta.get("model"),
+                        "provider": meta.get("provider"),
+                        "sidecar_path": str(jp),
+                    })
+                except Exception:
+                    continue
+        # merge approvals
+        perf = load_performance(brand_id)
+        records = perf.get("records", [])
+        approval_by_id = {r.get("image_id"): r for r in records if r.get("image_id")}
+        for a in assets:
+            r = approval_by_id.get(a.get("asset_id"))
+            if r:
+                a["verdict"] = r.get("verdict", "unknown")
+                a["reason"] = r.get("reason", r.get("notes", ""))
+        return jsonify({"ok": True, "brand_id": brand_id, "count": len(assets), "assets": assets}), 200
+    except Exception as e:
+        _app_log.exception("image_lineage failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/image/overlay-brand", methods=["POST"])
 def image_overlay_brand():
     """POST /api/image/overlay-brand — deterministic post-composition overlay.
