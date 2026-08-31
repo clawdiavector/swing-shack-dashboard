@@ -845,18 +845,44 @@ def detect_conflicts(brand_id: str, start: str, end: str, items: list, density: 
                 "message": f"{total} posts scheduled on {d} — possible spam risk",
             })
 
-    # 5) PRODUCT FEATURE HAS NO PRODUCT IMAGE
+    # 5) PRODUCT FEATURE HAS NO CREATIVE — time-aware (per directive #18)
     for item in items:
         if item.get("lane") != "product":
             continue
-        if not item.get("creative_id") and not item.get("creative"):
-            conflicts.append({
-                "type": "product_no_creative",
-                "severity": "warning",
-                "item_id": item.get("id"),
-                "date": item.get("publish_date"),
-                "message": f"Product post {item.get('id')} has no creative attached",
-            })
+        if item.get("creative_id") or item.get("creative"):
+            continue
+        d = item.get("publish_date", "")[:10]
+        if not d:
+            continue
+        try:
+            pub = datetime.fromisoformat(d).date()
+        except Exception:
+            continue
+        days_to_pub = (pub - today).days
+        # Time-aware: only surface as conflict within the urgency window.
+        if days_to_pub > 20:
+            continue  # plenty of time, not a conflict yet
+        if days_to_pub > 7:
+            severity = "info"
+            message = f"Product post {item.get('id')} due {d} — start creative when ready ({days_to_pub} days)"
+        elif days_to_pub > 3:
+            severity = "warning"
+            message = f"Product post {item.get('id')} due {d} — needs creative ({days_to_pub} days)"
+        elif days_to_pub > 0:
+            severity = "critical"
+            message = f"Product post {item.get('id')} due {d} — URGENT: needs creative in {days_to_pub} day(s)"
+        else:
+            # Already past — critical, also flag for review
+            severity = "critical"
+            message = f"Product post {item.get('id')} was due {d} — creative missing or past-due"
+        conflicts.append({
+            "type": "product_no_creative",
+            "severity": severity,
+            "item_id": item.get("id"),
+            "date": d,
+            "days_to_publish": days_to_pub,
+            "message": message,
+        })
 
     # 6) OUT OF STOCK (user directive #22 — inventory awareness)
     for item in items:
@@ -898,24 +924,44 @@ def detect_conflicts(brand_id: str, start: str, end: str, items: list, density: 
                 "message": f"HUMAN content {item.get('id')} needs capture in {days} day(s)",
             })
 
-    # 8) POST APPROVED BUT NOT QUEUED
+    # 8) POST APPROVED BUT NOT QUEUED — time-aware
     for item in items:
-        if item.get("status") == "approved" and not item.get("scheduled_for"):
-            d = item.get("publish_date", "")[:10]
-            days = None
-            if d:
-                try:
-                    days = (datetime.fromisoformat(d).date() - today).days
-                except Exception:
-                    pass
-            if days is not None and 0 <= days <= 7:
-                conflicts.append({
-                    "type": "approved_not_queued",
-                    "severity": "info",
-                    "item_id": item.get("id"),
-                    "date": d,
-                    "message": f"Approved post {item.get('id')} ({d}) not yet queued to Postiz",
-                })
+        if item.get("status") != "approved" or item.get("scheduled_for"):
+            continue
+        d = item.get("publish_date", "")[:10]
+        if not d:
+            continue
+        try:
+            days = (datetime.fromisoformat(d).date() - today).days
+        except Exception:
+            continue
+        if days < 0:
+            conflicts.append({
+                "type": "approved_not_queued",
+                "severity": "critical",
+                "item_id": item.get("id"),
+                "date": d,
+                "message": f"Approved post {item.get('id')} was due {d} — not queued",
+            })
+        elif days <= 3:
+            conflicts.append({
+                "type": "approved_not_queued",
+                "severity": "warning",
+                "item_id": item.get("id"),
+                "date": d,
+                "days_to_publish": days,
+                "message": f"Approved post {item.get('id')} ({d}) — queue to Postiz in {days} day(s)",
+            })
+        elif days <= 7:
+            conflicts.append({
+                "type": "approved_not_queued",
+                "severity": "info",
+                "item_id": item.get("id"),
+                "date": d,
+                "days_to_publish": days,
+                "message": f"Approved post {item.get('id')} ({d}) — queue when ready ({days} days)",
+            })
+        # 7+ days away — no conflict yet
 
     return conflicts
 
@@ -924,6 +970,78 @@ def detect_conflicts(brand_id: str, start: str, end: str, items: list, density: 
 # Build product calendar proposals WITHOUT generating creative.
 # Per user directive #12 — propose 30 products/dates first; only after
 # approval do we begin generation.
+
+# ── Currency + price-band helpers ──────────────────────────────────────
+def _brand_currency(brand_id: str) -> str:
+    """Return the brand's currency code. Default: ZAR.
+
+    Brand currency can be overridden per-brand via:
+      data/brand-directory/<brand>/brand.json → "currency": "USD" | "ZAR" | ...
+    """
+    brand_json = _data_root() / "brand-directory" / brand_id / "brand.json"
+    if brand_json.exists():
+        try:
+            d = json.loads(brand_json.read_text())
+            cur = d.get("currency")
+            if isinstance(cur, str) and cur:
+                return cur
+        except Exception:
+            pass
+    return "ZAR"
+
+
+def _currency_symbol(code: str) -> str:
+    return {
+        "ZAR": "R",
+        "USD": "$",
+        "EUR": "€",
+        "GBP": "£",
+        "AUD": "A$",
+    }.get(code, code + " ")
+
+
+def _format_money(amount, currency: str) -> str:
+    """Format amount with the brand's currency symbol.
+
+    ZAR example: 1499.0 → 'R1,499'
+    USD example: 1499.0 → '$1,499'
+    """
+    if amount is None:
+        return ""
+    try:
+        amt = float(amount)
+    except Exception:
+        return f"{amount}"
+    symbol = _currency_symbol(currency)
+    if amt == int(amt):
+        return f"{symbol}{int(amt):,}"
+    return f"{symbol}{amt:,.2f}"
+
+
+def _price_bucket(price: float, currency: str) -> str:
+    """Bucket price for diversity scoring. Buckets derive from currency:
+    ZAR → free / <R200 / R200-500 / R500-1.5k / R1.5k+
+    USD → free / <$50 / $50-150 / $150-500 / $500+
+    """
+    if price == 0:
+        return "free"
+    if currency == "ZAR":
+        if price < 200:
+            return "under-R200"
+        if price < 500:
+            return "R200-500"
+        if price < 1500:
+            return "R500-1.5k"
+        return "R1.5k-plus"
+    # Default to USD-style
+    if price < 50:
+        return "under-50"
+    if price < 150:
+        return "50-150"
+    if price < 500:
+        return "150-500"
+    return "500-plus"
+
 
 # Product angles (per user directive #15)
 PRODUCT_ANGLES = [
