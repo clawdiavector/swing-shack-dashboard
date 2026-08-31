@@ -593,6 +593,10 @@ def search_creative(
                  if f.is_file() and f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".heic")])
             if (_data_root(brand_id) / "images").exists() else 0
         ),
+        "curated_total_sidecars": (
+            len(list((_data_root(brand_id) / "images").glob("*.visual-dna.json")))
+            if (_data_root(brand_id) / "images").exists() else 0
+        ),
         "published_count": len(load_social_history(brand_id)),
         "generated_count": (
             len(list((_data_root(brand_id) / "images" / "krea").glob("*.json")))
