@@ -53,15 +53,17 @@ _LOG = logging.getLogger("campaign_os.creative_director")
 # Each capability maps a job requirement to a model property.
 # Updated 2026-08-31 from the Krea model schema cache.
 _MODEL_CAPABILITIES = {
-    # image models
-    "bfl/flux-1-dev":           {"category": "image", "fidelity": 0.7, "photorealism": 0.8, "speed": 0.5, "typography": 0.3, "ref_image": False, "edit": False},
-    "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False, "edit": False},
-    "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.9, "speed": 0.5, "typography": 0.5, "ref_image": False, "edit": False},
-    "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": False, "edit": True, "edit_only": True},
-    "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False},
-    "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True},
-    "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True},
-    "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True},
+    # image models — 'verified: True' means Krea's MCP accepts generate_image calls.
+    # Live-verified 2026-08-31. Models without verified: True returned
+    # 'Unsupported image model' from Krea's upstream.
+    "bfl/flux-1-dev":           {"category": "image", "fidelity": 0.7, "photorealism": 0.8, "speed": 0.5, "typography": 0.3, "ref_image": False, "edit": False, "verified": False},
+    "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False, "edit": False, "verified": True},
+    "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.9, "speed": 0.5, "typography": 0.5, "ref_image": False, "edit": False, "verified": True},
+    "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": False, "edit": True, "edit_only": True, "verified": True},
+    "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False, "verified": False},
+    "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False},
+    "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False},
+    "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True},
     "black-forest-labs/flux-3-video": {"category": "video", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.4, "duration_max": 15, "ref_image": True},
     "bytedance/seedance-2":     {"category": "video", "fidelity": 0.85, "photorealism": 0.8, "speed": 0.6, "duration_max": 15, "ref_image": True, "audio": True},
     "bytedance/seedance-2-fast": {"category": "video", "fidelity": 0.8, "photorealism": 0.75, "speed": 0.85, "duration_max": 15, "ref_image": True, "audio": True},
@@ -345,6 +347,12 @@ def recommend_model(requirements: Dict[str, Any]) -> Dict[str, Any]:
         if caps.get("edit_only"):
             score -= 0.5
             reasons.append("edit-only — not suitable for text-to-image")
+        # NEW (2026-08-31): penalise unverified models. Verified 2026-08-31 that
+        # google/gemini-3-pro-image returned 'Unsupported image model' from Krea's
+        # upstream — it's listed by list_models but not callable.
+        if not caps.get("verified", False):
+            score -= 1.0
+            reasons.append("unverified — Krea upstream doesn't accept")
         score += 0.10  # baseline
         scored[mid] = (score, reasons)
 
