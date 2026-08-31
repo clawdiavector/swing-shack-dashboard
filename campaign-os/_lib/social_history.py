@@ -441,6 +441,7 @@ def search_creative(
     sources = sources or ["curated", "published", "generated"]
     out = []
     q_low = (query or "").lower().strip()
+    _sample_fnames = []  # DEBUG
 
     # 1) CURATED — search brand-directory/<brand>/images/
     # Fall back to scanning *.visual-dna.json sidecars when no source images
@@ -484,6 +485,8 @@ def search_creative(
             _sidecar_q_filter = 0
             for dna_path in sorted(curated_root.glob("*.visual-dna.json")):
                 _sidecar_count += 1
+                if _sidecar_count <= 5:
+                    _sample_fnames.append(dna_path.name)
                 # The sidecar filename is "<image>.<ext>.visual-dna.json"
                 # Strip ".visual-dna.json" (18 chars) then split on the
                 # last remaining dot to recover base + ext.
@@ -596,6 +599,7 @@ def search_creative(
     debug_info = {
         "data_root_resolved": str(_data_root(brand_id)),
         "data_root_exists": _data_root(brand_id).exists(),
+        "_sample_fnames": _sample_fnames,
         "curated_root": str(_data_root(brand_id) / "images"),
         "curated_root_exists": (_data_root(brand_id) / "images").exists(),
         "curated_total_files": (
