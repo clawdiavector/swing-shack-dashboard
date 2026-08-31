@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Campaign OS — Marketer Workspace</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#0b0d10; --bg-2:#14181d; --bg-3:#1c2128; --bg-4:#252b34;
+  --bd:#2c333d; --bd-2:#3a4250;
+  --tx:#e6ebf2; --tx-2:#aeb6c2; --tx-3:#7c8493;
+  --ac:#d4a849; --ac-glow:rgba(212,168,73,.18);
+  --red:#ef4444; --org:#f59e0b; --grn:#10b981; --blu:#3b82f6; --pur:#8b5cf6;
+  --lane-product:#d4a849; --lane-human:#5b9bd5; --lane-campaign:#c95e4d;
+  --lane-paid:#8e44ad; --lane-crm:#16a085; --lane-search:#7f8c8d; --lane-events:#f39c12;
+  --r:8px; --r-s:4px;
+  --t:120ms ease;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--tx);font:14px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}
+button{cursor:pointer;background:var(--bg-3);border:1px solid var(--bd);color:var(--tx);padding:6px 12px;border-radius:var(--r-s);font-size:13px;transition:background var(--t),border var(--t)}
+button:hover{background:var(--bg-4);border-color:var(--bd-2)}
+button.primary{background:var(--ac);color:#000;border-color:var(--ac);font-weight:600}
+button.primary:hover{background:#e6b85a}
+button.danger{background:var(--red);color:#fff;border-color:var(--red)}
+button.ghost{background:transparent;border-color:transparent}
+button:disabled{opacity:.4;cursor:not-allowed}
+input,select,textarea{background:var(--bg-3);border:1px solid var(--bd);color:var(--tx);padding:7px 10px;border-radius:var(--r-s);font-size:13px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-glow)}
+label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
+
+/* Layout */
+.mw-shell{display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr;min-height:100vh}
+.mw-top{background:var(--bg-2);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.mw-brand-logo{font-size:18px;font-weight:700;color:var(--ac);letter-spacing:-.02em}
+.mw-brand-logo small{color:var(--tx-3);font-size:11px;font-weight:400;margin-left:8px;text-transform:uppercase;letter-spacing:.05em}
+.mw-nav{display:flex;gap:6px}
+.mw-nav button{background:transparent;border-color:transparent;color:var(--tx-2);font-size:13px;padding:7px 12px}
+.mw-nav button.active{background:var(--bg-3);color:var(--tx);border-color:var(--bd)}
+.mw-nav button:hover{background:var(--bg-3)}
+.mw-spacer{flex:1}
+.mw-conn-pill{font-size:11px;padding:4px 10px;border-radius:10px;background:var(--bg-3);color:var(--tx-2);border:1px solid var(--bd)}
+.mw-conn-pill.ok{color:var(--grn);border-color:var(--grn)}
+.mw-conn-pill.bad{color:var(--red);border-color:var(--red)}
+
+.mw-main{display:grid;grid-template-columns:1fr 360px;min-height:0}
+.mw-canvas{padding:24px;overflow:auto;min-width:0}
+.mw-panel{background:var(--bg-2);border-left:1px solid var(--bd);overflow:auto;display:flex;flex-direction:column}
+
+/* Filter bar */
+.mw-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.mw-filter-bar .filter-label{font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-right:4px}
+.mw-lane-btn{padding:5px 11px;font-size:12px;border-radius:14px;background:var(--bg-3);color:var(--tx-2);border:1px solid var(--bd);font-weight:600;letter-spacing:.02em;transition:all var(--t)}
+.mw-lane-btn:hover{background:var(--bg-4);color:var(--tx)}
+.mw-lane-btn.active{background:var(--bg-4);color:var(--tx);border-color:var(--ac)}
+.mw-lane-btn[data-lane="product"].active{border-color:var(--lane-product);box-shadow:0 0 0 1px var(--lane-product)}
+.mw-lane-btn[data-lane="human"].active{border-color:var(--lane-human);box-shadow:0 0 0 1px var(--lane-human)}
+.mw-lane-btn[data-lane="campaign"].active{border-color:var(--lane-campaign);box-shadow:0 0 0 1px var(--lane-campaign)}
+.mw-lane-btn[data-lane="paid"].active{border-color:var(--lane-paid);box-shadow:0 0 0 1px var(--lane-paid)}
+.mw-divider{width:1px;height:20px;background:var(--bd);margin:0 4px}
+
+/* View toggle */
+.mw-view-toggle{display:flex;background:var(--bg-3);border-radius:var(--r-s);padding:2px;border:1px solid var(--bd)}
+.mw-view-toggle button{background:transparent;border:none;font-size:12px;padding:4px 10px;color:var(--tx-2)}
+.mw-view-toggle button.active{background:var(--bg-4);color:var(--tx);border-radius:3px}
+
+/* Calendar grid */
+.mw-cal{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.mw-cal-header{display:grid;grid-template-columns:repeat(7,1fr);background:var(--bg-3);border-bottom:1px solid var(--bd)}
+.mw-cal-header > div{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--tx-3);text-align:center;padding:8px 0;border-right:1px solid var(--bd)}
+.mw-cal-header > div:last-child{border-right:none}
+.mw-cal-body{display:grid;grid-template-columns:repeat(7,1fr)}
+.mw-cal-day{min-height:140px;padding:6px 8px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);position:relative;display:flex;flex-direction:column;gap:4px;cursor:pointer;transition:background var(--t)}
+.mw-cal-day:hover{background:var(--bg-3)}
+.mw-cal-day.drag-over{background:var(--ac-glow);outline:2px dashed var(--ac)}
+.mw-cal-day.outside-month{opacity:.35}
+.mw-cal-day.today .mw-cal-date{color:var(--ac);font-weight:700}
+.mw-cal-day.weekend{background:var(--bg-2)}
+.mw-cal-date{font-size:11px;color:var(--tx-3);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.mw-cal-date .day-density{font-size:10px;color:var(--tx-3);font-weight:400}
+.mw-cal-date .day-density.dense{color:var(--org)}
+
+/* Items in day cells */
+.mw-item{padding:4px 7px;border-radius:3px;font-size:11px;background:var(--bg-4);border-left:3px solid var(--ac);color:var(--tx);line-height:1.3;cursor:grab;transition:opacity .15s,transform .15s}
+.mw-item:hover{transform:translateY(-1px);background:var(--bg-3)}
+.mw-item.dragging{opacity:.4;cursor:grabbing}
+.mw-item[data-lane="product"]{border-left-color:var(--lane-product)}
+.mw-item[data-lane="human"]{border-left-color:var(--lane-human)}
+.mw-item[data-lane="campaign"]{border-left-color:var(--lane-campaign)}
+.mw-item[data-lane="paid"]{border-left-color:var(--lane-paid)}
+.mw-item[data-lane="crm"]{border-left-color:var(--lane-crm)}
+.mw-item[data-lane="search"]{border-left-color:var(--lane-search)}
+.mw-item[data-lane="events"]{border-left-color:var(--lane-events)}
+.mw-item .item-name{font-weight:600;color:var(--tx)}
+.mw-item .item-meta{font-size:10px;color:var(--tx-3);margin-top:2px;display:flex;gap:6px;align-items:center}
+.mw-item .status-dot{width:6px;height:6px;border-radius:50%;background:var(--tx-3);flex-shrink:0}
+.mw-item .status-dot.draft{background:var(--tx-3)}
+.mw-item .status-dot.needs_asset{background:var(--org)}
+.mw-item .status-dot.planned{background:var(--blu)}
+.mw-item .status-dot.approved{background:var(--ac)}
+.mw-item .status-dot.queued{background:var(--pur)}
+.mw-item .status-dot.published{background:var(--grn)}
+.mw-item .status-dot.failed{background:var(--red)}
+
+/* Campaign bands */
+.mw-band-row{grid-column:1/-1;padding:8px 12px;background:var(--bg-3);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;color:var(--tx-2)}
+.mw-band{display:inline-flex;align-items:center;padding:5px 14px;border-radius:14px;color:#fff;font-size:12px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:transform var(--t)}
+.mw-band:hover{transform:translateY(-1px)}
+
+/* Side panel */
+.mw-panel-section{padding:18px 20px;border-bottom:1px solid var(--bd)}
+.mw-panel-section h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx-3);margin-bottom:10px;font-weight:600}
+.mw-panel-empty{padding:60px 24px;color:var(--tx-3);text-align:center;font-size:13px}
+.mw-panel-empty svg{width:48px;height:48px;opacity:.4;margin-bottom:14px}
+.mw-panel-row{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:8px;font-size:13px}
+.mw-panel-row .lbl{color:var(--tx-3);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-top:2px}
+.mw-panel-row .val{color:var(--tx)}
+.mw-panel-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.mw-panel-actions button{flex:1 1 auto;font-size:12px;padding:7px 12px}
+.mw-panel-thumb{width:100%;border-radius:var(--r-s);border:1px solid var(--bd);margin-bottom:14px;background:var(--bg-3)}
+.mw-panel-thumb img{width:100%;display:block;border-radius:var(--r-s)}
+.mw-status-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:10px;background:var(--bg-3);font-size:11px;font-weight:600;color:var(--tx-2);text-transform:uppercase;letter-spacing:.05em}
+.mw-status-pill.planned{color:var(--blu)}
+.mw-status-pill.approved{color:var(--ac)}
+.mw-status-pill.queued{color:var(--pur)}
+.mw-status-pill.published{color:var(--grn)}
+.mw-status-pill.failed{color:var(--red)}
+
+/* Conflicts banner */
+.mw-conflicts{margin-bottom:16px;padding:12px 14px;border-radius:var(--r-s);border:1px solid var(--bd);background:var(--bg-2)}
+.mw-conflicts-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--tx-3);margin-bottom:8px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.mw-conflict{padding:6px 0;display:flex;align-items:flex-start;gap:8px;font-size:12px}
+.mw-conflict-dot{flex-shrink:0;width:8px;height:8px;border-radius:50%;margin-top:5px}
+.mw-conflict-dot.critical{background:var(--red)}
+.mw-conflict-dot.warning{background:var(--org)}
+.mw-conflict-dot.info{background:var(--blu)}
+.mw-conflict-body{flex:1}
+.mw-conflict-body strong{color:var(--tx)}
+
+/* Modal */
+.mw-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.mw-modal{background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r);max-width:640px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.mw-modal-head{padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center}
+.mw-modal-head h2{font-size:18px;font-weight:700}
+.mw-modal-body{padding:22px}
+.mw-modal-foot{padding:14px 22px;border-top:1px solid var(--bd);display:flex;justify-content:flex-end;gap:8px}
+.mw-modal-close{background:transparent;border:none;color:var(--tx-3);font-size:24px;padding:0 6px;line-height:1}
+.mw-modal-close:hover{color:var(--tx)}
+
+/* Stepper for upload flow */
+.mw-stepper{display:flex;gap:0;margin-bottom:20px}
+.mw-stepper-step{flex:1;padding:10px 14px;background:var(--bg-3);border:1px solid var(--bd);font-size:12px;color:var(--tx-3);position:relative}
+.mw-stepper-step:first-child{border-radius:var(--r-s) 0 0 var(--r-s)}
+.mw-stepper-step:last-child{border-radius:0 var(--r-s) var(--r-s) 0}
+.mw-stepper-step.active{background:var(--bg-4);color:var(--tx);border-color:var(--ac);font-weight:600}
+.mw-stepper-step.done{color:var(--grn);border-color:var(--grn)}
+.mw-stepper-step:not(:last-child)::after{content:"";position:absolute;right:-7px;top:50%;transform:translateY(-50%);border:7px solid transparent;border-left-color:var(--bd);z-index:1}
+
+/* Mapping table */
+.mw-mapping{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.mw-mapping .lbl-cell{padding:8px 10px;background:var(--bg-3);border:1px solid var(--bd);font-size:12px;font-weight:600;border-radius:var(--r-s)}
+
+/* Toast */
+.mw-toast{position:fixed;bottom:24px;right:24px;padding:12px 18px;background:var(--bg-4);border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--tx);box-shadow:0 6px 20px rgba(0,0,0,.4);z-index:200;animation:mw-slidein .3s}
+.mw-toast.success{border-color:var(--grn);color:var(--grn)}
+.mw-toast.error{border-color:var(--red);color:var(--red)}
+.mw-toast.info{border-color:var(--blu);color:var(--blu)}
+@keyframes mw-slidein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Product card (used in propose flow) */
+.mw-product-card{padding:14px;border:1px solid var(--bd);border-radius:var(--r-s);background:var(--bg-3);display:flex;gap:12px;align-items:center}
+.mw-product-card img{width:50px;height:50px;border-radius:var(--r-s);background:var(--bg-4);object-fit:cover}
+.mw-product-card .info{flex:1;min-width:0}
+.mw-product-card .info .name{font-weight:600;font-size:13px}
+.mw-product-card .info .meta{font-size:11px;color:var(--tx-3);margin-top:2px}
+
+/* Generation preview */
+.mw-gen-preview{padding:18px;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg-3);margin-bottom:14px}
+.mw-gen-preview h4{font-size:13px;font-weight:600;margin-bottom:10px;color:var(--tx)}
+.mw-gen-preview pre{background:var(--bg);padding:10px;border-radius:var(--r-s);font-size:11px;overflow:auto;color:var(--tx-2);white-space:pre-wrap;max-height:200px;line-height:1.4}
+.mw-gen-preview .visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.mw-gen-preview .visual-grid img{width:100%;border-radius:var(--r-s);border:1px solid var(--bd)}
+.mw-gen-preview .visual-grid .visual-label{font-size:10px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
+
+/* References list */
+.mw-refs-list{display:grid;gap:6px}
+.mw-ref-item{display:flex;gap:8px;padding:8px 10px;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);font-size:11px;align-items:center}
+.mw-ref-item .ref-badge{padding:2px 6px;border-radius:3px;background:var(--bg-4);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:9px;color:var(--tx-2)}
+.mw-ref-item .ref-badge.curated{color:var(--ac)}
+.mw-ref-item .ref-badge.published{color:var(--blu)}
+.mw-ref-item .ref-reason{color:var(--tx-3);font-style:italic;margin-left:auto}
+
+/* Empty states */
+.mw-empty{padding:60px 24px;text-align:center;color:var(--tx-3)}
+.mw-empty h3{font-size:18px;margin-bottom:10px;color:var(--tx);font-weight:600}
+.mw-empty p{font-size:13px;margin-bottom:18px;line-height:1.5}
+.mw-empty svg{width:64px;height:64px;opacity:.3;margin-bottom:18px}
+
+/* Day-add overlay */
+.mw-add-menu{position:absolute;background:var(--bg-2);border:1px solid var(--bd);border-radius:var(--r-s);padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;display:flex;flex-direction:column;gap:2px;min-width:160px}
+.mw-add-menu button{background:transparent;border:none;text-align:left;padding:8px 10px;font-size:13px;color:var(--tx-2);border-radius:3px}
+.mw-add-menu button:hover{background:var(--bg-4);color:var(--tx)}
+
+@media (max-width:1100px){
+  .mw-main{grid-template-columns:1fr}
+  .mw-panel{border-left:none;border-top:1px solid var(--bd);max-height:50vh}
+}
+</style>
+</head>
+<body>
+<div class="mw-shell">
+
+<!-- Top bar -->
+<header class="mw-top">
+  <div class="mw-brand-logo">Campaign OS <small>Marketer Workspace</small></div>
+  <nav class="mw-nav" id="mw-nav">
+    <button data-view="calendar" class="active">Calendar</button>
+    <button data-view="stock">Stock</button>
+    <button data-view="products">Products</button>
+    <button data-view="references">References</button>
+    <button data-view="morning">Morning Brief</button>
+  </nav>
+  <div class="mw-spacer"></div>
+  <span class="mw-conn-pill" id="mw-postiz-pill">Postiz: …</span>
+  <span class="mw-conn-pill" id="mw-krea-pill">Krea: …</span>
+  <span class="mw-conn-pill" id="mw-brand-pill">Brand: stick</span>
+</header>
+
+<!-- Main: canvas + panel -->
+<main class="mw-main">
+  <section class="mw-canvas" id="mw-canvas">
+    <!-- Calendar view -->
+    <div id="view-calendar">
+      <!-- Filter bar -->
+      <div class="mw-filter-bar" id="mw-filter-bar">
+        <span class="filter-label">Lane</span>
+        <button class="mw-lane-btn active" data-lane="all">All</button>
+        <button class="mw-lane-btn" data-lane="product">Product</button>
+        <button class="mw-lane-btn" data-lane="human">Human / Trust</button>
+        <button class="mw-lane-btn" data-lane="campaign">Campaign</button>
+        <button class="mw-lane-btn" data-lane="paid">Paid</button>
+        <button class="mw-lane-btn" data-lane="crm">CRM</button>
+        <button class="mw-lane-btn" data-lane="search">Search / Web</button>
+        <button class="mw-lane-btn" data-lane="events">Events</button>
+        <div class="mw-divider"></div>
+        <select id="mw-brand-sel" style="width:auto"></select>
+        <select id="mw-campaign-sel" style="width:auto"><option value="">All campaigns</option></select>
+        <select id="mw-platform-sel" style="width:auto"><option value="">All platforms</option><option>instagram</option><option>facebook</option><option>tiktok</option><option>linkedin</option></select>
+        <div class="mw-divider"></div>
+        <div class="mw-view-toggle">
+          <button data-cal="month" class="active">Month</button>
+          <button data-cal="week">Week</button>
+        </div>
+        <div class="mw-divider"></div>
+        <button id="mw-prev-month">‹</button>
+        <span id="mw-cal-title" style="font-weight:600;min-width:160px;text-align:center"></span>
+        <button id="mw-next-month">›</button>
+        <button id="mw-today-btn">Today</button>
+      </div>
+
+      <!-- Conflicts banner -->
+      <div class="mw-conflicts" id="mw-conflicts" style="display:none"></div>
+
+      <!-- Calendar grid -->
+      <div class="mw-cal">
+        <div class="mw-cal-header">
+          <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+        </div>
+        <div class="mw-cal-body" id="mw-cal-body"></div>
+      </div>
+    </div>
+
+    <!-- Stock view -->
+    <div id="view-stock" style="display:none"></div>
+
+    <!-- Products view -->
+    <div id="view-products" style="display:none"></div>
+
+    <!-- References view -->
+    <div id="view-references" style="display:none"></div>
+
+    <!-- Morning brief view -->
+    <div id="view-morning" style="display:none"></div>
+  </section>
+
+  <!-- Right side panel -->
+  <aside class="mw-panel" id="mw-panel">
+    <div class="mw-panel-empty" id="mw-panel-empty">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <div>Click any item to inspect or edit it here.</div>
+    </div>
+    <div id="mw-panel-content" style="display:none"></div>
+  </aside>
+</main>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────
+const MW = {
+  brand: 'stick',
+  view: 'calendar',
+  calView: 'month',  // month | week
+  calDate: new Date(),
+  laneFilter: 'all',
+  brandFilter: '',
+  campaignFilter: '',
+  platformFilter: '',
+  selectedItem: null,
+  calendarData: {items:[], campaign_bands:[], conflicts:[], density:{}},
+  products: [],
+};
+
+// ─── API helpers ───────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const url = '/api/' + path.replace(/^\/+/, '');
+  const init = {
+    method: opts.method || 'GET',
+    credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+  };
+  if (opts.body) init.body = JSON.stringify(opts.body);
+  try {
+    const r = await fetch(url, init);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+    return j;
+  } catch (e) {
+    console.error('API fail', path, e);
+    throw e;
+  }
+}
+function toast(msg, kind = 'info') {
+  const t = document.createElement('div');
+  t.className = 'mw-toast ' + kind;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────
+async function init() {
+  await loadConnectionStatus();
+  await loadBrands();
+  await refreshCalendar();
+  setupFilterBar();
+  setupNavigation();
+  setupKeyboard();
+  await refreshAllViews();
+}
+
+// ─── Connection pills ──────────────────────────────────────────────────
+async function loadConnectionStatus() {
+  try {
+    const postiz = await api('postiz/status');
+    const pill = document.getElementById('mw-postiz-pill');
+    if (postiz.configured) {
+      pill.className = 'mw-conn-pill ok';
+      pill.textContent = `Postiz: connected (${postiz.integration_count || 0} channels)`;
+    } else {
+      pill.className = 'mw-conn-pill bad';
+      pill.textContent = 'Postiz: not connected';
+    }
+  } catch (e) {
+    document.getElementById('mw-postiz-pill').textContent = 'Postiz: error';
+  }
+  try {
+    const krea = await api('krea/status');
+    const pill = document.getElementById('mw-krea-pill');
+    if (krea.configured || krea.connected) {
+      pill.className = 'mw-conn-pill ok';
+      pill.textContent = `Krea: connected (${krea.model_count || 0} models)`;
+    } else {
+      pill.className = 'mw-conn-pill bad';
+      pill.textContent = 'Krea: not connected';
+    }
+  } catch (e) {
+    document.getElementById('mw-krea-pill').textContent = 'Krea: error';
+  }
+  document.getElementById('mw-brand-pill').textContent = `Brand: ${MW.brand}`;
+}
+
+// ─── Brands ────────────────────────────────────────────────────────────
+async function loadBrands() {
+  try {
+    const r = await api('lanes/products?brand_id=' + MW.brand);
+    // No brands endpoint — fallback to constants
+    const sel = document.getElementById('mw-brand-sel');
+    sel.innerHTML = ['stick', 'swing-shack', 'bag-drop', 'takomo']
+      .map(b => `<option value="${b}" ${b === MW.brand ? 'selected' : ''}>${b}</option>`)
+      .join('');
+    sel.addEventListener('change', e => {
+      MW.brand = e.target.value;
+      MW.campaignFilter = '';
+      MW.selectedItem = null;
+      document.getElementById('mw-brand-pill').textContent = `Brand: ${MW.brand}`;
+      refreshCalendar();
+      refreshAllViews();
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// ─── Calendar ──────────────────────────────────────────────────────────
+async function refreshCalendar() {
+  const start = startOfMonth(MW.calDate);
+  const end = endOfMonth(MW.calDate);
+  const lanes = MW.laneFilter === 'all' ? null : [MW.laneFilter];
+  try {
+    const r = await api('lanes/calendar', {
+      method: 'POST',
+      body: {
+        brand_id: MW.brand,
+        start_date: isoDate(start),
+        end_date: isoDate(end),
+        lanes,
+        campaigns: MW.campaignFilter ? [MW.campaignFilter] : null,
+        platforms: MW.platformFilter ? [MW.platformFilter] : null,
+      },
+    });
+    MW.calendarData = r;
+    renderCalendar();
+    renderConflicts();
+    renderCampaignFilter();
+  } catch (e) {
+    toast('Calendar load failed: ' + e.message, 'error');
+  }
+}
+
+function renderCalendar() {
+  const body = document.getElementById('mw-cal-body');
+  const start = startOfMonth(MW.calDate);
+  const end = endOfMonth(MW.calDate);
+  document.getElementById('mw-cal-title').textContent =
+    MW.calDate.toLocaleDateString('en-GB', {month: 'long', year: 'numeric'});
+
+  // Adjust start to Monday
+  let gridStart = new Date(start);
+  while (gridStart.getDay() !== 1) {
+    gridStart.setDate(gridStart.getDate() - 1);
+  }
+  // Build 6 weeks (42 cells) for month view, 7 for week view
+  const cells = MW.calView === 'week' ? 7 : 42;
+  body.style.gridTemplateColumns = MW.calView === 'week' ? 'repeat(7, 1fr)' : 'repeat(7, 1fr)';
+
+  // Show campaign bands above the grid
+  const bandRow = document.createElement('div');
+  bandRow.className = 'mw-band-row';
+  bandRow.style.gridColumn = '1/-1';
+  bandRow.style.display = MW.calView === 'week' ? 'none' : 'flex';
+  if (MW.calView === 'month' && (MW.calendarData.campaign_bands || []).length) {
+    MW.calendarData.campaign_bands.forEach(b => {
+      const el = document.createElement('span');
+      el.className = 'mw-band';
+      el.style.background = b.color || 'var(--lane-campaign)';
+      el.textContent = `${b.name} · ${b.start_date.slice(5)} → ${b.end_date.slice(5)}`;
+      el.onclick = () => showCampaignPanel(b);
+      bandRow.appendChild(el);
+    });
+  } else {
+    bandRow.innerHTML = '<span style="color:var(--tx-3);font-weight:400;font-style:italic">No active campaigns in this month</span>';
+  }
+  body.innerHTML = '';
+  body.appendChild(bandRow);
+
+  const today = isoDate(new Date());
+  for (let i = 0; i < cells; i++) {
+    const cellDate = new Date(gridStart);
+    cellDate.setDate(gridStart.getDate() + i);
+    const dateStr = isoDate(cellDate);
+    const outside = cellDate.getMonth() !== MW.calDate.getMonth();
+    const isToday = dateStr === today;
+    const day = document.createElement('div');
+    day.className = 'mw-cal-day' + (outside ? ' outside-month' : '') + (isToday ? ' today' : '') + (cellDate.getDay() === 0 || cellDate.getDay() === 6 ? ' weekend' : '');
+    day.dataset.date = dateStr;
+
+    const dh = document.createElement('div');
+    dh.className = 'mw-cal-date';
+    const density = MW.calendarData.density?.[dateStr] || {};
+    const totalItems = Object.values(density).reduce((a,b) => a + b, 0);
+    const densityLabel = totalItems > 0 ? `<span class="day-density ${totalItems >= 5 ? 'dense' : ''}">${totalItems} item${totalItems !== 1 ? 's' : ''}</span>` : '';
+    dh.innerHTML = `<span class="n">${cellDate.getDate()}</span>${densityLabel}`;
+    day.appendChild(dh);
+
+    const dayItems = (MW.calendarData.items || []).filter(i => (i.publish_date || '').slice(0, 10) === dateStr);
+    dayItems.sort((a, b) => (a.publish_time || '').localeCompare(b.publish_time || ''));
+    dayItems.slice(0, 8).forEach(item => day.appendChild(renderItem(item)));
+
+    if (dayItems.length > 8) {
+      const more = document.createElement('div');
+      more.className = 'mw-item';
+      more.style.background = 'transparent';
+      more.style.color = 'var(--tx-3)';
+      more.style.fontStyle = 'italic';
+      more.style.cursor = 'default';
+      more.textContent = `+${dayItems.length - 8} more`;
+      day.appendChild(more);
+    }
+
+    // Empty add button
+    const addBtn = document.createElement('div');
+    addBtn.className = 'mw-add-btn';
+    addBtn.style.cssText = 'position:absolute;bottom:4px;right:4px;font-size:14px;color:var(--tx-3);opacity:0;cursor:pointer;transition:opacity var(--t);padding:2px 6px;border-radius:3px';
+    addBtn.textContent = '+';
+    addBtn.onclick = (e) => { e.stopPropagation(); showAddMenu(dateStr, e); };
+    day.appendChild(addBtn);
+    day.addEventListener('mouseenter', () => addBtn.style.opacity = '1');
+    day.addEventListener('mouseleave', () => addBtn.style.opacity = '0');
+
+    day.addEventListener('click', () => {
+      if (dayItems.length === 0) showAddMenu(dateStr, {clientX: 100, clientY: 100});
+    });
+
+    // Drag-drop
+    day.addEventListener('dragover', e => {
+      e.preventDefault();
+      day.classList.add('drag-over');
+    });
+    day.addEventListener('dragleave', () => day.classList.remove('drag-over'));
+    day.addEventListener('drop', async e => {
+      e.preventDefault();
+      day.classList.remove('drag-over');
+      const itemId = e.dataTransfer.getData('text/plain');
+      if (!itemId) return;
+      await moveItem(itemId, dateStr);
+    });
+
+    body.appendChild(day);
+  }
+}
+
+function renderItem(item) {
+  const el = document.createElement('div');
+  el.className = 'mw-item';
+  el.dataset.lane = item.lane;
+  el.dataset.itemId = item.id;
+  el.draggable = true;
+  el.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('text/plain', item.id);
+    el.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  el.onclick = (e) => { e.stopPropagation(); selectItem(item); };
+
+  const laneIcon = {product: '📦', human: '👤', campaign: '📣', paid: '💰', crm: '💌', search: '🔍', events: '📅'}[item.lane] || '•';
+  const status = item.status || 'idea';
+  const time = (item.publish_time || '').slice(0, 5);
+
+  const name = item.headline || item.product_name || item.brief || (item.creative_property || item.lane);
+  el.innerHTML = `
+    <div class="item-name">${laneIcon} ${escapeHtml(name).slice(0, 36)}</div>
+    <div class="item-meta">
+      <span class="status-dot ${status}"></span>
+      <span>${status.replace('_', ' ')}</span>
+      ${time ? `<span>· ${time}</span>` : ''}
+      ${item.platform ? `<span>· ${(item.platforms || [item.platform])[0].slice(0, 3)}</span>` : ''}
+    </div>
+  `;
+  return el;
+}
+
+async function moveItem(itemId, newDate) {
+  const item = MW.calendarData.items.find(i => i.id === itemId);
+  if (!item) return;
+  if (item.status === 'queued' && item.postiz_post_id) {
+    const ok = confirm(
+      `This post is already queued in Postiz for ${item.publish_date} ${item.publish_time || ''}.\n\n` +
+      `Move to ${newDate} and update Postiz schedule?\n\nOK = update Postiz · Cancel = don't move`
+    );
+    if (!ok) return;
+    // TODO: call /api/lanes/postiz/reschedule with item_id + new schedule
+    toast('Postiz reschedule wiring pending backend call', 'info');
+  }
+  try {
+    const updated = {...item, publish_date: newDate};
+    delete updated.brand_id;
+    await api('lanes/content', {method: 'POST', body: {brand_id: MW.brand, ...updated}});
+    toast(`Moved "${item.product_name || item.headline || item.id}" to ${newDate}`, 'success');
+    await refreshCalendar();
+  } catch (e) {
+    toast('Move failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Conflicts banner ──────────────────────────────────────────────────
+function renderConflicts() {
+  const conflicts = (MW.calendarData.conflicts || []).filter(c => c.severity !== 'info' || MW.calendarData.conflicts.length < 10);
+  const critical = conflicts.filter(c => c.severity === 'critical').length;
+  const warning = conflicts.filter(c => c.severity === 'warning').length;
+  const info = conflicts.filter(c => c.severity === 'info').length;
+  const banner = document.getElementById('mw-conflicts');
+  if (conflicts.length === 0) { banner.style.display = 'none'; return; }
+  banner.style.display = 'block';
+  banner.innerHTML = `
+    <div class="mw-conflicts-title">
+      <span>${critical + warning + info} alert${critical + warning + info !== 1 ? 's' : ''}</span>
+      <span><span style="color:var(--red)">${critical} critical</span> · <span style="color:var(--org)">${warning} warning</span> · <span style="color:var(--blu)">${info} info</span></span>
+    </div>
+    ${conflicts.slice(0, 5).map(c => `
+      <div class="mw-conflict">
+        <span class="mw-conflict-dot ${c.severity}"></span>
+        <div class="mw-conflict-body"><strong>${escapeHtml(c.message)}</strong></div>
+      </div>
+    `).join('')}
+    ${conflicts.length > 5 ? `<div style="font-size:11px;color:var(--tx-3);margin-top:6px">+${conflicts.length - 5} more — see Conflicts view</div>` : ''}
+  `;
+}
+
+// ─── Side panel ────────────────────────────────────────────────────────
+function selectItem(item) {
+  MW.selectedItem = item;
+  document.getElementById('mw-panel-empty').style.display = 'none';
+  document.getElementById('mw-panel-content').style.display = 'block';
+  renderPanel(item);
+}
+
+async function renderPanel(item) {
+  const pc = document.getElementById('mw-panel-content');
+  const isProduct = item.lane === 'product';
+  pc.innerHTML = `
+    <div class="mw-panel-section">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <span class="mw-status-pill ${item.status || 'idea'}">${(item.status || 'idea').replace('_',' ')}</span>
+        </div>
+        <button class="ghost mw-modal-close" onclick="closePanel()">×</button>
+      </div>
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:8px">${escapeHtml(item.headline || item.product_name || item.brief || item.creative_property || item.lane)}</h2>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="mw-conn-pill" style="background:var(--bg-3)">Lane: ${item.lane}</span>
+        ${item.campaign_id ? `<span class="mw-conn-pill" style="background:var(--bg-3);border-color:var(--lane-campaign);color:var(--lane-campaign)">${escapeHtml(item.campaign_id)}</span>` : ''}
+        ${item.creative_property ? `<span class="mw-conn-pill" style="background:var(--bg-3);border-color:var(--ac);color:var(--ac)">${escapeHtml(item.creative_property)}</span>` : ''}
+      </div>
+    </div>
+
+    <div class="mw-panel-section" id="mw-panel-visual"></div>
+
+    <div class="mw-panel-section">
+      <h3>Details</h3>
+      <div class="mw-panel-row"><div class="lbl">Brand</div><div class="val">${escapeHtml(item.brand_id || MW.brand)}</div></div>
+      <div class="mw-panel-row"><div class="lbl">Date</div><div class="val">${escapeHtml(item.publish_date || '')} ${escapeHtml(item.publish_time || '')}</div></div>
+      ${item.platform || item.platforms ? `<div class="mw-panel-row"><div class="lbl">Platforms</div><div class="val">${escapeHtml((item.platforms || [item.platform]).join(', '))}</div></div>` : ''}
+      ${item.format ? `<div class="mw-panel-row"><div class="lbl">Format</div><div class="val">${escapeHtml(item.format)}</div></div>` : ''}
+      ${item.product_name ? `<div class="mw-panel-row"><div class="lbl">Product</div><div class="val">${escapeHtml(item.product_name)}</div></div>` : ''}
+      ${item.product_category ? `<div class="mw-panel-row"><div class="lbl">Category</div><div class="val">${escapeHtml(item.product_category)}</div></div>` : ''}
+      ${item.angle ? `<div class="mw-panel-row"><div class="lbl">Angle</div><div class="val">${escapeHtml(item.angle)}</div></div>` : ''}
+      ${item.owner ? `<div class="mw-panel-row"><div class="lbl">Owner</div><div class="val">${escapeHtml(item.owner)}</div></div>` : ''}
+      ${item.cta ? `<div class="mw-panel-row"><div class="lbl">CTA</div><div class="val">${escapeHtml(item.cta)}</div></div>` : ''}
+      ${item.destination ? `<div class="mw-panel-row"><div class="lbl">Destination</div><div class="val" style="word-break:break-all">${escapeHtml(item.destination)}</div></div>` : ''}
+      ${item.caption ? `<div class="mw-panel-row"><div class="lbl">Caption</div><div class="val" style="white-space:pre-wrap">${escapeHtml(item.caption).slice(0, 400)}</div></div>` : ''}
+      ${item.brief ? `<div class="mw-panel-row"><div class="lbl">Brief</div><div class="val" style="white-space:pre-wrap">${escapeHtml(item.brief).slice(0, 400)}</div></div>` : ''}
+      ${item.postiz_post_id ? `<div class="mw-panel-row"><div class="lbl">Postiz</div><div class="val">${escapeHtml(item.postiz_post_id)}</div></div>` : ''}
+    </div>
+
+    ${isProduct ? `
+    <div class="mw-panel-section">
+      <h3>Creative Director</h3>
+      <button class="primary" style="width:100%" onclick="openGenerateModal('${item.id}')">Generate creative →</button>
+      <div style="font-size:11px;color:var(--tx-3);margin-top:8px">Brand bible · product reference · past social posts · curated references</div>
+    </div>
+    ` : ''}
+
+    <div class="mw-panel-section">
+      <h3>Actions</h3>
+      <div class="mw-panel-actions">
+        <button onclick="changeItemStatus('${item.id}','planned')" ${item.status === 'planned' ? 'disabled' : ''}>Mark Planned</button>
+        <button onclick="changeItemStatus('${item.id}','approved')" class="primary" ${item.status === 'approved' ? 'disabled' : ''}>Approve</button>
+        <button onclick="queueItem('${item.id}')" ${item.status === 'queued' ? 'disabled' : ''}>Queue Postiz</button>
+        <button onclick="duplicateItem('${item.id}')">Duplicate</button>
+        <button onclick="deleteItem('${item.id}')" class="danger">Delete</button>
+      </div>
+    </div>
+  `;
+  // Load visual
+  loadItemVisual(item);
+}
+
+async function loadItemVisual(item) {
+  const wrap = document.getElementById('mw-panel-visual');
+  if (!wrap) return;
+  if (item.creative_id || item.creative_url || item.image_url) {
+    const url = item.creative_url || item.image_url;
+    wrap.innerHTML = `
+      <div class="mw-panel-thumb"><img src="${url}" alt="creative" onerror="this.parentElement.innerHTML='<div style=&quot;padding:30px;text-align:center;color:var(--tx-3)&quot;>No visual yet</div>'"></div>
+    `;
+  } else {
+    wrap.innerHTML = `<div class="mw-panel-thumb" style="padding:30px;text-align:center;color:var(--tx-3)">No creative generated yet</div>`;
+  }
+}
+
+function closePanel() {
+  MW.selectedItem = null;
+  document.getElementById('mw-panel-empty').style.display = 'block';
+  document.getElementById('mw-panel-content').style.display = 'none';
+}
+
+async function changeItemStatus(id, status) {
+  try {
+    await api(`lanes/content/${id}`, {method: 'PATCH', body: {brand_id: MW.brand, status}});
+    toast(`Status updated to "${status}"`, 'success');
+    await refreshCalendar();
+    if (MW.selectedItem && MW.selectedItem.id === id) {
+      MW.selectedItem.status = status;
+      renderPanel(MW.selectedItem);
+    }
+  } catch (e) {
+    toast('Status update failed: ' + e.message, 'error');
+  }
+}
+
+async function queueItem(id) {
+  try {
+    const r = await api('lanes/queue-for-postiz', {
+      method: 'POST',
+      body: {brand_id: MW.brand, item_ids: [id]},
+    });
+    if (r.ok && r.queued > 0) {
+      toast('Queued to Postiz', 'success');
+      await refreshCalendar();
+    } else if (!r.ok) {
+      toast('Postiz: ' + (r.error || 'unknown error'), 'error');
+    }
+  } catch (e) {
+    toast('Queue failed: ' + e.message, 'error');
+  }
+}
+
+async function duplicateItem(id) {
+  const item = MW.calendarData.items.find(i => i.id === id);
+  if (!item) return;
+  const copy = {...item, id: undefined, status: 'idea', publish_date: item.publish_date};
+  delete copy.id;
+  try {
+    await api('lanes/content', {method: 'POST', body: {brand_id: MW.brand, ...copy}});
+    toast('Duplicated', 'success');
+    await refreshCalendar();
+  } catch (e) {
+    toast('Duplicate failed: ' + e.message, 'error');
+  }
+}
+
+async function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  try {
+    await api(`lanes/content/${id}?brand_id=${MW.brand}`, {method: 'DELETE'});
+    toast('Deleted', 'success');
+    closePanel();
+    await refreshCalendar();
+  } catch (e) {
+    toast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Generate creative modal ───────────────────────────────────────────
+async function openGenerateModal(itemId) {
+  const item = MW.calendarData.items.find(i => i.id === itemId);
+  if (!item) return;
+  const modal = document.createElement('div');
+  modal.className = 'mw-modal-backdrop';
+  modal.innerHTML = `
+    <div class="mw-modal" onclick="event.stopPropagation()">
+      <div class="mw-modal-head">
+        <div>
+          <h2>Generate creative — ${escapeHtml(item.product_name || item.headline || item.lane)}</h2>
+          <div style="font-size:12px;color:var(--tx-3);margin-top:4px">${escapeHtml(item.publish_date || '')} · ${escapeHtml(item.creative_property || 'product_feature')} · ${escapeHtml(item.angle || 'hero_product')}</div>
+        </div>
+        <button class="mw-modal-close" onclick="this.closest('.mw-modal-backdrop').remove()">×</button>
+      </div>
+      <div class="mw-modal-body" id="mw-gen-modal-body">
+        <div style="text-align:center;padding:20px;color:var(--tx-3)">Loading creative context…</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  // Load the composed prompt + recommended model + social references
+  await loadCreativeContext(item, modal);
+}
+
+async function loadCreativeContext(item, modal) {
+  const body = document.getElementById('mw-gen-modal-body');
+  body.innerHTML = `<div style="text-align:center;padding:20px"><div style="color:var(--tx-3)">Composing master prompt…</div></div>`;
+  try {
+    // 1. Composed prompt
+    const compose = await api('creative/from-reference-and-product', {
+      method: 'POST',
+      body: {
+        brand_id: MW.brand,
+        reference_dna: item.reference_dna || {},
+        product_service_item: {
+          id: item.product_id,
+          name: item.product_name,
+          category: item.product_category,
+        },
+        format_aspect: '4:5',
+      },
+    });
+    // 2. Past social references — search
+    const refs = await api('creative/search', {
+      method: 'POST',
+      body: {
+        brand_id: MW.brand,
+        query: (item.product_name || '').split(' ')[0] || item.product_category || '',
+        sources: ['curated', 'published'],
+        limit: 4,
+      },
+    });
+    // 3. Render
+    const masterPrompt = compose.master_prompt || '(compose failed)';
+    const negativePrompt = compose.negative_prompt || '';
+    const recommended = compose.model_routing?.recommended || 'bfl/flux-1.1-pro';
+    const why = compose.model_routing?.why || '';
+    const refsList = (refs.results || []).slice(0, 4);
+    body.innerHTML = `
+      <div class="mw-gen-preview">
+        <h4>🎯 Recommended model</h4>
+        <div style="font-size:14px;font-weight:600;color:var(--ac);margin-bottom:4px">${escapeHtml(recommended)}</div>
+        <div style="font-size:12px;color:var(--tx-3)">${escapeHtml(why)}</div>
+      </div>
+
+      <div class="mw-gen-preview">
+        <h4>📚 References used</h4>
+        ${refsList.length === 0 ? '<div style="color:var(--tx-3);font-size:12px">No matching references yet — proceed with brand bible only.</div>' : `
+        <div class="mw-refs-list">
+          ${refsList.map(r => `
+            <div class="mw-ref-item">
+              <span class="ref-badge ${r.source}">${r.source}</span>
+              <div>
+                <div style="font-weight:600">${escapeHtml(r.asset_id || r.source_id || '')}</div>
+                <div style="color:var(--tx-3);font-size:10px">${escapeHtml((r.match_reason || '').slice(0, 80))}</div>
+              </div>
+              <div class="ref-reason">score ${(r.score || 0).toFixed(2)}</div>
+            </div>
+          `).join('')}
+        </div>
+        `}
+      </div>
+
+      <div class="mw-gen-preview">
+        <h4>✍️ Master prompt</h4>
+        <pre>${escapeHtml(masterPrompt).slice(0, 2000)}</pre>
+        <button class="ghost" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden">Show negative / preservation prompt ▾</button>
+        <pre hidden>${escapeHtml(negativePrompt).slice(0, 1500)}</pre>
+      </div>
+
+      <div class="mw-gen-preview" id="mw-gen-result" style="display:none">
+        <h4>🖼️ Generated</h4>
+        <div id="mw-gen-result-body"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="primary" style="flex:1" onclick="doGenerate('${item.id}')">Generate with ${escapeHtml(recommended)}</button>
+        <button onclick="regenerateWithDifferentModel('${item.id}')">Try another model</button>
+      </div>
+    `;
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--red)">Failed to load context: ${e.message}</div>`;
+  }
+}
+
+async function doGenerate(itemId) {
+  const item = MW.calendarData.items.find(i => i.id === itemId);
+  if (!item) return;
+  const resultBox = document.getElementById('mw-gen-result');
+  const resultBody = document.getElementById('mw-gen-result-body');
+  resultBox.style.display = 'block';
+  resultBody.innerHTML = '<div style="color:var(--tx-3);font-size:12px">Submitting to Krea…</div>';
+  try {
+    const gen = await api('image/generate', {
+      method: 'POST',
+      body: {
+        prompt: `Product feature for ${item.product_name || item.headline}`,
+        brand_id: MW.brand,
+        provider: 'krea',
+        model: 'bfl/flux-1.1-pro-ultra',
+        size: '1024x1280',
+      },
+    });
+    const jobId = gen.provider_job_id || (gen.usage && gen.usage.krea_job_id);
+    if (!jobId) {
+      resultBody.innerHTML = `<div style="color:var(--red);font-size:12px">Generation failed: no job id</div>`;
+      return;
+    }
+    resultBody.innerHTML = `<div style="color:var(--tx-3);font-size:12px">Job ${escapeHtml(jobId.slice(0, 16))}… polling</div>`;
+    // Poll
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await new Promise(r => setTimeout(r, 6000));
+      const poll = await api('image/poll-krea-job', {
+        method: 'POST',
+        body: {job_id: jobId, brand_id: MW.brand, save: true},
+      });
+      if (poll.completed && poll.result_urls?.length) {
+        const url = poll.result_urls[0];
+        resultBody.innerHTML = `
+          <div style="margin-bottom:10px"><img src="${escapeHtml(url)}" style="width:100%;border-radius:var(--r-s)"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="primary" onclick="approveGenerated('${item.id}','${escapeHtml(url)}')">Approve & mark needs_approval</button>
+            <button onclick="doGenerate('${item.id}')">Regenerate</button>
+            <button onclick="regenerateWithDifferentModel('${item.id}')">Try another model</button>
+          </div>
+        `;
+        return;
+      }
+      resultBody.innerHTML = `<div style="color:var(--tx-3);font-size:12px">Polling… (attempt ${attempt + 1}/12)</div>`;
+    }
+    resultBody.innerHTML = `<div style="color:var(--org);font-size:12px">Polling timed out — check generation status in image-lab</div>`;
+  } catch (e) {
+    resultBody.innerHTML = `<div style="color:var(--red);font-size:12px">Generation failed: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function regenerateWithDifferentModel(itemId) {
+  const item = MW.calendarData.items.find(i => i.id === itemId);
+  if (!item) return;
+  const modelChoice = prompt('Try another model. Examples:\n\n- bfl/flux-1.1-pro\n- bfl/flux-1.1-pro-ultra\n- ideogram/ideogram-3\n- recraft/recraft-v3', 'ideogram/ideogram-3');
+  if (!modelChoice) return;
+  // Same flow but with different model
+  const resultBox = document.getElementById('mw-gen-result');
+  const resultBody = document.getElementById('mw-gen-result-body');
+  resultBox.style.display = 'block';
+  resultBody.innerHTML = `<div style="color:var(--tx-3);font-size:12px">Submitting to ${escapeHtml(modelChoice)}…</div>`;
+  try {
+    const gen = await api('image/generate', {
+      method: 'POST',
+      body: {
+        prompt: `Product feature for ${item.product_name || item.headline}`,
+        brand_id: MW.brand,
+        provider: 'krea',
+        model: modelChoice,
+        size: '1024x1280',
+      },
+    });
+    const jobId = gen.provider_job_id || (gen.usage && gen.usage.krea_job_id);
+    if (!jobId) {
+      resultBody.innerHTML = `<div style="color:var(--red);font-size:12px">Failed: no job id</div>`;
+      return;
+    }
+    resultBody.innerHTML = `<div style="color:var(--tx-3);font-size:12px">Job ${escapeHtml(jobId.slice(0, 16))}…</div>`;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await new Promise(r => setTimeout(r, 6000));
+      const poll = await api('image/poll-krea-job', {
+        method: 'POST',
+        body: {job_id: jobId, brand_id: MW.brand, save: true},
+      });
+      if (poll.completed && poll.result_urls?.length) {
+        const url = poll.result_urls[0];
+        resultBody.innerHTML = `
+          <div style="margin-bottom:10px"><img src="${escapeHtml(url)}" style="width:100%;border-radius:var(--r-s)"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="primary" onclick="approveGenerated('${item.id}','${escapeHtml(url)}')">Approve & mark needs_approval</button>
+            <button onclick="regenerateWithDifferentModel('${item.id}')">Try another model</button>
+          </div>
+        `;
+        return;
+      }
+      resultBody.innerHTML = `<div style="color:var(--tx-3);font-size:12px">Polling… (attempt ${attempt + 1}/12)</div>`;
+    }
+  } catch (e) {
+    resultBody.innerHTML = `<div style="color:var(--red);font-size:12px">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function approveGenerated(itemId, url) {
+  try {
+    await api(`lanes/content/${itemId}`, {
+      method: 'PATCH',
+      body: {
+        brand_id: MW.brand,
+        status: 'needs_approval',
+        creative_url: url,
+      },
+    });
+    toast('Creative saved — ready for review', 'success');
+    await refreshCalendar();
+    document.querySelector('.mw-modal-backdrop')?.remove();
+  } catch (e) {
+    toast('Approve failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Add item menu ─────────────────────────────────────────────────────
+function showAddMenu(dateStr, event) {
+  const existing = document.querySelector('.mw-add-menu');
+  if (existing) existing.remove();
+  const menu = document.createElement('div');
+  menu.className = 'mw-add-menu';
+  const lanes = ['product', 'human', 'campaign', 'paid', 'crm', 'search', 'events'];
+  menu.innerHTML = `<div style="font-size:11px;color:var(--tx-3);padding:6px 10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600">Add to ${dateStr}</div>` +
+    lanes.map(l => `<button data-lane="${l}">${l}</button>`).join('');
+  document.body.appendChild(menu);
+  const rect = (event.currentTarget || event).getBoundingClientRect();
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.left = Math.max(10, rect.left - 100) + 'px';
+  menu.addEventListener('click', e => {
+    if (e.target.dataset.lane) {
+      createNewItem(dateStr, e.target.dataset.lane);
+      menu.remove();
+    }
+  });
+  setTimeout(() => {
+    document.addEventListener('click', function close() {
+      menu.remove();
+      document.removeEventListener('click', close);
+    });
+  }, 100);
+}
+
+async function createNewItem(dateStr, lane) {
+  const item = {
+    brand_id: MW.brand,
+    lane,
+    status: 'idea',
+    publish_date: dateStr,
+    publish_time: '09:00',
+    platforms: ['instagram'],
+    platform: 'instagram',
+    format: '1:1',
+  };
+  if (lane === 'product') {
+    item.headline = 'New product feature';
+    item.creative_property = 'product_feature';
+  } else if (lane === 'human') {
+    item.headline = 'New human content';
+    item.creative_property = 'why_its_here';
+  } else if (lane === 'campaign') {
+    item.headline = 'New campaign post';
+    item.creative_property = 'product_drop';
+  }
+  try {
+    const r = await api('lanes/content', {method: 'POST', body: item});
+    toast(`Created ${lane} item`, 'success');
+    await refreshCalendar();
+    if (r.item) selectItem(r.item);
+  } catch (e) {
+    toast('Create failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Filter bar ────────────────────────────────────────────────────────
+function setupFilterBar() {
+  document.querySelectorAll('.mw-lane-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mw-lane-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      MW.laneFilter = btn.dataset.lane;
+      refreshCalendar();
+    });
+  });
+  document.getElementById('mw-platform-sel').addEventListener('change', e => {
+    MW.platformFilter = e.target.value;
+    refreshCalendar();
+  });
+  document.getElementById('mw-prev-month').addEventListener('click', () => {
+    MW.calDate.setMonth(MW.calDate.getMonth() - 1);
+    refreshCalendar();
+  });
+  document.getElementById('mw-next-month').addEventListener('click', () => {
+    MW.calDate.setMonth(MW.calDate.getMonth() + 1);
+    refreshCalendar();
+  });
+  document.getElementById('mw-today-btn').addEventListener('click', () => {
+    MW.calDate = new Date();
+    refreshCalendar();
+  });
+  document.querySelectorAll('.mw-view-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mw-view-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      MW.calView = btn.dataset.cal;
+      refreshCalendar();
+    });
+  });
+}
+
+function renderCampaignFilter() {
+  const sel = document.getElementById('mw-campaign-sel');
+  const camps = (MW.calendarData.campaign_bands || []).map(b => ({id: b.campaign_id, name: b.name}));
+  sel.innerHTML = '<option value="">All campaigns</option>' +
+    camps.map(c => `<option value="${c.id}" ${MW.campaignFilter === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('');
+  sel.onchange = e => {
+    MW.campaignFilter = e.target.value;
+    refreshCalendar();
+  };
+}
+
+// ─── Navigation ────────────────────────────────────────────────────────
+function setupNavigation() {
+  document.querySelectorAll('#mw-nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#mw-nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      MW.view = view;
+      ['calendar', 'stock', 'products', 'references', 'morning'].forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (el) el.style.display = v === view ? 'block' : 'none';
+      });
+      if (view === 'stock') renderStockView();
+      if (view === 'products') renderProductsView();
+      if (view === 'references') renderReferencesView();
+      if (view === 'morning') renderMorningBrief();
+    });
+  });
+}
+
+// ─── Stock view ────────────────────────────────────────────────────────
+function renderStockView() {
+  const el = document.getElementById('view-stock');
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <h2 style="font-size:22px;font-weight:700">Stock</h2>
+        <div style="color:var(--tx-3);font-size:13px;margin-top:4px">Upload your spreadsheet. Map columns. Review. Import.</div>
+      </div>
+      <button class="primary" onclick="openStockUpload()">Upload stock</button>
+    </div>
+    <div id="stock-list"></div>
+  `;
+  loadStockList();
+}
+
+async function loadStockList() {
+  const el = document.getElementById('stock-list');
+  el.innerHTML = '<div style="color:var(--tx-3)">Loading products…</div>';
+  try {
+    const r = await api(`lanes/products?brand_id=${MW.brand}`);
+    const products = r.products || [];
+    if (products.length === 0) {
+      el.innerHTML = `
+        <div class="mw-empty">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <h3>No products yet</h3>
+          <p>Upload your stock spreadsheet to populate this catalog. The system handles SKU, stock quantity, price, category, and rotation memory.</p>
+          <button class="primary" onclick="openStockUpload()">Upload your first stock sheet</button>
+        </div>
+      `;
+      return;
+    }
+    el.innerHTML = `
+      <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="stock-search" placeholder="Search products…" style="max-width:280px">
+        <select id="stock-cat-filter" style="width:auto">
+          <option value="">All categories</option>
+          ${[...new Set(products.map(p => p.category || 'uncategorised'))].map(c => `<option>${escapeHtml(c)}</option>`).join('')}
+        </select>
+        <select id="stock-stock-filter" style="width:auto">
+          <option value="">All stock</option>
+          <option value="in">In stock</option>
+          <option value="low">Low stock (≤3)</option>
+          <option value="out">Out of stock</option>
+        </select>
+        <button class="primary" onclick="openProposeCalendar()">Plan product posts →</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--bg-3);text-align:left">
+            <th style="padding:8px 10px">SKU</th>
+            <th style="padding:8px 10px">Product</th>
+            <th style="padding:8px 10px">Category</th>
+            <th style="padding:8px 10px">Price</th>
+            <th style="padding:8px 10px">Stock</th>
+            <th style="padding:8px 10px">Priority</th>
+            <th style="padding:8px 10px">Last Featured</th>
+            <th style="padding:8px 10px">Status</th>
+          </tr>
+        </thead>
+        <tbody id="stock-tbody"></tbody>
+      </table>
+    `;
+    renderStockRows(products);
+    document.getElementById('stock-search').addEventListener('input', () => renderStockRows(products));
+    document.getElementById('stock-cat-filter').addEventListener('change', () => renderStockRows(products));
+    document.getElementById('stock-stock-filter').addEventListener('change', () => renderStockRows(products));
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderStockRows(products) {
+  const search = document.getElementById('stock-search')?.value.toLowerCase() || '';
+  const cat = document.getElementById('stock-cat-filter')?.value || '';
+  const stock = document.getElementById('stock-stock-filter')?.value || '';
+  let filtered = products.filter(p => {
+    if (search && !(`${p.name} ${p.sku} ${p.brand}`.toLowerCase().includes(search))) return false;
+    if (cat && p.category !== cat) return false;
+    if (stock === 'in' && p.stock_quantity <= 0) return false;
+    if (stock === 'low' && (p.stock_quantity <= 0 || p.stock_quantity > 3)) return false;
+    if (stock === 'out' && p.stock_quantity > 0) return false;
+    return true;
+  });
+  const tbody = document.getElementById('stock-tbody');
+  tbody.innerHTML = filtered.slice(0, 200).map(p => {
+    const currency = p.currency || 'ZAR';
+    const price = p.price ? `${p.price.toLocaleString()}` : '—';
+    const stockStatus = p.stock_quantity <= 0
+      ? '<span style="color:var(--red);font-weight:600">OUT</span>'
+      : p.stock_quantity <= 3
+        ? `<span style="color:var(--org);font-weight:600">${p.stock_quantity}</span>`
+        : `<span style="color:var(--grn)">${p.stock_quantity}</span>`;
+    const lastFeatured = p.rotation?.last_featured_date?.slice(0, 10) || '—';
+    return `
+      <tr style="border-top:1px solid var(--bd)">
+        <td style="padding:8px 10px;color:var(--tx-3);font-family:monospace;font-size:12px">${escapeHtml(p.sku || '—')}</td>
+        <td style="padding:8px 10px;font-weight:600">${escapeHtml(p.name)}</td>
+        <td style="padding:8px 10px"><span style="background:var(--bg-3);padding:2px 8px;border-radius:10px;font-size:11px">${escapeHtml(p.category || '—')}</span></td>
+        <td style="padding:8px 10px">${escapeHtml(price)}</td>
+        <td style="padding:8px 10px">${stockStatus}</td>
+        <td style="padding:8px 10px">${escapeHtml(p.priority || 'normal')}</td>
+        <td style="padding:8px 10px;color:var(--tx-3)">${escapeHtml(lastFeatured)}</td>
+        <td style="padding:8px 10px"><span class="mw-status-pill ${p.stock_quantity > 0 ? 'published' : 'failed'}">${p.stock_quantity > 0 ? 'in stock' : 'sold out'}</span></td>
+      </tr>
+    `;
+  }).join('') || '<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--tx-3)">No products match the filters.</td></tr>';
+  if (filtered.length > 200) {
+    tbody.innerHTML += `<tr><td colspan="8" style="padding:8px 10px;text-align:center;color:var(--tx-3);font-size:11px">+${filtered.length - 200} more</td></tr>`;
+  }
+}
+
+// ─── Stock upload modal ────────────────────────────────────────────────
+function openStockUpload() {
+  const modal = document.createElement('div');
+  modal.className = 'mw-modal-backdrop';
+  modal.innerHTML = `
+    <div class="mw-modal" onclick="event.stopPropagation()" style="max-width:760px">
+      <div class="mw-modal-head">
+        <h2>Upload stock — ${escapeHtml(MW.brand)}</h2>
+        <button class="mw-modal-close" onclick="this.closest('.mw-modal-backdrop').remove()">×</button>
+      </div>
+      <div class="mw-modal-body" id="upload-step-body">
+        <div class="mw-stepper">
+          <div class="mw-stepper-step active" data-step="1">1. Upload</div>
+          <div class="mw-stepper-step" data-step="2">2. Map columns</div>
+          <div class="mw-stepper-step" data-step="3">3. Preview</div>
+          <div class="mw-stepper-step" data-step="4">4. Confirm</div>
+        </div>
+        <div id="upload-step-content">
+          <label>Choose CSV file</label>
+          <input type="file" id="csv-file" accept=".csv,.tsv,.txt">
+          <div style="font-size:11px;color:var(--tx-3);margin-top:6px">Or paste CSV below.</div>
+          <label style="margin-top:14px">Paste CSV</label>
+          <textarea id="csv-paste" rows="8" placeholder="SKU,Item Name,Brand,Category,Price,Qty,Size..."></textarea>
+        </div>
+      </div>
+      <div class="mw-modal-foot">
+        <button onclick="this.closest('.mw-modal-backdrop').remove()">Cancel</button>
+        <button class="primary" id="upload-next-btn">Next →</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('csv-file').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => { document.getElementById('csv-paste').value = ev.target.result; };
+    reader.readAsText(f);
+  });
+  document.getElementById('upload-next-btn').addEventListener('click', () => stockUploadNext());
+}
+
+let _uploadPreview = null;
+
+async function stockUploadNext() {
+  const csv = document.getElementById('csv-paste').value.trim();
+  if (!csv) { toast('Paste CSV first', 'error'); return; }
+  try {
+    const preview = await api('lanes/stock/preview', {method: 'POST', body: {brand_id: MW.brand, csv_content: csv}});
+    _uploadPreview = preview;
+    renderUploadStep(2, preview);
+    document.querySelector('[data-step="1"]').classList.remove('active');
+    document.querySelector('[data-step="1"]').classList.add('done');
+    document.querySelector('[data-step="2"]').classList.add('active');
+  } catch (e) {
+    toast('Preview failed: ' + e.message, 'error');
+  }
+}
+
+function renderUploadStep(step, data) {
+  const content = document.getElementById('upload-step-content');
+  if (step === 2) {
+    const detected = data.detected_mapping || {};
+    const allFields = ['sku', 'name', 'brand', 'category', 'subcategory', 'description', 'price', 'sale_price', 'stock_quantity', 'size', 'color', 'variant', 'product_url', 'image_url', 'supplier', 'priority', 'campaign', 'tags', 'status', 'notes'];
+    content.innerHTML = `
+      <label>Column mapping</label>
+      <div class="mw-mapping" id="mw-mapping-grid">
+        ${allFields.map(field => `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+            <div class="lbl-cell">${field.replace('_', ' ')}</div>
+            <select data-field="${field}" style="background:var(--bg-3);border:1px solid var(--bd);color:var(--tx);padding:5px 8px;border-radius:3px;font-size:12px">
+              <option value="">— skip —</option>
+              ${(data.header_row || []).map(h => `<option value="${h}" ${detected[field] === h ? 'selected' : ''}>${escapeHtml(h)}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+      </div>
+      <div style="font-size:12px;color:var(--tx-3);margin-top:12px">
+        ${data.warnings?.length ? '⚠️ ' + data.warnings.join(' ') : '✅ All required fields detected.'}
+      </div>
+    `;
+  } else if (step === 3) {
+    content.innerHTML = `
+      <div style="padding:14px;border:1px solid var(--bd);border-radius:var(--r-s);background:var(--bg-3);margin-bottom:14px">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px">Estimated impact</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+          <div><div style="font-size:24px;font-weight:700;color:var(--ac)">${data.estimated_new}</div><div style="font-size:11px;color:var(--tx-3)">New products</div></div>
+          <div><div style="font-size:24px;font-weight:700;color:var(--blu)">${data.estimated_updates}</div><div style="font-size:11px;color:var(--tx-3)">Updates (same SKU)</div></div>
+          <div><div style="font-size:24px;font-weight:700">${data.row_count}</div><div style="font-size:11px;color:var(--tx-3)">Total rows</div></div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--tx-3);margin-bottom:14px">Sample of first 5 rows:</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--bg-3)">${Object.keys(data.sample_rows?.[0] || {}).map(k => `<th style="padding:6px 10px;text-align:left">${escapeHtml(k)}</th>`).join('')}</tr></thead>
+        <tbody>${(data.sample_rows || []).map(r => `<tr style="border-top:1px solid var(--bd)">${Object.values(r).map(v => `<td style="padding:6px 10px">${escapeHtml(String(v || '').slice(0, 30))}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    `;
+  } else if (step === 4) {
+    content.innerHTML = `
+      <div style="text-align:center;padding:30px">
+        <h3 style="margin-bottom:10px">Ready to import</h3>
+        <p style="color:var(--tx-3);margin-bottom:20px">${data.created} new · ${data.updated} updates · ${data.errors} errors</p>
+        <button class="primary" onclick="confirmStockImport()">Confirm import →</button>
+      </div>
+    `;
+  }
+}
+
+async function confirmStockImport() {
+  const csv = document.getElementById('csv-paste').value.trim();
+  // Build mapping from current selection
+  const mapping = {};
+  document.querySelectorAll('#mw-mapping-grid select').forEach(sel => {
+    if (sel.value) mapping[sel.dataset.field] = sel.value;
+  });
+  try {
+    const r = await api('lanes/stock/commit', {method: 'POST', body: {brand_id: MW.brand, csv_content: csv, mapping, actor: 'christelle'}});
+    toast(`Imported ${r.created} new · ${r.updated} updated`, 'success');
+    document.querySelector('.mw-modal-backdrop')?.remove();
+    loadStockList();
+    refreshCalendar();
+    // Offer to plan product posts
+    setTimeout(() => {
+      if (confirm('Stock imported. Plan product posts now?')) openProposeCalendar();
+    }, 800);
+  } catch (e) {
+    toast('Import failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Propose Calendar modal ─────────────────────────────────────────────
+function openProposeCalendar() {
+  const today = new Date();
+  const nextMon = new Date(today);
+  nextMon.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7 || 7));
+  const modal = document.createElement('div');
+  modal.className = 'mw-modal-backdrop';
+  modal.innerHTML = `
+    <div class="mw-modal" onclick="event.stopPropagation()" style="max-width:780px">
+      <div class="mw-modal-head">
+        <h2>Plan product posts — ${escapeHtml(MW.brand)}</h2>
+        <button class="mw-modal-close" onclick="this.closest('.mw-modal-backdrop').remove()">×</button>
+      </div>
+      <div class="mw-modal-body" id="propose-step-body">
+        <div class="mw-stepper">
+          <div class="mw-stepper-step active" data-step="1">1. Set parameters</div>
+          <div class="mw-stepper-step" data-step="2">2. Review proposal</div>
+          <div class="mw-stepper-step" data-step="3">3. Approve</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div><label>Start date</label><input type="date" id="pp-start" value="${isoDate(nextMon)}"></div>
+          <div><label>Frequency</label>
+            <select id="pp-freq">
+              <option value="weekdays">Weekdays only</option>
+              <option value="daily">Daily</option>
+              <option value="x_per_week">3 per week</option>
+            </select>
+          </div>
+          <div><label>Slots</label><input type="number" id="pp-days" value="20" min="1" max="60"></div>
+          <div><label>Exclude recently featured</label>
+            <select id="pp-exclude">
+              <option value="0">Include all</option>
+              <option value="3">Skip last 3 days</option>
+              <option value="7" selected>Skip last 7 days</option>
+              <option value="14">Skip last 14 days</option>
+            </select>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--tx-3);margin-top:14px">
+          The planner considers: stock, priority, new arrivals, category diversity, brand diversity, price-point diversity, and recent rotation memory.
+          No creative is generated until you approve.
+        </div>
+      </div>
+      <div class="mw-modal-foot">
+        <button onclick="this.closest('.mw-modal-backdrop').remove()">Cancel</button>
+        <button class="primary" onclick="runPropose()">Propose →</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+let _proposal = null;
+
+async function runPropose() {
+  const start = document.getElementById('pp-start').value;
+  const days = parseInt(document.getElementById('pp-days').value);
+  const freq = document.getElementById('pp-freq').value;
+  const exclude = parseInt(document.getElementById('pp-exclude').value);
+  try {
+    const r = await api('lanes/propose-product-calendar', {
+      method: 'POST',
+      body: {brand_id: MW.brand, start_date: start, days_count: days, frequency: freq, exclude_recent_days: exclude},
+    });
+    _proposal = r;
+    document.querySelector('[data-step="1"]').classList.remove('active');
+    document.querySelector('[data-step="1"]').classList.add('done');
+    document.querySelector('[data-step="2"]').classList.add('active');
+    renderProposal(r);
+  } catch (e) {
+    toast('Propose failed: ' + e.message, 'error');
+  }
+}
+
+function renderProposal(r) {
+  const body = document.getElementById('propose-step-body');
+  body.innerHTML = `
+    <div style="display:flex;gap:14px;margin-bottom:14px">
+      <div style="padding:10px 14px;background:var(--bg-3);border-radius:var(--r-s)">
+        <div style="font-size:22px;font-weight:700;color:var(--ac)">${r.slot_count}</div>
+        <div style="font-size:11px;color:var(--tx-3)">Slots</div>
+      </div>
+      <div style="padding:10px 14px;background:var(--bg-3);border-radius:var(--r-s)">
+        <div style="font-size:22px;font-weight:700">${r.start_date?.slice(5)} → ${r.end_date?.slice(5)}</div>
+        <div style="font-size:11px;color:var(--tx-3)">Period</div>
+      </div>
+      <div style="padding:10px 14px;background:var(--bg-3);border-radius:var(--r-s)">
+        <div style="font-size:22px;font-weight:700;color:var(--grn)">${r.available_products}</div>
+        <div style="font-size:11px;color:var(--tx-3)">Eligible products</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;font-size:12px">
+      <div style="background:var(--bg-3);padding:10px;border-radius:var(--r-s)">
+        <div style="color:var(--tx-3);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:4px">Categories</div>
+        ${Object.entries(r.category_distribution || {}).map(([k,v]) => `<div>${escapeHtml(k)}: <strong>${v}</strong></div>`).join('') || '—'}
+      </div>
+      <div style="background:var(--bg-3);padding:10px;border-radius:var(--r-s)">
+        <div style="color:var(--tx-3);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:4px">Brands</div>
+        ${Object.entries(r.brand_distribution || {}).map(([k,v]) => `<div>${escapeHtml(k)}: <strong>${v}</strong></div>`).join('') || '—'}
+      </div>
+      <div style="background:var(--bg-3);padding:10px;border-radius:var(--r-s)">
+        <div style="color:var(--tx-3);text-transform:uppercase;font-weight:600;letter-spacing:.05em;margin-bottom:4px">Price points</div>
+        ${Object.entries(r.price_distribution || {}).map(([k,v]) => `<div>${escapeHtml(k)}: <strong>${v}</strong></div>`).join('') || '—'}
+      </div>
+    </div>
+
+    <label>Proposed sequence (drag rows to reorder — coming soon)</label>
+    <div id="proposal-items" style="max-height:380px;overflow:auto;border:1px solid var(--bd);border-radius:var(--r-s)">
+      ${(r.proposed_items || []).map((it, i) => `
+        <div style="padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px" data-idx="${i}">
+          <div style="font-size:11px;color:var(--tx-3);width:90px">${escapeHtml(it.publish_date.slice(0,10))}</div>
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">${escapeHtml(it.product_name || '—')}</div>
+            <div style="font-size:11px;color:var(--tx-3)">${escapeHtml(it.product_category || '')} · ${escapeHtml(it.angle || '')} · ${escapeHtml(it.creative_property || '')}</div>
+          </div>
+          <button class="ghost" onclick="excludeProposalItem(${i})">Skip</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.querySelector('.mw-modal-foot .primary').onclick = () => approveProposal();
+  document.querySelector('.mw-modal-foot .primary').textContent = `Approve ${r.slot_count} slots →`;
+}
+
+async function excludeProposalItem(idx) {
+  if (!_proposal) return;
+  _proposal.proposed_items.splice(idx, 1);
+  _proposal.slot_count = _proposal.proposed_items.length;
+  renderProposal(_proposal);
+  toast('Item removed from proposal', 'info');
+}
+
+async function approveProposal() {
+  if (!_proposal) return;
+  document.querySelector('[data-step="2"]').classList.remove('active');
+  document.querySelector('[data-step="2"]').classList.add('done');
+  document.querySelector('[data-step="3"]').classList.add('active');
+  try {
+    const r = await api('lanes/approve-proposal', {method: 'POST', body: {brand_id: MW.brand, items: _proposal.proposed_items}});
+    toast(`Saved ${r.saved} planned slots`, 'success');
+    setTimeout(() => {
+      document.querySelector('.mw-modal-backdrop')?.remove();
+      // Switch to calendar view
+      document.querySelector('#mw-nav button[data-view="calendar"]').click();
+      refreshCalendar();
+    }, 800);
+  } catch (e) {
+    toast('Approve failed: ' + e.message, 'error');
+  }
+}
+
+// ─── Products view ───────────────────────────────────────────────────────
+function renderProductsView() {
+  const el = document.getElementById('view-products');
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <h2 style="font-size:22px;font-weight:700">Products</h2>
+        <div style="color:var(--tx-3);font-size:13px;margin-top:4px">Extended product catalog with stock, price, and rotation memory.</div>
+      </div>
+      <button class="primary" onclick="openProposeCalendar()">Plan product posts →</button>
+    </div>
+    <div id="products-list"></div>
+  `;
+  loadStockList();
+  document.getElementById('stock-list').id = 'products-list';
+}
+
+// ─── References view ───────────────────────────────────────────────────
+function renderReferencesView() {
+  const el = document.getElementById('view-references');
+  el.innerHTML = `
+    <div style="margin-bottom:18px">
+      <h2 style="font-size:22px;font-weight:700">References</h2>
+      <div style="color:var(--tx-3);font-size:13px;margin-top:4px">Curated uploads + published social history. The Creative Director uses both.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input id="refs-q" placeholder="Search references (e.g. fitting, JORDAN, trackman)" style="flex:1">
+      <button class="primary" onclick="doRefsSearch()">Search</button>
+    </div>
+    <div id="refs-results"></div>
+  `;
+  document.getElementById('refs-q').addEventListener('keydown', e => { if (e.key === 'Enter') doRefsSearch(); });
+  doRefsSearch();
+}
+
+async function doRefsSearch() {
+  const q = document.getElementById('refs-q').value;
+  const results = document.getElementById('refs-results');
+  results.innerHTML = '<div style="color:var(--tx-3)">Searching…</div>';
+  try {
+    const r = await api('creative/search', {method: 'POST', body: {brand_id: MW.brand, query: q, sources: ['curated', 'published'], limit: 20}});
+    results.innerHTML = `
+      <div style="margin-bottom:10px;color:var(--tx-3);font-size:12px">${r.total} result${r.total !== 1 ? 's' : ''} — ${(r.debug?.curated_total_sidecars || 0)} curated sidecars + ${(r.debug?.published_count || 0)} published posts</div>
+      ${(r.results || []).map(res => `
+        <div style="padding:10px 14px;background:var(--bg-3);border:1px solid var(--bd);border-radius:var(--r-s);margin-bottom:6px;display:flex;gap:10px;align-items:center">
+          <span class="mw-conn-pill ${res.source === 'curated' ? 'ok' : ''}" style="${res.source === 'curated' ? 'color:var(--ac)' : 'color:var(--blu)'}">${res.source}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px">${escapeHtml(res.asset_id || res.source_id || '—')}</div>
+            <div style="font-size:11px;color:var(--tx-3)">${escapeHtml(res.match_reason || '').slice(0, 100)}</div>
+          </div>
+          <div style="font-size:11px;color:var(--tx-3)">score ${(res.score || 0).toFixed(2)}</div>
+        </div>
+      `).join('') || '<div style="color:var(--tx-3)">No results.</div>'}
+    `;
+  } catch (e) {
+    results.innerHTML = `<div style="color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// ─── Morning Brief view ────────────────────────────────────────────────
+async function renderMorningBrief() {
+  const el = document.getElementById('view-morning');
+  el.innerHTML = '<div style="color:var(--tx-3)">Loading…</div>';
+  try {
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 14);
+    const r = await api('lanes/calendar', {method: 'POST', body: {brand_id: MW.brand, start_date: isoDate(today), end_date: isoDate(nextWeek)}});
+    const items = r.items || [];
+    const todayStr = isoDate(today);
+    const conflicts = (r.conflicts || []).filter(c => c.severity !== 'info');
+    el.innerHTML = `
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:6px">Morning Brief — ${escapeHtml(MW.brand)}</h2>
+      <div style="color:var(--tx-3);font-size:13px;margin-bottom:18px">${isoDate(today)} · ${items.filter(i => i.publish_date === todayStr).length} items today · ${items.length} items in next 14 days</div>
+
+      <div style="padding:18px;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg-2);margin-bottom:14px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:10px">🚨 Requires action</h3>
+        ${conflicts.length === 0 ? '<div style="color:var(--tx-3);font-size:13px">No urgent items. Quiet day.</div>' : conflicts.slice(0, 10).map(c => `
+          <div style="padding:8px 0;border-top:1px solid var(--bd);display:flex;gap:10px;align-items:center;font-size:13px">
+            <span class="mw-conflict-dot ${c.severity}"></span>
+            <div style="flex:1">${escapeHtml(c.message)}</div>
+            ${c.item_id ? `<button class="ghost" onclick="selectItemById('${c.item_id}')">Open →</button>` : ''}
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="padding:18px;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg-2);margin-bottom:14px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:10px">📅 Today</h3>
+        ${items.filter(i => i.publish_date === todayStr).length === 0 ? '<div style="color:var(--tx-3);font-size:13px">No items publishing today.</div>' : items.filter(i => i.publish_date === todayStr).map(i => `
+          <div style="padding:8px 0;border-top:1px solid var(--bd);display:flex;gap:10px;align-items:center;font-size:13px">
+            <span class="mw-conn-pill" style="font-size:10px">${escapeHtml(i.lane)}</span>
+            <div style="flex:1">
+              <div style="font-weight:600">${escapeHtml(i.headline || i.product_name || i.lane)}</div>
+              <div style="font-size:11px;color:var(--tx-3)">${escapeHtml((i.publish_time || '').slice(0, 5))} · ${escapeHtml((i.platforms || [i.platform] || []).join(', '))}</div>
+            </div>
+            <span class="mw-status-pill ${i.status}">${i.status}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="padding:18px;border:1px solid var(--bd);border-radius:var(--r);background:var(--bg-2)">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:10px">📊 This week</h3>
+        ${items.length === 0 ? '<div style="color:var(--tx-3);font-size:13px">Calendar is empty.</div>' : `
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">
+            ${[...Array(14)].map((_, i) => {
+              const d = new Date(today);
+              d.setDate(today.getDate() + i);
+              const dateStr = isoDate(d);
+              const dayItems = items.filter(it => it.publish_date === dateStr);
+              return `
+                <div style="padding:8px;background:var(--bg-3);border-radius:var(--r-s);min-height:80px">
+                  <div style="font-size:11px;color:var(--tx-3);margin-bottom:4px">${d.toLocaleDateString('en-GB', {weekday: 'short', day: 'numeric'})}</div>
+                  ${dayItems.slice(0, 3).map(it => `<div style="font-size:10px;background:var(--bg-4);padding:2px 5px;border-radius:2px;margin-bottom:2px;border-left:2px solid var(--lane-${it.lane})">${escapeHtml(it.product_name || it.headline || it.lane).slice(0, 20)}</div>`).join('')}
+                  ${dayItems.length > 3 ? `<div style="font-size:10px;color:var(--tx-3);margin-top:2px">+${dayItems.length - 3}</div>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div style="color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function selectItemById(id) {
+  try {
+    const r = await api(`lanes/content/${id}?brand_id=${MW.brand}`);
+    if (r.ok && r.item) {
+      selectItem(r.item);
+      document.querySelector('#mw-nav button[data-view="calendar"]').click();
+    }
+  } catch (e) {}
+}
+
+// ─── Campaign panel ────────────────────────────────────────────────────
+async function showCampaignPanel(band) {
+  document.getElementById('mw-panel-empty').style.display = 'none';
+  document.getElementById('mw-panel-content').style.display = 'block';
+  const pc = document.getElementById('mw-panel-content');
+  pc.innerHTML = `<div style="padding:18px"><div style="color:var(--tx-3)">Loading campaign…</div></div>`;
+  try {
+    const r = await api(`lanes/campaigns/${band.campaign_id}?brand_id=${MW.brand}`);
+    const c = r.campaign || {};
+    const counts = {product: 0, human: 0, campaign: 0, paid: 0, crm: 0, search: 0, events: 0};
+    MW.calendarData.items.filter(i => i.campaign_id === band.campaign_id).forEach(i => {
+      if (counts[i.lane] !== undefined) counts[i.lane]++;
+    });
+    pc.innerHTML = `
+      <div class="mw-panel-section">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">${escapeHtml(c.name || band.name)}</h2>
+        <div style="color:var(--tx-3);font-size:12px;margin-bottom:14px">${escapeHtml(band.start_date)} → ${escapeHtml(band.end_date)}</div>
+        <p style="font-size:13px;color:var(--tx-2);line-height:1.5">${escapeHtml(c.description || '')}</p>
+      </div>
+      <div class="mw-panel-section">
+        <h3>Support by lane</h3>
+        ${Object.entries(counts).filter(([_, v]) => v > 0).map(([lane, count]) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--lane-${lane})"></span>
+            <span style="text-transform:capitalize;flex:1">${lane}</span>
+            <strong>${count}</strong>
+          </div>
+        `).join('') || '<div style="color:var(--tx-3);font-size:13px">No content yet for this campaign.</div>'}
+      </div>
+      <div class="mw-panel-section">
+        <h3>All campaign items</h3>
+        ${MW.calendarData.items.filter(i => i.campaign_id === band.campaign_id).map(i => `
+          <div style="padding:8px 0;border-top:1px solid var(--bd);font-size:13px;cursor:pointer" onclick="selectItemById('${i.id}')">
+            <div style="font-weight:600">${escapeHtml(i.headline || i.product_name || i.lane)}</div>
+            <div style="font-size:11px;color:var(--tx-3)">${escapeHtml(i.publish_date)} · ${escapeHtml(i.lane)}</div>
+          </div>
+        `).join('') || '<div style="color:var(--tx-3);font-size:13px">None scheduled yet.</div>'}
+      </div>
+    `;
+  } catch (e) {
+    pc.innerHTML = `<div style="padding:18px;color:var(--red)">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// ─── Utilities ─────────────────────────────────────────────────────────
+function isoDate(d) { return d.toISOString().slice(0, 10); }
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+function escapeHtml(s) { if (s === null || s === undefined) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function setupKeyboard() {
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'Escape') document.querySelector('.mw-modal-backdrop')?.remove();
+    if (e.key === 'ArrowLeft') document.getElementById('mw-prev-month').click();
+    if (e.key === 'ArrowRight') document.getElementById('mw-next-month').click();
+  });
+}
+
+async function refreshAllViews() {
+  // Re-render any active views
+  const active = document.querySelector('#mw-nav button.active')?.dataset.view;
+  if (active === 'stock') renderStockView();
+  if (active === 'products') renderProductsView();
+  if (active === 'references') renderReferencesView();
+  if (active === 'morning') renderMorningBrief();
+}
+
+init();
+</script>
+</body>
+</html>
