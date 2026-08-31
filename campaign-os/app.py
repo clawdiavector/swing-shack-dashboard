@@ -10,6 +10,7 @@ import sys
 import json
 import copy
 import datetime
+dt = datetime.datetime
 import functools
 import re
 import subprocess
@@ -2311,6 +2312,93 @@ def visual_library_generate(brand_id):
 #                                     extract its visual context, generate a
 #                                     matching hero image
 # - GET  /api/image/status          — capabilities + key presence
+
+
+@app.route("/api/image/poll-krea-job", methods=["POST"])
+def image_poll_krea_job():
+    """POST /api/image/poll-krea-job — poll a Krea job and download the result.
+
+    Body:
+      job_id: str       — Krea job id returned by a previous krea-provider call
+      brand_id: str     — brand for save path (defaults swing-shack)
+      save: bool        — write to disk under brand/images/krea/<job_id>.png (default true)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    job_id = (body.get("job_id") or "").strip()
+    if not job_id:
+        return jsonify({"ok": False, "error": "job_id is required"}), 400
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    save = bool(body.get("save", True))
+    try:
+        from _lib import krea_mcp as _krea
+        import urllib.request as _ur
+        poll_resp = _krea.get_job(job_id)
+        content = poll_resp.get("content", [])
+        text = content[0].get("text", "") if content else ""
+        try:
+            parsed = json.loads(text) if text else {}
+        except Exception:
+            parsed = {}
+        status = parsed.get("status", "unknown")
+        result_urls = (
+            parsed.get("result", {}).get("urls", [])
+            if isinstance(parsed, dict) else []
+        )
+        if status != "completed":
+            return jsonify({
+                "ok": True,
+                "job_id": job_id,
+                "status": status,
+                "completed": False,
+                "result_urls": [],
+            }), 200
+        if not result_urls:
+            return jsonify({
+                "ok": False,
+                "error": "Krea job completed but no result URLs returned",
+                "job_id": job_id,
+                "status": status,
+            }), 502
+        url = result_urls[0]
+        with _ur.urlopen(url, timeout=60) as img_resp:
+            img_bytes = img_resp.read()
+            mime = img_resp.headers.get("Content-Type", "image/png")
+        out_path = None
+        if save and brand_id:
+            data_dir = os.environ.get("DATA_DIR", "/data/campaign-os")
+            brand_dir = Path(data_dir) / brand_id / "images" / "krea"
+            brand_dir.mkdir(parents=True, exist_ok=True)
+            ext = ".png" if "png" in mime else (
+                ".jpg" if "jpeg" in mime or "jpg" in mime else ".bin"
+            )
+            out_path = brand_dir / f"{job_id}{ext}"
+            out_path.write_bytes(img_bytes)
+            sidecar = {
+                "job_id": job_id,
+                "brand_id": brand_id,
+                "provider": "krea",
+                "url": url,
+                "mime": mime,
+                "saved_at": dt.datetime.utcnow().isoformat() + "Z",
+            }
+            (brand_dir / f"{job_id}.json").write_text(
+                json.dumps(sidecar, indent=2)
+            )
+        return jsonify({
+            "ok": True,
+            "job_id": job_id,
+            "status": status,
+            "completed": True,
+            "result_urls": result_urls,
+            "saved_path": str(out_path) if out_path else None,
+            "bytes_size": len(img_bytes),
+            "mime": mime,
+        }), 200
+    except Exception as e:
+        _app_log.exception("image_poll_krea_job failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/image/status', methods=['GET'])

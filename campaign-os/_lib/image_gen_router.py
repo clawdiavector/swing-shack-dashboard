@@ -67,10 +67,61 @@ from urllib.request import Request, urlopen
 
 _LOG = logging.getLogger("campaign_os.image_gen_router")
 
+
+def _krea_credentials_present() -> bool:
+    """True if Krea MCP bearer token is configured (env or disk)."""
+    try:
+        from _lib import krea_mcp as _krea
+        return _krea.credentials_present()
+    except Exception:
+        return False
+
+
+def _call_krea_generate(
+    *,
+    prompt: str,
+    model: str,
+    aspect_ratio: str = "1:1",
+    extra: Optional[dict] = None,
+    timeout_s: int = 120,
+) -> dict:
+    """Submit an image-generation job to Krea AI.
+
+    Returns the parsed MCP tools/call response (job_id + status).
+    Caller polls via krea_mcp.get_job(job_id) and writes the URL to disk.
+    Maps provider-exception taxonomy:
+      - KreaAuthError / KreaNotConnectedError → ImageGenAuthError
+      - KreaUpstreamError (HTTP 4xx/5xx)     → ImageGenUpstreamError
+      - KreaNetworkError                     → ImageGenNetworkError
+    """
+    try:
+        from _lib import krea_mcp as _krea
+    except ImportError:
+        raise ImageGenAuthError("Krea client not importable from _lib")
+    try:
+        return _krea.image_generate(
+            prompt=prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            extra=extra,
+        )
+    except _krea.KreaNotConnectedError as e:
+        raise ImageGenAuthError(f"Krea not connected: {e}")
+    except _krea.KreaAuthError as e:
+        raise ImageGenAuthError(f"Krea auth error: {e}")
+    except _krea.KreaUpstreamError as e:
+        raise ImageGenUpstreamError(
+            f"Krea error ({e.status}): {e}", upstream=e.upstream, code=e.status
+        )
+    except _krea.KreaNetworkError as e:
+        raise ImageGenNetworkError(f"Krea network: {e}")
+
+
 # ── Provider endpoints ────────────────────────────────────────────────
 
 OPENAI_ENDPOINT = "https://api.openai.com/v1/images/generations"
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+KREA_ENDPOINT = "https://api.krea.ai/mcp"  # JSON-RPC 2.0 over HTTPS
 
 # ── Defaults ──────────────────────────────────────────────────────────
 
@@ -140,6 +191,9 @@ class GenResult:
     # NEW (2026-08-12): brand_dna recipe summary for the UI Recipe panel.
     # None if no brand was given or brand_dna wasn't loaded.
     brand_recipe: Optional[dict] = None
+    # NEW (2026-08-31): Provider-issued async job id (e.g. Krea). Routes
+    # the caller to /api/krea/job-status?id=... for follow-up polling.
+    provider_job_id: Optional[str] = None
 
 
 @dataclass
@@ -695,6 +749,66 @@ def generate_image(
             usage=usage,
             brand_recipe=recipe_summary or None,
         )
+    elif provider == "krea":
+        # Live Krea path: async job submission. Caller polls
+        # /api/krea/job-status?id=<provider_job_id>.
+        if not _krea_credentials_present():
+            raise ImageGenAuthError(
+                "Krea MCP not connected. Drop KREA_MCP_TOKEN via "
+                "/secret-drop?slot=krea_mcp_token or set KREA_MCP_TOKEN env var."
+            )
+        model = model or os.environ.get(
+            "CAMPAIGN_OS_KREA_DEFAULT_MODEL", "bfl/flux-1.1-pro"
+        )
+        enhanced = _compose_full_prompt(
+            prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas,
+            product_service_items=product_service_items,
+            learned_signals=learned_signals,
+        )
+        # Add brand context if available
+        if brand_id:
+            try:
+                from _lib.brand_dna import (
+                    load_brand_context,
+                    build_system_message,
+                    build_recipe_summary,
+                )
+                brand_ctx = load_brand_context(brand_id)
+                if brand_ctx.ok:
+                    sys_msg = build_system_message(brand_ctx)
+                    enhanced = f"{sys_msg}\n\n---\n\nUSER REQUEST: {enhanced}"
+                recipe_summary = build_recipe_summary(brand_ctx)
+            except Exception as e:
+                _LOG.warning("brand_dna wiring failed for Krea path %s: %s", brand_id, e)
+        aspect_ratio = size.replace("x", ":")
+        kresp = _call_krea_generate(
+            prompt=enhanced,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            timeout_s=timeout_s,
+        )
+        job_id = (
+            kresp.get("job_id")
+            or kresp.get("job", {}).get("job_id")
+            or ""
+        )
+        return GenResult(
+            bytes=b"",
+            mime="image/png",
+            model=model,
+            provider="krea",
+            cost_estimate_usd=0.0,
+            prompt_used=enhanced,
+            revised_prompt=None,
+            warning=None,
+            usage={"krea_job_id": job_id, "krea_response": kresp},
+            brand_recipe=recipe_summary or None,
+            provider_job_id=job_id,
+        )
+
     elif provider == "openrouter":
         model = model or os.environ.get("CAMPAIGN_OS_IMAGE_MODEL") or DEFAULT_MODEL_GEN
         if not openrouter_credentials_present():
@@ -703,6 +817,18 @@ def generate_image(
                 "OPENROUTER_API_KEY_FILE / canonical fallback "
                 f"{DEFAULT_OPENROUTER_TOKEN_FILE}."
             )
+        # Live-tested 2026-08-31: OpenRouter image routes (e.g. Nano Banana)
+        # can return 402 Payment Required when credits run out. Build the
+        # composed prompt here so we can retry through Krea if the OR call
+        # surfaces that specific upstream error.
+        _composed_for_or = _compose_full_prompt(
+            prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas,
+            product_service_items=product_service_items,
+            learned_signals=learned_signals,
+        )
 
         # Build the legacy enhanced prompt (Layer 4 brand recipe tail, etc.)
         enhanced = _compose_full_prompt(
@@ -743,12 +869,47 @@ def generate_image(
             # Legacy path: single text content chunk, no system message
             messages = [{"role": "user", "content": enhanced.strip()}]
 
-        api_resp = _call_openrouter_multimodal(
-            content_chunks=None,
-            messages=messages,
-            model=model,
-            timeout_s=timeout_s,
-        )
+        try:
+            api_resp = _call_openrouter_multimodal(
+                content_chunks=None,
+                messages=messages,
+                model=model,
+                timeout_s=timeout_s,
+            )
+        except ImageGenUpstreamError as e:
+            # Live-tested 2026-08-31: OR returned 402 Payment Required.
+            # If Krea is connected, transparently fall through to Krea so
+            # the caller never sees "your credits ran out".
+            if e.code == 402 and _krea_credentials_present():
+                _LOG.warning(
+                    "OpenRouter returned 402 — falling back to Krea for %s", brand_id
+                )
+                _fallback_brand = brand_id or "swing-shack"
+                _kresp = _call_krea_generate(
+                    prompt=_composed_for_or,
+                    model=os.environ.get("CAMPAIGN_OS_KREA_FALLBACK_MODEL", "bfl/flux-1.1-pro"),
+                    aspect_ratio=size.replace("x", ":"),
+                    timeout_s=timeout_s,
+                )
+                _job_id = (
+                    _kresp.get("job_id")
+                    or _kresp.get("job", {}).get("job_id")
+                    or ""
+                )
+                return GenResult(
+                    bytes=b"",
+                    mime="image/png",
+                    model=os.environ.get("CAMPAIGN_OS_KREA_FALLBACK_MODEL", "bfl/flux-1.1-pro"),
+                    provider="krea",
+                    cost_estimate_usd=0.0,
+                    prompt_used=_composed_for_or,
+                    revised_prompt=None,
+                    warning=f"OpenRouter 402 — fell through to Krea. job_id={_job_id}",
+                    usage={"krea_job_id": _job_id, "openrouter_error": e.upstream},
+                    brand_recipe=recipe_summary or None,
+                    provider_job_id=_job_id,
+                )
+            raise
         raw, mime = _extract_image_from_openrouter_response(api_resp)
         usage = api_resp.get("usage") or {}
         cost = _cost_from_usage(usage)
