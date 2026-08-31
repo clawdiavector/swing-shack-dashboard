@@ -299,5 +299,23 @@ def fetch_and_persist(brand_id: str = DEFAULT_BRAND) -> int:
     return 0
 
 
+# ── Caption / hashtag / URL extractors (NEW 2026-08-31) ──────────────
+def _extract_hashtags(text: str) -> list:
+    """Extract #hashtags from caption / message."""
+    if not text:
+        return []
+    import re as _re
+    return _re.findall(r"#([\w\u00C0-\u017F]+)", text)
+
+
+def _extract_first_url(text: str) -> str | None:
+    """Find the first http(s) URL in the caption / message."""
+    if not text:
+        return None
+    import re as _re
+    m = _re.search(r"https?://[^\s]+", text)
+    return m.group(0) if m else None
+
+
 if __name__ == "__main__":
     sys.exit(fetch_and_persist())

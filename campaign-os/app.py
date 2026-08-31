@@ -2616,6 +2616,213 @@ def image_router_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/social/ingest', methods=['POST'])
+def social_ingest():
+    """POST /api/social/ingest — pull fresh social-history records from Meta.
+
+    Body:
+      brand_id: str            — which brand to ingest for (swing-shack / stick / bag-drop)
+      platforms: list?         — subset of ['instagram', 'facebook'] — default both
+      download_thumbnails: bool? — download post thumbnails (default true)
+    Returns:
+      ok, ingested: {instagram: n, facebook: n}, classifications_dir
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    platforms = body.get("platforms") or ["instagram", "facebook"]
+    want_thumbs = bool(body.get("download_thumbnails", True))
+    try:
+        from _lib.social_history import (
+            load_ig_history, load_fb_history, persist_social_history,
+            download_thumbnails_parallel,
+        )
+        ingested = {}
+        for plat in platforms:
+            if plat == "instagram":
+                posts = load_ig_history(brand_id)
+            elif plat == "facebook":
+                posts = load_fb_history(brand_id)
+            else:
+                continue
+            if not posts:
+                ingested[plat] = 0
+                continue
+            persist_social_history(brand_id, posts, platform=plat)
+            if want_thumbs:
+                download_thumbnails_parallel(brand_id, posts)
+            ingested[plat] = len(posts)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "ingested": ingested,
+        }), 200
+    except Exception as e:
+        _app_log.exception("social_ingest failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/social/classify', methods=['POST'])
+def social_classify():
+    """POST /api/social/classify — mark an asset with a classification.
+
+    Body:
+      brand_id: str
+      source: str         — 'curated' | 'ig' | 'fb' | 'generated'
+      asset_id: str
+      classification: str — one of CLASSIFICATIONS keys
+      platform: str?
+      notes: str?
+
+    Per user directive #3:
+      CURATED / PUBLISHED / STRONG / OLD_SYSTEM / CAMPAIGN_SPECIFIC /
+      HIGH_PERFORMING / LOW_PERFORMING / REJECTED
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    source = body.get("source", "").strip()
+    asset_id = body.get("asset_id", "").strip()
+    classification = body.get("classification", "").strip()
+    if not source or not asset_id or not classification:
+        return jsonify({"ok": False, "error": "source, asset_id, classification required"}), 400
+    try:
+        from _lib.social_history import classify_asset, CLASSIFICATIONS
+        if classification not in CLASSIFICATIONS:
+            return jsonify({
+                "ok": False,
+                "error": f"unknown classification {classification!r}",
+                "valid": list(CLASSIFICATIONS.keys()),
+            }), 400
+        result = classify_asset(
+            brand_id, source, asset_id, classification,
+            notes=body.get("notes", ""),
+            platform=body.get("platform", "instagram"),
+        )
+        return jsonify({"ok": True, "record": result}), 200
+    except Exception as e:
+        _app_log.exception("social_classify failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/social/classifications', methods=['POST'])
+def social_classifications():
+    """POST /api/social/classifications — list all classifications for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.social_history import load_classifications
+        all_cls = load_classifications(brand_id)
+        # Group by classification for the UI
+        grouped = {}
+        for key, rec in all_cls.items():
+            cls = rec.get("classification", "unknown")
+            grouped.setdefault(cls, []).append({**rec, "key": key})
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "total": len(all_cls),
+            "by_classification": grouped,
+        }), 200
+    except Exception as e:
+        _app_log.exception("social_classifications failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/search', methods=['POST'])
+def creative_search():
+    """POST /api/creative/search — search BOTH curated + published + generated.
+
+    Body:
+      brand_id: str
+      query: str?
+      sources: list? — default ['curated', 'published', 'generated']
+      classifications: list? — filter by classification
+      platform: str? — filter published posts by platform
+      product: str? — product hint (matches hashtag + caption)
+      limit: int? — default 25
+
+    Returns ranked results with score + classification + match_reason.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.social_history import search_creative
+        result = search_creative(
+            brand_id,
+            body.get("query", ""),
+            sources=body.get("sources"),
+            classifications=body.get("classifications"),
+            platform=body.get("platform"),
+            product=body.get("product"),
+            limit=int(body.get("limit", 25)),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_search failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/visual-patterns', methods=['POST'])
+def creative_visual_patterns():
+    """POST /api/creative/visual-patterns — aggregate recurring patterns
+    across curated + published corpus for a brand.
+
+    Body:
+      brand_id: str
+
+    Returns:
+      top_dominant_colours, top_hashtags, top_caption_openers,
+      engagement_baseline, common_orientations, common_media_types
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.social_history import extract_visual_patterns
+        result = extract_visual_patterns(brand_id)
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_visual_patterns failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/social/is-learnable', methods=['POST'])
+def social_is_learnable():
+    """POST /api/social/is-learnable — check if an asset is allowed to feed
+    creative_director.compose_prompt.
+
+    Body:
+      brand_id, source, asset_id
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    source = body.get("source", "").strip()
+    asset_id = body.get("asset_id", "").strip()
+    try:
+        from _lib.social_history import is_learnable, load_classifications
+        ok = is_learnable(brand_id, source, asset_id)
+        classifications = load_classifications(brand_id)
+        rec = classifications.get(f"{source}::{asset_id}")
+        return jsonify({
+            "ok": True,
+            "is_learnable": ok,
+            "classification": rec,
+        }), 200
+    except Exception as e:
+        _app_log.exception("social_is_learnable failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/creative/compile', methods=['POST'])
 def creative_compile():
     """POST /api/creative/compile — compose master prompt + negative for a creative job.

@@ -397,7 +397,10 @@ def _pull_media(
     # Step 1: list media (id, caption, media_type, timestamp, permalink)
     list_url = f"/{ig_biz_id}/media"
     list_params = {
-        "fields": "id,caption,media_type,permalink,timestamp",
+        # NEW (2026-08-31): added media_url, thumbnail_url, media_product_type,
+        # is_shared_to_feed for creative-intelligence ingestion.
+        # Live-tested: these fields are returned by Graph API v22.0.
+        "fields": "id,caption,media_type,permalink,timestamp,media_url,thumbnail_url,media_product_type",
         "limit": limit,
         # Only fetch posts inside the window so we don't waste requests
         # on ancient posts.
@@ -455,18 +458,52 @@ def _pull_media(
                 er = round(metrics_flat["total_interactions"] / metrics_flat["reach"] * 100, 2)
             except ZeroDivisionError:
                 pass
+        # NEW (2026-08-31): capture media URLs + full caption + hashtags
+        # so the creative reference library can display the post
+        # thumbnail AND extract copy patterns.
+        _hashtags = _extract_hashtags(caption_str)
+        _linked_url = _extract_first_url(caption_str)
         media_out.append({
             "id": mid,
             "media_type": entry.get("media_type"),
+            "media_product_type": entry.get("media_product_type"),  # FEED / REELS / STORY
             "permalink": entry.get("permalink"),
             "timestamp": entry.get("timestamp"),
             "caption_preview": caption_str[:160],
+            "caption_full": caption_str,
+            "hashtags": _hashtags,
+            "linked_url": _linked_url,
+            "media_url": entry.get("media_url"),
+            "thumbnail_url": entry.get("thumbnail_url"),
             "hook_id": _caption_to_hook_id(caption_str),
             "metrics": metrics_flat,
             "engagement_rate_pct": er,
             **({"insights_errors": ins_errors} if ins_errors else {}),
         })
     return media_out
+
+
+def _extract_hashtags(caption: str) -> list:
+    """Extract hashtags from caption. Mirrors the conventions used by the
+    social-history ingestion.
+
+    Returns a list of hashtag strings WITHOUT the leading '#'.
+    """
+    if not caption:
+        return []
+    import re as _re
+    return _re.findall(r"#([\w\u00C0-\u017F]+)", caption)
+
+
+def _extract_first_url(caption: str) -> str | None:
+    """Find the first http(s) URL in the caption. Used for tracking
+    booking / shop / sign-up links.
+    """
+    if not caption:
+        return None
+    import re as _re
+    m = _re.search(r"https?://[^\s]+", caption)
+    return m.group(0) if m else None
 
 
 def _caption_to_hook_id(caption: str) -> str:
