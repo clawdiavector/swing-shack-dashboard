@@ -2380,7 +2380,7 @@ def image_poll_krea_job():
                 "provider": "krea",
                 "url": url,
                 "mime": mime,
-                "saved_at": dt.datetime.utcnow().isoformat() + "Z",
+                "saved_at": dt.utcnow().isoformat() + "Z",
             }
             (brand_dir / f"{job_id}.json").write_text(
                 json.dumps(sidecar, indent=2)
