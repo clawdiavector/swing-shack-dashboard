@@ -1,0 +1,83 @@
+{
+  "phase": "J-A \u2014 AUDIT",
+  "completed_at": "2026-08-31",
+  "what_exists": {
+    "calendar_engine": {
+      "campaign_planner.py": "23 KB \u2014 14 functions: hooks, captions, image_prompts, calendar (30-day plan per campaign), KPIs, success_criteria. PER-CAMPAIGN, not per-brand multi-lane.",
+      "_calendar(campaign)": "Returns a list of scheduled posts across 30 days for ONE campaign. Single-campaign view."
+    },
+    "campaign_objects": {
+      "campaign_brief.py": "34 KB \u2014 build_channel_brief, image_brief, paid_ad_plan, expected_outcomes, tracking_sheet_rows. Per-channel briefs.",
+      "/api/campaigns": "GET, POST, /api/campaigns/<id>, /api/campaigns/from-idea, /api/export/<id>",
+      "/api/plan/<campaign_id>": "GET \u2014 full campaign plan including calendar"
+    },
+    "schedule": {
+      "data/schedule.json": "Sidecar schedule manifest \u2014 list of {scheduled_for, assetId, campaignId, platform, publishStatus, source}",
+      "/api/schedule": "GET \u2014 read schedule",
+      "/api/schedule/<asset_id>": "POST = schedule asset, DELETE = unschedule",
+      "/api/schedule/<asset_id>/duplicate": "POST \u2014 duplicate without Postiz",
+      "/api/review/<asset_id>/schedule": "POST \u2014 push to Postiz",
+      "/api/review/<asset_id>/schedule-now": "POST \u2014 schedule immediately"
+    },
+    "postiz": {
+      "postiz_client.py": "26 KB \u2014 full OAuth + API client (create_post, list_posts, get_post, delete_post, list_integrations, upload_media)",
+      "/api/postiz/status": "GET",
+      "/api/postiz/channels": "GET",
+      "/api/postiz/oauth/*": "OAuth flow",
+      "FEATURES_MISSING": "No back-mapping (Postiz \u2192 Campaign OS), no failed-publish state, no requeue on edit"
+    },
+    "products": {
+      "data/brand-directory/swing-shack/product-library.json": "7.3 KB \u2014 swing-shack only",
+      "product_service_library.py": "26 KB \u2014 add_item, update_item, list_items, attach_reference. Has product fields but no stock qty, no SKU, no price."
+    },
+    "ui": {
+      "campaign-os.html": "972 KB \u2014 the canonical shell. Contains the calendar (month + week + day views). SINGLE LANE \u2014 no parallel lanes concept.",
+      "lane_in_html": true,
+      "lanes_exposed_to_ui": "Mostly one 'Calendar' view + asset review queue. No PRODUCT vs HUMAN vs CAMPAIGN split."
+    }
+  },
+  "what_works": [
+    "Campaign planner generates 30-day calendar from campaign data",
+    "Schedule sidecar with /api/schedule endpoints",
+    "Postiz OAuth + posting",
+    "Product library CRUD",
+    "Image lab + Krea creative generation"
+  ],
+  "what_is_half_built": [
+    "Calendar is single-campaign, single-lane (no PRODUCT/HUMAN/CAMPAIGN split)",
+    "Schedule items have no lane field",
+    "No conflict detection (5 posts same day, no human content this week)",
+    "No inventory awareness (no stock qty in product library, no out-of-stock flag)",
+    "No product rotation memory (which product was last featured, when, with which angle)",
+    "No bulk product calendar proposal",
+    "No campaign overlay bands (Spring / Black Friday across weeks)"
+  ],
+  "what_is_duplicated": [
+    "image-lab.html + visualizer.html + image-portal.html \u2014 three separate creative UIs",
+    "campaign-os.html contains the calendar + asset review, but as a single combined view"
+  ],
+  "what_to_extend": [
+    "data/schedule.json \u2192 add lane, campaign_id, product_id, rotation_angle fields",
+    "campaign-os.html \u2192 render lanes as parallel swimlanes in month + week views",
+    "product_service_library \u2192 add stock qty, sku, price, brand_category, last_featured, total_posts, recent_angles, status",
+    "campaign_planner \u2192 multi-lane model (per-day may have PRODUCT + HUMAN + CAMPAIGN)",
+    "schedule_asset \u2192 preserve lane + campaign + product + inventory check on move",
+    "review_push_postiz \u2192 inventory check before publish; lane + campaign context preserved"
+  ],
+  "what_to_remove": [
+    "image-portal.html (redundant; image-lab is canonical)"
+  ],
+  "what_is_missing": [
+    "Stock spreadsheet import endpoint (CSV/XLSX with column mapping)",
+    "Product-post engine that proposes 20-30 product slots with category/brand/price diversity",
+    "Marketing-lane data model (PRODUCT, HUMAN, CAMPAIGN, PAID, CRM, SEARCH, EVENTS)",
+    "Campaign overlay bands (long-running campaigns visible across periods)",
+    "Drag-drop reschedule with Postiz sync warning",
+    "Conflict detection (5 posts same day, no human content this week, etc.)",
+    "Inventory awareness (stock qty = 0 \u2192 flag post as OUT OF STOCK)",
+    "Product rotation memory (last_featured_date, total_posts, recent_angles)",
+    "Bulk approval flow (APPROVE WEEK, APPROVE ALL CLEAN with checks)",
+    "Side panel with edit-from-calendar + lineage + provenance",
+    "Year/quarter/month/week/day hierarchy preservation (strategy above publishing)"
+  ]
+}

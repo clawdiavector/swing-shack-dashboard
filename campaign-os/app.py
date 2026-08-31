@@ -2654,6 +2654,424 @@ def social_debug():
     }), 200
 
 
+# ── MARKETING LANES + CALENDAR + STOCK IMPORT (added 2026-08-31 per user directive J) ──
+@app.route('/api/lanes/calendar', methods=['POST'])
+def lanes_calendar():
+    """POST /api/lanes/calendar — multi-lane calendar view for a date range.
+
+    Body:
+      brand_id: str
+      start_date: str (YYYY-MM-DD)
+      end_date: str (YYYY-MM-DD)
+      lanes: list? — filter by lane
+      campaigns: list? — filter by campaign_id
+      platforms: list? — filter by platform
+      statuses: list? — filter by status
+
+    Returns: {items, campaign_bands, conflicts, density}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_calendar_view
+        result = get_calendar_view(
+            brand_id,
+            start_date=body.get("start_date"),
+            end_date=body.get("end_date"),
+            lanes=body.get("lanes"),
+            campaigns=body.get("campaigns"),
+            platforms=body.get("platforms"),
+            statuses=body.get("statuses"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_calendar failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/content', methods=['POST'])
+def lanes_content_add():
+    """POST /api/lanes/content — add or update a content item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import add_content_item
+        result = add_content_item(brand_id, body)
+        return jsonify({"ok": True, "item": result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_content_add failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/content/<item_id>', methods=['GET', 'DELETE', 'PATCH'])
+def lanes_content_one(item_id):
+    """GET/DELETE/PATCH a single content item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (request.args.get("brand_id") or body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import (
+            get_content_item, delete_content_item, update_content_item_status
+        )
+        if request.method == "GET":
+            item = get_content_item(brand_id, item_id)
+            return jsonify({"ok": True, "item": item}), 200 if item else 404
+        if request.method == "DELETE":
+            ok = delete_content_item(brand_id, item_id)
+            return jsonify({"ok": ok}), 200 if ok else 404
+        if request.method == "PATCH":
+            new_status = body.get("status")
+            if new_status:
+                item = update_content_item_status(
+                    brand_id, item_id, new_status,
+                    **{k: v for k, v in body.items() if k not in ("brand_id", "status")}
+                )
+                return jsonify({"ok": True, "item": item}), 200
+            return jsonify({"ok": False, "error": "status (or other fields) required"}), 400
+    except Exception as e:
+        _app_log.exception("lanes_content_one failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/campaigns', methods=['GET', 'POST'])
+def lanes_campaigns():
+    """GET = list campaigns; POST = create/update campaign."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or (request.get_json(silent=True) or {}).get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import list_campaigns, save_campaign
+        if request.method == "GET":
+            return jsonify({"ok": True, "campaigns": list_campaigns(brand_id)}), 200
+        body = request.get_json(silent=True) or {}
+        cid = body.get("campaign_id") or body.get("id")
+        if not cid:
+            return jsonify({"ok": False, "error": "campaign_id required"}), 400
+        save_campaign(brand_id, cid, body)
+        return jsonify({"ok": True, "campaign_id": cid}), 200
+    except Exception as e:
+        _app_log.exception("lanes_campaigns failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/campaigns/<campaign_id>', methods=['GET', 'DELETE'])
+def lanes_campaign_one(campaign_id):
+    """GET/DELETE a single campaign."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_campaign, delete_campaign
+        if request.method == "GET":
+            c = get_campaign(brand_id, campaign_id)
+            return jsonify({"ok": True, "campaign": c}), 200 if c else 404
+        ok = delete_campaign(brand_id, campaign_id)
+        return jsonify({"ok": ok}), 200 if ok else 404
+    except Exception as e:
+        _app_log.exception("lanes_campaign_one failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/preview', methods=['POST'])
+def lanes_stock_preview():
+    """POST /api/lanes/stock/preview — preview a CSV stock import."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content or csv_base64 required"}), 400
+    try:
+        from _lib.marketing_lanes import preview_stock_import
+        return jsonify({"ok": True, **preview_stock_import(csv_content, brand_id=brand_id)}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_preview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/commit', methods=['POST'])
+def lanes_stock_commit():
+    """POST /api/lanes/stock/commit — commit the CSV import."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content or csv_base64 required"}), 400
+    try:
+        from _lib.marketing_lanes import commit_stock_import
+        result = commit_stock_import(
+            csv_content,
+            brand_id=brand_id,
+            mapping=body.get("mapping"),
+            actor=body.get("actor", "operator"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_commit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/history', methods=['POST'])
+def lanes_stock_history():
+    """POST /api/lanes/stock/history — list past stock imports."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import _imports_dir
+        d = _imports_dir(brand_id)
+        imports = []
+        for p in sorted(d.glob("import-*.json"), reverse=True):
+            try:
+                payload = json.loads(p.read_text())
+                payload["history_file"] = str(p.relative_to(d.parent.parent.parent))
+                imports.append(payload)
+            except Exception:
+                pass
+        return jsonify({"ok": True, "imports": imports[:50], "count": len(imports)}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_history failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/products', methods=['GET'])
+def lanes_products_list():
+    """GET /api/lanes/products — list extended product catalog."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import list_extended_products
+        products = list_extended_products(brand_id)
+        return jsonify({"ok": True, "products": products, "count": len(products)}), 200
+    except Exception as e:
+        _app_log.exception("lanes_products_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/products/<product_id>', methods=['GET'])
+def lanes_product_one(product_id):
+    """GET /api/lanes/products/<id> — single product detail."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_extended_product
+        prod = get_extended_product(brand_id, product_id)
+        return jsonify({"ok": True, "product": prod}), 200 if prod else 404
+    except Exception as e:
+        _app_log.exception("lanes_product_one failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/products/<product_id>/rotation', methods=['POST'])
+def lanes_product_rotation(product_id):
+    """POST /api/lanes/products/<id>/rotation — update rotation memory after publish."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or (request.get_json(silent=True) or {}).get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import update_product_rotation
+        update_product_rotation(brand_id, product_id, request.get_json(silent=True) or {})
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        _app_log.exception("lanes_product_rotation failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/propose-product-calendar', methods=['POST'])
+def lanes_propose_product_calendar():
+    """POST /api/lanes/propose-product-calendar — generate product-feature proposal."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import propose_product_calendar
+        result = propose_product_calendar(
+            brand_id,
+            start_date=body.get("start_date"),
+            days_count=int(body.get("days_count", 20)),
+            frequency=body.get("frequency", "weekdays"),
+            categories=body.get("categories"),
+            exclude_recent_days=int(body.get("exclude_recent_days", 7)),
+            min_category_diversity=int(body.get("min_category_diversity", 4)),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_propose_product_calendar failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/approve-proposal', methods=['POST'])
+def lanes_approve_proposal():
+    """POST /api/lanes/approve-proposal — promote proposed items to planned + persist."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    items = body.get("items") or []
+    if not items:
+        return jsonify({"ok": False, "error": "items required"}), 400
+    try:
+        from _lib.marketing_lanes import add_content_item
+        saved = []
+        for it in items:
+            it["status"] = "planned"
+            saved.append(add_content_item(brand_id, it))
+        return jsonify({"ok": True, "saved": len(saved), "items": saved}), 200
+    except Exception as e:
+        _app_log.exception("lanes_approve_proposal failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/conflicts', methods=['POST'])
+def lanes_conflicts():
+    """POST /api/lanes/conflicts — re-detect conflicts for a date range."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_calendar_view
+        result = get_calendar_view(
+            brand_id,
+            start_date=body.get("start_date"),
+            end_date=body.get("end_date"),
+            lanes=body.get("lanes"),
+        )
+        return jsonify({"ok": True, "conflicts": result.get("conflicts", [])}), 200
+    except Exception as e:
+        _app_log.exception("lanes_conflicts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/queue-for-postiz', methods=['POST'])
+def lanes_queue_for_postiz():
+    """POST /api/lanes/queue-for-postiz — push approved content items to Postiz.
+
+    Per user directive #24 — Postiz is the publishing pipe; Campaign OS is
+    the source of truth. Records postiz_post_id back to the item.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    item_ids = body.get("item_ids")
+    try:
+        from _lib.marketing_lanes import (
+            load_content_items, update_content_item_status, get_content_item
+        )
+        from _lib.postiz_client import postiz_status, list_integrations, create_post
+
+        items = []
+        if item_ids == "all_approved" or item_ids is None:
+            all_items = load_content_items(brand_id)
+            for it in all_items:
+                if it.get("status") == "approved":
+                    sd = (it.get("publish_date") or "")[:10]
+                    if body.get("start_date") and body.get("end_date"):
+                        if not (body["start_date"] <= sd <= body["end_date"]):
+                            continue
+                    items.append(it)
+        else:
+            for cid in item_ids:
+                it = get_content_item(brand_id, cid)
+                if it:
+                    items.append(it)
+
+        if not items:
+            return jsonify({"ok": True, "queued": 0, "message": "no approved items to queue"}), 200
+
+        st = postiz_status()
+        if not st.get("configured"):
+            return jsonify({
+                "ok": False,
+                "error": "Postiz not configured — connect via /api/postiz/oauth/login",
+                "queued": 0,
+            }), 400
+
+        integrations = list_integrations() or []
+        if not integrations:
+            return jsonify({"ok": False, "error": "no Postiz integrations"}), 400
+
+        queued = []
+        failed = []
+        for it in items:
+            try:
+                platform = it.get("platform") or "instagram"
+                integration_id = next(
+                    (i["id"] for i in integrations
+                     if platform.lower() in i.get("name", "").lower()
+                     or i.get("type", "").lower() == platform.lower()),
+                    integrations[0]["id"] if integrations else None,
+                )
+                if not integration_id:
+                    failed.append({"item_id": it.get("id"), "error": "no integration"})
+                    continue
+
+                caption = it.get("caption", "")
+                if it.get("cta"):
+                    caption = caption + chr(10) + chr(10) + it.get("cta")
+                if it.get("hashtags"):
+                    caption = caption + chr(10) + chr(10) + " ".join("#" + h for h in it.get("hashtags"))
+
+                sched = it.get("publish_date", "") + "T" + it.get("publish_time", "09:00") + ":00Z"
+                result = create_post(
+                    integration_id=integration_id,
+                    content=caption,
+                    media_ids=[],
+                    scheduled_for=sched,
+                )
+                postiz_id = (result or {}).get("id") or (result or {}).get("post", {}).get("id")
+                if postiz_id:
+                    update_content_item_status(
+                        brand_id, it["id"], "queued",
+                        postiz_post_id=postiz_id,
+                        scheduled_for=sched,
+                    )
+                    queued.append({"item_id": it["id"], "postiz_id": postiz_id, "scheduled_for": sched})
+                else:
+                    failed.append({"item_id": it.get("id"), "error": "no postiz id returned", "result": result})
+            except Exception as e:
+                failed.append({"item_id": it.get("id"), "error": str(e)})
+
+        return jsonify({
+            "ok": True,
+            "queued": len(queued),
+            "failed": len(failed),
+            "queued_items": queued,
+            "failed_items": failed,
+        }), 200
+    except Exception as e:
+        _app_log.exception("lanes_queue_for_postiz failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── Existing social_ingest below this line (added earlier in session) ──
+
+
 @app.route('/api/social/ingest', methods=['POST'])
 def social_ingest():
     """POST /api/social/ingest — pull fresh social-history records from Meta.
