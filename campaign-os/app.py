@@ -2616,6 +2616,36 @@ def image_router_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/admin/social-debug', methods=['GET'])
+def social_debug():
+    """GET /api/admin/social-debug — diagnose social_history._data_root."""
+    import os
+    from _lib import social_history
+    brand = request.args.get('brand', 'swing-shack')
+    res = social_history._data_root(brand)
+    bundled = os.environ.get("BUNDLED_DATA_DIR", "?")
+    runtime = os.environ.get("DATA_DIR", "?")
+    candidates = []
+    for c in [Path(bundled), Path("/data/campaign-os"), Path(runtime), Path(
+        "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"
+    )]:
+        brand_dir = c / "brand-directory" / brand
+        candidates.append({
+            "candidate": str(c),
+            "exists": c.exists(),
+            "brand_dir_exists": brand_dir.exists(),
+            "images_count": len(list((brand_dir / "images").iterdir())) if (brand_dir / "images").exists() else 0,
+        })
+    return jsonify({
+        "ok": True,
+        "resolved_root": str(res),
+        "exists": res.exists(),
+        "bundled": bundled,
+        "runtime": runtime,
+        "candidates": candidates,
+    }), 200
+
+
 @app.route('/api/social/ingest', methods=['POST'])
 def social_ingest():
     """POST /api/social/ingest — pull fresh social-history records from Meta.
