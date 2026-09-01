@@ -5680,42 +5680,49 @@ def _enrich_memes_with_image_url(memes):
                 (('expanding-brain',), '🧠'),
             ]
             icon = '🎭'
-            # Extra heuristics for specific well-known meme characters
-            extra = []
+            # Extra heuristics for specific well-known meme characters.
+            # Each entry is (kw, emoji). Multiple keywords per character.
+            extra_patterns = [
+                ('disaster girl', '🔥'), ('burning house', '🔥'),
+                ('change my mind', '💬'), ('crowder', '💬'),
+                ('roll safe', '🤞'), ('tap to pray', '🤞'),
+                ('harold', '😐'), ('hide the pain', '😐'),
+                ('wojak', '😐'),
+                ('success kid', '✊'),
+                ('bad luck brian', '🍀'),
+                ('first world problems', '🌍'),
+                ('futurama fry', '🤔'), ('not sure if', '🤔'),
+                ('y u no', '❓'),
+                ('one does not simply', '🚶'), ('boromir', '🚶'),
+                ('confused math', '📊'), ('blonde woman', '📊'),
+                ('gigachad', '💪'),
+                ('trade offer', '⛏️'), ('minecraft', '⛏️'),
+                ('side-eye', '👀'), ('chloe', '👀'),
+                ('pablo', '😢'), ('escobar', '😢'),
+                ('free real estate', '🏠'),
+                ('deal with it', '😎'), ('glasses drop', '😎'),
+                ('rickroll', '🎵'), ('never gonna give you up', '🎵'),
+                ('anakin', '🎬'), ('padme', '🎬'), ('liberty dies', '🎬'),
+                ('two buttons', '🔴'),
+                ('confused grandpa', '👴'), ('tech support', '👴'),
+                ('no bitches', '🚫'),
+                ('matrix', '💊'), ('morpheus', '💊'), ('red/blue pill', '💊'),
+                ('tough toddler', '💪'), ('cross-arms', '💪'),
+                ('owl', '🦉'), ('thumbs up', '🦉'),
+                ('andy dufresne', '🪑'), ('shawshank', '🪑'),
+                ('cast away', '🏝️'), ('wilson', '🏝️'), ('tom hanks', '🏝️'),
+                ('where they at', '🔍'), ('searching man', '🔍'),
+                ('this is the way', '🛸'), ('mandalorian', '🛸'),
+                ('galaxy brain', '🌌'),
+                ('kermit', '🐸'), ('sipping', '🐸'),
+                ('picard', '🖖'), ('facepalm', '🤦'),
+                ('walter white', '🧪'), ('breaking bad', '🧪'),
+                ('harry maguire', '😵'), ('maguire', '😵'),
+                ('homer', '🍩'), ('simpson', '🍩'),
+                ('mona lisa', '🖼️'),
+            ]
             n = name_lower
-            if 'disaster girl' in n or 'burning house' in n: extra.append(('🔥',))
-            if 'change my mind' in n or 'crowder' in n: extra.append(('💬',))
-            if 'roll safe' in n or 'tap to pray' in n: extra.append(('🤞',))
-            if 'harold' in n or 'hide the pain' in n: extra.append(('😐',))
-            if 'wojak' in n: extra.append(('😐',))
-            if 'success kid' in n: extra.append(('✊',))
-            if 'bad luck brian' in n: extra.append(('🍀',))
-            if 'first world problems' in n: extra.append(('🌍',))
-            if 'futurama fry' in n or 'not sure if' in n: extra.append(('🤔',))
-            if 'y u no' in n: extra.append(('❓',))
-            if 'one does not simply' in n or 'boromir' in n: extra.append(('🚶',))
-            if 'confused math' in n or 'blonde woman' in n: extra.append(('📊',))
-            if 'gigachad' in n: extra.append(('💪',))
-            if 'trade offer' in n or 'minecraft' in n: extra.append(('⛏️',))
-            if 'side-eye' in n or 'chloe' in n: extra.append(('👀',))
-            if 'pablo' in n or 'escobar' in n: extra.append(('😢',))
-            if 'free real estate' in n: extra.append(('🏠',))
-            if 'deal with it' in n or 'glasses drop' in n: extra.append(('😎',))
-            if 'rickroll' in n or 'never gonna give you up' in n: extra.append(('🎵',))
-            if 'anakin' in n or 'padme' in n or 'liberty dies' in n: extra.append(('🎬',))
-            if 'two buttons' in n: extra.append(('🔴',))
-            if 'confused grandpa' in n or 'tech support' in n: extra.append(('👴',))
-            if 'no bitches' in n: extra.append(('🚫',))
-            if 'matrix' in n or 'morpheus' in n or 'red/blue pill' in n: extra.append(('💊',))
-            if 'tough toddler' in n or 'cross-arms' in n: extra.append(('💪',))
-            if 'owl' in n or 'thumbs up' in n: extra.append(('🦉',))
-            if 'andy dufresne' in n or 'shawshank' in n or 'shaw' in n: extra.append(('🪑',))
-            if 'cast away' in n or 'wilson' in n or 'tom hanks' in n: extra.append(('🏝️',))
-            if 'where they at' in n or 'searching man' in n: extra.append(('🔍',))
-            if 'this is the way' in n: extra.append(('🛸',))
-            if 'galaxy brain' in n: extra.append(('🌌',))
-            if 'change-my-mind' in n: extra.append(('🪧',))
-            for kw, emoji in extra:
+            for kw, emoji in extra_patterns:
                 if kw in n:
                     icon = emoji
                     break
