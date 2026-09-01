@@ -3955,6 +3955,7 @@ _SECRET_DROP_SLOTS = {
     "krea_mcp_token": {
         "label": "Krea AI MCP Bearer Token (image + video gen)",
         "env_var": "KREA_MCP_TOKEN",
+        "alt_env_vars": ["KREA_API_KEY", "KREA_API", "KREA_ACCESS_TOKEN", "KREA_BEARER"],
         "cred_file_key": "access_token",
         "cred_filename": "krea-mcp.json",
         "mint_oauth_file": False,

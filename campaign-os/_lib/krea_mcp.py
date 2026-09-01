@@ -58,7 +58,7 @@ DEFAULT_CREDENTIAL_PATHS = (
     os.path.expanduser("~/.krea/mcp.json"),
     os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/krea-mcp.json"),
 )
-DEFAULT_TOKEN_ENV_VARS = ("KREA_MCP_TOKEN", "KREA_API_KEY", "KREA_ACCESS_TOKEN")
+DEFAULT_TOKEN_ENV_VARS = ("KREA_MCP_TOKEN", "KREA_API_KEY", "KREA_API", "KREA_ACCESS_TOKEN", "KREA_BEARER")
 
 
 # ── Typed exceptions ────────────────────────────────────────────────
