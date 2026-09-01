@@ -213,8 +213,8 @@
         "typography": "Helvetica Neue Bold for headlines. Clean sans for body. Price callouts in gold, bold.",
         "layoutStyle": "Product hero: full iron head on pure black. Price callout overlaid in gold. Tagline below. No TrackMan data on product shots — keep it pure product photography.",
         "contentExamples": [
-          "Takomo 101T: Less than $600 for a full set. We put it on TrackMan.",
-          "Chrome hollow-body iron. Sub-$600. PGA Tour feel.",
+          "Takomo 101T: Premium hollow-body iron, fit in-store at Swing Shack. Book a fitting.",
+          "Chrome hollow-body iron. PGA Tour-level technology in your bag.",
           "Takomo 101T — the iron that divides serious golfers"
         ]
       },
@@ -224,7 +224,7 @@
         "bigIdea": "Takomo 101T: the iron that gets serious golfers arguing — and fitting sessions that settle the argument.",
         "successMetric": "Takomo fitting sessions booked. Secondary: engagement on Takomo content above TrackMan benchmark. Tertiary: Takomo mentions in bio link clicks.",
         "whatGoodLooksLike": "A real Takomo iron head on pure black — no AI, no stock photos. A price callout in gold that creates urgency without discounting. A hook that poses a question serious golfers want answered. Copy that respects the reader's intelligence.",
-        "whatBadLooksLike": "AI-generated club heads that look fake. Broken/garbled text. Price claims without the 'under $600' anchor. Generic golf content that could be any iron. Anything that talks down to the audience."
+        "whatBadLooksLike": "AI-generated club heads that look fake. Broken/garbled text. Price claims without a verified SA price. Generic golf content that could be any iron. Anything that talks down to the audience."
       },
       "dna": {
         "tone": "Confident, curious, slightly provocative. The kind of content that makes serious golfers stop and think — then book a fitting to settle the argument. Sharp without being aggressive.",
@@ -246,7 +246,7 @@
           "stock golf photos without product context",
           "any image with broken/garbled text"
         ],
-        "ctaPhilosophy": "Price transparency as hook: lead with 'less than $600' or 'from R250' because the value is the argument. CTAs are always 'Book Takomo Fitting' with R-amount anchored.",
+        "ctaPhilosophy": "Customer-facing copy uses verified SA pricing only. For Takomo 101T no verified SA price exists yet - use 'Ask us for current pricing' instead of USD pricing. Source-market USD references stay in the research layer only. CTAs are 'Book Takomo Fitting' anchored to verified R-amount.",
         "platformStrategy": {
           "instagram": "Product-first: the iron head IS the hero. Price callout in gold. Caption earns the click with the controversy/question angle. Link to booking.",
           "tiktok": "Hook is the price question: 'Is Takomo 101T worth it? We put it on TrackMan.' Product visual first, data second.",
@@ -289,7 +289,7 @@
           {
             "id": "t1",
             "name": "Value",
-            "description": "Sub-$600 for full set — exceptional price-to-performance"
+            "description": "Premium hollow-body technology at an accessible price point — ask us for current SA pricing"
           },
           {
             "id": "t2",
@@ -311,7 +311,7 @@
           "assetType": "research",
           "status": "published",
           "platform": "instagram,tiktok",
-          "caption": "Takomo 101T: The iron that divides serious golfers. Hollow-body construction. 1028 carbon steel. 360 unsupported face. Price: less than $600 full set. For SA golfers asking: is this the upgrade that actually makes sense? TrackMan assessment shows exact gapping. First session R250 at Swing Shack.",
+          "caption": "Takomo 101T: The iron that divides serious golfers. Hollow-body construction. 1028 carbon steel. 360 unsupported face. Available at Swing Shack - ask us for current pricing. For SA golfers asking: is this the upgrade that actually makes sense? TrackMan assessment shows exact gapping. First session R250 at Swing Shack.",
           "owner": "scout",
           "createdAt": "2026-06-02T06:36:56.450780Z",
           "updatedAt": "2026-06-02T13:24:44.888Z",
@@ -322,7 +322,7 @@
             "Thinner topline than 101, less offset, narrower sole",
             "Sleeker chrome heads — blade appearance in bag",
             "Better sound than predecessor 101",
-            "Sub-$600 full set 4-PW — exceptional value",
+            "Exceptional value (US source says sub-$600 - no verified SA price yet; ask us for current pricing)",
             "Target: mid-to-scratch golfers seeking distance + forgiveness"
           ],
           "sourcePricing": {
@@ -368,7 +368,7 @@
           "status": "review",
           "platform": "instagram",
           "headline": "TAKOMO 101T: WORTH THE HYPE OR OVERHYPED?",
-          "subtext": "Less than $600 for a full set. Hollow-body. 360 unsupported face. We tested it on TrackMan. Here is what we found.",
+          "subtext": "Premium hollow-body iron, 1028 carbon steel, 360 unsupported face. We tested it on TrackMan. Here is what we found.",
           "caption": "Takomo 101T — the iron that gets serious golfers arguing at the 19th hole. Premium hollow-body construction, sleek chrome heads, and a price that makes you question every impulse buy before it. We put it on TrackMan. Book your fitting session at Swing Shack. From R250. Limited assessment slots available. #takomogolf #golfjnb #trackman #clubfitting",
           "cta": "Book Takomo Fitting — From R250",
           "owner": "copywriter",
@@ -12934,7 +12934,7 @@
               "layoutStyle": "Split-screen layouts work best — left side shows the absurd comparison, right side shows the golf-equipment parallel. Dark panels anchor the problem; gold accents mark the transformation moments. Carousel structure should feel like building a case, with each swipe adding evidence.",
               "contentExamples": [
                 "Carousel: 'Would you dig a foundation with a straw? Would you play 72 holes with clubs that fight you?' Slide through equipment mismatches to fitting solution CTA",
-                "Reel: Slow-motion of wrong-flex shaft snapping mid-swing, overlaid text 'This is your $800 driver', cut to fitting session reveal",
+                "Reel: Slow-motion of wrong-flex shaft snapping mid-swing, overlaid text 'This is your R14,000 driver', cut to fitting session reveal",
                 "Post: Side-by-side comparison graphic — 'Golfer using wrong loft for their attack angle loses 12 yards on average' with book-fit button",
                 "Story series: Poll 'Do you know your shaft flex?' leads to educational swipe-up about fitting basics, ends with direct booking link",
                 "GMB Post: 'Why 7 out of 10 Johannesburg golfers are playing with clubs that don't match their swing — and what proper fitting actually fixes'"
@@ -24862,7 +24862,7 @@
               {
                 "id": "p2",
                 "name": "The Absurd Analogy — Make the Problem Impossible to Ignore",
-                "description": "Uses obviously ridiculous comparisons (pool noodle, flip-flops, hammer-as-screwdriver) to create cognitive dissonance. Viewers laugh, then wince because the same logic applies to their $50 driver from 2008."
+                "description": "Uses obviously ridiculous comparisons (pool noodle, flip-flops, hammer-as-screwdriver) to create cognitive dissonance. Viewers laugh, then wince because the same logic applies to their R900 driver from 2008."
               },
               {
                 "id": "p3",
