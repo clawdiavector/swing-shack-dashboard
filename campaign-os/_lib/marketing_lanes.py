@@ -1234,51 +1234,83 @@ def propose_product_calendar(
     start_dt = datetime.combine(start_dt_date, datetime.min.time())
     publish_dates = _next_publish_slot(start_dt, frequency, days_count)
 
-    # Build proposed items with category/brand diversity
+    # Build proposed items with FAMILY/brand/price diversity
+    # Key insight: a family (e.g. "Maverick 10K Step Pant") contains multiple
+    # SKU variants (Black + Baritone Blue). The planner plans at the FAMILY
+    # level — picking the same family three times in a row is the same
+    # repetition as picking the same SKU. Falls back to category when the
+    # family is not set, then to category group, then to SKU.
     proposed = []
     category_count = Counter()
+    family_count = Counter()
     brand_count = Counter()
     price_bucket_count = Counter()
     p_idx = 0
-    last_categories = []
+    last_families = []  # last 2 families used (we don't repeat the same family twice in a row)
+    used_angles_per_family = {}  # family -> set of angles already used this proposal
+
+    def family_of(prod):
+        """Get the diversity key for a product. Prefer family, then category."""
+        f = prod.get("product_family")
+        if f and f.strip():
+            return ("family", f)
+        cat = prod.get("category", "uncategorised")
+        if cat and cat != "uncategorised":
+            return ("category", cat)
+        # Fall back to name root (strip colour/size suffix)
+        name = prod.get("name", "")
+        # Try to dedup by extracting "Mens Classic Polo" from "Mens Classic Polo - Antique Taupe"
+        return ("name", name.split(" - ")[0].split(";")[0].strip())
 
     for d in publish_dates:
         if not eligible:
             break
-        # Pick product: round-robin through eligible, but avoid repeating
-        # last 3 categories if possible.
+        # Round-robin pick: advance through eligible, skip if family repeats last 2
         attempts = 0
         chosen = None
-        while attempts < len(eligible):
+        chosen_diversity = None
+        while attempts < len(eligible) * 2:
             candidate = eligible[p_idx % len(eligible)]
             p_idx += 1
             attempts += 1
-            cat = candidate.get("category", "uncategorised")
-            # Skip if we've used this category 3 times in a row
-            if len(last_categories) >= 2 and cat == last_categories[-1] == last_categories[-2]:
+            div_key = family_of(candidate)
+            # Skip if same family was used last 2 slots
+            if (len(last_families) >= 2
+                and div_key == last_families[-1] == last_families[-2]):
                 continue
+            # Skip if all eligible candidates have already been used for the
+            # same family with the same angle (rare edge case)
             chosen = candidate
+            chosen_diversity = div_key
             break
 
         if not chosen:
+            # No family-diverse candidate — fall back to the first eligible
+            # but pick a fresh angle so the post isn't a copy of last time
             chosen = eligible[0]
+            chosen_diversity = family_of(chosen)
 
-        angle = _pick_angle(chosen, (chosen.get("rotation") or {}).get("recent_angles", []))
+        family_name = chosen_diversity[1]
+        recent_angles = used_angles_per_family.get(family_name, [])
+        angle = _pick_angle(chosen, recent_angles)
+        # Mark this angle as used for this family in THIS proposal
+        used_angles_per_family.setdefault(family_name, []).append(angle)
         property_used = _pick_creative_property(chosen, brand_id)
 
         proposed.append({
             "id": f"ci-prop-{uuid.uuid4().hex[:8]}",
             "brand_id": brand_id,
             "lane": "product",
-            "status": "proposed",  # user reviews before 'planned'
+            "status": "proposed",
             "publish_date": d.isoformat(),
-            "publish_time": "09:00",  # default morning slot
+            "publish_time": "09:00",
             "platforms": ["instagram"],
             "product_id": chosen.get("id"),
             "product_name": chosen.get("name"),
             "product_sku": chosen.get("sku"),
             "product_category": chosen.get("category"),
-            "product_brand": chosen.get("brand") or brand_id,
+            "product_family": family_name,
+            "product_brand": chosen.get("product_brand") or chosen.get("brand") or brand_id,
             "creative_property": property_used,
             "angle": angle,
             "platform": "instagram",
@@ -1286,9 +1318,9 @@ def propose_product_calendar(
             "owner": "operator",
             "needs_asset": True,
         })
-        cat = chosen.get("category", "uncategorised")
-        category_count[cat] += 1
-        brand_count[chosen.get("brand") or brand_id] += 1
+        category_count[chosen.get("category", "uncategorised")] += 1
+        family_count[family_name] += 1
+        brand_count[chosen.get("product_brand") or chosen.get("brand") or brand_id] += 1
         price = chosen.get("price", 0)
         bucket = (
             "free" if price == 0 else
@@ -1298,7 +1330,7 @@ def propose_product_calendar(
             "500-plus"
         )
         price_bucket_count[bucket] += 1
-        last_categories = (last_categories + [cat])[-3:]
+        last_families = (last_families + [chosen_diversity])[-3:]
 
     return {
         "ok": True,
@@ -1311,6 +1343,7 @@ def propose_product_calendar(
         "skipped_due_to_stock": [{"name": p.get("name"), "sku": p.get("sku")} for p in skipped_stock],
         "skipped_due_to_recent": skipped_recent,
         "category_distribution": dict(category_count),
+        "family_distribution": dict(family_count),
         "brand_distribution": dict(brand_count),
         "price_distribution": dict(price_bucket_count),
         "available_products": len(eligible),
