@@ -21,9 +21,114 @@ import hashlib
 import time
 import base64
 import urllib.request
+import shutil
+import uuid
+import logging
+import hashlib
+import time
+import base64
+import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, L
+
+
+@app.route('/api/admin/data-freshness', methods=['GET'])
+def admin_data_freshness():
+    """GET /api/admin/data-freshness — show when every known data source was
+    last refreshed + per-source staleness. Reads/writes a _freshness.json
+    log on the runtime volume so the freshness state survives redeploys.
+
+    Optional ?refresh=1 forces a re-scan of all known sources.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        freshness_path = os.path.join(DATA_DIR, '_freshness.json')
+        # Load existing log
+        log = {}
+        if os.path.exists(freshness_path):
+            try:
+                log = _read_json_file(freshness_path) or {}
+            except Exception:
+                log = {}
+
+        # Sources to scan (filename in DATA_DIR, fetched_at key)
+        sources = [
+            ("ga4", "ga4-snapshot.json", "fetched_at"),
+            ("instagram", "analytics/instagram-analytics.json", "lastUpdated"),
+            ("ig_business_timeseries", "ig-business-analytics.json", "fetched_at"),
+            ("meta_page_info", "meta-page-info.json", "fetched_at"),
+            ("meta_page_insights", "meta-page-insights.json", "fetched_at"),
+            ("meta_stories", "meta-stories.json", "fetched_at"),
+            ("google_ads", "google-ads.json", "fetched_at"),
+            ("seo", "seo-rankings.json", "fetched_at"),
+            ("funnel_leaks", "funnel-leaks.json", "generated"),
+            ("ubersuggest", "ubersuggest-domain.json", "fetched_at"),
+            ("review_queue", "approval-queue.json", "updated_at"),
+            ("booking_events", "booking-events.json", "fetched_at"),
+        ]
+
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        results = []
+        for name, rel_path, ts_key in sources:
+            full = _resolve_data_path(rel_path)
+            entry = {"name": name, "path": rel_path}
+            if os.path.exists(full):
+                try:
+                    data = _read_json_file(full) or {}
+                    if isinstance(data, dict):
+                        # Some files have nested fetched_at or meta.fetched_at
+                        ts = data.get(ts_key)
+                        if not ts and 'meta' in data and isinstance(data['meta'], dict):
+                            ts = data['meta'].get(ts_key)
+                        if not ts and 'metadata' in data and isinstance(data['metadata'], dict):
+                            ts = data['metadata'].get(ts_key)
+                        entry["fetched_at"] = ts
+                        entry["staleness"] = _staleness_check(name, ts)
+                        entry["exists"] = True
+                        # Update log
+                        log[name] = {"fetched_at": ts, "checked_at": now,
+                                     "path": rel_path, "staleness": entry["staleness"]["status"]}
+                    else:
+                        entry["exists"] = True
+                        entry["staleness"] = {"status": "unknown", "reason": "not a dict"}
+                except Exception as e:
+                    entry["exists"] = True
+                    entry["error"] = str(e)
+                    entry["staleness"] = {"status": "unknown", "reason": "read failed"}
+            else:
+                entry["exists"] = False
+                entry["staleness"] = {"status": "unknown", "reason": "file not found"}
+                log[name] = {"fetched_at": None, "checked_at": now,
+                             "path": rel_path, "staleness": "unknown"}
+            results.append(entry)
+
+        # Persist log
+        try:
+            log["_last_scan"] = now
+            with open(freshness_path, 'w') as f:
+                json.dump(log, f, indent=2, default=str)
+            os.chmod(freshness_path, 0o644)
+        except Exception as e:
+            results.append({"_log_write_error": str(e)})
+
+        return jsonify({
+            "ok": True,
+            "scanned_at": now,
+            "log_path": freshness_path,
+            "sources": results,
+            "summary": _weekly_report_data_freshness_summary([
+                {"name": r["name"], "staleness": r.get("staleness", {}).get("status", "unknown"),
+                 "staleness_detail": r.get("staleness", {})}
+                for r in results
+            ]),
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+ist
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -14533,6 +14638,28 @@ def _weekly_collect_current(bid):
         out['sources'].append({'name': 'leads', 'configured': False,
                                'reason': 'no lead source wired'})
 
+    # Staleness gate (2026-09-01): every source gets a fresh/stale/unknown flag
+    # before the report goes out. No more silent 0s on stale data.
+    _annotate_sources_with_staleness(out.get('sources', []))
+    out['freshness'] = _weekly_report_data_freshness_summary(out.get('sources', []))
+    # If any critical source is stale and content_published is 0, surface the
+    # reason in the row itself so the report can't lie by omission.
+    if out.get('weekly', {}).get('content_published', 0) == 0:
+        ig_biz_stale = any(
+            s.get('name') == 'ig_business_recent_posts' and s.get('staleness') == 'stale'
+            for s in out.get('sources', [])
+        )
+        ig_main_stale = any(
+            s.get('name') == 'instagram' and s.get('staleness') == 'stale'
+            for s in out.get('sources', [])
+        )
+        if ig_biz_stale and ig_main_stale:
+            out['weekly']['content_published_note'] = 'IG data stale — both sources >1d old'
+        elif ig_biz_stale:
+            out['weekly']['content_published_note'] = 'IG business data stale (>1d old)'
+        elif ig_main_stale:
+            out['weekly']['content_published_note'] = 'IG main data stale (>1d old)'
+
     return out
 
 
@@ -18801,3 +18928,102 @@ if __name__ == '__main__':
     _boot_selfheal_windsor()
     port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port)
+
+
+
+# ── Staleness gates (added 2026-09-01) ─────────────────────────────────────
+
+DEFAULT_MAX_AGE_DAYS = {
+    "ga4": 2,
+    "instagram": 1,
+    "ig_business_timeseries": 1,
+    "ig_business_recent_posts": 1,
+    "meta_page_info": 1,
+    "meta_page_insights": 1,
+    "meta_stories": 1,
+    "meta_graph": 1,
+    "google_ads": 2,
+    "ubersuggest": 7,
+    "seo": 2,
+    "funnel_leaks": 2,
+    "competitors": 7,
+    "review_queue": 1,
+    "leads": 1,
+    "booking_events": 1,
+}
+
+
+def _staleness_check(source_name, fetched_at, max_age_days=None):
+    """Return staleness flag for a single data source.
+
+    Per-source max age (days) — if missing, the source is 'unknown'
+    (no timestamp). Defaults are deliberately strict so we surface gaps
+    before they become silent lies.
+    """
+    if not fetched_at:
+        return {"status": "unknown", "reason": "no fetched_at timestamp", "age_days": None}
+    if max_age_days is None:
+        max_age_days = DEFAULT_MAX_AGE_DAYS.get(source_name, 3)
+    try:
+        ts_str = str(fetched_at).replace("Z", "+00:00")
+        ts_dt = datetime.datetime.fromisoformat(ts_str)
+        if ts_dt.tzinfo is None:
+            ts_dt = ts_dt.replace(tzinfo=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        age_days = (now - ts_dt).total_seconds() / 86400.0
+        if age_days < 0:
+            return {"status": "future", "reason": f"fetched_at is {abs(age_days):.1f}d in the future",
+                    "age_days": round(age_days, 2)}
+        if age_days > max_age_days:
+            return {"status": "stale", "max_age_days": max_age_days,
+                    "age_days": round(age_days, 2),
+                    "reason": f"{age_days:.1f}d old (max {max_age_days}d)"}
+        return {"status": "fresh", "max_age_days": max_age_days,
+                "age_days": round(age_days, 2)}
+    except (ValueError, AttributeError) as e:
+        return {"status": "unknown", "reason": f"parse failed: {e}", "age_days": None}
+
+
+def _annotate_sources_with_staleness(sources):
+    """Walk the sources[] list and add staleness fields to each entry.
+    Preserves existing fields. Mutates in place.
+    """
+    for s in (sources or []):
+        name = s.get("name")
+        ts = s.get("fetched_at") or s.get("lastUpdated")
+        if not ts:
+            for k, v in s.items():
+                if isinstance(v, str) and "T" in v and ":" in v and "-" in v and k.endswith("_at"):
+                    ts = v
+                    break
+        flag = _staleness_check(name, ts)
+        s["staleness"] = flag["status"]
+        s["staleness_detail"] = flag
+
+
+def _weekly_report_data_freshness_summary(sources):
+    """Summarise source freshness for the report payload.
+    Returns dict with fresh/stale/unknown/future counts and source lists.
+    """
+    summary = {"fresh": 0, "stale": 0, "unknown": 0, "future": 0,
+               "stale_sources": [], "fresh_sources": [], "unknown_sources": [],
+               "overall": "fresh"}
+    for s in (sources or []):
+        st = s.get("staleness", "unknown")
+        if st == "fresh":
+            summary["fresh"] += 1
+            summary["fresh_sources"].append(s.get("name"))
+        elif st == "stale":
+            summary["stale"] += 1
+            summary["stale_sources"].append({"name": s.get("name"),
+                                             **s.get("staleness_detail", {})})
+        elif st == "future":
+            summary["future"] += 1
+        else:
+            summary["unknown"] += 1
+            summary["unknown_sources"].append(s.get("name"))
+    if summary["stale"] > 0:
+        summary["overall"] = "stale"
+    elif summary["unknown"] > 0 and summary["fresh"] == 0:
+        summary["overall"] = "unknown"
+    return summary
