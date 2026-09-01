@@ -2408,6 +2408,30 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
    Campaign OS · single-page app
    ════════════════════════════════════════════════════════════════ */
 
+// ─── Global error reporter (visible to Christelle) ──────────
+(function(){
+  if (typeof window === 'undefined') return;
+  function showError(msg){
+    let banner = document.getElementById('__js_err_banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = '__js_err_banner';
+      banner.style.cssText = 'position:fixed;top:8px;left:8px;right:8px;background:#dc2626;color:#fff;padding:12px 16px;font:12px monospace;z-index:99999;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.3);white-space:pre-wrap;max-height:300px;overflow:auto';
+      document.body.appendChild(banner);
+    }
+    const time = new Date().toLocaleTimeString();
+    banner.textContent = '[' + time + '] ' + msg + '\n' + banner.textContent;
+  }
+  window.addEventListener('error', e => {
+    showError('JS ERROR ' + (e.filename||'?') + ':' + (e.lineno||'?') + ' — ' + (e.message||(e.error&&e.error.message)||'?'));
+  });
+  window.addEventListener('unhandledrejection', e => {
+    showError('PROMISE REJECT — ' + ((e.reason&&e.reason.message)||e.reason||'?'));
+  });
+  console.log('[OS] global error reporter armed');
+})();
+
+
 // ─── UNIVERSAL HELPER SYSTEM ──────────────────────────────────────
 // Two pieces:
 //   (1) hover tooltip on any element with `data-help="what does this do"`.
@@ -4960,13 +4984,13 @@ async function loadBrandContext(){
       } catch(_){}
       // Persist the corrected choice so subsequent server calls are stable.
       if(S.brandContext?.brand_id){
-        try { await fetch('/api/brands' + encodeURIComponent(S.brandContext.brand_id) + '/select', {method:'POST'}); } catch(_){}
+        try { await fetch('/api/brands/' + encodeURIComponent(S.brandContext.brand_id) + '/select', {method:'POST'}); } catch(_){}
         S.brand = S.brandContext.brand_id;
       }
     } else if(dl && dl !== S.brandContext.brand_id){
       // Valid deep-link that the server treated differently (shouldn't happen
       // now, but kept as a safety net): persist the choice.
-      try { await fetch('/api/brands' + encodeURIComponent(dl) + '/select', {method:'POST'}); } catch(_){}
+      try { await fetch('/api/brands/' + encodeURIComponent(dl) + '/select', {method:'POST'}); } catch(_){}
     }
     renderBrandSwitcher();
     renderChromeForBrand();
@@ -5055,7 +5079,7 @@ async function switchBrand(brandId){
   }
   try {
     // Persist preference
-    await fetch('/api/brands' + encodeURIComponent(brandId) + '/select', {method:'POST'});
+    await fetch('/api/brands/' + encodeURIComponent(brandId) + '/select', {method:'POST'});
     // The next requests need to use the new brand_id query param.
     // We store it in S so all fetches include it.
     S.brand = brandId;
