@@ -1297,6 +1297,21 @@ def propose_product_calendar(
         used_angles_per_family.setdefault(family_name, []).append(angle)
         property_used = _pick_creative_property(chosen, brand_id)
 
+        # Build creative brief + references for this slot.
+        # Per heidi.txt directive (2026-09-01): a product calendar item
+        # must ALREADY KNOW how it will become a post — master prompt,
+        # preservation rules, references, currency-correct price.
+        from .product_creative_brief import build_full_creative_brief
+        _brief_item = {
+            "product_id": chosen.get("id"),
+            "creative_property": property_used,
+            "angle": angle,
+        }
+        try:
+            _brief = build_full_creative_brief(_brief_item, brand_id)
+        except Exception:
+            _brief = {"ok": False, "creative_brief": {}, "references": {}, "formatted_price": "", "price_bucket": "", "currency_symbol": "R", "currency": "ZAR"}
+
         proposed.append({
             "id": f"ci-prop-{uuid.uuid4().hex[:8]}",
             "brand_id": brand_id,
@@ -1316,19 +1331,31 @@ def propose_product_calendar(
             "platform": "instagram",
             "format": "1:1",
             "owner": "operator",
+            # Auto-generated brief fields (per heidi.txt 2026-09-01)
             "needs_asset": True,
+            "creative_brief": _brief.get("creative_brief", {}),
+            "references": _brief.get("references", {}),
+            "reference_status": "missing" if _brief.get("missing") else "ready",
+            "formatted_price": _brief.get("formatted_price", ""),
+            "price_bucket": _brief.get("price_bucket", ""),
+            "currency": _brief.get("currency", "ZAR"),
+            "currency_symbol": _brief.get("currency_symbol", "R"),
+            # Status flow per heidi.txt #17:
+            # PLANNED → REFERENCE READY → PROMPT READY → GENERATING → CREATIVE READY → NEEDS APPROVAL → APPROVED → QUEUED → PUBLISHED
+            "reference_ready": not _brief.get("missing"),
+            "prompt_ready": True,  # The brief is always ready even without reference
+            "next_step": _brief.get("next_step", ""),
         })
         category_count[chosen.get("category", "uncategorised")] += 1
         family_count[family_name] += 1
         brand_count[chosen.get("product_brand") or chosen.get("brand") or brand_id] += 1
+        # Per heidi.txt 2026-09-01: price buckets must be brand-aware (ZAR for
+        # Stick / Swing Shack / Bag Drop). Hard-coded US ranges removed.
+        from .product_creative_brief import price_bucket_for, get_brand_config
+        cfg = get_brand_config(brand_id)
+        sym = cfg.get("currency_symbol", "R")
         price = chosen.get("price", 0)
-        bucket = (
-            "free" if price == 0 else
-            "under-50" if price < 50 else
-            "50-150" if price < 150 else
-            "150-500" if price < 500 else
-            "500-plus"
-        )
+        bucket = price_bucket_for(price, brand_id)
         price_bucket_count[bucket] += 1
         last_families = (last_families + [chosen_diversity])[-3:]
 
