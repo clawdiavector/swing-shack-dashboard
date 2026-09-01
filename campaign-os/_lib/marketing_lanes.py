@@ -1309,7 +1309,9 @@ def propose_product_calendar(
         }
         try:
             _brief = build_full_creative_brief(_brief_item, brand_id)
-        except Exception:
+        except Exception as _cb_err:
+            import traceback as _tb
+            print(f"[brief-generator] error: {_cb_err}\n{_tb.format_exc()}")
             _brief = {"ok": False, "creative_brief": {}, "references": {}, "formatted_price": "", "price_bucket": "", "currency_symbol": "R", "currency": "ZAR"}
 
         proposed.append({

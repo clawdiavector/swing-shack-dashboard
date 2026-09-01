@@ -652,7 +652,9 @@ def build_full_creative_brief(item: dict, brand_id: str) -> dict:
             "next_step": str,                 # suggested user action
         }
     """
-    from .extended_catalog import get_extended_product  # type: ignore
+    # Resolved lazily to avoid circular imports — marketing_lanes imports
+    # product_creative_brief for propose_product_calendar.
+    from .marketing_lanes import get_extended_product
 
     product_id = item.get("product_id")
     if not product_id:
