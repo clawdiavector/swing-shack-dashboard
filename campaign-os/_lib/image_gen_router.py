@@ -126,7 +126,13 @@ KREA_ENDPOINT = "https://api.krea.ai/mcp"  # JSON-RPC 2.0 over HTTPS
 
 # ── Defaults ──────────────────────────────────────────────────────────
 
-DEFAULT_PROVIDER = "openrouter"  # OpenRouter wins: same model handles gen + edit
+# 2026-09-01: Krea is the canonical image-gen engine per heidi.txt directive #6.
+# OpenRouter remains as a fallback for prompt-only refinement + multi-model editing,
+# but every brand-driven creative generation starts on Krea. If Krea is not
+# connected (no KREA_MCP_TOKEN), we fall back to OpenRouter for cheap generation
+# and surface the actual Krea error rather than silently switching providers.
+DEFAULT_PROVIDER = "krea"  # Krea-led per heidi.txt 2026-09-01 #6/#7
+
 DEFAULT_MODEL_GEN = "google/gemini-2.5-flash-image"  # "Nano Banana"
 DEFAULT_MODEL_EDIT = "google/gemini-2.5-flash-image"
 DEFAULT_MODEL_CHEAP = "openai/gpt-5-image-mini"
@@ -519,10 +525,15 @@ def _call_openrouter_multimodal(
                 "_call_openrouter_multimodal needs messages= or content_chunks="
             )
         messages = [{"role": "user", "content": content_chunks}]
+    # 2026-09-01: Cap max_tokens explicitly. OpenRouter default for image models
+    # is ~28,642 (per live-tested 402 response: "max_tokens 28642 exceeds
+    # your credits' 7198 token limit"). Most image models only need 4k-8k
+    # to render + return a base64 image. 4096 is plenty for Nano Banana + BFL.
     payload = {
         "model": model,
         "messages": messages,
         "stream": stream,
+        "max_tokens": int(os.environ.get("CAMPAIGN_OS_OPENROUTER_MAX_TOKENS", "4096")),
     }
     body = json.dumps(payload).encode("utf-8")
     req = Request(

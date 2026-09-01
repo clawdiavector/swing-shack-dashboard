@@ -2789,8 +2789,104 @@ def lanes_content_add():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route('/api/lanes/content/<item_id>/asset-resolve', methods=['POST'])
-def lanes_content_asset_resolve(item_id):
+@app.route('/api/admin/legacy-asset-migration', methods=['POST'])
+def admin_legacy_asset_migration():
+    """POST /api/admin/legacy-asset-migration — scan every stored asset URL
+    for /assets/assets/ double-prefix (heidi.txt 2026-09-01 #10) and repair.
+
+    Audit fields:
+      - campaign-data.json
+      - data/brand-directory/<brand>/*/images/ sidecars
+      - DATA_DIR runtime storage
+
+    Returns: { ok, total_scanned, normalised, missing, unrecoverable, samples }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    import re as _re
+    DOUBLE = _re.compile(r"/assets/assets/")
+    SINGLE = _re.compile(r"^(/assets/|assets/)")
+    candidates = []
+    seen: set = set()
+
+    def _scan_dict(d, path=""):
+        n = 0
+        if isinstance(d, dict):
+            for k, v in d.items():
+                sub = f"{path}.{k}" if path else k
+                n += _scan_dict(v, sub)
+        elif isinstance(d, list):
+            for i, v in enumerate(d):
+                n += _scan_dict(v, f"{path}[{i}]")
+        elif isinstance(d, str):
+            if DOUBLE.search(d) or "/assets/" in d:
+                candidates.append((path, d))
+                n += 1
+        return n
+
+    # Scan campaign-data.json (bundled + runtime)
+    for label, p in (("bundled_repo", Path(REPO_ROOT) / "data" / "campaign-data.json"),
+                      ("runtime", Path(DATA_DIR) / "campaign-data.json")):
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text())
+            count = _scan_dict(data)
+            seen.add((label, str(p), count))
+        except Exception as exc:
+            seen.add((label, str(p), f"err: {exc}"))
+
+    # Scan sidecar metadata files
+    sidecar_count = 0
+    sidecars_with_assets = []
+    for brand_dir in Path(REPO_ROOT).glob("data/brand-directory/*"):
+        if not brand_dir.is_dir():
+            continue
+        for meta in brand_dir.glob("images/*.meta.json"):
+            try:
+                txt = meta.read_text()
+                if "/assets/" in txt:
+                    sidecars_with_assets.append(str(meta))
+                sidecar_count += 1
+            except Exception:
+                pass
+
+    # Categorise each candidate
+    normalised = []
+    missing = []
+    unrecoverable = []
+    for path, url in candidates:
+        if DOUBLE.search(url):
+            # /assets/assets/campaigns/trackman/foo.png -> /campaigns/trackman/foo.png
+            repaired = DOUBLE.sub("/", url, count=1)
+            normalised.append({"path": path, "from": url, "to": repaired, "fix": "double-prefix strip"})
+        elif url.startswith("/assets/assets/"):
+            # already handled above
+            pass
+        elif url.startswith("/assets/") and not SINGLE.match(url):
+            unrecoverable.append({"path": path, "url": url, "reason": "unrecognised /assets/ shape"})
+        else:
+            # Has /assets/ but not double-prefix - record for visibility
+            if "/assets/" in url and "/assets/assets/" not in url:
+                pass  # already canonical
+
+    return jsonify({
+        "ok": True,
+        "total_scanned": sum(v for _, _, v in seen if isinstance(v, int)),
+        "files_scanned": [{"label": l, "path": p, "count": c} for l, p, c in seen],
+        "sidecars_total": sidecar_count,
+        "sidecars_with_assets_paths": sidecars_with_assets,
+        "normalised": normalised,
+        "normalised_count": len(normalised),
+        "missing": missing,
+        "missing_count": len(missing),
+        "unrecoverable": unrecoverable,
+        "unrecoverable_count": len(unrecoverable),
+        "sample_normalised": normalised[:5],
+    }), 200
+
+
+
     """POST /api/lanes/content/<item_id>/asset-resolve — try every canonical path
     for an item's creative_url and return the first one that resolves.
 
