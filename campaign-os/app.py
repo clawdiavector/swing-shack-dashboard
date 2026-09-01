@@ -653,6 +653,8 @@ def admin_data_freshness():
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    # DEBUG
+    return jsonify({"ok": True, "debug": "route_reached", "data_dir": str(DATA_DIR)}), 200
     try:
         freshness_path = os.path.join(DATA_DIR, '_freshness.json')
         log = {}
