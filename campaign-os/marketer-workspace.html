@@ -344,13 +344,29 @@ function toast(msg, kind = 'info') {
 
 // ─── Init ──────────────────────────────────────────────────────────────
 async function init() {
-  await loadConnectionStatus();
-  await loadBrands();
-  await refreshCalendar();
-  setupFilterBar();
-  setupNavigation();
-  setupKeyboard();
-  await refreshAllViews();
+  try {
+    console.log('[workspace] init: loadConnectionStatus');
+    await loadConnectionStatus();
+    console.log('[workspace] init: loadBrands');
+    await loadBrands();
+    console.log('[workspace] init: refreshCalendar');
+    await refreshCalendar();
+    console.log('[workspace] init: setupFilterBar');
+    setupFilterBar();
+    console.log('[workspace] init: setupNavigation');
+    setupNavigation();
+    console.log('[workspace] init: setupKeyboard');
+    setupKeyboard();
+    console.log('[workspace] init: refreshAllViews');
+    await refreshAllViews();
+    console.log('[workspace] init: DONE — nav buttons live');
+  } catch (e) {
+    console.error('[workspace] init failed:', e);
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;padding:14px 20px;border-radius:var(--r-s);z-index:1000;font-family:monospace;font-size:12px;max-width:80%';
+    banner.textContent = 'Workspace init failed: ' + e.message;
+    document.body.appendChild(banner);
+  }
 }
 
 // ─── Connection pills ──────────────────────────────────────────────────
@@ -1151,13 +1167,16 @@ function renderCampaignFilter() {
 
 // ─── Navigation ────────────────────────────────────────────────────────
 function setupNavigation() {
+  // Show/hide views. ALL views must be in this list — the bible view was
+  // previously missing which made Brand Bible unclickable.
+  const ALL_VIEWS = ['calendar', 'stock', 'products', 'references', 'bible', 'morning'];
   document.querySelectorAll('#mw-nav button').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#mw-nav button').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const view = btn.dataset.view;
       MW.view = view;
-      ['calendar', 'stock', 'products', 'references', 'morning'].forEach(v => {
+      ALL_VIEWS.forEach(v => {
         const el = document.getElementById('view-' + v);
         if (el) el.style.display = v === view ? 'block' : 'none';
       });
