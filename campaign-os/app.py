@@ -5739,9 +5739,54 @@ def meme_catalog():
             "filters": {"pillar": pillar, "voice": voice, "era": era,
                         "still_works": only_still_works, "fatigue": only_low_fatigue},
             "memes": filtered,
+            "meta": kb.get("_meta", {}) or {"refreshed_at": None, "meme_count": len(memes)},
         })
     except Exception as e:
         _app_log.exception("meme_catalog failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/memes/refresh', methods=['POST'])
+def meme_refresh():
+    """POST /api/intel/memes/refresh — re-read data/meme_knowledge.json from disk,
+    refresh the _meta block, and bump refreshed_at. The catalog data itself is
+    curated manually; this endpoint just bumps the freshness timestamp so the UI
+    can show 'last refreshed just now' after a manual refresh.
+
+    Why this is manual-only: the meme catalog is curated (origin stories,
+    swingshack_fit_seeds, format hints). Auto-refreshing would lose that.
+
+    Returns: { ok, refreshed_at, refreshed_at_human, days_since_refresh }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meme_knowledge_io import _load_meme_knowledge
+        kb = _load_meme_knowledge()
+        if not isinstance(kb, dict):
+            return jsonify({"ok": False, "error": "knowledge base unavailable"}), 503
+        kb["_meta"] = kb.get("_meta", {})
+        now = datetime.datetime.utcnow()
+        kb["_meta"]["refreshed_at"] = now.isoformat() + "Z"
+        kb["_meta"]["refreshed_at_human"] = "just now"
+        # Persist to runtime DATA_DIR so the change survives deploys
+        try:
+            paths = _data_paths()
+            runtime = Path(paths["data_dir"]) / "meme_knowledge.json"
+            runtime.parent.mkdir(parents=True, exist_ok=True)
+            runtime.write_text(json.dumps(kb, indent=2, ensure_ascii=False))
+            persisted = True
+        except Exception:
+            persisted = False
+        return jsonify({
+            "ok": True,
+            "refreshed_at": kb["_meta"]["refreshed_at"],
+            "refreshed_at_human": kb["_meta"]["refreshed_at_human"],
+            "persisted": persisted,
+            "meme_count": len(kb.get("memes", [])),
+        }), 200
+    except Exception as e:
+        _app_log.exception("meme_refresh failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

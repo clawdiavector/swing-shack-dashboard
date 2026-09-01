@@ -211,7 +211,8 @@ header .nav a.active { background: var(--accent); color: #0c0d10; }
 <body>
 <header>
   <div>
-    <h1 id="page-h1" data-help-title="Meme Lab">Meme Lab <span id="page-h1-sub" style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ 75 memes · Swing Shack</span></h1>
+    <h1 id="page-h1" data-help-title="Meme Lab">Meme Lab <span id="page-h1-sub" style="color: var(--muted); font-weight: 400; font-size: 14px; margin-left: 10px;">/ <span id="meta-count">75</span> memes · <span id="meta-brand">Swing Shack</span></span></h1>
+<span id="meta-refresh" data-help="Last refresh of the meme catalog. Memes are curated manually — origin stories, Swing Shack adaptations, format hints. Click Refresh after editing data/meme_knowledge.json to bump the timestamp." style="display:block;font-size:11px;color:var(--muted);margin-top:2px">Last refreshed: <b id="meta-refresh-time">loading…</b> · <a href="#" id="meta-refresh-btn" style="color:var(--accent)">refresh ↻</a></span>
   </div>
   <div class="nav">
     <a href="/">← Dashboard</a>
@@ -824,7 +825,54 @@ attachChips('voice', v => {
 });
 attachChips('pillar', v => { state.filters.pillar = v; loadCatalog(); });
 
+
+// ── Last-refreshed indicator ────────────────────────────────────────────
+async function loadMeta() {
+  try {
+    const data = await API.catalog({});
+    const meta = data.meta || {};
+    const refreshedAt = meta.refreshed_at;
+    const count = data.total_in_catalog || (data.memes || []).length;
+    document.getElementById('meta-count').textContent = count;
+    if (refreshedAt) {
+      const date = new Date(refreshedAt);
+      const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+      const human = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+      document.getElementById('meta-refresh-time').textContent = human;
+      document.getElementById('meta-refresh-time').title = refreshedAt;
+    } else {
+      document.getElementById('meta-refresh-time').textContent = 'unknown';
+    }
+  } catch (e) {
+    document.getElementById('meta-refresh-time').textContent = 'unavailable';
+  }
+}
+
+document.getElementById('meta-refresh-btn').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('meta-refresh-btn');
+  btn.textContent = 'refreshing…';
+  btn.style.opacity = '0.5';
+  try {
+    // Need a session cookie — POST will be authed if the user is already logged in
+    const r = await fetch('/api/intel/memes/refresh', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = '✓ refreshed';
+      document.getElementById('meta-refresh-time').textContent = 'just now';
+      setTimeout(() => loadMeta(), 500);
+    } else {
+      btn.textContent = '✗ ' + (d.error || 'failed');
+    }
+  } catch (err) {
+    btn.textContent = '✗ network';
+  }
+  setTimeout(() => { btn.textContent = 'refresh ↻'; btn.style.opacity = '1'; }, 2000);
+});
+
 (async function init() {
+  // Show how stale the catalog is
+  loadMeta();
   // Auto-pick from query string
   const qs = new URLSearchParams(window.location.search);
   if (qs.has('voice')) state.filters.voice = qs.get('voice');
