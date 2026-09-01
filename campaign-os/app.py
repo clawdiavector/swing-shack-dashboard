@@ -18920,18 +18920,6 @@ def _weekly_report_data_freshness_summary(sources):
     return summary
 
 
-@app.route('/api/admin/data-freshness-debug', methods=['GET'])
-def admin_data_freshness_debug():
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "auth required"}), 401
-    return jsonify({
-        "ok": True,
-        "debug": "early return reached",
-        "data_dir": str(DATA_DIR),
-        "time": str(datetime.datetime.now(datetime.timezone.utc).isoformat()),
-    })
-
-
 @app.route('/api/admin/data-freshness', methods=['GET'])
 def admin_data_freshness():
     """GET /api/admin/data-freshness — show when every known data source was
