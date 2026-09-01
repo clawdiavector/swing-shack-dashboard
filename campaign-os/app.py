@@ -5761,7 +5761,11 @@ def meme_refresh():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     try:
-        from _lib.meme_knowledge_io import _load_meme_knowledge
+        # Clear the lru_cache so we re-read from disk
+        try:
+            _load_meme_knowledge.cache_clear()
+        except Exception:
+            pass
         kb = _load_meme_knowledge()
         if not isinstance(kb, dict):
             return jsonify({"ok": False, "error": "knowledge base unavailable"}), 503

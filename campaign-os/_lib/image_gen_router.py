@@ -536,7 +536,7 @@ def _call_openrouter_multimodal(
         "model": model,
         "messages": messages,
         "stream": stream,
-        "max_tokens": int(os.environ.get("CAMPAIGN_OS_OPENROUTER_MAX_TOKENS", "4096")),
+        "max_tokens": int(os.environ.get("CAMPAIGN_OS_OPENROUTER_MAX_TOKENS", "2048")),
     }
     body = json.dumps(payload).encode("utf-8")
     req = Request(
