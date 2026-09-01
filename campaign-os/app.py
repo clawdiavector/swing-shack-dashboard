@@ -57,6 +57,30 @@ PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
 PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
 
 
+# ── Client-side log collector ────────────────────────────────────────
+@app.route('/api/admin/client-log', methods=['POST'])
+def admin_client_log():
+    """Receive browser-side logs from the OS page (?logs=1 mode)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        entries = body.get('entries') or []
+        if not isinstance(entries, list):
+            return jsonify({"ok": False, "error": "entries must be a list"}), 400
+        # Log to server console (truncated)
+        import datetime
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        for e in entries[-200:]:  # last 200
+            level = e.get('level', 'INFO')
+            msg = e.get('msg', '')
+            meta = e.get('meta')
+            print(f"[client-log {ts} {level}] {msg} {meta if meta else ''}")
+        return jsonify({"ok": True, "received": len(entries)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 def _is_authed():
     """Check request cookie for a valid signed session token."""
     token = request.cookies.get(SESSION_COOKIE)

@@ -2429,6 +2429,63 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
     showError('PROMISE REJECT — ' + ((e.reason&&e.reason.message)||e.reason||'?'));
   });
   console.log('[OS] global error reporter armed');
+
+  // ─── Request logger (visible if ?logs=1 in URL) ─────────────
+  const OS_LOGS = [];
+  function oslog(level, msg, meta){
+    const entry = {t: Date.now(), level, msg, meta: meta || null};
+    OS_LOGS.push(entry);
+    if (OS_LOGS.length > 500) OS_LOGS.shift();
+    console.log('[OS ' + level + ']', msg, meta||'');
+    // Auto-flush to server every 2s if there are new entries
+    if (!window._osLastFlush) window._osLastFlush = 0;
+    if (!window._osPending) window._osPending = [];
+    window._osPending.push(entry);
+    const now = Date.now();
+    if (now - window._osLastFlush > 2000 && window._osPending.length > 0) {
+      window._osLastFlush = now;
+      const toSend = window._osPending.slice();
+      window._osPending = [];
+      try {
+        _origFetch('/api/admin/client-log', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({entries: toSend})}).catch(()=>{});
+      } catch(_){}
+    }
+    // Visible panel if ?logs=1
+    if (location.search.indexOf('logs=1') !== -1) {
+      let panel = document.getElementById('__os_log_panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = '__os_log_panel';
+        panel.style.cssText = 'position:fixed;bottom:8px;left:8px;right:8px;max-height:300px;overflow:auto;background:#0f172a;color:#e2e8f0;padding:10px;font:11px monospace;z-index:99998;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.3);white-space:pre-wrap';
+        document.body.appendChild(panel);
+      }
+      const time = new Date(entry.t).toLocaleTimeString();
+      const color = level === 'ERR' ? '#ef4444' : level === 'NET' ? '#60a5fa' : level === 'OK' ? '#4ade80' : '#94a3b8';
+      panel.innerHTML = '<span style="color:' + color + '">[' + time + ' ' + level + ']</span> ' + msg + (meta ? ' ' + JSON.stringify(meta).slice(0,200) : '') + '\n' + panel.innerHTML;
+    }
+  }
+
+  // Patch fetch to log URL + status + duration
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init){
+    const url = typeof input === 'string' ? input : input.url;
+    const method = (init && init.method) || 'GET';
+    const t0 = Date.now();
+    oslog('NET', method + ' ' + url, null);
+    try {
+      const r = await _origFetch(input, init);
+      const dur = Date.now() - t0;
+      oslog(r.ok ? 'OK' : 'ERR', r.status + ' ' + method + ' ' + url + ' (' + dur + 'ms)', null);
+      return r;
+    } catch (e) {
+      const dur = Date.now() - t0;
+      oslog('ERR', 'NET FAIL ' + method + ' ' + url + ' (' + dur + 'ms) — ' + (e.message || e), null);
+      throw e;
+    }
+  };
+
+  // Log boot phases
+  oslog('INFO', 'script start (line ~' + (new Error().stack || '').split('\n')[1] + ')', null);
 })();
 
 
@@ -5282,6 +5339,7 @@ function go(sec){
     return;
   }
   reconcileSections();
+  if (typeof oslog === "function") oslog("PHASE", "boot:reconcile-sections", null);
   $$('.nav').forEach(n => n.classList.toggle('on', (n.dataset.go===sec || n.dataset.go===realSec)));
   $$('.section').forEach(s => s.classList.remove('on'));
   targetEl.classList.add('on');
@@ -6763,9 +6821,12 @@ function wireImageLinksForSurface(secId, opts) {
 
 // Initialise brand switcher + section explainers + first render
 (async function boot(){
+  if (typeof oslog === 'function') oslog('PHASE', 'boot:start', null);
   // Brand must load first so the X-Brand header is set on subsequent fetches
   await loadBrandContext();
+  if (typeof oslog === 'function') oslog('PHASE', 'boot:after-brand', null);
   attachExplainers();
+  if (typeof oslog === "function") oslog("PHASE", "boot:attach-explainers", null);
   // Pull any orphan .section blocks back into <main> so the CSS Grid puts
   // content in the right column, not below the .app grid (see reconcileSections).
   reconcileSections();
@@ -6790,8 +6851,10 @@ function wireImageLinksForSurface(secId, opts) {
   // Mark the right nav item as active (handle alias)
   $$('.nav').forEach(n => n.classList.toggle('on', (n.dataset.go===activeSec || n.dataset.go===(SECTION_ALIASES[activeSec] || activeSec))));
   go(activeSec);
+  if (typeof oslog === "function") oslog("PHASE", "boot:go-active", null);
   // Inject image-link FAB + modal (one-time, idempotent)
   injectImageLinkChrome();
+  if (typeof oslog === "function") oslog("PHASE", "boot:inject-image-link", null);
   // Wire image-link buttons into the active surface (idempotent)
   wireImageLinksForSurface(activeSec === 'insights' ? 'insights' : (activeSec === 'performance' ? 'performance' : 'brief'));
   // Re-attach explainers whenever sections are re-rendered (since their section-h elements may be replaced)
