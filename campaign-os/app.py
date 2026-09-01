@@ -5659,7 +5659,7 @@ def _enrich_memes_with_image_url(memes):
                 (('shower', 'bernie', 'mittens'), '🧤'),
                 (('coffin', 'pallbearer', 'funeral'), '⚰️'),
                 (('press f', 'f to pay'), '🕯️'),
-                (('thinking', '🤔', 'pensive'), '🤔'),
+                (('thinking', 'pensive'), '🤔'),
                 (('chef', 'kiss'), '👨‍🍳'),
                 (('ice cream', 'biden'), '🍦'),
                 (('pizza', 'cheese', 'food'), '🍕'),
