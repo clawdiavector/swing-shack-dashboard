@@ -267,9 +267,9 @@ def load_data():
     # Final fallback: minimal empty structure
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
 
-@app.route('/api/admin/data-sync', methods=['POST'])
-def admin_data_sync():
-    """POST /api/admin/data-sync — copy the bundled repo's data/campaign-data.json
+@app.route('/api/admin/data-sync-bundled', methods=['POST'])
+def admin_data_sync_bundled():
+    """POST /api/admin/data-sync-bundled — copy the bundled repo's data/campaign-data.json
     into the runtime DATA_DIR. Use this to bring the runtime volume in sync with
     the latest deploy."""
     if not _is_authed():
