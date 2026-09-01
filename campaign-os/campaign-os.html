@@ -2472,6 +2472,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       const color = level === 'ERR' ? '#ef4444' : level === 'NET' ? '#60a5fa' : level === 'OK' ? '#4ade80' : '#94a3b8';
       panel.innerHTML = '<span style="color:' + color + '">[' + time + ' ' + level + ']</span> ' + msg + (meta ? ' ' + JSON.stringify(meta).slice(0,200) : '') + '\n' + panel.innerHTML;
     }
+    } catch(_){}
   }
 
   // Patch fetch to log URL + status + duration
@@ -13046,7 +13047,7 @@ window.renderCampaignWorkviewHeader = (cid, c) => {
       const r = await API.post('/api/postiz/bulk-export', { campaignId: cid, brand_id: c.brand_id });
       if(r.ok){ toast(`Exported ${r.exported||'all'} approved assets to Postiz`); go('postiz'); }
       else { go('postiz'); }
-    }catch{
+    } catch(e) {
       // Fallback: just navigate; user can multi-select there.
       go('postiz');
     }
