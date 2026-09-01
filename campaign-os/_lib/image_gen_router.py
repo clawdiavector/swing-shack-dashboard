@@ -127,11 +127,14 @@ KREA_ENDPOINT = "https://api.krea.ai/mcp"  # JSON-RPC 2.0 over HTTPS
 # ── Defaults ──────────────────────────────────────────────────────────
 
 # 2026-09-01: Krea is the canonical image-gen engine per heidi.txt directive #6.
-# OpenRouter remains as a fallback for prompt-only refinement + multi-model editing,
-# but every brand-driven creative generation starts on Krea. If Krea is not
-# connected (no KREA_MCP_TOKEN), we fall back to OpenRouter for cheap generation
-# and surface the actual Krea error rather than silently switching providers.
-DEFAULT_PROVIDER = "krea"  # Krea-led per heidi.txt 2026-09-01 #6/#7
+# Auto-detect: if KREA_MCP_TOKEN is set on Railway, use Krea. Otherwise use
+# OpenRouter (capped at 4096 max_tokens to avoid the 28642-credit 402 error).
+# Env override: CAMPAIGN_OS_IMAGE_PROVIDER=krea|openrouter|openai still wins.
+import os as _os_for_provider_default
+if _krea_credentials_present():
+    DEFAULT_PROVIDER = "krea"  # Krea-led when connected
+else:
+    DEFAULT_PROVIDER = "openrouter"  # Safe fallback when Krea is not connected
 
 DEFAULT_MODEL_GEN = "google/gemini-2.5-flash-image"  # "Nano Banana"
 DEFAULT_MODEL_EDIT = "google/gemini-2.5-flash-image"
