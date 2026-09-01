@@ -4960,13 +4960,13 @@ async function loadBrandContext(){
       } catch(_){}
       // Persist the corrected choice so subsequent server calls are stable.
       if(S.brandContext?.brand_id){
-        try { await fetch('/api/brands/' + encodeURIComponent(S.brandContext.brand_id) + '/select', {method:'POST'}); } catch(_){}
+        try { await fetch('/api/brands' + encodeURIComponent(S.brandContext.brand_id) + '/select', {method:'POST'}); } catch(_){}
         S.brand = S.brandContext.brand_id;
       }
     } else if(dl && dl !== S.brandContext.brand_id){
       // Valid deep-link that the server treated differently (shouldn't happen
       // now, but kept as a safety net): persist the choice.
-      try { await fetch('/api/brands/' + encodeURIComponent(dl) + '/select', {method:'POST'}); } catch(_){}
+      try { await fetch('/api/brands' + encodeURIComponent(dl) + '/select', {method:'POST'}); } catch(_){}
     }
     renderBrandSwitcher();
     renderChromeForBrand();
@@ -5055,7 +5055,7 @@ async function switchBrand(brandId){
   }
   try {
     // Persist preference
-    await fetch('/api/brands/' + encodeURIComponent(brandId) + '/select', {method:'POST'});
+    await fetch('/api/brands' + encodeURIComponent(brandId) + '/select', {method:'POST'});
     // The next requests need to use the new brand_id query param.
     // We store it in S so all fetches include it.
     S.brand = brandId;
