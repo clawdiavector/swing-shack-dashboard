@@ -216,20 +216,78 @@ BRANCH = 'main'
 # ─── HELPERS ────────────────────────────────────────────────────────────
 
 def load_data():
-    """Load campaign data, falling back to bundled campaign-os/campaign-data.json, then embedded default."""
+    """Load campaign data. Order:
+      1. Runtime DATA_DIR/campaign-data.json (primary)
+      2. Bundled repo <data/campaign-data.json> (updated by each deploy)
+      3. Bundled campaign-os/campaign-data.json (legacy)
+      4. Minimal empty structure
+    Each step is only used if the previous exists AND is parseable."""
     paths = _data_paths()
-    campaign_file = paths['campaign_file']
-    # Primary: runtime DATA_DIR/campaign-data.json
-    if os.path.exists(campaign_file):
-        with open(campaign_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # Fallback 1: bundled canonical campaign data shipped with the deploy
-    bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-data.json')
-    if os.path.exists(bundled):
-        with open(bundled, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # Fallback 2: minimal empty structure
+    runtime_file = paths['campaign_file']
+    
+    # Look at file modification times to decide which is freshest.
+    # The runtime volume may have OLD data seeded from the initial deploy; if
+    # the bundled repo is NEWER than the runtime copy, prefer the bundled copy.
+    bundled_repo = Path(REPO_ROOT) / "data" / "campaign-data.json"
+    bundled_legacy = Path(os.path.dirname(os.path.abspath(__file__))) / "campaign-data.json"
+    
+    candidates = []
+    if os.path.exists(runtime_file):
+        candidates.append((runtime_file, os.path.getmtime(runtime_file), "runtime"))
+    if bundled_repo.exists():
+        candidates.append((bundled_repo, os.path.getmtime(bundled_repo), "bundled_repo"))
+    if bundled_legacy.exists():
+        candidates.append((bundled_legacy, os.path.getmtime(bundled_legacy), "bundled_legacy"))
+    
+    # Use the freshest parseable candidate.
+    candidates.sort(key=lambda c: c[1], reverse=True)
+    for path, mtime, label in candidates:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                d = json.load(f)
+                if not isinstance(d.get("campaigns"), dict):
+                    raise ValueError(f"{label} has no campaigns dict")
+                if __import__('os').environ.get('DATA_SYNC_DEBUG'):
+                    print(f"load_data: using {label} ({path}, mtime={mtime})")
+                # Auto-promote fresh bundled data into the runtime volume so
+                # subsequent save_data() writes don't clobber the latest repo copy.
+                if label in ("bundled_repo", "bundled_legacy") and os.path.exists(runtime_file):
+                    try:
+                        os.makedirs(paths['data_dir'], exist_ok=True)
+                        from shutil import copy2
+                        copy2(path, runtime_file)
+                    except Exception:
+                        pass
+                return d
+        except Exception as exc:
+            if __import__('os').environ.get('DATA_SYNC_DEBUG'):
+                print(f"load_data: {label} ({path}) broken: {exc}")
+            continue
+    
+    # Final fallback: minimal empty structure
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
+
+@app.route('/api/admin/data-sync', methods=['POST'])
+def admin_data_sync():
+    """POST /api/admin/data-sync — copy the bundled repo's data/campaign-data.json
+    into the runtime DATA_DIR. Use this to bring the runtime volume in sync with
+    the latest deploy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    paths = _data_paths()
+    runtime_file = paths['campaign_file']
+    bundled_repo = Path(REPO_ROOT) / "data" / "campaign-data.json"
+    if not bundled_repo.exists():
+        return jsonify({"ok": False, "error": "no bundled repo file", "path": str(bundled_repo)}), 404
+    try:
+        os.makedirs(paths['data_dir'], exist_ok=True)
+        from shutil import copy2
+        copy2(str(bundled_repo), runtime_file)
+        size = os.path.getsize(runtime_file)
+        return jsonify({"ok": True, "synced_from": str(bundled_repo),
+                        "synced_to": runtime_file, "size_bytes": size}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 def save_data(data):
     """Save campaign data to runtime DATA_DIR."""
