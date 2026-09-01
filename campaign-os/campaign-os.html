@@ -2423,16 +2423,25 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
     banner.textContent = '[' + time + '] ' + msg + '\n' + banner.textContent;
   }
   window.addEventListener('error', e => {
-    showError('JS ERROR ' + (e.filename||'?') + ':' + (e.lineno||'?') + ' — ' + (e.message||(e.error&&e.error.message)||'?'));
+    try {
+      const fn = e.filename || '?';
+      const ln = e.lineno || '?';
+      const msg = (e.message || (e.error && e.error.message) || '?');
+      showError('JS ERROR ' + fn + ':' + ln + ' — ' + msg);
+    } catch(err) { /* swallow reporter errors */ }
   });
   window.addEventListener('unhandledrejection', e => {
-    showError('PROMISE REJECT — ' + ((e.reason&&e.reason.message)||e.reason||'?'));
+    try {
+      const r = (e.reason && (e.reason.message || e.reason.toString())) || '?';
+      showError('PROMISE REJECT — ' + r);
+    } catch(err) { /* swallow reporter errors */ }
   });
   console.log('[OS] global error reporter armed');
 
   // ─── Request logger (visible if ?logs=1 in URL) ─────────────
   const OS_LOGS = [];
   function oslog(level, msg, meta){
+    try {
     const entry = {t: Date.now(), level, msg, meta: meta || null};
     OS_LOGS.push(entry);
     if (OS_LOGS.length > 500) OS_LOGS.shift();
