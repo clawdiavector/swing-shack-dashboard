@@ -2750,9 +2750,22 @@ def lanes_content_asset_resolve(item_id):
     except Exception:
         item = None
     if not item:
+        # Fallback: try campaign-data.json (per heidi.txt #3 - recovery flow)
+        try:
+            cd_path = Path(REPO_ROOT) / "data" / "campaign-data.json"
+            if cd_path.exists():
+                campaign_data = json.loads(cd_path.read_text())
+                # Search every campaign's assets for this asset_id
+                for cname, c in (campaign_data.get("campaigns") or {}).items():
+                    if item_id in (c.get("assets") or {}):
+                        item = c["assets"][item_id]
+                        break
+        except Exception:
+            item = None
+    if not item:
         return jsonify({"ok": False, "error": "item not found"}), 404
     # 2) Walk through every plausible URL shape for the stored visualUrl
-    raw = (item.get("creative_url") or item.get("image_url") or item.get("visualUrl") or "").strip()
+    raw = (item.get("creative_url") or item.get("image_url") or item.get("visualUrl") or item.get("filePath") or "").strip()
     if not raw:
         return jsonify({"ok": False, "error": "no creative_url stored"}), 404
     candidates = []
