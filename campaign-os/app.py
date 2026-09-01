@@ -6758,6 +6758,44 @@ def meta_ig_business_refresh():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+
+@app.route('/api/instagram/refresh', methods=['POST'])
+def instagram_analytics_refresh():
+    """POST /api/instagram/refresh — re-pull instagram-analytics.json from
+    Instagram Graph API. Pulls 30 days of posts with engagement metrics.
+
+    Required scope: instagram_business_manage_insights.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess as _sp
+        script_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_instagram_analytics.py'),
+            '/app/scripts/fetch_instagram_analytics.py',
+            os.path.join(os.getcwd(), 'scripts', 'fetch_instagram_analytics.py'),
+        ]
+        script_path = None
+        for sp in script_paths:
+            if os.path.exists(sp):
+                script_path = sp
+                break
+        if not script_path:
+            return jsonify({"ok": False, "error": "fetch_instagram_analytics.py not found", "checked": script_paths}), 500
+        env = os.environ.copy()
+        env.setdefault("BRAND_ID", "swing-shack")
+        result = _sp.run(["python3", script_path], capture_output=True, text=True, env=env, timeout=120)
+        return jsonify({
+            "ok": result.returncode == 0,
+            "script": script_path,
+            "stdout_tail": result.stdout[-500:],
+            "stderr_tail": result.stderr[-500:],
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
 @app.route('/api/meta/ig-business/overview', methods=['GET'])
 def meta_ig_business_overview():
     """GET /api/meta/ig-business/overview — return the latest IG insights summary."""
@@ -14415,14 +14453,16 @@ def _weekly_collect_current(bid):
     except Exception:
         out['weekly']['bookings_total'] = 0
 
-    # 6) Content published in last 7 days — derive from campaign-data.json
+    # 6) Content published in last 7 days — primary: campaign-data.json
+    # Fallback (2026-09-01): if campaign-data shows 0, count IG business
+    # posts with timestamp in last 7 days. Keeps the report honest when
+    # Instagram has fresh posts that haven't been synced to the OS yet.
     try:
         data = load_data()
         cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
         created = 0
         for camp in (data.get('campaigns') or {}).values():
             if camp.get('brand_id') not in (bid, None):
-                # Brand-agnostic count if no brand filter; else only matching
                 if camp.get('brand_id') and camp.get('brand_id') != bid:
                     continue
             for aid, asset in (camp.get('assets') or {}).items():
@@ -14434,8 +14474,34 @@ def _weekly_collect_current(bid):
                     except (ValueError, AttributeError):
                         pass
         out['weekly']['content_published'] = created
+        out['weekly']['content_published_source'] = 'campaign-data.json'
+        if created == 0:
+            try:
+                ig_biz_path = _resolve_data_path('ig-business-analytics.json')
+                if os.path.exists(ig_biz_path):
+                    ig_biz = _read_json_file(ig_biz_path) or {}
+                    media = ig_biz.get('media', []) or []
+                    ig_recent = 0
+                    for m_item in media:
+                        ts = m_item.get('timestamp')
+                        if not ts:
+                            continue
+                        try:
+                            t = datetime.datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                            if t > cutoff:
+                                ig_recent += 1
+                        except (ValueError, AttributeError):
+                            pass
+                    if ig_recent > 0:
+                        out['weekly']['content_published'] = ig_recent
+                        out['weekly']['content_published_source'] = 'ig-business-analytics.json (fallback)'
+                        out['sources'].append({'name': 'ig_business_recent_posts', 'count': ig_recent, 'window_days': 7})
+            except Exception:
+                pass
     except Exception:
         out['weekly']['content_published'] = 0
+        out['weekly']['content_published_source'] = 'error'
+
 
     # 7) Review queue depth — drafts waiting for human review
     try:
