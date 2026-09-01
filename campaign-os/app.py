@@ -30,9 +30,7 @@ import base64
 import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
-from typing import Optional, L
-
-
+from typing import Optional, List, Dict, Any, Tuple
 @app.route('/api/admin/data-freshness', methods=['GET'])
 def admin_data_freshness():
     """GET /api/admin/data-freshness — show when every known data source was
@@ -775,6 +773,90 @@ WHATS_NEW = [
     {"ts": "2026-07-30T01:30:00Z", "tag": "data", "title": "↺ Reset to AI draft · now actually resets",
      "body": "The Review-queue Edit modal's 'Reset to AI draft' button used to toast 'No AI draft saved' for every asset · the backend endpoint didn't exist. New GET /api/assets/<aid>/ai-draft returns the original AI-generated caption (snapshot taken on first hand-edit), so the button now restores the prior caption for review-and-Save. Old assets without a snapshot fall through to current caption or a clear 'no draft on file' message · no more silent dead-ends."},
 ]
+
+
+@app.route('/api/admin/data-freshness', methods=['GET'])
+def admin_data_freshness():
+    """GET /api/admin/data-freshness — show when every known data source was
+    last refreshed + per-source staleness. Reads/writes a _freshness.json
+    log on the runtime volume so the freshness state survives redeploys.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        freshness_path = os.path.join(DATA_DIR, '_freshness.json')
+        log = {}
+        if os.path.exists(freshness_path):
+            try:
+                log = _read_json_file(freshness_path) or {}
+            except Exception:
+                log = {}
+        sources = [
+            ("ga4", "ga4-snapshot.json", "fetched_at"),
+            ("instagram", "analytics/instagram-analytics.json", "lastUpdated"),
+            ("ig_business_timeseries", "ig-business-analytics.json", "fetched_at"),
+            ("meta_page_info", "meta-page-info.json", "fetched_at"),
+            ("meta_page_insights", "meta-page-insights.json", "fetched_at"),
+            ("meta_stories", "meta-stories.json", "fetched_at"),
+            ("google_ads", "google-ads.json", "fetched_at"),
+            ("seo", "seo-rankings.json", "fetched_at"),
+            ("funnel_leaks", "funnel-leaks.json", "generated"),
+            ("ubersuggest", "ubersuggest-domain.json", "fetched_at"),
+            ("review_queue", "approval-queue.json", "updated_at"),
+            ("booking_events", "booking-events.json", "fetched_at"),
+        ]
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        results = []
+        for name, rel_path, ts_key in sources:
+            full = _resolve_data_path(rel_path)
+            entry = {"name": name, "path": rel_path}
+            if os.path.exists(full):
+                try:
+                    data = _read_json_file(full) or {}
+                    if isinstance(data, dict):
+                        ts = data.get(ts_key)
+                        if not ts and 'meta' in data and isinstance(data['meta'], dict):
+                            ts = data['meta'].get(ts_key)
+                        if not ts and 'metadata' in data and isinstance(data['metadata'], dict):
+                            ts = data['metadata'].get(ts_key)
+                        entry["fetched_at"] = ts
+                        entry["staleness"] = _staleness_check(name, ts)
+                        entry["exists"] = True
+                        log[name] = {"fetched_at": ts, "checked_at": now,
+                                     "path": rel_path, "staleness": entry["staleness"]["status"]}
+                    else:
+                        entry["exists"] = True
+                        entry["staleness"] = {"status": "unknown", "reason": "not a dict"}
+                except Exception as e:
+                    entry["exists"] = True
+                    entry["error"] = str(e)
+                    entry["staleness"] = {"status": "unknown", "reason": "read failed"}
+            else:
+                entry["exists"] = False
+                entry["staleness"] = {"status": "unknown", "reason": "file not found"}
+                log[name] = {"fetched_at": None, "checked_at": now,
+                             "path": rel_path, "staleness": "unknown"}
+            results.append(entry)
+        try:
+            log["_last_scan"] = now
+            with open(freshness_path, 'w') as f:
+                json.dump(log, f, indent=2, default=str)
+            os.chmod(freshness_path, 0o644)
+        except Exception as e:
+            results.append({"_log_write_error": str(e)})
+        return jsonify({
+            "ok": True,
+            "scanned_at": now,
+            "log_path": freshness_path,
+            "sources": results,
+            "summary": _weekly_report_data_freshness_summary([
+                {"name": r["name"], "staleness": r.get("staleness", {}).get("status", "unknown"),
+                 "staleness_detail": r.get("staleness", {})}
+                for r in results
+            ]),
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/whats-new', methods=['GET'])
