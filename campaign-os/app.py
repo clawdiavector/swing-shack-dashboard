@@ -5611,6 +5611,67 @@ def _enrich_memes_with_image_url(memes):
             t = by_slug.get(_slug(m.get('name', '')))
         if t and t.get('thumbnail_url'):
             m['image_url'] = t['thumbnail_url']
+        # NEW (2026-09-01): if no real thumbnail, fall back to a deterministic
+        # data: URL SVG so every card renders something visual instead of the
+        # generic "!" fallback. The SVG encodes the meme name + format so the
+        # card stays recognisable + scannable. Embeds an emoji-style icon per
+        # known format so the tile gets visual personality.
+        if not m.get('image_url'):
+            fmt = (m.get('format') or 'meme').lower()
+            name = m.get('name') or m.get('id') or 'meme'
+            era = m.get('era') or ''
+            # Format → icon mapping (Unicode emoji, no external fetch)
+            icon_map = {
+                'two-panel-comparison': '⚖️',
+                'distraction-boyfriend': '💕',
+                'expanding-brain': '🧠',
+                'this-is-fine': '🔥',
+                'video-loop': '🎬',
+                'pointing-spider': '🕷️',
+                'reaction-image': '😲',
+                'template-advice': '💡',
+                'screen-capture': '🖥️',
+                'sad-keanu': '😔',
+                'drake': '🎵',
+                'doge': '🐕',
+                'astronaut': '🧑‍🚀',
+                'text-overlay': '💬',
+                'comparison': '⚖️',
+                'good-news-bad-news': '📰',
+            }
+            icon = icon_map.get(fmt, '🎭')
+            # Color theme by era
+            era_color = {
+                'classic': ('#1a1a1a', '#c2f64f'),
+                'recent': ('#0f1a2e', '#4f8eff'),
+                'current': ('#2a0f1a', '#ff6b6b'),
+            }.get(era, ('#1a1a1a', '#c2f64f'))
+            bg, accent = era_color
+            # Safe text truncation
+            disp_name = (name[:28] + '…') if len(name) > 28 else name
+            disp_fmt = (fmt[:22] + '…') if len(fmt) > 22 else fmt
+            svg = (
+                f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" '
+                f'preserveAspectRatio="xMidYMid slice">'
+                f'<rect width="280" height="200" fill="{bg}"/>'
+                # Big icon
+                f'<text x="140" y="90" font-size="64" text-anchor="middle" dominant-baseline="middle">{icon}</text>'
+                # Meme name
+                f'<text x="140" y="138" font-size="14" font-weight="700" fill="#fff" '
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_name}</text>'
+                # Format hint
+                f'<text x="140" y="160" font-size="11" fill="{accent}" opacity="0.85" '
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_fmt}</text>'
+                # Era tag
+                f'<rect x="220" y="8" width="52" height="18" rx="9" fill="{accent}" opacity="0.18"/>'
+                f'<text x="246" y="20" font-size="9" font-weight="700" fill="{accent}" '
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{era or "meme"}</text>'
+                f'</svg>'
+            )
+            import base64
+            b64 = base64.b64encode(svg.encode('utf-8')).decode('ascii')
+            m['image_url'] = f"data:image/svg+xml;base64,{b64}"
+            m['image_is_placeholder'] = True
 
 
 @app.route('/api/intel/memes/catalog', methods=['GET'])

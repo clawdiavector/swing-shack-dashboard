@@ -747,30 +747,56 @@ document.getElementById('modal-bg').onclick = (e) => {
 document.getElementById('modal-generate').onclick = async () => {
   const prompt = document.getElementById('modal-prompt').textContent;
   const btn = document.getElementById('modal-generate');
+  const preview = document.getElementById('modal-preview');
+  const originalText = btn.textContent;
   btn.textContent = 'Generating…';
   btn.disabled = true;
   try {
-    const result = await API.generate({
-      prompt,
-      brand: state.activeBrand || 'swing-shack',
-      type: 'meme',
-      source: 'meme-lab',
-    });
-    if (result.image_url || result.url) {
+    // 2026-09-01: Route through /api/image/generate so we get real PNG bytes
+    // (the legacy /api/intel/generate_image only built a prompt spec — no image).
+    // Surface a preview with download + open-in-new-tab buttons immediately.
+    const result = await fetch('/api/image/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        brand_id: state.activeBrand || 'swing-shack',
+        size: '1024x1024',
+        n: 1,
+        max_cost_usd: 0.5,
+        source: 'meme-lab',
+      }),
+    }).then(r => r.json());
+    // Strip any old preview HTML, then decide what to show
+    preview.innerHTML = '';
+    if (result && result.bytes_b64) {
+      // Real PNG returned synchronously
+      const dataUrl = `data:${result.mime || 'image/png'};base64,${result.bytes_b64}`;
       btn.textContent = '✓ Generated';
-      // Show the generated image
-      const preview = document.getElementById('modal-preview');
-      preview.innerHTML = `<img src="${result.image_url || result.url}" style="max-width:100%; max-height:100%; border-radius: 8px;" />`;
-    } else if (result.ok && result.scaffold) {
-      btn.textContent = '✓ Scaffold ready (no image yet)';
+      preview.innerHTML = `
+        <div class="gen-preview-wrap">
+          <img id="gen-preview-img" src="${dataUrl}" alt="Generated meme" />
+          <div class="gen-actions">
+            <a class="btn-mini" href="${dataUrl}" download="meme-${Date.now()}.png">⬇ Download PNG</a>
+            <a class="btn-mini" href="${dataUrl}" target="_blank" rel="noopener">↗ Open</a>
+            <span class="muted" style="font-size:11px;margin-left:auto">${result.provider || ''} · ${result.model || ''}</span>
+          </div>
+        </div>`;
+    } else if (result && result.provider_job_id) {
+      // Async Krea-style job
+      btn.textContent = '⏳ Queued (job ' + result.provider_job_id + ')';
+      preview.innerHTML = `<div class="gen-pending"><div class="spinner"></div><div>Generating via ${result.provider || 'Krea'}… job id: <code>${result.provider_job_id}</code></div><div class="muted">Reload the Asset Library in ~30s to find the result.</div></div>`;
     } else {
-      btn.textContent = '✓ Queued · ' + (result.message || 'check intel tab');
+      const err = (result && result.error) || 'unknown';
+      btn.textContent = '✗ ' + (err.length > 60 ? err.slice(0, 60) + '…' : err);
+      preview.innerHTML = `<div class="muted" style="padding:1rem;font-size:12px">Generation failed: ${err}</div>`;
     }
   } catch (e) {
     btn.textContent = '✗ Error · try again';
     console.error(e);
+    preview.innerHTML = `<div class="muted" style="padding:1rem">${e.message || e}</div>`;
   }
-  setTimeout(() => { btn.disabled = false; btn.textContent = 'Generate image with this prompt'; }, 4000);
+  setTimeout(() => { btn.disabled = false; btn.textContent = originalText; }, 4000);
 };
 
 // ── Filter handlers ─────────────────────────────────────────────────────
