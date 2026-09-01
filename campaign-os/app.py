@@ -5619,27 +5619,111 @@ def _enrich_memes_with_image_url(memes):
         if not m.get('image_url'):
             fmt = (m.get('format') or 'meme').lower()
             name = m.get('name') or m.get('id') or 'meme'
+            name_lower = name.lower()
             era = m.get('era') or ''
-            # Format → icon mapping (Unicode emoji, no external fetch)
-            icon_map = {
-                'two-panel-comparison': '⚖️',
-                'distraction-boyfriend': '💕',
-                'expanding-brain': '🧠',
-                'this-is-fine': '🔥',
-                'video-loop': '🎬',
-                'pointing-spider': '🕷️',
-                'reaction-image': '😲',
-                'template-advice': '💡',
-                'screen-capture': '🖥️',
-                'sad-keanu': '😔',
-                'drake': '🎵',
-                'doge': '🐕',
-                'astronaut': '🧑‍🚀',
-                'text-overlay': '💬',
-                'comparison': '⚖️',
-                'good-news-bad-news': '📰',
-            }
-            icon = icon_map.get(fmt, '🎭')
+            # Name → icon matching. Keywords checked in order; first match wins.
+            # This gives each card a visually-relevant emoji instead of every
+            # reaction-image meme showing the same 😲.
+            name_icon_map = [
+                # Animals
+                (('cat', 'kitty', 'kitten', 'meow', 'nyan', 'cheezburger'), '🐱'),
+                (('dog', 'doge', 'puppy', 'woof', 'cheems', 'buff doge'), '🐕'),
+                (('hamster', 'singing goat', 'goat'), '🐹'),
+                (('spider', 'spider-man', 'peter', 'parker'), '🕷️'),
+                (('pigeon', 'butterfly', 'pigeon-blinking'), '🕊️'),
+                (('fish', 'shark', 'octopus'), '🐟'),
+                (('monkey', 'ape', 'gorilla', 'chimp'), '🐵'),
+                # People
+                (('astronaut', 'space', 'rocket'), '🧑‍🚀'),
+                (('spongebob', 'sponge bob', 'patrick', 'squidward', 'krabs'), '🧽'),
+                (('cat-judging', 'judging'), '😼'),
+                (('keanu', 'sad keanu', 'sad-'), '😔'),
+                (('cat-bagel', 'bagel'), '🥯'),
+                (('pikachu', 'pokemon'), '⚡'),
+                (('picard', 'facepalm'), '🤦'),
+                (('walter white', 'breaking bad', 'heisenberg'), '🧪'),
+                (('kermit', 'tea', 'sipping'), '🐸'),
+                (('mandalorian', 'baby yoda', 'grogu', 'this is the way'), '🛸'),
+                (('harry maguire', 'maguire'), '😵'),
+                (('homer', 'simpson', 'bart', 'sideshow'), '🍩'),
+                (('mona lisa', 'discount'), '🖼️'),
+                (('picard',), '🖖'),
+                # Things
+                (('rock', 'dwayne', 'johnson'), '🚗'),
+                (('fire', 'this is fine', 'burning'), '🔥'),
+                (('brain', 'expanding', 'galaxy'), '🧠'),
+                (('heart', 'love', 'distracted', 'boyfriend'), '💕'),
+                (('stonks', 'up arrow', 'arrow'), '📈'),
+                (('down', 'not stonks', 'down arrow'), '📉'),
+                (('star wars', 'vader', 'force'), '⭐'),
+                (('shower', 'bernie', 'mittens'), '🧤'),
+                (('coffin', 'pallbearer', 'funeral'), '⚰️'),
+                (('press f', 'f to pay'), '🕯️'),
+                (('thinking', '🤔', 'pensive'), '🤔'),
+                (('chef', 'kiss'), '👨‍🍳'),
+                (('ice cream', 'biden'), '🍦'),
+                (('pizza', 'cheese', 'food'), '🍕'),
+                (('coffee', 'morning'), '☕'),
+                (('money', 'cash', 'dollar', '💰'), '💰'),
+                (('phone', 'mobile', 'app'), '📱'),
+                (('computer', 'laptop', 'mac'), '💻'),
+                (('book', 'reading'), '📚'),
+                (('sword', 'weapon', 'fight'), '⚔️'),
+                (('crown', 'king', 'queen'), '👑'),
+                (('light bulb', 'idea', 'bright'), '💡'),
+                (('warning', 'alert', 'danger'), '⚠️'),
+                (('clock', 'time', 'late'), '⏰'),
+                (('party', 'celebrate'), '🎉'),
+                # Format fallbacks
+                (('two-panel', 'preference', 'drake'), '⚖️'),
+                (('screen-capture', 'screenshot'), '🖥️'),
+                (('expanding-brain',), '🧠'),
+            ]
+            icon = '🎭'
+            # Extra heuristics for specific well-known meme characters
+            extra = []
+            n = name_lower
+            if 'disaster girl' in n or 'burning house' in n: extra.append(('🔥',))
+            if 'change my mind' in n or 'crowder' in n: extra.append(('💬',))
+            if 'roll safe' in n or 'tap to pray' in n: extra.append(('🤞',))
+            if 'harold' in n or 'hide the pain' in n: extra.append(('😐',))
+            if 'wojak' in n: extra.append(('😐',))
+            if 'success kid' in n: extra.append(('✊',))
+            if 'bad luck brian' in n: extra.append(('🍀',))
+            if 'first world problems' in n: extra.append(('🌍',))
+            if 'futurama fry' in n or 'not sure if' in n: extra.append(('🤔',))
+            if 'y u no' in n: extra.append(('❓',))
+            if 'one does not simply' in n or 'boromir' in n: extra.append(('🚶',))
+            if 'confused math' in n or 'blonde woman' in n: extra.append(('📊',))
+            if 'gigachad' in n: extra.append(('💪',))
+            if 'trade offer' in n or 'minecraft' in n: extra.append(('⛏️',))
+            if 'side-eye' in n or 'chloe' in n: extra.append(('👀',))
+            if 'pablo' in n or 'escobar' in n: extra.append(('😢',))
+            if 'free real estate' in n: extra.append(('🏠',))
+            if 'deal with it' in n or 'glasses drop' in n: extra.append(('😎',))
+            if 'rickroll' in n or 'never gonna give you up' in n: extra.append(('🎵',))
+            if 'anakin' in n or 'padme' in n or 'liberty dies' in n: extra.append(('🎬',))
+            if 'two buttons' in n: extra.append(('🔴',))
+            if 'confused grandpa' in n or 'tech support' in n: extra.append(('👴',))
+            if 'no bitches' in n: extra.append(('🚫',))
+            if 'matrix' in n or 'morpheus' in n or 'red/blue pill' in n: extra.append(('💊',))
+            if 'tough toddler' in n or 'cross-arms' in n: extra.append(('💪',))
+            if 'owl' in n or 'thumbs up' in n: extra.append(('🦉',))
+            if 'andy dufresne' in n or 'shawshank' in n or 'shaw' in n: extra.append(('🪑',))
+            if 'cast away' in n or 'wilson' in n or 'tom hanks' in n: extra.append(('🏝️',))
+            if 'where they at' in n or 'searching man' in n: extra.append(('🔍',))
+            if 'this is the way' in n: extra.append(('🛸',))
+            if 'galaxy brain' in n: extra.append(('🌌',))
+            if 'change-my-mind' in n: extra.append(('🪧',))
+            for kw, emoji in extra:
+                if kw in n:
+                    icon = emoji
+                    break
+            if icon == '🎭':
+                for keywords, emoji in name_icon_map:
+                    if any(kw in name_lower for kw in keywords):
+                        icon = emoji
+                        break
             # Color theme by era
             era_color = {
                 'classic': ('#1a1a1a', '#c2f64f'),
@@ -5649,7 +5733,17 @@ def _enrich_memes_with_image_url(memes):
             bg, accent = era_color
             # Safe text truncation
             disp_name = (name[:28] + '…') if len(name) > 28 else name
-            disp_fmt = (fmt[:22] + '…') if len(fmt) > 22 else fmt
+            # Use the first Swing Shack adaptation seed as a one-liner preview
+            # so the card shows what the meme is actually good for
+            seeds = m.get('swingshack_fit_seeds') or []
+            disp_subtitle = ''
+            for s in seeds:
+                if isinstance(s, str) and s.strip():
+                    disp_subtitle = s.strip()
+                    break
+            if not disp_subtitle:
+                disp_subtitle = m.get('format_hint') or fmt
+            disp_subtitle = (disp_subtitle[:42] + '…') if len(disp_subtitle) > 42 else disp_subtitle
             svg = (
                 f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" '
                 f'preserveAspectRatio="xMidYMid slice">'
@@ -5659,9 +5753,9 @@ def _enrich_memes_with_image_url(memes):
                 # Meme name
                 f'<text x="140" y="138" font-size="14" font-weight="700" fill="#fff" '
                 f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_name}</text>'
-                # Format hint
+                # Subtitle (swing shack adaptation or format hint)
                 f'<text x="140" y="160" font-size="11" fill="{accent}" opacity="0.85" '
-                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_fmt}</text>'
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_subtitle}</text>'
                 # Era tag
                 f'<rect x="220" y="8" width="52" height="18" rx="9" fill="{accent}" opacity="0.18"/>'
                 f'<text x="246" y="20" font-size="9" font-weight="700" fill="{accent}" '
