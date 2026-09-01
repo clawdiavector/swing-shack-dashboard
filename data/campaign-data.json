@@ -325,6 +325,17 @@
             "Sub-$600 full set 4-PW — exceptional value",
             "Target: mid-to-scratch golfers seeking distance + forgiveness"
           ],
+          "sourcePricing": {
+            "source": "Plugged In Golf review (US market)",
+            "sourcePrice": "under $600",
+            "sourceCurrency": "USD",
+            "sourceMarket": "US",
+            "localVerifiedPrice": null,
+            "localCurrency": "ZAR",
+            "customerFacingPrice": null,
+            "safeCopy": "Available at Swing Shack. Ask us for current pricing.",
+            "note": "USD pricing sourced from US review. NOT used in customer-facing copy for SA brands per heidi.txt 2026-09-01."
+          },
           "competitivePosition": "Direct comparison: Taylormade P790 vs P770 refinement level. At R250 fitting session, Takomo 101T is the value play that out-performs its price point.",
           "history": [
             {

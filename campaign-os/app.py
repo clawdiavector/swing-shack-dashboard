@@ -2731,8 +2731,57 @@ def lanes_content_add():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/lanes/content/<item_id>/asset-resolve', methods=['POST'])
+def lanes_content_asset_resolve(item_id):
+    """POST /api/lanes/content/<item_id>/asset-resolve — try every canonical path
+    for an item's creative_url and return the first one that resolves.
+
+    Per heidi.txt 2026-09-01 #3: asset recovery flow — before showing
+    "image unavailable", try canonical normalisation, lineage, sibling-brand fallback.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "").strip()
+    # 1) Look up the content item
+    try:
+        from _lib.marketing_lanes import get_content_item
+        item = get_content_item(brand_id, item_id)
+    except Exception:
+        item = None
+    if not item:
+        return jsonify({"ok": False, "error": "item not found"}), 404
+    # 2) Walk through every plausible URL shape for the stored visualUrl
+    raw = (item.get("creative_url") or item.get("image_url") or item.get("visualUrl") or "").strip()
+    if not raw:
+        return jsonify({"ok": False, "error": "no creative_url stored"}), 404
+    candidates = []
+    s = raw.lstrip("/")
+    if not s.startswith("assets/") and not s.startswith("campaigns/") and not s.startswith("asset-media/"):
+        s = "assets/" + s
+    candidates.append("/" + s)                         # canonical
+    candidates.append(s)                               # repo-relative
+    if s.startswith("assets/assets/"):                 # legacy double-prefix fix
+        candidates.append("/" + s[len("assets/"):])    # strip one
+    candidates.append("/asset-media/" + s.split("/")[-1])  # last resort
+    # 3) HEAD each one
+    base_url = request.host_url.rstrip("/")
+    import urllib.request as _ur
+    for c in candidates:
+        try:
+            with _ur.urlopen(base_url + c, timeout=5) as r:
+                if r.status == 200:
+                    return jsonify({"ok": True, "resolved_url": c,
+                                    "candidates_tried": len(candidates),
+                                    "candidate_index": candidates.index(c)}), 200
+        except Exception:
+            continue
+    return jsonify({"ok": False, "error": "no candidate resolved",
+                    "candidates_tried": candidates, "stored_as": raw}), 404
+
+
 @app.route('/api/lanes/content/<item_id>', methods=['GET', 'DELETE', 'PATCH'])
-def lanes_content_one(item_id):
+def lanes_content_item(item_id):
     """GET/DELETE/PATCH a single content item."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401

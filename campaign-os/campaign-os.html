@@ -8245,11 +8245,25 @@ window.openReview = async (cid, aid) => {
   // then filePath (relative to /assets/), then publishingReferences.mediaUrl.
   // Avoid double-prefixing: if filePath already starts with "/" or "http",
   // use it as-is; otherwise prepend "/assets/" for repo-rooted paths.
+  // Canonical asset URL normaliser. Handles every plausible storage shape:
+  //   - absolute https://... / data: URIs / blob: / file: → use as-is
+  //   - already-leading-slash /assets/... → strip the slash and re-normalise
+  //     (catches the historical `/assets/assets/...` double-prefix bug)
+  //   - bare assets/... / campaigns/... (no leading slash) → prepend /assets/
+  //   - data/... / repo-relative path → prepend /assets/
+  // Always returns '/assets/<rest>' with NO double prefix.
   const _resolveFilePath = (p) => {
     if (!p) return '';
-    if (p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:')) return p;
-    if (p.startsWith('/')) return p;
-    return '/assets/' + p;
+    // Absolute / data / blob — leave alone
+    if (/^(https?:|data:|blob:|file:)/i.test(p)) return p;
+    // Strip leading slash if present, normalise 'assets/' prefix
+    let s = p.replace(/^\/+/, '');
+    // If the path already starts with 'assets/' OR 'campaigns/' OR anything
+    // we serve from the /assets/ root, just prepend one slash and.
+    if (!s.startsWith('assets/') && !s.startsWith('campaigns/')) {
+      s = 'assets/' + s;
+    }
+    return '/' + s;
   };
   const visualUrl = _resolveFilePath(a.visualUrl || a.imageUrl || a.mediaUrl)
     || _resolveFilePath(a.filePath)

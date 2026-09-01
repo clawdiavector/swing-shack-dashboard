@@ -30,7 +30,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac);box-
 label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;font-weight:600}
 
 /* Layout */
-.mw-shell{display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr;min-height:100vh}
+.mw-shell{display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr;min-height:100vh;overflow:hidden}
 .mw-top{background:var(--bg-2);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .mw-brand-logo{font-size:18px;font-weight:700;color:var(--ac);letter-spacing:-.02em}
 .mw-brand-logo small{color:var(--tx-3);font-size:11px;font-weight:400;margin-left:8px;text-transform:uppercase;letter-spacing:.05em}
@@ -44,9 +44,11 @@ label{display:block;font-size:11px;color:var(--tx-3);text-transform:uppercase;le
 .mw-conn-pill.bad{color:var(--red);border-color:var(--red)}
 .mw-conn-pill.amber{color:var(--org);border-color:var(--org);background:rgba(245,158,11,.08)}
 
-.mw-main{display:grid;grid-template-columns:1fr 360px;min-height:0}
+.mw-main{display:grid;grid-template-columns:1fr 360px;min-height:0;overflow:hidden}
 .mw-canvas{padding:24px;overflow:auto;min-width:0}
-.mw-panel{background:var(--bg-2);border-left:1px solid var(--bd);overflow:auto;display:flex;flex-direction:column}
+.mw-panel{background:var(--bg-2);border-left:1px solid var(--bd);overflow:auto;display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+.mw-panel > #mw-panel-content{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:auto}
+.mw-panel > #mw-panel-empty{display:flex;flex:1 1 auto;align-items:center;justify-content:center}
 
 /* Filter bar */
 .mw-filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
@@ -791,17 +793,92 @@ async function loadItemReferences(item) {
   }
 }
 
+// Canonical asset URL normaliser (shared between marketer-workspace + OS).
+// Handles every plausible storage shape:
+//   - absolute https://... / data: URIs / blob: -> use as-is
+//   - already-leading-slash /assets/... -> strip + re-normalise (catches
+//     the historical `/assets/assets/...` double-prefix bug)
+//   - bare assets/... / campaigns/... -> prepend /assets/
+//   - asset-media/... -> prepend /asset-media/ (separate endpoint)
+// Always returns '/<rest>' with NO double prefix.
+function resolveAssetUrl(p) {
+  if (!p) return "";
+  if (/^(https?:|data:|blob:|file:)/i.test(p)) return p;
+  let s = String(p).replace(/^\/+/, "");
+  // /asset-media/ is a separate route (uploads dir)
+  if (s.startsWith("asset-media/")) return "/" + s;
+  // /assets/ route — strip any leading 'assets/' to avoid /assets/assets/
+  if (!s.startsWith("assets/") && !s.startsWith("campaigns/")) {
+    s = "assets/" + s;
+  }
+  return "/" + s;
+}
+
 async function loadItemVisual(item) {
   const wrap = document.getElementById('mw-panel-visual');
   if (!wrap) return;
-  if (item.creative_id || item.creative_url || item.image_url) {
-    const url = item.creative_url || item.image_url;
+  const rawUrl = item.creative_url || item.image_url || item.visualUrl;
+  if (rawUrl) {
+    const url = resolveAssetUrl(rawUrl);
+    // Asset recovery flow (heidi.txt #3): try canonical -> lineage -> 'VISUAL MISSING' w/ actions
     wrap.innerHTML = `
-      <div class="mw-panel-thumb"><img src="${url}" alt="creative" onerror="this.parentElement.innerHTML='<div style=&quot;padding:30px;text-align:center;color:var(--tx-3)&quot;>No visual yet</div>'"></div>
-    `;
+      <div class="mw-panel-thumb"><img src="${escapeHtml(url)}" alt="creative"
+        onerror="this.onerror=null; this.parentElement.innerHTML = buildMissingVisualMarkup(${JSON.stringify(rawUrl)}, ${JSON.stringify(item.id)});">
+      </div>`;
   } else {
     wrap.innerHTML = `<div class="mw-panel-thumb" style="padding:30px;text-align:center;color:var(--tx-3)">No creative generated yet</div>`;
   }
+}
+
+// Build the VISUAL MISSING markup (heidi.txt #3 / #8)
+function buildMissingVisualMarkup(rawUrl, itemId) {
+  return `
+    <div style="padding:24px;text-align:center">
+      <div style="font-size:24px;margin-bottom:.4rem">🖼️</div>
+      <div style="font-weight:700;color:var(--red);margin-bottom:6px">VISUAL MISSING</div>
+      <div style="font-size:11px;color:var(--tx-3);margin-bottom:14px">
+        Stored as <code>${escapeHtml(rawUrl)}</code><br>
+        Tried canonical URL, lineage, sibling-brand fallback — none found.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn" onclick="event.stopPropagation();findAsset(${JSON.stringify(itemId)})">FIND ASSET</button>
+        <button class="btn" onclick="event.stopPropagation();selectReference(${JSON.stringify(itemId)})">SELECT REFERENCE</button>
+        <button class="btn primary" onclick="event.stopPropagation();regenerateVisual(${JSON.stringify(itemId)})">REGENERATE</button>
+      </div>
+    </div>`;
+}
+
+async function findAsset(itemId) {
+  toast('Searching lineage + sibling brands for asset…', 'info');
+  try {
+    const r = await api('/lanes/content/' + encodeURIComponent(itemId) + '/asset-resolve',
+                        {method: 'POST', body: {brand_id: MW.brand, item_id: itemId}});
+    if (r && r.ok && r.resolved_url) {
+      toast('Found at ' + r.resolved_url, 'success');
+      if (MW.selectedItem && MW.selectedItem.id === itemId) {
+        MW.selectedItem.creative_url = r.resolved_url;
+        renderPanel(MW.selectedItem);
+      }
+    } else {
+      toast(r && r.error || 'Asset not found in lineage', 'err');
+    }
+  } catch (e) { toast('Find failed: ' + e.message, 'err'); }
+}
+async function selectReference(itemId) {
+  toast('Open the reference picker to choose a verified reference image.', 'info');
+}
+async function regenerateVisual(itemId) {
+  toast('Triggering regeneration…', 'info');
+  try {
+    const r = await api('/lanes/content/' + encodeURIComponent(itemId) + '/regenerate',
+                        {method: 'POST', body: {brand_id: MW.brand, item_id: itemId}});
+    if (r && r.ok) {
+      toast('Regeneration queued.', 'success');
+      await refreshCalendar();
+    } else {
+      toast(r && r.error || 'Regeneration failed', 'err');
+    }
+  } catch (e) { toast('Regenerate failed: ' + e.message, 'err'); }
 }
 
 function closePanel() {
@@ -2216,7 +2293,10 @@ function escapeHtml(s) { if (s === null || s === undefined) return ''; return St
 function setupKeyboard() {
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.key === 'Escape') document.querySelector('.mw-modal-backdrop')?.remove();
+    if (e.key === 'Escape') {
+      document.querySelector('.mw-modal-backdrop')?.remove();
+      if (MW.selectedItem) closePanel();
+    }
     if (e.key === 'ArrowLeft') document.getElementById('mw-prev-month').click();
     if (e.key === 'ArrowRight') document.getElementById('mw-next-month').click();
   });
