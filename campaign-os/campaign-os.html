@@ -6539,7 +6539,7 @@ async function imageLink(targetEl, opts) {
 }
 
 // ── Modal-driven flow (Generate + Edit) ───────────────────────────
-function openImageModal(opts) {
+async function openImageModal(opts) {
   const bg = $('#image-modal-bg');
   const modal = $('#image-modal');
   if(!bg || !modal) return;
@@ -6670,7 +6670,7 @@ async function generateFromAsset(asset_id, brand_id, sourceEl) {
 }
 
 // ── FAB + modal DOM ───────────────────────────────────────────────
-function injectImageLinkChrome() {
+async function injectImageLinkChrome() {
   if($('#image-fab')) return; // idempotent
   const html = `
     <div class="image-fab" id="image-fab">
@@ -9457,7 +9457,7 @@ function _campaignFromIdeaPreview(r){
   modal.querySelector('#campaign-from-idea-secondary').onclick = () => { modal.style.display = 'none'; };
   modal.querySelector('#campaign-from-idea-review').onclick = () => { modal.style.display = 'none'; go('review'); };
 }
-function renderIdeas(){
+async function renderIdeas(){
   if(!S.ideas) S.ideas = await API.get('/api/intel/opportunities');
   const d = S.ideas;
 
@@ -10756,7 +10756,7 @@ function _genEmptyState({kind, title, sub, primaryId, primaryLabel}){
       : ''}
   </div>`;
 }
-function _renderHeadHistory(){
+async function _renderHeadHistory(){
   const hist = HEAD_STATE.history || [];
   $('#head-hist-count').textContent = String(hist.length);
   if(!hist.length){
@@ -10917,7 +10917,7 @@ const _CTA_CAT_LABELS = {
   book: 'Book', learn: 'Learn', discover: 'Discover',
   social: 'Social', soft: 'Soft', ugc: 'UGC',
 };
-function _renderCtaHistory(){
+async function _renderCtaHistory(){
   const hist = CTA_STATE.history || [];
   $('#cta-hist-count').textContent = String(hist.length);
   if(!hist.length){
