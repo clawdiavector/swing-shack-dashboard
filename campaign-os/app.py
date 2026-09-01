@@ -14533,28 +14533,6 @@ def _weekly_collect_current(bid):
         out['sources'].append({'name': 'leads', 'configured': False,
                                'reason': 'no lead source wired'})
 
-    # Staleness gate (2026-09-01): every source gets a fresh/stale/unknown flag
-    # before the report goes out. No more silent 0s on stale data.
-    _annotate_sources_with_staleness(out.get('sources', []))
-    out['freshness'] = _weekly_report_data_freshness_summary(out.get('sources', []))
-    # If content_published is 0 AND IG sources are stale, surface the reason
-    # so the report can't lie by omission.
-    if out.get('weekly', {}).get('content_published', 0) == 0:
-        ig_biz_stale = any(
-            s.get('name') == 'ig_business_recent_posts' and s.get('staleness') == 'stale'
-            for s in out.get('sources', [])
-        )
-        ig_main_stale = any(
-            s.get('name') == 'instagram' and s.get('staleness') == 'stale'
-            for s in out.get('sources', [])
-        )
-        if ig_biz_stale and ig_main_stale:
-            out['weekly']['content_published_note'] = 'IG data stale — both sources >1d old'
-        elif ig_biz_stale:
-            out['weekly']['content_published_note'] = 'IG business data stale (>1d old)'
-        elif ig_main_stale:
-            out['weekly']['content_published_note'] = 'IG main data stale (>1d old)'
-
     return out
 
 
