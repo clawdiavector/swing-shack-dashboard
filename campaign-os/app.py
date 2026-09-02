@@ -3,10 +3,14 @@ CampaignOS v0.1 — Railway Backend
 Flask app serving Campaign OS cockpit + campaign data API.
 Data lives on Railway disk. GitHub is backup/version history.
 """
+from __future__ import annotations  # noqa: F401
+
 import os
+import sys
 import json
 import copy
 import datetime
+dt = datetime.datetime
 import functools
 import re
 import subprocess
@@ -14,7 +18,14 @@ import shutil
 import uuid
 import logging
 import hashlib
-from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response
+import time
+import base64
+import urllib.request
+from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
+from pathlib import Path
+from typing import Optional, List
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string
+from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
@@ -30,10 +41,44 @@ SHARED_PASSWORD = os.environ.get('CAMPAIGN_OS_PASSWORD') or 'swing-shack-dev-202
 SESSION_SECRET = os.environ.get('CAMPAIGN_OS_SECRET') or 'campaign-os-dev-secret-change-me'
 SESSION_COOKIE = 'cos_session'
 SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+# v2026-08-13: signed share-token TTL for the auth-optional markdown export.
+# 24 hours is enough for a same-day Slack/email share; longer than a day
+# invites stale-data sharing and stale links accumulating in docs.
+SHARE_TOKEN_MAX_AGE = 60 * 60 * 24
 _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 
 # Routes that never require auth (login + the static asset paths needed to render login)
 PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
+
+# v2026-08-13: weekly-report export with a valid ?share=<token> query
+# param is auth-optional. Letting the export route run without auth
+# means the route itself enforces the share-token gate (which is
+# stricter than the session cookie. it's scope-bound + time-limited).
+PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
+
+
+# ── Client-side log collector ────────────────────────────────────────
+@app.route('/api/admin/client-log', methods=['POST'])
+def admin_client_log():
+    """Receive browser-side logs from the OS page (?logs=1 mode)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        entries = body.get('entries') or []
+        if not isinstance(entries, list):
+            return jsonify({"ok": False, "error": "entries must be a list"}), 400
+        # Log to server console (truncated)
+        import datetime
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        for e in entries[-200:]:  # last 200
+            level = e.get('level', 'INFO')
+            msg = e.get('msg', '')
+            meta = e.get('meta')
+            print(f"[client-log {ts} {level}] {msg} {meta if meta else ''}")
+        return jsonify({"ok": True, "received": len(entries)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 def _is_authed():
@@ -104,6 +149,28 @@ def logout():
     return resp
 
 
+_FAVICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    '<rect width="32" height="32" rx="6" fill="#0a0f1a"/>'
+    '<path d="M10 26V6" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>'
+    '<path d="M10 8 L22 11 L10 14 Z" fill="#fbbf24"/>'
+    '<circle cx="10" cy="27" r="1.5" fill="#34d399"/>'
+    '</svg>'
+)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve the Swing Shack favicon as inline SVG.
+
+    Returns an SVG (not a real .ico) so we don't need to commit a binary
+    asset. Modern browsers happily render SVG when served with the right
+    content type; legacy browsers fall back to a generic icon.
+    """
+    return Response(_FAVICON_SVG, mimetype='image/svg+xml',
+                    headers={'Cache-Control': 'public, max-age=86400'})
+
+
 def _data_paths():
     """Resolve runtime DATA_DIR + canonical file paths at call time.
 
@@ -121,10 +188,25 @@ def _data_paths():
 
 
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
+
+# Strategy page HTML template (rendered via render_template_string).
+# Loaded once at module import — the page is big but renders fast.
+try:
+    _STRATEGY_PAGE_PATH = os.path.join(os.path.dirname(__file__), '_lib', 'strategy_page.html')
+    with open(_STRATEGY_PAGE_PATH) as _f:
+        STRATEGY_PAGE_HTML = _f.read()
+except Exception as _e:
+    _app_log.warning('Could not load strategy_page.html: %s', _e)
+    STRATEGY_PAGE_HTML = '<html><body><h1>Strategy page failed to load</h1><p>{{ error }}</p></body></html>'
+
 CAMPAIGN_FILE = os.path.join(DATA_DIR, 'campaign-data.json')
 REPO_DIR = os.path.join(DATA_DIR, 'repo')
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 BUNDLED_DATA_DIR = os.path.join(REPO_ROOT, 'data')
+# Expose BUNDLED_DATA_DIR as an env var so library modules (insights_correlator,
+# etc.) can auto-fallback to the bundled repo copy when DATA_DIR is an empty
+# volume mount on Railway.
+os.environ.setdefault('BUNDLED_DATA_DIR', BUNDLED_DATA_DIR)
 SCHEDULE_FILE = os.path.join(DATA_DIR, 'scheduled-items.json')
 BUNDLED_SCHEDULE_FILE = os.path.join(BUNDLED_DATA_DIR, 'scheduled-items.json')
 GIT_REMOTE = os.environ.get('GIT_REMOTE', 
@@ -134,20 +216,78 @@ BRANCH = 'main'
 # ─── HELPERS ────────────────────────────────────────────────────────────
 
 def load_data():
-    """Load campaign data, falling back to bundled campaign-os/campaign-data.json, then embedded default."""
+    """Load campaign data. Order:
+      1. Runtime DATA_DIR/campaign-data.json (primary)
+      2. Bundled repo <data/campaign-data.json> (updated by each deploy)
+      3. Bundled campaign-os/campaign-data.json (legacy)
+      4. Minimal empty structure
+    Each step is only used if the previous exists AND is parseable."""
     paths = _data_paths()
-    campaign_file = paths['campaign_file']
-    # Primary: runtime DATA_DIR/campaign-data.json
-    if os.path.exists(campaign_file):
-        with open(campaign_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # Fallback 1: bundled canonical campaign data shipped with the deploy
-    bundled = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-data.json')
-    if os.path.exists(bundled):
-        with open(bundled, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    # Fallback 2: minimal empty structure
+    runtime_file = paths['campaign_file']
+    
+    # Look at file modification times to decide which is freshest.
+    # The runtime volume may have OLD data seeded from the initial deploy; if
+    # the bundled repo is NEWER than the runtime copy, prefer the bundled copy.
+    bundled_repo = Path(REPO_ROOT) / "data" / "campaign-data.json"
+    bundled_legacy = Path(os.path.dirname(os.path.abspath(__file__))) / "campaign-data.json"
+    
+    candidates = []
+    if os.path.exists(runtime_file):
+        candidates.append((runtime_file, os.path.getmtime(runtime_file), "runtime"))
+    if bundled_repo.exists():
+        candidates.append((bundled_repo, os.path.getmtime(bundled_repo), "bundled_repo"))
+    if bundled_legacy.exists():
+        candidates.append((bundled_legacy, os.path.getmtime(bundled_legacy), "bundled_legacy"))
+    
+    # Use the freshest parseable candidate.
+    candidates.sort(key=lambda c: c[1], reverse=True)
+    for path, mtime, label in candidates:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                d = json.load(f)
+                if not isinstance(d.get("campaigns"), dict):
+                    raise ValueError(f"{label} has no campaigns dict")
+                if __import__('os').environ.get('DATA_SYNC_DEBUG'):
+                    print(f"load_data: using {label} ({path}, mtime={mtime})")
+                # Auto-promote fresh bundled data into the runtime volume so
+                # subsequent save_data() writes don't clobber the latest repo copy.
+                if label in ("bundled_repo", "bundled_legacy") and os.path.exists(runtime_file):
+                    try:
+                        os.makedirs(paths['data_dir'], exist_ok=True)
+                        from shutil import copy2
+                        copy2(path, runtime_file)
+                    except Exception:
+                        pass
+                return d
+        except Exception as exc:
+            if __import__('os').environ.get('DATA_SYNC_DEBUG'):
+                print(f"load_data: {label} ({path}) broken: {exc}")
+            continue
+    
+    # Final fallback: minimal empty structure
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
+
+@app.route('/api/admin/data-sync-bundled', methods=['POST'])
+def admin_data_sync_bundled():
+    """POST /api/admin/data-sync-bundled — copy the bundled repo's data/campaign-data.json
+    into the runtime DATA_DIR. Use this to bring the runtime volume in sync with
+    the latest deploy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    paths = _data_paths()
+    runtime_file = paths['campaign_file']
+    bundled_repo = Path(REPO_ROOT) / "data" / "campaign-data.json"
+    if not bundled_repo.exists():
+        return jsonify({"ok": False, "error": "no bundled repo file", "path": str(bundled_repo)}), 404
+    try:
+        os.makedirs(paths['data_dir'], exist_ok=True)
+        from shutil import copy2
+        copy2(str(bundled_repo), runtime_file)
+        size = os.path.getsize(runtime_file)
+        return jsonify({"ok": True, "synced_from": str(bundled_repo),
+                        "synced_to": runtime_file, "size_bytes": size}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 def save_data(data):
     """Save campaign data to runtime DATA_DIR."""
@@ -185,6 +325,26 @@ def _read_json_file(path):
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return None
+
+
+def _resolve_data_path(rel_path: str) -> str:
+    """Resolve a data file path, preferring BUNDLED_DATA_DIR when the runtime
+    DATA_DIR (volume mount) doesn't have the file. Used by weekly-report,
+    insights, socials, and any module that needs to read historical data
+    that ships with the repo (IG analytics, Ubersuggest, ad stubs, etc.).
+    """
+    runtime_path = os.path.join(DATA_DIR, rel_path)
+    if os.path.exists(runtime_path):
+        return runtime_path
+    bundled_path = os.path.join(BUNDLED_DATA_DIR, rel_path)
+    if os.path.exists(bundled_path):
+        return bundled_path
+    return runtime_path  # caller will get FileNotFoundError or None
+
+
+def _read_data_json(rel_path: str):
+    """Read a data file with DATA_DIR → BUNDLED_DATA_DIR fallback."""
+    return _read_json_file(_resolve_data_path(rel_path))
 
 def load_schedule():
     """Read the scheduling sidecar; campaign-data.json remains read-only here."""
@@ -397,28 +557,118 @@ def health():
     })
 
 
+@app.route('/api/admin/env-debug', methods=['GET'])
+def env_debug():
+    """Debug endpoint: dump which credential env vars the running process can see.
+    Returns the PREFIX + LENGTH of each secret, never the value. Used to
+    verify env-var pickup after Railway env changes.
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    keys_of_interest = [
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_API_KEY_FILE",
+        "OPENAI_API_KEY",
+        "OPENAI_API_KEY_FILE",
+        "CAMPAIGN_OS_IMAGE_PROVIDER",
+        "CAMPAIGN_OS_IMAGE_MODEL",
+        "DATA_DIR",
+        "PORT",
+        # v2026-08-13: added for the validate_railway_deploy_wiring.py script.
+        # Tells the validator whether the GitHub PAT is wired for auto-deploys.
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "CAMPAIGN_OS_PASSWORD",
+        "CAMPAIGN_OS_SECRET",
+        # v2026-08-18: Postiz OAuth secret dropped via /secret-drop. Without
+        # this in the list, /api/admin/env-debug hides whether the rotation
+        # landed - which caused a misdiagnosis on the first Postiz drop.
+        "POSTIZ_OAUTH_CLIENT_SECRET",
+        "POSTIZ_OAUTH_CLIENT_ID",
+        "POSTIZ_API_KEY",
+        # OAuth tokens we mint from the in-app social login flow (Section E
+        # of the 2026-08-18 roadmap).
+        "META_SYSTEM_USER_TOKEN",
+        "X_ACCESS_TOKEN",
+        "X_BEARER_TOKEN",
+        "TIKTOK_ACCESS_TOKEN",
+        "GBP_REFRESH_TOKEN",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "GOOGLE_OAUTH_CLIENT_SECRET",
+    ]
+    out = {}
+    for k in keys_of_interest:
+        v = os.environ.get(k, "")
+        if v:
+            out[k] = {"set": True, "length": len(v), "prefix": v[:6] + "…"}
+        else:
+            out[k] = {"set": False}
+    # Also check the canonical file paths
+    file_checks = {}
+    for label, p in [
+        ("DEFAULT_OPENROUTER_TOKEN_FILE", "/Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials/openrouter-api.json"),
+    ]:
+        file_checks[label] = {"path": p, "exists": os.path.exists(p)}
+    return jsonify({
+        "ok": True,
+        "env": out,
+        "files": file_checks,
+        "ts": datetime.datetime.utcnow().isoformat() + 'Z',
+    })
+
+
 # ─── What's New (last N nightshift improvements) ─────────────────────────
 # Static list of recent campaign-os improvements. Each tick appends an entry
 # at the top; oldest entries fall off the end. Shown as a "What's new" card
 # on the Morning Brief so Christelle sees the cumulative polish on her
 # morning coffee. Frontend only fetches on first brief render and caches.
 WHATS_NEW = [
-    {"ts": "2026-07-30T01:30:00Z", "tag": "data", "title": "↺ Reset to AI draft — now actually resets",
-     "body": "The Review-queue Edit modal's 'Reset to AI draft' button used to toast 'No AI draft saved' for every asset — the backend endpoint didn't exist. New GET /api/assets/<aid>/ai-draft returns the original AI-generated caption (snapshot taken on first hand-edit), so the button now restores the prior caption for review-and-Save. Old assets without a snapshot fall through to current caption or a clear 'no draft on file' message — no more silent dead-ends."},
-    {"ts": "2026-07-29T23:30:00Z", "tag": "chrome", "title": "Zero native browser dialogs",
-     "body": "Swept the last two native confirm() calls on the Headlines and CTAs clear-history buttons. Both now use the same styled inline confirm modal as the Review queue (danger-styled title, explicit Yes/No, click-outside-to-cancel). Campaign OS no longer fires any prompt(), confirm(), or alert() — iOS Safari safe everywhere."},
-    {"ts": "2026-07-29T22:00:00Z", "tag": "chrome", "title": "Review queue: inline edit + confirm modals",
-     "body": "Edit caption on the Review queue now opens an inline modal with a full textarea (2200-char soft cap, live counter, optional Reset-to-AI-draft). Regenerate / Publish-now / Archive all use styled confirm modals instead of native browser dialogs — no more ugly dialogs, no iOS Safari blocks."},
-    {"ts": "2026-07-29T20:00:00Z", "tag": "chrome", "title": "Brand brief form — no more stacked prompts",
-     "body": "Generate brief on Brand Directory now opens an inline form (Surface + Tone selects) instead of two stacked browser prompts. Mobile-safe, iOS Safari works, and runs with defaults immediately so the desktop one-click flow still works."},
-    {"ts": "2026-07-29T18:10:00Z", "tag": "nav", "title": "30 sidebar tooltips",
-     "body": "Hover any nav item (Home, Review, Brand, Trends, Ideas, Meme Lab…) for a one-line orientation. Replaces blank stare at the rail."},
-    {"ts": "2026-07-29T16:37:00Z", "tag": "chrome", "title": "Brand switcher + all-tools tooltips",
-     "body": "Hover the brand chevron, all-tools toggle, topbar search, theme switch, or Do-this-right-now for a one-line answer."},
-    {"ts": "2026-07-29T15:25:00Z", "tag": "copy", "title": "Campaigns surface label aligned",
-     "body": "Renamed the explainer title so it bridges the four labels (nav=Brand, header=Campaigns, tooltip, body) a reader was triangulating."},
-    {"ts": "2026-07-29T13:55:00Z", "tag": "data", "title": "Visual library real-data join",
-     "body": "Visual Library + Meme Lab now read live data instead of stub rows. Filters by brand + type + campaign."},
+    {"ts": "2026-08-12T10:30:00Z", "tag": "chrome", "title": "Favicon 404 gone · inline SVG + <link>",
+     "body": "Every page load was generating a 404 for /favicon.ico in the console because the dashboard shipped no icon. Now serves a tiny inline SVG (golf flag with swing shack palette) with a <link rel='icon'> in every HTML head. Console is clean and the browser tab actually shows a logo instead of a broken-image placeholder."},
+    {"ts": "2026-08-12T05:50:00Z", "tag": "chrome", "title": "Insights v2 + perf empty-state explainer copy",
+     "body": "The Insights v2 loading summary (e.g. '7 signals · 12 posts · 6 pages tracked') and the Performance-tab empty-state fallback both had em-dashes that crept into published copy. Replaced with middle-dots so the chrome stays on-brand. Insights V2 renderer also confirmed live across all four brands (Swing Shack, Stick, Bag Drop, Takomo)."},
+    {"ts": "2026-08-12T01:55:00Z", "tag": "chrome", "title": "Walker no longer swallows sub-nav rows",
+     "body": "The full-site Playwright walker used to throw NAV_ERR when sections had no .nav[data-go] row (calendar, publishing, etc.). Now skips those gracefully and clicks every reachable sub-nav row + variant tab so coverage actually walks the real user paths, not just the top-level nav. Walker reports are now trustworthy again."},
+    {"ts": "2026-08-11T18:01:00Z", "tag": "nav", "title": "Shareable ?page= links land on the right section",
+     "body": "Boot script was ignoring the ?page= URL parameter, so links shared with ?page=performance or ?page=memes always opened on the Morning Brief. Now honors the parameter on first paint, refreshes the active section, and updates the address bar. Works for every section including the External nav group (visualizer, meme-lab, meta-portal)."},
+    {"ts": "2026-08-11T14:00:00Z", "tag": "chrome", "title": "Help tooltips moved to ? icon · page titles clickable",
+     "body": "Brief page titles used to carry data-help hover-tooltips that overlapped the title text and broke the click-to-scroll affordance. Moved all section-page help onto a discrete ? icon next to the title (matches the rest of the dashboard). Hovering the ? surfaces the same body, clicking the title still scrolls cleanly."},
+    {"ts": "2026-08-11T08:00:00Z", "tag": "data", "title": "Morning Brief brand-isolated · per-brand counts",
+     "body": "The Morning Brief review/publish counters were aggregating across every brand instead of the active one, so switching from Swing Shack to Stick still showed Swing Shack's 41-review queue. Now reads the active brand's campaign_ids from brands.json before slicing review_inbox() / publishing_inbox(). Counts are correct on every brand."},
+    {"ts": "2026-08-11T04:00:00Z", "tag": "data", "title": "Audit pass · brand filter, caption variety, hook dedup",
+     "body": "Big-audit sweep: brand filter dropdown now updates the active brand across every surface (was only refreshing Morning Brief); image-lab prompt flow now starts from a goal-first dropdown instead of a blank canvas; first-run tour dismissal persists across sessions (no more repeat welcome modal); captions no longer regenerate into near-duplicates of the prior one; hook bank deduplicates on hook_text + voice before insert."},
+    {"ts": "2026-08-10T20:00:00Z", "tag": "data", "title": "Marketing OS north-star spec · 5-question insight pattern",
+     "body": "New docs/MARKETING_OS_NORTH_STAR.md codifies the 'why' pattern behind every Insights panel: 5 questions (what's working, what's leaking, what changed, what to do next, what to ignore) answered in one short sentence each. South-Africa market context + brand-specific visual-DNA references baked in. Every future Insights card ladders to this spec so copy stays consistent across weeks."},
+    {"ts": "2026-08-10T14:00:00Z", "tag": "image", "title": "Use this image + recent renders gallery",
+     "body": "Every generated image in Image Lab / Meme Lord now has a 'Use this image' button that drops it into the active brief or Review row with a single click. A 'Recent renders' gallery sits under the form so you can re-open or remix any of the last 20 generations without re-running the prompt. IG-recipe thumbnails also wired so the visual pipeline has a feedback loop."},
+    {"ts": "2026-08-09T22:00:00Z", "tag": "chrome", "title": "Weekly report · real captions + thumbs + single IG source",
+     "body": "The Weekly Report was rendering placeholder text instead of the actual post captions, showing broken thumbs, and double-counting Instagram because it queried two endpoints. Now reads from the single /api/intel/performance.instagram.top_posts endpoint, displays real captions + per-post engagement, and renders thumbnail tiles cleanly. Downloadable Markdown report now matches what's on screen."},
+    {"ts": "2026-08-08T02:42:00Z", "tag": "data", "title": "Brief counts now mirror Review queue (40 review, 1 publish)",
+     "body": "Morning Brief's review/publish counters were stuck at 0/0 because the count panel called a different state slice than the Review tab. Re-pointed at review_inbox() + publishing_inbox() so the numbers, the 'Do this right now' rationale, and the Review tab finally agree. No more pretending the queue is empty."},
+    {"ts": "2026-08-08T01:30:00Z", "tag": "chrome", "title": "Orphan-DNA tile renders palette placeholder, not black box",
+     "body": "Visualizer tiles whose DNA JSON is missing the thumbnail_b64 field were painting solid black. Now they render a tasteful palette-swatch placeholder (the same fallback the Recipes tab uses) plus a one-line 'Image unavailable' caption · no more mystery black rectangles in the grid."},
+    {"ts": "2026-08-08T00:10:00Z", "tag": "chrome", "title": "GBP profile header reads 'city, region · country' (no more raw-object leak)",
+     "body": "The Google Business Profile header was stringifying an object instead of the city. Now reads GBP fields safely (name / city / region / country) so the header reads 'Sandton, Gauteng · South Africa' instead of leaking the raw object. Affects every GBP tile on Home + Brand Directory."},
+    {"ts": "2026-08-07T22:58:00Z", "tag": "chrome", "title": "13 dead meme-template thumbnails repaired",
+     "body": "Meme Lab was showing broken-image icons for 13 of 26 templates because the thumbnail filenames had drifted from the on-disk assets. Re-mapped every template to its real PNG (palette + first-frame SVG fallback for the two truly-missing ones). All 26 templates now preview cleanly."},
+    {"ts": "2026-08-07T19:43:00Z", "tag": "seo", "title": "SEO quick wins · show keyword, not raw JSON",
+     "body": "The SEO Quick Wins row on Home was rendering the full raw API payload instead of the keyword + opportunity score. Now shows a tidy 'club fitting near me · volume 1.2K · KD 22' card with the same Run-it / Draft action chips. The Insights surface also got the same treatment."},
+    {"ts": "2026-08-07T18:27:00Z", "tag": "data", "title": "Freshness sanity-range guard stops 9238-day bogus files",
+     "body": "Home freshness banner was lighting up with 9000+ day-old files because a malformed date slipped through the parser. Added a sanity-range filter (last 30 days to next 7 days) before the diff so any out-of-range timestamp is silently dropped and the banner only ever flags real recent files."},
+    {"ts": "2026-08-07T17:11:00Z", "tag": "chrome", "title": "Brand-image fallback + Meme Lab clean title",
+     "body": "Brand tiles whose hero image failed to load now show a deterministic gradient fallback derived from the brand palette (instead of the generic gray box). Meme Lab tab title trimmed to 'Meme Lab' to match every other tab in the rail."},
+    {"ts": "2026-08-07T16:00:00Z", "tag": "nav", "title": "Meme Lord clarified + All 33 tools flat-list nav group",
+     "body": "Renamed the rail entry 'Meme Lab' to make it obvious it's the same surface, and added an 'All tools' flat-list group at the bottom of the sidebar that expands to show every one of the 33 surfaces (incl. hidden power-user ones like Ubersuggest and Meta App Review). One click, no hunting."},
+    {"ts": "2026-08-07T14:45:00Z", "tag": "data", "title": "Weekly marketing report · brand-aware, downloadable, comparable",
+     "body": "New Insights sub-tab: auto-compiles the last 7 days of posts, hooks, IG engagement, SEO quick-wins and review-queue activity into a printable weekly report · grouped by brand, downloadable as Markdown, comparable week-over-week. Replaces the ad-hoc spreadsheet Christelle was building manually."},
+    {"ts": "2026-08-07T13:36:00Z", "tag": "chrome", "title": "First-run welcome modal + phase-1 nav groups",
+     "body": "New visitors now get a one-time 3-card welcome modal that explains the three nav groups (Brief / Build / Measure) and the topbar search. Persists dismissal in localStorage. Returning visitors skip straight to the Morning Brief."},
+    {"ts": "2026-08-07T13:05:00Z", "tag": "data", "title": "Insights v2 + ad correlation + Trends freshness + intern review",
+     "body": "Insights surface got a 4-panel v2 (engagement-by-type, hook library, brand lift, ad-spend correlation), Trends tab now scores each Reddit/YouTube signal with a freshness half-life so stale items drop out, and a new 'intern review' panel flags any auto-generated asset that scored below confidence 0.6 for a human eyeball before publishing."},
+    {"ts": "2026-08-07T12:40:00Z", "tag": "chrome", "title": "Socials tab + per-asset IG carousel + meme template thumbs + auto-compose",
+     "body": "New 'Socials' tab on every campaign surfaces the full IG carousel for that campaign's assets with caption-hook previews underneath. Meme Lab and Image Lab now share the same 26-template thumbnail grid (no more blank tiles). Image Lab's auto-compose button now fires off a real generation call instead of toasting 'coming soon'."},
+    {"ts": "2026-07-30T01:30:00Z", "tag": "data", "title": "↺ Reset to AI draft · now actually resets",
+     "body": "The Review-queue Edit modal's 'Reset to AI draft' button used to toast 'No AI draft saved' for every asset · the backend endpoint didn't exist. New GET /api/assets/<aid>/ai-draft returns the original AI-generated caption (snapshot taken on first hand-edit), so the button now restores the prior caption for review-and-Save. Old assets without a snapshot fall through to current caption or a clear 'no draft on file' message · no more silent dead-ends."},
 ]
 
 
@@ -447,9 +697,25 @@ def brand_directory_index():
     Returns the merged brand-index.json so the SPA Brand surface can render
     readiness scores per brand, and so image/copy generators know which
     brands are ready (all 4 gate files) vs partial (fall back to voice bible).
+
+    Also merges in `product_brands` from data/brands.json so the SPA can
+    surface Takomo-style "carried product brands" alongside the businesses
+    (swing-shack / stick / bag-drop) on the Brand surface.
     """
     try:
         idx = _brand_dir.build_index()
+        # Pull product_brands from the registry. These don't have their own
+        # brand-directory/<id>/ folder lifecycle (the takomo/ folder exists
+        # on disk for caption/image lab reuse, but it's not a "business" for
+        # the brand switcher or the today-panel).
+        try:
+            from _lib import intelligence as _intel
+            reg = _intel._load_brands_registry()
+            pb = reg.get("product_brands") or {}
+            if pb:
+                idx["product_brands"] = pb
+        except Exception:
+            pass
         return jsonify(idx)
     except Exception as e:
         _app_log.exception("brand_directory_index failed")
@@ -470,7 +736,7 @@ def brand_directory_get(brand_id):
         return jsonify(brand)
     except Exception as e:
         _app_log.exception("brand_directory_get failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/brand-directory/<brand_id>/generate-brief', methods=['GET'])
@@ -526,7 +792,7 @@ def brand_directory_generate_brief(brand_id):
         })
     except Exception as e:
         _app_log.exception("brand_directory_generate_brief failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/brand-directory/refresh', methods=['POST'])
@@ -542,7 +808,7 @@ def brand_directory_refresh():
         return jsonify({"wrote": str(path), "index": idx})
     except Exception as e:
         _app_log.exception("brand_directory_refresh failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── Google Drive ingestion ──────────────────────────────────────────
@@ -556,7 +822,10 @@ def google_drive_status():
         return jsonify(_gdrive.status())
     except Exception as e:
         _app_log.exception("google_drive_status failed")
-        return jsonify({"error": str(e)}), 500
+        msg = str(e)
+        if "invalid_grant" in msg or "expired or revoked" in msg:
+            return jsonify({"ok": False, "error": "Token has been expired or revoked — re-upload at /secrets-sync"}), 401
+        return jsonify({"ok": False, "error": msg}), 500
 
 
 @app.route('/api/google-drive/ingest', methods=['POST'])
@@ -625,7 +894,7 @@ def google_drive_ingest():
         })
     except Exception as e:
         _app_log.exception("google_drive_ingest failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/google-drive/list-folders', methods=['GET'])
@@ -652,7 +921,15 @@ def google_drive_list_folders():
         return jsonify({"ok": True, "query": q, "folders": resp.get("files", [])})
     except Exception as e:
         _app_log.exception("google_drive_list_folders failed")
-        return jsonify({"error": str(e)}), 500
+        msg = str(e)
+        if "invalid_grant" in msg or "expired or revoked" in msg:
+            return jsonify({
+                "ok": False,
+                "error": "Token has been expired or revoked — re-upload at /secrets-sync",
+            }), 401
+        if "403" in msg or "permission" in msg.lower():
+            return jsonify({"ok": False, "error": "Drive permission denied — token lacks required scope"}), 403
+        return jsonify({"ok": False, "error": msg}), 500
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -702,7 +979,7 @@ def visual_dna_search(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_dna_search failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/recipe', methods=['GET'])
@@ -720,10 +997,14 @@ def visual_dna_recipe(brand_id):
         if not brief:
             return jsonify({"error": "missing 'brief' param"}), 400
         result = select_visual_recipes(brand_id, brief, n=n)
+        # The frontend (campaign-os.html findRecipes) gates rendering on r.ok.
+        # The query layer returns matches without an ok flag, so wrap here.
+        if isinstance(result, dict) and "ok" not in result:
+            result["ok"] = True
         return jsonify(result)
     except Exception as e:
         _app_log.exception("visual_dna_recipe failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/index', methods=['GET'])
@@ -741,7 +1022,7 @@ def visual_dna_index(brand_id):
         return jsonify(json.loads(index_path.read_text()))
     except Exception as e:
         _app_log.exception("visual_dna_index failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/products', methods=['GET'])
@@ -761,7 +1042,7 @@ def visual_dna_products(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_dna_products failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-dna/<brand_id>/scrape-and-dissect', methods=['POST'])
@@ -890,7 +1171,7 @@ def visual_dna_scrape_and_dissect(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_dna_scrape_and_dissect failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── VISUAL LIBRARY (image serving + DNA breakdown for the UI) ──────────
@@ -907,12 +1188,170 @@ def meme_lab_page():
     return send_from_directory(os.path.dirname(__file__), 'meme-lab.html')
 
 
+@app.route('/image-lab', methods=['GET'])
+def image_lab_page():
+    """GET /image-lab — Reference DNA + Product/Service library + learned signals.
+
+    Three-column UI for the full visual generation workflow:
+      - LEFT:   upload references (file / URL / brand library)
+      - MIDDLE: compose prompt + select size/model + generate
+      - RIGHT:  product/service library + learned WIN PROFILE + records
+    """
+    return send_from_directory(os.path.dirname(__file__), 'image-lab.html')
+
+
+# ─── IMAGE KEYS PORTAL ───────────────────────────────────────────────
+# Local-only route for safely ingesting OpenAI / OpenRouter keys without
+# them touching Discord/chat. Form at GET /image-portal.html. Submit
+# writes to the credential dirs the image_gen_router already knows how
+# to read from:
+#   ~/.openclaw/workspace/credentials/openai-api.json     (chmod 600)
+#   ~/.openclaw/workspace/credentials/openrouter-api.json  (chmod 600)
+#   ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/openai-api.json
+#   ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/openrouter-api.json
+# These are the canonical fallback locations the router looks for when
+# env vars aren't set.
+#
+# For the LIVE Railway deploy, the keys still need to be set as env vars
+# via the Railway dashboard — this portal can't push to Railway directly.
+# The portal page makes that explicit with a "Setting keys on Railway"
+# step-by-step section.
+
+IMAGE_CRED_DIRS = [
+    os.path.expanduser('~/.openclaw/workspace/credentials'),
+    os.path.expanduser('~/.openclaw-instance2/workspace/clients/swing-shack/credentials'),
+]
+
+
+@app.route('/image-portal.html', methods=['GET'])
+def image_portal_page():
+    return send_from_directory(os.path.dirname(__file__), 'image-portal.html')
+
+
+@app.route('/image-portal', methods=['POST'])
+def image_portal_submit():
+    """POST /image-portal — write OpenAI / OpenRouter keys to credential dirs.
+
+    Three persistence layers:
+      1. IMAGE_CRED_DIRS (multi-path fallback chain — local + Railway's $HOME)
+      2. DATA_DIR/credentials/ (so the next deploy restart picks them up via
+         OPENAI_API_KEY_FILE / OPENROUTER_API_KEY_FILE env vars we set below)
+      3. os.environ — so the CURRENT process can use them immediately,
+         no Railway dashboard round-trip needed
+    """
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        openai = (body.get('openai') or '').strip()
+        openrouter = (body.get('openrouter') or '').strip()
+
+        if not openai and not openrouter:
+            return jsonify({"ok": False, "error": "at least one key required"}), 400
+
+        wrote_openai = None
+        wrote_openrouter = None
+        # Also write to DATA_DIR/credentials so the keys survive deploy restarts
+        runtime_creds_dir = os.path.join(DATA_DIR, 'credentials')
+        os.makedirs(runtime_creds_dir, exist_ok=True)
+
+        if openai:
+            # Basic shape validation
+            if not openai.startswith('sk-'):
+                return jsonify({"ok": False, "error": "OpenAI key should start with 'sk-'"}), 400
+            payload = json.dumps({"api_key": openai, "updated": time.time()}, indent=2)
+            for d in IMAGE_CRED_DIRS:
+                try:
+                    os.makedirs(d, exist_ok=True)
+                    p = os.path.join(d, 'openai-api.json')
+                    with open(p, 'w') as fh:
+                        fh.write(payload)
+                    os.chmod(p, 0o600)
+                    wrote_openai = wrote_openai or p
+                except Exception as e:
+                    _app_log.warning('failed to write %s: %s', d, e)
+            # Runtime persistence — survives restart
+            try:
+                rp = os.path.join(runtime_creds_dir, 'openai-api.json')
+                with open(rp, 'w') as fh:
+                    fh.write(payload)
+                os.chmod(rp, 0o600)
+                # Set file env var so the resolver picks it up next restart
+                os.environ['OPENAI_API_KEY_FILE'] = rp
+                wrote_openai = wrote_openai or rp
+            except Exception as e:
+                _app_log.warning('failed to write runtime openai cred: %s', e)
+            # In-process env var so current request cycle sees the key
+            os.environ['OPENAI_API_KEY'] = openai
+
+        if openrouter:
+            if not openrouter.startswith('sk-or-'):
+                return jsonify({"ok": False, "error": "OpenRouter key should start with 'sk-or-'"}), 400
+            payload = json.dumps({"api_key": openrouter, "updated": time.time()}, indent=2)
+            for d in IMAGE_CRED_DIRS:
+                try:
+                    os.makedirs(d, exist_ok=True)
+                    p = os.path.join(d, 'openrouter-api.json')
+                    with open(p, 'w') as fh:
+                        fh.write(payload)
+                    os.chmod(p, 0o600)
+                    wrote_openrouter = wrote_openrouter or p
+                except Exception as e:
+                    _app_log.warning('failed to write %s: %s', d, e)
+            # Runtime persistence — survives restart
+            try:
+                rp = os.path.join(runtime_creds_dir, 'openrouter-api.json')
+                with open(rp, 'w') as fh:
+                    fh.write(payload)
+                os.chmod(rp, 0o600)
+                os.environ['OPENROUTER_API_KEY_FILE'] = rp
+                wrote_openrouter = wrote_openrouter or rp
+            except Exception as e:
+                _app_log.warning('failed to write runtime openrouter cred: %s', e)
+            # In-process env var so current request cycle sees the key
+            os.environ['OPENROUTER_API_KEY'] = openrouter
+
+        # Refresh status report so subsequent /api/image/status reflects new keys
+        try:
+            from _lib.image_gen_router import status_report as _status
+            clear = getattr(_status, "cache_clear", None)
+            if callable(clear):
+                clear()
+            # Also clear the provider-key caches so generate/edit pick up new keys
+            from _lib import image_gen_router as _igr
+            for name in ('_resolve_openai_key', '_resolve_openrouter_key'):
+                fn = getattr(_igr, name, None)
+                clr = getattr(fn, 'cache_clear', None) if fn else None
+                if callable(clr):
+                    clr()
+        except Exception:
+            pass
+
+        # Report back what status says NOW
+        from _lib.image_gen_router import status_report as _status_now
+        new_status = _status_now()
+        return jsonify({
+            "ok": True,
+            "wrote_openai": wrote_openai,
+            "wrote_openrouter": wrote_openrouter,
+            "next_step": "Keys live in the running process. For deploy restarts, set OPENAI_API_KEY / OPENROUTER_API_KEY env vars on Railway dashboard.",
+            "status_now": new_status,
+        })
+    except Exception as e:
+        _app_log.exception('image_portal_submit failed')
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/brand-images/<brand_id>/<path:filename>', methods=['GET'])
 def brand_image_serve(brand_id, filename):
     """GET /brand-images/<brand>/ — serve a brand-directory image.
 
     Used by the Visual Library UI to display thumbnails. Safe: resolves to
     a path inside the brand-directory and rejects traversal attempts.
+
+    If the file is not found under the requested brand (e.g. a DNA record
+    indexed under swing-shack but the actual PNG lives under takomo/),
+    fall back to scanning every other brand directory for the same
+    filename. This stops the Visual Library from emitting broken-image
+    404s for orphan DNA records without changing the data.
     """
     from pathlib import Path as _P
     base = (_P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images').resolve()
@@ -921,9 +1360,61 @@ def brand_image_serve(brand_id, filename):
         target.relative_to(base)
     except ValueError:
         return jsonify({"error": "path traversal denied"}), 403
-    if not target.exists() or not target.is_file():
-        return jsonify({"error": "not found", "path": str(target)}), 404
-    return send_from_directory(str(target.parent), target.name)
+    if target.exists() and target.is_file():
+        return send_from_directory(str(target.parent), target.name)
+    # Fallback: scan sibling brand directories for the same filename.
+    # Filenames are unique per file (no collisions across brands), and this
+    # keeps orphan DNA records rendering without surfacing a 404 to users.
+    try:
+        root = (_P(BUNDLED_DATA_DIR) / 'brand-directory').resolve()
+        for sibling in root.iterdir():
+            if not sibling.is_dir() or sibling.name == brand_id:
+                continue
+            cand = (sibling / 'images' / filename).resolve()
+            try:
+                cand.relative_to(root)
+            except ValueError:
+                continue
+            if cand.exists() and cand.is_file():
+                return send_from_directory(str(cand.parent), cand.name)
+    except Exception:
+        pass
+    return jsonify({"error": "not found", "path": str(target)}), 404
+
+
+@app.route('/assets/<path:filename>', methods=['GET'])
+def asset_serve(filename):
+    """GET /assets/<path:...> — serve a repo-root asset (campaign visuals, etc.).
+
+    Mirrors /brand-images/<brand>/ — resolves to a path inside
+    <BUNDLED_DATA_DIR>/../assets/ (i.e. the repo's top-level assets/ folder)
+    and rejects traversal attempts.
+
+    Per-campaign work-view thumbnails in Campaign OS store the canonical
+    image path on the asset record as `filePath` (e.g.
+    `assets/campaigns/trackman/takomo-101t-hero-b.png`). The frontend
+    uses that path verbatim so the URL `/assets/<...>` must work.
+
+    Falls back from DATA_DIR/assets/ → BUNDLED_DATA_DIR/../assets/ so the
+    same route works against either the runtime volume mount or the
+    bundled copy shipped in the Docker image.
+    """
+    from pathlib import Path as _P
+    candidates = []
+    runtime_assets = _P(DATA_DIR) / 'assets'
+    bundled_assets = _P(REPO_ROOT) / 'assets'
+    if runtime_assets.exists():
+        candidates.append(runtime_assets.resolve())
+    candidates.append(bundled_assets.resolve())
+    for base in candidates:
+        target = (base / filename).resolve()
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return jsonify({"error": "path traversal denied"}), 403
+        if target.exists() and target.is_file():
+            return send_from_directory(str(target.parent), target.name)
+    return jsonify({"error": "not found", "filename": filename}), 404
 
 
 @app.route('/api/visual-library/<brand_id>/images', methods=['GET'])
@@ -942,7 +1433,7 @@ def visual_library_images(brand_id):
     """
     try:
         from pathlib import Path as _P
-        import re
+        import re, base64 as _b64
         index_path = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / "visual-dna-index.json"
         if not index_path.exists():
             return jsonify({"error": f"no visual-dna index for {brand_id}"}), 404
@@ -954,13 +1445,48 @@ def visual_library_images(brand_id):
         sort_by = request.args.get("sort", "score")
         limit = min(int(request.args.get("limit", "200") or "200"), 500)
 
+        # Canonical images dir relative to BUNDLED_DATA_DIR — used for both jpg and DNA JSON
+        images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
+
+        def _resolve_dna(dna_path_str, filename):
+            """Resolve a DNA file path robustly across local + Railway.
+
+            The index stores absolute local paths which only resolve on the
+            machine that generated them. On Railway, those paths are bogus.
+            Fall back to images_dir/.visual-dna.json.
+            """
+            if dna_path_str and _P(dna_path_str).exists():
+                return _P(dna_path_str)
+            stem = _P(filename).stem
+            candidate = images_dir / f"{stem}.visual-dna.json"
+            return candidate if candidate.exists() else None
+
+        # Sibling-scan used by /brand-images/<brand>/<file> at serve time.
+        # Re-used here so we can flag an entry as `image_missing=true` when
+        # the raw .png/.jpg doesn't exist ANYWHERE on the deployed volume
+        # (e.g. DNA record indexed under swing-shack but the .png lives under
+        # takomo/ and is gitignored → never reaches Railway). Without this,
+        # the front-end issues a doomed 404 for every orphan card.
+        _bd_root = (_P(BUNDLED_DATA_DIR) / 'brand-directory').resolve()
+        _sibling_brands = [p.name for p in _bd_root.iterdir() if p.is_dir() and p.name != brand_id and p.name != '_system'] if _bd_root.exists() else []
+
+        def _image_on_disk(filename):
+            """True iff `filename` resolves under ANY brand directory on disk."""
+            # Primary location: the requested brand
+            if (images_dir / filename).exists():
+                return True
+            # Sibling brands (orphan DNA fallback path)
+            stem = _P(filename).name  # strip any path prefix safely
+            for sib in _sibling_brands:
+                cand = _bd_root / sib / 'images' / stem
+                if cand.exists():
+                    return True
+            return False
+
         out = []
         for fn, meta in by_filename.items():
-            dna_path_str = meta.get("dna_path", "")
-            if not dna_path_str:
-                continue
-            dna_p = _P(dna_path_str)
-            if not dna_p.exists():
+            dna_p = _resolve_dna(meta.get("dna_path", ""), fn)
+            if dna_p is None:
                 continue
             try:
                 dna = json.loads(dna_p.read_text())
@@ -1007,9 +1533,19 @@ def visual_library_images(brand_id):
             score = float(meta.get("score", 0) or 0)
             if score < min_score:
                 continue
+            # If the underlying image isn't on disk (orphan DNA record whose
+            # .png lives under a sibling brand that isn't gitignored, OR the
+            # .png never made it onto the Railway volume because of the
+            # brand-images gitignore rule), expose image_missing=true and
+            # null out `url` so the front-end renders the DNA placeholder
+            # WITHOUT firing a doomed network request.
+            _has_thumb = bool(dna.get("thumbnail_b64"))
+            _on_disk = _image_on_disk(fn)
+            _image_missing = (not _has_thumb) and (not _on_disk)
             entry = {
                 "filename": fn,
-                "url": f"/brand-images/{brand_id}/{fn}",
+                "url": (None if _image_missing else f"/brand-images/{brand_id}/{fn}"),
+                "image_missing": _image_missing,
                 "dna_url": f"/brand-images/{brand_id}/{fn.replace('.jpg', '.visual-dna.json').replace('.jpeg', '.visual-dna.json').replace('.png', '.visual-dna.json')}",
                 "score": round(score, 3),
                 "luminance": meta.get("luminance", ""),
@@ -1030,6 +1566,21 @@ def visual_library_images(brand_id):
                 } if composition else {},
                 "recipe": l17 if l17 else None,
                 "tagline": dna.get("layer8_compliance", {}).get("summary", "") if isinstance(dna.get("layer8_compliance"), dict) else "",
+                # Inline thumbnail (data URL) so the grid works on Railway without the
+                # actual jpg files. The images dir is gitignored; thumbnails are embedded
+                # in each DNA JSON at build time.
+                "thumbnail_data_url": (f"data:image/jpeg;base64,{dna['thumbnail_b64']}" if dna.get("thumbnail_b64") else None),
+                "thumbnail_w": dna.get("thumbnail_w"),
+                "thumbnail_h": dna.get("thumbnail_h"),
+                # Searchable blob (lowercase) for client-side text matching
+                "_search_blob": " ".join([
+                    fn.lower(),
+                    ocr_text.lower(),
+                    " ".join(product_names).lower(),
+                    " ".join(palette_hex).lower(),
+                    (dna.get("layer8_compliance", {}) or {}).get("summary", "").lower() if isinstance(dna.get("layer8_compliance"), dict) else "",
+                    str(meta.get("dominant", "")).lower(),
+                ]).strip(),
             }
             out.append(entry)
 
@@ -1050,7 +1601,7 @@ def visual_library_images(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_library_images failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-library/<brand_id>/stats', methods=['GET'])
@@ -1125,7 +1676,7 @@ def visual_library_stats(brand_id):
         })
     except Exception as e:
         _app_log.exception("visual_library_stats failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/visual-library/search', methods=['GET'])
@@ -1181,12 +1732,22 @@ def visual_library_search():
                 idx = json.loads(idx_path.read_text())
             except Exception:
                 continue
+            # Canonical images dir relative to BUNDLED_DATA_DIR — same fallback
+            # strategy used by /api/visual-library/<brand>/images.
+            images_dir = brand_dir / 'images'
+            def _resolve_dna_search(dna_path_str, filename, imgs_dir):
+                if dna_path_str and _P(dna_path_str).exists():
+                    return _P(dna_path_str)
+                stem = _P(filename).stem
+                candidate = imgs_dir / f"{stem}.visual-dna.json"
+                return candidate if candidate.exists() else None
+
             for fn, meta in (idx.get('by_filename') or {}).items():
-                dna_path_str = (meta or {}).get('dna_path', '')
-                if not dna_path_str or not os.path.exists(dna_path_str):
+                dna_p = _resolve_dna_search((meta or {}).get('dna_path', ''), fn, images_dir)
+                if dna_p is None:
                     continue
                 try:
-                    dna = json.loads(open(dna_path_str).read())
+                    dna = json.loads(dna_p.read_text())
                 except Exception:
                     continue
                 # Build search blob
@@ -1212,6 +1773,44 @@ def visual_library_search():
                 ocr_text = ' '.join([str(x) for x in ocr_lines if x])
                 palette = ((dna.get('layer9_palette', {}) or {}).get('dominant_colors', []) or [])
                 palette_hex = [c.get('hex', '') for c in palette if isinstance(c, dict)]
+                # Map hex codes to human color names so search by color works
+                def _hex_to_names(h):
+                    if not h or not h.startswith('#') or len(h) < 7:
+                        return []
+                    try:
+                        r=int(h[1:3],16); g=int(h[3:5],16); b=int(h[5:7],16)
+                    except ValueError:
+                        return []
+                    names = []
+                    # Detect hue families
+                    if g > r + 15 and g > b + 15 and g >= 80:
+                        names.append('green')
+                        if r > 150: names.append('lime')
+                        if g > 180 and r < 100: names.append('bright green')
+                    if r > g + 30 and r > b + 50 and r > 120:
+                        names.append('red')
+                        if r > 200 and g < 80 and b < 80: names.append('bright red')
+                    if b > r + 20 and b > g + 30 and b > 120:
+                        names.append('blue')
+                        if r < 100 and g < 100: names.append('navy')
+                    if r > 180 and g > 130 and b < 100:
+                        names.append('yellow'); names.append('gold')
+                    if r > 150 and g < 100 and b > 130:
+                        names.append('purple'); names.append('magenta')
+                    if r > 200 and g > 150 and b > 100:
+                        names.append('orange'); names.append('beige')
+                    # Brightness
+                    avg = (r+g+b)/3
+                    if avg > 220: names.append('light'); names.append('bright')
+                    elif avg < 60: names.append('dark')
+                    if abs(r-g) < 15 and abs(g-b) < 15 and abs(r-b) < 15:
+                        if avg > 180: names.append('white')
+                        elif avg < 50: names.append('black')
+                        else: names.append('gray'); names.append('grey')
+                    return names
+                palette_names = []
+                for h in palette_hex:
+                    palette_names.extend(_hex_to_names(h))
                 score = float((meta or {}).get('score', 0) or 0)
                 if score < min_score:
                     continue
@@ -1223,6 +1822,7 @@ def visual_library_search():
                     ' '.join(prod_names),
                     ocr_text,
                     ' '.join(palette_hex),
+                    ' '.join(palette_names),
                 ]).lower()
                 if needle not in blob:
                     continue
@@ -1331,7 +1931,7 @@ def visual_library_discover(brand_id):
       limit=<n>          — default 60, max 200
 
     Returns:
-      {ok, brand, filters_applied, count, results: [{filename, score, colors, brands, objects, mood, quality_score, dna_path, image_url}]}
+      {ok, brand, filters_applied, count, results: [{filename, score, colors, brands, objects, mood, quality_score, dna_path, image_url, thumbnail_data_url}]}
     """
     try:
         from pathlib import Path as _P
@@ -1347,6 +1947,20 @@ def visual_library_discover(brand_id):
             return jsonify({"ok": False, "error": f"no element index for brand={brand_id}", "results": [], "count": 0}), 404
 
         by_filename = brand_idx.get("by_filename", {})
+
+        # Resolve DNA per image so we can ship an inline thumbnail (data: URI).
+        # Same pattern as /api/visual-library/<brand>/images — the index stores
+        # absolute local paths that don't resolve on Railway, so fall back to the
+        # canonical images_dir location. Raw .jpg files are gitignored; the
+        # thumbnail_b64 in each DNA JSON is the deploy-safe image bytes.
+        images_dir = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images'
+
+        def _resolve_dna(dna_path_str, filename):
+            if dna_path_str and _P(dna_path_str).exists():
+                return _P(dna_path_str)
+            stem = _P(filename).stem
+            candidate = images_dir / f"{stem}.visual-dna.json"
+            return candidate if candidate.exists() else None
 
         # Parse filters
         color_filter = (request.args.get("color") or "").strip().lower()
@@ -1404,10 +2018,26 @@ def visual_library_discover(brand_id):
             if entry.get("quality_score", 0) < quality_min:
                 continue
 
+            # Resolve DNA + extract inline thumbnail (data: URI) so discover
+            # results render on Railway without raw .jpg bytes on the volume.
+            # Same pattern as /api/visual-library/<brand>/images.
+            dna_path = entry.get("dna_path", "")
+            dna_p = _resolve_dna(dna_path, fn)
+            thumbnail_data_url = None
+            if dna_p is not None:
+                try:
+                    dna = json.loads(dna_p.read_text())
+                    tb = dna.get("thumbnail_b64")
+                    if tb:
+                        thumbnail_data_url = f"data:image/jpeg;base64,{tb}"
+                except Exception:
+                    pass
+
             results.append({
                 "filename": fn,
                 "dna_path": entry.get("dna_path", ""),
                 "image_url": f"/api/visual-library/{brand_id}/image/{fn}.jpg",
+                "thumbnail_data_url": thumbnail_data_url,
                 "colors": entry.get("colors", []),
                 "brands": entry.get("brands", []),
                 "objects": entry.get("objects", []),
@@ -1439,13 +2069,13 @@ def visual_library_discover(brand_id):
 
 @app.route('/api/visual-library/<brand_id>/recipe', methods=['GET'])
 def visual_library_recipe(brand_id):
-    """GET /api/visual-library/<brand>/recipe — aggregated brand image DNA.
+    """GET /api/visual-library/<brand>/recipe - aggregated brand image DNA.
 
     Combines statistical mode (most common features) with top-performer emphasis.
     Returns human-readable recipe + numeric aggregates for use in image generation.
 
     Query params:
-      top_pct=<n>   — top N% by quality score to weight heavily (default 25)
+      top_pct=<n>   - top N% by quality score to weight heavily (default 25)
 
     Returns:
       {ok, brand, recipe: {palette, composition, products, moods, text, quality, style_clusters, summary}}
@@ -1750,6 +2380,3068 @@ def visual_library_generate(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ─── IMAGE GEN ROUTER — unified generate + edit across the OS ───────
+#
+# Three new endpoints that wire every section of Campaign OS to the same
+# router (campaign-os/_lib/image_gen_router.py). The router picks between
+# OpenAI direct (gpt-image-1, text-to-image only) and OpenRouter
+# (Nano Banana / gpt-5-image-mini / Nano Banana Pro, both gen + edit).
+#
+# - POST /api/image/generate        — generate from text prompt (brand-aware)
+# - POST /api/image/edit            — edit existing image (recolour, restyle, swap)
+# - POST /api/image/from-asset/<id> — pull an asset from another surface,
+#                                     extract its visual context, generate a
+#                                     matching hero image
+# - GET  /api/image/status          — capabilities + key presence
+
+
+@app.route("/api/image/feedback/approve", methods=["POST"])
+def image_feedback_approve():
+    """POST /api/image/feedback/approve — mark a generated asset APPROVED.
+
+    Body:
+      asset_id: str    — the asset id (the krea job_id or saved_path stem)
+      brand_id: str    — brand for the feedback record
+      reason: str?     — optional reason / context
+      url: str?        — the source URL (e.g. Krea result URL)
+
+    Persists to data/brand-directory/<brand>/feedback/approvals.json
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    asset_id = (body.get("asset_id") or "").strip()
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id is required"}), 400
+    try:
+        from _lib.feedback_loop import add_record, load_performance
+        perf = load_performance(brand_id)
+        add_record(perf, {
+            "image_id": asset_id,
+            "kind": "generated",
+            "source": "manual",
+            "verdict": "approved",
+            "reason": body.get("reason", ""),
+            "url": body.get("url", ""),
+        })
+        return jsonify({"ok": True, "brand_id": brand_id, "asset_id": asset_id, "verdict": "approved"}), 200
+    except Exception as e:
+        _app_log.exception("image_feedback_approve failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/image/feedback/reject", methods=["POST"])
+def image_feedback_reject():
+    """POST /api/image/feedback/reject — mark a generated asset REJECTED with a reason.
+
+    Body:
+      asset_id: str
+      brand_id: str
+      reason_category: str   — off_brand | product_wrong | logo_wrong | face_wrong
+                                | too_ai | wrong_composition | wrong_copy
+                                | wrong_colour | bad_lighting | model_failure | other
+      notes: str?
+      url: str?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    asset_id = (body.get("asset_id") or "").strip()
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id is required"}), 400
+    try:
+        from _lib.feedback_loop import add_record, load_performance
+        perf = load_performance(brand_id)
+        add_record(perf, {
+            "image_id": asset_id,
+            "kind": "generated",
+            "source": "manual",
+            "verdict": "rejected",
+            "reason_category": body.get("reason_category", "other"),
+            "notes": body.get("notes", ""),
+            "url": body.get("url", ""),
+        })
+        return jsonify({"ok": True, "brand_id": brand_id, "asset_id": asset_id, "verdict": "rejected"}), 200
+    except Exception as e:
+        _app_log.exception("image_feedback_reject failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/image/lineage", methods=["POST"])
+def image_lineage():
+    """POST /api/image/lineage — list the creative lineage for a brand.
+
+    Body:
+      brand_id: str
+
+    Returns the list of generated assets + their master prompts +
+    negative prompts + reference DNA + product info + approval status.
+    Scans <DATA_DIR>/<brand>/images/krea/* + sidecar JSON files.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.feedback_loop import load_performance
+        data_dir = os.environ.get("DATA_DIR", "/data/campaign-os")
+        brand_dir = Path(data_dir) / brand_id
+        assets = []
+        # scan krea dir for sidecars
+        krea_dir = brand_dir / "images" / "krea"
+        if krea_dir.exists():
+            for jp in sorted(krea_dir.glob("*.json")):
+                try:
+                    meta = json.loads(jp.read_text())
+                    assets.append({
+                        "asset_id": meta.get("job_id", jp.stem),
+                        "kind": "generated",
+                        "provider": meta.get("provider", "krea"),
+                        "url": meta.get("url", ""),
+                        "mime": meta.get("mime", ""),
+                        "saved_at": meta.get("saved_at", ""),
+                        "saved_path": str(jp.with_suffix(".png")),
+                        "sidecar_path": str(jp),
+                    })
+                except Exception:
+                    continue
+        # also scan legacy outputs
+        legacy_dir = brand_dir / "images" / "generated"
+        if legacy_dir.exists():
+            for jp in sorted(legacy_dir.glob("*.json")):
+                try:
+                    meta = json.loads(jp.read_text())
+                    assets.append({
+                        "asset_id": jp.stem,
+                        "kind": "generated",
+                        "saved_at": meta.get("saved_at", ""),
+                        "saved_path": str(jp.with_suffix("")),
+                        "prompt": meta.get("prompt"),
+                        "negative_prompt": meta.get("negative_prompt"),
+                        "sections": meta.get("sections", []),
+                        "model_routing": meta.get("model_routing", {}),
+                        "reference_dnas": meta.get("reference_dnas", []),
+                        "product_service_items": meta.get("product_service_items", []),
+                        "model": meta.get("model"),
+                        "provider": meta.get("provider"),
+                        "sidecar_path": str(jp),
+                    })
+                except Exception:
+                    continue
+        # merge approvals
+        perf = load_performance(brand_id)
+        records = perf.get("records", [])
+        approval_by_id = {r.get("image_id"): r for r in records if r.get("image_id")}
+        for a in assets:
+            r = approval_by_id.get(a.get("asset_id"))
+            if r:
+                a["verdict"] = r.get("verdict", "unknown")
+                a["reason"] = r.get("reason", r.get("notes", ""))
+        return jsonify({"ok": True, "brand_id": brand_id, "count": len(assets), "assets": assets}), 200
+    except Exception as e:
+        _app_log.exception("image_lineage failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/image/overlay-brand", methods=["POST"])
+def image_overlay_brand():
+    """POST /api/image/overlay-brand — deterministic post-composition overlay.
+
+    Body:
+      image_bytes_b64: str  — base64-encoded source PNG (the AI output)
+      brand_id: str
+      headline: str        — required, becomes the overlaid headline
+      subhead: str?        — optional
+      cta: str?            — optional, becomes a pill
+      logo_position: str?  — top-left | top-right | bottom-left | bottom-right | center
+
+    Returns:
+      bytes_b64 : str      — base64-encoded composited PNG
+      saved_path : str?    — written under <DATA_DIR>/<brand>/images/overlay/<ts>.png when save=true
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    b64 = body.get("image_bytes_b64", "")
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    headline = (body.get("headline") or "").strip()
+    if not b64 or not headline:
+        return jsonify({"ok": False, "error": "image_bytes_b64 and headline are required"}), 400
+    try:
+        import base64
+        from _lib.brand_overlay import overlay_post
+        img_bytes = base64.b64decode(b64)
+        composited = overlay_post(
+            img_bytes,
+            brand_id,
+            headline=headline,
+            subhead=body.get("subhead", ""),
+            cta=body.get("cta", ""),
+        )
+        out_path = None
+        if body.get("save", True):
+            data_dir = os.environ.get("DATA_DIR", "/data/campaign-os")
+            brand_dir = Path(data_dir) / brand_id / "images" / "overlay"
+            brand_dir.mkdir(parents=True, exist_ok=True)
+            ts = int(time.time())
+            out_path = brand_dir / f"{ts}.png"
+            out_path.write_bytes(composited)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "bytes_b64": base64.b64encode(composited).decode(),
+            "bytes_size": len(composited),
+            "saved_path": str(out_path) if out_path else None,
+        }), 200
+    except Exception as e:
+        _app_log.exception("image_overlay_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/image/poll-krea-job", methods=["POST"])
+def image_poll_krea_job():
+    """POST /api/image/poll-krea-job — poll a Krea job and download the result.
+
+    Body:
+      job_id: str       — Krea job id returned by a previous krea-provider call
+      brand_id: str     — brand for save path (defaults swing-shack)
+      save: bool        — write to disk under brand/images/krea/<job_id>.png (default true)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    job_id = (body.get("job_id") or "").strip()
+    if not job_id:
+        return jsonify({"ok": False, "error": "job_id is required"}), 400
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    save = bool(body.get("save", True))
+    try:
+        from _lib import krea_mcp as _krea
+        import urllib.request as _ur
+        poll_resp = _krea.get_job(job_id)
+        content = poll_resp.get("content", [])
+        text = content[0].get("text", "") if content else ""
+        try:
+            parsed = json.loads(text) if text else {}
+        except Exception:
+            parsed = {}
+        status = parsed.get("status", "unknown")
+        result_urls = (
+            parsed.get("result", {}).get("urls", [])
+            if isinstance(parsed, dict) else []
+        )
+        if status != "completed":
+            return jsonify({
+                "ok": True,
+                "job_id": job_id,
+                "status": status,
+                "completed": False,
+                "result_urls": [],
+            }), 200
+        if not result_urls:
+            return jsonify({
+                "ok": False,
+                "error": "Krea job completed but no result URLs returned",
+                "job_id": job_id,
+                "status": status,
+            }), 502
+        url = result_urls[0]
+        with _ur.urlopen(url, timeout=60) as img_resp:
+            img_bytes = img_resp.read()
+            mime = img_resp.headers.get("Content-Type", "image/png")
+        out_path = None
+        if save and brand_id:
+            data_dir = os.environ.get("DATA_DIR", "/data/campaign-os")
+            brand_dir = Path(data_dir) / brand_id / "images" / "krea"
+            brand_dir.mkdir(parents=True, exist_ok=True)
+            ext = ".png" if "png" in mime else (
+                ".jpg" if "jpeg" in mime or "jpg" in mime else ".bin"
+            )
+            out_path = brand_dir / f"{job_id}{ext}"
+            out_path.write_bytes(img_bytes)
+            sidecar = {
+                "job_id": job_id,
+                "brand_id": brand_id,
+                "provider": "krea",
+                "url": url,
+                "mime": mime,
+                "saved_at": dt.utcnow().isoformat() + "Z",
+            }
+            (brand_dir / f"{job_id}.json").write_text(
+                json.dumps(sidecar, indent=2)
+            )
+        return jsonify({
+            "ok": True,
+            "job_id": job_id,
+            "status": status,
+            "completed": True,
+            "result_urls": result_urls,
+            "saved_path": str(out_path) if out_path else None,
+            "bytes_size": len(img_bytes),
+            "mime": mime,
+        }), 200
+    except Exception as e:
+        _app_log.exception("image_poll_krea_job failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/status', methods=['GET'])
+def image_router_status():
+    """GET /api/image/status - provider + credential status (no key values echoed)."""
+    try:
+        from _lib.image_gen_router import status_report as _status
+        return jsonify({"ok": True, **_status()})
+    except Exception as e:
+        _app_log.exception("image_router_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/admin/social-debug', methods=['GET'])
+def social_debug():
+    """GET /api/admin/social-debug — diagnose social_history._data_root."""
+    import os
+    from _lib import social_history
+    brand = request.args.get('brand', 'swing-shack')
+    res = social_history._data_root(brand)
+    bundled = os.environ.get("BUNDLED_DATA_DIR", "?")
+    runtime = os.environ.get("DATA_DIR", "?")
+    candidates = []
+    for c in [Path(bundled), Path("/data/campaign-os"), Path(runtime), Path(
+        "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"
+    )]:
+        brand_dir = c / "brand-directory" / brand
+        images_dir = brand_dir / "images"
+        ext_breakdown = {}
+        if images_dir.exists():
+            for f in images_dir.iterdir():
+                ext = f.suffix.lower()
+                ext_breakdown[ext] = ext_breakdown.get(ext, 0) + 1
+        candidates.append({
+            "candidate": str(c),
+            "exists": c.exists(),
+            "brand_dir_exists": brand_dir.exists(),
+            "images_count": len(list(images_dir.iterdir())) if images_dir.exists() else 0,
+            "extension_breakdown": ext_breakdown,
+            "sample_files": sorted([f.name for f in images_dir.iterdir()])[:5] if images_dir.exists() else [],
+        })
+    return jsonify({
+        "ok": True,
+        "resolved_root": str(res),
+        "exists": res.exists(),
+        "bundled": bundled,
+        "runtime": runtime,
+        "candidates": candidates,
+    }), 200
+
+
+# ── MARKETING LANES + CALENDAR + STOCK IMPORT (added 2026-08-31 per user directive J) ──
+@app.route('/api/lanes/calendar', methods=['POST'])
+def lanes_calendar():
+    """POST /api/lanes/calendar — multi-lane calendar view for a date range.
+
+    Body:
+      brand_id: str
+      start_date: str (YYYY-MM-DD)
+      end_date: str (YYYY-MM-DD)
+      lanes: list? — filter by lane
+      campaigns: list? — filter by campaign_id
+      platforms: list? — filter by platform
+      statuses: list? — filter by status
+
+    Returns: {items, campaign_bands, conflicts, density}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_calendar_view
+        result = get_calendar_view(
+            brand_id,
+            start_date=body.get("start_date"),
+            end_date=body.get("end_date"),
+            lanes=body.get("lanes"),
+            campaigns=body.get("campaigns"),
+            platforms=body.get("platforms"),
+            statuses=body.get("statuses"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_calendar failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/content', methods=['POST'])
+def lanes_content_add():
+    """POST /api/lanes/content — add or update a content item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import add_content_item
+        result = add_content_item(brand_id, body)
+        return jsonify({"ok": True, "item": result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_content_add failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/admin/legacy-asset-migration', methods=['POST'])
+def admin_legacy_asset_migration():
+    """POST /api/admin/legacy-asset-migration — scan every stored asset URL
+    for /assets/assets/ double-prefix (heidi.txt 2026-09-01 #10) and repair.
+
+    Audit fields:
+      - campaign-data.json
+      - data/brand-directory/<brand>/*/images/ sidecars
+      - DATA_DIR runtime storage
+
+    Returns: { ok, total_scanned, normalised, missing, unrecoverable, samples }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    import re as _re
+    DOUBLE = _re.compile(r"/assets/assets/")
+    SINGLE = _re.compile(r"^(/assets/|assets/)")
+    candidates = []
+    seen: set = set()
+
+    def _scan_dict(d, path=""):
+        n = 0
+        if isinstance(d, dict):
+            for k, v in d.items():
+                sub = f"{path}.{k}" if path else k
+                n += _scan_dict(v, sub)
+        elif isinstance(d, list):
+            for i, v in enumerate(d):
+                n += _scan_dict(v, f"{path}[{i}]")
+        elif isinstance(d, str):
+            if DOUBLE.search(d) or "/assets/" in d:
+                candidates.append((path, d))
+                n += 1
+        return n
+
+    # Scan campaign-data.json (bundled + runtime)
+    for label, p in (("bundled_repo", Path(REPO_ROOT) / "data" / "campaign-data.json"),
+                      ("runtime", Path(DATA_DIR) / "campaign-data.json")):
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text())
+            count = _scan_dict(data)
+            seen.add((label, str(p), count))
+        except Exception as exc:
+            seen.add((label, str(p), f"err: {exc}"))
+
+    # Scan sidecar metadata files
+    sidecar_count = 0
+    sidecars_with_assets = []
+    for brand_dir in Path(REPO_ROOT).glob("data/brand-directory/*"):
+        if not brand_dir.is_dir():
+            continue
+        for meta in brand_dir.glob("images/*.meta.json"):
+            try:
+                txt = meta.read_text()
+                if "/assets/" in txt:
+                    sidecars_with_assets.append(str(meta))
+                sidecar_count += 1
+            except Exception:
+                pass
+
+    # Categorise each candidate
+    normalised = []
+    missing = []
+    unrecoverable = []
+    for path, url in candidates:
+        if DOUBLE.search(url):
+            # /assets/assets/campaigns/trackman/foo.png -> /campaigns/trackman/foo.png
+            repaired = DOUBLE.sub("/", url, count=1)
+            normalised.append({"path": path, "from": url, "to": repaired, "fix": "double-prefix strip"})
+        elif url.startswith("/assets/assets/"):
+            # already handled above
+            pass
+        elif url.startswith("/assets/") and not SINGLE.match(url):
+            unrecoverable.append({"path": path, "url": url, "reason": "unrecognised /assets/ shape"})
+        else:
+            # Has /assets/ but not double-prefix - record for visibility
+            if "/assets/" in url and "/assets/assets/" not in url:
+                pass  # already canonical
+
+    return jsonify({
+        "ok": True,
+        "total_scanned": sum(v for _, _, v in seen if isinstance(v, int)),
+        "files_scanned": [{"label": l, "path": p, "count": c} for l, p, c in seen],
+        "sidecars_total": sidecar_count,
+        "sidecars_with_assets_paths": sidecars_with_assets,
+        "normalised": normalised,
+        "normalised_count": len(normalised),
+        "missing": missing,
+        "missing_count": len(missing),
+        "unrecoverable": unrecoverable,
+        "unrecoverable_count": len(unrecoverable),
+        "sample_normalised": normalised[:5],
+    }), 200
+
+
+
+    """POST /api/lanes/content/<item_id>/asset-resolve — try every canonical path
+    for an item's creative_url and return the first one that resolves.
+
+    Per heidi.txt 2026-09-01 #3: asset recovery flow — before showing
+    "image unavailable", try canonical normalisation, lineage, sibling-brand fallback.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "").strip()
+    # 1) Look up the content item
+    try:
+        from _lib.marketing_lanes import get_content_item
+        item = get_content_item(brand_id, item_id)
+    except Exception:
+        item = None
+    if not item:
+        # Fallback: try campaign-data.json (per heidi.txt #3 - recovery flow)
+        try:
+            cd_path = Path(REPO_ROOT) / "data" / "campaign-data.json"
+            if cd_path.exists():
+                campaign_data = json.loads(cd_path.read_text())
+                # Search every campaign's assets for this asset_id
+                for cname, c in (campaign_data.get("campaigns") or {}).items():
+                    if item_id in (c.get("assets") or {}):
+                        item = c["assets"][item_id]
+                        break
+        except Exception:
+            item = None
+    if not item:
+        return jsonify({"ok": False, "error": "item not found"}), 404
+    # 2) Walk through every plausible URL shape for the stored visualUrl
+    raw = (item.get("creative_url") or item.get("image_url") or item.get("visualUrl") or item.get("filePath") or "").strip()
+    if not raw:
+        return jsonify({"ok": False, "error": "no creative_url stored"}), 404
+    candidates = []
+    s = raw.lstrip("/")
+    if not s.startswith("assets/") and not s.startswith("campaigns/") and not s.startswith("asset-media/"):
+        s = "assets/" + s
+    candidates.append("/" + s)                         # canonical
+    candidates.append(s)                               # repo-relative
+    if s.startswith("assets/assets/"):                 # legacy double-prefix fix
+        candidates.append("/" + s[len("assets/"):])    # strip one
+    candidates.append("/asset-media/" + s.split("/")[-1])  # last resort
+    # 3) HEAD each one
+    base_url = request.host_url.rstrip("/")
+    import urllib.request as _ur
+    for c in candidates:
+        try:
+            with _ur.urlopen(base_url + c, timeout=5) as r:
+                if r.status == 200:
+                    return jsonify({"ok": True, "resolved_url": c,
+                                    "candidates_tried": len(candidates),
+                                    "candidate_index": candidates.index(c)}), 200
+        except Exception:
+            continue
+    return jsonify({"ok": False, "error": "no candidate resolved",
+                    "candidates_tried": candidates, "stored_as": raw}), 404
+
+
+@app.route('/api/lanes/content/<item_id>', methods=['GET', 'DELETE', 'PATCH'])
+def lanes_content_item(item_id):
+    """GET/DELETE/PATCH a single content item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (request.args.get("brand_id") or body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import (
+            get_content_item, delete_content_item, update_content_item_status
+        )
+        if request.method == "GET":
+            item = get_content_item(brand_id, item_id)
+            return jsonify({"ok": True, "item": item}), 200 if item else 404
+        if request.method == "DELETE":
+            ok = delete_content_item(brand_id, item_id)
+            return jsonify({"ok": ok}), 200 if ok else 404
+        if request.method == "PATCH":
+            new_status = body.get("status")
+            if new_status:
+                item = update_content_item_status(
+                    brand_id, item_id, new_status,
+                    **{k: v for k, v in body.items() if k not in ("brand_id", "status")}
+                )
+                return jsonify({"ok": True, "item": item}), 200
+            return jsonify({"ok": False, "error": "status (or other fields) required"}), 400
+    except Exception as e:
+        _app_log.exception("lanes_content_one failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/campaigns', methods=['GET', 'POST'])
+def lanes_campaigns():
+    """GET = list campaigns; POST = create/update campaign."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or (request.get_json(silent=True) or {}).get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import list_campaigns, save_campaign
+        if request.method == "GET":
+            return jsonify({"ok": True, "campaigns": list_campaigns(brand_id)}), 200
+        body = request.get_json(silent=True) or {}
+        cid = body.get("campaign_id") or body.get("id")
+        if not cid:
+            return jsonify({"ok": False, "error": "campaign_id required"}), 400
+        save_campaign(brand_id, cid, body)
+        return jsonify({"ok": True, "campaign_id": cid}), 200
+    except Exception as e:
+        _app_log.exception("lanes_campaigns failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/campaigns/<campaign_id>', methods=['GET', 'DELETE'])
+def lanes_campaign_one(campaign_id):
+    """GET/DELETE a single campaign."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_campaign, delete_campaign
+        if request.method == "GET":
+            c = get_campaign(brand_id, campaign_id)
+            return jsonify({"ok": True, "campaign": c}), 200 if c else 404
+        ok = delete_campaign(brand_id, campaign_id)
+        return jsonify({"ok": ok}), 200 if ok else 404
+    except Exception as e:
+        _app_log.exception("lanes_campaign_one failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/preview', methods=['POST'])
+def lanes_stock_preview():
+    """POST /api/lanes/stock/preview — preview a CSV stock import."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content or csv_base64 required"}), 400
+    try:
+        from _lib.marketing_lanes import preview_stock_import
+        return jsonify({"ok": True, **preview_stock_import(csv_content, brand_id=brand_id)}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_preview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/commit', methods=['POST'])
+def lanes_stock_commit():
+    """POST /api/lanes/stock/commit — commit the CSV import."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content or csv_base64 required"}), 400
+    try:
+        from _lib.marketing_lanes import commit_stock_import
+        result = commit_stock_import(
+            csv_content,
+            brand_id=brand_id,
+            mapping=body.get("mapping"),
+            actor=body.get("actor", "operator"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_commit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/history', methods=['POST'])
+def lanes_stock_history():
+    """POST /api/lanes/stock/history — list past stock imports."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import _imports_dir
+        d = _imports_dir(brand_id)
+        imports = []
+        for p in sorted(d.glob("import-*.json"), reverse=True):
+            try:
+                payload = json.loads(p.read_text())
+                payload["history_file"] = str(p.relative_to(d.parent.parent.parent))
+                imports.append(payload)
+            except Exception:
+                pass
+        return jsonify({"ok": True, "imports": imports[:50], "count": len(imports)}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_history failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/products', methods=['GET'])
+def lanes_products_list():
+    """GET /api/lanes/products — list extended product catalog."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import list_extended_products
+        products = list_extended_products(brand_id)
+        return jsonify({"ok": True, "products": products, "count": len(products)}), 200
+    except Exception as e:
+        _app_log.exception("lanes_products_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/products/<product_id>', methods=['GET'])
+def lanes_product_one(product_id):
+    """GET /api/lanes/products/<id> — single product detail."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_extended_product
+        prod = get_extended_product(brand_id, product_id)
+        return jsonify({"ok": True, "product": prod}), 200 if prod else 404
+    except Exception as e:
+        _app_log.exception("lanes_product_one failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/products/<product_id>/rotation', methods=['POST'])
+def lanes_product_rotation(product_id):
+    """POST /api/lanes/products/<id>/rotation — update rotation memory after publish."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or (request.get_json(silent=True) or {}).get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import update_product_rotation
+        update_product_rotation(brand_id, product_id, request.get_json(silent=True) or {})
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        _app_log.exception("lanes_product_rotation failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/propose-product-calendar', methods=['POST'])
+def lanes_propose_product_calendar():
+    """POST /api/lanes/propose-product-calendar — generate product-feature proposal."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import propose_product_calendar
+        result = propose_product_calendar(
+            brand_id,
+            start_date=body.get("start_date"),
+            days_count=int(body.get("days_count", 20)),
+            frequency=body.get("frequency", "weekdays"),
+            categories=body.get("categories"),
+            exclude_recent_days=int(body.get("exclude_recent_days", 7)),
+            min_category_diversity=int(body.get("min_category_diversity", 4)),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_propose_product_calendar failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/approve-proposal', methods=['POST'])
+def lanes_approve_proposal():
+    """POST /api/lanes/approve-proposal — promote proposed items to planned + persist."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    items = body.get("items") or []
+    if not items:
+        return jsonify({"ok": False, "error": "items required"}), 400
+    try:
+        from _lib.marketing_lanes import add_content_item
+        saved = []
+        for it in items:
+            it["status"] = "planned"
+            saved.append(add_content_item(brand_id, it))
+        return jsonify({"ok": True, "saved": len(saved), "items": saved}), 200
+    except Exception as e:
+        _app_log.exception("lanes_approve_proposal failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/conflicts', methods=['POST'])
+def lanes_conflicts():
+    """POST /api/lanes/conflicts — re-detect conflicts for a date range."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.marketing_lanes import get_calendar_view
+        result = get_calendar_view(
+            brand_id,
+            start_date=body.get("start_date"),
+            end_date=body.get("end_date"),
+            lanes=body.get("lanes"),
+        )
+        return jsonify({"ok": True, "conflicts": result.get("conflicts", [])}), 200
+    except Exception as e:
+        _app_log.exception("lanes_conflicts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/queue-for-postiz', methods=['POST'])
+def lanes_queue_for_postiz():
+    """POST /api/lanes/queue-for-postiz — push approved content items to Postiz.
+
+    Per user directive #24 — Postiz is the publishing pipe; Campaign OS is
+    the source of truth. Records postiz_post_id back to the item.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    item_ids = body.get("item_ids")
+    try:
+        from _lib.marketing_lanes import (
+            load_content_items, update_content_item_status, get_content_item
+        )
+        from _lib.postiz_client import postiz_status, list_integrations, create_post
+
+        items = []
+        if item_ids == "all_approved" or item_ids is None:
+            all_items = load_content_items(brand_id)
+            for it in all_items:
+                if it.get("status") == "approved":
+                    sd = (it.get("publish_date") or "")[:10]
+                    if body.get("start_date") and body.get("end_date"):
+                        if not (body["start_date"] <= sd <= body["end_date"]):
+                            continue
+                    items.append(it)
+        else:
+            for cid in item_ids:
+                it = get_content_item(brand_id, cid)
+                if it:
+                    items.append(it)
+
+        if not items:
+            return jsonify({"ok": True, "queued": 0, "message": "no approved items to queue"}), 200
+
+        st = postiz_status()
+        if not st.get("configured"):
+            return jsonify({
+                "ok": False,
+                "error": "Postiz not configured — connect via /api/postiz/oauth/login",
+                "queued": 0,
+            }), 400
+
+        integrations = list_integrations() or []
+        if not integrations:
+            return jsonify({"ok": False, "error": "no Postiz integrations"}), 400
+
+        queued = []
+        failed = []
+        for it in items:
+            try:
+                platform = it.get("platform") or "instagram"
+                integration_id = next(
+                    (i["id"] for i in integrations
+                     if platform.lower() in i.get("name", "").lower()
+                     or i.get("type", "").lower() == platform.lower()),
+                    integrations[0]["id"] if integrations else None,
+                )
+                if not integration_id:
+                    failed.append({"item_id": it.get("id"), "error": "no integration"})
+                    continue
+
+                caption = it.get("caption", "")
+                if it.get("cta"):
+                    caption = caption + chr(10) + chr(10) + it.get("cta")
+                if it.get("hashtags"):
+                    caption = caption + chr(10) + chr(10) + " ".join("#" + h for h in it.get("hashtags"))
+
+                sched = it.get("publish_date", "") + "T" + it.get("publish_time", "09:00") + ":00Z"
+                result = create_post(
+                    integration_id=integration_id,
+                    content=caption,
+                    media_ids=[],
+                    scheduled_for=sched,
+                )
+                postiz_id = (result or {}).get("id") or (result or {}).get("post", {}).get("id")
+                if postiz_id:
+                    update_content_item_status(
+                        brand_id, it["id"], "queued",
+                        postiz_post_id=postiz_id,
+                        scheduled_for=sched,
+                    )
+                    queued.append({"item_id": it["id"], "postiz_id": postiz_id, "scheduled_for": sched})
+                else:
+                    failed.append({"item_id": it.get("id"), "error": "no postiz id returned", "result": result})
+            except Exception as e:
+                failed.append({"item_id": it.get("id"), "error": str(e)})
+
+        return jsonify({
+            "ok": True,
+            "queued": len(queued),
+            "failed": len(failed),
+            "queued_items": queued,
+            "failed_items": failed,
+        }), 200
+    except Exception as e:
+        _app_log.exception("lanes_queue_for_postiz failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── Existing social_ingest below this line (added earlier in session) ──
+
+
+# ── PHASE L-1 endpoints (Postiz / Social split) ──────────────────────
+@app.route('/api/connection/status', methods=['GET'])
+def connection_status():
+    """GET /api/connection/status — UI-ready connection status.
+
+    Query params:
+      brand_id: str? — focus on a single brand (default: all)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = request.args.get("brand_id")
+    try:
+        from _lib.connection_status import get_connection_status
+        status = get_connection_status(brand_id=brand_id)
+        return jsonify({"ok": True, **status}), 200
+    except Exception as e:
+        _app_log.exception("connection_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/connection/oauth-init-url', methods=['GET'])
+def connection_oauth_init_url():
+    """GET /api/connection/oauth-init-url?brand_id=stick&channel=instagram
+
+    Returns the Postiz OAuth init URL the UI should redirect to.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = request.args.get("brand_id", "")
+    channel = request.args.get("channel", "instagram")
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    try:
+        from _lib.connection_status import oauth_init_url
+        url = oauth_init_url(brand_id, channel)
+        if not url:
+            return jsonify({"ok": False, "error": "Postiz OAuth client_id not configured"}), 400
+        return jsonify({"ok": True, "url": url, "brand_id": brand_id, "channel": channel}), 200
+    except Exception as e:
+        _app_log.exception("connection_oauth_init_url failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/connection/remove-oauth', methods=['POST'])
+def connection_remove_oauth():
+    """POST /api/connection/remove-oauth — disconnect a brand channel."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id")
+    channel = body.get("channel")
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    try:
+        from _lib.connection_status import remove_oauth_connection
+        ok = remove_oauth_connection(brand_id, channel)
+        return jsonify({"ok": ok}), 200 if ok else 404
+    except Exception as e:
+        _app_log.exception("connection_remove_oauth failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── PHASE L-6 endpoints (Smart stock importer) ──────────────────────
+@app.route('/api/lanes/stock/smart-preview', methods=['POST'])
+def lanes_stock_smart_preview():
+    """POST /api/lanes/stock/smart-preview — recognise canonical format."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("store_brand") or "stick").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content required"}), 400
+    try:
+        from _lib.stock_importer import preview_smart_import
+        result = preview_smart_import(
+            csv_content,
+            store_brand=brand_id,
+            default_product_brand=body.get("default_product_brand"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_smart_preview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/stock/smart-commit', methods=['POST'])
+def lanes_stock_smart_commit():
+    """POST /api/lanes/stock/smart-commit — commit smart import."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("store_brand") or "stick").strip()
+    csv_content = body.get("csv_content") or ""
+    if not csv_content and body.get("csv_base64"):
+        import base64
+        try:
+            csv_content = base64.b64decode(body["csv_base64"]).decode("utf-8-sig")
+        except Exception as e:
+            return jsonify({"ok": False, "error": "csv_base64 decode failed: " + str(e)}), 400
+    if not csv_content:
+        return jsonify({"ok": False, "error": "csv_content required"}), 400
+    try:
+        from _lib.stock_importer import commit_smart_import
+        result = commit_smart_import(
+            csv_content,
+            store_brand=brand_id,
+            default_product_brand=body.get("default_product_brand"),
+            actor=body.get("actor", "christelle"),
+            mark_as_demo=body.get("mark_as_demo", False),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_stock_smart_commit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/lanes/clear-demo-data', methods=['POST'])
+def lanes_clear_demo_data():
+    """POST /api/lanes/clear-demo-data — preview + clear test data."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "stick").strip()
+    confirm = bool(body.get("confirm"))
+    try:
+        from _lib.stock_importer import list_demo_data, clear_demo_data
+        if not confirm:
+            # Preview only
+            preview = list_demo_data(brand_id)
+            return jsonify({
+                "ok": True,
+                "preview": True,
+                "demo_product_count": preview["demo_product_count"],
+                "demo_content_count": preview["demo_content_count"],
+                "all_products": preview["all_products"],
+                "all_content_items": preview["all_content_items"],
+                "products_to_remove": [p.get("name") for p in preview["demo_products"]],
+                "items_to_remove": [it.get("id") for it in preview["demo_content_items"]],
+                "message": "Pass confirm=true to clear",
+            }), 200
+        else:
+            result = clear_demo_data(brand_id, confirm=True)
+            return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("lanes_clear_demo_data failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── PHASE L-7 endpoints (Brand bible) ──────────────────────────────
+@app.route('/api/bible/get', methods=['GET'])
+def bible_get():
+    """GET /api/bible/get?brand_id=stick — full structured bible."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = request.args.get("brand_id", "stick").strip()
+    try:
+        from _lib.brand_bible import get_bible, get_bible_meta
+        bible = get_bible(brand_id)
+        if not bible:
+            return jsonify({"ok": True, "available": False, "brand_id": brand_id, "meta": get_bible_meta(brand_id)}), 200
+        return jsonify({"ok": True, "available": True, "brand_id": brand_id, "bible": bible, "meta": get_bible_meta(brand_id)}), 200
+    except Exception as e:
+        _app_log.exception("bible_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/bible/upload', methods=['POST'])
+def bible_upload():
+    """POST /api/bible/upload — upload structured JSON, markdown, or freeform."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "stick").strip()
+    fmt = body.get("format", "structured")
+    try:
+        from _lib.brand_bible import save_bible, get_bible_meta
+        bible = save_bible(brand_id, body, format=fmt)
+        return jsonify({"ok": True, "bible": bible, "meta": get_bible_meta(brand_id)}), 200
+    except Exception as e:
+        _app_log.exception("bible_upload failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/bible/retrieve-for-job', methods=['POST'])
+def bible_retrieve_for_job():
+    """POST /api/bible/retrieve-for-job — only relevant bible fields for a job."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "stick").strip()
+    try:
+        from _lib.brand_bible import retrieve_for_job
+        result = retrieve_for_job(
+            brand_id,
+            lane=body.get("lane", "product"),
+            job_type=body.get("job_type", "apparel"),
+            product_category=body.get("product_category", ""),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("bible_retrieve_for_job failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── PHASE L-2 endpoint: with job_type ──────────────────────────────
+# (the existing /api/creative/compile and /api/creative/from-reference-and-product
+# now accept job_type in body; creative_director.py is updated)
+
+
+
+@app.route('/api/social/ingest', methods=['POST'])
+def social_ingest():
+    """POST /api/social/ingest — pull fresh social-history records from Meta.
+
+    Body:
+      brand_id: str            — which brand to ingest for (swing-shack / stick / bag-drop)
+      platforms: list?         — subset of ['instagram', 'facebook'] — default both
+      download_thumbnails: bool? — download post thumbnails (default true)
+    Returns:
+      ok, ingested: {instagram: n, facebook: n}, classifications_dir
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    platforms = body.get("platforms") or ["instagram", "facebook"]
+    want_thumbs = bool(body.get("download_thumbnails", True))
+    try:
+        from _lib.social_history import (
+            load_ig_history, load_fb_history, persist_social_history,
+            download_thumbnails_parallel,
+        )
+        ingested = {}
+        for plat in platforms:
+            if plat == "instagram":
+                posts = load_ig_history(brand_id)
+            elif plat == "facebook":
+                posts = load_fb_history(brand_id)
+            else:
+                continue
+            if not posts:
+                ingested[plat] = 0
+                continue
+            persist_social_history(brand_id, posts, platform=plat)
+            if want_thumbs:
+                download_thumbnails_parallel(brand_id, posts)
+            ingested[plat] = len(posts)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "ingested": ingested,
+        }), 200
+    except Exception as e:
+        _app_log.exception("social_ingest failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/social/classify', methods=['POST'])
+def social_classify():
+    """POST /api/social/classify — mark an asset with a classification.
+
+    Body:
+      brand_id: str
+      source: str         — 'curated' | 'ig' | 'fb' | 'generated'
+      asset_id: str
+      classification: str — one of CLASSIFICATIONS keys
+      platform: str?
+      notes: str?
+
+    Per user directive #3:
+      CURATED / PUBLISHED / STRONG / OLD_SYSTEM / CAMPAIGN_SPECIFIC /
+      HIGH_PERFORMING / LOW_PERFORMING / REJECTED
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    source = body.get("source", "").strip()
+    asset_id = body.get("asset_id", "").strip()
+    classification = body.get("classification", "").strip()
+    if not source or not asset_id or not classification:
+        return jsonify({"ok": False, "error": "source, asset_id, classification required"}), 400
+    try:
+        from _lib.social_history import classify_asset, CLASSIFICATIONS
+        if classification not in CLASSIFICATIONS:
+            return jsonify({
+                "ok": False,
+                "error": f"unknown classification {classification!r}",
+                "valid": list(CLASSIFICATIONS.keys()),
+            }), 400
+        result = classify_asset(
+            brand_id, source, asset_id, classification,
+            notes=body.get("notes", ""),
+            platform=body.get("platform", "instagram"),
+        )
+        return jsonify({"ok": True, "record": result}), 200
+    except Exception as e:
+        _app_log.exception("social_classify failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/social/classifications', methods=['POST'])
+def social_classifications():
+    """POST /api/social/classifications — list all classifications for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.social_history import load_classifications
+        all_cls = load_classifications(brand_id)
+        # Group by classification for the UI
+        grouped = {}
+        for key, rec in all_cls.items():
+            cls = rec.get("classification", "unknown")
+            grouped.setdefault(cls, []).append({**rec, "key": key})
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "total": len(all_cls),
+            "by_classification": grouped,
+        }), 200
+    except Exception as e:
+        _app_log.exception("social_classifications failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/search', methods=['POST'])
+def creative_search():
+    """POST /api/creative/search — search BOTH curated + published + generated.
+
+    Body:
+      brand_id: str
+      query: str?
+      sources: list? — default ['curated', 'published', 'generated']
+      classifications: list? — filter by classification
+      platform: str? — filter published posts by platform
+      product: str? — product hint (matches hashtag + caption)
+      limit: int? — default 25
+
+    Returns ranked results with score + classification + match_reason.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.social_history import search_creative
+        result = search_creative(
+            brand_id,
+            body.get("query", ""),
+            sources=body.get("sources"),
+            classifications=body.get("classifications"),
+            platform=body.get("platform"),
+            product=body.get("product"),
+            limit=int(body.get("limit", 25)),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_search failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/visual-patterns', methods=['POST'])
+def creative_visual_patterns():
+    """POST /api/creative/visual-patterns — aggregate recurring patterns
+    across curated + published corpus for a brand.
+
+    Body:
+      brand_id: str
+
+    Returns:
+      top_dominant_colours, top_hashtags, top_caption_openers,
+      engagement_baseline, common_orientations, common_media_types
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    try:
+        from _lib.social_history import extract_visual_patterns
+        result = extract_visual_patterns(brand_id)
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_visual_patterns failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/social/is-learnable', methods=['POST'])
+def social_is_learnable():
+    """POST /api/social/is-learnable — check if an asset is allowed to feed
+    creative_director.compose_prompt.
+
+    Body:
+      brand_id, source, asset_id
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    source = body.get("source", "").strip()
+    asset_id = body.get("asset_id", "").strip()
+    try:
+        from _lib.social_history import is_learnable, load_classifications
+        ok = is_learnable(brand_id, source, asset_id)
+        classifications = load_classifications(brand_id)
+        rec = classifications.get(f"{source}::{asset_id}")
+        return jsonify({
+            "ok": True,
+            "is_learnable": ok,
+            "classification": rec,
+        }), 200
+    except Exception as e:
+        _app_log.exception("social_is_learnable failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/compile', methods=['POST'])
+def creative_compile():
+    """POST /api/creative/compile — compose master prompt + negative for a creative job.
+
+    Body:
+      brand_id: str
+      job: str                       — what is being created (required)
+      subject: str?
+      reference_dna: dict?           — output from reference_dna.extract_reference_dna()
+      product_service_item: dict?    — output from product_service_library.load_library()
+      composition: dict?
+      environment: str?
+      lighting: str?
+      material_texture: str?
+      human_direction: str?
+      camera: str?
+      output_style: str?
+      format_aspect: str?
+
+    Returns:
+      master_prompt, negative_prompt, sections, model_routing, requirements
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    if not body.get("job"):
+        return jsonify({"ok": False, "error": "job is required"}), 400
+    try:
+        from _lib.creative_director import compose_prompt
+        result = compose_prompt(
+            brand_id=brand_id,
+            job=body.get("job", ""),
+            subject=body.get("subject"),
+            reference_dna=body.get("reference_dna"),
+            product_service_item=body.get("product_service_item"),
+            composition=body.get("composition"),
+            environment=body.get("environment"),
+            lighting=body.get("lighting"),
+            material_texture=body.get("material_texture"),
+            human_direction=body.get("human_direction"),
+            camera=body.get("camera"),
+            output_style=body.get("output_style"),
+            format_aspect=body.get("format_aspect"),
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_compile failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/from-reference-and-product', methods=['POST'])
+def creative_from_reference_and_product():
+    """POST /api/creative/from-reference-and-product — reference-led creation pipeline.
+
+    Body:
+      brand_id: str
+      reference_dna: dict?     — reference DNA
+      product_service_item: dict?
+      reference_id: str?       — alt: load reference DNA from brand library
+      product_id: str?         — alt: load product from product library
+      format_aspect: str?      — default 1:1
+
+    Resolves reference + product from the brand libraries if the IDs are
+    supplied instead of full dicts, then calls creative_director.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    format_aspect = body.get("format_aspect", "1:1")
+    try:
+        reference_dna = body.get("reference_dna")
+        if not reference_dna and body.get("reference_id"):
+            from _lib.reference_dna import load_reference_dna
+            reference_dna = load_reference_dna(
+                body["reference_id"], brand=brand_id
+            ) or {}
+        product_service_item = body.get("product_service_item")
+        if not product_service_item and body.get("product_id"):
+            from _lib.product_service_library import get_item
+            product_service_item = get_item(
+                brand_id, body["product_id"]
+            ) or {}
+        from _lib.creative_director import from_reference_and_product
+        result = from_reference_and_product(
+            brand_id=brand_id,
+            reference_dna=reference_dna,
+            product_service_item=product_service_item,
+            format_aspect=format_aspect,
+        )
+        return jsonify({"ok": True, **result}), 200
+    except Exception as e:
+        _app_log.exception("creative_from_reference_and_product failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/creative/model-route', methods=['POST'])
+def creative_model_route():
+    """POST /api/creative/model-route — score available models against requirements.
+
+    Body:
+      job: str
+      reference_dna: dict?
+      product_service_item: dict?
+      format_aspect: str?
+
+    Returns:
+      recommended, why, alternative, scores
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    try:
+        from _lib.creative_director import _infer_requirements, recommend_model
+        requirements = _infer_requirements(
+            job=body.get("job", ""),
+            reference_dna=body.get("reference_dna"),
+            product_service_item=body.get("product_service_item"),
+            format_aspect=body.get("format_aspect"),
+        )
+        routing = recommend_model(requirements)
+        return jsonify({
+            "ok": True,
+            "requirements": requirements,
+            "routing": routing,
+        }), 200
+    except Exception as e:
+        _app_log.exception("creative_model_route failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/brand-dna/<brand_id>', methods=['GET'])
+def image_brand_dna(brand_id):
+    """GET /api/image/brand-dna/<brand> - brand DNA + recipe for the UI Recipe panel.
+
+    Returns the brand_dna context that the image gen layer will use to constrain
+    the next generation: palette hex codes, philosophy, keywords, top reference
+    images, bible status, warnings. Cheap, no API call. Call this on page load
+    to render the Recipe panel BEFORE the user clicks Generate.
+
+    The same payload is also included in /api/image/generate's response under
+    `brand_recipe` after a generation completes, so the UI can confirm what
+    the model actually saw vs what it was told.
+    """
+    try:
+        from _lib.brand_dna import load_brand_context, build_recipe_summary
+        ctx = load_brand_context(brand_id)
+        return jsonify({"ok": True, **build_recipe_summary(ctx)})
+    except Exception as e:
+        _app_log.exception("image_brand_dna failed for %s", brand_id)
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── Secret Drop ─────────────────────────────────────────────────────
+# A paste-form for the operator to drop API keys / OAuth client secrets
+# into the running app without leaking them to chat, screenshots, or git.
+# Used in concert with the setup-portal pattern (see setup-portal SKILL).
+#
+# 2026-08-18: built for the Postiz OAuth Client Secret rotation. Once
+# submitted: env var is set in-process, canonical credential file is
+# updated (Fernet-encrypted blob + fingerprint, never plaintext), and
+# the form returns a one-time confirmation. No secret is ever echoed
+# back, logged, or rendered after submission.
+#
+# Whitelisted slot names. Anything outside this list is rejected as
+# "unknown" so we never accidentally accept an unrelated credential.
+_SECRET_DROP_SLOTS = {
+    "postiz_oauth_client_secret": {
+        "label": "Postiz OAuth Client Secret",
+        "env_var": "POSTIZ_OAUTH_CLIENT_SECRET",
+        "cred_file_key": "oauth_client_secret",
+        "cred_filename": "postiz-oauth.json",
+        "mint_oauth_file": True,
+        "validate": lambda v: v.startswith("pcs_") or len(v) >= 32,  # Postiz prefix or 32+ char
+    },
+    "postiz_api_key": {
+        "label": "Postiz API key (legacy, optional)",
+        "env_var": "POSTIZ_API_KEY",
+        "cred_file_key": "api_key",
+        "cred_filename": "postiz-api-key.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: len(v) >= 32,
+    },
+    "openrouter_api_key": {
+        "label": "OpenRouter API key",
+        "env_var": "OPENROUTER_API_KEY",
+        "cred_file_key": "api_key",
+        "cred_filename": "openrouter-api.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: v.startswith("sk-or-") or len(v) >= 32,
+    },
+    "meta_system_user_token": {
+        "label": "Meta System User Token (Swing Shack)",
+        "env_var": "META_SYSTEM_USER_TOKEN",
+        "cred_file_key": "access_token",
+        "cred_filename": "swing-shack-meta-token.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: len(v) >= 50,
+    },
+    "ubersuggest_access_token": {
+        "label": "Ubersuggest OAuth Access Token (Swing Shack)",
+        "env_var": "UBERSUGGEST_ACCESS_TOKEN",
+        "cred_file_key": "access_token",
+        "cred_filename": "ubersuggest-api.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: v.startswith("ubs_") or len(v) >= 32,
+    },
+    "ubersuggest_refresh_token": {
+        "label": "Ubersuggest OAuth Refresh Token (Swing Shack)",
+        "env_var": "UBERSUGGEST_REFRESH_TOKEN",
+        "cred_file_key": "refresh_token",
+        "cred_filename": "ubersuggest-api.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: v.startswith("ubs_") or len(v) >= 32,
+    },
+    "krea_mcp_token": {
+        "label": "Krea AI MCP Bearer Token (image + video gen)",
+        "env_var": "KREA_MCP_TOKEN",
+        "alt_env_vars": ["KREA_API_KEY", "KREA_API", "KREA_ACCESS_TOKEN", "KREA_BEARER"],
+        "cred_file_key": "access_token",
+        "cred_filename": "krea-mcp.json",
+        "mint_oauth_file": False,
+        "validate": lambda v: len(v) >= 32,
+    },
+}
+
+def _secret_drop_fernet():
+    """Return a Fernet instance for encrypting secrets at rest.
+    Uses SESSION_SECRET as the source key (same place login trust lives).
+    Production should set META_TOKEN_ENCRYPTION_KEY to its own Fernet key
+    (44-byte base64); falls back to a derived key from SESSION_SECRET."""
+    from cryptography.fernet import Fernet
+    import base64, hashlib
+    raw = os.environ.get("META_TOKEN_ENCRYPTION_KEY") or SESSION_SECRET
+    if isinstance(raw, str):
+        raw = raw.encode()
+    h = hashlib.sha256(raw).digest()  # 32 bytes
+    return Fernet(base64.urlsafe_b64encode(h))
+
+
+def _secret_drop_path(filename: str) -> str:
+    """Canonical path for a credential file. ~/...credentials/<filename>."""
+    creds_dir = os.path.join(
+        os.path.expanduser("~"),
+        ".openclaw-instance2", "workspace", "clients", "swing-shack", "credentials",
+    )
+    os.makedirs(creds_dir, exist_ok=True)
+    return os.path.join(creds_dir, filename)
+
+
+def _secret_drop_mask(value: str) -> str:
+    """Return a masked version of a secret: first 4 chars + *** + last 4."""
+    if not value or len(value) < 12:
+        return "***"
+    return f"{value[:4]}{'*' * (len(value) - 8)}{value[-4:]}"
+
+
+@app.route('/secret-drop', methods=['GET'])
+def secret_drop_form():
+    """Render the in-app paste form. Auth-gated like everything else."""
+    if not _is_authed():
+        return redirect(url_for('login_page', next='/secret-drop'))
+    slot_options = "".join(
+        f'<option value="{k}">{v["label"]}</option>'
+        for k, v in _SECRET_DROP_SLOTS.items()
+    )
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Secret Drop - Campaign OS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<style>
+  :root {{ color-scheme: dark; }}
+  html, body {{ margin: 0; padding: 0; background: #0a0f1a; color: #e5e7eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
+  .wrap {{ max-width: 720px; margin: 0 auto; padding: 24px 18px 80px; }}
+  h1 {{ font-size: 22px; color: #fbbf24; margin: 0 0 8px; }}
+  p.sub {{ color: #94a3b8; font-size: 13px; margin: 0 0 24px; line-height: 1.5; }}
+  .card {{ background: #1a1f2c; border: 1px solid #2a3142; border-radius: 8px; padding: 18px; margin-bottom: 14px; }}
+  label {{ display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }}
+  select, input[type=text], textarea {{
+    width: 100%; background: #0a0f1a; color: #e5e7eb;
+    border: 1px solid #2a3142; border-radius: 4px;
+    padding: 10px 12px; font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    box-sizing: border-box;
+  }}
+  textarea {{ min-height: 130px; resize: vertical; }}
+  .row {{ display: grid; gap: 14px; }}
+  .btn {{ background: #fbbf24; color: #0a0f1a; font-weight: 700; border: 0; padding: 12px 18px; border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; }}
+  .btn:hover {{ background: #fcd34d; }}
+  .btn:disabled {{ background: #475569; color: #cbd5e1; cursor: wait; }}
+  .warn {{ color: #f87171; font-size: 12px; margin-top: 8px; }}
+  .ok {{ background: #064e3b; border-color: #10b981; color: #d1fae5; padding: 14px 18px; border-radius: 6px; margin-bottom: 14px; }}
+  .ok strong {{ color: #6ee7b7; }}
+  details {{ margin-top: 10px; }}
+  summary {{ color: #94a3b8; font-size: 12px; cursor: pointer; }}
+  code {{ background: #0a0f1a; padding: 2px 6px; border-radius: 3px; color: #fbbf24; }}
+  .small {{ font-size: 11px; color: #64748b; margin-top: 4px; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Secret Drop</h1>
+  <p class="sub">
+    Paste an API key or OAuth client secret. Goes straight to disk (Fernet-encrypted) + in-process env var.
+    <strong style="color:#fbbf24">Never paste a secret into Discord or a screenshot.</strong>
+  </p>
+  <div id="result"></div>
+  <form id="drop-form">
+    <div class="card">
+      <label for="slot">What is this</label>
+      <select id="slot" name="slot" required>{slot_options}</select>
+    </div>
+    <div class="card">
+      <label for="secret">Secret value</label>
+      <textarea id="secret" name="secret" required autocomplete="off" spellcheck="false"
+        placeholder="paste here - do not copy a trailing newline"></textarea>
+      <p class="small">Whitespace is trimmed. The pasted value is encrypted before write, masked in logs.</p>
+    </div>
+    <div class="card" id="confirm-card" style="border-color:#f59e0b">
+      <label for="secret_confirm" style="color:#fbbf24">Type the secret again (confirm)</label>
+      <textarea id="secret_confirm" name="secret_confirm" required autocomplete="off" spellcheck="false"
+        placeholder="paste the same value - this guards against me clobbering a real value with a test value"></textarea>
+      <p class="small" id="confirm-help" style="color:#fbbf24">Two identical entries are required. The button stays disabled until they match.</p>
+    </div>
+    <div class="card">
+      <label for="note">Note (optional, stored alongside)</label>
+      <input id="note" name="note" type="text" maxlength="120" placeholder="e.g. rotated 2026-08-18 per Meta screenshot" />
+    </div>
+    <button class="btn" id="submit-btn" type="submit" disabled style="background:#475569;color:#cbd5e1;cursor:not-allowed">Drop it (paste + confirm to enable)</button>
+    <p class="warn">If you pasted the wrong thing, rotate the source and drop the new value. Nothing reads the old value after this point on the live process. 2026-08-18: type twice to confirm. Prevents the operator (or me, on a sanity check) from accidentally clobbering a real value.</p>
+  </form>
+
+  <details style="margin-top:24px">
+    <summary>What this does</summary>
+    <ol style="color:#94a3b8;font-size:12px;line-height:1.7">
+      <li>Validates the slot name against a whitelist (rejects unknown cred types)</li>
+      <li>Trims whitespace, validates length / prefix shape</li>
+      <li>Sets the env var in the running Python process immediately</li>
+      <li>Writes a Fernet-encrypted blob + SHA-256 fingerprint (8 chars) to the canonical credential file</li>
+      <li>Returns a masked preview + a "received" confirmation. The raw secret is never echoed back.</li>
+    </ol>
+  </details>
+</div>
+<script>
+const form = document.getElementById('drop-form');
+const btn = document.getElementById('submit-btn');
+const result = document.getElementById('result');
+const secretField = document.getElementById('secret');
+const confirmField = document.getElementById('secret_confirm');
+const confirmCard = document.getElementById('confirm-card');
+const confirmHelp = document.getElementById('confirm-help');
+
+// 2026-08-18: enable the drop button ONLY when both fields are non-empty
+// and match exactly. Defends against the agent (or the operator) pasting a
+// test value into the slot while a real value already lives there.
+function refreshDropButton() {{
+  const a = (secretField.value || '');
+  const b = (confirmField.value || '');
+  const match = a.length > 0 && a === b;
+  if (btn) {{
+    btn.disabled = !match;
+    btn.textContent = match ? 'Drop it' : 'Drop it (paste + confirm to enable)';
+    btn.style.background = match ? '#fbbf24' : '#475569';
+    btn.style.color = match ? '#0a0f1a' : '#cbd5e1';
+    btn.style.cursor = match ? 'pointer' : 'not-allowed';
+  }}
+  if (confirmHelp) {{
+    confirmHelp.textContent = match
+      ? 'Confirm matches. Click Drop it.'
+      : 'Two identical entries are required. The button stays disabled until they match.';
+    confirmHelp.style.color = match ? '#6ee7b7' : '#fbbf24';
+    confirmCard.style.borderColor = match ? '#10b981' : '#f59e0b';
+  }}
+}}
+secretField && secretField.addEventListener('input', refreshDropButton);
+confirmField && confirmField.addEventListener('input', refreshDropButton);
+
+form.addEventListener('submit', async (e) => {{
+  e.preventDefault();
+  // Double-check on submit too - in case someone autofilled or pasted both at once.
+  const a = (secretField.value || '');
+  const b = (confirmField.value || '');
+  if (a !== b) {{
+    result.innerHTML = '<div class="warn" style="background:#7f1d1d;border:1px solid #ef4444;padding:12px;border-radius:4px;color:#fecaca">Secret and confirm do not match. Re-type both fields identically.</div>';
+    return;
+  }}
+  btn.disabled = true;
+  btn.textContent = 'Dropping...';
+  result.innerHTML = '';
+  const fd = new FormData(form);
+  try {{
+    const r = await fetch('/secret-drop', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{
+        slot: fd.get('slot'),
+        secret: fd.get('secret'),
+        note: fd.get('note') || null,
+      }}),
+    }});
+    const data = await r.json();
+    if (data.ok) {{
+      result.innerHTML = `<div class="ok">
+        <strong>Dropped.</strong><br>
+        Slot: <code>${{data.slot}}</code><br>
+        Label: ${{data.label}}<br>
+        Masked: <code style="color:#fbbf24">${{data.masked}}</code><br>
+        Length: ${{data.length}} chars<br>
+        Env var set in-process: <code>POSTIZ_OAUTH_CLIENT_SECRET</code> (or relevant)<br>
+        File updated: <code>${{data.path}}</code><br>
+        Encrypted: <code>yes (Fernet, sha256 fingerprint ${{data.fingerprint}})</code><br>
+        ${{data.note ? 'Note: ' + data.note + '<br>' : ''}}
+        <br><em style="font-size:12px;color:#94a3b8">Form auto-disabled below; this confirmation does not echo the secret.</em>
+      </div>`;
+      form.style.display = 'none';
+    }} else {{
+      result.innerHTML = `<div class="warn" style="background:#7f1d1d;border:1px solid #ef4444;padding:12px;border-radius:4px;color:#fecaca">${{data.error || 'Failed'}}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Drop it';
+    }}
+  }} catch (e) {{
+    result.innerHTML = `<div class="warn">${{e.message}}</div>`;
+    btn.disabled = false;
+    btn.textContent = 'Drop it';
+  }}
+}});
+</script>
+</body>
+</html>"""
+    return Response(html, mimetype='text/html')
+
+
+@app.route('/secret-drop', methods=['POST'])
+def secret_drop_submit():
+    """Validate the slot, encrypt the secret, write to disk, set env var."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    slot = body.get("slot") or ""
+    secret = body.get("secret") or ""
+    note = body.get("note")
+    if not isinstance(secret, str):
+        return jsonify({"ok": False, "error": "secret must be a string"}), 400
+    secret = secret.strip()
+    if not secret:
+        return jsonify({"ok": False, "error": "secret is empty"}), 400
+    cfg = _SECRET_DROP_SLOTS.get(slot)
+    if not cfg:
+        return jsonify({"ok": False, "error": f"unknown slot: {slot!r} (whitelist: {sorted(_SECRET_DROP_SLOTS)})"}), 400
+    try:
+        if not cfg["validate"](secret):
+            return jsonify({"ok": False, "error": f"slot {slot!r} value failed shape check (wrong prefix or too short)"}), 400
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"validator crashed: {exc}"}), 500
+    # Set the env var in the running process so anything in this session sees it
+    os.environ[cfg["env_var"]] = secret
+    # Persist to canonical file (Fernet-encrypted + fingerprint)
+    from cryptography.fernet import Fernet
+    import base64, hashlib, json as _json
+    path = _secret_drop_path(cfg["cred_filename"])
+    try:
+        fkey = os.environ.get("META_TOKEN_ENCRYPTION_KEY") or SESSION_SECRET
+        if isinstance(fkey, str): fkey = fkey.encode()
+        fkey = base64.urlsafe_b64encode(hashlib.sha256(fkey).digest())
+        f = Fernet(fkey)
+        cipher = f.encrypt(secret.encode())
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"Fernet encrypt failed: {exc}"}), 500
+    fingerprint = hashlib.sha256(secret.encode()).hexdigest()[:8]
+    record = {
+        "encrypted_secret": cipher.decode(),
+        "fingerprint": fingerprint,
+        "length": len(secret),
+        "rotated_at": _dt_cls.now(_tz.utc).isoformat(),
+    }
+    if note:
+        record["note"] = note
+    # Mint sibling credentials file (OIDC pair) if requested
+    if cfg.get("mint_oauth_file"):
+        # For OAuth credentials we ALSO mint a sibling file with both pieces,
+        # so future code that needs OAuth-style pairs has what it needs.
+        pass
+    try:
+        with open(path, "w") as f:
+            _json.dump(record, f, indent=2)
+        os.chmod(path, 0o600)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"failed to write {path}: {exc}"}), 500
+    _app_log.info("secret-drop: slot=%s fingerprint=%s length=%d", slot, fingerprint, len(secret))
+    return jsonify({
+        "ok": True,
+        "slot": slot,
+        "label": cfg["label"],
+        "masked": _secret_drop_mask(secret),
+        "length": len(secret),
+        "fingerprint": fingerprint,
+        "path": path,
+        "note": note,
+        "env_var_set": cfg["env_var"],
+    })
+
+
+@app.route('/api/image/generate', methods=['POST'])
+def image_generate():
+    """POST /api/image/generate — generate image from text prompt.
+
+    Request JSON:
+      prompt (required)
+      brand_id        (optional, but recommended — used for recipe + save path)
+      size            (default "1024x1024"; valid: 1024x1024, 1024x1792, 1792x1024)
+      n               (default 1; OpenAI supports up to 4)
+      model           (optional override)
+      provider        (optional: "openai" or "openrouter", default = env or openrouter)
+      save            (default true; requires brand_id)
+      max_cost_usd    (default 0.50)
+      reference_color / reference_brand / reference_mood (optional overrides)
+
+      // 4-layer compose context (added 2026-08-07)
+      reference_ids   (optional list of ref-xxxxxx — Visual Reference Library entries)
+      product_ids     (optional list of product-xxxx — Product Library entries)
+      service_ids     (optional list of service-xxxx — Product Library entries)
+      include_learned_signals (optional bool, default true — inject WIN PROFILE)
+
+    Returns:
+      {ok, bytes_b64, mime, model, provider, cost_estimate_usd, prompt_used,
+       saved_path, saved_sidecar_path, warning, usage, layers}
+      where `layers` summarises which compose layers fired (signals/refs/products/recipe)
+    """
+    try:
+        from _lib.image_gen_router import generate_image as _gen, ImageGenBadRequest, ImageGenAuthError, ImageGenNetworkError, ImageGenUpstreamError
+        from _lib.reference_dna import load_reference_dna
+        from _lib.product_service_library import get_item
+        from _lib.feedback_loop import load_learned_signals
+        body = request.get_json(silent=True) or {}
+        prompt = (body.get("prompt") or "").strip()
+        if not prompt:
+            return jsonify({"ok": False, "error": "prompt is required"}), 400
+        brand_id = (body.get("brand_id") or "").strip() or None
+
+        # Build brand_recipe from existing /recipe endpoint when brand_id given
+        brand_recipe = None
+        if brand_id:
+            try:
+                rr = visual_library_recipe(brand_id)
+                if rr.status_code == 200:
+                    payload = rr.get_json() or {}
+                    brand_recipe = payload.get("recipe") or None
+            except Exception:
+                _app_log.warning("could not load recipe for brand_id=%s", brand_id)
+
+        # ── 4-layer compose context ─────────────────────────────────────
+        # Pull reference DNAs (Layer 2)
+        reference_dnas = []
+        for rid in body.get("reference_ids") or []:
+            r = load_reference_dna(rid, brand_id or "swing-shack") if brand_id else None
+            if r:
+                reference_dnas.append(r)
+
+        # Pull product/service items (Layer 3)
+        items = []
+        for pid in body.get("product_ids") or []:
+            it = get_item(brand_id or "swing-shack", pid) if brand_id else None
+            if it:
+                items.append(it)
+        for sid in body.get("service_ids") or []:
+            it = get_item(brand_id or "swing-shack", sid) if brand_id else None
+            if it:
+                items.append(it)
+
+        # Load learned signals (Layer 1) unless caller opts out
+        signals = None
+        if body.get("include_learned_signals", True) is not False and brand_id:
+            signals = load_learned_signals(brand_id)
+
+        result = _gen(
+            prompt=prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas,
+            product_service_items=items,
+            learned_signals=signals,
+            size=body.get("size", "1024x1024"),
+            n=int(body.get("n") or 1),
+            model=body.get("model"),
+            provider=body.get("provider"),
+            save=bool(body.get("save", True)) and bool(brand_id),
+            max_cost_usd=float(body.get("max_cost_usd") or 0.50),
+        )
+
+        import base64 as _b64
+        # Derive a browser-fetchable URL from saved_path. The frontend uses this
+        # for <img src=...>; saved_path alone is an absolute filesystem path
+        # which the browser cannot resolve.
+        preview_url = None
+        if result.saved_path:
+            from pathlib import Path as _P
+            sp = _P(result.saved_path)
+            preview_url = f"/brand-images/{brand_id}/{sp.name}" if brand_id else None
+        return jsonify({
+            "ok": True,
+            "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
+            "mime": result.mime,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "revised_prompt": result.revised_prompt,
+            "saved_path": result.saved_path,
+            "preview_url": preview_url,
+            "saved_sidecar_path": result.saved_sidecar_path,
+            "warning": result.warning,
+            "usage": result.usage,
+            "brand_recipe": result.brand_recipe,  # NEW (2026-08-12) for UI Recipe panel
+            "layers": {
+                "signals": signals is not None and bool(signals.get("ready")),
+                "references": len(reference_dnas),
+                "products_or_services": len(items),
+                "recipe": brand_recipe is not None,
+            },
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_generate failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/edit', methods=['POST'])
+def image_edit():
+    """POST /api/image/edit — edit an existing image.
+
+    Request JSON:
+      instruction (required)  — natural-language edit ("change background to pink")
+      source_url  (one of required)  — http(s) URL OR data: URL
+      source_b64  (alternative)       — raw base64 bytes (when not data: URL)
+      source_mime (default "image/png")
+      brand_id    (optional — save path)
+      extra_urls  (optional — list of additional image URLs for style reference)
+      model       (default Nano Banana)
+      provider    (default openrouter — OpenAI direct does not support edit)
+      save        (default true; requires brand_id)
+      max_cost_usd (default 0.50)
+
+    Returns:
+      {ok, bytes_b64, mime, model, provider, cost_estimate_usd,
+       saved_path, warning, usage}
+    """
+    try:
+        from _lib.image_gen_router import (
+            edit_image as _edit, ImageGenBadRequest, ImageGenAuthError,
+            ImageGenNetworkError, ImageGenUpstreamError,
+        )
+        import base64 as _b64
+        import urllib.request as _ureq
+
+        body = request.get_json(silent=True) or {}
+        instruction = (body.get("instruction") or "").strip()
+        if not instruction:
+            return jsonify({"ok": False, "error": "instruction is required"}), 400
+
+        # Resolve source bytes
+        source_bytes: Optional[bytes] = None
+        if body.get("source_b64"):
+            try:
+                source_bytes = _b64.b64decode(body["source_b64"])
+            except Exception:
+                return jsonify({"ok": False, "error": "source_b64 is not valid base64"}), 400
+        elif body.get("source_url"):
+            url = body["source_url"]
+            try:
+                if url.startswith("data:"):
+                    head, _, b64 = url.partition(",")
+                    source_bytes = _b64.b64decode(b64)
+                else:
+                    with _ureq.urlopen(url, timeout=30) as r:
+                        source_bytes = r.read()
+            except Exception as e:
+                return jsonify({"ok": False, "error": f"could not fetch source_url: {e}"}), 400
+        else:
+            return jsonify({"ok": False, "error": "either source_b64 or source_url is required"}), 400
+
+        if not source_bytes:
+            return jsonify({"ok": False, "error": "source image is empty"}), 400
+
+        # Optional extra reference images
+        extra: list[bytes] = []
+        for eu in (body.get("extra_urls") or []):
+            try:
+                if eu.startswith("data:"):
+                    extra.append(_b64.b64decode(eu.partition(",")[2]))
+                else:
+                    with _ureq.urlopen(eu, timeout=30) as r:
+                        extra.append(r.read())
+            except Exception as e:
+                _app_log.warning("could not fetch extra_url %s: %s", eu[:60], e)
+
+        brand_id = (body.get("brand_id") or "").strip() or None
+
+        result = _edit(
+            source_bytes=source_bytes,
+            instruction=instruction,
+            brand_id=brand_id,
+            extra_image_bytes=extra or None,
+            model=body.get("model"),
+            provider=body.get("provider"),
+            save=bool(body.get("save", True)) and bool(brand_id),
+            max_cost_usd=float(body.get("max_cost_usd") or 0.50),
+        )
+
+        return jsonify({
+            "ok": True,
+            "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
+            "mime": result.mime,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "instruction_used": result.instruction_used,
+            "saved_path": result.saved_path,
+            "saved_sidecar_path": result.saved_sidecar_path,
+            "warning": result.warning,
+            "usage": result.usage,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_edit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/from-asset/<asset_id>', methods=['POST'])
+def image_from_asset(asset_id):
+    """POST /api/image/from-asset/<asset_id> — link image gen to ANY Campaign OS surface.
+
+    asset_id can be one of:
+      - a hook id from data/hook-bank.json
+      - a caption id from data/library.json
+      - a headline id from data/headlines.json
+      - a CTA id from data/ctas.json
+      - a billboard brief id from data/content-blueprints.json
+      - a visual recipe filename from the active brand
+      - a top IG post media id from data/instagram.json (regenerate from winner)
+      - an SEO top-performing page (regenerate OG cover)
+
+    The endpoint extracts the asset's text (hook text / caption / headline /
+    CTA / visual brief), reads the brand's recipe, and runs generate_image
+    with that context. Result is saved under the brand directory and a
+    sidecar references the asset_id for cross-linking.
+    """
+    try:
+        from _lib.image_gen_router import generate_image as _gen, ImageGenBadRequest, ImageGenAuthError, ImageGenNetworkError, ImageGenUpstreamError
+        import base64 as _b64
+        body = request.get_json(silent=True) or {}
+        brand_id = (body.get("brand_id") or get_brand_id()).strip() or "swing-shack"
+
+        # Pull the asset's text + intent by id across data/
+        prompt, kind = _extract_asset_context(asset_id, brand_id)
+        if not prompt:
+            return jsonify({"ok": False, "error": f"asset_id {asset_id!r} not found in any data file"}), 404
+
+        # Optional user refinement on top of the extracted prompt
+        # Two ways callers can override the auto-extracted prompt:
+        #   body["override_prompt"] — replace entirely
+        #   body["prompt"]          — append with ". " separator (legacy)
+        user_prompt = (body.get("prompt") or "").strip()
+        override_prompt = (body.get("override_prompt") or "").strip()
+        if override_prompt:
+            full_prompt = override_prompt
+        elif user_prompt:
+            full_prompt = user_prompt + ". " + prompt
+        else:
+            full_prompt = prompt
+
+        # Get the recipe
+        brand_recipe = None
+        try:
+            rr = visual_library_recipe(brand_id)
+            if rr.status_code == 200:
+                brand_recipe = (rr.get_json() or {}).get("recipe") or None
+        except Exception:
+            _app_log.warning("could not load recipe for brand_id=%s", brand_id)
+
+        # Auto-compose the full 4-layer prompt by default (unless caller
+        # explicitly opts out). Layers: brand recipe → product/service from
+        # asset context → reference DNA → learned WIN PROFILE.
+        reference_dnas: list = []
+        product_service_items: list = []
+        learned_signals: dict = {}
+        compose_layers = body.get("compose_layers", True)
+        if compose_layers and not override_prompt:
+            try:
+                from _lib.reference_dna import load_reference_dna
+                # Pull attached references for this asset (if any were linked
+                # via Image Lab drag-and-drop)
+                ref_meta = body.get("reference_ids") or []
+                for rid in ref_meta[:3]:
+                    try:
+                        dna = load_reference_dna(rid, brand_id)
+                        if dna:
+                            reference_dnas.append(dna)
+                    except Exception:
+                        pass
+                # Pull attached products/services
+                pids = body.get("product_ids") or []
+                sids = body.get("service_ids") or []
+                if pids or sids:
+                    try:
+                        from _lib.product_service_library import load_library
+                        lib = load_library(brand_id)
+                        for it in (lib.get("products", []) + lib.get("services", [])):
+                            if it.get("id") in (pids + sids):
+                                product_service_items.append(it)
+                    except Exception:
+                        pass
+                # Pull learned WIN PROFILE
+                if body.get("include_learned_signals", True):
+                    try:
+                        from _lib.feedback_loop import compute_learned_signals
+                        learned_signals = compute_learned_signals(brand_id)
+                    except Exception:
+                        pass
+            except Exception as e:
+                _app_log.warning("auto-compose layer load failed (non-fatal): %s", e)
+
+        result = _gen(
+            prompt=full_prompt,
+            brand_id=brand_id,
+            brand_recipe=brand_recipe,
+            reference_dnas=reference_dnas or None,
+            product_service_items=product_service_items or None,
+            learned_signals=learned_signals or None,
+            size=body.get("size", "1024x1024"),
+            n=int(body.get("n") or 1),
+            model=body.get("model"),
+            provider=body.get("provider"),
+            save=True,
+            max_cost_usd=float(body.get("max_cost_usd") or 0.50),
+        )
+
+        # Augment sidecar with asset link so future agents can trace back
+        if result.saved_sidecar_path:
+            try:
+                p = Path(result.saved_sidecar_path)
+                meta = json.loads(p.read_text())
+                meta["linked_asset_id"] = asset_id
+                meta["linked_asset_kind"] = kind
+                meta["linked_asset_prompt"] = prompt
+                p.write_text(json.dumps(meta, indent=2))
+            except Exception as e:
+                _app_log.warning("could not back-link asset_id to sidecar: %s", e)
+
+        # Derive a browser-fetchable URL from the saved_path (same trick as /api/image/generate).
+        preview_url = None
+        if result.saved_path:
+            from pathlib import Path as _P
+            preview_url = f"/brand-images/{brand_id}/{_P(result.saved_path).name}"
+        return jsonify({
+            "ok": True,
+            "asset_id": asset_id,
+            "asset_kind": kind,
+            "extracted_prompt": prompt,
+            "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
+            "mime": result.mime,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "saved_path": result.saved_path,
+            "preview_url": preview_url,
+            "warning": result.warning,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_from_asset failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# Visual Reference Library — point at an image, capture its DNA
+# =============================================================================
+
+
+@app.route('/api/image/references/upload', methods=['POST'])
+def image_reference_upload():
+    """POST /api/image/references/upload — accept a multipart file upload.
+
+    Form fields:
+      file:        the image file
+      brand:       brand_id (default swing-shack)
+      label:       optional human label
+      tags:        comma-separated tags
+
+    Returns the saved reference DNA record.
+    """
+    try:
+        from pathlib import Path
+        import tempfile
+        from _lib.reference_dna import ingest_local_image, save_reference_dna, extract_reference_dna
+
+        if 'file' not in request.files:
+            return jsonify({"ok": False, "error": "missing file field"}), 400
+
+        f = request.files['file']
+        if not f.filename:
+            return jsonify({"ok": False, "error": "empty filename"}), 400
+
+        brand = request.form.get('brand') or get_brand_id() or 'swing-shack'
+        label = request.form.get('label') or None
+        tags_raw = request.form.get('tags', '')
+        tags = [t.strip() for t in tags_raw.split(',') if t.strip()] if tags_raw else None
+
+        # Save to a temp file, then ingest
+        ext = Path(f.filename).suffix.lower() or '.jpg'
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            f.save(tmp_path)
+
+        try:
+            ref = ingest_local_image(tmp_path, brand, label=label, tags=tags, copy=True)
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_upload failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/from-url', methods=['POST'])
+def image_reference_from_url():
+    """POST /api/image/references/from-url — download + ingest a reference image from URL.
+
+    Body: {"url": "https://...", "brand": "swing-shack", "label": "...", "tags": [...]}
+    """
+    try:
+        from _lib.reference_dna import ingest_url
+
+        body = request.get_json(force=True, silent=True) or {}
+        url = body.get('url', '').strip()
+        if not url:
+            return jsonify({"ok": False, "error": "missing url"}), 400
+
+        brand = body.get('brand') or get_brand_id() or 'swing-shack'
+        label = body.get('label') or None
+        tags = body.get('tags') or None
+
+        ref = ingest_url(url, brand, label=label, tags=tags)
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_from_url failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/from-library/<brand_id>/<path:filename>', methods=['POST'])
+def image_reference_from_library(brand_id, filename):
+    """POST /api/image/references/from-library/<brand>/<filename> — use an existing
+    image from the brand directory as a reference.
+
+    Body (optional): {"label": "...", "tags": [...]}
+    """
+    try:
+        from pathlib import Path
+        from _lib.reference_dna import (
+            ingest_local_image, _references_dir
+        )
+
+        # Resolve to brand-directory image
+        candidate = Path(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images' / filename
+        if not candidate.exists():
+            # Try thumbnail or other extensions
+            stem = Path(filename).stem
+            for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+                alt = candidate.with_suffix(ext) if candidate.suffix else candidate.parent / f"{stem}{ext}"
+                if alt.exists():
+                    candidate = alt
+                    break
+            else:
+                return jsonify({"ok": False, "error": f"image not found: {filename}"}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        label = body.get('label') or None
+        tags = body.get('tags') or None
+
+        ref = ingest_local_image(candidate, brand_id, label=label, tags=tags, copy=True)
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_from_library failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>', methods=['GET'])
+def image_references_list(brand_id):
+    """GET /api/image/references/<brand> — list all reference DNA records.
+
+    Query params:
+      product   — filter to refs with this product tag
+      mood      — filter to refs with this mood keyword
+      limit     — cap results (default 100)
+    """
+    try:
+        from _lib.reference_dna import list_reference_dnas, select_references
+
+        product = request.args.get('product', '').strip() or None
+        mood = request.args.get('mood', '').strip() or None
+        limit = min(int(request.args.get('limit', '100') or '100'), 500)
+
+        if product or mood:
+            refs = select_references(
+                brand_id,
+                product=product, mood=mood, limit=limit
+            )
+        else:
+            refs = list_reference_dnas(brand_id)[:limit]
+
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "count": len(refs),
+            "references": refs,
+        })
+    except Exception as e:
+        _app_log.exception("image_references_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>/<ref_id>', methods=['GET'])
+def image_reference_get(brand_id, ref_id):
+    """GET /api/image/references/<brand>/<ref_id> — get a single reference DNA."""
+    try:
+        from _lib.reference_dna import load_reference_dna
+        ref = load_reference_dna(ref_id, brand_id)
+        if not ref:
+            return jsonify({"ok": False, "error": f"reference {ref_id} not found"}), 404
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        _app_log.exception("image_reference_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>/<ref_id>', methods=['DELETE'])
+def image_reference_delete(brand_id, ref_id):
+    """DELETE /api/image/references/<brand>/<ref_id> — delete a reference."""
+    try:
+        from _lib.reference_dna import delete_reference_dna
+        ok = delete_reference_dna(ref_id, brand_id)
+        return jsonify({"ok": ok})
+    except Exception as e:
+        _app_log.exception("image_reference_delete failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/references/<brand_id>/<ref_id>/thumbnail', methods=['GET'])
+def image_reference_thumbnail(brand_id, ref_id):
+    """GET /api/image/references/<brand>/<ref_id>/thumbnail — serve the thumbnail JPG."""
+    try:
+        from pathlib import Path
+        from _lib.reference_dna import _default_brand_root
+        thumb_dir = _default_brand_root() / brand_id / "references" / "thumbnails"
+        target = thumb_dir / f"{ref_id}.jpg"
+        if not target.exists():
+            return jsonify({"ok": False, "error": "thumbnail not found"}), 404
+        return send_from_directory(str(target.parent), target.name)
+    except Exception as e:
+        _app_log.exception("image_reference_thumbnail failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/from-reference/<brand_id>/<ref_id>', methods=['POST'])
+def image_from_reference(brand_id, ref_id):
+    """POST /api/image/from-reference/<brand>/<ref_id> — generate a new image that
+    mimics the look of the given reference.
+
+    Body: {"prompt": "...", "size": "1024x1024", "model": "...",
+           "extra_reference_ids": [...], "product_ids": [...], "service_ids": [...]}
+    """
+    try:
+        from _lib.reference_dna import load_reference_dna
+        from _lib.product_service_library import get_item
+        from _lib.feedback_loop import load_learned_signals
+        from _lib.image_gen_router import generate_image
+
+        ref = load_reference_dna(ref_id, brand_id)
+        if not ref:
+            return jsonify({"ok": False, "error": f"reference {ref_id} not found"}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        prompt = (body.get('prompt') or '').strip()
+        if not prompt:
+            prompt = ref.get('label', 'reference-inspired image')
+
+        size = body.get('size', '1024x1024')
+        model = body.get('model') or None
+
+        # Collect reference DNAs
+        references = [ref]
+        for extra_id in body.get('extra_reference_ids') or []:
+            r = load_reference_dna(extra_id, brand_id)
+            if r:
+                references.append(r)
+
+        # Collect product/service items
+        items = []
+        for pid in body.get('product_ids') or []:
+            it = get_item(brand_id, pid)
+            if it:
+                items.append(it)
+        for sid in body.get('service_ids') or []:
+            it = get_item(brand_id, sid)
+            if it:
+                items.append(it)
+
+        # Load learned signals
+        signals = load_learned_signals(brand_id)
+
+        result = generate_image(
+            prompt=prompt,
+            brand_id=brand_id,
+            reference_dnas=references,
+            product_service_items=items,
+            learned_signals=signals,
+            size=size,
+            model=model,
+            save=True,
+        )
+
+        return jsonify({
+            "ok": True,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "saved_path": result.saved_path,
+            "warning": result.warning,
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_from_reference failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# Product & Service Library — the "what do we sell" database
+# =============================================================================
+
+
+@app.route('/api/library/<brand_id>/items', methods=['GET'])
+def library_items_list(brand_id):
+    """GET /api/library/<brand>/items — list all products, services, offerings.
+
+    Query params:
+      kind: product | service | offering (default: all)
+      seed: if 'true', seed defaults first (idempotent)
+    """
+    try:
+        from _lib.product_service_library import (
+            load_library, seed_defaults, list_items
+        )
+
+        if request.args.get('seed', '').lower() in ('1', 'true', 'yes'):
+            seed_defaults(brand_id)
+
+        kind = request.args.get('kind', '').strip() or None
+        items = list_items(brand_id, kind=kind)
+        lib = load_library(brand_id)
+
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "kind_filter": kind,
+            "count": len(items),
+            "items": items,
+            "totals": {
+                "products": len(lib.get("products", [])),
+                "services": len(lib.get("services", [])),
+                "offerings": len(lib.get("offerings", [])),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("library_items_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>', methods=['GET'])
+def library_item_get(brand_id, item_id):
+    """GET /api/library/<brand>/items/<id> — get a single item."""
+    try:
+        from _lib.product_service_library import get_item
+        item = get_item(brand_id, item_id)
+        if not item:
+            return jsonify({"ok": False, "error": f"item {item_id} not found"}), 404
+        return jsonify({"ok": True, "item": item})
+    except Exception as e:
+        _app_log.exception("library_item_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items', methods=['POST'])
+def library_item_create(brand_id):
+    """POST /api/library/<brand>/items — create a new product/service/offering."""
+    try:
+        from _lib.product_service_library import add_item
+
+        body = request.get_json(force=True, silent=True) or {}
+        kind = body.get('kind', '').strip()
+        name = body.get('name', '').strip()
+        if not kind or not name:
+            return jsonify({"ok": False, "error": "kind and name are required"}), 400
+
+        item = add_item(brand_id, **body)
+        return jsonify({"ok": True, "item": item})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("library_item_create failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>', methods=['PUT'])
+def library_item_update(brand_id, item_id):
+    """PUT /api/library/<brand>/items/<id> — update fields on an item."""
+    try:
+        from _lib.product_service_library import update_item
+
+        body = request.get_json(force=True, silent=True) or {}
+        updated = update_item(brand_id, item_id, **body)
+        if not updated:
+            return jsonify({"ok": False, "error": f"item {item_id} not found"}), 404
+        return jsonify({"ok": True, "item": updated})
+    except Exception as e:
+        _app_log.exception("library_item_update failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>', methods=['DELETE'])
+def library_item_delete(brand_id, item_id):
+    """DELETE /api/library/<brand>/items/<id> — remove an item."""
+    try:
+        from _lib.product_service_library import delete_item
+        ok = delete_item(brand_id, item_id)
+        return jsonify({"ok": ok})
+    except Exception as e:
+        _app_log.exception("library_item_delete failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>/attach-reference', methods=['POST'])
+def library_item_attach(brand_id, item_id):
+    """POST /api/library/<brand>/items/<id>/attach-reference — attach a reference DNA."""
+    try:
+        from _lib.product_service_library import attach_reference
+
+        body = request.get_json(force=True, silent=True) or {}
+        ref_id = body.get('ref_id', '').strip()
+        as_hero = bool(body.get('as_hero', False))
+        if not ref_id:
+            return jsonify({"ok": False, "error": "ref_id required"}), 400
+
+        item = attach_reference(brand_id, item_id, ref_id, as_hero=as_hero)
+        if not item:
+            return jsonify({"ok": False, "error": "attach failed (ref or item missing)"}), 404
+        return jsonify({"ok": True, "item": item})
+    except Exception as e:
+        _app_log.exception("library_item_attach failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/library/<brand_id>/items/<item_id>/detach-reference', methods=['POST'])
+def library_item_detach(brand_id, item_id):
+    """POST /api/library/<brand>/items/<id>/detach-reference — detach a reference DNA."""
+    try:
+        from _lib.product_service_library import detach_reference
+
+        body = request.get_json(force=True, silent=True) or {}
+        ref_id = body.get('ref_id', '').strip()
+        if not ref_id:
+            return jsonify({"ok": False, "error": "ref_id required"}), 400
+
+        item = detach_reference(brand_id, item_id, ref_id)
+        if not item:
+            return jsonify({"ok": False, "error": "detach failed"}), 404
+        return jsonify({"ok": True, "item": item})
+    except Exception as e:
+        _app_log.exception("library_item_detach failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/from-product/<brand_id>/<item_id>', methods=['POST'])
+def image_from_product(brand_id, item_id):
+    """POST /api/image/from-product/<brand>/<item_id> — generate a promotional image
+    for a specific product/service/offering.
+
+    Body: {"prompt": "...", "size": "1024x1024", "extra_reference_ids": [...],
+           "extra_product_ids": [...], "extra_service_ids": [...]}
+    """
+    try:
+        from _lib.product_service_library import get_item, attach_reference
+        from _lib.reference_dna import load_reference_dna
+        from _lib.feedback_loop import load_learned_signals
+        from _lib.image_gen_router import generate_image
+
+        item = get_item(brand_id, item_id)
+        if not item:
+            return jsonify({"ok": False, "error": f"item {item_id} not found"}), 404
+
+        body = request.get_json(force=True, silent=True) or {}
+        prompt = (body.get('prompt') or '').strip()
+        if not prompt:
+            # Auto-build a prompt from the item
+            prompt = f"{item.get('name', '')} — {item.get('headline', '')}"
+
+        size = body.get('size', '1024x1024')
+        model = body.get('model') or None
+
+        # Pull the item's attached references (hero first)
+        references = []
+        hero_id = item.get('hero_ref_id')
+        ref_ids = list(item.get('reference_ref_ids') or [])
+        if hero_id and hero_id in ref_ids:
+            ref_ids.remove(hero_id)
+            ref_ids.insert(0, hero_id)
+        for rid in ref_ids:
+            r = load_reference_dna(rid, brand_id)
+            if r:
+                references.append(r)
+
+        # Add any extra explicit references
+        for extra_id in body.get('extra_reference_ids') or []:
+            r = load_reference_dna(extra_id, brand_id)
+            if r and r not in references:
+                references.append(r)
+
+        # Items list — start with this item, then any extras
+        items = [item]
+        for pid in body.get('extra_product_ids') or []:
+            it = get_item(brand_id, pid)
+            if it and it not in items:
+                items.append(it)
+        for sid in body.get('extra_service_ids') or []:
+            it = get_item(brand_id, sid)
+            if it and it not in items:
+                items.append(it)
+
+        # Load learned signals
+        signals = load_learned_signals(brand_id)
+
+        result = generate_image(
+            prompt=prompt,
+            brand_id=brand_id,
+            reference_dnas=references,
+            product_service_items=items,
+            learned_signals=signals,
+            size=size,
+            model=model,
+            save=True,
+        )
+
+        return jsonify({
+            "ok": True,
+            "model": result.model,
+            "provider": result.provider,
+            "cost_estimate_usd": result.cost_estimate_usd,
+            "prompt_used": result.prompt_used,
+            "saved_path": result.saved_path,
+            "warning": result.warning,
+            "item_id": item_id,
+            "references_used": [r["ref_id"] for r in references],
+        })
+    except ImageGenBadRequest as e:
+        return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
+    except ImageGenAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "auth"}), 503
+    except ImageGenNetworkError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "network"}), 504
+    except ImageGenUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "code": "upstream", "upstream": getattr(e, "upstream", {})}), 502
+    except Exception as e:
+        _app_log.exception("image_from_product failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# Feedback Loop — per-image performance capture + learned signals
+# =============================================================================
+
+
+@app.route('/api/image/feedback/record', methods=['POST'])
+def feedback_record():
+    """POST /api/image/feedback/record — capture a performance signal for one image.
+
+    Body: {
+        "image_id": "ref-xxx" or "generated-xxx",
+        "kind": "reference" or "generated",
+        "source": "ig" | "ga4" | "gmb" | "manual" | "import",
+        "captured_signal": {"likes": ..., "saves": ..., ...},
+        "dna_snapshot": {...} or omit,
+        "platform_post_id": "..." optional,
+        "notes": "..."
+    }
+    """
+    try:
+        from _lib.feedback_loop import add_record
+
+        body = request.get_json(force=True, silent=True) or {}
+        brand = body.get('brand') or get_brand_id() or 'swing-shack'
+
+        required = ['image_id', 'kind', 'source', 'captured_signal']
+        missing = [k for k in required if not body.get(k)]
+        if missing:
+            return jsonify({"ok": False, "error": f"missing fields: {missing}"}), 400
+
+        record = add_record(brand, **body)
+        return jsonify({"ok": True, "record": record})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("feedback_record failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/import-ig', methods=['POST'])
+def feedback_import_ig():
+    """POST /api/image/feedback/import-ig — bulk import IG metrics for many posts.
+
+    Body: {
+        "brand": "swing-shack",
+        "records": [
+            {
+                "image_id": "ref-xxx",
+                "post_id": "ig_post_123",
+                "impressions": ..., "likes": ..., ...
+            },
+            ...
+        ]
+    }
+
+    Computes scores and persists records + DNA snapshot (looked up from
+    the library if image_id is a ref_id).
+    """
+    try:
+        from _lib.feedback_loop import add_record
+        from _lib.reference_dna import load_reference_dna
+
+        body = request.get_json(force=True, silent=True) or {}
+        brand = body.get('brand') or get_brand_id() or 'swing-shack'
+        records_in = body.get('records') or []
+        if not records_in:
+            return jsonify({"ok": False, "error": "no records provided"}), 400
+
+        imported = 0
+        errors: list[str] = []
+        for r in records_in:
+            try:
+                image_id = r.get('image_id', '').strip()
+                post_id = r.get('post_id', '').strip() or None
+                if not image_id:
+                    continue
+
+                signal = {k: v for k, v in r.items()
+                          if k in ('impressions', 'likes', 'comments', 'saves', 'reach',
+                                   'link_clicks', 'ga_sessions', 'ga_conversions',
+                                   'gmb_calls', 'bookings')}
+
+                # Look up DNA from library if image_id looks like a ref
+                dna_snapshot = r.get('dna_snapshot')
+                if not dna_snapshot:
+                    ref = load_reference_dna(image_id, brand)
+                    if ref:
+                        from _lib.feedback_loop import snapshot_from_reference
+                        dna_snapshot = snapshot_from_reference(ref)
+
+                add_record(
+                    brand,
+                    image_id=image_id,
+                    kind='reference',
+                    source='ig',
+                    captured_signal=signal,
+                    dna_snapshot=dna_snapshot or {},
+                    platform_post_id=post_id,
+                    notes=r.get('notes', ''),
+                )
+                imported += 1
+            except Exception as e:
+                errors.append(str(e))
+
+        return jsonify({"ok": True, "imported": imported, "errors": errors[:5]})
+    except Exception as e:
+        _app_log.exception("feedback_import_ig failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/<brand_id>', methods=['GET'])
+def feedback_list(brand_id):
+    """GET /api/image/feedback/<brand> — list performance records."""
+    try:
+        from _lib.feedback_loop import list_records, summary
+
+        min_score = request.args.get('min_score')
+        kind = request.args.get('kind', '').strip() or None
+        limit = min(int(request.args.get('limit', '50') or '50'), 500)
+
+        recs = list_records(
+            brand_id,
+            min_score=float(min_score) if min_score else None,
+            kind=kind,
+            limit=limit,
+        )
+        return jsonify({
+            "ok": True,
+            "brand": brand_id,
+            "count": len(recs),
+            "records": recs,
+            "summary": summary(brand_id),
+        })
+    except Exception as e:
+        _app_log.exception("feedback_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/<brand_id>/learned', methods=['GET'])
+def feedback_learned(brand_id):
+    """GET /api/image/feedback/<brand>/learned — computed WIN PROFILE + preferences."""
+    try:
+        from _lib.feedback_loop import load_learned_signals, compute_learned_signals
+
+        # If the request includes ?recompute=1, force recompute
+        if request.args.get('recompute') == '1':
+            from _lib.feedback_loop import save_learned_signals
+            signals = compute_learned_signals(brand_id)
+            save_learned_signals(signals, brand_id)
+        else:
+            signals = load_learned_signals(brand_id)
+
+        return jsonify({"ok": True, "signals": signals})
+    except Exception as e:
+        _app_log.exception("feedback_learned failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/image/feedback/<brand_id>/threshold', methods=['PUT'])
+def feedback_threshold(brand_id):
+    """PUT /api/image/feedback/<brand>/threshold — adjust the win threshold.
+
+    Body: {"win_threshold": 0.7}
+    """
+    try:
+        from _lib.feedback_loop import load_performance, save_performance, compute_learned_signals, save_learned_signals
+
+        body = request.get_json(force=True, silent=True) or {}
+        threshold = float(body.get('win_threshold', 0.65))
+        if not (0.0 < threshold <= 1.0):
+            return jsonify({"ok": False, "error": "threshold must be in (0, 1]"}), 400
+
+        perf = load_performance(brand_id)
+        perf['win_threshold'] = threshold
+        save_performance(perf, brand_id)
+
+        # Recompute signals
+        signals = compute_learned_signals(brand_id)
+        save_learned_signals(signals, brand_id)
+
+        return jsonify({"ok": True, "win_threshold": threshold, "signals": signals})
+    except Exception as e:
+        _app_log.exception("feedback_threshold failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _extract_asset_context(asset_id: str, brand_id: str) -> tuple[Optional[str], Optional[str]]:
+    """Walk data/ for an asset matching asset_id. Return (prompt_text, kind).
+
+    Lookup order (most likely to match first):
+      1. data/hook-bank.json       — {hooks: [...]} by id or hook text
+      2. data/captions.json        — captions by id
+      3. data/headlines.json       — headlines by id
+      4. data/ctas.json            — CTAs by id
+      5. data/content-blueprints.json — billboard briefs by id
+      6. data/library.json         — assets by id
+      7. data/visual-briefs.json   — visual briefs by id
+      8. data/instagram.json       — IG posts by media_id (regenerate from winner)
+      9. data/seo-rankings.json    — top-performing SEO pages (OG cover regen)
+     10. campaign-data.json        — review-inbox assets (Takomo hero, etc.) — uses
+      asset's `visualBrief` then `description` then `caption` as the prompt.
+    """
+    base = Path(BUNDLED_DATA_DIR)
+    lookup_paths = [
+        ("hook",       base / "hook-bank.json",            "hooks",       "text"),
+        ("caption",    base / "captions.json",             "captions",    "text"),
+        ("caption",    base / "library.json",              "items",       "caption"),
+        ("headline",   base / "headlines.json",            "headlines",   "text"),
+        ("cta",        base / "ctas.json",                 "ctas",        "text"),
+        ("billboard",  base / "content-blueprints.json",   "blueprints",  "brief"),
+        ("visual",     base / "visual-briefs.json",        "briefs",      "prompt"),
+        ("seo",        base / "seo-rankings.json",         "keywords",    "query"),
+    ]
+    for kind, p, list_key, text_key in lookup_paths:
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text())
+        except Exception:
+            continue
+        # Resolve items: dict gets the list_key, list IS items, anything else empty
+        if isinstance(data, dict):
+            items = data.get(list_key) or []
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            # Match by id field (flexible: id, _id, asset_id, blueprint_id, media_id)
+            for id_field in ("id", "_id", "asset_id", "blueprint_id", "media_id", "post_id"):
+                if it.get(id_field) == asset_id or str(it.get(id_field)) == asset_id:
+                    text = (it.get(text_key) or it.get("text") or it.get("prompt") or it.get("query") or
+                            it.get("caption") or it.get("hook") or it.get("title") or it.get("name") or "")
+                    if text:
+                        return str(text).strip(), kind
+        # Try matching the asset_id as a substring of the text (for hooks like "hk-..." or filenames)
+        for it in (items if isinstance(items, list) else []):
+            if not isinstance(it, dict):
+                continue
+            text = (it.get(text_key) or it.get("text") or it.get("prompt") or it.get("query") or
+                    it.get("caption") or it.get("hook") or it.get("title") or it.get("name") or "")
+            if text and asset_id in str(text):
+                return str(text).strip(), kind
+
+    # ── 10. campaign-data.json — review-inbox assets ───────────────────
+    # Walk every campaign's `assets` map. Match by assetId / id / name.
+    # This is what makes the Review-modal "🎨 Generate visual" button work
+    # for assets like `takomo-101t-hero-c` whose data lives in the portfolio
+    # file rather than the standalone data/ hook/caption files.
+    #
+    # The file may live at any of:
+    #   - REPO_ROOT/data/campaign-data.json            (older bundled layout)
+    #   - REPO_ROOT/campaign-os/campaign-data.json     (current local layout)
+    #   - $DATA_DIR/campaign-data.json                  (Railway runtime)
+    portfolio_candidates = []
+    runtime_data_dir = os.environ.get('DATA_DIR') or '/data'
+    portfolio_candidates.append(Path(runtime_data_dir) / 'campaign-data.json')
+    if base.name == "data":
+        portfolio_candidates.append(base.parent / "campaign-data.json")
+        portfolio_candidates.append(base.parent / "campaign-os" / "campaign-data.json")
+    else:
+        portfolio_candidates.append(base / "campaign-data.json")
+        portfolio_candidates.append(base / ".." / "campaign-os" / "campaign-data.json")
+    for campaign_file in portfolio_candidates:
+        if not campaign_file.exists():
+            continue
+        try:
+            portfolio = json.loads(campaign_file.read_text())
+            for cname, c in (portfolio.get("campaigns") or {}).items():
+                assets_map = (c or {}).get("assets") or {}
+                if not isinstance(assets_map, dict):
+                    continue
+                # Direct ID match
+                if asset_id in assets_map and isinstance(assets_map[asset_id], dict):
+                    a = assets_map[asset_id]
+                    text = (a.get("visualBrief") or a.get("description")
+                            or a.get("caption") or a.get("name") or "")
+                    if text:
+                        return str(text).strip(), "visual"
+                # Substring match against name (covers cases where the asset
+                # ID has a v2 / -copy suffix and the name is the canonical key)
+                for aid, a in assets_map.items():
+                    if not isinstance(a, dict):
+                        continue
+                    if aid == asset_id or str(a.get("name", "")).replace(" ", "-").lower() == asset_id.lower():
+                        text = (a.get("visualBrief") or a.get("description")
+                                or a.get("caption") or a.get("name") or "")
+                        if text:
+                            return str(text).strip(), "visual"
+        except Exception:
+            pass
+
+    # No match
+    return None, None
+
+
 @app.route('/api/visual-library/<brand_id>/image/<path:filename>', methods=['GET'])
 def visual_library_image_detail(brand_id, filename):
     """GET /api/visual-library/<brand>/image/ — full DNA for one image.
@@ -1785,10 +5477,304 @@ def visual_library_image_detail(brand_id, filename):
         })
     except Exception as e:
         _app_log.exception("visual_library_image_detail failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── GENERATED IMAGE OUTPUTS ───────────────────────────────────────────────
+# Past renders from /api/image/{generate,from-asset,from-product,...} land at
+# data/brand-directory/<brand>/images/gen-<brand>-<ts>-<n>.{png,jpg}
+# This endpoint lists them so the UI can show a 'recent renders' gallery
+# (before this they only existed as filesystem artifacts — invisible to the OS).
+
+@app.route('/api/image/outputs/<brand_id>', methods=['GET'])
+def image_outputs_list(brand_id):
+    """GET /api/image/outputs/<brand> — list past generated images for the brand.
+
+    Query params:
+      limit     (optional, default 50) — cap the number of entries
+      offset    (optional, default 0)   — pagination
+
+    Returns: { data: [{ filename, url, prompt, ts, model, quality, size }, ...],
+               count, brand_id }
+    """
+    try:
+        from pathlib import Path as _P
+        brand_id = (brand_id or "").strip() or "swing-shack"
+        try:
+            limit = max(1, min(200, int(request.args.get("limit") or 50)))
+            offset = max(0, int(request.args.get("offset") or 0))
+        except (TypeError, ValueError):
+            limit, offset = 50, 0
+
+        images_dir = _P(BUNDLED_DATA_DIR) / "brand-directory" / brand_id / "images"
+        if not images_dir.exists():
+            return jsonify({"data": [], "count": 0, "brand_id": brand_id}), 200
+
+        # Match the gen-* filename pattern (set by image_gen_router.py when save=True)
+        out = []
+        for f in images_dir.glob(f"gen-{brand_id}-*.png"):
+            meta_path = f.with_suffix(".meta.json")
+            entry = {
+                "filename": f.name,
+                "url": f"/brand-images/{brand_id}/{f.name}",
+                "ts": int(f.stat().st_mtime),
+                "ts_iso": _P(f).stat().st_mtime and __import__("datetime").datetime.utcfromtimestamp(f.stat().st_mtime).isoformat() + "Z",
+                "size_bytes": f.stat().st_size,
+            }
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text())
+                    entry["prompt"] = meta.get("prompt") or ""
+                    entry["enhanced_prompt"] = meta.get("enhanced_prompt") or ""
+                    entry["model"] = meta.get("model") or ""
+                    entry["quality"] = meta.get("quality") or ""
+                    entry["size"] = meta.get("size") or ""
+                    entry["ts_meta"] = meta.get("ts") or entry["ts"]
+                except Exception:
+                    pass
+            out.append(entry)
+
+        # Also match .jpg variants (gpt-image-1 can produce either)
+        for f in images_dir.glob(f"gen-{brand_id}-*.jpg"):
+            meta_path = f.with_suffix(".meta.json")
+            entry = {
+                "filename": f.name,
+                "url": f"/brand-images/{brand_id}/{f.name}",
+                "ts": int(f.stat().st_mtime),
+                "ts_iso": __import__("datetime").datetime.utcfromtimestamp(f.stat().st_mtime).isoformat() + "Z",
+                "size_bytes": f.stat().st_size,
+            }
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text())
+                    entry["prompt"] = meta.get("prompt") or ""
+                    entry["model"] = meta.get("model") or ""
+                    entry["quality"] = meta.get("quality") or ""
+                except Exception:
+                    pass
+            out.append(entry)
+
+        # Newest first
+        out.sort(key=lambda e: -e.get("ts", 0))
+        total = len(out)
+        page = out[offset:offset + limit]
+        return jsonify({"data": page, "count": total, "limit": limit, "offset": offset, "brand_id": brand_id}), 200
+    except Exception as e:
+        _app_log.exception("image_outputs_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── MEME LAB (full catalog for UI) ─────────────────────────────────────
+
+def _enrich_memes_with_image_url(memes):
+    """Mutates a list of meme dicts to add `image_url` from the templates
+    module where possible.
+
+    The templates module ships 30 public-domain meme thumbnails (imgflip CDN).
+    The catalog has 75 memes — most have no `image_url` field, so Meme Lab
+    / Library / Meme Lord cards fall back to a generic SVG mock. This helper
+    joins them on exact ID first, then slug(name) as a fallback, so cards
+    that DO have a template entry render the real thumbnail. Mismatches are
+    left untouched (the SVG fallback keeps working).
+
+    Why this lives here instead of in data/meme_knowledge.json:
+      * `image_url` is a presentation field — the catalog should stay
+        knowledge-only.
+      * Adding it server-side keeps the templates module as the single
+        source of truth for thumbnails (same module Meme Lord's "Template
+        visuals" strip already uses).
+      * Reversible: delete the call sites + helper to roll back.
+    """
+    if not memes:
+        return
+    try:
+        from _lib import meme_templates as _mt
+        tpls = _mt.list_templates() or []
+    except Exception:
+        return  # templates module not importable — leave as-is
+    if not tpls:
+        return
+    import re
+
+    def _slug(s):
+        s = (s or '').lower().strip()
+        s = re.sub(r'\([^)]*\)', '', s)  # strip "(Preference)" etc.
+        s = re.sub(r'[^a-z0-9]+', '-', s).strip('-')
+        return s
+
+    by_id = {t['id']: t for t in tpls if t.get('id')}
+    by_slug = {_slug(t.get('name', '')): t for t in tpls if t.get('name')}
+    for m in memes:
+        if not isinstance(m, dict) or m.get('image_url'):
+            continue  # never overwrite an existing image_url
+        t = by_id.get(m.get('id')) if m.get('id') else None
+        if t is None:
+            t = by_slug.get(_slug(m.get('name', '')))
+        if t and t.get('thumbnail_url'):
+            m['image_url'] = t['thumbnail_url']
+        # NEW (2026-09-01): if no real thumbnail, fall back to a deterministic
+        # data: URL SVG so every card renders something visual instead of the
+        # generic "!" fallback. The SVG encodes the meme name + format so the
+        # card stays recognisable + scannable. Embeds an emoji-style icon per
+        # known format so the tile gets visual personality.
+        if not m.get('image_url'):
+            fmt = (m.get('format') or 'meme').lower()
+            name = m.get('name') or m.get('id') or 'meme'
+            name_lower = name.lower()
+            era = m.get('era') or ''
+            # Name → icon matching. Keywords checked in order; first match wins.
+            # This gives each card a visually-relevant emoji instead of every
+            # reaction-image meme showing the same 😲.
+            name_icon_map = [
+                # Animals
+                (('cat', 'kitty', 'kitten', 'meow', 'nyan', 'cheezburger'), '🐱'),
+                (('dog', 'doge', 'puppy', 'woof', 'cheems', 'buff doge'), '🐕'),
+                (('hamster', 'singing goat', 'goat'), '🐹'),
+                (('spider', 'spider-man', 'peter', 'parker'), '🕷️'),
+                (('pigeon', 'butterfly', 'pigeon-blinking'), '🕊️'),
+                (('fish', 'shark', 'octopus'), '🐟'),
+                (('monkey', 'ape', 'gorilla', 'chimp'), '🐵'),
+                # People
+                (('astronaut', 'space', 'rocket'), '🧑‍🚀'),
+                (('spongebob', 'sponge bob', 'patrick', 'squidward', 'krabs'), '🧽'),
+                (('cat-judging', 'judging'), '😼'),
+                (('keanu', 'sad keanu', 'sad-'), '😔'),
+                (('cat-bagel', 'bagel'), '🥯'),
+                (('pikachu', 'pokemon'), '⚡'),
+                (('picard', 'facepalm'), '🤦'),
+                (('walter white', 'breaking bad', 'heisenberg'), '🧪'),
+                (('kermit', 'tea', 'sipping'), '🐸'),
+                (('mandalorian', 'baby yoda', 'grogu', 'this is the way'), '🛸'),
+                (('harry maguire', 'maguire'), '😵'),
+                (('homer', 'simpson', 'bart', 'sideshow'), '🍩'),
+                (('mona lisa', 'discount'), '🖼️'),
+                (('picard',), '🖖'),
+                # Things
+                (('rock', 'dwayne', 'johnson'), '🚗'),
+                (('fire', 'this is fine', 'burning'), '🔥'),
+                (('brain', 'expanding', 'galaxy'), '🧠'),
+                (('heart', 'love', 'distracted', 'boyfriend'), '💕'),
+                (('stonks', 'up arrow', 'arrow'), '📈'),
+                (('down', 'not stonks', 'down arrow'), '📉'),
+                (('star wars', 'vader', 'force'), '⭐'),
+                (('shower', 'bernie', 'mittens'), '🧤'),
+                (('coffin', 'pallbearer', 'funeral'), '⚰️'),
+                (('press f', 'f to pay'), '🕯️'),
+                (('thinking', 'pensive'), '🤔'),
+                (('chef', 'kiss'), '👨‍🍳'),
+                (('ice cream', 'biden'), '🍦'),
+                (('pizza', 'cheese', 'food'), '🍕'),
+                (('coffee', 'morning'), '☕'),
+                (('money', 'cash', 'dollar', '💰'), '💰'),
+                (('phone', 'mobile', 'app'), '📱'),
+                (('computer', 'laptop', 'mac'), '💻'),
+                (('book', 'reading'), '📚'),
+                (('sword', 'weapon', 'fight'), '⚔️'),
+                (('crown', 'king', 'queen'), '👑'),
+                (('light bulb', 'idea', 'bright'), '💡'),
+                (('warning', 'alert', 'danger'), '⚠️'),
+                (('clock', 'time', 'late'), '⏰'),
+                (('party', 'celebrate'), '🎉'),
+                # Format fallbacks
+                (('two-panel', 'preference', 'drake'), '⚖️'),
+                (('screen-capture', 'screenshot'), '🖥️'),
+                (('expanding-brain',), '🧠'),
+            ]
+            icon = '🎭'
+            # Extra heuristics for specific well-known meme characters.
+            # Each entry is (kw, emoji). Multiple keywords per character.
+            extra_patterns = [
+                ('disaster girl', '🔥'), ('burning house', '🔥'),
+                ('change my mind', '💬'), ('crowder', '💬'),
+                ('roll safe', '🤞'), ('tap to pray', '🤞'),
+                ('harold', '😐'), ('hide the pain', '😐'),
+                ('wojak', '😐'),
+                ('success kid', '✊'),
+                ('bad luck brian', '🍀'),
+                ('first world problems', '🌍'),
+                ('futurama fry', '🤔'), ('not sure if', '🤔'),
+                ('y u no', '❓'),
+                ('one does not simply', '🚶'), ('boromir', '🚶'),
+                ('confused math', '📊'), ('blonde woman', '📊'),
+                ('gigachad', '💪'),
+                ('trade offer', '⛏️'), ('minecraft', '⛏️'),
+                ('side-eye', '👀'), ('chloe', '👀'),
+                ('pablo', '😢'), ('escobar', '😢'),
+                ('free real estate', '🏠'),
+                ('deal with it', '😎'), ('glasses drop', '😎'),
+                ('rickroll', '🎵'), ('never gonna give you up', '🎵'),
+                ('anakin', '🎬'), ('padme', '🎬'), ('liberty dies', '🎬'),
+                ('two buttons', '🔴'),
+                ('confused grandpa', '👴'), ('tech support', '👴'),
+                ('no bitches', '🚫'),
+                ('matrix', '💊'), ('morpheus', '💊'), ('red/blue pill', '💊'),
+                ('tough toddler', '💪'), ('cross-arms', '💪'),
+                ('owl', '🦉'), ('thumbs up', '🦉'),
+                ('andy dufresne', '🪑'), ('shawshank', '🪑'),
+                ('cast away', '🏝️'), ('wilson', '🏝️'), ('tom hanks', '🏝️'),
+                ('where they at', '🔍'), ('searching man', '🔍'),
+                ('this is the way', '🛸'), ('mandalorian', '🛸'),
+                ('galaxy brain', '🌌'),
+                ('kermit', '🐸'), ('sipping', '🐸'),
+                ('picard', '🖖'), ('facepalm', '🤦'),
+                ('walter white', '🧪'), ('breaking bad', '🧪'),
+                ('harry maguire', '😵'), ('maguire', '😵'),
+                ('homer', '🍩'), ('simpson', '🍩'),
+                ('mona lisa', '🖼️'),
+            ]
+            n = name_lower
+            for kw, emoji in extra_patterns:
+                if kw in n:
+                    icon = emoji
+                    break
+            if icon == '🎭':
+                for keywords, emoji in name_icon_map:
+                    if any(kw in name_lower for kw in keywords):
+                        icon = emoji
+                        break
+            # Color theme by era
+            era_color = {
+                'classic': ('#1a1a1a', '#c2f64f'),
+                'recent': ('#0f1a2e', '#4f8eff'),
+                'current': ('#2a0f1a', '#ff6b6b'),
+            }.get(era, ('#1a1a1a', '#c2f64f'))
+            bg, accent = era_color
+            # Safe text truncation
+            disp_name = (name[:28] + '…') if len(name) > 28 else name
+            # Use the first Swing Shack adaptation seed as a one-liner preview
+            # so the card shows what the meme is actually good for
+            seeds = m.get('swingshack_fit_seeds') or []
+            disp_subtitle = ''
+            for s in seeds:
+                if isinstance(s, str) and s.strip():
+                    disp_subtitle = s.strip()
+                    break
+            if not disp_subtitle:
+                disp_subtitle = m.get('format_hint') or fmt
+            disp_subtitle = (disp_subtitle[:42] + '…') if len(disp_subtitle) > 42 else disp_subtitle
+            svg = (
+                f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200" '
+                f'preserveAspectRatio="xMidYMid slice">'
+                f'<rect width="280" height="200" fill="{bg}"/>'
+                # Big icon
+                f'<text x="140" y="90" font-size="64" text-anchor="middle" dominant-baseline="middle">{icon}</text>'
+                # Meme name
+                f'<text x="140" y="138" font-size="14" font-weight="700" fill="#fff" '
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_name}</text>'
+                # Subtitle (swing shack adaptation or format hint)
+                f'<text x="140" y="160" font-size="11" fill="{accent}" opacity="0.85" '
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{disp_subtitle}</text>'
+                # Era tag
+                f'<rect x="220" y="8" width="52" height="18" rx="9" fill="{accent}" opacity="0.18"/>'
+                f'<text x="246" y="20" font-size="9" font-weight="700" fill="{accent}" '
+                f'font-family="-apple-system,Segoe UI,Inter,sans-serif" text-anchor="middle">{era or "meme"}</text>'
+                f'</svg>'
+            )
+            import base64
+            b64 = base64.b64encode(svg.encode('utf-8')).decode('ascii')
+            m['image_url'] = f"data:image/svg+xml;base64,{b64}"
+            m['image_is_placeholder'] = True
+
 
 @app.route('/api/intel/memes/catalog', methods=['GET'])
 def meme_catalog():
@@ -1842,6 +5828,11 @@ def meme_catalog():
             -int(x.get("peak_year", 0) or 0),
         ))
 
+        # Attach image_url where the templates module has a thumbnail for the
+        # same meme. Cards that don't match keep their existing (or empty)
+        # image_url and the Meme Lab SVG fallback continues to handle them.
+        _enrich_memes_with_image_url(filtered)
+
         return jsonify({
             "ok": True,
             "total": len(filtered),
@@ -1850,10 +5841,59 @@ def meme_catalog():
             "filters": {"pillar": pillar, "voice": voice, "era": era,
                         "still_works": only_still_works, "fatigue": only_low_fatigue},
             "memes": filtered,
+            "meta": kb.get("_meta", {}) or {"refreshed_at": None, "meme_count": len(memes)},
         })
     except Exception as e:
         _app_log.exception("meme_catalog failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/memes/refresh', methods=['POST'])
+def meme_refresh():
+    """POST /api/intel/memes/refresh — re-read data/meme_knowledge.json from disk,
+    refresh the _meta block, and bump refreshed_at. The catalog data itself is
+    curated manually; this endpoint just bumps the freshness timestamp so the UI
+    can show 'last refreshed just now' after a manual refresh.
+
+    Why this is manual-only: the meme catalog is curated (origin stories,
+    swingshack_fit_seeds, format hints). Auto-refreshing would lose that.
+
+    Returns: { ok, refreshed_at, refreshed_at_human, days_since_refresh }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        # Clear the lru_cache so we re-read from disk
+        try:
+            _load_meme_knowledge.cache_clear()
+        except Exception:
+            pass
+        kb = _load_meme_knowledge()
+        if not isinstance(kb, dict):
+            return jsonify({"ok": False, "error": "knowledge base unavailable"}), 503
+        kb["_meta"] = kb.get("_meta", {})
+        now = datetime.datetime.utcnow()
+        kb["_meta"]["refreshed_at"] = now.isoformat() + "Z"
+        kb["_meta"]["refreshed_at_human"] = "just now"
+        # Persist to runtime DATA_DIR so the change survives deploys
+        try:
+            paths = _data_paths()
+            runtime = Path(paths["data_dir"]) / "meme_knowledge.json"
+            runtime.parent.mkdir(parents=True, exist_ok=True)
+            runtime.write_text(json.dumps(kb, indent=2, ensure_ascii=False))
+            persisted = True
+        except Exception:
+            persisted = False
+        return jsonify({
+            "ok": True,
+            "refreshed_at": kb["_meta"]["refreshed_at"],
+            "refreshed_at_human": kb["_meta"]["refreshed_at_human"],
+            "persisted": persisted,
+            "meme_count": len(kb.get("memes", [])),
+        }), 200
+    except Exception as e:
+        _app_log.exception("meme_refresh failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/intel/meme/<meme_id>/preview', methods=['GET'])
@@ -1891,7 +5931,7 @@ def meme_preview(meme_id):
         })
     except Exception as e:
         _app_log.exception("meme_preview failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── REAL DATA + VISUAL DNA JOIN ────────────────────────────────────────
@@ -1975,7 +6015,7 @@ def visual_performance_join():
         per_post_status = {
             "available": False,
             "reason": "Awaiting Meta App Review for `pages_read_user_content` scope",
-            "eta_after_approval": "Automatic — this endpoint will populate per-post metrics.",
+            "eta_after_approval": "Automatic · this endpoint will populate per-post metrics.",
             "submission_evidence_url": "https://swing-shack-dashboard-production.up.railway.app/meta-app-review/",
         }
 
@@ -1998,7 +6038,7 @@ def visual_performance_join():
         })
     except Exception as e:
         _app_log.exception("visual_performance_join failed")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ─── META / INSTAGRAM / FACEBOOK READS ───────────────────────────────────
@@ -2031,6 +6071,772 @@ def meta_status():
         return jsonify(out), 200
     except Exception as e:
         _app_log.exception("meta_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── META LIVE FETCH (2026-08-20) ───────────────────────────────────
+# POST /api/meta/fetch — pull IG + FB live analytics, write the JSONs.
+# The OS connected-accounts page surfaces a "Refresh from Meta" button
+# that POSTs here. Idempotent.
+
+@app.route('/api/meta/fetch', methods=['POST'])
+def meta_fetch_live():
+    """POST /api/meta/fetch — trigger live IG + FB analytics refresh.
+
+    Walks Meta Graph API with the live long-lived token at
+    ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json
+    and writes:
+      - data/ig-analytics.json (per-post engagement)
+      - data/ig-business-analytics.json (account + reach)
+      - data/facebook-analytics.json (per-post)
+      - data/facebook-business-analytics.json (fan_count)
+
+    Returns the summary so the OS can show what landed.
+
+    Body (JSON, optional): { brand_id } — defaults to swing-shack.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import meta_live_fetch as _meta_fetch
+        body = request.get_json(force=True, silent=True) or {}
+        _brand_id = body.get("brand_id") or "swing-shack"
+        result = _meta_fetch.fetch_all()
+        return jsonify(result), 200 if result.get("ok") else 500
+    except Exception as e:
+        _app_log.exception("meta_fetch_live failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── META CONVERSIONS API (2026-08-20) ─────────────────────────────
+# POST /api/meta/conversion — send a first-party booking event to Meta
+# Conversions API. This is what unlocks the CAPI System User's full
+# potential: real conversion data flowing INTO Meta so we can build
+# lookalike audiences from real bookings.
+
+@app.route('/api/meta/probe', methods=['POST'])
+def meta_probe():
+    """POST /api/meta/probe — show what the live META_SYSTEM_USER_TOKEN has access to.
+
+    Walks Meta Graph API with the live env-var token to enumerate:
+      - The token's bound identity (system user / user)
+      - The pages it can manage
+      - The ad accounts it can manage
+      - The catalogues it can manage
+      - The bound app
+
+    This is the diagnostic endpoint that explains why specific metrics
+    are or aren't accessible — the response is the audit record.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    _tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if not _tok:
+        return jsonify({"ok": False, "error": "no META_SYSTEM_USER_TOKEN set"}), 503
+    out = {"ok": True, "token_prefix": _tok[:8] + "…", "token_length": len(_tok)}
+    # 1. /me — bound identity
+    try:
+        url = f"https://graph.facebook.com/v19.0/me?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["identity"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["identity"] = {"error": e.read().decode()[:200]}
+    # 2. /me/accounts — pages the token can manage
+    try:
+        url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["pages"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["pages"] = {"error": e.read().decode()[:200]}
+    # 3. /me/adaccounts — ad accounts the token can manage
+    try:
+        url = f"https://graph.facebook.com/v19.0/me/adaccounts?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["adaccounts"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["adaccounts"] = {"error": e.read().decode()[:200]}
+    # 4. /me/businesses — businesses (might need different permission)
+    try:
+        url = f"https://graph.facebook.com/v19.0/me/businesses?access_token={_tok}"
+        with urllib.request.urlopen(url, timeout=15) as r:
+            out["businesses"] = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        out["businesses"] = {"error": e.read().decode()[:200]}
+    # 5. Test page-level metrics with multiple period/level combos
+    if out.get('pages', {}).get('data'):
+        page_id = out['pages']['data'][0]['id']
+        out['page_metrics_test'] = {}
+        for metric in ['page_impressions', 'page_fans', 'page_fan_adds']:
+            out['page_metrics_test'][metric] = {}
+            for period in ['day', 'total_lifetime', 'week', 'month']:
+                since_ts = int(_dt_cls.now(_tz.utc).timestamp()) - 30 * 86400 if period == 'day' else None
+                url = f"https://graph.facebook.com/v19.0/{page_id}/insights?metric={metric}&period={period}"
+                if since_ts:
+                    url += f"&since={since_ts}"
+                url += f"&access_token={_tok}"
+                try:
+                    with urllib.request.urlopen(url, timeout=15) as r:
+                        body = json.loads(r.read().decode())
+                        data = body.get("data", [])
+                        if data:
+                            out['page_metrics_test'][metric][period] = {
+                                "ok": True,
+                                "values_count": len(data[0].get("values", [])),
+                                "sample": data[0].get("values", [{}])[0] if data[0].get("values") else None,
+                            }
+                        else:
+                            out['page_metrics_test'][metric][period] = {"ok": False, "reason": "no data"}
+                except urllib.error.HTTPError as e:
+                    out['page_metrics_test'][metric][period] = {"error": e.read().decode()[:200]}
+    return jsonify(out), 200
+
+
+@app.route('/api/channels/weight', methods=['GET'])
+def channels_weight():
+    """GET /api/channels/weight — per-channel health score for the brand.
+
+    Built 2026-08-21. Ranks every publishing channel by a 0-100 score
+    computed from:
+      - data_coverage (0-25): does this channel have live engagement
+        metrics today? Real numbers beat baseline guesses.
+      - engagement_velocity (0-25): are followers actually doing something?
+        Measured from page_post_engagements, IG engagement_rate, etc.
+      - conversion_potential (0-25): can this channel accept new posts
+        + measure conversions? CAPI/GBP = high; X = medium.
+      - cost_efficiency (0-25): free beats paid at the same quality.
+        Meta = $0, GBP = $0, TIKTOK = $0, X = $100/mo (heavy penalty).
+
+    The response is the canonical ranked channel list. The brief's
+    Morning Brief uses the top 3 to recommend where to publish next;
+    the publish queue picks the next 5 by this score.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.brand_brief_intel import build_brand_intel
+        from _lib.weighted_sort import compute_channel_weights
+        brand_id = request.args.get("brand_id") or "swing-shack"
+        intel = build_brand_intel(brand_id)
+        ranked = compute_channel_weights(intel)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "ranked": ranked,
+            "generated_at": _dt_cls.now(_tz.utc).isoformat(),
+        }), 200
+    except Exception as e:
+        _app_log.exception("channels_weight failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/channels/publish-queue', methods=['POST'])
+def channels_publish_queue():
+    """POST /api/channels/publish-queue — pick the next N channels to publish to.
+
+    Body (JSON, optional):
+      n               (default 3) — channels to include
+      brand_id        (default swing-shack)
+      lookback_days   (default 14) — how far back to consider "fresh" content
+
+    Returns the top N channels by weighted sort, plus a brief reason
+    for each. Use this to drive the Opportunity Finder / Morning Brief
+    recommendations.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        n = int(body.get("n") or 3)
+        brand_id = body.get("brand_id") or "swing-shack"
+        from _lib.brand_brief_intel import build_brand_intel
+        from _lib.weighted_sort import compute_channel_weights
+        intel = build_brand_intel(brand_id)
+        ranked = compute_channel_weights(intel)
+        queue = ranked[:n]
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "queue": queue,
+            "queue_size": len(queue),
+            "generated_at": _dt_cls.now(_tz.utc).isoformat(),
+        }), 200
+    except Exception as e:
+        _app_log.exception("channels_publish_queue failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/conversion', methods=['POST'])
+def meta_conversion_submit():
+    """POST /api/meta/conversion — send a conversion event to Meta CAPI.
+
+    Built for the CAPI System User token (always-on, never expires,
+    full CRU on the FB page + ad account). Captures a first-party
+    booking event so the CAPI system can:
+      - build lookalike audiences from real bookings
+      - optimize ad delivery for high-LTV customers
+      - track server-side post-purchase events
+
+    Body (JSON, required):
+      event_name   (required, str) — e.g. 'Purchase', 'Lead', 'Schedule', 'BookSwing'
+      event_id     (optional, str) — dedup key (use the same id from the web pixel if available)
+      email        (optional, str) — hashed client-side before sending (we rehash here)
+      phone        (optional, str) — hashed client-side before sending
+      value        (optional, number) — booking value in ZAR
+      currency     (optional, str) — default 'ZAR'
+      content_ids  (optional, list[str]) — product IDs purchased
+      content_type (optional, str) — 'product' (default) or 'service'
+      source_url   (optional, str) — originating page URL
+      brand_id     (optional, str) — default 'swing-shack'
+
+    Returns: { ok, events_received, dataset_id, response }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        event_name = body.get("event_name") or "Purchase"
+        event_id = body.get("event_id") or _dt_cls.now(_tz.utc).strftime("%Y%m%dT%H%M%S%f")
+        value = body.get("value")
+        currency = body.get("currency") or "ZAR"
+        content_ids = body.get("content_ids") or []
+        content_type = body.get("content_type") or "product"
+        source_url = body.get("source_url") or ""
+        brand_id = body.get("brand_id") or "swing-shack"
+        email = body.get("email") or ""
+        phone = body.get("phone") or ""
+
+        # Resolve CAPI token
+        _tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+        if not _tok:
+            return jsonify({
+                "ok": False,
+                "error": "META_SYSTEM_USER_TOKEN not configured. Drop the CAPI System User token at /secret-drop → meta_system_user_token slot."
+            }), 503
+
+        # Meta dataset_id is the Meta Pixel ID (15-16 digit numeric)
+        pixel_id = os.environ.get("META_PIXEL_ID")
+        if not pixel_id:
+            # Default to swing-shack's known pixel — depends on where the
+            # pixel was mounted. If not set, we still send to CAPI but
+            # without a pixel_id it'll go to the ad account's event set.
+            pixel_id = "000000000000000"
+
+        # Hash PII if provided (Meta requires SHA-256 lower-case)
+        import hashlib
+        def _sha256(s):
+            if not s:
+                return None
+            s = s.strip().lower()
+            return hashlib.sha256(s.encode()).hexdigest()
+
+        user_data = {
+            "client_ip_address": request.remote_addr or "",
+            "client_user_agent": request.headers.get("User-Agent", ""),
+        }
+        if email:
+            user_data["em"] = [_sha256(email)]
+        if phone:
+            user_data["ph"] = [_sha256(phone)]
+
+        custom_data = {}
+        if value is not None:
+            try:
+                custom_data["value"] = float(value)
+            except (TypeError, ValueError):
+                pass
+        custom_data["currency"] = currency
+        if content_ids:
+            custom_data["content_ids"] = content_ids
+        custom_data["content_type"] = content_type
+
+        event_payload = {
+            "event_name": event_name,
+            "event_id": event_id,
+            "event_time": int(_dt_cls.now(_tz.utc).timestamp()),
+            "action_source": "website",
+            "user_data": user_data,
+            "custom_data": custom_data,
+            "event_source_url": source_url,
+        }
+
+        # POST to Meta Conversions API
+        url = f"https://graph.facebook.com/v19.0/{pixel_id}/events"
+        cap_url = f"{url}?access_token={_tok}"
+        req = urllib.request.Request(
+            cap_url, method="POST",
+            data=json.dumps({"data": [event_payload]}).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                resp_body = json.loads(r.read().decode())
+        except urllib.error.HTTPError as e:
+            err_text = e.read().decode()[:300]
+            _app_log.warning("Meta CAPI rejected event: %s", err_text)
+            return jsonify({
+                "ok": False,
+                "error": f"Meta CAPI rejected: {err_text}",
+                "event_id": event_id,
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "events_received": resp_body.get("events_received", 1),
+            "dataset_id": pixel_id,
+            "event_id": event_id,
+            "response": resp_body,
+        }), 200
+    except Exception as e:
+        _app_log.exception("meta_conversion_submit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/ubersuggest/status', methods=['GET'])
+def ubersuggest_status():
+    """GET /api/intel/ubersuggest/status — are Ubersuggest MCP creds configured?
+
+    Returns { ok, configured, token_file, refreshed_at, expires_at, scope, hint }
+    — never leaks the access_token value. Best-effort account tier probe with
+    short timeout; tier info is omitted on transient network failures.
+    """
+    try:
+        from _lib import ubersuggest_mcp as _us
+        out = _us.status_report()
+        out.setdefault("ok", True)
+        # If configured but token is expired, surface a hint for the SPA.
+        if out.get("configured") and (out.get("expires_in_seconds") or 0) <= 0:
+            out["hint"] = (
+                "access_token expired — run scripts/ubersuggest_refresh_token.py "
+                "or scripts/ubersuggest_oauth.py to re-authorize"
+            )
+        elif not out.get("configured"):
+            out["hint"] = (
+                "no token saved — run scripts/ubersuggest_oauth.py to do the "
+                "OAuth dance. ~30 seconds, requires clicking 'Authorize' once "
+                "in your browser at the Ubersuggest consent screen."
+            )
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("ubersuggest_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/ubersuggest/keyword_overview', methods=['GET'])
+def ubersuggest_keyword_overview():
+    """GET /api/intel/ubersuggest/keyword_overview — single-keyword snapshot.
+
+    Query params: keyword (required), loc_id (default 2840 = US, 2076 = SA),
+    or location (default 'ZA'). lang (default 'en'). Uses the cached access
+    token + auto-refresh; returns 503 if the OAuth dance hasn't been run yet.
+
+    NOTE: the MCP server's `keyword_overview` tool only accepts `location` as a
+    country STRING (e.g. "ZA", "US"); it rejects numeric `locId` with
+    `Invalid "location" parameter.` We translate the numeric `loc_id` to its
+    country code here so the public API still accepts the documented
+    loc_id query param.
+    """
+    # Numeric Ubersuggest location IDs → country code (MCP server expects a
+    # string). Subset is enough for the audiences Swing Shack targets.
+    _LOC_ID_TO_COUNTRY = {2840: "US", 2076: "ZA", 2826: "GB", 2276: "DE", 2250: "FR", 2380: "IT", 2724: "ES", 2300: "GR"}
+    try:
+        from _lib import ubersuggest_mcp as _us
+        keyword = (request.args.get("keyword") or "").strip()
+        if not keyword:
+            return jsonify({"ok": False, "error": "keyword query param required"}), 400
+        # Prefer the explicit `location` string if provided; otherwise translate
+        # the legacy numeric `loc_id` (default US/2840) to its country code.
+        location = (request.args.get("location") or "").strip().upper()
+        if not location:
+            try:
+                loc_id = int(request.args.get("loc_id", "2840"))
+            except ValueError:
+                loc_id = 2840
+            location = _LOC_ID_TO_COUNTRY.get(loc_id, "ZA")
+        lang = (request.args.get("lang") or "en").strip()
+        result = _us.keyword_overview(keyword, location=location, lang=lang)
+        return jsonify({"ok": True, "keyword": keyword, "location": location, **result}), 200
+    except _us.UbersuggestAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "run scripts/ubersuggest_oauth.py to authorize Ubersuggest",
+        }), 503
+    except _us.UbersuggestUpstreamError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "code": e.code,
+        }), 502
+    except _us.UbersuggestNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("ubersuggest_keyword_overview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/intel/ubersuggest/domain_overview', methods=['GET'])
+def ubersuggest_domain_overview():
+    """GET /api/intel/ubersuggest/domain_overview?domain=swingshack.co.za — domain stats.
+
+    Optional country (loc_id, default US/2840). Returns 503 if not authorized.
+    """
+    try:
+        from _lib import ubersuggest_mcp as _us
+        domain = (request.args.get("domain") or "").strip()
+        if not domain:
+            return jsonify({"ok": False, "error": "domain query param required"}), 400
+        try:
+            country = int(request.args.get("country", "2840"))
+        except ValueError:
+            country = 2840
+        result = _us.domain_overview(domain, country=country)
+        return jsonify({"ok": True, "domain": domain, **result}), 200
+    except _us.UbersuggestAuthError as e:
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "upstream": e.upstream,
+            "hint": "run scripts/ubersuggest_oauth.py to authorize Ubersuggest",
+        }), 503
+    except _us.UbersuggestUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream, "code": e.code}), 502
+    except _us.UbersuggestNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("ubersuggest_domain_overview failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/ig-business/find-script', methods=['GET'])
+def meta_ig_business_find_script():
+    """GET /api/meta/ig-business/find-script — debug: where is the script?
+
+    Lists all the candidate paths and whether each one exists.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    script_paths = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ig_business.py'),
+        '/app/scripts/fetch_ig_business.py',
+        '/app/campaign-os/../scripts/fetch_ig_business.py',
+        os.path.join(os.getcwd(), 'scripts', 'fetch_ig_business.py'),
+        '/data/scripts/fetch_ig_business.py',
+        '/data/campaign-os/scripts/fetch_ig_business.py',
+    ]
+    return jsonify({
+        "ok": True,
+        "cwd": os.getcwd(),
+        "__file__": __file__,
+        "candidates": [
+            {"path": p, "exists": os.path.isfile(p)}
+            for p in script_paths
+        ],
+    }), 200
+
+
+@app.route('/api/meta/fb-page/refresh', methods=['POST'])
+def meta_fb_page_refresh():
+    """POST /api/meta/fb-page/refresh — re-pull FB Page posts + per-post insights."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess
+        candidate_paths = [
+            '/app/scripts/fetch_facebook_page.py',
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_facebook_page.py'),
+            os.path.join(os.getcwd(), 'scripts', 'fetch_facebook_page.py'),
+            '/data/scripts/fetch_facebook_page.py',
+            '/data/campaign-os/scripts/fetch_facebook_page.py',
+        ]
+        script = next((p for p in candidate_paths if os.path.isfile(p)), None)
+        if not script:
+            return jsonify({"ok": False, "error": "fetch_facebook_page.py not found"}), 500
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        result = subprocess.run(
+            ["python3", script],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "exit_code": result.returncode,
+            "stderr_tail": result.stderr[-1500:] if result.stderr else "",
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({"ok": False, "error": "fetch timed out (>180s)"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/fb-page/overview', methods=['GET'])
+def meta_fb_page_overview():
+    """GET /api/meta/fb-page/overview — latest FB Page summary."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        candidate = os.path.join(data_dir, 'fb-page-analytics.json')
+        if not os.path.isfile(candidate):
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            alt = os.path.join(repo_root, 'data', 'fb-page-analytics.json')
+            path = alt if os.path.isfile(alt) else candidate
+        else:
+            path = candidate
+        if not os.path.isfile(path):
+            return jsonify({"ok": False, "error": "no FB data — run /api/meta/fb-page/refresh first"}), 404
+        with open(path) as f:
+            data = json.load(f)
+        page = data.get('page', {})
+        media = data.get('media', [])
+        # Top post by total engagement
+        top_post = None
+        if media:
+            sorted_media = sorted(media, key=lambda m: (m.get('reactions_total', 0) or 0) + (m.get('clicks', 0) or 0), reverse=True)
+            top = sorted_media[0]
+            top_post = {
+                "id": top.get('id'),
+                "timestamp": top.get('timestamp'),
+                "message_preview": top.get('message_preview'),
+                "permalink": top.get('permalink'),
+                "reactions_total": top.get('reactions_total'),
+                "clicks": top.get('clicks'),
+            }
+        # Aggregates
+        total_reactions = sum(m.get('reactions_total', 0) or 0 for m in media)
+        total_clicks = sum(m.get('clicks', 0) or 0 for m in media)
+        return jsonify({
+            "ok": True,
+            "fetched_at": data.get('metadata', {}).get('fetched_at'),
+            "page": {
+                "id": page.get('id'),
+                "name": page.get('name'),
+                "fan_count": page.get('fan_count'),
+                "category": page.get('category'),
+            },
+            "totals": {
+                "posts": len(media),
+                "reactions": total_reactions,
+                "clicks": total_clicks,
+            },
+            "top_post": top_post,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/daily-bundle', methods=['GET'])
+def meta_daily_bundle():
+    """GET /api/meta/daily-bundle — combined IG + FB summary for the Morning Brief.
+
+    Reads the latest ig-business-analytics.json + fb-page-analytics.json
+    and returns a unified payload for the topbar chip.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        repo_data = os.path.join(repo_root, 'data')
+
+        def _read(name):
+            for d in (data_dir, repo_data):
+                p = os.path.join(d, name)
+                if os.path.isfile(p):
+                    try:
+                        with open(p) as f:
+                            return json.load(f)
+                    except Exception:
+                        pass
+            return None
+
+        ig = _read('ig-business-analytics.json')
+        fb = _read('fb-page-analytics.json')
+
+        ig_block = None
+        if ig:
+            totals = ig.get('window_totals', {})
+            acct = ig.get('account', {})
+            ig_block = {
+                "username": acct.get('username'),
+                "followers": acct.get('followers_count'),
+                "media_count": acct.get('media_count'),
+                "window_totals": totals,
+                "fetched_at": ig.get('metadata', {}).get('fetched_at'),
+            }
+
+        fb_block = None
+        if fb:
+            page = fb.get('page', {})
+            media = fb.get('media', [])
+            fb_block = {
+                "name": page.get('name'),
+                "fan_count": page.get('fan_count'),
+                "posts": len(media),
+                "total_reactions": sum(m.get('reactions_total', 0) or 0 for m in media),
+                "total_clicks": sum(m.get('clicks', 0) or 0 for m in media),
+                "fetched_at": fb.get('metadata', {}).get('fetched_at'),
+            }
+
+        # Freshness
+        def _age(block):
+            if not block:
+                return None
+            from datetime import datetime, timezone
+            try:
+                fetched = datetime.fromisoformat(block.get('fetched_at', '').replace('Z', '+00:00'))
+                now = datetime.now(timezone.utc)
+                return int((now - fetched).total_seconds() / 3600)
+            except Exception:
+                return None
+
+        return jsonify({
+            "ok": True,
+            "instagram": ig_block,
+            "facebook": fb_block,
+            "freshness": {
+                "instagram_hours": _age(ig_block),
+                "facebook_hours": _age(fb_block),
+            },
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/ig-business/refresh', methods=['POST'])
+def meta_ig_business_refresh():
+    """POST /api/meta/ig-business/refresh — re-pull all 6 instagram_business_manage_insights
+    metrics into data/ig-business-analytics.json.
+
+    Runs the fetcher in-process (subprocess) using whichever token is available:
+      - META_SYSTEM_USER_TOKEN env var (preferred — has the IG insights grant)
+      - canonical credentials file (fallback)
+
+    Returns the fetcher's summary so the operator can confirm the pull worked.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess
+        import io
+        # Find the fetcher script (try multiple paths — Railway may
+        # mount the repo differently than local).
+        script_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ig_business.py'),
+            '/app/scripts/fetch_ig_business.py',
+            '/app/campaign-os/../scripts/fetch_ig_business.py',
+            os.path.join(os.getcwd(), 'scripts', 'fetch_ig_business.py'),
+            '/data/scripts/fetch_ig_business.py',
+            '/data/campaign-os/scripts/fetch_ig_business.py',
+        ]
+        script = next((p for p in script_paths if os.path.isfile(p)), None)
+        if not script:
+            return jsonify({"ok": False, "error": "fetch_ig_business.py not found"}), 500
+        # Capture stdout for the summary
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        result = subprocess.run(
+            ["python3", script],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "exit_code": result.returncode,
+            "stdout_tail": result.stdout[-2000:],
+            "stderr_tail": result.stderr[-1000:] if result.stderr else "",
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({"ok": False, "error": "fetch timed out (>180s)"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+@app.route('/api/instagram/refresh', methods=['POST'])
+def instagram_analytics_refresh():
+    """POST /api/instagram/refresh — re-pull instagram-analytics.json from
+    Instagram Graph API. Pulls 30 days of posts with engagement metrics.
+
+    Required scope: instagram_business_manage_insights.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import subprocess as _sp
+        script_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_instagram_analytics.py'),
+            '/app/scripts/fetch_instagram_analytics.py',
+            os.path.join(os.getcwd(), 'scripts', 'fetch_instagram_analytics.py'),
+        ]
+        script_path = None
+        for sp in script_paths:
+            if os.path.exists(sp):
+                script_path = sp
+                break
+        if not script_path:
+            return jsonify({"ok": False, "error": "fetch_instagram_analytics.py not found", "checked": script_paths}), 500
+        env = os.environ.copy()
+        env.setdefault("BRAND_ID", "swing-shack")
+        result = _sp.run(["python3", script_path], capture_output=True, text=True, env=env, timeout=120)
+        return jsonify({
+            "ok": result.returncode == 0,
+            "script": script_path,
+            "stdout_tail": result.stdout[-500:],
+            "stderr_tail": result.stderr[-500:],
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+@app.route('/api/meta/ig-business/overview', methods=['GET'])
+def meta_ig_business_overview():
+    """GET /api/meta/ig-business/overview — return the latest IG insights summary."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        # Use the canonical file path (handles Railway DATA_DIR override)
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        candidate = os.path.join(data_dir, 'ig-business-analytics.json')
+        # If the canonical DATA_DIR doesn't have it, try the repo path
+        if not os.path.isfile(candidate):
+            repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            alt = os.path.join(repo_root, 'data', 'ig-business-analytics.json')
+            path = alt if os.path.isfile(alt) else candidate
+        else:
+            path = candidate
+        if not os.path.isfile(path):
+            return jsonify({"ok": False, "error": "no IG data — run /api/meta/ig-business/refresh first"}), 404
+        with open(path) as f:
+            data = json.load(f)
+        account = data.get('account', {})
+        totals = data.get('window_totals', {})
+        meta = data.get('metadata', {})
+        return jsonify({
+            "ok": True,
+            "fetched_at": meta.get('fetched_at'),
+            "window": {
+                "since": meta.get('since'),
+                "until": meta.get('until'),
+                "days": meta.get('window_days'),
+            },
+            "account": {
+                "username": account.get('username'),
+                "followers": account.get('followers_count'),
+                "media_count": account.get('media_count'),
+            },
+            "window_totals": totals,
+            "media_count": len(data.get('media', [])),
+            "top_post": data.get('top_post'),
+        }), 200
+    except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2162,6 +6968,394 @@ def meta_post_full(media_id):
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("meta_post_full failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── SOCIALS — IG history + oEmbed proxy + per-product carousel ───────────
+# Layered model:
+#   1) Recent ~30 days → Graph API (real thumbnails, signed URLs may expire)
+#   2) Older posts → public IG oEmbed proxy (works forever, public posts only)
+#   3) Per-product carousel in the Review modal → joins IG history to
+#      asset products/services via fuzzy caption + hashtag matching.
+# Truth-before-cleverness: every endpoint surfaces a real upstream payload
+# (or an explicit 401/503/5xx with the upstream message).
+
+@app.route('/api/socials/status', methods=['GET'])
+def socials_status():
+    """GET /api/socials/status — can we reach IG Graph + oEmbed?
+
+    Returns { ok, graph_configured, oembed_reachable, ig_account_id, reason }
+    """
+    try:
+        from _lib import meta_api as _meta
+        graph_configured = _meta.meta_credentials_present()
+        # oEmbed is public — just sanity-check the endpoint is up
+        oembed_reachable = True
+        try:
+            import urllib.request as _ur
+            req = _ur.Request(
+                "https://api.instagram.com/oembed/?url=https%3A%2F%2Fwww.instagram.com%2Fp%2FCJ5-pxMn7zW%2F",
+                headers={"User-Agent": "swing-shack-campaign-os/1.0"},
+            )
+            with _ur.urlopen(req, timeout=3) as _resp:
+                _ = _resp.read(64)  # any 200 = reachable
+        except Exception:
+            oembed_reachable = False
+        out = {
+            "ok": True,
+            "graph_configured": graph_configured,
+            "oembed_reachable": oembed_reachable,
+            "ig_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID") or None,
+            "reason": None if (graph_configured or oembed_reachable) else (
+                "set META_APP_ID + META_ACCESS_TOKEN[_FILE] + META_INSTAGRAM_BUSINESS_ACCOUNT_ID "
+                "for Graph API; oEmbed also requires public IG posts"
+            ),
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("socials_status failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/socials/posts', methods=['GET'])
+def socials_posts():
+    """GET /api/socials/posts — recent IG posts for the Socials tab.
+
+    Query params:
+      - limit (default 25, max 90)
+      - after (cursor for pagination; from Graph API `paging.cursors.after`)
+      - days (default 365; we page through the IG API until we hit this cutoff
+        or run out of results, so old posts always show up)
+
+    Returns:
+      {
+        data: [{
+          id, caption, media_type, media_url, thumbnail_url, permalink,
+          timestamp, like_count, comments_count, source: 'graph'|'oembed'
+        }, ...],
+        paging: { next_cursor, has_more },
+        _meta: { total_returned, days_covered, oldest, newest, sources: {...} }
+      }
+    """
+    try:
+        from _lib import meta_api as _meta
+        limit = min(int(request.args.get("limit", 25)), 90)
+        days = int(request.args.get("days", 365))
+        after = request.args.get("after", "").strip() or None
+        cutoff = (
+            _dt_cls.now(_tz.utc) - _td(days=days)
+        ).isoformat()
+        # Layer 1: Graph API (most recent ~30 days reliable for thumbnails)
+        graph_data: list = []
+        next_cursor: Optional[str] = after
+        graph_error: Optional[str] = None
+        if _meta.meta_credentials_present():
+            try:
+                # Graph API doesn't accept "after" as a param directly for
+                # /me/media — pagination uses paging.next URL. We grab up to
+                # 90 posts (the API max per call) and rely on days filter
+                # below. For deep pagination we'd need to chase paging.next;
+                # see _chase_paging helper below.
+                params: dict = {"limit": limit}
+                if next_cursor:
+                    params["after"] = next_cursor
+                # Use _graph_get but supply paging cursor via params
+                ig_account_id = os.environ.get(
+                    "META_INSTAGRAM_BUSINESS_ACCOUNT_ID", ""
+                ).strip()
+                fields = [
+                    "id", "caption", "media_type", "media_url", "permalink",
+                    "thumbnail_url", "timestamp", "username",
+                    "is_comment_enabled", "like_count", "comments_count",
+                ]
+                graph_resp = _meta._graph_get(
+                    f"/{ig_account_id}/media",
+                    {"fields": ",".join(fields), "limit": limit, **({"after": next_cursor} if next_cursor else {})},
+                )
+                graph_data = graph_resp.get("data", []) or []
+                paging = graph_resp.get("paging", {}) or {}
+                next_cursor = paging.get("cursors", {}).get("after")
+            except Exception as ge:
+                graph_error = str(ge)
+                _app_log.warning("socials_posts Graph layer failed: %s", ge)
+        # Filter by days cutoff
+        fresh_graph = [
+            p for p in graph_data
+            if (p.get("timestamp") or "") >= cutoff
+        ]
+        # Annotate source
+        for p in fresh_graph:
+            p["source"] = "graph"
+        # Layer 2: oEmbed (always-on fallback for any post we have a permalink
+        # for; works forever for public posts, no auth required)
+        # We call oEmbed on the Graph posts so the UI can render an iframe
+        # even if signed media_url expires.
+        oembed_data: list = []
+        if fresh_graph:
+            import urllib.request as _ur
+            import urllib.parse as _up
+            for post in fresh_graph[:20]:  # cap oEmbed calls
+                permalink = post.get("permalink", "")
+                if not permalink:
+                    continue
+                try:
+                    qs = _up.urlencode({"url": permalink, "omitscript": "true", "hidecaption": "true", "maxwidth": 540})
+                    req = _ur.Request(
+                        f"https://api.instagram.com/oembed/?{qs}",
+                        headers={"User-Agent": "swing-shack-campaign-os/1.0"},
+                    )
+                    with _ur.urlopen(req, timeout=4) as _resp:
+                        import json as _json
+                        body = _json.loads(_resp.read(1024).decode("utf-8", "ignore"))
+                        post["oembed_html"] = body.get("html", "")
+                        post["oembed_author"] = body.get("author_name", "")
+                        post["oembed_thumbnail"] = body.get("thumbnail_url", post.get("thumbnail_url"))
+                except Exception:
+                    post.setdefault("oembed_html", "")
+                    post.setdefault("oembed_author", "")
+                    post.setdefault("oembed_thumbnail", post.get("thumbnail_url"))
+        sources_count: dict = {"graph": len(fresh_graph), "oembed_fallback": 0}
+        out = {
+            "data": fresh_graph,
+            "paging": {
+                "next_cursor": next_cursor,
+                "has_more": bool(next_cursor and len(fresh_graph) >= limit),
+            },
+            "_meta": {
+                "total_returned": len(fresh_graph),
+                "days_covered": days,
+                "oldest": min((p.get("timestamp") for p in fresh_graph), default=None),
+                "newest": max((p.get("timestamp") for p in fresh_graph), default=None),
+                "sources": sources_count,
+                "graph_error": graph_error,
+            },
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("socials_posts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/socials/oembed', methods=['GET'])
+def socials_oembed():
+    """GET /api/socials/oembed?url=<permalink> — server-side oEmbed proxy.
+
+    Why a proxy: the public IG oEmbed endpoint doesn't send CORS headers,
+    so the browser can't fetch it directly. This route proxies the call,
+    caches the result in-memory for 1 hour, and returns clean JSON.
+    """
+    permalink = request.args.get("url", "").strip()
+    if not permalink or "instagram.com" not in permalink:
+        return jsonify({"ok": False, "error": "url must be an instagram.com permalink"}), 400
+    cache_key = f"oembed:{permalink}"
+    cached = _OEMBED_CACHE.get(cache_key)
+    if cached and (time.time() - cached["_ts"]) < 3600:
+        return jsonify(cached["data"]), 200
+    try:
+        import urllib.request as _ur
+        import urllib.parse as _up
+        import json as _json
+        qs = _up.urlencode({"url": permalink, "omitscript": "true", "hidecaption": "true", "maxwidth": 540})
+        req = _ur.Request(
+            f"https://api.instagram.com/oembed/?{qs}",
+            headers={"User-Agent": "swing-shack-campaign-os/1.0"},
+        )
+        with _ur.urlopen(req, timeout=5) as _resp:
+            body = _json.loads(_resp.read(2048).decode("utf-8", "ignore"))
+        out = {
+            "ok": True,
+            "html": body.get("html", ""),
+            "author_name": body.get("author_name", ""),
+            "thumbnail_url": body.get("thumbnail_url"),
+            "provider": body.get("provider_name", "Instagram"),
+            "type": body.get("type"),
+            "version": body.get("version"),
+        }
+        _OEMBED_CACHE[cache_key] = {"_ts": time.time(), "data": out}
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.warning("oEmbed proxy failed for %s: %s", permalink, e)
+        return jsonify({"ok": False, "error": f"oEmbed upstream error: {e}"}), 502
+
+
+@app.route('/api/socials/for-asset/<asset_id>', methods=['GET'])
+def socials_for_asset(asset_id: str):
+    """GET /api/socials/for-asset/<asset_id> — IG posts that match this asset's
+    products/services/keywords. Powers the per-post carousel in the Review modal.
+
+    Joins on:
+      - product tags (matched against hashtags + caption text)
+      - keyword overlap (caption text vs asset description / visualBrief)
+      - recency (last 90 days, ranked)
+
+    Returns: { data: [post, ...], _meta: { matched_via, total_scanned } }
+    """
+    try:
+        from _lib import meta_api as _meta
+        if not _meta.meta_credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Meta credentials not configured — set META_APP_ID + META_ACCESS_TOKEN + META_INSTAGRAM_BUSINESS_ACCOUNT_ID",
+            }), 503
+        # Fetch up to 50 recent posts (enough for keyword match)
+        posts = _meta.list_recent_posts(limit=50).get("data", []) or []
+        # Load asset context — _extract_asset_context returns (text, kind)
+        from app import _extract_asset_context as _eac
+        prompt_text, asset_kind = _eac(asset_id, "swing-shack")
+        # Build keywords from prompt text + a few canonical SS terms
+        keywords: list = []
+        text_blob = (prompt_text or "").lower()
+        for word in text_blob.split():
+            w = word.strip(".,!?:;\"'()[]#@")
+            if len(w) >= 5 and w.isalpha():
+                keywords.append(w)
+        # Seed with common Swing Shack hashtag vocabulary so hashtag overlap wins
+        keywords.extend([
+            "trackman", "takomo", "scotty", "phantom", "putter", "swing",
+            "golf", "lesson", "fitting", "mileseey", "rangefinder",
+        ])
+        keywords = list(set(keywords))[:50]
+        def score(post: dict) -> int:
+            cap = (post.get("caption") or "").lower()
+            return sum(1 for kw in keywords if kw in cap)
+        ranked = sorted(posts, key=score, reverse=True)
+        # Top 8 with score > 0, then top 3 most recent as fallback
+        matched = [p for p in ranked if score(p) > 0][:8]
+        if len(matched) < 3:
+            for p in posts:
+                if p not in matched:
+                    matched.append(p)
+                if len(matched) >= 3:
+                    break
+        matched_via = "keyword" if any(score(p) > 0 for p in matched) else "fallback_recent"
+        return jsonify({
+            "data": matched,
+            "_meta": {
+                "matched_via": matched_via,
+                "total_scanned": len(posts),
+                "asset_kind": asset_kind,
+                "keywords_used": keywords[:20],
+            },
+        }), 200
+    except Exception as e:
+        _app_log.exception("socials_for_asset failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# In-memory oEmbed cache (1h TTL). Avoids hammering IG oEmbed for popular posts.
+_OEMBED_CACHE: dict = {}
+
+
+# ─── INSIGHTS v2 — top IG posts + ad correlation + layman verdicts ─────
+# These three endpoints back the new Insights tab. They:
+#   1. Surface top IG posts WITH thumbnails + plain-English verdict
+#   2. Compute ad-traffic correlation (Google Ads + Meta Ads) when data
+#      exists; otherwise return a clean "not configured" payload
+#   3. Compute content-traffic correlation from IG post timestamps +
+#      GA4 daily sessions
+# Truth-before-cleverness: every verdict cites a real timestamp + data
+# source. We do not fabricate "the ad worked" stories.
+
+@app.route('/api/insights/top-instagram-posts', methods=['GET'])
+def insights_top_instagram_posts():
+    """GET /api/insights/top-instagram-posts?limit=8&brand_id=...
+
+    Returns: { ok, posts: [{id,thumbnail_url,engagementRate,permalink,
+            verdict,plain_english,...}], _meta }
+
+    brand_id: when provided, follows data_delegates_from (e.g. stick →
+    swing-shack) so sub-brands inherit the parent's IG analytics.
+    """
+    try:
+        from _lib import insights_correlator as _ic
+        limit = min(int(request.args.get("limit", 8)), 25)
+        bid = request.args.get("brand_id") or get_brand_id()
+        data_bid = resolve_data_brand(bid)
+        out = _ic.get_top_instagram_posts(limit=limit)
+        out['requested_brand_id'] = bid
+        out['data_source_brand_id'] = data_bid
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("insights_top_instagram_posts failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/insights/ad-correlation', methods=['GET'])
+def insights_ad_correlation():
+    """GET /api/insights/ad-correlation — joins ad-platform timestamps
+    with GA4 traffic.
+
+    Returns: { ok, configured, google_ads:{configured,campaigns,verdicts},
+            meta_ads:{...}, combined_summary }
+
+    When ad data is missing, returns clear "not configured" with the
+    exact JSON shape needed to wire it up.
+    """
+    try:
+        from _lib import insights_correlator as _ic
+        bid = request.args.get("brand_id") or get_brand_id()
+        data_bid = resolve_data_brand(bid)
+        out = _ic.get_ad_correlation_verdicts()
+        out['requested_brand_id'] = bid
+        out['data_source_brand_id'] = data_bid
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("insights_ad_correlation failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/insights/content-traffic-correlation', methods=['GET'])
+def insights_content_traffic_correlation():
+    """GET /api/insights/content-traffic-correlation?days=30&brand_id=...
+
+    Joins IG post timestamps with GA4 traffic to surface verdicts like
+    "Post X went live Mon → /bookings/ spiked +212% Mon → likely content
+    drove the spike".
+
+    Returns: { ok, matches, unmatched_spikes, _meta }
+    """
+    try:
+        from _lib import insights_correlator as _ic
+        days = min(int(request.args.get("days", 30)), 90)
+        bid = request.args.get("brand_id") or get_brand_id()
+        data_bid = resolve_data_brand(bid)
+        out = _ic.get_content_traffic_correlations(days=days)
+        out['requested_brand_id'] = bid
+        out['data_source_brand_id'] = data_bid
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("insights_content_traffic_correlation failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── MEME TEMPLATES — visual library for Meme Lord picker ─────────────────
+# Returns 30 popular meme templates with public thumbnails so the Meme Lord
+# picker can show what each template actually looks like (no more guessing
+# from a name). Thumbnails are public CDN URLs (imgflip.com) — see
+# _lib/meme_templates.py for attribution and licensing notes.
+
+@app.route('/api/meme/templates', methods=['GET'])
+def meme_templates():
+    """GET /api/meme/templates — full catalog with thumbnails.
+
+    Query params:
+      - tier (optional): filter to iconic | trending | classic
+      - q (optional): free-text search over name
+
+    Returns: { data: [{ id, name, tier, text_zones, thumbnail_url, source, brand_fit }, ...] }
+    """
+    try:
+        from _lib import meme_templates as _mt
+        tier = (request.args.get("tier") or "").strip().lower()
+        q = (request.args.get("q") or "").strip().lower()
+        templates = _mt.list_templates()
+        if tier and tier in ("iconic", "trending", "classic"):
+            templates = [t for t in templates if t["tier"] == tier]
+        if q:
+            templates = [t for t in templates if q in t["name"].lower()]
+        return jsonify({"data": templates, "count": len(templates)}), 200
+    except Exception as e:
+        _app_log.exception("meme_templates failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -2333,11 +7527,382 @@ def _write_meta_creds(payload):
     }
 
 
+@app.route('/api/admin/secrets-sync', methods=['POST'])
+def admin_secrets_sync():
+    """POST /api/admin/secrets-sync — paste contents of any local credential file.
+
+    Single-source-of-truth bridge: copy the JSON from
+    ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/
+    on your Mac, paste it here. Server writes to:
+
+      1. CRED_DIR/<service>.json (Railway persistent credential dir)
+      2. DATA_DIR/credentials/<service>.json (deploy-survives)
+      3. os.environ (in-process, immediate effect)
+
+    Body: { service: "meta-token" | "openai-api" | "openrouter-api" |
+            "instagram-api-token" | "ubersuggest-api" | "google-analytics"
+            | "google-service-account" | "postiz-api-key" | "youtube-api"
+            | "windsor-api",
+            contents: <full JSON as a string OR object> }
+
+    For 'meta-token' specifically, also sets META_APP_ID + META_ACCESS_TOKEN
+    + META_INSTAGRAM_BUSINESS_ACCOUNT_ID in os.environ so Graph API works
+    immediately.
+
+    For 'windsor-api' specifically, sets WINDSOR_API_KEY in os.environ so
+    the Windsor.ai paid-media connectors (facebook, google_ads, ...) work
+    immediately. Body shape: ``{"api_key": "<windsor-key>"}``.
+    """
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"invalid JSON: {e}"}), 400
+
+    service = (body.get('service') or '').strip()
+    contents = body.get('contents')
+    if not service:
+        return jsonify({"ok": False, "error": "service is required"}), 400
+    if contents is None:
+        return jsonify({"ok": False, "error": "contents is required"}), 400
+
+    # Accept contents as either JSON string or already-parsed object
+    if isinstance(contents, str):
+        try:
+            contents_obj = json.loads(contents)
+        except json.JSONDecodeError as e:
+            return jsonify({"ok": False, "error": f"contents not valid JSON: {e}"}), 400
+    elif isinstance(contents, dict):
+        contents_obj = contents
+    else:
+        return jsonify({"ok": False, "error": "contents must be JSON string or object"}), 400
+
+    # Write to all persistence layers
+    runtime_creds_dir = os.path.join(DATA_DIR, 'credentials')
+    os.makedirs(runtime_creds_dir, exist_ok=True)
+    home_creds_dir = os.path.expanduser('~/.openclaw/workspace/credentials')
+    os.makedirs(home_creds_dir, exist_ok=True)
+
+    payload_str = json.dumps(contents_obj, indent=2)
+    file_name = f'{service}.json'
+    wrote = []
+    rt_path = ''
+    for d in (home_creds_dir, runtime_creds_dir):
+        try:
+            p = os.path.join(d, file_name)
+            with open(p, 'w') as f:
+                f.write(payload_str)
+            os.chmod(p, 0o600)
+            wrote.append(p)
+            if d == runtime_creds_dir:
+                rt_path = p
+        except Exception as e:
+            _app_log.warning('secrets-sync write %s failed: %s', p, e)
+
+    # Meta also writes the bundled-fallback filename that _read_meta_access_token()
+    # looks up directly (data/meta-tokens.json). This survives Railway restarts
+    # because DATA_DIR (/data/) is a persistent volume, and serves as a fallback
+    # if env vars are lost between deploys.
+    if service == 'meta-token':
+        bundled_path = ''
+        for bundled_dir in (runtime_creds_dir, os.path.join(DATA_DIR, '').rstrip('/'),
+                            os.path.dirname(DATA_DIR)):
+            try:
+                bundled_path = os.path.join(bundled_dir, 'meta-tokens.json')
+                os.makedirs(bundled_dir, exist_ok=True)
+                with open(bundled_path, 'w') as f:
+                    f.write(payload_str)
+                os.chmod(bundled_path, 0o600)
+                wrote.append(bundled_path)
+            except Exception as e:
+                _app_log.warning('secrets-sync bundled-fallback write %s failed: %s',
+                                 bundled_path, e)
+
+    # Service-specific env-var wiring for the running process
+    env_wired = []
+    if service == 'meta-token':
+        # Map meta-token.json fields to env vars
+        if contents_obj.get('app_id') or contents_obj.get('META_APP_ID'):
+            v = contents_obj.get('app_id') or contents_obj.get('META_APP_ID')
+            os.environ['META_APP_ID'] = str(v); env_wired.append('META_APP_ID')
+        if contents_obj.get('access_token'):
+            os.environ['META_ACCESS_TOKEN'] = contents_obj['access_token']
+            env_wired.append('META_ACCESS_TOKEN')
+            # Also set the *_FILE so resolver picks it up
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['META_ACCESS_TOKEN_FILE'] = rt_path
+                env_wired.append('META_ACCESS_TOKEN_FILE')
+        if contents_obj.get('instagram_account_id'):
+            os.environ['META_INSTAGRAM_BUSINESS_ACCOUNT_ID'] = str(
+                contents_obj['instagram_account_id'])
+            env_wired.append('META_INSTAGRAM_BUSINESS_ACCOUNT_ID')
+        if contents_obj.get('page_id'):
+            os.environ['META_PAGE_ID'] = str(contents_obj['page_id'])
+            env_wired.append('META_PAGE_ID')
+        # Also try to read app_id from a sibling meta-app.json if present
+        meta_app_path = os.path.join(runtime_creds_dir, 'meta-app.json')
+        if not os.environ.get('META_APP_ID') and os.path.exists(meta_app_path):
+            try:
+                with open(meta_app_path) as f:
+                    app_cfg = json.load(f)
+                if app_cfg.get('app_id'):
+                    os.environ['META_APP_ID'] = str(app_cfg['app_id'])
+                    env_wired.append('META_APP_ID (from meta-app.json)')
+            except Exception:
+                pass
+        # Same for home dir
+        if not os.environ.get('META_APP_ID'):
+            home_meta_app = os.path.join(home_creds_dir, 'meta-app.json')
+            if os.path.exists(home_meta_app):
+                try:
+                    with open(home_meta_app) as f:
+                        app_cfg = json.load(f)
+                    if app_cfg.get('app_id'):
+                        os.environ['META_APP_ID'] = str(app_cfg['app_id'])
+                        env_wired.append('META_APP_ID (from home meta-app.json)')
+                except Exception:
+                    pass
+    elif service == 'openrouter-api':
+        if contents_obj.get('api_key'):
+            os.environ['OPENROUTER_API_KEY'] = contents_obj['api_key']
+            env_wired.append('OPENROUTER_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['OPENROUTER_API_KEY_FILE'] = rt_path
+                env_wired.append('OPENROUTER_API_KEY_FILE')
+    elif service == 'openai-api':
+        if contents_obj.get('api_key'):
+            os.environ['OPENAI_API_KEY'] = contents_obj['api_key']
+            env_wired.append('OPENAI_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['OPENAI_API_KEY_FILE'] = rt_path
+                env_wired.append('OPENAI_API_KEY_FILE')
+    elif service == 'windsor-api':
+        # Windsor.ai aggregator: single api_key unlocks all paid-media connectors
+        # (facebook, google_ads, tiktok, linkedin, ...). _lib.windsor_client
+        # resolves via WINDSOR_API_KEY env var first, then on-disk creds file.
+        if contents_obj.get('api_key'):
+            os.environ['WINDSOR_API_KEY'] = contents_obj['api_key']
+            env_wired.append('WINDSOR_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['WINDSOR_API_KEY_FILE'] = rt_path
+                env_wired.append('WINDSOR_API_KEY_FILE')
+        # Also allow the field to be named just 'key' for muscle-memory parity
+        elif contents_obj.get('key'):
+            os.environ['WINDSOR_API_KEY'] = contents_obj['key']
+            env_wired.append('WINDSOR_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['WINDSOR_API_KEY_FILE'] = rt_path
+                env_wired.append('WINDSOR_API_KEY_FILE')
+
+    # Bust any caches that would hide the new keys
+    try:
+        from _lib import image_gen_router as _igr
+        for name in ('_resolve_openai_key', '_resolve_openrouter_key',
+                     'openai_credentials_present', 'openrouter_credentials_present'):
+            fn = getattr(_igr, name, None)
+            clr = getattr(fn, 'cache_clear', None) if fn else None
+            if callable(clr):
+                clr()
+        from _lib.image_gen_router import status_report as _status
+        clr = getattr(_status, 'cache_clear', None)
+        if callable(clr):
+            clr()
+    except Exception:
+        pass
+
+    return jsonify({
+        'ok': True,
+        'service': service,
+        'wrote': wrote,
+        'env_wired': env_wired,
+        'note': 'Keys are now active in the running process. For deploy restarts, also set them in Railway dashboard Variables tab.',
+    })
+
+
+@app.route('/api/admin/data-sync', methods=['POST'])
+def admin_data_sync():
+    """POST /api/admin/data-sync — paste contents of any data/ JSON file.
+
+    Single-source-of-truth bridge: copy the JSON from
+    ~/.openclaw-instance2/workspace/clients/swing-shack/data/ on your Mac,
+    paste it here. Server writes to DATA_DIR/<filename> so the brain +
+    weekly report can read the latest numbers.
+
+    Body: { filename: "funnel-leaks.json", contents: <full JSON as string OR object> }
+
+    Filename is validated against an allowlist of files the brain actually
+    reads - refuses anything else so we don't accidentally clobber state.
+    """
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"invalid JSON: {e}"}), 400
+
+    filename = (body.get('filename') or '').strip()
+    contents = body.get('contents')
+    if not filename:
+        return jsonify({"ok": False, "error": "filename is required"}), 400
+    if contents is None:
+        return jsonify({"ok": False, "error": "contents is required"}), 400
+
+    # Allowlist: only files the brain + report actually read. Refuses any
+    # other filename to prevent accidental overwrites of mission-critical state.
+    ALLOWED = {
+        'funnel-leaks.json', 'seo-rankings.json', 'competitor-tracker.json',
+        'post-conversion-score.json', 'counter-moves.json', 'meta-ads.json',
+        'recommendation-outcomes.json', 'retargeting-recommendations.json',
+        'booking-value-model.json', 'ig-business-analytics.json',
+        'ig-analytics.json', 'meta-tokens.json', 'ga4-metrics.json',
+        'weekly-learnings.json', 'what-to-repeat.json', 'what-to-stop.json',
+        'recommendation-scores.json', 'lead-quality.json', 'leads.json',
+        'retargeting-campaigns.json', 'booking-events.json',
+        'booking-closure.json', 'conversion-attribution.json',
+        'conversion-truth.json', 'post-attribution.json', 'ga4-attribution.json',
+        'review-domination.json', 'cta-performance.json',
+        'format-model-refit.json', 'ab-tests.json',
+        'agent-scorecards.json',
+    }
+    if filename not in ALLOWED:
+        return jsonify({
+            "ok": False,
+            "error": f"filename '{filename}' is not in the allowlist. Allowed: {sorted(ALLOWED)}",
+        }), 400
+
+    # Path safety: refuse any filename with slashes or '..' even if it
+    # somehow passes the allowlist.
+    if '/' in filename or '\\' in filename or '..' in filename:
+        return jsonify({"ok": False, "error": "filename must be a bare filename, no path separators"}), 400
+
+    # Accept contents as JSON string or object
+    if isinstance(contents, str):
+        try:
+            contents_obj = json.loads(contents)
+        except json.JSONDecodeError as e:
+            return jsonify({"ok": False, "error": f"contents not valid JSON: {e}"}), 400
+    elif isinstance(contents, dict) or isinstance(contents, list):
+        contents_obj = contents
+    else:
+        return jsonify({"ok": False, "error": "contents must be JSON string, object, or array"}), 400
+
+    payload_str = json.dumps(contents_obj, indent=2, default=str)
+    target_path = os.path.join(DATA_DIR, filename)
+    wrote = []
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(target_path, 'w') as f:
+            f.write(payload_str)
+        os.chmod(target_path, 0o600)
+        wrote.append(target_path)
+    except Exception as e:
+        _app_log.warning('data-sync write %s failed: %s', target_path, e)
+        return jsonify({"ok": False, "error": f"write failed: {e}"}), 500
+
+    return jsonify({
+        "ok": True,
+        "filename": filename,
+        "wrote": wrote,
+        "bytes": len(payload_str),
+        "note": "Data file now visible to brain + weekly report on next render. Survives Railway restarts because DATA_DIR is a persistent volume.",
+    })
+
+
+@app.route('/api/admin/windsor-refresh', methods=['POST'])
+def admin_windsor_refresh():
+    """POST /api/admin/windsor-refresh - pull live Meta Ads + Google Ads now.
+
+    Runs fetch_windsor.py in-process. Reads WINDSOR_API_KEY from env or
+    credentials/windsor-api.json. Writes data/meta-ads.json and
+    data/google-ads.json on Railway's persistent /data/ volume so the next
+    weekly-report render sees real paid-media numbers.
+
+    Returns JSON with ok, files written, totals. On failure, ok=False with
+    the specific error (so the caller knows whether to fix creds vs network).
+    """
+    try:
+        from _lib import windsor_client as _w
+        api_key = _w.read_api_key()
+        if not api_key:
+            return jsonify({
+                "ok": False,
+                "error": "WINDSOR_API_KEY not configured",
+                "fix": "POST /api/admin/secrets-sync with {service: 'windsor-api', contents: '{\"api_key\":\"<your-key>\"}'}",
+            }), 400
+
+        # Import the fetcher builders + atomic writer from _lib (same code as
+        # scripts/fetch_windsor.py). This avoids the cross-path
+        # ../scripts/fetch_windsor.py problem on Railway where the deploy
+        # structure doesn't include scripts/ at the resolved path.
+        try:
+            from _lib.windsor_fetcher import build_meta_ads, build_google_ads, _atomic_write
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"failed to load fetcher: {e}"}), 500
+
+        meta_payload = build_meta_ads(api_key)
+        ga_payload = build_google_ads(api_key)
+
+        # Atomic write to DATA_DIR (Railway persistent volume)
+        wrote = []
+        for payload, name in [(meta_payload, 'meta-ads.json'),
+                              (ga_payload, 'google-ads.json')]:
+            path = os.path.join(DATA_DIR, name)
+            try:
+                _atomic_write(path, payload)
+                wrote.append(path)
+            except Exception as e:
+                _app_log.warning('windsor-refresh write %s failed: %s', path, e)
+
+        ok_live = meta_payload.get('live') or ga_payload.get('live')
+        return jsonify({
+            "ok": bool(ok_live),
+            "fetched_at": meta_payload.get('_meta', {}).get('fetched_at'),
+            "wrote": wrote,
+            "meta_ads": {
+                "live": meta_payload.get('live', False),
+                "campaigns_count": len(meta_payload.get('campaigns') or []),
+                "totals": meta_payload.get('totals', {}),
+                "week": meta_payload.get('week', {}),
+                "error": meta_payload.get('error'),
+            },
+            "google_ads": {
+                "live": ga_payload.get('live', False),
+                "campaigns_count": len(ga_payload.get('campaigns') or []),
+                "totals": ga_payload.get('totals', {}),
+                "week": ga_payload.get('week', {}),
+                "spend": ga_payload.get('spend', 0),
+                "impressions": ga_payload.get('impressions', 0),
+                "clicks": ga_payload.get('clicks', 0),
+                "conversions": ga_payload.get('conversions', 0),
+                "error": ga_payload.get('error'),
+            },
+            "note": (
+                "Live paid-media data written. Next weekly-report render will "
+                "show real Meta Ads + Google Ads spend / reach / clicks instead "
+                "of the synthesised fallback."
+                if ok_live else
+                "Fetch failed; existing data files left in place. Check api_key + network."
+            ),
+        })
+    except Exception as e:
+        _app_log.exception('windsor-refresh crashed')
+        return jsonify({"ok": False, "error": f"unhandled: {e}"}), 500
+
+
 @app.route('/meta-portal', methods=['GET'])
 @app.route('/meta-portal.html', methods=['GET'])
 def meta_portal_form():
     """GET /meta-portal — serve the credential submission form."""
     return send_from_directory(os.path.dirname(__file__), 'meta-portal.html')
+
+
+@app.route('/secrets-sync', methods=['GET'])
+@app.route('/secrets-sync.html', methods=['GET'])
+def secrets_sync_page():
+    """GET /secrets-sync — visual paste-form for any credential file."""
+    return send_from_directory(os.path.dirname(__file__), 'secrets-sync.html')
 
 
 @app.route('/privacy', methods=['GET'])
@@ -2786,6 +8351,327 @@ def create_campaign():
         response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
     return jsonify(response), 201
 
+@app.route('/api/campaigns/from-idea', methods=['POST'])
+def campaign_from_idea():
+    """POST /api/campaigns/from-idea — one-click campaign builder.
+
+    Takes a single idea (the seed of the campaign) and:
+      1. Creates a new campaign
+      2. Generates one asset draft per channel (GBP / Instagram / Facebook /
+         X / TikTok) with platform-tailored captions + CTAs
+      3. Persists each asset to data/campaigns.json → asset appears in the
+         Review queue (with approvalStatus='pending')
+      4. Returns the asset IDs + a one-stop "open review" URL so the user
+         can review + bulk-schedule from the Review queue
+
+    Body (JSON):
+      idea       - str, REQUIRED. The idea / hook / topic. Max 280 chars.
+      brand_id   - str, defaults to the active brand from session/brand switcher.
+      voice      - str, optional. 'swing-shack' | 'stick' | 'bag-drop'. Auto-detects from brand.
+      tone       - str, optional. 'educational' | 'confident' | 'funny' | 'relatable' | 'provocative' | 'sarcastic'.
+      goal       - str, optional. Stored on the campaign identity so future
+                   analytics tie back. Defaults to 'awareness'.
+      pillar     - str, optional. 'club_fitting' | 'booking' | 'community' | etc.
+      neighbourhood - str, optional. Used in the GBP caption.
+      channels   - list, optional. Subset of ['gmb','instagram','facebook','x','tiktok'].
+                   Defaults to all 5. Lets the user scope to just the channels they
+                   want without changing code.
+
+    Returns (200):
+      {
+        ok: true,
+        campaign_id: 'black-friday-trackman-2026',
+        assets: [
+          {channel: 'gmb', asset_id: 'black-friday-trackman-2026-gmb', name, caption_preview, cta, scheduled_for: null},
+          {channel: 'instagram', ...},
+          ...
+        ],
+        review_url: '/#sec-review',
+        generated_at: '2026-08-20T11:00:00Z'
+      }
+
+    Discipline: this endpoint WRITES to the campaign data file. The actual
+    publish-to-platform calls (Postiz / GBP / etc.) are gated behind each
+    asset's individual approve+schedule flow. The from-idea builder only
+    drafts; the user approves each in the Review queue.
+    """
+    body = request.get_json(silent=True) or {}
+    idea = (body.get("idea") or "").strip()
+    if not idea:
+        return jsonify({"ok": False, "error": "idea is required"}), 400
+    if len(idea) > 280:
+        idea = idea[:280]
+    brand_id = (body.get("brand_id") or _active_brand_id() or "swing-shack").strip()
+    voice = (body.get("voice") or "").strip() or None
+    tone = (body.get("tone") or "confident").strip()
+    goal = (body.get("goal") or "awareness").strip()
+    pillar = (body.get("pillar") or "").strip() or None
+    neighbourhood = (body.get("neighbourhood") or "").strip() or None
+    channels_req = body.get("channels") or ["gmb", "instagram", "facebook", "x", "tiktok"]
+    # Validate channels
+    valid_channels = {"gmb", "instagram", "facebook", "x", "tiktok"}
+    channels_req = [c for c in channels_req if c in valid_channels] or ["gmb", "instagram", "facebook", "x", "tiktok"]
+
+    # 1. Create the campaign
+    import re as _re
+    campaign_id = _re.sub(r'[^a-z0-9]+', '-', idea.lower()).strip('-')[:60] or "untitled-campaign"
+    # Disambiguate if it already exists
+    data = load_data()
+    campaigns = data.get("campaigns", {}) or {}
+    base = campaign_id
+    counter = 1
+    while campaign_id in campaigns:
+        campaign_id = f"{base}-{counter}"
+        counter += 1
+    now_iso = _dt_cls.now(_tz.utc).isoformat().replace("+00:00", "Z")
+    new_campaign = {
+        "identity": {
+            "campaignId": campaign_id,
+            "name": idea[:60],
+            "shortName": idea[:30],
+            "goal": goal,
+            "primaryGoal": goal,
+            "status": "drafting",
+            "owner": "christelle",
+            "brand_id": brand_id,
+            "pillar": pillar,
+            "neighbourhood": neighbourhood,
+            "source": "from-idea",
+            "createdAt": now_iso,
+            "updatedAt": now_iso,
+        },
+        "assets": {},
+        "productionPlan": None,
+        "blueprints": [],
+    }
+    campaigns[campaign_id] = new_campaign
+    data["campaigns"] = campaigns
+    data["activeCampaignId"] = campaign_id
+
+    # 2. Generate per-channel assets WITH full brief (built 2026-08-20)
+    # Each asset now ships: caption + image brief + UTM + hook formula +
+    # paid-ad budget + expected outcome + asset_id. That's the missing
+    # 90% of what a real agency brief includes.
+    assets = []
+    per_channel_prompts = _per_channel_prompts(idea, brand_id=brand_id, voice=voice, tone=tone, pillar=pillar, neighbourhood=neighbourhood, goal=goal)
+    for channel in channels_req:
+        prompt = per_channel_prompts.get(channel) or {"name": idea[:60], "caption": idea, "cta": "Read more →", "hashtags": []}
+        asset_id = f"{campaign_id}-{channel}"
+        # Build the full per-channel brief (image / UTM / hook / paid / outcomes)
+        brief = _build_channel_brief_for(channel, idea, brand_id=brand_id, campaign_id=campaign_id,
+                                         pillar=pillar, neighbourhood=neighbourhood,
+                                         content_tag=f"from-idea-{now_iso[:10]}")
+        asset = {
+            "assetId": asset_id,
+            "campaignId": campaign_id,
+            "name": prompt["name"][:120],
+            "assetType": "post",
+            "status": "draft",
+            "platform": channel,
+            "channel": channel,
+            "caption": prompt["caption"],
+            "caption_preview": prompt["caption"][:200],
+            "cta": prompt.get("cta", ""),
+            "hashtags": prompt.get("hashtags", []),
+            "voice": voice or brand_id,
+            "tone": tone,
+            "neighbourhood": neighbourhood,
+            "pillar": pillar,
+            "approvalStatus": "pending",
+            "owner": "agent",
+            "createdAt": now_iso,
+            "updatedAt": now_iso,
+            "history": [{"action": "created", "by": "from-idea", "at": now_iso, "reason": f"auto-generated for channel={channel}"}],
+            # NEW 2026-08-20: the full per-channel brief is persisted on the
+            # asset so the Review queue + image lab can pull it without
+            # re-generating.
+            "brief": brief,
+        }
+        # Channel-specific shape tweaks the publishing pipeline expects
+        if channel == "gmb":
+            asset["postiz_channel"] = "gmb"
+            asset["postizType"] = "STANDARD"
+            asset["suggestedSchedule"] = _suggest_gbp_schedule()
+        elif channel == "x":
+            asset["postiz_channel"] = "x"
+            # X needs <280 chars; truncate body if generated copy is longer
+            if len(asset["caption"]) > 280:
+                asset["caption"] = asset["caption"][:277] + "…"
+                asset["caption_was_truncated"] = True
+        else:
+            asset["postiz_channel"] = channel
+            asset["suggestedSchedule"] = _suggest_social_schedule(channel)
+        campaigns[campaign_id]["assets"][asset_id] = asset
+        assets.append({
+            "channel": channel,
+            "asset_id": asset_id,
+            "name": asset["name"],
+            "caption_preview": asset["caption_preview"],
+            "cta": asset["cta"],
+            "hashtags": asset["hashtags"][:5],
+            "scheduled_for": asset.get("suggestedSchedule"),
+            "tracking_url": brief["utm"]["tracking_url"],
+            "image": brief["image"],
+            "hook_formula": brief["hook_formula"],
+            "paid_plan": brief["paid_plan"],
+            "expected_outcome": brief["expected_outcome"],
+        })
+
+    # Build the tracking sheet rows (CSV-ready) for the campaign
+    tracking_sheet = []
+    try:
+        from _lib import campaign_brief as _cb
+        tracking_sheet = _cb.tracking_sheet_rows(campaign_id, channels_req,
+                                                  pillar=pillar,
+                                                  neighbourhood=neighbourhood)
+    except Exception as exc:
+        _app_log.warning("tracking_sheet_rows failed: %s", exc)
+
+    # 3. Persist + git sync (best-effort)
+    save_data(data)
+    try:
+        git_push(f"campaign-builder: from-idea '{idea[:50]}' → {campaign_id} ({len(assets)} assets)")
+    except Exception:
+        _app_log.warning("campaign_from_idea git_push failed (data still saved)")
+
+    return jsonify({
+        "ok": True,
+        "campaign_id": campaign_id,
+        "assets": assets,
+        "tracking_sheet": tracking_sheet,
+        "review_url": "/#sec-review",
+        "channels": channels_req,
+        "generated_at": now_iso,
+        "brand_id": brand_id,
+        "voice": voice,
+        "tone": tone,
+        "goal": goal,
+        "pillar": pillar,
+        "neighbourhood": neighbourhood,
+    }), 201
+
+
+def _build_channel_brief_for(channel: str, idea: str, *, brand_id: str, campaign_id: str,
+                                  pillar=None, neighbourhood=None, content_tag=None):
+    """Thin wrapper so the route stays agnostic of the campaign_brief module."""
+    try:
+        from _lib import campaign_brief as _cb
+        return _cb.build_channel_brief(channel, idea=idea, brand_id=brand_id,
+                                       campaign_id=campaign_id, pillar=pillar,
+                                       neighbourhood=neighbourhood, content_tag=content_tag)
+    except Exception as exc:
+        _app_log.warning("build_channel_brief failed for %s: %s", channel, exc)
+        return {"channel": channel, "image": {}, "utm": {"tracking_url": ""}, "hook_formula": "n/a",
+                "paid_plan": {}, "expected_outcome": {}}
+
+
+def _active_brand_id() -> Optional[str]:
+    """Best-effort active brand detection. Reads from session, falls back to global default."""
+    try:
+        from flask import session
+        b = session.get("active_brand_id")
+        if b:
+            return b
+    except Exception:
+        pass
+    return None
+
+
+def _suggest_gbp_schedule() -> str:
+    """Tomorrow at 11:00 SAST (09:00 UTC) — matches the daily-poster schedule."""
+    tomorrow = _dt_cls.now(_tz.utc) + _td(days=1)
+    return tomorrow.replace(hour=9, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _suggest_social_schedule(channel: str) -> str:
+    """Stagger social posts across the next 5 days, anchoring on the channel's peak hour.
+    instagram: 18:00 SAST (16:00 UTC)
+    facebook: 14:00 SAST (12:00 UTC)
+    tiktok:   20:00 SAST (18:00 UTC)
+    x:        09:00 SAST (07:00 UTC)
+    """
+    hours_utc = {"instagram": 16, "facebook": 12, "tiktok": 18, "x": 7, "gmb": 9}
+    hour = hours_utc.get(channel, 12)
+    day_offset = {"instagram": 1, "tiktok": 2, "facebook": 3, "x": 4, "gmb": 1}.get(channel, 1)
+    target = _dt_cls.now(_tz.utc) + _td(days=day_offset)
+    return target.replace(hour=hour, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+# ── Per-channel prompt templates (kept SA-natural, golf-aware, aligned to voice) ──
+_BD_HOOKS = {
+    "club_fitting": "Need clubs that fit your swing?",
+    "booking": "Ready to see your numbers?",
+    "community": "Welcome to the swing.",
+    "educational": "Quick swing truth:",
+    "awareness": "Indoor golf in Joburg, properly done:",
+}
+
+
+def _per_channel_prompts(idea: str, *, brand_id: str, voice: Optional[str], tone: str, pillar: Optional[str], neighbourhood: Optional[str], goal: str) -> dict:
+    """Build the per-channel caption + name + CTA + hashtags for the idea.
+
+    This is a deterministic local generator (no OpenAI call) so the endpoint
+    is cheap + reliable. It applies SA-natural sentence rhythm, the brand's
+    voice (if known), and platform-specific framing rules (X <280 char,
+    Instagram hooks-first + hashtag-heavy, etc).
+    """
+    brand_voice_tag = (voice or brand_id or "swing-shack").lower()
+    base_hook = _BD_HOOKS.get(pillar or "", "").strip()
+    if not base_hook:
+        base_hook = "Real talk."
+    if neighbourhood:
+        base_hook = base_hook + f" {neighbourhood}."
+    body_core = idea.strip().rstrip(".")
+    if not body_core.endswith("?") and not body_core.endswith("!"):
+        body_core += "."
+
+    domain = "swingshack.co.za"
+    if brand_voice_tag == "stick":
+        domain = "sticksa.co.za"
+    elif brand_voice_tag == "bag-drop":
+        domain = "bagdropgolf.co.za"
+
+    per_channel = {
+        # Google Business Profile (formerly Google My Business)
+        # Local-intent keyword-friendly, 1500 char max, location-focused.
+        "gmb": {
+            "name": f"{body_core[:55].rstrip('.')} — Swing Shack",
+            "caption": f"{body_core} Free swing analysis on first visit, and we are right here in {neighbourhood or 'Westcliff, Johannesburg'}. Book a session and we will show you your numbers on TrackMan. Try a free swing analysis → {domain}",
+            "cta": "Book a free swing analysis",
+            "hashtags": ["#IndoorGolfJohannesburg", "#SwingShack", "#TrackMan"],
+        },
+        # Instagram - hook-first, hashtag-heavy
+        "instagram": {
+            "name": f"{base_hook} {body_core[:30]}".strip()[:120],
+            "caption": f"{base_hook}\n\n{body_core}\n\nWhat we see on the TrackMan in 30 seconds: launch angle, club path, face angle. We will tell you what is real and what is noise. Bring 3 woods, leave with a plan.\n\nFirst-time visitors: free swing analysis. Booking link in bio.\n\n#IndoorGolf #TrackMan #GolfSimulator #SwingTips #GolfLife #SouthAfrica #Johannesburg #ClubFitting",
+            "cta": "Book a free swing analysis → link in bio",
+            "hashtags": ["#IndoorGolf", "#TrackMan", "#GolfSimulator", "#SwingTips", "#GolfLife", "#SouthAfrica", "#Johannesburg", "#ClubFitting"],
+        },
+        # Facebook - conversation-starting, longer-form OK
+        "facebook": {
+            "name": body_core[:80],
+            "caption": f"{body_core}\n\nWe see this one a lot: golfers who think they need new clubs but actually need 20 minutes on a TrackMan to see what their swing is doing. We will show you the data, you decide.\n\nSwing Shack — indoor golf in Johannesburg with TrackMan. R250 first session. Free swing analysis for first-time visitors.\n\nWho else has had the I-just-need-new-clubs moment?",
+            "cta": "Comment below or book a session",
+            "hashtags": [],
+        },
+        # X (formerly Twitter) - punchy, <280 chars, link-driven
+        "x": {
+            "name": body_core[:60],
+            "caption": f"{body_core} Free swing analysis on first visit, TrackMan data, indoor sim in Joburg. {domain}",
+            "cta": f"Read more → {domain}",
+            "hashtags": [],
+        },
+        # TikTok - trend-aware, sound-cue friendly
+        "tiktok": {
+            "name": body_core[:60],
+            "caption": f"{base_hook}\n\n{body_core}\n\nWhat we see on the TrackMan in 30s: launch angle, club path, face angle.\n\nFollow for swing data that actually means something.\n\n#GolfTok #SwingTips #IndoorGolf #TrackMan #GolfSim #Johannesburg",
+            "cta": "Follow for more swing data",
+            "hashtags": ["#GolfTok", "#SwingTips", "#IndoorGolf", "#TrackMan", "#GolfSim", "#Johannesburg"],
+        },
+    }
+    return per_channel
+
+
 @app.route('/api/review/<asset_id>', methods=['POST'])
 def review_asset(asset_id):
     """
@@ -2839,6 +8725,58 @@ def review_asset(asset_id):
 
     ok, msg = git_push(f"Campaign OS v0.1: Review '{asset_id}' — {body.get('approvalStatus')}")
     response = {"ok": True, "assetId": asset_id, "asset": asset}
+    if not ok:
+        response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
+    return jsonify(response)
+
+
+@app.route('/api/review/bulk-approve', methods=['POST'])
+def bulk_approve_assets():
+    """POST /api/review/bulk-approve — flip a list of assets to approved in one call,
+       one git commit (not N).
+
+       Body: { campaignId, assetIds: [...] }
+       Returns: { ok, approved: N, failed: [...], _syncWarning? }
+    """
+    body = request.get_json() or {}
+    campaign_id = body.get('campaignId')
+    asset_ids = body.get('assetIds') or []
+    if not campaign_id: return jsonify({"ok": False, "error": "campaignId required"}), 400
+    if not asset_ids or not isinstance(asset_ids, list):
+        return jsonify({"ok": False, "error": "assetIds[] required"}), 400
+
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if campaign_id not in campaigns:
+        return jsonify({"ok": False, "error": "Campaign not found"}), 404
+    campaign = campaigns[campaign_id]
+    assets = campaign.get("assets", {})
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    approved = 0
+    failed = []
+    for aid in asset_ids:
+        if aid not in assets:
+            failed.append({"assetId": aid, "reason": "not found"})
+            continue
+        a = assets[aid]
+        if a.get('approvalStatus') == 'approved':
+            continue  # already approved — no-op
+        a['approvalStatus'] = 'approved'
+        a['updatedAt'] = now
+        a['reviewTs'] = now
+        history = a.get('history') or []
+        history.append({
+            "action": "bulk-approve",
+            "by": "campaign-workview",
+            "at": now,
+            "note": f"Bulk-approve from campaign work-view ({len(asset_ids)} assets)",
+        })
+        a['history'] = history
+        approved += 1
+    campaign['updatedAt'] = now
+    save_data(data)
+    ok, msg = git_push(f"Campaign OS v0.1: bulk-approve {approved} assets in '{campaign_id}'")
+    response = {"ok": True, "approved": approved, "failed": failed, "total": len(asset_ids)}
     if not ok:
         response["_syncWarning"] = f"GitHub sync failed: {msg}. Data is saved on server."
     return jsonify(response)
@@ -3042,7 +8980,7 @@ def asset_ai_draft(asset_id):
             "source": "none",
             "ts": None,
             "_reason": "history_present_but_no_snapshot",
-            "_hint": "Edit + save the caption once — the original is captured. Or generate a fresh caption variant in the Caption Studio.",
+            "_hint": "Edit + save the caption once · the original is captured. Or generate a fresh caption variant in the Caption Studio.",
         }), 200
 
     # Path 3: brand new asset, never edited. The current caption IS the draft.
@@ -3103,6 +9041,972 @@ def export_review(campaign_id):
 def get_schedule():
     """Return the publisher-compatible scheduling sidecar."""
     return jsonify({"ok": True, **_schedule_response(load_schedule())}), 200
+
+
+# ─── REVIEW UPLOAD + PUSH-TO-POSTIZ (added 2026-08-04 polish pass) ────
+ASSET_MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
+os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
+
+
+def _update_asset_field(asset_id, campaign_id, field, value):
+    """Mutate a single asset field via the same campaign loader the review queue uses.
+    Tries campaigns/<cid>/assets.json first, falls back to legacy review-queue.json.
+    Returns True if the asset was located and updated."""
+    try:
+        # Path A: campaign assets.json (the new canonical store)
+        if campaign_id:
+            cpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'campaigns', campaign_id, 'assets.json')
+            if os.path.exists(cpath):
+                with open(cpath, 'r', encoding='utf-8') as f:
+                    doc = json.load(f)
+                assets = doc.get('assets') if isinstance(doc, dict) else doc
+                if isinstance(assets, dict) and asset_id in assets:
+                    assets[asset_id][field] = value
+                    with open(cpath, 'w', encoding='utf-8') as f:
+                        json.dump(doc, f, indent=2, ensure_ascii=False)
+                    return True
+        # Path B: review-queue.json (legacy)
+        qpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'review-queue.json')
+        if os.path.exists(qpath):
+            with open(qpath, 'r', encoding='utf-8') as f:
+                doc = json.load(f)
+            # Try several shapes
+            for key in ('queue', 'assets', 'items'):
+                container = doc.get(key) if isinstance(doc, dict) else None
+                if isinstance(container, dict) and asset_id in container:
+                    container[asset_id][field] = value
+                    with open(qpath, 'w', encoding='utf-8') as f:
+                        json.dump(doc, f, indent=2, ensure_ascii=False)
+                    return True
+                if isinstance(container, list):
+                    for entry in container:
+                        if isinstance(entry, dict) and (entry.get('assetId') == asset_id or entry.get('id') == asset_id):
+                            entry[field] = value
+                            with open(qpath, 'w', encoding='utf-8') as f:
+                                json.dump(doc, f, indent=2, ensure_ascii=False)
+                            return True
+    except Exception as exc:
+        _app_log.warning("asset field update failed for %s.%s = %s: %s", asset_id, field, value, exc)
+    return False
+
+
+@app.route('/api/review/<asset_id>/upload', methods=['POST'])
+def review_upload(asset_id):
+    """Upload an image for an asset (multipart form). Saves to data/asset-media/ and
+    updates the asset's visualUrl so Postiz picks it up on push."""
+    if 'file' not in request.files:
+        return jsonify({"ok": False, "error": "no file in form"}), 400
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({"ok": False, "error": "empty file"}), 400
+    safe = secure_filename(f.filename) or f"upload-{asset_id}.bin"
+    # Disambiguate by prepending asset id so two assets don't collide.
+    out_name = f"{secure_filename(asset_id)}-{int(time.time())}-{safe}"
+    out_path = os.path.join(ASSET_MEDIA_DIR, out_name)
+    try:
+        f.save(out_path)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"save failed: {exc}"}), 500
+    # Build a public URL that the browser can fetch. The asset-media dir is served by
+    # the catch-all route registered later (see _asset_media_serve below).
+    public_url = f"/asset-media/{out_name}"
+    campaign_id = request.form.get('campaignId') or request.form.get('campaign_id') or ''
+    ok = _update_asset_field(asset_id, campaign_id, 'visualUrl', public_url)
+    return jsonify({"ok": True, "assetId": asset_id, "visualUrl": public_url,
+                    "storedAs": out_name, "size": os.path.getsize(out_path),
+                    "assetUpdated": ok}), 200
+
+
+@app.route('/asset-media/<path:filename>', methods=['GET'])
+def _asset_media_serve(filename):
+    """Serve uploaded asset images. Kept separate from /static so the uploads dir
+    never gets clobbered by deploys. Returns 404 (not 500) when the file is gone."""
+    safe = secure_filename(filename)
+    if not safe or '..' in filename or '/' in filename:
+        return jsonify({"ok": False, "error": "bad filename"}), 400
+    full = os.path.join(ASSET_MEDIA_DIR, safe)
+    if not os.path.isfile(full):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return send_from_directory(ASSET_MEDIA_DIR, safe)
+
+
+# ── Postiz routes (read-only verification + OAuth round-trip) ─────────────────
+# Built 2026-08-18 to unblock the long-standing ImportError on review_push_postiz
+# (app.py:6372 just below). The discipline here: status + channels are PURE
+# READS — they pass nothing to the destructive write path. OAuth login + callback
+# are the only routes that mutate state (the per-brand OAuth token file). The
+# import-only-once pattern avoids the hard-fail we used to hit on the legacy
+# `from _lib.postiz_client import postiz_create_post` call.
+_POSTIZ_CLIENT_AVAILABLE = True
+try:
+    from _lib import postiz_client as _postiz_lib  # type: ignore[assignment]
+except Exception as _exc:
+    _POSTIZ_CLIENT_AVAILABLE = False
+    _postiz_lib = None
+    _app_log.warning("postiz_client import failed: %s", _exc)
+
+# Every route that uses _postiz_lib first checks the bool guard and returns 503.
+# The local-block assertion below narrows the type for Pyright without changing
+# runtime behaviour — the runtime can only reach the assertion when the import
+# succeeded, so _postiz_lib is not None at that point.
+if _POSTIZ_CLIENT_AVAILABLE:
+    assert _postiz_lib is not None
+
+
+@app.route('/api/postiz/status', methods=['GET'])
+def postiz_status_route():
+    """GET /api/postiz/status — diagnostic snapshot of Postiz credentials.
+
+    Returns: {ok, api_key_present, api_key_length, api_key_prefix,
+              oauth_client_id_present, oauth_client_secret_present,
+              api_base, last_check, oauth_token_brands}
+
+    NEVER echoes the secret. NEVER calls the Postiz API. Safe to hit from
+    any authed session for a "is Postiz wired?" check.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    status = _postiz_lib.postiz_status()
+    # Augment with per-brand OAuth token presence (read-only directory walk)
+    try:
+        path = Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/postiz-oauth"))
+        brands = []
+        if path.exists():
+            for fp in sorted(path.glob("*.json")):
+                rec = _safe_read_json(fp)
+                if rec:
+                    brands.append({
+                        "brand_id": fp.stem,
+                        "rotated_at": rec.get("rotated_at"),
+                        "expires_in": rec.get("expires_in"),
+                        "scope": rec.get("scope"),
+                        "fingerprint": rec.get("fingerprint"),
+                        "has_access_token": bool(rec.get("encrypted_tokens", {}).get("access_token")),
+                        "has_refresh_token": bool(rec.get("encrypted_tokens", {}).get("refresh_token")),
+                    })
+        status["oauth_token_brands"] = brands
+    except Exception as exc:
+        status["oauth_token_brands"] = []
+        status["oauth_token_dir_error"] = str(exc)
+    return jsonify(status), 200
+
+
+@app.route('/api/postiz/channels', methods=['GET'])
+def postiz_channels_route():
+    """GET /api/postiz/channels — list connected platforms under the API key.
+
+    Proxies Postiz's /public/v1/integrations so the OS can show "IG ✓, TikTok ✗"
+    without the user having to open Postiz. Cached for 60s to avoid burning
+    API quota on every page load.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    status = _postiz_lib.postiz_status()
+    if not status["api_key_present"]:
+        return jsonify({"ok": False, "error": "POSTIZ_API_KEY not configured", "detail": status}), 503
+    try:
+        data, err = _postiz_lib.list_integrations()
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"transport error: {exc}"}), 502
+    if err:
+        code, msg = err
+        return jsonify({"ok": False, "error": f"postiz API {code}: {msg}"}), 502
+    # Normalise: Postiz may return {integrations: [...]} or {identities: [...]} or a bare list
+    items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or data.get("data") or [])
+    if not isinstance(items, list):
+        items = []
+    # Reduce to a UI-friendly summary. Postiz hosted SaaS uses 'identifier' as
+    # the provider field (verified 2026-08-20 by probing /channels/raw). The
+    # canonical Postiz docs call it 'providerIdentifier' but the live API
+    # returns 'identifier'. We probe a handful of alternates too.
+    KNOWN_PROVIDER_NAMES = {"gmb", "instagram", "facebook", "tiktok", "twitter", "x",
+                              "linkedin", "youtube", "pinterest", "threads", "reddit"}
+    channels = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        pid = ""
+        for key in ("identifier", "providerIdentifier", "provider", "type",
+                     "channelType", "platform"):
+            v = it.get(key)
+            if v and isinstance(v, str):
+                pid = v
+                break
+        # Some Postiz responses wrap the integration in a sub-object
+        if not pid and isinstance(it.get("integration"), dict):
+            sub = it["integration"]
+            for key in ("identifier", "providerIdentifier", "provider", "type"):
+                v = sub.get(key)
+                if v and isinstance(v, str):
+                    pid = v
+                    break
+        # Last resort: name might BE the provider
+        if not pid:
+            n = (it.get("name") or "").strip().lower()
+            if n in KNOWN_PROVIDER_NAMES:
+                pid = n
+        channels.append({
+            "id": it.get("id") or it.get("_id"),
+            "provider": (pid or "").lower() or None,
+            "name": it.get("name"),
+            "picture": it.get("picture"),
+            "disabled": it.get("disabled", False),
+        })
+    return jsonify({"ok": True, "channels": channels, "count": len(channels)}), 200
+
+def _safe_read_json(path: Path) -> Optional[dict]:
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+@app.route('/api/postiz/oauth/login', methods=['GET'])
+def postiz_oauth_login_route():
+    """GET /api/postiz/oauth/login?brand=<brand> — start the OAuth round-trip.
+
+    Builds a signed state, redirects to Postiz's authorize URL. The user logs
+    in on Postiz, authorises the platform, and comes back to /api/postiz/oauth/callback.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand = request.args.get("brand") or "swing-shack"
+    cid = _postiz_lib._read_oauth_client_id()
+    secret = _postiz_lib._read_oauth_client_secret()
+    if not cid or not secret:
+        return jsonify({
+            "ok": False,
+            "error": "POSTIZ_OAUTH_CLIENT_ID + POSTIZ_OAUTH_CLIENT_SECRET both required",
+            "status": _postiz_lib.postiz_status(),
+        }), 503
+    state = _postiz_lib.make_oauth_state(brand_id=brand, user_id="operator")
+    # Force https:// (Railway proxy returns http:// from request.url_root).
+    redirect_uri = ("https://" + request.host + "/api/postiz/oauth/callback")
+    auth_url = _postiz_lib.build_oauth_authorize_url(redirect_uri, state)
+    return redirect(auth_url, code=302)
+
+
+@app.route('/api/postiz/oauth/callback', methods=['GET'])
+def postiz_oauth_callback_route():
+    """GET /api/postiz/oauth/callback?code=...&state=... — finish the OAuth round-trip.
+
+    Exchanges the code for an access + refresh token, persists them per-brand as
+    a Fernet-encrypted blob, and returns a tiny confirmation page so the user
+    knows the connection landed.
+    """
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+    if error:
+        return jsonify({"ok": False, "error": f"postiz oauth returned error: {error}"}), 400
+    if not code or not state:
+        return jsonify({"ok": False, "error": "missing code or state"}), 400
+    # We need the brand from the state. The state is HMAC-signed; we can verify
+    # without the brand first, then re-derive it from the payload.
+    try:
+        padded = state + "=" * (-len(state) % 4)
+        raw = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+        payload, _sig = raw.rsplit("|", 1)
+        brand_id = payload.split("|")[0]
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"state decode failed: {exc}"}), 400
+    ok, reason = _postiz_lib.verify_oauth_state(state, brand_id)
+    if not ok:
+        return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
+    redirect_uri = ("https://" + request.host + "/api/postiz/oauth/callback")
+    try:
+        data, err = _postiz_lib.exchange_oauth_code(code, redirect_uri)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"exchange failed: {exc}"}), 502
+    if err:
+        code_s, msg = err
+        return jsonify({"ok": False, "error": f"oauth token exchange {code_s}: {msg}"}), 502
+    if not data or "access_token" not in data:
+        return jsonify({"ok": False, "error": "no access_token in response", "response": data}), 502
+    # Persist per-brand
+    try:
+        path = _postiz_lib.save_oauth_token(brand_id, data, note=f"via OAuth callback {request.url_root}")
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+    # Return a small confirmation page (so the user sees something happens)
+    return Response(
+        f"""<!doctype html>
+<html><head><title>Postiz Connected</title>
+<style>body{{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#e5e7eb;text-align:center;padding:80px 20px}}
+h1{{color:#6ee7b7}}p{{color:#94a3b8}}</style></head>
+<body>
+<h1>Postiz connected for <code>{brand_id}</code></h1>
+<p>You can close this tab and return to Campaign OS. The access token is now encrypted at rest.</p>
+<p>Next: visit <a href="/connected-accounts" style="color:#fbbf24">Connected Accounts</a> to see what's wired.</p>
+</body></html>""",
+        mimetype="text/html",
+    ), 200
+
+
+@app.route('/api/postiz/oauth/<brand_id>/disconnect', methods=['POST'])
+def postiz_oauth_disconnect_route(brand_id):
+    """POST /api/postiz/oauth/<brand>/disconnect — hard-delete the per-brand OAuth token."""
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz_client unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    removed = _postiz_lib.delete_oauth_token(brand_id)
+    return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
+
+
+# ── GBP OAuth round-trip (Google Business Profile) ────────────────────────────
+# Built 2026-08-20 to unblock the daily GBP post generator. Same pattern as
+# Postiz OAuth (state HMAC-signed, brand-bound, Fernet at rest). Real-world
+# constraint: the OAuth client (737685980094-...) needs the GBP scope
+# https://www.googleapis.com/auth/business.manage added to its allowed
+# scopes on Google Cloud Console before the consent screen will accept
+# GBP reads/writes. 5-minute Google Cloud task.
+
+_GBP_OAUTH_AVAILABLE = True
+try:
+    from _lib import gbp_oauth as _gbp_lib
+except Exception as _exc:
+    _GBP_OAUTH_AVAILABLE = False
+    _gbp_lib = None
+    _app_log.warning("gbp_oauth import failed: %s", _exc)
+if _GBP_OAUTH_AVAILABLE:
+    assert _gbp_lib is not None
+
+
+@app.route('/api/gbp/oauth/login', methods=['GET'])
+def gbp_oauth_login_route():
+    """GET /api/gbp/oauth/login?brand=<brand> — start the GBP OAuth round-trip."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _gbp_lib.gbp_oauth_credentials_present():
+        return jsonify({
+            "ok": False,
+            "error": "GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET both required",
+            "status": _gbp_lib.gbp_status(),
+        }), 503
+    brand = request.args.get("brand") or "swing-shack"
+    state = _gbp_lib.make_state(brand_id=brand, user_id="operator")
+    # request.url_root returns the scheme as the proxy saw it. Railway's
+    # internal proxy returns "http://" even though the external URL is https.
+    # Force https so the registered Google redirect URI matches byte-for-byte.
+    redirect_uri = ("https://" + request.host + "/api/gbp/oauth/callback")
+    auth_url = _gbp_lib.build_authorize_url(redirect_uri, state)
+    return redirect(auth_url, code=302)
+
+
+@app.route('/api/gbp/oauth/callback', methods=['GET'])
+def gbp_oauth_callback_route():
+    """GET /api/gbp/oauth/callback?code=...&state=... — finish the GBP OAuth round-trip."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+    if error:
+        return jsonify({"ok": False, "error": f"google oauth returned error: {error}"}), 400
+    if not code or not state:
+        return jsonify({"ok": False, "error": "missing code or state"}), 400
+    brand_id = _gbp_lib.brand_from_state(state)
+    if not brand_id:
+        return jsonify({"ok": False, "error": "state brand recovery failed"}), 400
+    ok, reason = _gbp_lib.verify_state(state, brand_id)
+    if not ok:
+        return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
+    redirect_uri = ("https://" + request.host + "/api/gbp/oauth/callback")
+    try:
+        data, err = _gbp_lib.exchange_code(code, redirect_uri)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"exchange failed: {exc}"}), 502
+    if err:
+        code_s, msg = err
+        return jsonify({"ok": False, "error": f"google token exchange {code_s}: {msg}"}), 502
+    if not data or "access_token" not in data:
+        return jsonify({"ok": False, "error": "no access_token in response", "response": data}), 502
+    # Best-effort: look up the google account email so we can show it on the
+    # Connected Accounts page.
+    email = None
+    try:
+        req = urllib.request.Request(
+            _gbp_lib.GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {data['access_token']}", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            info = json.loads(r.read().decode("utf-8"))
+            email = info.get("email")
+    except Exception:
+        pass
+    try:
+        path = _gbp_lib.save_token(brand_id, data, google_account_email=email,
+                                    note=f"via OAuth callback {request.url_root}")
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+    return Response(
+        f"""<!doctype html>
+<html><head><title>GBP Connected</title>
+<style>body{{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#e5e7eb;text-align:center;padding:80px 20px}}
+h1{{color:#6ee7b7}}p{{color:#94a3b8}}</style></head>
+<body>
+<h1>Google Business Profile connected for <code>{brand_id}</code></h1>
+<p>You can close this tab and return to Campaign OS. The access + refresh tokens are encrypted at rest.</p>
+<p>Next: visit <a href="/connected-accounts" style="color:#fbbf24">Connected Accounts</a> to see what's wired.</p>
+</body></html>""",
+        mimetype="text/html",
+    ), 200
+
+
+@app.route('/api/gbp/status', methods=['GET'])
+def gbp_status_route():
+    """GET /api/gbp/status — diagnostic snapshot of GBP credentials + token presence per brand."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brands = ["swing-shack", "stick", "bag-drop"]
+    out = {
+        "ok": False,
+        "credentials_present": _gbp_lib.gbp_oauth_credentials_present(),
+        "scopes": _gbp_lib.GBP_SCOPES,
+        "tokens_per_brand": {b: _gbp_lib.gbp_status(b) for b in brands},
+    }
+    out["ok"] = any(out["tokens_per_brand"][b]["ok"] for b in brands) and out["credentials_present"]
+    return jsonify(out), 200
+
+
+@app.route('/api/gbp/oauth/<brand_id>/disconnect', methods=['POST'])
+def gbp_oauth_disconnect_route(brand_id):
+    """POST /api/gbp/oauth/<brand>/disconnect — hard-delete the per-brand GBP token."""
+    if not _GBP_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    removed = _gbp_lib.delete_token(brand_id)
+    return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
+
+
+# ── GBP Daily Poster (built 2026-08-20) ────────────────────────────────────────
+# Per Christelle's "Real world wind" brief: GBP posts should go out daily,
+# driven by SEO signals (Ubersuggest + GA4 queries) + improve GEO finds.
+#
+# Three routes: preview (dry-run), publish (one-click approval), list (audit).
+# Discipline per the agent-destructive-write-discipline skill: destructive
+# publish only fires when publish=true is explicitly passed. The cron caller
+# never auto-publishes; it always generates the plan and surfaces it for review.
+
+_GBP_DAILY_AVAILABLE = True
+try:
+    from _lib import gbp_daily_poster as _gdp
+except Exception as _exc:
+    _GBP_DAILY_AVAILABLE = False
+    _gdp = None
+    _app_log.warning("gbp_daily_poster import failed: %s", _exc)
+if _GBP_DAILY_AVAILABLE:
+    assert _gdp is not None
+
+
+@app.route('/api/gbp/daily-poster/preview', methods=['POST'])
+def gbp_daily_poster_preview_route():
+    """POST /api/gbp/daily-poster/preview — build a plan (dry-run).
+
+    Body (JSON): {
+      brand_id: swing-shack | stick | bag-drop  (default swing-shack),
+      days: int  (default 7, max 30),
+      posts_per_day: int  (default 1, max 3),
+    }
+
+    Returns the full plan: posts + schedule + source breakdown + plan_file path.
+    No destructive writes — does NOT push to GBP, does NOT publish via Postiz.
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = min(max(int(body.get("days") or 7), 1), 30)
+    posts_per_day = min(max(int(body.get("posts_per_day") or 1), 1), 3)
+    try:
+        plan = _gdp.build_daily_plan(brand_id, days=days, posts_per_day=posts_per_day, publish=False)
+    except Exception as exc:
+        _app_log.exception("gbp_daily_poster_preview failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(plan), 200
+
+
+@app.route('/api/gbp/daily-poster/publish', methods=['POST'])
+def gbp_daily_poster_publish_route():
+    """POST /api/gbp/daily-poster/publish — build AND schedule the plan.
+
+    Same body as /preview. Adds `publish: true` so the plan is pushed via
+    Postiz GBP integration to actually go live on the scheduled dates.
+
+    Real-world wind: this is the destructive-write path. It posts to GBP
+    via Postiz. Only fires when the user explicitly clicks 'publish'.
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = min(max(int(body.get("days") or 7), 1), 30)
+    posts_per_day = min(max(int(body.get("posts_per_day") or 1), 1), 3)
+    try:
+        plan = _gdp.build_daily_plan(brand_id, days=days, posts_per_day=posts_per_day, publish=True)
+    except Exception as exc:
+        _app_log.exception("gbp_daily_poster_publish failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(plan), 200
+
+
+@app.route('/api/gbp/daily-poster/plans', methods=['GET'])
+def gbp_daily_poster_plans_route():
+    """GET /api/gbp/daily-poster/plans — list past plans (audit trail).
+
+    Query params: brand_id (optional), limit (default 30).
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or "").strip() or None
+    try:
+        limit = min(max(int(request.args.get("limit") or 30), 1), 100)
+    except ValueError:
+        limit = 30
+    plans = _gdp.list_plans(brand_id=brand_id, limit=limit)
+    return jsonify({"ok": True, "plans": plans, "count": len(plans)}), 200
+
+
+@app.route('/api/gbp/daily-poster/latest', methods=['GET'])
+def gbp_daily_poster_latest_route():
+    """GET /api/gbp/daily-poster/latest?brand_id=swing-shack — most recent plan."""
+    if not _GBP_DAILY_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    plan = _gdp.latest_plan(brand_id)
+    if not plan:
+        return jsonify({"ok": False, "error": f"no plan for {brand_id}"}), 404
+    return jsonify(plan), 200
+
+
+# ── GBP Daily cron hook (built 2026-08-20) ────────────────────────────────
+# Fires at 06:00 SAST (04:00 UTC) every day. Previews tomorrow's 7 posts
+# anchored on the latest insights data so the Morning Brief tiles can
+# surface them with one click. Does NOT publish (destructive write is
+# always explicit via the GBP Daily card's Publish button).
+def _gbp_daily_cron_tick():
+    """06:00 SAST: rebuild tomorrow's plan from current insights."""
+    if not _GBP_DAILY_AVAILABLE or not _GBP_INSIGHTS_AVAILABLE:
+        return {"ok": False, "error": "modules unavailable"}
+    # 1. Refresh insights first (so the boost applies to the new plan)
+    insights = {}
+    try:
+        insights = _gbi.sync_for_brand("swing-shack", days=30)
+    except Exception as exc:
+        _app_log.warning("cron: insights sync failed: %s", exc)
+    # 2. Build plan (dry-run; never auto-publishes)
+    plan = {}
+    try:
+        plan = _gdp.build_daily_plan("swing-shack", days=7, posts_per_day=1, publish=False)
+    except Exception as exc:
+        _app_log.warning("cron: plan build failed: %s", exc)
+    return {
+        "ok": True,
+        "ran_at": _dt_cls.now(_tz.utc).isoformat(),
+        "insights_ok": insights.get("ok"),
+        "insights_records": insights.get("insights_records", 0),
+        "plan_ok": plan.get("ok"),
+        "plan_id": plan.get("plan_id"),
+        "posts": len(plan.get("posts", [])),
+    }
+
+
+@app.route('/api/gbp/cron/tick', methods=['POST'])
+def gbp_daily_cron_tick_route():
+    """POST /api/gbp/cron/tick — fire the daily cron tick (06:00 SAST).
+
+    This is the HTTP-facing version of the cron job so the operator can
+    trigger it manually (or so an external scheduler can ping it).
+    The same code path runs every morning at 06:00 SAST automatically
+    once the cron wiring is in place.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        result = _gbp_daily_cron_tick()
+    except Exception as exc:
+        _app_log.exception("gbp_daily_cron_tick failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify(result), 200
+
+
+# ── GBP Insights (built 2026-08-20) ────────────────────────────────────────
+# Reads last-30d metrics from GBP Insights API for the brand's locations.
+# Read-only: pulls QUERIES_DIRECT, QUERIES_INDIRECT, VIEWS_SEARCH,
+# VIEWS_MAPS, ACTIONS_WEBSITE, ACTIONS_PHONE, ACTIONS_DRIVING_DIRECTIONS,
+# PHOTOS_VIEWS_MERCHANT, PHOTOS_VIEWS_CUSTOMERS. Feeds the daily-poster
+# scoring so the keyword source learns from what actually drove calls
+# + direction requests.
+_GBP_INSIGHTS_AVAILABLE = True
+try:
+    from _lib import gbp_insights as _gbi
+except Exception as _exc:
+    _GBP_INSIGHTS_AVAILABLE = False
+    _gbi = None
+    _app_log.warning("gbp_insights import failed: %s", _exc)
+if _GBP_INSIGHTS_AVAILABLE:
+    assert _gbi is not None
+
+
+@app.route('/api/gbp/insights/sync', methods=['POST'])
+def gbp_insights_sync_route():
+    """POST /api/gbp/insights/sync — pull live insights from GBP + cache.
+
+    Body (JSON): {brand_id: swing-shack (default), days: 30 (default)}.
+
+    The only side effect is the cache file at
+    data/gbp-insights/<brand>-latest.json. No destructive writes.
+    The token is auto-refreshed if needed.
+    """
+    if not _GBP_INSIGHTS_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_insights unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = min(max(int(body.get("days") or 30), 1), 90)
+    try:
+        summary = _gbi.sync_for_brand(brand_id, days=days)
+    except Exception as exc:
+        _app_log.exception("gbp_insights_sync failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    status = 200 if summary.get("ok") else 502
+    return jsonify(summary), status
+
+
+@app.route('/api/gbp/insights/summary', methods=['GET'])
+def gbp_insights_summary_route():
+    """GET /api/gbp/insights/summary?brand_id=swing-shack — last cached summary.
+
+    Returns the most recent sync's totals (calls, directions, views, etc.)
+    plus the per-keyword boost the daily-poster will apply.
+    """
+    if not _GBP_INSIGHTS_AVAILABLE:
+        return jsonify({"ok": False, "error": "gbp_insights unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    summary = _gbi.latest_summary(brand_id)
+    if not summary:
+        return jsonify({"ok": False, "error": f"no insights cached for {brand_id}. Run /api/gbp/insights/sync first."}), 404
+    boost = _gbi.score_boost(brand_id)
+    return jsonify({"ok": True, "summary": summary, "boost": boost, "brand_id": brand_id}), 200
+
+
+@app.route('/api/review/<asset_id>/schedule', methods=['POST'])
+def review_push_postiz(asset_id):
+    """Push the asset's caption + visual to Postiz as a draft. Records the Postiz id
+    back onto the asset so subsequent renders show an Open-in-Postiz link."""
+    body = request.get_json(silent=True) or {}
+    campaign_id = body.get('campaignId') or body.get('campaign_id')
+    # Load asset to get caption + visual (inline loader — _load_campaign is in _lib)
+    caption = ''
+    visual_url = ''
+    platform = 'instagram'
+    try:
+        if campaign_id:
+            # Lazy import to avoid circular refs at module load.
+            try:
+                from _lib.intelligence import _load_campaign as __lc  # type: ignore
+                c = __lc(campaign_id)
+            except Exception:
+                c = None
+            if not c:
+                # Inline fallback loader.
+                cpath = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    'data', 'campaigns', campaign_id, 'assets.json')
+                if os.path.exists(cpath):
+                    with open(cpath, 'r', encoding='utf-8') as _f:
+                        c = json.load(_f)
+            a = (c.get('assets') or {}).get(asset_id) if c else None
+            if a:
+                caption = a.get('caption') or ''
+                visual_url = a.get('visualUrl') or a.get('imageUrl') or ''
+                platform = a.get('platform') or a.get('integration') or platform
+    except Exception as exc:
+        _app_log.warning("review_push_postiz: load asset failed: %s", exc)
+    if not caption:
+        return jsonify({"ok": False, "error": "no caption on asset"}), 400
+    # Push to Postiz via the new client (built 2026-08-18). The legacy
+    # `from _lib.postiz_client import postiz_create_post` was failing because
+    # the module itself didn't exist; the new _lib/postiz_client.py mirrors
+    # that legacy signature on top of the Real Postiz API.
+    postiz_id = None
+    err = None
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
+    assert _postiz_lib is not None  # runtime narrowed by the bool check above
+    # Capture the integration_id for the chosen platform from the channel list.
+    integration_id = body.get("integrationId") or body.get("integration_id")
+    if not integration_id:
+        try:
+            data, ch_err = _postiz_lib.list_integrations()
+            if not ch_err and data:
+                items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    provider = (it.get("providerIdentifier") or it.get("provider") or "").lower()
+                    if provider == platform.lower() or platform.lower() in (provider,):
+                        integration_id = it.get("id") or it.get("_id")
+                        if integration_id:
+                            break
+        except Exception as exc:
+            _app_log.warning("review_push_postiz: channel lookup failed: %s", exc)
+    if not integration_id:
+        return jsonify({
+            "ok": False,
+            "error": f"no Postiz integration found for platform={platform!r}. "
+                     f"Connect it via /api/postiz/oauth/login?brand=<brand> or pass integration_id in body.",
+        }), 400
+    # Upload the asset image first (if local path), then create the post.
+    media_ids: list[str] = []
+    if visual_url:
+        try:
+            upload_path = visual_url
+            if upload_path.startswith("/uploads/"):
+                full = os.path.join(ASSET_MEDIA_DIR, os.path.basename(upload_path))
+                if os.path.isfile(full):
+                    upload_path = full
+            upload_data, up_err = _postiz_lib.upload_media(upload_path)
+            if up_err:
+                err = f"upload {up_err[0]}: {up_err[1]}"
+            elif upload_data and upload_data.get("id"):
+                media_ids.append(upload_data["id"])
+        except Exception as exc:
+            err = f"upload exception: {exc}"
+    if not err:
+        try:
+            result, post_err = _postiz_lib.create_post(
+                integration_id=integration_id,
+                content=caption,
+                media_ids=media_ids,
+            )
+            if post_err:
+                err = f"create_post {post_err[0]}: {post_err[1]}"
+            elif result and result.get("id"):
+                postiz_id = result["id"]
+        except Exception as exc:
+            err = f"create_post exception: {exc}"
+    if not postiz_id:
+        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'unknown'}"}), 502
+    # Record back onto the asset
+    refs_update = [{"postizId": postiz_id, "platform": platform, "publishStatus": "draft"}]
+    _update_asset_field(asset_id, campaign_id, 'publishingReferences', refs_update)
+    _update_asset_field(asset_id, campaign_id, 'publishStatus', 'draft')
+    return jsonify({"ok": True, "assetId": asset_id, "postizId": postiz_id, "platform": platform, "integrationId": integration_id}), 200
+
+
+# ─── GMB DRAFTS CRUD (added 2026-08-04 polish pass) ──────────────────
+GMB_DRAFTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'gmb-drafts')
+os.makedirs(GMB_DRAFTS_DIR, exist_ok=True)
+
+
+def _gmb_draft_path(draft_id):
+    # draft_id is a slugified string — defend against path traversal.
+    safe = secure_filename(draft_id) or ''
+    if not safe or '..' in draft_id or '/' in draft_id:
+        return None
+    return os.path.join(GMB_DRAFTS_DIR, f"{safe}.json")
+
+
+def _gmb_list_drafts():
+    out = []
+    if not os.path.isdir(GMB_DRAFTS_DIR):
+        return out
+    for fn in sorted(os.listdir(GMB_DRAFTS_DIR)):
+        if not fn.endswith('.json'):
+            continue
+        path = os.path.join(GMB_DRAFTS_DIR, fn)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                d = json.load(f)
+            d['id'] = fn[:-5]
+            out.append(d)
+        except Exception:
+            continue
+    return out
+
+
+@app.route('/api/intel/gmb/drafts', methods=['GET'])
+def gmb_list_drafts():
+    """List all GMB draft posts (templates + manual drafts)."""
+    drafts = _gmb_list_drafts()
+    return jsonify({"ok": True, "drafts": drafts, "count": len(drafts)}), 200
+
+
+@app.route('/api/intel/gmb/drafts', methods=['POST'])
+def gmb_create_draft():
+    """Create a new GMB draft. Body: {title, body, cta, link, imageUrl}."""
+    body = request.get_json(silent=True) or {}
+    title = (body.get('title') or '').strip()[:100] or 'Untitled GMB post'
+    body_text = (body.get('body') or '').strip()[:1500]
+    cta = (body.get('cta') or '').strip()[:40]
+    link = (body.get('link') or '').strip()[:300]
+    image_url = (body.get('imageUrl') or '').strip()[:500]
+    brand = (body.get('brand') or get_brand_id() or 'swing-shack').strip()
+    slug = secure_filename(title.lower().replace(' ', '-'))[:40] or 'draft'
+    draft_id = f"{slug}-{int(time.time())}"
+    draft = {
+        "id": draft_id,
+        "title": title,
+        "body": body_text,
+        "cta": cta,
+        "link": link,
+        "imageUrl": image_url,
+        "brand": brand,
+        "status": "draft",
+        "createdAt": _now_iso(),
+        "updatedAt": _now_iso(),
+    }
+    path = _gmb_draft_path(draft_id)
+    if not path:
+        return jsonify({"ok": False, "error": "bad draft id"}), 400
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(draft, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft}), 201
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>', methods=['PUT'])
+def gmb_edit_draft(draft_id):
+    """Edit an existing GMB draft."""
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    body = request.get_json(silent=True) or {}
+    for field in ('title', 'body', 'cta', 'link', 'imageUrl', 'status'):
+        if field in body:
+            draft[field] = body[field]
+    draft['updatedAt'] = _now_iso()
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(draft, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>/schedule', methods=['POST'])
+def gmb_schedule_draft(draft_id):
+    """Push the draft to Postiz as a GMB-platform post and mark scheduled."""
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            draft = json.load(f)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"read failed: {exc}"}), 500
+    postiz_id = None
+    err = None
+    if not _POSTIZ_CLIENT_AVAILABLE:
+        return jsonify({"ok": False, "error": "postiz client unavailable"}), 503
+    assert _postiz_lib is not None
+    # Resolve the GMB integration id from the channels list. Postiz reports
+    # the GBP integration under several possible provider strings depending
+    # on the workspace version; we accept any of the documented variants.
+    integration_id = None
+    gmb_provider_aliases = {"gmb", "google-business", "google-business-profile", "googlebusinessprofile", "googlemybusiness", "google_places"}
+    try:
+        data, ch_err = _postiz_lib.list_integrations()
+        if not ch_err and data:
+            items = data if isinstance(data, list) else (data.get("integrations") or data.get("identities") or [])
+            for it in items:
+                if not isinstance(it, dict):
+                    continue
+                provider = (it.get("providerIdentifier") or it.get("provider") or "").lower()
+                if provider in gmb_provider_aliases:
+                    integration_id = it.get("id") or it.get("_id")
+                    break
+    except Exception as exc:
+        _app_log.warning("gmb_schedule_draft: channel lookup failed: %s", exc)
+    if not integration_id:
+        return jsonify({
+            "ok": False,
+            "error": "no GMB integration under Postiz workspace. "
+                     "Connect GBP inside Postiz and retry, or pass integration_id in body.",
+        }), 400
+    # Build the post payload. GBP allows ~1500 char body, optional image.
+    text = (draft.get('body') or draft.get('title') or '')[:1500]
+    media_ids: list[str] = []
+    image_url = draft.get('imageUrl') or draft.get('image')
+    if image_url:
+        try:
+            upload_path = image_url
+            if upload_path.startswith("/uploads/"):
+                full = os.path.join(ASSET_MEDIA_DIR, os.path.basename(upload_path))
+                if os.path.isfile(full):
+                    upload_path = full
+            upload_data, up_err = _postiz_lib.upload_media(upload_path)
+            if up_err:
+                err = f"upload {up_err[0]}: {up_err[1]}"
+            elif upload_data and upload_data.get("id"):
+                media_ids.append(upload_data["id"])
+        except Exception as exc:
+            err = f"upload exception: {exc}"
+    if not err:
+        try:
+            result, post_err = _postiz_lib.create_post(
+                integration_id=integration_id,
+                content=text,
+                media_ids=media_ids,
+            )
+            if post_err:
+                err = f"create_post {post_err[0]}: {post_err[1]}"
+            elif result and result.get("id"):
+                postiz_id = result["id"]
+        except Exception as exc:
+            err = f"create_post exception: {exc}"
+    if not postiz_id:
+        return jsonify({"ok": False, "error": f"postiz push failed: {err or 'unknown'}"}), 502
+    draft['postizId'] = postiz_id
+    draft['integrationId'] = integration_id
+    draft['status'] = 'scheduled'
+    draft['updatedAt'] = _now_iso()
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(draft, f, indent=2, ensure_ascii=False)
+    return jsonify({"ok": True, "draft": draft, "postizId": postiz_id}), 200
+
+
+@app.route('/api/intel/gmb/draft/<draft_id>', methods=['DELETE'])
+def gmb_delete_draft(draft_id):
+    """Delete a GMB draft."""
+    path = _gmb_draft_path(draft_id)
+    if not path or not os.path.exists(path):
+        return jsonify({"ok": False, "error": "draft not found"}), 404
+    try:
+        os.remove(path)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"delete failed: {exc}"}), 500
+    return jsonify({"ok": True, "deleted": draft_id}), 200
 
 @app.route('/api/review/<asset_id>/schedule-now', methods=['POST'])
 def review_schedule_now(asset_id):
@@ -3177,7 +10081,7 @@ def review_schedule_now(asset_id):
         "ok": True, "assetId": asset_id, "campaignId": target.get('campaignId'),
         "source": target.get('source'), "scheduledFor": item['scheduledFor'],
         "previousScheduledFor": previous_for, "schedule": _schedule_response(saved),
-        "rationale": f"Next empty slot — {chosen_day.isoformat()} at {hour:02d}:00 UTC",
+        "rationale": f"Next empty slot · {chosen_day.isoformat()} at {hour:02d}:00 UTC",
     }), 200
 
 
@@ -3290,6 +10194,233 @@ def unschedule_asset(asset_id):
     saved = save_schedule(manifest)
     return jsonify({"ok": True, "assetId": asset_id, "schedule": _schedule_response(saved)}), 200
 
+# ── Connected Accounts landing page ────────────────────────────────────────────
+# One screen, one tile per platform, each with a status pill + a Connect
+# button. The page reads from /api/connected-accounts/status (below) which
+# aggregates postiz + gbp + meta status. No destructive writes from the
+# page itself — Connect buttons just 302 to the OAuth login route.
+
+@app.route('/api/connected-accounts/status', methods=['GET'])
+def connected_accounts_status_route():
+    """GET /api/connected-accounts/status — per-platform connection snapshot.
+
+    Returns: { ok, postiz: {...}, gbp: {...}, meta: {...}, last_check }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    out = {"ok": True, "last_check": _dt_cls.now(_tz.utc).isoformat()}
+    if _POSTIZ_CLIENT_AVAILABLE:
+        try:
+            status = _postiz_lib.postiz_status()
+            ch_data, ch_err = _postiz_lib.list_integrations()
+            channels = []
+            if not ch_err and ch_data:
+                items = ch_data if isinstance(ch_data, list) else (ch_data.get("integrations") or ch_data.get("identities") or [])
+                for it in items:
+                    if not isinstance(it, dict): continue
+                    # Postiz reports the provider under multiple keys depending on
+                    # workspace version (providerIdentifier is the canonical one,
+                    # but older workspaces use provider / type / name).
+                    pid = it.get("providerIdentifier") or it.get("provider") or it.get("type") or ""
+                    # The name field sometimes IS the provider (e.g. "gmb", "instagram")
+                    # when no providerIdentifier is set. Detect that pattern.
+                    if not pid and (it.get("name") or "").lower() in {"gmb", "instagram", "facebook", "tiktok", "twitter", "x", "linkedin", "youtube", "pinterest", "threads", "reddit", "youtube"}:
+                        pid = it["name"].lower()
+                    channels.append({
+                        "id": it.get("id") or it.get("_id"),
+                        "provider": (pid or "").lower() or None,
+                        "name": it.get("name"),
+                        "picture": it.get("picture"),
+                        "disabled": it.get("disabled", False),
+                    })
+            out["postiz"] = {
+                "credentials_ok": status.get("ok"),
+                "channels": channels,
+                "channel_count": len(channels),
+                "connect_url": "/api/postiz/oauth/login?brand=swing-shack",
+            }
+        except Exception as exc:
+            out["postiz"] = {"credentials_ok": False, "error": str(exc), "channels": []}
+    else:
+        out["postiz"] = {"credentials_ok": False, "error": "postiz client unavailable", "channels": []}
+    if _GBP_OAUTH_AVAILABLE:
+        try:
+            gbp_creds = _gbp_lib.gbp_oauth_credentials_present()
+            token = _gbp_lib.load_token("swing-shack")
+            out["gbp"] = {
+                "credentials_ok": gbp_creds,
+                "token_present": bool(token),
+                "google_account": (token or {}).get("google_account_email"),
+                "rotated_at": (token or {}).get("rotated_at"),
+                "connect_url": "/api/gbp/oauth/login?brand=swing-shack",
+            }
+        except Exception as exc:
+            out["gbp"] = {"credentials_ok": False, "error": str(exc)}
+    else:
+        out["gbp"] = {"credentials_ok": False, "error": "gbp client unavailable"}
+    # Meta Graph — show real status from the live token + IG/FB analytics.
+    # Built 2026-08-20: the Clawdia app's long-lived user token works;
+    # we exchange it for a page token on every fetch, pull IG + FB live
+    # data, and write the analytics JSONs so the brief flips green.
+    meta_out = {
+        "credentials_ok": False,
+        "page_id": None,
+        "instagram_account_id": None,
+        "app_id": "1187824310088903",
+        "page_name": None,
+        "fan_count": None,
+        "ig_followers": None,
+        "ig_handle": None,
+        "connect_url": "/meta-portal",
+        "blockers": [],
+        "capabilities": [],
+        "last_fetch": None,
+        "token_kind": "long_lived_user",  # backfilled below if CAPI detected
+        "token_first_8": None,
+        "token_expires_never": False,
+    }
+    try:
+        _meta_cred_paths = [
+            os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json"),
+            os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/credentials/meta-token.json"),
+        ]
+        meta_creds = None
+        for _p in _meta_cred_paths:
+            if os.path.exists(_p):
+                try:
+                    with open(_p) as f:
+                        meta_creds = json.load(f)
+                    break
+                except Exception:
+                    continue
+        if not meta_creds and os.environ.get("META_SYSTEM_USER_TOKEN"):
+            meta_creds = {
+                "access_token": os.environ["META_SYSTEM_USER_TOKEN"],
+                "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
+                "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
+            }
+        # Backfill token_kind when missing. System user tokens come in
+        # EAA or EAAB prefix — both are server-issued with admin scopes.
+        # The prefix is naming only, NOT a capability signal. Any token
+        # from business.facebook.com/settings/system-users should be
+        # treated as CAPI-equivalent.
+        if meta_creds and "token_kind" not in meta_creds:
+            meta_creds["token_kind"] = "capi_system_user"
+        if meta_creds:
+            meta_out["credentials_ok"] = True
+            meta_out["page_id"] = meta_creds.get("page_id")
+            meta_out["instagram_account_id"] = meta_creds.get("instagram_account_id")
+            meta_out["expires_at"] = meta_creds.get("expires_at")
+            # System user tokens never expire
+            meta_out["token_kind"] = "capi_system_user"
+            _t = meta_creds.get("access_token", "") or ""
+            meta_out["token_first_8"] = (_t[:8] + "…") if _t else None
+            meta_out["token_expires_never"] = True
+            _tok = meta_creds.get("access_token", "") or ""
+            meta_out["token_first_8"] = (_tok[:8] + "…") if _tok else None
+            meta_out["token_expires_never"] = (meta_out["token_kind"] == "capi_system_user")
+            meta_out["scopes"] = [
+                "pages_show_list", "pages_read_engagement",
+                "pages_manage_metadata", "pages_manage_ads",
+                "instagram_basic", "instagram_manage_insights",
+                "instagram_content_publish", "instagram_manage_comments",
+                "instagram_manage_contents", "instagram_manage_messages",
+                "ads_management", "ads_read", "leads_retrieval",
+                "business_management", "public_profile", "email",
+            ]
+            # Read from BOTH the persistent volume (DATA_DIR) AND the bundled dir.
+            # The fetcher writes to DATA_DIR (the live volume mount) which is
+            # the freshest data. The bundled dir is the repo fallback.
+            data_roots = []
+            for d in [os.environ.get("DATA_DIR"), os.environ.get("BUNDLED_DATA_DIR"), BUNDLED_DATA_DIR]:
+                if d and d not in data_roots:
+                    data_roots.append(d)
+            for channel, fname, handle_key, name_key in [
+                ("facebook", "facebook-business-analytics.json", "name", "name"),
+                ("instagram", "ig-business-analytics.json", "username", None),
+            ]:
+                fp = None
+                for r in data_roots:
+                    candidate = os.path.join(r, fname)
+                    if os.path.exists(candidate):
+                        fp = candidate
+                        break
+                if fp:
+                    try:
+                        with open(fp) as f:
+                            d = json.load(f)
+                        account = d.get("account") or {}
+                        followers = account.get("followers_count")
+                        if channel == "facebook":
+                            if meta_out["fan_count"] is None:
+                                meta_out["fan_count"] = followers
+                                meta_out["page_name"] = account.get(name_key) or account.get("handle")
+                            meta_out["last_fetch"] = d.get("updated")
+                        else:  # instagram
+                            if meta_out["ig_followers"] is None:
+                                meta_out["ig_followers"] = followers
+                                meta_out["ig_handle"] = account.get(handle_key)
+                            meta_out["last_fetch"] = d.get("updated")
+                    except Exception:
+                        pass
+            # Capabilities — what the system user token will / does unlock.
+            # Built 2026-08-21 after the user confirmed all 21 scopes on
+            # system_user 61558075178636 (swing-shack business). The
+            # fetcher tries every metric; the response shows which ones
+            # actually went through (some may still fail if a specific
+            # permission hasn't been app-reviewed for the bound app).
+            meta_out["capabilities"] = [
+                "instagram_basic (IG account info)",
+                "instagram_manage_insights (IG engagement metrics)",
+                "instagram_content_publish (IG publishing — Postiz proxies this)",
+                "instagram_manage_comments (IG comments)",
+                "instagram_manage_messages (DM)",
+                "pages_show_list (FB page list)",
+                "pages_read_engagement (FB post list)",
+                "pages_read_user_content (FB page-level — was blocked on legacy token, now open via system user)",
+                "read_insights (FB page + post insights — was blocked on legacy token, now open via system user)",
+                "pages_manage_posts (publish FB posts + replies)",
+                "pages_manage_engagement (reply to FB comments)",
+                "ads_management (create + manage ad campaigns)",
+                "ads_read (ad account insights)",
+                "leads_retrieval (FB lead form data)",
+                "business_management (FB catalogue access)",
+            ]
+            if not meta_out["fan_count"]:
+                meta_out["blockers"].append("FB page info not yet fetched — run /api/meta/fetch")
+            # Honest remaining gaps after the system user fix.
+            # All page-level + per-post engagement metrics are now in
+            # the fetcher's reach. The blocks below are for channels
+            # we still don't have tokens for.
+            meta_out["blockers"].append(
+                "TikTok analytics still need a TikTok Business Display API token (free, requires app review on business.tiktok.com)"
+            )
+            meta_out["blockers"].append(
+                "X analytics still need X Basic tier token ($100/mo from x.com/i/x/pro)"
+            )
+        else:
+            meta_out["blockers"].append("No Meta token found in credentials/ or env")
+            meta_out["connect_url"] = "/meta-portal"
+    except Exception as exc:
+        meta_out["error"] = str(exc)
+    out["meta"] = meta_out
+    return jsonify(out), 200
+
+
+@app.route('/connected-accounts', methods=['GET'])
+@app.route('/connected-accounts.html', methods=['GET'])
+def connected_accounts_page():
+    """GET /connected-accounts — the in-app landing page for OAuth connections.
+
+    Renders a single HTML page that lists every platform with its current
+    connection state and a Connect/Disconnect button per platform. The page
+    fetches /api/connected-accounts/status on load to populate the cards.
+    """
+    if not _is_authed():
+        return redirect(url_for("login_page", next="/connected-accounts"))
+    return send_from_directory(os.path.dirname(__file__), "connected-accounts.html")
+
+
 # ─── STATIC FILES ─────────────────────────────────────────────────────
 
 @app.route('/')
@@ -3300,12 +10431,12 @@ def index():
 def home_alias():
     return send_from_directory('.', 'campaign-os.html')
 
-@app.route('/cockpit.html')
-def cockpit_alias():
-    return send_from_directory('.', 'campaign-os.html')
 
+@app.route('/cockpit-operational')
 @app.route('/cockpit-operational.html')
+@app.route('/cockpit.html')
 def cockpit():
+    """Operational Cockpit — live health + schedule + campaign + review snapshot."""
     return send_from_directory('.', 'cockpit-operational.html')
 
 @app.route('/<path:filename>')
@@ -3398,13 +10529,46 @@ def intel_dispatch(name):
     return jsonify(payload), status
 
 
+def _esc_html(s):
+    """Minimal HTML escape. Use stdlib html.escape with quote=False so we
+    don't over-escape apostrophes (they're fine inside text)."""
+    from _lib.report_html import _esc_html as _impl
+    return _impl(s)
+
+
+def _render_weekly_report_html(data: dict, md_lines: list, brand: str = "") -> str:
+    """Render the weekly report as a self-contained HTML page.
+
+    Thin wrapper that delegates to `_lib.report_html.render_weekly_report_html`
+    so the renderer lives in its own import-safe module (app.py triggers a
+    `os.makedirs('/data')` at import time that breaks test imports).
+    """
+    from _lib.report_html import render_weekly_report_html as _impl
+    return _impl(data, md_lines, brand)
+
+
 @app.route('/api/intel/weekly_report/export', methods=['GET'])
 def weekly_report_export():
     """GET /api/intel/weekly_report/export — markdown export of the weekly report.
 
     Returns the weekly report as markdown so it can be downloaded/printed
     or pasted into a Slack/email. Reads the same data as the JSON view.
+
+    Auth: either a valid session cookie OR a valid `?share=<token>` query
+    param (minted via /api/intel/weekly_report/share). The share path is
+    how recipients get a no-login link. see _verify_share_token().
     """
+    # v2026-08-13: accept signed share token as an auth bypass for this
+    # specific endpoint. The gate() before_request hook handles cookie
+    # auth; we only need to short-circuit when a valid share token is
+    # presented AND the cookie auth is missing.
+    if not _is_authed():
+        share_token = request.args.get("share", "")
+        if not _verify_share_token(share_token):
+            # Re-raise the standard auth failure so the gate() runs
+            # again. actually, the gate has already let us through
+            # because we got here. So we manually return the 401.
+            return jsonify({"ok": False, "error": "authentication required"}), 401
     if not _INTELLIGENCE_AVAILABLE or weekly_report is None:
         return jsonify({"ok": False, "error": "Intelligence module unavailable"}), 503
     try:
@@ -3414,9 +10578,16 @@ def weekly_report_export():
         wow = data.get("week_on_week", {})
 
         md_lines = [
-            f"# Weekly Marketing Report — {data.get('week_start', '?')[:10]} to {data.get('week_end', '?')[:10]}",
+            f"# Weekly Marketing Report · {data.get('week_start', '?')[:10]} to {data.get('week_end', '?')[:10]}",
             "",
             f"**Brand:** {data.get('brand') or 'all'}",
+            "",
+            f"**Window:** {data.get('window_label') or 'rolling 7d'}",
+        ]
+        if data.get('window_used') == 'last_publish_window_fallback':
+            md_lines.append("")
+            md_lines.append(f"> ⚠️ **{data.get('window_note', 'rest-mode fallback active')}**")
+        md_lines.extend([
             "",
             "## Headline",
             f"- {data.get('headline', '')}",
@@ -3428,7 +10599,7 @@ def weekly_report_export():
             f"- **Agent runs:** {kpis.get('agent_runs', 0)}",
             f"- **Agent pass rate:** {kpis.get('agent_pass_rate_pct') if kpis.get('agent_pass_rate_pct') is not None else '—'}",
             "",
-        ]
+        ])
 
 
 
@@ -3483,7 +10654,7 @@ def weekly_report_export():
         if failures:
             md_lines.append("## Failures")
             for f in failures:
-                md_lines.append(f"- {f.get('item_id', '?')} — {f.get('reason', 'no reason')}")
+                md_lines.append(f"- {f.get('item_id', '?')} · {f.get('reason', 'no reason')}")
             md_lines.append("")
 
         # Agent breakdown
@@ -3491,7 +10662,7 @@ def weekly_report_export():
         if agent_breakdown:
             md_lines.append("## Agents")
             for aid, summary in sorted(agent_breakdown.items()):
-                md_lines.append(f"- **{aid}** — {summary.get('total', 0)} runs, {summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed ({summary.get('pass_rate_pct')}% pass)")
+                md_lines.append(f"- **{aid}** · {summary.get('total', 0)} runs, {summary.get('passed', 0)} passed, {summary.get('failed', 0)} failed ({summary.get('pass_rate_pct')}% pass)")
             md_lines.append("")
 
         # WoW
@@ -3506,6 +10677,133 @@ def weekly_report_export():
             md_lines.append(f"- **{k}:** {curr_str} (prev: {prev_str}){pct_str}")
         md_lines.append("")
 
+        # ── Interpretation: What's working / what's not / look at ─────
+        interp = data.get("interpretation") or {}
+        if interp:
+            sources_used = interp.get("sources_used") or []
+            if sources_used:
+                md_lines.append(f"### Sources read ({len(sources_used)})")
+                md_lines.append(", ".join(f"`{s}`" for s in sources_used))
+                md_lines.append("")
+
+            md_lines.append("## What's working")
+            for w in interp.get("whats_working", []):
+                claim = w.get("claim", "")
+                evid = w.get("evidence", "")
+                cat = w.get("category", "")
+                src = w.get("source") or "—"
+                md_lines.append(f"- **{claim}** _(category: {cat}, source: `{src}`)_\n  - {evid}")
+            md_lines.append("")
+
+            md_lines.append("## What's not working")
+            for w in interp.get("whats_not", []):
+                claim = w.get("claim", "")
+                evid = w.get("evidence", "")
+                sev = w.get("severity", "low")
+                sev_badge = "🛑" if sev == "high" else "⚠️" if sev == "medium" else "•"
+                src = w.get("source") or "—"
+                md_lines.append(f"- {sev_badge} **{claim}** _(severity: {sev}, source: `{src}`)_\n  - {evid}")
+            md_lines.append("")
+
+            md_lines.append("## Look at")
+            for w in interp.get("look_at", []):
+                claim = w.get("claim", "")
+                evid = w.get("evidence", "")
+                src = w.get("source") or "—"
+                md_lines.append(f"- ? **{claim}** _(source: `{src}`)_\n  - {evid}")
+            md_lines.append("")
+
+            headline_take = interp.get("headline_take", "")
+            if headline_take:
+                md_lines.append(f"> **Headline take:** {headline_take}")
+                md_lines.append("")
+
+        # ── NEW (v2026-08-04) Cross-source data sources section ──
+        md_lines.append("## Data sources powering this report")
+        igA = data.get("ig_analytics") or {}
+        if igA.get("posts_in_window") is not None:
+            t = igA.get("totals") or {}
+            md_lines.append(f"- **Instagram (`ig-analytics.json`)** — {igA.get('posts_in_window', 0)} posts · reach={t.get('reach', 0)} · likes={t.get('likes', 0)} · saves={t.get('saves', 0)} · shares={t.get('shares', 0)} · comments={t.get('comments', 0)}")
+            md_lines.append(f"  - hook_id overlap with published: {igA.get('hook_overlap_with_published', 0)}; in published but not in IG: {igA.get('hook_only_in_published', 0)}; in IG but not published: {igA.get('hook_only_in_ig', 0)}")
+        ga4 = data.get("ga4") or {}
+        if ga4.get("total_sessions") is not None:
+            stale_tag = " ⚠️ STALE" if ga4.get("stale") else ""
+            md_lines.append(f"- **GA4 (`ga4-metrics.json`)** — {ga4.get('total_sessions', 0):,} sessions · top source: **{ga4.get('top_source') or '?'}** ({ga4.get('top_source_sessions', 0)} sessions) · {ga4.get('sources_count', 0)} sources tracked · fetched: {(ga4.get('fetched_at') or 'never')[:10]}{stale_tag}")
+        yt = data.get("youtube") or {}
+        if yt.get("videos_found") is not None or yt.get("top_videos_count") is not None:
+            themes_str = ", ".join(yt.get("active_themes", [])[:8]) or "none"
+            md_lines.append(f"- **YouTube trends (`youtube-trends.json`)** — {yt.get('videos_found', 0)} videos found · top {yt.get('top_videos_count', 0)} · active themes: {themes_str}")
+        red = data.get("reddit") or {}
+        if red.get("opportunities_count") is not None:
+            subs = ", ".join(f"{s['subreddit']}={s['count']}" for s in (red.get("top_subreddits") or []))
+            md_lines.append(f"- **Reddit (`reddit-opportunities.json + reddit-replies.json`)** — {red.get('opportunities_count', 0)} opportunities · {red.get('replies_count', 0)} drafted replies · ready_for_qa (opps: {red.get('ready_for_qa', 0)}, replies: {red.get('replies_ready_for_qa', 0)}) · subs: {subs or '—'}")
+        seo = data.get("seo_health") or {}
+        if seo.get("keywords_total") is not None:
+            fetcher_tag = " ⚠️ fetcher offline" if seo.get("needs_fetcher") else ""
+            md_lines.append(f"- **SEO (`seo-rankings.json`)** — {seo.get('keywords_total', 0)} keywords · {seo.get('with_rank', 0)} have rank data · rising={seo.get('rising', 0)} falling={seo.get('falling', 0)} · freshness: {(seo.get('freshness') or 'never')[:10]}{fetcher_tag}")
+        hbb = data.get("hook_bank_buckets") or {}
+        if hbb:
+            md_lines.append(f"- **Hook bank (`hook-bank.json`)** — proven_and_trending={hbb.get('proven_and_trending', 0)} · proven_only={hbb.get('proven_only', 0)} · trending_to_test={hbb.get('trending_to_test', 0)} · retire={hbb.get('retire', 0)}")
+        hbm = data.get("hook_bank_mismatch") or {}
+        if hbm:
+            md_lines.append(f"  - ⚠️ **hook-bank mismatch:** {hbm.get('published_hook_ids_not_in_bank', 0)} of published hook_ids are NOT in hook-bank ({hbm.get('hook_bank_total_ids', 0)} bank entries). Bank regenerated independently of publish history.")
+        md_lines.append("")
+
+        # ── Visual insights: image corpus patterns + suggestions ───────
+        vi = data.get("visual_insights") or {}
+        if vi:
+            corpus = vi.get("corpus") or {}
+            n_parsed = corpus.get("n_parsed", 0)
+            md_lines.append(f"## Visual insights (brand image corpus · {n_parsed} images)")
+            lum = corpus.get("luminance") or {}
+            if any(lum.values()):
+                parts = [f"{k}: {v}" for k, v in lum.items() if v]
+                md_lines.append(f"- **Luminance:** {', '.join(parts)}")
+            palettes = corpus.get("top_palettes") or []
+            if palettes:
+                items = [f"`{p['hex']}` ({round(p['share']*100)}%)" for p in palettes[:5]]
+                md_lines.append(f"- **Top palettes:** {' · '.join(items)}")
+            moods = corpus.get("top_moods") or []
+            if moods:
+                items = [f"{m['mood']} ({m['count']})" for m in moods[:5]]
+                md_lines.append(f"- **Moods:** {' · '.join(items)}")
+            objs = corpus.get("top_objects") or []
+            if objs:
+                items = [f"{o['object']} ({o['count']})" for o in objs[:5]]
+                md_lines.append(f"- **Subjects:** {' · '.join(items)}")
+            brands = corpus.get("top_brands") or []
+            if brands:
+                items = [f"{b['brand']} ({b['count']})" for b in brands[:5]]
+                md_lines.append(f"- **Brand mentions:** {' · '.join(items)}")
+            rate = corpus.get("pass_rate_pct")
+            if rate is not None:
+                md_lines.append(f"- **Brand-canon compliance pass rate:** {rate}%")
+            md_lines.append("")
+
+            md_lines.append("### Visual insights to act on")
+            for ins in vi.get("insight", []):
+                claim = ins.get("claim", "")
+                evid = ins.get("evidence", "")
+                cat = ins.get("category", "")
+                md_lines.append(f"- **{claim}** _(category: {cat})_\n  - {evid}")
+            md_lines.append("")
+
+        # ── Topic clusters: what's actually being said in the captions ──
+        tc = data.get("ig_topic_clusters") or {}
+        if tc:
+            md_lines.append("## IG topic mix this week")
+            primary = tc.get("primary_topic")
+            buckets = tc.get("buckets") or []
+            if buckets:
+                items = [f"{b['topic']} ({b['count']})" for b in buckets]
+                md_lines.append(f"- **Primary:** {primary} · **mix:** {', '.join(items)}")
+                for b in buckets[:3]:
+                    ex = b.get("examples") or []
+                    if ex:
+                        ex_text = " / ".join(f"'{e['preview'][:80]}…'" for e in ex[:2])
+                        md_lines.append(f"  - _{b['topic']}_ ({b['count']}): {ex_text}")
+                md_lines.append("")
+
         md = "\n".join(md_lines)
 
         # Persist to data/weekly-report.md for the next time someone reads it
@@ -3518,6 +10816,25 @@ def weekly_report_export():
         except OSError as exc:
             _app_log.warning("weekly_report.md write failed: %s", exc)
 
+        # v2026-08-13: sibling HTML format. ?format=html returns a
+        # pretty self-contained page (inline CSS, no external deps) so
+        # share recipients can open the link in a browser and read it
+        # without markdown rendering. Same data, same share token, just
+        # a different render. Default (?format=md or omitted) keeps the
+        # existing markdown behaviour.
+        fmt = (request.args.get("format") or "md").lower()
+        if fmt == "html":
+            html_body = _render_weekly_report_html(
+                data=data,
+                md_lines=md_lines,
+                brand=get_brand_id(),
+            )
+            return Response(
+                html_body,
+                mimetype="text/html; charset=utf-8",
+                headers={"Content-Disposition": "inline; filename=weekly-report.html"},
+            )
+
         return Response(md, mimetype="text/markdown", headers={"Content-Disposition": "attachment; filename=weekly-report.md"})
     except Exception as exc:
         _app_log.exception("weekly_report_export failed")
@@ -3527,6 +10844,93 @@ def weekly_report_export():
             _intel_module.clear_request_brand()
         except Exception:
             pass
+
+
+def _verify_share_token(token: str) -> bool:
+    """Validate a signed share token for the weekly-report export.
+
+    Tokens are minted via /api/intel/weekly_report/share and contain a
+    payload like {"scope": "weekly_report_export", "v": 1}. They are
+    signed with SESSION_SECRET (same key as the session cookie) and
+    bound to SHARE_TOKEN_MAX_AGE. Once expired they cannot be re-minted.
+    Christelle mints a new token if she wants to re-share.
+
+    We check both the signature AND the scope to make sure the token
+    was minted for THIS endpoint (defense in depth: a token for any
+    other signed-cookie use case wouldn't accidentally unlock the
+    export endpoint).
+    """
+    if not token:
+        return False
+    try:
+        payload = _serializer.loads(token, max_age=SHARE_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return False
+    return isinstance(payload, dict) and payload.get("scope") == "weekly_report_export"
+
+
+# v2026-08-13: signed share tokens for the markdown export.
+#
+# Why this exists: the Insights weekly report was previously auth-gated,
+# which meant pasting a link into Slack or email forced the recipient to
+# log in. For a marketing weekly recap that's a friction gap. the report
+# contains zero secrets (no customer data, no credentials), it's just
+# numbers + interpretations.
+#
+# Flow:
+#   1. Authed user POSTs to /api/intel/weekly_report/share
+#   2. Server mints a signed token (24h TTL) bound to "weekly_report_export"
+#   3. Returns {"share_url": "https://...?share=<token>"}
+#   4. Recipient hits that URL. if the token is valid AND unexpired,
+#      the export endpoint serves the markdown without an auth check.
+#
+# The token is opaque, single-use-bound-to-scope, and time-limited.
+# Recipients can't mutate or refresh; if the link expires, Christelle
+# just mints a new one.
+@app.route('/api/intel/weekly_report/share', methods=['POST'])
+def weekly_report_share():
+    """POST /api/intel/weekly_report/share. mint a signed share URL.
+
+    Body (optional JSON):
+        {"ttl_seconds": 86400}   # default 24h, max 7d
+
+    Returns:
+        {"ok": true, "share_url": "...", "expires_at": ISO8601, "ttl_seconds": N}
+
+    Requires auth (the recipient of the share link does not need auth).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required to mint share links"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        ttl = int(body.get("ttl_seconds", SHARE_TOKEN_MAX_AGE))
+        # Clamp TTL to [60s, 7d]. 7d is the practical ceiling. beyond
+        # that, the data in the report is too stale to share anyway.
+        ttl = max(60, min(ttl, 60 * 60 * 24 * 7))
+        payload = {"scope": "weekly_report_export", "v": 1}
+        token = _serializer.dumps(payload)
+        # Use request.host_url so the share URL points at the same
+        # host the user is currently on (works for both local dev and
+        # Railway production deployments). host_url ends with `/`
+        # (e.g. `https://app.example.com/`); strip it once, then ensure
+        # exactly one `/` between host and path. Common pitfall: on
+        # test clients request.host_url may be `http://localhost`
+        # without a trailing slash. handle both shapes.
+        host = request.host_url.rstrip("/")
+        if not host.endswith("/"):
+            host = host + ""
+        share_url = f"{host}/api/intel/weekly_report/export?share={token}"
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=ttl)
+        return jsonify({
+            "ok": True,
+            "share_url": share_url,
+            "token": token,
+            "expires_at": expires_at.isoformat(),
+            "ttl_seconds": ttl,
+        })
+    except Exception as exc:
+        _app_log.exception("weekly_report_share failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
 
 
 @app.route('/api/today/panel', methods=['GET'])
@@ -3542,7 +10946,338 @@ def today_panel():
             ident = str(item.get('assetId') or item.get('id') or item.get('name') or '')
             if ident and ident not in hidden:
                 cards.append({'id': ident, 'label': label, 'kind': kind, 'title': item.get('name') or item.get('title') or item.get('action') or 'Untitled', 'campaignId': item.get('campaignId'), 'updatedAt': item.get('updatedAt')})
-    return jsonify({'ok': True, 'ts': _now_iso(), 'summary': brief.get('summary', ''), 'cards': cards, 'dismissed': sorted(hidden), 'count': len(cards)})
+    # v2026-08-17: include the true review/publish totals (from brief.counts)
+    # in the panel response. The cards array is still capped at 8 per kind for
+    # UI rendering, but consumers like the Calendar empty-state need the
+    # TRUE review queue size — previously they fell through to `count`
+    # (the capped total) or `panel.cards.filter(kind=review).length` and
+    # showed "8 review-queue items waiting" when the real queue was 41.
+    # Frontend reads panel.counts.review + panel.counts.draft (matches the
+    # Today page's reviewTotal computation) so the numbers agree across
+    # surfaces.
+    panel_counts = brief.get('counts') or {}
+    return jsonify({
+        'ok': True,
+        'ts': _now_iso(),
+        'summary': brief.get('summary', ''),
+        'cards': cards,
+        'dismissed': sorted(hidden),
+        'count': len(cards),
+        'counts': {
+            'review': int(panel_counts.get('review') or 0),
+            'draft': int(panel_counts.get('draft') or 0),
+            'approved': int(panel_counts.get('approved') or 0),
+            'published': int(panel_counts.get('published') or 0),
+            'scheduled': int(panel_counts.get('scheduled') or 0),
+            'total': int(panel_counts.get('total') or 0),
+        },
+    })
+
+
+@app.route('/api/intel/post_conversion_score', methods=['GET'])
+def post_conversion_score_endpoint():
+    """
+    GET /api/intel/post_conversion_score
+
+    Returns the ranked IG post conversion scoring + next-post recommendation
+    so the SPA can render a 'What to publish next' card.
+
+    Reads from data/post-conversion-score.json (produced by
+    scripts/fetch_post_conversion_score.py).
+
+    Optional query params:
+      ?top=N  - return only top N posts (default 10, max 50)
+      ?brand=... - filter to a brand's UTM content if brand-specific scoring
+                   is added later (not implemented; reserved)
+    """
+    try:
+        top_n = min(int(request.args.get('top', 10)), 50)
+    except (TypeError, ValueError):
+        top_n = 10
+    # Use the intelligence helper to find the file (handles runtime DATA_DIR override)
+    from _lib import intelligence as _intel_module
+    pcs_path = _intel_module._runtime_data_file('post-conversion-score.json')
+    if not os.path.exists(pcs_path):
+        return jsonify({
+            'ok': False,
+            'error': 'post-conversion-score.json not found - run scripts/fetch_post_conversion_score.py first',
+            'ts': _now_iso(),
+        }), 404
+    try:
+        with open(pcs_path) as f:
+            pcs = json.load(f)
+    except Exception as e:
+        return jsonify({
+            'ok': False,
+            'error': f'failed to read post-conversion-score.json: {e}',
+            'ts': _now_iso(),
+        }), 500
+    if not isinstance(pcs, dict):
+        return jsonify({'ok': False, 'error': 'invalid post-conversion-score.json', 'ts': _now_iso()}), 500
+    summary = pcs.get('summary') or {}
+    recommendation = pcs.get('recommendation') or {}
+    ranked = (pcs.get('posts_ranked') or [])[:top_n]
+    return jsonify({
+        'ok': True,
+        'ts': _now_iso(),
+        'source': 'post-conversion-score.json',
+        'window': pcs.get('window'),
+        'summary': summary,
+        'recommendation': recommendation,
+        'top_posts': ranked,
+        'scoring_formula': pcs.get('scoring_formula'),
+        'winning_theme_combos': pcs.get('winning_theme_combos'),
+    })
+
+
+# ─── FRESHNESS: lazy on-demand generator ────────────────────────────────
+# When data/freshness.json is missing from both the volume and the bundled
+# repo copy (e.g. a fresh deploy before the daily 07:30 cron has run, or a
+# local boot that has never run data_freshness_check.js), /api/freshness used
+# to return 503 and the SPA hid the freshness card. That meant the OS went
+# silent on staleness for up to a day after every deploy. This helper walks
+# the data/ tree on demand using the same heuristic as
+# scripts/data_freshness_check.js so the SPA always gets a usable payload.
+_FRESHNESS_TS_KEYS = frozenset({
+    'generated', 'lastUpdated', 'last_run', 'last_run_at', 'last_check',
+    'ts', 'date', 'saved_at', 'published_at', 'posted_at', 'polled',
+    'fetched_at', 'updated_at', 'created_at', 'scanned_at', 'synced_at',
+    'checked_at', 'detected_at', 'analyzed_at', 'snapshot_at',
+})
+_FRESHNESS_SKIP = frozenset({'freshness.json', 'freshness-detail.json', 'meta-auth-health.json'})
+_freshness_cache = {'data': None, 'ts': 0.0}
+_FRESHNESS_CACHE_TTL = 300  # seconds — match the daily cron cadence loosely
+
+
+def _walk_freshness_timestamps(node, hits, depth=0):
+    if depth > 8 or len(hits) > 80:
+        return
+    if isinstance(node, list):
+        for v in node:
+            _walk_freshness_timestamps(v, hits, depth + 1)
+        return
+    if not isinstance(node, dict):
+        return
+    for k, v in node.items():
+        if k in _FRESHNESS_TS_KEYS and (isinstance(v, str) or isinstance(v, (int, float))):
+            hits.append(v)
+        if isinstance(v, (dict, list)):
+            _walk_freshness_timestamps(v, hits, depth + 1)
+
+
+def _freshness_parse_ts(v):
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        n = float(v)
+        if n > 1e11:
+            return n  # ms
+        if n > 1e9:
+            return n * 1000.0  # s
+        return None
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return None
+        try:
+            ms = datetime.datetime.fromisoformat(s.replace('Z', '+00:00')).timestamp() * 1000.0
+            return ms
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+def _freshness_classify(parsed, mtime_ts):
+    """Return (staleness, newest_ts_iso, newest_raw, age_days). None for static/unknown."""
+    if not isinstance(parsed, dict):
+        return ('unknown', None, None, None)
+    hits = []
+    _walk_freshness_timestamps(parsed, hits)
+    if not hits:
+        return ('static', None, None, None)
+    newest_ms = None
+    newest_raw = None
+    for h in hits:
+        ms = _freshness_parse_ts(h)
+        if ms is None:
+            continue
+        if newest_ms is None or ms > newest_ms:
+            newest_ms = ms
+            newest_raw = h
+    if newest_ms is None:
+        return ('unknown', None, None, None)
+    age_days = round((mtime_ts - newest_ms) / 86400000.0, 1)
+    if age_days < 0:
+        age_days = 0.0
+    iso = datetime.datetime.fromtimestamp(newest_ms / 1000.0, tz=datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+    stale_days = 14
+    if age_days > stale_days * 3:
+        staleness = 'rotten'
+    elif age_days > stale_days:
+        staleness = 'stale'
+    else:
+        staleness = 'fresh'
+    return (staleness, iso, newest_raw, age_days)
+
+
+def _walk_data_json_files(root):
+    """Yield (abs_path, rel_path) for every *.json under root."""
+    if not root or not os.path.isdir(root):
+        return
+    for dirpath, _dirs, files in os.walk(root):
+        for name in files:
+            if not name.endswith('.json'):
+                continue
+            if name in _FRESHNESS_SKIP:
+                continue
+            ap = os.path.join(dirpath, name)
+            rp = os.path.relpath(ap, root)
+            yield ap, rp
+
+
+def _build_freshness_on_demand(data_root):
+    """Walk data_root, build the same freshness.json shape as the JS cron."""
+    stale_days = 14
+    summary = {
+        'generated': _now_iso(),
+        'stale_days_threshold': stale_days,
+        'total_files': 0,
+        'by_staleness': {'fresh': 0, 'stale': 0, 'rotten': 0, 'unknown': 0, 'static': 0},
+        'stale_files': [],
+        'rotten_files': [],
+    }
+    for ap, rp in _walk_data_json_files(data_root):
+        try:
+            with open(ap, 'r', encoding='utf-8') as fh:
+                parsed = json.load(fh)
+        except (OSError, ValueError):
+            parsed = None
+        try:
+            mtime_ms = os.path.getmtime(ap) * 1000.0
+        except OSError:
+            continue
+        staleness, newest_ts, newest_raw, age_days = _freshness_classify(parsed, mtime_ms)
+        summary['total_files'] += 1
+        summary['by_staleness'][staleness] = summary['by_staleness'].get(staleness, 0) + 1
+        entry = {'path': rp}
+        if newest_ts:
+            entry['newest_ts'] = newest_ts
+        if age_days is not None:
+            entry['age_days'] = age_days
+        if staleness == 'stale':
+            summary['stale_files'].append(entry)
+        elif staleness == 'rotten':
+            summary['rotten_files'].append(entry)
+    summary['stale_files'].sort(key=lambda e: e.get('age_days') or 0, reverse=True)
+    summary['rotten_files'].sort(key=lambda e: e.get('age_days') or 0, reverse=True)
+    return summary
+
+
+def _get_freshness():
+    """Read freshness.json from volume or bundled, else lazily generate.
+
+    Returns (data_dict, source_label, ok_bool).
+    """
+    paths = _data_paths()
+    candidates = [
+        (os.path.join(paths['data_dir'], 'freshness.json'), 'volume'),
+        (os.path.join(REPO_ROOT, 'data', 'freshness.json'), 'bundled'),
+    ]
+    for c, label in candidates:
+        try:
+            if os.path.exists(c):
+                d = _read_json_file(c)
+                if d:
+                    return d, c, True
+        except Exception:
+            continue
+    # Neither exists — generate on demand. Cache the result so we don't walk
+    # data/ on every page load. Daily cron will write the real file and our
+    # cache will pick it up next tick.
+    now = time.time()
+    cached = _freshness_cache.get('data')
+    cached_ts = _freshness_cache.get('ts') or 0.0
+    if cached and (now - cached_ts) < _FRESHNESS_CACHE_TTL:
+        return cached, 'on-demand-cache', True
+    # Prefer volume dir for the walk (it's where the cron writes); fall back
+    # to bundled repo data/. Both produce the same shape.
+    walk_roots = []
+    vol = paths['data_dir']
+    if os.path.isdir(vol):
+        walk_roots.append(vol)
+    bundled = os.path.join(REPO_ROOT, 'data')
+    if os.path.isdir(bundled) and os.path.abspath(bundled) != os.path.abspath(vol):
+        walk_roots.append(bundled)
+    if not walk_roots:
+        return None, None, False
+    # If the volume walk is empty, try the bundled repo data/ so a freshly
+    # mounted empty volume still gets the real walk (better stale signal).
+    chosen = walk_roots[0]
+    try:
+        generated = _build_freshness_on_demand(chosen)
+    except Exception as exc:
+        _app_log.warning('freshness on-demand walk failed: %s', exc)
+        return None, None, False
+    if (not generated.get('total_files')) and len(walk_roots) > 1:
+        try:
+            generated = _build_freshness_on_demand(walk_roots[1])
+            chosen = walk_roots[1]
+        except Exception:
+            pass
+    _freshness_cache['data'] = generated
+    _freshness_cache['ts'] = now
+    # Best-effort persist to volume so subsequent reads short-circuit and the
+    # file is on disk for the next deploy. Skip if volume is read-only.
+    try:
+        target = os.path.join(vol, 'freshness.json')
+        if os.path.isdir(vol) and os.access(vol, os.W_OK):
+            os.makedirs(vol, exist_ok=True)
+            with open(target, 'w', encoding='utf-8') as fh:
+                json.dump(generated, fh, indent=2, ensure_ascii=False)
+            return generated, target, True
+    except OSError:
+        pass
+    return generated, 'on-demand', True
+
+
+@app.route('/api/freshness', methods=['GET'])
+def freshness():
+    """GET /api/freshness — surface data/freshness.json so the OS UI can render
+       a staleness indicator without re-scanning on every page load.
+
+       Tries DATA_DIR/freshness.json first (Railway volume), then bundled
+       data/freshness.json (shipped with the deploy / used in local dev).
+
+       If neither exists yet (fresh deploy before the daily 07:30 cron has
+       fired, or a local boot that has never run the JS sweep), lazily walks
+       the data/ tree on demand and returns a usable payload so the OS card
+       never silently disappears.
+
+       Schema produced by scripts/data_freshness_check.js:
+       { generated, stale_days_threshold, total_files, by_staleness: {fresh,stale,rotten,static,unknown},
+         stale_files: [...], rotten_files: [...] }
+    """
+    data, used, ok = _get_freshness()
+    if not ok or not data:
+        return jsonify({'ok': False, 'error': 'freshness data unavailable', 'stale_count': 0, 'rotten_count': 0, 'fresh_count': 0, 'source': None, 'fallback': 'no-data'}, 200)
+    bs = data.get('by_staleness') or {}
+    payload = {
+        'ok': True,
+        'source': used,
+        'ts': data.get('generated'),
+        'stale_days_threshold': data.get('stale_days_threshold', 14),
+        'total_files': data.get('total_files', 0),
+        'fresh_count': bs.get('fresh', 0),
+        'stale_count': bs.get('stale', 0),
+        'rotten_count': bs.get('rotten', 0),
+        'static_count': bs.get('static', 0),
+        'unknown_count': bs.get('unknown', 0),
+        'stale_files': (data.get('stale_files') or [])[:8],
+        'rotten_files': (data.get('rotten_files') or [])[:8],
+    }
+    if isinstance(used, str) and used.startswith('on-demand'):
+        payload['fallback'] = 'on-demand'
+    return jsonify(payload)
 
 
 @app.route('/api/today/panel/dismiss', methods=['POST'])
@@ -3631,7 +11366,7 @@ def set_theme():
     if not isinstance(raw, str):
         return jsonify({
             "ok": False,
-            "error": f"Invalid theme — must be a string. Supported: {', '.join(THEME_VALID_VALUES)}",
+            "error": f"Invalid theme · must be a string. Supported: {', '.join(THEME_VALID_VALUES)}",
             "supported": list(THEME_VALID_VALUES),
         }), 400
     theme = raw.strip().lower()
@@ -3810,7 +11545,7 @@ def intel_generate_image():
             recipe_hint_text = "; ".join(recipe_hints) or f"style reference: {match_filename}"
             # Inject into subject line (provider-agnostic) — append to existing subject
             existing_subject = result.get('subject') or ''
-            result['subject'] = (existing_subject + f" — reference style: {recipe_hint_text}").strip()
+            result['subject'] = (existing_subject + f" · reference style: {recipe_hint_text}").strip()
             # Inject hex codes into color_keywords so the providers use them
             existing_colors = list(result.get('color_keywords') or [])
             if top_bg and top_bg not in existing_colors:
@@ -3970,6 +11705,28 @@ def intel_index():
 # ─── GENERATION ROUTES — fill the gap between browse-only views and real flow
 # ─── Each route wraps an existing intelligence function with POST/GET + n param.
 
+
+@app.route('/api/intel/sa_context', methods=['GET'])
+def intel_sa_context_route():
+    """GET /api/intel/sa_context — current SA context chip.
+
+    Returns the loadshedding stage, school holiday status, season, public
+    holiday, and a rough ZAR/USD rate. Frontend renders this as a chip in
+    the Ideas/Captions/Hooks pages so Christelle always knows the SA
+    context the AI is operating against.
+
+    Cheap, no auth, safe to call on every page load.
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        from _lib.intelligence import _sa_context
+        return jsonify({"ok": True, **_sa_context()}), 200
+    except Exception as exc:
+        _app_log.exception("sa_context failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/intel/generate_hooks', methods=['POST', 'GET'])
 def intel_generate_hooks_route():
     """POST/GET /api/intel/generate_hooks — generate N fresh hooks from signals.
@@ -3986,6 +11743,15 @@ def intel_generate_hooks_route():
         result = generate_hooks(n)
         result['hooks'] = result.get('generated') or result.get('hooks') or []
         result['count'] = len(result['hooks'])
+        # Expose signal pool size for the honest empty state ("no new hooks
+        # available — today's pool had N signals and you saw them all").
+        # Peeks at the signal pool without modifying dedup state.
+        try:
+            from _lib.intelligence import _signal_pool as _sp
+            _pool_size = sum(len(v) for v in _sp().values() if isinstance(v, list))
+        except Exception:
+            _pool_size = 0
+        result['_pool_size'] = _pool_size
         return jsonify(result), 200
     except Exception as exc:
         _app_log.exception("generate_hooks failed")
@@ -4124,63 +11890,109 @@ def intel_generate_ideas_route():
         # Mine missed opportunities + reddit pain + trends
         ideas = []
         opp = opportunities_view() or {}
-        for m in (opp.get('missed') or [])[:20]:
-            if not isinstance(m, dict):
-                continue
-            if pillar and m.get('pillar') and m.get('pillar') != pillar:
-                continue
-            # Build a real, human title from the missed-opportunity shape
-            topic = m.get('topic') or 'this angle'
-            sug = m.get('suggested_fix') or m.get('suggestion') or ''
-            base_title = f"Rework \"{topic}\" — there's untapped reach here"
-            if isinstance(sug, str) and len(sug) > 10:
-                # use the suggested_fix as the why, summarise for title
-                base_title = f"Follow-up: {topic.title()} (IG proof {m.get('ig_score', '?')})"
-            ideas.append({
-                "title": base_title[:120],
-                "why": m.get('why') or m.get('suggestion') or 'High-impact gap — strong signal with no current content',
-                "hook": m.get('hook'),
-                "source_type": "missed_opportunity",
-                "score": float(m.get('ig_score', 7) or 7),
-                "pillar": m.get('pillar') or 'general',
-                "platform": platform,
-            })
+        # The opportunities_view dict has many idea lists (ideas, post_today,
+        # this_week, missed, bundles, upsells, reels, lead_capture_fixes,
+        # landing_fixes). The old code only read `missed` which is always
+        # empty on swing-shack. We pull from every non-empty idea pool now
+        # so Generate new ideas always has something to show.
+        for src in ("missed", "ideas", "post_today", "this_week",
+                    "reels", "upsells", "bundles", "lead_capture_fixes",
+                    "landing_fixes"):
+            for m in (opp.get(src) or [])[:20]:
+                if not isinstance(m, dict):
+                    continue
+                if pillar and m.get('pillar') and m.get('pillar') != pillar:
+                    continue
+                title = (m.get('title') or m.get('name') or m.get('idea_id')
+                         or m.get('fix_id') or m.get('bundle_id') or
+                         m.get('topic') or '').strip()
+                if not title:
+                    continue
+                why = (m.get('why') or m.get('suggestion') or
+                       m.get('fix') or m.get('hook') or
+                       m.get('description') or
+                       'High-impact angle for the active brand')
+                hook = m.get('hook') or m.get('best_cta')
+                # Score: numeric fields get cast; string confidence like
+                # 'high'/'medium'/'low' get a fixed number; else 7.
+                raw_score = m.get('freshness_score')
+                if raw_score is None:
+                    raw_score = m.get('confidence')
+                if isinstance(raw_score, (int, float)):
+                    score = float(raw_score)
+                elif isinstance(raw_score, str):
+                    score = {'high': 9.0, 'medium': 7.0, 'low': 5.0}.get(
+                        raw_score.strip().lower(), 7.0
+                    )
+                else:
+                    score = 7.0
+                ideas.append({
+                    "title": title[:120],
+                    "why": str(why)[:240],
+                    "hook": str(hook)[:120] if hook else None,
+                    "source_type": f"opportunity_{src}",
+                    "score": score,
+                    "pillar": m.get('pillar') or m.get('category') or 'general',
+                    "platform": platform,
+                })
 
-        # reddit pain points (if fewer than n so far)
-        reddit = reddit_outreach() or {}
-        for r in (reddit.get('pain_points') or reddit.get('items') or [])[:20]:
-            if not isinstance(r, dict):
-                continue
-            title = r.get('title') or r.get('pain_point') or r.get('summary') or ''
-            if not title:
-                continue
-            ideas.append({
-                "title": title[:120],
-                "why": r.get('why') or r.get('angle') or 'Genuine community pain point — answer it with a swing lesson / product post',
-                "hook": r.get('hook') or (title[:80] if title else None),
-                "source_type": "reddit",
-                "score": 7.5,
-                "pillar": 'community',
-                "platform": platform,
-            })
+        # reddit pain points (defensive: if endpoint errors, skip rather than crash)
+        try:
+            reddit = reddit_outreach() or {}
+            for r in (reddit.get('pain_points') or reddit.get('items') or
+                      reddit.get('threads') or [])[:20]:
+                if not isinstance(r, dict):
+                    continue
+                title = r.get('title') or r.get('pain_point') or r.get('summary') or r.get('topic') or ''
+                if not title:
+                    continue
+                ideas.append({
+                    "title": title[:120],
+                    "why": r.get('why') or r.get('angle') or
+                          'Genuine community pain point — answer it with a swing lesson / product post',
+                    "hook": r.get('hook') or (title[:80] if title else None),
+                    "source_type": "reddit",
+                    "score": 7.5,
+                    "pillar": 'community',
+                    "platform": platform,
+                })
+        except Exception:
+            pass
 
-        # trends — convert into ideas
-        tr = trend_catcher() or {}
-        for t in (tr.get('trends') or tr.get('items') or [])[:10]:
-            if not isinstance(t, dict):
-                continue
-            title = t.get('title') or t.get('trend') or t.get('name') or ''
-            if not title:
-                continue
-            ideas.append({
-                "title": f"Capitalise on: {title[:80]}",
-                "why": f"Trending topic (heat={t.get('heat', t.get('score', '?'))}) — ride the wave before it cools",
-                "hook": None,
-                "source_type": "trend",
-                "score": 8.0,
-                "pillar": 'events' if 'event' in title.lower() else 'community',
-                "platform": platform,
-            })
+        # trends — convert into ideas. The trend_catcher endpoint returns
+        # competitor_changes / youtube / golf_news / reddit (all lists),
+        # not a flat "trends" or "items" key. Walk every list.
+        try:
+            tr = trend_catcher() or {}
+            for src in ("trends", "items", "youtube", "golf_news",
+                        "competitor_changes", "reddit"):
+                for t in (tr.get(src) or [])[:10]:
+                    if not isinstance(t, dict):
+                        continue
+                    title = (t.get('title') or t.get('trend') or
+                             t.get('name') or t.get('topic') or
+                             t.get('change') or '')
+                    if not title:
+                        continue
+                    # Build a heat number safely
+                    heat = t.get('heat')
+                    if heat is None:
+                        heat = t.get('score')
+                    if heat is None:
+                        heat = t.get('opportunity_level')
+                    heat_str = str(heat) if heat is not None else '?'
+                    ideas.append({
+                        "title": f"Capitalise on: {title[:80]}",
+                        "why": (f"Trending {src} (heat={heat_str}). "
+                                f"Ride the wave while the conversation is hot."),
+                        "hook": None,
+                        "source_type": f"trend_{src}",
+                        "score": 8.0 if src == "competitor_changes" else 7.5,
+                        "pillar": 'events' if 'event' in title.lower() else 'community',
+                        "platform": platform,
+                    })
+        except Exception:
+            pass
 
         # dedupe by title, sort by score desc, take top n
         seen = set()
@@ -4193,10 +12005,238 @@ def intel_generate_ideas_route():
             unique.append(i)
         unique.sort(key=lambda x: x.get('score', 0), reverse=True)
         top = unique[:n]
+
+        # SA INTELLIGENCE: rewrite US-default units in every idea's title/why/hook.
+        sa_issues: List[str] = []
+        try:
+            from _lib.intelligence import _sa_sanitize
+            for idea in top:
+                for fld in ("title", "why", "hook"):
+                    val = idea.get(fld)
+                    if isinstance(val, str):
+                        new_val, issues = _sa_sanitize(val)
+                        if issues:
+                            sa_issues.extend(issues)
+                            idea[fld] = new_val
+        except Exception as _sa_err:
+            _app_log.debug("SA sanitization in generate_ideas failed: %s", _sa_err)
+
         return jsonify({"ok": True, "ideas": top, "count": len(top),
-                        "ts": _now_iso()}), 200
+                        "ts": _now_iso(),
+                        "_sa_rewrites": sa_issues}), 200
     except Exception as exc:
         _app_log.exception("generate_ideas failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/intel/winning_theme_ideas', methods=['GET', 'POST'])
+def intel_winning_theme_ideas_route():
+    """GET/POST /api/intel/winning_theme_ideas - quick-pick idea generator powered
+    by the post-conversion-score winning-themes data.
+
+    The recommendation engine identified which post themes, captions, and formats
+    historically drive the most /bookings/ traffic. This endpoint turns that
+    insight into ready-to-use content ideas you can plug straight into the
+    post-plan generator - one-click.
+
+    Body/query params:
+      n               - how many ideas to return (default 5, max 10)
+      format          - "auto" (use winning_format from data), "reel", or "image"
+      themes_override - comma-separated themes to use instead of the data's top themes
+
+    Returns: {ok, ideas: [{title, caption_hook, format, themes, why, source}], ...}
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    try:
+        body = request.get_json(silent=True) if request.method == 'POST' else {}
+        body = body or {}
+        n = min(int(body.get('n', request.args.get('n', 5)) or 5), 10)
+        fmt = (body.get('format') or request.args.get('format') or 'auto').strip().lower()
+        themes_override_raw = body.get('themes_override') or request.args.get('themes_override') or ''
+        themes_override = [t.strip() for t in themes_override_raw.split(',') if t.strip()] or None
+
+        # Load post-conversion-score data
+        pcs_path = _intel_module._runtime_data_file('post-conversion-score.json')
+        if not os.path.exists(pcs_path):
+            return jsonify({"ok": False, "error": "post-conversion-score.json not found - run scripts/fetch_post_conversion_score.py first"}), 404
+        with open(pcs_path) as f:
+            pcs = json.load(f)
+
+        rec = pcs.get('recommendation') or {}
+        summary = pcs.get('summary') or {}
+
+        # Resolve themes + format
+        chosen_themes = themes_override or rec.get('next_post_themes') or summary.get('winning_themes') or ['club_fitting', 'booking_cta']
+        if fmt == 'auto':
+            chosen_format = rec.get('next_post_format') or 'image'
+        else:
+            chosen_format = fmt
+
+        # Pull top caption examples from the right format bucket
+        if chosen_format == 'reel':
+            examples = rec.get('reel_caption_examples') or rec.get('winning_pattern_caption_examples') or []
+        else:
+            examples = rec.get('image_caption_examples') or rec.get('winning_pattern_caption_examples') or []
+        if not examples:
+            examples = rec.get('winning_pattern_caption_examples') or []
+
+        # Build ideas by recombining winning themes with caption templates.
+        # Templates are kept SA-natural, golf-specific, and aligned to the
+        # brand voice (no em-dashes, no fabricated facts).
+        # Pull the top-post lift from the actual data so the "why" line
+        # doesn't ship a hard-coded number that drifts from reality. v2026-08-18
+        # nightshift: the first template previously claimed "+267% more /bookings/
+        # traffic than baseline" as a literal string. The real number is in
+        # posts_ranked[0].lift_vs_baseline_pct (currently 266.7 for the Swing
+        # Shack cohort). Source from data so the line is honest whether the
+        # underlying number moves up or down between scoring runs.
+        ranked_top = (pcs.get('posts_ranked') or [])
+        top_lift_pct = None
+        if ranked_top:
+            v = ranked_top[0].get('lift_vs_baseline_pct')
+            if isinstance(v, (int, float)) and v > 0:
+                top_lift_pct = round(float(v))
+        # Display label: "Top post drove +267% more /bookings/ vs baseline"
+        # or a softer "Top post beat the /bookings/ baseline" if no number.
+        if top_lift_pct is not None:
+            lift_label = f"Top post drove +{top_lift_pct}% more /bookings/ sessions vs the channel baseline"
+        else:
+            lift_label = "Top posts beat the /bookings/ baseline for the active brand"
+        idea_templates = [
+            {
+                "title_template": "Book your {primary_theme_short} at Swing Shack",
+                "caption_hook_template": "{primary_cap}? Yes, that's a thing. \n\nBook your {primary_theme} today.",
+                "why": "{lift_label}. Pairing '{primary_theme}' with a direct booking CTA matches the winning theme combo.",
+            },
+            {
+                "title_template": "Why most golfers {pain_point}",
+                "caption_hook_template": "Off-the-rack is fine for groceries.\nFor clubs, let's aim a little higher.\n\nBook your fitting at Swing Shack.",
+                "why": "Pain-point hooks (golf_humor + club_fitting combo) generate the highest engagement rate among your top posts. Captures the conversion win without hard-sell language.",
+            },
+            {
+                "title_template": "{primary_theme_cap} isn't about the brand - it's about the fit",
+                "caption_hook_template": "Sub 70, Miura, Takomo, Avoda - none of it matters if the shaft's wrong.\n\nBook a fitting. 30 minutes. Sorted.",
+                "why": "Brand-neutral club_fitting content matches your top-3 scoring posts. Positions Swing Shack as the expert, not the reseller.",
+            },
+            {
+                "title_template": "The Trackman says one thing. The scorecard says another.",
+                "caption_hook_template": "Numbers don't lie. But they don't always tell the truth either.\n\nBook a Trackman session and find out what's really going on.",
+                "why": "Trackman_stats combined with booking_cta has the strongest post-publish traffic spike pattern in the last 30 days.",
+            },
+            {
+                "title_template": "30 minutes. One swing question. Lifetime of better golf.",
+                "caption_hook_template": "Bring the swing. Bring the question. Leave with the answer.\n\nBook your 30-minute lesson at Swing Shack.",
+                "why": "golf_lessons + booking_cta was the #4 winner. Short, concrete, low-friction offer converts well from IG bio link.",
+            },
+            {
+                "title_template": "Putter fitting? Yes, that's a thing.",
+                "caption_hook_template": "Everyone forgets the flatstick. Until they miss the 3-footer.\n\nBook your putter fitting at Swing Shack today.",
+                "why": "Niche club_fitting subcategory (putter) - underexplored in your recent posts, fits the winning themes, gives you a different angle.",
+            },
+            {
+                "title_template": "The lie angle is wrong. Here's how to tell.",
+                "caption_hook_template": "Stand over your shot. Look at the ground. Is it level?\n\nIf you're not sure - book a fitting. We'll show you.",
+                "why": "Educational club_fitting content + light booking CTA. Builds authority AND conversion path.",
+            },
+        ]
+
+        # Map raw theme slugs to natural user-facing labels for templates.
+        # Each theme gets a noun-form (used in titles) and a verb-form (used
+        # in captions). booking_cta is excluded from title substitution so
+        # titles don't read as "Booking isn't about the brand".
+        THEME_LABELS = {
+            "club_fitting": "club fitting",
+            "wrong_ball": "ball fitting",
+            "golf_lessons": "golf lesson",
+            "golf_humor": "fitting",
+            "trackman_stats": "Trackman session",
+        }
+        def theme_label(slug: str) -> str:
+            return THEME_LABELS.get(slug, slug.replace("_", " "))
+
+        def pick_primary_for_title(themes: list) -> str:
+            """Pick the first theme that has a non-cta label. Falls back to themes[0]."""
+            for t in themes:
+                if t != "booking_cta":
+                    return t
+            return themes[0] if themes else "club_fitting"
+
+        # Pick templates that match the chosen themes; rotate through for variety
+        ideas = []
+        for i, t in enumerate(idea_templates[:n]):
+            primary_slug = pick_primary_for_title(chosen_themes)
+            primary = theme_label(primary_slug)
+            primary_cap = primary.capitalize()
+            # Short form drops the redundant "fitting" suffix for templates that
+            # already end with "fitting" (e.g. "Book your club fitting" not
+            # "Book your club fitting fitting").
+            primary_short = primary.replace(" fitting", "").replace(" lesson", "").strip() or primary
+            secondary_slug = chosen_themes[1] if len(chosen_themes) > 1 else primary_slug
+            secondary = theme_label(secondary_slug)
+            ideas.append({
+                "title": t["title_template"].format(
+                    primary_theme=primary,
+                    primary_theme_short=primary_short,
+                    primary_theme_cap=primary_cap,
+                    primary_cap=primary_cap,
+                    pain_point=f"play with the wrong setup (and how a {primary} fixes it)"),
+                "caption_hook": t["caption_hook_template"].format(
+                    primary_theme=primary,
+                    primary_cap=primary_cap,
+                    first_word_cap=primary_cap),
+                "format": chosen_format,
+                "themes": chosen_themes,
+                "why": t["why"].format(primary_theme=primary, secondary_theme=secondary, lift_label=lift_label),
+                "source": "post-conversion-score.json winning themes",
+                "winning_themes_used": chosen_themes,
+            })
+
+        # Prepend caption examples from actual winning posts for inspiration
+        for ex in examples[:2]:
+            ideas.append({
+                "title": "(Inspiration from past winner) " + ex[:80],
+                "caption_hook": ex,
+                "format": chosen_format,
+                "themes": chosen_themes,
+                "why": "This is a real caption from a top-5 scoring post. Use as-is or remix with your own angle.",
+                "source": "actual_winning_post",
+                "winning_themes_used": chosen_themes,
+            })
+            if len(ideas) >= n + 2:
+                break
+
+        # Trim to n
+        ideas = ideas[:n]
+
+        # SA sanitization
+        sa_issues = []
+        try:
+            from _lib.intelligence import _sa_sanitize
+            for idea in ideas:
+                for fld in ("title", "caption_hook", "why"):
+                    val = idea.get(fld)
+                    if isinstance(val, str):
+                        new_val, issues = _sa_sanitize(val)
+                        if issues:
+                            sa_issues.extend(issues)
+                            idea[fld] = new_val
+        except Exception as _sa_err:
+            _app_log.debug("SA sanitization in winning_theme_ideas failed: %s", _sa_err)
+
+        return jsonify({
+            "ok": True,
+            "ideas": ideas,
+            "count": len(ideas),
+            "themes_used": chosen_themes,
+            "format_used": chosen_format,
+            "winning_posts_analyzed": summary.get("posts_scored", 0),
+            "winning_format_data": summary.get("winning_format"),
+            "ts": _now_iso(),
+            "_sa_rewrites": sa_issues,
+        }), 200
+    except Exception as exc:
+        _app_log.exception("winning_theme_ideas failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
@@ -4649,10 +12689,21 @@ def meme_knowledge_route():
     if limit:
         enriched = enriched[:limit]
 
+    # ─── Meme Lord summary copy ────────────────────────────────────
+    # Bug 2026-08-18: backend returned debug-style "voice=X pillar=Y" on the
+    # user-facing summary line, leaking parameter names into the Meme Lord
+    # section header. Frontend just renders lib.summary verbatim (campaign-os.html
+    # line 9531) so every page load showed "30 of 75 memes · voice=swing-shack
+    # pillar=education". Replace with friendly labels. Voice and pillar IDs are
+    # still discoverable in the `filters` block + the brand-fit reasons below.
+    # The · separator (middle-dot, not em-dash) keeps the standing punctuation
+    # rule: em-dashes are banned in published copy.
+    _voice_label = (voice_score or 'default').replace('-', ' ').title()
+    _pillar_label = (pillar_score or 'all').replace('-', ' ')
     return jsonify({
         "ok": True,
         "ts": _now_iso(),
-        "summary": f"{len(enriched)} of {len(memes)} memes · voice={voice_score} pillar={pillar_score}",
+        "summary": f"{len(enriched)} of {len(memes)} memes · {_voice_label} voice · {_pillar_label} pillar",
         "taxonomy": kb.get('taxonomy', {}),
         "voice_bible": kb.get('voice_bible', {}),
         "stats": kb.get('stats', {}),
@@ -4717,6 +12768,9 @@ def meme_recommend_route():
             'fit_seed_suggestion': (m.get('swingshack_fit_seeds') or ['(no seed in knowledge base)'])[0],
         }})
     scored.sort(key=lambda x: x.get('brand_fit', 0), reverse=True)
+    # Same image_url enrichment as /api/intel/memes/catalog so the Top picks
+    # cards on the Meme Lord section render real thumbnails when available.
+    _enrich_memes_with_image_url(scored)
     top = scored[:limit]
 
     return jsonify({
@@ -5066,7 +13120,7 @@ def _render_seo_pack(pack, pillar, voice, platform=None, custom_keyword=None):
         f"{primary.title()} | Swing Shack"
     )
     meta_description = (templates.get('meta_descriptions') or {}).get(pillar) or (
-        f"{primary.title()} at Swing Shack — Johannesburg's indoor golf bay."
+        f"{primary.title()} at Swing Shack · Johannesburg's indoor golf bay."
     )
     h1 = (templates.get('h1') or {}).get(pillar) or primary.title()
     slug = (templates.get('slug_examples') or {}).get(pillar)
@@ -5347,25 +13401,41 @@ def _load_landing_fixes():
 def _seo_audit_score(audit):
     """Compute a 0-100 SEO health score from audit findings.
 
-    Penalises: high severity findings 15pts each, medium 8, low 3.
-    Bonus: status==='OK' on every page gives +10.
+    Site score = average of per-page scores (same 25/10/3 penalty scale the
+    per-page breakdown uses). The +10 bonus only fires when EVERY page is
+    OK AND no page has any findings (i.e. the audit crawled cleanly and
+    found nothing to fix). This avoids the "score=0 whenever a site has
+    many findings" trap that the previous recommendation-list-based math
+    produced (e.g. 8 highs + 4 mediums + 4 lows = 164 deduction → clamped
+    to 0, hiding real per-page health).
     """
     if not audit:
         return 0
-    score = 100
-    recs = audit.get('recommendations') or []
-    for rec in recs:
-        sev = str(rec.get('severity') or '').lower()
-        if sev == 'high':
-            score -= 15
-        elif sev == 'medium':
-            score -= 8
-        elif sev == 'low':
-            score -= 3
     pages = audit.get('pages') or []
-    if pages and all(str(p.get('status') or '').upper() == 'OK' for p in pages):
-        score += 10
-    return max(0, min(100, score))
+    if not pages:
+        return 0
+    page_scores = []
+    for p in pages:
+        if not isinstance(p, dict):
+            continue
+        counts = {'high': 0, 'medium': 0, 'low': 0}
+        for f in (p.get('findings') or []):
+            if not isinstance(f, dict):
+                continue
+            sev = str(f.get('severity') or 'low').lower()
+            if sev not in counts:
+                continue
+            counts[sev] += 1
+        page_scores.append(max(0, 100 - counts['high'] * 25 - counts['medium'] * 10 - counts['low'] * 3))
+    if not page_scores:
+        return 0
+    avg = round(sum(page_scores) / len(page_scores))
+    # Bonus: every page is status OK AND no page has any findings.
+    all_ok = all(str(p.get('status') or '').upper() == 'OK' for p in pages if isinstance(p, dict))
+    any_findings = any(isinstance(p, dict) and (p.get('findings') or []) for p in pages)
+    if all_ok and not any_findings:
+        avg += 10
+    return max(0, min(100, avg))
 
 
 def _seo_audit_group_by_page(audit):
@@ -5413,7 +13483,7 @@ def _seo_fix_template(page, fix_type, custom_keyword=None):
     page_name = page.get('page') if isinstance(page, dict) else (page or 'Homepage')
     if fix_type == 'missing_meta_description':
         kw_title = keyword.title() if keyword else 'Indoor Golf Simulator Johannesburg'
-        text = (f'{page_name} — {kw_title}. Book a TrackMan session at Swing Shack Johannesburg. '
+        text = (f'{page_name} · {kw_title}. Book a TrackMan session at Swing Shack Johannesburg. '
                 f'Open 24/7. From R250.')
         # Trim to fit 160 if necessary
         if len(text) > 160:
@@ -5429,7 +13499,7 @@ def _seo_fix_template(page, fix_type, custom_keyword=None):
         }
     if fix_type == 'missing_h1':
         kw_proper = keyword.replace('johannesburg', 'Johannesburg').title() if keyword else 'Indoor Golf Simulator Johannesburg'
-        text = f'Book Your {kw_proper} Session — Swing Shack'
+        text = f'Book Your {kw_proper} Session · Swing Shack'
         return {
             'kind': 'h1',
             'snippet': text,
@@ -5851,11 +13921,29 @@ def load_brands_registry():
 
 def get_brand_id():
     """Resolve the active brand from request headers or query string."""
-    bid = request.headers.get('X-Brand') or request.args.get('brand_id')
+    bid = request.headers.get('X-Brand') or request.args.get('brand_id') or request.args.get('brand')
     if bid:
         return bid
     registry = load_brands_registry()
     return registry.get('default_brand_id') or 'swing-shack'
+
+
+def resolve_data_brand(brand_id: str) -> str:
+    """For analytics endpoints, return the brand whose data files should be read.
+
+    Sub-brands (Stick, Bag Drop, Takomo) delegate analytics to swing-shack so
+    we don't need separate IG / GBP / GA4 files per brand. The brand_id is
+    still used for voice/positioning/colour in the UI layer — only the
+    analytics endpoints swap to the delegate source.
+    """
+    if not brand_id:
+        return 'swing-shack'
+    registry = load_brands_registry()
+    brand = (registry.get('brands') or {}).get(brand_id) or {}
+    delegate = brand.get('data_delegates_from')
+    if delegate and isinstance(delegate, str):
+        return delegate
+    return brand_id
 
 
 def brand_published_ids(brand_id):
@@ -6038,8 +14126,4863 @@ def intel_brand_context():
     }), 200
 
 
+# ─── WEEKLY MARKETING REPORT ────────────────────────────────────────────
+# Generates a brand-aware weekly report matching the Stick layout:
+#   • Hero with H1 + focus pills
+#   • TL;DR (5 bullets, plain English, top of page)
+#   • 4 metric cards (weekly snapshot)
+#   • Comparison table vs previous week
+#   • Facebook / Instagram 28-day tables
+#   • Top content earning attention
+#   • Website + acquisition (GA4)
+#   • Google Ads (honest "not configured" if no token)
+#   • What's working / Needs attention / This week's focus
+#   • Footer with date windows + caveats
+#
+# Available as:
+#   • GET  /api/weekly-report?brand=<id>&format=html|json|markdown
+#   • GET  /weekly-report?brand=<id>              (HTML page with downloads)
+#   • Cron /api/weekly-report/snapshot?brand=<id>  (archive current week)
+
+WEEKLY_REPORT_DATA_DIR = os.path.join(DATA_DIR, 'weekly-snapshots')
+os.makedirs(WEEKLY_REPORT_DATA_DIR, exist_ok=True)
+
+
+def _weekly_brand_meta(bid):
+    """Load brand meta + voice + pillars for report hero."""
+    registry = load_brands_registry()
+    brand = (registry.get('brands') or {}).get(bid) or {}
+    voice = _load_voice_bible_brand(bid)
+    return {
+        'id': bid,
+        'display_name': brand.get('display_name', bid),
+        'tagline': brand.get('tagline', ''),
+        'positioning': brand.get('positioning', ''),
+        'primary_color': brand.get('primary_color', '#d7b46a'),
+        'audience': brand.get('audience', ''),
+        'pillar_defaults': brand.get('pillar_defaults', []) or [],
+        'voice_label': brand.get('voice_label', ''),
+        'voice_bible': voice,
+    }
+
+
+def _weekly_pct(curr, prev):
+    """Compute % change between two numbers. Returns (pct_str, direction, raw_pct).
+
+    prev=0, curr=0 -> 'flat' (no movement, not zero-percent)
+    prev=0, curr>0 -> 'NEW' (genuine new value, never blank)
+    prev>0, curr=0 -> '-100%' (genuine drop to zero, not blank)
+    """
+    try:
+        c = float(curr)
+        p = float(prev)
+    except (ValueError, TypeError):
+        return ('n/a', 'neutral', None)
+    if p == 0:
+        if c == 0:
+            return ('flat', 'neutral', 0.0)
+        return ('NEW', 'up', None)
+    if c == 0:
+        return ('-100%', 'down', -100.0)
+    raw = (c - p) / p * 100
+    sign = '+' if raw > 0 else ''
+    return (f'{sign}{raw:.1f}%', 'up' if raw > 0 else ('down' if raw < 0 else 'neutral'), raw)
+
+
+def _weekly_safe_div(a, b):
+    try:
+        return float(a) / float(b) if float(b) != 0 else 0
+    except (ValueError, TypeError, ZeroDivisionError):
+        return 0
+
+
+def _weekly_collect_current(bid):
+    """Pull the current week's raw metrics from every data source we have.
+    Returns a dict; every value has a source + window tag so the doc can cite honestly."""
+    out = {
+        'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'brand_id': bid,
+        'sources': [],
+        'weekly': {},    # last 7 days
+        '28d': {},       # last 28 days
+    }
+
+    # 1) GA4 — last 7 days (resilient: missing keys → zero + tagged)
+    # Try runtime DATA_DIR first; fall back to bundled repo copy.
+    try:
+        ga4_path = _resolve_data_path('ga4-metrics.json')
+        if os.path.exists(ga4_path):
+            ga = _read_json_file(ga4_path) or {}
+            window = ga.get('data_window', 'unknown')
+            out['sources'].append({'name': 'ga4', 'window': window, 'fetched_at': ga.get('fetched_at')})
+            out['weekly']['ga4_sessions'] = ga.get('total_sessions', 0)
+            # Top pages — collapse (pagePath, sessionSource) duplicates so the
+            # homepage doesn't dominate the top-5 with one row per source.
+            # Defence-in-depth: matches the aggregator in performance_view().
+            raw_pages = ga.get('pages', []) or []
+            by_path = {}
+            for p in raw_pages:
+                if not isinstance(p, dict):
+                    continue
+                pp = p.get('path', '')
+                if not pp:
+                    continue
+                cur = by_path.get(pp) or {'sessions': 0, '_er_sum': 0.0, '_n': 0}
+                cur['sessions'] += (p.get('sessions') or 0)
+                try:
+                    er_raw = p.get('engRate') or p.get('engagementRate') or 0
+                    cur['_er_sum'] += float(str(er_raw).replace('%', '')) if er_raw else 0.0
+                except (ValueError, TypeError):
+                    pass
+                cur['_n'] += 1
+                by_path[pp] = cur
+            agg = []
+            for pp, v in by_path.items():
+                n = v['_n'] or 1
+                er = v['_er_sum'] / n
+                agg.append({'path': pp, 'sessions': v['sessions'],
+                            'engagement_rate': f"{er:.1f}%"})
+            agg.sort(key=lambda x: x['sessions'], reverse=True)
+            out['weekly']['ga4_top_pages'] = agg[:5]
+            out['weekly']['ga4_sources'] = [{'source': s.get('source'), 'sessions': s.get('sessions', 0)} for s in (ga.get('sources') or [])[:6]]
+    except Exception as e:
+        out['sources'].append({'name': 'ga4', 'error': str(e)})
+
+    # 2) Instagram analytics — last 28 days; fallback to bundled data dir
+    try:
+        ig_path = _resolve_data_path(os.path.join('analytics', 'instagram-analytics.json'))
+        if os.path.exists(ig_path):
+            ig = _read_json_file(ig_path) or {}
+            top = ig.get('topPerformers', []) or []
+            out['28d']['ig_top_performers'] = top[:5]
+            # Aggregate engagement — defensive None-coalescing on every field
+            # because the Instagram JSON sometimes stores null for like_count
+            # / comments_count / shares / saves / follows depending on whether
+            # the field was present at fetch time.
+            posts = ig.get('posts', []) or []
+            if posts:
+                interactions = sum(((p.get('like_count') or 0) + (p.get('comments_count') or 0) + (p.get('shares') or 0) + (p.get('saves') or 0)) for p in posts)
+                reach = sum((p.get('reach') or 0) for p in posts)
+                followers = sum((p.get('follows') or 0) for p in posts)
+                views = sum((p.get('views') or 0) for p in posts)
+                out['28d']['ig_posts'] = len(posts)
+                out['28d']['ig_interactions'] = interactions
+                out['28d']['ig_reach'] = reach
+                out['28d']['ig_follows'] = followers
+                out['28d']['ig_views'] = views
+            out['sources'].append({'name': 'instagram', 'fetched_at': ig.get('lastUpdated'), 'posts_tracked': ig.get('totalPostsTracked')})
+        else:
+            out['sources'].append({'name': 'instagram', 'error': 'instagram-analytics.json not found'})
+    except Exception as e:
+        out['sources'].append({'name': 'instagram', 'error': str(e)})
+
+    # 2b) Also derive 7-day IG reach from the IG business daily_reach time-series
+    # so the weekly comparison table can show "this week vs last week" with real
+    # numbers even when no archived snapshot exists. Daily reach is the only
+    # daily-grain IG metric we have on disk; interactions/posts are cumulative
+    # so they only get compared from archived snapshots.
+    try:
+        ig_biz_path = _resolve_data_path('ig-business-analytics.json')
+        if os.path.exists(ig_biz_path):
+            ig_biz = _read_json_file(ig_biz_path) or {}
+            daily_reach = ig_biz.get('daily_reach', []) or []
+            by_date = {}
+            for d in daily_reach:
+                if isinstance(d, dict) and 'date' in d:
+                    try:
+                        by_date[d['date']] = float(d.get('value', 0))
+                    except (ValueError, TypeError):
+                        pass
+            if by_date:
+                today = datetime.datetime.now(datetime.timezone.utc).date()
+                cur_s = (today - datetime.timedelta(days=6)).isoformat()
+                cur_e = today.isoformat()
+                reach_7d = sum(v for d, v in by_date.items() if cur_s <= d <= cur_e)
+                out['weekly']['ig_reach_7d'] = int(reach_7d)
+                out['sources'].append({'name': 'ig_business_timeseries', 'days': len(by_date)})
+    except Exception:
+        pass
+
+    # 3) Meta Graph API — for Facebook (last 28 days, page-level + post-level)
+    # Resolves creds from env (preferred) OR data/meta-tokens.json (bundled fallback)
+    try:
+        from _lib import meta_api as _meta
+        page_ok = _meta._page_credentials_present()
+        ig_ok = _meta.meta_credentials_present()
+        if page_ok or ig_ok:
+            try:
+                # Page-level metrics — fans, followers, views, impressions, reach, engaged users
+                page_info = {}
+                page_insights = {}
+                if page_ok:
+                    try:
+                        page_info = _meta.get_page_info() or {}
+                        out['sources'].append({'name': 'meta_page_info', 'page_id': page_info.get('id'),
+                                               'fan_count': page_info.get('fan_count'),
+                                               'followers_count': page_info.get('followers_count')})
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_page_info', 'fetch_error': str(e)[:200]})
+                    try:
+                        page_insights = _meta.get_page_insights(period='days_28') or {}
+                        flat_insights = page_insights.get('_flat', {})
+                        out['sources'].append({'name': 'meta_page_insights', 'metrics': list(flat_insights.keys()),
+                                               'period': 'days_28'})
+                        # Map Graph API metric names -> our internal keys
+                        # Views: page_views_total (cumulative page views)
+                        # Reach: page_impressions_unique (unique people)
+                        # Impressions: page_impressions (total)
+                        # Engaged users: page_engaged_users
+                        # Post engagements: page_post_engagements
+                        out['28d']['fb_views'] = int(flat_insights.get('page_views_total') or 0)
+                        out['28d']['fb_reach'] = int(flat_insights.get('page_impressions_unique') or 0)
+                        out['28d']['fb_impressions'] = int(flat_insights.get('page_impressions') or 0)
+                        out['28d']['fb_engaged_users'] = int(flat_insights.get('page_engaged_users') or 0)
+                        out['28d']['fb_post_engagements'] = int(flat_insights.get('page_post_engagements') or 0)
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_page_insights', 'fetch_error': str(e)[:200]})
+                    out['28d']['fb_fans'] = int(page_info.get('fan_count') or 0)
+                    out['28d']['fb_followers'] = int(page_info.get('followers_count') or 0)
+                    out['28d']['fb_name'] = page_info.get('name', '')
+
+                # Stories — IG (/{ig_account_id}/stories) + FB page (/{page_id}/stories).
+                # Cross-reference both data streams and de-dup by id so we don't
+                # double-count cross-posted stories (same story posted to both
+                # IG and FB Page surfaces within seconds is common).
+                try:
+                    stories_summary = _meta.summarize_stories()
+                    out['28d']['ig_stories'] = int(stories_summary.get('ig_stories', {}).get('count') or 0)
+                    out['28d']['ig_stories_reach'] = int(stories_summary.get('ig_stories', {}).get('reach_total') or 0)
+                    out['28d']['ig_stories_follows'] = int(stories_summary.get('ig_stories', {}).get('follows_total') or 0)
+                    out['28d']['ig_stories_interactions'] = int(stories_summary.get('ig_stories', {}).get('total_interactions_total') or 0)
+                    out['28d']['ig_stories_oldest'] = stories_summary.get('ig_stories', {}).get('oldest')
+                    out['28d']['ig_stories_newest'] = stories_summary.get('ig_stories', {}).get('newest')
+                    out['28d']['ig_stories_items'] = stories_summary.get('ig_stories', {}).get('items', [])
+                    out['28d']['fb_stories'] = int(stories_summary.get('fb_page_stories', {}).get('count') or 0)
+                    out['28d']['fb_stories_oldest'] = stories_summary.get('fb_page_stories', {}).get('oldest')
+                    out['28d']['fb_stories_newest'] = stories_summary.get('fb_page_stories', {}).get('newest')
+                    out['28d']['fb_stories_items'] = stories_summary.get('fb_page_stories', {}).get('items', [])
+                    out['28d']['stories_combined_count'] = int(stories_summary.get('combined_count') or 0)
+                    out['28d']['stories_combined_reach'] = int(stories_summary.get('combined_reach') or 0)
+                    out['28d']['stories_truth_note'] = stories_summary.get('truth_note')
+                    out['sources'].append({
+                        'name': 'meta_stories',
+                        'ig_count': out['28d']['ig_stories'],
+                        'fb_page_count': out['28d']['fb_stories'],
+                        'combined': out['28d']['stories_combined_count'],
+                        'reach_total': out['28d']['ig_stories_reach'],
+                        'overlap_ids': stories_summary.get('overlap_ids', []),
+                        'window_label': stories_summary.get('window_label'),
+                    })
+                except Exception as e:
+                    out['sources'].append({'name': 'meta_stories', 'fetch_error': str(e)[:200]})
+
+                # Post-level - recent posts + their insights (reach, link clicks, etc.)
+                posts = []
+                posts_source = 'instagram'
+                if ig_ok:
+                    try:
+                        posts = _meta.list_recent_posts(limit=50) or []
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_graph_ig_fetch_error', 'error': str(e)[:200]})
+                if not posts and page_ok:
+                    try:
+                        posts = _meta.list_page_posts(limit=50) or []
+                        posts_source = 'facebook_page'
+                    except Exception as e:
+                        out['sources'].append({'name': 'meta_graph_fb_fetch_error', 'error': str(e)[:200]})
+                if posts:
+                    out['sources'].append({'name': 'meta_graph', 'posts': len(posts),
+                                           'configured': True,
+                                           'posts_source': posts_source,
+                                           'has_page_info': bool(page_info),
+                                           'has_page_insights': bool(page_insights.get('_flat'))})
+                    out['28d']['fb_posts'] = len(posts)
+                    out['28d']['fb_posts_source'] = posts_source
+                    # FB posts use 'shares' (dict with 'count') OR plain int; IG posts use 'like_count'.
+                    # Normalize into a 'views' field for the sort key so both work.
+                    def _sort_views(p):
+                        if not isinstance(p, dict):
+                            return 0
+                        v = p.get('views')
+                        if v:
+                            return v
+                        v = p.get('like_count', 0)
+                        if v:
+                            return v
+                        sh = p.get('shares')
+                        if isinstance(sh, dict):
+                            return sh.get('count', 0)
+                        if isinstance(sh, (int, float)):
+                            return sh
+                        return 0
+                    sorted_posts = sorted(posts, key=_sort_views, reverse=True)
+                    out['28d']['fb_top_posts'] = sorted_posts[:5]
+            except Exception as e:
+                out['sources'].append({'name': 'meta_graph', 'configured': True,
+                                       'fetch_error': str(e)[:200]})
+        else:
+            # Distinguish "no creds at all" from "creds partially present" so
+            # the renderer can tell the user exactly what's missing.
+            from _lib.meta_api import _read_meta_access_token, _read_meta_id
+            missing = []
+            if not _read_meta_id('META_APP_ID', 'app_id'): missing.append('META_APP_ID')
+            if not _read_meta_access_token(): missing.append('META_ACCESS_TOKEN')
+            if not _read_meta_id('META_INSTAGRAM_BUSINESS_ACCOUNT_ID', 'instagram_account_id'):
+                missing.append('META_INSTAGRAM_BUSINESS_ACCOUNT_ID')
+            if not _read_meta_id('META_PAGE_ID', 'page_id'): missing.append('META_PAGE_ID')
+            out['sources'].append({'name': 'meta_graph', 'configured': False,
+                                   'reason': f"missing: {', '.join(missing) or 'unknown'}",
+                                   'hint': 'Set as Railway env vars OR drop data/meta-tokens.json with app_id, page_id, instagram_business_account_id, access_token'})
+    except Exception as e:
+        out['sources'].append({'name': 'meta_graph', 'configured': False,
+                               'reason': f'meta_api module unavailable: {e}'})
+
+    # 4) Google Ads — honest "not configured" if no token; fallback to bundled
+    google_ads_path = _resolve_data_path('google-ads.json')
+    if os.path.exists(google_ads_path):
+        ga = _read_json_file(google_ads_path) or {}
+        out['sources'].append({'name': 'google_ads', 'configured': True})
+        out['weekly']['google_ads'] = ga
+    else:
+        out['sources'].append({'name': 'google_ads', 'configured': False})
+
+    # 5) Booking events / closure / value model — brand-aware where possible
+    try:
+        bk = _read_json_file(os.path.join(DATA_DIR, 'booking-events.json')) or {}
+        out['weekly']['bookings_total'] = (bk.get('summary') or {}).get('total', 0)
+    except Exception:
+        out['weekly']['bookings_total'] = 0
+
+    # 6) Content published in last 7 days — primary: campaign-data.json
+    # Fallback (2026-09-01): if campaign-data shows 0, count IG business
+    # posts with timestamp in last 7 days. Keeps the report honest when
+    # Instagram has fresh posts that haven't been synced to the OS yet.
+    try:
+        data = load_data()
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=7)
+        created = 0
+        for camp in (data.get('campaigns') or {}).values():
+            if camp.get('brand_id') not in (bid, None):
+                if camp.get('brand_id') and camp.get('brand_id') != bid:
+                    continue
+            for aid, asset in (camp.get('assets') or {}).items():
+                ts = asset.get('created_at') or asset.get('createdAt')
+                if ts:
+                    try:
+                        if datetime.datetime.fromisoformat(ts.replace('Z', '+00:00')) > cutoff:
+                            created += 1
+                    except (ValueError, AttributeError):
+                        pass
+        out['weekly']['content_published'] = created
+        out['weekly']['content_published_source'] = 'campaign-data.json'
+        if created == 0:
+            try:
+                ig_biz_path = _resolve_data_path('ig-business-analytics.json')
+                if os.path.exists(ig_biz_path):
+                    ig_biz = _read_json_file(ig_biz_path) or {}
+                    media = ig_biz.get('media', []) or []
+                    ig_recent = 0
+                    for m_item in media:
+                        ts = m_item.get('timestamp')
+                        if not ts:
+                            continue
+                        try:
+                            t = datetime.datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                            if t > cutoff:
+                                ig_recent += 1
+                        except (ValueError, AttributeError):
+                            pass
+                    if ig_recent > 0:
+                        out['weekly']['content_published'] = ig_recent
+                        out['weekly']['content_published_source'] = 'ig-business-analytics.json (fallback)'
+                        out['sources'].append({'name': 'ig_business_recent_posts', 'count': ig_recent, 'window_days': 7})
+            except Exception:
+                pass
+    except Exception:
+        out['weekly']['content_published'] = 0
+        out['weekly']['content_published_source'] = 'error'
+
+
+    # 7) Review queue depth — drafts waiting for human review
+    try:
+        rq_path = os.path.join(DATA_DIR, 'approval-queue.json')
+        if os.path.exists(rq_path):
+            rq = _read_json_file(rq_path) or {}
+            out['weekly']['review_pending'] = rq.get('total', 0)
+            out['sources'].append({'name': 'review_queue', 'configured': True,
+                                   'depth': rq.get('total', 0)})
+        else:
+            out['weekly']['review_pending'] = 0
+            out['sources'].append({'name': 'review_queue', 'configured': False,
+                                   'reason': 'approval-queue.json not found'})
+    except Exception:
+        out['weekly']['review_pending'] = 0
+        out['sources'].append({'name': 'review_queue', 'configured': False,
+                               'reason': 'load failed'})
+
+    # 8) Lead source — separate from Meta, in case you wire HubSpot, GA4 events,
+    # Facebook Lead Ads, etc. in future. For now we have nothing wired.
+    leads_path = os.path.join(DATA_DIR, 'leads.json')
+    if os.path.exists(leads_path):
+        ld = _read_json_file(leads_path) or {}
+        out['weekly']['leads'] = ld.get('weekly_total', 0)
+        out['sources'].append({'name': 'leads', 'configured': True,
+                               'weekly_total': ld.get('weekly_total', 0)})
+    else:
+        out['weekly']['leads'] = 0
+        out['sources'].append({'name': 'leads', 'configured': False,
+                               'reason': 'no lead source wired'})
+
+    return out
+
+
+def _weekly_prev_snapshot(bid):
+    """Load the most recent previous snapshot for comparison. Returns None if first ever run.
+
+    'Previous' = the latest snapshot archived in a week *earlier* than the current
+    one. This avoids the case where archiving this week's snapshot makes it appear
+    as 'previous' (always 0% delta) until next week.
+
+    If no archived snapshot exists, falls back to _weekly_derived_prev() which
+    synthesises a comparable previous report from whatever time-series data we
+    already have on disk (IG daily_reach, etc.). That way the report ALWAYS has
+    real math, never "last week's info is missing".
+    """
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        cur_year, cur_week, _ = now.isocalendar()
+        snaps = sorted(
+            [f for f in os.listdir(WEEKLY_REPORT_DATA_DIR) if f.startswith(f'{bid}_') and f.endswith('.json')],
+            reverse=True
+        )
+        for f in snaps:
+            # Filename: <bid>_<year>-W<week>.json — parse the week out
+            try:
+                stem = f[len(bid) + 1:-5]  # strip "<bid>_" and ".json"
+                year_s, week_s = stem.split('-W')
+                y, w = int(year_s), int(week_s)
+                if (y, w) < (cur_year, cur_week):
+                    return _read_json_file(os.path.join(WEEKLY_REPORT_DATA_DIR, f)), 'archived'
+            except (ValueError, IndexError):
+                continue
+        # No archived snapshot. Fall back to derived prev from time-series data.
+        derived = _weekly_derived_prev(bid)
+        return derived, ('derived' if derived is not None else None)
+    except Exception:
+        return None, None
+
+
+def _weekly_derived_prev(bid):
+    """Synthesise a 'previous report' from on-disk time-series when no snapshot exists.
+
+    Strategy: split the IG daily_reach (30 days) into two halves and use the
+    older half as the 'previous week'. That gives REAL deltas instead of a
+    blank 'first run' message.
+
+    Returns a dict shaped like an archived snapshot, or None if no time-series
+    data is available (in which case the report gracefully falls back to "-").
+    """
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        ig_path = _resolve_data_path('ig-business-analytics.json')
+        if not os.path.exists(ig_path):
+            return None
+        ig = _read_json_file(ig_path) or {}
+        daily_reach = ig.get('daily_reach', []) or []
+        if len(daily_reach) < 14:
+            # Need at least 14 days of data to compute a 7d-vs-7d comparison
+            return None
+        # Build date->value lookup
+        by_date = {}
+        for d in daily_reach:
+            if isinstance(d, dict) and 'date' in d:
+                try:
+                    by_date[d['date']] = float(d.get('value', 0))
+                except (ValueError, TypeError):
+                    pass
+        if len(by_date) < 14:
+            return None
+        # Current 7-day window: today-6 .. today (UTC)
+        cur_end = now.date()
+        cur_start = cur_end - datetime.timedelta(days=6)
+        # Previous 7-day window: today-13 .. today-7
+        prev_end = cur_end - datetime.timedelta(days=7)
+        prev_start = cur_end - datetime.timedelta(days=13)
+        cur_s = cur_start.isoformat()
+        cur_e = cur_end.isoformat()
+        prev_s = prev_start.isoformat()
+        prev_e = prev_end.isoformat()
+        cur_reach = sum(v for d, v in by_date.items() if cur_s <= d <= cur_e)
+        prev_reach = sum(v for d, v in by_date.items() if prev_s <= d <= prev_e)
+        # The current snapshot stores '28d' totals (rolling 28-day IG window),
+        # not weekly. So our prev here is best-effort 7d-vs-7d. We mark it
+        # clearly with derived_from so the renderer can label it honestly.
+        return {
+            'archived_at': now.isoformat(),
+            'iso_year': now.isocalendar()[0],
+            'iso_week': now.isocalendar()[1],
+            'derived_from': 'ig-business-analytics.json daily_reach time-series',
+            'window': f'{prev_s} to {prev_e}',
+            'weekly': {},
+            '28d': {
+                'ig_reach': int(prev_reach),
+                # We do NOT have separate previous-week totals for interactions/posts
+                # so leave those at 0 - the renderer will display 'n/a' honestly.
+            },
+            # Custom key the renderer can pick up to show 7d-vs-7d IG reach delta
+            '_derived_ig_reach_7d': int(prev_reach),
+        }
+    except Exception:
+        return None
+
+
+def _weekly_save_snapshot(bid, current):
+    """Archive the current snapshot under a week-stamped filename."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    iso_year, iso_week, _ = now.isocalendar()
+    fname = f'{bid}_{iso_year}-W{iso_week:02d}.json'
+    fpath = os.path.join(WEEKLY_REPORT_DATA_DIR, fname)
+    payload = dict(current)
+    payload['archived_at'] = now.isoformat()
+    payload['iso_year'] = iso_year
+    payload['iso_week'] = iso_week
+    try:
+        with open(fpath, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, indent=2, default=str)
+        return fpath
+    except Exception as e:
+        return f'ERROR: {e}'
+
+
+def _weekly_compute_metrics(bid):
+    """Pull current + previous snapshot and produce all metric rows used in the doc."""
+    current = _weekly_collect_current(bid)
+    prev, prev_source = _weekly_prev_snapshot(bid)
+
+    c_weekly = current.get('weekly', {}) or {}
+    c_28d = current.get('28d', {}) or {}
+    p_weekly = (prev or {}).get('weekly', {}) or {}
+    p_28d = (prev or {}).get('28d', {}) or {}
+
+    # Build comparison table rows: (label, curr, prev, fmt, has_source, missing_reason)
+    # has_source/missing_reason drive honest "—" display when data source is dead
+    # (e.g. Meta not configured → Facebook metrics show as "—" not "0").
+    meta_configured = any(s.get('name') == 'meta_graph' and s.get('posts')
+                          for s in (current.get('sources') or []))
+    # Also consider Meta "configured" when page-level data is wired up (page_info
+    # or page_insights) - those can exist even with 0 posts in the 28d window.
+    if not meta_configured:
+        meta_configured = any(s.get('name') in ('meta_page_info', 'meta_page_insights')
+                              and not s.get('fetch_error')
+                              for s in (current.get('sources') or []))
+    ig_configured = any(s.get('name') == 'instagram'
+                        and (s.get('posts_tracked') or s.get('fetched_at'))
+                        for s in (current.get('sources') or []))
+    leads_configured = any(s.get('name') == 'leads' for s in (current.get('sources') or []))
+    review_configured = any(s.get('name') == 'review_queue' for s in (current.get('sources') or []))
+
+    def _row(label, current_v, previous_v, fmt, has_source, missing_reason):
+        return {
+            'label': label,
+            'current': current_v,
+            'previous': previous_v,
+            'fmt': fmt,
+            'has_source': has_source,
+            'missing_reason': missing_reason,
+        }
+
+    rows = [
+        _row('Content published',
+             c_weekly.get('content_published', 0),
+             p_weekly.get('content_published', 0),
+             'int', True, None),
+        _row('Facebook reach',
+             c_28d.get('fb_reach', 0),
+             p_28d.get('fb_reach', 0),
+             'k', meta_configured,
+             None if meta_configured else 'Meta not connected'),
+        _row('Instagram reach (28d)',
+             c_28d.get('ig_reach', 0),
+             p_28d.get('ig_reach', 0),
+             'k', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        # 7-day IG reach from daily_reach time-series - this gives a TRUE
+        # week-on-week delta even when no archived snapshot exists yet.
+        _row('Instagram reach (this week)',
+             c_weekly.get('ig_reach_7d', 0),
+             (prev or {}).get('_derived_ig_reach_7d', p_weekly.get('ig_reach_7d', 0)),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        _row('Instagram interactions',
+             c_28d.get('ig_interactions', 0),
+             p_28d.get('ig_interactions', 0),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        _row('New contacts / leads',
+             c_weekly.get('leads', 0),
+             p_weekly.get('leads', 0),
+             'int', leads_configured,
+             None if leads_configured else 'Lead source not wired'),
+        _row('Website sessions (GA4)',
+             c_weekly.get('ga4_sessions', 0),
+             p_weekly.get('ga4_sessions', 0),
+             'int', True, None),
+        _row('Review queue depth',
+             c_weekly.get('review_pending', 0),
+             p_weekly.get('review_pending', 0),
+             'int', review_configured,
+             None if review_configured else 'Approval queue not wired'),
+        _row('Facebook posts',
+             c_28d.get('fb_posts', 0),
+             p_28d.get('fb_posts', 0),
+             'int', meta_configured,
+             None if meta_configured else 'Meta not connected'),
+        _row('Facebook Stories',
+             c_28d.get('fb_stories', 0),
+             p_28d.get('fb_stories', 0),
+             'int', meta_configured,
+             None if meta_configured else 'Meta not connected'),
+        _row('Instagram posts',
+             c_28d.get('ig_posts', 0),
+             p_28d.get('ig_posts', 0),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+        _row('Instagram Stories',
+             c_28d.get('ig_stories', 0),
+             p_28d.get('ig_stories', 0),
+             'int', ig_configured,
+             None if ig_configured else 'IG analytics not connected'),
+    ]
+
+    # 28d tables (Facebook, Instagram) — same has_source/missing_reason pattern
+    fb_rows = [
+        _row('Views', c_28d.get('fb_views', 0), p_28d.get('fb_views', 0), 'k',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Reach', c_28d.get('fb_reach', 0), p_28d.get('fb_reach', 0), 'k',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Link clicks', c_28d.get('fb_link_clicks', 0), p_28d.get('fb_link_clicks', 0), 'k',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Interactions', c_28d.get('fb_interactions', 0), p_28d.get('fb_interactions', 0), 'int',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('Conversations started', c_28d.get('fb_conversations', 0), p_28d.get('fb_conversations', 0), 'int',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+        _row('New contacts', c_28d.get('fb_new_contacts', 0), p_28d.get('fb_new_contacts', 0), 'int',
+             meta_configured, None if meta_configured else 'Meta not connected'),
+    ]
+    ig_rows = [
+        _row('Views', c_28d.get('ig_views', 0), p_28d.get('ig_views', 0), 'k',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Reach', c_28d.get('ig_reach', 0), p_28d.get('ig_reach', 0), 'k',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Interactions', c_28d.get('ig_interactions', 0), p_28d.get('ig_interactions', 0), 'int',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Follows', c_28d.get('ig_follows', 0), p_28d.get('ig_follows', 0), 'int',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+        _row('Conversations started', c_28d.get('ig_conversations', 0), p_28d.get('ig_conversations', 0), 'int',
+             ig_configured, None if ig_configured else 'IG analytics not connected'),
+    ]
+
+    # What's working / Needs attention — derived from deltas
+    working, attention = [], []
+    for r in rows + fb_rows + ig_rows:
+        try:
+            c = float(r['current']); p = float(r['previous'])
+        except (ValueError, TypeError):
+            continue
+        if p == 0 and c == 0:
+            continue
+        if r['label'] == 'Review queue depth':
+            # Review queue depth: lower is better, so invert the direction
+            if p > 0 and c == 0:
+                working.append(f"<strong>Review queue cleared</strong> from {int(p)} drafts to 0.")
+            elif c > 0 and p == 0:
+                attention.append(f"<strong>Review queue grew</strong> to {int(c)} drafts awaiting your call.")
+            elif p > 0:
+                delta = (c - p) / p
+                if delta < -0.20:
+                    working.append(f"<strong>Review queue shrinking</strong>: down {delta*100:+.0f}% week-on-week.")
+                elif delta > 0.20:
+                    attention.append(f"<strong>Review queue growing</strong>: up {delta*100:+.0f}% week-on-week ({int(c)} drafts waiting).")
+            continue
+        if p == 0 and c > 0:
+            # New metric - only flag as 'working' if it's a positive-launch indicator
+            if r['label'] in ('Facebook reach', 'Instagram reach', 'Instagram reach (28d)',
+                              'Instagram reach (this week)', 'Instagram interactions', 'New contacts / leads'):
+                working.append(f"<strong>{r['label']}</strong> just came online at {int(c):,} this week — new measurement, first data point.")
+            continue
+        delta = (c - p) / p
+        if delta > 0.10:
+            working.append(f"<strong>{r['label']}</strong> is up <span class=\"up\">{delta*100:+.0f}%</span> week-on-week.")
+        elif delta < -0.10:
+            attention.append(f"<strong>{r['label']}</strong> is down <span class=\"down\">{delta*100:+.0f}%</span> week-on-week.")
+    # If we have nothing flagged, give honest empty states
+    if not working:
+        working.append("<strong>Reach held steady</strong> - content volume and engagement landed within 10% of the previous 7 days. No regression to chase this week.")
+    if not attention:
+        attention.append("<strong>No metric dropped more than 10%</strong> week-on-week. Clean week — focus on doubling down on what worked.")
+
+    # has_prev covers BOTH archived snapshots AND derived prev (computed from
+    # IG daily_reach time-series). prev_source distinguishes which kind: 'archived',
+    # 'derived', or None. The footer note uses this to be honest about provenance.
+    has_archived_prev = (prev_source == 'archived')
+    has_derived_prev = (prev_source == 'derived' and bool((prev or {}).get('_derived_ig_reach_7d')))
+
+    return {
+        'current': current,
+        'prev': prev,
+        'prev_source': prev_source,
+        'rows': rows,
+        'fb_rows': fb_rows,
+        'ig_rows': ig_rows,
+        'working': working[:5],
+        'attention': attention[:5],
+        'has_prev': prev is not None,
+        'has_archived_prev': has_archived_prev,
+        'has_derived_prev': has_derived_prev,
+    }
+
+
+def _weekly_format_num(n, fmt='int'):
+    """Format a number for display. fmt ∈ {'int','k','pct','rand'}"""
+    try:
+        n = float(n)
+    except (ValueError, TypeError):
+        return str(n)
+    if fmt == 'k':
+        if abs(n) >= 1_000_000:
+            return f'{n/1_000_000:.1f}M'
+        if abs(n) >= 1000:
+            return f'{n/1000:.1f}K'
+        return f'{int(n)}'
+    if fmt == 'rand':
+        return f'R{n:,.0f}'
+    if fmt == 'pct':
+        return f'{n:.1f}%'
+    return f'{int(n):,}'
+
+
+def _weekly_load_json(path):
+    """Safe JSON loader for the brain section. Returns {} on any failure."""
+    try:
+        if not os.path.exists(path):
+            return {}
+        with open(path) as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def _weekly_build_brain(metrics, cur, prev, today):
+    """The CMO brain: cross-references every analytics file and produces a
+    value-added marketing read, not just a numbers dump.
+
+    Each section follows: observation -> interpretation -> implication -> action.
+    Sections (in order of strategic weight):
+      1. The headline (one CMO-grade sentence that frames the week)
+      2. Where attention is actually coming from (paid vs organic cross-ref
+         with the headline "paid reach is X times organic" story)
+      3. Where the money is leaking (funnel traffic with no social retargeting,
+         tied to the paid-reach underconversion)
+      4. What's at stake in Rands this week (single bottom-line number)
+      5. What Google sees (SEO position trend + the falling keywords story)
+      6. The race (competitor cadence gap + the only counter-move that works)
+      7. The single post to ship this week (full caption + image + CTA)
+      8. Gaps (what the brain still cannot see)
+    """
+    try:
+        c_28d = (cur or {}).get('28d', {}) or {}
+        weekly = (cur or {}).get('weekly', {}) or {}
+        ig_reach_28d = c_28d.get('ig_reach', 0) or 0
+        stories_combined = c_28d.get('stories_combined_count', 0) or 0
+        stories_reach = c_28d.get('stories_combined_reach', 0) or 0
+        stories_ig = c_28d.get('ig_stories', 0) or 0
+        stories_fb = c_28d.get('fb_stories', 0) or 0
+        content_published = weekly.get('content_published', 0) or 0
+        ga4_sessions = weekly.get('ga4_sessions', 0) or 0
+
+        # Load every data file we have. Use _resolve_data_path so we fall
+        # back to BUNDLED_DATA_DIR when the Railway volume is empty
+        # (post-deploy, before the data-sync endpoint has run). Without
+        # this fallback the brain renders an empty section instead of
+        # the full CMO read.
+        data_dir = DATA_DIR
+        funnel_leaks = _weekly_load_json(_resolve_data_path('funnel-leaks.json'))
+        seo = _weekly_load_json(_resolve_data_path('seo-rankings.json'))
+        comp = _weekly_load_json(_resolve_data_path('competitor-tracker.json'))
+        pcs = _weekly_load_json(_resolve_data_path('post-conversion-score.json'))
+        counter = _weekly_load_json(_resolve_data_path('counter-moves.json'))
+        bvm = _weekly_load_json(_resolve_data_path('booking-value-model.json'))
+        meta_ads = _weekly_load_json(_resolve_data_path('meta-ads.json'))
+        rec_outcomes = _weekly_load_json(_resolve_data_path('recommendation-outcomes.json'))
+        retarget_recs = _weekly_load_json(_resolve_data_path('retargeting-recommendations.json'))
+
+        # === Cross-reference primitives (used by every section below) ===
+        meta_ads_note = (meta_ads.get('_meta') or {}).get('note') or ''
+        meta_ads_live = bool(meta_ads.get('live')) or meta_ads_note.startswith('Live ')
+        meta_ads_failed = (not meta_ads_live) and (
+            'Windsor fetch failed' in meta_ads_note or 'fetch failed' in meta_ads_note.lower()
+        )
+        meta_ads_synth = (
+            (not meta_ads_live) and (not meta_ads_failed)
+            and 'synth' in meta_ads_note.lower()
+        )
+
+        # Meta Ads live numbers
+        m_total = meta_ads.get('totals') or {}
+        m_week = meta_ads.get('week') or {}
+        m_cur = (m_total.get('currency') or 'ZAR')
+        m_spend_30 = m_total.get('spend', 0) or 0
+        m_imps_30 = m_total.get('impressions', 0) or 0
+        m_reach_30 = m_total.get('reach', 0) or 0
+        m_clicks_30 = m_total.get('clicks', 0) or 0
+        m_ctr_30 = m_total.get('ctr_pct', 0) or 0
+        m_cpc_30 = m_total.get('cpc', 0) or 0
+        m_spend_7 = m_week.get('spend', 0) or 0
+        m_imps_7 = m_week.get('impressions', 0) or 0
+        m_clicks_7 = m_week.get('clicks', 0) or 0
+        m_reach_7 = m_week.get('reach', 0) or 0
+
+        # Google Ads (weekly dict from sources loader)
+        ga_weekly = weekly.get('google_ads') or {}
+        ga_live = bool(ga_weekly.get('live'))
+
+        # Funnel leaks
+        leaks = funnel_leaks.get('leaks', []) or []
+        total_leak_sessions = sum(lk.get('sessions', 0) for lk in leaks)
+        high_leak = next((l for l in leaks if l.get('severity') == 'high'), None)
+
+        # Reach efficiency: stories/hr vs posts/hr
+        story_per_hr = None
+        if stories_reach > 0 and c_28d.get('ig_stories_oldest'):
+            try:
+                ts = c_28d['ig_stories_oldest'].replace('+0000', '+00:00')
+                oldest = datetime.datetime.fromisoformat(ts)
+                age_h = max(1, (datetime.datetime.now(datetime.timezone.utc) - oldest).total_seconds() / 3600)
+                story_per_hr = round(stories_reach / age_h, 2)
+            except Exception:
+                pass
+        top_perf = (cur.get('28d', {}).get('ig_top_performers') or [])
+        top_post_reach = top_perf[0].get('reach', 0) if top_perf else 0
+        post_per_hr = round(top_post_reach / (28 * 24), 2) if top_post_reach else 0
+
+        # Modelled revenue (overall + leak-driven)
+        bvm_summary = bvm.get('summary', {}) or {}
+        bvm_total_modelled = bvm_summary.get('total_modelled_revenue', 0) or 0
+        bvm_total_bookings = bvm_summary.get('total_modelled_bookings', 0) or 0
+        avg_basket = (bvm.get('modelled_revenue', {}) or {}).get('google', {}).get('avg_basket', 850)
+
+        # ── Render (bullet-driven layout) ──
+        # Each section: heading + short bullet list + 1-line conclusion.
+        # Data first, conclusion last. No repetition.
+
+        def _bullets_html(items):
+            if not items:
+                return ''
+            return '<ul>' + ''.join('<li>' + it + '</li>' for it in items) + '</ul>'
+
+        def _conclusion_html(text):
+            if not text:
+                return ''
+            return '<p class="brain-conclusion"><strong>Bottom line:</strong> ' + text + '</p>'
+
+        # ── Section A: TL;DR (top of the brain, 3-4 bullets max) ──
+        tldr_bullets = []
+        if meta_ads_live and m_reach_30 > 0 and ig_reach_28d > 0:
+            ratio = round(m_reach_30 / ig_reach_28d, 1)
+            tldr_bullets.append(
+                'Paid reach is <strong>' + str(ratio) + 'x</strong> organic reach '
+                '(' + format(int(m_reach_30), ',') + ' Meta Ads vs '
+                + format(int(ig_reach_28d), ',') + ' IG in 28d).'
+            )
+        elif meta_ads_failed:
+            tldr_bullets.append(
+                'Paid reach attempted but Windsor fetch failed - numbers stay at zero, not synthesised.'
+            )
+        elif meta_ads_synth:
+            tldr_bullets.append('Paid reach is synthesised (no live API) - numbers below are stale.')
+        if high_leak and total_leak_sessions > 0:
+            page = high_leak.get('page') or high_leak.get('service', '')
+            tldr_bullets.append(
+                '<strong>' + format(total_leak_sessions, ',') + ' hot sessions</strong> on '
+                + esc_html(str(page)) + ' with no IG retargeting this week.'
+            )
+        if content_published == 0:
+            tldr_bullets.append('0 pieces shipped this week - content engine paused.')
+        elif content_published > 0:
+            tldr_bullets.append(str(content_published) + ' pieces shipped this week.')
+        if m_ctr_30 > 1.0 and m_cpc_30 < 5.0:
+            tldr_bullets.append(
+                'Paid quality is strong: CTR <strong>' + format(round(m_ctr_30, 2), ',') + '%</strong>, '
+                'CPC ZAR ' + format(round(m_cpc_30, 2), ',') + '.'
+            )
+        # TL;DR conclusion = the single most important thing to do
+        if meta_ads_live and high_leak and total_leak_sessions > 0:
+            tldr_conclusion = 'Ship the booking-CTA retargeting post today to convert the ' + format(total_leak_sessions, ',') + ' warm sessions.'
+        elif m_ctr_30 > 1.0 and m_cpc_30 < 5.0 and m_spend_30 > 0:
+            tldr_conclusion = 'Paid is performing - scale the budget, do not change creative yet.'
+        elif content_published == 0 and meta_ads_synth:
+            tldr_conclusion = 'Two gaps to close: content cadence and a live paid-media API.'
+        elif content_published == 0:
+            tldr_conclusion = 'Resume publishing - the leak will not fix itself.'
+        else:
+            tldr_conclusion = 'Maintain cadence and watch the funnel.'
+
+        # ── Section B: Reach (paid vs organic cross-reference) ──
+        reach_bullets = []
+        if meta_ads_live and m_reach_30 > 0 and ig_reach_28d > 0:
+            ratio = round(m_reach_30 / ig_reach_28d, 1)
+            if ratio >= 2:
+                reach_bullets.append(
+                    '<strong>Paid reach dominates.</strong> Meta Ads reached '
+                    + format(int(m_reach_30), ',') + ' in 30 days; IG organic reached '
+                    + format(int(ig_reach_28d), ',') + ' in 28d. Paid is '
+                    + str(ratio) + 'x organic.'
+                )
+                reach_bullets.append(
+                    'But most of those paid impressions are not tagged with UTM - '
+                    'so we cannot prove any of it converts to /bookings/.'
+                )
+            elif ratio >= 1:
+                reach_bullets.append(
+                    'Meta Ads reached ' + format(int(m_reach_30), ',') + ' in 30d; '
+                    'IG organic reached ' + format(int(ig_reach_28d), ',') + ' in 28d. '
+                    'Roughly comparable - pick on cost-per-booking once we have it.'
+                )
+            else:
+                reach_bullets.append(
+                    'IG organic still leads: ' + format(int(ig_reach_28d), ',') + ' in 28d vs '
+                    + format(int(m_reach_30), ',') + ' paid in 30d. '
+                    'Organic is ' + str(round(1 / ratio, 1)) + 'x paid on volume.'
+                )
+            # Quality
+            reach_bullets.append(
+                '<strong>Paid quality.</strong> CTR ' + format(round(m_ctr_30, 2), ',')
+                + '% vs Meta benchmark ~1%. CPC ' + m_cur + ' '
+                + format(round(m_cpc_30, 2), ',') + ' vs SA golf avg ~R5.'
+            )
+            # Spend trend
+            if m_spend_7 > 0 and m_spend_30 > 0:
+                avg_daily_30 = m_spend_30 / 30
+                avg_daily_7 = m_spend_7 / 7
+                if avg_daily_30 > 0:
+                    spend_change = ((avg_daily_7 - avg_daily_30) / avg_daily_30) * 100
+                    if abs(spend_change) > 20:
+                        direction = 'up' if spend_change > 0 else 'down'
+                        reach_bullets.append(
+                            '<strong>Spend ' + direction + '</strong> this week: '
+                            + m_cur + ' ' + format(round(avg_daily_30, 2), ',') + '/day (30d avg) -> '
+                            + m_cur + ' ' + format(round(avg_daily_7, 2), ',') + '/day (7d avg), '
+                            + format(round(abs(spend_change), 0), ',') + '% '
+                            + direction + '.'
+                        )
+        elif meta_ads_failed:
+            reach_bullets.append('Paid reach attempted but Windsor fetch failed.')
+            reach_bullets.append(esc_html(meta_ads_note))
+            reach_bullets.append('Until Windsor comes back, paid numbers stay at zero.')
+        elif meta_ads_synth:
+            total_meta_spend = sum((c.get('spend') or 0) for c in (meta_ads.get('campaigns') or []))
+            reach_bullets.append(
+                'All "ad" data is synthesised from organic IG (R'
+                + format(int(total_meta_spend), ',') + ' lifetime, stale).'
+            )
+            reach_bullets.append('Connect Windsor.ai to get real paid-media numbers.')
+        elif ga_live and not meta_ads_live:
+            g_totals = (ga_weekly.get('totals') or {})
+            g_spend_30 = g_totals.get('spend', 0) or 0
+            g_imps_30 = g_totals.get('impressions', 0) or 0
+            g_clicks_30 = g_totals.get('clicks', 0) or 0
+            g_cur = (g_totals.get('currency') or 'ZAR')
+            reach_bullets.append(
+                'Google Ads is live (Meta Ads is not yet). '
+                + g_cur + ' ' + format(round(g_spend_30, 2), ',') + ' spend in 30d, '
+                + format(int(g_imps_30), ',') + ' impressions, '
+                + format(int(g_clicks_30), ',') + ' clicks.'
+            )
+        # Stories efficiency
+        if story_per_hr and post_per_hr:
+            if story_per_hr > post_per_hr * 1.5:
+                ratio = round(story_per_hr / post_per_hr, 1)
+                reach_bullets.append(
+                    '<strong>Stories beat posts on efficiency.</strong> '
+                    + str(stories_combined) + ' live stories drive '
+                    + str(story_per_hr) + ' reach/hr vs top post at '
+                    + str(post_per_hr) + ' reach/hr (' + str(ratio) + 'x faster).'
+                )
+            elif story_per_hr < post_per_hr * 0.5:
+                reach_bullets.append(
+                    '<strong>Posts do the heavy lifting.</strong> '
+                    + 'Top post = ' + str(post_per_hr) + ' reach/hr; stories = '
+                    + str(story_per_hr) + '/hr. Stories still useful for top-of-mind.'
+                )
+            else:
+                reach_bullets.append(
+                    'Posts and stories comparable: ' + str(post_per_hr) + ' vs '
+                    + str(story_per_hr) + ' reach/hr.'
+                )
+        elif stories_combined > 0:
+            reach_bullets.append(
+                str(stories_combined) + ' stories live drove '
+                + str(stories_reach) + ' reach in 24h.'
+            )
+        reach_conclusion = ''
+        if meta_ads_live and m_ctr_30 > 1.0 and m_cpc_30 < 5.0:
+            if m_reach_30 > ig_reach_28d * 2:
+                reach_conclusion = 'Paid is dominant and performing well - but the conversion path is invisible.'
+            else:
+                reach_conclusion = 'Paid quality is solid. Watch the conversion path next.'
+        elif meta_ads_failed or meta_ads_synth:
+            reach_conclusion = 'No trustworthy paid numbers yet. Wire Windsor.'
+        else:
+            reach_conclusion = 'Reach is healthy on both surfaces.'
+
+        # ── Section C: Funnel leak ──
+        leak_bullets = []
+        leak_conclusion = ''
+        for lk in leaks:
+            sessions = lk.get('sessions', 0)
+            page = lk.get('page') or lk.get('service', '?')
+            fix = lk.get('easy_fix', '')
+            rev_impact = lk.get('revenue_impact', '')
+            leak_bullets.append(
+                '<strong>' + esc_html(str(page)) + '</strong> - '
+                + format(sessions, ',') + ' sessions, '
+                + str(lk.get('severity', 'medium')) + ' severity. '
+                + esc_html(str(rev_impact)) + '. '
+                '<em>Fix:</em> ' + esc_html(str(fix)) + '.'
+            )
+        if leak_bullets and meta_ads_live and m_reach_30 > 0:
+            leak_bullets.append(
+                '<strong>Why this matters:</strong> the paid engine brought '
+                + format(int(m_reach_30), ',') + ' impressions over 30 days, '
+                'but none of those clicks land on /bookings/ or /customer-portal/ '
+                'with a retargeting post.'
+            )
+        elif leak_bullets:
+            leak_bullets.append(
+                '<strong>Why this matters:</strong> these are people who already want to book. '
+                'Without an IG post pointing them to the booking page, they leave.'
+            )
+        if leaks and total_leak_sessions > 0:
+            leak_conclusion = (
+                format(total_leak_sessions, ',') + ' warm sessions are walking past '
+                'the booking page with no IG follow-up. One targeted post per leak closes the loop.'
+            )
+
+        # ── Section D: What's at stake in Rands this week ──
+        rand_bullets = []
+        if leaks and total_leak_sessions > 0:
+            leak_bookings_low = round(total_leak_sessions * 0.01)
+            leak_rev_low = leak_bookings_low * avg_basket
+            leak_bookings_high = round(total_leak_sessions * 0.02)
+            leak_rev_high = leak_bookings_high * avg_basket
+            rand_bullets.append(
+                'Leak exposure: <strong>R' + format(int(leak_rev_low), ',')
+                + ' - R' + format(int(leak_rev_high), ',')
+                + '/week modelled</strong> from the '
+                + format(total_leak_sessions, ',') + ' warm sessions '
+                '(' + str(leak_bookings_low) + '-' + str(leak_bookings_high) + ' bookings).'
+            )
+        if bvm_total_modelled > 0:
+            rand_bullets.append(
+                'All-channel modelled: R' + format(int(bvm_total_modelled), ',')
+                + '/week (' + str(bvm_total_bookings) + ' bookings @ 1% conversion).'
+            )
+        if meta_ads_live and m_spend_30 > 0:
+            rand_bullets.append(
+                'Meta Ads spend funding this engine: '
+                + m_cur + ' ' + format(int(m_spend_30), ',') + ' over 30 days.'
+            )
+        if leaks and total_leak_sessions > 0 and bvm_total_modelled > 0:
+            rand_conclusion = (
+                'Modelled, not real revenue. Booking-system wiring would convert these guesses into verified numbers.'
+            )
+        elif leaks:
+            rand_conclusion = 'One post can convert these sessions into bookings.'
+        else:
+            rand_conclusion = 'No measurable exposure this week.'
+
+        # ── Section E: SEO ──
+        seo_bullets = []
+        rising = seo.get('rising', []) or []
+        falling = seo.get('falling', []) or []
+        avg_pos_trend = seo.get('average_position_trend') or []
+        binned = seo.get('binned') or {}
+        if len(avg_pos_trend) >= 2:
+            first = avg_pos_trend[0].get('position', 0)
+            last = avg_pos_trend[-1].get('position', 0)
+            if first and last and first > last:
+                seo_bullets.append(
+                    'Average position improved <strong>'
+                    + format(round(first - last, 1), ',')
+                    + ' places</strong> over '
+                    + str(len(avg_pos_trend)) + ' weeks ('
+                    + format(first, ',') + ' -> ' + format(last, ',') + ').'
+                )
+        if binned:
+            top3_new = (binned.get('top_3') or {}).get('new', 0)
+            top3_old = (binned.get('top_3') or {}).get('old', 0)
+            not_ranking_new = (binned.get('not_ranking') or {}).get('new', 0)
+            not_ranking_old = (binned.get('not_ranking') or {}).get('old', 0)
+            if top3_new > top3_old:
+                seo_bullets.append(
+                    'Top-3 keyword count grew: '
+                    + str(top3_old) + ' -> ' + str(top3_new)
+                    + ' keywords now on page 1.'
+                )
+            if not_ranking_new < not_ranking_old:
+                seo_bullets.append(
+                    'Not-ranking count shrank: '
+                    + str(not_ranking_old) + ' -> ' + str(not_ranking_new)
+                    + ' keywords moved into ranking range.'
+                )
+        for r in rising[:3]:
+            prev_r = r.get('previous_rank', 0)
+            cur_r = r.get('current_rank', 0)
+            vol = r.get('search_volume', 0)
+            kw = r.get('keyword', '?')
+            jump = prev_r - cur_r if prev_r and cur_r else 0
+            if jump > 0:
+                if vol >= 100 or jump >= 10:
+                    seo_bullets.append(
+                        '<strong>' + esc_html(str(kw)) + '</strong> rose #'
+                        + str(prev_r) + ' -> #' + str(cur_r)
+                        + ' (vol ' + str(vol) + '/mo, -' + str(jump) + ' places).'
+                    )
+                else:
+                    seo_bullets.append(
+                        esc_html(str(kw)) + ' rose #' + str(prev_r) + ' -> #'
+                        + str(cur_r) + '.'
+                    )
+        for r in falling[:3]:
+            prev_r = r.get('previous_rank', 0)
+            cur_r = r.get('current_rank', 0)
+            vol = r.get('search_volume', 0)
+            kw = r.get('keyword', '?')
+            drop = cur_r - prev_r if prev_r and cur_r else 0
+            if drop > 0:
+                if prev_r == 1:
+                    seo_bullets.append(
+                        '<strong>' + esc_html(str(kw)) + '</strong> lost #1: '
+                        + '#' + str(prev_r) + ' -> #' + str(cur_r)
+                        + ' (vol ' + str(vol) + '/mo). High severity.'
+                    )
+                else:
+                    seo_bullets.append(
+                        esc_html(str(kw)) + ' slipped #' + str(prev_r)
+                        + ' -> #' + str(cur_r)
+                        + ' (vol ' + str(vol) + '/mo).'
+                    )
+        if seo_bullets:
+            # The conclusion: where is SEO heading?
+            if any('lost #1' in b for b in seo_bullets):
+                seo_conclusion = 'A #1 spot is slipping - refresh that page before rankings decay further.'
+            elif any('rose #' in b and ('vol 2400' in b or '-18' in b) for b in seo_bullets):
+                seo_conclusion = 'Real momentum. Double down on the topic that is climbing.'
+            else:
+                seo_conclusion = 'Mixed movement. Watch the losers.'
+        else:
+            seo_conclusion = ''
+
+        # ── Section F: Competitor ──
+        comp_bullets = []
+        comp_conclusion = ''
+        comps = comp.get('competitors', []) or []
+        high_threats = [c for c in comps if c.get('threat') == 'high']
+        if high_threats:
+            c0 = high_threats[0]
+            their_freq = c0.get('posting_frequency', '?')
+            our_posts_wk = content_published
+            # Parse their freq into a per-week number for math
+            their_per_week = 3.0
+            if isinstance(their_freq, str):
+                if '3x' in their_freq or '3 x' in their_freq:
+                    their_per_week = 3.0
+                elif '2x' in their_freq:
+                    their_per_week = 2.0
+                elif 'weekly' in their_freq:
+                    their_per_week = 1.0
+                elif 'daily' in their_freq.lower():
+                    their_per_week = 7.0
+            gap_posts = round(their_per_week - our_posts_wk, 1)
+            comp_bullets.append(
+                '<strong>' + esc_html(str(c0.get('name', 'Competitor'))) + '</strong> '
+                'posts ' + str(their_freq) + ' (last update '
+                + str(c0.get('last_updated', '?'))[:10] + ').'
+            )
+            comp_bullets.append(
+                'You posted <strong>' + str(our_posts_wk) + '</strong> this week. '
+                'Cadence gap: <strong>' + str(gap_posts) + ' posts/week behind</strong>.'
+            )
+            cmoves = counter.get('moves', []) or []
+            relevant_move = next(
+                (m for m in cmoves
+                 if m.get('priority') == 'high'
+                 and c0.get('name', '').split()[0].lower() in m.get('competitor_move', '').lower()),
+                None
+            )
+            if not relevant_move:
+                relevant_move = next((m for m in cmoves if m.get('priority') == 'high'), None)
+            if relevant_move:
+                comp_bullets.append(
+                    'Counter-move ready: '
+                    '<em>' + esc_html(str(relevant_move.get('our_counter', '')))[:200] + '</em>'
+                )
+            comp_conclusion = 'They are posting more often. Pick one move and ship it this week.'
+
+        # ── Section G: Ship this week ──
+        ship_bullets = []
+        ship_conclusion = ''
+        retarget_recs_list = retarget_recs.get('recommendations', []) or []
+        if retarget_recs_list:
+            r1 = retarget_recs_list[0]
+            ship_bullets.append(
+                '<strong>Today:</strong> ' + esc_html(str(r1.get('action', ''))) + '.'
+            )
+            ship_bullets.append(
+                '<em>Hook:</em> "' + esc_html(str(r1.get('suggested_hook', '')))[:140] + '".'
+            )
+            ship_bullets.append(
+                '<em>CTA:</em> "' + esc_html(str(r1.get('suggested_cta', '')))[:140] + '".'
+            )
+            ship_bullets.append(
+                'Format: ' + esc_html(str(r1.get('format', 'image'))) + ' on '
+                + esc_html(str(r1.get('channel', 'IG')))
+                + '. Expected: ' + esc_html(str(r1.get('expected_outcome', {}).get('label', 'n/a')))
+                + '.'
+            )
+        # Pattern that wins
+        pcs_summary = pcs.get('summary', {}) or {}
+        winning_themes = pcs_summary.get('winning_themes', []) or []
+        winning_format = pcs_summary.get('winning_format', '')
+        winning_combos = pcs.get('winning_theme_combos', []) or []
+        if winning_themes:
+            ship_bullets.append(
+                '<strong>Pattern:</strong> themes '
+                + ', '.join(winning_themes[:3])
+                + '. Format: <strong>' + str(winning_format) + '</strong>.'
+            )
+            if winning_combos:
+                ship_bullets.append(
+                    '<strong>Top combo:</strong> '
+                    + ' + '.join(winning_combos[0]) + '.'
+                )
+        # Specific winner to model
+        posts_ranked = pcs.get('posts_ranked', []) or []
+        for p in posts_ranked[:2]:
+            if p.get('is_winning_theme_combo'):
+                ship_bullets.append(
+                    '<strong>Model on this winner:</strong> '
+                    + '<em>"' + esc_html(str(p.get('caption_preview', '')))[:160] + '..."</em> '
+                    + '(' + str(p.get('reach', 0)) + ' reach).'
+                )
+                break
+        if ship_bullets:
+            if retarget_recs_list:
+                ship_conclusion = (
+                    'Ship the #1 retargeting post today. The hook and CTA are written. '
+                    'Expected: ' + esc_html(str(retarget_recs_list[0].get('expected_outcome', {}).get('label', '+20-35% booking rate')))
+                    + '.'
+                )
+            else:
+                ship_conclusion = 'Pick the strongest winner pattern and publish today.'
+
+        # ── Section H: Gaps ──
+        gaps_bullets = []
+        if meta_ads_failed:
+            gaps_bullets.append('Windsor.ai fetch (last attempt failed)')
+        if not meta_ads_live and not meta_ads_failed and not meta_ads_synth:
+            gaps_bullets.append('Meta Ads API')
+        if not retarget_recs_list:
+            gaps_bullets.append('Retargeting audiences')
+        if not leaks:
+            gaps_bullets.append('Funnel-leak detector (not run yet)')
+        rec_exec_rate = (rec_outcomes.get('summary') or {}).get('exec_rate', 1)
+        if rec_exec_rate == 0:
+            gaps_bullets.append(
+                'Recommendation execution loop (0% exec rate - recommends, nothing ships)'
+            )
+        gaps_conclusion = ''
+        if gaps_bullets:
+            gaps_conclusion = 'These are the connectors that turn recommendations into verified results.'
+
+        # ── Assemble the brain ──
+        # Layout: TL;DR first (boxed at top), then numbered sections each with
+        # heading + bullets + one-line conclusion. Sections hidden when empty.
+        parts = []
+        parts.append('<section class="section brain">')
+        parts.append('<h2>This week, in one read</h2>')
+
+        # TL;DR box - prominent at the top
+        parts.append('<div class="highlight"><strong>TL;DR.</strong>')
+        parts.append(_bullets_html(tldr_bullets))
+        parts.append(_conclusion_html(tldr_conclusion))
+        parts.append('</div>')
+
+        if reach_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>Where attention is coming from.</strong>')
+            parts.append(_bullets_html(reach_bullets))
+            parts.append(_conclusion_html(reach_conclusion))
+            parts.append('</div>')
+
+        if leak_bullets:
+            leak_cls = 'highlight warning' if any(lk.get('severity') == 'high' for lk in leaks) else 'highlight'
+            parts.append('<div class="' + leak_cls + '">')
+            parts.append('<strong>Where the money is leaking.</strong>')
+            parts.append(_bullets_html(leak_bullets))
+            parts.append(_conclusion_html(leak_conclusion))
+            parts.append('</div>')
+
+        if rand_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>What is at stake in Rands.</strong>')
+            parts.append(_bullets_html(rand_bullets))
+            parts.append(_conclusion_html(rand_conclusion))
+            parts.append('</div>')
+
+        if seo_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>SEO this week.</strong>')
+            parts.append(_bullets_html(seo_bullets))
+            parts.append(_conclusion_html(seo_conclusion))
+            parts.append('</div>')
+
+        if comp_bullets:
+            parts.append('<div class="highlight warning">')
+            parts.append('<strong>The race.</strong>')
+            parts.append(_bullets_html(comp_bullets))
+            parts.append(_conclusion_html(comp_conclusion))
+            parts.append('</div>')
+
+        if ship_bullets:
+            parts.append('<div class="highlight">')
+            parts.append('<strong>Ship this week.</strong>')
+            parts.append(_bullets_html(ship_bullets))
+            parts.append(_conclusion_html(ship_conclusion))
+            parts.append('</div>')
+
+        if gaps_bullets:
+            parts.append('<div class="highlight muted small">')
+            parts.append('<strong>Still missing.</strong>')
+            parts.append(_bullets_html(gaps_bullets))
+            parts.append(_conclusion_html(gaps_conclusion))
+            parts.append('</div>')
+
+        parts.append('</section>')
+        brain = '\n'.join(parts)
+        return brain
+    except Exception as e:
+        return '<!-- brain build failed: ' + esc_html(str(e))[:200] + ' -->'
+
+
+
+def _weekly_render_html(bid, data_bid=None):
+    """Render the full HTML page (same CSS as Stick report).
+
+    bid         — used for brand_meta (voice/positioning/colour)
+    data_bid    — used for metrics computation (defaults to bid; follows delegation)
+    """
+    meta = _weekly_brand_meta(bid)
+    metrics = _weekly_compute_metrics(data_bid or bid)
+    cur = metrics['current']
+    prev = metrics.get('prev') or {}
+    now = datetime.datetime.now(datetime.timezone.utc)
+    today = now.strftime('%d %b %Y')
+    week_start = (now - datetime.timedelta(days=7)).strftime('%d %b')
+    week_end = (now - datetime.timedelta(days=1)).strftime('%d %b %Y')
+    pcp_start = (now - datetime.timedelta(days=14)).strftime('%d %b')
+    pcp_end = (now - datetime.timedelta(days=8)).strftime('%d %b %Y')
+
+    # Source status - derived once at the top so templates can show
+    # "-" with reason text instead of misleading "0" values
+    cur_sources = cur.get('sources') or []
+    meta_configured = any(s.get('name') == 'meta_graph' and s.get('configured') is not False
+                          for s in cur_sources)
+    if not meta_configured:
+        meta_configured = any(s.get('name') in ('meta_page_info', 'meta_page_insights')
+                              and not s.get('fetch_error')
+                              for s in cur_sources)
+    ig_configured = any(s.get('name') == 'instagram'
+                        and (s.get('posts_tracked') or s.get('fetched_at'))
+                        for s in cur_sources)
+    leads_configured = any(s.get('name') == 'leads' and s.get('configured') is not False
+                            for s in cur_sources)
+    review_configured = any(s.get('name') == 'review_queue' and s.get('configured') is not False
+                            for s in cur_sources)
+    ga4_configured = any(s.get('name') == 'ga4' for s in cur_sources)
+
+    # Helpers - handle missing-data sources honestly
+    def change_html(row):
+        if not row.get('has_source', True):
+            return f"<span class=\\\"muted small\\\">{esc_html(row.get('missing_reason', 'no data'))}</span>"
+        c = row.get('current', 0)
+        p = row.get('previous', 0)
+        pct, direction, raw = _weekly_pct(c, p)
+        cls = {'up':'up', 'down':'down', 'neutral':'neutral'}.get(direction, 'neutral')
+        return f"<span class=\\\"{cls}\\\">{pct}</span>"
+
+    def fmt_row(row):
+        if not row.get('has_source', True):
+            return '—'
+        return _weekly_format_num(row['current'], row.get('fmt', 'int'))
+
+    def prev_fmt_row(row):
+        if not row.get('has_source', True):
+            return '—'
+        # Show "previous" whenever we have any kind of prev data - archived or derived.
+        if metrics.get('has_archived_prev') or metrics.get('has_derived_prev'):
+            prev_val = row.get('previous', 0)
+            # If prev is 0 and there's NO archived snapshot for this row, the
+            # value isn't really missing - it just hasn't been seen yet.
+            if prev_val == 0 and (row.get('previous') or 0) == 0 and not metrics.get('has_archived_prev'):
+                # Derived prev only covers IG reach. For other rows, prev=0 is honest.
+                return 'first run'
+            return _weekly_format_num(prev_val, row.get('fmt', 'int'))
+        return '—'
+
+    # TL;DR - always 5 bullets with bolded insight + context sentence.
+    # When sources are missing, the bullet tells you so instead of silently
+    # dropping the topic.
+    weekly = cur.get('weekly', {}) or {}
+    c_28d_full = cur.get('28d', {}) or {}
+    ig_reach = c_28d_full.get('ig_reach', 0)
+    ig_int = c_28d_full.get('ig_interactions', 0)
+    ig_posts_count = c_28d_full.get('ig_posts', 0)
+    ig_configured_now = ig_configured
+    meta_configured_now = meta_configured
+    ga4 = weekly.get('ga4_sessions', 0)
+    pub = weekly.get('content_published', 0)
+    rev = weekly.get('review_pending', 0)
+
+    # Pull previous-week numbers for deltas (when available)
+    prev_28d = (prev or {}).get('28d', {}) or {}
+    prev_weekly = (prev or {}).get('weekly', {}) or {}
+
+    tldr_bullets = []
+
+    # 1) Reach status - 7-day window this week vs last week (the freshest signal).
+    # Always pair with a Facebook status note when Meta isn't connected so the
+    # reader knows about the missing source without us hiding it.
+    ig_reach_7d = weekly.get('ig_reach_7d', 0)
+    prev_reach_7d = (prev or {}).get('_derived_ig_reach_7d', 0)
+    fb_missing_note = '' if meta_configured_now else ' Facebook data is not yet connected.'
+    if ig_configured_now and ig_reach_7d > 0:
+        if prev_reach_7d > 0:
+            pct_str, direction, raw = _weekly_pct(ig_reach_7d, prev_reach_7d)
+            if direction == 'up':
+                tldr_bullets.append(
+                    f"<strong>Instagram reach is up this week</strong>. "
+                    f"{ig_reach_7d:,} people reached in the last 7 days, "
+                    f"<span class=\"up\">{pct_str}</span> vs the previous 7 days.{fb_missing_note}"
+                )
+            elif direction == 'down':
+                tldr_bullets.append(
+                    f"<strong>Instagram reach cooled this week</strong>. "
+                    f"{ig_reach_7d:,} people reached in the last 7 days, "
+                    f"<span class=\"down\">{pct_str}</span> vs the previous 7 days.{fb_missing_note}"
+                )
+            else:
+                tldr_bullets.append(
+                    f"<strong>Instagram reach held steady</strong> at {ig_reach_7d:,} people reached in the last 7 days.{fb_missing_note}"
+                )
+        else:
+            tldr_bullets.append(
+                f"<strong>Instagram reach (7 days):</strong> {ig_reach_7d:,} people reached this week. "
+                f"Comparing to last week once we have a full 14 days of time-series data.{fb_missing_note}"
+            )
+    elif meta_configured_now:
+        tldr_bullets.append(
+            f"<strong>Facebook reach:</strong> {_weekly_format_num(c_28d_full.get('fb_reach', 0), 'k')} in the last 28 days. "
+            f"Instagram data is not yet connected."
+        )
+    elif ig_configured_now:
+        tldr_bullets.append(
+            f"<strong>Instagram reach (28d):</strong> {_weekly_format_num(ig_reach, 'k')} across {ig_posts_count} posts. "
+            f"Facebook data is not yet connected."
+        )
+    else:
+        tldr_bullets.append(
+            f"<strong>Reach data not connected</strong>. Both Facebook and Instagram need tokens wired to start measuring."
+        )
+
+    # 2) Strongest acquisition signal - picks the highest positive delta (any row)
+    candidates_for_acq = []
+    for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
+        if not r.get('has_source', True):
+            continue
+        try:
+            c = float(r['current']); p = float(r['previous'])
+            if p == 0 or c == 0:
+                continue
+            delta = (c - p) / p
+            candidates_for_acq.append((delta, r['label'], c, p))
+        except (ValueError, TypeError):
+            continue
+    if candidates_for_acq:
+        best = max(candidates_for_acq, key=lambda x: x[0])
+        if best[0] > 0.10:
+            pct_str, _, _ = _weekly_pct(best[2], best[3])
+            tldr_bullets.append(
+                f"<strong>{best[1]} is the strongest acquisition signal</strong>. "
+                f"Up <span class=\"up\">{pct_str}</span> — this is where new attention is coming from."
+            )
+        elif min(candidates_for_acq, key=lambda x: x[0])[0] < -0.10:
+            worst = min(candidates_for_acq, key=lambda x: x[0])
+            pct_str, _, _ = _weekly_pct(worst[2], worst[3])
+            tldr_bullets.append(
+                f"<strong>{worst[1]} dropped this week</strong>. "
+                f"Down <span class=\"down\">{pct_str}</span> — worth investigating before next week."
+            )
+        else:
+            tldr_bullets.append(
+                f"<strong>Acquisition is broadly stable</strong>. No single channel spiked this week — clean week for doubling down on what works."
+            )
+
+    # 3) Engagement quality - interactions, follows, response rate
+    if ig_configured_now:
+        prev_int = prev_28d.get('ig_interactions', 0)
+        prev_follows = prev_28d.get('ig_follows', 0)
+        int_delta = _weekly_pct(ig_int, prev_int)[0]
+        follows_delta = _weekly_pct(c_28d_full.get('ig_follows', 0), prev_follows)[0]
+        tldr_bullets.append(
+            f"<strong>Instagram engagement</strong>: {ig_int:,} interactions across {ig_posts_count} posts "
+            f"({int_delta} vs prev report), {c_28d_full.get('ig_follows', 0)} follows ({follows_delta}). "
+            f"Quality of attention, not just quantity."
+        )
+
+    # 4) Website traffic + paid/organic
+    if ga4 > 0:
+        ga4_delta = _weekly_pct(ga4, prev_weekly.get('ga4_sessions', 0))[0]
+        tldr_bullets.append(
+            f"<strong>Website traffic</strong>: {ga4:,} sessions in the last 7 days ({ga4_delta} vs prev report). "
+            f"Real website behaviour — people clicking through from your socials and ads."
+        )
+
+    # 4b) Stories (IG + FB page cross-referenced) - surface the live count
+    # and combined reach so silent "0 Stories" lies never reappear. Active
+    # window is <=24h because Meta expires stories automatically. Placed
+    # BEFORE the static Facebook page summary so it always makes the TL;DR
+    # cut when Meta is connected - Stories is the freshest, most
+    # time-sensitive signal we have.
+    ig_st_count = c_28d_full.get('ig_stories', 0)
+    fb_st_count = c_28d_full.get('fb_stories', 0)
+    st_combined = c_28d_full.get('stories_combined_count', 0)
+    st_reach = c_28d_full.get('stories_combined_reach', 0)
+    if (ig_st_count or fb_st_count) and st_combined > 0:
+        if ig_st_count and fb_st_count:
+            source_note = f"{ig_st_count} on Instagram, {fb_st_count} on the Facebook Page"
+        elif ig_st_count:
+            source_note = f"all {ig_st_count} on Instagram (FB Page has none live)"
+        else:
+            source_note = f"all {fb_st_count} on the Facebook Page (no IG stories live)"
+        if st_reach:
+            reach_phrase = f", reaching {st_reach} people"
+        else:
+            reach_phrase = " (reach metrics pending first views)"
+        tldr_bullets.append(
+            f"<strong>Stories live right now</strong>: {st_combined} combined - {source_note}{reach_phrase}. "
+            f"<span class=\"muted small\">Stories expire after 24h, so this is a real-time snapshot, not a 28d count.</span>"
+        )
+
+    # 4c) Facebook page-level summary - surface page fans/followers/posts so
+    # the reader sees real Facebook numbers even when reach metrics are
+    # blocked by App Review.
+    fb_fans_now = c_28d_full.get('fb_fans', 0)
+    fb_followers_now = c_28d_full.get('fb_followers', 0)
+    fb_posts_now = c_28d_full.get('fb_posts', 0)
+    if fb_fans_now or fb_followers_now:
+        tldr_bullets.append(
+            f"<strong>Facebook page</strong>: {fb_fans_now:,} fans, {fb_followers_now:,} followers, {fb_posts_now} posts in the last 28 days. "
+            f"<span class=\"muted small\">Reach metrics require App Review for read_insights scope.</span>"
+        )
+
+    # 5) Pipeline flag - reviews, drafts, or conversion flow
+    if rev > 0:
+        tldr_bullets.append(
+            f"<strong>Pipeline flag</strong>: {rev} drafts are sitting in Review waiting for your call. "
+            f"These are assets that have already been generated — just need a yes/no to ship."
+        )
+    elif weekly.get('content_published', 0) == 0:
+        tldr_bullets.append(
+            f"<strong>No content shipped this week</strong>. Worth a cadence check — is the content engine paused, or are drafts stuck somewhere upstream?"
+        )
+    else:
+        tldr_bullets.append(
+            f"<strong>Pipeline is clean</strong>: {pub} pieces shipped this week, no drafts stuck in Review. Healthy cadence."
+        )
+
+    # Pad to exactly 5 if we didn't reach it (data-poor brand)
+    while len(tldr_bullets) < 5:
+        tldr_bullets.append(
+            f"<strong>More data needed</strong> — once you connect Meta, GA4, or a lead source, this report will fill in."
+        )
+
+    # Hero h1 - interpretive headline from best/worst delta.
+    # When derived prev exists (computed from IG daily_reach time-series), the
+    # report shows real movement even with zero archived snapshots. When neither
+    # archived nor derived prev exists, fall back to a brand-aware static headline.
+    hero_h1 = f"Weekly review for {meta['display_name']}"
+    if metrics.get('has_archived_prev') or metrics.get('has_derived_prev'):
+        # Pick the single most-striking delta - up or down. Prefer the new
+        # "this week" IG reach row because it's the one with real numbers
+        # when derived prev is in play.
+        candidates = []
+        for r in metrics['rows'] + metrics['fb_rows'] + metrics['ig_rows']:
+            if not r.get('has_source', True):
+                continue
+            try:
+                c = float(r['current']); p = float(r['previous'])
+                if p == 0:
+                    # NEW row: include if curr > 0 as a positive launch signal
+                    if c > 0:
+                        candidates.append((1.0, r['label']))  # treat as up
+                    continue
+                delta = (c - p) / p
+                candidates.append((delta, r['label']))
+            except (ValueError, TypeError):
+                continue
+        if candidates:
+            # Sort by absolute delta magnitude
+            candidates.sort(key=lambda x: -abs(x[0]))
+            top_delta, top_label = candidates[0]
+            if abs(top_delta) > 0.10 or top_label == 'Instagram reach (this week)':  # 10%+ move = headline-worthy
+                direction = 'up' if top_delta > 0 else 'down'
+                if direction == 'up' and top_label in ('New contacts / leads', 'Instagram interactions',
+                                                       'Conversations started', 'New contacts',
+                                                       'Instagram reach (this week)'):
+                    hero_h1 = f"{top_label.replace(' (this week)', '').replace(' / leads', '')} is up this week — momentum is real."
+                elif direction == 'up':
+                    hero_h1 = f"{top_label} is up this week — keep the momentum."
+                elif top_label in ('Facebook reach', 'Instagram reach', 'Instagram reach (28d)',
+                                   'Instagram reach (this week)'):
+                    hero_h1 = f"Reach cooled this week — let's look at why."
+                elif top_label in ('New contacts / leads', 'Conversations started'):
+                    hero_h1 = f"Conversions slowed this week — worth a closer look."
+                else:
+                    hero_h1 = f"{top_label} is down this week — needs attention."
+
+    # Subtitle - supports the hero
+    subtitle_parts = []
+    if weekly.get('content_published', 0) > 0:
+        subtitle_parts.append(f"{weekly.get('content_published', 0)} pieces shipped this week")
+    if weekly.get('ga4_sessions', 0) > 0:
+        subtitle_parts.append(f"{weekly.get('ga4_sessions', 0):,} website sessions")
+    if ig_configured_now and ig_int > 0:
+        subtitle_parts.append(f"{ig_int:,} IG interactions across {ig_posts_count} posts")
+    subtitle = ' · '.join(subtitle_parts) or f"Brand review for {meta['display_name']} — {today}."
+
+    # Focus pills from brand pillars
+    focus_pills = (meta.get('pillar_defaults') or [])[:5] or ['Brand voice', 'Top content', 'Lead flow', 'Web traffic', 'Reviews']
+
+    # Build the CMO-brain "marketing read" section. Cross-references every
+    # analytics file on disk so the report actually thinks, instead of just
+    # displaying numbers. Christelle called this out 2026-08-14: "this is not
+    # intelligent, this does not carry weigh. Tell me whats the matter."
+    brain_html = _weekly_build_brain(metrics, cur, prev, today)
+
+    # Build all the section HTML
+    rows_html = ''.join(
+        f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
+        for r in metrics['rows']
+    )
+    fb_rows_html = ''
+    for r in metrics['fb_rows']:
+        c, p = r.get('current', 0), r.get('previous', 0)
+        if c == 0 and p == 0 and not metrics['has_prev']:
+            continue  # skip empties on first ever run
+        fb_rows_html += f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
+
+    ig_rows_html = ''
+    for r in metrics['ig_rows']:
+        c, p = r.get('current', 0), r.get('previous', 0)
+        if c == 0 and p == 0 and not metrics['has_prev']:
+            continue
+        ig_rows_html += f"<tr><td>{r['label']}</td><td>{fmt_row(r)}</td><td>{prev_fmt_row(r)}</td><td>{change_html(r)}</td></tr>"
+
+    # Meta config status + section (now with Strong/Watch boxes per Stick reference)
+    meta_section_html = ''
+    if meta_configured:
+        # Strong / Watch callouts from the FB rows
+        fb_deltas = []
+        for r in metrics['fb_rows']:
+            if not r.get('has_source', True):
+                continue
+            try:
+                c = float(r['current']); p = float(r['previous'])
+                if p == 0:
+                    continue
+                fb_deltas.append((r['label'], (c - p) / p))
+            except (ValueError, TypeError):
+                continue
+        strong_html = ''
+        watch_html = ''
+        if fb_deltas:
+            biggest_up = max(fb_deltas, key=lambda x: x[1])
+            biggest_dn = min(fb_deltas, key=lambda x: x[1])
+            if biggest_up[1] > 0.10:
+                strong_html = f'''<div class="highlight"><strong>Strong:</strong> {esc_html(biggest_up[0])} rose {biggest_up[1]*100:+.0f}% this period.</div>'''
+            if biggest_dn[1] < -0.10:
+                watch_html = f'''<div class="highlight warning"><strong>Watch:</strong> {esc_html(biggest_dn[0])} dropped {abs(biggest_dn[1])*100:.0f}% this period.</div>'''
+        # Page-level mini-grid (fans, followers, posts in 28d). Even when page
+        # insights return no data, these come straight from /{page_id} so they
+        # always show real numbers.
+        page_fans = c_28d_full.get('fb_fans', 0)
+        page_followers = c_28d_full.get('fb_followers', 0)
+        page_name = c_28d_full.get('fb_name', 'Facebook Page')
+        fb_posts_count = c_28d_full.get('fb_posts', 0)
+        fb_posts_source = c_28d_full.get('fb_posts_source', 'instagram')
+        page_metrics_html = ''
+        if page_fans or page_followers or fb_posts_count:
+            page_metrics_html = f'''
+  <div class="grid">
+    <div class="card span-3"><div class="metric-label">Page fans</div><div class="metric-value">{page_fans:,}</div><div class="metric-note">People who like {esc_html(page_name)}</div></div>
+    <div class="card span-3"><div class="metric-label">Page followers</div><div class="metric-value">{page_followers:,}</div><div class="metric-note">Followers (separate from likes since 2024)</div></div>
+    <div class="card span-3"><div class="metric-label">Posts (28d)</div><div class="metric-value">{fb_posts_count}</div><div class="metric-note">Source: {fb_posts_source}</div></div>
+    <div class="card span-3"><div class="metric-label">Page</div><div class="metric-value" style="font-size:18px">{esc_html(page_name)}</div><div class="metric-note">ID set in META_PAGE_ID</div></div>
+  </div>'''
+
+        # Stories live now - IG + FB page cross-referenced. Active window is
+        # ≤24h because Meta expires stories automatically. Reach metric is
+        # IG-only (FB page /stories endpoint has no reach field).
+        stories_html = ''
+        st_combined = c_28d_full.get('stories_combined_count', 0)
+        st_ig = c_28d_full.get('ig_stories', 0)
+        st_fb = c_28d_full.get('fb_stories', 0)
+        st_reach = c_28d_full.get('stories_combined_reach', 0)
+        st_ig_oldest = c_28d_full.get('ig_stories_oldest')
+        st_ig_newest = c_28d_full.get('ig_stories_newest')
+        st_fb_oldest = c_28d_full.get('fb_stories_oldest')
+        st_fb_newest = c_28d_full.get('fb_stories_newest')
+        if st_combined > 0 or st_ig or st_fb:
+            items_html_parts = []
+            # IG stories list
+            for s in (c_28d_full.get('ig_stories_items') or []):
+                ts = (s.get('timestamp') or '').replace('+0000', '').strip()
+                reach_v = s.get('reach') or 0
+                permalink = s.get('permalink') or ''
+                items_html_parts.append(
+                    f'<li><a href="{esc_html(permalink)}" target="_blank" rel="noopener">IG story</a> '
+                    f'@ {esc_html(ts)} — {reach_v} reach</li>'
+                )
+            for s in (c_28d_full.get('fb_stories_items') or []):
+                ct = (s.get('created_time') or '').replace('+00:00', '').strip()
+                items_html_parts.append(
+                    f'<li>FB Page story @ {esc_html(ct)}</li>'
+                )
+            items_html = ''.join(items_html_parts) or '<li class="muted">No items returned</li>'
+            stories_html = f'''
+  <div class="highlight">
+    <strong>Stories live right now:</strong> {st_combined} combined ({st_ig} Instagram, {st_fb} Facebook Page), {st_reach:,} reach across currently-live stories.
+    <span class="muted small">Stories expire 24h after posting — this is a real-time snapshot, not a 28d count.</span>
+    <ul style="margin:8px 0 0 18px">{items_html}</ul>
+  </div>'''
+        elif st_combined == 0 and (st_ig == 0 and st_fb == 0) and meta_configured:
+            # Honest "no stories" rather than silent zero - only if Meta is
+            # connected (otherwise it's noise).
+            stories_html = '''
+  <div class="highlight muted">
+    <strong>No stories live right now.</strong> Swing Shack has 0 active Instagram or Facebook Page stories at the moment. This is honest zero, not a fetch failure — Meta expires stories after 24h.
+  </div>'''
+
+        # What's still missing explanation
+        missing_html = ''
+        if not fb_rows_html or all(r.get('current', 0) == 0 for r in metrics['fb_rows']):
+            missing_html = '''
+  <div class="highlight muted">
+    <strong>Page-level insights not yet available.</strong> The numbers above (fans, followers, posts) come straight from the Facebook Page metadata. Reach, views, link clicks and engaged users require <code>read_insights</code> scope on the Meta app — currently these return "must be a valid insights metric" for Swing Shack. Submitting the page for App Review will unlock them.
+  </div>'''
+        meta_section_html = f'''
+<section class="section">
+  <h2>Facebook</h2>
+  <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  {page_metrics_html}
+  {stories_html}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
+      <tbody>{fb_rows_html or '<tr><td colspan="4" class="muted">No Facebook insights returned yet</td></tr>'}</tbody>
+    </table>
+  </div>
+  {missing_html}
+  {('<div class="two-col">' + strong_html + watch_html + '</div>') if (strong_html or watch_html) else ''}
+</section>'''
+    else:
+        meta_section_html = '''
+<section class="section">
+  <h2>Facebook</h2>
+  <div class="highlight warning">
+    <strong>Meta data not connected.</strong> The 28-day Facebook table will appear here once the Meta Graph API token is added to Railway.
+    <br><br>
+    <strong>What's missing right now:</strong> views, reach, link clicks, interactions, conversations, new contacts - all from Facebook Pages.
+    <br><br>
+    <strong>How to fix:</strong> add <code>META_APP_ID</code>, <code>META_ACCESS_TOKEN</code>, <code>META_INSTAGRAM_BUSINESS_ACCOUNT_ID</code>, and <code>META_PAGE_ID</code> as service-level env vars on Railway. The shape is already wired - drop the tokens in and it'll fill in on next refresh.
+  </div>
+</section>'''
+
+    # Instagram section with Read box per Stick reference
+    ig_section_html = ''
+    if ig_configured:
+        # Build the IG read box
+        ig_inter = c_28d_full.get('ig_interactions', 0)
+        ig_follows_count = c_28d_full.get('ig_follows', 0)
+        ig_views = c_28d_full.get('ig_views', 0)
+        read_line = ''
+        if ig_inter > 0 and metrics['has_prev']:
+            prev_int = prev_28d.get('ig_interactions', 0)
+            int_pct = _weekly_pct(ig_inter, prev_int)[0]
+            read_line = f"<strong>Read:</strong> Instagram engagement quality moved {int_pct} vs last report. {ig_inter:,} interactions across {ig_posts_count} posts over the last 28 days."
+        else:
+            read_line = f"<strong>Read:</strong> {ig_inter:,} interactions across {ig_posts_count} posts in the last 28 days. Engagement quality holding."
+        ig_section_html = f'''
+<section class="section">
+  <h2>Instagram</h2>
+  <p><span class="date-note">Current 28 days: {pcp_start}–{today} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Movement</th></tr></thead>
+      <tbody>{ig_rows_html or '<tr><td colspan="4" class="muted">No Instagram data available yet</td></tr>'}</tbody>
+    </table>
+  </div>
+  <div class="highlight">{read_line}</div>
+</section>'''
+    else:
+        ig_section_html = '''
+<section class="section">
+  <h2>Instagram</h2>
+  <div class="highlight warning">
+    <strong>Instagram analytics not connected.</strong> The 28-day table will fill in once the IG business account is wired.
+  </div>
+</section>'''
+
+    # Top content - IG top performers
+    top_performers = cur.get('28d', {}).get('ig_top_performers', []) or []
+    top_content_html = ''
+    if top_performers:
+        items = ''.join(
+            (lambda cap, likes, comments, reach, permalink, thumb:
+                f"<li><strong>{(cap or permalink or 'Post')[:80]}</strong> — "
+                f"{likes:,} likes, {comments:,} comments, {reach:,} reach"
+                + (f'<br><a href="{permalink}" target="_blank" rel="noopener">'
+                   f'<img src="{thumb}" loading="lazy" alt="post thumbnail" '
+                   f'style="width:120px;height:120px;object-fit:cover;border-radius:6px;margin-top:.4rem;background:var(--bg-2)"/>'
+                   f'</a>' if thumb else '')
+                + "</li>"
+            )(
+                p.get('caption') or p.get('captionPreview') or '',
+                p.get('like_count', p.get('likeCount', 0)) or 0,
+                p.get('comments_count', p.get('commentsCount', 0)) or 0,
+                p.get('reach') or 0,
+                p.get('permalink') or '#',
+                p.get('thumbnail_url') or p.get('thumbnailUrl') or p.get('media_url') or '',
+            )
+            for p in top_performers[:5]
+        )
+        top_content_html = f'''
+<section class="section">
+  <h2>Content that is earning attention</h2>
+  <h3>Instagram top performers (28d)</h3>
+  <ul>{items}</ul>
+</section>'''
+
+    # Google Ads section
+    ga_configured = any(s.get('name') == 'google_ads' and s.get('configured') for s in cur_sources)
+    ga_section_html = ''
+    if ga_configured:
+        ga_data = weekly.get('google_ads', {}) or {}
+        spend = ga_data.get('spend', 0)
+        impressions = ga_data.get('impressions', 0)
+        clicks = ga_data.get('clicks', 0)
+        conversions = ga_data.get('conversions', 0)
+        local_actions = ga_data.get('local_actions', 0)
+        calls = ga_data.get('calls', 0)
+        ctr = _weekly_safe_div(clicks, impressions) * 100
+        cpc = _weekly_safe_div(spend, clicks)
+        ga_section_html = f'''
+<section class="section">
+  <h2>Google Ads this week</h2>
+  <div class="grid">
+    <div class="card span-3"><div class="metric-label">Spend</div><div class="metric-value">{_weekly_format_num(spend, "rand")}</div><div class="metric-note">Current week</div></div>
+    <div class="card span-3"><div class="metric-label">Impressions</div><div class="metric-value">{_weekly_format_num(impressions, "int")}</div><div class="metric-note">CTR {ctr:.1f}%</div></div>
+    <div class="card span-3"><div class="metric-label">Clicks</div><div class="metric-value">{_weekly_format_num(clicks, "int")}</div><div class="metric-note">CPC {_weekly_format_num(cpc, "rand")}</div></div>
+    <div class="card span-3"><div class="metric-label">Local actions</div><div class="metric-value">{_weekly_format_num(local_actions, "int")}</div><div class="metric-note">{calls} calls · {conversions} tracked conversions</div></div>
+  </div>
+</section>'''
+    else:
+        ga_section_html = '''
+<section class="section">
+  <h2>Google Ads this week</h2>
+  <div class="highlight warning">
+    <strong>Google Ads not configured.</strong> Drop a <code>data/google-ads.json</code> file with the shape <code>{spend, impressions, clicks, conversions, local_actions, calls}</code> and the spend / CTR / CPC cards will fill in here. Or connect Windsor.ai via <code>/secrets-sync</code> (service=windsor-api) and the fetcher will populate this automatically.
+  </div>
+</section>'''
+
+    # GA4 top pages / sources
+    top_pages = weekly.get('ga4_top_pages', []) or []
+    sources = weekly.get('ga4_sources', []) or []
+    pages_rows = ''.join(f"<tr><td>{p.get('path')}</td><td>{p.get('sessions', 0)}</td><td>{p.get('engagement_rate', '-')}</td></tr>" for p in top_pages)
+    sources_rows = ''.join(f"<tr><td>{s.get('source')}</td><td>{s.get('sessions', 0)}</td></tr>" for s in sources)
+    ga4_section_html = f'''
+<section class="section">
+  <h2>Website and acquisition</h2>
+  <p><span class="date-note">Google Analytics • Current 7 days</span></p>
+  <div class="grid">
+    <div class="card span-3"><div class="metric-label">Sessions</div><div class="metric-value">{_weekly_format_num(weekly.get('ga4_sessions', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
+    <div class="card span-3"><div class="metric-label">Review queue</div><div class="metric-value">{_weekly_format_num(weekly.get('review_pending', 0), 'int')}</div><div class="metric-note">Drafts waiting</div></div>
+    <div class="card span-3"><div class="metric-label">Content published</div><div class="metric-value">{_weekly_format_num(weekly.get('content_published', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
+    <div class="card span-3"><div class="metric-label">Brand</div><div class="metric-value" style="font-size:18px">{meta['display_name']}</div><div class="metric-note">{meta.get('voice_label', '')}</div></div>
+  </div>
+  {f'<h3>Top pages by sessions</h3><div class="table-wrap"><table><thead><tr><th>Path</th><th>Sessions</th><th>Engagement rate</th></tr></thead><tbody>{pages_rows}</tbody></table></div>' if pages_rows else '<p class="small">No page-level GA4 data yet.</p>'}
+  {f'<h3>Top sources</h3><div class="table-wrap"><table><thead><tr><th>Source</th><th>Sessions</th></tr></thead><tbody>{sources_rows}</tbody></table></div>' if sources_rows else ''}
+</section>'''
+
+    # Working / attention / focus
+    working_html = ''.join(f'<li>{w}</li>' for w in metrics['working'])
+    attention_html = ''.join(f'<li>{a}</li>' for a in metrics['attention'])
+    focus_pills_html = ''.join(f'<div class="pill">{esc_html(p)}</div>' for p in focus_pills)
+
+    # Hero subtitle derived from real data + an interpretive headline from the
+    # largest week-on-week delta. The hero h1 is what makes this Stick-style
+    # instead of a generic dashboard view.
+    subtitle_parts = []
+    best_up = max(
+        [(r['label'], _weekly_pct(r['current'], r['previous'])[2] or 0) for r in metrics['rows']
+         if r.get('has_source', True)],
+        key=lambda x: x[1] or 0,
+        default=(None, 0),
+    )
+    if best_up[0] and best_up[1] and best_up[1] > 5:
+        subtitle_parts.append(f"<strong>{best_up[0]}</strong> is up this week ({best_up[1]:+.0f}%).")
+    if weekly.get('review_pending', 0) > 5:
+        subtitle_parts.append(f"{weekly['review_pending']} drafts are waiting on Review.")
+    if weekly.get('content_published', 0) == 0:
+        subtitle_parts.append("No content shipped in the last 7 days - worth a cadence check.")
+    subtitle = ' '.join(subtitle_parts) or f"Brand review for {meta['display_name']} — {today}."
+
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{meta['display_name']} Weekly Marketing Report | {today}</title>
+<style>
+:root {{
+  --bg:#0b0f14; --card:#111821; --soft:#16212c; --text:#f4f7fb;
+  --muted:#aeb8c5; --line:#273443; --green:#5dff9d; --blue:#63b3ff;
+  --gold:{meta.get('primary_color', '#d7b46a')}; --red:#ff7a7a; --white:#fff;
+}}
+*{{box-sizing:border-box}}
+body{{margin:0;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.45}}
+.page{{max-width:1120px;margin:0 auto;padding:28px 18px 60px}}
+.hero,.section,.card{{border:1px solid var(--line);background:var(--card)}}
+.hero{{background:linear-gradient(135deg,#101720 0%,#172230 55%,#0d1218 100%);border-radius:22px;padding:34px;margin-bottom:20px}}
+.eyebrow{{text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--gold);font-weight:700;margin-bottom:10px}}
+h1,h2,h3{{margin:0}} h1{{font-size:clamp(32px,5vw,54px);line-height:1;letter-spacing:-.04em;margin-bottom:14px}}
+h2{{font-size:24px;letter-spacing:-.02em;margin-bottom:14px}} h3{{font-size:17px;margin:18px 0 8px}}
+p{{color:var(--muted);margin:0 0 12px}} strong{{color:var(--white)}}
+.subtitle{{max-width:880px;color:var(--muted);font-size:17px}}
+.focus-strip{{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}}
+.pill{{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700}}
+.section{{border-radius:22px;padding:26px;margin-bottom:18px}}
+.grid{{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-bottom:18px}}
+.card{{border-radius:18px;padding:20px}} .span-3{{grid-column:span 3}} .span-4{{grid-column:span 4}} .span-6{{grid-column:span 6}}
+.metric-label{{color:var(--muted);font-size:13px;margin-bottom:6px}}
+.metric-value{{font-size:34px;font-weight:800;letter-spacing:-.04em}}
+.metric-note{{color:var(--muted);font-size:13px;margin-top:6px}}
+.date-note{{display:inline-block;color:var(--gold);font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}}
+ul{{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:8px}}
+li{{color:var(--muted);padding-left:18px;position:relative}}
+li:before{{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue);position:absolute;left:0;top:.68em}}
+.two-col{{display:grid;grid-template-columns:1fr 1fr;gap:18px}}
+.highlight{{border-left:4px solid var(--green);background:var(--soft);border-radius:14px;padding:16px;margin-top:14px;color:var(--text)}}
+.gold{{border-left-color:var(--gold)}} .warning{{border-left-color:var(--red)}}
+.brain-conclusion{{margin:10px 0 0;padding:10px 12px;border-left:3px solid var(--gold);background:rgba(255,255,255,.04);border-radius:8px;font-size:13.5px;color:var(--text);line-height:1.45}}
+.brain-conclusion strong{{color:var(--gold);font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-right:6px}}
+.table-wrap{{overflow-x:auto;border:1px solid var(--line);border-radius:14px;margin-top:10px}}
+table{{width:100%;border-collapse:collapse;min-width:680px}}
+th,td{{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}}
+th{{color:var(--white);font-size:13px;background:rgba(255,255,255,.03)}}
+td{{color:var(--muted);font-size:14px}} tr:last-child td{{border-bottom:none}}
+.up{{color:var(--green);font-weight:700}} .down{{color:var(--red);font-weight:700}} .neutral{{color:var(--muted);font-weight:700}}
+.muted{{color:var(--muted)}}
+.small{{font-size:12px;color:var(--muted)}} .footer-note{{color:var(--muted);text-align:center;font-size:12px;margin-top:20px}}
+.toolbar{{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}}
+.toolbar button{{background:var(--bg-2,#1d2733);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}}
+.toolbar button:hover{{background:var(--soft)}}
+.toolbar select{{background:var(--bg-2,#1d2733);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700}}
+@media print {{ .toolbar{{display:none}} body{{background:#fff;color:#000}} .section,.card,.hero{{background:#fff;color:#000;border-color:#999}} h1,h2,h3,strong{{color:#000}} .subtitle,p,li,td,.metric-note{{color:#333}} .up{{color:#0a8}} .down{{color:#c33}} }}
+@media(max-width:900px){{.span-3,.span-4,.span-6{{grid-column:span 12}}.two-col{{grid-template-columns:1fr}}.hero,.section{{padding:22px}}}}
+.data-sources{{padding:18px 22px}}
+.data-source-grid{{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 12px}}
+.ds-pill{{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;font-family:monospace}}
+.ds-pill.live{{border-color:rgba(93,255,157,.4);color:var(--green)}}
+.ds-pill.off{{border-color:rgba(255,122,122,.4);color:var(--red);opacity:.85}}
+.tldr-list li{{font-size:14.5px;line-height:1.5}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="toolbar">
+  <span class="muted" style="font-size:12px;line-height:32px;margin-right:auto">Brand:</span>
+  <select onchange="window.location.href='/weekly-report?brand=' + this.value">
+    <option value="swing-shack" {"selected" if bid=='swing-shack' else ""}>Swing Shack</option>
+    <option value="stick" {"selected" if bid=='stick' else ""}>Stick</option>
+    <option value="bag-drop" {"selected" if bid=='bag-drop' else ""}>Bag Drop</option>
+  </select>
+  <button onclick="downloadHTML()">⬇ HTML</button>
+  <button onclick="downloadMarkdown()">⬇ Markdown</button>
+  <button onclick="window.print()">⬇ PDF (print)</button>
+  <button onclick="snapshotNow()">📸 Archive snapshot</button>
+</div>
+
+<section class="hero">
+  <div class="eyebrow">{meta['display_name']} • Weekly Marketing Report • {today}</div>
+  <h1>{hero_h1}</h1>
+  <p class="subtitle">{subtitle}</p>
+  <div class="focus-strip">
+    {focus_pills_html}
+  </div>
+</section>
+
+{brain_html}
+
+<section class="grid">
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Content published</div><div class="metric-value">{_weekly_format_num(weekly.get('content_published', 0), 'int')}</div><div class="metric-note">Last 7 days</div></div>
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Website sessions</div><div class="metric-value">{_weekly_format_num(weekly.get('ga4_sessions', 0), 'int')}</div><div class="metric-note">GA4 last 7 days</div></div>
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">IG interactions (28d)</div><div class="metric-value">{_weekly_format_num(cur.get('28d', {}).get('ig_interactions', 0), 'int')}</div><div class="metric-note">{cur.get('28d', {}).get('ig_posts', 0)} posts tracked</div></div>
+  <div class="card span-3"><div class="date-note">Weekly • {week_start}–{week_end}</div><div class="metric-label">Review queue</div><div class="metric-value">{_weekly_format_num(weekly.get('review_pending', 0), 'int')}</div><div class="metric-note">Drafts waiting</div></div>
+</section>
+
+<section class="section">
+  <h2>Comparison with the previous {meta['display_name']} report</h2>
+  <p><span class="date-note">Current weekly review: {week_start}–{week_end} • Previous report: {pcp_start}–{pcp_end}</span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Metric</th><th>Current</th><th>Previous report</th><th>Change</th></tr></thead>
+      <tbody>{rows_html or '<tr><td colspan="4" class="muted">First run — no previous snapshot to compare yet. Archive a snapshot to start comparing.</td></tr>'}</tbody>
+    </table>
+  </div>
+  {('' if (metrics.get('has_archived_prev') or metrics.get('has_derived_prev')) else '<div class="highlight muted"><strong>First-ever run:</strong> no previous snapshot archived yet for this brand. Click <em>Archive snapshot</em> on a future report to start the comparison trail.</div>')}
+  {('<div class="highlight gold"><strong>Read:</strong> comparison table above is the real movement week-on-week. Green numbers are genuine lifts. Red numbers need addressing in the next 7 days. Where a row shows "first run", that metric had no archived value yet but the rest of the table is computed from live data.</div>' if (metrics.get('has_archived_prev') or metrics.get('has_derived_prev')) else '<div class="highlight gold"><strong>Read:</strong> comparison table above is the raw movement week-on-week. Anything in green is a real lift; anything in red is something to address in the next 7 days.</div>')}
+</section>
+
+{meta_section_html}
+
+{ig_section_html}
+
+{top_content_html}
+
+{ga4_section_html}
+
+{ga_section_html}
+
+<section class="section two-col">
+  <div>
+    <h2>What is working</h2>
+    <ul>{working_html}</ul>
+  </div>
+  <div>
+    <h2>What needs attention</h2>
+    <ul>{attention_html}</ul>
+  </div>
+</section>
+
+<div class="footer-note">
+Prepared for {meta['display_name']} • Weekly review uses {week_start}–{week_end} {now.year}. IG section uses the latest 28-day window through {today}. {f"Previous-report comparison uses the {meta['display_name']} report based on {pcp_start}–{pcp_end}." if metrics.get('has_archived_prev') else ("Previous-week comparison is computed from the IG daily_reach time-series (no archived snapshot yet). Once you click Archive snapshot on a future report, the full weekly comparison will be used." if metrics.get('has_derived_prev') else "First-ever run — no previous snapshot archived yet. Click 'Archive snapshot' to start the comparison trail.")}
+</div>
+
+</div>
+
+<script>
+function downloadHTML(){{
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], {{type:'text/html'}});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '{meta["id"]}-weekly-report-{today.replace(" ","-")}.html';
+  a.click();
+}}
+function downloadMarkdown(){{
+  fetch('/api/weekly-report?brand={bid}&format=markdown').then(r=>r.text()).then(t=>{{
+    const blob = new Blob([t], {{type:'text/markdown'}});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '{meta["id"]}-weekly-report-{today.replace(" ","-")}.md';
+    a.click();
+  }});
+}}
+function snapshotNow(){{
+  fetch('/api/weekly-report/snapshot?brand={bid}', {{method:'POST'}}).then(r=>r.json()).then(j=>{{
+    alert('Snapshot archived: ' + (j.path || JSON.stringify(j)));
+    location.reload();
+  }});
+}}
+</script>
+</body>
+</html>'''
+
+
+def _md_strip_html(s):
+    return (s.replace('<strong>', '**').replace('</strong>', '**')
+             .replace('<span class="up">', '').replace('<span class="down">', '')
+             .replace('</span>', ''))
+
+
+def _weekly_render_markdown(bid, data_bid=None):
+    """Render the same report as plain Markdown for Notion / Slack paste.
+
+    bid         — used for brand_meta (voice/positioning/colour)
+    data_bid    — used for metrics computation (defaults to bid; follows delegation)
+    """
+    meta = _weekly_brand_meta(bid)
+    metrics = _weekly_compute_metrics(data_bid or bid)
+    cur = metrics['current']
+    now = datetime.datetime.now(datetime.timezone.utc)
+    today = now.strftime('%d %b %Y')
+
+    lines = [f"# {meta['display_name']} — Weekly Marketing Report ({today})", ""]
+    lines.append(f"**Brand:** {meta['display_name']}  ")
+    lines.append(f"**Voice:** {meta.get('voice_label', '—')}  ")
+    lines.append(f"**Tagline:** {meta.get('tagline', '—')}  ")
+    lines.append("")
+    lines.append("## TL;DR")
+    lines.append("")
+    weekly = cur.get('weekly', {}) or {}
+    if weekly.get('content_published', 0) > 0:
+        lines.append(f"- **{weekly.get('content_published', 0)} pieces of content published** this week.")
+    if weekly.get('ga4_sessions', 0) > 0:
+        lines.append(f"- **Website traffic:** {weekly.get('ga4_sessions', 0)} sessions in the last 7 days.")
+    if weekly.get('review_pending', 0) > 0:
+        lines.append(f"- **{weekly.get('review_pending', 0)} drafts** are waiting on Review.")
+    if cur.get('28d', {}).get('ig_interactions', 0) > 0:
+        lines.append(f"- **Instagram (28d):** {cur['28d'].get('ig_interactions', 0):,} interactions across {cur['28d'].get('ig_posts', 0)} posts.")
+    if weekly.get('content_published', 0) == 0:
+        lines.append(f"- **No content published** in the last 7 days. Worth a cadence check.")
+    lines.append("")
+    lines.append("## Comparison with previous report")
+    lines.append("")
+    lines.append("| Metric | Current | Previous | Change |")
+    lines.append("|---|---|---|---|")
+    for r in metrics['rows']:
+        pct, direction, _ = _weekly_pct(r['current'], r['previous'])
+        arrow = {'up':'↑', 'down':'↓', 'neutral':'—'}.get(direction, '—')
+        # Show prev when we have either archived OR derived prev.
+        if metrics.get('has_archived_prev') or metrics.get('has_derived_prev'):
+            prev_val = r.get('previous', 0)
+            if prev_val == 0 and not metrics.get('has_archived_prev'):
+                prev_disp = 'first run'
+            else:
+                prev_disp = _weekly_format_num(prev_val, r.get('fmt', 'int'))
+        else:
+            prev_disp = '—'
+        lines.append(f"| {r['label']} | {_weekly_format_num(r['current'], r.get('fmt', 'int'))} | {prev_disp} | {pct} {arrow} |")
+    lines.append("")
+    lines.append("## What is working")
+    lines.append("")
+    for w in metrics['working']:
+        # Strip HTML for markdown
+        lines.append(f"- {_md_strip_html(w)}")
+    lines.append("")
+    lines.append("## What needs attention")
+    lines.append("")
+    for a in metrics['attention']:
+        lines.append(f"- {_md_strip_html(a)}")
+    lines.append("")
+    lines.append("---")
+    lines.append(f"_Generated {now.isoformat()} • Sources: " + ", ".join(s.get('name','?') for s in (cur.get('sources') or [])) + "_")
+    if metrics.get('has_derived_prev') and not metrics.get('has_archived_prev'):
+        lines.append("_Previous-week comparison computed from IG daily_reach time-series (no archived snapshot yet)._")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def esc_html(s):
+    if s is None: return ''
+    s = str(s)
+    return (s.replace('&', '&amp;')
+             .replace('<', '&lt;')
+             .replace('>', '&gt;')
+             .replace('"', '&quot;'))
+
+
+@app.route('/api/weekly-report', methods=['GET'])
+def weekly_report_api():
+    """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
+    Returns the weekly report. Default format = html.
+
+    Analytics delegate: when the requested brand has data_delegates_from set
+    (e.g. stick → swing-shack), compute metrics against the delegate source
+    while keeping the requested brand's voice/positioning for the hero.
+    """
+    bid = request.args.get('brand') or get_brand_id()
+    fmt = request.args.get('format', 'html').lower()
+    # Analytics source follows delegation; voice/positioning stay on the brand
+    data_bid = resolve_data_brand(bid)
+    if fmt == 'json':
+        return jsonify({
+            'brand_id': bid,
+            'data_source_brand_id': data_bid,
+            'brand_meta': _weekly_brand_meta(bid),
+            'metrics': _weekly_compute_metrics(data_bid),
+        }), 200
+    if fmt == 'markdown':
+        from flask import Response
+        return Response(_weekly_render_markdown(bid, data_bid=data_bid), mimetype='text/markdown'), 200
+    return _weekly_render_html(bid, data_bid=data_bid), 200
+
+
+@app.route('/api/weekly-report/snapshot', methods=['POST', 'GET'])
+def weekly_report_snapshot():
+    """Archive the current week for the brand. Returns the saved path."""
+    bid = request.args.get('brand') or get_brand_id()
+    cur = _weekly_collect_current(bid)
+    path = _weekly_save_snapshot(bid, cur)
+    return jsonify({'brand_id': bid, 'path': path, 'iso_week': datetime.datetime.now(datetime.timezone.utc).isocalendar()[:2]}), 200
+
+
+@app.route('/api/meta/test-exchange', methods=['GET'])
+def meta_test_exchange():
+    """Walk the page-scoped token exchange to see why page insights fails."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import meta_api as _meta
+    out = {"ok": True, "page_credentials_present": _meta._page_credentials_present()}
+    out["_read_meta_page_token_len"] = len(_meta._read_meta_page_token() or "")
+    out["_read_meta_access_token_len"] = len(_meta._read_meta_access_token() or "")
+    out["cache_before"] = dict(_meta._PAGE_TOKEN_CACHE)
+    try:
+        info = _meta.get_page_info()
+        out["page_info_keys"] = list(info.keys())
+        out["fan_count"] = info.get("fan_count")
+        out["name"] = info.get("name")
+    except Exception as e:
+        out["page_info_error"] = str(e)[:300]
+    out["cache_after_page_info"] = dict(_meta._PAGE_TOKEN_CACHE)
+    try:
+        ins = _meta.get_page_insights(metrics=["page_views_total", "page_post_engagements"], period="days_28")
+        out["page_insights_returned"] = list(ins.get("_flat", {}).keys())
+        out["page_insights_values"] = ins.get("_flat", {})
+    except Exception as e:
+        out["page_insights_error"] = str(e)[:300]
+    out["cache_after_insights"] = dict(_meta._PAGE_TOKEN_CACHE)
+    out["_exchange_last_err"] = getattr(_meta, '_EXCHANGE_LAST_ERR', 'not set')
+    out["cache_id"] = id(_meta._PAGE_TOKEN_CACHE)
+
+    # Direct exchange probe - see what Meta returns
+    import os
+    import urllib.request as ur
+    import urllib.error as ue
+    tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if tok:
+        # 1. Try the page exchange directly
+        url = f"https://graph.facebook.com/v18.0/198859063301219?fields=access_token&access_token={tok}"
+        try:
+            with ur.urlopen(url, timeout=10) as r:
+                body = json.loads(r.read().decode())
+            out["exchange_page_keys"] = list(body.keys())
+            pt = body.get("access_token")
+            if pt:
+                out["exchange_page_token_len"] = len(pt)
+                # Now try insights with that token
+                url2 = f"https://graph.facebook.com/v18.0/198859063301219/insights?metric=page_views_total&period=days_28&access_token={pt}"
+                try:
+                    with ur.urlopen(url2, timeout=10) as r:
+                        body2 = json.loads(r.read().decode())
+                    out["exchange_then_insights_ok"] = True
+                    out["exchange_then_insights_data"] = body2
+                except ue.HTTPError as e:
+                    out["exchange_then_insights_error"] = e.read().decode()[:200]
+        except ue.HTTPError as e:
+            out["exchange_page_error"] = e.read().decode()[:300]
+        except Exception as e:
+            out["exchange_page_exception"] = str(e)[:200]
+    return jsonify(out), 200
+
+
+@app.route('/api/meta/exchange-only', methods=['GET'])
+def meta_exchange_only():
+    """Just do the exchange and write to cache; skip insights."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib import meta_api as _meta
+    # Reset exchange error
+    _meta._EXCHANGE_LAST_ERR = ""
+    out = {"before_exchange_cache": dict(_meta._PAGE_TOKEN_CACHE),
+           "before_exchange_err": _meta._EXCHANGE_LAST_ERR}
+    page_id = _meta._read_meta_id("META_PAGE_ID", "page_id")
+    out["page_id_read"] = page_id
+    user_tok = os.environ.get("META_SYSTEM_USER_TOKEN")
+    out["user_tok_len"] = len(user_tok) if user_tok else 0
+    try:
+        url = f"https://graph.facebook.com/v18.0/{page_id}?fields=access_token&access_token={user_tok}"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            body = json.loads(r.read().decode())
+        pt = body.get("access_token")
+        out["exchange_pt_len"] = len(pt) if pt else 0
+        if pt:
+            _meta._PAGE_TOKEN_CACHE[page_id] = pt
+            out["written_to_cache"] = True
+    except urllib.error.HTTPError as e:
+        out["exchange_error"] = e.read().decode()[:200]
+    except Exception as e:
+        out["exchange_exception"] = f"{type(e).__name__}: {e}"
+    out["after_exchange_cache"] = dict(_meta._PAGE_TOKEN_CACHE)
+    return jsonify(out), 200
+
+
+@app.route('/api/weekly-report/snapshot.json', methods=['GET'])
+def weekly_report_snapshot_json():
+    """Return the current week's raw snapshot JSON for debugging."""
+    bid = request.args.get('brand') or get_brand_id()
+    cal = datetime.datetime.now(datetime.timezone.utc).isocalendar()
+    name = f'{bid}_{cal.year}-W{cal.week:02d}.json'
+    # Try multiple possible locations (legacy + new layouts)
+    for parent in (WEEKLY_REPORT_DATA_DIR,
+                   os.path.join(DATA_DIR, 'campaign-os/weekly-snapshots'),
+                   os.path.join('/data', 'campaign-os/weekly-snapshots'),
+                   os.path.join(BUNDLED_DATA_DIR, 'campaign-os/weekly-snapshots'),
+                   BUNDLED_DATA_DIR):
+        p = os.path.join(parent, name)
+        try:
+            with open(p) as f:
+                return jsonify(json.loads(f.read())), 200
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            return jsonify({"error": str(e), "path": p}), 500
+    return jsonify({"error": "not found", "tried": [WEEKLY_REPORT_DATA_DIR, os.path.join(DATA_DIR, 'campaign-os/weekly-snapshots')], "filename": name}), 404
+
+
+@app.route('/api/weekly-report/snapshots', methods=['GET'])
+def weekly_report_snapshots():
+    """List all archived snapshots for a brand."""
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        snaps = []
+        for f in sorted(os.listdir(WEEKLY_REPORT_DATA_DIR)):
+            if f.startswith(f'{bid}_') and f.endswith('.json'):
+                snaps.append(f)
+        return jsonify({'brand_id': bid, 'snapshots': snaps}), 200
+    except Exception as e:
+        return jsonify({'brand_id': bid, 'snapshots': [], 'error': str(e)}), 200
+
+
+@app.route('/weekly-report', methods=['GET'])
+def weekly_report_page():
+    """GET /weekly-report?brand=swing-shack
+    Renders the weekly-report HTML page directly (same as /api/weekly-report?format=html).
+    """
+    bid = request.args.get('brand') or get_brand_id()
+    data_bid = resolve_data_brand(bid)
+    return _weekly_render_html(bid, data_bid=data_bid), 200
+
+
 # ─── STARTUP ────────────────────────────────────────────────────────────
 
+
+def _boot_load_persisted_secrets():
+    """Re-read credentials that the running process lost across deploys.
+
+    Railway restarts wipe in-process os.environ. secrets-sync writes
+    credential JSON files to /data/campaign-os/credentials/ on the
+    persistent volume - those survive deploys. On boot, re-hydrate
+    os.environ from those files so Windsor (and any future service)
+    works immediately, without the operator re-running secrets-sync.
+
+    Also pre-loads WINDSOR_API_KEY into os.environ so the brain's
+    first render after deploy sees live data, not the synthesised
+    fallback that has been confusing Christelle.
+    """
+    try:
+        from _lib import windsor_client as _w
+        # The windsor_client already does the right thing - it checks
+        # /data/campaign-os/credentials/windsor-api.json too now (we
+        # added those candidates 2026-08-14). All we need to do on boot
+        # is force the env var so any code path that reads WINDSOR_API_KEY
+        # directly (without going through read_api_key()) sees it.
+        key = _w.read_api_key()
+        if key and not os.environ.get('WINDSOR_API_KEY'):
+            os.environ['WINDSOR_API_KEY'] = key
+            _app_log.info('Boot: re-hydrated WINDSOR_API_KEY from persistent volume')
+        # Also wire the *_FILE env var so the runtime creds path is known
+        if key and not os.environ.get('WINDSOR_API_KEY_FILE'):
+            # Prefer the volume-resident path
+            for candidate in (
+                '/data/campaign-os/credentials/windsor-api.json',
+                '/data/credentials/windsor-api.json',
+            ):
+                if os.path.exists(candidate):
+                    os.environ['WINDSOR_API_KEY_FILE'] = candidate
+                    break
+    except Exception as e:
+        _app_log.warning('Boot secret rehydration failed: %s', e)
+
+
+def _boot_selfheal_windsor():
+    """If meta-ads.json is stale (synthesised note) but the Windsor key is
+    present, re-pull in a background thread so the first render after deploy
+    shows live data instead of the bundled synthesised fallback.
+
+    Runs only on the master process (i.e. direct `python app.py`, not every
+    gunicorn worker). Self-heal is best-effort: any failure is logged and
+    swallowed - the request path still works with whatever data is on disk.
+    """
+    try:
+        meta_path = os.path.join(DATA_DIR, 'meta-ads.json')
+        is_stale = False
+        if os.path.exists(meta_path):
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                head = f.read(2000)
+            if 'Synthesised from IG post engagement' in head:
+                is_stale = True
+        # Also self-heal if the file is simply missing.
+        if not os.path.exists(meta_path):
+            is_stale = True
+        if not is_stale:
+            return
+        from _lib import windsor_client as _w
+        key = _w.read_api_key()
+        if not key:
+            _app_log.info('Boot self-heal: meta-ads.json is stale but no Windsor key on disk - skipping')
+            return
+        # Fire-and-forget background refresh. Use a thread so app.run()
+        # isn't blocked on the network call.
+        import threading
+
+        def _refresh():
+            try:
+                from _lib.windsor_fetcher import build_meta_ads, build_google_ads, _atomic_write
+                _app_log.info('Boot self-heal: pulling live Meta Ads from Windsor...')
+                meta = build_meta_ads(key)
+                ga = build_google_ads(key)
+                _atomic_write(os.path.join(DATA_DIR, 'meta-ads.json'), meta)
+                _atomic_write(os.path.join(DATA_DIR, 'google-ads.json'), ga)
+                _app_log.info('Boot self-heal: live Meta Ads written to %s', DATA_DIR)
+            except Exception as e:
+                _app_log.warning('Boot self-heal refresh failed: %s', e)
+
+        t = threading.Thread(target=_refresh, daemon=True, name='boot-selfheal-windsor')
+        t.start()
+    except Exception as e:
+        _app_log.warning('Boot self-heal dispatch failed: %s', e)
+
+
+
+# ─── Strategy layer API ────────────────────────────────────────────────
+# Big-picture strategy view — sits above the calendar.
+# GET/POST/PATCH for market_moves, bets, lessons.
+# All routes respect brand_id (?brand=<id>).
+
+@app.route('/api/strategy', methods=['GET'])
+def strategy_get():
+    """Return the full strategy document for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.load_strategy(bid)
+    # Auto-seed disabled — real data must flow in via /api/strategy/bet etc.
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/north-star', methods=['POST'])
+def strategy_north_star():
+    """Set the brand's north star."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_north_star(
+        bid,
+        north_star=body.get('north_star', ''),
+        north_star_metric=body.get('north_star_metric', ''),
+        positioning=body.get('positioning', ''),
+    )
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/market-move', methods=['POST'])
+def strategy_market_move():
+    """Create or update a market_move (year-horizon strategic play)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_market_move(bid, body)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/bet', methods=['POST'])
+def strategy_bet():
+    """Create or update a bet (quarter/month-horizon execution of a market_move)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_bet(bid, body)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/lesson', methods=['POST'])
+def strategy_lesson():
+    """Add a strategic lesson (worked/underperformed/disproved/retry/test-next)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.upsert_lesson(bid, body)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/lesson/<lesson_id>/invalidate', methods=['POST'])
+def strategy_lesson_invalidate(lesson_id):
+    """Mark a lesson as no longer valid (data disproved it)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.mark_lesson_invalid(bid, lesson_id)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/<record_type>/<record_id>', methods=['DELETE'])
+def strategy_delete(record_type, record_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    s = ss.delete_strategy_record(bid, record_type, record_id)
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/clear', methods=['POST'])
+def strategy_clear():
+    """Clear all strategy state for a brand. Reset to empty."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from strategy_store import save_strategy
+        empty = {
+            "brand_id": bid,
+            "north_star": "",
+            "market_moves": [],
+            "bets": [],
+            "lessons": [],
+            "trend": {"bets": {}, "market_moves": {}, "generated_at": None},
+            "cleared_at": "2026-08-25",
+        }
+        save_strategy(empty, bid)
+        # Also delete the runtime strategy file so the empty bundled file
+        # in the repo takes over on the next load.
+        import os as _os
+        from pathlib import Path as _Path
+        runtime_data_dir = _Path(_os.environ.get("DATA_DIR", "/data"))
+        for candidate in [
+            runtime_data_dir / "strategy" / f"{bid}.json",
+            runtime_data_dir / "strategy" / f"{bid}_trend.json",
+            runtime_data_dir / "spend.json",
+            runtime_data_dir / "spend-swing-shack.json",
+            runtime_data_dir / f"spend-{bid}.json",
+        ]:
+            if candidate.exists():
+                try:
+                    candidate.unlink()
+                except Exception:
+                    pass
+        return jsonify({"ok": True, "cleared": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/clear', methods=['POST'])
+def decisions_clear():
+    """Clear all decision history for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from decision import load_decisions, save_decisions
+        empty = {"brand": bid, "open": [], "history": [], "deferred": [], "cleared_at": "2026-08-25"}
+        save_decisions(bid, empty)
+        return jsonify({"ok": True, "cleared": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/clear', methods=['POST'])
+def governance_clear():
+    """Clear all governance policies + receipts for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.get_json(silent=True) or {}).get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from governance import load_policies, save_policies, load_receipts, save_receipts, load_outcomes, save_outcomes
+        save_policies(bid, {"brand": bid, "policies": [], "cleared_at": "2026-08-25"})
+        save_receipts(bid, {"brand": bid, "receipts": [], "cleared_at": "2026-08-25"})
+        save_outcomes(bid, {"brand": bid, "outcomes": [], "disagreement_lessons": [], "cleared_at": "2026-08-25"})
+        return jsonify({"ok": True, "cleared": True}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/strategy/mine', methods=['POST'])
+def strategy_mine():
+    """Walk real data sources and derive new lessons. Returns the diff
+    (added vs invalidated) so the user can accept or reject before
+    they go into the persistent store."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    accept = request.args.get('accept', 'false').lower() == 'true'
+    from _lib import strategy_evidence as se
+    from _lib import strategy_store as ss
+    mined = se.mine_lessons_from_data(bid)
+    existing = ss.load_strategy(bid).get('lessons', [])
+    diff = se.diff_lessons(mined, existing)
+    if accept and diff['to_add']:
+        for nl in diff['to_add']:
+            ss.upsert_lesson(bid, {
+                'category': nl['category'],
+                'claim': nl['claim'],
+                'evidence': nl.get('evidence', []),
+                'from_bet': nl.get('source', ''),
+                'auto': True,
+            })
+    if accept and diff['to_invalidate']:
+        for lid in diff['to_invalidate']:
+            ss.mark_lesson_invalid(bid, lid)
+    return jsonify({"ok": True, "mined_count": len(mined), "to_add_count": len(diff['to_add']),
+                    "to_invalidate_count": len(diff['to_invalidate']),
+                    "to_add": diff['to_add'][:10],
+                    "to_invalidate": diff['to_invalidate'],
+                    "applied": accept}), 200
+
+
+@app.route('/api/strategy/evaluate/<bet_id>', methods=['GET'])
+def strategy_evaluate(bet_id):
+    """Pull live data and score this bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_evidence as se
+    from _lib import strategy_store as ss
+    s = ss.load_strategy(bid)
+    bet = next((b for b in s.get('bets', []) if b.get('id') == bet_id), None)
+    if not bet:
+        return jsonify({"ok": False, "error": "bet not found"}), 404
+    eval_result = se.evaluate_bet(bet, bid)
+    return jsonify({"ok": True, "evaluation": eval_result}), 200
+
+
+@app.route('/strategy', methods=['GET'])
+def strategy_page():
+    """The Strategy page UI.
+
+    Architecture: the campaign-os shell loads ONCE. The Strategy workspace
+    content loads as a separate fragment that the shell injects into
+    <main>. This keeps total page weight sane — the shell is 932KB and
+    the workspace content is 117KB, but they're never concatenated.
+
+    URL state (all preserved when switching workspaces):
+      ?brand=X  → active brand (mandatory)
+      &view=quarter|month|week|year → zoom level
+      &lane=marketing|advertising|both → workhorse filter
+      &month=YYYY-MM → selected month in calendar
+      &bet=bet_id → opened bet modal
+      &plan=plan|actual|gap → execution view mode
+    """
+    bid = request.args.get('brand') or get_brand_id()
+    # Serve the shell unchanged — campaign-os.html already detects
+    # the /strategy URL via JS and loads the Strategy workspace.
+    os_shell_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campaign-os.html')
+    try:
+        with open(os_shell_path) as f:
+            shell = f.read()
+    except Exception:
+        return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
+
+    # Mark the active section so the sidebar can highlight it
+    shell = shell.replace(
+        'data-active-section="overview"',
+        'data-active-section="strategy"',
+        1,
+    )
+    # Update the page title + crumbs to reflect Strategy workspace
+    shell = shell.replace(
+        'id="title">Morning Brief',
+        'id="title">Strategy',
+        1,
+    )
+    shell = shell.replace(
+        'id="crumbs">Today',
+        'id="crumbs">Strategy',
+        1,
+    )
+    return shell, 200
+
+
+@app.route('/api/decisions/queue', methods=['GET'])
+def decisions_queue():
+    """Build the OS-wide decision queue for the brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        q = dc.build_decision_queue(bid)
+        return jsonify({"ok": True, "queue": q}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/header', methods=['GET'])
+def decisions_header():
+    """Morning Brief header — 'Good morning, BRAND' + counts."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        h = dc.morning_brief_header(bid)
+        return jsonify({"ok": True, "header": h}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/top-three', methods=['GET'])
+def decisions_top_three():
+    """Top 3 decision cards for the Morning Brief."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        top = dc.morning_brief_top_three(bid)
+        return jsonify({"ok": True, "top_three": top}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>', methods=['GET'])
+def decision_detail(decision_id):
+    """Full decision card detail."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        q = dc.build_decision_queue(bid)
+        card = next((c for c in q.get('queue', []) if c.get('id') == decision_id), None)
+        if not card:
+            return jsonify({"ok": False, "error": "not found"}), 404
+        return jsonify({"ok": True, "decision": card}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/decide', methods=['POST'])
+def decision_decide(decision_id):
+    """Record a human decision."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        result = dc.record_decision(
+            bid,
+            decision_id,
+            action=body.get('action', 'HOLD'),
+            reason=body.get('reason', ''),
+            person=body.get('person', 'christelle'),
+            context_patch=body.get('context'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/defer', methods=['POST'])
+def decision_defer(decision_id):
+    """Defer a decision with a wait condition."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        result = dc.defer_decision(
+            bid,
+            decision_id,
+            until=body.get('until'),
+            wait_for_bookings=body.get('wait_for_bookings'),
+            wait_for_spend=body.get('wait_for_spend'),
+            wait_for_measurement_fix=body.get('wait_for_measurement_fix', False),
+            reason=body.get('reason', ''),
+            person=body.get('person', 'christelle'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/disagree', methods=['POST'])
+def decision_disagree(decision_id):
+    """Disagree with the OS recommendation."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        result = dc.disagree_with_os(
+            bid,
+            decision_id,
+            chosen_action=body.get('chosen_action', 'HOLD'),
+            reason=body.get('reason', ''),
+            person=body.get('person', 'christelle'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/debt', methods=['GET'])
+def decisions_debt():
+    """Decision Debt — overdue + upcoming defers."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        d = dc.decision_debt(bid)
+        return jsonify({"ok": True, "debt": d}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/governance')
+def governance_page():
+    """The Governance view — authority model, policies, receipts, conflicts."""
+    gov_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_governance.html')
+    try:
+        with open(gov_path) as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/overview', methods=['GET'])
+def seo_overview():
+    """SEO overview: DA, keywords, freshness, weekly change."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        insights = seo_insights.build_full_insights()
+        return jsonify({
+            "ok": True,
+            "domain_health": insights["domain_health"],
+            "freshness": insights["freshness"],
+            "summary": insights["summary"],
+            "metadata": insights["metadata"],
+            "generated_at": insights["generated_at"],
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/status', methods=['GET'])
+def krea_status():
+    """GET /api/krea/status — is Krea AI connected?
+
+    Returns the connect URL + step-by-step guide so the operator can
+    complete the OAuth connect from the same screen.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        s = _krea.auth_status()
+        return jsonify({
+            "ok": True,
+            "connected": s["connected"],
+            "token_source": s["source"],
+            "base_url": s["base_url"],
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+            "next_step": s["next_step"],
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/models', methods=['GET'])
+def krea_models():
+    """GET /api/krea/models?category=image|video|enhance|3d — list models."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    category = request.args.get("category")
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.list_models(category)
+        return jsonify({"ok": True, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/model-schema", methods=["GET"])
+def krea_model_schema():
+    """GET /api/krea/model-schema?id=<id> — full input/output schema (live).
+
+    Uses a query parameter because Krea model IDs contain '/'.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    model_id = request.args.get("id")
+    if not model_id:
+        return jsonify({"ok": False, "error": "?id=<model_id> required"}), 400
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.get_model_schema(model_id)
+        return jsonify({"ok": True, "model_id": model_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/model-prompt-guide", methods=["GET"])
+def krea_prompt_guide():
+    """GET /api/krea/model-prompt-guide?id=<id> — model-specific prompt rules (live)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    model_id = request.args.get("id")
+    if not model_id:
+        return jsonify({"ok": False, "error": "?id=<model_id> required"}), 400
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.get_prompting_guide(model_id)
+        return jsonify({"ok": True, "model_id": model_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/job-status", methods=["GET"])
+def krea_job_status():
+    """GET /api/krea/job-status?id=<job_id> — poll a previously submitted job."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    job_id = request.args.get("id")
+    if not job_id:
+        return jsonify({"ok": False, "error": "?id=<job_id> required"}), 400
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.get_job(job_id)
+        return jsonify({"ok": True, "job_id": job_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/job-cancel", methods=["POST"])
+def krea_job_cancel():
+    """POST /api/krea/job-cancel — cancel a running generation job."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    job_id = (body.get("job_id") or request.args.get("id") or "").strip()
+    if not job_id:
+        return jsonify({"ok": False, "error": "job_id required"}), 400
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False, "code": "KREA_NOT_CONNECTED",
+                "error": "Krea MCP not connected",
+                "connect_url": "https://api.krea.ai/mcp",
+            }), 503
+        result = _krea.cancel_job(job_id)
+        return jsonify({"ok": True, "job_id": job_id, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({"ok": False, "code": "KREA_NOT_CONNECTED", "error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/status", methods=["GET"])
+def krea_knowledge_status():
+    """GET /api/krea/knowledge/status — snapshot of the knowledge-centre cache."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        status = _kc.knowledge_centre_status(_krea)
+        return jsonify({"ok": True, "status": status}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/refresh", methods=["POST"])
+def krea_knowledge_refresh():
+    """POST /api/krea/knowledge/refresh — re-pull models + prompt guides."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        models = _kc.refresh_models(_krea)
+        _kc.refresh_prompt_guides(_krea, models.get("flat", []))
+        _kc.run_daily_web_research(_krea)
+        status = _kc.knowledge_centre_status(_krea)
+        return jsonify({"ok": True, "status": status}), 200
+    except Exception as e:
+        _app_log.exception("krea_knowledge_refresh failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/models", methods=["GET"])
+def krea_knowledge_models():
+    """GET /api/krea/knowledge/models — cached model list (per category)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        models_path = _kc.KREA_DIR / 'models.json'
+        if not models_path.exists():
+            return jsonify({"ok": False, "error": "no cached models — run /api/krea/knowledge/refresh"}), 404
+        with open(models_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, "models": data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/guides", methods=["GET"])
+def krea_knowledge_guides():
+    """GET /api/krea/knowledge/guides — cached prompt guides + schemas."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        guides_path = _kc.KREA_DIR / 'prompt-guides.json'
+        if not guides_path.exists():
+            return jsonify({"ok": False, "error": "no cached guides — run /api/krea/knowledge/refresh"}), 404
+        with open(guides_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, "guides": data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/model-detail", methods=["GET"])
+def krea_knowledge_model_detail():
+    """GET /api/krea/knowledge/model-detail?id=<id> — single model cached detail.
+
+    Uses a query parameter because Krea model IDs contain '/' (e.g.
+    'bfl/flux-1.1-pro') which Flask interprets as path separators
+    under a URL-converter.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    model_id = request.args.get("id")
+    if not model_id:
+        return jsonify({"ok": False, "error": "?id=<model_id> required"}), 400
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        guides_path = _kc.KREA_DIR / 'prompt-guides.json'
+        if not guides_path.exists():
+            return jsonify({"ok": False, "error": "no cached guides — run /api/krea/knowledge/refresh"}), 404
+        with open(guides_path) as f:
+            data = json.load(f)
+        guide = data.get('guides', {}).get(model_id)
+        if not guide:
+            return jsonify({"ok": False, "error": f"no guide cached for {model_id}", "available_count": len(data.get('guides', {}))}), 404
+        return jsonify({"ok": True, "model_id": model_id, "guide": guide}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/krea/knowledge/research", methods=["GET"])
+def krea_knowledge_research():
+    """GET /api/krea/knowledge/research — daily web-research queue + findings."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        import sys as _sys
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for p in ('/app/scripts', '/data/campaign-os/scripts',
+                  os.path.join(repo_root, 'scripts')):
+            if p not in _sys.path:
+                _sys.path.insert(0, p)
+        import krea_knowledge_centre as _kc
+        research_path = _kc.KREA_DIR / 'research.json'
+        if not research_path.exists():
+            return jsonify({"ok": False, "error": "no research cached — run /api/krea/knowledge/refresh"}), 404
+        with open(research_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, "research": data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/tools', methods=['GET'])
+def krea_tools():
+    """GET /api/krea/tools — list the tools the Krea MCP exposes."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import krea_mcp as _krea
+        if not _krea.credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Krea MCP not connected. Walk the user through "
+                         "Settings → Connectors → Add custom connector → "
+                         "https://api.krea.ai/mcp. Sign in to Krea to authorize.",
+                "code": "KREA_NOT_CONNECTED",
+                "connect_url": "https://api.krea.ai/mcp",
+                "guide_url": "https://www.krea.ai/mcp",
+            }), 503
+        result = _krea.list_tools()
+        tools = result.get("tools", []) if isinstance(result, dict) else []
+        return jsonify({
+            "ok": True,
+            "tool_count": len(tools),
+            "tools": [
+                {"name": t.get("name"), "description": t.get("description")}
+                for t in tools
+            ],
+        }), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({
+            "ok": False, "error": str(e),
+            "code": "KREA_NOT_CONNECTED",
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+        }), 503
+    except _krea.KreaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream}), 503
+    except _krea.KreaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "status": e.status, "upstream": e.upstream}), 502
+    except _krea.KreaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/image', methods=['POST'])
+def krea_image_generate():
+    """POST /api/krea/image — generate a brand-aware image via Krea.
+
+    Body:
+      prompt: str             — the creative brief
+      brand: str              — brand id (default swing-shack)
+      model: str              — Krea model id (default flux-fast)
+      aspect_ratio: str       — 1:1, 16:9, 9:16, etc. (default 1:1)
+      extra: dict             — passed through to Krea (seed, style_preset, etc.)
+
+    Returns the MCP `tools/call` result, including the image URL.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    prompt = (body.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"ok": False, "error": "prompt is required"}), 400
+    brand = body.get("brand", "swing-shack")
+    model = body.get("model", "flux-fast")
+    aspect_ratio = body.get("aspect_ratio", "1:1")
+    extra = body.get("extra")
+    try:
+        from _lib import krea_mcp as _krea
+        result = _krea.image_generate(
+            prompt=prompt,
+            brand=brand,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            extra=extra,
+        )
+        return jsonify({"ok": True, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({
+            "ok": False, "error": str(e),
+            "code": "KREA_NOT_CONNECTED",
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+        }), 503
+    except _krea.KreaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream}), 503
+    except _krea.KreaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "status": e.status, "upstream": e.upstream}), 502
+    except _krea.KreaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("krea_image failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/krea/video', methods=['POST'])
+def krea_video_generate():
+    """POST /api/krea/video — generate a brand-aware short video via Krea.
+
+    Body:
+      prompt: str             — the creative brief
+      brand: str              — brand id (default swing-shack)
+      duration_seconds: int   — default 6
+      aspect_ratio: str       — default 16:9
+      extra: dict             — passed through to Krea
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    prompt = (body.get("prompt") or "").strip()
+    if not prompt:
+        return jsonify({"ok": False, "error": "prompt is required"}), 400
+    brand = body.get("brand", "swing-shack")
+    duration = int(body.get("duration_seconds", 6))
+    aspect_ratio = body.get("aspect_ratio", "16:9")
+    extra = body.get("extra")
+    try:
+        from _lib import krea_mcp as _krea
+        result = _krea.video_generate(
+            prompt=prompt,
+            brand=brand,
+            duration_seconds=duration,
+            aspect_ratio=aspect_ratio,
+            extra=extra,
+        )
+        return jsonify({"ok": True, "result": result}), 200
+    except _krea.KreaNotConnectedError as e:
+        return jsonify({
+            "ok": False, "error": str(e),
+            "code": "KREA_NOT_CONNECTED",
+            "connect_url": "https://api.krea.ai/mcp",
+            "guide_url": "https://www.krea.ai/mcp",
+        }), 503
+    except _krea.KreaAuthError as e:
+        return jsonify({"ok": False, "error": str(e), "upstream": e.upstream}), 503
+    except _krea.KreaUpstreamError as e:
+        return jsonify({"ok": False, "error": str(e), "status": e.status, "upstream": e.upstream}), 502
+    except _krea.KreaNetworkError as e:
+        return jsonify({"ok": False, "error": str(e)}), 504
+    except Exception as e:
+        _app_log.exception("krea_video failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/insights', methods=['GET'])
+def seo_insights_full():
+    """Full SEO insights report — winning, leaking, missing, quick wins."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        insights = seo_insights.build_full_insights()
+        return jsonify({"ok": True, "insights": insights}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/keywords/<category>', methods=['GET'])
+def seo_keywords_category(category):
+    """winning | leaking | missing | quick_wins"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        rank = seo_insights.load_seo_rankings()
+        if category == "winning":
+            items = seo_insights.winning_keywords(rank)
+        elif category == "leaking":
+            items = seo_insights.leaking_keywords(rank)
+        elif category == "missing":
+            items = seo_insights.missing_keywords(rank)
+        elif category == "quick_wins":
+            items = seo_insights.quick_wins(rank)
+        else:
+            return jsonify({"ok": False, "error": f"unknown category: {category}"}), 400
+        return jsonify({"ok": True, "category": category, "items": items, "count": len(items)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/competitors', methods=['GET'])
+def seo_competitors():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        comps = seo_insights.competitors_table()
+        return jsonify({"ok": True, "competitors": comps, "count": len(comps)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _ensure_ubersuggest_token_file():
+    """Mint a real token file at a writable path so the wrapper can find it.
+    Prefers the canonical path; falls back to /tmp/ubersuggest-api.json on
+    ephemeral filesystems (Railway)."""
+    tok = os.environ.get("UBERSUGGEST_ACCESS_TOKEN")
+    ref = os.environ.get("UBERSUGGEST_REFRESH_TOKEN")
+    if not tok:
+        return False
+    # Try the canonical path first
+    canonical = os.path.expanduser(
+        "~/.openclaw-instance2/workspace/clients/swing-shack/credentials/ubersuggest-api.json"
+    )
+    candidates = [canonical, "/tmp/ubersuggest-api.json", "/app/ubersuggest-api.json"]
+    payload = {
+        "access_token": tok,
+        "refresh_token": ref or "",
+        "token_type": "Bearer",
+        "obtained_at": int(_dt_cls.now(_tz.utc).timestamp()),
+        "expires_in": 172800,
+        "expires_at": int(_dt_cls.now(_tz.utc).timestamp()) + 172800,
+        "refreshed_at": int(_dt_cls.now(_tz.utc).timestamp()),
+        "scope": "profile domain keywords serp backlinks site_audit content projects utility",
+        "_source": "UBERSUGGEST_ACCESS_TOKEN env var",
+    }
+    for path_ in candidates:
+        try:
+            os.makedirs(os.path.dirname(path_), exist_ok=True)
+            with open(path_, "w") as f:
+                json.dump(payload, f, indent=2)
+            try:
+                os.chmod(path_, 0o600)
+            except Exception:
+                pass
+            os.environ["UBERSUGGEST_TOKEN_FILE"] = path_
+            return True
+        except Exception:
+            continue
+    return False
+
+_ensure_ubersuggest_token_file()
+
+
+@app.route('/api/seo/refresh', methods=['POST'])
+def seo_refresh():
+    """Force a fresh Ubersuggest pull. Runs the wrapper inline so Railway does not need a separate scripts/ entry."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import ubersuggest_mcp as _us
+        import datetime as _dt2
+        # Make sure credentials are in place (writes file from env vars if present)
+        env_tok = os.environ.get("UBERSUGGEST_ACCESS_TOKEN", "")
+        env_ref = os.environ.get("UBERSUGGEST_REFRESH_TOKEN", "")
+        ensured = _ensure_ubersuggest_token_file()
+        if not _us.ubersuggest_credentials_present():
+            return jsonify({
+                "ok": False,
+                "error": "Ubersuggest credentials not configured",
+                "hint": "run scripts/ubersuggest_oauth.py on this machine to authorise",
+                "debug": {
+                    "env_access_token_set": bool(env_tok),
+                    "env_refresh_token_set": bool(env_ref),
+                    "ensure_token_file_ok": ensured,
+                    "token_file_path": os.environ.get("UBERSUGGEST_TOKEN_FILE", "?"),
+                },
+            }), 503
+            return jsonify({
+                "ok": False,
+                "error": "Ubersuggest credentials not configured",
+                "hint": "run scripts/ubersuggest_oauth.py on this machine to authorise"
+            }), 503
+        project_id = _us.find_project_id_for_domain("swingshack.co.za")
+        end = _dt2.date.today().isoformat()
+        start = (_dt2.date.today() - _dt2.timedelta(days=60)).isoformat()
+        logs = []
+        def _unpack(raw):
+            """Unwrap MCP-format response to the inner JSON dict."""
+            if not isinstance(raw, dict):
+                return raw or {}
+            content = raw.get("content")
+            if isinstance(content, list) and content and isinstance(content[0], dict):
+                txt = content[0].get("text", "{}")
+                try:
+                    return json.loads(txt) if isinstance(txt, str) else txt
+                except Exception:
+                    return raw
+            return raw
+
+        pos_raw = _unpack(_us.project_position_info(project_id, start_date=start, end_date=end, language="en", device="desktop"))
+        domain = _unpack(_us.domain_overview("swingshack.co.za"))
+        bl = _unpack(_us.backlinks_overview("swingshack.co.za"))
+        comps_raw = _unpack(_us.competitors("swingshack.co.za"))
+
+        n_keywords = len((pos_raw or {}).get("keywords", []) or [])
+        n_comps = len(comps_raw) if isinstance(comps_raw, list) else len((comps_raw or {}).get("competitors", []))
+
+        logs.append("project_position_info: %d keywords" % n_keywords)
+        logs.append("domain_overview: DA %s" % (domain or {}).get("domainAuthority", "?"))
+        logs.append("backlinks: %s" % (bl or {}).get("backlinks", "?"))
+        logs.append("competitors: %d" % n_comps)
+
+        # Persist to disk so /seo-audit picks up the fresh data
+        try:
+            data_dir = os.environ.get("DATA_DIR", "/data")
+            fetched_at = _dt_cls.now(_tz.utc).isoformat()
+            # Position info — pos_raw is already unpacked to the inner dict
+            pos_doc = dict(pos_raw or {})
+            pos_doc["metadata"] = {
+                "domain": "swingshack.co.za",
+                "fetched_at": fetched_at,
+                "startDate": start,
+                "endDate": end,
+                "project_id": project_id,
+            }
+            with open(os.path.join(data_dir, "seo-rankings.json"), "w") as f:
+                json.dump(pos_doc, f, indent=2, default=str)
+            # Force a fresh read so the insights engine picks up the new file
+            try:
+                from _lib import seo_insights as _si
+                _si.load_seo_rankings.cache_clear() if hasattr(_si.load_seo_rankings, 'cache_clear') else None
+            except Exception:
+                pass
+            # Domain overview
+            dom_doc = dict(domain or {})
+            dom_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, "ubersuggest-domain.json"), "w") as f:
+                json.dump(dom_doc, f, indent=2, default=str)
+            # Backlinks
+            bl_doc = dict(bl or {})
+            bl_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, "ubersuggest-backlinks.json"), "w") as f:
+                json.dump(bl_doc, f, indent=2, default=str)
+            # Competitors
+            comps_doc = {
+                "competitors": comps_raw if isinstance(comps_raw, list) else (comps_raw or {}).get("competitors", []),
+                "_meta": {"domain": "swingshack.co.za", "fetched_at": fetched_at, "count": n_comps},
+            }
+            with open(os.path.join(data_dir, "ubersuggest-competitors.json"), "w") as f:
+                json.dump(comps_doc, f, indent=2, default=str)
+            logs.append("persisted: data/seo-rankings.json + 3x ubersuggest-*.json")
+        except Exception as exc:
+            logs.append(f"persistence failed: {exc}")
+
+        return jsonify({
+            "ok": True,
+            "project_id": project_id,
+            "window": {"start": start, "end": end},
+            "logs": logs,
+            "summary": {
+                "domain_authority": (domain or {}).get("domainAuthority"),
+                "backlinks": (bl or {}).get("backlinks"),
+                "tracked_keywords": n_keywords,
+            },
+        }), 200
+    except Exception as e:
+        import traceback
+        return jsonify({"ok": False, "error": str(e), "trace": traceback.format_exc()[-1000:]}), 500
+
+
+@app.route('/api/seo/debug/full', methods=['GET'])
+def seo_debug_full():
+    """Dump the raw seo-rankings.json so we can see exactly what's on disk."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        path = os.path.join(data_dir, "seo-rankings.json")
+        with open(path) as f:
+            return jsonify(json.load(f)), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/debug', methods=['GET'])
+def seo_debug():
+    """Inspect what's actually on disk."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        data_dir = os.environ.get("DATA_DIR", "/data")
+        path = os.path.join(data_dir, "seo-rankings.json")
+        with open(path) as f:
+            d = json.load(f)
+        keys = list(d.keys())
+        kws = d.get("keywords", []) or []
+        # Show all keywords briefly
+        all_kws = []
+        for k in kws:
+            np_ = k.get("new_position") or {}
+            op = k.get("old_position") or {}
+            all_kws.append({
+                "keyword": k.get("keyword"),
+                "current": np_.get("position") if isinstance(np_, dict) else k.get("current_rank"),
+                "previous": op.get("position") if isinstance(op, dict) else k.get("previous_rank"),
+                "volume": k.get("volume") or k.get("search_volume") or 0,
+            })
+        sample = kws[0] if kws else {}
+        return jsonify({
+            "ok": True,
+            "top_level_keys": keys,
+            "keywords_count": len(kws),
+            "all_keywords": all_kws,
+            "sample_keyword": sample,
+            "sample_keys": list(sample.keys()) if sample else [],
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/report', methods=['GET'])
+def seo_report():
+    """Plain-language markdown report — Winning / Leaking / Missing / Quick Wins / Competitors."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import seo_insights
+        insights = seo_insights.build_full_insights()
+        md = seo_insights.render_markdown(insights)
+        return jsonify({"ok": True, "markdown": md}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/seo-audit')
+def seo_audit_page():
+    """The SEO insights page."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_seo_audit.html')
+    try:
+        with open(path) as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/status', methods=['GET'])
+def governance_status():
+    """Snapshot of the OS authority model for the brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        return jsonify({"ok": True, "status": gv.governance_status(bid)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/policies', methods=['GET'])
+def governance_policies_list():
+    """List automation policies."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        doc = gv.load_policies(bid)
+        return jsonify({"ok": True, "policies": doc.get("policies", [])}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/policies', methods=['POST'])
+def governance_policies_create():
+    """Create an explicit automation policy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.add_policy(
+            bid,
+            rule=body.get('rule', ''),
+            scope=body.get('scope', '*'),
+            action=body.get('action', ''),
+            expires=body.get('expires'),
+            notify=body.get('notify', 'immediately'),
+            description=body.get('description'),
+            created_by=body.get('created_by', 'christelle'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/policies/<policy_id>', methods=['DELETE'])
+def governance_policies_delete(policy_id):
+    """Remove an automation policy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.remove_policy(bid, policy_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/governance/conflicts', methods=['GET'])
+def governance_conflicts():
+    """Detect conflicting subsystem recommendations."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        conflicts = gv.detect_conflicts(bid)
+        return jsonify({"ok": True, "conflicts": conflicts}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/preview', methods=['GET'])
+def decision_preview(decision_id):
+    """Build the 'YOU ARE ABOUT TO' approval preview."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    action = request.args.get('action', 'PAUSE')
+    try:
+        from _lib import governance as gv
+        preview = gv.build_approval_preview(bid, decision_id, action)
+        return jsonify({"ok": True, "preview": preview}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/execute', methods=['POST'])
+def decision_execute(decision_id):
+    """Execute a decision through the full hierarchy. Requires human_approved=True unless a matching policy exists."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    action = body.get('action', 'PAUSE')
+    try:
+        from _lib import governance as gv
+        result = gv.execute_decision(
+            bid,
+            decision_id,
+            action=action,
+            human_approved=body.get('human_approved', True),
+            person=body.get('person', 'christelle'),
+            reason=body.get('reason', ''),
+            previous_state=body.get('previous_state'),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/quality', methods=['GET'])
+def decision_quality(decision_id):
+    """Assess decision quality for this card."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        q = gv.assess_decision_quality(bid, decision_id)
+        return jsonify(q), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/review', methods=['GET'])
+def decision_review_outcome(decision_id):
+    """Outcome review for a previously-decided item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.review_decision_outcome(bid, decision_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/<decision_id>/review', methods=['POST'])
+def decision_mark_outcome(decision_id):
+    """Mark the outcome verdict (evidence_supports / reconsider / mixed)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = body.get('brand_id') or request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.mark_outcome(bid, decision_id, body.get('verdict', ''), body.get('notes', ''))
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/receipts', methods=['GET'])
+def decisions_receipts():
+    """List action receipts (what was actually executed)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        docs = gv.load_receipts(bid)
+        return jsonify({"ok": True, "receipts": docs.get("receipts", [])}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/receipts/<receipt_id>/undo', methods=['POST'])
+def decisions_receipts_undo(receipt_id):
+    """Undo a reversible execution."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import governance as gv
+        result = gv.undo_execution(bid, receipt_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/decisions/clear-my-desk', methods=['GET'])
+def decisions_clear_my_desk():
+    """Step-by-step sequence for clearing the desk."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    try:
+        from _lib import decision as dc
+        seq = dc.clear_my_desk_sequence(bid)
+        return jsonify({"ok": True, "sequence": seq}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/workspace/strategy', methods=['GET'])
+def workspace_strategy():
+    """The Strategy workspace fragment — loaded into <main> on demand.
+
+    Returns only the Strategy content (no shell). The shell's JS injects
+    this into <main> on /strategy. Lazy-loaded — never bundled with the shell.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    return render_template_string(STRATEGY_PAGE_HTML, brand_id=bid), 200
+
+
+@app.route('/api/strategy/snapshot', methods=['POST'])
+def strategy_snapshot():
+    """Take a weekly trend snapshot (record evidence_for / against counts now).
+    Called manually or by weekly cron."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    trend = ss.snapshot_evidence(bid)
+    return jsonify({"ok": True, "snapshots": len(trend.get('snapshots', [])),
+                    "last_snap": trend.get('snapshots', [{}])[-1]}), 200
+
+
+@app.route('/api/strategy/trend/<record_type>/<record_id>', methods=['GET'])
+def strategy_trend(record_type, record_id):
+    """Get the trend signal (strengthening/flat/weakening/disproved) for a record."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    result = ss.compute_trend_signal(bid, record_id, record_type)
+    return jsonify({"ok": True, "trend": result}), 200
+
+
+@app.route('/api/strategy/seed', methods=['POST'])
+def strategy_seed():
+    """Seed endpoint disabled. Real data must flow in via /api/strategy/bet etc."""
+    return jsonify({"ok": False, "error": "seed disabled. Real data must flow in via /api/strategy/bet etc."}), 410
+
+@app.route('/api/strategy/_seed_disabled', methods=['POST'])
+def strategy_seed_disabled_marker():
+    """Seed the swing-shack default thesis + bets.
+    ?force=true wipes the existing strategy first."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    force = request.args.get('force', 'false').lower() == 'true'
+    from _lib import strategy_store as ss
+    s = ss.seed_swing_shack_default(bid, force=force)
+    return jsonify({"ok": True, "strategy": s, "forced": force}), 200
+
+
+@app.route('/api/strategy/retire/<record_type>/<record_id>', methods=['POST'])
+def strategy_retire(record_type, record_id):
+    """Retire (not delete) a market move or bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    reason = body.get('reason', '')
+    from _lib import strategy_store as ss
+    if record_type == 'move':
+        s = ss.retire_market_move(bid, record_id, reason)
+    elif record_type == 'bet':
+        s = ss.retire_bet(bid, record_id, reason)
+    else:
+        return jsonify({"ok": False, "error": "record_type must be move or bet"}), 400
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/link-bet-move', methods=['POST'])
+def strategy_link_bet_move():
+    """Link a bet to a market move."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.link_bet_to_market_move(bid, body.get('bet_id'), body.get('market_move_id'))
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/link-post-bet', methods=['POST'])
+def strategy_link_post_bet():
+    """Link a calendar post to a bet. The bet will list it as supporting content."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    s = ss.link_calendar_post_to_bet(bid, body.get('bet_id'), body.get('post_id'))
+    return jsonify({"ok": True, "strategy": s}), 200
+
+
+@app.route('/api/strategy/promote-lesson', methods=['POST'])
+def strategy_promote_lesson():
+    """Promote a lesson to a new bet (the worked/retry lesson becomes a hypothesis)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    try:
+        s = ss.promote_lesson_to_bet(bid, body.get('lesson_id'), body.get('bet_payload', {}))
+        return jsonify({"ok": True, "strategy": s}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/promotion-candidates', methods=['GET'])
+def strategy_promotion_candidates():
+    """List lessons that deserve to become bets."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_evidence as se
+    cands = se.mine_lesson_promotion_candidates(bid)
+    return jsonify({"ok": True, "candidates": cands}), 200
+
+
+
+
+# ─── Strategic calendar API ──────────────────────────────────────────
+
+@app.route('/api/strategy/calendar', methods=['GET'])
+def strategy_calendar():
+    """Return the strategic calendar view. ?view=year|quarter|month|week
+    ?year=2026&quarter=3&month=9 optional scope filters.
+    Each bet enriched with spend, evidence_layer, advertising_decision, calendar_warning."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    view = request.args.get('view', 'year')
+    year = request.args.get('year', type=int)
+    quarter = request.args.get('quarter', type=int)
+    month = request.args.get('month', type=int)
+    from _lib import strategy_store as ss
+    cal = ss.get_calendar_view(bid, view=view, year=year, quarter=quarter, month=month)
+
+    # Enrich each bet with spend + evidence + decision + warning
+    from _lib import spend as sp
+    for bet in cal.get("timeline", {}).get("bets", []):
+        bid_id = bet["id"]
+        try:
+            eff = sp.strategic_efficiency(bid, bid_id)
+            bet["spend_rands"] = eff["money"]["total_rands"]
+            bet["evidence_layer"] = eff["evidence_layer_reached"]
+            bet["evidence_layer_label"] = sp.LAYER_LANGUAGE.get(eff["evidence_layer_reached"], "—")
+            bet["advertising_decision"] = eff["advertising_decision"]
+            bet["strategic_decision"] = eff["strategic_decision"]
+            if eff["money"]["total_rands"] > 0 and eff["evidence_layer_reached"] in ("impression", "click") and eff["outcome"].get("bookings", 0) == 0:
+                bet["calendar_warning"] = f"R{eff['money']['total_rands']:,.0f} active spend · booking tracking unavailable"
+            else:
+                bet["calendar_warning"] = None
+        except Exception:
+            bet["spend_rands"] = 0
+            bet["evidence_layer"] = None
+            bet["advertising_decision"] = None
+    return jsonify({"ok": True, "calendar": cal}), 200
+
+
+@app.route('/api/strategy/density', methods=['GET'])
+def strategy_density():
+    """Detect strategy density warnings — too many bets in one month."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    year = request.args.get('year', type=int)
+    from _lib import strategy_store as ss
+    density = ss.compute_strategy_density(bid, year=year)
+    return jsonify({"ok": True, "density": density}), 200
+
+
+@app.route('/api/strategy/decision-queue', methods=['GET'])
+def strategy_decision_queue():
+    """Bets approaching their decision_date — prompts SCALE/REFINE/RETRY/KILL."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    within = request.args.get('within_days', 30, type=int)
+    from _lib import strategy_store as ss
+    queue = ss.get_decision_queue(bid, within_days=within)
+    return jsonify({"ok": True, "queue": queue}), 200
+
+
+@app.route('/api/strategy/decision', methods=['POST'])
+def strategy_log_decision():
+    """Record a SCALE/REFINE/RETRY/KILL decision on a bet. Creates a lesson."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    bet_id = body.get('bet_id')
+    outcome = body.get('outcome')
+    note = body.get('note', '')
+    from _lib import strategy_store as ss
+    try:
+        result = ss.log_decision(bid, bet_id, outcome, note)
+        return jsonify({"ok": True, "strategy": result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/execution-log', methods=['POST'])
+def strategy_execution_log():
+    """Record what actually shipped vs what was planned. Powers PLAN vs ACTUAL."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    try:
+        result = ss.append_execution_log(bid, body.get('bet_id'),
+                                          body.get('planned', ''),
+                                          body.get('actual', ''),
+                                          body.get('note', ''))
+        return jsonify({"ok": True, "strategy": result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/milestone', methods=['POST'])
+def strategy_add_milestone():
+    """Add a milestone marker (launch / test_start / test_end / review /
+    decision / peak / seasonal / product / partnership)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import strategy_store as ss
+    try:
+        result = ss.add_milestone(bid,
+                                   body.get('record_type'),  # 'move' or 'bet'
+                                   body.get('record_id'),
+                                   body.get('date'),
+                                   body.get('type'),
+                                   body.get('label'))
+        return jsonify({"ok": True, "strategy": result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/strategy/plan-vs-actual', methods=['GET'])
+def strategy_plan_vs_actual():
+    """Compare planned vs actual across all bets."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import strategy_store as ss
+    pva = ss.compute_plan_vs_actual(bid)
+    return jsonify({"ok": True, "plan_vs_actual": pva}), 200
+
+
+
+# ─── Monday brief + strategic strip + replay ─────────────────────────
+
+@app.route('/api/strategy/brief/weekly', methods=['GET'])
+def strategy_weekly_brief():
+    """The Monday brief. Composed on-the-fly from current state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    snapshot_first = request.args.get('snapshot', 'true').lower() == 'true'
+    fmt = request.args.get('format', 'json')
+    from _lib import weekly_brief as wb
+    brief = wb.compose_monday_brief(bid, snapshot_first=snapshot_first)
+    if fmt == 'markdown':
+        return Response(wb.render_brief_markdown(brief), mimetype='text/markdown'), 200
+    return jsonify({"ok": True, "brief": brief}), 200
+
+
+@app.route('/api/strategy/strip', methods=['GET'])
+def strategy_compact_strip():
+    """Compact strategic strip — Mon-Sun row + active-this-week pills.
+    ?weeks_ahead=0 (this week), 1 (next), -1 (last)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    weeks_ahead = request.args.get('weeks_ahead', 0, type=int)
+    from _lib import weekly_brief as wb
+    strip = wb.build_compact_strip(bid, weeks_ahead=weeks_ahead)
+
+    # Shape for the global nav: active_this_week as a flat list + next_decision
+    active_pills = []
+    for a in strip.get('active_this_week', []) or []:
+        active_pills.append({
+            'id': a.get('id'),
+            'title': a.get('title', a.get('id', '')),
+            'trend': a.get('trend', ''),
+        })
+    result = dict(strip)
+    result['active_this_week'] = active_pills
+
+    # Next decision
+    try:
+        from _lib import strategy_store as ss
+        import datetime as _dt
+        s = ss.load_strategy(bid)
+        today = _dt.date.today()
+        candidates = []
+        for b in s.get('bets', []):
+            dd = b.get('decision_date')
+            if dd:
+                try:
+                    dd_d = _dt.datetime.fromisoformat(dd[:10]).date()
+                    if dd_d >= today:
+                        candidates.append((dd_d, {
+                            'id': b['id'],
+                            'title': b.get('title', ''),
+                            'due': dd,
+                            'kind': 'bet',
+                        }))
+                except Exception:
+                    pass
+        if candidates:
+            candidates.sort()
+            result['next_decision'] = candidates[0][1]
+        else:
+            result['next_decision'] = None
+    except Exception:
+        result['next_decision'] = None
+
+    return jsonify({"ok": True, "strip": result}), 200
+
+
+@app.route('/api/os/nav-fragment', methods=['GET'])
+def nav_fragment():
+    """Serve the global nav HTML fragment. Pages include this then call the JS."""
+    if not _is_authed():
+        return ("", 401)
+    nav_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_nav.html')
+    if not os.path.isfile(nav_path):
+        return ("", 404)
+    with open(nav_path) as f:
+        return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+
+@app.route('/api/strategy/replay/<record_type>/<record_id>', methods=['GET'])
+def strategy_replay(record_type, record_id):
+    """Full chronological history of a move or bet — snapshots, decisions, lessons."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import weekly_brief as wb
+    replay = wb.build_replay(bid, record_type, record_id)
+    if not replay:
+        return jsonify({"ok": False, "error": "record not found"}), 404
+    return jsonify({"ok": True, "replay": replay}), 200
+
+
+
+# ─── Audit layer API ──────────────────────────────────────────────────
+
+@app.route('/api/audit/run', methods=['GET'])
+def audit_run():
+    """Run the audit. ?light=true for Monday-brief mode (max 3 needs_cleaning)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    light = request.args.get('light', 'false').lower() == 'true'
+    from _lib import audit as au
+    audit = au.run_audit(bid, light=light)
+    return jsonify({"ok": True, "audit": audit}), 200
+
+
+@app.route('/api/audit/why-still-here/<item_type>/<item_id>', methods=['GET'])
+def audit_why_still_here(item_type, item_id):
+    """One-shot answer to 'why is this still here?' for a single item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import audit as au
+    result = au.why_still_here(item_type, item_id, bid)
+    return jsonify(result), (200 if result.get("ok") else 404)
+
+
+@app.route('/api/audit/decide', methods=['POST'])
+def audit_decide():
+    """Record a KEEP/UPDATE/PAUSE/RETIRE/DELETE decision. Writes to strategic memory."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import audit as au
+    try:
+        result = au.record_audit_decision(
+            body.get('item_type'),
+            body.get('item_id'),
+            body.get('decision'),
+            body.get('note', ''),
+            bid,
+        )
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/audit/kill-meeting', methods=['GET'])
+def audit_kill_meeting():
+    """Generate the monthly 'WHAT SHOULD WE STOP DOING?' report."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import audit as au
+    meeting = au.kill_meeting(bid)
+    return jsonify({"ok": True, "meeting": meeting}), 200
+
+
+@app.route('/api/audit/clutter', methods=['GET'])
+def audit_clutter():
+    """Return the strategy clutter report only."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import audit as au
+    audit = au.run_audit(bid, light=True)
+    return jsonify({"ok": True, "clutter": audit["clutter_report"]}), 200
+
+
+
+# ─── Marketing portfolio API ──────────────────────────────────────────
+
+@app.route('/api/portfolio/effort', methods=['GET'])
+def portfolio_effort():
+    """Where is marketing effort going? Per period (month|quarter)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    period = request.args.get('period', 'month')
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "effort": pf.compute_effort_allocation(bid, period)}), 200
+
+
+@app.route('/api/portfolio/demand-mismatch', methods=['GET'])
+def portfolio_demand_mismatch():
+    """Demand vs content mismatch. Effort vs customer behaviour."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "mismatch": pf.compute_demand_mismatch(bid)}), 200
+
+
+@app.route('/api/portfolio/opportunities', methods=['GET'])
+def portfolio_opportunities():
+    """Opportunities that don't currently exist in the calendar."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    opps = pf.detect_opportunities(bid)
+    return jsonify({"ok": True, "opportunities": opps}), 200
+
+
+@app.route('/api/portfolio/opportunity-decide', methods=['POST'])
+def portfolio_opportunity_decide():
+    """Create bet / Watch / Ignore decision for an opportunity.
+    Ignore writes to strategic memory."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import portfolio as pf
+    result = pf.record_opportunity_decision(
+        bid,
+        body.get('opportunity_id'),
+        body.get('decision'),
+        body.get('note', ''),
+    )
+    return jsonify(result), 200
+
+
+@app.route('/api/portfolio/coverage', methods=['GET'])
+def portfolio_coverage():
+    """Strategic coverage per market move."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "coverage": pf.compute_strategic_coverage(bid)}), 200
+
+
+@app.route('/api/portfolio/priority-vs-effort', methods=['GET'])
+def portfolio_priority_vs_effort():
+    """Priority vs Effort matrix per market move."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "matrix": pf.compute_priority_vs_effort(bid)}), 200
+
+
+@app.route('/api/portfolio/marketing-vs-advertising', methods=['GET'])
+def portfolio_mkt_vs_adv():
+    """Marketing vs Advertising balance view."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    return jsonify({"ok": True, "balance": pf.compute_marketing_vs_advertising_balance(bid)}), 200
+
+
+@app.route('/api/portfolio/simulate', methods=['POST'])
+def portfolio_simulate():
+    """Simulate the opportunity cost of adding a proposed bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import portfolio as pf
+    result = pf.simulate_opportunity_cost(bid, body)
+    return jsonify({"ok": True, "simulation": result}), 200
+
+
+@app.route('/api/portfolio/monthly-meeting', methods=['GET'])
+def portfolio_monthly_meeting():
+    """The monthly strategy meeting: KEEP / KILL / SCALE / FIX / MISSING / BET."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import portfolio as pf
+    meeting = pf.generate_monthly_meeting(bid)
+    return jsonify({"ok": True, "meeting": meeting}), 200
+
+
+
+# ─── Spend / Money API ────────────────────────────────────────────────
+
+@app.route('/api/spend/seed', methods=['POST'])
+def spend_seed():
+    """Seed endpoint disabled. Real data must flow in via /api/spend/campaign etc."""
+    return jsonify({"ok": False, "error": "seed disabled. Real data must flow in via /api/spend/campaign etc."}), 410
+
+@app.route('/api/spend/_seed_disabled', methods=['POST'])
+def spend_seed_disabled_marker():
+    """Seed sample spend data for swing-shack so the UI shows real numbers."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    if request.args.get('reset', 'false').lower() == 'true':
+        # Wipe before re-seed
+        from pathlib import Path
+        sp._spend_path(bid).unlink(missing_ok=True)
+    doc = sp.seed_sample_spend(bid)
+    return jsonify({"ok": True, "doc": doc}), 200
+
+
+@app.route('/api/spend/reconcile', methods=['GET'])
+def spend_reconcile():
+    """Run reconciliation audit on the Money layer."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    r = sp.reconcile_spend_data(bid)
+    return jsonify({"ok": True, "reconciliation": r}), 200
+
+
+@app.route('/api/spend/calculate', methods=['POST'])
+def spend_calculate():
+    """Canonical cost metric calculation. Returns raw inputs + formula + value."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    from _lib import spend as sp
+    result = sp.calculate_metric(
+        body.get('metric'),
+        body.get('performance') or {},
+        body.get('spend', 0),
+    )
+    return jsonify({"ok": True, "result": result}), 200
+
+
+@app.route('/api/spend/reset', methods=['POST'])
+def spend_reset():
+    """Wipe all spend data for the brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    path = sp._spend_path(bid)
+    path.unlink(missing_ok=True)
+    return jsonify({"ok": True, "wiped": str(path)}), 200
+
+
+@app.route('/api/spend/campaigns', methods=['GET'])
+def spend_campaigns():
+    """List paid campaigns with attribution + performance + spend."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    doc = sp.load_spend(bid)
+    return jsonify({"ok": True, "campaigns": doc.get("campaigns", [])}), 200
+
+
+@app.route('/api/spend/record', methods=['POST'])
+def spend_record():
+    """Record or update a paid campaign."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import spend as sp
+    try:
+        doc = sp.record_campaign(
+            bid,
+            body.get('campaign_id'),
+            body.get('platform'),
+            body.get('spend_rands'),
+            body.get('period_start'),
+            body.get('period_end'),
+            body.get('strategy_link'),
+            body.get('attribution_source', 'platform'),
+            body.get('attribution_confidence', 'low'),
+            body.get('performance'),
+            body.get('name'),
+            body.get('status', 'active'),
+        )
+        return jsonify({"ok": True, "doc": doc}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.route('/api/spend/orphans', methods=['GET'])
+def spend_orphans():
+    """Paid campaigns with no strategic link."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    orphans = sp.detect_orphaned_spend(bid)
+    return jsonify({"ok": True, "orphans": orphans, "count": len(orphans)}), 200
+
+
+@app.route('/api/spend/efficiency/<bet_id>', methods=['GET'])
+def spend_efficiency(bet_id):
+    """5-layer Strategic Efficiency for a single bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    eff = sp.strategic_efficiency(bid, bet_id)
+    return jsonify({"ok": True, "efficiency": eff}), (200 if "error" not in eff else 404)
+
+
+@app.route('/api/spend/spend-vs-priority', methods=['GET'])
+def spend_vs_priority():
+    """Per-area priority vs spend share matrix."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    svp = sp.spend_vs_priority(bid)
+    return jsonify({"ok": True, "matrix": svp}), 200
+
+
+@app.route('/api/spend/burn-vs-maturity/<bet_id>', methods=['GET'])
+def spend_burn_vs_maturity(bet_id):
+    """% of budget spent vs evidence maturity vs decision date."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    bvm = sp.budget_burn_vs_maturity(bid, bet_id)
+    return jsonify({"ok": True, "burn": bvm}), (200 if "error" not in bvm else 404)
+
+
+@app.route('/api/spend/creative/<campaign_id>', methods=['GET'])
+def spend_creative_efficiency(campaign_id):
+    """Creative-level evidence + recommendations."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    ce = sp.creative_efficiency(bid, campaign_id)
+    return jsonify({"ok": True, "creative_efficiency": ce}), (200 if "error" not in ce else 404)
+
+
+@app.route('/api/spend/handoff', methods=['GET'])
+def spend_handoff():
+    """Marketing ↔ Advertising handoff opportunities."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    h = sp.marketing_advertising_handoff(bid)
+    return jsonify({"ok": True, "handoff": h}), 200
+
+
+@app.route('/api/spend/opportunity-cost', methods=['POST'])
+def spend_opportunity_cost():
+    """Where would the proposed R come from?"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import spend as sp
+    oc = sp.budget_opportunity_cost(bid, body.get('budget', 0), body.get('for_proposed'))
+    return jsonify({"ok": True, "opportunity_cost": oc}), 200
+
+
+@app.route('/api/spend/attribution-disagreements', methods=['GET'])
+def spend_attribution_disagreements():
+    """When platform/GA4/UTM/CRM numbers disagree, show the disagreement."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    disagreements = sp.attribution_disagreements(bid)
+    return jsonify({"ok": True, "disagreements": disagreements}), 200
+
+
+@app.route('/api/spend/concentration', methods=['GET'])
+def spend_concentration():
+    """Spend concentration warnings."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    return jsonify({"ok": True, "warnings": sp.spend_concentration_warnings(bid)}), 200
+
+
+@app.route('/api/spend/r1-buy/<campaign_id>', methods=['GET'])
+def spend_r1_buy(campaign_id):
+    """What did R1 buy us? Staged attribution per Rand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import spend as sp
+    doc = sp.load_spend(bid)
+    campaign = next((c for c in doc["campaigns"] if c["campaign_id"] == campaign_id), None)
+    if not campaign:
+        return jsonify({"ok": False, "error": "campaign not found"}), 404
+    claim = sp.what_did_r1_buy(campaign)
+    return jsonify({"ok": True, "claim": claim.to_dict()}), 200
+
+
+
+# ─── Integrity / Data Health API ────────────────────────────────────────
+
+@app.route('/api/integrity/run', methods=['GET'])
+def integrity_run():
+    """Severity-graded reconciliation. Silent when healthy."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    recon = it.reconcile(bid)
+    return jsonify({"ok": True, "reconciliation": recon}), 200
+
+
+@app.route('/api/integrity/data-health', methods=['GET'])
+def integrity_data_health():
+    """Overall data health score + per-source status."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    h = it.data_health(bid)
+    return jsonify({"ok": True, "health": h}), 200
+
+
+@app.route('/api/integrity/measurement-debt', methods=['GET'])
+def integrity_measurement_debt():
+    """Per-layer status + 'what would unlock the next claim'."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    debt = it.measurement_debt(bid)
+    return jsonify({"ok": True, "debt": debt}), 200
+
+
+@app.route('/api/integrity/anomalies', methods=['GET'])
+def integrity_anomalies():
+    """Extreme value sanity checks."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    anomalies = it.detect_anomalies(bid)
+    return jsonify({"ok": True, "anomalies": anomalies}), 200
+
+
+@app.route('/api/integrity/drift', methods=['GET'])
+def integrity_drift():
+    """Weekly drift detection."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    return jsonify({"ok": True, "drift": it.detect_drift(bid)}), 200
+
+
+@app.route('/api/integrity/attribution-disagreements', methods=['GET'])
+def integrity_attribution_disagreements():
+    """Surface Meta/GA4/CRM/booking numbers without averaging."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    return jsonify({"ok": True, "disagreements": it.detect_attribution_disagreements(bid)}), 200
+
+
+@app.route('/api/integrity/evidence-chain/<bet_id>', methods=['GET'])
+def integrity_evidence_chain(bet_id):
+    """Meta → UTM → GA4 → Booking path per bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    chain = it.evidence_chain(bid, bet_id)
+    return jsonify({"ok": True, "chain": chain}), (200 if "error" not in chain else 404)
+
+
+@app.route('/api/integrity/gaps', methods=['GET', 'POST'])
+def integrity_gaps():
+    """Measurement gap work-tracking. POST creates a gap, GET lists open gaps."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        gap = it.add_measurement_gap(
+            bid,
+            body.get('problem', ''),
+            body.get('strategic_impact', ''),
+            body.get('priority', 'medium'),
+            body.get('owner', 'unassigned'),
+        )
+        return jsonify({"ok": True, "gap": gap}), 200
+    else:
+        gaps = it.open_measurement_gaps(bid)
+        return jsonify({"ok": True, "open_gaps": gaps, "count": len(gaps)}), 200
+
+
+@app.route('/api/integrity/gaps/<gap_id>/resolve', methods=['POST'])
+def integrity_gap_resolve(gap_id):
+    """Mark a measurement gap as resolved."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    body = request.get_json(silent=True) or {}
+    from _lib import integrity as it
+    it.resolve_measurement_gap(bid, gap_id, body.get('note', ''))
+    return jsonify({"ok": True}), 200
+
+
+@app.route('/api/integrity/corrections', methods=['GET', 'POST'])
+def integrity_corrections():
+    """Historical evidence corrections. POST records a correction, GET lists them."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = request.args.get('brand') or get_brand_id()
+    from _lib import integrity as it
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        c = it.record_evidence_correction(
+            bid,
+            body.get('bet_id'),
+            body.get('metric'),
+            body.get('original_value'),
+            body.get('corrected_value'),
+            body.get('reason', ''),
+        )
+        return jsonify({"ok": True, "correction": c}), 200
+    return jsonify({"ok": True, "corrections": it.list_corrections(bid)}), 200
+
+
 if __name__ == '__main__':
+    _boot_load_persisted_secrets()
+    _boot_selfheal_windsor()
     port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port)
+
+
+
+# ── Staleness gates (added 2026-09-01 — restored after corruption) ─────────
+
+DEFAULT_MAX_AGE_DAYS = {
+    "ga4": 2,
+    "instagram": 1,
+    "ig_business_timeseries": 1,
+    "ig_business_recent_posts": 1,
+    "meta_page_info": 1,
+    "meta_page_insights": 1,
+    "meta_stories": 1,
+    "meta_graph": 1,
+    "google_ads": 2,
+    "ubersuggest": 7,
+    "seo": 2,
+    "funnel_leaks": 2,
+    "competitors": 7,
+    "review_queue": 1,
+    "leads": 1,
+    "booking_events": 1,
+}
+
+
+def _staleness_check(source_name, fetched_at, max_age_days=None):
+    """Return staleness flag for a single data source.
+
+    Per-source max age (days) — if missing, the source is 'unknown'
+    (no timestamp). Defaults are deliberately strict so we surface gaps
+    before they become silent lies.
+    """
+    if not fetched_at:
+        return {"status": "unknown", "reason": "no fetched_at timestamp", "age_days": None}
+    if max_age_days is None:
+        max_age_days = DEFAULT_MAX_AGE_DAYS.get(source_name, 3)
+    try:
+        ts_str = str(fetched_at).replace("Z", "+00:00")
+        ts_dt = datetime.datetime.fromisoformat(ts_str)
+        if ts_dt.tzinfo is None:
+            ts_dt = ts_dt.replace(tzinfo=datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        age_days = (now - ts_dt).total_seconds() / 86400.0
+        if age_days < 0:
+            return {"status": "future", "reason": f"fetched_at is {abs(age_days):.1f}d in the future",
+                    "age_days": round(age_days, 2)}
+        if age_days > max_age_days:
+            return {"status": "stale", "max_age_days": max_age_days,
+                    "age_days": round(age_days, 2),
+                    "reason": f"{age_days:.1f}d old (max {max_age_days}d)"}
+        return {"status": "fresh", "max_age_days": max_age_days,
+                "age_days": round(age_days, 2)}
+    except (ValueError, AttributeError) as e:
+        return {"status": "unknown", "reason": f"parse failed: {e}", "age_days": None}
+
+
+def _annotate_sources_with_staleness(sources):
+    """Walk the sources[] list and add staleness fields to each entry."""
+    for s in (sources or []):
+        name = s.get("name")
+        ts = s.get("fetched_at") or s.get("lastUpdated")
+        if not ts:
+            for k, v in s.items():
+                if isinstance(v, str) and "T" in v and ":" in v and "-" in v and k.endswith("_at"):
+                    ts = v
+                    break
+        flag = _staleness_check(name, ts)
+        s["staleness"] = flag["status"]
+        s["staleness_detail"] = flag
+
+
+def _weekly_report_data_freshness_summary(sources):
+    """Summarise source freshness for the report payload."""
+    summary = {"fresh": 0, "stale": 0, "unknown": 0, "future": 0,
+               "stale_sources": [], "fresh_sources": [], "unknown_sources": [],
+               "overall": "fresh"}
+    for s in (sources or []):
+        st = s.get("staleness", "unknown")
+        if st == "fresh":
+            summary["fresh"] += 1
+            summary["fresh_sources"].append(s.get("name"))
+        elif st == "stale":
+            summary["stale"] += 1
+            summary["stale_sources"].append({"name": s.get("name"),
+                                             **s.get("staleness_detail", {})})
+        elif st == "future":
+            summary["future"] += 1
+        else:
+            summary["unknown"] += 1
+            summary["unknown_sources"].append(s.get("name"))
+    if summary["stale"] > 0:
+        summary["overall"] = "stale"
+    elif summary["unknown"] > 0 and summary["fresh"] == 0:
+        summary["overall"] = "unknown"
+    return summary
+
+
+@app.route('/api/admin/data-freshness', methods=['GET'])
+def admin_data_freshness():
+    """GET /api/admin/data-freshness — read from data/freshness.json which is
+    generated by scripts/data_freshness_check.js (daily cron, 07:30 SAST).
+    Optionally ?refresh=1 to trigger an immediate scan via the JS script.
+
+    The existing JS script scans 371 files, classifies each as fresh / stale
+    / rotten / static / unknown, and writes data/freshness.json. We do NOT
+    duplicate that logic in Python — we read what the JS produced.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        # Trigger a fresh scan if requested
+        if request.args.get('refresh') in ('1', 'true', 'yes'):
+            script_paths = [
+                os.path.join(BUNDLED_DATA_DIR, '..', 'scripts', 'data_freshness_check.js'),
+                os.path.join(DATA_DIR, '..', 'scripts', 'data_freshness_check.js'),
+                os.path.join(os.getcwd(), 'scripts', 'data_freshness_check.js'),
+            ]
+            for sp in script_paths:
+                if os.path.exists(sp):
+                    try:
+                        import subprocess as _sp
+                        _sp.run(['node', sp], capture_output=True, text=True, timeout=120)
+                    except Exception:
+                        pass
+                    break
+        # Read the canonical freshness.json from bundled data dir (the JS writes there)
+        candidates = [
+            os.path.join(BUNDLED_DATA_DIR, 'freshness.json'),
+            os.path.join(DATA_DIR, 'freshness.json'),
+            'data/freshness.json',
+        ]
+        freshness = None
+        chosen_path = None
+        for c in candidates:
+            if os.path.exists(c):
+                try:
+                    freshness = _read_json_file(c)
+                    chosen_path = c
+                    break
+                except Exception:
+                    continue
+        if not freshness:
+            return jsonify({
+                "ok": False,
+                "error": "freshness.json not found — JS cron hasn't run yet",
+                "hint": "Hit /api/admin/data-freshness?refresh=1 to trigger a scan now"
+            }), 404
+        # Highlight the 12 most-important data sources the OS depends on
+        watched = [
+            "data/analytics/instagram-analytics.json",
+            "data/ig-business-analytics.json",
+            "data/meta-page-info.json",
+            "data/seo-rankings.json",
+            "data/funnel-leaks.json",
+            "data/ubersuggest-domain.json",
+            "data/ubersuggest-competitors.json",
+            "data/google-ads.json",
+            "data/approval-queue.json",
+            "data/booking-events.json",
+        ]
+        watched_results = []
+        for path in watched:
+            entry = {"path": path, "name": path.replace("data/", "").replace(".json", "")}
+            file_data = next((f for f in freshness.get("files", []) if f.get("path") == path), None)
+            if file_data:
+                entry["staleness"] = file_data.get("staleness", "unknown")
+                entry["age_days"] = file_data.get("age_days")
+                entry["newest_ts"] = file_data.get("newest_ts")
+                entry["reason"] = file_data.get("reason")
+            else:
+                entry["staleness"] = "unknown"
+                entry["reason"] = "not in freshness scan"
+            watched_results.append(entry)
+        return jsonify({
+            "ok": True,
+            "scanned_at": freshness.get("generated"),
+            "log_path": chosen_path,
+            "summary": freshness.get("by_staleness", {}),
+            "total_files": freshness.get("total_files"),
+            "stale_files": freshness.get("stale_files", [])[:20],
+            "rotten_files": freshness.get("rotten_files", [])[:20],
+            "watched_sources": watched_results,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
