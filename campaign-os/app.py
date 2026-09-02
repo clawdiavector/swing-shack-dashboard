@@ -11240,6 +11240,57 @@ def _get_freshness():
     return generated, 'on-demand', True
 
 
+@app.route('/api/freshness/refresh', methods=['POST'])
+def freshness_refresh():
+    """POST /api/freshness/refresh — re-walk the data/ tree and rebuild
+    freshness.json on the volume. Called by the meta-live-fetch.yml
+    GitHub Actions cron after /api/meta/fetch lands so /api/freshness
+    reflects the post-fetch state (not yesterday's snapshot).
+
+    Auth-gated because this is an admin/cron operation that walks the
+    data directory and writes a JSON. It is safe but we still want to
+    know who's calling it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        paths = _data_paths()
+        vol = paths['data_dir']
+        # Invalidate the on-demand cache so the next GET walks fresh
+        _freshness_cache.clear()
+        if not os.path.isdir(vol):
+            return jsonify({"ok": False, "error": "data_dir missing", "vol": vol}), 500
+        generated = _build_freshness_on_demand(vol)
+        # Persist to volume so /api/freshness reads from disk next time
+        target = os.path.join(vol, 'freshness.json')
+        try:
+            if os.access(vol, os.W_OK):
+                with open(target, 'w', encoding='utf-8') as fh:
+                    json.dump(generated, fh, indent=2, ensure_ascii=False)
+                return jsonify({
+                    "ok": True,
+                    "scanned_at": generated.get("generated"),
+                    "path": target,
+                    "total_files": generated.get("total_files"),
+                    "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
+                    "stale_count": generated.get("by_staleness", {}).get("stale", 0),
+                    "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
+                })
+        except OSError as e:
+            return jsonify({
+                "ok": True,
+                "scanned_at": generated.get("generated"),
+                "warning": f"scan completed but write failed: {e}",
+                "total_files": generated.get("total_files"),
+                "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
+                "stale_count": generated.get("by_staleness", {}).get("stale", 0),
+                "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
+            })
+    except Exception as e:
+        _app_log.exception("freshness_refresh failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/freshness', methods=['GET'])
 def freshness():
     """GET /api/freshness — surface data/freshness.json so the OS UI can render
