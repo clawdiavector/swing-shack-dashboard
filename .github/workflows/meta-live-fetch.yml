@@ -13,6 +13,7 @@ name: Meta Live Fetch (IG + FB analytics refresh)
 #
 # Schedule:
 #   - 06:30 SAST (04:30 UTC) — before morning brief
+# Last nudged: 2026-09-02 (Railway auto-deploy watch)
 #   - 18:30 SAST (16:30 UTC) — afternoon refresh
 # This guarantees the morning brief at 06:00 SAST and the evening
 # weekly report builder always see fresh Meta data.
