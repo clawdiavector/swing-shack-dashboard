@@ -19037,3 +19037,294 @@ def admin_data_freshness():
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── SEO BUSINESS BRAIN (2026-09-02) ──────────────────────────────────────────
+# GET /api/seo/business-brain?brand_id=swing-shack
+#
+# Built from Sarvesh Shrivastava's "Top 20 Grok Bot Prompts For SEO" article
+# (https://x.com/bloggersarvesh/status/2090071557590900974). His core pattern:
+# load your business brain ONCE as a system prompt, then every downstream
+# prompt (competitor gap, schema audit, GBP audit, JSON-LD gen) becomes
+# sharper because the AI already knows the business.
+#
+# Output is the exact prompt string he recommends in Prompt1 of "Super SEO
+# Mode" — paste it into any chat interface (Grok, Claude, Krea) and the AI
+# stops asking for context on subsequent prompts.
+#
+# Sources:
+#   - data/brands.json            — business basics (name, voice, audience, etc.)
+#   - data/competitor-tracker.json — top competitors with websites
+#   - data/seo-rankings.json       — current keyword rankings
+#   - data/seo-audit.json          — site URL + findings
+#   - data/meta-page-info.json     — GBP location id, phone, address (if available)
+#   - data/ubersuggest-domain.json — service area + keyword volumes (if available)
+
+@app.route('/api/seo/business-brain', methods=['GET'])
+def seo_business_brain():
+    """Build the "load your business brain" system prompt for any AI chat.
+
+    Query params:
+      brand_id     — defaults to swing-shack
+      format       — 'prompt' (default, returns the raw text) or 'json' (returns
+                     structured sections so the UI can render each field)
+
+    The prompt is the canonical Sarvesh "Prompt1" template:
+    "Here is everything [AI] needs to know about my business: [name], [address],
+    [phone], [website], [GBP URL], [service areas], [target keywords], [top 3
+    competitors with their GBP URLs]. Use this as the base for every prompt I
+    run. Never ask me for this information again."
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        brand_id = (request.args.get('brand_id') or 'swing-shack').strip()
+        out_format = (request.args.get('format') or 'prompt').strip().lower()
+
+        # 1) Pull the brand record
+        brands_path = os.path.join(DATA_DIR, 'brands.json')
+        brands_doc = _read_json_file(brands_path) or {}
+        brand = (brands_doc.get('brands') or {}).get(brand_id) or {}
+
+        # 2) Pull competitors
+        comp_path = os.path.join(DATA_DIR, 'competitor-tracker.json')
+        comp_doc = _read_json_file(comp_path) or {}
+        competitors = comp_doc.get('competitors') or []
+        # Sort by threat desc so the top 3 are the ones that matter
+        threat_rank = {'high': 3, 'medium': 2, 'low': 1}
+        sorted_comps = sorted(
+            competitors,
+            key=lambda c: threat_rank.get((c.get('threat') or '').lower(), 0),
+            reverse=True,
+        )
+        top3 = sorted_comps[:3]
+
+        # 3) Pull keywords
+        kw_path = os.path.join(DATA_DIR, 'seo-rankings.json')
+        kw_doc = _read_json_file(kw_path) or {}
+        keywords = kw_doc.get('keywords') or []
+        keyword_list = [k.get('keyword') for k in keywords if k.get('keyword')][:10]
+
+        # 4) Pull site URL from seo-audit
+        audit_path = os.path.join(DATA_DIR, 'seo-audit.json')
+        audit_doc = _read_json_file(audit_path) or {}
+        site_url = audit_doc.get('site') or brand.get('website') or ''
+
+        # 5) GBP info — try meta-page-info (it's where FB page + IG id live),
+        #    fall back to gbp_location_id on the brand record.
+        meta_page_path = os.path.join(DATA_DIR, 'meta-page-info.json')
+        meta_page = _read_json_file(meta_page_path) or {}
+        gbp_url = (
+            meta_page.get('gbp_url')
+            or meta_page.get('google_business_url')
+            or (f"https://g.page/{brand['gbp_location_id']}" if brand.get('gbp_location_id') else None)
+        )
+
+        # 6) Service areas — try ubersuggest-domain.json, then audience +
+        #    positioning (so we pick up "Johannesburg" from positioning even
+        #    when audience only says "JHB").
+        uber_path = os.path.join(DATA_DIR, 'ubersuggest-domain.json')
+        uber_doc = _read_json_file(uber_path) or {}
+        audience_blob = ' '.join(filter(None, [
+            brand.get('audience'),
+            brand.get('positioning'),
+            brand.get('tagline'),
+        ]))
+        service_areas = (
+            uber_doc.get('service_areas')
+            or uber_doc.get('locations')
+            or _extract_service_areas_from_audience(audience_blob)
+        )
+
+        # 7) Build the structured sections
+        sections = {
+            "brand": {
+                "id": brand_id,
+                "name": brand.get('display_name') or brand.get('name') or brand_id,
+                "tagline": brand.get('tagline'),
+                "positioning": brand.get('positioning'),
+                "audience": brand.get('audience'),
+                "voice_id": brand.get('voice_id'),
+                "voice_label": brand.get('voice_label'),
+                "tone_options": brand.get('tone_options') or [],
+                "primary_color": brand.get('primary_color'),
+                "accent_color": brand.get('accent_color'),
+                "website": site_url or brand.get('website'),
+                "instagram_handle": brand.get('instagram_handle'),
+                "facebook_page": brand.get('facebook_page') or meta_page.get('facebook_page'),
+            },
+            "contact": {
+                "address": meta_page.get('address') or brand.get('address'),
+                "phone": meta_page.get('phone') or brand.get('phone'),
+                "gbp_location_id": brand.get('gbp_location_id') or meta_page.get('gbp_location_id'),
+                "gbp_url": gbp_url,
+            },
+            "service_areas": service_areas,
+            "target_keywords": keyword_list,
+            "top_competitors": [
+                {
+                    "name": c.get('name'),
+                    "website": c.get('website'),
+                    "location": c.get('location'),
+                    "type": c.get('type'),
+                    "threat": c.get('threat'),
+                    "gbp_url": c.get('gbp_url'),
+                    "services": c.get('services') or [],
+                }
+                for c in top3
+            ],
+            "voice_bible_ref": brand.get('voice_bible_ref'),
+            "pillar_defaults": brand.get('pillar_defaults') or [],
+            "campaign_ids": brand.get('campaign_ids') or [],
+        }
+
+        # 8) Render the canonical Sarvesh Prompt1 prompt
+        prompt_text = _render_business_brain_prompt(sections)
+
+        if out_format == 'json':
+            return jsonify({
+                "ok": True,
+                "brand_id": brand_id,
+                "sections": sections,
+                "prompt": prompt_text,
+                "prompt_tokens_approx": len(prompt_text.split()),
+                "usage": (
+                    "Paste `prompt` into any chat interface as a system message. "
+                    "Subsequent prompts about SEO, content, or competitive analysis "
+                    "will then be specific to this brand without asking for context."
+                ),
+                "source": {
+                    "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+                    "pattern": "Sarvesh Shrivastava 'Super SEO Mode' Prompt1",
+                    "built_at": _now_iso(),
+                },
+            })
+        else:
+            # Plain text — easy to copy/paste into Grok/Claude/Krea
+            return Response(prompt_text, mimetype='text/plain')
+
+    except Exception as e:
+        _app_log.exception("seo_business_brain failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _extract_service_areas_from_audience(audience_text):
+    """Best-effort extract of service-area names from brand.audience or
+    brand.positioning. Pulls known JHB-area suburbs + 'in <LOC>' phrases.
+    Returns a list of strings, or []."""
+    if not audience_text:
+        return []
+    import re
+    text = audience_text
+
+    # Known JHB-area locations + SA major metros. We match anywhere in the
+    # text — the audience field usually has them embedded ("in JHB", "JHB Metro",
+    # "Sandton, Randburg").
+    KNOWN = [
+        "Johannesburg", "JHB", "Sandton", "Randburg", "Roodepoort", "Centurion",
+        "Pretoria", "Midrand", "Boksburg", "Germiston", "Kempton Park",
+        "Bedfordview", "Bryanston", "Fourways", "Rosebank", "Parktown",
+        "Cape Town", "Durban", "Stellenbosch",
+    ]
+    candidates = []
+
+    # Match known locations
+    for loc in KNOWN:
+        if re.search(rf"\b{re.escape(loc)}\b", text, re.IGNORECASE):
+            candidates.append(loc)
+
+    # Match generic "in <LOC>" phrases too
+    for m in re.finditer(r"\bin\s+([A-Z][A-Za-z][\w\s,]+?)(?:[,.]|\s+aged|\s+who|$)", text):
+        loc = m.group(1).strip()
+        for part in re.split(r",|\s+and\s+", loc):
+            part = part.strip()
+            if part and len(part) < 60 and part not in candidates:
+                candidates.append(part)
+
+    # Dedup (case-insensitive)
+    seen = set()
+    out = []
+    for c in candidates:
+        key = c.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(c)
+    return out[:8]
+
+
+def _render_business_brain_prompt(sections):
+    """Render the canonical Sarvesh Prompt1 template using the structured
+    sections. The output is the exact text you'd paste into a chat interface."""
+    brand = sections['brand']
+    contact = sections['contact']
+    areas = sections['service_areas'] or []
+    keywords = sections['target_keywords'] or []
+    comps = sections['top_competitors'] or []
+
+    lines = []
+    lines.append(f'Here is everything the AI needs to know about my business:')
+    lines.append('')
+    lines.append(f'- Name: {brand.get("name") or "?"}')
+
+    if contact.get('address'):
+        lines.append(f'- Address: {contact["address"]}')
+    if contact.get('phone'):
+        lines.append(f'- Phone: {contact["phone"]}')
+    if brand.get('website'):
+        lines.append(f'- Website: {brand["website"]}')
+
+    if contact.get('gbp_url'):
+        lines.append(f'- Google Business Profile URL: {contact["gbp_url"]}')
+    elif contact.get('gbp_location_id'):
+        lines.append(f'- Google Business Profile location_id: {contact["gbp_location_id"]}')
+
+    if brand.get('instagram_handle'):
+        lines.append(f'- Instagram: {brand["instagram_handle"]}')
+    if brand.get('facebook_page'):
+        lines.append(f'- Facebook page: {brand["facebook_page"]}')
+
+    if areas:
+        if len(areas) == 1:
+            lines.append(f'- Service areas: {areas[0]}')
+        else:
+            lines.append(f'- Service areas: {", ".join(areas)}')
+
+    if keywords:
+        lines.append(f'- Target keywords: {", ".join(keywords)}')
+
+    if comps:
+        lines.append(f'- Top {len(comps)} competitors:')
+        for i, c in enumerate(comps, 1):
+            comp_line = f'  {i}. {c.get("name") or "?"}'
+            if c.get('website'):
+                comp_line += f' — {c["website"]}'
+            if c.get('gbp_url'):
+                comp_line += f' (GBP: {c["gbp_url"]})'
+            elif c.get('location'):
+                comp_line += f' ({c["location"]})'
+            lines.append(comp_line)
+
+    if brand.get('positioning'):
+        lines.append(f'- Positioning: {brand["positioning"]}')
+    if brand.get('tagline'):
+        lines.append(f'- Tagline: {brand["tagline"]}')
+    if brand.get('audience'):
+        lines.append(f'- Target audience: {brand["audience"]}')
+
+    tones = brand.get('tone_options') or []
+    if tones:
+        lines.append(f'- Voice tones (pick one per prompt): {", ".join(tones)}')
+
+    if brand.get('voice_bible_ref'):
+        lines.append(f'- Voice bible reference: {brand["voice_bible_ref"]}')
+
+    pillars = sections.get('pillar_defaults') or []
+    if pillars:
+        lines.append(f'- Brand pillars (rotate content across these): {", ".join(pillars)}')
+
+    lines.append('')
+    lines.append('Use this as the base for every prompt I run. Never ask me for this information again.')
+    lines.append('Match the brand voice, never invent prices or availability, and stay ZAR-first if you quote money.')
+
+    return '\n'.join(lines)
+
