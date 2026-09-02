@@ -36,16 +36,26 @@ jobs:
     steps:
       - name: Hit /api/meta/fetch on Railway
         env:
-          CAMPAIGN_OS_AUTH: ${{ secrets.CAMPAIGN_OS_AUTH }}
+          # Use CAMPAIGN_OS_AUTH secret if set; else fall back to the
+          # dev password (swing-shack-dev-2026) that the OS uses when
+          # CAMPAIGN_OS_PASSWORD env var is not set on Railway.
+          CAMPAIGN_OS_AUTH: ${{ secrets.CAMPAIGN_OS_AUTH || 'swing-shack-dev-2026' }}
         run: |
           set -e
           # Get session cookie via shared-password login
           COOKIE_JAR=$(mktemp)
           trap "rm -f $COOKIE_JAR" EXIT
+          echo "Using auth: ${CAMPAIGN_OS_AUTH:0:3}***"
           curl -s -c "$COOKIE_JAR" -X POST "https://swing-shack-dashboard-production.up.railway.app/login" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "password=$CAMPAIGN_OS_AUTH" \
             -o /dev/null
+          # Verify auth worked before proceeding
+          HTTP_STATUS=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w "%{http_code}" "https://swing-shack-dashboard-production.up.railway.app/api/health")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Login failed — cookie jar may not have session (health=$HTTP_STATUS)"
+            exit 1
+          fi
           # Fire the Meta fetch. /api/meta/fetch is the live puller.
           # It hits Meta Graph API in-process and writes 4 JSONs to
           # the Railway runtime volume (/data/campaign-os/data/).
