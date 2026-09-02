@@ -19328,3 +19328,456 @@ def _render_business_brain_prompt(sections):
 
     return '\n'.join(lines)
 
+
+# ─── SEO PROMPT STACK (2026-09-02) ──────────────────────────────────────────
+# POST /api/seo/prompt-stack
+#
+# Built as Layer 2 of the Sarvesh Shrivastava SEO strategy. Layer 1
+# (/api/seo/business-brain) emits the brand's "business brain" system prompt.
+# Layer 2 takes that system prompt + a task name + inputs, then calls the AI
+# (OpenRouter by default) and returns the output.
+#
+# Tasks (each maps to one of Sarvesh's 20 Grok Bot Prompts):
+#
+#   competitor_gap       → Content gaps vs N competitor sites
+#   schema_audit         → Schema inventory + missing priority for a URL
+#   json_ld_gen          → Generate clean JSON-LD for a schema type
+#   gbp_category_audit   → GBP category matrix vs top competitors
+#   content_brief        → Content brief for a target keyword
+#
+# Body shape:
+#   {
+#     "task": "competitor_gap" | "schema_audit" | "json_ld_gen" |
+#             "gbp_category_audit" | "content_brief",
+#     "brand_id": "swing-shack",
+#     "inputs": { ... task-specific ... },
+#     "model": "anthropic/claude-3.5-sonnet" (optional, default below),
+#     "temperature": 0.4 (optional),
+#     "include_brain": true (optional, default true — prepends business brain)
+#   }
+
+
+SEO_PROMPT_STACK_TASKS = {
+    "competitor_gap": {
+        "label": "Competitor content gap analysis",
+        "sarvesh_prompt_id": 2,
+        "required_inputs": ["competitor_urls"],
+        "optional_inputs": ["keyword", "max_gaps"],
+        "user_prompt_template": (
+            "Scan these competitor sites: {competitor_urls}\n"
+            "\n"
+            "What are these competitors' sites missing? Find the content gaps "
+            "and tell me {max_gaps|5} topics I should cover to be more helpful "
+            "than them. If I provide more value, I win the #1 spot. Period.\n"
+            "\n"
+            "For each gap, output:\n"
+            "- Topic title (searchable)\n"
+            "- Why the competitors miss it (1 sentence)\n"
+            "- Why this matters for our audience (1 sentence)\n"
+            "- Suggested format (article / video / landing / GBP post)\n"
+            "- Internal-link target on our site (if any)\n"
+            "\n"
+            "Match our brand voice. Stay ZAR-first if you quote prices."
+        ),
+    },
+    "schema_audit": {
+        "label": "Schema audit (LocalBusiness + page-level)",
+        "sarvesh_prompt_id": 5,
+        "required_inputs": ["url"],
+        "optional_inputs": [],
+        "user_prompt_template": (
+            "Audit the schema on {url}. Open the page source mentally and "
+            "list every JSON-LD / microdata / RDFa block.\n"
+            "\n"
+            "Output exactly:\n"
+            "(1) Existing schema — for each block, the @type, where it lives, "
+            "and a verdict (useful / weak / wrong / spam-risk).\n"
+            "(2) Missing/weak schema — what should exist but doesn't, in "
+            "priority order (HIGH / MED / LOW).\n"
+            "(3) For HIGH-priority gaps only, generate clean JSON-LD with "
+            "placeholders for values I need to fill in. Use the brand facts "
+            "above for the values you CAN fill in.\n"
+            "\n"
+            "No guessing. No explanations. Be blunt."
+        ),
+    },
+    "json_ld_gen": {
+        "label": "Generate JSON-LD for a schema type",
+        "sarvesh_prompt_id": 8,
+        "required_inputs": ["schema_type"],
+        "optional_inputs": ["facts", "page_url"],
+        "user_prompt_template": (
+            "Generate a clean JSON-LD block for @type: {schema_type}.\n"
+            "{page_url|Page URL: {page_url}}\n"
+            "\n"
+            "Use these facts from the brand brain above for the values you can "
+            "fill in. Use placeholders ({{...}}) for the values I need to provide.\n"
+            "{facts|Extra facts (if any):\n{facts}}\n"
+            "\n"
+            "Output: ONLY the JSON-LD code block. No prose. No markdown wrappers.\n"
+            "No guessing on missing fields — leave them as {{PLACEHOLDER}}."
+        ),
+    },
+    "gbp_category_audit": {
+        "label": "GBP category audit vs top competitors",
+        "sarvesh_prompt_id": 3,
+        "required_inputs": ["keywords"],
+        "optional_inputs": ["competitor_gbp_urls"],
+        "user_prompt_template": (
+            "Imagine opening Google Maps and searching each of these keywords "
+            "in our service area:\n\n"
+            "{keywords}\n"
+            "\n"
+            "{competitor_gbp_urls|For each competitor GBP URL below, open the "
+            "listing and extract primary + secondary categories:\n"
+            "{competitor_gbp_urls}}\n"
+            "\n"
+            "Output a markdown table with columns:\n"
+            "| Keyword | Map Pack Position | Competitor | Primary Category | "
+            "Secondary Categories | Star Rating | Review Count |\n"
+            "\n"
+            "Then a final row: 'Categories competitors have that I'm missing'.\n"
+            "\n"
+            "If you don't have real-time GBP data, say so explicitly — no guessing. "
+            "Tell me what to check in GBP Manager manually."
+        ),
+    },
+    "content_brief": {
+        "label": "Content brief for a target keyword",
+        "sarvesh_prompt_id": 11,
+        "required_inputs": ["keyword"],
+        "optional_inputs": ["competitor_urls", "target_word_count"],
+        "user_prompt_template": (
+            "Write a content brief for the keyword '{keyword}' that would rank "
+            "for our brand.\n"
+            "{target_word_count|Target word count: {target_word_count}}\n"
+            "\n"
+            "Output exactly:\n"
+            "1. Search intent (informational / commercial / transactional)\n"
+            "2. Target audience (specific — pull from brand brain)\n"
+            "3. Suggested H1 (one option)\n"
+            "4. Suggested meta title (<=60 chars)\n"
+            "5. Suggested meta description (<=155 chars)\n"
+            "6. Outline — 3-5 H2 sections, each with 1-line description\n"
+            "7. Internal-link targets (from our site)\n"
+            "8. CTA — one primary, one backup, both ZAR-first if they mention money\n"
+            "9. Schema to add (from schema_audit playbook)\n"
+            "10. Repurposing plan (how this becomes 4 Reels, 8 Stories, 1 GBP post)\n"
+            "{competitor_urls|Competitor URLs to out-rank: {competitor_urls}}\n"
+            "\n"
+            "Match the brand voice. No fabricated prices or availability."
+        ),
+    },
+}
+
+DEFAULT_OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+def _openrouter_chat_completion(messages, model=None, temperature=0.4, max_tokens=1500, timeout=60):
+    """Call OpenRouter chat/completions. Returns (content_str, error_or_None).
+
+    messages: list of {"role": ..., "content": ...}
+    """
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        # Try the canonical file fallback
+        for cred_path in [
+            os.path.expanduser("~/.openclaw/workspace/credentials/openrouter-api.json"),
+            os.path.join(os.environ.get("HOME", ""), ".openclaw", "workspace", "credentials", "openrouter-api.json"),
+            "/tmp/openrouter-api.json",
+        ]:
+            try:
+                if os.path.exists(cred_path):
+                    with open(cred_path) as f:
+                        api_key = (json.loads(f.read()).get("api_key") or "").strip()
+                    if api_key:
+                        break
+            except Exception:
+                continue
+    if not api_key:
+        return None, "OPENROUTER_API_KEY not set (env var or credential file)"
+
+    try:
+        import requests as _req
+    except ImportError:
+        return None, "requests library unavailable"
+
+    payload = {
+        "model": model or DEFAULT_OPENROUTER_MODEL,
+        "messages": messages,
+        "temperature": float(temperature),
+        "max_tokens": int(max_tokens),
+        "stream": False,
+    }
+    try:
+        resp = _req.post(
+            OPENROUTER_API_URL,
+            headers={
+                "Authorization": "Bearer " + api_key,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://swing-shack-dashboard.up.railway.app",
+                "X-Title": "Swing Shack Campaign OS",
+            },
+            json=payload,
+            timeout=timeout,
+        )
+        if resp.status_code != 200:
+            err_body = (resp.text or "")[:500]
+            return None, "OpenRouter " + str(resp.status_code) + ": " + err_body
+        data = resp.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return None, "OpenRouter returned no choices"
+        content = (choices[0].get("message") or {}).get("content") or ""
+        return content, None
+    except Exception as exc:
+        return None, "OpenRouter request failed: " + str(exc)
+
+
+def _build_business_brain_sections(brand_id):
+    """Same loader as seo_business_brain. Pulled out so prompt-stack can reuse it
+    without re-rendering the prompt text."""
+    brands_path = os.path.join(DATA_DIR, 'brands.json')
+    brands_doc = _read_json_file(brands_path) or {}
+    brand = (brands_doc.get('brands') or {}).get(brand_id) or {}
+
+    comp_path = os.path.join(DATA_DIR, 'competitor-tracker.json')
+    comp_doc = _read_json_file(comp_path) or {}
+    competitors = comp_doc.get('competitors') or []
+    threat_rank = {'high': 3, 'medium': 2, 'low': 1}
+    sorted_comps = sorted(
+        competitors,
+        key=lambda c: threat_rank.get((c.get('threat') or '').lower(), 0),
+        reverse=True,
+    )
+    top3 = sorted_comps[:3]
+
+    kw_path = os.path.join(DATA_DIR, 'seo-rankings.json')
+    kw_doc = _read_json_file(kw_path) or {}
+    keywords = kw_doc.get('keywords') or []
+    keyword_list = [k.get('keyword') for k in keywords if k.get('keyword')][:10]
+
+    audit_path = os.path.join(DATA_DIR, 'seo-audit.json')
+    audit_doc = _read_json_file(audit_path) or {}
+    site_url = audit_doc.get('site') or brand.get('website') or ''
+
+    meta_page_path = os.path.join(DATA_DIR, 'meta-page-info.json')
+    meta_page = _read_json_file(meta_page_path) or {}
+    gbp_url = (
+        meta_page.get('gbp_url')
+        or meta_page.get('google_business_url')
+        or (f"https://g.page/{brand['gbp_location_id']}" if brand.get('gbp_location_id') else None)
+    )
+
+    uber_path = os.path.join(DATA_DIR, 'ubersuggest-domain.json')
+    uber_doc = _read_json_file(uber_path) or {}
+    audience_blob = ' '.join(filter(None, [
+        brand.get('audience'),
+        brand.get('positioning'),
+        brand.get('tagline'),
+    ]))
+    service_areas = (
+        uber_doc.get('service_areas')
+        or uber_doc.get('locations')
+        or _extract_service_areas_from_audience(audience_blob)
+    )
+
+    return {
+        "brand": {
+            "id": brand_id,
+            "name": brand.get('display_name') or brand.get('name') or brand_id,
+            "tagline": brand.get('tagline'),
+            "positioning": brand.get('positioning'),
+            "audience": brand.get('audience'),
+            "voice_id": brand.get('voice_id'),
+            "voice_label": brand.get('voice_label'),
+            "tone_options": brand.get('tone_options') or [],
+            "primary_color": brand.get('primary_color'),
+            "accent_color": brand.get('accent_color'),
+            "website": site_url or brand.get('website'),
+            "instagram_handle": brand.get('instagram_handle'),
+            "facebook_page": brand.get('facebook_page') or meta_page.get('facebook_page'),
+        },
+        "contact": {
+            "address": meta_page.get('address') or brand.get('address'),
+            "phone": meta_page.get('phone') or brand.get('phone'),
+            "gbp_location_id": brand.get('gbp_location_id') or meta_page.get('gbp_location_id'),
+            "gbp_url": gbp_url,
+        },
+        "service_areas": service_areas,
+        "target_keywords": keyword_list,
+        "top_competitors": [
+            {
+                "name": c.get('name'),
+                "website": c.get('website'),
+                "location": c.get('location'),
+                "type": c.get('type'),
+                "threat": c.get('threat'),
+                "gbp_url": c.get('gbp_url'),
+                "services": c.get('services') or [],
+            }
+            for c in top3
+        ],
+        "voice_bible_ref": brand.get('voice_bible_ref'),
+        "pillar_defaults": brand.get('pillar_defaults') or [],
+        "campaign_ids": brand.get('campaign_ids') or [],
+    }
+
+
+def _json_dumps_compact(obj):
+    try:
+        return json.dumps(obj, ensure_ascii=False)
+    except Exception:
+        return str(obj)
+
+
+def _build_prompt_stack_messages(task_name, brand_id, inputs, include_brain):
+    """Compose the messages array for the OpenRouter call.
+
+    Returns (messages_list, user_prompt_text, sections_or_None).
+    """
+    task_def = SEO_PROMPT_STACK_TASKS.get(task_name)
+    if not task_def:
+        return None, None, None
+
+    sections = _build_business_brain_sections(brand_id)
+
+    template = task_def["user_prompt_template"]
+    fmt_inputs = dict(inputs or {})
+
+    # Handle {key|default} pattern - Sarvesh-style conditional sections
+    import re as _re
+    def _sub(match):
+        key = match.group(1)
+        default = match.group(2) or ""
+        val = fmt_inputs.get(key)
+        if val in (None, "", [], {}):
+            return ""
+        return default.replace("{" + key + "}", str(val))
+
+    template = _re.sub(r"\{([\w_]+)\|([^}]*)\}", _sub, template)
+    safe_fmt = {k: ("" if v is None else (str(v) if not isinstance(v, (list, dict)) else _json_dumps_compact(v))) for k, v in fmt_inputs.items()}
+    try:
+        user_text = template.format(**safe_fmt)
+    except KeyError:
+        return None, None, sections
+
+    messages = []
+    if include_brain and sections:
+        system_text = _render_business_brain_prompt(sections)
+        messages.append({"role": "system", "content": system_text})
+    messages.append({"role": "user", "content": user_text})
+    return messages, user_text, sections
+
+
+@app.route('/api/seo/prompt-stack', methods=['POST'])
+def seo_prompt_stack():
+    """Run a Sarvesh-prompt task against the AI with the business brain as
+    system prefix. See SEO_PROMPT_STACK_TASKS for the task catalog.
+
+    Body:
+      task              — required, one of: competitor_gap | schema_audit |
+                          json_ld_gen | gbp_category_audit | content_brief
+      brand_id          — default swing-shack
+      inputs            — required (task-specific inputs)
+      model             — optional, default anthropic/claude-3.5-sonnet
+      temperature       — optional, default 0.4
+      max_tokens        — optional, default 1500
+      include_brain     — optional, default true
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        task_name = (body.get('task') or '').strip()
+        if not task_name:
+            return jsonify({"ok": False, "error": "task required", "available": list(SEO_PROMPT_STACK_TASKS.keys())}), 400
+        if task_name not in SEO_PROMPT_STACK_TASKS:
+            return jsonify({"ok": False, "error": "unknown task '" + task_name + "'", "available": list(SEO_PROMPT_STACK_TASKS.keys())}), 400
+
+        task_def = SEO_PROMPT_STACK_TASKS[task_name]
+        brand_id = (body.get('brand_id') or 'swing-shack').strip()
+        inputs = body.get('inputs') or {}
+
+        missing = [k for k in task_def['required_inputs'] if not inputs.get(k)]
+        if missing:
+            return jsonify({
+                "ok": False,
+                "error": "missing required inputs: " + str(missing),
+                "task": task_name,
+                "required_inputs": task_def['required_inputs'],
+                "optional_inputs": task_def['optional_inputs'],
+            }), 400
+
+        messages, user_prompt, sections = _build_prompt_stack_messages(
+            task_name, brand_id, inputs, body.get('include_brain', True)
+        )
+        if not messages:
+            return jsonify({"ok": False, "error": "could not build prompt messages"}), 500
+
+        model = body.get('model') or DEFAULT_OPENROUTER_MODEL
+        temperature = body.get('temperature', 0.4)
+        max_tokens = body.get('max_tokens', 1500)
+        content, err = _openrouter_chat_completion(
+            messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=60,
+        )
+        if err:
+            return jsonify({
+                "ok": False,
+                "error": err,
+                "task": task_name,
+                "model": model,
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "task": task_name,
+            "task_label": task_def['label'],
+            "sarvesh_prompt_id": task_def.get('sarvesh_prompt_id'),
+            "brand_id": brand_id,
+            "model": model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "user_prompt": user_prompt,
+            "output": content,
+            "output_chars": len(content),
+            "output_tokens_approx": len(content.split()),
+            "business_brain_used": bool(body.get('include_brain', True) and sections),
+            "source": {
+                "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+                "pattern": "Sarvesh 'Super SEO Mode' prompt-stack",
+                "built_at": _now_iso(),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("seo_prompt_stack failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/prompt-stack/tasks', methods=['GET'])
+def seo_prompt_stack_tasks():
+    """GET /api/seo/prompt-stack/tasks — list the task catalog with input
+    contracts so the UI can render a form for each task."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    catalog = []
+    for name, defn in SEO_PROMPT_STACK_TASKS.items():
+        catalog.append({
+            "task": name,
+            "label": defn['label'],
+            "sarvesh_prompt_id": defn.get('sarvesh_prompt_id'),
+            "required_inputs": defn['required_inputs'],
+            "optional_inputs": defn['optional_inputs'],
+            "user_prompt_template": defn['user_prompt_template'],
+        })
+    return jsonify({
+        "ok": True,
+        "tasks": catalog,
+        "default_model": DEFAULT_OPENROUTER_MODEL,
+        "source": "https://x.com/bloggersarvesh/status/2090071557590900974",
+    })
