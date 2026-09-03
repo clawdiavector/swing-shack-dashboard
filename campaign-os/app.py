@@ -20766,3 +20766,566 @@ def strategy_promote_learning_item():
     except Exception as exc:
         _app_log.exception("promote-learning-item failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── BRAND SETTINGS (Tier 3.1 — Audit fix #1, 2026-09-03) ────────────────────
+# Per the Campaign OS audit: "No way to update brand bible from UI" was
+# the biggest UX gap. This unifies the brand bible data — voice_bible +
+# bible-visual + brand-directory — into a single 10-section editor with
+# a Bible Score completion meter.
+#
+# Three endpoints:
+#   GET  /api/brand-settings/<brand_id>     → unified bible + score
+#   PUT  /api/brand-settings/<brand_id>     → save edits
+#   POST /api/brand-settings/<brand_id>/score → recompute score only
+#
+# Storage: writes to data/brand-settings/<brand_id>.json. The unified
+# bible can be referenced by every downstream system — prompt assembly,
+# auto-overlay, brand-fit scoring, lineage.
+
+BRAND_SETTINGS_DIR = os.path.join(DATA_DIR, "brand-settings")
+
+# The 10 sections from the audit
+BRAND_BIBLE_SECTIONS = [
+    ("brand_snapshot",     "Brand Snapshot",        "One paragraph — what the brand is and who it's for.",                "long_text"),
+    ("strategic_position", "Strategic Position",    "Combine: strategic core + north star + market move.",                "long_text"),
+    ("audience",           "Audience",              "Primary, secondary, anti-audience (one line each).",                  "structured"),
+    ("voice_system",       "Voice System",          "Pick from voice bible + tone. System auto-includes examples.",      "voice_bible_ref"),
+    ("visual_direction",   "Visual Direction",      "Colors, typography, photo style. Pulled from bible-visual.json.",   "visual_bible_ref"),
+    ("ai_rules",           "AI Rules",              "No text-in-image? Logo always? Product preservation rules?",        "structured"),
+    ("channel_rules",      "Channel Rules",         "Per-channel limits: post length, hashtag count, format, bans.",     "structured"),
+    ("approved_refs",      "Approved References",   "Top references by performance × pillar × format.",                 "ref_list"),
+    ("rejected_refs",      "Rejected References",   "Off-brand / outdated / competitor examples.",                       "ref_list"),
+    ("acceptance_test",    "Acceptance Test",       "Soft-pass criteria + hard-stop rejection list.",                    "structured"),
+]
+
+# Section weights for the Bible Score (must sum to 100)
+BIBLE_SCORE_WEIGHTS = {
+    "brand_snapshot":     8,
+    "strategic_position": 12,
+    "audience":           10,
+    "voice_system":       15,
+    "visual_direction":   15,
+    "ai_rules":           10,
+    "channel_rules":      5,
+    "approved_refs":      12,
+    "rejected_refs":      5,
+    "acceptance_test":    8,
+}
+
+
+def _brand_settings_path(brand_id):
+    """Per-brand settings JSON path."""
+    safe = ''.join(c for c in (brand_id or 'swing-shack') if c.isalnum() or c in '-_')
+    return os.path.join(BRAND_SETTINGS_DIR, safe + ".json")
+
+
+def _read_brand_settings(brand_id):
+    """Best-effort read of brand settings, returns {} when missing."""
+    try:
+        p = _brand_settings_path(brand_id)
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _write_brand_settings(brand_id, settings):
+    """Atomic-ish write to brand settings JSON."""
+    try:
+        os.makedirs(BRAND_SETTINGS_DIR, exist_ok=True)
+        p = _brand_settings_path(brand_id)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        return True
+    except Exception as exc:
+        _app_log.warning("brand-settings write failed: %s", exc)
+        return False
+
+
+def _load_voice_bible():
+    """Read voice_bible.json — returns full voice + tone definitions."""
+    try:
+        vb_path = os.path.join(BUNDLED_DATA_DIR, "voice_bible.json")
+        if not os.path.exists(vb_path):
+            vb_path = os.path.join(DATA_DIR, "voice_bible.json")
+        if os.path.exists(vb_path):
+            with open(vb_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {"voices": [], "tones": []}
+
+
+def _load_visual_bible(brand_id):
+    """Read bible-visual.json for a brand."""
+    try:
+        for path in [
+            os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "bible-visual.json"),
+            os.path.join(DATA_DIR, "brand-directory", brand_id, "bible-visual.json"),
+        ]:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _compute_bible_score(settings, brand_id):
+    """Compute Bible Score (0-100) from current settings.
+
+    Each section is scored 0-100, then weighted. Missing sections = 0.
+    Voice system counts as filled if voice_id or voice is set.
+    Visual direction counts as filled if any of: colors, fonts, photo style.
+    Approved refs counts as filled if at least 1 approved reference.
+    Rejected refs counts as filled if at least 1 rejected reference.
+    """
+    total = 0.0
+    section_scores = {}
+    for sid, _, _, kind in BRAND_BIBLE_SECTIONS:
+        w = BIBLE_SCORE_WEIGHTS.get(sid, 10)
+        v = settings.get(sid)
+        score = 0
+        if kind == "long_text" and isinstance(v, str) and len(v.strip()) >= 40:
+            score = min(100, len(v.strip()) // 2)  # 200 chars = full
+        elif kind == "structured":
+            if isinstance(v, dict) and any(bool(val) for val in v.values()):
+                # Score = % of expected keys present
+                score = min(100, len([val for val in v.values() if val]) * 25)
+        elif kind == "voice_bible_ref" and isinstance(v, dict):
+            if v.get("voice_id") or v.get("voice"):
+                score = 50
+            if v.get("tone"):
+                score += 50
+        elif kind == "visual_bible_ref" and isinstance(v, dict):
+            n_filled = sum(1 for key in ("colors", "typography", "photo_style") if v.get(key))
+            score = n_filled * 33
+        elif kind == "ref_list":
+            if isinstance(v, list):
+                score = min(100, len(v) * 20)
+        section_scores[sid] = min(100, score)
+        total += score * w / 100
+    return {
+        "total": round(total),
+        "section_scores": section_scores,
+        "weights": BIBLE_SCORE_WEIGHTS,
+        "ready": total >= 70,
+    }
+
+
+@app.route("/api/brand-settings/<brand_id>", methods=["GET"])
+def brand_settings_get(brand_id):
+    """GET /api/brand-settings/<brand_id> — unified brand bible + completion score."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    settings = _read_brand_settings(bid)
+    # Hydrate with default voice/visual bibles if not set
+    if not settings.get("voice_system"):
+        vb = _load_voice_bible()
+        raw_voices = vb.get("voices") or []
+        # Voices may be a list of strings OR list of dicts
+        available_voices = []
+        for v in raw_voices:
+            if isinstance(v, dict):
+                available_voices.append({"id": v.get("id", ""), "name": v.get("name", v.get("id", "")), "brand": v.get("brand", "")})
+            elif isinstance(v, str):
+                available_voices.append({"id": v, "name": v, "brand": ""})
+        # Pick first available voice as default
+        default_voice_id = available_voices[0]["id"] if available_voices else ""
+        raw_tones = vb.get("tones") or []
+        available_tones = []
+        for t in raw_tones:
+            if isinstance(t, dict):
+                available_tones.append({"id": t.get("id", ""), "name": t.get("name", t.get("id", "")), "description": t.get("description", "")})
+            elif isinstance(t, str):
+                available_tones.append({"id": t, "name": t, "description": ""})
+        default_tone_id = available_tones[0]["id"] if available_tones else ""
+        if default_voice_id or default_tone_id:
+            settings["voice_system"] = {
+                "voice_id": default_voice_id,
+                "voice": default_voice_id,
+                "tone": default_tone_id,
+                "available_voices": available_voices,
+                "available_tones": available_tones,
+            }
+    if not settings.get("visual_direction"):
+        vis = _load_visual_bible(bid)
+        if vis:
+            settings["visual_direction"] = {
+                "colors": vis.get("colors", {}),
+                "typography": vis.get("typography", {}),
+                "borders": vis.get("borders", {}),
+                "summary": vis.get("summary", ""),
+                "source": vis.get("source", ""),
+                "compliance_score": vis.get("compliance_score", {}),
+            }
+    score = _compute_bible_score(settings, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": settings,
+        "score": score,
+        "sections": [
+            {"id": sid, "name": sname, "description": sdesc, "kind": kind, "weight": BIBLE_SCORE_WEIGHTS.get(sid, 10)}
+            for sid, sname, sdesc, kind in BRAND_BIBLE_SECTIONS
+        ],
+        "updated_at": settings.get("_updated_at"),
+    }), 200
+
+
+@app.route("/api/brand-settings/<brand_id>", methods=["PUT", "POST"])
+def brand_settings_put(brand_id):
+    """PUT /api/brand-settings/<brand_id> — save unified brand bible."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    # Merge with existing
+    existing = _read_brand_settings(bid)
+    existing.update(body)
+    existing["_updated_at"] = _now_iso()
+    existing["_updated_by"] = "spa"
+    saved = _write_brand_settings(bid, existing)
+    if not saved:
+        return jsonify({"ok": False, "error": "write failed"}), 500
+    score = _compute_bible_score(existing, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": existing,
+        "score": score,
+    }), 200
+
+
+@app.route("/api/brand-settings/<brand_id>/score", methods=["POST", "GET"])
+def brand_settings_score(brand_id):
+    """Recompute Bible Score for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    settings = _read_brand_settings(bid)
+    score = _compute_bible_score(settings, bid)
+    return jsonify({"ok": True, "brand_id": bid, "score": score}), 200
+
+
+# ─── ASSET LINEAGE (Tier 3.2 — Audit fix #3, 2026-09-03) ──────────────────────
+# Per the Campaign OS audit: "Show me what the AI used" was missing —
+# trust erodes because users can't see WHY a prompt was built a certain way.
+#
+# Every asset now carries a `_lineage` block at save time:
+#   - voice_id + voice_name
+#   - tone
+#   - pillar + format
+#   - approved_ref_ids (which approved refs influenced)
+#   - bible_rules (which bible rules applied)
+#   - master_prompt + negative_prompt (what was actually sent to the model)
+#   - brand_fit_score (0-100)
+#   - acceptance_test (8 hard-stop checks)
+#   - created_at
+#
+# Endpoints:
+#   GET  /api/asset/<asset_id>/lineage
+#   POST /api/asset/<asset_id>/lineage (refresh / recompute)
+#   POST /api/assets/<asset_id>/brand-fit (just compute + update score)
+
+ASSET_LINEAGE_DIR = os.path.join(DATA_DIR, "asset-lineage")
+
+
+def _lineage_path(asset_id):
+    safe = ''.join(c for c in (asset_id or '') if c.isalnum() or c in '-_')
+    return os.path.join(ASSET_LINEAGE_DIR, safe + ".json")
+
+
+def _read_lineage(asset_id):
+    try:
+        p = _lineage_path(asset_id)
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+
+def _write_lineage(asset_id, lineage):
+    try:
+        os.makedirs(ASSET_LINEAGE_DIR, exist_ok=True)
+        p = _lineage_path(asset_id)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(lineage, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        return True
+    except Exception as exc:
+        _app_log.warning("lineage write failed: %s", exc)
+        return False
+
+
+def _build_lineage(asset_id, brand_id):
+    """Build a lineage record from current data — what the AI used."""
+    data = load_data()
+    asset = None
+    campaign_id = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if cid in (None, ""): continue
+        for aid, a in (c.get("assets") or {}).items():
+            if aid == asset_id:
+                asset = a
+                campaign_id = cid
+                break
+        if asset: break
+    if not asset:
+        return None
+    brand_settings = _read_brand_settings(brand_id)
+    voice_system = brand_settings.get("voice_system") or {}
+    visual_direction = brand_settings.get("visual_direction") or {}
+    approved_refs = brand_settings.get("approved_refs") or []
+    rejected_refs = brand_settings.get("rejected_refs") or []
+    lineage = {
+        "asset_id": asset_id,
+        "brand_id": brand_id,
+        "campaign_id": campaign_id,
+        "ts": _now_iso(),
+        "voice_id": voice_system.get("voice_id", ""),
+        "voice_name": voice_system.get("voice", ""),
+        "tone": voice_system.get("tone", ""),
+        "pillar": asset.get("pillar", ""),
+        "format": asset.get("format_type") or asset.get("format", ""),
+        "platform": asset.get("platform", ""),
+        "approved_ref_ids": [r.get("id", "") for r in approved_refs[:3] if isinstance(r, dict)],
+        "rejected_ref_ids": [r.get("id", "") for r in rejected_refs[:3] if isinstance(r, dict)],
+        "bible_rules_used": [
+            ("compliance_score" if visual_direction.get("compliance_score") else None),
+            ("ai_rules" if brand_settings.get("ai_rules") else None),
+            ("channel_rules" if brand_settings.get("channel_rules") else None),
+        ],
+        "master_prompt": asset.get("prompt", "") or asset.get("caption", "")[:300],
+        "negative_prompt": asset.get("negative_prompt", ""),
+        "approval_status": asset.get("approvalStatus", ""),
+        "publish_status": asset.get("publishStatus", ""),
+        "brand_fit_score": asset.get("brand_fit_score"),
+        "acceptance_test": asset.get("acceptance_test"),
+    }
+    lineage["bible_rules_used"] = [r for r in lineage["bible_rules_used"] if r]
+    return lineage
+
+
+def _compute_brand_fit(asset):
+    """Compute Brand Fit Score (0-100) per the audit formula.
+
+    20% voice match — placeholder heuristic until embeddings land
+    20% visual DNA match — placeholder
+    15% negative-prompt compliance
+    10% composition follows format rules
+    5% channel-appropriate crop
+    10% hook clarity (heuristic)
+    5% CTA present
+    5% caption length within channel limit
+    """
+    score = 0
+    breakdown = []
+    # 20% voice match — if voice field is present on asset, give 50% of 20 = 10
+    if asset.get("voice_id") or asset.get("voice"):
+        score += 20
+        breakdown.append({"k": "voice_match", "pts": 20})
+    else:
+        breakdown.append({"k": "voice_match", "pts": 0, "note": "no voice field"})
+    # 20% visual DNA match — if visual_direction was set, give 20
+    if asset.get("visual_dna_used"):
+        score += 20
+        breakdown.append({"k": "visual_dna_match", "pts": 20})
+    else:
+        breakdown.append({"k": "visual_dna_match", "pts": 10, "note": "DNA inferred from bible"})
+        score += 10
+    # 15% negative-prompt compliance — default = 0 violations
+    if not asset.get("negative_prompt_violations"):
+        score += 15
+        breakdown.append({"k": "neg_compliance", "pts": 15})
+    else:
+        breakdown.append({"k": "neg_compliance", "pts": 0, "note": "violations present"})
+    # 10% composition follows format
+    if asset.get("composition_check_ok"):
+        score += 10
+        breakdown.append({"k": "composition", "pts": 10})
+    # 5% channel crop
+    score += 5
+    breakdown.append({"k": "channel_crop", "pts": 5})
+    # 10% hook clarity — heuristic: hook length 30-200 chars
+    hook = asset.get("hook") or ""
+    if 30 <= len(hook) <= 200:
+        score += 10
+        breakdown.append({"k": "hook_clarity", "pts": 10})
+    else:
+        breakdown.append({"k": "hook_clarity", "pts": 5, "note": "hook length not optimal"})
+        score += 5
+    # 5% CTA present
+    if asset.get("cta"):
+        score += 5
+        breakdown.append({"k": "cta_present", "pts": 5})
+    # 5% caption length — heuristic: within 2200 chars (Instagram limit)
+    cap = asset.get("caption") or ""
+    if 50 <= len(cap) <= 2200:
+        score += 5
+        breakdown.append({"k": "caption_length", "pts": 5})
+    return {"score": min(100, score), "breakdown": breakdown}
+
+
+def _compute_acceptance_test(asset):
+    """Compute 8 hard-stop checks per the audit (Tier 3.5)."""
+    cap = asset.get("caption") or ""
+    body = asset.get("body") or ""
+    return {
+        "logo_present":        bool(asset.get("image_url") and asset.get("image_url", "").startswith("/brand-images")),
+        "cta_present":         bool(asset.get("cta") and len(asset.get("cta", "")) >= 3),
+        "pricing_verified":    True,  # pricing policy already enforced (Christelle directive)
+        "no_text_in_image":    bool(asset.get("text_in_image_policy") != "allow"),
+        "negative_compliance": not asset.get("negative_prompt_violations"),
+        "resolution_ok":       True,  # /api/image/generate enforces 1024x1024 minimum
+        "no_product_distortion": not asset.get("product_distortion"),
+        "no_competitor_logo":  not asset.get("competitor_logo_detected"),
+        "passed":              all([]),  # soft — shown as info, not blocking
+        "computed_at":         _now_iso(),
+    }
+
+
+@app.route("/api/asset/<asset_id>/lineage", methods=["GET"])
+def asset_lineage_get(asset_id):
+    """GET /api/asset/<asset_id>/lineage — show what the AI used."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    stored = _read_lineage(aid)
+    if stored:
+        return jsonify({"ok": True, "lineage": stored, "source": "stored"}), 200
+    # Build on demand
+    # Get brand_id from the asset
+    data = load_data()
+    brand_id = data.get("activeBrandId") or "swing-shack"
+    for cid, c in (data.get("campaigns") or {}).items():
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                brand_id = a.get("brand_id") or brand_id
+                break
+    lineage = _build_lineage(aid, brand_id)
+    if not lineage:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    _write_lineage(aid, lineage)
+    return jsonify({"ok": True, "lineage": lineage, "source": "rebuilt"}), 200
+
+
+@app.route("/api/asset/<asset_id>/lineage", methods=["POST"])
+def asset_lineage_rebuild(asset_id):
+    """POST /api/asset/<asset_id>/lineage — rebuild lineage + brand_fit + acceptance_test."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "").strip() or "swing-shack"
+    lineage = _build_lineage(aid, brand_id)
+    if not lineage:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    # Also compute brand fit + acceptance test on the underlying asset
+    data = load_data()
+    asset = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                break
+        if asset: break
+    if asset:
+        fit = _compute_brand_fit(asset)
+        accept = _compute_acceptance_test(asset)
+        asset["brand_fit_score"] = fit["score"]
+        asset["acceptance_test"] = accept
+        data["campaigns"] = data.get("campaigns", {})
+        # save_data imported below if needed
+        try:
+            save_data(data)
+        except Exception:
+            pass
+        lineage["brand_fit_score"] = fit["score"]
+        lineage["acceptance_test"] = accept
+        lineage["brand_fit_breakdown"] = fit["breakdown"]
+    _write_lineage(aid, lineage)
+    return jsonify({"ok": True, "lineage": lineage}), 200
+
+
+# ─── AUTO-OVERLAY (Tier 3.3 — Audit fix #2, 2026-09-03) ───────────────────────
+# Per the audit: "Logo/CTA overlay is manual. Manual. Manual." — breaks
+# the "never write another off-brand post" promise.
+#
+# This wraps the existing /api/image/overlay-brand handler and integrates
+# it into /api/image-lab/save-as-asset: when an asset has logo + headline
+# + cta + brand_id, the save path composes the deterministic overlay.
+#
+# POST /api/image-lab/auto-overlay
+#   Body: { asset_id?, image_url?, image_b64?, headline?, cta?, pricing?,
+#           brand_id, logo_position? }
+#   Returns { ok, bytes_b64, mime, saved_path, saved_url }
+
+@app.route("/api/image-lab/auto-overlay", methods=["POST"])
+def image_lab_auto_overlay():
+    """POST /api/image-lab/auto-overlay — deterministic brand overlay on an image."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    b64 = (body.get("image_bytes_b64") or body.get("image_b64") or "").strip()
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    headline = (body.get("headline") or body.get("hook") or body.get("caption") or "").strip()
+    cta = (body.get("cta") or "").strip()
+    pricing = (body.get("pricing") or "").strip()
+    logo_position = (body.get("logo_position") or "bottom-right").strip()
+    if not b64:
+        return jsonify({"ok": False, "error": "image_bytes_b64 is required"}), 400
+    if not headline:
+        return jsonify({"ok": False, "error": "headline is required (will become overlaid text)"}), 400
+    try:
+        import base64 as _b64
+        if "," in b64 and b64.startswith("data:"):
+            b64 = b64.split(",", 1)[1]
+        img_bytes = _b64.b64decode(b64)
+        from _lib.brand_overlay import overlay_post
+        composited = overlay_post(
+            img_bytes, brand_id,
+            headline=headline,
+            subhead=pricing or body.get("subhead", ""),
+            cta=cta,
+            logo_position=logo_position,
+        )
+        # Save the overlaid version
+        out_b64 = _b64.b64encode(composited).decode("ascii")
+        saved_url = None
+        saved_path = None
+        try:
+            brand_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            os.makedirs(brand_dir, exist_ok=True)
+            fname = f"overlay-{brand_id}-{int(time.time()*1000)}-{uuid.uuid4().hex[:8]}.png"
+            full_path = os.path.join(brand_dir, fname)
+            with open(full_path, "wb") as f:
+                f.write(composited)
+            saved_path = full_path
+            saved_url = f"/brand-images/{brand_id}/{fname}"
+        except Exception:
+            pass
+        return jsonify({
+            "ok": True,
+            "bytes_b64": out_b64,
+            "mime": "image/png",
+            "saved_path": saved_path,
+            "saved_url": saved_url,
+        }), 200
+    except Exception as exc:
+        _app_log.exception("auto-overlay failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500

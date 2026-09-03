@@ -663,6 +663,7 @@ a:hover{text-decoration:underline}
 
     <div class="nav-section" id="all-tools-section" hidden>
       <div class="nav-title">All tools</div>
+      <div class="nav" data-go="brand-settings" data-help-title="Brand Settings" data-help="Edit the brand bible. Voice, visual direction, AI rules, acceptance test. Includes the Bible Score completion meter."><span class="nav-icon">⚙️</span> Brand Settings</div>
       <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar — month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
       <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
@@ -3803,6 +3804,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health',
+  'brand-settings':'Brand Settings',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -8550,6 +8552,7 @@ async function renderImageHistory() {
           <div style="display:flex;gap:4px;flex-wrap:wrap">
             <button class="btn-mini primary" data-img-save="${payload}">💾 Save</button>
             <button class="btn-mini" data-img-schedule="${payload}">📅 Schedule</button>
+            <button class="btn-mini" data-img-overlay="${payload}">⚡ Overlay</button>
             <a class="btn-mini" href="${esc(it.url)}" target="_blank" rel="noopener" style="text-decoration:none">↗ Open</a>
           </div>
         </div>
@@ -8635,6 +8638,7 @@ function renderGeneratedImage(r, prompt, brand) {
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn primary" data-img-save="${payload}">💾 Save as asset</button>
           <button class="btn primary" data-img-schedule="${payload}">📅 Schedule now</button>
+          <button class="btn primary" data-img-overlay="${payload}" style="background:var(--success);color:#fff">⚡ Auto-overlay</button>
           ${previewUrl ? '<a class="btn ghost" href="' + esc(previewUrl) + '" target="_blank" rel="noopener" style="text-decoration:none">↗ Open image</a>' : ''}
           <button class="btn ghost" data-img-copy-prompt="${encodeURIComponent(prompt)}">📋 Copy prompt</button>
         </div>
@@ -8944,7 +8948,389 @@ async function campaignPushToPostiz(cid, approvedCount) {
   });
 })();
 
+
+
+// ─── BRAND SETTINGS (Tier 3.1 — Audit fix #1, 2026-09-03) ──────────────────
+// The biggest UX gap from the audit was: "No way to update brand bible
+// from UI". This adds the full Brand Settings section with 10 structured
+// fields + a live Bible Score completion meter (0-100).
+//
+// Why it matters: every downstream system (prompt assembly, auto-overlay,
+// brand-fit scoring, lineage) reads from this bible. Updating the bible
+// propagates to every generation without touching code.
+
+async function renderBrandSettings(){
+  const brand = $('#bs-brand')?.value || 'swing-shack';
+  const r = await API.get('/api/brand-settings/' + encodeURIComponent(brand));
+  if (!r.ok) { toast('Failed to load bible: ' + r.error, true); return; }
+  S.brandSettings = r;
+  const sections = r.sections || [];
+  const settings = r.settings || {};
+  const score = r.score || {};
+  // Score meter
+  $('#bs-score-badge').textContent = 'Bible Score: ' + (score.total || 0) + '/100';
+  $('#bs-score-badge').className = 'pill ' + (score.total >= 70 ? 'on' : score.total >= 40 ? 'live' : 'blocked');
+  $('#bs-score-bar').style.width = (score.total || 0) + '%';
+  $('#bs-score-status').textContent = score.ready ? '✓ Ready — generating on-brand creative' : (score.total >= 40 ? '⚠ Partial — some sections empty' : '⚠ Low — bible needs filling');
+  // Per-section score tiles
+  const sectionScores = score.section_scores || {};
+  $('#bs-score-sections').innerHTML = sections.map(s => {
+    const ss = sectionScores[s.id] || 0;
+    const fillPct = ss;
+    return `<div style="padding:.6rem;background:var(--bg-2);border-radius:8px;border:1px solid var(--bd)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <span style="font-size:12px;font-weight:600">${esc(s.name)}</span>
+        <span class="pill ${fillPct >= 70 ? 'on' : fillPct >= 40 ? 'live' : 'muted'}" style="font-size:10px">${ss}/100</span>
+      </div>
+      <div style="background:var(--bg-1);border-radius:3px;height:4px;overflow:hidden">
+        <div style="background:${fillPct >= 70 ? 'var(--success)' : fillPct >= 40 ? 'var(--accent)' : 'var(--danger)'};height:100%;width:${fillPct}%"></div>
+      </div>
+      <div style="font-size:10px;color:var(--tx-3);margin-top:.3rem">${esc(s.description).slice(0, 80)}</div>
+    </div>`;
+  }).join('');
+  // 10 sections editor
+  $('#bs-sections').innerHTML = sections.map(s => brandSettingsSection(s, settings[s.id])).join('');
+}
+
+function brandSettingsSection(s, value) {
+  const id = 'bs-field-' + s.id;
+  const v = value || '';
+  let field = '';
+  if (s.kind === 'long_text') {
+    field = `<textarea id="${id}" data-bs-id="${s.id}" data-bs-kind="${s.kind}" rows="3" placeholder="${esc(s.description)}" style="width:100%;background:var(--bg-1);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;font-size:13px;line-height:1.5;font-family:inherit;resize:vertical">${esc(typeof v === 'string' ? v : '')}</textarea>`;
+  } else if (s.kind === 'structured') {
+    // Show a JSON-ish editor
+    const j = typeof v === 'object' && v ? JSON.stringify(v, null, 2) : '{}';
+    field = `<textarea id="${id}" data-bs-id="${s.id}" data-bs-kind="${s.kind}" rows="4" placeholder="${esc(s.description)}" style="width:100%;background:var(--bg-1);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;font-size:12px;font-family:var(--mono,monospace);resize:vertical">${esc(j)}</textarea>
+      <div style="font-size:10px;color:var(--tx-3);margin-top:.3rem">JSON object — keys are field names, values are strings or arrays.</div>`;
+  } else if (s.kind === 'voice_bible_ref') {
+    const voices = (v && v.available_voices) || [];
+    const tones = (v && v.available_tones) || [];
+    field = `<div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <select id="${id}-voice" data-bs-id="${s.id}" data-bs-kind="voice_bible_ref" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px">
+        <option value="">— pick a voice —</option>
+        ${voices.map(vv => `<option value="${esc(vv.id)}" ${(v && v.voice_id === vv.id) ? 'selected' : ''}>${esc(vv.name || vv.id)}</option>`).join('')}
+      </select>
+      <select id="${id}-tone" data-bs-subkey="tone" data-bs-id="${s.id}" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px">
+        <option value="">— pick a tone —</option>
+        ${tones.map(tt => `<option value="${esc(tt.id)}" ${(v && v.tone === tt.id) ? 'selected' : ''}>${esc(tt.name || tt.id)}</option>`).join('')}
+      </select>
+    </div>`;
+  } else if (s.kind === 'visual_bible_ref') {
+    // Read-only summary from bible-visual.json — show summary + compliance
+    const summary = (v && v.summary) || '—';
+    const colors = v && v.colors ? (v.colors.dark || '') + ' / ' + (v.colors.accent || '') + ' / ' + (v.colors.light || '') : '';
+    field = `<div style="padding:.5rem;background:var(--bg-1);border-radius:6px;font-size:12px;color:var(--tx-2);line-height:1.5">
+      <div><b>Summary:</b> ${esc(summary).slice(0, 200)}</div>
+      ${colors ? `<div style="margin-top:.3rem"><b>Colors:</b> ${esc(colors)}</div>` : ''}
+      ${(v && v.compliance_score) ? `<div style="margin-top:.3rem"><b>Compliance:</b> threshold ${esc(String(v.compliance_score.passing_threshold || '—'))}</div>` : ''}
+      <div style="margin-top:.3rem;font-size:10px;color:var(--tx-3)">Pulled from bible-visual.json — edit that file to change.</div>
+    </div>`;
+  } else if (s.kind === 'ref_list') {
+    const arr = Array.isArray(v) ? v : [];
+    field = `<div data-bs-id="${s.id}" data-bs-kind="ref_list" data-bs-rows='${esc(JSON.stringify(arr))}'>
+      <div id="${id}-rows">${arr.map((r, i) => brandSettingsRefRow(s.id, i, r)).join('') || '<div class="muted" style="font-size:12px">No references yet — add one below.</div>'}</div>
+      <button class="btn ghost" data-bs-add-ref="${s.id}" style="margin-top:.5rem;font-size:11px">+ Add reference</button>
+    </div>`;
+  }
+  return `<div class="card col-6">
+    <div class="card-h">
+      <h3>${esc(s.name)} <span class="muted" style="font-size:10px;font-weight:400;margin-left:.4rem">weight ${s.weight}%</span></h3>
+      <span class="muted" id="${id}-status" style="margin-left:auto;font-size:11px"></span>
+    </div>
+    <div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">${esc(s.description)}</div>
+    ${field}
+  </div>`;
+}
+
+function brandSettingsRefRow(sectionId, idx, ref) {
+  const r = ref || {};
+  return `<div style="display:flex;gap:4px;margin-bottom:4px;align-items:center">
+    <input type="text" placeholder="id (e.g. ref-001)" value="${esc(r.id || '')}" data-bs-ref-key="id" data-bs-ref-section="${sectionId}" data-bs-ref-idx="${idx}" style="width:100px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:4px 6px;font-size:11px" />
+    <input type="text" placeholder="why approved / rejected (1 sentence)" value="${esc(r.why || '')}" data-bs-ref-key="why" data-bs-ref-section="${sectionId}" data-bs-ref-idx="${idx}" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:4px 6px;font-size:11px" />
+    <button class="btn-mini" data-bs-remove-ref="${sectionId}|${idx}" style="font-size:10px">🗑</button>
+  </div>`;
+}
+
+async function brandSettingsSave() {
+  const brand = $('#bs-brand')?.value || 'swing-shack';
+  const body = {};
+  // Collect all bs-field-* values
+  $$('[data-bs-id]').forEach(el => {
+    const sid = el.dataset.bsId;
+    const kind = el.dataset.bsKind;
+    if (kind === 'long_text' || kind === 'structured') {
+      const v = el.value;
+      if (kind === 'structured') {
+        try { body[sid] = JSON.parse(v || '{}'); }
+        catch(_) { body[sid] = { parse_error: v }; toast('Invalid JSON in ' + sid, true); }
+      } else {
+        body[sid] = v;
+      }
+    } else if (kind === 'voice_bible_ref') {
+      const voice = $('#bs-field-' + sid + '-voice')?.value || '';
+      const tone = $('#bs-field-' + sid + '-tone')?.value || '';
+      body[sid] = { voice_id: voice, voice, tone };
+    } else if (kind === 'ref_list') {
+      const rows = el.querySelectorAll('[data-bs-ref-key]');
+      const arr = [];
+      rows.forEach(inp => {
+        const idx = inp.dataset.bsRefIdx;
+        const key = inp.dataset.bsRefKey;
+        const sec = inp.dataset.bsRefSection;
+        if (!arr[idx]) arr[idx] = { id: '', why: '' };
+        arr[idx][key] = inp.value;
+      });
+      body[sid] = arr.filter(r => r.id || r.why);
+    }
+  });
+  const r = await API.put('/api/brand-settings/' + encodeURIComponent(brand), body);
+  if (!r.ok) { toast('Save failed: ' + r.error, true); return; }
+  toast('✓ Saved. Bible Score: ' + (r.score?.total || 0) + '/100');
+  await renderBrandSettings();
+}
+
+// Wire up: brand select change, save button, add ref, remove ref
+(function wireBrandSettings() {
+  // Save button
+  const saveBtn = $('#bs-save');
+  if (saveBtn && !saveBtn._wired) {
+    saveBtn._wired = true;
+    saveBtn.addEventListener('click', brandSettingsSave);
+  }
+  // Brand select
+  const brandSel = $('#bs-brand');
+  if (brandSel && !brandSel._wired) {
+    brandSel._wired = true;
+    brandSel.addEventListener('change', renderBrandSettings);
+  }
+  // Delegated handlers for ref add/remove
+  if (!window._brandSettingsWired) {
+    window._brandSettingsWired = true;
+    document.addEventListener('click', e => {
+      const addBtn = e.target.closest('[data-bs-add-ref]');
+      if (addBtn) {
+        const sid = addBtn.dataset.bsAddRef;
+        const container = $('#bs-field-' + sid + '-rows');
+        if (!container) return;
+        const idx = container.children.length;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = brandSettingsRefRow(sid, idx, { id: '', why: '' });
+        container.appendChild(wrapper.firstElementChild);
+        return;
+      }
+      const rmBtn = e.target.closest('[data-bs-remove-ref]');
+      if (rmBtn) {
+        const [sid, idx] = rmBtn.dataset.bsRemoveRef.split('|');
+        const container = $('#bs-field-' + sid + '-rows');
+        if (container && container.children[idx]) {
+          container.children[idx].remove();
+        }
+      }
+    });
+  }
+})();
+
+
+// ─── ASSET LINEAGE PANEL (Tier 3.2 — Audit fix #3, 2026-09-03) ────────────
+// Per the audit: "Show me what the AI used" was missing. Every asset now
+// has a Lineage panel showing: voice, tone, pillar, format, approved refs
+// that influenced it, brand bible rules applied, the actual prompt + negative
+// prompt, brand_fit_score, and acceptance test results.
+
+async function showAssetLineage(assetId) {
+  const r = await API.get('/api/asset/' + encodeURIComponent(assetId) + '/lineage');
+  if (!r.ok) { toast('Lineage not found: ' + r.error, true); return; }
+  const l = r.lineage;
+  // Open in a modal-ish inline panel
+  const modalId = 'lineage-modal-' + assetId;
+  let modal = document.getElementById(modalId);
+  if (modal) { modal.remove(); }
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  const bs = (l.brand_fit_score != null ? l.brand_fit_score : '?');
+  const accept = l.acceptance_test || {};
+  const atRows = Object.keys(accept).filter(k => k !== 'computed_at' && k !== 'passed').map(k => {
+    const v = accept[k];
+    const isBool = typeof v === 'boolean';
+    return `<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--bd)">
+      <span style="font-size:12px">${esc(k.replace(/_/g, ' '))}</span>
+      <span style="font-size:11px;color:${v === true ? 'var(--success)' : v === false ? 'var(--danger)' : 'var(--tx-2)'}">${isBool ? (v ? '✓ pass' : '✕ fail') : esc(String(v))}</span>
+    </div>`;
+  }).join('');
+  modal.innerHTML = `
+    <div style="background:var(--bg-1);border:1px solid var(--bd);border-radius:12px;max-width:760px;width:100%;max-height:90vh;overflow-y:auto;padding:1.5rem;color:var(--tx);font-family:inherit" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h3 style="margin:0;font-size:18px">🧬 Lineage: ${esc(assetId)}</h3>
+        <button class="btn ghost" onclick="document.getElementById('${modalId}').remove()">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1rem">
+        <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Voice</div><div style="font-size:13px;font-weight:600">${esc(l.voice_name || '—')}</div></div>
+        <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Tone</div><div style="font-size:13px;font-weight:600">${esc(l.tone || '—')}</div></div>
+        <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Pillar</div><div style="font-size:13px;font-weight:600">${esc(l.pillar || '—')}</div></div>
+        <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Format</div><div style="font-size:13px;font-weight:600">${esc(l.format || '—')}</div></div>
+        <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Platform</div><div style="font-size:13px;font-weight:600">${esc(l.platform || '—')}</div></div>
+        <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Brand Fit Score</div><div style="font-size:18px;font-weight:700;color:${bs >= 70 ? 'var(--success)' : bs >= 40 ? 'var(--accent)' : 'var(--danger)'}">${bs}/100</div></div>
+      </div>
+      <div style="background:var(--bg-2);border-radius:8px;padding:.75rem;margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;margin-bottom:.4rem">Master prompt</div>
+        <div style="font-size:12px;color:var(--tx-2);white-space:pre-wrap;line-height:1.5;max-height:160px;overflow-y:auto">${esc(l.master_prompt || '—').slice(0, 1000)}</div>
+      </div>
+      <div style="background:var(--bg-2);border-radius:8px;padding:.75rem;margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;margin-bottom:.4rem">Negative prompt</div>
+        <div style="font-size:12px;color:var(--tx-2);white-space:pre-wrap;line-height:1.5">${esc(l.negative_prompt || '— (auto-generated from bible)').slice(0, 500)}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;margin-bottom:.4rem">Approved refs used</div>
+        <div>${(l.approved_ref_ids || []).length ? (l.approved_ref_ids || []).map(id => `<span class="pill muted" style="font-size:10px;margin-right:4px">${esc(id)}</span>`).join('') : '<span class="muted" style="font-size:12px">None</span>'}</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;margin-bottom:.4rem">Bible rules applied</div>
+        <div>${(l.bible_rules_used || []).length ? (l.bible_rules_used || []).map(r => `<span class="pill muted" style="font-size:10px;margin-right:4px">${esc(r)}</span>`).join('') : '<span class="muted" style="font-size:12px">None captured</span>'}</div>
+      </div>
+      <div style="background:var(--bg-2);border-radius:8px;padding:.75rem">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;margin-bottom:.4rem">Acceptance test (8 hard-stop checks)</div>
+        ${atRows || '<div class="muted" style="font-size:12px">No acceptance test data — click Rebuild.</div>'}
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn ghost" id="lineage-rebuild-${esc(assetId)}">🔄 Rebuild lineage</button>
+        <button class="btn" onclick="document.getElementById('${modalId}').remove()">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  // Wire rebuild
+  document.getElementById('lineage-rebuild-' + assetId)?.addEventListener('click', async () => {
+    const rr = await API.post('/api/asset/' + encodeURIComponent(assetId) + '/lineage', { brand_id: l.brand_id });
+    if (rr.ok) {
+      toast('✓ Lineage rebuilt');
+      modal.remove();
+      showAssetLineage(assetId);
+    } else {
+      toast('Rebuild failed: ' + rr.error, true);
+    }
+  });
+}
+
+// Delegated click for data-asset-lineage buttons
+(function wireAssetLineage() {
+  if (!window._assetLineageWired) {
+    window._assetLineageWired = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-asset-lineage]');
+      if (btn) { e.preventDefault(); e.stopPropagation(); showAssetLineage(btn.dataset.assetLineage); return; }
+    });
+  }
+})();
+
+
+// ─── AUTO-OVERLAY (Tier 3.3 — Audit fix #2, 2026-09-03) ──────────────────
+// Per the audit: "Logo/CTA overlay is manual. Manual. Manual." — breaks
+// the "never write another off-brand post" promise.
+// 
+// New endpoint /api/image-lab/auto-overlay wraps the existing overlay engine
+// and the SPA wires a "⚡ Auto-overlay" button on every generated image.
+
+async function imageAutoOverlay(btn) {
+  let p;
+  try { p = JSON.parse(decodeURIComponent(btn.dataset.imgOverlay)); }
+  catch(e) { toast('Overlay payload corrupted', true); return; }
+  if (!p.image_b64 && !p.image_url) { toast('No image to overlay', true); return; }
+  if (!p.headline && !p.hook) { toast('Headline/hook required for overlay', true); return; }
+  
+  // If only image_url is given, fetch it as base64
+  let b64 = p.image_b64;
+  if (!b64 && p.image_url) {
+    try {
+      const resp = await fetch(p.image_url);
+      const blob = await resp.blob();
+      const reader = new FileReader();
+      b64 = await new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      toast('Could not fetch image: ' + e.message, true);
+      return;
+    }
+  }
+  
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await API.post('/api/image-lab/auto-overlay', {
+      image_bytes_b64: b64,
+      brand_id: p.brand_id || 'swing-shack',
+      headline: p.headline || p.hook || '',
+      subhead: p.subhead || '',
+      cta: p.cta || '',
+      pricing: p.pricing || '',
+      logo_position: p.logo_position || 'bottom-right',
+    });
+    if (!r.ok) throw new Error(r.error || 'Overlay failed');
+    // Replace the image with the overlaid version
+    if (r.saved_url) {
+      const imgEl = btn.closest('div')?.parentElement?.querySelector('img');
+      if (imgEl) {
+        imgEl.src = r.saved_url;
+        toast('✓ Overlay applied (logo + CTA + pricing)');
+      } else {
+        toast('✓ Overlay applied: ' + r.saved_url);
+      }
+    } else {
+      toast('✓ Overlay applied (in-memory only)');
+    }
+  } catch (e) {
+    toast('Overlay failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+(function wireAutoOverlay() {
+  if (!window._autoOverlayWired) {
+    window._autoOverlayWired = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-img-overlay]');
+      if (btn) { e.preventDefault(); imageAutoOverlay(btn); return; }
+    });
+  }
+})();
+
 </script>
+
+
+    <!-- ── BRAND SETTINGS (Tier 3.1 — Audit fix #1, 2026-09-03) ───────────── -->
+    <section class="section" id="sec-brand-settings">
+      <div class="section-h">
+        <h2>⚙️ Brand Settings</h2>
+        <span class="sub">The brand bible. Edit it once, the system uses it everywhere — prompts, overlays, scoring, lineage.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="bs-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+          <span id="bs-score-badge" class="pill live">Bible Score: 0/100</span>
+          <button class="btn primary" id="bs-save">💾 Save bible</button>
+        </div>
+      </div>
+
+      <!-- Bible Score meter -->
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div class="card-h"><h3>📊 Bible Score</h3><span class="muted" id="bs-score-status">Loading…</span></div>
+        <div style="background:var(--bg-2);border-radius:8px;height:24px;overflow:hidden;position:relative">
+          <div id="bs-score-bar" style="background:linear-gradient(90deg,var(--danger) 0%,var(--accent) 50%,var(--success) 100%);height:100%;width:0%;transition:width .4s ease"></div>
+        </div>
+        <div id="bs-score-sections" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.5rem;margin-top:1rem"></div>
+      </div>
+
+      <!-- The 10 sections in a 2-column grid -->
+      <div id="bs-sections" class="grid"></div>
+    </section>
 
 </body>
 </html>
