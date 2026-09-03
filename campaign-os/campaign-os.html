@@ -5111,6 +5111,197 @@ async function calDuplicate(drag){
     toast(err.message || 'Duplicate failed', 'err');
   }
 }
+
+// ─── Click-to-schedule (2026-09-03) ─────────────────────────────────────
+// Click any slot → action popover (publish now / reschedule / unschedule / dup).
+// Click any empty day → "add to this day" popover with Ideas bank picker.
+// Tier 1 #1 of the click-to-schedule audit.
+
+function closeCalPopover(){
+  $$('.cal-popover').forEach(el => el.remove());
+  $$('.cal-popover-backdrop').forEach(el => el.remove());
+}
+
+async function calSlotClick(event, assetId, scheduledFor, campaignId){
+  event.stopPropagation();
+  if(!assetId){ return; }
+  closeCalPopover();
+
+  // Build backdrop + popover
+  const back = document.createElement('div');
+  back.className = 'cal-popover-backdrop';
+  back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9998';
+  back.onclick = closeCalPopover;
+  document.body.appendChild(back);
+
+  const pop = document.createElement('div');
+  pop.className = 'cal-popover';
+  pop.style.cssText = 'position:fixed;left:'+Math.min(event.clientX, window.innerWidth-340)+'px;top:'+Math.min(event.clientY, window.innerHeight-260)+'px;width:320px;background:var(--bg-2);border:1px solid var(--bd);border-radius:10px;padding:14px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.4)';
+  const dt = scheduledFor ? scheduledFor.slice(0,16).replace('T',' ') : '—';
+  pop.innerHTML = `
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">📅 Slot actions</div>
+    <div class="muted" style="font-size:11px;margin-bottom:12px">Scheduled for ${esc(dt)}</div>
+    <div class="btn-row" style="flex-direction:column;align-items:stretch;gap:6px">
+      <button class="btn primary" data-act="publish-now" style="text-align:left">📤 Publish now (next empty slot)</button>
+      <button class="btn ghost" data-act="reschedule" style="text-align:left">🗓️ Reschedule to…</button>
+      <button class="btn ghost" data-act="duplicate" style="text-align:left">⧉ Duplicate as new draft</button>
+      <button class="btn ghost" data-act="open" style="text-align:left">📂 Open asset</button>
+      <button class="btn ghost" data-act="unschedule" style="text-align:left;color:var(--danger,#f55)">❌ Unschedule</button>
+    </div>
+    <div style="margin-top:10px;text-align:right"><button class="btn ghost" data-act="close" style="font-size:11px">Close (esc)</button></div>
+  `;
+  document.body.appendChild(pop);
+
+  pop.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const act = btn.dataset.act;
+      if(act === 'close'){ closeCalPopover(); return; }
+      closeCalPopover();
+      try {
+        if(act === 'publish-now'){
+          btn.disabled = true;
+          await API.post('/api/review/'+encodeURIComponent(assetId)+'/schedule-now', {campaignId: campaignId || undefined});
+          toast('✓ Approved + scheduled');
+          await renderCalendar();
+        } else if(act === 'reschedule'){
+          const newDate = prompt('Reschedule to date (YYYY-MM-DD) — original time preserved:', scheduledFor ? scheduledFor.slice(0,10) : new Date().toISOString().slice(0,10));
+          if(!newDate) return;
+          const time = scheduledFor && scheduledFor.includes('T') ? scheduledFor.slice(11,19) : '09:00:00';
+          const scheduledForNew = `${newDate}T${time}Z`;
+          await API.post('/api/schedule/'+encodeURIComponent(assetId), {
+            campaignId: campaignId || undefined, scheduledFor: scheduledForNew, updatedBy: 'calendar-click'
+          });
+          toast('✓ Rescheduled to '+newDate);
+          await renderCalendar();
+        } else if(act === 'duplicate'){
+          await API.post('/api/schedule/'+encodeURIComponent(assetId)+'/duplicate', {
+            campaignId: campaignId || undefined,
+            scheduledFor: calDropTime(new Date().toISOString().slice(0,10)),
+            updatedBy: 'calendar-click'
+          });
+          toast('✓ Duplicated as new draft');
+          await renderCalendar();
+        } else if(act === 'unschedule'){
+          if(!confirm('Unschedule this asset? The asset itself stays; only the schedule slot is removed.')) return;
+          await API.delete('/api/schedule/'+encodeURIComponent(assetId));
+          toast('✓ Unscheduled');
+          await renderCalendar();
+        } else if(act === 'open'){
+          // Best-effort open — try the campaigns page where the asset lives
+          if(campaignId){
+            go('campaigns');
+            setTimeout(() => {
+              const card = document.querySelector('[data-campaign-id="'+campaignId+'"]');
+              if(card) card.scrollIntoView({behavior:'smooth', block:'start'});
+            }, 600);
+          } else {
+            toast('Asset has no campaign id — open via Library');
+          }
+        }
+      } catch(e){
+        toast(e.message || 'Action failed', true);
+      }
+    });
+  });
+}
+
+async function calDayClick(event, date){
+  // Only trigger if the click landed on the day cell itself (not a slot)
+  if(event.target.closest('.cal-slot')) return;
+  closeCalPopover();
+
+  // Fetch the Ideas bank so the user has something to drop
+  let ideas = [];
+  try {
+    const r = await API.get('/api/intel/winning_theme_ideas?limit=8');
+    ideas = (r.ideas || []).slice(0, 8);
+  } catch(e) { /* ok if no ideas yet */ }
+
+  const back = document.createElement('div');
+  back.className = 'cal-popover-backdrop';
+  back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:9998';
+  back.onclick = closeCalPopover;
+  document.body.appendChild(back);
+
+  const pop = document.createElement('div');
+  pop.className = 'cal-popover';
+  pop.style.cssText = 'position:fixed;left:'+Math.min(event.clientX, window.innerWidth-380)+'px;top:'+Math.min(event.clientY, window.innerHeight-360)+'px;width:360px;max-height:380px;overflow:auto;background:var(--bg-2);border:1px solid var(--bd);border-radius:10px;padding:14px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.4)';
+  pop.innerHTML = `
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">➕ Schedule for ${esc(date)}</div>
+    <div class="muted" style="font-size:11px;margin-bottom:10px">Pick an idea to schedule a fresh draft. The idea becomes a placeholder asset you can flesh out in the campaign afterwards.</div>
+    <div id="cal-day-ideas" style="margin-bottom:10px">
+      ${ideas.length ? ideas.map((idea, i) => `
+        <div class="li" draggable="true"
+          data-idea-source="winning-theme"
+          data-idea-idx="${i}"
+          data-idea-title="${esc(idea.title || idea.text || idea.name || ('Idea '+(i+1)))}"
+          ondragstart="calIdeaDragStart(event, ${JSON.stringify(idea.title || idea.text || idea.name || 'Idea')})"
+          style="padding:6px 8px;border:1px solid var(--bd);border-radius:6px;margin-bottom:4px;cursor:grab;background:var(--bg-3)">
+          <div style="font-size:12px;font-weight:500">${esc(idea.title || idea.text || idea.name || 'Idea '+(i+1))}</div>
+          ${idea.angle ? `<div class="muted" style="font-size:11px;margin-top:2px">${esc(String(idea.angle).slice(0,80))}</div>` : ''}
+        </div>
+      `).join('') : '<div class="muted" style="font-size:11px">No ideas yet — generate some in the Ideas tab.</div>'}
+    </div>
+    <div style="margin-top:8px;text-align:right"><button class="btn ghost" data-act="close" style="font-size:11px">Close (esc)</button></div>
+  `;
+  document.body.appendChild(pop);
+  pop.querySelector('[data-act="close"]').addEventListener('click', closeCalPopover);
+}
+
+// Idea → day drop: schedules a fresh asset placeholder at the drop date.
+// Real-world wind: this creates a DRAFT (not a published asset). The campaign
+// owner reviews + approves + the regular schedule-now flow fires.
+function calIdeaDragStart(event, title){
+  event.dataTransfer.setData('application/x-cal-idea', JSON.stringify({title, source: 'winning-theme'}));
+  event.dataTransfer.effectAllowed = 'move';
+  // Reuse _calDrag for the calDrop handler so it treats the idea like a slot
+  _calDrag = {assetId: '__idea__', name: title, source: 'idea-bank', campaignId: ''};
+}
+
+// Hook into the existing calDrop to handle idea drops
+const _origCalDrop = calDrop;
+calDrop = async function(event, targetDate){
+  // Idea drop → create a placeholder asset scheduled for that date
+  const ideaRaw = event.dataTransfer?.getData('application/x-cal-idea');
+  if(ideaRaw || (_calDrag && _calDrag.source === 'idea-bank')){
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    const ideaTitle = ideaRaw ? JSON.parse(ideaRaw).title : (_calDrag?.name || 'Untitled');
+    closeCalPopover();
+    try {
+      // Find a sensible campaign to attach this to — first active campaign
+      const camps = await API.get('/api/campaigns');
+      const activeId = camps.activeCampaignId || Object.keys(camps.campaigns || {})[0];
+      if(!activeId){ toast('No active campaign to attach the idea to', true); return; }
+      const assetId = 'idea-' + Date.now().toString(36);
+      const time = '09:00:00';
+      const scheduledFor = `${targetDate}T${time}Z`;
+      // Create the asset as a draft via PATCH-equivalent — easiest is the campaign add-asset endpoint
+      // Use the schedule endpoint with a custom placeholder payload
+      const r = await API.post('/api/schedule/'+encodeURIComponent(assetId), {
+        campaignId: activeId,
+        scheduledFor: scheduledFor,
+        platform: 'instagram',
+        updatedBy: 'calendar-idea-drop',
+        newName: ideaTitle,
+      });
+      if(!r.ok) throw new Error(r.error || 'Schedule failed');
+      toast('✓ Idea scheduled for '+targetDate+' · flesh out in '+activeId);
+      await renderCalendar();
+    } catch(e){
+      toast(e.message || 'Idea schedule failed', true);
+    }
+    return;
+  }
+  // Otherwise: existing slot-drag behavior
+  return _origCalDrop(event, targetDate);
+};
+
+// Hook ESC key to close popovers
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeCalPopover();
+});
+
 function calSlotHtml(s){
   const cls = s.approvalStatus==='approved' ? 'scheduled' : (s.publishStatus==='draft' ? 'draft' : 'review');
   const hasColor = !!s.color;
@@ -5144,10 +5335,13 @@ function calSlotHtml(s){
     data-campaign-id="${esc(s.campaignId || '')}"
     data-source="${esc(s.source || 'campaign')}"
     data-scheduled-for="${esc(s.scheduledFor || '')}"
+    data-platform="${esc(s.platform || '')}"
+    data-status="${esc(s.approvalStatus || '')}"
     data-name="${esc(titleFull)}"
     ${colorStyle}
     ondragstart="calDragStart(event)" ondragend="calDragEnd(event)"
-    title="${tooltipParts.join(' · ')}">
+    onclick="calSlotClick(event, ${JSON.stringify(s.assetId || '')}, ${JSON.stringify(s.scheduledFor || '')}, ${JSON.stringify(s.campaignId || '')})"
+    title="${tooltipParts.join(' · ')} · click for actions">
     <div class="cal-slot-name">${platIcon} ${esc(title.slice(0,38))}</div>
     <div class="cal-slot-meta"><span class="cal-dot"${dotStyle}></span>${esc(label.slice(0,18))} · ${esc(campaignName.slice(0,18))}</div>
   </div>`;
@@ -5215,7 +5409,7 @@ async function renderCalendar(){
     const isToday = d.date === data.today;
     const slots = (d.slots || []).slice(0,6).map(calSlotHtml).join('');
     const more = d.slots.length > 6 ? `<div class="muted" style="font-size:10px">+${d.slots.length-6} more</div>` : '';
-    html += `<div class="cal-d ${isToday?'today':''}" data-drop-date="${esc(d.date)}" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${esc(d.date)}')">
+    html += `<div class="cal-d ${isToday?'today':''}" data-drop-date="${esc(d.date)}" data-drop-target="day" ondragover="calDragOver(event)" ondragleave="calDragLeave(event)" ondrop="calDrop(event,'${esc(d.date)}')" onclick="calDayClick(event,'${esc(d.date)}')">
       <div class="cal-dh"><span class="n">${dt.getDate()}</span><span>${d.count}</span></div>${slots}${more}
     </div>`;
   });
