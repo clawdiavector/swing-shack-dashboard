@@ -5479,16 +5479,16 @@ async function renderTrends(){
   // YouTube signals come as {key, value} dicts — render as {topic, hot}
   const renderYT = arr => safeList(arr, 12).map((it, idx) => {
     if(it.key !== undefined){
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button></div></li>`;
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(it.key).replace(/_/g,' '))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
     }
     // Competitor-style items: extract competitor name + readable text
     if(it.competitor){
       const txt = it.response || it.change || it.summary || it.note || it.what_changed || '';
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button></div></li>`;
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
     }
     const title = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
     const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button></div></li>`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(title).slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
   }).join('') || '<li class="empty">No signals</li>';
   $('#tr-reddit').innerHTML = renderYT(t.reddit);
   $('#tr-yt').innerHTML = renderYT(t.youtube);
@@ -5856,14 +5856,69 @@ async function renderPerformance(){
 async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
-  $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(itemHtml).join('') || '<div class="empty">Nothing yet</div>';
-  $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(itemHtml).join('') || '<div class="empty">Nothing yet</div>';
+
+  // Build a per-item payload for the Promote-to-Strategy button
+  function learnItemHtml(item, kind) {
+    const base = itemHtml(item);
+    if (!item || !item.title) return base;
+    const payload = encodeURIComponent(JSON.stringify({
+      title: item.title || '',
+      kind,
+      evidence: item.evidence || item.why || item.detail || '',
+      pillar: item.pillar || item.format || item.format_type || '',
+    }));
+    // Wrap with a button row using the title as a unique key
+    return base.replace(/<\/li>/, '<div class="li-act" style="margin-top:6px"><button class="btn-mini primary" data-learn-promote="' + payload + '">📌 Promote to strategy</button></div></li>');
+  }
+
+  $('#learn-worked').innerHTML = safeList(l.what_worked, 10).map(it => learnItemHtml(it, 'worked')).join('') || '<div class="empty">Nothing yet</div>';
+  $('#learn-failed').innerHTML = safeList(l.what_failed, 10).map(it => learnItemHtml(it, 'failed')).join('') || '<div class="empty">Nothing yet</div>';
   $('#learn-cta').innerHTML = safeList(l.cta_rankings, 10).map(it => {
     const score = it.score ?? it.cvr ?? it.ctr ?? '';
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.cta||it.text||JSON.stringify(it))}</div>${score?`<div class="li-meta">score ${score}</div>`:''}</div></li>`;
+    const payload = encodeURIComponent(JSON.stringify({
+      title: it.cta || it.text || '',
+      kind: 'cta',
+      evidence: it.evidence || it.note || '',
+      pillar: '',
+    }));
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.cta||it.text||JSON.stringify(it))}</div>${score?`<div class="li-meta">score ${score}</div>`:''}</div><div class="li-act" style="margin-top:6px"><button class="btn-mini primary" data-learn-promote="${payload}">📌 Promote</button></div></li>`;
   }).join('') || '<div class="empty">No CTA data</div>';
-  $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(itemHtml).join('') || '<div class="empty">No trend data</div>';
-  $('#learn-fail-pat').innerHTML = safeList(l.failure_patterns, 10).map(itemHtml).join('') || '<div class="empty">No patterns</div>';
+  $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(it => learnItemHtml(it, 'trend')).join('') || '<div class="empty">No trend data</div>';
+  $('#learn-fail-pat').innerHTML = safeList(l.failure_patterns, 10).map(it => learnItemHtml(it, 'pattern')).join('') || '<div class="empty">No patterns</div>';
+
+  // One-time delegated click handler for promote buttons
+  if (!window._learnPromoteWired) {
+    window._learnPromoteWired = true;
+    document.addEventListener('click', async e => {
+      const btn = e.target.closest('[data-learn-promote]');
+      if (!btn) return;
+      e.preventDefault();
+      let p;
+      try { p = JSON.parse(decodeURIComponent(btn.dataset.learnPromote)); }
+      catch(_) { return; }
+      if (!p.title) { toast('Empty item', true); return; }
+      const ok = confirm(
+        '📌 Promote this learning to a strategy bet?\n\n' +
+        '"' + p.title.slice(0, 120) + '"\n\n' +
+        'Creates a strategy lesson + a new bet (hypothesis) you can track. ' +
+        'The bet will appear in /#sec-strategy.'
+      );
+      if (!ok) return;
+      const orig = btn.textContent;
+      btn.disabled = true; btn.textContent = '⏳';
+      try {
+        const r = await API.post('/api/strategy/promote-learning-item', p);
+        if (!r.ok) throw new Error(r.error || 'Promote failed');
+        toast('✓ Lesson + bet created (' + (r.bet_id || '?').slice(0, 12) + '…)');
+        S.learn = null;
+        setTimeout(() => renderLearning(), 200);
+      } catch (err) {
+        toast('Promote failed: ' + (err.message || err), true);
+      } finally {
+        btn.disabled = false; btn.textContent = orig;
+      }
+    });
+  }
 }
 
 // ─── HOOKS ──────────────────────────────────────────────────────
@@ -7714,9 +7769,12 @@ async function renderCampaigns(){
     const c = camps[cid];
     const cname = c.identity?.name || cid;
     const assets = c.assets || {};
-    const n = Object.keys(assets).length;
+    const assetIds = Object.keys(assets);
+    const n = assetIds.length;
     const status = c.identity?.status || '';
-    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button></div></div>`;
+    // Count approved assets for the Push button hint
+    const approved = assetIds.filter(aid => assets[aid]?.approvalStatus === 'approved').length;
+    return `<div class="card col-4" id="camp-card-${cid}" onclick="toggleCampaignPlan('${cid}')"><div class="card-h"><h3>${esc(cname)}</h3><span class="h-meta">${esc(status)}</span></div><div class="row gap-1" style="margin-bottom:.5rem"><span class="muted">${n} assets${approved?` · ${approved} approved`:''}</span>${d.activeCampaignId===cid?pill('on','active'):''}</div>${c.identity?.brief?`<div style="font-size:12px;color:var(--tx-2);line-height:1.4">${esc(c.identity.brief).slice(0,160)}…</div>`:''}<div class="btn-row" style="margin-top:.75rem"><button class="btn ghost" onclick="event.stopPropagation();toggleCampaignPlan('${cid}')">📋 Full plan</button><button class="btn ghost" onclick="event.stopPropagation();go('calendar')">📅 Calendar</button><button class="btn primary" onclick="event.stopPropagation();campaignPushToPostiz('${cid}', ${approved})" title="Push ${approved} approved asset(s) to Postiz">🚀 Push ${approved}</button></div></div>`;
   }).join('') + '</div><div id="camp-plans"></div>';
 
   // ─── Brand Directory panel (new — surfaces 9-slot directory per brand) ──
@@ -8810,6 +8868,80 @@ function perfExplain(btn) {
       if (eBtn) { e.preventDefault(); perfExplain(eBtn); return; }
     });
   }
+})();
+
+
+
+// ─── CAMPAIGNS: push to Postiz (Tier 2.3, 2026-09-03) ────────────────────────
+// Each campaign card now has a "🚀 Push N" button (N = approved assets).
+// This calls POST /api/lanes/queue-for-postiz which fans approved assets
+// out to Postiz integrations and records the postiz_post_id back.
+async function campaignPushToPostiz(cid, approvedCount) {
+  if (!cid) { toast('No campaign id', true); return; }
+  if (!approvedCount) {
+    toast('No approved assets in this campaign — approve some first', true);
+    go('review');
+    return;
+  }
+  const ok = confirm(
+    '🚀 Push ' + approvedCount + ' approved asset(s) to Postiz?\n\n' +
+    'This sends each approved asset to its Postiz integration ' +
+    '(Instagram → IG, Facebook → FB, GBP → Google). The OS tracks the ' +
+    'postiz_post_id back so you can audit + cancel later.'
+  );
+  if (!ok) return;
+  try {
+    const r = await API.post('/api/lanes/queue-for-postiz', {
+      brand_id: 'swing-shack',
+      item_ids: 'all_approved',
+    });
+    if (!r.ok) throw new Error(r.error || 'Push failed');
+    const n = r.queued || 0;
+    const failed = (r.failed || []).length;
+    toast('✓ Pushed ' + n + ' to Postiz' + (failed ? ' · ' + failed + ' failed' : ''));
+    S.postiz = null;
+    setTimeout(() => go('postiz'), 400);
+  } catch (e) {
+    toast('Push failed: ' + (e.message || e), true);
+  }
+}
+
+// ─── TRENDS: Use → Caption + Use → Campaign (Tier 2.6, 2026-09-03) ──────────
+// The existing "Use →" button on each trend only jumps to Caption Studio.
+// Now every trend also gets a "🚀 Campaign" button that POSTs
+// /api/campaigns/from-idea with the trend title as the seed, so trends
+// become draft campaigns without copy-pasting.
+(function wireTrendCampaigns() {
+  if (window._trendCampaignWired) return;
+  window._trendCampaignWired = true;
+  document.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-trend-campaign]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const topic = btn.dataset.trendCampaign || '';
+    if (!topic) return;
+    const ok = confirm('🚀 Make this trend into a campaign draft?\n\n"' + topic.slice(0, 100) + '"\n\nCreates a new campaign with one asset per channel (IG / FB / GBP).');
+    if (!ok) return;
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳';
+    try {
+      const r = await API.post('/api/campaigns/from-idea', {
+        idea: topic.slice(0, 280),
+        tone: 'confident',
+        channels: ['instagram', 'facebook', 'gmb'],
+      });
+      if (!r.ok) throw new Error(r.error || 'Failed');
+      const n = (r.assets || []).length;
+      const cid = (r.campaign_id || '?').slice(0, 24);
+      toast('✓ Created ' + n + ' assets in ' + cid + '…');
+      setTimeout(() => go('review'), 800);
+    } catch (err) {
+      toast('Failed: ' + (err.message || err), true);
+    } finally {
+      btn.disabled = false; btn.textContent = orig;
+    }
+  });
 })();
 
 </script>

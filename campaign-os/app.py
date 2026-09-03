@@ -20672,3 +20672,97 @@ def image_lab_save_as_asset():
         "image_path": saved_image_path,
         "asset": asset,
     }), 201
+
+
+# ─── STRATEGY: PROMOTE-LEARNING-ITEM (2026-09-03) ─────────────────────────────
+# POST /api/strategy/promote-learning-item
+#
+# Tier 2.5 of the click-to-schedule audit. The Learning section used to be
+# read-only — the only action was "look at what worked". Now a user can
+# promote any item from /api/intel/learning into a strategic lesson + bet
+# in one call.
+#
+# Flow (server-side, single call):
+#   1. Upsert a lesson via ss.upsert_lesson (kind=worked/underperformed/etc.)
+#   2. Promote it to a bet via ss.promote_lesson_to_bet
+#   3. Return {ok, lesson_id, bet_id, strategy}
+#
+# Tier 2.5 also adds a "📌 Promote to strategy" button per item in
+# renderLearning — wired by the same endpoint.
+
+@app.route("/api/strategy/promote-learning-item", methods=["POST"])
+def strategy_promote_learning_item():
+    """POST /api/strategy/promote-learning-item — promote a what_worked / failure_pattern / etc. to a strategy lesson + bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "").strip()
+    if not title:
+        return jsonify({"ok": False, "error": "title is required"}), 400
+    kind = (body.get("kind") or "worked").strip()
+    # Map learning-section kinds → strategy lesson kinds
+    lesson_kind_map = {
+        "worked": "worked",
+        "what_worked": "worked",
+        "failed": "underperformed",
+        "what_failed": "underperformed",
+        "pattern": "underperformed",
+        "failure_pattern": "underperformed",
+        "cta": "worked",
+        "trend": "worked",
+    }
+    lesson_kind = lesson_kind_map.get(kind, "worked")
+    evidence = (body.get("evidence") or "").strip()[:600]
+    pillar = (body.get("pillar") or "").strip()[:60]
+    source = (body.get("source") or "learning-section").strip()[:120]
+
+    bid = request.args.get("brand") or get_brand_id()
+    try:
+        from _lib import strategy_store as ss
+        # Step 1: create the lesson
+        lesson_payload = {
+            "title": title[:200],
+            "kind": lesson_kind,
+            "claim": title[:200],
+            "evidence": evidence,
+            "source": source,
+            "pillar": pillar,
+            "ts": _now_iso(),
+        }
+        strategy = ss.upsert_lesson(bid, lesson_payload)
+        # Find the lesson_id we just inserted (last lesson)
+        lessons = (strategy or {}).get("lessons", [])
+        lesson_id = None
+        if lessons:
+            # Match by title+kind+source
+            for l in reversed(lessons):
+                if l.get("title") == lesson_payload["title"] and l.get("kind") == lesson_kind:
+                    lesson_id = l.get("id") or l.get("lesson_id")
+                    break
+            if not lesson_id:
+                lesson_id = lessons[-1].get("id") or lessons[-1].get("lesson_id")
+        # Step 2: promote to a bet
+        bet_payload = body.get("bet_payload") or {}
+        if not bet_payload.get("title"):
+            bet_payload["title"] = ("Repeat: " if lesson_kind == "worked" else "Fix: ") + title[:160]
+        if not bet_payload.get("hypothesis"):
+            bet_payload["hypothesis"] = ("If we repeat " if lesson_kind == "worked" else "If we avoid ") + title[:160]
+        bet_payload.setdefault("horizon", "month")
+        bet_payload.setdefault("metric", "engagement_rate")
+        bet_payload.setdefault("target", "+10%")
+        strategy = ss.promote_lesson_to_bet(bid, lesson_id, bet_payload)
+        # Find the new bet
+        bets = (strategy or {}).get("bets", [])
+        new_bet_id = None
+        if bets:
+            new_bet_id = bets[-1].get("id") or bets[-1].get("bet_id")
+        return jsonify({
+            "ok": True,
+            "lesson_id": lesson_id,
+            "bet_id": new_bet_id,
+            "lesson_kind": lesson_kind,
+            "strategy": strategy,
+        }), 201
+    except Exception as exc:
+        _app_log.exception("promote-learning-item failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
