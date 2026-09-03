@@ -7317,13 +7317,174 @@ async function renderFAQs(){
 }
 
 // ─── POSTIZ ─────────────────────────────────────────────────────
+// ─── POSTIZ (full version: queue + scheduled + published + actions) ─────
+//
+// Tier 1 #2 of the click-to-schedule audit. The Postiz section used to just
+// list the 3 buckets with no interaction. Now each scheduled/published item
+// has per-row action buttons:
+//
+//   ⚡ Reschedule  → POST /api/postiz/posts/<id>/reschedule
+//   ❌ Cancel      → POST /api/postiz/posts/<id>/cancel  (with confirm)
+//   📂 Open        → navigate to campaigns page
+//
+// Backed by 3 new endpoints (added 2026-09-03 in app.py):
+//   POST /api/postiz/posts/<post_id>/cancel      — DELETE in Postiz
+//   POST /api/postiz/posts/<post_id>/reschedule  — PUT new scheduledAt
+//   GET  /api/postiz/posts/<post_id>             — debug/audit
+//
+// Status banner reads /api/postiz/status for OAuth + API key state.
+
+function postizStatusPill(status) {
+  const k = status === 'published' ? 'live' : status === 'scheduled' ? 'on' : status === 'failed' || status === 'cancelled' ? 'blocked' : 'draft';
+  return pill(k, status || 'draft');
+}
+
+function postizRowHtml(it, bucket) {
+  const postizId = esc(it.postizPostId || it.id || '');
+  const title = esc((it.caption || it.name || it.title || '').slice(0, 90));
+  const platform = esc(it.platform || it.channel || it.integrationProvider || '');
+  const dt = esc((it.publishDate || it.scheduledAt || it.publishedAt || '').slice(0, 16));
+  const status = it.publishStatus || it.currentStatus || it.status || 'draft';
+  const aid = esc(it.assetId || '');
+  const cid = esc(it.campaignId || '');
+  const isLive = bucket === 'published';
+  const isScheduled = bucket === 'scheduled';
+
+  let actions = '';
+  if (isScheduled) {
+    actions = '<button class="btn ghost" data-pz-action="reschedule" data-pz-id="' + postizId + '">⚡ Reschedule</button> ' +
+              '<button class="btn ghost" data-pz-action="cancel" data-pz-id="' + postizId + '" style="color:var(--danger,#f55)">❌ Cancel</button>';
+  } else if (!isLive) {
+    actions = '<button class="btn primary" data-pz-action="reschedule" data-pz-id="' + postizId + '">⚡ Reschedule</button> ' +
+              '<button class="btn ghost" data-pz-action="cancel" data-pz-id="' + postizId + '">❌ Cancel</button>';
+  }
+  const openBtn = aid ? '<button class="btn ghost" data-pz-action="open" data-pz-aid="' + aid + '" data-pz-cid="' + cid + '">📂 Open</button>' : '';
+
+  return '<li class="li" data-pz-id="' + postizId + '">' +
+    '<div class="li-body">' +
+      '<div class="li-title">' + title + ' ' + postizStatusPill(status) + ' <span class="muted" style="font-size:11px">' + platform + (dt ? ' · ' + dt : '') + '</span></div>' +
+      (aid ? '<div class="muted" style="font-size:11px;margin-top:2px">asset: <code>' + aid + '</code></div>' : '') +
+      '<div class="btn-row" style="margin-top:8px">' + actions + ' ' + openBtn + '</div>' +
+    '</div>' +
+  '</li>';
+}
+
+function wirePostizRowActions(container) {
+  if (!container) return;
+  container.querySelectorAll('[data-pz-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const action = btn.dataset.pzAction;
+      const id = btn.dataset.pzId;
+      const aid = btn.dataset.pzAid;
+      const cid = btn.dataset.pzCid;
+      try {
+        if (action === 'cancel') {
+          if (!confirm('Cancel this Postiz post? It will be removed from Postiz and the canonical reference in the OS will be cleared. This cannot be undone.')) return;
+          btn.disabled = true;
+          const r = await API.post('/api/postiz/posts/' + encodeURIComponent(id) + '/cancel', {reason: 'osc-click'});
+          if (!r.ok) throw new Error(r.error || 'Cancel failed');
+          toast('✓ Cancelled');
+          S.postiz = null;
+          await renderPostiz();
+        } else if (action === 'reschedule') {
+          const currentDate = btn.closest('.li')?.querySelector('.muted')?.textContent || '';
+          const newDate = prompt('Reschedule to date (YYYY-MM-DD HH:MM, 24-hour, SAST):', currentDate.trim() || '');
+          if (!newDate) return;
+          // Convert SAST to UTC (SAST = UTC+2, no DST)
+          let isoDate;
+          try {
+            const m = newDate.trim().match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+            if (m) {
+              isoDate = m[1] + 'T' + m[2] + ':00.000Z';
+            } else {
+              isoDate = new Date(newDate).toISOString();
+            }
+          } catch (e) {
+            toast('Could not parse date', true);
+            return;
+          }
+          btn.disabled = true;
+          const r = await API.post('/api/postiz/posts/' + encodeURIComponent(id) + '/reschedule', {scheduledAt: isoDate});
+          if (!r.ok) throw new Error(r.error || 'Reschedule failed');
+          toast('✓ Rescheduled to ' + isoDate);
+          S.postiz = null;
+          await renderPostiz();
+        } else if (action === 'open') {
+          if (cid) {
+            go('campaigns');
+            setTimeout(() => {
+              const card = document.querySelector('[data-campaign-id="' + cid + '"]');
+              if (card) card.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }, 600);
+          } else {
+            toast('No campaign id on this post');
+          }
+        }
+      } catch (e) {
+        toast(e.message || 'Action failed', true);
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
 async function renderPostiz(){
-  if(!S.postiz) S.postiz = await API.get('/api/intel/postiz');
+  if (!S.postiz) S.postiz = await API.get('/api/intel/postiz');
   const p = S.postiz;
-  $('#postiz-summary').textContent = p.summary;
-  $('#postiz-queue').innerHTML = safeList(p.queue, 20).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.caption||it.name||'').slice(0,80))}</div><div class="li-meta">${esc(it.platform||'')} · ${esc(it.publishStatus||it.status||'')} · ${esc((it.publishDate||'').slice(0,16))}</div></div></li>`).join('') || '<div class="empty">Queue empty</div>';
+  $('#postiz-summary').textContent = p.summary || ('Queue: ' + (p.queue_total || 0) + ' · Scheduled: ' + (p.scheduled_total || 0) + ' · Published: ' + (p.published_total || 0));
+
+  // Status banner
+  try {
+    const st = await API.get('/api/postiz/status');
+    const ok = st.ok && st.api_key_present;
+    const oauthBrands = (st.oauth_token_brands || []).length;
+    const cls = ok ? 'on' : 'blocked';
+    $('#postiz-status-banner').innerHTML = '<div style="display:flex;gap:12px;align-items:center">' +
+      pill(cls, ok ? 'API key ✓' : 'API key ✗') +
+      pill(oauthBrands > 0 ? 'on' : 'draft', oauthBrands + ' brand(s) on OAuth') +
+      (st.last_check ? '<span class="muted" style="font-size:11px">last check: ' + esc(String(st.last_check).slice(0, 19)) + '</span>' : '') +
+    '</div>';
+  } catch(e) {
+    $('#postiz-status-banner').innerHTML = '<span class="muted">Status check skipped: ' + esc(e.message) + '</span>';
+  }
+
+  // Bucket 1: Scheduled (col-7)
+  const scheduled = safeList(p.scheduled, 30);
+  $('#postiz-scheduled-count').textContent = scheduled.length + ' total';
+  $('#postiz-scheduled').innerHTML = scheduled.length ? '<ul class="list">' + scheduled.map(it => postizRowHtml(it, 'scheduled')).join('') + '</ul>' : '<div class="empty">No scheduled posts yet.</div>';
+  wirePostizRowActions($('#postiz-scheduled'));
+
+  // Bucket 2: Queue (col-5)
+  const queue = safeList(p.queue, 30);
+  $('#postiz-queue-count').textContent = queue.length + ' total';
+  $('#postiz-queue').innerHTML = queue.length ? '<ul class="list">' + queue.map(it => postizRowHtml(it, 'queue')).join('') + '</ul>' : '<div class="empty">Queue is empty.</div>';
+  wirePostizRowActions($('#postiz-queue'));
+
+  // Bucket 3: Published (col-12)
+  const published = safeList(p.published, 30);
+  $('#postiz-published-count').textContent = published.length + ' total';
+  $('#postiz-published').innerHTML = published.length ? '<ul class="list">' + published.map(it => postizRowHtml(it, 'published')).join('') + '</ul>' : '<div class="empty">No published posts yet.</div>';
+  wirePostizRowActions($('#postiz-published'));
+
+  // Bucket 4: Canonical refs (col-12)
   const refs = p.publishing_refs?.references || p.publishing_refs?.items || [];
-  $('#postiz-refs').innerHTML = safeList(refs, 20).map(it => `<li class="li"><div class="li-body"><div class="li-title">${esc(it.postizId||it.id||'—')}</div><div class="li-meta">${esc(it.campaignId||'')} · ${esc(it.assetId||'')} · ${esc(it.publishStatus||'')}</div></div></li>`).join('') || '<div class="empty">No canonical references yet</div>';
+  $('#postiz-refs-count').textContent = refs.length + ' total';
+  $('#postiz-refs').innerHTML = refs.length ? '<ul class="list">' + refs.map(it => '<li class="li"><div class="li-body"><div class="li-title">' + esc(it.postizId||it.id||'—') + ' ' + pill('live', esc(it.currentStatus || it.publishStatus || 'draft')) + '</div><div class="li-meta muted" style="font-size:11px">' + esc(it.campaignId||'') + ' · asset: <code>' + esc(it.assetId||'') + '</code> · ' + esc(it.integrationProvider||'') + '</div></div></li>').join('') + '</ul>' : '<div class="empty">No canonical references yet.</div>';
+
+  // Wire top buttons (idempotent)
+  if (!window._postizWired) {
+    window._postizWired = true;
+    const refreshBtn = document.getElementById('postiz-refresh-btn');
+    if (refreshBtn) refreshBtn.addEventListener('click', async () => { S.postiz = null; await renderPostiz(); toast('✓ Refreshed'); });
+    const channelsBtn = document.getElementById('postiz-channels-btn');
+    if (channelsBtn) channelsBtn.addEventListener('click', async () => {
+      try {
+        const r = await API.get('/api/postiz/channels');
+        const cs = r.channels || [];
+        toast(cs.length + ' channels: ' + cs.slice(0, 5).map(c => c.provider || c.name || c.id).join(', '));
+      } catch (e) { toast(e.message, true); }
+    });
+  }
 }
 
 // ─── CAMPAIGNS ──────────────────────────────────────────────────

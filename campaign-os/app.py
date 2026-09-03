@@ -20226,3 +20226,154 @@ def seo_opportunities():
     except Exception as e:
         _app_log.exception("seo_opportunities failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── POSTIZ POST ACTIONS (2026-09-03) ─────────────────────────────────────────
+# POST /api/postiz/posts/<post_id>/cancel
+# POST /api/postiz/posts/<post_id>/reschedule
+#
+# Real Postiz API calls (no client lib wrapper exists for these — only
+# create_post + oauth are wrapped). Hits the Postiz public v1 endpoint
+# directly using POSTIZ_API_KEY from env or credentials/postiz-api-key.json.
+#
+# Real-world wind: these are destructive writes against a live platform.
+# Both require the same auth as the rest of /api/* and use a confirm() in
+# the SPA. They also strip the local canonical reference (publishing_refs)
+# so the OS doesn't keep pointing at a deleted post.
+#
+# Reference: Postiz public API
+#   DELETE /public/v1/posts/{id}        — cancels a post
+#   PUT    /public/v1/posts/{id}        — updates content/schedule
+
+def _postiz_api_base():
+    """Get the Postiz base URL + bearer token.
+
+    Mirrors the read-side path (Postiz client looks at the same env vars).
+    Returns (base, api_key) or (None, None) if not configured.
+    """
+    base = os.environ.get("POSTIZ_API_BASE") or "https://api.postiz.com/public/v1"
+    api_key = os.environ.get("POSTIZ_API_KEY") or ""
+    if not api_key:
+        # Try the credentials file path the rest of the app uses
+        for cand in ("credentials/postiz-api-key.json", "data/credentials/postiz-api-key.json"):
+            full = os.path.join(os.path.dirname(os.path.abspath(__file__)), cand)
+            try:
+                if os.path.exists(full):
+                    with open(full) as f:
+                        d = json.load(f)
+                    api_key = d.get("api_key") or d.get("apiKey") or api_key
+                    base = d.get("base_url") or d.get("api_base") or base
+            except Exception:
+                pass
+    return base.rstrip("/"), api_key.strip()
+
+
+def _postiz_http(method, path, body=None):
+    """Raw HTTP call to Postiz. Returns (response_json_or_None, error_str_or_None)."""
+    import urllib.request
+    import urllib.error
+    base, api_key = _postiz_api_base()
+    if not api_key:
+        return None, "POSTIZ_API_KEY not configured"
+    url = f"{base}{path}"
+    data = None
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if body is not None:
+        data = json.dumps(body).encode()
+    req = urllib.request.Request(url, data=data, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            raw = r.read().decode()
+            if not raw:
+                return {}, None
+            try:
+                return json.loads(raw), None
+            except Exception:
+                return {"raw": raw[:500]}, None
+    except urllib.error.HTTPError as exc:
+        return None, f"postiz {exc.code}: {exc.read().decode()[:200]}"
+    except Exception as exc:
+        return None, f"transport: {exc}"
+
+
+def _strip_local_postiz_ref(postiz_id):
+    """Remove the canonical reference from data/events/postiz/* + publishing_refs.
+
+    Best-effort. If the reference doesn't exist locally, no-op.
+    """
+    try:
+        pub = _read_json_file(os.path.join(DATA_DIR, "publishing_refs.json"))
+        if isinstance(pub, dict):
+            refs = pub.get("references") or pub.get("items") or []
+            new_refs = [r for r in refs if r.get("postizPostId") != postiz_id]
+            if len(new_refs) != len(refs):
+                pub["references"] = new_refs
+                pub["count"] = len(new_refs)
+                with open(os.path.join(DATA_DIR, "publishing_refs.json"), "w") as f:
+                    json.dump(pub, f, indent=2)
+    except Exception as exc:
+        _app_log.warning("strip_local_postiz_ref could not edit publishing_refs: %s", exc)
+
+
+@app.route("/api/postiz/posts/<post_id>/cancel", methods=["POST"])
+def postiz_post_cancel(post_id):
+    """Cancel a Postiz post. DELETE the post + strip the local canonical ref.
+
+    Body (JSON, optional):
+      reason   - optional reason string stored in the cancelled log
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    reason = (body.get("reason") or "").strip()[:200]
+    _app_log.info("postiz_post_cancel %s reason=%s", post_id, reason)
+    result, err = _postiz_http("DELETE", f"/posts/{post_id}")
+    if err:
+        return jsonify({"ok": False, "error": err, "partial": True}), 502
+    _strip_local_postiz_ref(post_id)
+    return jsonify({
+        "ok": True,
+        "postizPostId": post_id,
+        "postiz_response": result,
+        "reason": reason,
+    }), 200
+
+
+@app.route("/api/postiz/posts/<post_id>/reschedule", methods=["POST"])
+def postiz_post_reschedule(post_id):
+    """Reschedule a Postiz post. PUT the post with a new `date` field.
+
+    Body (JSON):
+      scheduledAt  - ISO datetime, REQUIRED. e.g. "2026-09-10T09:00:00.000Z"
+      content      - optional new content (most users just reschedule)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    scheduled_at = (body.get("scheduledAt") or body.get("date") or "").strip()
+    if not scheduled_at:
+        return jsonify({"ok": False, "error": "scheduledAt is required (ISO datetime)"}), 400
+    payload = {"date": scheduled_at}
+    if body.get("content"):
+        payload["content"] = body["content"]
+    _app_log.info("postiz_post_reschedule %s -> %s", post_id, scheduled_at)
+    result, err = _postiz_http("PUT", f"/posts/{post_id}", payload)
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+    return jsonify({
+        "ok": True,
+        "postizPostId": post_id,
+        "scheduledAt": scheduled_at,
+        "postiz_response": result,
+    }), 200
+
+
+@app.route("/api/postiz/posts/<post_id>", methods=["GET"])
+def postiz_post_get(post_id):
+    """Fetch a single Postiz post by id (debug/audit)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    result, err = _postiz_http("GET", f"/posts/{post_id}")
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+    return jsonify(result or {}), 200
