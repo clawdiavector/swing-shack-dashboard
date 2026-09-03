@@ -5497,20 +5497,130 @@ async function renderTrends(){
 }
 
 // ─── IDEAS ──────────────────────────────────────────────────────
+// ─── IDEAS (full version: drafts + campaigns + use-as-caption) ────────
+//
+// Tier 1 #3 of the click-to-schedule audit. Ideas used to just sit in the
+// view — you could Copy but couldn't turn them into drafts. Now each idea
+// in the main Ideas list + the freshly-generated list has TWO new buttons:
+//
+//   💬 Make a draft     → POST /api/campaigns/from-idea (one-click creation
+//                         of real assets in a new/active campaign, lands in
+//                         Review queue ready to schedule)
+//   ✍️ Caption only     → pre-fill Caption Studio with the hook (fallback)
+//
+// /api/campaigns/from-idea already existed (one-click campaign builder).
+// We just expose it from the UI.
+
+function ideaDraftButton(idea, idx) {
+  const title = esc((idea.title || '').slice(0, 60));
+  const hook = esc((idea.hook || '').slice(0, 200));
+  const cta = esc((idea.best_cta || '').slice(0, 80));
+  const payload = encodeURIComponent(JSON.stringify({
+    title: idea.title || '',
+    hook: idea.hook || '',
+    best_cta: idea.best_cta || '',
+    topic_cluster: idea.topic_cluster || '',
+    format: idea.format || 'static',
+    priority: idea.priority || 'this_week',
+  }));
+  return '<div class="btn-row" style="margin-top:6px;gap:4px;flex-wrap:wrap">' +
+    '<button class="btn primary" data-idea-draft="' + idx + '" data-payload="' + payload + '" style="font-size:11px;padding:5px 10px">💬 Make a draft</button>' +
+    '<button class="btn ghost" data-idea-caption="' + idx + '" data-payload="' + payload + '" style="font-size:11px;padding:5px 10px">✍️ Caption</button>' +
+  '</div>';
+}
+
+async function makeIdeaIntoDraft(btn) {
+  const payload = JSON.parse(decodeURIComponent(btn.dataset.payload));
+  if (!payload.title && !payload.hook) {
+    toast('Idea needs a title or hook', true);
+    return;
+  }
+  const ok = confirm('Make this idea into a campaign draft?\n\n"' + (payload.title || payload.hook).slice(0, 80) + '"\n\nThis creates a new campaign with one asset per channel (IG / FB / X / TikTok / GBP). All assets land in the Review queue ready to schedule.');
+  if (!ok) return;
+  const origLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Creating…';
+  try {
+    const body = {
+      idea: (payload.hook || payload.title || '').slice(0, 280),
+      tone: 'confident',
+      channels: ['instagram', 'facebook', 'gmb'],
+    };
+    const r = await API.post('/api/campaigns/from-idea', body);
+    if (!r.ok) throw new Error(r.error || 'Campaign creation failed');
+    const assetCount = (r.assets || []).length;
+    const campId = r.campaign_id || '?';
+    toast('✓ Created ' + assetCount + ' assets in campaign ' + campId.slice(0, 20) + '…');
+    // Jump to review so they can approve + schedule
+    setTimeout(() => {
+      go('review');
+      toast('💬 ' + assetCount + ' drafts in Review queue');
+    }, 800);
+  } catch (e) {
+    toast('Failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = origLabel;
+  }
+}
+
+function ideaToCaption(btn) {
+  const payload = JSON.parse(decodeURIComponent(btn.dataset.payload));
+  const seed = payload.hook || payload.title || payload.best_cta || '';
+  go('captions');
+  setTimeout(() => {
+    const seedEl = document.getElementById('cap-seed-input') || document.querySelector('#sec-captions input[type="text"]');
+    if (seedEl) {
+      seedEl.value = seed;
+      seedEl.dispatchEvent(new Event('input', {bubbles: true}));
+    }
+    document.getElementById('cap-gen')?.click();
+  }, 600);
+  toast('Generating caption from idea…');
+}
+
 async function renderIdeas(){
   if(!S.ideas) S.ideas = await API.get('/api/intel/opportunities');
   const d = S.ideas;
   $('#ideas-total').textContent = (d.ideas||[]).length + ' ideas';
-  const renderList = arr => safeList(arr, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
-  $('#ideas-list').innerHTML = renderList(d.ideas);
-  $('#ideas-today').innerHTML = renderList(d.post_today);
-  $('#ideas-week').innerHTML = renderList(d.this_week);
-  $('#ideas-missed').innerHTML = renderList(d.missed);
-  $('#ideas-upsell').innerHTML = renderList(d.upsells);
-  $('#ideas-bundles').innerHTML = renderList(d.bundles);
-  $('#ideas-funnel').innerHTML = renderList(d.funnel_leaks);
-  $('#ideas-landing').innerHTML = renderList(d.landing_fixes);
-  // bind generate-new-ideas button
+
+  // Render the main Ideas list with our draft buttons appended per-item.
+  // The list comes from itemHtml (generic) but ideas have a stable shape
+  // (title/hook/idea_id). We add a thin wrapper that injects the buttons.
+  const renderIdeasList = (arr) => {
+    const items = safeList(arr, 8);
+    if (!items.length) return '<div class="empty">Nothing here</div>';
+    return '<ul class="list">' + items.map((it, idx) => {
+      const base = itemHtml(it);
+      // Only append our buttons if this looks like an idea (has title/hook + idea_id)
+      if (it && (it.idea_id || (it.title && it.hook))) {
+        return '<li>' + base + ideaDraftButton(it, idx) + '</li>';
+      }
+      return base;
+    }).join('') + '</ul>';
+  };
+
+  $('#ideas-list').innerHTML = renderIdeasList(d.ideas);
+  $('#ideas-today').innerHTML = renderIdeasList(d.post_today);
+  $('#ideas-week').innerHTML = renderIdeasList(d.this_week);
+  $('#ideas-missed').innerHTML = safeList(d.missed, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-upsell').innerHTML = safeList(d.upsells, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-bundles').innerHTML = safeList(d.bundles, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-funnel').innerHTML = safeList(d.funnel_leaks, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-landing').innerHTML = safeList(d.landing_fixes, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+
+  // Wire the new draft + caption buttons (delegated on the Ideas section)
+  ['ideas-list', 'ideas-today', 'ideas-week', 'ideas-fresh'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el._wired) return;
+    el._wired = true;
+    el.addEventListener('click', e => {
+      const draftBtn = e.target.closest('[data-idea-draft]');
+      if (draftBtn) { makeIdeaIntoDraft(draftBtn); return; }
+      const capBtn = e.target.closest('[data-idea-caption]');
+      if (capBtn) { ideaToCaption(capBtn); return; }
+    });
+  });
+
+  // bind generate-new-ideas button (existing flow + new draft button on each fresh idea)
   const genBtn = $('#ideas-gen');
   if (genBtn && !genBtn._bound) {
     genBtn._bound = true;
@@ -5522,13 +5632,16 @@ async function renderIdeas(){
           toast('No idea generated — try again', 'err');
           return;
         }
-        const html = r.ideas.map(i => `
+        const html = r.ideas.map((i, idx) => `
           <div class="li">
             <div class="li-body">
               <div class="li-title">${esc(i.title)} <span class="pill primary" style="font-size:10px">${esc(i.pillar||'')}</span></div>
-              <div class="li-meta"><b>Why:</b> ${esc(i.why||'')}${i.hook ? ` · <b>Hook:</b> ${esc(i.hook).slice(0,80)}` : ''}</div>
+              <div class="li-meta"><b>Why:</b> ${esc(i.why||'')}${i.hook ? ' · <b>Hook:</b> ' + esc(i.hook).slice(0,80) : ''}</div>
             </div>
-            <div class="li-act"><button class="btn-mini" onclick="navigator.clipboard?.writeText('${esc(i.title)}');toast('Copied','ok')">Copy</button></div>
+            <div class="li-act" style="display:flex;gap:4px;flex-wrap:wrap">` +
+              ideaDraftButton({title: i.title, hook: i.hook, best_cta: i.best_cta, topic_cluster: i.pillar, format: 'static', priority: 'fresh'}, idx) +
+              '<button class="btn-mini" onclick="navigator.clipboard?.writeText(\'' + esc(i.title) + '\');toast(\'Copied\',\'ok\')">Copy</button>' +
+            `</div>
           </div>`).join('');
         $('#ideas-fresh').innerHTML = html;
         toast('Generated ' + r.count + ' fresh ideas', 'ok');
