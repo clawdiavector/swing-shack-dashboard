@@ -6117,11 +6117,31 @@ async function renderCaptions(){
   const sel = $('#cap-asset-select');
   sel.innerHTML = '<option value="">— any asset (hook pool) —</option>' + (S.assets.assets||[]).slice(0,60).map(a => `<option value="${esc(a.assetId)}">${esc(a.campaignName)} · ${esc(a.name)}</option>`).join('');
   const c = S.cap;
-  $('#cap-bank').innerHTML = safeList(c.captions, 20).map(it => {
+  // Bank: existing curated captions + saved captions (newest first)
+  let bank = safeList(c.captions, 14).map(it => {
     const txt = it.hook_text || it.short_caption || it.medium_caption || it.long_caption || it.caption || it.text || '';
     const voiceChip = it.voice ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(it.voice)}</span>` : '';
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,140))}</div><div class="li-meta">${it.platform?pill('live', it.platform):''} ${it.format_type?pill('draft', it.format_type):''} ${voiceChip}</div></div></li>`;
-  }).join('') || '<div class="empty">No captions</div>';
+  });
+  try {
+    const saved = await API.get('/api/captions/saved?limit=10');
+    if (saved && saved.captions && saved.captions.length) {
+      const savedHtml = saved.captions.map(sc => {
+        const txt = (sc.hook ? sc.hook + ' — ' : '') + (sc.body || '');
+        const meta = (sc.voice ? pill('muted', sc.voice) : '') + (sc.tone ? ' ' + pill('muted', sc.tone) : '') + (sc.platform ? ' ' + pill('live', sc.platform) : '');
+        const payload = encodeURIComponent(JSON.stringify({
+          id: sc.id, hook: sc.hook, body: sc.body, cta: sc.cta, voice: sc.voice, tone: sc.tone, platform: sc.platform, brand: sc.brand,
+        }));
+        return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,140))}</div><div class="li-meta">${meta} <span class="pill draft" style="font-size:10px">saved</span></div></div>` +
+          '<div class="li-act" style="display:flex;gap:4px;flex-wrap:wrap">' +
+            '<button class="btn-mini primary" data-cap-schedule="' + payload + '">📅 Schedule</button>' +
+            '<button class="btn-mini" data-cap-delete="' + esc(sc.id) + '">🗑</button>' +
+          '</div></li>';
+      }).join('');
+      bank = bank.concat([savedHtml]);
+    }
+  } catch(e) { /* silent — saved endpoint may 502 on Railway older builds */ }
+  $('#cap-bank').innerHTML = bank.join('') || '<div class="empty">No captions</div>';
   $('#cap-cta').innerHTML = safeList(c.cta_rankings, 10).map(it => {
     const txt = it.cta || it.text || it.label || it.cta_type || '';
     const perf = it.avg_engagement_rate || it.cvr || it.score || '';
@@ -6180,6 +6200,11 @@ $('#cap-gen').addEventListener('click', async () => {
     (r.variants||[]).map((v, i) => {
       const vVoice = v.voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint-2);color:var(--ac)">${esc(v.voice)}</span>` : '';
       const vTone  = v.tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.tone)}</span>` : '';
+      const vPayload = encodeURIComponent(JSON.stringify({
+        hook: v.hook || '', body: v.body || '', cta: v.cta || '',
+        voice: v.voice || '', tone: v.tone || '', platform: v.platform || '',
+        source: v.source || ('variant-' + (i+1)),
+      }));
       return `<div class="review" style="margin-bottom:.5rem">
         <div class="review-cap">
           <div class="review-cap-t">${esc(v.hook||'')}</div>
@@ -6189,6 +6214,11 @@ $('#cap-gen').addEventListener('click', async () => {
         <div class="review-meta">
           ${v.platform?pill('live', v.platform):''} ${vVoice} ${vTone}
           <span class="muted">${esc(v.source||'')}</span>
+          <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap" class="cap-act-row">
+            <button class="btn-mini primary" data-cap-save="${vPayload}">💾 Save</button>
+            <button class="btn-mini primary" data-cap-schedule="${vPayload}">📅 Schedule</button>
+            <button class="btn-mini" data-cap-copy="${encodeURIComponent((v.body || v.hook || ''))}">📋 Copy</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -8252,6 +8282,109 @@ async function makeDraftFromText(text, btn) {
   wire();
   document.addEventListener('click', () => setTimeout(wire, 200), true);
 })();
+
+
+// ─── CAPTION STUDIO: Save + Schedule + Delete + Copy (2026-09-03) ───────────
+// Tier 2.1 of the click-to-schedule audit. The Caption Studio used to just
+// show 5/8/12 variants as plain text — if you liked one you had to
+// copy-paste into the campaign editor. Now every variant has 3 buttons:
+//
+//   💾 Save          → POST /api/captions/save  (persists to captions-saved.json)
+//   📅 Schedule      → POST /api/campaigns/from-idea (materializes as
+//                       reviewable assets in IG/FB/GBP, lands in Review)
+//   📋 Copy          → clipboard fallback
+//
+// Plus the Caption Bank now ALSO shows your saved captions (newest first)
+// with Schedule + Delete buttons per row.
+
+async function captionSaveVariant(btn) {
+  let p;
+  try {
+    p = JSON.parse(decodeURIComponent(btn.dataset.capSave));
+  } catch(e) { toast('Save payload corrupted', true); return; }
+  if (!p.body) { toast('Empty body', true); return; }
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await API.post('/api/captions/save', {
+      hook: p.hook, body: p.body, cta: p.cta,
+      voice: p.voice, tone: p.tone, platform: p.platform, source: p.source,
+    });
+    if (!r.ok) throw new Error(r.error || 'Save failed');
+    toast('✓ Saved (' + (r.count || 0) + '/' + (r.max || 500) + ')');
+    S.cap = null;
+    await renderCaptions();
+  } catch (e) {
+    toast('Save failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function captionScheduleVariant(btn) {
+  let p;
+  try {
+    p = JSON.parse(decodeURIComponent(btn.dataset.capSchedule));
+  } catch(e) { toast('Schedule payload corrupted', true); return; }
+  const seed = ((p.hook || '') + ' ' + (p.body || '')).trim().slice(0, 280);
+  if (!seed) { toast('Empty caption', true); return; }
+  const ok = confirm('Schedule this caption?\n\n"' + seed.slice(0, 100) + '..."\n\nCreates a new campaign with one asset per channel (IG / FB / GBP). All assets land in Review queue ready to schedule.');
+  if (!ok) return;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await API.post('/api/campaigns/from-idea', {
+      idea: seed,
+      tone: p.tone || 'confident',
+      channels: ['instagram', 'facebook', 'gmb'],
+    });
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const n = (r.assets || []).length;
+    const cid = (r.campaign_id || '?').slice(0, 24);
+    toast('✓ Created ' + n + ' assets in ' + cid + '…');
+    setTimeout(() => go('review'), 800);
+  } catch (e) {
+    toast('Schedule failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function captionDeleteSaved(id, btn) {
+  if (!confirm('Delete this saved caption?')) return;
+  try {
+    await API.delete('/api/captions/saved/' + encodeURIComponent(id));
+    toast('✓ Deleted');
+    S.cap = null;
+    await renderCaptions();
+  } catch (e) {
+    toast('Delete failed: ' + (e.message || e), true);
+  }
+}
+
+// Delegated click handler for all caption Studio buttons
+(function wireCaptionActions(){
+  const handler = async e => {
+    const saveBtn = e.target.closest('[data-cap-save]');
+    if (saveBtn) { await captionSaveVariant(saveBtn); return; }
+    const schBtn = e.target.closest('[data-cap-schedule]');
+    if (schBtn) { await captionScheduleVariant(schBtn); return; }
+    const cpBtn = e.target.closest('[data-cap-copy]');
+    if (cpBtn) {
+      try { await navigator.clipboard.writeText(decodeURIComponent(cpBtn.dataset.capCopy)); toast('Copied', 'ok'); }
+      catch(_) { toast('Copy failed', true); }
+      return;
+    }
+    const delBtn = e.target.closest('[data-cap-delete]');
+    if (delBtn) { await captionDeleteSaved(delBtn.dataset.capDelete, delBtn); return; }
+  };
+  // Attach once — handler is delegated on the document so it catches dynamic content
+  if (!window._capActionsWired) {
+    window._capActionsWired = true;
+    document.addEventListener('click', handler);
+  }
+})();
+
 </script>
 
 </body>

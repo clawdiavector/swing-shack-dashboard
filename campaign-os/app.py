@@ -20377,3 +20377,139 @@ def postiz_post_get(post_id):
     if err:
         return jsonify({"ok": False, "error": err}), 502
     return jsonify(result or {}), 200
+
+
+# ─── CAPTIONS: SAVE + LIST (2026-09-03) ───────────────────────────────────────
+# POST /api/captions/save  — persist a generated caption to data/captions-saved.json
+# GET  /api/captions/saved — list saved captions (used by the SPA caption bank)
+#
+# Why this exists:
+#   The Caption Studio lets you generate 5/8/12 variants per click. Before
+#   this endpoint, every variant that you liked was a write-off — you had
+#   to copy-paste into the campaign editor. Now you can hit 💾 Save on any
+#   variant and it persists to data/captions-saved.json.
+#
+# Backed by a JSON file (max 500 entries) — same pattern as the SEO Hook
+# Bank and other SPA banks. Lifetime is local to the volume.
+#
+# Pair with: POST /api/campaigns/from-idea (which materializes a saved
+# caption as actual reviewable assets in the OS).
+
+CAPTIONS_SAVED_PATH = os.path.join(DATA_DIR, "captions-saved.json")
+CAPTIONS_SAVED_MAX = 500
+
+
+def _read_captions_saved():
+    """Best-effort read; returns [] when the file is missing or malformed."""
+    try:
+        if os.path.exists(CAPTIONS_SAVED_PATH):
+            with open(CAPTIONS_SAVED_PATH, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            return d.get("captions") if isinstance(d, dict) else (d if isinstance(d, list) else [])
+    except Exception:
+        pass
+    return []
+
+
+def _write_captions_saved(captions):
+    """Atomic-ish write with max-size cap; drops the oldest when full."""
+    if not isinstance(captions, list):
+        captions = []
+    if len(captions) > CAPTIONS_SAVED_MAX:
+        captions = captions[-CAPTIONS_SAVED_MAX:]
+    try:
+        os.makedirs(os.path.dirname(CAPTIONS_SAVED_PATH), exist_ok=True)
+        tmp = CAPTIONS_SAVED_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"captions": captions, "count": len(captions), "updated_at": _now_iso()}, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, CAPTIONS_SAVED_PATH)
+        return True
+    except Exception as exc:
+        _app_log.warning("captions-saved write failed: %s", exc)
+        return False
+
+
+@app.route("/api/captions/save", methods=["POST"])
+def captions_save():
+    """POST /api/captions/save — persist a generated caption.
+
+    Body (JSON):
+      hook     - str, optional. The first line / opening hook.
+      body     - str, REQUIRED. The caption body. Max 1500 chars.
+      cta      - str, optional. The CTA line.
+      voice    - str, optional. e.g. 'swing-shack' | 'stick' | 'bag-drop'.
+      tone     - str, optional. e.g. 'confident' | 'funny' | 'educational'.
+      platform - str, optional. e.g. 'instagram' | 'facebook' | 'gmb'.
+      source   - str, optional. Free-form tag for the source (e.g. variant #3
+                 or the asset id this was generated for).
+      brand_id - str, optional. Defaults to active brand.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    cap_body = (body.get("body") or body.get("caption") or "").strip()
+    if not cap_body:
+        return jsonify({"ok": False, "error": "body is required"}), 400
+    cap_body = cap_body[:1500]
+    hook = (body.get("hook") or "").strip()[:200]
+    cta = (body.get("cta") or "").strip()[:200]
+    voice = (body.get("voice") or "").strip()[:40]
+    tone = (body.get("tone") or "").strip()[:40]
+    platform = (body.get("platform") or "").strip()[:40]
+    source = (body.get("source") or "").strip()[:120]
+    brand = (body.get("brand_id") or "").strip()[:40]
+    caption = {
+        "id": f"cap-{int(time.time()*1000)}-{uuid.uuid4().hex[:6]}",
+        "hook": hook,
+        "body": cap_body,
+        "cta": cta,
+        "voice": voice,
+        "tone": tone,
+        "platform": platform,
+        "source": source,
+        "brand": brand,
+        "ts": _now_iso(),
+    }
+    captions = _read_captions_saved()
+    captions.append(caption)
+    saved = _write_captions_saved(captions)
+    if not saved:
+        return jsonify({"ok": False, "error": "persist failed (check volume permissions)"}), 500
+    return jsonify({
+        "ok": True,
+        "caption": caption,
+        "count": len(captions),
+        "max": CAPTIONS_SAVED_MAX,
+    }), 201
+
+
+@app.route("/api/captions/saved", methods=["GET"])
+def captions_saved_list():
+    """GET /api/captions/saved — list saved captions, newest first."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    limit = min(max(int(request.args.get("limit", 50) or 50), 1), 200)
+    brand = (request.args.get("brand_id") or "").strip()
+    captions = _read_captions_saved()
+    if brand:
+        captions = [c for c in captions if c.get("brand") == brand]
+    captions = list(reversed(captions))[:limit]
+    return jsonify({
+        "ok": True,
+        "captions": captions,
+        "count": len(captions),
+        "max": CAPTIONS_SAVED_MAX,
+    }), 200
+
+
+@app.route("/api/captions/saved/<caption_id>", methods=["DELETE"])
+def captions_saved_delete(caption_id):
+    """DELETE /api/captions/saved/<id> — remove a saved caption."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    captions = _read_captions_saved()
+    new = [c for c in captions if c.get("id") != caption_id]
+    if len(new) == len(captions):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    _write_captions_saved(new)
+    return jsonify({"ok": True, "deleted": caption_id, "count": len(new)}), 200
