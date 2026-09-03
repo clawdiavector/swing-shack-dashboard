@@ -1436,6 +1436,26 @@ a:hover{text-decoration:underline}
       <div class="grid">
         <div class="card col-6"><div class="card-h"><h3>📍 Profile & services</h3></div><div id="gbp-profile"></div></div>
         <div class="card col-6"><div class="card-h"><h3>📝 Last post</h3></div><div id="gbp-last"></div></div>
+
+        <!-- Drafts -->
+        <div class="card col-7"><div class="card-h"><h3>📝 Drafts <span class="muted" id="gbp-drafts-count" style="font-size:11px"></span></h3>
+          <div class="btn-row">
+            <button class="btn primary" id="gbp-new-draft-btn">+ New draft</button>
+            <button class="btn ghost" id="gbp-refresh-drafts-btn">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="gbp-drafts-list" style="grid-column: span 7"></div>
+        <div id="gbp-draft-editor" style="grid-column: span 7; display:none"></div>
+
+        <!-- Upcoming (plans + scheduled) -->
+        <div class="card col-5"><div class="card-h"><h3>📅 Upcoming <span class="muted" id="gbp-upcoming-count" style="font-size:11px"></span></h3>
+          <div class="btn-row">
+            <button class="btn primary" id="gbp-generate-plan-btn">✨ Generate plan</button>
+            <button class="btn ghost" id="gbp-refresh-upcoming-btn">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="gbp-upcoming-list" style="grid-column: span 5"></div>
+        <div id="gbp-plan-detail" style="grid-column: span 5; display:none"></div>
       </div>
     </section>
 
@@ -6765,6 +6785,309 @@ async function generateSeoFix(){
 }
 
 // ─── GBP ────────────────────────────────────────────────────────
+// ─── GBP (full version: profile + drafts + upcoming) ──────────────
+//
+// Click-and-schedule:
+//   - Drafts card lists every GMB draft with per-row Edit / Schedule / Delete
+//   - Inline editor for create + update (PATCH)
+//   - Schedule button POSTs to /api/intel/gmb/draft/<id>/schedule —
+//     pushes to Postiz GMB integration and marks status=scheduled
+//   - Upcoming card shows daily-poster plans + scheduled drafts,
+//     with Preview + Publish buttons. Publish is destructive (real-world
+//     wind: writes to GBP via Postiz) — requires explicit confirmation.
+
+let GBP_DRAFTS_CACHE = [];
+let GBP_PLANS_CACHE = [];
+let GBP_BRAND = 'swing-shack';
+
+function gbpStatusPill(status) {
+  const k = status === 'scheduled' ? 'on' : status === 'published' ? 'live' : status === 'deleted' ? 'blocked' : 'draft';
+  return pill(k, status || 'draft');
+}
+
+function gbpDraftRow(d) {
+  const title = esc(d.title || 'Untitled');
+  const body = esc((d.body || '').slice(0, 200));
+  const cta = d.cta ? ' · CTA: <b>' + esc(d.cta) + '</b>' : '';
+  const link = d.link ? ' · <a href="' + esc(d.link) + '" target="_blank">' + esc(d.link).slice(0, 40) + '…</a>' : '';
+  const img = d.imageUrl ? ' · 🖼 <a href="' + esc(d.imageUrl) + '" target="_blank">image</a>' : '';
+  const updated = d.updatedAt ? '<span class="muted" style="font-size:10px">updated ' + esc((d.updatedAt || '').slice(0,10)) + '</span>' : '';
+  const scheduleBtn = d.status === 'scheduled' ? '' : '<button class="btn primary" data-gbp-action="schedule" data-draft-id="' + esc(d.id) + '">🗓️ Schedule</button>';
+  return '<li class="li" data-draft-id="' + esc(d.id) + '">' +
+    '<div class="li-body">' +
+      '<div class="li-title">' + title + ' ' + gbpStatusPill(d.status) + ' ' + updated + '</div>' +
+      '<div class="li-meta" style="font-size:12px;line-height:1.5;color:var(--tx-2);margin-top:4px">' + body + (body.length >= 200 ? '…' : '') + '</div>' +
+      '<div class="muted" style="font-size:11px;margin-top:4px">' + cta + link + img + '</div>' +
+      '<div class="btn-row" style="margin-top:8px">' +
+        '<button class="btn ghost" data-gbp-action="edit" data-draft-id="' + esc(d.id) + '">✏️ Edit</button>' +
+        scheduleBtn +
+        '<button class="btn ghost" data-gbp-action="delete" data-draft-id="' + esc(d.id) + '">🗑️</button>' +
+      '</div>' +
+    '</div>' +
+  '</li>';
+}
+
+async function renderGBPDrafts() {
+  try {
+    const d = await API.get('/api/intel/gmb/drafts');
+    GBP_DRAFTS_CACHE = d.drafts || [];
+    const list = $('#gbp-drafts-list');
+    const count = $('#gbp-drafts-count');
+    if (count) count.textContent = GBP_DRAFTS_CACHE.length + ' total';
+    if (!GBP_DRAFTS_CACHE.length) {
+      list.innerHTML = '<div class="empty">No drafts yet — click + New draft or run a daily-poster plan.</div>';
+      return;
+    }
+    const order = {draft: 0, scheduled: 1, published: 2};
+    const sorted = GBP_DRAFTS_CACHE.slice().sort((a, b) => (order[a.status] || 9) - (order[b.status] || 9));
+    list.innerHTML = '<ul class="list">' + sorted.map(gbpDraftRow).join('') + '</ul>';
+    list.querySelectorAll('[data-gbp-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.gbpAction;
+        const id = btn.dataset.draftId;
+        if (action === 'edit') gbpEditDraft(id);
+        else if (action === 'schedule') gbpScheduleDraft(id);
+        else if (action === 'delete') gbpDeleteDraft(id);
+      });
+    });
+  } catch (e) {
+    const list = $('#gbp-drafts-list');
+    if (list) list.innerHTML = '<div class="empty">Failed to load drafts: ' + esc(e.message) + '</div>';
+  }
+}
+
+function gbpEditDraft(id) {
+  const d = GBP_DRAFTS_CACHE.find(x => x.id === id);
+  if (!d) { toast('Draft not found', true); return; }
+  const editor = $('#gbp-draft-editor');
+  if (!editor) return;
+  editor.style.display = '';
+  editor.innerHTML = '<div class="card">' +
+    '<div class="card-h"><h3>✏️ Edit draft <code style="font-size:11px">' + esc(id) + '</code></h3>' +
+      '<button class="btn ghost" id="gbp-editor-cancel">Cancel</button>' +
+    '</div>' +
+    '<div class="field"><label>Title</label><input type="text" id="gbp-edit-title" value="' + esc(d.title||'') + '" maxlength="100"></div>' +
+    '<div class="field"><label>Body (≤1500 chars)</label><textarea id="gbp-edit-body" rows="6" maxlength="1500">' + esc(d.body||'') + '</textarea></div>' +
+    '<div class="field"><label>CTA (≤40 chars)</label><input type="text" id="gbp-edit-cta" value="' + esc(d.cta||'') + '" maxlength="40"></div>' +
+    '<div class="field"><label>Link</label><input type="text" id="gbp-edit-link" value="' + esc(d.link||'') + '"></div>' +
+    '<div class="field"><label>Image URL</label><input type="text" id="gbp-edit-image" value="' + esc(d.imageUrl||'') + '"></div>' +
+    '<div class="btn-row">' +
+      '<button class="btn primary" id="gbp-editor-save">💾 Save</button>' +
+      '<button class="btn ghost" id="gbp-editor-close">Close</button>' +
+    '</div>' +
+  '</div>';
+  editor.scrollIntoView({behavior:'smooth', block:'start'});
+  $('#gbp-editor-cancel').onclick = () => editor.style.display = 'none';
+  $('#gbp-editor-close').onclick = () => editor.style.display = 'none';
+  $('#gbp-editor-save').onclick = async () => {
+    const patch = {
+      title: $('#gbp-edit-title').value.trim() || 'Untitled',
+      body: $('#gbp-edit-body').value.trim(),
+      cta: $('#gbp-edit-cta').value.trim(),
+      link: $('#gbp-edit-link').value.trim(),
+      imageUrl: $('#gbp-edit-image').value.trim(),
+    };
+    try {
+      await API.patch('/api/intel/gmb/draft/' + encodeURIComponent(id), patch);
+      toast('✓ Saved');
+      editor.style.display = 'none';
+      renderGBPDrafts();
+    } catch (e) {
+      toast('Save failed: ' + e.message, true);
+    }
+  };
+}
+
+function gbpNewDraft() {
+  const editor = $('#gbp-draft-editor');
+  if (!editor) return;
+  editor.style.display = '';
+  editor.innerHTML = '<div class="card">' +
+    '<div class="card-h"><h3>+ New GMB draft</h3>' +
+      '<button class="btn ghost" id="gbp-editor-cancel">Cancel</button>' +
+    '</div>' +
+    '<div class="field"><label>Title</label><input type="text" id="gbp-new-title" placeholder="TrackMan 1-hour fitting — what to expect" maxlength="100"></div>' +
+    '<div class="field"><label>Body (≤1500 chars)</label><textarea id="gbp-new-body" rows="6" maxlength="1500" placeholder="One paragraph — what this post is about. ZAR-first if you mention money."></textarea></div>' +
+    '<div class="field"><label>CTA (≤40 chars)</label><input type="text" id="gbp-new-cta" placeholder="Book now" maxlength="40"></div>' +
+    '<div class="field"><label>Link</label><input type="text" id="gbp-new-link" placeholder="https://swingshack.co.za/trackman"></div>' +
+    '<div class="field"><label>Image URL</label><input type="text" id="gbp-new-image" placeholder="https://..."></div>' +
+    '<div class="btn-row">' +
+      '<button class="btn primary" id="gbp-new-save">💾 Save draft</button>' +
+      '<button class="btn ghost" id="gbp-new-save-schedule">💾 + 🗓️ Save &amp; Schedule</button>' +
+      '<button class="btn ghost" id="gbp-editor-close">Close</button>' +
+    '</div>' +
+  '</div>';
+  editor.scrollIntoView({behavior:'smooth', block:'start'});
+  $('#gbp-editor-cancel').onclick = () => editor.style.display = 'none';
+  $('#gbp-editor-close').onclick = () => editor.style.display = 'none';
+  const saveOne = async (alsoSchedule) => {
+    const body = {
+      title: $('#gbp-new-title').value.trim() || 'Untitled',
+      body: $('#gbp-new-body').value.trim(),
+      cta: $('#gbp-new-cta').value.trim(),
+      link: $('#gbp-new-link').value.trim(),
+      imageUrl: $('#gbp-new-image').value.trim(),
+      brand: GBP_BRAND,
+    };
+    if (!body.title && !body.body) {
+      toast('Title or body required', true);
+      return;
+    }
+    try {
+      const r = await API.post('/api/intel/gmb/drafts', body);
+      const newId = r.draft && r.draft.id;
+      toast('✓ Saved');
+      if (alsoSchedule && newId) {
+        await gbpScheduleDraft(newId, true);
+      }
+      editor.style.display = 'none';
+      renderGBPDrafts();
+    } catch (e) {
+      toast('Save failed: ' + e.message, true);
+    }
+  };
+  $('#gbp-new-save').onclick = () => saveOne(false);
+  $('#gbp-new-save-schedule').onclick = () => saveOne(true);
+}
+
+async function gbpScheduleDraft(id, silent) {
+  if (!silent && !confirm('Schedule this draft? It will be pushed to Postiz as a GMB-platform post.')) return;
+  try {
+    const r = await API.post('/api/intel/gmb/draft/' + encodeURIComponent(id) + '/schedule', {});
+    toast('✓ Scheduled' + (r.postiz_id ? ' → Postiz ' + r.postiz_id : ''));
+    renderGBPDrafts();
+    renderGBPUpcoming();
+  } catch (e) {
+    toast('Schedule failed: ' + e.message, true);
+  }
+}
+
+async function gbpDeleteDraft(id) {
+  if (!confirm('Delete this draft? This cannot be undone.')) return;
+  try {
+    await API.delete('/api/intel/gmb/draft/' + encodeURIComponent(id));
+    toast('✓ Deleted');
+    renderGBPDrafts();
+  } catch (e) {
+    toast('Delete failed: ' + e.message, true);
+  }
+}
+
+function gbpPlanRow(p) {
+  const planId = esc(p.plan_id || p.id || '');
+  const title = esc(p.title || p.name || 'Daily plan');
+  const sp = p.start_date || p.startDate || '';
+  const ep = p.end_date || p.endDate || '';
+  const span = sp && ep ? esc(sp.slice(0,10)) + ' → ' + esc(ep.slice(0,10)) : '';
+  const postsCount = (p.posts || []).length || p.posts_count || 0;
+  const status = p.status || 'previewed';
+  const publishBtn = status === 'published' ? '' : '<button class="btn primary" data-gbp-plan-action="publish" data-plan-id="' + planId + '">📤 Publish</button>';
+  return '<li class="li">' +
+    '<div class="li-body">' +
+      '<div class="li-title">' + title + ' ' + gbpStatusPill(status) + '</div>' +
+      '<div class="li-meta muted" style="font-size:11px">' + span + ' · ' + postsCount + ' posts</div>' +
+      '<div class="btn-row" style="margin-top:8px">' +
+        '<button class="btn ghost" data-gbp-plan-action="preview" data-plan-id="' + planId + '">👁 Preview</button>' +
+        publishBtn +
+      '</div>' +
+    '</div>' +
+  '</li>';
+}
+
+async function renderGBPUpcoming() {
+  const list = $('#gbp-upcoming-list');
+  const count = $('#gbp-upcoming-count');
+  if (!list) return;
+  try {
+    const r = await API.get('/api/gbp/daily-poster/plans?brand_id=' + encodeURIComponent(GBP_BRAND) + '&limit=10');
+    GBP_PLANS_CACHE = r.plans || [];
+    const scheduledDrafts = GBP_DRAFTS_CACHE.filter(d => d.status === 'scheduled');
+    const upcomingCount = GBP_PLANS_CACHE.length + scheduledDrafts.length;
+    if (count) count.textContent = upcomingCount + ' scheduled';
+    if (!upcomingCount) {
+      list.innerHTML = '<div class="empty">No upcoming posts. Click ✨ Generate plan to draft tomorrow\'s 7 posts.</div>';
+      return;
+    }
+    let html = '';
+    if (scheduledDrafts.length) {
+      html += '<div style="margin-bottom:1rem"><b style="font-size:12px">📝 Scheduled drafts</b></div>';
+      html += '<ul class="list">' + scheduledDrafts.map(gbpDraftRow).join('') + '</ul>';
+    }
+    if (GBP_PLANS_CACHE.length) {
+      html += '<div style="margin:' + (scheduledDrafts.length ? '1rem' : '0') + ' 0 .5rem"><b style="font-size:12px">📅 Daily-poster plans</b></div>';
+      html += '<ul class="list">' + GBP_PLANS_CACHE.map(gbpPlanRow).join('') + '</ul>';
+    }
+    list.innerHTML = html;
+    list.querySelectorAll('[data-gbp-plan-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.gbpPlanAction;
+        const planId = btn.dataset.planId;
+        if (action === 'preview') gbpPreviewPlan(planId);
+        else if (action === 'publish') gbpPublishPlan(planId);
+      });
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="empty">Failed to load: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function gbpGeneratePlan() {
+  const btn = $('#gbp-generate-plan-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating…'; }
+  try {
+    const r = await API.post('/api/gbp/daily-poster/preview', {brand_id: GBP_BRAND, days: 7, posts_per_day: 1});
+    toast('✓ Plan generated: ' + ((r.posts && r.posts.length) || 0) + ' posts over ' + (r.days || 7) + ' days');
+    await renderGBPUpcoming();
+    gbpPreviewPlan(r.plan_id || r.id);
+  } catch (e) {
+    toast('Generate failed: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Generate plan'; }
+  }
+}
+
+async function gbpPreviewPlan(planId) {
+  if (!planId) return;
+  try {
+    const r = await API.get('/api/gbp/daily-poster/plans/' + encodeURIComponent(planId));
+    const detail = $('#gbp-plan-detail');
+    if (!detail) return;
+    detail.style.display = '';
+    const posts = r.posts || (r.plan && r.plan.posts) || [];
+    detail.innerHTML = '<div class="card">' +
+      '<div class="card-h"><h3>📅 Plan detail — <code style="font-size:11px">' + esc(planId) + '</code></h3>' +
+        '<button class="btn ghost" id="gbp-plan-close">Close</button>' +
+      '</div>' +
+      '<div class="muted" style="font-size:11px;margin-bottom:.75rem">' + esc(r.start_date||'') + ' → ' + esc(r.end_date||'') + ' · ' + posts.length + ' posts</div>' +
+      '<ul class="list">' + posts.map((p, i) =>
+        '<li class="li"><div class="li-body">' +
+          '<div class="li-title">' + (i+1) + '. ' + esc(p.title || p.angle || p.headline || 'Post ' + (i+1)) + (p.date ? ' <span class="muted" style="font-size:11px">· ' + esc(p.date.slice(0,10)) + '</span>' : '') + '</div>' +
+          '<div class="li-meta" style="font-size:12px;line-height:1.5;color:var(--tx-2);margin-top:4px">' + esc((p.body || p.text || '').slice(0,200)) + ((p.body || p.text || '').length > 200 ? '…' : '') + '</div>' +
+        '</div></li>'
+      ).join('') + '</ul>' +
+      '<div class="btn-row" style="margin-top:.75rem">' +
+        '<button class="btn primary" id="gbp-plan-publish">📤 Publish this plan to GBP</button>' +
+      '</div>' +
+    '</div>';
+    detail.scrollIntoView({behavior:'smooth', block:'start'});
+    $('#gbp-plan-close').onclick = () => detail.style.display = 'none';
+    $('#gbp-plan-publish').onclick = () => gbpPublishPlan(planId);
+  } catch (e) {
+    toast('Preview failed: ' + e.message, true);
+  }
+}
+
+async function gbpPublishPlan(planId) {
+  if (!confirm('Publish this plan to GBP via Postiz? This is a real destructive write — the posts will go live on their scheduled dates.')) return;
+  try {
+    await API.post('/api/gbp/daily-poster/publish', {brand_id: GBP_BRAND, days: 7, posts_per_day: 1, plan_id: planId});
+    toast('✓ Plan published');
+    renderGBPUpcoming();
+  } catch (e) {
+    toast('Publish failed: ' + e.message, true);
+  }
+}
+
 async function renderGBP(){
   if(!S.gbp) S.gbp = await API.get('/api/intel/gbp_suggestions');
   const g = S.gbp;
@@ -6772,6 +7095,17 @@ async function renderGBP(){
   $('#gbp-profile').innerHTML = `<dl class="kvs"><dt>Business</dt><dd>${esc(inp.business_name||'—')}</dd><dt>Location</dt><dd>${esc(inp.location_context||'—')}</dd><dt>Services</dt><dd>${esc((inp.services||[]).join(', '))}</dd></dl>` + safeList(inp.seo_opportunities, 6).map(itemHtml).join('');
   const last = g.last_post || {};
   $('#gbp-last').innerHTML = `<div style="margin-bottom:.75rem"><b>Last angle:</b> ${esc(last.chosen_angle||'—')}</div><div class="muted" style="font-size:12px">${esc(last.why_this_angle_wins||'')}</div>` + safeList(last.seo_signals_used, 4).map(itemHtml).join('');
+
+  // Wire button handlers (idempotent — handlers check before binding)
+  if (!window._gbpWired) {
+    window._gbpWired = true;
+    $('#gbp-new-draft-btn').addEventListener('click', gbpNewDraft);
+    $('#gbp-refresh-drafts-btn').addEventListener('click', renderGBPDrafts);
+    $('#gbp-generate-plan-btn').addEventListener('click', gbpGeneratePlan);
+    $('#gbp-refresh-upcoming-btn').addEventListener('click', renderGBPUpcoming);
+  }
+  // Load drafts + upcoming in parallel
+  await Promise.all([renderGBPDrafts(), renderGBPUpcoming()]);
 }
 
 // ─── REDDIT ─────────────────────────────────────────────────────
