@@ -5729,9 +5729,42 @@ async function renderPerformance(){
 
   const topIg = (p.instagram?.top_posts||[]).slice(0,8);
   $('#perf-ig-top').innerHTML = topIg.length ? topIg.map(it => {
-    const cap = (it.hook_text || it.captionPreview || it.caption || '').slice(0,80);
+    const cap = (it.hook_text || it.captionPreview || it.caption || '').slice(0,120);
     const er = parseFloat(it.engagementRate || it.engagement_rate || 0) || 0;
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(cap)}</div><div class="li-meta">${pill('on', 'ER '+er.toFixed(2)+'%')} ${it.topic_cluster?pill('live', it.topic_cluster):''} ${it.format_type?pill('draft', it.format_type):''}</div></div></li>`;
+    const reach = parseInt(it.reach || it.impressions || 0) || 0;
+    const likes = parseInt(it.likes || 0) || 0;
+    const comments = parseInt(it.comments || 0) || 0;
+    const saves = parseInt(it.saves || 0) || 0;
+    const shares = parseInt(it.shares || 0) || 0;
+    const verdict = (er > 4) ? '🟢 winner' : (er > 2) ? '🟡 solid' : (er > 0) ? '🔴 weak' : '⚪ unknown';
+    // Encode the winner shape for the create-campaign button
+    const payload = encodeURIComponent(JSON.stringify({
+      id: it.id || it.postId || it.post_id || '',
+      hook: it.hook_text || '',
+      caption: it.captionPreview || it.caption || '',
+      topic_cluster: it.topic_cluster || '',
+      format_type: it.format_type || '',
+      engagementRate: er,
+      reach, likes, comments, saves, shares,
+    }));
+    return `<li class="li" data-post-id="${esc(it.id || it.postId || '')}">
+      <div class="li-body">
+        <div class="li-title">${esc(cap)} ${pill(er > 4 ? 'on' : er > 2 ? 'live' : 'muted', 'ER '+er.toFixed(2)+'%')}</div>
+        <div class="li-meta">
+          ${it.topic_cluster?pill('live', it.topic_cluster):''}
+          ${it.format_type?pill('draft', it.format_type):''}
+          ${reach ? `<span class="muted" style="font-size:11px">reach ${reach.toLocaleString()}</span>` : ''}
+          ${likes ? `<span class="muted" style="font-size:11px">likes ${likes}</span>` : ''}
+          ${comments ? `<span class="muted" style="font-size:11px">comments ${comments}</span>` : ''}
+          ${saves ? `<span class="muted" style="font-size:11px">saves ${saves}</span>` : ''}
+        </div>
+      </div>
+      <div class="li-act" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
+        <button class="btn-mini primary" data-perf-create="${payload}">🚀 Create campaign</button>
+        <button class="btn-mini" data-perf-template="${payload}">📊 Use template</button>
+        <button class="btn-mini" data-perf-explain="${esc(it.id || it.postId || '')}">🔬 Why</button>
+      </div>
+    </li>`;
   }).join('') : (igEmpty ? '<div class="empty" style="padding:1.25rem">📷 Instagram not connected yet. Once Meta OAuth lands (setup-portal at <code>/meta</code>) and Postiz post IDs are back-mapped to IG media IDs, this card shows every post with engagement metrics and lets you read captions + interactions.</div>' : '<div class="empty">No IG data</div>');
 
   const seo = p.seo;
@@ -8643,6 +8676,141 @@ renderImageGen = async function() {
   await _origRenderImageGen();
   await renderImageHistory();
 };
+
+
+
+// ─── PERFORMANCE: winner → campaign + template + explain (2026-09-03) ──────
+// Tier 2.4 of the click-to-schedule audit. Top IG posts used to be
+// read-only — you'd see engagement rate but couldn't act on a winner.
+// Now each top post has 3 action buttons:
+//
+//   🚀 Create campaign  → POST /api/campaigns/from-idea (hooks into the same
+//                          flow Ideas + Hooks + Headlines + CTAs use)
+//                          Lands in Review queue, jump there after.
+//   📊 Use template      → Captures this winner's hook + cluster + format
+//                          into a localStorage "winner_template" so the
+//                          Caption Studio can use it as a generation hint
+//   🔬 Why              → Pre-selects this post in the Why-explain dropdown
+//                          and clicks Explain (no re-implementation)
+//
+// Why this matters: the audit identified Performance as read-only. Now
+// every winner becomes a next-week draft in one click.
+
+function perfCreateCampaign(btn) {
+  let p;
+  try { p = JSON.parse(decodeURIComponent(btn.dataset.perfCreate)); }
+  catch(e) { toast('Payload corrupted', true); return; }
+  const seed = (p.hook || p.caption || '').trim();
+  if (!seed) { toast('Empty hook — cannot create campaign', true); return; }
+
+  // Derive tone from engagement rate:
+  //   high ER → confident (proven formula)
+  //   low ER  → relatable (more inviting)
+  const er = p.engagementRate || 0;
+  const tone = er > 4 ? 'confident' : er > 2 ? 'educational' : 'relatable';
+
+  const ok = confirm(
+    '🚀 Create campaign from this winner?\n\n' +
+    '"' + seed.slice(0, 100) + '"\n\n' +
+    'ER: ' + er.toFixed(2) + '% · Pillar: ' + (p.topic_cluster || 'auto') +
+    ' · Format: ' + (p.format_type || 'auto') + '\n\n' +
+    'Creates a new campaign with one asset per channel (IG / FB / GBP) — ' +
+    'tuned to the same engagement pattern. All assets land in Review.'
+  );
+  if (!ok) return;
+
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Creating…';
+  API.post('/api/campaigns/from-idea', {
+    idea: seed.slice(0, 280),
+    tone,
+    pillar: p.topic_cluster || '',
+    channels: ['instagram', 'facebook', 'gmb'],
+  }).then(r => {
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const n = (r.assets || []).length;
+    const cid = (r.campaign_id || '?').slice(0, 24);
+    toast('✓ Created ' + n + ' assets in ' + cid + '… (tone: ' + tone + ')');
+    setTimeout(() => go('review'), 800);
+  }).catch(e => {
+    toast('Failed: ' + (e.message || e), true);
+  }).finally(() => {
+    btn.disabled = false; btn.textContent = orig;
+  });
+}
+
+function perfUseTemplate(btn) {
+  let p;
+  try { p = JSON.parse(decodeURIComponent(btn.dataset.perfTemplate)); }
+  catch(e) { toast('Payload corrupted', true); return; }
+  // Capture the winner shape into localStorage so Caption Studio can pick it up
+  try {
+    const tmpl = {
+      id: p.id,
+      hook: p.hook,
+      caption: p.caption,
+      topic_cluster: p.topic_cluster,
+      format_type: p.format_type,
+      engagementRate: p.engagementRate,
+      saved_at: new Date().toISOString(),
+    };
+    localStorage.setItem('swingshack_winner_template', JSON.stringify(tmpl));
+    toast('✓ Template saved (Caption Studio will use it as the seed)');
+    // Offer to jump to Captions
+    setTimeout(() => {
+      if (confirm('Template saved. Open Caption Studio with this template as the seed?')) {
+        // Pre-fill cap-seed-input with the hook before navigating
+        const seedEl = document.getElementById('cap-seed-input');
+        if (seedEl) {
+          seedEl.value = p.hook || p.caption || '';
+          seedEl.dispatchEvent(new Event('input', {bubbles: true}));
+        }
+        go('captions');
+      }
+    }, 400);
+  } catch (e) {
+    toast('Save failed: ' + e.message, true);
+  }
+}
+
+function perfExplain(btn) {
+  const id = btn.dataset.perfExplain;
+  if (!id) return;
+  // Pre-select this post in the Why dropdown + click Explain
+  const sel = document.getElementById('why-asset');
+  if (!sel) {
+    toast('Why-explain panel not visible', true);
+    return;
+  }
+  // Match the dropdown value
+  let matched = false;
+  for (const opt of sel.options) {
+    if (opt.value === id) { sel.value = id; matched = true; break; }
+  }
+  if (!matched) {
+    // The dropdown is populated from current perf data; if not found, just navigate to the section
+    toast('Select manually from the Why dropdown (top of section)');
+  }
+  const btn2 = document.getElementById('why-explain-btn');
+  if (btn2) btn2.click();
+  // Scroll to the explainer card
+  document.getElementById('why-result')?.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+// Delegated handler for data-perf-* buttons (re-renders happen on every Performance visit)
+(function wirePerfActions() {
+  if (!window._perfActionsWired) {
+    window._perfActionsWired = true;
+    document.addEventListener('click', e => {
+      const cBtn = e.target.closest('[data-perf-create]');
+      if (cBtn) { e.preventDefault(); perfCreateCampaign(cBtn); return; }
+      const tBtn = e.target.closest('[data-perf-template]');
+      if (tBtn) { e.preventDefault(); perfUseTemplate(tBtn); return; }
+      const eBtn = e.target.closest('[data-perf-explain]');
+      if (eBtn) { e.preventDefault(); perfExplain(eBtn); return; }
+    });
+  }
+})();
 
 </script>
 
