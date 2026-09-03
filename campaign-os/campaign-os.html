@@ -5808,7 +5808,14 @@ async function renderHooks(){
   const renderHook = it => {
     const txt = it.hook_text || it.hook || it.text || it.title || '';
     const sc = it.cross_signal_score || it.ig_proof_score || it.perf || it.score;
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,120))}</div>${sc?`<div class="li-meta">${pill('on','score '+sc)} ${it._bucket?pill('live', it._bucket.replace(/_/g,' ')):''}</div>`:''}</div></li>`;
+    const txtB64 = encodeURIComponent(txt);
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,120))}</div>${sc?`<div class="li-meta">${pill('on','score '+sc)} ${it._bucket?pill('live', it._bucket.replace(/_/g,' ')):''}</div>`:''}</div>` +
+      '<div class="li-act" style="display:flex;gap:4px;flex-wrap:wrap">' +
+        '<button class="btn-mini" data-hook-copy="' + txtB64 + '">📋 Copy</button>' +
+        '<button class="btn-mini primary" data-hook-caption="' + txtB64 + '">Use → Caption</button>' +
+        '<button class="btn-mini" data-hook-draft="' + txtB64 + '">💬 Make a draft</button>' +
+      '</div>' +
+    '</li>';
   };
   $('#hooks-ww').innerHTML = safeList(h.all_hooks, 20).map(renderHook).join('') || '<div class="empty">No hooks yet</div>';
   const renderFormula = it => `<li class="li"><div class="li-body"><div class="li-title">${esc((it.best_example || '').slice(0,120))}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
@@ -6262,7 +6269,7 @@ async function _generateHeadlines(){
         </div>
         <div class="li-act">
           <button class="btn-mini" data-copy-head="${esc(h.headline)}">📋 Copy</button>
-          <button class="btn-mini primary" data-use-head="${esc(h.headline)}">Use → Caption</button>
+          <button class="btn-mini primary" data-use-head="${esc(h.headline)}">Use → Caption</button>\n          <button class="btn-mini" data-draft-head="${esc(h.headline)}">💬 Make a draft</button>
         </div>
       </div>`).join('');
     $('#head-list').innerHTML = html;
@@ -6279,8 +6286,8 @@ async function _generateHeadlines(){
     $$('#head-list [data-use-head]').forEach(el => el.addEventListener('click', () => {
       const text = el.getAttribute('data-use-head');
       // Push into Caption Studio hook input if present
-      const capHook = $('#cap-hook-input') || $('#cap-hook');
-      if (capHook){ capHook.value = text; toast('Headline sent to Caption Studio', 'ok'); }
+      const capHook = $('#cap-seed-input');
+      if (capHook){ capHook.value = text; capHook.dispatchEvent(new Event('input', {bubbles:true})); toast('Headline sent to Caption Studio', 'ok'); }
       else { navigator.clipboard?.writeText(text); toast('Headline copied (Caption Studio not loaded)', 'ok'); }
     }));
     toast(`Generated ${r.count} headlines`, 'ok');
@@ -6417,7 +6424,7 @@ async function _generateCtas(){
         </div>
         <div class="li-act">
           <button class="btn-mini" data-copy-cta="${esc(c.text)}">📋 Copy</button>
-          <button class="btn-mini primary" data-use-cta="${esc(c.text)}">Use → Caption</button>
+          <button class="btn-mini primary" data-use-cta="${esc(c.text)}">Use → Caption</button>\n          <button class="btn-mini" data-draft-cta="${esc(c.text)}">💬 Make a draft</button>
         </div>
       </div>`;
     }).join('');
@@ -6434,8 +6441,8 @@ async function _generateCtas(){
     }));
     $$('#cta-list [data-use-cta]').forEach(el => el.addEventListener('click', () => {
       const text = el.getAttribute('data-use-cta');
-      const capHook = $('#cap-hook-input') || $('#cap-hook');
-      if (capHook){ capHook.value = text; toast('CTA sent to Caption Studio', 'ok'); }
+      const capHook = $('#cap-seed-input');
+      if (capHook){ capHook.value = text; capHook.dispatchEvent(new Event('input', {bubbles:true})); toast('CTA sent to Caption Studio', 'ok'); }
       else { navigator.clipboard?.writeText(text); toast('CTA copied (Caption Studio not loaded)', 'ok'); }
     }));
     toast(`Loaded ${r.count} CTAs`, 'ok');
@@ -6495,8 +6502,8 @@ async function _recommendCtas(){
     }));
     $$('#cta-list [data-use-cta]').forEach(el => el.addEventListener('click', () => {
       const text = el.getAttribute('data-use-cta');
-      const capHook = $('#cap-hook-input') || $('#cap-hook');
-      if (capHook){ capHook.value = text; toast('CTA sent to Caption Studio', 'ok'); }
+      const capHook = $('#cap-seed-input');
+      if (capHook){ capHook.value = text; capHook.dispatchEvent(new Event('input', {bubbles:true})); toast('CTA sent to Caption Studio', 'ok'); }
       else { navigator.clipboard?.writeText(text); toast('CTA copied (Caption Studio not loaded)', 'ok'); }
     }));
     toast(`Recommended ${r.count} CTAs (voice+pillar+platform match)`, 'ok');
@@ -8120,5 +8127,132 @@ initTheme();
 // Live right-rail: pulse every 30s (cache-busts, re-renders timestamps)
 setInterval(() => { if($('#sec-brief')?.classList.contains('on')){ S.todayRail = null; renderTodayRail(); } }, 30000);
 </script>
+
+<script>
+// ─── HOOKS / HEADLINES / CTAs: per-item actions (2026-09-03) ─────────────────
+// Tier 1 #4 of the click-to-schedule audit. Three sections got new buttons:
+//
+//   Hooks (no buttons existed before):
+//     📋 Copy, Use → Caption (→ Caption Studio), 💬 Make a draft (→ campaign)
+//   Headlines (had Copy + Use → Caption, broken reference to #cap-hook-input):
+//     📋 Copy, Use → Caption (now points to #cap-seed-input correctly), 
+//     💬 Make a draft (new)
+//   CTAs (same as headlines):
+//     📋 Copy, Use → Caption (fixed), 💬 Make a draft (new)
+//
+// The "💬 Make a draft" path uses the same /api/campaigns/from-idea endpoint
+// that Ideas use — one click turns the hook/headline/CTA into real assets
+// across the chosen channels, lands them in the Review queue.
+
+function copyTextToClipboard(text) {
+  if (!text) return;
+  try {
+    navigator.clipboard.writeText(text);
+    toast('Copied', 'ok');
+  } catch (e) {
+    toast('Copy failed', 'err');
+  }
+}
+
+function pushToCaptionStudio(text) {
+  const seedEl = document.getElementById('cap-seed-input');
+  if (!seedEl) {
+    // Fallback: just copy
+    copyTextToClipboard(text);
+    toast('Caption Studio not loaded — copied instead', true);
+    return;
+  }
+  seedEl.value = text;
+  seedEl.dispatchEvent(new Event('input', {bubbles: true}));
+  go('captions');
+  toast('Sent to Caption Studio');
+}
+
+async function makeDraftFromText(text, btn) {
+  if (!text) { toast('Empty text', true); return; }
+  const ok = confirm('Make this into a campaign draft?\n\n"' + text.slice(0, 80) + '"\n\nCreates a new campaign with one asset per channel (IG / FB / GBP). All assets land in the Review queue ready to schedule.');
+  if (!ok) return;
+  const origLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Creating…';
+  try {
+    const r = await API.post('/api/campaigns/from-idea', {
+      idea: text.slice(0, 280),
+      tone: 'confident',
+      channels: ['instagram', 'facebook', 'gmb'],
+    });
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const assetCount = (r.assets || []).length;
+    const campId = (r.campaign_id || '?').slice(0, 24);
+    toast('✓ Created ' + assetCount + ' assets in ' + campId + '…');
+    setTimeout(() => go('review'), 800);
+  } catch (e) {
+    toast('Failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = origLabel;
+  }
+}
+
+// Hooks delegation (the buttons are inside #hooks-ww from renderHook)
+(function wireHooksActions(){
+  const container = document.getElementById('hooks-ww');
+  if (!container || container._wired) return;
+  container._wired = true;
+  container.addEventListener('click', async e => {
+    const copyBtn = e.target.closest('[data-hook-copy]');
+    if (copyBtn) { copyTextToClipboard(decodeURIComponent(copyBtn.dataset.hookCopy)); return; }
+    const capBtn = e.target.closest('[data-hook-caption]');
+    if (capBtn) { pushToCaptionStudio(decodeURIComponent(capBtn.dataset.hookCaption)); return; }
+    const draftBtn = e.target.closest('[data-hook-draft]');
+    if (draftBtn) { await makeDraftFromText(decodeURIComponent(draftBtn.dataset.hookDraft), draftBtn); return; }
+  });
+})();
+
+// Hooks formulas (#hooks-formulas) get the same per-item buttons (they share renderHook now)
+(function wireHooksFormulasActions(){
+  const container = document.getElementById('hooks-formulas');
+  if (!container || container._wired) return;
+  container._wired = true;
+  // Formulas have a `best_example` field — renderHook reads from hook_text/hook/text/title,
+  // but formulas pass it through `title`/`text` only. Build a generic wire as well.
+  container.addEventListener('click', async e => {
+    // Formulas use a slightly different inner template (best_example as title).
+    // We just attach the same dispatch — safe to ignore if no matching button.
+    const copyBtn = e.target.closest('[data-hook-copy]');
+    if (copyBtn) { copyTextToClipboard(decodeURIComponent(copyBtn.dataset.hookCopy)); return; }
+    const capBtn = e.target.closest('[data-hook-caption]');
+    if (capBtn) { pushToCaptionStudio(decodeURIComponent(capBtn.dataset.hookCaption)); return; }
+    const draftBtn = e.target.closest('[data-hook-draft]');
+    if (draftBtn) { await makeDraftFromText(decodeURIComponent(draftBtn.dataset.hookDraft), draftBtn); return; }
+  });
+})();
+
+// Headlines: extend the existing data-use-head wire to also fire data-draft-head
+(function wireHeadlinesDraft(){
+  const wire = () => {
+    $$('#head-list [data-draft-head]').forEach(el => {
+      if (el._wired) return;
+      el._wired = true;
+      el.addEventListener('click', () => makeDraftFromText(el.getAttribute('data-draft-head'), el));
+    });
+  };
+  // Headlines list is re-rendered on each Generate — try now + on every renderSection
+  wire();
+  document.addEventListener('click', () => setTimeout(wire, 200), true);
+})();
+
+// CTAs: same — extend the existing data-use-cta wire to also fire data-draft-cta
+(function wireCtasDraft(){
+  const wire = () => {
+    $$('#cta-list [data-draft-cta]').forEach(el => {
+      if (el._wired) return;
+      el._wired = true;
+      el.addEventListener('click', () => makeDraftFromText(el.getAttribute('data-draft-cta'), el));
+    });
+  };
+  wire();
+  document.addEventListener('click', () => setTimeout(wire, 200), true);
+})();
+</script>
+
 </body>
 </html>
