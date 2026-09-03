@@ -1271,6 +1271,39 @@ a:hover{text-decoration:underline}
           </div>
           <div id="ig-empty" style="color:var(--tx-3);font-size:13px;text-align:center;padding:2rem">Click Generate Prompt to build a provider-ready spec</div>
         </div>
+
+        <!-- ── IMAGE GENERATION (real, 2026-09-03) ─────────────────────── -->
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>🖼️ Image Generation <span class="muted" style="font-size:11px;font-weight:400;margin-left:.5rem">— uses the prompt above + /api/image/generate (OpenRouter as safe fallback)</span></h3>
+            <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+              <select id="ig-gen-brand" style="font-size:11px;padding:3px 6px;border-radius:5px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+                <option value="swing-shack">Swing Shack</option>
+                <option value="stick">Stick Golf</option>
+                <option value="bag-drop">Bag Drop</option>
+              </select>
+              <select id="ig-gen-platform" style="font-size:11px;padding:3px 6px;border-radius:5px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+                <option value="instagram">Instagram (1024x1024)</option>
+                <option value="tiktok">TikTok (1024x1792)</option>
+                <option value="facebook">Facebook (1024x1024)</option>
+                <option value="twitter">Twitter (1024x1024)</option>
+                <option value="gmb">GBP (1024x1024)</option>
+              </select>
+              <button class="btn primary" id="ig-gen-image" style="font-size:12px;padding:5px 12px">🖼️ Generate image now</button>
+            </div>
+          </div>
+          <div id="ig-gen-empty" style="color:var(--tx-3);font-size:13px;text-align:center;padding:1.5rem">Generate a prompt above, then click "Generate image now" to render with the active provider. The image saves to the brand library + appears in the history below.</div>
+          <div id="ig-gen-results" style="display:none"></div>
+        </div>
+
+        <!-- ── IMAGE HISTORY (recent generations) ──────────────────────── -->
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>📁 Image History <span class="muted" id="ig-history-count" style="font-size:11px;font-weight:400;margin-left:.5rem">— latest 12 generations on this brand</span></h3>
+            <button class="btn ghost" id="ig-history-refresh" style="margin-left:auto;font-size:11px;padding:4px 10px">↻ Refresh</button>
+          </div>
+          <div id="ig-history-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.6rem"></div>
+        </div>
       </div>
     </section>
 
@@ -8384,6 +8417,232 @@ async function captionDeleteSaved(id, btn) {
     document.addEventListener('click', handler);
   }
 })();
+
+
+
+// ─── IMAGE GENERATION (real): generate / save / schedule (2026-09-03) ──────
+// Tier 2.2 of the click-to-schedule audit. sec-imagegen used to ONLY
+// generate provider-ready prompts — actual image generation was buried
+// in a separate Image Lab HTML file. Now the image generation + save
+// + schedule flow lives inline next to the prompt card.
+//
+//   🖼️ Generate image now  → POST /api/image/generate (Krea/OpenRouter fallback)
+//                              shows preview + Save/Schedule buttons
+//   💾 Save as asset        → POST /api/image-lab/save-as-asset
+//                              creates reviewable asset in active campaign
+//   📅 Schedule now         → POST /api/campaigns/from-idea + jump to Review
+//
+// The Image History card lists /api/image/outputs/<brand> with per-row
+// Save buttons so you can revisit yesterday's generations.
+
+async function renderImageHistory() {
+  const brand = $('#ig-gen-brand')?.value || 'swing-shack';
+  try {
+    const r = await API.get('/api/image/outputs/' + encodeURIComponent(brand) + '?limit=12');
+    const items = r.data || [];
+    $('#ig-history-count').textContent = '— latest ' + items.length + ' generations on ' + brand;
+    if (!items.length) {
+      $('#ig-history-list').innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--tx-3);font-size:13px">No images generated yet for this brand.</div>';
+      return;
+    }
+    const html = items.map(it => {
+      const payload = encodeURIComponent(JSON.stringify({
+        image_url: it.url,
+        brand_id: brand,
+        prompt: it.prompt || it.enhanced_prompt || '',
+        model: it.model || '',
+      }));
+      return `<div style="border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:var(--bg-2)">
+        <img src="${esc(it.url)}" alt="${esc((it.prompt || '').slice(0, 60))}" style="width:100%;aspect-ratio:1;object-fit:cover;display:block" loading="lazy" />
+        <div style="padding:8px;font-size:11px;color:var(--tx-2)">
+          <div style="font-size:11px;color:var(--tx-3);margin-bottom:4px">${esc((it.model || 'image').slice(0, 24))} · ${esc((it.size || '').replace(/\s+/g, ' '))}</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="btn-mini primary" data-img-save="${payload}">💾 Save</button>
+            <button class="btn-mini" data-img-schedule="${payload}">📅 Schedule</button>
+            <a class="btn-mini" href="${esc(it.url)}" target="_blank" rel="noopener" style="text-decoration:none">↗ Open</a>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    $('#ig-history-list').innerHTML = html;
+  } catch (e) {
+    $('#ig-history-list').innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:center;padding:1rem;color:var(--danger)">History fetch failed: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function doImageGenNow() {
+  // Pull the most recently generated prompt from the spec card
+  const hook = $('#ig-hook')?.value || '';
+  // Best-effort: pull the rendered reference prompt text
+  const promptEl = document.querySelector('#ig-provider-prompt div[onclick="copyText(this)"]');
+  const prompt = (promptEl?.textContent || hook || '').trim();
+  if (!prompt) {
+    toast('Generate a prompt spec first (click Generate Prompt above)', true);
+    return;
+  }
+  const brand = $('#ig-gen-brand')?.value || 'swing-shack';
+  const platform = $('#ig-gen-platform')?.value || 'instagram';
+  const sizeMap = {
+    'instagram': '1024x1024', 'tiktok': '1024x1792', 'facebook': '1024x1024',
+    'twitter': '1024x1024', 'gmb': '1024x1024',
+  };
+  const size = sizeMap[platform] || '1024x1024';
+
+  const btn = $('#ig-gen-image');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  $('#ig-gen-empty').style.display = 'none';
+  $('#ig-gen-results').innerHTML = '<div class="empty" style="text-align:center;padding:2rem;color:var(--tx-3);font-size:13px">Calling /api/image/generate (this can take 5-20s)…</div>';
+  $('#ig-gen-results').style.display = 'block';
+
+  try {
+    const r = await API.post('/api/image/generate', {
+      prompt, brand_id: brand, size, n: 1, save: true,
+    });
+    if (!r.ok) throw new Error(r.error || 'Generation failed');
+    renderGeneratedImage(r, prompt, brand);
+    renderImageHistory();
+    toast('✓ Image generated');
+  } catch (e) {
+    $('#ig-gen-results').innerHTML = '<div class="empty" style="text-align:center;padding:1rem;color:var(--danger)">Failed: ' + esc(e.message) + '</div>';
+    toast('Failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function renderGeneratedImage(r, prompt, brand) {
+  const previewUrl = r.preview_url || '';
+  const bytesB64 = r.bytes_b64 || '';
+  const cost = r.cost_estimate_usd || 0;
+  const model = r.model || '';
+  const provider = r.provider || '';
+  const src = previewUrl || ('data:' + (r.mime || 'image/png') + ';base64,' + bytesB64);
+
+  const payload = encodeURIComponent(JSON.stringify({
+    image_url: previewUrl,
+    image_b64: bytesB64,
+    mime: r.mime || 'image/png',
+    brand_id: brand,
+    prompt,
+    model,
+  }));
+
+  $('#ig-gen-results').innerHTML =
+    `<div style="display:grid;grid-template-columns:minmax(0, 320px) 1fr;gap:1rem;align-items:start">
+      <div style="border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:var(--bg-2)">
+        <img src="${esc(src)}" alt="Generated image" style="width:100%;display:block" />
+      </div>
+      <div style="font-size:12px">
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Generated</div>
+        <div style="margin-bottom:.6rem;color:var(--tx-2)">
+          ${esc(model)} · ${esc(provider)} · ~$${cost.toFixed ? cost.toFixed(4) : cost}
+          ${previewUrl ? ' · <a href="' + esc(previewUrl) + '" target="_blank" rel="noopener">↗ open</a>' : ''}
+        </div>
+        <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.25rem">Prompt</div>
+        <div style="background:var(--bg-2);border:1px solid var(--bd);border-radius:6px;padding:.5rem;font-size:12px;color:var(--tx-2);margin-bottom:.75rem;max-height:160px;overflow-y:auto;white-space:pre-wrap">${esc(prompt)}</div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn primary" data-img-save="${payload}">💾 Save as asset</button>
+          <button class="btn primary" data-img-schedule="${payload}">📅 Schedule now</button>
+          ${previewUrl ? '<a class="btn ghost" href="' + esc(previewUrl) + '" target="_blank" rel="noopener" style="text-decoration:none">↗ Open image</a>' : ''}
+          <button class="btn ghost" data-img-copy-prompt="${encodeURIComponent(prompt)}">📋 Copy prompt</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function imageSaveAsAsset(btn) {
+  let p;
+  try { p = JSON.parse(decodeURIComponent(btn.dataset.imgSave)); }
+  catch(e) { toast('Save payload corrupted', true); return; }
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await API.post('/api/image-lab/save-as-asset', p);
+    if (!r.ok) throw new Error(r.error || 'Save failed');
+    toast('✓ Saved as asset · ' + (r.asset_id || '').slice(0, 12) + '…');
+    if (r.campaign_id && r.asset_id) {
+      // Navigate to Review after 600ms
+      setTimeout(() => {
+        if (typeof go === 'function') go('review');
+      }, 600);
+    }
+  } catch (e) {
+    toast('Save failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function imageSchedule(btn) {
+  let p;
+  try { p = JSON.parse(decodeURIComponent(btn.dataset.imgSchedule)); }
+  catch(e) { toast('Schedule payload corrupted', true); return; }
+  const ok = confirm('Schedule this image?\n\n"' + (p.prompt || '').slice(0, 100) + '"\n\nCreates a new campaign with one asset per channel (IG / FB / GBP). All assets land in Review queue ready to schedule.');
+  if (!ok) return;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await API.post('/api/campaigns/from-idea', {
+      idea: (p.prompt || 'Generated image').slice(0, 280),
+      tone: 'confident',
+      channels: ['instagram', 'facebook', 'gmb'],
+    });
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const n = (r.assets || []).length;
+    const cid = (r.campaign_id || '?').slice(0, 24);
+    toast('✓ Created ' + n + ' assets in ' + cid + '…');
+    setTimeout(() => go('review'), 800);
+  } catch (e) {
+    toast('Schedule failed: ' + (e.message || e), true);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// Wire buttons (delegated)
+(function wireImageLabActions() {
+  // Direct button bindings (one-time)
+  const genBtn = $('#ig-gen-image');
+  if (genBtn && !genBtn._wired) {
+    genBtn._wired = true;
+    genBtn.addEventListener('click', doImageGenNow);
+  }
+  const refreshBtn = $('#ig-history-refresh');
+  if (refreshBtn && !refreshBtn._wired) {
+    refreshBtn._wired = true;
+    refreshBtn.addEventListener('click', renderImageHistory);
+  }
+  const brandSelect = $('#ig-gen-brand');
+  if (brandSelect && !brandSelect._wired) {
+    brandSelect._wired = true;
+    brandSelect.addEventListener('change', renderImageHistory);
+  }
+
+  // Delegated handlers for data-img-* buttons (rendered dynamically)
+  if (!window._imgActionsWired) {
+    window._imgActionsWired = true;
+    document.addEventListener('click', async e => {
+      const saveBtn = e.target.closest('[data-img-save]');
+      if (saveBtn) { await imageSaveAsAsset(saveBtn); return; }
+      const schBtn = e.target.closest('[data-img-schedule]');
+      if (schBtn) { await imageSchedule(schBtn); return; }
+      const copyBtn = e.target.closest('[data-img-copy-prompt]');
+      if (copyBtn) {
+        try { await navigator.clipboard.writeText(decodeURIComponent(copyBtn.dataset.imgCopyPrompt)); toast('Copied prompt', 'ok'); }
+        catch(_) { toast('Copy failed', true); }
+        return;
+      }
+    });
+  }
+})();
+
+// Load image history when the section is opened
+const _origRenderImageGen = renderImageGen;
+renderImageGen = async function() {
+  await _origRenderImageGen();
+  await renderImageHistory();
+};
 
 </script>
 

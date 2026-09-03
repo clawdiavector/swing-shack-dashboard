@@ -20513,3 +20513,162 @@ def captions_saved_delete(caption_id):
         return jsonify({"ok": False, "error": "not found"}), 404
     _write_captions_saved(new)
     return jsonify({"ok": True, "deleted": caption_id, "count": len(new)}), 200
+
+
+# ─── IMAGE LAB: SAVE AS ASSET (2026-09-03) ───────────────────────────────────
+# POST /api/image-lab/save-as-asset
+#
+# Takes an image that was just generated via /api/image/generate and creates
+# a campaign asset with that image attached. The asset lands in the active
+# campaign's Review queue, ready to approve + schedule.
+#
+# Tier 2.2 of the click-to-schedule audit. Before this endpoint, every
+# image you generated was a write-off unless you copy-pasted it into a
+# campaign editor manually.
+#
+# Inputs (JSON):
+#   brand_id    - str, optional. Defaults to active brand.
+#   campaign_id - str, optional. Defaults to the active campaign (or the first
+#                 matching campaign in the brand).
+#   image_url   - str, optional. Path on the brand-images volume — e.g.
+#                 /brand-images/swing-shack/abc123.png — copy into the asset.
+#   image_b64   - str, optional. Base64-encoded image data (mime prefix
+#                 optional). Saved as a sidecar PNG.
+#   mime        - str, default 'image/png'. Used when image_b64 is provided.
+#   caption     - str, optional. The caption body for the new asset.
+#   hook        - str, optional. The hook line for the new asset.
+#   cta         - str, optional. The CTA line for the new asset.
+#   platform    - str, optional. Defaults to 'instagram'.
+#   pillar      - str, optional. e.g. 'equipment' / 'club-fitting' / etc.
+#   source      - str, optional. Free-form tag — 'image-lab' by default.
+#
+# Returns (201):
+#   {ok, asset_id, campaign_id, image_url, image_path, asset}
+#
+# The new asset has approvalStatus='pending' so it shows up in Review as
+# 'pending' — same as the Ideas → Drafts flow.
+
+@app.route("/api/image-lab/save-as-asset", methods=["POST"])
+def image_lab_save_as_asset():
+    """POST /api/image-lab/save-as-asset — convert a generated image into a reviewable asset."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+
+    brand_id = (body.get("brand_id") or "").strip()
+    if not brand_id:
+        try:
+            brand_id = get_brand_id() or ""
+        except Exception:
+            brand_id = "swing-shack"
+
+    image_url = (body.get("image_url") or "").strip()
+    image_b64 = (body.get("image_b64") or "").strip()
+    mime = (body.get("mime") or "image/png").strip()
+
+    if not image_url and not image_b64:
+        return jsonify({"ok": False, "error": "image_url or image_b64 is required"}), 400
+
+    # If image_b64 is given, write it to the brand-images volume
+    saved_image_path = None
+    saved_image_url = image_url
+    if image_b64:
+        try:
+            import base64 as _b64
+            # Strip the optional data: prefix
+            payload = image_b64
+            if "," in payload and payload.startswith("data:"):
+                payload = payload.split(",", 1)[1]
+            data = _b64.b64decode(payload)
+            ext = "png" if "png" in mime.lower() else ("jpg" if "jpg" in mime.lower() or "jpeg" in mime.lower() else "png")
+            fname = f"image-lab-{int(time.time()*1000)}-{uuid.uuid4().hex[:8]}.{ext}"
+            brand_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            os.makedirs(brand_dir, exist_ok=True)
+            full_path = os.path.join(brand_dir, fname)
+            with open(full_path, "wb") as fh:
+                fh.write(data)
+            saved_image_path = full_path
+            saved_image_url = f"/brand-images/{brand_id}/{fname}"
+        except Exception as exc:
+            return jsonify({"ok": False, "error": f"image write failed: {exc}"}), 500
+
+    # Resolve campaign
+    campaign_id = (body.get("campaign_id") or "").strip()
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if not campaign_id:
+        # Try activeCampaignId first, else first campaign in this brand
+        active = data.get("activeCampaignId")
+        if active and active in campaigns and campaigns[active].get("brand_id") == brand_id:
+            campaign_id = active
+        else:
+            for cid, c in campaigns.items():
+                if c.get("brand_id") == brand_id:
+                    campaign_id = cid
+                    break
+    if not campaign_id:
+        return jsonify({"ok": False, "error": f"no campaign found for brand '{brand_id}'"}), 400
+    if campaign_id not in campaigns:
+        return jsonify({"ok": False, "error": f"campaign '{campaign_id}' not found"}), 404
+    campaign = campaigns[campaign_id]
+    campaign.setdefault("brand_id", brand_id)
+    campaign.setdefault("assets", {})
+
+    # Build the new asset
+    asset_id = f"img-{uuid.uuid4().hex[:12]}"
+    now = _now_iso()
+    pillar = (body.get("pillar") or "image-gen").strip()
+    platform = (body.get("platform") or "instagram").strip()
+    caption = (body.get("caption") or "").strip()
+    hook = (body.get("hook") or "").strip()
+    cta = (body.get("cta") or "").strip()
+    source = (body.get("source") or "image-lab").strip()
+
+    # Combine caption components into the standard caption shape
+    parts = []
+    if hook:
+        parts.append(hook)
+    if caption:
+        parts.append(caption)
+    if cta:
+        parts.append(cta)
+    full_caption = "\n\n".join(parts)[:1500]
+
+    asset = {
+        "assetId": asset_id,
+        "campaignId": campaign_id,
+        "brand_id": brand_id,
+        "name": (hook or caption or "Generated image")[:80] or "Generated image",
+        "caption": full_caption,
+        "hook": hook,
+        "body": caption,
+        "cta": cta,
+        "platform": platform,
+        "pillar": pillar,
+        "source": source,
+        "approvalStatus": "pending",
+        "publishStatus": "draft",
+        "image_url": saved_image_url,
+        "image_path": saved_image_path,
+        "media": [saved_image_url] if saved_image_url else [],
+        "createdAt": now,
+        "updatedAt": now,
+        "createdBy": "image-lab",
+    }
+    campaign["assets"][asset_id] = asset
+    # Track in activeCampaignId so Review picks it up
+    data["activeCampaignId"] = campaign_id
+    data["campaigns"] = campaigns
+    try:
+        save_data(data)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+
+    return jsonify({
+        "ok": True,
+        "asset_id": asset_id,
+        "campaign_id": campaign_id,
+        "image_url": saved_image_url,
+        "image_path": saved_image_path,
+        "asset": asset,
+    }), 201
