@@ -20057,3 +20057,172 @@ def _run_seo_prompt_task(task_name, brand_id, inputs, model=None,
             "built_at": _now_iso(),
         },
     })
+
+
+# ─── SEO STACK PAGE (2026-09-02) ──────────────────────────────────────────
+# GET /seo-stack — Layer 4 UI surface for the Sarvesh SEO strategy.
+#
+# Self-contained HTML page that:
+#   - Renders the brand's business brain (Layer 1) in the left sidebar
+#   - Has tabs for all 5 Sarvesh tasks (Layer 3 wrappers)
+#   - Calls the wrappers via fetch(), renders the AI output with
+#     lightweight markdown (headings, bullets, tables, code blocks)
+#   - Shows the user prompt sent to AI so you can audit the call
+
+@app.route('/seo-stack')
+def seo_stack_page():
+    """The Layer-4 SEO Stack page. Self-contained HTML, no JS frameworks."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_seo_stack.html')
+    try:
+        with open(path) as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── SEO OPPORTUNITIES (2026-09-02) ──────────────────────────────────────────
+# GET /api/seo/opportunities
+#
+# Cheap, no-AI feed of SEO opportunities for the morning brief:
+#   - High-severity audit findings (8 from seo-audit.json)
+#   - Quick-win keywords from seo-rankings.json
+#   - Competitor activity (recent changes)
+#   - Stale source warnings (e.g. meta-page-info missing)
+#
+# Each opportunity has: type, title, detail, priority, action (link to
+# the /seo-stack page or specific task endpoint).
+#
+# Cheap because it doesn't call OpenRouter — it derives from data we already
+# have. Safe to include in the morning brief feed.
+
+@app.route('/api/seo/opportunities', methods=['GET'])
+def seo_opportunities():
+    """GET /api/seo/opportunities — cheap SEO opportunities feed."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        brand_id = (request.args.get('brand_id') or 'swing-shack').strip()
+        opportunities = []
+
+        # 1) High-severity audit findings
+        audit = _read_json_file(os.path.join(DATA_DIR, 'seo-audit.json')) or {}
+        pages = audit.get('pages') or []
+        high_count = audit.get('high_severity', 0)
+        if pages:
+            seen = set()
+            for page in pages:
+                findings = page.get('findings') or []
+                for f in findings[:3]:
+                    if f.get('severity') in ('high', 'HIGH'):
+                        key = (page.get('url', ''), f.get('title', ''))
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        opportunities.append({
+                            "type": "audit_finding",
+                            "priority": "high",
+                            "title": f.get('title') or f.get('summary', 'Audit finding'),
+                            "detail": (f.get('detail') or f.get('summary', ''))[:280],
+                            "page_url": page.get('url'),
+                            "action": {
+                                "endpoint": "/api/seo/schema-audit",
+                                "method": "POST",
+                                "body": {"url": page.get('url', '')},
+                                "label": "Run schema audit on this page",
+                            },
+                            "source": "seo-audit.json",
+                        })
+                        if len(opportunities) >= 5:
+                            break
+                if len(opportunities) >= 5:
+                    break
+
+        # 2) Quick-win keywords (close to page 1 — schema varies: list of strings
+        # OR list of dicts with keyword + position, so handle both)
+        ranks = _read_json_file(os.path.join(DATA_DIR, 'seo-rankings.json')) or {}
+        for k in (ranks.get('quick_wins') or [])[:3]:
+            kw, pos = (k, None) if isinstance(k, str) else (k.get('keyword'), k.get('position'))
+            if not kw:
+                continue
+            opportunities.append({
+                "type": "quick_win_keyword",
+                "priority": "medium",
+                "title": "Quick-win: " + kw,
+                "detail": ("Position " + str(pos) + " — push to page 1 with a content brief.") if pos else "Close to page 1 — push with a content brief.",
+                "keyword": kw,
+                "action": {
+                    "endpoint": "/api/seo/content-brief",
+                    "method": "POST",
+                    "body": {"keyword": kw},
+                    "label": "Generate content brief",
+                },
+                "source": "seo-rankings.json",
+            })
+
+        # 3) Rising keywords to lean into
+        for k in (ranks.get('rising_keywords') or [])[:2]:
+            kw = k if isinstance(k, str) else k.get('keyword')
+            if not kw:
+                continue
+            opportunities.append({
+                "type": "rising_keyword",
+                "priority": "medium",
+                "title": "Rising: " + kw,
+                "detail": "Momentum is up — write something now while it's hot.",
+                "keyword": kw,
+                "action": {
+                    "endpoint": "/api/seo/content-brief",
+                    "method": "POST",
+                    "body": {"keyword": kw},
+                    "label": "Generate content brief",
+                },
+                "source": "seo-rankings.json",
+            })
+
+        # 4) Competitor activity (recent changes)
+        comp = _read_json_file(os.path.join(DATA_DIR, 'competitor-tracker.json')) or {}
+        changes = comp.get('changes') or []
+        if isinstance(changes, list):
+            for c in changes[:2]:
+                opportunities.append({
+                    "type": "competitor_change",
+                    "priority": "low",
+                    "title": c.get('competitor', 'Competitor') + ": " + (c.get('change_type', 'change') or 'change'),
+                    "detail": (c.get('detail') or '')[:280],
+                    "source": "competitor-tracker.json",
+                })
+
+        # 5) Stale source warning (always check meta-page-info)
+        meta_page = _read_json_file(os.path.join(DATA_DIR, 'meta-page-info.json'))
+        if not meta_page or not meta_page.get('gbp_location_id'):
+            opportunities.append({
+                "type": "data_gap",
+                "priority": "high",
+                "title": "GBP location_id missing from meta-page-info.json",
+                "detail": "Once the Meta cron lands it, /api/seo/business-brain will include the full Google Business Profile URL, address, and phone.",
+                "action": {
+                    "manual": True,
+                    "label": "Trigger /api/meta/fetch to refresh",
+                },
+                "source": "meta-page-info.json",
+            })
+
+        # Sort by priority
+        priority_rank = {"high": 3, "medium": 2, "low": 1}
+        opportunities.sort(key=lambda o: priority_rank.get(o.get('priority') or 'low', 0), reverse=True)
+
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "count": len(opportunities),
+            "opportunities": opportunities,
+            "deep_dive_url": "/seo-stack",
+            "source": {
+                "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+                "pattern": "Sarvesh 'Super SEO Mode' — opportunistic feed",
+                "built_at": _now_iso(),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("seo_opportunities failed")
+        return jsonify({"ok": False, "error": str(e)}), 500

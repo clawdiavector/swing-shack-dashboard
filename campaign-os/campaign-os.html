@@ -679,6 +679,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
+      <div class="nav" data-go="seo-stack" data-help-title="SEO Stack (Sarvesh)" data-help="Run the 20-prompt Sarvesh SEO playbook against the AI, pre-loaded with the Swing Shack business brain."><span class="nav-icon">🚀</span> SEO Stack</div>
       <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
       <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace — voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
       <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
@@ -4263,6 +4264,12 @@ async function renderSection(sec){
 })();
 
 // ─── Section loaders ────────────────────────────────────────────
+async function renderSeoStack(){
+  // /seo-stack is a self-contained page (Layer 4 of the Sarvesh SEO
+  // strategy). Just redirect the SPA to it.
+  window.location.href = '/seo-stack';
+}
+
 async function loadSection(sec){
   try {
     if(sec==='brief') return renderBrief();
@@ -4286,6 +4293,7 @@ async function loadSection(sec){
     if(sec==='hashtagseo') return renderHashtagSeo();
     if(sec==='seo') return renderSEO();
     if(sec==='seo-audit') return renderSeoAudit();
+    if(sec==='seo-stack') return renderSeoStack();
     if(sec==='gbp') return renderGBP();
     if(sec==='reddit') return renderReddit();
     if(sec==='faqs') return renderFAQs();
