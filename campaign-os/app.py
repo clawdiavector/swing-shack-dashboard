@@ -19781,3 +19781,279 @@ def seo_prompt_stack_tasks():
         "default_model": DEFAULT_OPENROUTER_MODEL,
         "source": "https://x.com/bloggersarvesh/status/2090071557590900974",
     })
+
+
+# ─── SEO PROMPT STACK WRAPPERS — LAYER 3 (2026-09-02) ──────────────────────
+# Thin wrappers that each call /api/seo/prompt-stack with a hardcoded task
+# name. The OS UI binds to these instead of having to know the task catalog.
+#
+# Why wrappers instead of separate endpoints?
+#   - One canonical AI call path (Layer 2) — easier to add features
+#     (rate limiting, cost tracking, caching, observability) in one place
+#   - Same response shape (output / user_prompt / tokens_approx / source)
+#   - Same auth gate, same business-brain loading, same OpenRouter call
+#
+# Each wrapper:
+#   1. Validates task-specific inputs
+#   2. Adds the wrapper's task name
+#   3. Forwards to /api/seo/prompt-stack's same module-level helper
+#   4. Returns the same shape
+#
+# Body shape per wrapper is documented inline.
+
+
+@app.route('/api/seo/competitor-gap', methods=['POST'])
+def seo_competitor_gap():
+    """POST /api/seo/competitor-gap — find content gaps vs N competitor sites.
+
+    Body:
+      brand_id        — optional, default swing-shack
+      competitor_urls — required, list of competitor URLs (or domains)
+      keyword         — optional, focus keyword
+      max_gaps        — optional, default 5
+      model           — optional OpenRouter slug
+      temperature     — optional, default 0.5 (slightly more creative)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        competitor_urls = body.get('competitor_urls')
+        if not competitor_urls or not isinstance(competitor_urls, list):
+            return jsonify({"ok": False, "error": "competitor_urls (list) required"}), 400
+
+        inputs = {
+            'competitor_urls': competitor_urls,
+            'keyword': body.get('keyword'),
+            'max_gaps': body.get('max_gaps', 5),
+        }
+        return _run_seo_prompt_task(
+            task_name='competitor_gap',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.5),
+            max_tokens=body.get('max_tokens', 1500),
+        )
+    except Exception as e:
+        _app_log.exception("seo_competitor_gap failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/schema-audit', methods=['POST'])
+def seo_schema_audit():
+    """POST /api/seo/schema-audit — audit JSON-LD / microdata on a URL.
+
+    Body:
+      brand_id — optional, default swing-shack
+      url      — required, page URL to audit
+      model    — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        url = (body.get('url') or '').strip()
+        if not url:
+            return jsonify({"ok": False, "error": "url required"}), 400
+        if not url.startswith(('http://', 'https://')):
+            return jsonify({"ok": False, "error": "url must start with http:// or https://"}), 400
+
+        inputs = {'url': url}
+        return _run_seo_prompt_task(
+            task_name='schema_audit',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.2),  # low — be precise
+            max_tokens=body.get('max_tokens', 1800),
+        )
+    except Exception as e:
+        _app_log.exception("seo_schema_audit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/json-ld-gen', methods=['POST'])
+def seo_json_ld_gen():
+    """POST /api/seo/json-ld-gen — generate a clean JSON-LD block.
+
+    Body:
+      brand_id    — optional, default swing-shack
+      schema_type — required (e.g. 'LocalBusiness', 'FAQPage', 'Product')
+      page_url    — optional, the page the schema will live on
+      facts       — optional, dict of extra facts to use in the JSON-LD
+      model       — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        schema_type = (body.get('schema_type') or '').strip()
+        if not schema_type:
+            return jsonify({"ok": False, "error": "schema_type required"}), 400
+        # Validate against common Schema.org types so the AI doesn't drift
+        KNOWN_TYPES = {
+            'LocalBusiness', 'Organization', 'FAQPage', 'Product', 'Service',
+            'Event', 'Article', 'BlogPosting', 'NewsArticle', 'Recipe',
+            'Review', 'HowTo', 'BreadcrumbList', 'WebSite', 'WebPage',
+            'Person', 'Place', 'Restaurant', 'Store', 'GolfCourse',
+        }
+        if schema_type not in KNOWN_TYPES:
+            return jsonify({
+                "ok": False,
+                "error": "schema_type '" + schema_type + "' not in known set",
+                "known_types": sorted(KNOWN_TYPES),
+            }), 400
+
+        inputs = {
+            'schema_type': schema_type,
+            'page_url': body.get('page_url'),
+            'facts': body.get('facts'),
+        }
+        return _run_seo_prompt_task(
+            task_name='json_ld_gen',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.1),  # very low — must be valid JSON-LD
+            max_tokens=body.get('max_tokens', 1000),
+        )
+    except Exception as e:
+        _app_log.exception("seo_json_ld_gen failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/gbp-category-audit', methods=['POST'])
+def seo_gbp_category_audit():
+    """POST /api/seo/gbp-category-audit — GBP category matrix vs competitors.
+
+    Body:
+      brand_id            — optional, default swing-shack
+      keywords            — required, list of search keywords
+      competitor_gbp_urls — optional, list of competitor GBP URLs
+      model               — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        keywords = body.get('keywords')
+        if not keywords or not isinstance(keywords, list):
+            return jsonify({"ok": False, "error": "keywords (list) required"}), 400
+
+        inputs = {
+            'keywords': keywords,
+            'competitor_gbp_urls': body.get('competitor_gbp_urls'),
+        }
+        return _run_seo_prompt_task(
+            task_name='gbp_category_audit',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.3),
+            max_tokens=body.get('max_tokens', 1800),
+        )
+    except Exception as e:
+        _app_log.exception("seo_gbp_category_audit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/content-brief', methods=['POST'])
+def seo_content_brief():
+    """POST /api/seo/content-brief — full content brief for a target keyword.
+
+    Body:
+      brand_id            — optional, default swing-shack
+      keyword             — required, target keyword
+      competitor_urls     — optional, list of competitor URLs to out-rank
+      target_word_count   — optional, default 1500
+      model               — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        keyword = (body.get('keyword') or '').strip()
+        if not keyword:
+            return jsonify({"ok": False, "error": "keyword required"}), 400
+
+        inputs = {
+            'keyword': keyword,
+            'competitor_urls': body.get('competitor_urls'),
+            'target_word_count': body.get('target_word_count', 1500),
+        }
+        return _run_seo_prompt_task(
+            task_name='content_brief',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.5),
+            max_tokens=body.get('max_tokens', 2000),
+        )
+    except Exception as e:
+        _app_log.exception("seo_content_brief failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _run_seo_prompt_task(task_name, brand_id, inputs, model=None,
+                         temperature=0.4, max_tokens=1500):
+    """Internal helper — builds messages, calls OpenRouter, returns the same
+    shape as /api/seo/prompt-stack. Used by all Layer-3 wrappers."""
+    if task_name not in SEO_PROMPT_STACK_TASKS:
+        return jsonify({"ok": False, "error": "unknown task '" + task_name + "'"}), 400
+    task_def = SEO_PROMPT_STACK_TASKS[task_name]
+
+    # Validate required inputs (defense in depth — wrappers also check)
+    missing = [k for k in task_def['required_inputs'] if not inputs.get(k)]
+    if missing:
+        return jsonify({
+            "ok": False,
+            "error": "missing required inputs: " + str(missing),
+            "task": task_name,
+            "required_inputs": task_def['required_inputs'],
+        }), 400
+
+    messages, user_prompt, sections = _build_prompt_stack_messages(
+        task_name, brand_id, inputs, include_brain=True
+    )
+    if not messages:
+        return jsonify({"ok": False, "error": "could not build prompt messages"}), 500
+
+    actual_model = model or DEFAULT_OPENROUTER_MODEL
+    content, err = _openrouter_chat_completion(
+        messages,
+        model=actual_model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=60,
+    )
+    if err:
+        return jsonify({
+            "ok": False,
+            "error": err,
+            "task": task_name,
+            "wrapper": True,
+            "model": actual_model,
+        }), 502
+
+    return jsonify({
+        "ok": True,
+        "task": task_name,
+        "task_label": task_def['label'],
+        "sarvesh_prompt_id": task_def.get('sarvesh_prompt_id'),
+        "wrapper": True,
+        "brand_id": brand_id,
+        "model": actual_model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "user_prompt": user_prompt,
+        "output": content,
+        "output_chars": len(content),
+        "output_tokens_approx": len(content.split()),
+        "business_brain_used": bool(sections),
+        "source": {
+            "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+            "pattern": "Sarvesh 'Super SEO Mode' prompt-stack (Layer 3 wrapper)",
+            "built_at": _now_iso(),
+        },
+    })
