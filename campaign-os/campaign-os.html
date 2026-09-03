@@ -621,6 +621,45 @@ a:hover{text-decoration:underline}
 .help-collapsible .hc-body ul{margin:.35rem 0 .65rem;padding-left:1.2rem}
 .help-collapsible .hc-body li{margin-bottom:.25rem}
 </style>
+<style>
+/* ─── ONBOARDING (Tier 3 — Audit V1 fix, 2026-09-03) ─── */
+#ob-progress { gap: 0; align-items: stretch; }
+.ob-step {
+  flex: 1; min-width: 100px;
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--tx-3);
+  position: relative;
+  transition: all 0.2s;
+}
+.ob-step.on {
+  background: var(--bg-3);
+  border-color: var(--ac);
+  color: var(--tx);
+}
+.ob-step.done {
+  background: var(--bg-2);
+  border-color: var(--success);
+  color: var(--tx-2);
+}
+.ob-step .ob-num {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--tx-2);
+  font-weight: 700;
+  font-size: 12px;
+}
+.ob-step.on .ob-num { background: var(--ac); color: #fff; }
+.ob-step.done .ob-num { background: var(--success); color: #fff; }
+.ob-step .ob-lbl { font-weight: 600; }
+</style>
+
 </head>
 <body>
 <div class="app">
@@ -653,6 +692,7 @@ a:hover{text-decoration:underline}
       <div class="nav-title">Quick links</div>
       <a class="nav nav-link" href="/visualizer" data-help-title="Visual Library" data-help="Full visual library: 122+ brand images, filter by color/brand/mood, discover by element, generate new images with the recipe-informed gpt-image-1 pipeline."><span class="nav-icon">🎨</span> Visual Library</a>
       <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Browse existing meme formats, remix them with your brand voice, save to Review queue."><span class="nav-icon">😂</span> Meme Lab</a>
+      <a class="nav nav-link" href="#" data-go="onboarding" onclick="go('onboarding');return false;" data-help-title="First Campaign in 10 Minutes" data-help="5-step guided tour from zero to a reviewable campaign draft. Voice → Idea → Channels → Generate → Review."><span class="nav-icon">🚀</span> First Campaign</a>
       <a class="nav nav-link" href="/cockpit-operational" data-help-title="Operational Cockpit" data-help="Read-only operational dashboard: campaign status, scheduled items, raw telemetry. Use for quick health checks."><span class="nav-icon">🛩️</span> Cockpit</a>
     </div>
 
@@ -662,31 +702,46 @@ a:hover{text-decoration:underline}
     </div>
 
     <div class="nav-section" id="all-tools-section" hidden>
-      <div class="nav-title">All tools</div>
-      <div class="nav" data-go="brand-settings" data-help-title="Brand Settings" data-help="Edit the brand bible. Voice, visual direction, AI rules, acceptance test. Includes the Bible Score completion meter."><span class="nav-icon">⚙️</span> Brand Settings</div>
+      <!-- ─── Tier 3 — 4-bucket nav (Plan / Create / Publish / Learn) + Labs ─── -->
+      <div class="nav-title">📅 Plan</div>
       <div class="nav" data-go="calendar" data-help-title="Calendar" data-help="Content calendar — month grid of every planned post across all brands."><span class="nav-icon">📅</span> Calendar</div>
-      <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
-      <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
-      <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
       <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
+      <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
+      <div class="nav" data-go="brand-settings" data-help-title="Brand Settings" data-help="Edit the brand bible. Voice, visual direction, AI rules, acceptance test. Includes the Bible Score completion meter."><span class="nav-icon">⚙️</span> Brand Settings</div>
+
+      <div class="nav-title">✨ Create</div>
       <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
-      <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace — templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
       <div class="nav" data-go="captions" data-help-title="Caption Studio" data-help="Voice-aware captions. IG / FB / LinkedIn lengths."><span class="nav-icon">✍️</span> Caption Studio</div>
       <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
-      <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
       <div class="nav" data-go="ctas" data-help-title="CTAs" data-help="CTA generator. ~40 CTAs ranked by funnel position."><span class="nav-icon">🎯</span> CTAs</div>
+      <div class="nav" data-go="imagegen" data-help-title="Image Gen" data-help="Image generation briefs (Midjourney, DALL-E, ComfyUI). Renders live via gpt-image-1."><span class="nav-icon">🖼️</span> Image Gen</div>
+
+      <div class="nav-title">🚀 Publish</div>
+      <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
+      <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
+      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace — voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
       <div class="nav" data-go="hashtagseo" data-help-title="Hashtags + SEO" data-help="Hashtag sets + SEO meta descriptions per platform."><span class="nav-icon">#️⃣</span> Hashtags + SEO</div>
-      <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
-      <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
-      <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
       <div class="nav" data-go="seo-stack" data-help-title="SEO Stack (Sarvesh)" data-help="Run the 20-prompt Sarvesh SEO playbook against the AI, pre-loaded with the Swing Shack business brain."><span class="nav-icon">🚀</span> SEO Stack</div>
       <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
-      <div class="nav" data-go="gbp" data-help-title="Google Business" data-help="GBP workspace — voice-aware GBP post generator."><span class="nav-icon">📍</span> GBP</div>
-      <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
-      <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
-      <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
-      <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+
+      <div class="nav-title">📊 Learn</div>
+      <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
+      <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
+      <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
+
+      <!-- Labs: experimental / niche tools, hidden by default -->
+      <div class="nav-section" id="labs-section">
+        <div class="nav-title">🧪 Labs</div>
+        <div class="nav nav-link" id="labs-toggle" style="cursor:pointer;font-size:11px;padding:4px 8px;opacity:.7" data-help="Experimental surfaces: Reddit-aware copy, FAQ schema, meme workspace, billboard copy. Hidden by default — show if you need them.">▼ Show experimental tools</div>
+      </div>
+      <div id="labs-content" hidden style="margin-top:.25rem">
+        <div class="nav" data-go="memes" data-help-title="Meme Lord" data-help="Meme workspace — templates, custom captions, format conversion."><span class="nav-icon">😂</span> Meme Lord</div>
+        <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
+        <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
+        <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+      </div>
     </div>
   </aside>
 
@@ -3803,7 +3858,7 @@ const TITLES = {
   hooks:'Hook Bank', memes:'Meme Lord', billboards:'Billboard Lab', captions:'Caption Studio',
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
-  'seo-audit':'SEO Audit', agents:'Agents & health',
+  'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
   'brand-settings':'Brand Settings',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
@@ -9299,6 +9354,199 @@ async function imageAutoOverlay(btn) {
   }
 })();
 
+
+
+// ─── ONBOARDING: 5-step "First Campaign in 10 minutes" (Tier 3, 2026-09-03) ─
+// Per the audit: "A buyer landing on this would not know where to start".
+// This 5-step flow takes the user from zero to a reviewable campaign draft
+// with a single click per step.
+
+const obState = {
+  step: 0,
+  voice: '',
+  tone: '',
+  idea: '',
+  channels: ['instagram', 'facebook', 'gmb'],
+  ideas: [],
+  generated: null,
+  voicesLoaded: false,
+};
+
+async function renderOnboarding() {
+  if (!obState.voicesLoaded) {
+    try {
+      const r = await API.get('/api/brand-settings/swing-shack');
+      if (r.ok && r.settings && r.settings.voice_system) {
+        const vs = r.settings.voice_system;
+        const voiceSel = document.getElementById('ob-voice');
+        const toneSel = document.getElementById('ob-tone');
+        if (voiceSel && !voiceSel.options.length) {
+          voiceSel.innerHTML = '<option value="">— default —</option>' + (vs.available_voices || []).map(v => `<option value="${esc(v.id)}">${esc(v.name || v.id)}</option>`).join('');
+        }
+        if (toneSel && !toneSel.options.length) {
+          toneSel.innerHTML = '<option value="">— default —</option>' + (vs.available_tones || []).map(t => `<option value="${esc(t.id)}">${esc(t.name || t.id)}</option>`).join('');
+        }
+      }
+    } catch (_) { /* silent */ }
+    obState.voicesLoaded = true;
+  }
+  showObStep(obState.step);
+}
+
+function showObStep(n) {
+  obState.step = n;
+  const card = document.getElementById('ob-step-card');
+  const s1 = document.getElementById('ob-step1');
+  const s2 = document.getElementById('ob-step2');
+  const s3 = document.getElementById('ob-step3');
+  const s4 = document.getElementById('ob-step4');
+  if (card) card.hidden = (n !== 0);
+  if (s1) s1.hidden = (n !== 1);
+  if (s2) s2.hidden = (n !== 2);
+  if (s3) s3.hidden = (n !== 3);
+  if (s4) s4.hidden = (n !== 4);
+  // Progress bar
+  $$('.ob-step').forEach(el => {
+    const s = parseInt(el.dataset.step);
+    el.classList.toggle('on', s === n);
+    el.classList.toggle('done', s < n);
+  });
+  // Update summary if on step 4
+  if (n === 4) {
+    obState.channels = [];
+    if (document.getElementById('ob-ch-ig')?.checked) obState.channels.push('instagram');
+    if (document.getElementById('ob-ch-fb')?.checked) obState.channels.push('facebook');
+    if (document.getElementById('ob-ch-gbp')?.checked) obState.channels.push('gmb');
+    const channels = obState.channels.map(c => c === 'instagram' ? 'IG' : c === 'facebook' ? 'FB' : c === 'gmb' ? 'GBP' : c);
+    const summary = document.getElementById('ob-summary');
+    if (summary) {
+      summary.innerHTML = `
+        <div><b>Voice:</b> ${esc(obState.voice || '(default)')} · <b>Tone:</b> ${esc(obState.tone || '(default)')}</div>
+        <div style="margin-top:.3rem"><b>Idea:</b> ${esc(obState.idea || '(empty — uses default)')}</div>
+        <div style="margin-top:.3rem"><b>Channels:</b> ${channels.join(', ')}</div>
+      `;
+    }
+  }
+  const xOf = document.getElementById('ob-step-x-of');
+  if (xOf) xOf.textContent = n === 0 ? 'Welcome' : 'Step ' + n + ' of 5';
+  document.getElementById('sec-onboarding')?.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+async function obGenerateIdeas() {
+  try {
+    const r = await API.get('/api/intel/winning_theme_ideas');
+    obState.ideas = (r.ideas || r.themes || r.items || []).slice(0, 5);
+    if (!obState.ideas.length) { toast('No ideas found — type your own', true); return; }
+    const list = document.getElementById('ob-ideas-list');
+    if (!list) return;
+    list.innerHTML = obState.ideas.map(it => {
+      const t = it.hook || it.title || it.theme || it.text || JSON.stringify(it).slice(0, 80);
+      return '<button class="btn-mini" data-ob-idea="' + esc(t.slice(0, 120)) + '">' + esc(t.slice(0, 60)) + (t.length > 60 ? '…' : '') + '</button>';
+    }).join('');
+    $$('#ob-ideas-list [data-ob-idea]').forEach(b => b.addEventListener('click', () => {
+      const inp = document.getElementById('ob-idea');
+      if (inp) inp.value = b.dataset.obIdea;
+      obState.idea = b.dataset.obIdea;
+      toast('Idea selected');
+    }));
+  } catch (e) {
+    toast('Could not generate ideas: ' + e.message, true);
+  }
+}
+
+async function obGenerate() {
+  const seed = obState.idea || (document.getElementById('ob-idea')?.value || 'Tell our story');
+  const channels = obState.channels.length ? obState.channels : ['instagram', 'facebook', 'gmb'];
+  const tone = obState.tone || 'confident';
+  const btn = document.getElementById('ob-generate');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  const result = document.getElementById('ob-gen-result');
+  if (result) result.innerHTML = '<div class="empty" style="text-align:center;padding:1rem;color:var(--tx-3);font-size:13px">Calling /api/campaigns/from-idea — this creates the campaign + assets across the selected channels.</div>';
+  try {
+    const r = await API.post('/api/campaigns/from-idea', { idea: seed.slice(0, 280), tone, channels });
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    obState.generated = r;
+    if (result) {
+      result.innerHTML = `
+        <div style="background:var(--bg-2);border-radius:8px;padding:.75rem;margin-bottom:.5rem">
+          <div style="font-size:14px;font-weight:600;color:var(--success)">✓ Done! Campaign "${esc((r.campaign_id || '').slice(0, 32))}"</div>
+          <div style="font-size:12px;color:var(--tx-2);margin-top:.3rem">${(r.assets || []).length} assets created across ${channels.length} channel(s).</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn primary" id="ob-go-review">📋 Open in Review</button>
+          <button class="btn ghost" id="ob-go-calendar">📅 Calendar</button>
+        </div>
+      `;
+      document.getElementById('ob-go-review')?.addEventListener('click', () => go('review'));
+      document.getElementById('ob-go-calendar')?.addEventListener('click', () => go('calendar'));
+    }
+  } catch (e) {
+    if (result) result.innerHTML = '<div class="empty" style="text-align:center;padding:1rem;color:var(--danger);font-size:13px">Failed: ' + esc(e.message) + '</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// Wire up the onboarding flow (delegated + one-time bindings)
+(function wireOnboarding() {
+  const nextBtn = document.getElementById('ob-next');
+  if (nextBtn && !nextBtn._wired) {
+    nextBtn._wired = true;
+    nextBtn.addEventListener('click', () => showObStep(1));
+  }
+  const skipBtn = document.getElementById('ob-skip');
+  if (skipBtn && !skipBtn._wired) {
+    skipBtn._wired = true;
+    skipBtn.addEventListener('click', () => { toast('Skipped — try Brand Settings or Create when you are ready'); go('brief'); });
+  }
+  if (!window._obWired) {
+    window._obWired = true;
+    document.addEventListener('click', async e => {
+      const nb = e.target.closest('[data-ob-next]');
+      if (nb) {
+        const n = parseInt(nb.dataset.obNext);
+        if (n === 1) {
+          obState.voice = document.getElementById('ob-voice')?.value || '';
+          obState.tone = document.getElementById('ob-tone')?.value || '';
+        }
+        if (n === 2) {
+          obState.idea = document.getElementById('ob-idea')?.value || '';
+        }
+        showObStep(n);
+        return;
+      }
+      const bb = e.target.closest('[data-ob-back]');
+      if (bb) {
+        showObStep(parseInt(bb.dataset.obBack));
+        return;
+      }
+    });
+    document.getElementById('ob-idea-gen')?.addEventListener('click', obGenerateIdeas);
+    document.getElementById('ob-generate')?.addEventListener('click', obGenerate);
+    $$('.ob-step').forEach(el => el.addEventListener('click', () => showObStep(parseInt(el.dataset.step))));
+  }
+})();
+
+
+// ─── LABS TOGGLE (Tier 3 — Audit IMMEDIATE fix, 2026-09-03) ─────────────────
+// Per the audit: experimental sections (Reddit, FAQs, Memes, Billboards)
+// create noise. Hide behind a "Show experimental tools" toggle.
+(function wireLabsToggle() {
+  if (window._labsWired) return;
+  window._labsWired = true;
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('#labs-toggle');
+    if (!btn) return;
+    const content = document.getElementById('labs-content');
+    if (!content) return;
+    const hidden = content.hidden;
+    content.hidden = !hidden;
+    btn.innerHTML = hidden ? '▲ Hide experimental tools' : '▼ Show experimental tools';
+  });
+})();
+
 </script>
 
 
@@ -9330,6 +9578,93 @@ async function imageAutoOverlay(btn) {
 
       <!-- The 10 sections in a 2-column grid -->
       <div id="bs-sections" class="grid"></div>
+    </section>
+
+
+    <!-- ─── ONBOARDING (Tier 3 — Audit V1 fix, 2026-09-03) ─────────────────── -->
+    <section class="section" id="sec-onboarding">
+      <div class="section-h">
+        <h2>🚀 First Campaign in 10 Minutes</h2>
+        <span class="sub">Five steps. One draft. Skip any step if it's already done.</span>
+      </div>
+      <div id="ob-progress" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+        <div class="ob-step" data-step="1"><div class="ob-num">1</div><div class="ob-lbl">Pick voice</div></div>
+        <div class="ob-step" data-step="2"><div class="ob-num">2</div><div class="ob-lbl">Pick idea</div></div>
+        <div class="ob-step" data-step="3"><div class="ob-num">3</div><div class="ob-lbl">Pick format</div></div>
+        <div class="ob-step" data-step="4"><div class="ob-num">4</div><div class="ob-lbl">Generate</div></div>
+        <div class="ob-step" data-step="5"><div class="ob-num">5</div><div class="ob-lbl">Review + ship</div></div>
+      </div>
+      <div class="grid">
+        <div class="card col-12" id="ob-step-card">
+          <div class="card-h"><h3 id="ob-card-title">👋 Welcome</h3><span class="muted" id="ob-step-x-of">Step 1 of 5</span></div>
+          <div id="ob-step-body" style="font-size:13px;line-height:1.6">
+            <p>This is the shortest path from zero to a real campaign draft you can approve.</p>
+            <ul style="margin:.5rem 0 .5rem 1.5rem;color:var(--tx-2)">
+              <li><b>Voice + tone</b> — one dropdown each (or skip — defaults are fine)</li>
+              <li><b>Idea</b> — write one line OR click "🎲 Generate 5" for ideas</li>
+              <li><b>Format</b> — IG / FB / GBP (pick one or all)</li>
+              <li><b>Generate</b> — one click creates 3 assets, lands in Review</li>
+              <li><b>Review + ship</b> — approve then publish via Postiz</li>
+            </ul>
+            <p style="color:var(--tx-3);font-size:12px">Each step remembers your choice — go back anytime. Skipping a step uses the default.</p>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+            <button class="btn primary" id="ob-next">▶ Start</button>
+            <button class="btn ghost" id="ob-skip">Skip tour</button>
+            <span class="muted" id="ob-progress-text" style="font-size:11px;margin-left:auto">Ready when you are.</span>
+          </div>
+        </div>
+
+        <div class="card col-12" id="ob-step1" hidden>
+          <div class="card-h"><h3>1️⃣ Pick voice + tone</h3></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem">
+            <label style="font-size:11px;color:var(--tx-3)">Voice:</label>
+            <select id="ob-voice" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px"></select>
+            <label style="font-size:11px;color:var(--tx-3);margin-left:.5rem">Tone:</label>
+            <select id="ob-tone" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px"></select>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn ghost" data-ob-back="0">← Back</button>
+            <button class="btn primary" data-ob-next="1">Next →</button>
+          </div>
+        </div>
+
+        <div class="card col-12" id="ob-step2" hidden>
+          <div class="card-h"><h3>2️⃣ Pick or write an idea</h3></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+            <input type="text" id="ob-idea" placeholder="One line — what is the post about?" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+            <button class="btn ghost" id="ob-idea-gen">🎲 Generate 5</button>
+          </div>
+          <div id="ob-ideas-list" style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.75rem"></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn ghost" data-ob-back="1">← Back</button>
+            <button class="btn primary" data-ob-next="2">Next →</button>
+          </div>
+        </div>
+
+        <div class="card col-12" id="ob-step3" hidden>
+          <div class="card-h"><h3>3️⃣ Pick channels</h3></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem">
+            <label style="display:flex;align-items:center;gap:.4rem;padding:.5rem .75rem;background:var(--bg-2);border-radius:6px;cursor:pointer"><input type="checkbox" id="ob-ch-ig" checked /> Instagram</label>
+            <label style="display:flex;align-items:center;gap:.4rem;padding:.5rem .75rem;background:var(--bg-2);border-radius:6px;cursor:pointer"><input type="checkbox" id="ob-ch-fb" checked /> Facebook</label>
+            <label style="display:flex;align-items:center;gap:.4rem;padding:.5rem .75rem;background:var(--bg-2);border-radius:6px;cursor:pointer"><input type="checkbox" id="ob-ch-gbp" checked /> Google Business</label>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn ghost" data-ob-back="2">← Back</button>
+            <button class="btn primary" data-ob-next="3">Next →</button>
+          </div>
+        </div>
+
+        <div class="card col-12" id="ob-step4" hidden>
+          <div class="card-h"><h3>4️⃣ Generate campaign</h3></div>
+          <div id="ob-summary" style="padding:.75rem;background:var(--bg-2);border-radius:8px;margin-bottom:.75rem;font-size:12px;color:var(--tx-2)"></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn ghost" data-ob-back="3">← Back</button>
+            <button class="btn primary" id="ob-generate">⚡ Generate</button>
+          </div>
+          <div id="ob-gen-result" style="margin-top:1rem"></div>
+        </div>
+      </div>
     </section>
 
 </body>
