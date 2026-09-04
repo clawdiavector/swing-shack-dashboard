@@ -727,6 +727,8 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="seo-stack" data-help-title="SEO Stack (Sarvesh)" data-help="Run the 20-prompt Sarvesh SEO playbook against the AI, pre-loaded with the Swing Shack business brain."><span class="nav-icon">🚀</span> SEO Stack</div>
       <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
       <div class="nav" data-go="tenants" data-help-title="Tenant Isolation" data-help="Per-tenant secrets scope, integrity checks, audit log. Multi-tenant hardening."><span class="nav-icon">🔐</span> Tenant Isolation</div>
+      <div class="nav" data-go="integrations" data-help-title="Integrations" data-help="Shopify + GA4 live sync. Per-tenant credentials + sync products/orders + sessions."><span class="nav-icon">🔌</span> Integrations</div>
+      <div class="nav" data-go="abtests" data-help-title="A/B Tests" data-help="Variant groups + winner detection. Track impressions + engagement per variant."><span class="nav-icon">🧪</span> A/B Tests</div>
 
       <div class="nav-title">📊 Learn</div>
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
@@ -3862,7 +3864,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -10367,6 +10369,306 @@ async function tenantTestSecrets() {
   }
 })();
 
+
+
+// ─── INTEGRATIONS (Tier 3.7 — Shopify + GA4, 2026-09-04) ────────────────────
+// Per the audit: "Live sync with Shopify" + "Live sync with GA4" were
+// Version 2 work. Now wired end-to-end with per-tenant credentials.
+
+async function renderIntegrations() {
+  const brand = document.getElementById('int-brand')?.value || 'swing-shack';
+  await Promise.all([checkShopify(brand, true), checkGA4(brand, true)]);
+}
+
+async function checkShopify(brand, silent) {
+  const r = await API.get('/api/shopify/' + encodeURIComponent(brand) + '/status');
+  const statusEl = document.getElementById('shop-status');
+  const detailsEl = document.getElementById('shop-details');
+  const syncBtn = document.getElementById('shop-sync');
+  const ordersBtn = document.getElementById('shop-orders');
+  if (!r.ok) {
+    if (statusEl) { statusEl.textContent = '— error'; statusEl.className = 'pill blocked'; }
+    if (!silent) toast('Shopify check failed: ' + r.error, true);
+    return;
+  }
+  if (statusEl) {
+    statusEl.textContent = r.configured ? '✓ connected' : '✕ not configured';
+    statusEl.className = r.configured ? 'pill on' : 'pill blocked';
+  }
+  if (detailsEl) {
+    if (r.configured) {
+      detailsEl.innerHTML = `
+        <div style="padding:.5rem 0;font-size:13px;line-height:1.5">
+          <div><b>Shop:</b> ${esc(r.shop_name)}</div>
+          <div><b>Domain:</b> ${esc(r.shop_domain)}</div>
+          <div><b>Plan:</b> ${esc(r.shop_plan)}</div>
+          <div><b>Currency:</b> ${esc(r.currency)}</div>
+        </div>
+      `;
+    } else {
+      detailsEl.innerHTML = '<div style="padding:.5rem 0;font-size:12px;color:var(--tx-3);line-height:1.5">' + esc(r.message || '') + '<br><br>Set <code>SHOPIFY_SHOP_' + brand.toUpperCase().replace('-', '_') + '</code> + <code>SHOPIFY_TOKEN_' + brand.toUpperCase().replace('-', '_') + '</code> in env, or shared <code>SHOPIFY_SHOP</code> + <code>SHOPIFY_TOKEN</code>.</div>';
+    }
+  }
+  if (syncBtn) syncBtn.hidden = !r.configured;
+  if (ordersBtn) ordersBtn.hidden = !r.configured;
+  if (!silent && r.configured) toast('✓ Shopify connected');
+}
+
+async function checkGA4(brand, silent) {
+  const r = await API.get('/api/ga4/' + encodeURIComponent(brand) + '/status');
+  const statusEl = document.getElementById('ga-status');
+  const detailsEl = document.getElementById('ga-details');
+  const fetchBtn = document.getElementById('ga-fetch');
+  if (!r.ok) {
+    if (statusEl) { statusEl.textContent = '— error'; statusEl.className = 'pill blocked'; }
+    return;
+  }
+  if (statusEl) {
+    statusEl.textContent = r.ok && r.configured ? '✓ connected' : '✕ not configured';
+    statusEl.className = r.ok && r.configured ? 'pill on' : 'pill blocked';
+  }
+  if (detailsEl) {
+    if (r.configured) {
+      detailsEl.innerHTML = '<div style="padding:.5rem 0;font-size:12px;color:var(--tx-2)">GA4 configured (scope: ' + esc(r.scope || 'shared') + ')</div>';
+    } else {
+      detailsEl.innerHTML = '<div style="padding:.5rem 0;font-size:12px;color:var(--tx-3);line-height:1.5">' + esc(r.message || 'Not configured') + '<br><br>Set <code>GA4_PROPERTY_' + brand.toUpperCase().replace('-', '_') + '</code> + <code>GA4_CREDENTIALS_' + brand.toUpperCase().replace('-', '_') + '</code> in env, or shared <code>GA4_PROPERTY_ID</code> + <code>GOOGLE_APPLICATION_CREDENTIALS</code>.</div>';
+    }
+  }
+  if (fetchBtn) fetchBtn.hidden = !(r.ok && r.configured);
+}
+
+async function shopifySync() {
+  const brand = document.getElementById('int-brand')?.value || 'swing-shack';
+  const btn = document.getElementById('shop-sync');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Syncing…'; }
+  try {
+    const r = await API.post('/api/shopify/' + encodeURIComponent(brand) + '/sync-products', {});
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const result = document.getElementById('shop-result');
+    if (result) {
+      result.innerHTML = `
+        <div style="padding:.6rem .75rem;background:var(--bg-2);border-radius:8px;border-left:3px solid var(--success);font-size:12px">
+          <div style="font-weight:600;color:var(--success)">✓ Synced ${r.synced} products</div>
+          <div style="margin-top:.3rem;color:var(--tx-2)">${r.created} created · ${r.updated} updated · ${r.skipped} skipped${r.errors && r.errors.length ? ' · ' + r.errors.length + ' errors' : ''}</div>
+        </div>
+      `;
+    }
+    toast('✓ Synced ' + r.synced + ' products (' + r.created + ' new, ' + r.updated + ' updated)');
+  } catch (e) {
+    toast('Sync failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync products'; }
+  }
+}
+
+async function shopifyOrders() {
+  const brand = document.getElementById('int-brand')?.value || 'swing-shack';
+  const btn = document.getElementById('shop-orders');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.get('/api/shopify/' + encodeURIComponent(brand) + '/orders?limit=10');
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const result = document.getElementById('shop-result');
+    if (result) {
+      result.innerHTML = `
+        <div style="padding:.6rem .75rem;background:var(--bg-2);border-radius:8px;font-size:12px">
+          <div style="font-weight:600">Last ${r.count} orders:</div>
+          <div style="margin-top:.3rem;color:var(--tx-2)">Order #${r.orders.slice(0,3).map(o => o.get('order_number') || o.get('id')).join(', ')}…</div>
+        </div>
+      `;
+    }
+    toast('✓ Fetched ' + r.count + ' orders');
+  } catch (e) {
+    toast('Orders fetch failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📋 Fetch orders'; }
+  }
+}
+
+async function gaFetch() {
+  const brand = document.getElementById('int-brand')?.value || 'swing-shack';
+  const btn = document.getElementById('ga-fetch');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.get('/api/ga4/' + encodeURIComponent(brand) + '/sessions?refresh=true');
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const result = document.getElementById('ga-result');
+    if (result) {
+      result.innerHTML = `
+        <div style="padding:.6rem .75rem;background:var(--bg-2);border-radius:8px;font-size:12px">
+          <div style="display:flex;gap:1rem;flex-wrap:wrap">
+            <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Sessions (30d)</div><div style="font-size:24px;font-weight:700;color:var(--ac)">${(r.total_sessions || 0).toLocaleString()}</div></div>
+            <div><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Conversions</div><div style="font-size:24px;font-weight:700;color:var(--success)">${(r.total_conversions || 0).toLocaleString()}</div></div>
+          </div>
+        </div>
+      `;
+    }
+    toast('✓ Fetched ' + (r.rows?.length || 0) + ' days of GA4 data');
+  } catch (e) {
+    toast('GA4 fetch failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📈 Fetch sessions'; }
+  }
+}
+
+(function wireIntegrations() {
+  const sel = document.getElementById('int-brand');
+  if (sel && !sel._wired) {
+    sel._wired = true;
+    sel.addEventListener('change', renderIntegrations);
+  }
+  const shopCheck = document.getElementById('shop-check');
+  if (shopCheck && !shopCheck._wired) {
+    shopCheck._wired = true;
+    shopCheck.addEventListener('click', () => checkShopify(document.getElementById('int-brand')?.value, false));
+  }
+  const shopSync = document.getElementById('shop-sync');
+  if (shopSync && !shopSync._wired) {
+    shopSync._wired = true;
+    shopSync.addEventListener('click', shopifySync);
+  }
+  const shopOrders = document.getElementById('shop-orders');
+  if (shopOrders && !shopOrders._wired) {
+    shopOrders._wired = true;
+    shopOrders.addEventListener('click', shopifyOrders);
+  }
+  const gaCheck = document.getElementById('ga-check');
+  if (gaCheck && !gaCheck._wired) {
+    gaCheck._wired = true;
+    gaCheck.addEventListener('click', () => checkGA4(document.getElementById('int-brand')?.value, false));
+  }
+  const gaFetch = document.getElementById('ga-fetch');
+  if (gaFetch && !gaFetch._wired) {
+    gaFetch._wired = true;
+    gaFetch.addEventListener('click', gaFetch);
+  }
+})();
+
+
+// ─── A/B TESTS (Tier 3.7 — production-ready, 2026-09-04) ───────────────────
+// Per the audit: "A/B testing within the OS" was Version 2. Now shipped.
+// Variant groups + winner detection by best ER with sample-size tiebreaker.
+
+async function renderABTests() {
+  const brand = document.getElementById('ab-brand')?.value || 'swing-shack';
+  const r = await API.get('/api/ab-test?brand_id=' + encodeURIComponent(brand));
+  if (!r.ok) { toast('A/B tests load failed: ' + r.error, true); return; }
+  $('#ab-list').innerHTML = (r.tests || []).map(t => abTestCard(t)).join('') || '<div class="empty">No tests yet — click + New test</div>';
+}
+
+function abTestCard(t) {
+  const winner = t.current_winner || {};
+  const winnerLabel = winner.label || '—';
+  const winnerER = winner.er ? (winner.er * 100).toFixed(2) + '%' : '—';
+  const winnerImpressions = winner.impressions || 0;
+  const variantRows = (t.variants || []).map(v => {
+    const er = v.engagement_rate || 0;
+    const pct = (er * 100).toFixed(2);
+    const isWinner = v.id === winner.id;
+    return `
+      <div style="padding:.5rem .75rem;border-bottom:1px solid var(--bd);background:${isWinner ? 'rgba(34,197,94,0.05)' : 'transparent'};border-radius:6px;margin-bottom:.25rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:600">${esc(v.label)} ${isWinner ? '<span class="pill on" style="font-size:10px;margin-left:6px">current winner</span>' : ''}</span>
+          <span style="font-size:12px;color:var(--tx-2)">${pct}% (${v.engagements || 0}/${v.impressions || 0})</span>
+        </div>
+        ${v.hook ? '<div style="font-size:11px;color:var(--tx-3);margin-top:.2rem;line-height:1.4">"' + esc(v.hook) + '"</div>' : ''}
+        <div style="display:flex;gap:.5rem;margin-top:.4rem">
+          <button class="btn-mini primary" data-ab-record="${esc(t.id)}|${esc(v.id)}">📊 Record metrics</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div class="card col-6">
+      <div class="card-h">
+        <h3>${esc(t.hypothesis.slice(0, 60))}${t.hypothesis.length > 60 ? '…' : ''}</h3>
+        <span class="muted" style="font-size:11px">${esc(t.variable)} · ${t.status || 'running'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">Test: <code>${esc(t.id)}</code> · Winner: <b style="color:var(--success)">${esc(winnerLabel)}</b> (${winnerER} over ${winnerImpressions} impressions)</div>
+      <div>${variantRows}</div>
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn ghost" data-ab-conclude="${esc(t.id)}">🏁 Conclude + pick winner</button>
+      </div>
+    </div>
+  `;
+}
+
+async function abTestCreate() {
+  const brand = document.getElementById('ab-brand')?.value || 'swing-shack';
+  const hypothesis = prompt('Test hypothesis (e.g. "Short hooks drive 20% higher ER"):');
+  if (!hypothesis) return;
+  const variable = prompt('Variable (hook_length / image_style / cta_text / etc.):', 'hook_length') || 'unknown';
+  // Two variants
+  const v1label = prompt('Variant 1 label:', 'Short hook') || 'Variant 1';
+  const v1hook = prompt('Variant 1 hook text:', '') || '';
+  const v2label = prompt('Variant 2 label:', 'Long hook') || 'Variant 2';
+  const v2hook = prompt('Variant 2 hook text:', '') || '';
+  const r = await API.post('/api/ab-test', {
+    brand_id: brand,
+    hypothesis,
+    variable,
+    variants: [
+      { label: v1label, hook: v1hook },
+      { label: v2label, hook: v2hook },
+    ],
+  });
+  if (!r.ok) { toast('Create failed: ' + r.error, true); return; }
+  toast('✓ Test created: ' + r.test.id);
+  await renderABTests();
+}
+
+async function abTestRecord(testId, variantId) {
+  const impressionsStr = prompt('Impressions to record:', '1000');
+  if (!impressionsStr) return;
+  const engagementsStr = prompt('Engagements to record:', '60');
+  if (!engagementsStr) return;
+  const r = await API.post('/api/ab-test/' + encodeURIComponent(testId) + '/record', {
+    variant_id: variantId,
+    impressions: parseInt(impressionsStr) || 0,
+    engagements: parseInt(engagementsStr) || 0,
+  });
+  if (!r.ok) { toast('Record failed: ' + r.error, true); return; }
+  toast('✓ Recorded. Current winner: ' + (r.test.current_winner?.label || '—'));
+  await renderABTests();
+}
+
+async function abTestConclude(testId) {
+  if (!confirm('Conclude test ' + testId + ' and pick the winner?')) return;
+  const r = await API.post('/api/ab-test/' + encodeURIComponent(testId) + '/conclude', {});
+  if (!r.ok) { toast('Conclude failed: ' + r.error, true); return; }
+  toast('✓ Test concluded. Winner: ' + (r.winner?.label || '—'));
+  await renderABTests();
+}
+
+(function wireABTests() {
+  const sel = document.getElementById('ab-brand');
+  if (sel && !sel._wired) {
+    sel._wired = true;
+    sel.addEventListener('change', renderABTests);
+  }
+  const createBtn = document.getElementById('ab-create');
+  if (createBtn && !createBtn._wired) {
+    createBtn._wired = true;
+    createBtn.addEventListener('click', abTestCreate);
+  }
+  if (!window._abTestWired) {
+    window._abTestWired = true;
+    document.addEventListener('click', e => {
+      const recBtn = e.target.closest('[data-ab-record]');
+      if (recBtn) {
+        const [tid, vid] = recBtn.dataset.abRecord.split('|');
+        abTestRecord(tid, vid);
+        return;
+      }
+      const conBtn = e.target.closest('[data-ab-conclude]');
+      if (conBtn) {
+        abTestConclude(conBtn.dataset.abConclude);
+        return;
+      }
+    });
+  }
+})();
+
 </script>
 
 
@@ -10645,6 +10947,69 @@ async function tenantTestSecrets() {
           <div id="tn-audit-log" style="max-height:400px;overflow-y:auto;font-family:var(--mono,monospace);font-size:11px"></div>
         </div>
       </div>
+    </section>
+
+
+    <!-- ─── INTEGRATIONS (Tier 3.7 — Shopify + GA4, 2026-09-04) ────────────── -->
+    <section class="section" id="sec-integrations">
+      <div class="section-h">
+        <h2>🔌 Integrations</h2>
+        <span class="sub">Shopify + GA4 live sync. Per-tenant credentials, sync products/orders, sessions.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="int-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card col-6">
+          <div class="card-h">
+            <h3>🛒 Shopify</h3>
+            <span class="pill muted" id="shop-status">— not checked</span>
+          </div>
+          <div id="shop-details"></div>
+          <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn ghost" id="shop-check">🔍 Check connection</button>
+            <button class="btn primary" id="shop-sync" hidden>🔄 Sync products</button>
+            <button class="btn ghost" id="shop-orders" hidden>📋 Fetch orders</button>
+          </div>
+          <div id="shop-result" style="margin-top:1rem"></div>
+        </div>
+        <div class="card col-6">
+          <div class="card-h">
+            <h3>📊 GA4</h3>
+            <span class="pill muted" id="ga-status">— not checked</span>
+          </div>
+          <div id="ga-details"></div>
+          <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn ghost" id="ga-check">🔍 Check connection</button>
+            <button class="btn primary" id="ga-fetch" hidden>📈 Fetch sessions</button>
+          </div>
+          <div id="ga-result" style="margin-top:1rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── A/B TESTS (Tier 3.7, 2026-09-04) ──────────────────────────────── -->
+    <section class="section" id="sec-abtests">
+      <div class="section-h">
+        <h2>🧪 A/B Tests</h2>
+        <span class="sub">Variant groups + winner detection. Track impressions + engagement per variant.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="ab-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+          <button class="btn primary" id="ab-create">+ New test</button>
+        </div>
+      </div>
+      <div id="ab-list" class="grid"></div>
     </section>
 
 </body>
