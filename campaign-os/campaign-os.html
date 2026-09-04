@@ -729,12 +729,15 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="tenants" data-help-title="Tenant Isolation" data-help="Per-tenant secrets scope, integrity checks, audit log. Multi-tenant hardening."><span class="nav-icon">🔐</span> Tenant Isolation</div>
       <div class="nav" data-go="integrations" data-help-title="Integrations" data-help="Shopify + GA4 live sync. Per-tenant credentials + sync products/orders + sessions."><span class="nav-icon">🔌</span> Integrations</div>
       <div class="nav" data-go="abtests" data-help-title="A/B Tests" data-help="Variant groups + winner detection. Track impressions + engagement per variant."><span class="nav-icon">🧪</span> A/B Tests</div>
+      <div class="nav" data-go="metaoauth" data-help-title="Meta OAuth" data-help="Direct OAuth flow for live IG/FB publishing. Per-tenant app credentials + token storage."><span class="nav-icon">🔗</span> Meta OAuth</div>
+      <div class="nav" data-go="landing" data-help-title="Landing Page" data-help="Public customer landing page. No auth. Per-tenant hero copy + CTA + services list."><span class="nav-icon">🌐</span> Landing Page</div>
 
       <div class="nav-title">📊 Learn</div>
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
       <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
+      <div class="nav" data-go="fleet" data-help-title="Fleet Status" data-help="Aggregated fleet state — Heidi + all specialists. Cron freshness, error counts, fleet-level alerts."><span class="nav-icon">📡</span> Fleet Status</div>
 
       <!-- Labs: experimental / niche tools, hidden by default -->
       <div class="nav-section" id="labs-section">
@@ -3865,7 +3868,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -10771,6 +10774,175 @@ async function renderOps() {
   }
 })();
 
+
+
+// ─── META OAUTH (Tier 3.9 — Live IG publishing, 2026-09-04) ─────────────
+async function renderMetaOAuth() {
+  const brand = document.getElementById('mo-brand')?.value || 'swing-shack';
+  const r = await API.get('/api/meta/oauth/status?brand_id=' + encodeURIComponent(brand));
+  const statusEl = document.getElementById('mo-status');
+  const detailsEl = document.getElementById('mo-details');
+  const startBtn = document.getElementById('mo-start');
+  const discBtn = document.getElementById('mo-disconnect');
+  if (!r.ok) { if (statusEl) statusEl.textContent = '— error'; return; }
+  if (statusEl) {
+    const ok = r.can_publish;
+    statusEl.textContent = ok ? '✓ can publish' : '✕ not ready';
+    statusEl.className = 'pill ' + (ok ? 'on' : 'blocked');
+  }
+  if (detailsEl) {
+    const rows = [
+      ['Scope', r.scope],
+      ['App ID configured', r.app_id_configured],
+      ['App secret configured', r.app_secret_configured],
+      ['System user token (permanent)', r.system_user_token_configured],
+      ['User token (60-day)', r.user_token_configured],
+      ['Stored OAuth token', r.stored_token_exists],
+      ['Stored token kind', r.stored_token_kind],
+      ['Stored token expires', r.stored_token_expires_at || '—'],
+      ['Active token source', r.active_token_source],
+      ['Active token kind', r.active_token_kind],
+    ];
+    detailsEl.innerHTML = rows.map(([k, v]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .6rem;border-bottom:1px solid var(--bd);font-size:12px">
+        <span style="color:var(--tx-3)">${esc(k)}</span>
+        <span style="color:${v === true || v === 'tenant-specific' ? 'var(--success)' : v === false || v === 'none' ? 'var(--danger)' : 'var(--tx-2)'}">${typeof v === 'boolean' ? (v ? '✓ yes' : '✕ no') : esc(String(v))}</span>
+      </div>
+    `).join('');
+  }
+  if (startBtn) startBtn.disabled = !r.app_id_configured;
+  if (discBtn) discBtn.disabled = !r.stored_token_exists;
+}
+
+async function metaOAuthStart() {
+  const brand = document.getElementById('mo-brand')?.value || 'swing-shack';
+  const r = await API.get('/api/meta/oauth/start?brand_id=' + encodeURIComponent(brand));
+  if (!r.ok) { toast('OAuth start failed: ' + (r.error || '?') + (r.fix ? ' · ' + r.fix : ''), true); return; }
+  // Redirect to Meta OAuth dialog
+  if (r.oauth_url) {
+    window.open(r.oauth_url, '_blank');
+    toast('✓ OAuth dialog opened in new tab');
+  }
+}
+
+async function metaOAuthDisconnect() {
+  const brand = document.getElementById('mo-brand')?.value || 'swing-shack';
+  if (!confirm('Disconnect stored OAuth token for ' + brand + '? Env-based tokens (system user / user token) will remain.')) return;
+  const r = await API.post('/api/meta/oauth/disconnect?brand_id=' + encodeURIComponent(brand), {});
+  if (!r.ok) { toast('Disconnect failed: ' + r.error, true); return; }
+  toast('✓ ' + (r.stored_token_deleted ? 'Token deleted' : 'No stored token to delete'));
+  await renderMetaOAuth();
+}
+
+(function wireMetaOAuth() {
+  const sel = document.getElementById('mo-brand');
+  if (sel && !sel._wired) { sel._wired = true; sel.addEventListener('change', renderMetaOAuth); }
+  const check = document.getElementById('mo-check');
+  if (check && !check._wired) { check._wired = true; check.addEventListener('click', renderMetaOAuth); }
+  const start = document.getElementById('mo-start');
+  if (start && !start._wired) { start._wired = true; start.addEventListener('click', metaOAuthStart); }
+  const disc = document.getElementById('mo-disconnect');
+  if (disc && !disc._wired) { disc._wired = true; disc.addEventListener('click', metaOAuthDisconnect); }
+})();
+
+
+// ─── LANDING PAGE (Tier 3.9 — Public customer landing, 2026-09-04) ────────
+async function renderLanding() {
+  const brand = document.getElementById('lp-brand')?.value || 'swing-shack';
+  const r = await API.get('/api/landing/' + encodeURIComponent(brand) + '/config');
+  if (!r.ok) { toast('Landing load failed: ' + r.error, true); return; }
+  document.getElementById('lp-headline').value = r.hero_headline || '';
+  document.getElementById('lp-subhead').value = r.hero_subhead || '';
+  document.getElementById('lp-cta-text').value = r.cta_text || '';
+  document.getElementById('lp-cta-url').value = r.cta_url || '';
+  updateLandingPreview();
+}
+
+function updateLandingPreview() {
+  const preview = document.getElementById('lp-preview');
+  const headline = document.getElementById('lp-headline').value;
+  const subhead = document.getElementById('lp-subhead').value;
+  const ctaText = document.getElementById('lp-cta-text').value;
+  const ctaUrl = document.getElementById('lp-cta-url').value;
+  if (!preview) return;
+  preview.innerHTML = `
+    <div style="text-align:center;padding:1rem;background:#1e293b;border-radius:8px;margin-bottom:.5rem">
+      <div style="font-size:18px;font-weight:700;color:#f8fafc;margin-bottom:.5rem">${esc(headline || '(Hero headline)')}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:.75rem">${esc(subhead || '(Subhead)')}</div>
+      <span style="display:inline-block;background:#22c55e;color:#fff;padding:6px 14px;border-radius:6px;font-weight:700;font-size:12px">${esc(ctaText || '(CTA text)')}</span>
+    </div>
+    <div style="font-size:11px;color:var(--tx-3);text-align:center">→ Links to: ${esc(ctaUrl || '(CTA URL)')}</div>
+  `;
+}
+
+async function landingSave() {
+  const brand = document.getElementById('lp-brand')?.value || 'swing-shack';
+  const body = {
+    hero_headline: document.getElementById('lp-headline').value,
+    hero_subhead: document.getElementById('lp-subhead').value,
+    cta_text: document.getElementById('lp-cta-text').value,
+    cta_url: document.getElementById('lp-cta-url').value,
+  };
+  const r = await API.put('/api/landing/' + encodeURIComponent(brand) + '/config', body);
+  if (!r.ok) { toast('Save failed: ' + r.error, true); return; }
+  toast('✓ Landing page config saved for ' + brand);
+}
+
+(function wireLanding() {
+  const sel = document.getElementById('lp-brand');
+  if (sel && !sel._wired) { sel._wired = true; sel.addEventListener('change', renderLanding); }
+  const save = document.getElementById('lp-save');
+  if (save && !save._wired) { save._wired = true; save.addEventListener('click', landingSave); }
+  // Live preview on input
+  ['lp-headline', 'lp-subhead', 'lp-cta-text', 'lp-cta-url'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateLandingPreview);
+  });
+})();
+
+
+// ─── FLEET STATUS (Tier 3.9 — Aggregated fleet, 2026-09-04) ──────────────
+async function renderFleet() {
+  const r = await API.get('/api/fleet/snapshot');
+  if (!r.ok) { toast('Fleet snapshot failed: ' + r.error, true); return; }
+  const healthPill = document.getElementById('fleet-health-pill');
+  if (healthPill) {
+    const color = r.health === 'green' ? 'on' : r.health === 'yellow' ? 'live' : 'blocked';
+    healthPill.textContent = r.health.toUpperCase();
+    healthPill.className = 'pill ' + color;
+  }
+  const f = r.fleet || {};
+  document.getElementById('fleet-summary').innerHTML = `
+    <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Brands</div><div style="font-size:22px;font-weight:700">${f.brands_total || 0}</div><div style="font-size:10px;color:var(--tx-3)">${f.brands_green || 0} green · ${f.brands_red || 0} red</div></div>
+    <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Assets</div><div style="font-size:22px;font-weight:700">${f.total_assets || 0}</div><div style="font-size:10px;color:var(--tx-3)">${f.total_approved || 0} approved</div></div>
+    <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Avg Bible</div><div style="font-size:22px;font-weight:700;color:${(f.avg_bible_score||0) >= 70 ? 'var(--success)' : 'var(--danger)'}">${f.avg_bible_score || 0}/100</div></div>
+    <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Alerts</div><div style="font-size:22px;font-weight:700;color:${(f.alert_count||0) > 0 ? 'var(--accent)' : 'var(--success)'}">${f.alert_count || 0}</div><div style="font-size:10px;color:var(--danger)">${f.block_alert_count || 0} blocking</div></div>
+    <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Errors (10m)</div><div style="font-size:22px;font-weight:700;color:${(f.recent_errors_10min||0) > 0 ? 'var(--danger)' : 'var(--success)'}">${f.recent_errors_10min || 0}</div><div style="font-size:10px;color:var(--tx-3)">${f.total_errors_buffered || 0} total</div></div>
+    <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Production</div><div style="font-size:22px;font-weight:700;color:${f.production_mode ? 'var(--success)' : 'var(--tx-3)'}">${f.production_mode ? '✓ ON' : '✕ OFF'}</div></div>
+  `;
+  // Alerts
+  const al = await API.get('/api/fleet/alerts');
+  if (al.ok) {
+    document.getElementById('fleet-alert-count').textContent = al.alert_count + ' alerts';
+    document.getElementById('fleet-alerts-list').innerHTML = (al.alerts || []).map(a => {
+      const color = a.severity === 'block' ? 'var(--danger)' : a.severity === 'warn' ? 'var(--accent)' : 'var(--tx-2)';
+      return `
+        <div style="padding:.6rem;border-bottom:1px solid var(--bd);border-left:3px solid ${color};background:var(--bg-2);border-radius:0 6px 6px 0;margin-bottom:.4rem">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:${color};text-transform:uppercase;font-weight:600">${esc(a.severity)} · ${esc(a.type)}</span>
+            ${a.fix_url ? '<a href="' + esc(a.fix_url) + '" style="font-size:11px;color:var(--ac)">Fix →</a>' : ''}
+          </div>
+          <div style="font-size:12px;margin-top:.3rem">${esc(a.message)}</div>
+        </div>
+      `;
+    }).join('') || '<div class="empty">✓ No alerts — fleet is healthy</div>';
+  }
+}
+
+(function wireFleet() {
+  const refresh = document.getElementById('fleet-refresh');
+  if (refresh && !refresh._wired) { refresh._wired = true; refresh.addEventListener('click', renderFleet); }
+})();
+
 </script>
 
 
@@ -11157,6 +11329,111 @@ async function renderOps() {
           </div>
           <div id="ops-errors" style="max-height:400px;overflow-y:auto;font-family:var(--mono,monospace);font-size:11px"></div>
         </div>
+      </div>
+    </section>
+
+
+    <!-- ─── META OAUTH (Tier 3.9 — Live IG publishing, 2026-09-04) ─────── -->
+    <section class="section" id="sec-metaoauth">
+      <div class="section-h">
+        <h2>🔗 Meta OAuth</h2>
+        <span class="sub">Direct OAuth flow for live Instagram/Facebook publishing. Per-tenant app credentials + token storage.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="mo-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+          <button class="btn primary" id="mo-check">🔍 Check connection</button>
+        </div>
+      </div>
+
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div class="card-h">
+          <h3>🔌 Connection state</h3>
+          <span class="pill muted" id="mo-status">— not checked</span>
+        </div>
+        <div id="mo-details"></div>
+        <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn primary" id="mo-start" disabled>🚀 Start OAuth flow</button>
+          <button class="btn ghost" id="mo-disconnect" disabled>🔌 Disconnect stored token</button>
+          <a class="btn ghost" id="mo-callback-preview" href="/welcome/swing-shack" target="_blank" rel="noopener" style="text-decoration:none">🌐 Preview public landing →</a>
+        </div>
+      </div>
+
+      <div class="card col-12">
+        <div class="card-h"><h3>📚 Setup guide</h3></div>
+        <div style="font-size:12px;line-height:1.6;color:var(--tx-2)">
+          <p><b>For per-tenant system-user tokens (recommended for production):</b></p>
+          <ol style="margin-left:1.5rem">
+            <li>Create a Meta Business app at <code>developers.facebook.com</code></li>
+            <li>Generate a permanent <b>System User token</b> with <code>EAAB</code> prefix</li>
+            <li>Grant the token: <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>business_management</code></li>
+            <li>Set env: <code>META_SYSTEM_USER_TOKEN_&lt;BRAND_ID&gt;</code> + <code>META_APP_ID_&lt;BRAND_ID&gt;</code></li>
+          </ol>
+          <p style="margin-top:1rem"><b>For self-serve OAuth (development):</b></p>
+          <ol style="margin-left:1.5rem">
+            <li>Set <code>META_APP_ID_&lt;BRAND_ID&gt;</code> + <code>META_APP_SECRET_&lt;BRAND_ID&gt;</code></li>
+            <li>Click 🚀 Start OAuth flow above — Meta will redirect back to <code>/api/meta/oauth/callback</code></li>
+            <li>Token (60-day) gets stored at <code>data/meta-tokens/&lt;brand&gt;.json</code></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── LANDING PAGE (Tier 3.9 — Public customer landing, 2026-09-04) ── -->
+    <section class="section" id="sec-landing">
+      <div class="section-h">
+        <h2>🌐 Landing Page</h2>
+        <span class="sub">Public customer landing page. No auth. Per-tenant hero copy + CTA + services list.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="lp-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+          <button class="btn primary" id="lp-save">💾 Save</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card col-6">
+          <div class="card-h"><h3>✏️ Hero + CTA</h3></div>
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <input type="text" id="lp-headline" placeholder="Hero headline" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+            <textarea id="lp-subhead" rows="2" placeholder="Hero subhead" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit"></textarea>
+            <input type="text" id="lp-cta-text" placeholder="CTA button text (e.g. Book now)" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+            <input type="text" id="lp-cta-url" placeholder="CTA URL" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+          </div>
+        </div>
+        <div class="card col-6">
+          <div class="card-h"><h3>👀 Preview</h3></div>
+          <div id="lp-preview" style="background:var(--bg-1);border-radius:8px;padding:1rem;min-height:200px;font-size:12px;line-height:1.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── FLEET STATUS (Tier 3.9 — Fleet snapshot, 2026-09-04) ──────── -->
+    <section class="section" id="sec-fleet">
+      <div class="section-h">
+        <h2>📡 Fleet Status</h2>
+        <span class="sub">Aggregated fleet state. The same snapshot Heidi would report in Discord status pings.</span>
+        <button class="btn ghost" id="fleet-refresh" style="margin-left:auto">🔄 Refresh</button>
+      </div>
+
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div class="card-h">
+          <h3>🟢 Fleet health</h3>
+          <span class="pill" id="fleet-health-pill">—</span>
+        </div>
+        <div id="fleet-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem"></div>
+      </div>
+
+      <div class="card col-12">
+        <div class="card-h"><h3>⚠️ Fleet alerts</h3><span class="muted" id="fleet-alert-count">—</span></div>
+        <div id="fleet-alerts-list"></div>
       </div>
     </section>
 

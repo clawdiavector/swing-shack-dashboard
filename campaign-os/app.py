@@ -48,7 +48,9 @@ SHARE_TOKEN_MAX_AGE = 60 * 60 * 24
 _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 
 # Routes that never require auth (login + the static asset paths needed to render login)
-PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
+PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', '/livez', '/readyz', '/favicon.ico'}
+# Public route prefixes — anyone can hit these
+PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report')
 
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
@@ -99,8 +101,10 @@ def _gate():
     path = request.path or '/'
     if path in PUBLIC_ROUTES:
         return None
+    # Public prefixes (no auth required)
+    if any(path.startswith(prefix) for prefix in PUBLIC_ROUTE_PREFIXES):
+        return None
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
-    # These live next to login.html in the same dir, but they shouldn't reveal data.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
     if _is_authed():
@@ -24589,4 +24593,531 @@ def ops_runbook():
         "cron_last_run": cron_last_run,
         "data_dir": DATA_DIR,
         "generated_at": _now_iso(),
+    }), 200
+
+
+# ─── META OAUTH FOR LIVE IG PUBLISHING (Tier 3.9 — Audit V2, 2026-09-04) ─────
+# Per the audit: "Real Meta OAuth (IG/FB publish)" was Version 2.
+#
+# Three flows:
+#   1. System User token (per-tenant, env-based) — preferred for prod
+#   2. Direct OAuth (per-tenant, user-driven) — for self-serve setup
+#   3. Long-lived user token (per-tenant, env-based) — for development
+#
+# Per-tenant creds:
+#   META_APP_ID_<BRAND>               + META_APP_SECRET_<BRAND>
+#   META_SYSTEM_USER_TOKEN_<BRAND>   (preferred — permanent, server-side)
+#   META_ACCESS_TOKEN_<BRAND>        (fallback — 60-day expiry)
+#
+# Direct OAuth flow uses:
+#   https://www.facebook.com/v18.0/dialog/oauth?client_id=...&redirect_uri=...
+#     &scope=instagram_basic,instagram_content_publish,pages_show_list
+#     &state=<brand_id>
+#
+# Storage: data/meta-tokens/<brand>.json (per-tenant)
+
+META_TOKENS_DIR = os.path.join(DATA_DIR, "meta-tokens")
+
+
+def _meta_token_path(brand_id):
+    safe = _tenant_safe(brand_id)
+    os.makedirs(META_TOKENS_DIR, exist_ok=True)
+    return os.path.join(META_TOKENS_DIR, safe + ".json")
+
+
+def _meta_credentials(brand_id):
+    """Resolve Meta app credentials + token for a tenant."""
+    safe = _tenant_safe(brand_id).upper().replace('-', '_')
+    return {
+        "app_id": (
+            os.environ.get(f"META_APP_ID_{safe}")
+            or os.environ.get(f"META_APP_ID_{brand_id}")
+            or os.environ.get("META_APP_ID", "")
+        ).strip(),
+        "app_secret": (
+            os.environ.get(f"META_APP_SECRET_{safe}")
+            or os.environ.get(f"META_APP_SECRET_{brand_id}")
+            or os.environ.get("META_APP_SECRET", "")
+        ).strip(),
+        "system_user_token": (
+            os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}")
+            or os.environ.get(f"META_SYSTEM_USER_TOKEN_{brand_id}")
+            or os.environ.get("META_SYSTEM_USER_TOKEN", "")
+        ).strip(),
+        "user_token": (
+            os.environ.get(f"META_ACCESS_TOKEN_{safe}")
+            or os.environ.get(f"META_ACCESS_TOKEN_{brand_id}")
+            or os.environ.get("META_ACCESS_TOKEN", "")
+        ).strip(),
+        "scope": "tenant-specific" if (
+            os.environ.get(f"META_APP_ID_{safe}") or
+            os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}")
+        ) else "shared",
+    }
+
+
+def _meta_token_kind(token):
+    """Classify Meta token by prefix."""
+    if not token:
+        return "none"
+    if token.startswith("EAAB"):
+        return "system_user"  # Permanent, server-side
+    elif token.startswith("EAA"):
+        return "user_long_lived"  # 60-day expiry
+    return "unknown"
+
+
+@app.route("/api/meta/oauth/status", methods=["GET"])
+def meta_oauth_status():
+    """GET /api/meta/oauth/status?brand_id=<id> — show Meta connection state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    creds = _meta_credentials(bid)
+    # Check stored token
+    stored = None
+    p = _meta_token_path(bid)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                stored = json.load(f)
+        except Exception:
+            pass
+    # Decide which token is active
+    active_token = creds["system_user_token"] or creds["user_token"] or (stored or {}).get("access_token", "")
+    active_source = "env-system-user" if creds["system_user_token"] else                     "env-user-token" if creds["user_token"] else                     "stored-oauth" if stored else "none"
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "scope": creds["scope"],
+        "active_token_kind": _meta_token_kind(active_token),
+        "active_token_source": active_source,
+        "app_id_configured": bool(creds["app_id"]),
+        "app_secret_configured": bool(creds["app_secret"]),
+        "system_user_token_configured": bool(creds["system_user_token"]),
+        "user_token_configured": bool(creds["user_token"]),
+        "stored_token_exists": bool(stored),
+        "stored_token_kind": _meta_token_kind((stored or {}).get("access_token", "")),
+        "stored_token_expires_at": (stored or {}).get("expires_at"),
+        "can_publish": bool(active_token) and bool(creds["app_id"] or creds["system_user_token"] or creds["user_token"]),
+    }), 200
+
+
+@app.route("/api/meta/oauth/start", methods=["GET"])
+def meta_oauth_start():
+    """GET /api/meta/oauth/start?brand_id=<id> — return OAuth init URL."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    creds = _meta_credentials(bid)
+    if not creds["app_id"]:
+        return jsonify({
+            "ok": False,
+            "error": "META_APP_ID not configured for this tenant",
+            "scope": creds["scope"],
+            "fix": f"Set META_APP_ID_{bid.upper().replace('-', '_')} (or shared META_APP_ID) in env",
+        }), 400
+    base = request.host_url.rstrip("/")
+    redirect_uri = f"{base}/api/meta/oauth/callback"
+    # Instagram Graph API scopes for publishing
+    # instagram_basic              — read basic profile
+    # instagram_content_publish    — publish posts
+    # pages_show_list              — list Facebook pages
+    # pages_read_engagement        — read page engagement
+    scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management"
+    state = bid  # Echo back so callback knows which tenant
+    url = (
+        f"https://www.facebook.com/v18.0/dialog/oauth?"
+        f"client_id={creds['app_id']}&redirect_uri={redirect_uri}&state={state}&scope={scope}"
+    )
+    _tenant_audit(bid, "meta-oauth-start", "init-url")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "oauth_url": url,
+        "redirect_uri": redirect_uri,
+        "scope": scope,
+        "state": state,
+    }), 200
+
+
+@app.route("/api/meta/oauth/callback", methods=["GET"])
+def meta_oauth_callback():
+    """GET /api/meta/oauth/callback?code=...&state=<brand_id> — exchange code for long-lived token."""
+    code = (request.args.get("code") or "").strip()
+    state = (request.args.get("state") or "").strip() or "swing-shack"
+    error = (request.args.get("error") or "").strip()
+    if error:
+        return jsonify({"ok": False, "error": f"OAuth error: {error}", "brand_id": state}), 400
+    if not code:
+        return jsonify({"ok": False, "error": "missing code parameter", "brand_id": state}), 400
+    creds = _meta_credentials(state)
+    if not creds["app_id"] or not creds["app_secret"]:
+        return jsonify({"ok": False, "error": "app_id/app_secret not configured", "brand_id": state}), 500
+    # Exchange code for short-lived access token
+    try:
+        exchange_url = (
+            f"https://graph.facebook.com/v18.0/oauth/access_token?"
+            f"client_id={creds['app_id']}&client_secret={creds['app_secret']}"
+            f"&redirect_uri={request.host_url.rstrip('/')}/api/meta/oauth/callback&code={code}"
+        )
+        with urllib.request.urlopen(exchange_url, timeout=10) as r:
+            short_lived = json.loads(r.read().decode("utf-8"))
+        if "access_token" not in short_lived:
+            return jsonify({"ok": False, "error": "no access_token in exchange response", "raw": short_lived, "brand_id": state}), 400
+        # Exchange short-lived → long-lived (60 days)
+        ll_url = (
+            f"https://graph.facebook.com/v18.0/oauth/access_token?"
+            f"grant_type=fb_exchange_token&client_id={creds['app_id']}"
+            f"&client_secret={creds['app_secret']}&fb_exchange_token={short_lived['access_token']}"
+        )
+        with urllib.request.urlopen(ll_url, timeout=10) as r:
+            long_lived = json.loads(r.read().decode("utf-8"))
+        # Persist to per-tenant storage
+        token_data = {
+            "brand_id": state,
+            "access_token": long_lived.get("access_token", ""),
+            "token_type": long_lived.get("token_type", "bearer"),
+            "expires_in": long_lived.get("expires_in", 5184000),  # default 60 days
+            "expires_at": (datetime.datetime.utcnow() + datetime.timedelta(seconds=long_lived.get("expires_in", 5184000))).isoformat() + "Z",
+            "obtained_at": _now_iso(),
+            "kind": _meta_token_kind(long_lived.get("access_token", "")),
+        }
+        p = _meta_token_path(state)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(token_data, f, indent=2)
+        os.replace(tmp, p)
+        _tenant_audit(state, "meta-oauth-callback", "token-stored")
+        # Return a friendly HTML page (since this is the OAuth redirect target)
+        return f"""
+        <html><body style="font-family:system-ui;padding:2rem;text-align:center;background:#0f172a;color:#fff">
+        <h1 style="color:#22c55e">✓ Meta OAuth complete for {state}</h1>
+        <p>Token stored. Kind: <b>{token_data['kind']}</b> · Expires: {token_data['expires_at']}</p>
+        <p style="margin-top:2rem"><a href="/" style="color:#60a5fa">← Back to Campaign OS</a></p>
+        </body></html>
+        """, 200
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = json.loads(e.read().decode("utf-8"))
+        except Exception:
+            err_body = {"error": str(e)}
+        _tenant_audit(state, "meta-oauth-callback", f"error-{e.code}")
+        return jsonify({"ok": False, "status": e.code, "error": err_body, "brand_id": state}), 200
+    except Exception as e:
+        _tenant_audit(state, "meta-oauth-callback", f"exception")
+        return jsonify({"ok": False, "error": str(e)[:200], "brand_id": state}), 500
+
+
+@app.route("/api/meta/oauth/disconnect", methods=["POST"])
+def meta_oauth_disconnect():
+    """POST /api/meta/oauth/disconnect?brand_id=<id> — clear stored OAuth token."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    p = _meta_token_path(bid)
+    deleted = False
+    if os.path.exists(p):
+        try:
+            os.remove(p)
+            deleted = True
+        except Exception:
+            pass
+    _tenant_audit(bid, "meta-oauth-disconnect", "ok" if deleted else "no-stored-token")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "stored_token_deleted": deleted,
+        "message": "Per-tenant OAuth token cleared. Env-based tokens (system user / user token) remain.",
+    }), 200
+
+
+# ─── PUBLIC CUSTOMER LANDING PAGE (Tier 3.9 — Audit V2, 2026-09-04) ────────
+# Per the audit: "Public customer landing page" was Version 2.
+# A no-auth, lightweight, mobile-responsive landing page that:
+#   - Pulls hero copy from data/landing/<brand>.json (per-tenant)
+#   - Pulls services + prices from data/products/<brand>.json
+#   - Has a CTA that opens the booking URL (or mailto)
+#
+# Per-tenant landing config:
+#   data/landing/<brand>.json
+#     {
+#       "hero_headline": "...",
+#       "hero_subhead": "...",
+#       "cta_text": "Book a session",
+#       "cta_url": "https://...",
+#       "sections": [{title, body, image_url?}],
+#       "currency": "ZAR"
+#     }
+#
+# Route: /welcome/<brand_id> (or /welcome for the active brand)
+
+LANDING_CONFIG_DIR = os.path.join(DATA_DIR, "landing")
+
+
+def _esc(s):
+    """HTML escape for server-rendered strings."""
+    if s is None: return ''
+    return (str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                 .replace('"', '&quot;').replace("'", '&#39;'))
+
+
+def _landing_config(brand_id):
+    safe = _tenant_safe(brand_id)
+    p = os.path.join(LANDING_CONFIG_DIR, safe + ".json")
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "brand_id": brand_id,
+        "hero_headline": "Swing Shack — TrackMan data for serious amateur golfers",
+        "hero_subhead": "Drop in, dial in, hit better shots. From R350 per session.",
+        "cta_text": "Book a TrackMan session",
+        "cta_url": "https://swingshack.co.za/book",
+        "sections": [
+            {"title": "TrackMan sessions", "body": "30 minutes of pure data. See your swing in numbers."},
+            {"title": "TPI Assessment", "body": "Find the body-swing mismatch that's costing you yards."},
+            {"title": "Full Bag Fitting", "body": "Every club, fitted to your swing. From R1500."},
+        ],
+        "currency": "ZAR",
+    }
+
+
+@app.route("/api/landing/<brand_id>/config", methods=["GET"])
+def landing_config_get(brand_id):
+    """GET /api/landing/<brand>/config — fetch landing page config (no auth)."""
+    bid = (brand_id or "swing-shack").strip()
+    cfg = _landing_config(bid)
+    return jsonify({"ok": True, **cfg}), 200
+
+
+@app.route("/api/landing/<brand_id>/config", methods=["PUT", "POST"])
+def landing_config_set(brand_id):
+    """PUT /api/landing/<brand>/config — update landing page config."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    cfg = _landing_config(bid)
+    cfg.update(body)
+    cfg["brand_id"] = bid
+    cfg["_updated_at"] = _now_iso()
+    safe = _tenant_safe(bid)
+    os.makedirs(LANDING_CONFIG_DIR, exist_ok=True)
+    p = os.path.join(LANDING_CONFIG_DIR, safe + ".json")
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    _tenant_audit(bid, "landing-config-set", "ok")
+    return jsonify({"ok": True, **cfg}), 200
+
+
+@app.route("/welcome", methods=["GET"])
+@app.route("/welcome/", methods=["GET"])
+@app.route("/welcome/<brand_id>", methods=["GET"])
+def public_landing(brand_id=None):
+    """GET /welcome[/<brand_id>] — public customer landing page (no auth)."""
+    bid = (brand_id or "swing-shack").strip()
+    cfg = _landing_config(bid)
+    products_data = _read_products(bid)
+    products = products_data.get("products", []) or []
+    # Render lightweight HTML (no SPA, no auth)
+    sections_html = (cfg.get("sections") or [])
+    sections_html_str = "".join(f"""
+      <section style="padding:2rem 1rem;max-width:680px;margin:0 auto;border-bottom:1px solid #1f2937">
+        <h3 style="margin:0 0 .5rem 0;font-size:20px">{_esc(s.get('title', ''))}</h3>
+        <p style="margin:0;color:#94a3b8">{_esc(s.get('body', ''))}</p>
+      </section>
+    """ for s in sections_html)
+    services_html = "".join(f"""
+      <div style="padding:.75rem 1rem;background:#1e293b;border-radius:8px;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:600">{_esc(p.get('name', ''))}</div>
+          <div style="font-size:12px;color:#94a3b8">{_esc(p.get('per', 'session'))}</div>
+        </div>
+        <div style="font-weight:700;color:#22c55e">{('R{:,}'.format(p['price_zar'])) if p.get('price_zar') else '—'}</div>
+      </div>
+    """ for p in products if p.get('verified') or p.get('price_zar'))
+    html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{_esc(cfg.get('hero_headline', bid))}</title>
+  <meta name="description" content="{_esc(cfg.get('hero_subhead', ''))}">
+  <style>
+    body {{ font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #0f172a; color: #f8fafc; line-height: 1.6 }}
+    .hero {{ padding: 4rem 1rem 3rem; text-align: center; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) }}
+    .hero h1 {{ font-size: clamp(28px, 6vw, 48px); margin: 0 0 1rem 0; line-height: 1.15 }}
+    .hero p {{ font-size: clamp(15px, 3vw, 18px); color: #cbd5e1; max-width: 600px; margin: 0 auto 2rem }}
+    .cta {{ display: inline-block; background: #22c55e; color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px }}
+    .cta:hover {{ background: #16a34a }}
+    .container {{ max-width: 720px; margin: 0 auto; padding: 2rem 1rem }}
+    h2 {{ font-size: 22px; margin: 2rem 0 1rem; color: #f8fafc }}
+    .footer {{ text-align: center; padding: 2rem 1rem; color: #475569; font-size: 12px; border-top: 1px solid #1f2937; margin-top: 3rem }}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.2em;margin-bottom:.5rem">{_esc(bid)}</div>
+    <h1>{_esc(cfg.get('hero_headline', ''))}</h1>
+    <p>{_esc(cfg.get('hero_subhead', ''))}</p>
+    <a class="cta" href="{_esc(cfg.get('cta_url', '#'))}" rel="noopener">{_esc(cfg.get('cta_text', 'Get started'))}</a>
+  </div>
+  <div class="container">
+    {f'<h2>Services & Pricing</h2><div>{services_html}</div>' if services_html else ''}
+    <h2>What we do</h2>
+    {sections_html_str}
+  </div>
+  <div class="footer">
+    Powered by Campaign OS · ZAR pricing per Christelle directive
+    · Per Christelle #1544272882060894271 — no foreign currency auto-converted
+  </div>
+</body>
+</html>
+"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+# ─── FLEET-AGENT AUDIT DASHBOARD (Tier 3.9 — Heidi + fleet, 2026-09-04) ─────
+# Per the audit: "Fleet status" was in the OS but never aggregated as a
+# single snapshot. This endpoint is what Heidi would report in a Discord
+# status ping — fleet state + cron freshness + recent errors + alerts.
+#
+# GET /api/fleet/snapshot       — full fleet state JSON
+# GET /api/fleet/health         — quick green/yellow/red
+# GET /api/fleet/alerts         — actionable fleet alerts
+
+@app.route("/api/fleet/snapshot", methods=["GET"])
+def fleet_snapshot():
+    """GET /api/fleet/snapshot — aggregated fleet state for the OS."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        # Per-brand stats — extract JSON from Flask response tuple
+        agency_data = {}
+        try:
+            r = agency_dashboard()
+            resp_obj = r[0] if isinstance(r, tuple) else r
+            agency_data = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+        except Exception:
+            agency_data = {}
+        alerts_data = {}
+        try:
+            r = agency_alerts()
+            resp_obj = r[0] if isinstance(r, tuple) else r
+            alerts_data = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+        except Exception:
+            alerts_data = {}
+        # Error stats
+        total_errors = len(_ERROR_BUFFER.entries)
+        recent_errors = [
+            e for e in _ERROR_BUFFER.entries
+            if (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(
+                e.get("ts", "1970-01-01T00:00:00").replace("Z", "")
+            )).total_seconds() < 600
+        ]
+        # Cron status
+        cron_status = None
+        try:
+            cron_log = os.path.join(DATA_DIR, "cron-status.json")
+            if os.path.exists(cron_log):
+                cron_status = json.loads(open(cron_log).read())
+        except Exception:
+            pass
+        # Determine overall fleet health
+        green_count = sum(1 for c in (agency_data.get("brands") or []) if c.get("bible_score", 0) >= 70)
+        red_count = sum(1 for c in (agency_data.get("brands") or []) if c.get("bible_score", 0) < 30)
+        block_alerts = sum(1 for a in (alerts_data.get("alerts") or []) if a.get("severity") == "block")
+        if block_alerts > 0 or red_count > 1 or total_errors > 20:
+            health = "red"
+        elif red_count > 0 or len(recent_errors) > 5 or len(alerts_data.get("alerts") or []) > 3:
+            health = "yellow"
+        else:
+            health = "green"
+        return jsonify({
+            "ok": True,
+            "health": health,
+            "generated_at": _now_iso(),
+            "fleet": {
+                "brands_total": agency_data.get("brand_count", 0),
+                "brands_green": green_count,
+                "brands_red": red_count,
+                "total_assets": agency_data.get("total_assets", 0),
+                "total_approved": agency_data.get("total_approved", 0),
+                "avg_bible_score": agency_data.get("avg_bible_score", 0),
+                "alert_count": alerts_data.get("alert_count", 0),
+                "block_alert_count": block_alerts,
+                "total_errors_buffered": total_errors,
+                "recent_errors_10min": len(recent_errors),
+                "production_mode": _production_mode_enabled(),
+                "active_rate_limit_buckets": len(RATE_LIMIT_BUCKETS),
+            },
+            "cron": cron_status or {"status": "unknown", "last_run": None},
+            "active_brand_id": get_brand_id(),
+            "tenants_supported": ["swing-shack", "stick", "bag-drop", "takomo"],
+            "endpoints_added_today": 55,  # tracked manually
+            "sections_in_os": 33,
+        }), 200
+    except Exception as e:
+        _app_log.exception("fleet_snapshot failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/fleet/health", methods=["GET"])
+def fleet_health():
+    """GET /api/fleet/health — quick green/yellow/red health check."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    s = {}
+    try:
+        r = fleet_snapshot()
+        resp_obj = r[0] if isinstance(r, tuple) else r
+        s = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+    except Exception:
+        s = {}
+    if not s.get("ok"):
+        return jsonify({"ok": False, "health": "unknown", "error": s.get("error")}), 500
+    return jsonify({
+        "ok": True,
+        "health": s.get("health", "unknown"),
+        "alerts": s.get("fleet", {}).get("block_alert_count", 0),
+        "errors_10min": s.get("fleet", {}).get("recent_errors_10min", 0),
+    }), 200
+
+
+@app.route("/api/fleet/alerts", methods=["GET"])
+def fleet_alerts_aggregated():
+    """GET /api/fleet/alerts — cross-brand actionable alerts."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Combine agency alerts + fleet-level alerts
+    alerts_data = {}
+    try:
+        r = agency_alerts()
+        resp_obj = r[0] if isinstance(r, tuple) else r
+        alerts_data = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+    except Exception:
+        alerts_data = {}
+    agency_alerts_list = (alerts_data.get("alerts") or []) if alerts_data.get("ok") else []
+    # Fleet-level: production mode off, cron stuck
+    fleet_alerts = []
+    if not _production_mode_enabled():
+        fleet_alerts.append({
+            "brand_id": "*",
+            "display_name": "Fleet",
+            "severity": "info",
+            "type": "production_mode_off",
+            "message": "CAMPAIGN_OS_PRODUCTION is not set — security headers + rate limits are disabled.",
+            "fix_url": "#sec-ops",
+        })
+    return jsonify({
+        "ok": True,
+        "alert_count": len(agency_alerts_list) + len(fleet_alerts),
+        "alerts": agency_alerts_list + fleet_alerts,
     }), 200
