@@ -10001,6 +10001,245 @@ async function productsAdd() {
   }
 })();
 
+
+
+// ─── PRODUCTS v2 (Tier 3.5 — Audit risk, 2026-09-04) ────────────────────────
+// Per the audit: verified product reference images before product-led
+// publishing was the hardest rule to satisfy. This adds:
+//   - Product records (canonical per-product data with verified image IDs)
+//   - Reference image upload + verification (sha256-based)
+//   - Per-asset product-image verification
+//   - Tabbed UI for the products section
+
+// Tab switching
+(function wireProductTabs() {
+  if (!window._prodTabsWired) {
+    window._prodTabsWired = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-prod-tab]');
+      if (!btn) return;
+      const tab = btn.dataset.prodTab;
+      $$('[data-prod-tab]').forEach(b => b.classList.toggle('primary', b === btn));
+      $$('.prod-tab').forEach(t => t.hidden = (t.id !== 'prod-tab-' + tab));
+      if (tab === 'references') renderReferenceImages();
+      if (tab === 'catalog') renderProducts();
+    });
+  }
+})();
+
+
+// Render the product records (combined line-items + records)
+async function renderProducts() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  const [recordsR, lineR] = await Promise.all([
+    API.get('/api/products/' + encodeURIComponent(brand) + '/records'),
+    API.get('/api/products/line-items?brand_id=' + encodeURIComponent(brand)),
+  ]);
+  if (!recordsR.ok) { toast('Products load failed: ' + recordsR.error, true); return; }
+  const d = recordsR;
+  $('#prod-summary').textContent = `${d.product_count || 0} products · ${d.reference_image_count || 0} verified images · ${d.currency || 'ZAR'}`;
+  $('#prod-list').innerHTML = (d.products || []).map(p => {
+    const price = p.price_zar ? 'R' + p.price_zar.toLocaleString() : '—';
+    const vimgBadge = p.verified_image_count > 0
+      ? '<span class="pill on" style="font-size:10px;margin-left:6px">' + p.verified_image_count + ' verified img</span>'
+      : '<span class="pill muted" style="font-size:10px;margin-left:6px">no verified imgs</span>';
+    const hasRec = p.has_record ? '<span class="pill primary" style="font-size:10px;margin-left:6px">record</span>' : '';
+    return `
+      <div style="padding:.6rem .75rem;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;gap:.5rem">
+        <div>
+          <div style="font-weight:600;font-size:13px">${esc(p.name)} ${hasRec} ${vimgBadge}</div>
+          <div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">${esc(p.category)} · ${esc(p.id)} ${p.sku ? '· SKU ' + esc(p.sku) : ''}</div>
+        </div>
+        <div><div style="font-size:18px;font-weight:700;color:var(--success)">${esc(price)}</div><div style="font-size:10px;color:var(--tx-3)">per ${esc(p.per)}</div></div>
+        <div style="font-size:11px;color:var(--tx-2);line-height:1.4">${esc((p.description || '').slice(0, 80))}</div>
+        <div>
+          <button class="btn-mini primary" data-product-upload-ref="${esc(p.id)}">📤 Upload ref image</button>
+        </div>
+      </div>
+    `;
+  }).join('') || '<div class="empty">No products yet — click + Add product</div>';
+}
+
+
+// Render reference images for the active product
+async function renderReferenceImages() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  // Load product options
+  const recordsR = await API.get('/api/products/' + encodeURIComponent(brand) + '/records');
+  const sel = document.getElementById('refimg-product');
+  if (sel && recordsR.ok) {
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">— pick a product —</option>' + (recordsR.products || []).map(p =>
+      '<option value="' + esc(p.id) + '">' + esc(p.name) + '</option>'
+    ).join('');
+    if (currentVal) sel.value = currentVal;
+  }
+  const pid = sel?.value || '';
+  if (!pid) {
+    $('#refimg-list').innerHTML = '<div class="empty">Pick a product to see its verified reference images.</div>';
+    return;
+  }
+  const r = await API.get('/api/products/' + encodeURIComponent(brand) + '/reference-images?product_id=' + encodeURIComponent(pid));
+  if (!r.ok) { toast('Reference images load failed: ' + r.error, true); return; }
+  $('#refimg-list').innerHTML = (r.reference_images || []).map(img => {
+    return `
+      <div style="padding:.6rem;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr 1fr auto;align-items:center;gap:.5rem">
+        <div>
+          <div style="font-size:12px;font-weight:600">${esc(img.id)}</div>
+          <div style="font-size:10px;color:var(--tx-3);margin-top:.2rem">sha256: ${esc((img.sha256 || '').slice(0, 16))}…</div>
+        </div>
+        <div style="font-size:11px;color:var(--tx-2)">${esc(img.source || '')}</div>
+        <div style="font-size:11px;color:var(--tx-3)">${esc((img.verified_at || '').slice(0, 19))}</div>
+        <div>
+          <button class="btn-mini" data-refimg-delete="${esc(img.id)}">🗑 Remove</button>
+        </div>
+      </div>
+    `;
+  }).join('') || '<div class="empty">No reference images yet — upload one above.</div>';
+}
+
+
+// Upload a reference image (file → base64 → POST)
+async function uploadReferenceImage() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  const product_id = document.getElementById('refimg-product')?.value || '';
+  const file = document.getElementById('refimg-file')?.files?.[0];
+  if (!product_id) { toast('Pick a product first', true); return; }
+  if (!file) { toast('Pick a file first', true); return; }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = reader.result.split(',')[1];
+    const btn = document.getElementById('refimg-upload');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+    try {
+      const r = await API.post('/api/products/' + encodeURIComponent(brand) + '/reference-images', {
+        product_id,
+        image_b64: b64,
+        source: 'spa-upload',
+        verified_by: 'user',
+      });
+      if (!r.ok) throw new Error(r.error || 'Failed');
+      toast(r.already_existed ? '✓ Already verified (sha256 match)' : '✓ Verified image added: ' + r.reference_image.id);
+      document.getElementById('refimg-file').value = '';
+      await renderReferenceImages();
+    } catch (e) {
+      toast('Upload failed: ' + (e.message || e), true);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '📤 Verify image'; }
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+
+// Delete a reference image
+async function deleteReferenceImage(imgId) {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  if (!confirm('Remove reference image ' + imgId + '? Assets matching this hash will fail product verification after removal.')) return;
+  const r = await API.delete('/api/products/' + encodeURIComponent(brand) + '/reference-images/' + encodeURIComponent(imgId));
+  if (!r.ok) { toast('Delete failed: ' + r.error, true); return; }
+  toast('✓ Removed');
+  await renderReferenceImages();
+}
+
+
+// Verify an asset's product image
+async function verifyAssetProduct() {
+  const aid = document.getElementById('prod-asset-id')?.value.trim() || '';
+  if (!aid) { toast('Enter an asset_id', true); return; }
+  const btn = document.getElementById('prod-verify-asset');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.post('/api/assets/' + encodeURIComponent(aid) + '/verify-product', {});
+    const result = document.getElementById('prod-asset-result');
+    if (!result) return;
+    if (!r.ok) {
+      result.innerHTML = '<div style="padding:.5rem;color:var(--danger);font-size:12px">' + esc(r.error) + '</div>';
+      return;
+    }
+    const color = r.verified ? 'var(--success)' : r.check_required ? 'var(--danger)' : 'var(--tx-3)';
+    const icon = r.verified ? '✓' : r.check_required ? '⚠' : '·';
+    result.innerHTML = `
+      <div style="padding:.75rem;background:var(--bg-2);border-radius:8px;border-left:3px solid ${color};margin-top:.5rem">
+        <div style="font-weight:600;color:${color}">${icon} ${r.verified ? 'VERIFIED' : r.check_required ? 'NOT VERIFIED' : 'NO PRODUCT_ID'}</div>
+        <div style="font-size:12px;color:var(--tx-2);margin-top:.4rem">${esc(r.reason)}</div>
+        ${r.matched_reference_id ? '<div style="margin-top:.3rem;font-size:11px;color:var(--tx-3)">Matched: ' + esc(r.matched_reference_id) + '</div>' : ''}
+        ${r.needs_image ? '<div style="margin-top:.5rem;padding:.4rem;background:var(--bg-1);border-radius:4px;font-size:11px">POST with image_b64 to perform the sha256 check.</div>' : ''}
+      </div>
+    `;
+  } catch (e) {
+    toast('Verify failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Verify asset'; }
+  }
+}
+
+
+// Add a product record (rich form)
+async function productsAddRecord() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  const name = prompt('Product name:');
+  if (!name) return;
+  const id = prompt('Product ID (e.g. p-trackman-session):', 'p-' + name.toLowerCase().replace(/\s+/g, '-'));
+  if (!id) return;
+  const priceStr = prompt('Price in ZAR (must be a positive integer):', '');
+  if (!priceStr) return;
+  const price = parseInt(priceStr);
+  if (!price || price <= 0) { toast('Price must be a positive integer (ZAR)', true); return; }
+  const category = prompt('Category (service / membership / product / general):', 'service') || 'general';
+  const sku = prompt('SKU (optional):', '') || '';
+  const r = await API.post('/api/products/' + encodeURIComponent(brand), {
+    id, name, price_zar: price, category, sku,
+    description: '', marketing_blurb: '', specs: {}, forbidden_modifications: [],
+  });
+  if (!r.ok) { toast('Add record failed: ' + r.error, true); return; }
+  toast('✓ Product record added: ' + r.product.name);
+  await renderProducts();
+}
+
+
+// Wire up the new buttons
+(function wireProductsV2() {
+  const refUpload = document.getElementById('refimg-upload');
+  if (refUpload && !refUpload._wired) {
+    refUpload._wired = true;
+    refUpload.addEventListener('click', uploadReferenceImage);
+  }
+  const refSel = document.getElementById('refimg-product');
+  if (refSel && !refSel._wired) {
+    refSel._wired = true;
+    refSel.addEventListener('change', renderReferenceImages);
+  }
+  const addRec = document.getElementById('prod-add-record');
+  if (addRec && !addRec._wired) {
+    addRec._wired = true;
+    addRec.addEventListener('click', productsAddRecord);
+  }
+  const verifyAssetBtn = document.getElementById('prod-verify-asset');
+  if (verifyAssetBtn && !verifyAssetBtn._wired) {
+    verifyAssetBtn._wired = true;
+    verifyAssetBtn.addEventListener('click', verifyAssetProduct);
+  }
+  if (!window._refimgActionsWired) {
+    window._refimgActionsWired = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-refimg-delete]');
+      if (btn) { e.preventDefault(); deleteReferenceImage(btn.dataset.refimgDelete); return; }
+      const upBtn = e.target.closest('[data-product-upload-ref]');
+      if (upBtn) {
+        e.preventDefault();
+        const sel = document.getElementById('refimg-product');
+        if (sel) { sel.value = upBtn.dataset.productUploadRef; }
+        // Switch to references tab
+        const refTab = document.querySelector('[data-prod-tab="references"]');
+        if (refTab) refTab.click();
+        // Focus file input
+        setTimeout(() => document.getElementById('refimg-file')?.focus(), 100);
+      }
+    });
+  }
+})();
+
 </script>
 
 
@@ -10163,11 +10402,11 @@ async function productsAdd() {
       </div>
     </section>
 
-    <!-- ─── PRODUCTS & PRICING (Tier 3.4 — Christelle directive, 2026-09-04) ─ -->
+    <!-- ─── PRODUCTS & PRICING (Tier 3.4-3.5 — Audit risk, 2026-09-04) ───── -->
     <section class="section" id="sec-products">
       <div class="section-h">
         <h2>💰 Products & Pricing</h2>
-        <span class="sub">Verified product catalog with ZAR prices. Used to gate invented pricing in customer-facing copy.</span>
+        <span class="sub">Verified product catalog with ZAR prices + reference images. Gates invented pricing AND product-image consistency.</span>
         <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
           <select id="prod-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
             <option value="swing-shack">Swing Shack</option>
@@ -10176,33 +10415,71 @@ async function productsAdd() {
             <option value="takomo">Takomo</option>
           </select>
           <button class="btn primary" id="prod-add">+ Add product</button>
+          <button class="btn ghost" id="prod-add-record">+ Add product record</button>
         </div>
       </div>
 
-      <div class="card col-12" style="margin-bottom:1rem">
-        <div class="card-h">
-          <h3>🛡 Price verification</h3>
-          <span class="muted">Per Christelle directive: never invent prices, never convert foreign currency.</span>
-        </div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem">
-          <input type="text" id="prod-verify-product" placeholder="Product ID (e.g. p-8)" style="width:120px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
-          <span style="font-size:12px;color:var(--tx-3)">or</span>
-          <input type="text" id="prod-verify-raw" placeholder="Raw price (e.g. $299)" style="width:160px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
-          <select id="prod-verify-currency" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px">
-            <option value="">auto-detect</option>
-            <option value="ZAR">ZAR</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-          </select>
-          <button class="btn primary" id="prod-verify-btn">Verify</button>
-        </div>
-        <div id="prod-verify-result"></div>
+      <!-- TAB BAR -->
+      <div style="display:flex;gap:.5rem;border-bottom:1px solid var(--bd);margin-bottom:1rem">
+        <button class="btn-mini primary" data-prod-tab="catalog">📦 Catalog</button>
+        <button class="btn-mini" data-prod-tab="references">🖼️ Reference images</button>
+        <button class="btn-mini" data-prod-tab="verify">🛡 Verify</button>
       </div>
 
-      <div class="card col-12">
-        <div class="card-h"><h3>📦 Catalog</h3><span class="muted" id="prod-summary">—</span></div>
-        <div id="prod-list"></div>
+      <!-- TAB: Catalog -->
+      <div id="prod-tab-catalog" class="prod-tab">
+        <div class="card col-12">
+          <div class="card-h"><h3>📦 Product catalog</h3><span class="muted" id="prod-summary">—</span></div>
+          <div id="prod-list"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Reference images -->
+      <div id="prod-tab-references" class="prod-tab" hidden>
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>🖼️ Verified reference images</h3>
+            <span class="muted">Per-product reference photos. The system hashes each image and matches against assets at publish time.</span>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem">
+            <select id="refimg-product" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px"></select>
+            <input type="file" id="refimg-file" accept="image/*" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:12px" />
+            <button class="btn primary" id="refimg-upload">📤 Verify image</button>
+          </div>
+          <div id="refimg-list"></div>
+        </div>
+      </div>
+
+      <!-- TAB: Verify -->
+      <div id="prod-tab-verify" class="prod-tab" hidden>
+        <div class="card col-12" style="margin-bottom:1rem">
+          <div class="card-h">
+            <h3>🛡 Price verification</h3>
+            <span class="muted">Per Christelle directive: never invent prices, never convert foreign currency.</span>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem">
+            <input type="text" id="prod-verify-product" placeholder="Product ID (e.g. p-8)" style="width:120px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
+            <span style="font-size:12px;color:var(--tx-3)">or</span>
+            <input type="text" id="prod-verify-raw" placeholder="Raw price (e.g. $299)" style="width:160px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
+            <select id="prod-verify-currency" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px">
+              <option value="">auto-detect</option>
+              <option value="ZAR">ZAR</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+            <button class="btn primary" id="prod-verify-btn">Verify</button>
+          </div>
+          <div id="prod-verify-result"></div>
+        </div>
+        <div class="card col-12">
+          <div class="card-h"><h3>🖼️ Product-image verification</h3><span class="muted">Check that an asset's image matches a verified reference for its product.</span></div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem">
+            <input type="text" id="prod-asset-id" placeholder="Asset ID" style="flex:1;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
+            <button class="btn primary" id="prod-verify-asset">Verify asset</button>
+          </div>
+          <div id="prod-asset-result"></div>
+        </div>
       </div>
     </section>
 

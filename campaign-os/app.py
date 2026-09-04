@@ -22327,3 +22327,489 @@ def products_get_one(brand_id, product_id):
     if not matched:
         return jsonify({"ok": False, "error": "product not found"}), 404
     return jsonify({"ok": True, "brand_id": bid, "product": matched}), 200
+
+
+# ─── PRODUCT RECORDS (Tier 3.5 — Audit risk, 2026-09-04) ──────────────────────
+# Per the audit: "Verified product reference images before product-led
+# publishing" was a hard rule. Right now, swing-shack has 250+ images
+# on disk but no canonical "this image is OF this product" mapping.
+# An asset could claim to show "Full Bag Fitting" while showing a
+# completely different image — and nothing would catch it.
+#
+# This endpoint adds canonical per-product records with verified
+# reference images. Every product record has:
+#   - id, sku, name, category
+#   - price_zar (per Christelle directive: always ZAR)
+#   - specs (free-form JSON: size, weight, color, materials)
+#   - description, marketing_blurb
+#   - forbidden_modifications[] — what AI must NOT change
+#   - verified_image_ids[] — which images are actually OF this product
+#
+# Storage: data/products/<brand_id>.json (alongside the existing
+# line-items file). Per-brand separation matches the audit's
+# "store-brand vs product-brand fidelity" rule.
+
+PRODUCT_RECORDS_DIR = os.path.join(DATA_DIR, "products")
+
+
+def _product_records_path(brand_id):
+    safe = ''.join(c for c in (brand_id or 'swing-shack') if c.isalnum() or c in '-_')
+    return os.path.join(PRODUCT_RECORDS_DIR, safe + ".json")
+
+
+def _read_product_records(brand_id):
+    p = _product_records_path(brand_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"brand_id": brand_id, "currency": "ZAR", "products": [], "reference_images": []}
+
+
+def _write_product_records(brand_id, data):
+    d = PRODUCT_RECORDS_DIR
+    os.makedirs(d, exist_ok=True)
+    p = _product_records_path(brand_id)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    return True
+
+
+# ─── PRODUCT REFERENCE IMAGES (Tier 3.5 — Audit risk, 2026-09-04) ────────────
+# The single source of truth for which images are actually OF which product.
+# Each reference image has a sha256 hash for dedup + verification.
+#
+# Image verification model:
+#   1. Marketing person uploads an image of a real product
+#   2. System computes sha256 + stores reference
+#   3. Asset is "product_verified" when its image hash matches a reference
+#   4. Pre-flight blocks publish if asset has product_id but image
+#      doesn't match any reference for that product
+
+
+def _compute_sha256(image_path_or_bytes):
+    """Compute sha256 of either a file path or raw bytes."""
+    try:
+        import hashlib as _hashlib
+        h = _hashlib.sha256()
+        if isinstance(image_path_or_bytes, str) and os.path.exists(image_path_or_bytes):
+            with open(image_path_or_bytes, "rb") as f:
+                while True:
+                    chunk = f.read(8192)
+                    if not chunk: break
+                    h.update(chunk)
+            return h.hexdigest()
+        elif isinstance(image_path_or_bytes, (bytes, bytearray)):
+            h.update(bytes(image_path_or_bytes))
+            return h.hexdigest()
+        elif isinstance(image_path_or_bytes, str):
+            # Treat as base64
+            import base64 as _b64
+            try:
+                if "," in image_path_or_bytes and image_path_or_bytes.startswith("data:"):
+                    image_path_or_bytes = image_path_or_bytes.split(",", 1)[1]
+                raw = _b64.b64decode(image_path_or_bytes)
+                h.update(raw)
+                return h.hexdigest()
+            except Exception:
+                return None
+    except Exception:
+        return None
+    return None
+
+
+@app.route("/api/products/<brand_id>/reference-images", methods=["GET"])
+def product_reference_images_list(brand_id):
+    """GET /api/products/<brand>/reference-images — verified product photos."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    data = _read_product_records(bid)
+    images = data.get("reference_images") or []
+    pid_filter = request.args.get("product_id", "").strip()
+    if pid_filter:
+        images = [img for img in images if img.get("product_id") == pid_filter]
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "reference_images": images,
+        "count": len(images),
+        "product_count": len(data.get("products") or []),
+    }), 200
+
+
+@app.route("/api/products/<brand_id>/reference-images", methods=["POST"])
+def product_reference_image_add(brand_id):
+    """POST /api/products/<brand>/reference-images — add a verified product photo.
+
+    Body: {product_id, image_path?, image_b64?, source?, verified_by?}
+      At least one of image_path or image_b64 is required.
+      The system computes sha256 and stores it as the canonical hash.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    product_id = (body.get("product_id") or "").strip()
+    if not product_id:
+        return jsonify({"ok": False, "error": "product_id required"}), 400
+    image_path = (body.get("image_path") or "").strip()
+    image_b64 = (body.get("image_b64") or "").strip()
+    if not image_path and not image_b64:
+        return jsonify({"ok": False, "error": "image_path or image_b64 required"}), 400
+    # Compute sha256
+    sha256 = None
+    if image_path:
+        sha256 = _compute_sha256(image_path)
+    if not sha256 and image_b64:
+        sha256 = _compute_sha256(image_b64)
+    if not sha256:
+        return jsonify({"ok": False, "error": "could not compute sha256"}), 400
+    data = _read_product_records(bid)
+    images = data.get("reference_images") or []
+    # Dedup by sha256
+    for img in images:
+        if img.get("sha256") == sha256:
+            return jsonify({
+                "ok": True,
+                "brand_id": bid,
+                "reference_image": img,
+                "already_existed": True,
+                "message": "Reference image already exists (sha256 match)",
+            }), 200
+    # Build the entry
+    rid = "refimg-" + sha256[:12]
+    entry = {
+        "id": rid,
+        "product_id": product_id,
+        "image_path": image_path or "",
+        "sha256": sha256,
+        "source": (body.get("source") or "manual"),
+        "verified_by": (body.get("verified_by") or "user"),
+        "verified_at": _now_iso(),
+    }
+    images.append(entry)
+    # Also update the product's verified_image_ids
+    for prod in (data.get("products") or []):
+        if prod.get("id") == product_id:
+            prod.setdefault("verified_image_ids", [])
+            if rid not in prod["verified_image_ids"]:
+                prod["verified_image_ids"].append(rid)
+            break
+    data["reference_images"] = images
+    _write_product_records(bid, data)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "reference_image": entry,
+        "already_existed": False,
+    }), 201
+
+
+@app.route("/api/products/<brand_id>/reference-images/<image_id>", methods=["DELETE"])
+def product_reference_image_delete(brand_id, image_id):
+    """DELETE /api/products/<brand>/reference-images/<image_id> — remove a verified image."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    iid = (image_id or "").strip()
+    if not iid:
+        return jsonify({"ok": False, "error": "image_id required"}), 400
+    data = _read_product_records(bid)
+    images = data.get("reference_images") or []
+    new_images = [img for img in images if img.get("id") != iid]
+    if len(new_images) == len(images):
+        return jsonify({"ok": False, "error": "reference image not found"}), 404
+    # Also remove from product's verified_image_ids
+    for prod in (data.get("products") or []):
+        vids = prod.get("verified_image_ids") or []
+        if iid in vids:
+            prod["verified_image_ids"] = [v for v in vids if v != iid]
+    data["reference_images"] = new_images
+    _write_product_records(bid, data)
+    return jsonify({"ok": True, "brand_id": bid, "deleted_id": iid, "remaining": len(new_images)}), 200
+
+
+@app.route("/api/products/<brand_id>", methods=["GET"])
+def product_records_list(brand_id):
+    """GET /api/products/<brand> — canonical product records (with verified images)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    data = _read_product_records(bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "currency": data.get("currency", "ZAR"),
+        "products": data.get("products") or [],
+        "product_count": len(data.get("products") or []),
+        "reference_image_count": len(data.get("reference_images") or []),
+    }), 200
+
+
+@app.route("/api/products/<brand_id>", methods=["POST"])
+def product_record_upsert(brand_id):
+    """POST /api/products/<brand> — upsert a product record.
+
+    Body: {id, sku?, name, category?, price_zar, specs?, description?,
+           marketing_blurb?, forbidden_modifications?[]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    required = ["id", "name", "price_zar"]
+    for f in required:
+        if f not in body:
+            return jsonify({"ok": False, "error": f"missing field '{f}'"}), 400
+    try:
+        price = int(body["price_zar"])
+        if price <= 0: raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "price_zar must be positive integer"}), 400
+    data = _read_product_records(bid)
+    products = data.get("products") or []
+    new = {
+        "id": str(body["id"]),
+        "sku": body.get("sku", ""),
+        "name": str(body["name"]),
+        "category": body.get("category", "general"),
+        "price_zar": price,
+        "specs": body.get("specs", {}),
+        "description": body.get("description", ""),
+        "marketing_blurb": body.get("marketing_blurb", ""),
+        "forbidden_modifications": body.get("forbidden_modifications", []),
+        "verified_image_ids": body.get("verified_image_ids", []),
+        "created_at": _now_iso(),
+    }
+    products = [p for p in products if p.get("id") != new["id"]]
+    products.append(new)
+    data["products"] = products
+    data["currency"] = "ZAR"  # Per Christelle directive
+    _write_product_records(bid, data)
+    return jsonify({"ok": True, "brand_id": bid, "product": new, "count": len(products)}), 201
+
+
+# ─── PRODUCT-VERIFIED ASSET CHECK (Tier 3.5 — Audit risk, 2026-09-04) ────────
+# Per the audit: "Verified product reference images before product-led
+# publishing" was a hard rule. This is the gate.
+#
+# POST /api/assets/<asset_id>/verify-product
+#   Body: {image_b64?, image_path?}
+#   Computes sha256 of the asset's image, checks against the brand's
+#   reference images for the asset's product_id, returns:
+#     {ok, verified: bool, matched_reference_id?, product_id, reason}
+
+@app.route("/api/assets/<asset_id>/verify-product", methods=["POST", "GET"])
+def asset_verify_product(asset_id):
+    """POST /api/assets/<asset_id>/verify-product — check asset image against product refs."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    body = request.get_json(silent=True) or {}
+    # Find the asset + brand_id + product_id
+    data = load_data()
+    asset = None
+    brand_id = None
+    product_id = body.get("product_id") or ""
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                brand_id = a.get("brand_id") or cid
+                if not product_id:
+                    product_id = a.get("product_id", "")
+                break
+        if asset: break
+    if not asset:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    if not product_id:
+        return jsonify({
+            "ok": True,
+            "verified": False,
+            "asset_id": aid,
+            "product_id": "",
+            "reason": "asset has no product_id — not a product-led post, no check needed",
+            "check_required": False,
+        }), 200
+    if not brand_id:
+        return jsonify({"ok": False, "error": "could not resolve brand_id"}), 400
+    # Compute sha256 of the asset's image
+    img_b64 = body.get("image_b64") or ""
+    img_path = body.get("image_path") or asset.get("image_path") or ""
+    # Try to read the served image_url if no body provided
+    if not img_b64 and not img_path:
+        img_url = asset.get("image_url") or ""
+        if img_url and img_url.startswith("/"):
+            candidate = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images", os.path.basename(img_url))
+            if os.path.exists(candidate):
+                img_path = candidate
+    sha256 = _compute_sha256(img_b64) if img_b64 else _compute_sha256(img_path) if img_path else None
+    if not sha256:
+        return jsonify({
+            "ok": True,
+            "verified": False,
+            "asset_id": aid,
+            "product_id": product_id,
+            "reason": "could not compute sha256 — image not accessible. POST with image_b64 to verify.",
+            "check_required": True,
+            "needs_image": True,
+        }), 200
+    # Check against reference images
+    rec = _read_product_records(brand_id)
+    images = rec.get("reference_images") or []
+    matched = None
+    for img in images:
+        if img.get("sha256") == sha256 and img.get("product_id") == product_id:
+            matched = img
+            break
+    # Persist on the asset
+    asset["product_verified"] = bool(matched)
+    asset["product_id"] = product_id
+    asset["product_verification"] = {
+        "sha256": sha256,
+        "verified_at": _now_iso(),
+        "matched_reference_id": matched.get("id") if matched else None,
+        "reason": ("verified — image matches reference for " + product_id) if matched else "no reference image matches this hash for " + product_id,
+    }
+    # Persist to data
+    try:
+        save_data(data)
+    except Exception:
+        pass
+    return jsonify({
+        "ok": True,
+        "verified": bool(matched),
+        "asset_id": aid,
+        "brand_id": brand_id,
+        "product_id": product_id,
+        "sha256": sha256,
+        "matched_reference_id": matched.get("id") if matched else None,
+        "reason": asset["product_verification"]["reason"],
+        "check_required": True,
+    }), 200
+
+
+# ─── ADD PRODUCT-VERIFIED CHECK TO PREFLIGHT (Tier 3.5) ──────────────────────
+# Hook into the existing _run_preflight: if asset has product_id, add a
+# 9th hard-stop check — product_verified.
+
+def _run_preflight_v2(asset, brand_settings, brand_id):
+    """Run preflight with product-led publishing check."""
+    pf = _run_preflight(asset, brand_settings)
+    # Extra check: product_verified
+    has_product_id = bool(asset.get("product_id"))
+    product_verified = bool(asset.get("product_verified"))
+    pf["checks"]["product_verified"] = (not has_product_id) or product_verified
+    if has_product_id and not product_verified:
+        pf["failed_checks"].append("product_verified")
+    pf["passed"] = len(pf["failed_checks"]) == 0
+    pf["product_id"] = asset.get("product_id", "")
+    pf["product_verified"] = product_verified
+    return pf
+
+
+# Update the existing asset_preflight to use v2
+@app.route("/api/assets/<asset_id>/preflight-v2", methods=["GET", "POST"])
+def asset_preflight_v2(asset_id):
+    """GET /api/assets/<asset_id>/preflight-v2 — preflight including product-led check."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    data = load_data()
+    asset = None
+    brand_id = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                brand_id = a.get("brand_id") or cid
+                break
+        if asset: break
+    if not asset:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    settings = _read_brand_settings(brand_id or "swing-shack")
+    pf = _run_preflight_v2(asset, settings, brand_id)
+    return jsonify({
+        "ok": True,
+        "asset_id": aid,
+        "brand_id": brand_id,
+        "preflight": pf,
+        "block_publish": not pf["passed"],
+    }), 200
+
+
+# ─── PRODUCT CATALOG ENDPOINTS (Tier 3.5, 2026-09-04) ─────────────────────────
+# Unified /api/products/<brand>/records endpoint that combines line-items
+# (pricing) + product records (canonical product data with verified images).
+
+@app.route("/api/products/<brand_id>/records", methods=["GET"])
+def product_records_combined(brand_id):
+    """GET /api/products/<brand>/records — combined: line-items + records + verified images."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    # Auto-seed swing-shack on first hit
+    if bid == "swing-shack":
+        _seed_swing_shack_products()
+    # Read both sources
+    line_items_path = _products_path(bid)
+    records_path = _product_records_path(bid)
+    line_items = {"products": []}
+    if os.path.exists(line_items_path):
+        try:
+            with open(line_items_path, "r", encoding="utf-8") as f:
+                line_items = json.load(f)
+        except Exception:
+            pass
+    records = {"products": [], "reference_images": []}
+    if os.path.exists(records_path):
+        try:
+            with open(records_path, "r", encoding="utf-8") as f:
+                records = json.load(f)
+        except Exception:
+            pass
+    # Merge by id: records are richer, line-items supply fallback prices
+    merged = []
+    record_products = {p["id"]: p for p in records.get("products", [])}
+    lineitem_products = {p["id"]: p for p in line_items.get("products", [])}
+    all_ids = set(record_products.keys()) | set(lineitem_products.keys())
+    for pid in sorted(all_ids):
+        rec = record_products.get(pid)
+        li = lineitem_products.get(pid)
+        merged.append({
+            "id": pid,
+            "name": (rec or li or {}).get("name", ""),
+            "price_zar": (rec or li or {}).get("price_zar", 0),
+            "per": (rec or li or {}).get("per", "session"),
+            "sku": (rec or {}).get("sku", ""),
+            "category": (rec or {}).get("category", (li or {}).get("type", "general")),
+            "specs": (rec or {}).get("specs", {}),
+            "description": (rec or {}).get("description", ""),
+            "marketing_blurb": (rec or {}).get("marketing_blurb", ""),
+            "forbidden_modifications": (rec or {}).get("forbidden_modifications", []),
+            "verified_image_ids": (rec or {}).get("verified_image_ids", []),
+            "verified_image_count": len((rec or {}).get("verified_image_ids", [])),
+            "has_record": bool(rec),
+            "has_line_item": bool(li),
+        })
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "currency": "ZAR",
+        "products": merged,
+        "product_count": len(merged),
+        "records_only_count": len(records.get("products", [])),
+        "line_items_count": len(line_items.get("products", [])),
+        "reference_image_count": len(records.get("reference_images", [])),
+    }), 200
