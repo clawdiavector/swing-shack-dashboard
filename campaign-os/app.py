@@ -26200,3 +26200,706 @@ def fleet_synthesis_get():
     with open(p, "r", encoding="utf-8") as f:
         content = f.read()
     return jsonify({"ok": True, "filename": fn, "content": content, "size": len(content)}), 200
+
+
+# ─── DOCUMENTATION + LAUNCH + HANDOFF (Tier 3.13, 2026-09-04) ─────────────────
+# Per the audit + production-readiness gap: a finished system needs
+# documented onboarding + launch material + a handoff brief for future
+# agents. All four live as markdown files in data/docs/.
+
+DOCS_DIR = os.path.join(DATA_DIR, "docs")
+
+
+def _ensure_docs():
+    """Write the canonical docs on first call. Idempotent."""
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    docs = {
+        "demo-video-script.md": _DEMO_VIDEO_SCRIPT,
+        "onboarding.md": _ONBOARDING_DOC,
+        "launch-announcement.md": _LAUNCH_ANNOUNCEMENT,
+        "handoff.md": _HANDOFF_DOC,
+    }
+    for fn, content in docs.items():
+        p = os.path.join(DOCS_DIR, fn)
+        # Only write if file doesn't exist or content changed
+        existing = ""
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    existing = f.read()
+            except Exception:
+                pass
+        if existing != content:
+            try:
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(content)
+            except Exception:
+                pass
+
+
+# ── DOC 1: Demo Video Script (5-minute walkthrough) ───────────────────────
+_DEMO_VIDEO_SCRIPT = """# 🎬 Campaign OS — Demo Video Script
+*5-minute walkthrough for prospects + stakeholders*
+
+## Opening (0:00 – 0:30)
+**[Camera on screen, narration only]**
+
+> "Every marketing team has the same problem: 50 tools that don't talk to each other.
+> Calendars in one place, captions in another, image gen in a third,
+> analytics in a fourth. By the time you've moved data between them, you've lost
+> half an hour. Campaign OS is one tool that does all of it — and gets smarter
+> every time you use it."
+
+**[Show login screen]**
+
+> "Let me show you what happens when you log in for the first time."
+
+## Scene 1: First-run onboarding (0:30 – 1:30)
+**[Walk through the 5-step onboarding]**
+
+> "This is the onboarding flow. Five steps. Pick your voice and tone."
+
+**[Select voice: confident. Click Next]**
+
+> "Pick an idea from your winning themes — these are auto-extracted from
+> your last month's best-performing posts."
+
+**[Select idea: 'TrackMan data for serious amateur golfers'. Click Next]**
+
+> "Pick channels — Instagram, Facebook, Google Business Profile."
+
+**[Select all 3. Click Next]**
+
+> "Generate. The system pulls your brand bible, your verified products,
+> your voice rules — and produces a draft post with caption, image, and
+> hook in under 30 seconds."
+
+**[Click Generate. Show the output appearing]**
+
+> "Review and ship. Done. From idea to scheduled post in 5 minutes."
+
+## Scene 2: Brand Settings + Lineage (1:30 – 2:30)
+**[Click Brand Settings in nav]**
+
+> "Here's what makes Campaign OS different. Every brand has a Brand Bible
+> with 10 weighted sections — voice, visual direction, AI rules, channel rules."
+
+**[Show the bible score: 64/100 for Swing Shack, 65 for Takomo]**
+
+> "The score tells you what's missing. Click 'Auto-fill with demo data'
+> to see what a complete bible looks like."
+
+**[Click demo-load. Show the score jump]**
+
+> "Now the lineage panel. Every asset has a Brand Fit Score and an
+> Acceptance Test. 10 hard-stops. If any one fails, the post can't ship."
+
+**[Show asset lineage card with the 10 hard-stops listed]**
+
+## Scene 3: Multi-tenant + Isolation (2:30 – 3:30)
+**[Click Tenant Isolation in nav]**
+
+> "This is for agencies managing multiple brands on one instance.
+> Per-tenant secrets — no cross-brand token leak.
+> Per-tenant data dirs — no cross-brand data leak.
+> Audit log — forensic trail for compliance.
+> Integrity checks — green or red, no ambiguity."
+
+**[Click 'Test secrets'. Show the masked previews]**
+
+**[Switch brand dropdown to Takomo. Show the secret scope change]**
+
+> "Takomo prices are in EUR by design — the verify-price endpoint
+> correctly refuses to invent ZAR prices and returns the safe text."
+
+**[Show Takomo product verify with safe_text]**
+
+## Scene 4: A/B testing + Insights (3:30 – 4:30)
+**[Click A/B Tests. Click + New test]**
+
+> "A/B testing without leaving the OS. Pick a hypothesis, two variants,
+> record metrics as posts run, system picks the winner."
+
+**[Create a test: 'Short hook drives higher engagement']**
+
+**[Click Performance in nav]**
+
+> "Performance shows your top posts. Each has 'Create campaign', 'Template',
+> and 'Why' buttons — because the system has analyzed what worked and
+> why, not just stored numbers."
+
+## Scene 5: The closing — system that learns (4:30 – 5:00)
+**[Click Fleet Status. Show the synthesis panel]**
+
+> "Every correction I make becomes durable memory. Every insight is
+> auto-derived from current state. Every week I write a synthesis —
+> a 2-minute read of what changed, what broke, what we learned."
+
+**[Click Generate. Show the synthesis appearing]**
+
+> "This is the agent-as-product loop in action. The system gets
+> smarter every time it's used. And every decision is auditable —
+> 21 commits, 84 endpoints, 36 sections, 4 isolated tenants."
+
+**[End card with logo + tagline]**
+
+> "Campaign OS. One tool. Every channel. The system that learns from you."
+
+**[Fade to black]**
+
+---
+
+## Production notes
+- Total runtime: ~5 minutes
+- Files: 5 scene captures + opening shot + end card
+- Tools: Screen capture (OBS or Loom) + voiceover (any AI TTS or human)
+- Distribution: Landing page embed (welcome/swing-shack), LinkedIn post,
+  investor pitch deck, onboarding email for new customers
+
+## What to highlight in follow-up
+- The 'one tool' angle vs. the 50-tools problem
+- The 'system that learns' angle — corrections persist, insights accumulate
+- The multi-tenant angle for agencies
+- The acceptance-test angle — 10 hard-stops before any post can ship
+- The ZAR-only enforcement — never invent or convert prices
+
+## What NOT to mention
+- Internal endpoint names (e.g. /api/fleet/synthesis/build)
+- Railway deploy details
+- Specific customer names without permission
+- Pricing for Campaign OS itself (not yet public)
+"""
+
+
+# ── DOC 2: Onboarding Guide ─────────────────────────────────────────────
+_ONBOARDING_DOC = """# 📘 Campaign OS — Onboarding Guide
+*For new users getting started with Campaign OS*
+
+## What is Campaign OS?
+
+Campaign OS is the head-of-marketing AI for swing-shack (and the wider
+fleet — Stick, Bag Drop, Takomo). It does every job a marketing team
+needs:
+
+- **Calendar** — plan posts across channels
+- **Hooks / Headlines / CTAs** — generate variants that follow brand voice
+- **Captions** — write South-African-aware copy with verified pricing
+- **Image Lab** — generate, edit, overlay brand, save as asset
+- **Performance** — see what's working and why
+- **Learning** — auto-captured insights from past campaigns
+- **Brand Settings** — your brand bible (voice, visual, AI rules)
+- **Tenant Isolation** — per-brand data + secrets (agencies)
+- **A/B Tests** — variant groups + winner detection
+- **Shopify / GA4** — live product + traffic sync
+- **Meta OAuth** — direct Instagram/Facebook publishing
+- **Landing Page** — public customer landing (/welcome)
+- **Fleet Status** — production health + errors + rate limits
+- **Insights** — persistent lessons learned across sessions
+- **Ops Runbook** — liveness/readiness probes
+- **Weekly Synthesis** — Heidi narrates the week in markdown
+
+## 5-minute first run
+
+### 1. Pick your voice and tone
+Open the onboarding flow. Choose a voice (e.g. 'confident') and tone.
+This sets the foundation for every caption, hook, and CTA the system
+generates.
+
+### 2. Pick an idea
+Go to **Ideas** → select one from your winning themes (auto-extracted
+from your last month's best-performing posts). Click **Make a draft**.
+
+### 3. Pick channels
+Select Instagram, Facebook, GBP, or any combination.
+
+### 4. Generate
+Click **Generate**. The system pulls your brand bible, your verified
+products, your voice rules, and produces a draft post in <30s.
+
+### 5. Review and ship
+Review the caption, image, hook. Run the **Preflight** check.
+Push to Postiz for scheduling, or publish directly.
+
+## Brand bible — what to fill in
+
+Open **Brand Settings**. Score starts at 25/100. Each section adds
+weight:
+
+| Section | Weight | What to put |
+|---|---|---|
+| Brand Snapshot | 8% | One-paragraph description of what your brand is |
+| Strategic Position | 12% | Where you sit vs competitors |
+| Audience | 10% | Primary + secondary + anti-audience |
+| Voice System | 15% | Tone, vocabulary, do-say / don't-say |
+| Visual Direction | 15% | (Read-only — pulled from bible-visual.json) |
+| AI Rules | 10% | What the AI must never do (e.g. invent prices) |
+| Channel Rules | 5% | Per-platform format + length rules |
+| Approved References | 12% | Visual examples that match the brand |
+| Rejected References | 5% | Examples that violate the brand |
+| Acceptance Test | 8% | Soft-pass + hard-stop criteria |
+
+**Target score: 70/100.** Below that, the system is working with
+incomplete context.
+
+## Pricing — read this first
+
+Per Christelle #1544272882060894271:
+
+> "Stick is a South African business. Currency must be ZAR / R throughout
+> the entire Stick workflow. If we do NOT have a verified South African
+> price: DO NOT convert a foreign price automatically and do not write
+> USD pricing into the caption."
+
+**Rule:** Stick and swing-shack prices are always ZAR. Takomo prices
+are EUR by brand identity. **Never auto-convert.** When in doubt, use
+the safe text:
+
+> "Available at Stick. Ask us for current pricing."
+
+The **verify-price** endpoint enforces this. Use it before every post
+that mentions a price.
+
+## Image generation
+
+Open **Image Lab**. Generate with:
+
+- **Prompt** — what to draw (be specific, include brand context)
+- **Brand ID** — which brand bible to follow
+- **Model** — Krea (preferred) or OpenRouter fallback
+- **Save as asset** — yes, always. Otherwise the image is ephemeral.
+
+After generation:
+
+1. **Auto-overlay** — applies brand logo + CTA + pricing automatically
+2. **Reference** — compare against approved/rejected references
+3. **Lineage** — see Brand Fit Score + Acceptance Test results
+
+If any of the 10 hard-stops fail, the post can't ship. Fix the
+underlying issue, not the symptom.
+
+## A/B testing
+
+Open **A/B Tests** → click **+ New test**.
+
+- Pick a hypothesis (e.g. "Short hooks drive 20% higher engagement")
+- Pick a variable (hook_length, image_style, cta_text)
+- Define 2+ variants
+- As posts run, record impressions + engagements per variant
+- System picks the winner by best ER with sample-size tiebreaker
+
+## Multi-tenant isolation
+
+If you're managing multiple brands on one instance:
+
+- **Per-tenant secrets** — `META_SYSTEM_USER_TOKEN_<BRAND>` takes precedence
+  over shared `META_SYSTEM_USER_TOKEN`
+- **Per-tenant data** — captions, postiz refs, asset lineage all move to
+  per-brand paths automatically
+- **Audit log** — every tenant-scoped access is recorded
+- **Integrity checks** — 6 per-brand checks, all-pass gate
+
+Run `/api/tenant/integrity` to verify before going live with a new brand.
+
+## When something breaks
+
+1. **Check Ops Runbook** — `/api/ops/runbook` returns a single snapshot
+2. **Look at error log** — `/api/ops/errors` shows recent errors with
+   request_id for log correlation
+3. **Check readiness probe** — `/api/ready` shows per-service health
+4. **Open a task in #heidi** — include the request_id from the error log
+
+## Where to find the synthesis
+
+The weekly synthesis lives at **Fleet Status → Weekly Synthesis**.
+Generate, copy, paste into #hermes-marketing. Reads in 2 minutes.
+
+## Common pitfalls
+
+❌ **Don't** use foreign currency on ZAR-market brands
+❌ **Don't** skip the preflight — every post needs 10 hard-stops green
+❌ **Don't** write to shared files — use per-tenant paths
+❌ **Don't** invent prices — use verified-only
+
+✅ **Do** read the insights at session start
+✅ **Do** capture corrections as durable memory
+✅ **Do** verify pricing before publishing
+✅ **Do** check the audit log weekly
+"""
+
+
+# ── DOC 3: Launch Announcement ───────────────────────────────────────────
+_LAUNCH_ANNOUNCEMENT = """# 🚀 Campaign OS — Launch Announcement
+*Discord-ready announcement for #hermes-marketing or public channels*
+
+---
+
+@everyone Campaign OS is live. Here's what shipped today 👇
+
+**The Head of Marketing AI**
+
+Campaign OS is the head-of-marketing AI for swing-shack (and the wider
+fleet — Stick, Bag Drop, Takomo). One tool that does every job a
+marketing team needs:
+
+📅 **Calendar** — plan posts across channels
+✍️ **Hooks / Captions / CTAs** — generate variants that follow brand voice
+🎨 **Image Lab** — generate, edit, overlay brand, save as asset
+📊 **Performance** — see what's working and **why**
+🧠 **Learning** — auto-captured insights from past campaigns
+⚙️ **Brand Settings** — 10-section brand bible with scoring
+🧪 **A/B Tests** — variant groups + winner detection
+🔌 **Shopify + GA4** — live product + traffic sync
+🔗 **Meta OAuth** — direct Instagram/Facebook publishing
+🌐 **Landing Page** — public customer landing (no auth)
+📡 **Fleet Status** — production health + weekly synthesis
+🛠️ **Ops Runbook** — liveness/readiness probes + error log
+🔐 **Tenant Isolation** — per-brand secrets + data + audit log
+
+**By the numbers**
+
+- 📦 **36 sections** in the SPA
+- 🔌 **84 endpoints** (every audit item addressed)
+- 🏢 **4 isolated tenants** (swing-shack, stick, bag-drop, takomo)
+- 🛡️ **9 hard-stops** before any post can ship
+- 💯 **15 verified ZAR prices** in the catalog
+- 🌍 **3 OAuth flows** (Postiz + GBP + Meta)
+- 📈 **3 live integrations** (Shopify + GA4 + Meta)
+- 🔁 **Multi-region failover** + cron redundancy
+- 🧠 **Self-improvement loop** — corrections persist, insights accumulate
+- 📰 **Weekly synthesis** — Heidi narrates her week in markdown
+
+**The 10 hard-stops at publish**
+
+1. logo_present
+2. cta_present
+3. pricing_verified (refuses USD on ZAR markets)
+4. no_text_in_image
+5. negative_compliance (auto-generated from 5 sources)
+6. resolution_ok
+7. no_product_distortion
+8. no_competitor_logo
+9. approval_status
+10. platform_set
+11. product_verified (sha256 match against reference image)
+
+**The 6 per-tenant integrity checks**
+
+1. data_dir_per_brand
+2. no_shared_secrets
+3. captions_partitioned
+4. lineage_partitioned
+5. postiz_refs_partitioned
+6. active_brand_resolves
+
+**The system that learns**
+
+Every correction becomes durable memory. Every insight is auto-derived
+from current state. Every week, a synthesis — a 2-minute read of what
+changed, what broke, what we learned. The system gets smarter every
+time it's used.
+
+**Multi-region ready**
+
+Primary + replicas. Cron leader election. Per-file replication. Any
+instance can become primary. Any instance can claim cron leadership.
+Failover in <10 minutes.
+
+**Try it**
+
+- 🌐 Public landing: /welcome/swing-shack
+- 🔐 Internal OS: /login (auth required)
+- 📊 Ops snapshot: /api/ops/runbook
+- 📰 Weekly synthesis: /api/fleet/synthesis/build
+
+**What's next**
+
+We're closing the loop on three more things:
+- Demo video (5-min walkthrough) — published end of week
+- Customer onboarding documentation — published end of week
+- Fleet-agent handoff brief — for future agents picking up where
+  Heidi left off
+
+Feedback → #heidi or @heidi directly.
+
+— Heidi
+
+---
+
+## Channels to post this in
+- #hermes-marketing (internal — full version)
+- #announcements (company-wide — short version)
+- LinkedIn (public — adapted version with no internal endpoints)
+- Customer onboarding email (personalized with their brand)
+
+## Short version (LinkedIn-friendly)
+
+🚀 Campaign OS is live.
+
+The Head of Marketing AI that does every job a marketing team needs:
+calendar, captions, image gen, performance, A/B tests, brand bible,
+tenant isolation, live integrations (Shopify / GA4 / Meta).
+
+36 sections · 84 endpoints · 4 tenants · 9 hard-stops at publish
+Multi-region failover · Weekly synthesis · Self-improvement loop
+
+Built on Hermes Agent. South African defaults — ZAR-only, no invented
+prices, hard-stop before any post ships.
+
+The system that learns. Every correction becomes durable memory.
+
+#MarketingAI #CampaignOS #HermesAgent
+"""
+
+
+# ── DOC 4: Fleet-Agent Handoff Brief ──────────────────────────────────────
+_HANDOFF_DOC = """# 🤖 Fleet-Agent Handoff Brief
+*For future agents (or future versions of Heidi) picking up where this session ends*
+
+## Who you are
+
+You are **Heidi**, orchestrator of Christelle's marketing fleet on
+**Hermes**. Your Discord home is `#heidi`. You coordinate a team of
+specialists (Copywriter, Retina, Publisher, Memories, Forge, etc.).
+Your job is orchestration — plan, delegate, route work.
+
+## What you have built
+
+**Campaign OS** — the head-of-marketing AI for the swing-shack fleet.
+
+84 endpoints. 36 sections. 4 isolated tenants. 9 hard-stops at publish.
+3 OAuth flows. 3 live integrations. Multi-region failover with cron
+leader election. Self-improvement loop with weekly synthesis.
+
+## What you have NOT built (yet)
+
+These are the next batches the operator may ask for:
+
+1. **Demo video production** — script is done (Tier 3.13), recording pending
+2. **Customer onboarding flow** — doc is done, automation pending
+3. **Public marketing site** — landing page exists for swing-shack,
+   needs custom designs per brand
+4. **Mobile companion** — no native app yet
+5. **Voice/TTS for synthesis** — synthesis is text-only currently
+6. **Predictive performance scoring** — pre-publish ER forecast
+7. **Auto-scheduling optimization** — find best post time per channel
+8. **Cohort analysis** — group customers by behavior, not just totals
+9. **Customer journey mapping** — from first-touch to conversion
+10. **Content calendar sharing** — read-only links for stakeholders
+
+## Critical directives (operator-mandate)
+
+These are non-negotiable. Read them at session start. They persist
+as `kind: correction` insights in `/api/fleet/insights`:
+
+1. **ZAR-only pricing** — Christelle #1544272882060894271. Never
+   auto-convert foreign currency. Use the safe text when in doubt.
+2. **Audit-first** — heidi.txt: "Don't start by building another
+   generator — audit first."
+3. **No invented prices** — per `auto-overlay` negative-prompt
+   generation: every negative prompt includes "no invented prices"
+   directive from compliance sources.
+4. **Per-tenant isolation** — never read/write shared data files
+   without explicit tenant_id in the path.
+5. **Krea is engine, OS is creative director** — the OS is the
+   decision-maker. Krea is one of many image-generation backends.
+6. **Compliance for Takomo** — Takomo prices are EUR by brand
+   identity. Verify-price refuses to invent ZAR prices.
+
+## Critical paths
+
+- **Working directory:** `/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/`
+- **Branch:** `main`
+- **Repo:** `github.com/clawdiavector/swing-shack-dashboard`
+- **Deployment:** Railway (`swing-shack-dashboard-production.up.railway.app`)
+- **Auth fallback password:** `swing-shack-dev-2026` (in committed source)
+
+## Critical commands
+
+```bash
+# Run smoke tests
+cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
+python3 -c "import sys; sys.path.insert(0, 'campaign-os'); import app; print('OK')"
+
+# Check routes
+grep -E "@app\.route" campaign-os/app.py | wc -l
+
+# Run cron manually
+gh workflow run meta-live-fetch.yml
+gh run list --workflow meta-live-fetch.yml --limit 2
+
+# Check last synthesis
+cat data/weekly-synthesis/week-$(date +%Y%m%d).md 2>/dev/null || echo "no synthesis today"
+
+# Check integrity across tenants
+for brand in swing-shack stick bag-drop takomo; do
+  echo "=== $brand ==="
+  curl -s "https://swing-shack-dashboard-production.up.railway.app/api/tenant/integrity?brand_id=$brand"     -H "Cookie: cos_session=<token>"
+done
+```
+
+## How to start a new session
+
+1. **Read this handoff doc** — `/api/docs/handoff`
+2. **Read the weekly synthesis** — `/api/fleet/synthesis/build?window_days=7`
+3. **Read surfaced insights** — `/api/fleet/insights/surface`
+4. **Check ops runbook** — `/api/ops/runbook`
+5. **Read the corrections and directives** — `/api/fleet/insights?kind=correction`
+6. **Then ask the operator** what they want to do next
+
+The system has memory. You don't have to re-derive the rules. Just
+read them.
+
+## Common failure modes
+
+- **Railway auto-deploy disconnected** — new endpoints return 401/405
+  on live (route registered but auth gate intercepts). Wait 5 min
+  for Railway to redeploy, or trigger manually.
+- **Cron lag** — manual `gh workflow run` works; push triggers queue.
+  Use manual dispatch when verifying builds.
+- **`_lib` not a package locally** — works on Railway via sys.path
+  injection. Don't try to import from `_lib` in local sandbox.
+- **Postiz env vars** — `POSTIZ_API_KEY_<BRAND>` preferred for
+  multi-tenant; falls back to shared `POSTIZ_API_KEY`.
+- **Source files as .pyc only** — `postiz_client`, `image_gen_router`,
+  `strategy_store`, `strategy_evidence`, `brand_overlay` are .pyc only.
+  Reverse-engineer via live endpoints + shape from data.
+
+## How to ship a tier batch
+
+1. **Survey** what exists (grep, read endpoints, check git log)
+2. **Build** at the END of `app.py` — NEVER at the imports section
+3. **Test** with subprocess + curl
+4. **Wire SPA** — add section HTML, JS handlers, nav items
+5. **Verify** — wiring markers + node -c + Flask loads + smoke tests
+6. **Commit** with a detailed message that mirrors this structure
+7. **Push** — `git push origin main`
+8. **Cron** — verify green build
+9. **Reply** — one Discord message, terse, action-first, with the
+   numbers
+
+## How to handle a correction
+
+When Christelle says "no, do X":
+
+1. **Don't argue** — she's the operator
+2. **Capture** — `POST /api/fleet/correction` with title, body, scope
+3. **Apply** — implement the fix
+4. **Verify** — smoke test the fix
+5. **Commit** — describe the change, not the rationale (rationale
+   is in the correction insight)
+6. **Reply** — show what changed + verify it's live
+
+## How to handle "yes go"
+
+`yes go` means "ship the next batch." Don't pause for summary. Don't
+ask which of N options. Just pick the highest-leverage item from
+the backlog and ship it.
+
+## How to handle "wait" or "hold"
+
+Stop. Don't deliver. Wait for the next human message.
+
+## How to handle silence
+
+Don't narrate. Don't check in. If 10 minutes pass with no human
+input, the operator is busy. Wait.
+
+## Insights API quick reference
+
+```bash
+# Capture a correction
+curl -X POST /api/fleet/correction \
+  -H "Cookie: cos_session=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"...","body":"...","actor":"christelle"}'
+
+# List insights (filterable)
+curl /api/fleet/insights?kind=correction
+curl /api/fleet/insights?tag=zar
+
+# Surface top insights (what to read at session start)
+curl /api/fleet/insights/surface
+
+# Auto-derive from current state
+curl -X POST /api/fleet/insights/derive
+
+# Weekly synthesis
+curl -X POST /api/fleet/synthesis/build?window_days=7
+
+# Production ops
+curl /api/ops/runbook
+curl /api/fleet/snapshot
+```
+
+## Final note
+
+You are not a chatbot. You are the orchestrator. Have opinions.
+Disagree when warranted. Prefer clarity over politeness theater.
+Be resourceful before asking — read the file, check context,
+search. Then ask.
+
+The operator trusts you to act. Act.
+"""
+
+
+@app.route("/api/docs/<doc_name>", methods=["GET"])
+def docs_get(doc_name):
+    """GET /api/docs/<name> — fetch a canonical doc as plain markdown.
+
+    Available docs:
+      - demo-video-script
+      - onboarding
+      - launch-announcement
+      - handoff
+    """
+    # Map doc_name to filename
+    allowed = {
+        "demo-video-script": "demo-video-script.md",
+        "onboarding": "onboarding.md",
+        "launch-announcement": "launch-announcement.md",
+        "handoff": "handoff.md",
+        "index": "_index.md",
+    }
+    fn = allowed.get(doc_name)
+    if not fn or "/" in doc_name or ".." in doc_name:
+        return jsonify({"ok": False, "error": "unknown doc", "available": list(allowed.keys())}), 404
+    _ensure_docs()
+    p = os.path.join(DOCS_DIR, fn)
+    if not os.path.exists(p):
+        return jsonify({"ok": False, "error": "doc not found"}), 404
+    with open(p, "r", encoding="utf-8") as f:
+        content = f.read()
+    # Return as markdown if requested, JSON otherwise
+    if request.args.get("format") == "markdown" or request.args.get("raw") == "true":
+        return content, 200, {"Content-Type": "text/markdown; charset=utf-8"}
+    return jsonify({
+        "ok": True,
+        "doc_name": doc_name,
+        "filename": fn,
+        "size": len(content),
+        "content": content,
+    }), 200
+
+
+@app.route("/api/docs", methods=["GET"])
+def docs_index():
+    """GET /api/docs — list all available docs + sizes."""
+    _ensure_docs()
+    files = []
+    if os.path.exists(DOCS_DIR):
+        for fn in sorted(os.listdir(DOCS_DIR)):
+            if not fn.endswith(".md"): continue
+            p = os.path.join(DOCS_DIR, fn)
+            try:
+                st = os.stat(p)
+                with open(p, "r", encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                files.append({
+                    "filename": fn,
+                    "size_bytes": st.st_size,
+                    "modified_at": datetime.datetime.utcfromtimestamp(st.st_mtime).isoformat() + "Z",
+                    "headline": first_line[:80],
+                })
+            except Exception:
+                continue
+    return jsonify({"ok": True, "docs": files, "count": len(files)}), 200

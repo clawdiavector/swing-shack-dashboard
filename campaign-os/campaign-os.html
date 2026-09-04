@@ -738,6 +738,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
       <div class="nav" data-go="fleet" data-help-title="Fleet Status" data-help="Aggregated fleet state — Heidi + all specialists. Cron freshness, error counts, fleet-level alerts."><span class="nav-icon">📡</span> Fleet Status</div>
+      <div class="nav" data-go="docs" data-help-title="Docs" data-help="Demo video script + onboarding + launch announcement + handoff brief. Read these to understand the system."><span class="nav-icon">📚</span> Docs</div>
 
       <!-- Labs: experimental / niche tools, hidden by default -->
       <div class="nav-section" id="labs-section">
@@ -3868,7 +3869,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -11176,6 +11177,51 @@ renderFleet = async function() {
   renderSynthesis();
 };
 
+
+
+// ─── DOCS (Tier 3.13 — Demo + Onboarding + Launch + Handoff, 2026-09-04) ────
+let _currentDocTab = null;
+
+async function loadDoc(name) {
+  const r = await API.get('/api/docs/' + encodeURIComponent(name));
+  if (!r.ok) { toast('Doc load failed: ' + r.error, true); return; }
+  const content = document.getElementById('doc-content');
+  if (content) content.textContent = r.content;
+  _currentDocTab = name;
+  // Update active tab styling
+  document.querySelectorAll('[data-doc-tab]').forEach(btn => {
+    const isActive = btn.dataset.docTab === name;
+    btn.className = 'btn-mini ' + (isActive ? 'primary' : '');
+  });
+}
+
+async function docsCopy() {
+  const content = document.getElementById('doc-content')?.textContent || '';
+  if (!content) { toast('Nothing to copy — load a doc first', true); return; }
+  try {
+    await navigator.clipboard.writeText(content);
+    toast('✓ Doc copied — paste into Discord or wherever');
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = content;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✓ Copied (fallback)');
+  }
+}
+
+(function wireDocs() {
+  document.querySelectorAll('[data-doc-tab]').forEach(btn => {
+    btn.addEventListener('click', () => loadDoc(btn.dataset.docTab));
+  });
+  document.getElementById('doc-copy')?.addEventListener('click', docsCopy);
+})();
+
+// Auto-load the handoff doc by default — that's the one future-you wants
+renderDocs = function() { loadDoc('handoff'); };
+
 </script>
 
 
@@ -11728,6 +11774,27 @@ renderFleet = async function() {
           </div>
         </div>
         <div id="fleet-insights" style="max-height:500px;overflow-y:auto"></div>
+      </div>
+    </section>
+
+
+    <!-- ─── DOCS (Tier 3.13 — Demo + Onboarding + Launch + Handoff, 2026-09-04) -->
+    <section class="section" id="sec-docs">
+      <div class="section-h">
+        <h2>📚 Docs</h2>
+        <span class="sub">Demo video script · Onboarding · Launch announcement · Handoff brief. Read these to understand the system.</span>
+      </div>
+
+      <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
+        <button class="btn-mini primary" data-doc-tab="demo-video-script">🎬 Demo script</button>
+        <button class="btn-mini" data-doc-tab="onboarding">📘 Onboarding</button>
+        <button class="btn-mini" data-doc-tab="launch-announcement">🚀 Launch</button>
+        <button class="btn-mini" data-doc-tab="handoff">🤖 Handoff</button>
+        <button class="btn-mini" id="doc-copy" style="margin-left:auto">📋 Copy</button>
+      </div>
+
+      <div class="card col-12">
+        <div id="doc-content" style="font-family:var(--mono,monospace);font-size:12px;line-height:1.6;max-height:700px;overflow-y:auto;background:var(--bg-1);padding:1rem;border-radius:8px;white-space:pre-wrap">Click a tab above to load a doc</div>
       </div>
     </section>
 
