@@ -726,6 +726,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="seo" data-help-title="SEO" data-help="Audit scores, keyword rankings, GEO readiness."><span class="nav-icon">🔎</span> SEO</div>
       <div class="nav" data-go="seo-stack" data-help-title="SEO Stack (Sarvesh)" data-help="Run the 20-prompt Sarvesh SEO playbook against the AI, pre-loaded with the Swing Shack business brain."><span class="nav-icon">🚀</span> SEO Stack</div>
       <div class="nav" data-go="seo-audit" data-help-title="SEO Audit" data-help="Deep-dive SEO audit."><span class="nav-icon">📋</span> SEO Audit</div>
+      <div class="nav" data-go="tenants" data-help-title="Tenant Isolation" data-help="Per-tenant secrets scope, integrity checks, audit log. Multi-tenant hardening."><span class="nav-icon">🔐</span> Tenant Isolation</div>
 
       <div class="nav-title">📊 Learn</div>
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
@@ -3861,7 +3862,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -10240,6 +10241,132 @@ async function productsAddRecord() {
   }
 })();
 
+
+
+// ─── TENANT ISOLATION (Tier 3.6 — Production readiness, 2026-09-04) ────────
+// Per the audit + production-readiness gap: tenant isolation is required
+// for multi-brand use. This renders:
+//   - Per-tenant secrets (masked, with scope indicator)
+//   - Per-tenant integrity check results
+//   - Per-tenant audit log
+
+async function renderTenants() {
+  const brand = document.getElementById('tn-brand')?.value || 'swing-shack';
+  await Promise.all([
+    renderTenantSecrets(brand),
+    renderTenantIntegrity(brand),
+    renderTenantAudit(brand),
+  ]);
+}
+
+async function renderTenantSecrets(brand) {
+  const r = await API.get('/api/tenant/secrets?brand_id=' + encodeURIComponent(brand));
+  const panel = document.getElementById('tn-secrets');
+  const scopeEl = document.getElementById('tn-scope');
+  if (!r.ok) { if (panel) panel.innerHTML = '<div class="empty">Failed: ' + esc(r.error) + '</div>'; return; }
+  if (scopeEl) {
+    scopeEl.textContent = 'scope: ' + (r.scope || 'shared');
+    scopeEl.style.color = r.scope === 'tenant-specific' ? 'var(--success)' : 'var(--tx-3)';
+  }
+  if (panel) {
+    const rows = [
+      {k: 'Postiz API key', v: r.postiz_api_key_configured, preview: r.postiz_api_key_preview},
+      {k: 'Meta access token', v: r.meta_token_configured, preview: r.meta_token_preview},
+      {k: 'GBP location id', v: r.gbp_location_id_configured, preview: r.gbp_location_id_preview},
+    ];
+    panel.innerHTML = rows.map(row => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem .75rem;border-bottom:1px solid var(--bd)">
+        <div>
+          <div style="font-size:13px;font-weight:600">${esc(row.k)}</div>
+          ${row.preview ? '<div style="font-size:10px;color:var(--tx-3);font-family:var(--mono,monospace);margin-top:.2rem">' + esc(row.preview) + '</div>' : ''}
+        </div>
+        <span class="pill ${row.v ? 'on' : 'muted'}" style="font-size:11px">${row.v ? '✓ configured' : '✕ not set'}</span>
+      </div>
+    `).join('');
+  }
+}
+
+async function renderTenantIntegrity(brand) {
+  const r = await API.get('/api/tenant/integrity?brand_id=' + encodeURIComponent(brand));
+  const panel = document.getElementById('tn-integrity-results');
+  const statusEl = document.getElementById('tn-int-status');
+  if (!r.ok) { if (panel) panel.innerHTML = '<div class="empty">Failed: ' + esc(r.error) + '</div>'; return; }
+  if (statusEl) {
+    const passed = r.passed_count || 0;
+    const failed = r.failed_count || 0;
+    statusEl.textContent = passed + ' passed · ' + failed + ' failed';
+    statusEl.style.color = failed === 0 ? 'var(--success)' : 'var(--danger)';
+  }
+  if (panel) {
+    panel.innerHTML = (r.checks || []).map(c => {
+      const color = c.passed ? 'var(--success)' : 'var(--danger)';
+      return `
+        <div style="padding:.5rem .75rem;border-bottom:1px solid var(--bd);border-left:3px solid ${color};background:var(--bg-2);border-radius:0 6px 6px 0;margin-bottom:.4rem">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:600">${esc(c.name)}</span>
+            <span style="font-size:10px;color:${color}">${c.passed ? '✓' : '✕'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--tx-3);margin-top:.2rem;line-height:1.4">${esc((c.detail || '').slice(0, 120))}</div>
+        </div>
+      `;
+    }).join('') || '<div class="empty">No checks</div>';
+  }
+}
+
+async function renderTenantAudit(brand) {
+  const r = await API.get('/api/tenant/audit?brand_id=' + encodeURIComponent(brand) + '&limit=50');
+  const panel = document.getElementById('tn-audit-log');
+  const countEl = document.getElementById('tn-audit-count');
+  if (!r.ok) { if (panel) panel.innerHTML = '<div class="empty">Failed: ' + esc(r.error) + '</div>'; return; }
+  if (countEl) countEl.textContent = (r.entry_count || 0) + ' entries';
+  if (panel) {
+    panel.innerHTML = (r.entries || []).map(e => {
+      const color = e.action === 'write' ? 'var(--success)' : e.action === 'read' ? 'var(--tx-2)' : e.action === 'delete' ? 'var(--danger)' : 'var(--tx-3)';
+      return '<div style="padding:.25rem .5rem;border-bottom:1px solid var(--bd)"><span style="color:' + color + '">' + esc(e.action) + '</span> · <span style="color:var(--tx-3)">' + esc((e.ts || '').slice(11, 19)) + '</span> · <span>' + esc(e.key || '') + '</span></div>';
+    }).join('') || '<div class="empty">No audit entries yet</div>';
+  }
+}
+
+async function tenantTestSecrets() {
+  const brand = document.getElementById('tn-brand')?.value || 'swing-shack';
+  const btn = document.getElementById('tn-test');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.get('/api/tenant/secrets/test?brand_id=' + encodeURIComponent(brand));
+    if (!r.ok) { toast('Test failed: ' + r.error, true); return; }
+    const results = r.results || {};
+    const lines = [];
+    if (results.postiz) lines.push('Postiz: ' + (results.postiz.status || '?'));
+    if (results.meta) lines.push('Meta: ' + (results.meta.kind || results.meta.status || '?'));
+    if (results.gbp) lines.push('GBP: ' + (results.gbp.configured ? 'set' : 'not_set'));
+    toast('🧪 ' + lines.join(' · '));
+    await renderTenantSecrets(brand);
+  } catch (e) {
+    toast('Test failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🧪 Test secrets'; }
+  }
+}
+
+// Wire up the Tenants section
+(function wireTenants() {
+  const sel = document.getElementById('tn-brand');
+  if (sel && !sel._wired) {
+    sel._wired = true;
+    sel.addEventListener('change', renderTenants);
+  }
+  const testBtn = document.getElementById('tn-test');
+  if (testBtn && !testBtn._wired) {
+    testBtn._wired = true;
+    testBtn.addEventListener('click', tenantTestSecrets);
+  }
+  const intBtn = document.getElementById('tn-integrity');
+  if (intBtn && !intBtn._wired) {
+    intBtn._wired = true;
+    intBtn.addEventListener('click', () => renderTenantIntegrity(document.getElementById('tn-brand')?.value || 'swing-shack'));
+  }
+})();
+
 </script>
 
 
@@ -10479,6 +10606,43 @@ async function productsAddRecord() {
             <button class="btn primary" id="prod-verify-asset">Verify asset</button>
           </div>
           <div id="prod-asset-result"></div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ─── TENANT ISOLATION (Tier 3.6 — Production readiness, 2026-09-04) ── -->
+    <section class="section" id="sec-tenants">
+      <div class="section-h">
+        <h2>🔐 Tenant Isolation</h2>
+        <span class="sub">Per-tenant secrets, data dirs, integrity checks, audit log. Multi-tenant hardening.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="tn-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+          <button class="btn ghost" id="tn-test">🧪 Test secrets</button>
+          <button class="btn primary" id="tn-integrity">🛡 Run integrity</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card col-6">
+          <div class="card-h"><h3>🔑 Per-tenant secrets</h3><span class="muted" id="tn-scope">—</span></div>
+          <div id="tn-secrets"></div>
+        </div>
+        <div class="card col-6">
+          <div class="card-h"><h3>🛡 Integrity checks</h3><span class="muted" id="tn-int-status">—</span></div>
+          <div id="tn-integrity-results"></div>
+        </div>
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>📜 Audit log</h3>
+            <span class="muted" id="tn-audit-count">—</span>
+          </div>
+          <div id="tn-audit-log" style="max-height:400px;overflow-y:auto;font-family:var(--mono,monospace);font-size:11px"></div>
         </div>
       </div>
     </section>

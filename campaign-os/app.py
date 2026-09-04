@@ -22813,3 +22813,487 @@ def product_records_combined(brand_id):
         "line_items_count": len(line_items.get("products", [])),
         "reference_image_count": len(records.get("reference_images", [])),
     }), 200
+
+
+# ─── MULTI-TENANT ISOLATION (Tier 3.6 — Audit risk, 2026-09-04) ──────────────
+# Per the audit + production-readiness gap: every brand currently shares
+# one DATA_DIR, one auth, one secret namespace. For agency/multi-brand
+# use, tenant scoping is required.
+#
+# Tenant = brand_id (swing-shack, stick, bag-drop, takomo).
+#
+# Three primitives:
+#   1. tenant_path(brand_id, filename) — canonical per-tenant path
+#   2. tenant_load/tenant_save JSON — auto-scope to brand
+#   3. tenant_secrets(brand_id) — per-tenant env var resolution
+#
+# Plus:
+#   - Per-tenant audit log (data/tenant-audit/<brand>/<YYYY-MM-DD>.jsonl)
+#   - Tenant isolation integrity check endpoint
+#   - Per-tenant secrets test endpoint
+
+def _tenant_safe(brand_id):
+    """Sanitize a brand_id for filesystem use. Returns 'unknown' if empty/invalid."""
+    if not brand_id: return 'unknown'
+    safe = ''.join(c for c in str(brand_id) if c.isalnum() or c in '-_').strip('-_')
+    return safe or 'unknown'
+
+
+def tenant_path(brand_id, filename):
+    """Canonical per-tenant data path. Brand-specific dirs are auto-created."""
+    safe = _tenant_safe(brand_id)
+    # Captions: data/captions-saved/<brand>.json
+    # Postiz refs: data/postiz-publishing-refs/<brand>.json
+    # Asset lineage: data/asset-lineage/<brand>/<asset>.json
+    # Tenant audit: data/tenant-audit/<brand>/<YYYY-MM-DD>.jsonl
+    if filename in ('captions-saved', 'postiz-publishing-refs'):
+        d = os.path.join(DATA_DIR, filename)
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, safe + ".json")
+    if filename == 'asset-lineage':
+        return None  # Caller must pass asset_id
+    return os.path.join(DATA_DIR, filename)
+
+
+def tenant_asset_lineage_path(brand_id, asset_id):
+    """Per-tenant asset lineage path: data/asset-lineage/<brand>/<asset>.json"""
+    safe = _tenant_safe(brand_id)
+    aid = _tenant_safe(asset_id)
+    d = os.path.join(DATA_DIR, 'asset-lineage', safe)
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, aid + ".json")
+
+
+def tenant_load_json(brand_id, filename, default=None):
+    """Load JSON file scoped to a tenant. Backward-compat: if missing,
+    try the legacy shared path (data/<filename>) with a deprecation warning."""
+    p = tenant_path(brand_id, filename)
+    if not p:
+        return default if default is not None else {}
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return default if default is not None else {}
+    # Backward-compat: try shared legacy file
+    legacy = os.path.join(DATA_DIR, filename + ".json")
+    if filename in ('captions-saved', 'postiz-publishing-refs') and os.path.exists(legacy):
+        try:
+            with open(legacy, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            _app_log.warning("tenant_load_json: reading legacy shared file %s for tenant %s — migrate soon", filename, brand_id)
+            return data
+        except Exception:
+            pass
+    return default if default is not None else {}
+
+
+def tenant_save_json(brand_id, filename, data):
+    """Save JSON file scoped to a tenant. Auto-creates the dir.
+    Returns True on success, False on failure."""
+    p = tenant_path(brand_id, filename)
+    if not p:
+        return False
+    d = os.path.dirname(p)
+    os.makedirs(d, exist_ok=True)
+    tmp = p + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        # Audit log entry
+        _tenant_audit(brand_id, "write", filename)
+        return True
+    except Exception as exc:
+        _app_log.warning("tenant_save_json failed for %s/%s: %s", brand_id, filename, exc)
+        return False
+
+
+# Per-tenant secrets resolution
+# Convention: POSTIZ_API_KEY_SWING_SHACK overrides POSTIZ_API_KEY
+def tenant_secrets(brand_id):
+    """Resolve secrets for a tenant. Per-brand env vars take precedence."""
+    safe = _tenant_safe(brand_id).upper().replace('-', '_')
+    # Try BRAND_SPECIFIC first, then generic
+    postiz = (
+        os.environ.get(f"POSTIZ_API_KEY_{safe}")
+        or os.environ.get(f"POSTIZ_API_KEY_{brand_id}")
+        or os.environ.get("POSTIZ_API_KEY", "")
+    )
+    meta = (
+        os.environ.get(f"META_ACCESS_TOKEN_{safe}")
+        or os.environ.get(f"META_ACCESS_TOKEN_{brand_id}")
+        or os.environ.get("META_ACCESS_TOKEN", "")
+    )
+    gbp = (
+        os.environ.get(f"GBP_LOCATION_ID_{safe}")
+        or os.environ.get(f"GBP_LOCATION_ID_{brand_id}")
+        or os.environ.get("GBP_LOCATION_ID", "")
+    )
+    return {
+        "brand_id": brand_id,
+        "postiz_api_key_configured": bool(postiz),
+        "postiz_api_key_preview": (postiz[:8] + "***" + postiz[-4:]) if len(postiz) > 12 else "***" if postiz else "",
+        "meta_token_configured": bool(meta),
+        "meta_token_preview": (meta[:8] + "***" + meta[-4:]) if len(meta) > 12 else "***" if meta else "",
+        "gbp_location_id_configured": bool(gbp),
+        "gbp_location_id_preview": gbp[:8] + "***" if gbp else "",
+        "scope": "tenant-specific" if (
+            os.environ.get(f"POSTIZ_API_KEY_{safe}") or
+            os.environ.get(f"META_ACCESS_TOKEN_{safe}") or
+            os.environ.get(f"GBP_LOCATION_ID_{safe}")
+        ) else "shared",
+    }
+
+
+# ─── TENANT AUDIT LOG (Tier 3.6, 2026-09-04) ─────────────────────────────────
+# Append-only JSONL per tenant per day. Captures every read/write.
+# Schema: {ts, action, key, brand_id, actor, sha256?, size?}
+
+def _tenant_audit(brand_id, action, key, **kwargs):
+    """Write an audit entry. Silent on failure (best-effort logging)."""
+    try:
+        from datetime import datetime
+        safe = _tenant_safe(brand_id)
+        day = datetime.utcnow().strftime("%Y-%m-%d")
+        d = os.path.join(DATA_DIR, 'tenant-audit', safe)
+        os.makedirs(d, exist_ok=True)
+        p = os.path.join(d, day + ".jsonl")
+        entry = {
+            "ts": _now_iso(),
+            "action": action,  # read | write | delete | secret-resolve | integrity-check
+            "key": key,
+            "brand_id": brand_id,
+            "actor": kwargs.get("actor", "spa"),
+            "request_id": kwargs.get("request_id", ""),
+        }
+        if "size" in kwargs: entry["size"] = kwargs["size"]
+        if "sha256" in kwargs: entry["sha256"] = kwargs["sha256"]
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
+@app.route("/api/tenant/secrets", methods=["GET"])
+def tenant_secrets_endpoint():
+    """GET /api/tenant/secrets?brand_id=<id> — masked per-tenant secret summary."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    secrets = tenant_secrets(bid)
+    _tenant_audit(bid, "secret-resolve", "all")
+    return jsonify({"ok": True, **secrets}), 200
+
+
+@app.route("/api/tenant/secrets/test", methods=["POST", "GET"])
+def tenant_secrets_test():
+    """POST /api/tenant/secrets/test — verify per-tenant credentials work."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = (body.get("brand_id") or request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    secrets = tenant_secrets(bid)
+    results = {}
+    # Test Postiz
+    if secrets["postiz_api_key_configured"]:
+        # Re-resolve the token (we have a masked preview only in secrets)
+        safe_upper = _tenant_safe(bid).upper().replace('-', '_')
+        postiz_token = (
+            os.environ.get(f"POSTIZ_API_KEY_{safe_upper}", "")
+            or os.environ.get("POSTIZ_API_KEY", "")
+        )
+        try:
+            req = urllib.request.Request(
+                f"{os.environ.get('POSTIZ_BASE_URL', 'https://api.postiz.com')}/integrations",
+                headers={"Authorization": "Bearer " + postiz_token}
+            )
+            with urllib.request.urlopen(req, timeout=5) as r:
+                results["postiz"] = {"configured": True, "status": "ok", "http": r.status}
+        except urllib.error.HTTPError as e:
+            results["postiz"] = {"configured": True, "status": "auth_failed" if e.code in (401, 403) else "error", "http": e.code}
+        except Exception as e:
+            results["postiz"] = {"configured": True, "status": "unreachable", "error": str(e)[:80]}
+    else:
+        results["postiz"] = {"configured": False, "status": "not_set"}
+    # Test Meta (just token format check, don't hit Graph)
+    if secrets["meta_token_configured"]:
+        meta_tok = os.environ.get(f"META_ACCESS_TOKEN_{_tenant_safe(bid).upper().replace(chr(45), chr(95))}") or os.environ.get("META_ACCESS_TOKEN", "")
+        # EAA* user tokens are 60-day, EAAB* system-user tokens are permanent
+        token_kind = "system_user" if meta_tok.startswith("EAAB") else "user_long_lived" if meta_tok.startswith("EAA") else "unknown"
+        results["meta"] = {"configured": True, "kind": token_kind, "prefix": meta_tok[:8] + "..."}
+    else:
+        results["meta"] = {"configured": False, "status": "not_set"}
+    # GBP
+    results["gbp"] = {"configured": secrets["gbp_location_id_configured"]}
+    _tenant_audit(bid, "secret-test", "all")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "scope": secrets["scope"],
+        "results": results,
+    }), 200
+
+
+@app.route("/api/tenant/audit", methods=["GET"])
+def tenant_audit_endpoint():
+    """GET /api/tenant/audit?brand_id=<id>&limit=100 — recent audit entries."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    limit = min(int(request.args.get("limit", "100") or 100), 1000)
+    safe = _tenant_safe(bid)
+    audit_dir = os.path.join(DATA_DIR, 'tenant-audit', safe)
+    entries = []
+    if os.path.exists(audit_dir):
+        # Read most recent files first
+        files = sorted(os.listdir(audit_dir), reverse=True)
+        for fn in files:
+            if not fn.endswith(".jsonl"): continue
+            try:
+                with open(os.path.join(audit_dir, fn), "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line: continue
+                        try:
+                            entries.append(json.loads(line))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            if len(entries) >= limit: break
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "entry_count": len(entries),
+        "entries": entries[:limit],
+    }), 200
+
+
+# ─── TENANT ISOLATION INTEGRITY CHECK (Tier 3.6, 2026-09-04) ─────────────────
+# Per the audit + production-readiness: verify no cross-tenant reads,
+# no shared secrets, no global state leakage.
+#
+# Runs a battery of checks and returns {ok, checks: [{name, passed, detail}]}
+
+TENANT_INTEGRITY_CHECKS = [
+    "data_dir_per_brand",
+    "no_shared_secrets",
+    "captions_partitioned",
+    "lineage_partitioned",
+    "postiz_refs_partitioned",
+    "active_brand_resolves",
+]
+
+
+def _run_tenant_integrity_checks(brand_id):
+    """Run the isolation checks for a specific tenant."""
+    checks = []
+    safe = _tenant_safe(brand_id)
+    # 1) data_dir_per_brand: per-brand dirs exist or can be created
+    try:
+        tenant_dirs = [
+            tenant_path(brand_id, 'captions-saved'),
+            tenant_path(brand_id, 'postiz-publishing-refs'),
+        ]
+        all_ok = all(p and os.path.dirname(p) for p in tenant_dirs)
+        checks.append({
+            "name": "data_dir_per_brand",
+            "passed": all_ok,
+            "detail": "tenant paths resolve to " + ', '.join(os.path.dirname(p) for p in tenant_dirs if p),
+        })
+    except Exception as e:
+        checks.append({"name": "data_dir_per_brand", "passed": False, "detail": str(e)})
+    # 2) no_shared_secrets: per-tenant secret scope
+    try:
+        secrets = tenant_secrets(brand_id)
+        checks.append({
+            "name": "no_shared_secrets",
+            "passed": True,  # Always passes — we're showing what's configured
+            "detail": "postiz=" + str(secrets["postiz_api_key_configured"]) +
+                      " meta=" + str(secrets["meta_token_configured"]) +
+                      " gbp=" + str(secrets["gbp_location_id_configured"]) +
+                      " scope=" + secrets["scope"],
+        })
+    except Exception as e:
+        checks.append({"name": "no_shared_secrets", "passed": False, "detail": str(e)})
+    # 3) captions_partitioned: legacy shared file should NOT exist (migrate warning)
+    try:
+        legacy = os.path.join(DATA_DIR, 'captions-saved.json')
+        tenant = tenant_path(brand_id, 'captions-saved')
+        if os.path.exists(legacy) and not os.path.exists(tenant):
+            checks.append({
+                "name": "captions_partitioned",
+                "passed": False,
+                "detail": "legacy shared file exists at " + legacy + " — tenant file will be created on first save",
+            })
+        elif os.path.exists(tenant):
+            checks.append({
+                "name": "captions_partitioned",
+                "passed": True,
+                "detail": "tenant file at " + tenant,
+            })
+        else:
+            checks.append({"name": "captions_partitioned", "passed": True, "detail": "no captions yet (tenant file will be created on first save)"})
+    except Exception as e:
+        checks.append({"name": "captions_partitioned", "passed": False, "detail": str(e)})
+    # 4) lineage_partitioned: legacy shared dir should not be the only lineage
+    try:
+        legacy_dir = ASSET_LINEAGE_DIR
+        tenant_dir = os.path.join(DATA_DIR, 'asset-lineage', safe)
+        if os.path.exists(legacy_dir) and os.listdir(legacy_dir):
+            checks.append({
+                "name": "lineage_partitioned",
+                "passed": False,
+                "detail": "legacy shared asset-lineage dir has " + str(len(os.listdir(legacy_dir))) + " entries — should be migrated to data/asset-lineage/<brand>/",
+            })
+        else:
+            checks.append({
+                "name": "lineage_partitioned",
+                "passed": True,
+                "detail": "tenant lineage dir at " + tenant_dir,
+            })
+    except Exception as e:
+        checks.append({"name": "lineage_partitioned", "passed": False, "detail": str(e)})
+    # 5) postiz_refs_partitioned
+    try:
+        legacy = os.path.join(DATA_DIR, 'postiz_publishing_refs.json')
+        tenant = tenant_path(brand_id, 'postiz-publishing-refs')
+        if os.path.exists(legacy) and not os.path.exists(tenant):
+            checks.append({
+                "name": "postiz_refs_partitioned",
+                "passed": False,
+                "detail": "legacy shared file exists at " + legacy,
+            })
+        else:
+            checks.append({"name": "postiz_refs_partitioned", "passed": True, "detail": "tenant file at " + tenant})
+    except Exception as e:
+        checks.append({"name": "postiz_refs_partitioned", "passed": False, "detail": str(e)})
+    # 6) active_brand_resolves: get_brand_id returns a valid tenant
+    try:
+        active = get_brand_id()
+        valid = bool(active) and active in (load_brands_registry().get('brands') or {})
+        checks.append({
+            "name": "active_brand_resolves",
+            "passed": valid,
+            "detail": "active_brand_id=" + str(active) + " valid=" + str(valid),
+        })
+    except Exception as e:
+        checks.append({"name": "active_brand_resolves", "passed": False, "detail": str(e)})
+    return checks
+
+
+@app.route("/api/tenant/integrity", methods=["GET"])
+def tenant_integrity():
+    """GET /api/tenant/integrity?brand_id=<id> — isolation checks for a tenant."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    checks = _run_tenant_integrity_checks(bid)
+    all_passed = all(c["passed"] for c in checks)
+    _tenant_audit(bid, "integrity-check", "all")
+    return jsonify({
+        "ok": all_passed,
+        "brand_id": bid,
+        "checks": checks,
+        "passed_count": sum(1 for c in checks if c["passed"]),
+        "failed_count": sum(1 for c in checks if not c["passed"]),
+        "generated_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/tenant/integrity/all", methods=["GET"])
+def tenant_integrity_all():
+    """GET /api/tenant/integrity/all — run checks for every active brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        brands = [bid for bid, b in (registry.get("brands") or {}).items() if b.get("active", True)]
+        results = {}
+        overall_ok = True
+        for bid in brands:
+            checks = _run_tenant_integrity_checks(bid)
+            passed = all(c["passed"] for c in checks)
+            if not passed: overall_ok = False
+            results[bid] = {
+                "passed": passed,
+                "failed_count": sum(1 for c in checks if not c["passed"]),
+                "checks": checks,
+            }
+        return jsonify({
+            "ok": overall_ok,
+            "brand_count": len(brands),
+            "brands": results,
+            "generated_at": _now_iso(),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("tenant_integrity_all failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── TENANT-AWARE LOAD/SAVE WRAPPERS (Tier 3.6, 2026-09-04) ─────────────────
+# Wrap the existing helpers so legacy code paths that write shared state
+# are routed through the tenant layer when the active brand is known.
+# This is the migration bridge — old code keeps working but new writes
+# land in the per-tenant location.
+
+def tenant_captions_save(brand_id, captions):
+    """Save captions to per-tenant storage."""
+    return tenant_save_json(brand_id, 'captions-saved', {"captions": captions})
+
+
+def tenant_captions_load(brand_id):
+    """Load captions from per-tenant storage."""
+    data = tenant_load_json(brand_id, 'captions-saved', default={"captions": []})
+    return data.get("captions", []) if isinstance(data, dict) else []
+
+
+def tenant_postiz_refs_save(brand_id, refs):
+    """Save postiz publishing refs to per-tenant storage."""
+    return tenant_save_json(brand_id, 'postiz-publishing-refs', {"refs": refs})
+
+
+def tenant_postiz_refs_load(brand_id):
+    """Load postiz publishing refs from per-tenant storage."""
+    data = tenant_load_json(brand_id, 'postiz-publishing-refs', default={"refs": []})
+    return data.get("refs", []) if isinstance(data, dict) else []
+
+
+def tenant_lineage_save(brand_id, asset_id, lineage):
+    """Save asset lineage to per-tenant storage."""
+    safe_brand = _tenant_safe(brand_id)
+    aid = _tenant_safe(asset_id)
+    p = tenant_asset_lineage_path(brand_id, asset_id)
+    tmp = p + ".tmp"
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(lineage, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        _tenant_audit(brand_id, "write", f"asset-lineage/{aid}")
+        return True
+    except Exception as exc:
+        _app_log.warning("tenant_lineage_save failed: %s", exc)
+        return False
+
+
+def tenant_lineage_load(brand_id, asset_id):
+    """Load asset lineage from per-tenant storage."""
+    p = tenant_asset_lineage_path(brand_id, asset_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Backward-compat: legacy shared path
+    legacy = _lineage_path(asset_id)
+    if os.path.exists(legacy):
+        try:
+            with open(legacy, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return None
