@@ -24216,3 +24216,377 @@ def brand_settings_demo_load_v2(brand_id):  # Replace the old one
         "products_seeded": products_seeded,
         "message": f"Demo bible loaded for '{bid}'. Bible Score: {score['total']}/100. Products seeded: {products_seeded}.",
     }), 201
+
+
+# ─── PRODUCTION SECURITY HEADERS (Tier 3.8 — Launch checklist, 2026-09-04) ───
+# Per the audit + production-readiness gap: this app currently has:
+#   ✓ flask_cors (CORS)
+#   ✓ single shared password auth
+#   ✗ NO CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+#   ✗ NO rate limiting
+#   ✗ NO error monitoring / alerting
+#   ✗ NO proper liveness/readiness probes
+#
+# This block adds the missing security + ops primitives without
+# breaking existing routes. All changes are opt-in (toggle via env).
+
+def _production_mode_enabled():
+    """Production mode toggles security headers + rate limits on."""
+    return os.environ.get("CAMPAIGN_OS_PRODUCTION", "false").lower() in ("true", "1", "yes")
+
+
+# Apply security headers on every response (production only)
+@app.after_request
+def _apply_security_headers(response):
+    """Add security headers to every response in production mode."""
+    if not _production_mode_enabled():
+        return response
+    # Prevent MIME sniffing
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    # Prevent clickjacking
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    # XSS protection (legacy but still requested by some scanners)
+    response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+    # Referrer policy
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    # Permissions policy — deny dangerous APIs we don't use
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    # HSTS — only when serving over HTTPS (production usually is)
+    if request.is_secure or os.environ.get("RAILWAY_ENVIRONMENT"):
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    # CSP — single-page app, all assets served from same origin
+    # Allow inline scripts (the SPA uses inline scripts), images from data:
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "img-src 'self' data: blob: https:; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "  # SPA has inline scripts
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none';"
+    )
+    return response
+
+
+# ─── RATE LIMITING (Tier 3.8 — Launch checklist, 2026-09-04) ─────────────────
+# Per-IP + per-user token-bucket rate limiter. In-memory only (per-process)
+# so not perfect for multi-worker deployments, but a critical first line
+# of defense. Bypasses for health checks + auth-gated reads.
+
+RATE_LIMIT_BUCKETS = {}  # ip -> {tokens, last_refill, limit}
+RATE_LIMIT_CONFIG = {
+    "default": {"limit": 120, "window_seconds": 60},     # 120 req/min/IP default
+    "auth": {"limit": 10, "window_seconds": 60},         # 10 login attempts/min/IP
+    "write": {"limit": 60, "window_seconds": 60},        # 60 writes/min/IP
+    "expensive": {"limit": 10, "window_seconds": 60},    # 10/min for image gen, Shopify sync
+}
+
+
+def _rate_limit_check(bucket_name="default"):
+    """Check rate limit for the current request IP + bucket.
+    Returns (allowed: bool, remaining: int, reset_in: float)."""
+    if not _production_mode_enabled():
+        return True, 999, 0
+    cfg = RATE_LIMIT_CONFIG.get(bucket_name, RATE_LIMIT_CONFIG["default"])
+    limit = cfg["limit"]
+    window = cfg["window_seconds"]
+    # Identify client — prefer X-Forwarded-For, fallback to remote_addr
+    ip = (request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or
+          request.remote_addr or "unknown")
+    # Identify user (if authed)
+    user_id = ""
+    try:
+        token = request.cookies.get(SESSION_COOKIE)
+        if token:
+            payload = _serializer.loads(token, max_age=SESSION_MAX_AGE)
+            user_id = str(payload.get("u", "")) if isinstance(payload, dict) else ""
+    except Exception:
+        pass
+    key = f"{ip}|{user_id}|{bucket_name}"
+    now = time.time()
+    if key not in RATE_LIMIT_BUCKETS:
+        RATE_LIMIT_BUCKETS[key] = {"tokens": limit, "last_refill": now}
+    bucket = RATE_LIMIT_BUCKETS[key]
+    # Refill tokens based on elapsed time
+    elapsed = now - bucket["last_refill"]
+    refill = (elapsed / window) * limit
+    bucket["tokens"] = min(limit, bucket["tokens"] + refill)
+    bucket["last_refill"] = now
+    # Try to consume 1 token
+    if bucket["tokens"] < 1:
+        return False, 0, window - elapsed
+    bucket["tokens"] -= 1
+    return True, int(bucket["tokens"]), 0
+
+
+def _write_buckets():
+    """Identify write endpoints that get the 'write' bucket."""
+    # Anything that's POST/PUT/DELETE/PATCH on /api/*
+    return request.method in ("POST", "PUT", "DELETE", "PATCH") and request.path.startswith("/api/")
+
+
+def _expensive_buckets():
+    """Identify expensive endpoints."""
+    expensive = (
+        "/api/image/generate",
+        "/api/shopify/",  # /sync-products, /orders, etc.
+        "/api/ga4/",      # /sessions
+        "/api/ab-test",
+        "/api/intel/",
+    )
+    return any(p in request.path for p in expensive)
+
+
+@app.before_request
+def _rate_limit_enforce():
+    """Apply rate limit before request hits a handler."""
+    if not _production_mode_enabled():
+        return None
+    # Skip health checks
+    if request.path in ("/api/health", "/api/ready", "/api/live", "/healthz", "/readyz", "/livez"):
+        return None
+    # Skip static assets
+    if request.path.startswith("/assets/") or request.path.startswith("/static/"):
+        return None
+    # Pick the bucket
+    if request.path == "/login" and request.method == "POST":
+        bucket = "auth"
+    elif _expensive_buckets():
+        bucket = "expensive"
+    elif _write_buckets():
+        bucket = "write"
+    else:
+        bucket = "default"
+    allowed, remaining, reset_in = _rate_limit_check(bucket)
+    if not allowed:
+        resp = jsonify({"ok": False, "error": "rate limit exceeded", "bucket": bucket, "retry_after_seconds": int(reset_in) + 1})
+        resp.status_code = 429
+        resp.headers["Retry-After"] = str(int(reset_in) + 1)
+        resp.headers["X-RateLimit-Limit"] = str(RATE_LIMIT_CONFIG[bucket]["limit"])
+        resp.headers["X-RateLimit-Remaining"] = "0"
+        return resp
+    return None
+
+
+# ─── ERROR MONITORING (Tier 3.8 — Launch checklist, 2026-09-04) ──────────────
+# Append-only error log + endpoint to inspect recent errors.
+# Storage: data/error-log.jsonl (per-process, append-only).
+
+ERROR_LOG_FILE = os.path.join(DATA_DIR, "error-log.jsonl")
+ERROR_LOG_MAX_INMEM = 200  # Last N errors kept in memory for fast /api/ops/errors
+
+
+class _ErrorBuffer:
+    """In-memory ring buffer for recent errors."""
+    def __init__(self, maxlen=ERROR_LOG_MAX_INMEM):
+        self.entries = []
+        self.maxlen = maxlen
+    def append(self, entry):
+        self.entries.append(entry)
+        if len(self.entries) > self.maxlen:
+            self.entries = self.entries[-self.maxlen:]
+
+
+_ERROR_BUFFER = _ErrorBuffer()
+
+
+def _log_error(error_type, message, request_path="", status=500, traceback_str=""):
+    """Append an error entry to disk + in-memory buffer."""
+    entry = {
+        "ts": _now_iso(),
+        "type": error_type,
+        "message": str(message)[:500],
+        "path": request_path,
+        "status": status,
+        "traceback": traceback_str[:1500] if traceback_str else "",
+    }
+    try:
+        with open(ERROR_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+    _ERROR_BUFFER.append(entry)
+
+
+@app.errorhandler(500)
+def _handle_500(e):
+    """Capture 500 errors before they vanish into the void."""
+    import traceback as _tb
+    _log_error("500", str(e), request.path, 500, _tb.format_exc())
+    return jsonify({"ok": False, "error": "internal server error", "request_id": str(uuid.uuid4())[:8]}), 500
+
+
+@app.errorhandler(404)
+def _handle_404(e):
+    """Capture 404s — useful for spotting broken links."""
+    _log_error("404", str(e), request.path, 404, "")
+    return jsonify({"ok": False, "error": "not found", "path": request.path}), 404
+
+
+@app.errorhandler(429)
+def _handle_429(e):
+    _log_error("429", "rate limit exceeded", request.path, 429, "")
+    return jsonify({"ok": False, "error": "rate limit exceeded"}), 429
+
+
+@app.errorhandler(Exception)
+def _handle_exception(e):
+    """Catch-all for unhandled exceptions."""
+    import traceback as _tb
+    # Don't intercept HTTPExceptions (let Flask handle them)
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    _log_error("exception", str(e), request.path, 500, _tb.format_exc())
+    return jsonify({"ok": False, "error": "internal server error", "type": type(e).__name__, "request_id": str(uuid.uuid4())[:8]}), 500
+
+
+@app.route("/api/ops/errors", methods=["GET"])
+def ops_errors_list():
+    """GET /api/ops/errors — recent errors (in-memory ring buffer)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    limit = min(int(request.args.get("limit", "50") or 50), 500)
+    error_type = request.args.get("type", "").strip()
+    entries = _ERROR_BUFFER.entries
+    if error_type:
+        entries = [e for e in entries if e.get("type") == error_type]
+    return jsonify({
+        "ok": True,
+        "error_count": len(entries),
+        "errors": entries[-limit:],
+        "buffer_max": _ERROR_BUFFER.maxlen,
+    }), 200
+
+
+@app.route("/api/ops/errors/stats", methods=["GET"])
+def ops_errors_stats():
+    """GET /api/ops/errors/stats — error counts by type."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    by_type = {}
+    by_path = {}
+    for e in _ERROR_BUFFER.entries:
+        by_type[e.get("type", "unknown")] = by_type.get(e.get("type", "unknown"), 0) + 1
+        by_path[e.get("path", "unknown")] = by_path.get(e.get("path", "unknown"), 0) + 1
+    # Top 10 by path
+    top_paths = sorted(by_path.items(), key=lambda x: -x[1])[:10]
+    return jsonify({
+        "ok": True,
+        "total_errors": len(_ERROR_BUFFER.entries),
+        "by_type": by_type,
+        "top_paths": [{"path": p, "count": c} for p, c in top_paths],
+    }), 200
+
+
+# ─── LIVENESS / READINESS PROBES (Tier 3.8 — Launch checklist, 2026-09-04) ──
+# Per Kubernetes / Railway health-check conventions:
+#   /api/live   — process is alive (always 200 unless something is wrong)
+#   /api/ready  — process can serve traffic (checks data dir + key services)
+#   /api/health — existing combined check
+
+@app.route("/api/live", methods=["GET"])
+@app.route("/livez", methods=["GET"])
+def liveness_probe():
+    """Liveness probe — always 200 unless the process is broken."""
+    return jsonify({"status": "alive", "ts": _now_iso()}), 200
+
+
+@app.route("/api/ready", methods=["GET"])
+@app.route("/readyz", methods=["GET"])
+def readiness_probe():
+    """Readiness probe — checks data dir + critical services."""
+    checks = {}
+    # Data dir writable
+    try:
+        test_path = os.path.join(DATA_DIR, ".ready-check")
+        with open(test_path, "w") as f: f.write("ok")
+        os.remove(test_path)
+        checks["data_dir_writable"] = True
+    except Exception as e:
+        checks["data_dir_writable"] = False
+        checks["data_dir_error"] = str(e)[:100]
+    # Voice bible readable
+    try:
+        vb = _load_voice_bible()
+        checks["voice_bible_loads"] = bool(vb.get("voices"))
+    except Exception:
+        checks["voice_bible_loads"] = False
+    # Brand registry readable
+    try:
+        reg = load_brands_registry()
+        checks["brand_registry_loads"] = bool(reg.get("brands"))
+    except Exception:
+        checks["brand_registry_loads"] = False
+    # Brand settings dir exists or creatable
+    try:
+        os.makedirs(BRAND_SETTINGS_DIR, exist_ok=True)
+        checks["brand_settings_writable"] = True
+    except Exception:
+        checks["brand_settings_writable"] = False
+    all_ready = all(v for k, v in checks.items() if isinstance(v, bool))
+    return jsonify({
+        "status": "ready" if all_ready else "not_ready",
+        "checks": checks,
+        "ts": _now_iso(),
+    }), 200 if all_ready else 503
+
+
+# ─── OPS RUNBOOK PAGE (Tier 3.8 — Launch checklist, 2026-09-04) ────────────
+# One endpoint that returns a single ops snapshot for the dashboard:
+# health + readiness + error stats + recent error log + production-mode status.
+
+@app.route("/api/ops/runbook", methods=["GET"])
+def ops_runbook():
+    """GET /api/ops/runbook — ops snapshot for the runbook page."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Build snapshot
+    checks = {}
+    try:
+        test_path = os.path.join(DATA_DIR, ".ready-check")
+        with open(test_path, "w") as f: f.write("ok")
+        os.remove(test_path)
+        checks["data_dir"] = "ok"
+    except Exception as e:
+        checks["data_dir"] = f"FAIL: {str(e)[:80]}"
+    try:
+        vb = _load_voice_bible()
+        checks["voice_bible"] = f"ok ({len(vb.get('voices') or [])} voices)"
+    except Exception as e:
+        checks["voice_bible"] = f"FAIL: {str(e)[:80]}"
+    try:
+        reg = load_brands_registry()
+        n_brands = len(reg.get("brands") or {})
+        checks["brand_registry"] = f"ok ({n_brands} brands)"
+    except Exception:
+        checks["brand_registry"] = "FAIL"
+    # Production mode
+    prod_mode = _production_mode_enabled()
+    # Errors in last 5 min
+    now_dt = datetime.datetime.utcnow()
+    recent_errors = [e for e in _ERROR_BUFFER.entries
+                     if (now_dt - datetime.datetime.fromisoformat(e.get("ts", "1970-01-01T00:00:00").replace("Z", ""))).total_seconds() < 300]
+    # Rate limit bucket count
+    n_buckets = len(RATE_LIMIT_BUCKETS)
+    # Cron status
+    cron_last_run = None
+    try:
+        cron_log = os.path.join(DATA_DIR, "cron-status.json")
+        if os.path.exists(cron_log):
+            d = json.loads(open(cron_log).read())
+            cron_last_run = d.get("last_run")
+    except Exception:
+        pass
+    return jsonify({
+        "ok": True,
+        "production_mode": prod_mode,
+        "checks": checks,
+        "error_count_last_5min": len(recent_errors),
+        "total_errors_buffered": len(_ERROR_BUFFER.entries),
+        "active_rate_limit_buckets": n_buckets,
+        "cron_last_run": cron_last_run,
+        "data_dir": DATA_DIR,
+        "generated_at": _now_iso(),
+    }), 200

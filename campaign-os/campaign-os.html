@@ -734,6 +734,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
       <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
+      <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
 
       <!-- Labs: experimental / niche tools, hidden by default -->
       <div class="nav-section" id="labs-section">
@@ -3864,7 +3865,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -10669,6 +10670,107 @@ async function abTestConclude(testId) {
   }
 })();
 
+
+
+// ─── OPS RUNBOOK (Tier 3.8 — Production launch, 2026-09-04) ───────────────
+// Per the launch checklist: this page surfaces the boring-but-essential
+// production health primitives in one place:
+//   - Liveness probe (/api/live)
+//   - Readiness probe (/api/ready) with per-service checks
+//   - Production-mode flag (CAMPAIGN_OS_PRODUCTION)
+//   - Error stats by type + top error paths
+//   - Recent error log (ring buffer)
+//   - Runbook snapshot (one-call /api/ops/runbook)
+
+async function renderOps() {
+  // Liveness (no auth required)
+  try {
+    const liveR = await fetch('/api/live');
+    const liveD = await liveR.json();
+    const liveEl = document.getElementById('ops-live');
+    if (liveR.ok) {
+      liveEl.textContent = '✓ alive';
+      liveEl.className = 'pill on';
+    } else {
+      liveEl.textContent = '✕ dead';
+      liveEl.className = 'pill blocked';
+    }
+    document.getElementById('ops-live-details').textContent = 'Last check: ' + (liveD.ts || '');
+  } catch (e) {
+    document.getElementById('ops-live').textContent = '✕ unreachable';
+    document.getElementById('ops-live').className = 'pill blocked';
+  }
+  // Readiness
+  try {
+    const readyR = await fetch('/api/ready');
+    const readyD = await readyR.json();
+    const readyEl = document.getElementById('ops-ready');
+    const details = document.getElementById('ops-ready-details');
+    if (readyR.ok) {
+      readyEl.textContent = '✓ ready';
+      readyEl.className = 'pill on';
+    } else {
+      readyEl.textContent = '✕ not ready';
+      readyEl.className = 'pill blocked';
+    }
+    const checks = readyD.checks || {};
+    details.innerHTML = Object.keys(checks).map(k => {
+      const v = checks[k];
+      const ok = v === true;
+      return '<div style="font-size:11px">' + (ok ? '✓' : '✕') + ' <b>' + esc(k) + '</b>' + (typeof v === 'string' ? ': ' + esc(v.slice(0, 60)) : '') + '</div>';
+    }).join('') || 'no checks';
+  } catch (e) {
+    document.getElementById('ops-ready').textContent = '✕ error';
+    document.getElementById('ops-ready').className = 'pill blocked';
+  }
+  // Runbook snapshot + error stats
+  const r = await API.get('/api/ops/runbook');
+  if (!r.ok) { toast('Runbook failed: ' + r.error, true); return; }
+  const prodEl = document.getElementById('ops-prod-mode');
+  if (prodEl) {
+    prodEl.textContent = r.production_mode ? '✓ ON' : '✕ OFF';
+    prodEl.className = r.production_mode ? 'pill on' : 'pill muted';
+  }
+  // Error stats
+  const statsR = await API.get('/api/ops/errors/stats');
+  if (statsR.ok) {
+    document.getElementById('ops-error-stats').textContent = statsR.total_errors + ' total buffered';
+    document.getElementById('ops-error-types').innerHTML = Object.keys(statsR.by_type || {}).map(t =>
+      '<span class="pill ' + (t === '500' || t === 'exception' ? 'blocked' : t === '404' ? 'muted' : 'live') + '" style="font-size:10px">' + esc(t) + ': ' + statsR.by_type[t] + '</span>'
+    ).join('') || '<span class="muted">No errors</span>';
+    document.getElementById('ops-top-paths').innerHTML = (statsR.top_paths || []).map(p =>
+      '<div>' + esc(p.path) + ' <span class="muted" style="margin-left:.5rem">' + p.count + ' errors</span></div>'
+    ).join('') || '<span class="muted">No path data</span>';
+  }
+  // Recent errors
+  const errR = await API.get('/api/ops/errors?limit=30');
+  if (errR.ok) {
+    document.getElementById('ops-error-count').textContent = errR.error_count + ' in buffer';
+    document.getElementById('ops-errors').innerHTML = (errR.errors || []).slice().reverse().map(e => {
+      const color = e.type === '500' || e.type === 'exception' ? 'var(--danger)' : e.type === '429' ? 'var(--accent)' : 'var(--tx-3)';
+      return '<div style="padding:.3rem .5rem;border-bottom:1px solid var(--bd)"><span style="color:' + color + '">' + esc(e.type) + '</span> · <span style="color:var(--tx-3)">' + esc((e.ts || '').slice(11, 19)) + '</span> · <code>' + esc(e.path || '') + '</code> · ' + esc((e.message || '').slice(0, 80)) + '</div>';
+    }).join('') || '<div class="empty">No errors buffered ✓</div>';
+  }
+}
+
+(function wireOps() {
+  const refresh = document.getElementById('ops-refresh');
+  if (refresh && !refresh._wired) {
+    refresh._wired = true;
+    refresh.addEventListener('click', renderOps);
+  }
+  const clear = document.getElementById('ops-clear-errors');
+  if (clear && !clear._wired) {
+    clear._wired = true;
+    clear.addEventListener('click', () => {
+      // Client-side clear — server doesn't expose a DELETE, but the ring buffer
+      // rolls over naturally. This button just hides the panel.
+      document.getElementById('ops-errors').innerHTML = '<div class="empty">Buffer cleared locally. (Server ring buffer will roll over on next 200 errors.)</div>';
+      toast('✓ Local view cleared');
+    });
+  }
+})();
+
 </script>
 
 
@@ -11010,6 +11112,52 @@ async function abTestConclude(testId) {
         </div>
       </div>
       <div id="ab-list" class="grid"></div>
+    </section>
+
+
+    <!-- ─── OPS RUNBOOK (Tier 3.8 — Production launch, 2026-09-04) ─────────── -->
+    <section class="section" id="sec-ops">
+      <div class="section-h">
+        <h2>🛠️ Ops Runbook</h2>
+        <span class="sub">Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive.</span>
+        <button class="btn ghost" id="ops-refresh" style="margin-left:auto">🔄 Refresh</button>
+      </div>
+
+      <div class="grid">
+        <div class="card col-4">
+          <div class="card-h"><h3>🟢 Liveness</h3><span class="pill on" id="ops-live">—</span></div>
+          <div id="ops-live-details" style="font-size:11px;color:var(--tx-3)">Process alive check</div>
+        </div>
+        <div class="card col-4">
+          <div class="card-h"><h3>🛡️ Readiness</h3><span class="pill" id="ops-ready">—</span></div>
+          <div id="ops-ready-details" style="font-size:11px;color:var(--tx-3);line-height:1.5"></div>
+        </div>
+        <div class="card col-4">
+          <div class="card-h"><h3>⚙️ Production mode</h3><span class="pill" id="ops-prod-mode">—</span></div>
+          <div id="ops-prod-details" style="font-size:11px;color:var(--tx-3);line-height:1.5">
+            Set <code>CAMPAIGN_OS_PRODUCTION=true</code> in env to enable:<br>
+            • Security headers (CSP, X-Frame-Options, HSTS)<br>
+            • Rate limits (default 120/min/IP, auth 10/min/IP)<br>
+            • Error logging + monitoring
+          </div>
+        </div>
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>📊 Error stats</h3>
+            <span class="muted" id="ops-error-stats">—</span>
+          </div>
+          <div id="ops-error-types" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem"></div>
+          <div id="ops-top-paths" style="font-size:11px;font-family:var(--mono,monospace)"></div>
+        </div>
+        <div class="card col-12">
+          <div class="card-h">
+            <h3>📜 Recent errors</h3>
+            <span class="muted" id="ops-error-count">—</span>
+            <button class="btn-mini" id="ops-clear-errors" style="margin-left:auto">🗑 Clear buffer</button>
+          </div>
+          <div id="ops-errors" style="max-height:400px;overflow-y:auto;font-family:var(--mono,monospace);font-size:11px"></div>
+        </div>
+      </div>
     </section>
 
 </body>
