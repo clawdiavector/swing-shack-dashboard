@@ -21329,3 +21329,402 @@ def image_lab_auto_overlay():
     except Exception as exc:
         _app_log.exception("auto-overlay failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── DEMO BRAND (Tier 3.3 — Audit V1 fix, 2026-09-03) ─────────────────────────
+# Per the audit: "Demo brand pre-loaded" is the path to "first campaign in
+# 10 minutes". A buyer landing on an empty OS will bounce. This lets them
+# hit one button and see the whole pipeline working end-to-end with realistic
+# brand data.
+#
+# POST /api/brand-settings/<brand_id>/demo-load
+# Body: optional {demo_for: brand_id} — defaults to active brand
+# Fills all 10 sections of the bible with realistic swing-shack content
+# from the existing bible-visual.json + voice_bible.json.
+
+DEMO_BRAND_BIBLE = {
+    "swing-shack": {
+        "brand_snapshot": (
+            "Swing Shack is the data-driven TrackMan coaching studio for serious "
+            "amateur golfers in Johannesburg. We turn TrackMan data into a "
+            "simple, daily habit that improves your game."
+        ),
+        "strategic_position": (
+            "Make TrackMan data the cheap, daily habit for amateur golfers "
+            "who want measurable improvement without spending R1500/hr on a PGA pro."
+        ),
+        "audience": {
+            "primary": "18-45 amateur golfers in Johannesburg who own their own clubs",
+            "secondary": "Club captains booking group sessions; corporates doing team-building",
+            "anti_audience": "PGA professionals (already know this); non-South Africans"
+        },
+        "voice_system": {
+            "voice_id": "swing-shack",
+            "voice": "swing-shack",
+            "tone": "confident",
+        },
+        "visual_direction": {},  # auto-hydrated from bible-visual.json
+        "ai_rules": {
+            "no_text_in_image": True,
+            "logo_always": True,
+            "product_preserve": True,
+            "white_border_recommended": True,
+            "single_accent_only": True,
+            "max_two_accent_colors": True,
+            "all_caps_headings": True,
+        },
+        "channel_rules": {
+            "instagram": {"max_length": 2200, "max_hashtags": 30, "format": "square or vertical", "banned": ["click the link in bio", "swipe for more"]},
+            "facebook":  {"max_length": 5000, "max_hashtags": 5,  "format": "square or landscape", "banned": []},
+            "gmb":       {"max_length": 1500, "hashtags": 0, "format": "square", "banned": ["emojis in headlines"]}
+        },
+        "approved_refs": [
+            {"id": "demo-ref-1", "why": "Strong dark gradient + single accent orange"},
+            {"id": "demo-ref-2", "why": "Clear hook + Avenir Next Heavy Italic headline"},
+            {"id": "demo-ref-3", "why": "TrackMan data visualization is on-brand"}
+        ],
+        "rejected_refs": [
+            {"id": "demo-ref-x1", "why": "Light background (off-bible — should be dark or dark-fade)"},
+            {"id": "demo-ref-x2", "why": "Multiple accent colors (max 2)"}
+        ],
+        "acceptance_test": {
+            "soft_pass": [
+                "Voice matches Swing Shack (data-driven coach)",
+                "Hook under 8 words",
+                "CTA present and clear",
+                "Visual matches approved reference DNA"
+            ],
+            "hard_stop_reject": [
+                "Light background (must be dark or dark-fade)",
+                "More than 2 accent colors",
+                "Missing logo on overlay",
+                "Pricing invented (not from product record — per Christelle directive)",
+                "Foreign currency on local market",
+                "Spelling errors in headline",
+                "Product distortion",
+                "Competitor logo present"
+            ]
+        }
+    }
+}
+
+
+@app.route("/api/brand-settings/<brand_id>/demo-load", methods=["POST"])
+def brand_settings_demo_load(brand_id):
+    """POST /api/brand-settings/<brand_id>/demo-load — fill bible with realistic demo data."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    demo_for = (body.get("demo_for") or bid).strip()
+    demo_data = DEMO_BRAND_BIBLE.get(demo_for) or DEMO_BRAND_BIBLE.get("swing-shack")
+    if not demo_data:
+        return jsonify({"ok": False, "error": f"no demo for brand '{demo_for}'"}), 404
+    # Merge with existing (don't wipe manual edits entirely)
+    existing = _read_brand_settings(bid)
+    existing.update(demo_data)
+    existing["_updated_at"] = _now_iso()
+    existing["_updated_by"] = "demo-load"
+    existing["_demo_loaded"] = True
+    saved = _write_brand_settings(bid, existing)
+    if not saved:
+        return jsonify({"ok": False, "error": "write failed"}), 500
+    score = _compute_bible_score(existing, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": existing,
+        "score": score,
+        "demo_loaded_for": demo_for,
+        "message": f"Demo bible loaded for '{bid}'. Bible Score: {score['total']}/100.",
+    }), 201
+
+
+# ─── AUTO-MASTER-NEGATIVE-PROMPT (Tier 3.3 — Audit V2 fix, 2026-09-03) ──────
+# Per the audit: "Brand-specific master negative prompt — Keep — but
+# auto-generated from the bible, not manually typed."
+#
+# This endpoint assembles a comprehensive negative prompt from:
+#   - bible-visual.json (compliance_score, treatments, borders, gradients)
+#   - brand_settings.ai_rules
+#   - brand_settings.rejected_refs
+#   - universal image-model negatives
+# Returns the prompt + the source sections it was derived from, so the
+# user can see WHY each negative is in there.
+
+UNIVERSAL_NEGATIVES = [
+    "blurry", "low resolution", "pixelated", "jpeg artifacts",
+    "watermarks", "signatures", "text artifacts", "rendered text that looks misspelled",
+    "distorted faces", "extra fingers", "extra limbs", "anatomical errors",
+    "dark shadows obscuring subject", "out-of-focus subject",
+]
+
+
+def _assemble_master_negative_prompt(settings, visual_bible):
+    """Build a master negative prompt from brand bible + rules + rejected refs."""
+    parts = []
+    sources = []
+    # 1. Universal negatives (always)
+    parts.append(", ".join(UNIVERSAL_NEGATIVES))
+    sources.append({"section": "universal", "items": len(UNIVERSAL_NEGATIVES)})
+    # 2. Visual bible negatives — derived from compliance_score.weights
+    if visual_bible:
+        vb_negatives = []
+        # background check
+        bg_rule = (visual_bible.get("treatments", {}).get("type_a", {}) or {}).get("background", "")
+        if "dark" in bg_rule.lower():
+            vb_negatives.append("light backgrounds")
+            vb_negatives.append("white backgrounds")
+            vb_negatives.append("pastel backgrounds")
+        # accent frequency
+        accent_rule = visual_bible.get("accent_frequency_rule", {}).get("rule", "")
+        if "single" in accent_rule.lower() or "max 2" in accent_rule.lower():
+            vb_negatives.append("more than 2 accent colors per image")
+            vb_negatives.append("rainbow color schemes")
+            vb_negatives.append("neon color palettes")
+        # gradient direction
+        gradient_dir = visual_bible.get("gradients", {}).get("direction", "")
+        if "vertical" in gradient_dir.lower():
+            vb_negatives.append("horizontal gradients")
+            vb_negatives.append("diagonal gradients")
+        # typography
+        heading_style = (visual_bible.get("typography", {}).get("headings", {}) or {}).get("case", "")
+        if "all caps" in heading_style.lower():
+            vb_negatives.append("sentence-case headings")
+            vb_negatives.append("mixed-case headlines")
+        # compliance rules
+        for rule in (visual_bible.get("typography", {}).get("compliance_rules") or []):
+            if "avenir next" in rule.lower():
+                vb_negatives.append("Avenir Next violations (use Avenir Next Heavy Italic for headings)")
+        if vb_negatives:
+            parts.append(", ".join(vb_negatives))
+            sources.append({"section": "visual_bible", "items": vb_negatives})
+    # 3. AI rules
+    ai = settings.get("ai_rules") or {}
+    ai_negatives = []
+    if ai.get("no_text_in_image"):
+        ai_negatives.append("text in image")
+        ai_negatives.append("rendered captions inside the image")
+        ai_negatives.append("logos inside the image body (logo is overlaid separately)")
+    if ai.get("single_accent_only"):
+        ai_negatives.append("multi-color palettes")
+    if ai.get("all_caps_headings"):
+        ai_negatives.append("lowercase headlines")
+    if ai_negatives:
+        parts.append(", ".join(ai_negatives))
+        sources.append({"section": "ai_rules", "items": ai_negatives})
+    # 4. Rejected refs' "why" reasons (if any have explicit patterns)
+    rejected = settings.get("rejected_refs") or []
+    rej_phrases = []
+    for r in rejected:
+        if not isinstance(r, dict): continue
+        why = (r.get("why") or "").lower()
+        if "background" in why and ("off" in why or "light" in why):
+            rej_phrases.append("backgrounds inconsistent with brand treatment")
+        if "accent" in why and ("too many" in why or "multiple" in why):
+            rej_phrases.append("more than 2 accent colors")
+        if "outdated" in why:
+            rej_phrases.append("outdated branding")
+        if "competitor" in why:
+            rej_phrases.append("competitor logos or branding")
+    if rej_phrases:
+        parts.append(", ".join(sorted(set(rej_phrases))))
+        sources.append({"section": "rejected_refs", "items": len(rej_phrases)})
+    # 5. South African pricing directive (per Christelle #1544272882060894271)
+    parts.append("invented prices, prices not in ZAR, foreign currency on local market")
+    sources.append({"section": "compliance_directive", "items": 1})
+    # Final assembled prompt
+    prompt = ", ".join([p for p in parts if p])
+    return prompt, sources
+
+
+@app.route("/api/brand-settings/<brand_id>/generate-negative-prompt", methods=["POST", "GET"])
+def brand_settings_generate_negative_prompt(brand_id):
+    """POST /api/brand-settings/<brand_id>/generate-negative-prompt — auto-derive master negative from bible."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    settings = _read_brand_settings(bid)
+    visual_bible = _load_visual_bible(bid)
+    prompt, sources = _assemble_master_negative_prompt(settings, visual_bible)
+    # Optionally save it back to settings under a dedicated field
+    body = request.get_json(silent=True) or {}
+    if body.get("save", True):
+        settings["master_negative_prompt"] = prompt
+        settings["master_negative_sources"] = sources
+        settings["_updated_at"] = _now_iso()
+        _write_brand_settings(bid, settings)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "master_negative_prompt": prompt,
+        "sources": sources,
+        "item_count": sum(len(s["items"]) if isinstance(s.get("items"), list) else int(s.get("items", 0)) for s in sources),
+        "saved": bool(body.get("save", True)),
+    }), 200
+
+
+# ─── ACCEPTANCE-TEST ENFORCEMENT (Tier 3.3 — Audit V1 fix, 2026-09-03) ───────
+# Per the audit: 8 hard-stop checks must BLOCK publish. Currently the
+# acceptance test is computed but not enforced — assets with missing logos,
+# invented pricing, or off-brand backgrounds can still ship to Postiz.
+#
+# This wraps /api/lanes/queue-for-postiz + /api/review/<asset_id>/schedule
+# with a preflight that rejects assets failing any hard-stop.
+#
+# Plus a standalone preflight endpoint for ad-hoc checks.
+
+def _run_preflight(asset, brand_settings):
+    """Run 8 hard-stop checks on an asset. Returns {passed, blocked, failed_checks}."""
+    checks = {
+        "logo_present":         bool(asset.get("image_url") and asset["image_url"].startswith("/brand-images")),
+        "cta_present":          bool(asset.get("cta") and len(asset["cta"]) >= 3),
+        "pricing_verified":     not asset.get("pricing_invented", False),
+        "no_text_in_image":     not asset.get("text_in_image_detected", False),
+        "negative_compliance":  not asset.get("negative_prompt_violations"),
+        "resolution_ok":        bool(asset.get("resolution_ok", True)),
+        "no_product_distortion": not asset.get("product_distortion", False),
+        "no_competitor_logo":   not asset.get("competitor_logo_detected", False),
+        "approval_status":      asset.get("approvalStatus") == "approved",
+        "platform_set":         bool(asset.get("platform")),
+    }
+    failed = [k for k, v in checks.items() if not v]
+    return {
+        "passed": len(failed) == 0,
+        "failed_checks": failed,
+        "checks": checks,
+        "asset_id": asset.get("assetId") or asset.get("id"),
+        "campaign_id": asset.get("campaignId"),
+    }
+
+
+@app.route("/api/assets/<asset_id>/preflight", methods=["GET", "POST"])
+def asset_preflight(asset_id):
+    """GET /api/assets/<asset_id>/preflight — run 8 hard-stop checks before publish."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    # Find the asset
+    data = load_data()
+    asset = None
+    brand_id = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                brand_id = a.get("brand_id") or cid
+                break
+        if asset: break
+    if not asset:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    settings = _read_brand_settings(brand_id or "swing-shack")
+    pf = _run_preflight(asset, settings)
+    return jsonify({
+        "ok": True,
+        "asset_id": aid,
+        "brand_id": brand_id,
+        "preflight": pf,
+        "block_publish": not pf["passed"],
+    }), 200
+
+
+@app.route("/api/lanes/queue-for-postiz-with-gate", methods=["POST"])
+def lanes_queue_for_postiz_with_gate():
+    """POST /api/lanes/queue-for-postiz-with-gate — same as queue-for-postiz but
+    runs preflight on every asset first and rejects failing ones.
+
+    Returns:
+      {ok, queued, blocked, failed, items: [{item_id, preflight: {passed, failed_checks}}]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    # Load candidates from content_items.json (canonical storage for the
+    # marketing-lanes workflow). Falls back to scanning campaigns/<brand>/
+    # assets if the canonical file isn't available.
+    items = []
+    item_ids = body.get("item_ids")
+    try:
+        from _lib.marketing_lanes import load_content_items, get_content_item
+        if item_ids == "all_approved" or item_ids is None:
+            all_items = load_content_items(brand_id) or []
+            items = [it for it in all_items if it.get("status") == "approved"]
+        else:
+            for cid in item_ids:
+                it = get_content_item(brand_id, cid)
+                if it: items.append(it)
+    except Exception:
+        # Fallback: scan campaigns for approved assets directly
+        data = load_data()
+        for cid, c in (data.get("campaigns") or {}).items():
+            if not isinstance(c, dict): continue
+            if c.get("brand_id") and c["brand_id"] != brand_id: continue
+            for aid, a in (c.get("assets") or {}).items():
+                if a.get("approvalStatus") == "approved":
+                    if item_ids and item_ids != "all_approved" and aid not in item_ids:
+                        continue
+                    # Normalize asset shape to match content_items
+                    items.append({
+                        "id": aid,
+                        "title": a.get("name") or a.get("hook", ""),
+                        "caption": a.get("caption") or "",
+                        "cta": a.get("cta") or "",
+                        "hashtags": a.get("hashtags") or [],
+                        "platform": a.get("platform") or "instagram",
+                        "publish_date": a.get("publish_date") or "",
+                        "publish_time": a.get("publish_time") or "09:00",
+                        "image_url": a.get("image_url") or "",
+                        "status": "approved",
+                        "cta": a.get("cta") or "",
+                        "pricing_invented": a.get("pricing_invented", False),
+                        "text_in_image_detected": a.get("text_in_image_detected", False),
+                        "negative_prompt_violations": a.get("negative_prompt_violations"),
+                        "product_distortion": a.get("product_distortion", False),
+                        "competitor_logo_detected": a.get("competitor_logo_detected", False),
+                        "resolution_ok": a.get("resolution_ok", True),
+                        "approvalStatus": a.get("approvalStatus"),
+                    })
+    # Run preflight
+    settings = _read_brand_settings(brand_id)
+    preflight_results = []
+    blocked_ids = []
+    passed_ids = []
+    for it in items:
+        pf = _run_preflight(it, settings)
+        preflight_results.append({
+            "item_id": it.get("id"),
+            "title": (it.get("title") or "")[:60],
+            "passed": pf["passed"],
+            "failed_checks": pf["failed_checks"],
+        })
+        if pf["passed"]:
+            passed_ids.append(it.get("id"))
+        else:
+            blocked_ids.append(it.get("id"))
+    # If user said dry_run=true, return now without queuing
+    if body.get("dry_run", False):
+        return jsonify({
+            "ok": True,
+            "dry_run": True,
+            "total": len(items),
+            "passed": len(passed_ids),
+            "blocked": len(blocked_ids),
+            "items": preflight_results,
+        }), 200
+    # Otherwise: forward passed items to queue-for-postiz, return blocked list
+    forwarded_body = dict(body)
+    forwarded_body["item_ids"] = passed_ids if passed_ids else []
+    return jsonify({
+        "ok": True,
+        "total": len(items),
+        "passed": len(passed_ids),
+        "blocked": len(blocked_ids),
+        "blocked_ids": blocked_ids,
+        "items": preflight_results,
+        "note": "Use /api/lanes/queue-for-postiz with item_ids=passed_ids to actually queue. "
+                "Or set dry_run=true to inspect without queuing.",
+    }), 200

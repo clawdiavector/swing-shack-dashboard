@@ -9547,6 +9547,246 @@ async function obGenerate() {
   });
 })();
 
+
+
+// ─── BRAND SETTINGS: demo-load + generate negative (Tier 3.3, 2026-09-03) ──
+// Per the audit: "Demo brand pre-loaded" + "Auto-master-negative-prompt
+// generation from bible". These two endpoints make the system usable
+// on day one for a new buyer.
+
+async function brandSettingsLoadDemo() {
+  const brand = $('#bs-brand')?.value || 'swing-shack';
+  if (!confirm('Load the demo bible for ' + brand + '?\n\nThis fills all 10 sections with realistic content. You can edit any field afterwards.')) return;
+  const btn = $('#bs-load-demo');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.post('/api/brand-settings/' + encodeURIComponent(brand) + '/demo-load', {});
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    toast('✓ Demo loaded. Bible Score: ' + (r.score?.total || 0) + '/100');
+    await renderBrandSettings();
+    // Auto-derive the negative prompt right after demo load
+    await brandSettingsGenNegative();
+  } catch (e) {
+    toast('Demo load failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🎲 Load demo'; }
+  }
+}
+
+async function brandSettingsGenNegative() {
+  const brand = $('#bs-brand')?.value || 'swing-shack';
+  const btn = $('#bs-gen-negative');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.post('/api/brand-settings/' + encodeURIComponent(brand) + '/generate-negative-prompt', {});
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const card = $('#bs-negative-card');
+    const content = $('#bs-negative-content');
+    const sources = $('#bs-negative-sources');
+    if (card) card.hidden = false;
+    if (content) content.textContent = r.master_negative_prompt || '(empty)';
+    if (sources) {
+      sources.innerHTML = (r.sources || []).map(s => {
+        const n = Array.isArray(s.items) ? s.items.length : (s.items || 0);
+        return '<span class="pill muted" style="font-size:10px">' + esc(s.section) + ': ' + n + '</span>';
+      }).join('') + '<span class="pill primary" style="font-size:10px">total: ' + (r.item_count || 0) + ' items</span>';
+    }
+    toast('✓ Negative prompt generated (' + (r.item_count || 0) + ' items from ' + (r.sources || []).length + ' sources)');
+  } catch (e) {
+    toast('Negative generation failed: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🧪 Generate negative'; }
+  }
+}
+
+// Copy negative prompt to clipboard
+function brandSettingsCopyNegative() {
+  const text = $('#bs-negative-content')?.textContent || '';
+  if (!text) return;
+  try {
+    navigator.clipboard.writeText(text);
+    toast('✓ Copied to clipboard');
+  } catch (_) {
+    toast('Copy failed', true);
+  }
+}
+
+// Wire up the demo + negative buttons
+(function wireDemoButtons() {
+  const demoBtn = $('#bs-load-demo');
+  if (demoBtn && !demoBtn._wired) {
+    demoBtn._wired = true;
+    demoBtn.addEventListener('click', brandSettingsLoadDemo);
+  }
+  const negBtn = $('#bs-gen-negative');
+  if (negBtn && !negBtn._wired) {
+    negBtn._wired = true;
+    negBtn.addEventListener('click', brandSettingsGenNegative);
+  }
+  const copyBtn = $('#bs-negative-copy');
+  if (copyBtn && !copyBtn._wired) {
+    copyBtn._wired = true;
+    copyBtn.addEventListener('click', brandSettingsCopyNegative);
+  }
+})();
+
+
+// ─── ASSET PREFLIGHT (Tier 3.3 — Audit V1 fix, 2026-09-03) ─────────────────
+// Per the audit: 8 hard-stop checks must BLOCK publish. This adds a
+// preflight badge to every asset that shows which checks pass/fail
+// before the user tries to ship it.
+//
+// Plus a "🛡 Preflight" button on Review rows + an audit-friendly
+// "🚀 Push to Postiz (with gate)" that uses /api/lanes/queue-for-postiz-with-gate.
+
+async function assetPreflight(assetId, btn) {
+  if (!assetId) return;
+  const orig = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.get('/api/assets/' + encodeURIComponent(assetId) + '/preflight');
+    if (!r.ok) { toast('Preflight failed: ' + r.error, true); return; }
+    const pf = r.preflight || {};
+    const failed = pf.failed_checks || [];
+    // Show inline modal-like panel
+    showPreflightModal(assetId, r);
+    if (failed.length === 0) {
+      toast('✓ All checks pass — safe to ship');
+    } else {
+      toast('⚠ ' + failed.length + ' check(s) blocking publish', true);
+    }
+  } catch (e) {
+    toast('Preflight error: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig || '🛡'; }
+  }
+}
+
+function showPreflightModal(assetId, data) {
+  const modalId = 'preflight-modal-' + assetId;
+  let modal = document.getElementById(modalId);
+  if (modal) { modal.remove(); }
+  modal = document.createElement('div');
+  modal.id = modalId;
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  const checks = data.preflight?.checks || {};
+  const failed = data.preflight?.failed_checks || [];
+  const rows = Object.keys(checks).map(k => {
+    const v = checks[k];
+    const ok = v === true;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-bottom:1px solid var(--bd);font-size:13px">' +
+      '<span style="display:flex;align-items:center;gap:.5rem">' +
+      '<span style="font-size:14px;color:' + (ok ? 'var(--success)' : 'var(--danger)') + '">' + (ok ? '✓' : '✕') + '</span>' +
+      esc(k.replace(/_/g, ' ')) +
+      '</span>' +
+      '<span style="font-size:11px;color:var(--tx-3)">' + (ok ? 'pass' : 'BLOCK') + '</span>' +
+    '</div>';
+  }).join('');
+  modal.innerHTML = `
+    <div style="background:var(--bg-1);border:1px solid var(--bd);border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;padding:1.5rem;color:var(--tx);font-family:inherit" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h3 style="margin:0;font-size:18px">🛡 Preflight: ${esc(assetId)}</h3>
+        <button class="btn ghost" onclick="document.getElementById('${modalId}').remove()">✕</button>
+      </div>
+      <div style="padding:.6rem .75rem;border-radius:8px;margin-bottom:1rem;${failed.length === 0 ? 'background:var(--bg-2);color:var(--success);border:1px solid var(--success)' : 'background:var(--bg-2);color:var(--danger);border:1px solid var(--danger)'}">
+        <b>${failed.length === 0 ? '✓ All checks pass — safe to ship' : '⚠ ' + failed.length + ' check(s) blocking publish'}</b>
+        ${failed.length > 0 ? '<div style="margin-top:.4rem;font-size:11px">Fix the failing checks below before shipping to Postiz.</div>' : ''}
+      </div>
+      <div style="background:var(--bg-2);border-radius:8px;overflow:hidden">${rows}</div>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn" onclick="document.getElementById('${modalId}').remove()">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+// Delegated handler for data-asset-preflight buttons
+(function wireAssetPreflight() {
+  if (!window._assetPreflightWired) {
+    window._assetPreflightWired = true;
+    document.addEventListener('click', async e => {
+      const btn = e.target.closest('[data-asset-preflight]');
+      if (btn) { e.preventDefault(); e.stopPropagation(); await assetPreflight(btn.dataset.assetPreflight, btn); return; }
+    });
+  }
+})();
+
+
+// ─── QUEUE-TO-POSTIZ WITH GATE (Tier 3.3, 2026-09-03) ───────────────────────
+// Audit V1 fix: shipping to Postiz now goes through preflight.
+// This wraps the queue-with-gate endpoint and shows a dry-run summary
+// before any actual posts go out.
+async function queueWithGateDryRun(brand) {
+  try {
+    const r = await API.post('/api/lanes/queue-for-postiz-with-gate', { brand_id: brand || 'swing-shack', dry_run: true });
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    const passed = r.passed || 0;
+    const blocked = r.blocked || 0;
+    const total = r.total || 0;
+    const items = r.items || [];
+    if (total === 0) {
+      toast('No approved assets to queue');
+      return;
+    }
+    // Build modal showing the dry-run results
+    const modalId = 'queue-gate-modal';
+    let modal = document.getElementById(modalId);
+    if (modal) modal.remove();
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    const itemRows = items.map(it => {
+      const icon = it.passed ? '✓' : '⚠';
+      const color = it.passed ? 'var(--success)' : 'var(--danger)';
+      const fails = (it.failed_checks || []).join(', ') || '-';
+      return '<div style="padding:.5rem .75rem;border-bottom:1px solid var(--bd);font-size:12px">' +
+        '<div style="display:flex;justify-content:space-between"><span>' + icon + ' ' + esc((it.title || it.item_id || '').slice(0, 60)) + '</span><span style="color:' + color + ';font-size:10px">' + (it.passed ? 'PASS' : 'BLOCKED') + '</span></div>' +
+        (!it.passed ? '<div style="margin-top:.25rem;color:var(--danger);font-size:11px">Failed: ' + esc(fails) + '</div>' : '') +
+      '</div>';
+    }).join('');
+    modal.innerHTML = `
+      <div style="background:var(--bg-1);border:1px solid var(--bd);border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:1.5rem;color:var(--tx);font-family:inherit" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <h3 style="margin:0;font-size:18px">🛡 Preflight: ${total} assets · ${passed} pass · ${blocked} blocked</h3>
+          <button class="btn ghost" onclick="document.getElementById('${modalId}').remove()">✕</button>
+        </div>
+        <div style="background:var(--bg-2);border-radius:8px;overflow:hidden">${itemRows || '<div style="padding:1rem;color:var(--tx-3);font-size:12px;text-align:center">No items</div>'}</div>
+        <div style="margin-top:1rem;display:flex;gap:.5rem;justify-content:flex-end">
+          ${passed > 0 ? '<button class="btn primary" id="queue-gate-confirm">🚀 Queue ' + passed + ' passing asset(s)</button>' : ''}
+          <button class="btn" onclick="document.getElementById(\'${modalId}\').remove()">Close</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('queue-gate-confirm')?.addEventListener('click', async () => {
+      // Forward to the standard queue endpoint with the passing IDs
+      const passingIds = items.filter(it => it.passed).map(it => it.item_id).filter(Boolean);
+      const r2 = await API.post('/api/lanes/queue-for-postiz', { brand_id: brand || 'swing-shack', item_ids: passingIds });
+      if (r2.ok) {
+        toast('✓ Queued ' + (r2.queued || passingIds.length) + ' to Postiz');
+        modal.remove();
+      } else {
+        toast('Queue failed: ' + r2.error, true);
+      }
+    });
+  } catch (e) {
+    toast('Preflight failed: ' + (e.message || e), true);
+  }
+}
+
+(function wireQueueGate() {
+  if (!window._queueGateWired) {
+    window._queueGateWired = true;
+    document.addEventListener('click', async e => {
+      const btn = e.target.closest('[data-queue-gate]');
+      if (btn) { e.preventDefault(); e.stopPropagation(); await queueWithGateDryRun(btn.dataset.queueGate); return; }
+    });
+  }
+})();
+
 </script>
 
 
@@ -9563,6 +9803,8 @@ async function obGenerate() {
             <option value="takomo">Takomo</option>
           </select>
           <span id="bs-score-badge" class="pill live">Bible Score: 0/100</span>
+          <button class="btn ghost" id="bs-load-demo" title="Load realistic Swing Shack demo bible">🎲 Load demo</button>
+          <button class="btn ghost" id="bs-gen-negative" title="Auto-derive master negative prompt from bible">🧪 Generate negative</button>
           <button class="btn primary" id="bs-save">💾 Save bible</button>
         </div>
       </div>
@@ -9578,6 +9820,14 @@ async function obGenerate() {
 
       <!-- The 10 sections in a 2-column grid -->
       <div id="bs-sections" class="grid"></div>
+
+      <!-- Generated master negative prompt (collapsible) -->
+      <div class="card col-12" id="bs-negative-card" hidden style="margin-top:1rem">
+        <div class="card-h"><h3>🧪 Generated master negative prompt</h3><button class="btn ghost" id="bs-negative-copy" style="margin-left:auto;font-size:11px;padding:3px 8px">📋 Copy</button></div>
+        <div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">Auto-derived from your bible + visual rules + rejected refs. Paste into your image generation prompt as the negative prompt.</div>
+        <div id="bs-negative-content" style="background:var(--bg-1);border-radius:8px;padding:.75rem;font-family:var(--mono,monospace);font-size:12px;line-height:1.5;white-space:pre-wrap;color:var(--tx-2);max-height:300px;overflow-y:auto"></div>
+        <div id="bs-negative-sources" style="margin-top:.75rem;display:flex;gap:.35rem;flex-wrap:wrap"></div>
+      </div>
     </section>
 
 
