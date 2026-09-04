@@ -25923,3 +25923,280 @@ def fleet_correction_capture():
     }
     saved = _save_insight(insight)
     return jsonify({"ok": True, "insight": saved, "message": "Correction captured. Will surface across all future sessions."}), 201
+
+
+# ─── FLEET-AGENT WEEKLY SYNTHESIS (Tier 3.12, 2026-09-04) ─────────────────────
+# Per the self-improvement loop: every correction, insight, error, and
+# decision Heidi makes should accumulate into a weekly narrative that
+# the operator (Christelle) can read in 2 minutes.
+#
+# Different from the existing weekly_report which tracks business KPIs
+# (IG performance, GBP insights, etc.). This is about the agent itself:
+#   - What corrections were captured this week
+#   - What insights were derived (corrections + lessons + patterns)
+#   - What errors fired (recurring vs one-off)
+#   - What decisions were made (commits + audit trail)
+#   - What patterns emerged
+#
+# Output: Discord-friendly markdown that can be pasted into a channel.
+
+WEEKLY_SYNTHESIS_DIR = os.path.join(DATA_DIR, "weekly-synthesis")
+
+
+def _weekly_synthesis_path(week_ending=None):
+    """Path to a weekly synthesis file. week_ending is ISO date."""
+    if not week_ending:
+        week_ending = _now_iso()[:10]
+    os.makedirs(WEEKLY_SYNTHESIS_DIR, exist_ok=True)
+    safe = week_ending.replace("-", "")
+    return os.path.join(WEEKLY_SYNTHESIS_DIR, "week-" + safe + ".md")
+
+
+def _weekly_window_days(window_days):
+    """Return (start_iso, end_iso) for the last N days."""
+    end = datetime.datetime.utcnow()
+    start = end - datetime.timedelta(days=window_days)
+    return start.isoformat() + "Z", end.isoformat() + "Z"
+
+
+def _filter_insights_by_window(insights, since_iso):
+    """Filter insights list to only those since the given ISO timestamp."""
+    out = []
+    for i in insights:
+        try:
+            d = datetime.datetime.fromisoformat(i.get("ts", "1970-01-01T00:00:00").replace("Z", ""))
+            since_d = datetime.datetime.fromisoformat(since_iso.replace("Z", ""))
+            if d >= since_d:
+                out.append(i)
+        except Exception:
+            continue
+    return out
+
+
+def _build_weekly_synthesis(window_days=7):
+    """Build the weekly synthesis content. Returns markdown string."""
+    idx = _read_insights_index()
+    all_insights = idx.get("insights", [])
+    start_iso, end_iso = _weekly_window_days(window_days)
+    insights = _filter_insights_by_window(all_insights, start_iso)
+    # Group insights by kind
+    by_kind = {"correction": [], "directive": [], "lesson": [], "insight": [], "pattern": []}
+    for i in insights:
+        k = i.get("kind", "insight")
+        if k in by_kind:
+            by_kind[k].append(i)
+    # Top tags
+    tag_counts = {}
+    for i in insights:
+        for t in i.get("tags", []):
+            tag_counts[t] = tag_counts.get(t, 0) + 1
+    top_tags = sorted(tag_counts.items(), key=lambda x: -x[1])[:10]
+    # Errors in window (from in-memory buffer; oldest is ~1 hour so this
+    # only shows recent. For deeper history we'd read the JSONL file.)
+    errors_in_window = []
+    for e in _ERROR_BUFFER.entries:
+        try:
+            d = datetime.datetime.fromisoformat(e.get("ts", "1970-01-01T00:00:00").replace("Z", ""))
+            since_d = datetime.datetime.fromisoformat(start_iso.replace("Z", ""))
+            if d >= since_d:
+                errors_in_window.append(e)
+        except Exception:
+            continue
+    error_count_by_type = {}
+    for e in errors_in_window:
+        k = e.get("type", "unknown")
+        error_count_by_type[k] = error_count_by_type.get(k, 0) + 1
+    error_count_by_path = {}
+    for e in errors_in_window:
+        p = e.get("path", "unknown")
+        error_count_by_path[p] = error_count_by_path.get(p, 0) + 1
+    top_error_paths = sorted(error_count_by_path.items(), key=lambda x: -x[1])[:5]
+    # Decisions — read from git log if available
+    decisions_md = ""
+    try:
+        repo = REPO_DIR
+        git_log = subprocess.run(
+            ["git", "-C", repo, "log", "--since=" + start_iso.replace("Z", ""), "--pretty=format:- %s", "-50"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if git_log.returncode == 0 and git_log.stdout.strip():
+            decisions_lines = git_log.stdout.strip().split("\n")[:50]
+            decisions_md = "\n".join(decisions_lines)
+    except Exception:
+        decisions_md = "(git log unavailable)"
+    # Build markdown
+    lines = []
+    lines.append("# 📊 Weekly synthesis — fleet agent")
+    lines.append("")
+    lines.append(f"**Window:** {start_iso[:10]} → {end_iso[:10]} ({window_days} days)")
+    lines.append(f"**Generated:** {end_iso}")
+    lines.append("")
+    lines.append("## 🎯 Headline")
+    total_insights = len(insights)
+    total_corrections = len(by_kind["correction"])
+    total_errors = len(errors_in_window)
+    if total_corrections >= 3:
+        headline = f"⚠️ {total_corrections} corrections this week — system is being shaped by operator feedback."
+    elif total_corrections >= 1:
+        headline = f"📝 {total_corrections} correction captured — feedback loop active."
+    elif total_errors >= 10:
+        headline = f"🔥 {total_errors} errors fired — investigation needed."
+    elif total_insights >= 5:
+        headline = f"🧠 {total_insights} insights accumulated — system learning steadily."
+    else:
+        headline = f"✅ Quiet week — {total_insights} insights, {total_errors} errors."
+    lines.append(headline)
+    lines.append("")
+    # Corrections — most important
+    if by_kind["correction"]:
+        lines.append(f"## 🛑 Corrections ({len(by_kind['correction'])})")
+        lines.append("")
+        for c in by_kind["correction"]:
+            lines.append(f"### {c.get('title', 'untitled')}")
+            lines.append(f"*_{c.get('ts', '')[:10]} · {c.get('source', 'manual')} · confidence {int(c.get('confidence', 0) * 100)}%_*")
+            lines.append("")
+            lines.append(c.get("body", ""))
+            tags = c.get("tags", [])
+            if tags:
+                lines.append("")
+                lines.append("tags: " + " ".join(f"`{t}`" for t in tags))
+            lines.append("")
+    # Directives
+    if by_kind["directive"]:
+        lines.append(f"## 📋 Directives ({len(by_kind['directive'])})")
+        lines.append("")
+        for d in by_kind["directive"]:
+            lines.append(f"- **{d.get('title', 'untitled')}** — {d.get('body', '')[:200]}")
+        lines.append("")
+    # Lessons learned
+    if by_kind["lesson"]:
+        lines.append(f"## 💡 Lessons learned ({len(by_kind['lesson'])})")
+        lines.append("")
+        for l in by_kind["lesson"]:
+            lines.append(f"- **{l.get('title', 'untitled')}** — {l.get('body', '')[:200]}")
+        lines.append("")
+    # Patterns
+    if by_kind["pattern"]:
+        lines.append(f"## 🔁 Patterns observed ({len(by_kind['pattern'])})")
+        lines.append("")
+        for p in by_kind["pattern"]:
+            lines.append(f"- **{p.get('title', 'untitled')}** — {p.get('body', '')[:200]}")
+        lines.append("")
+    # Insights + other kinds
+    other = by_kind["insight"]
+    if other:
+        lines.append(f"## 💬 Other insights ({len(other)})")
+        lines.append("")
+        for o in other[:20]:
+            lines.append(f"- {o.get('title', 'untitled')}")
+        lines.append("")
+    # Top tags
+    if top_tags:
+        lines.append("## 🏷️ Top tags")
+        lines.append("")
+        lines.append(", ".join(f"`{t}` ({c})" for t, c in top_tags))
+        lines.append("")
+    # Errors
+    if errors_in_window:
+        lines.append(f"## 🔥 Errors ({len(errors_in_window)})")
+        lines.append("")
+        if error_count_by_type:
+            lines.append("**By type:**")
+            lines.append("")
+            for k, v in sorted(error_count_by_type.items(), key=lambda x: -x[1]):
+                lines.append(f"- `{k}`: {v}")
+            lines.append("")
+        if top_error_paths:
+            lines.append("**Top paths:**")
+            lines.append("")
+            for p, c in top_error_paths:
+                lines.append(f"- `{p}`: {c}")
+            lines.append("")
+    else:
+        lines.append("## 🔥 Errors")
+        lines.append("")
+        lines.append("No errors buffered in this window. ✓")
+        lines.append("")
+    # Decisions (commits)
+    if decisions_md:
+        lines.append("## 🛠️ Decisions (recent commits)")
+        lines.append("")
+        lines.append(decisions_md)
+        lines.append("")
+    # Footer
+    lines.append("---")
+    lines.append("")
+    lines.append("*Generated by `POST /api/fleet/synthesis/build`. Pass ?window_days=7 for weekly, =1 for daily, =30 for monthly.*")
+    return "\n".join(lines)
+
+
+@app.route("/api/fleet/synthesis/build", methods=["GET", "POST"])
+def fleet_synthesis_build():
+    """GET/POST /api/fleet/synthesis/build — generate the weekly synthesis.
+    Optional ?window_days=N (default 7), ?save=true (saves to disk).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    window_days = min(int(request.args.get("window_days", "7") or 7), 90)
+    save = request.args.get("save", "true").lower() in ("true", "1", "yes")
+    md = _build_weekly_synthesis(window_days=window_days)
+    saved_to = None
+    if save:
+        p = _weekly_synthesis_path()
+        try:
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(md)
+            saved_to = p
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({
+        "ok": True,
+        "window_days": window_days,
+        "saved_to": saved_to,
+        "char_count": len(md),
+        "line_count": md.count("\n") + 1,
+        "markdown": md,
+    }), 200
+
+
+@app.route("/api/fleet/synthesis/list", methods=["GET"])
+def fleet_synthesis_list():
+    """GET /api/fleet/synthesis/list — list saved synthesis files."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not os.path.exists(WEEKLY_SYNTHESIS_DIR):
+        return jsonify({"ok": True, "syntheses": [], "count": 0}), 200
+    files = []
+    for fn in sorted(os.listdir(WEEKLY_SYNTHESIS_DIR), reverse=True):
+        if not fn.endswith(".md"): continue
+        p = os.path.join(WEEKLY_SYNTHESIS_DIR, fn)
+        try:
+            st = os.stat(p)
+            with open(p, "r", encoding="utf-8") as f:
+                first_line = f.readline().strip()
+            files.append({
+                "filename": fn,
+                "path": p,
+                "size_bytes": st.st_size,
+                "modified_at": datetime.datetime.utcfromtimestamp(st.st_mtime).isoformat() + "Z",
+                "headline": first_line[:80],
+            })
+        except Exception:
+            continue
+    return jsonify({"ok": True, "syntheses": files, "count": len(files)}), 200
+
+
+@app.route("/api/fleet/synthesis/get", methods=["GET"])
+def fleet_synthesis_get():
+    """GET /api/fleet/synthesis/get?filename=<name> — fetch a saved synthesis."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    fn = (request.args.get("filename") or "").strip()
+    if not fn or "/" in fn or ".." in fn:
+        return jsonify({"ok": False, "error": "invalid filename"}), 400
+    p = os.path.join(WEEKLY_SYNTHESIS_DIR, fn)
+    if not os.path.exists(p):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    with open(p, "r", encoding="utf-8") as f:
+        content = f.read()
+    return jsonify({"ok": True, "filename": fn, "content": content, "size": len(content)}), 200

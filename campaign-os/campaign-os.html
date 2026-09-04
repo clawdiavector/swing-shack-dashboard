@@ -11132,6 +11132,50 @@ renderFleet = async function() {
   await renderReplica();
 };
 
+
+
+// ─── WEEKLY SYNTHESIS (Tier 3.12 — Heidi narrates her week, 2026-09-04) ───────
+async function renderSynthesis() {
+  const window = document.getElementById('synthesis-window')?.value || '7';
+  const r = await API.post('/api/fleet/synthesis/build?window_days=' + window + '&save=true', {});
+  if (!r.ok) { toast('Synthesis failed: ' + r.error, true); return; }
+  const meta = document.getElementById('synthesis-meta');
+  if (meta) meta.textContent = `${r.line_count} lines · ${r.char_count} chars · ${r.window_days}d window`;
+  const content = document.getElementById('synthesis-content');
+  if (content) content.textContent = r.markdown;
+}
+
+async function synthesisCopy() {
+  const content = document.getElementById('synthesis-content')?.textContent || '';
+  if (!content) { toast('Nothing to copy — generate first', true); return; }
+  try {
+    await navigator.clipboard.writeText(content);
+    toast('✓ Synthesis copied to clipboard — paste into Discord');
+  } catch (e) {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = content;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('✓ Copied (fallback)');
+  }
+}
+
+(function wireSynthesis() {
+  document.getElementById('synthesis-build')?.addEventListener('click', renderSynthesis);
+  document.getElementById('synthesis-copy')?.addEventListener('click', synthesisCopy);
+})();
+
+// Wire into renderFleet
+const _origRenderFleet3 = renderFleet;
+renderFleet = async function() {
+  await _origRenderFleet3();
+  // Auto-build synthesis on first fleet view (don't await — let user see other panels first)
+  renderSynthesis();
+};
+
 </script>
 
 
@@ -11647,6 +11691,23 @@ renderFleet = async function() {
       <div class="card col-12" style="margin-top:1rem">
         <div class="card-h"><h3>⚠️ Fleet alerts</h3><span class="muted" id="fleet-alert-count">—</span></div>
         <div id="fleet-alerts-list"></div>
+      </div>
+
+      <div class="card col-12" style="margin-top:1rem">
+        <div class="card-h">
+          <h3>📰 Weekly synthesis</h3>
+          <span class="muted" id="synthesis-meta">— not generated</span>
+          <div style="margin-left:auto;display:flex;gap:.5rem">
+            <select id="synthesis-window" style="font-size:11px;padding:3px 6px;border-radius:4px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+              <option value="1">Daily</option>
+              <option value="7" selected>Weekly</option>
+              <option value="30">Monthly</option>
+            </select>
+            <button class="btn-mini primary" id="synthesis-build">🔄 Generate</button>
+            <button class="btn-mini" id="synthesis-copy">📋 Copy</button>
+          </div>
+        </div>
+        <div id="synthesis-content" style="font-family:var(--mono,monospace);font-size:12px;line-height:1.6;max-height:600px;overflow-y:auto;background:var(--bg-1);padding:1rem;border-radius:8px;white-space:pre-wrap"></div>
       </div>
 
       <div class="card col-12" style="margin-top:1rem">
