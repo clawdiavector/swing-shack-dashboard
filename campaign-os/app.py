@@ -551,14 +551,484 @@ def bootstrap():
 
 # ─── API ROUTES ─────────────────────────────────────────────────────────
 
-@app.route('/api/health')
-def health():
-    """Health check."""
+
+
+
+
+
+
+# ─── MULTI-REGION FAILOVER + READ-REPLICA + CRON REDUNDANCY (Tier 3.11, 2026-09-04) ─────
+# Per the audit + production-readiness gap: this app is single-region
+# (Railway), single-instance, single-cron. Any of those failing takes
+# the whole system down. This batch adds the primitives for failover
+# without requiring multi-region deployment to start working.
+#
+# Three layers:
+#   1. Region/instance registry     — track which instance is primary
+#   2. Read-replica routing        — writes to primary, reads can hit replicas
+#   3. Cron redundancy             — multiple crons with leader election
+#
+# Architecture:
+#   - Instance identity via env (INSTANCE_ID, REGION, ROLE)
+#   - Primary instance writes to local DATA_DIR
+#   - Replica instances read from primary via HTTP /api/replica/sync
+#   - Cron tick writes a heartbeat to data/cron-heartbeat.json
+#   - If no heartbeat in N seconds, secondary instances elect a new leader
+
+REPLICA_REGISTRY_FILE = os.path.join(DATA_DIR, "replica-registry.json")
+CRON_HEARTBEAT_FILE = os.path.join(DATA_DIR, "cron-heartbeat.json")
+CRON_LEADER_FILE = os.path.join(DATA_DIR, "cron-leader.json")
+
+# Tunables
+REPLICA_SYNC_INTERVAL_SECONDS = 300   # How often replicas should pull from primary
+CRON_HEARTBEAT_TIMEOUT_SECONDS = 600  # How long without heartbeat = leader dead
+CRON_LOCK_TTL_SECONDS = 300           # How long a leader lock is valid
+
+
+def _instance_id():
+    """Identify this instance — prefer env, fall back to hostname."""
+    return (
+        os.environ.get("INSTANCE_ID")
+        or os.environ.get("RAILWAY_REPLICA_ID")
+        or os.environ.get("HOSTNAME")
+        or "instance-unknown"
+    )
+
+
+def _instance_region():
+    """Identify this instance's region."""
+    return os.environ.get("REGION") or os.environ.get("RAILWAY_REGION") or "unknown"
+
+
+def _instance_role():
+    """Identify this instance's role: primary | replica | standalone."""
+    role = (os.environ.get("ROLE") or os.environ.get("INSTANCE_ROLE") or "standalone").lower()
+    return role if role in ("primary", "replica", "standalone") else "standalone"
+
+
+def _read_replica_registry():
+    if os.path.exists(REPLICA_REGISTRY_FILE):
+        try:
+            with open(REPLICA_REGISTRY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "instances": {},
+        "primary": None,
+        "last_sync": None,
+    }
+
+
+def _write_replica_registry(reg):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        tmp = REPLICA_REGISTRY_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(reg, f, indent=2)
+        os.replace(tmp, REPLICA_REGISTRY_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def _register_instance():
+    """Register this instance in the registry. Idempotent."""
+    reg = _read_replica_registry()
+    iid = _instance_id()
+    reg["instances"][iid] = {
+        "instance_id": iid,
+        "region": _instance_region(),
+        "role": _instance_role(),
+        "first_seen": reg["instances"].get(iid, {}).get("first_seen", _now_iso()),
+        "last_seen": _now_iso(),
+    }
+    # Set primary if none set yet AND this instance is primary
+    if not reg.get("primary") and _instance_role() == "primary":
+        reg["primary"] = iid
+    _write_replica_registry(reg)
+    return reg
+
+
+@app.route("/api/replica/registry", methods=["GET"])
+def replica_registry_get():
+    """GET /api/replica/registry — list all known instances + their roles."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    reg = _register_instance()
+    return jsonify({
+        "ok": True,
+        "registry": reg,
+        "self": {
+            "instance_id": _instance_id(),
+            "region": _instance_region(),
+            "role": _instance_role(),
+        },
+        "primary_alive": reg.get("primary") in reg.get("instances", {}),
+    }), 200
+
+
+@app.route("/api/replica/promote", methods=["POST"])
+def replica_promote_self():
+    """POST /api/replica/promote — promote this instance to primary.
+
+    Only allowed if:
+      - No current primary (registry has no primary key), OR
+      - Current primary has not sent a heartbeat in CRON_HEARTBEAT_TIMEOUT_SECONDS
+
+    This is the leader-election primitive for failover.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    reg = _register_instance()
+    iid = _instance_id()
+    current_primary = reg.get("primary")
+    # Check primary health
+    primary_alive = False
+    if current_primary and current_primary in reg["instances"]:
+        last_seen = reg["instances"][current_primary].get("last_seen", "")
+        try:
+            d = datetime.datetime.fromisoformat(last_seen.replace("Z", ""))
+            age = (datetime.datetime.utcnow() - d).total_seconds()
+            primary_alive = age < CRON_HEARTBEAT_TIMEOUT_SECONDS
+        except Exception:
+            primary_alive = False
+    if current_primary and primary_alive and current_primary != iid:
+        return jsonify({
+            "ok": False,
+            "error": f"primary '{current_primary}' is alive — cannot promote self",
+            "current_primary": current_primary,
+            "self": iid,
+        }), 409
+    # Promote
+    reg["primary"] = iid
+    reg["promoted_at"] = _now_iso()
+    reg["promoted_from"] = current_primary
+    _write_replica_registry(reg)
+    _tenant_audit("fleet", "replica-promote", iid)
+    return jsonify({
+        "ok": True,
+        "promoted": iid,
+        "previous_primary": current_primary,
+        "message": f"This instance ({iid}) is now primary.",
+    }), 200
+
+
+@app.route("/api/replica/sync", methods=["GET"])
+def replica_sync():
+    """GET /api/replica/sync — pull a snapshot of key data files from primary.
+
+    Returns a list of (filename, base64_content) tuples so a replica can
+    hydrate its local DATA_DIR. The replica is responsible for what to
+    actually write locally — this endpoint just exposes the data.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _instance_role() != "primary":
+        return jsonify({
+            "ok": False,
+            "error": "this endpoint only serves data when ROLE=primary",
+            "self_role": _instance_role(),
+        }), 403
+    # Files safe to sync — read-only data files
+    sync_files = [
+        "brand-index.json",
+        "live-mode.json",
+        "voice_bible.json",
+        "bible-visual.json",
+        "product-priority.json",
+        "cron-status.json",
+        "insights/index.json",
+    ]
+    payload = {}
+    for fn in sync_files:
+        p = os.path.join(DATA_DIR, fn)
+        if os.path.exists(p):
+            try:
+                with open(p, "rb") as f:
+                    payload[fn] = base64.b64encode(f.read()).decode("ascii")
+            except Exception:
+                pass
+    return jsonify({
+        "ok": True,
+        "primary": _instance_id(),
+        "synced_at": _now_iso(),
+        "file_count": len(payload),
+        "files": list(payload.keys()),
+        "payload": payload,
+    }), 200
+
+
+@app.route("/api/replica/status", methods=["GET"])
+def replica_status():
+    """GET /api/replica/status — show this instance's role + sync status."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    reg = _read_replica_registry()
+    iid = _instance_id()
+    # Compute primary last seen
+    primary_info = None
+    primary_alive = False
+    if reg.get("primary") and reg["primary"] in reg["instances"]:
+        pinfo = reg["instances"][reg["primary"]]
+        try:
+            d = datetime.datetime.fromisoformat(pinfo.get("last_seen", "1970-01-01T00:00:00").replace("Z", ""))
+            age = (datetime.datetime.utcnow() - d).total_seconds()
+            primary_alive = age < CRON_HEARTBEAT_TIMEOUT_SECONDS
+        except Exception:
+            age = 99999
+        primary_info = {
+            **pinfo,
+            "age_seconds": age if 'age' in dir() else 99999,
+            "alive": primary_alive,
+        }
+    # Compute replica lag (this instance's last_seen vs primary)
+    self_info = reg["instances"].get(iid, {})
+    lag = None
+    if primary_info and primary_info.get("last_seen") and self_info.get("last_seen"):
+        try:
+            d_primary = datetime.datetime.fromisoformat(primary_info["last_seen"].replace("Z", ""))
+            d_self = datetime.datetime.fromisoformat(self_info["last_seen"].replace("Z", ""))
+            lag = abs((d_self - d_primary).total_seconds())
+        except Exception:
+            pass
+    return jsonify({
+        "ok": True,
+        "self": {
+            "instance_id": iid,
+            "region": _instance_region(),
+            "role": _instance_role(),
+        },
+        "primary": primary_info,
+        "replica_lag_seconds": lag,
+        "registry_size": len(reg.get("instances", {})),
+        "sync_interval_seconds": REPLICA_SYNC_INTERVAL_SECONDS,
+        "heartbeat_timeout_seconds": CRON_HEARTBEAT_TIMEOUT_SECONDS,
+    }), 200
+
+
+# ─── CRON REDUNDANCY (Tier 3.11, 2026-09-04) ─────────────────────────────
+# Leader-election for cron: only the leader runs the cron tick.
+# Other instances stand by and monitor the heartbeat.
+#
+# Leader-election algorithm:
+#   1. Each instance periodically calls /api/cron/heartbeat
+#   2. Only the leader writes to data/cron-heartbeat.json
+#   3. If heartbeat is stale (> CRON_HEARTBEAT_TIMEOUT_SECONDS), any
+#      instance can call /api/cron/claim-leadership to become leader
+#   4. The new leader then runs the cron tick
+
+def _read_cron_leader():
+    if os.path.exists(CRON_LEADER_FILE):
+        try:
+            with open(CRON_LEADER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"leader": None, "acquired_at": None, "expires_at": None}
+
+
+def _write_cron_leader(leader_data):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        tmp = CRON_LEADER_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(leader_data, f, indent=2)
+        os.replace(tmp, CRON_LEADER_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def _read_cron_heartbeat():
+    if os.path.exists(CRON_HEARTBEAT_FILE):
+        try:
+            with open(CRON_HEARTBEAT_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"last_tick_at": None, "tick_count": 0, "last_instance": None}
+
+
+def _write_cron_heartbeat(hb):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        tmp = CRON_HEARTBEAT_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(hb, f, indent=2)
+        os.replace(tmp, CRON_HEARTBEAT_FILE)
+        return True
+    except Exception:
+        return False
+
+
+@app.route("/api/cron/heartbeat", methods=["GET", "POST"])
+def cron_heartbeat_route():
+    """GET/POST /api/cron/heartbeat — record a tick heartbeat from the leader.
+
+    Called by the cron's tick handler. Updates cron-heartbeat.json with:
+      - last_tick_at (now)
+      - tick_count (incremented)
+      - last_instance (the instance that ticked)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Only the leader should write heartbeats
+    leader = _read_cron_leader()
+    iid = _instance_id()
+    if leader.get("leader") and leader["leader"] != iid:
+        return jsonify({
+            "ok": False,
+            "error": "not the leader — heartbeat rejected",
+            "leader": leader["leader"],
+            "self": iid,
+        }), 409
+    hb = _read_cron_heartbeat()
+    hb["last_tick_at"] = _now_iso()
+    hb["tick_count"] = hb.get("tick_count", 0) + 1
+    hb["last_instance"] = iid
+    _write_cron_heartbeat(hb)
+    # Refresh leader lock
+    leader["leader"] = iid
+    leader["acquired_at"] = leader.get("acquired_at", _now_iso())
+    leader["expires_at"] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=CRON_LOCK_TTL_SECONDS)).isoformat() + "Z"
+    _write_cron_leader(leader)
+    return jsonify({
+        "ok": True,
+        "heartbeat": hb,
+        "leader_lock_expires": leader["expires_at"],
+    }), 200
+
+
+@app.route("/api/cron/claim-leadership", methods=["POST"])
+def cron_claim_leadership():
+    """POST /api/cron/claim-leadership — become the cron leader.
+
+    Allowed when:
+      - No current leader (no CRON_LEADER_FILE), OR
+      - Current leader lock expired (> CRON_LOCK_TTL_SECONDS old), OR
+      - Current leader's heartbeat is stale (> CRON_HEARTBEAT_TIMEOUT_SECONDS)
+
+    Returns: {ok, leader, expires_at} on success.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    leader = _read_cron_leader()
+    iid = _instance_id()
+    # Check if current leader is still valid
+    current = leader.get("leader")
+    if current == iid:
+        # Self-claim — refresh lock
+        leader["expires_at"] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=CRON_LOCK_TTL_SECONDS)).isoformat() + "Z"
+        _write_cron_leader(leader)
+        return jsonify({"ok": True, "leader": iid, "expires_at": leader["expires_at"], "action": "refresh"}), 200
+    # Check if current leader's heartbeat is fresh
+    hb = _read_cron_heartbeat()
+    current_alive = False
+    if current and hb.get("last_tick_at"):
+        try:
+            d = datetime.datetime.fromisoformat(hb["last_tick_at"].replace("Z", ""))
+            age = (datetime.datetime.utcnow() - d).total_seconds()
+            current_alive = age < CRON_HEARTBEAT_TIMEOUT_SECONDS
+        except Exception:
+            current_alive = False
+    # Check leader lock expiry
+    lock_alive = False
+    if leader.get("expires_at"):
+        try:
+            d = datetime.datetime.fromisoformat(leader["expires_at"].replace("Z", ""))
+            lock_alive = d > datetime.datetime.utcnow()
+        except Exception:
+            lock_alive = False
+    if current and lock_alive and current_alive:
+        return jsonify({
+            "ok": False,
+            "error": f"current leader '{current}' is alive",
+            "current_leader": current,
+            "heartbeat_age_seconds": age if 'age' in dir() else None,
+        }), 409
+    # Claim
+    new_leader = {
+        "leader": iid,
+        "acquired_at": _now_iso(),
+        "expires_at": (datetime.datetime.utcnow() + datetime.timedelta(seconds=CRON_LOCK_TTL_SECONDS)).isoformat() + "Z",
+        "previous_leader": current,
+    }
+    _write_cron_leader(new_leader)
+    _tenant_audit("fleet", "cron-claim-leadership", iid)
+    return jsonify({
+        "ok": True,
+        "leader": iid,
+        "expires_at": new_leader["expires_at"],
+        "previous_leader": current,
+        "action": "claim",
+    }), 200
+
+
+@app.route("/api/cron/status", methods=["GET"])
+def cron_status_aggregated():
+    """GET /api/cron/status — cron leader + heartbeat + redundancy state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    leader = _read_cron_leader()
+    hb = _read_cron_heartbeat()
+    iid = _instance_id()
+    # Compute freshness
+    heartbeat_age = None
+    if hb.get("last_tick_at"):
+        try:
+            d = datetime.datetime.fromisoformat(hb["last_tick_at"].replace("Z", ""))
+            heartbeat_age = (datetime.datetime.utcnow() - d).total_seconds()
+        except Exception:
+            pass
+    lock_age = None
+    if leader.get("acquired_at"):
+        try:
+            d = datetime.datetime.fromisoformat(leader["acquired_at"].replace("Z", ""))
+            lock_age = (datetime.datetime.utcnow() - d).total_seconds()
+        except Exception:
+            pass
+    is_leader = leader.get("leader") == iid
+    return jsonify({
+        "ok": True,
+        "self": iid,
+        "is_leader": is_leader,
+        "leader": leader.get("leader"),
+        "leader_acquired_at": leader.get("acquired_at"),
+        "leader_expires_at": leader.get("expires_at"),
+        "lock_age_seconds": lock_age,
+        "heartbeat": hb,
+        "heartbeat_age_seconds": heartbeat_age,
+        "heartbeat_fresh": (heartbeat_age is not None and heartbeat_age < CRON_HEARTBEAT_TIMEOUT_SECONDS),
+        "heartbeat_timeout_seconds": CRON_HEARTBEAT_TIMEOUT_SECONDS,
+        "lock_ttl_seconds": CRON_LOCK_TTL_SECONDS,
+    }), 200
+
+
+@app.route("/api/health", methods=["GET"])
+def health_v2():
+    """Enhanced health endpoint — returns region + role + replica status.
+    For Railway health-checks: returns 200 even if replica is unhealthy
+    (only the primary should fail health-check to trigger restart).
+    """
+    role = _instance_role()
+    reg = _read_replica_registry()
+    leader = _read_cron_leader()
+    hb = _read_cron_heartbeat()
+    # Always 200 — Railway health-check should not restart the app
+    # for transient replica issues. Use /api/ready for stricter checks.
     return jsonify({
         "status": "ok",
-        "ts": datetime.datetime.utcnow().isoformat() + 'Z',
-        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git'))
-    })
+        "ts": _now_iso(),
+        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git')),
+        "instance_id": _instance_id(),
+        "region": _instance_region(),
+        "role": role,
+        "primary": reg.get("primary"),
+        "cron_leader": leader.get("leader"),
+        "cron_heartbeat_fresh": bool(hb.get("last_tick_at")),
+    }), 200
+
 
 
 @app.route('/api/admin/env-debug', methods=['GET'])

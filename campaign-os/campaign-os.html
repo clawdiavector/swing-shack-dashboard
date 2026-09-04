@@ -11050,6 +11050,88 @@ renderFleet = async function() {
   await renderFleetInsights();
 };
 
+
+
+// ─── REPLICA + CRON STATUS (Tier 3.11 — Multi-region failover, 2026-09-04) ───
+async function renderReplica() {
+  // Replica status
+  const r = await API.get('/api/replica/status');
+  if (r.ok) {
+    const self = r.self || {};
+    const primary = r.primary || {};
+    const roleEl = document.getElementById('fleet-self-role');
+    if (roleEl) {
+      const roleColor = self.role === 'primary' ? 'on' : self.role === 'replica' ? 'live' : 'muted';
+      roleEl.textContent = self.role || 'unknown';
+      roleEl.className = 'pill ' + roleColor;
+    }
+    document.getElementById('fleet-self-details').innerHTML = `
+      <div>instance_id: <b>${esc(self.instance_id || '?')}</b></div>
+      <div>region: ${esc(self.region || 'unknown')}</div>
+      <div>role: ${esc(self.role || 'standalone')}</div>
+      <div style="margin-top:.4rem;padding-top:.4rem;border-top:1px solid var(--bd)">
+        <div>primary: <b>${esc(primary.instance_id || 'none')}</b></div>
+        <div>primary alive: ${primary.alive ? '<span style="color:var(--success)">✓</span>' : '<span style="color:var(--danger)">✕</span>'}</div>
+        <div>primary age: ${primary.age_seconds != null ? primary.age_seconds.toFixed(1) + 's' : '—'}</div>
+        <div>replica lag: ${r.replica_lag_seconds != null ? r.replica_lag_seconds.toFixed(1) + 's' : '—'}</div>
+      </div>
+    `;
+  }
+  // Cron status
+  const cs = await API.get('/api/cron/status');
+  if (cs.ok) {
+    const leaderEl = document.getElementById('fleet-cron-leader');
+    if (leaderEl) {
+      leaderEl.textContent = cs.is_leader ? '👑 I am leader' : (cs.leader || 'no leader');
+      leaderEl.className = 'pill ' + (cs.is_leader ? 'on' : (cs.heartbeat_fresh ? 'live' : 'blocked'));
+    }
+    document.getElementById('fleet-cron-details').innerHTML = `
+      <div>self: <b>${esc(cs.self || '?')}</b></div>
+      <div>leader: <b>${esc(cs.leader || 'none')}</b></div>
+      <div>is_leader: ${cs.is_leader ? '<span style="color:var(--success)">✓</span>' : '✕'}</div>
+      <div>tick_count: ${cs.heartbeat?.tick_count || 0}</div>
+      <div>heartbeat age: ${cs.heartbeat_age_seconds != null ? cs.heartbeat_age_seconds.toFixed(1) + 's' : '—'}</div>
+      <div>heartbeat fresh: ${cs.heartbeat_fresh ? '<span style="color:var(--success)">✓</span>' : '<span style="color:var(--danger)">✕</span>'}</div>
+      <div>lock_ttl: ${cs.lock_ttl_seconds}s</div>
+    `;
+  }
+}
+
+async function replicaPromote() {
+  if (!confirm('Promote this instance to primary? Only do this if current primary is dead.')) return;
+  const r = await API.post('/api/replica/promote', {});
+  if (!r.ok) { toast('Promote failed: ' + (r.error || '?'), true); return; }
+  toast('✓ ' + (r.message || 'Promoted'));
+  await renderReplica();
+}
+
+async function cronClaim() {
+  const r = await API.post('/api/cron/claim-leadership', {});
+  if (!r.ok) { toast('Claim failed: ' + (r.error || '?'), true); return; }
+  toast('✓ Action: ' + r.action + ' — leader=' + r.leader);
+  await renderReplica();
+}
+
+async function cronHeartbeat() {
+  const r = await API.post('/api/cron/heartbeat', {});
+  if (!r.ok) { toast('Heartbeat failed: ' + (r.error || '?'), true); return; }
+  toast('💓 Heartbeat #' + (r.heartbeat?.tick_count || '?'));
+  await renderReplica();
+}
+
+(function wireReplica() {
+  document.getElementById('fleet-promote')?.addEventListener('click', replicaPromote);
+  document.getElementById('fleet-cron-claim')?.addEventListener('click', cronClaim);
+  document.getElementById('fleet-cron-beat')?.addEventListener('click', cronHeartbeat);
+})();
+
+// Wire into renderFleet
+const _origRenderFleet2 = renderFleet;
+renderFleet = async function() {
+  await _origRenderFleet2();
+  await renderReplica();
+};
+
 </script>
 
 
@@ -11538,7 +11620,31 @@ renderFleet = async function() {
         <div id="fleet-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem"></div>
       </div>
 
-      <div class="card col-12">
+      <div class="grid">
+        <div class="card col-6">
+          <div class="card-h">
+            <h3>🖥️ This instance</h3>
+            <span class="pill muted" id="fleet-self-role">—</span>
+          </div>
+          <div id="fleet-self-details" style="font-size:11px;font-family:var(--mono,monospace);line-height:1.6"></div>
+          <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn-mini primary" id="fleet-promote">👑 Promote self to primary</button>
+          </div>
+        </div>
+        <div class="card col-6">
+          <div class="card-h">
+            <h3>⏰ Cron leader</h3>
+            <span class="pill" id="fleet-cron-leader">—</span>
+          </div>
+          <div id="fleet-cron-details" style="font-size:11px;font-family:var(--mono,monospace);line-height:1.6"></div>
+          <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn-mini primary" id="fleet-cron-claim">👑 Claim leadership</button>
+            <button class="btn-mini" id="fleet-cron-beat">💓 Heartbeat</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card col-12" style="margin-top:1rem">
         <div class="card-h"><h3>⚠️ Fleet alerts</h3><span class="muted" id="fleet-alert-count">—</span></div>
         <div id="fleet-alerts-list"></div>
       </div>
