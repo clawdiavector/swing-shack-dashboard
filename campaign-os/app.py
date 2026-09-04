@@ -25121,3 +25121,335 @@ def fleet_alerts_aggregated():
         "alert_count": len(agency_alerts_list) + len(fleet_alerts),
         "alerts": agency_alerts_list + fleet_alerts,
     }), 200
+
+
+# ─── FLEET-AGENT SELF-IMPROVEMENT LOOP (Tier 3.10, 2026-09-04) ──────────────
+# Per the audit + production-readiness gap: every correction from
+# Christelle ("never invent prices", "always ZAR", "audit first")
+# should become durable memory that future sessions can re-surface.
+#
+# Three primitives:
+#   1. Persistent insights store  — cross-session lessons learned
+#   2. Correction-loop endpoint    — Christelle-corrected insights → memory
+#   3. Auto-derivation             — scan audit log + errors for patterns
+#
+# Storage: data/insights/<YYYY-MM-DD>.jsonl (append-only) + an
+# index at data/insights-index.json (for fast retrieval).
+
+INSIGHTS_DIR = os.path.join(DATA_DIR, "insights")
+INSIGHTS_INDEX_FILE = os.path.join(INSIGHTS_DIR, "index.json")
+
+
+def _insights_index_path():
+    return INSIGHTS_INDEX_FILE
+
+
+def _read_insights_index():
+    if os.path.exists(INSIGHTS_INDEX_FILE):
+        try:
+            with open(INSIGHTS_INDEX_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"insights": [], "by_kind": {}, "by_tag": {}, "generated_at": _now_iso()}
+
+
+def _write_insights_index(idx):
+    try:
+        os.makedirs(INSIGHTS_DIR, exist_ok=True)
+        tmp = INSIGHTS_INDEX_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(idx, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, INSIGHTS_INDEX_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def _save_insight(insight):
+    """Append an insight to the JSONL file + update the index."""
+    try:
+        os.makedirs(INSIGHTS_DIR, exist_ok=True)
+        day = insight.get("ts", _now_iso())[:10]
+        p = os.path.join(INSIGHTS_DIR, day + ".jsonl")
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(json.dumps(insight) + "\n")
+    except Exception:
+        pass
+    # Update index
+    idx = _read_insights_index()
+    idx["insights"].append(insight)
+    # Re-bucket by kind + tag
+    idx["by_kind"] = {}
+    idx["by_tag"] = {}
+    for i in idx["insights"]:
+        k = i.get("kind", "general")
+        idx["by_kind"][k] = idx["by_kind"].get(k, 0) + 1
+        for t in i.get("tags", []):
+            idx["by_tag"][t] = idx["by_tag"].get(t, 0) + 1
+    idx["generated_at"] = _now_iso()
+    # Cap index size at 1000 (rolling)
+    if len(idx["insights"]) > 1000:
+        idx["insights"] = idx["insights"][-1000:]
+    _write_insights_index(idx)
+    return insight
+
+
+@app.route("/api/fleet/insights", methods=["GET"])
+def fleet_insights_list():
+    """GET /api/fleet/insights — list persistent insights (newest first).
+    Optional ?kind=, ?tag=, ?limit=, ?since= query params.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    idx = _read_insights_index()
+    insights = idx.get("insights", [])
+    # Filter
+    kind = request.args.get("kind", "").strip()
+    tag = request.args.get("tag", "").strip()
+    since = request.args.get("since", "").strip()
+    if kind:
+        insights = [i for i in insights if i.get("kind") == kind]
+    if tag:
+        insights = [i for i in insights if tag in i.get("tags", [])]
+    if since:
+        insights = [i for i in insights if i.get("ts", "") >= since]
+    limit = min(int(request.args.get("limit", "50") or 50), 500)
+    insights = insights[-limit:]
+    return jsonify({
+        "ok": True,
+        "insights": insights,
+        "count": len(insights),
+        "total_indexed": len(idx.get("insights", [])),
+        "by_kind": idx.get("by_kind", {}),
+        "by_tag": idx.get("by_tag", {}),
+    }), 200
+
+
+@app.route("/api/fleet/insights", methods=["POST"])
+def fleet_insights_create():
+    """POST /api/fleet/insights — capture an insight manually.
+    Body: {kind, title, body, tags[], source?, confidence?}
+      kind: correction | lesson | insight | directive | pattern
+      confidence: 0.0-1.0 (default 0.8)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    kind = (body.get("kind") or "insight").strip()
+    title = (body.get("title") or "").strip()
+    insight_body = (body.get("body") or "").strip()
+    if not title or not insight_body:
+        return jsonify({"ok": False, "error": "title and body required"}), 400
+    if kind not in ("correction", "lesson", "insight", "directive", "pattern"):
+        return jsonify({"ok": False, "error": f"kind must be one of: correction, lesson, insight, directive, pattern"}), 400
+    insight = {
+        "id": "ins-" + uuid.uuid4().hex[:10],
+        "kind": kind,
+        "title": title[:200],
+        "body": insight_body[:2000],
+        "tags": [str(t)[:30] for t in (body.get("tags") or [])[:10]],
+        "source": (body.get("source") or "manual").strip(),
+        "confidence": float(body.get("confidence", 0.8)),
+        "actor": "spa",
+        "ts": _now_iso(),
+    }
+    saved = _save_insight(insight)
+    return jsonify({"ok": True, "insight": saved}), 201
+
+
+@app.route("/api/fleet/insights/derive", methods=["POST", "GET"])
+def fleet_insights_derive():
+    """POST /api/fleet/insights/derive — auto-derive insights from current state.
+
+    Scans:
+      - Error buffer (recent 500s, exceptions) → 'pattern' insights
+      - Audit log (high write volume per tenant) → 'pattern' insights
+      - Tenant integrity (failed checks) → 'directive' insights
+      - Agency alerts (block severity) → 'directive' insights
+
+    Returns: {ok, derived_count, insights: [{id, kind, title, body, tags, source}]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    derived = []
+    # 1) Pattern insights from errors
+    error_counts = {}
+    for e in _ERROR_BUFFER.entries:
+        k = f"{e.get('type', 'unknown')}:{e.get('path', '')[:60]}"
+        error_counts[k] = error_counts.get(k, 0) + 1
+    for k, count in sorted(error_counts.items(), key=lambda x: -x[1])[:5]:
+        if count >= 3:
+            et, path = k.split(":", 1)
+            derived.append({
+                "id": "ins-auto-" + uuid.uuid4().hex[:8],
+                "kind": "pattern",
+                "title": f"Recurring {et} errors on {path}",
+                "body": f"Same error path triggered {count} times in the buffer. Likely needs an audit fix or a user-facing guard.",
+                "tags": ["error", "auto-derived", et.lower()],
+                "source": "error-buffer-scan",
+                "confidence": 0.7,
+                "actor": "fleet",
+                "ts": _now_iso(),
+            })
+    # 2) Directive insights from agency alerts
+    try:
+        r = agency_alerts()
+        resp_obj = r[0] if isinstance(r, tuple) else r
+        al = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+    except Exception:
+        al = {}
+    for a in (al.get("alerts") or []):
+        if a.get("severity") == "block":
+            derived.append({
+                "id": "ins-auto-" + uuid.uuid4().hex[:8],
+                "kind": "directive",
+                "title": f"Fleet alert: {a.get('type')} for {a.get('display_name')}",
+                "body": a.get("message", ""),
+                "tags": ["fleet-alert", a.get("type", "unknown")],
+                "source": "agency-alerts-scan",
+                "confidence": 0.85,
+                "actor": "fleet",
+                "ts": _now_iso(),
+            })
+    # 3) Pattern insights from rate-limit buckets
+    if len(RATE_LIMIT_BUCKETS) > 50:
+        derived.append({
+            "id": "ins-auto-" + uuid.uuid4().hex[:8],
+            "kind": "pattern",
+            "title": f"Rate-limit buckets at {len(RATE_LIMIT_BUCKETS)}",
+            "body": "Lots of distinct rate-limit buckets — either many users or aggressive bot behavior. Consider adding CAPTCHA on auth or tightening bucket defaults.",
+            "tags": ["rate-limit", "auto-derived"],
+            "source": "rate-limit-scan",
+            "confidence": 0.6,
+            "actor": "fleet",
+            "ts": _now_iso(),
+        })
+    # 4) Production mode off
+    if not _production_mode_enabled():
+        derived.append({
+            "id": "ins-auto-" + uuid.uuid4().hex[:8],
+            "kind": "directive",
+            "title": "Production mode is OFF",
+            "body": "CAMPAIGN_OS_PRODUCTION is not set. Security headers + rate limits are disabled. Set CAMPAIGN_OS_PRODUCTION=true in env to enable.",
+            "tags": ["production", "security"],
+            "source": "config-scan",
+            "confidence": 0.95,
+            "actor": "fleet",
+            "ts": _now_iso(),
+        })
+    # Persist each derived insight
+    saved = []
+    for i in derived:
+        _save_insight(i)
+        saved.append(i)
+    return jsonify({
+        "ok": True,
+        "derived_count": len(saved),
+        "insights": saved,
+    }), 200
+
+
+@app.route("/api/fleet/insights/<insight_id>/dismiss", methods=["POST"])
+def fleet_insights_dismiss(insight_id):
+    """POST /api/fleet/insights/<id>/dismiss — mark an insight as dismissed.
+
+    Dismissed insights are kept in the index but hidden from default list.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    idx = _read_insights_index()
+    target = None
+    for i in idx.get("insights", []):
+        if i.get("id") == insight_id:
+            i["dismissed"] = True
+            i["dismissed_at"] = _now_iso()
+            target = i
+            break
+    if not target:
+        return jsonify({"ok": False, "error": "insight not found"}), 404
+    _write_insights_index(idx)
+    return jsonify({"ok": True, "insight": target}), 200
+
+
+@app.route("/api/fleet/insights/surface", methods=["GET"])
+def fleet_insights_surface():
+    """GET /api/fleet/insights/surface — surface top insights as 'what should Heidi remember'.
+    Filters out dismissed + low-confidence, returns top N by confidence × recency.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    idx = _read_insights_index()
+    candidates = [i for i in idx.get("insights", []) if not i.get("dismissed")]
+    # Score: confidence × (recency boost for last 7 days)
+    now = datetime.datetime.utcnow()
+    scored = []
+    for i in candidates:
+        try:
+            d = datetime.datetime.fromisoformat(i.get("ts", "1970-01-01T00:00:00").replace("Z", ""))
+            age_days = (now - d).total_seconds() / 86400
+            recency = max(0.1, 1.0 - (age_days / 30))  # 1.0 today, 0.0 at 30 days
+        except Exception:
+            recency = 0.5
+        score = (i.get("confidence", 0.5) * 0.7) + (recency * 0.3)
+        # Boost corrections + directives
+        if i.get("kind") in ("correction", "directive"):
+            score *= 1.2
+        scored.append((score, i))
+    scored.sort(key=lambda x: -x[0])
+    top = [i for _, i in scored[:10]]
+    return jsonify({
+        "ok": True,
+        "insights": top,
+        "count": len(top),
+        "total_candidates": len(candidates),
+        "surface_strategy": "confidence*0.7 + recency*0.3, with 1.2x boost for corrections/directives",
+    }), 200
+
+
+# ─── CORRECTION-LOOP ENDPOINT (Tier 3.10, 2026-09-04) ────────────────────────
+# Per the audit: every correction from Christelle should become durable
+# memory. This endpoint captures corrections in the canonical
+# "correction" insight format and persists them.
+
+@app.route("/api/fleet/correction", methods=["POST"])
+def fleet_correction_capture():
+    """POST /api/fleet/correction — capture a Christelle correction as a persistent insight.
+    Body: {title, body, tags[], scope?}
+
+    The 'kind' is forced to 'correction'. Confidence defaults to 0.95
+    because corrections are operator-mandate and must not be ignored.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "").strip()
+    insight_body = (body.get("body") or "").strip()
+    if not title or not insight_body:
+        return jsonify({"ok": False, "error": "title and body required"}), 400
+    # Auto-derive tags from title if not provided
+    tags = body.get("tags") or []
+    if not tags:
+        # Extract likely tag words
+        words = (title + " " + insight_body).lower().split()
+        candidate_tags = {"pricing", "zar", "currency", "brand", "voice", "compliance",
+                          "audit", "shipping", "calendar", "draft", "review", "publish",
+                          "campaign", "creative", "image", "video", "postiz", "meta",
+                          "shopify", "ga4", "seo", "strategy"}
+        tags = [w for w in candidate_tags if w in words][:5]
+    if not tags:
+        tags = ["general"]
+    insight = {
+        "id": "ins-corr-" + uuid.uuid4().hex[:8],
+        "kind": "correction",
+        "title": title[:200],
+        "body": insight_body[:2000],
+        "tags": [str(t)[:30] for t in tags[:10]],
+        "source": "christelle-correction",
+        "confidence": 0.95,  # High — corrections are operator-mandate
+        "actor": (body.get("actor") or "christelle"),
+        "scope": body.get("scope", "all-tenants"),
+        "ts": _now_iso(),
+    }
+    saved = _save_insight(insight)
+    return jsonify({"ok": True, "insight": saved, "message": "Correction captured. Will surface across all future sessions."}), 201

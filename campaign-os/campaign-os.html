@@ -10943,6 +10943,113 @@ async function renderFleet() {
   if (refresh && !refresh._wired) { refresh._wired = true; refresh.addEventListener('click', renderFleet); }
 })();
 
+
+
+// ─── FLEET INSIGHTS (Tier 3.10 — Self-improvement loop, 2026-09-04) ──────
+// Per the audit: every correction should become durable memory.
+// This renders the insights panel inside the Fleet Status section.
+
+async function renderFleetInsights() {
+  const kind = document.getElementById('fi-filter')?.value || '';
+  const url = '/api/fleet/insights' + (kind ? '?kind=' + encodeURIComponent(kind) : '');
+  const r = await API.get(url);
+  if (!r.ok) { toast('Insights load failed: ' + r.error, true); return; }
+  document.getElementById('fleet-insights-count').textContent = r.total_indexed + ' total · ' + r.count + ' shown';
+  const insights = (r.insights || []).slice().reverse();
+  document.getElementById('fleet-insights').innerHTML = insights.length ? insights.map(i => insightCard(i)).join('') : '<div class="empty">No insights yet — click + Add or Auto-derive</div>';
+}
+
+function insightCard(i) {
+  const kindColor = i.kind === 'correction' ? 'var(--danger)' : i.kind === 'directive' ? 'var(--accent)' : i.kind === 'lesson' ? 'var(--success)' : i.kind === 'pattern' ? 'var(--tx-2)' : 'var(--tx-3)';
+  const dismissed = i.dismissed ? '<span class="pill muted" style="font-size:10px;margin-left:.4rem">dismissed</span>' : '';
+  const tags = (i.tags || []).map(t => '<span class="pill muted" style="font-size:9px;margin-right:3px">' + esc(t) + '</span>').join('');
+  const conf = i.confidence ? '<span style="font-size:10px;color:var(--tx-3)">confidence ' + Math.round(i.confidence * 100) + '%</span>' : '';
+  return `
+    <div style="padding:.6rem;border-bottom:1px solid var(--bd);border-left:3px solid ${kindColor};background:var(--bg-2);border-radius:0 6px 6px 0;margin-bottom:.4rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+        <span style="font-size:11px;color:${kindColor};text-transform:uppercase;font-weight:600">${esc(i.kind)}${dismissed}</span>
+        <div style="display:flex;gap:.4rem;align-items:center">
+          ${conf}
+          ${!i.dismissed ? '<button class="btn-mini" data-insight-dismiss="' + esc(i.id) + '">✕</button>' : ''}
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:.2rem">${esc(i.title)}</div>
+      <div style="font-size:12px;color:var(--tx-2);line-height:1.5">${esc(i.body)}</div>
+      <div style="margin-top:.4rem">${tags}</div>
+    </div>
+  `;
+}
+
+async function insightsAdd() {
+  const title = prompt('Insight title (one line):');
+  if (!title) return;
+  const body = prompt('Insight body (full detail):');
+  if (!body) return;
+  const kind = prompt('Kind: correction | directive | lesson | insight | pattern', 'lesson') || 'lesson';
+  const r = await API.post('/api/fleet/insights', { kind, title, body, source: 'spa' });
+  if (!r.ok) { toast('Add failed: ' + r.error, true); return; }
+  toast('✓ Insight saved');
+  await renderFleetInsights();
+}
+
+async function insightsAutoDerive() {
+  const btn = document.getElementById('fi-derive');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const r = await API.post('/api/fleet/insights/derive', {});
+    if (!r.ok) throw new Error(r.error || 'Failed');
+    toast('✓ Derived ' + r.derived_count + ' insights from current state');
+    await renderFleetInsights();
+  } catch (e) {
+    toast('Derive failed: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Auto-derive'; }
+  }
+}
+
+async function insightsDismiss(id) {
+  if (!confirm('Dismiss this insight? It will stay in the index but be hidden from default view.')) return;
+  const r = await API.post('/api/fleet/insights/' + encodeURIComponent(id) + '/dismiss', {});
+  if (!r.ok) { toast('Dismiss failed: ' + r.error, true); return; }
+  toast('✓ Dismissed');
+  await renderFleetInsights();
+}
+
+(function wireFleetInsights() {
+  const filter = document.getElementById('fi-filter');
+  if (filter && !filter._wired) {
+    filter._wired = true;
+    filter.addEventListener('change', renderFleetInsights);
+  }
+  const addBtn = document.getElementById('fi-add');
+  if (addBtn && !addBtn._wired) {
+    addBtn._wired = true;
+    addBtn.addEventListener('click', insightsAdd);
+  }
+  const deriveBtn = document.getElementById('fi-derive');
+  if (deriveBtn && !deriveBtn._wired) {
+    deriveBtn._wired = true;
+    deriveBtn.addEventListener('click', insightsAutoDerive);
+  }
+  if (!window._insightWired) {
+    window._insightWired = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-insight-dismiss]');
+      if (btn) {
+        insightsDismiss(btn.dataset.insightDismiss);
+        return;
+      }
+    });
+  }
+})();
+
+// Surface insights on renderFleet
+const _origRenderFleet = renderFleet;
+renderFleet = async function() {
+  await _origRenderFleet();
+  await renderFleetInsights();
+};
+
 </script>
 
 
@@ -11434,6 +11541,26 @@ async function renderFleet() {
       <div class="card col-12">
         <div class="card-h"><h3>⚠️ Fleet alerts</h3><span class="muted" id="fleet-alert-count">—</span></div>
         <div id="fleet-alerts-list"></div>
+      </div>
+
+      <div class="card col-12" style="margin-top:1rem">
+        <div class="card-h">
+          <h3>🧠 Insights & corrections</h3>
+          <span class="muted" id="fleet-insights-count">—</span>
+          <div style="margin-left:auto;display:flex;gap:.5rem">
+            <select id="fi-filter" style="font-size:11px;padding:3px 6px;border-radius:4px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+              <option value="">All kinds</option>
+              <option value="correction">Corrections</option>
+              <option value="directive">Directives</option>
+              <option value="lesson">Lessons</option>
+              <option value="insight">Insights</option>
+              <option value="pattern">Patterns</option>
+            </select>
+            <button class="btn-mini primary" id="fi-derive">🔄 Auto-derive</button>
+            <button class="btn-mini" id="fi-add">+ Add</button>
+          </div>
+        </div>
+        <div id="fleet-insights" style="max-height:500px;overflow-y:auto"></div>
       </div>
     </section>
 
