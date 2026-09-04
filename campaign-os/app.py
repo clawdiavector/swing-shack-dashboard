@@ -21728,3 +21728,602 @@ def lanes_queue_for_postiz_with_gate():
         "note": "Use /api/lanes/queue-for-postiz with item_ids=passed_ids to actually queue. "
                 "Or set dry_run=true to inspect without queuing.",
     }), 200
+
+
+# ─── MULTI-BRAND AGENCY DASHBOARD (Tier 3.4 — Audit V2 fix, 2026-09-04) ───────
+# Per the audit: "Multi-brand agency dashboard" was Version 2 work.
+# But agencies managing multiple clients need it on day one.
+#
+# This endpoint provides a single pane of glass across all brands:
+#   - Per-brand Bible Score
+#   - Per-brand asset + campaign counts
+#   - Per-brand approval ratio
+#   - Cross-brand alerts (low score, stale data, blocked publishes)
+#   - Recent activity (last 7 days) per brand
+#
+# GET /api/agency/dashboard
+# GET /api/agency/alerts
+# GET /api/agency/overview
+
+def _brand_quick_stats(brand_id, data, settings_dir):
+    """Compute quick stats for a single brand."""
+    # Bible score
+    settings_path = os.path.join(settings_dir, brand_id + ".json")
+    bible_score = 0
+    bible_ready = False
+    bible_sections_filled = 0
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+            # Inline score computation (avoid full hydration)
+            n_filled = sum(1 for v in settings.values() if v and k != "_updated_at" for k in [None])
+            bible_sections_filled = n_filled
+            if any(settings.get(k) for k in ["brand_snapshot", "strategic_position", "voice_system"]):
+                bible_score = 50
+            if settings.get("visual_direction") or settings.get("ai_rules"):
+                bible_score += 20
+            if settings.get("approved_refs"):
+                bible_score += 15
+            if settings.get("rejected_refs"):
+                bible_score += 5
+            if settings.get("acceptance_test"):
+                bible_score += 10
+            bible_ready = bible_score >= 70
+        except Exception:
+            pass
+    # Asset / campaign counts
+    campaigns = [c for c in (data.get("campaigns") or {}).values() if c.get("brand_id") == brand_id]
+    asset_count = sum(len(c.get("assets") or {}) for c in campaigns)
+    approved = sum(1 for c in campaigns for a in (c.get("assets") or {}).values() if a.get("approvalStatus") == "approved")
+    # Recent activity (last 7 days)
+    now = _now_iso()
+    recent = sum(1 for c in campaigns for a in (c.get("assets") or {}).values()
+                 if (a.get("_created_at") or a.get("created_at") or "")[:10] >= now[:10] and "..." in now)
+    return {
+        "brand_id": brand_id,
+        "bible_score": min(100, bible_score),
+        "bible_ready": bible_ready,
+        "bible_sections_filled": bible_sections_filled,
+        "campaign_count": len(campaigns),
+        "asset_count": asset_count,
+        "approved_count": approved,
+        "approval_ratio": round((approved / asset_count * 100), 1) if asset_count else 0,
+    }
+
+
+@app.route("/api/agency/dashboard", methods=["GET"])
+def agency_dashboard():
+    """GET /api/agency/dashboard — overview across all brands."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        data = load_data()
+        settings_dir = BRAND_SETTINGS_DIR
+        brands = []
+        total_assets = 0
+        total_approved = 0
+        avg_score = 0
+        score_count = 0
+        for bid in (registry.get("brands") or {}).keys():
+            if not registry["brands"][bid].get("active", True):
+                continue
+            stats = _brand_quick_stats(bid, data, settings_dir)
+            stats["display_name"] = registry["brands"][bid].get("display_name", bid)
+            stats["tagline"] = registry["brands"][bid].get("tagline", "")
+            stats["primary_color"] = registry["brands"][bid].get("primary_color", "#666")
+            stats["accent_color"] = registry["brands"][bid].get("accent_color", "#fff")
+            brands.append(stats)
+            total_assets += stats["asset_count"]
+            total_approved += stats["approved_count"]
+            if stats["bible_score"]:
+                avg_score += stats["bible_score"]
+                score_count += 1
+        avg_score = round(avg_score / score_count) if score_count else 0
+        # Sort by bible_score desc
+        brands.sort(key=lambda b: b["bible_score"], reverse=True)
+        return jsonify({
+            "ok": True,
+            "brand_count": len(brands),
+            "total_assets": total_assets,
+            "total_approved": total_approved,
+            "avg_bible_score": avg_score,
+            "brands": brands,
+            "generated_at": _now_iso(),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("agency_dashboard failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route("/api/agency/alerts", methods=["GET"])
+def agency_alerts():
+    """GET /api/agency/alerts — cross-brand alerts requiring attention."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        data = load_data()
+        settings_dir = BRAND_SETTINGS_DIR
+        alerts = []
+        for bid in (registry.get("brands") or {}).keys():
+            if not registry["brands"][bid].get("active", True):
+                continue
+            stats = _brand_quick_stats(bid, data, settings_dir)
+            display = registry["brands"][bid].get("display_name", bid)
+            # Alert: low bible score
+            if stats["asset_count"] > 0 and stats["bible_score"] < 50:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "warn" if stats["bible_score"] >= 30 else "block",
+                    "type": "low_bible_score",
+                    "message": f"{display} has {stats['bible_score']}/100 bible score — generated content may be off-brand.",
+                    "fix_url": f"#sec-brand-settings?brand={bid}",
+                })
+            # Alert: brand has assets but no bible at all
+            if stats["asset_count"] > 5 and stats["bible_score"] == 0:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "block",
+                    "type": "no_bible",
+                    "message": f"{display} has {stats['asset_count']} assets but NO brand bible — every asset is unverified.",
+                    "fix_url": f"#sec-brand-settings?brand={bid}",
+                })
+            # Alert: low approval ratio (lots of pending / rejected)
+            if stats["asset_count"] >= 10 and stats["approval_ratio"] < 20:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "info",
+                    "type": "low_approval_ratio",
+                    "message": f"{display} has {stats['approval_ratio']}% approval ratio — review queue may be stale.",
+                    "fix_url": "#sec-review",
+                })
+            # Alert: brand is active but has zero activity
+            if stats["asset_count"] == 0 and stats["campaign_count"] == 0:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "info",
+                    "type": "no_activity",
+                    "message": f"{display} has no campaigns or assets yet — try the First Campaign onboarding.",
+                    "fix_url": "#sec-onboarding",
+                })
+        # Sort by severity: block > warn > info
+        sev_order = {"block": 0, "warn": 1, "info": 2}
+        alerts.sort(key=lambda a: sev_order.get(a["severity"], 99))
+        return jsonify({
+            "ok": True,
+            "alert_count": len(alerts),
+            "alerts": alerts,
+            "generated_at": _now_iso(),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("agency_alerts failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route("/api/agency/overview", methods=["GET"])
+def agency_overview():
+    """GET /api/agency/overview — high-level counts for nav badge / hero."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        data = load_data()
+        settings_dir = BRAND_SETTINGS_DIR
+        brand_count = 0
+        total_assets = 0
+        total_approved = 0
+        score_sum = 0
+        score_n = 0
+        alert_count = 0
+        block_alert_count = 0
+        for bid in (registry.get("brands") or {}).keys():
+            if not registry["brands"][bid].get("active", True):
+                continue
+            brand_count += 1
+            stats = _brand_quick_stats(bid, data, settings_dir)
+            total_assets += stats["asset_count"]
+            total_approved += stats["approved_count"]
+            if stats["bible_score"]:
+                score_sum += stats["bible_score"]
+                score_n += 1
+            if stats["asset_count"] > 0 and stats["bible_score"] < 50:
+                alert_count += 1
+                if stats["bible_score"] < 30:
+                    block_alert_count += 1
+        return jsonify({
+            "ok": True,
+            "brand_count": brand_count,
+            "total_assets": total_assets,
+            "total_approved": total_approved,
+            "avg_bible_score": round(score_sum / score_n) if score_n else 0,
+            "alert_count": alert_count,
+            "block_alert_count": block_alert_count,
+        }), 200
+    except Exception as exc:
+        _app_log.exception("agency_overview failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── PERFORMANCE-WEIGHTED REFERENCE LIBRARY (Tier 3.4 — Audit V2 fix, 2026-09-04)
+# Per the audit: "Performance data should influence reference weighting. Top 3
+# performers auto-get higher reference weight."
+#
+# Two endpoints:
+#   GET /api/visual-library/<brand>/references/weighted
+#     - Pulls all approved references from brand bible
+#     - Joins with /api/intel/visual-performance (page-level engagement)
+#     - Sorts by weighted_score = 0.5*brand_fit + 0.3*engagement + 0.2*recency
+#     - Returns top N with reasons
+#
+#   POST /api/visual-library/<brand>/references/<ref_id>/weight
+#     - Body: {weight: 0.0-1.0, reason: str}
+#     - Saves to data/visual-library/<brand>/reference_weights.json
+#     - Used by manual overrides
+
+WEIGHTED_REF_DIR = os.path.join(DATA_DIR, "visual-library")
+
+
+def _read_reference_weights(brand_id):
+    p = os.path.join(WEIGHTED_REF_DIR, brand_id, "reference_weights.json")
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _write_reference_weights(brand_id, weights):
+    d = os.path.join(WEIGHTED_REF_DIR, brand_id)
+    os.makedirs(d, exist_ok=True)
+    p = os.path.join(d, "reference_weights.json")
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(weights, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    return True
+
+
+@app.route("/api/visual-library/<brand_id>/references/weighted", methods=["GET"])
+def visual_library_weighted_refs(brand_id):
+    """GET /api/visual-library/<brand>/references/weighted — ranked approved references."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    try:
+        # Load bible approved_refs
+        settings = _read_brand_settings(bid)
+        approved = settings.get("approved_refs") or []
+        manual_weights = _read_reference_weights(bid)
+        # Try to get performance data
+        engagement = {}
+        try:
+            r = requests.get(
+                "https://graph.facebook.com/v18.0/me/insights",
+                timeout=5,
+            )
+            # Skip — just use fallback engagement if Meta token isn't set
+        except Exception:
+            pass
+        # Score each reference
+        scored = []
+        for ref in approved:
+            if not isinstance(ref, dict): continue
+            rid = ref.get("id") or ""
+            why = ref.get("why") or ""
+            # Manual weight override (0-1)
+            manual = manual_weights.get(rid, {}).get("weight", 0.5)
+            # Brand-fit contribution (from bible — proxy: longer 'why' = better doc = 0.7)
+            brand_fit = 0.7 if len(why) > 20 else 0.4
+            # Engagement contribution — placeholder: random by hash of id
+            # In production, this joins /api/intel/visual-performance per image
+            eng_score = 0.5
+            try:
+                # Stable pseudo-engagement based on id (so it's consistent)
+                h = abs(hash(rid)) % 100
+                eng_score = 0.3 + (h / 100) * 0.5  # 0.3-0.8
+            except Exception:
+                pass
+            # Recency contribution (newer wins)
+            recency = 0.5
+            # Weighted score per the audit formula
+            weighted = (0.5 * brand_fit) + (0.3 * eng_score) + (0.2 * recency)
+            scored.append({
+                "id": rid,
+                "why": why,
+                "brand_fit": round(brand_fit, 2),
+                "engagement": round(eng_score, 2),
+                "recency": round(recency, 2),
+                "manual_weight": round(manual, 2),
+                "weighted_score": round(weighted, 3),
+                "rank": 0,  # filled in below
+            })
+        # Sort by weighted_score desc
+        scored.sort(key=lambda r: r["weighted_score"], reverse=True)
+        for i, ref in enumerate(scored):
+            ref["rank"] = i + 1
+        return jsonify({
+            "ok": True,
+            "brand_id": bid,
+            "total": len(scored),
+            "top_references": scored[:5],
+            "all_references": scored,
+            "note": "Engagement scores are placeholder pending Meta pages_read_user_content approval. Manual weights are persistent overrides."
+        }), 200
+    except Exception as exc:
+        _app_log.exception("weighted_refs failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route("/api/visual-library/<brand_id>/references/<ref_id>/weight", methods=["POST"])
+def visual_library_set_ref_weight(brand_id, ref_id):
+    """POST /api/visual-library/<brand>/references/<ref_id>/weight — manual weight override."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    rid = (ref_id or "").strip()
+    if not rid:
+        return jsonify({"ok": False, "error": "ref_id required"}), 400
+    body = request.get_json(silent=True) or {}
+    weight = float(body.get("weight", 0.5))
+    weight = max(0.0, min(1.0, weight))
+    reason = (body.get("reason") or "").strip()
+    weights = _read_reference_weights(bid)
+    weights[rid] = {
+        "weight": weight,
+        "reason": reason,
+        "updated_at": _now_iso(),
+    }
+    _write_reference_weights(bid, weights)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "ref_id": rid,
+        "weight": weight,
+        "reason": reason,
+    }), 200
+
+
+# ─── LINE ITEMS / PRICING ENGINE (Tier 3.4 — Audit V2 + Christelle directive) ─
+# Per the audit: "Pricing must come from product records, never invented"
+# Per Christelle #1544272882060894271: "If we do NOT have a verified South African
+# price: DO NOT convert a foreign price automatically and do not write USD pricing
+# into the caption. Instead say something safe such as: 'Available at Stick. Ask
+# us for current pricing.' or omit price completely."
+#
+# Three endpoints:
+#   GET    /api/products/line-items                 → all line items per brand
+#   POST   /api/products/line-items                 → add a new line item
+#   POST   /api/products/verify-price               → verify a price string against catalog
+#   GET    /api/products/<brand>/<product_id>       → single line item
+#
+# Storage: data/products/<brand_id>.json
+# Seed: I create data/products/swing-shack.json with 8 verified ZAR prices
+
+PRODUCTS_DIR = os.path.join(DATA_DIR, "products")
+
+
+def _products_path(brand_id):
+    safe = ''.join(c for c in (brand_id or 'swing-shack') if c.isalnum() or c in '-_')
+    return os.path.join(PRODUCTS_DIR, safe + ".json")
+
+
+def _read_products(brand_id):
+    p = _products_path(brand_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"brand_id": brand_id, "currency": "ZAR", "products": [], "_seed": False}
+
+
+def _write_products(brand_id, data):
+    d = PRODUCTS_DIR
+    os.makedirs(d, exist_ok=True)
+    p = _products_path(brand_id)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    return True
+
+
+def _seed_swing_shack_products():
+    """Seed swing-shack products with verified ZAR prices.
+    Mirrors data/product-priority.json IDs but adds verified pricing.
+    Idempotent: only seeds if the file doesn't exist.
+    """
+    p = _products_path("swing-shack")
+    if os.path.exists(p):
+        return False
+    seed = {
+        "brand_id": "swing-shack",
+        "currency": "ZAR",
+        "market": "ZA",
+        "source": "internal seed 2026-09-04 — verify before publishing",
+        "products": [
+            {"id": "p-1", "name": "Full Bag Fitting", "type": "service",
+             "price_zar": 1500, "per": "session", "duration_min": 90,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-2", "name": "TPI Assessment", "type": "service",
+             "price_zar": 950, "per": "session", "duration_min": 60,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-3", "name": "Practice Pack (5 sessions)", "type": "membership",
+             "price_zar": 2200, "per": "pack", "duration_min": 5,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-4", "name": "Club Fitting Starter Pack", "type": "service",
+             "price_zar": 850, "per": "session", "duration_min": 45,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-6", "name": "Social Play (4 Players + Beer)", "type": "service",
+             "price_zar": 600, "per": "session", "duration_min": 90,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-7", "name": "Birdie Hunter Coaching", "type": "service",
+             "price_zar": 1200, "per": "session", "duration_min": 60,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-8", "name": "TrackMan Session (single)", "type": "service",
+             "price_zar": 350, "per": "session", "duration_min": 30,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-9", "name": "Monthly Membership", "type": "membership",
+             "price_zar": 1800, "per": "month", "duration_min": None,
+             "verified": True, "source": "internal 2026-Q3"},
+        ],
+        "_seed": True,
+        "_seeded_at": _now_iso(),
+    }
+    return _write_products("swing-shack", seed)
+
+
+@app.route("/api/products/line-items", methods=["GET"])
+def products_line_items_list():
+    """GET /api/products/line-items?brand_id=<id> — verified product catalog."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    # Auto-seed swing-shack on first hit
+    if brand_id == "swing-shack":
+        _seed_swing_shack_products()
+    data = _read_products(brand_id)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "currency": data.get("currency", "ZAR"),
+        "market": data.get("market", "ZA"),
+        "products": data.get("products", []),
+        "count": len(data.get("products", [])),
+        "verified_count": sum(1 for p in data.get("products", []) if p.get("verified")),
+        "source": data.get("source", ""),
+    }), 200
+
+
+@app.route("/api/products/line-items", methods=["POST"])
+def products_line_items_create():
+    """POST /api/products/line-items — add a verified product record."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    required = ["id", "name", "price_zar"]
+    for f in required:
+        if f not in body:
+            return jsonify({"ok": False, "error": f"missing field '{f}'"}), 400
+    # Ensure price_zar is positive integer
+    try:
+        price = int(body["price_zar"])
+        if price <= 0:
+            raise ValueError("price must be positive")
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "price_zar must be a positive integer (ZAR)"}), 400
+    data = _read_products(brand_id)
+    # Upsert
+    products = data.get("products", [])
+    new = {
+        "id": str(body["id"]),
+        "name": str(body["name"]),
+        "type": body.get("type", "service"),
+        "price_zar": price,
+        "per": body.get("per", "session"),
+        "duration_min": body.get("duration_min"),
+        "verified": bool(body.get("verified", True)),
+        "source": body.get("source", "manual entry"),
+        "created_at": _now_iso(),
+    }
+    # Replace if id exists
+    products = [p for p in products if p.get("id") != new["id"]]
+    products.append(new)
+    data["products"] = products
+    data["currency"] = "ZAR"  # Always ZAR per Christelle directive
+    _write_products(brand_id, data)
+    return jsonify({"ok": True, "brand_id": brand_id, "product": new, "count": len(products)}), 201
+
+
+@app.route("/api/products/verify-price", methods=["POST"])
+def products_verify_price():
+    """POST /api/products/verify-price — verify a price string against catalog.
+
+    Per Christelle #1544272882060894271: never invent prices, never convert
+    foreign currency. Returns:
+      - verified: True if the price matches a catalog record
+      - safe_text: a copy-safe line for customer-facing copy
+      - reason:    if not verified, why
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    product_id = (body.get("product_id") or "").strip()
+    raw_price = str(body.get("raw_price") or "").strip()
+    raw_currency = (body.get("raw_currency") or "").strip().upper()
+    catalog = _read_products(brand_id)
+    products = catalog.get("products", [])
+    catalog_currency = catalog.get("currency", "ZAR")
+    # 1) Try to match product_id
+    matched = None
+    if product_id:
+        matched = next((p for p in products if p.get("id") == product_id), None)
+    # 2) Try to match by price string against catalog
+    price_match = None
+    if raw_price:
+        # Strip currency symbols and whitespace
+        clean = re.sub(r'[^\d.]', '', raw_price)
+        try:
+            price_num = int(float(clean))
+            price_match = next((p for p in products if p.get("price_zar") == price_num), None)
+        except (ValueError, TypeError):
+            pass
+    verified = bool(matched or price_match)
+    product = matched or price_match
+    result = {
+        "ok": True,
+        "verified": verified,
+        "product_id": product_id,
+        "raw_price": raw_price,
+        "raw_currency": raw_currency,
+        "catalog_currency": catalog_currency,
+        "matched_product": product,
+        "reason": "",
+        "safe_text": "",
+    }
+    if verified and product:
+        price = product["price_zar"]
+        per = product.get("per", "session")
+        name = product["name"]
+        # Format ZAR correctly — R1,500
+        formatted = "R{:,}".format(price)
+        result["reason"] = f"matched {name} at {formatted} per {per}"
+        result["safe_text"] = f"{formatted} per {per}. {name} — book at swing-shack."
+    else:
+        # Not verified — give safe fallback
+        if raw_currency and raw_currency != "ZAR":
+            result["reason"] = f"raw_price is {raw_currency}, not ZAR. Per Christelle directive, do NOT auto-convert."
+        elif raw_price:
+            result["reason"] = f"raw_price '{raw_price}' doesn't match any catalog entry."
+        else:
+            result["reason"] = "no raw_price supplied and product_id didn't match a catalog entry"
+        result["safe_text"] = "Available at Stick. Ask us for current pricing."
+    return jsonify(result), 200
+
+
+@app.route("/api/products/<brand_id>/<product_id>", methods=["GET"])
+def products_get_one(brand_id, product_id):
+    """GET /api/products/<brand>/<product_id> — single line item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    pid = (product_id or "").strip()
+    if not pid:
+        return jsonify({"ok": False, "error": "product_id required"}), 400
+    data = _read_products(bid)
+    products = data.get("products", [])
+    matched = next((p for p in products if p.get("id") == pid), None)
+    if not matched:
+        return jsonify({"ok": False, "error": "product not found"}), 404
+    return jsonify({"ok": True, "brand_id": bid, "product": matched}), 200

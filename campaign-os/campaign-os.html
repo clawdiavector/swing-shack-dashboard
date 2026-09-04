@@ -708,6 +708,8 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
       <div class="nav" data-go="trends" data-help-title="Trends" data-help="Real-time trend feed. What is gaining traction for the active brand's pillars."><span class="nav-icon">📡</span> Trends</div>
       <div class="nav" data-go="brand-settings" data-help-title="Brand Settings" data-help="Edit the brand bible. Voice, visual direction, AI rules, acceptance test. Includes the Bible Score completion meter."><span class="nav-icon">⚙️</span> Brand Settings</div>
+      <div class="nav" data-go="agency" data-help-title="Agency" data-help="Multi-brand overview — Bible Score, asset counts, alerts across all brands."><span class="nav-icon">🏢</span> Agency <span class="nav-badge" id="nav-agency-alerts" hidden>0</span></div>
+      <div class="nav" data-go="products" data-help-title="Products &amp; Pricing" data-help="Verified product catalog with ZAR prices. Used to gate invented pricing in customer-facing copy."><span class="nav-icon">💰</span> Products &amp; Pricing</div>
 
       <div class="nav-title">✨ Create</div>
       <div class="nav" data-go="hooks" data-help-title="Hook Bank" data-help="Curated opening hooks ranked by what wins for this brand."><span class="nav-icon">🪝</span> Hook Bank</div>
@@ -3859,7 +3861,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -9787,6 +9789,218 @@ async function queueWithGateDryRun(brand) {
   }
 })();
 
+
+
+// ─── AGENCY DASHBOARD (Tier 3.4 — Audit V2, 2026-09-04) ────────────────────
+// Per the audit: "Multi-brand agency dashboard" — a single pane of glass
+// across all brands. Shows Bible Score, asset counts, alerts at a glance.
+//
+// Endpoints used:
+//   GET /api/agency/dashboard — per-brand stats
+//   GET /api/agency/alerts — cross-brand alerts
+//   GET /api/agency/overview — high-level counts
+
+async function renderAgency() {
+  const refresh = $('#agency-refresh');
+  if (refresh) { refresh.disabled = true; refresh.textContent = '⏳'; }
+  try {
+    const [dashR, alertsR] = await Promise.all([
+      API.get('/api/agency/dashboard'),
+      API.get('/api/agency/alerts'),
+    ]);
+    if (!dashR.ok) { toast('Agency dashboard failed: ' + dashR.error, true); return; }
+    if (!alertsR.ok) { toast('Alerts failed: ' + alertsR.error, true); return; }
+    // Overview tiles
+    $('#agency-overview').innerHTML = `
+      <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Brands</div><div style="font-size:24px;font-weight:700">${dashR.brand_count || 0}</div></div>
+      <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Total assets</div><div style="font-size:24px;font-weight:700">${dashR.total_assets || 0}</div></div>
+      <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Approved</div><div style="font-size:24px;font-weight:700;color:var(--success)">${dashR.total_approved || 0}</div></div>
+      <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Avg Bible Score</div><div style="font-size:24px;font-weight:700;color:${(dashR.avg_bible_score || 0) >= 70 ? 'var(--success)' : (dashR.avg_bible_score || 0) >= 40 ? 'var(--accent)' : 'var(--danger)'}">${dashR.avg_bible_score || 0}/100</div></div>
+    `;
+    $('#agency-overview-ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    // Per-brand status
+    $('#agency-brands').innerHTML = (dashR.brands || []).map(b => {
+      const score = b.bible_score || 0;
+      const scoreColor = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--accent)' : 'var(--danger)';
+      return `
+        <div style="padding:.75rem;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;gap:.5rem">
+          <div>
+            <div style="font-weight:600;font-size:13px">${esc(b.display_name)}</div>
+            <div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">${esc(b.tagline || '').slice(0, 60)}</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Bible</div>
+            <div style="font-size:14px;font-weight:700;color:${scoreColor}">${score}/100</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Assets</div>
+            <div style="font-size:14px;font-weight:700">${b.asset_count || 0}</div>
+            <div style="font-size:10px;color:var(--tx-3)">${b.approved_count || 0} approved · ${b.campaign_count || 0} campaigns</div>
+          </div>
+          <div>
+            <button class="btn ghost" data-go-brand="${esc(b.brand_id)}" style="font-size:11px;padding:4px 8px">Open →</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    // Alerts
+    const alerts = alertsR.alerts || [];
+    $('#agency-alerts-count').textContent = alerts.length + ' alerts';
+    $('#agency-alerts').innerHTML = alerts.length ? alerts.map(a => {
+      const color = a.severity === 'block' ? 'var(--danger)' : a.severity === 'warn' ? 'var(--accent)' : 'var(--tx-2)';
+      return `
+        <div style="padding:.6rem;border-bottom:1px solid var(--bd);border-left:3px solid ${color};background:var(--bg-2);border-radius:0 6px 6px 0;margin-bottom:.4rem">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:${color};text-transform:uppercase;font-weight:600">${esc(a.severity)} · ${esc(a.type)}</span>
+            ${a.fix_url ? '<a href="' + esc(a.fix_url) + '" style="font-size:11px;color:var(--ac)">Fix →</a>' : ''}
+          </div>
+          <div style="font-size:12px;margin-top:.3rem;line-height:1.4">${esc(a.message)}</div>
+        </div>
+      `;
+    }).join('') : '<div class="empty">✓ No alerts — every brand is healthy</div>';
+    // Update nav badge
+    const badge = $('#nav-agency-alerts');
+    if (badge) {
+      const blockCount = alerts.filter(a => a.severity === 'block').length;
+      if (blockCount > 0) {
+        badge.hidden = false;
+        badge.textContent = blockCount;
+        badge.style.background = 'var(--danger)';
+      } else if (alerts.length > 0) {
+        badge.hidden = false;
+        badge.textContent = alerts.length;
+        badge.style.background = 'var(--accent)';
+      } else {
+        badge.hidden = true;
+      }
+    }
+  } catch (e) {
+    toast('Agency render failed: ' + (e.message || e), true);
+  } finally {
+    if (refresh) { refresh.disabled = false; refresh.textContent = '🔄 Refresh'; }
+  }
+}
+
+// Wire refresh button + per-brand navigation
+(function wireAgency() {
+  const refresh = document.getElementById('agency-refresh');
+  if (refresh && !refresh._wired) {
+    refresh._wired = true;
+    refresh.addEventListener('click', renderAgency);
+  }
+  if (!window._agencyWired) {
+    window._agencyWired = true;
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-go-brand]');
+      if (btn) {
+        const brand = btn.dataset.goBrand;
+        const sel = document.getElementById('bs-brand');
+        if (sel) {
+          sel.value = brand;
+          go('brand-settings');
+          setTimeout(() => { if (typeof renderBrandSettings === 'function') renderBrandSettings(); }, 100);
+        }
+      }
+    });
+  }
+})();
+
+
+// ─── PRODUCTS & PRICING (Tier 3.4 — Christelle directive, 2026-09-04) ───────
+// Per Christelle #1544272882060894271: never invent prices, never auto-convert
+// foreign currency. This is the single source of truth for verified ZAR prices.
+
+async function renderProducts() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  const r = await API.get('/api/products/line-items?brand_id=' + encodeURIComponent(brand));
+  if (!r.ok) { toast('Products load failed: ' + r.error, true); return; }
+  $('#prod-summary').textContent = `${r.count || 0} products · ${r.verified_count || 0} verified · ${r.currency || 'ZAR'}`;
+  $('#prod-list').innerHTML = (r.products || []).map(p => {
+    const price = p.price_zar ? 'R' + p.price_zar.toLocaleString() : '—';
+    const verified = p.verified ? '<span class="pill on" style="font-size:10px;margin-left:6px">verified</span>' : '<span class="pill blocked" style="font-size:10px;margin-left:6px">UNVERIFIED</span>';
+    return `
+      <div style="padding:.6rem .75rem;border-bottom:1px solid var(--bd);display:grid;grid-template-columns:1fr 1fr 1fr 1fr;align-items:center;gap:.5rem">
+        <div>
+          <div style="font-weight:600;font-size:13px">${esc(p.name)} ${verified}</div>
+          <div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">${esc(p.type)} · ${esc(p.source || '')}</div>
+        </div>
+        <div><div style="font-size:18px;font-weight:700;color:var(--success)">${esc(price)}</div><div style="font-size:10px;color:var(--tx-3)">per ${esc(p.per)}</div></div>
+        <div style="font-size:11px;color:var(--tx-3)">${p.duration_min ? p.duration_min + ' min' : ''}</div>
+        <div style="font-size:11px;color:var(--tx-3)">id: ${esc(p.id)}</div>
+      </div>
+    `;
+  }).join('') || '<div class="empty">No products yet — click + Add product</div>';
+}
+
+async function productsVerify() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  const product_id = document.getElementById('prod-verify-product')?.value.trim() || '';
+  const raw_price = document.getElementById('prod-verify-raw')?.value.trim() || '';
+  const raw_currency = document.getElementById('prod-verify-currency')?.value || '';
+  const result = document.getElementById('prod-verify-result');
+  if (!product_id && !raw_price) {
+    if (result) result.innerHTML = '<div style="padding:.5rem;color:var(--danger);font-size:12px">Enter a product_id OR a raw_price to verify.</div>';
+    return;
+  }
+  const body = { brand_id: brand };
+  if (product_id) body.product_id = product_id;
+  if (raw_price) body.raw_price = raw_price;
+  if (raw_currency) body.raw_currency = raw_currency;
+  const r = await API.post('/api/products/verify-price', body);
+  if (!r.ok) { if (result) result.innerHTML = '<div style="padding:.5rem;color:var(--danger);font-size:12px">Verify failed: ' + esc(r.error) + '</div>'; return; }
+  const color = r.verified ? 'var(--success)' : 'var(--danger)';
+  const icon = r.verified ? '✓' : '⚠';
+  if (result) {
+    result.innerHTML = `
+      <div style="padding:.75rem;background:var(--bg-2);border-radius:8px;border-left:3px solid ${color}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;color:${color}">${icon} ${r.verified ? 'VERIFIED' : 'NOT VERIFIED'}</span>
+          ${r.matched_product ? '<span class="pill on" style="font-size:10px">' + esc(r.matched_product.name) + '</span>' : ''}
+        </div>
+        <div style="font-size:12px;color:var(--tx-2);margin-top:.4rem">${esc(r.reason)}</div>
+        ${r.safe_text ? '<div style="margin-top:.5rem;padding:.5rem;background:var(--bg-1);border-radius:6px;font-size:13px"><b>Safe customer-facing copy:</b><br>' + esc(r.safe_text) + '</div>' : ''}
+      </div>
+    `;
+  }
+}
+
+async function productsAdd() {
+  const brand = document.getElementById('prod-brand')?.value || 'swing-shack';
+  const name = prompt('Product name (e.g. "TrackMan Session"):');
+  if (!name) return;
+  const priceStr = prompt('Price in ZAR (e.g. 350). MUST be a verified local price.', '');
+  if (!priceStr) return;
+  const price = parseInt(priceStr);
+  if (!price || price <= 0) { toast('Price must be a positive integer (ZAR)', true); return; }
+  const per = prompt('Per (session / pack / month / etc.):', 'session') || 'session';
+  const r = await API.post('/api/products/line-items', {
+    brand_id: brand,
+    id: 'p-' + Date.now().toString().slice(-6),
+    name, price_zar: price, per, verified: true, source: 'manual entry via SPA',
+  });
+  if (!r.ok) { toast('Add failed: ' + r.error, true); return; }
+  toast('✓ Product added: ' + r.product.name + ' @ R' + r.product.price_zar);
+  await renderProducts();
+}
+
+(function wireProducts() {
+  const sel = document.getElementById('prod-brand');
+  if (sel && !sel._wired) {
+    sel._wired = true;
+    sel.addEventListener('change', renderProducts);
+  }
+  const verifyBtn = document.getElementById('prod-verify-btn');
+  if (verifyBtn && !verifyBtn._wired) {
+    verifyBtn._wired = true;
+    verifyBtn.addEventListener('click', productsVerify);
+  }
+  const addBtn = document.getElementById('prod-add');
+  if (addBtn && !addBtn._wired) {
+    addBtn._wired = true;
+    addBtn.addEventListener('click', productsAdd);
+  }
+})();
+
 </script>
 
 
@@ -9914,6 +10128,81 @@ async function queueWithGateDryRun(brand) {
           </div>
           <div id="ob-gen-result" style="margin-top:1rem"></div>
         </div>
+      </div>
+    </section>
+
+
+    <!-- ─── AGENCY DASHBOARD (Tier 3.4 — Audit V2, 2026-09-04) ─────────────── -->
+    <section class="section" id="sec-agency">
+      <div class="section-h">
+        <h2>🏢 Agency Dashboard</h2>
+        <span class="sub">Multi-brand overview. Bible Score, asset counts, alerts across all brands at a glance.</span>
+        <button class="btn ghost" id="agency-refresh" style="margin-left:auto">🔄 Refresh</button>
+      </div>
+
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div class="card-h">
+          <h3>📊 Cross-brand totals</h3>
+          <span class="muted" id="agency-overview-ts">Loading…</span>
+        </div>
+        <div id="agency-overview" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem"></div>
+      </div>
+
+      <div class="grid">
+        <div class="card col-8">
+          <div class="card-h"><h3>📋 Per-brand status</h3></div>
+          <div id="agency-brands"></div>
+        </div>
+        <div class="card col-4">
+          <div class="card-h">
+            <h3>⚠️ Alerts</h3>
+            <span class="muted" id="agency-alerts-count" style="font-size:11px">—</span>
+          </div>
+          <div id="agency-alerts" style="max-height:500px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── PRODUCTS & PRICING (Tier 3.4 — Christelle directive, 2026-09-04) ─ -->
+    <section class="section" id="sec-products">
+      <div class="section-h">
+        <h2>💰 Products & Pricing</h2>
+        <span class="sub">Verified product catalog with ZAR prices. Used to gate invented pricing in customer-facing copy.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="prod-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+            <option value="takomo">Takomo</option>
+          </select>
+          <button class="btn primary" id="prod-add">+ Add product</button>
+        </div>
+      </div>
+
+      <div class="card col-12" style="margin-bottom:1rem">
+        <div class="card-h">
+          <h3>🛡 Price verification</h3>
+          <span class="muted">Per Christelle directive: never invent prices, never convert foreign currency.</span>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.5rem">
+          <input type="text" id="prod-verify-product" placeholder="Product ID (e.g. p-8)" style="width:120px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
+          <span style="font-size:12px;color:var(--tx-3)">or</span>
+          <input type="text" id="prod-verify-raw" placeholder="Raw price (e.g. $299)" style="width:160px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px" />
+          <select id="prod-verify-currency" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font-size:13px">
+            <option value="">auto-detect</option>
+            <option value="ZAR">ZAR</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+          </select>
+          <button class="btn primary" id="prod-verify-btn">Verify</button>
+        </div>
+        <div id="prod-verify-result"></div>
+      </div>
+
+      <div class="card col-12">
+        <div class="card-h"><h3>📦 Catalog</h3><span class="muted" id="prod-summary">—</span></div>
+        <div id="prod-list"></div>
       </div>
     </section>
 
