@@ -9,7 +9,8 @@
         }
       },
       "startCommand": "cd campaign-os && python app.py"
-    }
+    },
+    "_redeploy_trigger": "21ea216-tier3.14.1-fix"
   },
   "deploy": {
     "numReplicas": 1,
