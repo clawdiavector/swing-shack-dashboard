@@ -27886,3 +27886,686 @@ def build_post_recommended_slot():
 
 # Reference helpers used by build_post endpoints
 import time as _time
+
+
+# ─── STRATEGIC CALENDAR REFINEMENT (Tier 3.15 — Big Idea + Parallel Lanes, 2026-09-07) ──
+# Per heidi.txt #1-#17. Adds the planning hierarchy:
+#   YEAR → QUARTER → MONTH → WEEK → DAY
+# with BIG BRAND IDEA + MONTHLY THEME + PARALLEL LANES.
+# Same canonical calendar — strategic context lives ABOVE the calendar,
+# not in a separate tool.
+
+PLANNING_DIR = os.path.join(DATA_DIR, "brand-planning")
+IMPORTANT_DATES_DIR = os.path.join(DATA_DIR, "important-dates")
+GOLF_MOMENTS_DIR = os.path.join(DATA_DIR, "golf-moments")
+
+# Lane types — used across brands. Some brands use different names for the
+# same conceptual lane. We treat each as separate but flag "this lane is
+# active" uniformly.
+LANE_TYPES = [
+    "product", "fitting", "coaching", "workshop", "apparel", "commercial",
+    "human", "campaign", "paid", "search", "crm",
+    "swing-truth", "truth-about", "10-ball-truth", "shack-sessions",
+    "practice", "membership",
+    "the-drop", "condition-check", "who-this-suits", "small-wins",
+    "out-the-door", "drop-alerts",
+]
+
+
+def _read_planning(brand_id):
+    p = os.path.join(PLANNING_DIR, f"{brand_id}.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _read_important_dates(year):
+    p = os.path.join(IMPORTANT_DATES_DIR, f"{year}.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            d = json.load(f)
+            return d.get("dates") or []
+    except Exception:
+        return []
+
+
+def _read_golf_moments(year):
+    p = os.path.join(GOLF_MOMENTS_DIR, f"{year}.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            d = json.load(f)
+            return d.get("events") or []
+    except Exception:
+        return []
+
+
+# ─── 1. PLANNING HIERARCHY DATA (per heidi.txt #1-#4) ──────────────────────
+
+@app.route("/api/planning/<brand_id>/big-idea", methods=["GET"])
+def planning_big_idea(brand_id):
+    """GET /api/planning/<brand>/big-idea — the big brand idea that
+    sits ABOVE the calendar (per heidi.txt #2).
+
+    Response:
+      {
+        ok, brand_id, big_brand_idea: {
+          name, belief, elevator
+        }, monthly_themes: [{month, theme, lanes_emphasis}], active_campaigns
+      }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data", "brand_id": brand_id}), 404
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "big_brand_idea": data.get("big_brand_idea"),
+        "monthly_themes": data.get("monthly_themes") or [],
+        "active_campaigns": data.get("active_campaigns") or [],
+        "lane_system": data.get("lane_system") or [],
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/monthly-theme", methods=["GET", "POST"])
+def planning_monthly_theme(brand_id):
+    """GET/POST /api/planning/<brand>/monthly-theme — current month's
+    theme. GET returns the active monthly theme. POST sets a new theme.
+
+    Per heidi.txt #13: theme includes why, which bet, which lanes express
+    it, what we're trying to prove, what would change it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        month = body.get("month")  # "YYYY-MM"
+        theme = body.get("theme")
+        if not month or not theme:
+            return jsonify({"ok": False, "error": "month + theme required"}), 400
+        data = _read_planning(brand_id) or {}
+        themes = data.get("monthly_themes") or []
+        # Upsert
+        themes = [t for t in themes if t.get("month") != month]
+        themes.append({
+            "month": month,
+            "theme": theme,
+            "question": body.get("question", ""),
+            "lanes_emphasis": body.get("lanes_emphasis", []),
+            "supported_bet": body.get("supported_bet", ""),
+            "what_we_prove": body.get("what_we_prove", ""),
+            "what_changes_it": body.get("what_changes_it", ""),
+            "set_at": _now_iso(),
+        })
+        themes.sort(key=lambda t: t.get("month", ""))
+        data["monthly_themes"] = themes
+        os.makedirs(PLANNING_DIR, exist_ok=True)
+        with open(os.path.join(PLANNING_DIR, f"{brand_id}.json"), "w") as f:
+            json.dump(data, f, indent=2)
+        return jsonify({"ok": True, "brand_id": brand_id, "month": month, "theme": theme,
+                        "themes_count": len(themes)}), 200
+    # GET
+    month = request.args.get("month")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    if month:
+        themes = [t for t in (data.get("monthly_themes") or []) if t.get("month") == month]
+        if not themes:
+            return jsonify({"ok": False, "error": "no theme for that month", "month": month}), 404
+        theme = themes[0]
+    else:
+        # Latest
+        themes = sorted(data.get("monthly_themes") or [], key=lambda t: t.get("month", ""))
+        theme = themes[-1] if themes else None
+        if not theme:
+            # Fall back to current month
+            now = datetime.datetime.utcnow()
+            month = now.strftime("%Y-%m")
+            theme = {"month": month, "theme": "Not set"}
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "theme": theme,
+        "big_brand_idea": data.get("big_brand_idea"),
+    }), 200
+
+
+# ─── 2. LANE HEALTH (per heidi.txt #5) ───────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/lane-health", methods=["GET"])
+def planning_lane_health(brand_id):
+    """GET /api/planning/<brand>/lane-health?month=YYYY-MM&week=YYYY-MM-DD
+
+    Returns lane balance summary for the selected week/month + flags
+    genuinely useful gaps. Per heidi.txt #5 — planning signal, not scoring.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month")
+    week_start = request.args.get("week")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    lane_system = data.get("lane_system") or []
+    # Aggregate from existing content_items.json if available
+    counts = {lane["lane"]: 0 for lane in lane_system}
+    # Try to read content_items
+    items = []
+    try:
+        from _lib.marketing_lanes import list_extended_content
+        items = list_extended_content(brand_id)
+    except Exception:
+        # Fall back to data dir
+        try:
+            content_path = os.path.join(DATA_DIR, "content_items.json")
+            if os.path.exists(content_path):
+                with open(content_path) as f:
+                    all_items = json.load(f)
+                items = [it for it in all_items if it.get("brand_id") == brand_id]
+        except Exception:
+            pass
+
+    # Filter by week or month
+    def in_window(it):
+        if not it.get("scheduled_date"):
+            return False
+        d = it["scheduled_date"][:10]  # YYYY-MM-DD
+        if week_start:
+            return d.startswith(week_start[:7]) and d >= week_start[:10] and d < week_start[:10]  # approx
+        if month:
+            return d.startswith(month)
+        return True
+
+    for it in items:
+        if not in_window(it):
+            continue
+        lane = it.get("lane") or ""
+        if lane in counts:
+            counts[lane] += 1
+        else:
+            counts[lane] = counts.get(lane, 0) + 1
+
+    total = sum(counts.values())
+    # Identify gaps — per heidi.txt #5
+    gaps = []
+    if total > 0:
+        if counts.get("human", 0) == 0:
+            gaps.append({"signal": "NO_HUMAN_CONTENT_THIS_PERIOD", "severity": "medium",
+                         "message": "No human / staff content scheduled. People content builds trust."})
+        if counts.get("fitting", 0) == 0:
+            gaps.append({"signal": "NO_FITTING_SERVICE_PROOF", "severity": "medium",
+                         "message": "No fitting / service proof in this period."})
+        if counts.get("paid", 0) > 0 and counts.get("campaign", 0) == 0:
+            gaps.append({"signal": "PAID_WITHOUT_CAMPAIGN", "severity": "low",
+                         "message": "Paid spend active but no campaign umbrella."})
+        if counts.get("campaign", 0) > 0 and counts.get("paid", 0) == 0:
+            gaps.append({"signal": "CAMPAIGN_WITHOUT_PAID", "severity": "medium",
+                         "message": "Active campaign has no paid support."})
+        # Dominance check
+        for lane, n in counts.items():
+            if total > 0 and n / total > 0.8:
+                gaps.append({"signal": "PRODUCT_LANE_DOMINANCE", "severity": "medium",
+                             "message": f"{lane} is {int(n/total*100)}% of feed content. Diverse lane mix recommended."})
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "week_start": week_start,
+        "lane_counts": counts,
+        "total_planned": total,
+        "lane_system": lane_system,
+        "gaps": gaps,
+        "disclaimer": "Planning signal, not a scoring game. No arbitrary quotas enforced.",
+    }), 200
+
+
+# ─── 3. MONTHLY PLAN (per heidi.txt #6) ─────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/monthly-plan", methods=["GET", "POST"])
+def planning_monthly_plan(brand_id):
+    """GET/POST /api/planning/<brand>/monthly-plan?month=YYYY-MM
+
+    Per heidi.txt #6: 8-question monthly plan that produces a PROPOSED
+    month (not auto-published). The plan asks:
+      1. What happened last month?
+      2. What does the business need this month?
+      3. What stock/products matter?
+      4. What services need bookings?
+      5. What campaigns/events are coming?
+      6. What is the monthly strategic theme?
+      7. Which lanes need emphasis?
+      8. What must be produced/captured?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month") or request.json.get("month") if request.is_json else request.args.get("month")
+    if not month:
+        now = datetime.datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        plan = {
+            "brand_id": brand_id,
+            "month": month,
+            "created_at": _now_iso(),
+            "last_month_review": body.get("last_month_review", ""),
+            "business_needs": body.get("business_needs", ""),
+            "stock_priority": body.get("stock_priority", []),
+            "services_priority": body.get("services_priority", []),
+            "campaigns_coming": body.get("campaigns_coming", []),
+            "strategic_theme": body.get("strategic_theme", ""),
+            "lanes_emphasis": body.get("lanes_emphasis", []),
+            "must_produce": body.get("must_produce", []),
+            "approved": False,
+        }
+        plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+        with open(plan_path, "w") as f:
+            json.dump(plan, f, indent=2)
+        return jsonify({"ok": True, "plan": plan, "saved_to": plan_path}), 200
+    # GET
+    plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+    plan = None
+    if os.path.exists(plan_path):
+        try:
+            with open(plan_path) as f:
+                plan = json.load(f)
+        except Exception:
+            pass
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "plan": plan,
+        "questions": [
+            {"q": "What happened last month?", "key": "last_month_review"},
+            {"q": "What does the business need this month?", "key": "business_needs"},
+            {"q": "What stock/products matter?", "key": "stock_priority"},
+            {"q": "What services need bookings?", "key": "services_priority"},
+            {"q": "What campaigns/events are coming?", "key": "campaigns_coming"},
+            {"q": "What is the monthly strategic theme?", "key": "strategic_theme"},
+            {"q": "Which lanes need emphasis?", "key": "lanes_emphasis"},
+            {"q": "What must be produced/captured?", "key": "must_produce"},
+        ],
+        "big_brand_idea": data.get("big_brand_idea"),
+        "lane_system": data.get("lane_system"),
+    }), 200
+
+
+# ─── 4. WEEKLY TRAFFIC-CONTROL (per heidi.txt #7) ─────────────────────────
+
+@app.route("/api/planning/<brand_id>/weekly-traffic", methods=["GET"])
+def planning_weekly_traffic(brand_id):
+    """GET /api/planning/<brand>/weekly-traffic?week_start=YYYY-MM-DD
+
+    Per heidi.txt #7: lightweight weekly execution view. NOT a re-strategise.
+    Answers:
+      - What is going live?
+      - What needs capture?
+      - What needs design / generation?
+      - What needs approval?
+      - What product/service needs pushing?
+      - What is getting paid support?
+      - What has a blocker?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    week_start = request.args.get("week_start")
+    if not week_start:
+        today = datetime.date.today()
+        # Monday of this week
+        week_start = (today - datetime.timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+
+    # Pull this week's content
+    items = []
+    try:
+        from _lib.marketing_lanes import list_extended_content
+        items = list_extended_content(brand_id)
+    except Exception:
+        try:
+            content_path = os.path.join(DATA_DIR, "content_items.json")
+            if os.path.exists(content_path):
+                with open(content_path) as f:
+                    all_items = json.load(f)
+                items = [it for it in all_items if it.get("brand_id") == brand_id]
+        except Exception:
+            pass
+
+    week_end_dt = datetime.datetime.strptime(week_start, "%Y-%m-%d") + datetime.timedelta(days=7)
+    week_end = week_end_dt.strftime("%Y-%m-%d")
+
+    def in_week(it):
+        d = it.get("scheduled_date", "")[:10]
+        return week_start <= d < week_end if d else False
+
+    week_items = [it for it in items if in_week(it)]
+
+    # Bucket by heidi.txt #7 questions
+    buckets = {
+        "going_live": [],         # status = ready or scheduled
+        "needs_capture": [],      # status = needs_capture
+        "needs_design": [],       # status = draft / needs_image
+        "needs_approval": [],     # status = ready_but_pending_approval
+        "product_push": [],       # lane contains product/apparel/the-drop
+        "paid_support": [],       # lane = paid
+        "blocked": [],            # blocked_reasons non-empty
+    }
+    for it in week_items:
+        status = (it.get("status") or "").lower()
+        lane = (it.get("lane") or "").lower()
+        if status in ("ready", "scheduled", "live", "queued"):
+            buckets["going_live"].append(it)
+        if status == "needs_capture":
+            buckets["needs_capture"].append(it)
+        if status in ("draft", "needs_image", "needs_design"):
+            buckets["needs_design"].append(it)
+        if status in ("ready_but_pending_approval", "pending_approval", "awaiting_approval"):
+            buckets["needs_approval"].append(it)
+        if lane in ("product", "apparel", "the-drop", "small-wins", "commercial"):
+            buckets["product_push"].append(it)
+        if lane == "paid":
+            buckets["paid_support"].append(it)
+        if it.get("blocked_reasons"):
+            buckets["blocked"].append(it)
+
+    # Production runway stage (per heidi.txt #9)
+    today = datetime.date.today()
+    runway = []
+    runway_windows = [
+        ("T-21 to T-28", "monthly theme / key priorities", 28, 21),
+        ("T-14 to T-21", "hooks / briefs / required footage / product references", 21, 14),
+        ("T-7 to T-14", "capture / asset collection", 14, 7),
+        ("T-4 to T-7", "edit / image generation / design", 7, 4),
+        ("T-2 to T-4", "review", 4, 2),
+        ("T-1", "schedule", 1, 0),
+    ]
+    for label, what, days_out_max, days_out_min in runway_windows:
+        runway.append({"window": label, "what": what, "days_out": f"{days_out_max} to {days_out_min}"})
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "week_start": week_start,
+        "week_end": week_end,
+        "buckets": {k: [{"id": it.get("id"), "title": it.get("title") or it.get("hook"),
+                          "lane": it.get("lane"), "status": it.get("status"),
+                          "scheduled_date": it.get("scheduled_date")}
+                         for it in v] for k, v in buckets.items()},
+        "counts": {k: len(v) for k, v in buckets.items()},
+        "production_runway": runway,
+        "disclaimer": "Weekly traffic control. NOT a re-strategise — monthly strategy should remain stable.",
+    }), 200
+
+
+# ─── 5. PARALLEL-LANE CALENDAR VIEW (per heidi.txt #1-#3, #4, #15) ────────
+
+@app.route("/api/planning/<brand_id>/month", methods=["GET"])
+def planning_month_view(brand_id):
+    """GET /api/planning/<brand>/month?month=YYYY-MM
+
+    Per heidi.txt #4, #15: month view with strategic context at top +
+    daily content cards below. ALL lanes visible. Same canonical calendar.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month")
+    if not month:
+        now = datetime.datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+
+    # Active monthly theme
+    themes = sorted(data.get("monthly_themes") or [], key=lambda t: t.get("month", ""))
+    monthly_theme = None
+    for t in themes:
+        if t.get("month") == month:
+            monthly_theme = t
+            break
+    if not monthly_theme and themes:
+        monthly_theme = themes[-1]
+
+    # Active campaigns
+    active_campaigns = data.get("active_campaigns") or []
+
+    # Pull month items
+    items = []
+    try:
+        from _lib.marketing_lanes import list_extended_content
+        items = list_extended_content(brand_id)
+    except Exception:
+        try:
+            content_path = os.path.join(DATA_DIR, "content_items.json")
+            if os.path.exists(content_path):
+                with open(content_path) as f:
+                    all_items = json.load(f)
+                items = [it for it in all_items if it.get("brand_id") == brand_id]
+        except Exception:
+            pass
+
+    # Group items by day
+    days = {}
+    for it in items:
+        d = it.get("scheduled_date", "")[:10]
+        if not d.startswith(month):
+            continue
+        days.setdefault(d, []).append(it)
+
+    # Important dates for this month
+    year = int(month[:4])
+    month_num = int(month[5:7])
+    important = []
+    for d in _read_important_dates(year):
+        if d["date"].startswith(month):
+            important.append(d)
+    # Add golf moments
+    for m in _read_golf_moments(year):
+        if m["date"].startswith(month):
+            important.append({"date": m["date"], "type": "GOLF_EVENT", "name": m["event"],
+                              "subtype": m.get("type"), "window": m.get("window")})
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "big_brand_idea": data.get("big_brand_idea"),
+        "monthly_theme": monthly_theme,
+        "active_campaigns": active_campaigns,
+        "lane_system": data.get("lane_system") or [],
+        "days": days,
+        "important_dates": important,
+        "production_runway_note": "T-21 to T-28: monthly theme. T-14 to T-21: briefs. T-7 to T-14: capture. T-4 to T-7: edit. T-2 to T-4: review. T-1: schedule.",
+        "reminder": "PARALLEL LANES — every important lane remains active. Monthly theme gives those lanes a shared idea.",
+    }), 200
+
+
+# ─── 6. WHY THIS THEME (per heidi.txt #13) ─────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/theme-why", methods=["GET"])
+def planning_theme_why(brand_id):
+    """GET /api/planning/<brand>/theme-why?month=YYYY-MM
+
+    Per heidi.txt #13: shows why the monthly theme exists, which bet it
+    supports, which lanes express it, what we're trying to prove, what
+    would change it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month")
+    if not month:
+        now = datetime.datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    themes = data.get("monthly_themes") or []
+    theme = None
+    for t in themes:
+        if t.get("month") == month:
+            theme = t
+            break
+    if not theme and themes:
+        theme = sorted(themes, key=lambda t: t.get("month", ""))[-1]
+    if not theme:
+        return jsonify({"ok": False, "error": "no theme set", "month": month}), 404
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "why_this_theme": theme.get("question", ""),
+        "supported_bet": theme.get("supported_bet", ""),
+        "lanes_expressing_it": theme.get("lanes_emphasis", []),
+        "what_we_prove": theme.get("what_we_prove", ""),
+        "what_changes_it": theme.get("what_changes_it", ""),
+        "big_brand_idea": data.get("big_brand_idea"),
+    }), 200
+
+
+# ─── 7. IMPORTANT DATES (per heidi.txt #11) ────────────────────────────────
+
+@app.route("/api/important-dates", methods=["GET"])
+def important_dates():
+    """GET /api/important-dates?year=YYYY&type=GOLF_EVENT&upcoming=true
+
+    Per heidi.txt #11: differentiates PUBLIC_HOLIDAY / RETAIL_MOMENT /
+    GOLF_EVENT / BRAND_EVENT / SCHOOL_HOLIDAY / LOCAL_EVENT. Does NOT
+    auto-create campaigns — surfaces them as 'upcoming opportunity'.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year = request.args.get("year")
+    if not year:
+        year = str(datetime.datetime.utcnow().year)
+    year = int(year)
+    type_filter = request.args.get("type")
+    upcoming = request.args.get("upcoming") == "true"
+    today = datetime.date.today().strftime("%Y-%m-%d")
+
+    dates = _read_important_dates(year)
+    if upcoming:
+        dates = [d for d in dates if d["date"] >= today]
+    if type_filter:
+        dates = [d for d in dates if d["type"] == type_filter]
+
+    # Group by type
+    grouped = {}
+    for d in dates:
+        grouped.setdefault(d["type"], []).append(d)
+
+    # Add golf moments as their own category
+    golf = _read_golf_moments(year)
+    if not type_filter or type_filter == "GOLF_EVENT":
+        golf_filtered = [m for m in golf if (not upcoming or m["date"] >= today)]
+        if golf_filtered:
+            grouped["GOLF_MOMENT"] = [{"date": m["date"], "type": "GOLF_MOMENT",
+                                        "name": m["event"], "subtype": m.get("type"),
+                                        "window": m.get("window")}
+                                       for m in golf_filtered]
+
+    return jsonify({
+        "ok": True,
+        "year": year,
+        "type_filter": type_filter,
+        "upcoming_only": upcoming,
+        "total": sum(len(v) for v in grouped.values()),
+        "by_type": grouped,
+        "campaign_actions": ["IGNORE", "CONTENT_HOOK", "SMALL_ACTIVATION", "CAMPAIGN"],
+        "disclaimer": "Opportunities, not mandatory campaigns. Decision is yours.",
+    }), 200
+
+
+# ─── 8. GOLF MOMENTS (per heidi.txt #12) ───────────────────────────────────
+
+@app.route("/api/golf-moments", methods=["GET"])
+def golf_moments():
+    """GET /api/golf-moments?year=YYYY&upcoming=true
+
+    Per heidi.txt #12: majors, Ryder Cup / Presidents Cup years, local
+    club championships, school holidays. Surfaces them early enough to plan.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year = request.args.get("year")
+    if not year:
+        year = str(datetime.datetime.utcnow().year)
+    year = int(year)
+    upcoming = request.args.get("upcoming") == "true"
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    events = _read_golf_moments(year)
+    if upcoming:
+        events = [e for e in events if e["date"] >= today]
+    return jsonify({
+        "ok": True,
+        "year": year,
+        "upcoming_only": upcoming,
+        "events": events,
+        "count": len(events),
+        "disclaimer": "Opportunities, not mandatory campaigns. Surface them early enough to plan.",
+    }), 200
+
+
+# ─── 9. SAMPLE MONTH (per heidi.txt #15) ───────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/month-sample", methods=["GET"])
+def planning_month_sample(brand_id):
+    """GET /api/planning/<brand>/month-sample
+
+    Per heidi.txt #15: returns a sample month demonstrating parallel
+    lanes. For Stick: October 2026, BIG IDEA = THE STICK STANDARD,
+    MONTHLY THEME = What belongs in your bag?
+
+    Shows simultaneously:
+      - PRODUCT: daily/regular product features
+      - HUMAN: fitter / staff / workshop content
+      - FITTING: Fit First
+      - APPAREL: Style That Belongs / Psycho Bunny
+      - CAMPAIGN: one active monthly campaign
+      - PAID: supporting ads
+      - SEARCH: one or more owned-content actions
+
+    Then isolates each lane without duplicating.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-october.json")
+    if not os.path.exists(sample_path):
+        # Auto-build a generic sample if none exists
+        data = _read_planning(brand_id)
+        if not data:
+            return jsonify({"ok": False, "error": "no planning data"}), 404
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "month": "2026-10",
+            "month_name": "October 2026",
+            "big_brand_idea": data.get("big_brand_idea"),
+            "monthly_theme": "Sample theme for " + brand_id,
+            "monthly_theme_question": "What's the parallel-lane expression of this brand idea?",
+            "active_campaigns": data.get("active_campaigns") or [],
+            "weeks": [{"week_label": "Week 1",
+                        "lanes_in_action": [
+                            {"date": "2026-10-05", "day": "Mon",
+                             "items": [{"lane": "product", "title": "Sample product post",
+                                        "asset_status": "READY"}]}]}],
+            "note": "Generic sample — replace with brand-specific data when ready.",
+        }), 200
+    try:
+        with open(sample_path) as f:
+            sample = json.load(f)
+        return jsonify({"ok": True, "sample": sample}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500

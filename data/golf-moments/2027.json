@@ -1,0 +1,55 @@
+{
+  "year": 2027,
+  "events": [
+    {
+      "event": "Masters Tournament",
+      "date": "2027-04-08",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "PGA Championship",
+      "date": "2027-05-13",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "US Open",
+      "date": "2027-06-17",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "The Open Championship",
+      "date": "2027-07-08",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "Presidents Cup",
+      "date": "2027-09-23",
+      "type": "TEAM_EVENT",
+      "window": "T-14 to T+3",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    }
+  ]
+}

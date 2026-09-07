@@ -738,6 +738,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
       <div class="nav" data-go="fleet" data-help-title="Fleet Status" data-help="Aggregated fleet state — Heidi + all specialists. Cron freshness, error counts, fleet-level alerts."><span class="nav-icon">📡</span> Fleet Status</div>
+      <div class="nav" data-go="planning" data-help-title="Strategic Calendar" data-help="Big Idea + Monthly Theme + Parallel Lanes. The planning hierarchy (YEAR > QUARTER > MONTH > WEEK > DAY). Each lane remains active; the theme gives them a shared idea."><span class="nav-icon">📅</span> Strategic Calendar</div>
       <div class="nav" data-go="docs" data-help-title="Docs" data-help="Demo video script + onboarding + launch announcement + handoff brief. Read these to understand the system."><span class="nav-icon">📚</span> Docs</div>
       <div class="nav" data-go="buildpost" data-help-title="Build Post" data-help="Two-click ship: BUILD POST (auto-resolves all inputs, runs Krea + overlay + preflight) then APPROVE CLEAN + QUEUE (human approval gates gated Postiz push). NO auto-publish."><span class="nav-icon">✨</span> Build Post</div>
 
@@ -3870,7 +3871,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs', buildpost:'Build Post',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs', buildpost:'Build Post', planning:'Strategic Calendar',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -11435,6 +11436,219 @@ function bpClear() {
   document.getElementById('bp-approve-queue')?.addEventListener('click', bpApproveQueue);
 })();
 
+
+
+// ─── STRATEGIC CALENDAR (Tier 3.15 — Big Idea + Parallel Lanes, 2026-09-07) ──
+let _currentPlanning = null;
+
+function _plBrand() {
+  return document.getElementById('pl-brand')?.value || 'stick';
+}
+
+function _plMonth() {
+  const v = document.getElementById('pl-month')?.value;
+  if (v) return v;
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+async function renderPlanning() {
+  const brand = _plBrand();
+  const month = _plMonth();
+
+  // 1. Big idea
+  const bi = await API.get('/api/planning/' + brand + '/big-idea');
+  if (bi.ok) {
+    const idea = bi.big_brand_idea || {};
+    const el1 = document.getElementById('pl-big-idea');
+    if (el1) el1.textContent = idea.name || '— not set —';
+    const el2 = document.getElementById('pl-big-idea-belief');
+    if (el2) el2.textContent = idea.belief ? '"' + idea.belief + '"' : '';
+  }
+
+  // 2. Month view (carries monthly theme + active campaigns + important dates)
+  const mv = await API.get('/api/planning/' + brand + '/month?month=' + month);
+  if (mv.ok) {
+    const mt = mv.monthly_theme || {};
+    document.getElementById('pl-monthly-theme').textContent = mt.theme || '— not set —';
+    document.getElementById('pl-monthly-theme-q').textContent = mt.question || '';
+    // Lanes emphasis
+    const lanesEl = document.getElementById('pl-lanes-emphasis');
+    if (lanesEl) {
+      lanesEl.innerHTML = (mt.lanes_emphasis || []).map(l => '<span class="pill on">' + esc(l) + '</span>').join('');
+    }
+    // Active campaigns
+    const cEl = document.getElementById('pl-active-campaigns');
+    if (cEl) {
+      cEl.innerHTML = (mv.active_campaigns || []).map(c => '<span class="pill live">' + esc(c.name) + ' · ' + esc(c.phase) + '</span>').join('');
+    }
+    // Important dates
+    const idEl = document.getElementById('pl-important-dates');
+    if (idEl) {
+      const dates = mv.important_dates || [];
+      if (dates.length === 0) {
+        idEl.innerHTML = '<div class="muted">No important dates this month.</div>';
+      } else {
+        idEl.innerHTML = dates.map(d => {
+          const dot = d.type === 'GOLF_EVENT' ? '⛳' : d.type === 'PUBLIC_HOLIDAY' ? '🏛️'
+            : d.type === 'RETAIL_MOMENT' ? '🛍️' : d.type === 'BRAND_EVENT' ? '🎯'
+            : d.type === 'SCHOOL_HOLIDAY' ? '🎒' : '📌';
+          return '<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem;border-bottom:1px solid var(--bd)"><div style="font-size:18px">' + dot + '</div><div style="flex:1"><div style="font-weight:600">' + esc(d.name) + '</div><div style="font-size:10px;color:var(--tx-3)">' + esc(d.type) + ' · ' + esc(d.date) + '</div></div></div>';
+        }).join('');
+      }
+    }
+    // Month view (parallel lanes)
+    const mvEl = document.getElementById('pl-month-view');
+    if (mvEl) {
+      const days = mv.days || {};
+      const dayKeys = Object.keys(days).sort();
+      if (dayKeys.length === 0) {
+        mvEl.innerHTML = '<div class="muted">No content scheduled yet. Use BUILD POST or the monthly plan workflow to propose content.</div>';
+      } else {
+        // Group by day, show all lanes in parallel
+        mvEl.innerHTML = dayKeys.map(day => {
+          const items = days[day] || [];
+          const lanes = [...new Set(items.map(i => i.lane || 'unknown'))];
+          return '<div style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><div style="font-weight:600">' + esc(day) + '</div><div style="display:flex;gap:.2rem;flex-wrap:wrap">' + lanes.map(l => '<span class="pill muted" style="font-size:10px">' + esc(l) + '</span>').join('') + '</div></div>' +
+            items.map(i => '<div style="font-size:11px;padding:.3rem;border-left:3px solid var(--accent);margin-left:.3rem;margin-bottom:.2rem">' + esc(i.lane || 'unknown') + ': ' + esc(i.title || i.hook || i.id || 'untitled') + ' <span class="muted">[' + esc(i.status || '?') + ']</span></div>').join('') +
+            '</div>';
+        }).join('');
+      }
+    }
+  }
+
+  // 3. Lane health
+  const lh = await API.get('/api/planning/' + brand + '/lane-health?month=' + month);
+  if (lh.ok) {
+    const counts = lh.lane_counts || {};
+    const total = lh.total_planned || 0;
+    const summaryEl = document.getElementById('pl-lane-health-summary');
+    if (summaryEl) summaryEl.textContent = total + ' planned';
+    const lhEl = document.getElementById('pl-lane-health');
+    if (lhEl) {
+      const laneNames = Object.keys(counts);
+      if (laneNames.length === 0) {
+        lhEl.innerHTML = '<div class="muted">No lanes configured for this brand.</div>';
+      } else {
+        lhEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.3rem">' + laneNames.map(l => {
+          const n = counts[l] || 0;
+          return '<div style="display:flex;justify-content:space-between;padding:.3rem .5rem;background:var(--bg-2);border-radius:4px"><span>' + esc(l) + '</span><b>' + n + '</b></div>';
+        }).join('') + '</div>';
+      }
+    }
+    const gapsEl = document.getElementById('pl-lane-gaps');
+    if (gapsEl) {
+      const gaps = lh.gaps || [];
+      if (gaps.length === 0) {
+        gapsEl.innerHTML = '<div class="pill on" style="font-size:11px">✓ No gaps flagged this period.</div>';
+      } else {
+        gapsEl.innerHTML = gaps.map(g => '<div style="padding:.4rem .6rem;background:rgba(245,158,11,0.1);border-left:3px solid var(--warning);border-radius:0 6px 6px 0;margin-bottom:.3rem;font-size:11px"><b>' + esc(g.signal) + '</b><br>' + esc(g.message) + '</div>').join('');
+      }
+    }
+  }
+
+  // 4. Why this theme
+  const tw = await API.get('/api/planning/' + brand + '/theme-why?month=' + month);
+  if (tw.ok) {
+    const twEl = document.getElementById('pl-theme-why');
+    if (twEl) {
+      twEl.innerHTML = '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">WHY THIS THEME:</b><br>' + esc(tw.why_this_theme || '—') + '</div>'
+        + '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">SUPPORTED BET:</b><br>' + esc(tw.supported_bet || '—') + '</div>'
+        + '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">WHAT WE PROVE:</b><br>' + esc(tw.what_we_prove || '—') + '</div>'
+        + '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">WHAT CHANGES IT:</b><br>' + esc(tw.what_changes_it || '—') + '</div>'
+        + '<div><b style="color:var(--tx-3);font-size:11px">LANES EXPRESSING IT:</b> ' + (tw.lanes_expressing_it || []).map(l => '<span class="pill on" style="font-size:10px;margin-right:.2rem">' + esc(l) + '</span>').join('') + '</div>';
+    }
+  }
+
+  // 5. Production runway
+  const wt = await API.get('/api/planning/' + brand + '/weekly-traffic?week_start=' + month + '-01');
+  if (wt.ok) {
+    const runwayEl = document.getElementById('pl-runway');
+    if (runwayEl) {
+      runwayEl.innerHTML = (wt.production_runway || []).map(r =>
+        '<div style="display:flex;gap:1rem;padding:.4rem;border-bottom:1px solid var(--bd);align-items:center"><div style="font-weight:600;color:var(--accent);min-width:120px">' + esc(r.window) + '</div><div style="flex:1;color:var(--tx-2)">' + esc(r.what) + '</div></div>'
+      ).join('');
+    }
+  }
+
+  // 6. Sample month
+  const sm = await API.get('/api/planning/' + brand + '/month-sample');
+  if (sm.ok) {
+    const sample = sm.sample || {};
+    const smEl = document.getElementById('pl-month-sample');
+    if (smEl) {
+      const weeks = sample.weeks || [];
+      smEl.innerHTML = '<div style="margin-bottom:.5rem"><b>' + esc(sample.month_name || sample.month) + '</b> · Big idea: ' + esc((sample.big_brand_idea || {}).name || '?') + ' · Theme: ' + esc(sample.monthly_theme || '?') + '</div>'
+        + weeks.map(w => {
+          const days = w.lanes_in_action || [];
+          return '<div style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:6px"><div style="font-weight:600;margin-bottom:.3rem">' + esc(w.week_label || 'Week') + '</div>'
+            + days.map(d => '<div style="display:flex;gap:.5rem;padding:.3rem;border-bottom:1px solid var(--bd)"><div style="min-width:80px;font-weight:600;color:var(--accent)">' + esc(d.day) + ' ' + esc(d.date) + '</div><div style="flex:1;display:flex;flex-wrap:wrap;gap:.3rem">' + (d.items || []).map(i => '<span class="pill ' + (i.asset_status === 'READY' ? 'on' : i.asset_status === 'NEEDS_CAPTURE' ? 'live' : 'muted') + '" style="font-size:10px" title="' + esc(i.asset_status) + '">' + esc(i.lane) + ': ' + esc(i.title) + '</span>').join('') + '</div></div>').join('')
+            + '</div>';
+        }).join('');
+    }
+  }
+}
+
+async function plLoadWeek() {
+  const brand = _plBrand();
+  const weekStart = document.getElementById('pl-week-start')?.value || _plMonth() + '-01';
+  const wt = await API.get('/api/planning/' + brand + '/weekly-traffic?week_start=' + weekStart);
+  if (!wt.ok) { toast('Load failed: ' + wt.error, true); return; }
+  const buckets = wt.buckets || {};
+  const counts = wt.counts || {};
+  const el = document.getElementById('pl-weekly-traffic');
+  if (el) {
+    const labels = {
+      going_live: '📤 Going live',
+      needs_capture: '🎥 Needs capture',
+      needs_design: '🎨 Needs design / generation',
+      needs_approval: '👀 Needs approval',
+      product_push: '🛒 Product / service push',
+      paid_support: '💰 Paid support',
+      blocked: '⛔ Blocked'
+    };
+    el.innerHTML = Object.keys(labels).map(k =>
+      '<div style="display:flex;gap:.5rem;align-items:center;padding:.3rem;border-bottom:1px solid var(--bd)"><div style="min-width:200px">' + labels[k] + '</div><b>' + (counts[k] || 0) + '</b></div>'
+    ).join('') + '<div style="margin-top:.5rem;font-size:10px;color:var(--tx-3);font-style:italic">' + esc(wt.disclaimer || '') + '</div>';
+  }
+}
+
+async function plLoadMonthlyPlan() {
+  const brand = _plBrand();
+  const month = _plMonth();
+  const r = await API.get('/api/planning/' + brand + '/monthly-plan?month=' + month);
+  if (!r.ok) { toast('Plan load failed: ' + r.error, true); return; }
+  const formEl = document.getElementById('pl-monthly-plan-form');
+  if (!formEl) return;
+  const questions = r.questions || [];
+  const plan = r.plan || {};
+  formEl.innerHTML = '<form id="pl-month-form">' + questions.map((q, i) => {
+    const v = (plan[q.key] || '').toString();
+    return '<div style="margin-bottom:.75rem"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:.25rem">' + (i + 1) + '. ' + esc(q.q) + '</label><textarea data-key="' + esc(q.key) + '" rows="2" style="width:100%;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:.5rem;font-family:inherit;font-size:12px">' + esc(v) + '</textarea></div>';
+  }).join('') + '<button type="submit" class="btn primary">Save monthly plan (proposed)</button></form>';
+  document.getElementById('pl-month-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = { month, brand_id: brand };
+    document.querySelectorAll('#pl-month-form textarea[data-key]').forEach(ta => {
+      body[ta.dataset.key] = ta.value;
+    });
+    const sr = await API.post('/api/planning/' + brand + '/monthly-plan?month=' + month, body);
+    if (sr.ok) {
+      toast('✓ Monthly plan saved. NOT auto-published — your call to act on it.');
+      document.getElementById('pl-monthly-plan-status').innerHTML = '<div class="pill on">✓ Plan saved to data/brand-planning/' + brand + '-monthly-plan-' + month + '.json</div>';
+    } else {
+      toast('Save failed: ' + sr.error, true);
+    }
+  });
+}
+
+(function wirePlanning() {
+  document.getElementById('pl-brand')?.addEventListener('change', renderPlanning);
+  document.getElementById('pl-month')?.addEventListener('change', renderPlanning);
+  document.getElementById('pl-load-week')?.addEventListener('click', plLoadWeek);
+  document.getElementById('pl-load-monthly-plan')?.addEventListener('click', plLoadMonthlyPlan);
+})();
+
 </script>
 
 
@@ -12094,6 +12308,125 @@ function bpClear() {
       <div class="card col-12" style="margin-top:1rem">
         <div class="card-h"><h3>📅 Recommended slot (not optimal)</h3></div>
         <div id="bp-recommended" style="font-size:12px;color:var(--tx-2);line-height:1.6">Pick a brand to see the recommended (not optimal) post time.</div>
+      </div>
+    </section>
+
+
+    <!-- ─── STRATEGIC CALENDAR (Tier 3.15 — Big Idea + Parallel Lanes, 2026-09-07) -->
+    <section class="section" id="sec-planning">
+      <div class="section-h">
+        <h2>📅 Strategic Calendar</h2>
+        <span class="sub">Big Idea → Monthly Theme → Parallel Lanes → Daily Executions. Same calendar, strategic context on top.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="pl-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="stick">Stick</option>
+            <option value="swing-shack">Swing Shack</option>
+            <option value="bag-drop">Bag Drop</option>
+          </select>
+          <input type="month" id="pl-month" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)" />
+        </div>
+      </div>
+
+      <!-- 1. Big Idea + Monthly Theme banner -->
+      <div class="card col-12" id="pl-banner" style="background:linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.08));border:1px solid rgba(99,102,241,0.3)">
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem">
+          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">BIG BRAND IDEA</div>
+          <div id="pl-big-idea" style="font-size:24px;font-weight:700;letter-spacing:-.02em">Loading…</div>
+        </div>
+        <div id="pl-big-idea-belief" style="font-style:italic;color:var(--tx-2);margin-bottom:.75rem"></div>
+        <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">
+          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">MONTHLY THEME</div>
+          <div id="pl-monthly-theme" style="font-size:18px;font-weight:600">Loading…</div>
+        </div>
+        <div id="pl-monthly-theme-q" style="color:var(--tx-2);margin-top:.25rem"></div>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">LANES EXPRESSING IT</div>
+          <div id="pl-lanes-emphasis" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
+        </div>
+        <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">ACTIVE CAMPAIGNS</div>
+          <div id="pl-active-campaigns" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- 2. Lane Health -->
+        <div class="card col-6">
+          <div class="card-h"><h3>📊 Lane health</h3><span class="muted" id="pl-lane-health-summary">—</span></div>
+          <div id="pl-lane-health" style="font-size:12px;color:var(--tx-3)">Loading…</div>
+          <div id="pl-lane-gaps" style="margin-top:.5rem"></div>
+        </div>
+
+        <!-- 3. Important Dates + Golf Moments -->
+        <div class="card col-6">
+          <div class="card-h"><h3>📅 Important dates + Golf moments</h3><span class="muted">Opportunities, not mandatory campaigns</span></div>
+          <div id="pl-important-dates" style="font-size:12px;max-height:300px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <!-- 4. Parallel lane month view -->
+      <div class="card col-12">
+        <div class="card-h">
+          <h3>🗓️ Parallel-lane month view</h3>
+          <span class="muted">Every lane remains active. Monthly theme gives them a shared idea.</span>
+        </div>
+        <div id="pl-month-view" style="font-size:12px">Loading…</div>
+        <div style="font-size:10px;color:var(--tx-3);margin-top:.75rem;font-style:italic">
+          Per heidi.txt: A useful weekly rhythm may exist, but lanes are parallel — a Tuesday can contain PRODUCT + HUMAN + CAMPAIGN + PAID + SEARCH all on the same day.
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- 5. Weekly Traffic Control -->
+        <div class="card col-6">
+          <div class="card-h"><h3>🚦 Weekly traffic control</h3><span class="muted">Lightweight execution view</span></div>
+          <div style="margin-bottom:.5rem">
+            <input type="date" id="pl-week-start" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)" />
+            <button class="btn-mini primary" id="pl-load-week">Load week</button>
+          </div>
+          <div id="pl-weekly-traffic" style="font-size:12px"></div>
+        </div>
+
+        <!-- 6. Why this theme -->
+        <div class="card col-6">
+          <div class="card-h"><h3>🎯 Why this theme?</h3><span class="muted">The strategic reasoning</span></div>
+          <div id="pl-theme-why" style="font-size:12px;line-height:1.7">Loading…</div>
+        </div>
+      </div>
+
+      <!-- 7. Monthly plan workflow -->
+      <div class="card col-12">
+        <div class="card-h">
+          <h3>📝 Monthly plan</h3>
+          <span class="muted">8 questions → proposed working month. NEVER auto-publishes.</span>
+        </div>
+        <div style="font-size:11px;color:var(--tx-3);line-height:1.6">
+          <ol style="margin-left:1.5rem;margin-bottom:.75rem">
+            <li>What happened last month?</li>
+            <li>What does the business need this month?</li>
+            <li>What stock/products matter?</li>
+            <li>What services need bookings?</li>
+            <li>What campaigns/events are coming?</li>
+            <li>What is the monthly strategic theme?</li>
+            <li>Which lanes need emphasis?</li>
+            <li>What must be produced/captured?</li>
+          </ol>
+        </div>
+        <button class="btn primary" id="pl-load-monthly-plan">Load monthly plan workflow</button>
+        <div id="pl-monthly-plan-form" style="margin-top:1rem"></div>
+        <div id="pl-monthly-plan-status" style="margin-top:.5rem"></div>
+      </div>
+
+      <!-- 8. Sample month -->
+      <div class="card col-12">
+        <div class="card-h"><h3>📦 Sample month (Stick October)</h3><span class="muted">Acceptance test — parallel lanes simultaneously</span></div>
+        <div id="pl-month-sample" style="font-size:12px">Loading sample…</div>
+      </div>
+
+      <!-- 9. Production runway -->
+      <div class="card col-12">
+        <div class="card-h"><h3>⏱️ Production runway</h3><span class="muted">No content-day panic</span></div>
+        <div id="pl-runway" style="font-size:12px"></div>
       </div>
     </section>
 

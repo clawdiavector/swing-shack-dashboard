@@ -1,0 +1,75 @@
+{
+  "year": 2026,
+  "events": [
+    {
+      "event": "Masters Tournament",
+      "date": "2026-04-09",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "PGA Championship",
+      "date": "2026-05-10",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "US Open",
+      "date": "2026-06-18",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "The Open Championship",
+      "date": "2026-07-09",
+      "type": "MAJOR",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "Ryder Cup",
+      "date": "2026-10-05",
+      "type": "TEAM_EVENT",
+      "window": "T-14 to T+3",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "Joburg Open (announced)",
+      "date": "2026-11-01",
+      "type": "LOCAL",
+      "window": "T-7 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    },
+    {
+      "event": "Club Championships (ZA clubs)",
+      "date": "2026-09-15",
+      "type": "LOCAL_CLUBS",
+      "window": "T-21 to T+1",
+      "brands": [
+        "stick",
+        "swing-shack"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "big_brand_idea": {
+    "name": "THE STICK STANDARD",
+    "belief": "Everything has to earn its place.",
+    "elevator": "The Stick is the benchmark for what works in golf. Real gear, real fittings, real teaching \u2014 no fluff, no shortcuts, no marketing theatre."
+  },
+  "lane_system": [
+    {
+      "lane": "product",
+      "name": "Why It's Here",
+      "description": "Real product features from Stick's curated catalogue. Each product earns its place on the rack."
+    },
+    {
+      "lane": "fitting",
+      "name": "Fit First",
+      "description": "The fitting process + outcomes. A fitting is the start, not the sale."
+    },
+    {
+      "lane": "coaching",
+      "name": "Ask Stick / Better Begins Here",
+      "description": "Coaching + education content. Questions, myth-busting, technique."
+    },
+    {
+      "lane": "workshop",
+      "name": "Built At Stick",
+      "description": "Workshop events, club building, custom work, on-site experiences."
+    },
+    {
+      "lane": "apparel",
+      "name": "Style That Belongs",
+      "description": "Apparel + lifestyle. How you look on the course / at the range."
+    },
+    {
+      "lane": "commercial",
+      "name": "Product Drop / Book / Enquire",
+      "description": "Direct-response: drop launches, fitting bookings, retail enquiries."
+    },
+    {
+      "lane": "human",
+      "name": "Human / Trust",
+      "description": "Staff, fitters, real moments. The people behind the standard."
+    },
+    {
+      "lane": "paid",
+      "name": "Paid Media",
+      "description": "Boosted posts + retargeting. Always in service of one of the above lanes."
+    },
+    {
+      "lane": "search",
+      "name": "Search / SEO",
+      "description": "Owned content that compounds: articles, FAQs, comparison guides."
+    },
+    {
+      "lane": "crm",
+      "name": "CRM / Lifecycle",
+      "description": "Email + WhatsApp to existing customers. Repeat purchase, retention, loyalty."
+    }
+  ],
+  "active_campaigns": [
+    {
+      "id": "spring-at-stick",
+      "name": "Spring at Stick",
+      "phase": "live",
+      "lanes": [
+        "apparel",
+        "workshop",
+        "human"
+      ]
+    },
+    {
+      "id": "psycho-bunny-launch",
+      "name": "Psycho Bunny Launch",
+      "phase": "launching",
+      "lanes": [
+        "apparel",
+        "product"
+      ]
+    }
+  ],
+  "monthly_themes": [
+    {
+      "month": "2026-10",
+      "theme": "What belongs in your bag?",
+      "question": "When every club in the bag has to earn its place \u2014 what's in yours, and why?",
+      "supported_bet": "Fitting + curation drive conversion; brand authority over volume.",
+      "what_we_prove": "Customers trust Stick to filter what's worth carrying. We curate, we don't sell.",
+      "what_changes_it": "If fitting bookings drop 30% week-on-week, or product mix shifts away from curated lineup.",
+      "lanes_emphasis": [
+        "product",
+        "fitting",
+        "apparel",
+        "human",
+        "campaign"
+      ],
+      "set_at": "2026-09-07T06:50:00Z"
+    }
+  ]
+}

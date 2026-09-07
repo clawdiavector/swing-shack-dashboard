@@ -1,0 +1,124 @@
+{
+  "year": 2027,
+  "dates": [
+    {
+      "date": "2027-01-01",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "New Year's Day",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-02-14",
+      "type": "RETAIL_MOMENT",
+      "name": "Valentine's Day"
+    },
+    {
+      "date": "2027-04-08",
+      "type": "GOLF_EVENT",
+      "name": "Masters Tournament (Round 1)"
+    },
+    {
+      "date": "2027-04-09",
+      "type": "GOLF_EVENT",
+      "name": "Masters Tournament (Round 2)"
+    },
+    {
+      "date": "2027-04-10",
+      "type": "GOLF_EVENT",
+      "name": "Masters Tournament (Round 3)"
+    },
+    {
+      "date": "2027-04-11",
+      "type": "GOLF_EVENT",
+      "name": "Masters Tournament (Final Round)"
+    },
+    {
+      "date": "2027-04-26",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Freedom Day",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-04-27",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Special Public Holiday",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-05-01",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Workers' Day",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-05-16",
+      "type": "GOLF_EVENT",
+      "name": "PGA Championship (Final Round)"
+    },
+    {
+      "date": "2027-06-17",
+      "type": "GOLF_EVENT",
+      "name": "US Open (Final Round)"
+    },
+    {
+      "date": "2027-06-16",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Youth Day",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-07-08",
+      "type": "GOLF_EVENT",
+      "name": "The Open Championship (Round 1)"
+    },
+    {
+      "date": "2027-07-09",
+      "type": "GOLF_EVENT",
+      "name": "The Open Championship (Round 2)"
+    },
+    {
+      "date": "2027-07-10",
+      "type": "GOLF_EVENT",
+      "name": "The Open Championship (Round 3)"
+    },
+    {
+      "date": "2027-07-11",
+      "type": "GOLF_EVENT",
+      "name": "The Open Championship (Final Round)"
+    },
+    {
+      "date": "2027-09-24",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Heritage Day",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-11-26",
+      "type": "RETAIL_MOMENT",
+      "name": "Black Friday"
+    },
+    {
+      "date": "2027-11-29",
+      "type": "RETAIL_MOMENT",
+      "name": "Cyber Monday"
+    },
+    {
+      "date": "2027-12-16",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Day of Reconciliation",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-12-25",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Christmas Day",
+      "region": "ZA"
+    },
+    {
+      "date": "2027-12-26",
+      "type": "PUBLIC_HOLIDAY",
+      "name": "Day of Goodwill",
+      "region": "ZA"
+    }
+  ]
+}
