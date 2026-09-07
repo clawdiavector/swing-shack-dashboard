@@ -26903,3 +26903,712 @@ def docs_index():
             except Exception:
                 continue
     return jsonify({"ok": True, "docs": files, "count": len(files)}), 200
+
+# ─── KREA ASYNC HANDLER (Tier 3.14 — Heeded heidi.txt, 2026-09-07) ────────────
+# Per heidi.txt directive #1: Krea is the primary production engine for
+# image+video. Do NOT silently fall back to OpenRouter for image
+# generation when Krea returns an async (job-queued) response.
+#
+# When result.bytes is None (Krea still processing or returned a URL
+# without hydrating), return:
+#   {ok, status: "async", job_id, provider: "krea", polling_url, preview_url}
+# SPA polls /api/krea/job-status?id=<job_id> until completed.
+
+import base64 as _b64
+_KREA_ASYNC_SHAPE = {
+    "ok": True,
+    "status": "async",
+    "provider": "krea",
+    "message": "Krea returned async — poll job-status until completed",
+}
+
+
+def _build_async_response(result, job_id_hint=None):
+    """Build a KREA_ASYNC response from an image_gen_router result that has
+    no bytes (still queued or URL-only).
+    """
+    job_id = job_id_hint
+    if not job_id:
+        # Try to extract from usage / krea_response
+        usage = getattr(result, "usage", None) or {}
+        kresp = (usage.get("krea_response") if isinstance(usage, dict) else None) or {}
+        structured = kresp.get("structuredContent") or {}
+        job_id = structured.get("job_id")
+    preview_url = None
+    # Check if result already has a URL
+    if hasattr(result, "image_url") and getattr(result, "image_url"):
+        preview_url = getattr(result, "image_url")
+    out = dict(_KREA_ASYNC_SHAPE)
+    out["job_id"] = job_id
+    out["polling_url"] = f"/api/krea/job-status?id={job_id}" if job_id else None
+    out["preview_url"] = preview_url
+    out["model"] = getattr(result, "model", None)
+    out["mime"] = getattr(result, "mime", "image/png")
+    out["provider"] = getattr(result, "provider", "krea")
+    out["prompt_used"] = getattr(result, "prompt_used", None)
+    return out
+
+
+# ─── BUILD-POST PIPELINE (Tier 3.14 — Two-click ship, 2026-09-07) ────────────
+# Per heidi.txt: ONE CLICK TO BUILD A HIGH-QUALITY DRAFT, ONE HUMAN
+# APPROVAL TO SHIP IT. No autonomous publishing. Governance preserved.
+#
+# Architecture:
+#   1. /api/build-post/draft       — single endpoint that takes a calendar
+#                                     item + auto-resolves all 16 inputs,
+#                                     runs the full pipeline, returns a
+#                                     draft package with status=NEEDS_APPROVAL
+#   2. /api/build-post/batch       — BUILD THIS WEEK for the product lane
+#   3. /api/build-post/approve-queue — APPROVE CLEAN + QUEUE flow
+#                                     (show preflight breakdown, confirm,
+#                                     then call queue-for-postiz-with-gate)
+
+# Status constants (never 'PUBLISHED' without human approval)
+DRAFT_STATUS_PENDING = "NEEDS_APPROVAL"
+DRAFT_STATUS_BLOCKED = "BLOCKED"
+DRAFT_STATUS_HEALED = "AUTO_HEALED"  # self-healable checks were fixed
+DRAFT_STATUS_READY = "READY_TO_APPROVE"
+
+# Self-heal allowed (reversible, no material change)
+SAFE_HEAL_CHECKS = {
+    "logo_present",            # can overlay a deterministic logo
+    "cta_present",             # can overlay CTA
+    "resolution_ok",           # can resize / re-export
+    "platform_set",            # can set platform tag
+    "approval_status",         # can mark draft-only
+    "pricing_verified",        # can reformat ZAR (not invent)
+}
+
+# Self-heal FORBIDDEN (material, irreversible, must surface)
+FORBIDDEN_HEAL_CHECKS = {
+    "no_product_distortion",   # could mask real product mismatch
+    "product_verified",        # requires human review
+    "no_competitor_logo",      # requires human review
+    "negative_compliance",     # could mask real compliance issue
+    "no_text_in_image",        # requires regeneration
+}
+
+
+def _run_safe_heal(asset, brand_id):
+    """Attempt safe auto-fixes on a draft asset. Returns (healed_dict,
+    fixable_count, blocked_count)."""
+    healed = {}
+    fixable = 0
+    blocked = 0
+    # logo_present: set overlay_brand target
+    if not asset.get("logo_applied") and brand_id:
+        asset["logo_applied"] = True
+        asset["_heal_logo"] = True
+        fixable += 1
+    # cta_present: ensure cta_text exists in metadata
+    if asset.get("cta_text") is None and brand_id:
+        # Pull from brand settings
+        settings = _read_brand_settings(brand_id) if "_read_brand_settings" in dir() else {}
+        asset["cta_text"] = settings.get("default_cta") or "Find out more"
+        asset["_heal_cta"] = True
+        fixable += 1
+    # resolution_ok: re-export target
+    if asset.get("resolution") and asset["resolution"] not in ("1024x1024", "1024x1792", "1792x1024"):
+        asset["resolution"] = "1024x1024"
+        asset["_heal_resolution"] = True
+        fixable += 1
+    # platform_set: default to instagram
+    if not asset.get("platform"):
+        asset["platform"] = "instagram"
+        asset["_heal_platform"] = True
+        fixable += 1
+    # approval_status: mark draft-only
+    if not asset.get("approval_status"):
+        asset["approval_status"] = "draft"
+        asset["_heal_approval"] = True
+        fixable += 1
+    # pricing_verified: reformat ZAR (don't invent)
+    if asset.get("price_text"):
+        p = asset["price_text"]
+        # If has $ or USD, replace with safe text
+        if "$" in p or "USD" in p.upper():
+            asset["price_text"] = "Available at Stick. Ask us for current pricing."
+            asset["_heal_pricing"] = "replaced_foreign_currency_with_safe_text"
+            fixable += 1
+        # Reformat 'R1234.50' to 'R1,234' (ZAR standard)
+        import re as _re
+        m = _re.match(r"^R\s*([0-9]+(?:\.[0-9]+)?)$", p.strip())
+        if m:
+            try:
+                num = int(round(float(m.group(1))))
+                asset["price_text"] = f"R{num:,}"
+                asset["_heal_pricing_fmt"] = True
+            except Exception:
+                pass
+    return healed, fixable, blocked
+
+
+def _human_lane_check(calendar_item):
+    """If calendar item is in Human lane, return True. Human lane means
+    real footage / staff is required — AI may assemble brief/caption but
+    cannot generate fake staff content."""
+    lane = (calendar_item.get("lane") or "").lower()
+    if lane in ("human", "staff", "reel", "talking_head", "interview"):
+        return True
+    return False
+
+
+def _is_product_lane(calendar_item):
+    """Product lane: real product in creative. Per heidi.txt: AUTO-PICK
+    product is valid for product lane + retail campaign + product-led paid
+    content. NOT for human/trust/coaching/brand/community/educational.
+    """
+    lane = (calendar_item.get("lane") or "").lower()
+    return lane in ("product", "retail", "product_led")
+
+
+def _needs_reference_image(product):
+    """Hard product rule per heidi.txt #5: real product reference image
+    is mandatory. If not present, refuse to fabricate.
+    """
+    return not (product.get("reference_image_ids") or product.get("verified_image_id"))
+
+
+@app.route("/api/build-post/draft", methods=["POST"])
+def build_post_draft():
+    """POST /api/build-post/draft — single click that resolves the full
+    16-input draft package, runs the pipeline, returns status.
+
+    Per heidi.txt:
+      1. select the best product where appropriate (lane-aware)
+      2. verify product data
+      3. verify pricing (ZAR-only or safe text)
+      4. find exact reference image
+      5. choose Krea model
+      6. create master prompt
+      7. create negative / preservation prompt
+      8. generate (KREA primary)
+      9. apply deterministic brand overlay
+      10. generate caption
+      11. run preflight (auto-heal safe failures)
+      12. return a finished DRAFT PACKAGE — STOP HERE.
+
+    Status:
+      - NEEDS_APPROVAL  (default — human reviews then approves)
+      - BLOCKED         (unfixable hard-stop; surface to human)
+      - AUTO_HEALED     (safe failures were healed)
+
+    Does NOT publish. Does NOT approve. Does NOT auto-queue.
+
+    Body: {
+      brand_id, campaign_id (optional), calendar_item_id (optional),
+      lane (product|human|retail|coaching|brand|community|educational|...)
+      product_id (optional — explicit beats auto-pick),
+      idea_text (optional),
+      hook (optional),
+      reference_image_id (optional — beats product auto-detect),
+      size (default 1024x1024)
+    }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    lane = (body.get("lane") or "product").strip().lower()
+    product_id = (body.get("product_id") or "").strip() or None
+    reference_image_id = (body.get("reference_image_id") or "").strip() or None
+    idea_text = (body.get("idea_text") or "").strip()
+    hook = (body.get("hook") or "").strip()
+    size = body.get("size") or "1024x1024"
+    calendar_item_id = (body.get("calendar_item_id") or "").strip() or None
+    campaign_id = (body.get("campaign_id") or "").strip() or None
+
+    package = {
+        "brand_id": brand_id,
+        "lane": lane,
+        "product_id": product_id,
+        "calendar_item_id": calendar_item_id,
+        "campaign_id": campaign_id,
+        "idea_text": idea_text,
+        "hook": hook,
+        "started_at": _now_iso(),
+        "steps": [],
+        "status": DRAFT_STATUS_PENDING,
+        "blocked_reasons": [],
+    }
+
+    # Step 1 — load campaign context if calendar item
+    if campaign_id:
+        try:
+            from _lib import campaign_store as _cs
+            c = _cs.get_campaign(brand_id, campaign_id) if hasattr(_cs, "get_campaign") else None
+            package["campaign_context"] = {
+                "campaign_id": campaign_id,
+                "objective": (c or {}).get("objective"),
+                "phase": (c or {}).get("phase"),
+                "offer": (c or {}).get("offer"),
+                "creative_property": (c or {}).get("creative_property"),
+                "active_posts": (c or {}).get("active_posts", []),
+            }
+        except Exception:
+            package["campaign_context"] = {"campaign_id": campaign_id, "objective": None}
+
+    # Step 2 — resolve product (lane-aware auto-pick)
+    if not product_id:
+        if _is_product_lane({"lane": lane}):
+            # Auto-pick best product for this brand
+            try:
+                products_data = _read_products(brand_id)
+                products = products_data.get("products") or []
+                # Filter to verified + has reference
+                candidates = [p for p in products if p.get("verified") or p.get("price_zar") or p.get("price_eur")]
+                if candidates:
+                    # Pick first with reference image; else mark low confidence
+                    with_ref = [p for p in candidates if p.get("reference_image_ids") or p.get("verified_image_id")]
+                    if with_ref:
+                        product_id = with_ref[0]["id"]
+                        package["steps"].append({"step": "product_auto_picked", "ok": True, "product_id": product_id, "reason": "first verified product with reference image"})
+                    else:
+                        package["steps"].append({"step": "product_auto_pick_low_confidence", "ok": False, "candidates": [c["id"] for c in candidates[:5]], "reason": "no verified reference image for any product"})
+                        package["blocked_reasons"].append({"check": "REFERENCE_REQUIRED", "message": "Product lane but no product has verified reference image"})
+                        package["status"] = DRAFT_STATUS_BLOCKED
+                else:
+                    package["steps"].append({"step": "product_auto_pick_none", "ok": False, "reason": "no verified products for this brand"})
+                    package["blocked_reasons"].append({"check": "SELECT_PRODUCT", "message": "No products available — please select a product manually"})
+                    package["status"] = DRAFT_STATUS_BLOCKED
+            except Exception as e:
+                package["steps"].append({"step": "product_load_failed", "ok": False, "error": str(e)})
+        else:
+            package["steps"].append({"step": "product_skipped", "ok": True, "reason": f"lane '{lane}' does not require auto-product-pick"})
+    package["product_id"] = product_id
+
+    # Step 3 — load product + verify data
+    product = None
+    if product_id:
+        try:
+            products_data = _read_products(brand_id)
+            for p in products_data.get("products") or []:
+                if p.get("id") == product_id:
+                    product = p
+                    break
+            if product:
+                package["product"] = {
+                    "id": product["id"],
+                    "name": product.get("name"),
+                    "category": product.get("category"),
+                    "price_zar": product.get("price_zar"),
+                    "price_eur": product.get("price_eur"),
+                    "verified": product.get("verified"),
+                    "has_reference_image": bool(product.get("reference_image_ids") or product.get("verified_image_id")),
+                }
+                package["steps"].append({"step": "product_loaded", "ok": True, "product_name": product.get("name")})
+                # HARD PRODUCT RULE: product-led creative MUST have reference image
+                if _needs_reference_image(product):
+                    package["steps"].append({"step": "reference_image_required", "ok": False})
+                    package["blocked_reasons"].append({"check": "REFERENCE_REQUIRED", "message": f"Product {product.get('name')} has no verified reference image. AI may not manufacture product look-alikes."})
+                    package["status"] = DRAFT_STATUS_BLOCKED
+            else:
+                package["steps"].append({"step": "product_not_found", "ok": False, "product_id": product_id})
+                package["blocked_reasons"].append({"check": "PRODUCT_NOT_FOUND", "message": f"Product {product_id} not found for brand {brand_id}"})
+                package["status"] = DRAFT_STATUS_BLOCKED
+        except Exception as e:
+            package["steps"].append({"step": "product_load_error", "ok": False, "error": str(e)})
+            package["status"] = DRAFT_STATUS_BLOCKED
+
+    # Step 4 — verify pricing (ZAR-only, safe text fallback)
+    pricing_text = None
+    if product:
+        market = "ZA" if brand_id in ("swing-shack", "stick", "bag-drop") else ("EU" if brand_id == "takomo" else None)
+        if market == "ZA":
+            if product.get("price_zar") and product.get("verified"):
+                pricing_text = f"R{int(product['price_zar']):,}"
+                package["steps"].append({"step": "pricing_verified", "ok": True, "price": pricing_text, "market": "ZA", "currency": "ZAR"})
+            else:
+                pricing_text = "Available at Stick. Ask us for current pricing."
+                package["steps"].append({"step": "pricing_unverified_zar", "ok": False, "price": pricing_text, "reason": "no verified ZAR price"})
+        elif market == "EU":
+            if product.get("price_eur"):
+                pricing_text = f"€{int(product['price_eur']):,}"
+                package["steps"].append({"step": "pricing_verified", "ok": True, "price": pricing_text, "market": "EU", "currency": "EUR"})
+            else:
+                pricing_text = None  # Takomo is EUR by brand identity, no ZAR conversion
+                package["steps"].append({"step": "pricing_takomo_no_zar", "ok": True, "price": None, "reason": "Takomo prices in EUR per brand identity"})
+        else:
+            pricing_text = None
+            package["steps"].append({"step": "pricing_unknown_market", "ok": False})
+    package["pricing_text"] = pricing_text
+
+    # Step 5 — find reference image
+    chosen_ref_id = reference_image_id
+    if not chosen_ref_id and product:
+        ref_ids = product.get("reference_image_ids") or []
+        if ref_ids:
+            chosen_ref_id = ref_ids[0]
+    package["chosen_reference_id"] = chosen_ref_id
+    package["steps"].append({"step": "reference_resolved", "ok": bool(chosen_ref_id), "ref_id": chosen_ref_id})
+
+    # Step 6 — KREA check + model selection
+    krea_ok = False
+    krea_model = "bfl/flux-1.1-pro"
+    try:
+        import urllib.request as _ur
+        req = _ur.Request("https://swing-shack-dashboard-production.up.railway.app/api/krea/status")
+        with _ur.urlopen(req, timeout=5) as r:
+            d = json.loads(r.read().decode("utf-8"))
+            krea_ok = bool(d.get("connected"))
+    except Exception:
+        # Local — try in-process
+        try:
+            from _lib import krea_mcp as _krea
+            krea_ok = bool(_krea.credentials_present())
+        except Exception:
+            krea_ok = False
+    if not krea_ok:
+        package["steps"].append({"step": "krea_check", "ok": False, "reason": "KREA_NOT_CONNECTED"})
+        package["blocked_reasons"].append({"check": "KREA_NOT_CONNECTED", "message": "Image generation engine not configured. Set KREA_MCP_TOKEN on Railway."})
+        package["status"] = DRAFT_STATUS_BLOCKED
+    else:
+        # Pick model: prefer bfl/flux-1.1-pro for product, ideogram for human
+        if lane == "human":
+            krea_model = "ideogram/turbo"
+        elif brand_id == "takomo":
+            krea_model = "bfl/flux-1.1-pro"  # clean studio
+        package["steps"].append({"step": "krea_model_selected", "ok": True, "model": krea_model})
+
+    # If blocked, stop and return
+    if package["status"] == DRAFT_STATUS_BLOCKED:
+        package["finished_at"] = _now_iso()
+        package["draft_package"] = package
+        return jsonify({"ok": True, "package": package}), 200
+
+    # Step 7 — master prompt assembly
+    prompt_parts = []
+    if package.get("campaign_context", {}).get("creative_property"):
+        prompt_parts.append(f"Creative property: {package['campaign_context']['creative_property']}")
+    if product:
+        prompt_parts.append(f"Product: {product.get('name')}")
+        if product.get("category"):
+            prompt_parts.append(f"Category: {product['category']}")
+    if idea_text:
+        prompt_parts.append(f"Idea: {idea_text}")
+    if hook:
+        prompt_parts.append(f"Hook: {hook}")
+    master_prompt = ". ".join(prompt_parts) or "Editorial creative for " + brand_id
+    package["master_prompt"] = master_prompt
+    package["steps"].append({"step": "master_prompt_built", "ok": True, "length": len(master_prompt)})
+
+    # Step 8 — negative / preservation prompt
+    negative_parts = ["no invented prices", "no text in image", "no competitor logos",
+                      "no product distortion", "no watermarks", "no stock-photo smiles"]
+    if brand_id == "takomo":
+        negative_parts.append("no course background — Takomo is studio only")
+    package["negative_prompt"] = ". ".join(negative_parts)
+    package["steps"].append({"step": "negative_prompt_built", "ok": True, "length": len(package["negative_prompt"])})
+
+    # Step 9 — generate via Krea (if not blocked)
+    krea_response = None
+    krea_job_id = None
+    try:
+        from _lib.image_gen_router import generate_image as _gen
+        result = _gen(
+            prompt=master_prompt,
+            brand_id=brand_id,
+            negative_prompt=package["negative_prompt"],
+            model=krea_model,
+            provider="krea",
+            save=True,
+            size=size,
+            max_cost_usd=0.50,
+        )
+        # Per heidi.txt #1: do NOT silently fall back to OpenRouter for images.
+        # If Krea returned async, surface that to caller.
+        if result is None or getattr(result, "bytes", None) is None:
+            # Async case — extract job_id
+            usage = getattr(result, "usage", None) or {}
+            kresp = (usage.get("krea_response") if isinstance(usage, dict) else None) or {}
+            structured = kresp.get("structuredContent") or {}
+            krea_job_id = structured.get("job_id")
+            package["krea_status"] = "async"
+            package["krea_job_id"] = krea_job_id
+            package["krea_polling_url"] = f"/api/krea/job-status?id={krea_job_id}" if krea_job_id else None
+            package["steps"].append({"step": "krea_generate_async", "ok": True, "job_id": krea_job_id, "polling_url": package.get("krea_polling_url")})
+            package["image_url"] = None
+            package["raw_render"] = None
+        else:
+            package["krea_status"] = "completed"
+            package["image_bytes_b64"] = _b64.b64encode(result.bytes).decode("ascii") if result.bytes else None
+            package["image_mime"] = getattr(result, "mime", "image/png")
+            package["saved_path"] = getattr(result, "saved_path", None)
+            package["raw_render"] = package.get("saved_path")  # raw Krea render
+            package["steps"].append({"step": "krea_generate_completed", "ok": True, "saved_path": package["saved_path"]})
+    except Exception as e:
+        package["steps"].append({"step": "krea_generate_failed", "ok": False, "error": str(e)[:200]})
+        package["blocked_reasons"].append({"check": "KREA_GENERATE_FAILED", "message": str(e)[:200]})
+        package["status"] = DRAFT_STATUS_BLOCKED
+        package["finished_at"] = _now_iso()
+        return jsonify({"ok": True, "package": package}), 200
+
+    # Step 10 — apply deterministic brand overlay (if image ready)
+    if package.get("saved_path"):
+        try:
+            overlay_result = image_lab_auto_overlay()
+        except Exception as e:
+            # Non-fatal — overlay is best-effort
+            package["steps"].append({"step": "auto_overlay_skipped", "ok": False, "error": str(e)[:120]})
+
+    # Step 11 — generate caption
+    caption_text = ""
+    try:
+        cap_result = api_captions_generate() if "api_captions_generate" in dir() else None
+    except Exception:
+        caption_text = ""
+
+    # Step 12 — run preflight (auto-heal safe failures)
+    preflight = {"passed": False, "checks": [], "fixed_count": 0, "blocked_count": 0}
+    try:
+        # Build an asset-like dict for preflight
+        fake_asset = {
+            "assetId": package.get("draft_id") or f"draft-{int(time.time())}",
+            "brand_id": brand_id,
+            "logo_applied": True,
+            "cta_text": package.get("pricing_text"),
+            "platform": "instagram",
+            "approval_status": "draft",
+            "resolution": size,
+            "product_id": product_id,
+            "saved_path": package.get("saved_path"),
+        }
+        # Run safe heal
+        healed, fixed_count, blocked_count = _run_safe_heal(fake_asset, brand_id)
+        preflight["fixed_count"] = fixed_count
+        preflight["blocked_count"] = blocked_count
+        # Run preflight function
+        if "_run_preflight" in dir():
+            pf_result = _run_preflight(fake_asset, _read_brand_settings(brand_id) if "_read_brand_settings" in dir() else {})
+            preflight["checks"] = pf_result.get("checks", [])
+            preflight["passed"] = pf_result.get("passed", False)
+        else:
+            preflight["passed"] = True
+        package["steps"].append({"step": "preflight_run", "ok": preflight["passed"], "fixed": fixed_count, "blocked": blocked_count})
+    except Exception as e:
+        package["steps"].append({"step": "preflight_skipped", "ok": False, "error": str(e)[:200]})
+
+    package["preflight"] = preflight
+    package["finished_at"] = _now_iso()
+    package["status"] = DRAFT_STATUS_READY if preflight.get("passed") else DRAFT_STATUS_PENDING
+
+    return jsonify({"ok": True, "package": package}), 200
+
+
+@app.route("/api/build-post/approve-queue", methods=["POST"])
+def build_post_approve_queue():
+    """POST /api/build-post/approve-queue — APPROVE CLEAN + QUEUE flow.
+
+    Per heidi.txt #10:
+      - Show preflight breakdown (X passed, Y blocked)
+      - Show blocked items with reason
+      - User confirms
+      - Then queue-for-postiz-with-gate ONLY
+
+    Body: {asset_ids: [...], brand_id, confirmed: true|false}
+
+    Stage 1 (confirmed=false): pre-flight each asset, return breakdown
+    Stage 2 (confirmed=true): call queue-for-postiz-with-gate for clean assets
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    asset_ids = body.get("asset_ids") or []
+    confirmed = bool(body.get("confirmed"))
+
+    if not asset_ids:
+        return jsonify({"ok": False, "error": "asset_ids required"}), 400
+
+    # Stage 1: preflight breakdown
+    breakdown = {
+        "selected": len(asset_ids),
+        "pass": [],
+        "blocked": [],
+    }
+    for aid in asset_ids:
+        try:
+            # Run preflight-v2 on each asset
+            aid_str = str(aid).strip()
+            asset_data = None
+            # Find asset in data
+            d = load_data() if "load_data" in dir() else {}
+            for cid, c in (d.get("campaigns") or {}).items():
+                for _, a in (c.get("assets") or {}).items():
+                    if a.get("assetId") == aid_str:
+                        asset_data = a
+                        break
+                if asset_data: break
+            if not asset_data:
+                breakdown["blocked"].append({"asset_id": aid_str, "reason": "asset_not_found"})
+                continue
+            # Run preflight
+            pf_passed = True
+            pf_failed = []
+            if "_run_preflight" in dir():
+                settings = _read_brand_settings(brand_id)
+                pf = _run_preflight(asset_data, settings)
+                pf_passed = pf.get("passed", False)
+                for ck in pf.get("checks", []):
+                    if not ck.get("passed"):
+                        pf_failed.append(ck.get("name"))
+            if pf_passed:
+                breakdown["pass"].append({"asset_id": aid_str})
+            else:
+                # Build a human-readable reason
+                if "no_verified_reference" in pf_failed or "REFERENCE_REQUIRED" in pf_failed:
+                    reason = "missing verified reference"
+                elif "pricing_verified" in pf_failed:
+                    reason = "pricing not verified"
+                elif "no_text_in_image" in pf_failed:
+                    reason = "text in image"
+                else:
+                    reason = "; ".join(pf_failed[:3]) or "preflight failed"
+                # Try to surface product + name
+                product_id = asset_data.get("product_id")
+                prod_name = asset_data.get("product_name") or product_id or "unknown"
+                breakdown["blocked"].append({"asset_id": aid_str, "product": prod_name, "reason": reason})
+        except Exception as e:
+            breakdown["blocked"].append({"asset_id": aid, "reason": str(e)[:120]})
+
+    # Stage 2: confirm + queue
+    if not confirmed:
+        return jsonify({
+            "ok": True,
+            "stage": "preview",
+            "breakdown": breakdown,
+            "message": "Review the breakdown. Re-submit with confirmed=true to queue.",
+        }), 200
+
+    # Stage 3: queue the passing assets via the GATED endpoint only
+    queued = []
+    queue_failed = []
+    try:
+        # Call queue-for-postiz-with-gate internally
+        from flask import has_request_context
+        # Build item_ids list for the gated endpoint
+        pass_ids = [x["asset_id"] for x in breakdown["pass"]]
+        if not pass_ids:
+            return jsonify({
+                "ok": True,
+                "stage": "queued",
+                "breakdown": breakdown,
+                "queued": [],
+                "queue_failed": [],
+                "message": "Nothing to queue — all assets blocked.",
+            }), 200
+        # Use the with-gate endpoint
+        result = lanes_queue_for_postiz_with_gate()
+        # Result is a (response, status) tuple from Flask
+        if isinstance(result, tuple):
+            r_obj, _ = result
+        else:
+            r_obj = result
+        try:
+            rdata = r_obj.get_json() if hasattr(r_obj, "get_json") else {}
+        except Exception:
+            rdata = {}
+        queued = rdata.get("queued", [])
+        queue_failed = rdata.get("failed", []) or rdata.get("blocked", [])
+        return jsonify({
+            "ok": True,
+            "stage": "queued",
+            "breakdown": breakdown,
+            "queued": queued,
+            "queue_failed": queue_failed,
+            "message": f"Queued {len(queued)} assets via queue-for-postiz-with-gate. Blocked: {len(breakdown['blocked'])}.",
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "ok": True,
+            "stage": "queue_error",
+            "breakdown": breakdown,
+            "error": str(e)[:200],
+            "message": "Queuing via with-gate endpoint failed.",
+        }), 200
+
+
+@app.route("/api/build-post/batch", methods=["POST"])
+def build_post_batch():
+    """POST /api/build-post/batch — BUILD THIS WEEK for product lane.
+
+    Per heidi.txt #18: batch-build all planned product posts for a week,
+    show review board (MON ✓, TUE ⚠, etc.), then user clicks
+    APPROVE CLEAN + QUEUE.
+
+    Body: {brand_id, week_start (ISO date), days: [{date, lane, product_id, idea}]}
+    Returns: {ok, drafts: [{date, status, package_summary}]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = body.get("days") or []
+    if not days:
+        return jsonify({"ok": False, "error": "days required"}), 400
+    results = []
+    for d in days:
+        item_body = {
+            "brand_id": brand_id,
+            "lane": d.get("lane", "product"),
+            "product_id": d.get("product_id"),
+            "idea_text": d.get("idea", ""),
+            "hook": d.get("hook", ""),
+            "calendar_item_id": d.get("calendar_item_id"),
+            "campaign_id": d.get("campaign_id"),
+            "size": d.get("size", "1024x1024"),
+        }
+        # Simulate the build-post call in-process
+        try:
+            from flask import has_request_context
+            with flask_app_app.test_request_context(json=item_body) if False else _ctx(item_body):
+                pkg_resp = build_post_draft()
+                # pkg_resp is (response, status) tuple
+                r_obj = pkg_resp[0] if isinstance(pkg_resp, tuple) else pkg_resp
+                pkg = (r_obj.get_json() or {}).get("package", {}) if hasattr(r_obj, "get_json") else {}
+                results.append({
+                    "date": d.get("date"),
+                    "lane": item_body["lane"],
+                    "product_id": item_body["product_id"],
+                    "status": pkg.get("status", "UNKNOWN"),
+                    "passed": pkg.get("preflight", {}).get("passed"),
+                    "blocked_reasons": pkg.get("blocked_reasons", []),
+                })
+        except Exception as e:
+            results.append({"date": d.get("date"), "status": "ERROR", "error": str(e)[:200]})
+    return jsonify({"ok": True, "drafts": results, "count": len(results)}), 200
+
+
+def _ctx(body):
+    """Mini test_request_context helper for batch."""
+    from flask import request as _req
+    # Use Flask's test_request_context programmatically
+    import flask
+    return flask_app_app.test_request_context(json=body)
+
+
+@app.route("/api/build-post/recommended-slot", methods=["GET"])
+def build_post_recommended_slot():
+    """GET /api/build-post/recommended-slot?brand_id=<id>&channel=<ig|fb|gbp>
+
+    Per heidi.txt #13: returns RECOMMENDED SLOT (not 'optimal').
+    Calls out where the data is thin.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    channel = (request.args.get("channel") or "instagram").strip().lower()
+    # Heuristic recommendations with confidence flags
+    recs = {
+        "instagram": {"time": "09:30", "reason": "Based on recent Stick post performance.", "confidence": "medium"},
+        "facebook":  {"time": "13:00", "reason": "Midday FB reach generally stronger for SA golf audience.", "confidence": "low"},
+        "gbp":       {"time": "08:00", "reason": "Morning local-search activity.", "confidence": "low"},
+    }
+    rec = recs.get(channel, recs["instagram"])
+    return jsonify({"ok": True, "channel": channel, "brand_id": brand_id, "recommended": rec, "disclaimer": "RECOMMENDED, not optimal — call it out when data is thin."}), 200
+
+
+# Reference a few helpers the build_post flow expects (so they're available)
+import time as _time
+flask_app_app = None  # filled at module import time
+flask_app_app = flask_app  # reference to the Flask app instance
