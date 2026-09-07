@@ -27561,7 +27561,7 @@ def build_post_batch():
         # Simulate the build-post call in-process
         try:
             from flask import has_request_context
-            with flask_app_app.test_request_context(json=item_body) if False else _ctx(item_body):
+            with app.test_request_context(json=item_body) if False else _ctx(item_body):
                 pkg_resp = build_post_draft()
                 # pkg_resp is (response, status) tuple
                 r_obj = pkg_resp[0] if isinstance(pkg_resp, tuple) else pkg_resp
@@ -27583,8 +27583,7 @@ def _ctx(body):
     """Mini test_request_context helper for batch."""
     from flask import request as _req
     # Use Flask's test_request_context programmatically
-    import flask
-    return flask_app_app.test_request_context(json=body)
+    return app.test_request_context(json=body)
 
 
 @app.route("/api/build-post/recommended-slot", methods=["GET"])
@@ -27608,7 +27607,5 @@ def build_post_recommended_slot():
     return jsonify({"ok": True, "channel": channel, "brand_id": brand_id, "recommended": rec, "disclaimer": "RECOMMENDED, not optimal — call it out when data is thin."}), 200
 
 
-# Reference a few helpers the build_post flow expects (so they're available)
+# Reference helpers used by build_post endpoints
 import time as _time
-flask_app_app = None  # filled at module import time
-flask_app_app = flask_app  # reference to the Flask app instance
