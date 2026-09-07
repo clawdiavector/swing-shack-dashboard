@@ -27635,6 +27635,7 @@ def _run_publish_preflight(package, product, store_brand, pricing_text, overlay_
 
 
 
+@app.route("/api/build-post/approve-queue", methods=["POST"])
 def build_post_approve_queue():
     """POST /api/build-post/approve-queue — APPROVE CLEAN + QUEUE flow.
 
