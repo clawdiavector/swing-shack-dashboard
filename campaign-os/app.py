@@ -27273,7 +27273,6 @@ def build_post_draft():
     # If blocked, stop and return
     if package["status"] == DRAFT_STATUS_BLOCKED:
         package["finished_at"] = _now_iso()
-        package["draft_package"] = package
         return jsonify({"ok": True, "package": package}), 200
 
     # Step 7 — master prompt assembly

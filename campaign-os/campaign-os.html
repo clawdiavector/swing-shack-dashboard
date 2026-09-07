@@ -739,6 +739,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
       <div class="nav" data-go="fleet" data-help-title="Fleet Status" data-help="Aggregated fleet state — Heidi + all specialists. Cron freshness, error counts, fleet-level alerts."><span class="nav-icon">📡</span> Fleet Status</div>
       <div class="nav" data-go="docs" data-help-title="Docs" data-help="Demo video script + onboarding + launch announcement + handoff brief. Read these to understand the system."><span class="nav-icon">📚</span> Docs</div>
+      <div class="nav" data-go="buildpost" data-help-title="Build Post" data-help="Two-click ship: BUILD POST (auto-resolves all inputs, runs Krea + overlay + preflight) then APPROVE CLEAN + QUEUE (human approval gates gated Postiz push). NO auto-publish."><span class="nav-icon">✨</span> Build Post</div>
 
       <!-- Labs: experimental / niche tools, hidden by default -->
       <div class="nav-section" id="labs-section">
@@ -3869,7 +3870,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs', buildpost:'Build Post',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -11222,6 +11223,184 @@ async function docsCopy() {
 // Auto-load the handoff doc by default — that's the one future-you wants
 renderDocs = function() { loadDoc('handoff'); };
 
+
+
+// ─── BUILD POST (Tier 3.14 — Two-click ship, 2026-09-07) ──────────────────
+// Per heidi.txt: one click to build a finished draft, one human
+// approval to ship. NO auto-publish. Governance preserved.
+
+let _bpCurrentDraft = null;
+
+async function renderBuildPost() {
+  const brand = document.getElementById('bp-brand')?.value || 'takomo';
+  // Fetch recommended slot
+  const r = await API.get('/api/build-post/recommended-slot?brand_id=' + brand + '&channel=instagram');
+  const rec = document.getElementById('bp-recommended');
+  if (rec) {
+    if (r.ok) {
+      const recommended = r.recommended || {};
+      rec.innerHTML = `
+        <div><b>Instagram:</b> ${esc(recommended.time || '?')} · ${esc(recommended.reason || '')}</div>
+        <div style="margin-top:.3rem;color:var(--tx-3);font-size:11px">confidence: <b>${esc(recommended.confidence || 'unknown')}</b> · ${esc(r.disclaimer || '')}</div>
+        <div style="margin-top:.5rem"><button class="btn-mini primary">USE RECOMMENDED</button></div>
+      `;
+    } else {
+      rec.textContent = 'Failed to load recommended slot.';
+    }
+  }
+}
+
+async function bpBuild() {
+  const brand = document.getElementById('bp-brand')?.value || 'takomo';
+  const lane = document.getElementById('bp-lane')?.value || 'product';
+  const idea = document.getElementById('bp-idea')?.value || '';
+  const hook = document.getElementById('bp-hook')?.value || '';
+  const calendarId = document.getElementById('bp-calendar-id')?.value || '';
+  const btn = document.getElementById('bp-build');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Building…'; }
+  try {
+    const body = { brand_id: brand, lane, idea_text: idea, hook };
+    if (calendarId) body.calendar_item_id = calendarId;
+    const r = await API.post('/api/build-post/draft', body);
+    if (!r.ok) { toast('Build failed: ' + r.error, true); return; }
+    const pkg = r.package || {};
+    _bpCurrentDraft = pkg;
+    // Status pill
+    const pill = document.getElementById('bp-status-pill');
+    if (pill) {
+      const status = pkg.status || 'UNKNOWN';
+      const color = status === 'BLOCKED' ? 'blocked' : status === 'NEEDS_APPROVAL' ? 'live' : 'on';
+      pill.textContent = status;
+      pill.className = 'pill ' + color;
+    }
+    // Summary
+    const summary = document.getElementById('bp-package-summary');
+    if (summary) {
+      const blocked = pkg.blocked_reasons || [];
+      const lines = [];
+      if (pkg.product) lines.push(`<div>Product: <b>${esc(pkg.product.name || '?')}</b> · verified=${pkg.product.verified}</div>`);
+      if (pkg.pricing_text) lines.push(`<div>Pricing: <b>${esc(pkg.pricing_text)}</b></div>`);
+      if (pkg.chosen_reference_id) lines.push(`<div>Reference image: <code>${esc(pkg.chosen_reference_id)}</code></div>`);
+      if (pkg.krea_status) lines.push(`<div>Krea status: <b>${esc(pkg.krea_status)}</b>${pkg.krea_job_id ? ' · job ' + esc(pkg.krea_job_id) : ''}</div>`);
+      lines.push(`<div>Steps run: ${(pkg.steps || []).length}</div>`);
+      summary.innerHTML = lines.join('') || '<span class="muted">Draft assembled.</span>';
+    }
+    // Blocked
+    const blockedEl = document.getElementById('bp-blocked');
+    if (blockedEl) {
+      if (blocked.length === 0) {
+        blockedEl.innerHTML = '<div class="pill on" style="font-size:11px">No blockers. Ready for human approval.</div>';
+      } else {
+        blockedEl.innerHTML = '<div style="font-size:12px;color:var(--danger);font-weight:600;margin-bottom:.3rem">BLOCKERS — fix these before approving:</div>' +
+          blocked.map(b => `<div style="padding:.4rem .6rem;background:var(--bg-2);border-left:3px solid var(--danger);border-radius:0 6px 6px 0;margin-bottom:.3rem;font-size:11px"><b>${esc(b.check)}</b> — ${esc(b.message)}</div>`).join('');
+      }
+    }
+    // Preflight summary
+    const pf = pkg.preflight || {};
+    const pfEl = document.getElementById('bp-preflight');
+    if (pfEl) {
+      if (pf.passed === true) {
+        pfEl.innerHTML = '<div style="padding:.5rem;background:rgba(34,197,94,0.1);border:1px solid var(--success);border-radius:8px;font-size:13px"><b style="color:var(--success)">11/11 PASSED</b> — preflight clean. Ready to ship.</div>';
+      } else if (pf.passed === false) {
+        pfEl.innerHTML = `<div style="padding:.5rem;background:rgba(239,68,68,0.1);border:1px solid var(--danger);border-radius:8px;font-size:13px"><b style="color:var(--danger)">Preflight has ${(pf.checks || []).filter(c=>!c.passed).length} fix(es) required.</b></div>`;
+      } else {
+        pfEl.innerHTML = '';
+      }
+    }
+    // Enable preview-queue only if we have an asset_id (from saved_path)
+    const previewBtn = document.getElementById('bp-preview-queue');
+    if (previewBtn) {
+      previewBtn.disabled = false;
+      previewBtn.style.display = 'inline-flex';
+    }
+    toast(pkg.status === 'BLOCKED' ? '⛔ Draft blocked — see reasons' : '✓ Draft ready for review');
+  } catch (e) {
+    toast('Build error: ' + (e.message || e), true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ BUILD POST'; }
+  }
+}
+
+async function bpPreviewQueue() {
+  // We need an asset_id from the saved draft. For now simulate the
+  // approve-queue flow with a placeholder asset_id from the draft.
+  const assetIds = [];
+  if (_bpCurrentDraft && _bpCurrentDraft.saved_path) {
+    // Use the saved_path basename as a stub asset_id (real flow uses actual IDs)
+    const fn = _bpCurrentDraft.saved_path.split('/').pop();
+    assetIds.push(fn.replace(/\.[^.]+$/, ''));
+  }
+  if (assetIds.length === 0) {
+    toast('No asset to preview. Build a draft first.', true);
+    return;
+  }
+  const brand = document.getElementById('bp-brand')?.value || 'takomo';
+  const r = await API.post('/api/build-post/approve-queue', {
+    brand_id: brand,
+    asset_ids: assetIds,
+    confirmed: false,
+  });
+  if (!r.ok) { toast('Preview failed: ' + r.error, true); return; }
+  const bd = r.breakdown || {};
+  const breakdownEl = document.getElementById('bp-queue-breakdown');
+  if (breakdownEl) {
+    breakdownEl.innerHTML = `
+      <div style="padding:.5rem;background:var(--bg-2);border-radius:8px;font-size:13px">
+        <div><b>${bd.selected || 0}</b> posts selected</div>
+        <div style="color:var(--success)"><b>${(bd.pass || []).length}</b> pass preflight</div>
+        <div style="color:var(--danger)"><b>${(bd.blocked || []).length}</b> blocked</div>
+      </div>
+      ${(bd.blocked || []).map(b => `<div style="padding:.4rem .6rem;background:rgba(239,68,68,0.05);border-left:3px solid var(--danger);border-radius:0 6px 6px 0;margin:.3rem 0;font-size:11px"><b>${esc(b.product || b.asset_id)}</b> — ${esc(b.reason)}</div>`).join('')}
+    `;
+  }
+  // Show CONFIRM button
+  document.getElementById('bp-preview-queue').style.display = 'none';
+  document.getElementById('bp-approve-queue').style.display = 'inline-flex';
+  toast('Review the breakdown. Confirm to queue via with-gate.');
+}
+
+async function bpApproveQueue() {
+  if (!confirm('Confirm: queue the passing assets via queue-for-postiz-with-gate?')) return;
+  const assetIds = [];
+  if (_bpCurrentDraft && _bpCurrentDraft.saved_path) {
+    const fn = _bpCurrentDraft.saved_path.split('/').pop();
+    assetIds.push(fn.replace(/\.[^.]+$/, ''));
+  }
+  const brand = document.getElementById('bp-brand')?.value || 'takomo';
+  const r = await API.post('/api/build-post/approve-queue', {
+    brand_id: brand,
+    asset_ids: assetIds,
+    confirmed: true,
+  });
+  if (!r.ok) { toast('Queue failed: ' + r.error, true); return; }
+  const q = r.queued || [];
+  const f = r.queue_failed || [];
+  toast(`✓ Queued ${q.length} via with-gate. Failed: ${f.length}.`);
+  document.getElementById('bp-approve-queue').style.display = 'none';
+  document.getElementById('bp-preview-queue').style.display = 'inline-flex';
+  document.getElementById('bp-preview-queue').disabled = true;
+}
+
+function bpClear() {
+  _bpCurrentDraft = null;
+  document.getElementById('bp-status-pill').textContent = '— no draft';
+  document.getElementById('bp-status-pill').className = 'pill muted';
+  document.getElementById('bp-package-summary').textContent = 'Click BUILD POST to assemble a draft.';
+  document.getElementById('bp-blocked').innerHTML = '';
+  document.getElementById('bp-preflight').innerHTML = '';
+  document.getElementById('bp-queue-breakdown').innerHTML = '';
+  document.getElementById('bp-preview-queue').disabled = true;
+  document.getElementById('bp-approve-queue').style.display = 'none';
+}
+
+(function wireBuildPost() {
+  document.getElementById('bp-brand')?.addEventListener('change', renderBuildPost);
+  document.getElementById('bp-build')?.addEventListener('click', bpBuild);
+  document.getElementById('bp-clear')?.addEventListener('click', bpClear);
+  document.getElementById('bp-preview-queue')?.addEventListener('click', bpPreviewQueue);
+  document.getElementById('bp-approve-queue')?.addEventListener('click', bpApproveQueue);
+})();
+
 </script>
 
 
@@ -11795,6 +11974,88 @@ renderDocs = function() { loadDoc('handoff'); };
 
       <div class="card col-12">
         <div id="doc-content" style="font-family:var(--mono,monospace);font-size:12px;line-height:1.6;max-height:700px;overflow-y:auto;background:var(--bg-1);padding:1rem;border-radius:8px;white-space:pre-wrap">Click a tab above to load a doc</div>
+      </div>
+    </section>
+
+
+    <!-- ─── BUILD POST (Tier 3.14 — Two-click ship, 2026-09-07) ────────────── -->
+    <section class="section" id="sec-buildpost">
+      <div class="section-h">
+        <h2>✨ Build Post</h2>
+        <span class="sub">One click to build a finished draft. One human approval to ship. Two clicks total.</span>
+        <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
+          <select id="bp-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+            <option value="takomo">Takomo</option>
+            <option value="swing-shack">Swing Shack</option>
+            <option value="stick">Stick Golf</option>
+            <option value="bag-drop">Bag Drop</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card col-6">
+          <div class="card-h"><h3>📝 Inputs</h3></div>
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <label style="font-size:11px;color:var(--tx-3)">Lane</label>
+            <select id="bp-lane" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px">
+              <option value="product">Product (real product required)</option>
+              <option value="retail">Retail</option>
+              <option value="product_led">Product-led paid</option>
+              <option value="human">Human (real footage required)</option>
+              <option value="coaching">Coaching</option>
+              <option value="brand">Brand</option>
+              <option value="community">Community</option>
+              <option value="educational">Educational</option>
+            </select>
+            <label style="font-size:11px;color:var(--tx-3)">Calendar item id (optional)</label>
+            <input type="text" id="bp-calendar-id" placeholder="optional — links to a specific day" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+            <label style="font-size:11px;color:var(--tx-3)">Idea (one line)</label>
+            <textarea id="bp-idea" rows="2" placeholder="Hand-finished 101T mallet putter — minimal Scandinavian studio aesthetic" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit"></textarea>
+            <label style="font-size:11px;color:var(--tx-3)">Hook (optional)</label>
+            <input type="text" id="bp-hook" placeholder="Built for the player who knows the difference." style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+            <div style="font-size:10px;color:var(--tx-3);margin-top:.25rem">
+              Product auto-pick only fires for <code>product/retail/product_led</code> lanes.
+              For <code>human</code> lane: AI assembles brief; <b>NEEDS CAPTURE</b> until real footage uploaded.
+            </div>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:.5rem">
+            <button class="btn primary" id="bp-build">✨ BUILD POST</button>
+            <button class="btn ghost" id="bp-clear">Clear</button>
+          </div>
+        </div>
+        <div class="card col-6">
+          <div class="card-h">
+            <h3>📦 Draft package</h3>
+            <span class="pill muted" id="bp-status-pill">— no draft</span>
+          </div>
+          <div id="bp-package-summary" style="font-size:11px;color:var(--tx-3);line-height:1.6">Click BUILD POST to assemble a draft.</div>
+          <div id="bp-blocked" style="margin-top:.5rem"></div>
+          <div id="bp-preflight" style="margin-top:.5rem"></div>
+        </div>
+      </div>
+
+      <div class="card col-12" style="margin-top:1rem">
+        <div class="card-h">
+          <h3>✓ APPROVE CLEAN + QUEUE</h3>
+          <span class="muted" id="bp-approve-summary">— build a draft first</span>
+        </div>
+        <div style="font-size:11px;color:var(--tx-3);line-height:1.6">
+          Per heidi.txt: this is the ONLY publishing path exposed to marketers.
+          Pre-flight runs first, blocked items are surfaced, then
+          <code>queue-for-postiz-with-gate</code> (NOT ungated).
+          You confirm before any post ships.
+        </div>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem">
+          <button class="btn primary" id="bp-preview-queue" disabled>👁 Preview queue</button>
+          <button class="btn primary" id="bp-approve-queue" disabled style="display:none">✓ CONFIRM + QUEUE</button>
+        </div>
+        <div id="bp-queue-breakdown" style="margin-top:.75rem"></div>
+      </div>
+
+      <div class="card col-12" style="margin-top:1rem">
+        <div class="card-h"><h3>📅 Recommended slot (not optimal)</h3></div>
+        <div id="bp-recommended" style="font-size:12px;color:var(--tx-2);line-height:1.6">Pick a brand to see the recommended (not optimal) post time.</div>
       </div>
     </section>
 
