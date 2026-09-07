@@ -28558,6 +28558,85 @@ def golf_moments():
 
 # ─── 9. SAMPLE MONTH (per heidi.txt #15) ───────────────────────────────────
 
+@app.route("/api/planning/<brand_id>/herman-sample", methods=["GET"])
+def planning_herman_sample(brand_id):
+    """GET /api/planning/<brand>/herman-sample — Herman demo build.
+
+    Returns the polished Stick October 2026 sample month with:
+      - Real stock list (14 items: Takomo, L.A.B., PB, Vice, Titleist + 3 fitting services)
+      - Real Stick voice (sarcastic + confident + relatable tones from tone-rules.md)
+      - Parallel lanes with REAL density (Wed Oct 14 has 6 lanes in parallel)
+      - Featured week: Oct 12-16 (heaviest parallel execution)
+      - All stock items referenced: 14 of 14
+
+    Per heidi.txt Herman demo:
+      - Big Idea + Belief + Monthly Theme at top
+      - 3-bullet monthly theme summary
+      - Active commercial focuses (5)
+      - KPI focus strip
+      - Lane purpose labels
+      - Side panels: Lane Health + Important Dates + Monthly Focus + Runway
+      - Per-lane filter chips
+      - Click-in detail drawer
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    if not os.path.exists(sample_path):
+        return jsonify({"ok": False, "error": "no herman sample data", "expected": sample_path}), 404
+    try:
+        with open(sample_path) as f:
+            sample = json.load(f)
+        items = sample.get("items", [])
+        # Load real stock list for the brand
+        stock = []
+        try:
+            stock_path = os.path.join(DATA_DIR, "products", f"{brand_id}.json")
+            if os.path.exists(stock_path):
+                with open(stock_path) as f:
+                    stock_data = json.load(f)
+                    stock = stock_data.get("products") or []
+        except Exception:
+            pass
+
+        # Per-lane + per-day counts
+        from collections import Counter
+        per_lane = Counter(it.get("lane") for it in items)
+        per_day = Counter(it.get("date") for it in items)
+
+        # Stock coverage
+        stock_used = set()
+        for it in items:
+            for s in it.get("stock_refs") or []:
+                stock_used.add(s)
+        stock_used_n = len(stock_used)
+        stock_total_n = len(stock)
+
+        # Featured week (heaviest density)
+        featured = max(per_day.items(), key=lambda x: x[1]) if per_day else (None, 0)
+
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "is_demo": True,
+            "demo_label": sample.get("demo_label"),
+            "sample": sample,
+            "stats": {
+                "total_items": len(items),
+                "per_lane": dict(per_lane),
+                "per_day": {k: v for k, v in sorted(per_day.items())},
+                "stock_items_used": stock_used_n,
+                "stock_items_total": stock_total_n,
+                "stock_coverage_pct": int((stock_used_n / stock_total_n) * 100) if stock_total_n else 0,
+                "featured_day": featured[0],
+                "featured_day_count": featured[1],
+            },
+            "stock_catalog": stock,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/api/planning/<brand_id>/month-sample", methods=["GET"])
 def planning_month_sample(brand_id):
     """GET /api/planning/<brand>/month-sample — DEMO sample only.

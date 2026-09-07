@@ -1,0 +1,1155 @@
+{
+  "brand_id": "stick",
+  "month": "2026-10",
+  "month_name": "October 2026",
+  "is_demo": true,
+  "demo_label": "Brand-bible-driven demo month. Built from the real Stick Brand Bible Draft v3 + Campaign OS Brand Bible Workbook 2 (Sept 2026). Replace with real planning before pilot.",
+  "source_of_truth": "data/brand-directory/stick (Brand Bible Draft v3 + Campaign OS Workbook 2)",
+  "big_brand_idea": "Better Begins Here.",
+  "master_brand_line": "Better Begins Here.",
+  "strategic_belief": "Everything has to earn its place.",
+  "brand_essence": "Better golf for a new breed of golfer.",
+  "voice_summary": "Sharp, confident, direct, smart, rebellious",
+  "monthly_theme": "What belongs in your bag?",
+  "monthly_theme_alignment": "Reinforces the strategic belief \u2014 every club must earn its place.",
+  "monthly_theme_summary": [
+    "Keep retail stock consistently visible",
+    "Build trust in fitting and coaching expertise",
+    "Support product and service sales with clearer structure"
+  ],
+  "active_commercial_focuses": [
+    "Psycho Bunny promotion",
+    "Fitting bookings",
+    "Takomo awareness",
+    "L.A.B. / putter interest",
+    "Apparel / in-store product visibility"
+  ],
+  "active_campaigns": [
+    {
+      "id": "spring-at-stick",
+      "name": "Spring at Stick",
+      "phase": "live",
+      "lanes": [
+        "product",
+        "apparel",
+        "workshop",
+        "human"
+      ]
+    },
+    {
+      "id": "psycho-bunny-launch",
+      "name": "Psycho Bunny Launch",
+      "phase": "launching",
+      "lanes": [
+        "apparel",
+        "product"
+      ]
+    }
+  ],
+  "kpi_focus_strip": [
+    {
+      "lane": "product",
+      "status": "active"
+    },
+    {
+      "lane": "fitting",
+      "status": "active"
+    },
+    {
+      "lane": "coaching",
+      "status": "active"
+    },
+    {
+      "lane": "human",
+      "status": "active"
+    },
+    {
+      "lane": "paid",
+      "status": "active"
+    }
+  ],
+  "lane_purpose_labels": {
+    "product": "Keeps real stock visible and sellable",
+    "fitting": "Builds demand for custom fitting",
+    "coaching": "Shows expertise and makes improvement feel possible",
+    "human": "Shows the real people behind Stick",
+    "workshop": "Proves technical capability and detail",
+    "apparel": "Keeps clothing and in-store style visible",
+    "campaign": "Supports bigger seasonal or sales pushes",
+    "paid": "Shows where active media support is running",
+    "search": "Shows owned-content and website actions",
+    "crm": "Supports follow-up and sales movement"
+  },
+  "properties_used": [
+    "why-its-here",
+    "fit-first",
+    "built-at-stick",
+    "ask-stick",
+    "style-that-belongs",
+    "product-drop"
+  ],
+  "featured_week": "2026-10-12 (Week of Oct 12-16) \u2014 heaviest parallel execution",
+  "items": [
+    {
+      "id": "w1-mon-product",
+      "date": "2026-10-05",
+      "day": "Mon",
+      "lane": "product",
+      "title": "Takomo 101T \u2014 Why It's Here",
+      "subtitle": "Mallet face-balance. R7,899.",
+      "stock_refs": [
+        "takomo-101t"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Takomo earns its place on the rack."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Keeps real stock visible. Why It's Here editorial property."
+    },
+    {
+      "id": "w1-mon-paid",
+      "date": "2026-10-05",
+      "day": "Mon",
+      "lane": "paid",
+      "title": "Fitting retargeting (week start)",
+      "subtitle": "Audience: cart abandoners + page visitors",
+      "headline": null,
+      "cta": null,
+      "channel": "meta_ads",
+      "status": "LIVE",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Always-on retargeting for fitting bookings."
+    },
+    {
+      "id": "w1-tue-product",
+      "date": "2026-10-06",
+      "day": "Tue",
+      "lane": "product",
+      "title": "Vice Pro Plus \u2014 Why It's Here",
+      "subtitle": "Cast urethane. R549/dozen.",
+      "stock_refs": [
+        "vice-golf-ball"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Vice earns its place because the ball tells the truth."
+      },
+      "cta": "Shop the drop",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Keeps retail ball stock visible."
+    },
+    {
+      "id": "w1-tue-search",
+      "date": "2026-10-06",
+      "day": "Tue",
+      "lane": "search",
+      "title": "Takomo 101T \u2014 page update",
+      "subtitle": "Internal link from fitting landing",
+      "headline": null,
+      "cta": null,
+      "channel": "website_owned",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Owned-content action. Compounds SEO."
+    },
+    {
+      "id": "w1-wed-product",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "product",
+      "title": "Psycho Bunny Maverick Pant \u2014 Style That Belongs",
+      "subtitle": "R2,199.",
+      "stock_refs": [
+        "pb-maverick-pant"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Style and performance belong together."
+      },
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "style-that-belongs",
+      "purpose": "Psycho Bunny launch airtime \u2014 Style That Belongs property."
+    },
+    {
+      "id": "w1-wed-fitting",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "fitting",
+      "title": "Iron fitting \u2014 Fit First",
+      "subtitle": "TrackMan data + club build walk-through",
+      "stock_refs": [
+        "fitting-iron"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Your driver is telling you something."
+      },
+      "cta": "Find your fit",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "fit-first",
+      "purpose": "Builds demand for custom iron fitting."
+    },
+    {
+      "id": "w1-wed-human",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "human",
+      "title": "Jason explains shaft weight",
+      "subtitle": "Why flex matters more than you think",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Shows the real people behind Stick."
+    },
+    {
+      "id": "w1-wed-campaign",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "campaign",
+      "title": "Psycho Bunny launch \u2014 week 1",
+      "subtitle": "Spring at Stick campaign arc",
+      "headline": {
+        "tone": "confident",
+        "text": "Psycho Bunny. Now at Stick."
+      },
+      "cta": "Visit us",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign arc \u2014 Spring at Stick."
+    },
+    {
+      "id": "w1-thu-product",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "product",
+      "title": "Takomo Daytona \u2014 Why It's Here",
+      "subtitle": "Blade. R6,899.",
+      "stock_refs": [
+        "takomo-daytona"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "This is why we stock it."
+      },
+      "cta": "Enquire",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Takomo putter visibility (depth editorial)."
+    },
+    {
+      "id": "w1-thu-workshop",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "workshop",
+      "title": "Built At Stick \u2014 workshop behind the scenes",
+      "subtitle": "Loft & lie, grips, spec \u2014 what we actually do",
+      "headline": null,
+      "cta": "Get your spec done",
+      "channel": "instagram_reel",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "built-at-stick",
+      "purpose": "Proves technical capability \u2014 Built At Stick property."
+    },
+    {
+      "id": "w1-thu-coaching",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "coaching",
+      "title": "Ask Stick \u2014 Better Begins Here",
+      "subtitle": "Swing plane: what changes when you fix it",
+      "headline": {
+        "tone": "direct",
+        "text": "Better decisions, better golf."
+      },
+      "cta": "Ask us",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "ask-stick",
+      "purpose": "Shows expertise \u2014 Ask Stick utility property."
+    },
+    {
+      "id": "w1-fri-product",
+      "date": "2026-10-09",
+      "day": "Fri",
+      "lane": "product",
+      "title": "Psycho Bunny Vance Polo \u2014 Style That Belongs",
+      "subtitle": "R1,299.",
+      "stock_refs": [
+        "pb-vance-polo"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Polos that earn their place."
+      },
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "Psycho Bunny apparel airtime."
+    },
+    {
+      "id": "w1-fri-commercial",
+      "date": "2026-10-09",
+      "day": "Fri",
+      "lane": "commercial",
+      "title": "Book a fitting \u2014 week-end push",
+      "subtitle": "Direct-response CTA",
+      "headline": {
+        "tone": "direct",
+        "text": "Fit First. Buy Second."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Direct-response commercial CTA."
+    },
+    {
+      "id": "w1-fri-apparel",
+      "date": "2026-10-09",
+      "day": "Fri",
+      "lane": "apparel",
+      "title": "PB umbrella + cap \u2014 Style That Belongs",
+      "subtitle": "R999 + R749.",
+      "stock_refs": [
+        "pb-golf-umbrella",
+        "pb-cap"
+      ],
+      "headline": null,
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "Apparel airtime + accessory cross-sell."
+    },
+    {
+      "id": "w1-sat-apparel",
+      "date": "2026-10-10",
+      "day": "Sat",
+      "lane": "apparel",
+      "title": "PB socks 3-pack \u2014 Style That Belongs",
+      "subtitle": "R449.",
+      "stock_refs": [
+        "pb-socks"
+      ],
+      "headline": null,
+      "cta": "Try it on",
+      "channel": "instagram_story",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "Apparel cross-sell at low price point."
+    },
+    {
+      "id": "w2-mon-product",
+      "date": "2026-10-12",
+      "day": "Mon",
+      "lane": "product",
+      "title": "L.A.B. MEZ.1 \u2014 Why It's Here",
+      "subtitle": "R11,999. Lie-angle-balanced.",
+      "stock_refs": [
+        "lab-golf-mez"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Your stroke doesn't fight this putter."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "why-its-here",
+      "purpose": "L.A.B. putter visibility + fitting push."
+    },
+    {
+      "id": "w2-mon-human",
+      "date": "2026-10-12",
+      "day": "Mon",
+      "lane": "human",
+      "title": "Inside the bay \u2014 Jason on lie-angle balance",
+      "subtitle": "What changes when the lie matches your stroke",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Human + technical credibility."
+    },
+    {
+      "id": "w2-mon-campaign",
+      "date": "2026-10-12",
+      "day": "Mon",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 Week 2 hero",
+      "subtitle": "Psycho Bunny + Takomo + L.A.B. together",
+      "headline": {
+        "tone": "confident",
+        "text": "Three brands. One standard."
+      },
+      "cta": "Visit us",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Spring at Stick campaign week 2 hero."
+    },
+    {
+      "id": "w2-mon-paid",
+      "date": "2026-10-12",
+      "day": "Mon",
+      "lane": "paid",
+      "title": "L.A.B. awareness \u2014 week start",
+      "subtitle": "Audience: TrackMan visitors + fitting page",
+      "headline": null,
+      "cta": null,
+      "channel": "meta_ads",
+      "status": "LIVE",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "L.A.B. awareness \u2014 supports L.A.B. / fitting."
+    },
+    {
+      "id": "w2-tue-product",
+      "date": "2026-10-13",
+      "day": "Tue",
+      "lane": "product",
+      "title": "Psycho Bunny Maverick Pant \u2014 Style That Belongs",
+      "subtitle": "R2,199.",
+      "stock_refs": [
+        "pb-maverick-pant"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Style that belongs on and off the course."
+      },
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "PB airtime \u2014 week 2 second push."
+    },
+    {
+      "id": "w2-tue-search",
+      "date": "2026-10-13",
+      "day": "Tue",
+      "lane": "search",
+      "title": "Fitting landing page \u2014 L.A.B. update",
+      "subtitle": "Add L.A.B. testimonials + TrackMan data",
+      "headline": null,
+      "cta": null,
+      "channel": "website_owned",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Owned-content action \u2014 compounds traffic from paid."
+    },
+    {
+      "id": "w2-tue-campaign",
+      "date": "2026-10-13",
+      "day": "Tue",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 Reel day 2",
+      "subtitle": "Behind-the-scenes: rack shot + fitting bay",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign arc mid-week energy."
+    },
+    {
+      "id": "w2-wed-product",
+      "date": "2026-10-14",
+      "day": "Wed",
+      "lane": "product",
+      "title": "Titleist Pro V1 \u2014 Why It's Here",
+      "subtitle": "Cast urethane. R749/dozen.",
+      "stock_refs": [
+        "titleist-pro-v1"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Titleist earns its place because the ball is the truth."
+      },
+      "cta": "Shop the drop",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Ball stock visibility."
+    },
+    {
+      "id": "w2-wed-fitting",
+      "date": "2026-10-14",
+      "day": "Wed",
+      "lane": "fitting",
+      "title": "Putter fitting \u2014 Fit First",
+      "subtitle": "Why your stroke needs lie-angle balance",
+      "stock_refs": [
+        "fitting-putter"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Fit First. Buy Second."
+      },
+      "cta": "Find your fit",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "fit-first",
+      "purpose": "Builds demand for putter fitting."
+    },
+    {
+      "id": "w2-wed-human",
+      "date": "2026-10-14",
+      "day": "Wed",
+      "lane": "human",
+      "title": "Jason explains shaft weight",
+      "subtitle": "Why flex matters more than you think",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Human trust content."
+    },
+    {
+      "id": "w2-wed-coaching",
+      "date": "2026-10-14",
+      "day": "Wed",
+      "lane": "coaching",
+      "title": "Wedge gapping \u2014 Ask Stick",
+      "subtitle": "Why your yardages might have gaps",
+      "stock_refs": [
+        "fitting-wedge"
+      ],
+      "headline": {
+        "tone": "direct",
+        "text": "Better decisions, better golf."
+      },
+      "cta": "Ask us",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "ask-stick",
+      "purpose": "Coaching \u2014 Ask Stick property. Connects to wedge fitting bookings."
+    },
+    {
+      "id": "w2-wed-campaign",
+      "date": "2026-10-14",
+      "day": "Wed",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 mid-week push",
+      "subtitle": "Cross-category: ball + fitting + apparel",
+      "headline": {
+        "tone": "confident",
+        "text": "Three lanes. One machine."
+      },
+      "cta": "Visit us",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign arc mid-week energy."
+    },
+    {
+      "id": "w2-wed-paid",
+      "date": "2026-10-14",
+      "day": "Wed",
+      "lane": "paid",
+      "title": "Fitting retargeting \u2014 boost putter page",
+      "subtitle": "Audience: visitors to /putter-fitting",
+      "headline": null,
+      "cta": null,
+      "channel": "meta_ads",
+      "status": "LIVE",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Always-on fitting retargeting."
+    },
+    {
+      "id": "w2-thu-product",
+      "date": "2026-10-15",
+      "day": "Thu",
+      "lane": "product",
+      "title": "L.A.B. DF 2.1 \u2014 Why It's Here",
+      "subtitle": "R12,999.",
+      "stock_refs": [
+        "lab-golf-df"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "L.A.B. earns its place. Stroke geometry agrees."
+      },
+      "cta": "Enquire",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "L.A.B. depth \u2014 fitting push."
+    },
+    {
+      "id": "w2-thu-workshop",
+      "date": "2026-10-15",
+      "day": "Thu",
+      "lane": "workshop",
+      "title": "Built At Stick \u2014 loft & lie session",
+      "subtitle": "Workshop behind the scenes",
+      "headline": null,
+      "cta": "Get your spec done",
+      "channel": "instagram_reel",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "built-at-stick",
+      "purpose": "Workshop credibility."
+    },
+    {
+      "id": "w2-thu-coaching",
+      "date": "2026-10-15",
+      "day": "Thu",
+      "lane": "coaching",
+      "title": "Attack angle \u2014 Ask Stick",
+      "subtitle": "TrackMan data + practical takeaway",
+      "headline": {
+        "tone": "direct",
+        "text": "Your driver is telling you something."
+      },
+      "cta": "Find your fit",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "ask-stick",
+      "purpose": "Coaching + fitting push."
+    },
+    {
+      "id": "w2-thu-apparel",
+      "date": "2026-10-15",
+      "day": "Thu",
+      "lane": "apparel",
+      "title": "PB sock 3-pack \u2014 Style That Belongs",
+      "subtitle": "R449.",
+      "stock_refs": [
+        "pb-socks"
+      ],
+      "headline": null,
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "Apparel cross-sell at entry price."
+    },
+    {
+      "id": "w2-fri-product",
+      "date": "2026-10-16",
+      "day": "Fri",
+      "lane": "product",
+      "title": "Takomo 101T \u2014 featured (week 2)",
+      "subtitle": "R7,899.",
+      "stock_refs": [
+        "takomo-101t"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Takomo earns its place. Twice in two weeks."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "why-its-here",
+      "purpose": "Takomo 101T \u2014 second-week depth push."
+    },
+    {
+      "id": "w2-fri-commercial",
+      "date": "2026-10-16",
+      "day": "Fri",
+      "lane": "commercial",
+      "title": "Book a fitting \u2014 week-end push",
+      "subtitle": "Direct-response CTA",
+      "headline": {
+        "tone": "direct",
+        "text": "Better Begins Here."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Direct-response commercial CTA."
+    },
+    {
+      "id": "w2-fri-apparel",
+      "date": "2026-10-16",
+      "day": "Fri",
+      "lane": "apparel",
+      "title": "PB Vance Polo \u2014 second push",
+      "subtitle": "R1,299.",
+      "stock_refs": [
+        "pb-vance-polo"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Polos. Style that belongs."
+      },
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "PB airtime \u2014 second push."
+    },
+    {
+      "id": "w2-sat-campaign",
+      "date": "2026-10-17",
+      "day": "Sat",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 Reel week-end",
+      "subtitle": "Saturday content push",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Saturday campaign energy."
+    },
+    {
+      "id": "w3-mon-product",
+      "date": "2026-10-19",
+      "day": "Mon",
+      "lane": "product",
+      "title": "Vice Pro Plus \u2014 second push",
+      "subtitle": "R549/dozen.",
+      "stock_refs": [
+        "vice-golf-ball"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Vice earns its place \u2014 three pushes later."
+      },
+      "cta": "Shop the drop",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Ball stock \u2014 second-week push."
+    },
+    {
+      "id": "w3-mon-campaign",
+      "date": "2026-10-19",
+      "day": "Mon",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 Week 3 hero",
+      "subtitle": "Cross-category hero post",
+      "headline": {
+        "tone": "confident",
+        "text": "Three brands. One standard."
+      },
+      "cta": "Visit us",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign arc week 3."
+    },
+    {
+      "id": "w3-tue-product",
+      "date": "2026-10-20",
+      "day": "Tue",
+      "lane": "product",
+      "title": "PB Golf Umbrella \u2014 Style That Belongs",
+      "subtitle": "R999.",
+      "stock_refs": [
+        "pb-golf-umbrella"
+      ],
+      "headline": null,
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "Apparel \u2014 weather-driven cross-sell."
+    },
+    {
+      "id": "w3-tue-search",
+      "date": "2026-10-20",
+      "day": "Tue",
+      "lane": "search",
+      "title": "Takomo brand article \u2014 publish",
+      "subtitle": "Why Takomo earns its place",
+      "headline": null,
+      "cta": null,
+      "channel": "website_owned",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Owned-content action \u2014 brand article."
+    },
+    {
+      "id": "w3-wed-product",
+      "date": "2026-10-21",
+      "day": "Wed",
+      "lane": "product",
+      "title": "L.A.B. MEZ.1 \u2014 second push",
+      "subtitle": "R11,999.",
+      "stock_refs": [
+        "lab-golf-mez"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "L.A.B. earns its place on the rack twice."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "why-its-here",
+      "purpose": "L.A.B. \u2014 second push."
+    },
+    {
+      "id": "w3-wed-fitting",
+      "date": "2026-10-21",
+      "day": "Wed",
+      "lane": "fitting",
+      "title": "Iron fitting \u2014 Fit First",
+      "subtitle": "Why off-rack costs you strokes",
+      "stock_refs": [
+        "fitting-iron"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Fit First. Buy Second."
+      },
+      "cta": "Find your fit",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "fit-first",
+      "purpose": "Fitting push \u2014 second instance."
+    },
+    {
+      "id": "w3-thu-product",
+      "date": "2026-10-22",
+      "day": "Thu",
+      "lane": "product",
+      "title": "Takomo Daytona \u2014 second push",
+      "subtitle": "R6,899.",
+      "stock_refs": [
+        "takomo-daytona"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Daytona earns its place. Twice."
+      },
+      "cta": "Enquire",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Takomo Daytona \u2014 second push."
+    },
+    {
+      "id": "w3-thu-coaching",
+      "date": "2026-10-22",
+      "day": "Thu",
+      "lane": "coaching",
+      "title": "Ask Stick \u2014 Better Begins Here",
+      "subtitle": "Setup: ball position changes your strike",
+      "headline": {
+        "tone": "direct",
+        "text": "Better Begins Here."
+      },
+      "cta": "Ask us",
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "ask-stick",
+      "purpose": "Coaching \u2014 second instance."
+    },
+    {
+      "id": "w3-fri-product",
+      "date": "2026-10-23",
+      "day": "Fri",
+      "lane": "product",
+      "title": "PB Cap \u2014 Style That Belongs",
+      "subtitle": "R749.",
+      "stock_refs": [
+        "pb-cap"
+      ],
+      "headline": null,
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "PB cross-sell."
+    },
+    {
+      "id": "w3-fri-campaign",
+      "date": "2026-10-23",
+      "day": "Fri",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 week-end recap",
+      "subtitle": "Hero product recap Reel",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign week 3 recap."
+    },
+    {
+      "id": "w4-mon-product",
+      "date": "2026-10-26",
+      "day": "Mon",
+      "lane": "product",
+      "title": "Titleist Pro V1 \u2014 second push",
+      "subtitle": "R749/dozen.",
+      "stock_refs": [
+        "titleist-pro-v1"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Titleist earns its place. Twice in one month."
+      },
+      "cta": "Shop the drop",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "why-its-here",
+      "purpose": "Titleist \u2014 second push."
+    },
+    {
+      "id": "w4-mon-paid",
+      "date": "2026-10-26",
+      "day": "Mon",
+      "lane": "paid",
+      "title": "Spring at Stick \u2014 week 4 push",
+      "subtitle": "Audience: cold + warm",
+      "headline": null,
+      "cta": null,
+      "channel": "meta_ads",
+      "status": "LIVE",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign boost \u2014 week 4."
+    },
+    {
+      "id": "w4-tue-product",
+      "date": "2026-10-27",
+      "day": "Tue",
+      "lane": "product",
+      "title": "PB Maverick Pant \u2014 third push",
+      "subtitle": "R2,199.",
+      "stock_refs": [
+        "pb-maverick-pant"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Maverick earns its place. Three pushes later."
+      },
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "PB airtime \u2014 third push."
+    },
+    {
+      "id": "w4-wed-product",
+      "date": "2026-10-28",
+      "day": "Wed",
+      "lane": "product",
+      "title": "Takomo 101T \u2014 final featured (week 4)",
+      "subtitle": "R7,899.",
+      "stock_refs": [
+        "takomo-101t"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "101T earns its place. The standard."
+      },
+      "cta": "Book a fitting",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "why-its-here",
+      "purpose": "Takomo 101T \u2014 month-end featured push."
+    },
+    {
+      "id": "w4-wed-human",
+      "date": "2026-10-28",
+      "day": "Wed",
+      "lane": "human",
+      "title": "Saturday fitter introduction",
+      "subtitle": "Meet the team behind the standard",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "NEEDS_CAPTURE",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Human trust content \u2014 month-end close."
+    },
+    {
+      "id": "w4-thu-product",
+      "date": "2026-10-29",
+      "day": "Thu",
+      "lane": "product",
+      "title": "PB Vance Polo \u2014 third push",
+      "subtitle": "R1,299.",
+      "stock_refs": [
+        "pb-vance-polo"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "Vance earns its place. Three pushes later."
+      },
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "PB airtime \u2014 third push."
+    },
+    {
+      "id": "w4-thu-search",
+      "date": "2026-10-29",
+      "day": "Thu",
+      "lane": "search",
+      "title": "Fitting landing page \u2014 month-end update",
+      "subtitle": "Add month testimonials",
+      "headline": null,
+      "cta": null,
+      "channel": "website_owned",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "purpose": "Owned-content action \u2014 month-end SEO update."
+    },
+    {
+      "id": "w4-fri-product",
+      "date": "2026-10-30",
+      "day": "Fri",
+      "lane": "product",
+      "title": "L.A.B. DF 2.1 \u2014 final featured",
+      "subtitle": "R12,999.",
+      "stock_refs": [
+        "lab-golf-df"
+      ],
+      "headline": {
+        "tone": "confident",
+        "text": "L.A.B. earns its place. The standard."
+      },
+      "cta": "Enquire",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "property": "why-its-here",
+      "purpose": "L.A.B. DF \u2014 month-end featured push."
+    },
+    {
+      "id": "w4-fri-campaign",
+      "date": "2026-10-30",
+      "day": "Fri",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 month recap",
+      "subtitle": "Cross-category month recap",
+      "headline": null,
+      "cta": null,
+      "channel": "instagram_reel",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": true,
+      "purpose": "Campaign month-end recap."
+    },
+    {
+      "id": "w4-sat-apparel",
+      "date": "2026-10-31",
+      "day": "Sat",
+      "lane": "apparel",
+      "title": "Halloween Saturday \u2014 full kit",
+      "subtitle": "PB + umbrella + cap + socks",
+      "stock_refs": [
+        "pb-vance-polo",
+        "pb-golf-umbrella",
+        "pb-cap",
+        "pb-socks"
+      ],
+      "headline": null,
+      "cta": "Try it on",
+      "channel": "instagram_post",
+      "status": "READY",
+      "is_demo": true,
+      "is_paid_supported": false,
+      "property": "style-that-belongs",
+      "purpose": "Halloween Saturday apparel cross-sell."
+    }
+  ]
+}

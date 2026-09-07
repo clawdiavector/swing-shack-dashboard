@@ -738,6 +738,7 @@ a:hover{text-decoration:underline}
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
       <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
       <div class="nav" data-go="fleet" data-help-title="Fleet Status" data-help="Aggregated fleet state — Heidi + all specialists. Cron freshness, error counts, fleet-level alerts."><span class="nav-icon">📡</span> Fleet Status</div>
+      <div class="nav" data-go="herman" data-help-title="Herman Demo" data-help="Polished Stick October 2026 demo month. Built from the brand bibles. Real stock, real voice, real parallel lanes. Click any lane to filter."><span class="nav-icon">📅</span> Stick Herman Demo</div>
       <div class="nav" data-go="planning" data-help-title="Strategic Calendar" data-help="Big Idea + Monthly Theme + Parallel Lanes. The planning hierarchy (YEAR > QUARTER > MONTH > WEEK > DAY). Each lane remains active; the theme gives them a shared idea."><span class="nav-icon">📅</span> Strategic Calendar</div>
       <div class="nav" data-go="docs" data-help-title="Docs" data-help="Demo video script + onboarding + launch announcement + handoff brief. Read these to understand the system."><span class="nav-icon">📚</span> Docs</div>
       <div class="nav" data-go="buildpost" data-help-title="Build Post" data-help="Two-click ship: BUILD POST (auto-resolves all inputs, runs Krea + overlay + preflight) then APPROVE CLEAN + QUEUE (human approval gates gated Postiz push). NO auto-publish."><span class="nav-icon">✨</span> Build Post</div>
@@ -3871,7 +3872,7 @@ const TITLES = {
   imagegen:'Image Gen', headlines:'Headlines', ctas:'CTAs', hashtagseo:'Hashtags & SEO', seo:'SEO',
   gbp:'Google Business', reddit:'Reddit', faqs:'FAQs', postiz:'Postiz',
   'seo-audit':'SEO Audit', agents:'Agents & health', onboarding:'First Campaign',
-  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs', buildpost:'Build Post', planning:'Strategic Calendar',
+  'brand-settings':'Brand Settings', agency:'Agency', products:'Products & Pricing', tenants:'Tenant Isolation', integrations:'Integrations', abtests:'A/B Tests', ops:'Ops Runbook', metaoauth:'Meta OAuth', landing:'Landing Page', fleet:'Fleet Status', docs:'Docs', buildpost:'Build Post', planning:'Strategic Calendar', herman:'Stick Herman Demo',
 };
 // Map new top-level surfaces to existing sections (until Create/Insights/Library are rebuilt as wrappers).
 // When the new sections exist, just remove the alias and the nav will hit the new section directly.
@@ -11733,6 +11734,260 @@ renderPlanning = async function() {
   await renderWeekSampleAndCadences();
 };
 
+
+
+// ─── STICK HERMAN DEMO (Tier 3.16 — Polished demo month, 2026-09-07) ──
+let _hermanData = null;
+let _hermanFilter = '';
+
+const LANE_COLORS = {
+  product: '#004d5a',
+  fitting: '#2a9d8f',
+  coaching: '#d4af37',
+  workshop: '#8a8a8a',
+  human: '#f0a030',
+  apparel: '#c9ef62',
+  campaign: '#ef4444',
+  paid: '#a855f7',
+  search: '#3b82f6',
+  crm: '#6b7280',
+};
+
+function _laneLabel(lane) {
+  const labels = {
+    product: 'PRODUCT · Why It\'s Here',
+    fitting: 'FITTING · Fit First',
+    coaching: 'COACHING · Ask Stick',
+    workshop: 'WORKSHOP · Built At Stick',
+    human: 'HUMAN / TRUST',
+    apparel: 'APPAREL · Style That Belongs',
+    campaign: 'CAMPAIGN',
+    paid: 'PAID',
+    search: 'SEARCH',
+    crm: 'CRM',
+  };
+  return labels[lane] || lane.toUpperCase();
+}
+
+function _laneChipStyle(lane) {
+  const c = LANE_COLORS[lane] || '#6b7280';
+  return `background:${c}22;color:${c};border:1px solid ${c}55`;
+}
+
+async function loadHermanSample() {
+  const r = await API.get('/api/planning/stick/herman-sample');
+  if (!r.ok) { toast('Herman sample load failed: ' + r.error, true); return; }
+  _hermanData = r;
+  renderHermanHero();
+  renderHermanLaneLegend();
+  renderHermanLaneHealth();
+  renderHermanImportantDates();
+  renderHermanMonthlyFocus();
+  renderHermanCalendar();
+  renderHermanRunway();
+  renderHermanDemoDisclaimer();
+}
+
+function renderHermanHero() {
+  const s = _hermanData.sample;
+  document.getElementById('herman-hero-bigidea').textContent = s.big_brand_idea || '—';
+  document.getElementById('herman-hero-belief').textContent = '"' + (s.strategic_belief || '—') + '"';
+  document.getElementById('herman-hero-theme').textContent = s.monthly_theme || '—';
+  // Theme summary
+  const sumEl = document.getElementById('herman-hero-summary');
+  sumEl.innerHTML = (s.monthly_theme_summary || []).map(b => '<li>' + esc(b) + '</li>').join('');
+  // Active commercial focuses
+  const focusEl = document.getElementById('herman-hero-focus');
+  focusEl.innerHTML = (s.active_commercial_focuses || []).map(f => '<li>' + esc(f) + '</li>').join('');
+  // KPI focus strip
+  const kpiEl = document.getElementById('herman-hero-kpi');
+  kpiEl.innerHTML = (s.kpi_focus_strip || []).map(k =>
+    '<span class="pill on" style="font-size:10px">' + esc(k.lane) + ': ' + esc(k.status) + '</span>'
+  ).join('');
+}
+
+function renderHermanLaneLegend() {
+  const s = _hermanData.sample;
+  const labels = s.lane_purpose_labels || {};
+  const el = document.getElementById('herman-lane-legend');
+  el.innerHTML = Object.keys(labels).map(lane => {
+    return '<div style="padding:.75rem;background:var(--bg-2);border-radius:8px;border-left:4px solid ' + (LANE_COLORS[lane] || '#6b7280') + '">' +
+      '<div style="font-weight:700;margin-bottom:.25rem">' + esc(_laneLabel(lane)) + '</div>' +
+      '<div style="color:var(--tx-2);font-size:11px;line-height:1.5">' + esc(labels[lane]) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderHermanLaneHealth() {
+  const s = _hermanData.stats;
+  const perLane = s.per_lane || {};
+  const total = s.total_items || 0;
+  const el = document.getElementById('herman-lane-health');
+  el.innerHTML = '<div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">' + total + ' items across ' + Object.keys(perLane).length + ' lanes.</div>' +
+    '<div style="display:grid;grid-template-columns:1fr auto;gap:.3rem">' +
+    Object.keys(perLane).sort().map(l =>
+      '<div style="padding:.3rem .5rem;background:var(--bg-2);border-radius:4px;display:flex;justify-content:space-between;align-items:center">' +
+        '<span style="font-weight:600">' + esc(l) + '</span>' +
+        '<b style="' + _laneChipStyle(l) + ';padding:2px 6px;border-radius:3px">' + perLane[l] + '</b>' +
+      '</div>'
+    ).join('') +
+    '</div>';
+}
+
+function renderHermanImportantDates() {
+  const month = _hermanData.sample.month;
+  const r = _hermanData.important_dates || [];
+  const el = document.getElementById('herman-important-dates');
+  if (r.length === 0) {
+    el.innerHTML = '<div class="muted">No important dates this month.</div>';
+    return;
+  }
+  el.innerHTML = r.map(d => {
+    const dot = d.event_type === 'GOLF_EVENT' || d.event_type === 'GOLF_MOMENT' ? '⛳' :
+                d.event_type === 'PUBLIC_HOLIDAY' ? '🏛️' :
+                d.event_type === 'RETAIL_MOMENT' ? '🛍️' :
+                d.event_type === 'BRAND_EVENT' ? '🎯' :
+                d.event_type === 'SCHOOL_HOLIDAY' ? '🎒' : '📌';
+    const name = d.event_name || d.name || '—';
+    return '<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--bd)">' +
+      '<div style="font-size:18px">' + dot + '</div>' +
+      '<div style="flex:1"><div style="font-weight:600">' + esc(name) + '</div>' +
+      '<div style="font-size:10px;color:var(--tx-3)">' + esc(d.event_type) + ' · ' + esc(d.start_date || d.date || '—') + '</div></div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderHermanMonthlyFocus() {
+  const s = _hermanData.sample;
+  const el = document.getElementById('herman-monthly-focus');
+  const focusItems = [
+    'Sell more visible retail (stock-led)',
+    'Support fittings (Fit First)',
+    'Give Psycho Bunny proper airtime',
+    'Prove workshop credibility (Built At Stick)',
+    'Show the real people (Human / Trust)',
+  ];
+  el.innerHTML = focusItems.map(f => '<li>' + esc(f) + '</li>').join('');
+}
+
+function renderHermanCalendar() {
+  const items = _hermanData.sample.items || [];
+  const filtered = _hermanFilter ? items.filter(it => it.lane === _hermanFilter) : items;
+  const byDay = {};
+  filtered.forEach(it => {
+    (byDay[it.date] = byDay[it.date] || []).push(it);
+  });
+  const days = Object.keys(byDay).sort();
+  const el = document.getElementById('herman-calendar');
+  if (days.length === 0) {
+    el.innerHTML = '<div class="muted">No items match this lane filter.</div>';
+    return;
+  }
+  el.innerHTML = days.map(d => {
+    const dayItems = byDay[d];
+    const day = dayItems[0]?.day || '';
+    const parallelCount = dayItems.length;
+    const featured = d === '2026-10-14' ? ' <span class="pill on" style="font-size:10px">⭐ FEATURED</span>' : '';
+    return '<div style="margin-bottom:1rem;padding:.75rem;background:var(--bg-2);border-radius:8px;border:1px solid var(--bd)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">' +
+        '<div><b>' + esc(day) + ' ' + esc(d) + '</b>' + featured + '</div>' +
+        '<div style="font-size:10px;color:var(--tx-3)">' + parallelCount + ' lane' + (parallelCount !== 1 ? 's' : '') + ' in parallel</div>' +
+      '</div>' +
+      dayItems.map(it => {
+        const prop = it.property ? '<span style="color:var(--tx-3);font-size:10px;margin-left:.4rem">[' + esc(it.property) + ']</span>' : '';
+        const paid = it.is_paid_supported ? ' <span class="pill" style="background:#a855f722;color:#a855f7;border:1px solid #a855f755;font-size:9px">💰 paid</span>' : '';
+        const status = it.status === 'READY' ? 'on' : it.status === 'NEEDS_CAPTURE' ? 'live' : 'muted';
+        return '<div style="display:flex;gap:.5rem;align-items:center;padding:.4rem;border-bottom:1px solid var(--bd);font-size:11px;cursor:pointer" data-item-id="' + esc(it.id) + '" onclick="openHermanItem(this.dataset.itemId)">>' +
+          '<span class="pill" style="' + _laneChipStyle(it.lane) + ';font-size:10px;min-width:90px">' + esc(it.lane) + '</span>' +
+          '<span style="flex:1">' + esc(it.title) + prop + paid + '</span>' +
+          '<span class="pill ' + status + '" style="font-size:9px">' + esc(it.status || 'planned') + '</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+
+function renderHermanRunway() {
+  const stages = [
+    ['T-21 to T-28', 'Monthly theme / key priorities'],
+    ['T-14 to T-21', 'Hooks / briefs / required footage / product references'],
+    ['T-7 to T-14', 'Capture / asset collection'],
+    ['T-4 to T-7', 'Edit / image generation / design'],
+    ['T-2 to T-4', 'Review'],
+    ['T-1', 'Schedule'],
+  ];
+  const el = document.getElementById('herman-runway');
+  el.innerHTML = stages.map(s =>
+    '<div style="display:flex;gap:1rem;padding:.4rem;border-bottom:1px solid var(--bd);align-items:center">' +
+      '<div style="font-weight:700;color:#f0a030;min-width:140px">' + esc(s[0]) + '</div>' +
+      '<div style="flex:1;color:var(--tx-2)">' + esc(s[1]) + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function renderHermanDemoDisclaimer() {
+  const s = _hermanData.sample;
+  const stats = _hermanData.stats;
+  const el = document.getElementById('herman-demo-disclaimer');
+  el.innerHTML = '<b>DEMO DATA — ' + (s.demo_label || '—') + '</b><br><br>' +
+    '<b>Real data:</b> brand bible, voice, tone, recurring properties, supported lines, brand name, monthly theme, location (Paarl, Western Cape), owners (Hermanus Kriel + Dave Lamprecht), website (stickgolf.co.za),<br>' +
+    '<b>Stock-driven:</b> ' + (stats.stock_items_used || 0) + ' of ' + (stats.stock_items_total || 0) + ' products referenced (' + (stats.stock_coverage_pct || 0) + '% coverage).<br>' +
+    '<b>Featured week:</b> ' + (s.featured_week || '—') + '. Wed ' + (stats.featured_day || '—') + ' has ' + (stats.featured_day_count || 0) + ' lanes running in parallel.<br><br>' +
+    '<b>Not real:</b> specific posts (mock titles), scheduled dates (illustrative October 2026 grid), stock QTY (placeholder inventory).';
+}
+
+function openHermanItem(id) {
+  const it = (_hermanData.sample.items || []).find(x => x.id === id);
+  if (!it) return;
+  const html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="this.remove()">' +
+    '<div style="background:var(--bg-1);border:1px solid var(--bd);border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;padding:2rem;color:var(--tx)" onclick="event.stopPropagation()">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
+        '<div><span class="pill" style="' + _laneChipStyle(it.lane) + ';font-size:11px">' + esc(it.lane) + '</span>' +
+        (it.property ? ' <span style="font-size:11px;color:var(--tx-3);margin-left:.5rem">[' + esc(it.property) + ']</span>' : '') +
+        '</div>' +
+        '<button onclick="this.closest(\'div[style*=position]\').remove()" style="background:none;border:none;color:var(--tx-2);font-size:20px;cursor:pointer">×</button>' +
+      '</div>' +
+      '<h2 style="font-size:18px;font-weight:700;margin-bottom:.5rem">' + esc(it.title) + '</h2>' +
+      (it.subtitle ? '<div style="color:var(--tx-2);font-size:13px;margin-bottom:.75rem">' + esc(it.subtitle) + '</div>' : '') +
+      (it.headline?.text ? '<div style="font-style:italic;font-size:14px;margin:1rem 0;padding:.75rem;background:var(--bg-2);border-left:3px solid #f0a030;border-radius:0 6px 6px 0">"' + esc(it.headline.text) + '" <span style="color:var(--tx-3);font-size:11px">[' + esc(it.headline.tone) + ']</span></div>' : '') +
+      '<div style="display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem;font-size:12px;margin-top:1rem">' +
+        '<div style="color:var(--tx-3)">Date</div><div>' + esc(it.date) + ' (' + esc(it.day) + ')</div>' +
+        '<div style="color:var(--tx-3)">Channel</div><div>' + esc(it.channel) + '</div>' +
+        '<div style="color:var(--tx-3)">Status</div><div><span class="pill ' + (it.status === 'READY' ? 'on' : it.status === 'NEEDS_CAPTURE' ? 'live' : 'muted') + '">' + esc(it.status || 'planned') + '</span></div>' +
+        (it.cta ? '<div style="color:var(--tx-3)">CTA</div><div><b>' + esc(it.cta) + '</b></div>' : '') +
+        (it.is_paid_supported !== undefined ? '<div style="color:var(--tx-3)">Paid-supported</div><div>' + (it.is_paid_supported ? 'Yes' : 'No') + '</div>' : '') +
+        (it.stock_refs && it.stock_refs.length ? '<div style="color:var(--tx-3)">Linked stock</div><div>' + esc(it.stock_refs.join(', ')) + '</div>' : '') +
+        '<div style="color:var(--tx-3)">Purpose</div><div>' + esc(it.purpose || '—') + '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+document.querySelectorAll('[data-herman-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-herman-filter]').forEach(b => { b.classList.remove('primary'); b.classList.add('btn-mini'); });
+    btn.classList.add('primary');
+    btn.classList.remove('btn-mini');
+    _hermanFilter = btn.dataset.hermanFilter || '';
+    renderHermanCalendar();
+  });
+});
+
+// Hook into routing — when sec-herman shows, load data
+(function() {
+  const _origShow = window.showSection;
+  if (typeof _origShow === 'function') {
+    window.showSection = function(name) {
+      const r = _origShow.apply(this, arguments);
+      if (name === 'herman' && !_hermanData) {
+        loadHermanSample();
+      }
+      return r;
+    };
+  }
+})();
+
 </script>
 
 
@@ -12396,7 +12651,105 @@ renderPlanning = async function() {
     </section>
 
 
-    <!-- ─── STRATEGIC CALENDAR (Tier 3.15 — Big Idea + Parallel Lanes, 2026-09-07) -->
+    
+    <!-- ─── STICK HERMAN DEMO (Tier 3.16 — Polished demo month, 2026-09-07) -->
+    <section class="section" id="sec-herman">
+      <div class="section-h">
+        <h2>📅 Stick — October 2026 demo</h2>
+        <span class="sub">Built from the Brand Bible Draft v3 + Campaign OS Workbook 2. Real stock, real voice, real parallel lanes.</span>
+      </div>
+
+      <!-- HERO HEADER (stick big_brand_idea + monthly theme + 3-bullet summary) -->
+      <div class="card col-12" id="herman-hero" style="background:linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);color:#f5f5f0;border:1px solid #004d5a">
+        <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.5rem">BRAND</div>
+        <div id="herman-hero-brand" style="font-size:28px;font-weight:900;letter-spacing:-.02em;color:#f5f5f0">STICK</div>
+
+        <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-top:1.25rem;margin-bottom:.25rem">BIG BRAND IDEA</div>
+        <div id="herman-hero-bigidea" style="font-size:32px;font-weight:900;letter-spacing:-.02em;color:#f5f5f0">Better Begins Here.</div>
+
+        <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-top:1.25rem;margin-bottom:.25rem">BELIEF</div>
+        <div id="herman-hero-belief" style="font-size:18px;font-style:italic;color:#f5f5f0">"Everything has to earn its place."</div>
+
+        <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-top:1.25rem;margin-bottom:.25rem">MONTHLY THEME</div>
+        <div id="herman-hero-theme" style="font-size:22px;font-weight:700;color:#f5f5f0">What belongs in your bag?</div>
+
+        <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-top:1.25rem;margin-bottom:.5rem">WHAT THIS MONTH IS TRYING TO DO</div>
+        <ul id="herman-hero-summary" style="font-size:14px;color:#f5f5f0;line-height:1.6;margin:0;padding-left:1.25rem"></ul>
+
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin-top:1.5rem">
+          <div>
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.5rem">ACTIVE COMMERCIAL FOCUSES</div>
+            <ul id="herman-hero-focus" style="font-size:13px;color:#f5f5f0;line-height:1.7;margin:0;padding-left:1rem"></ul>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.5rem">KPI FOCUS STRIP</div>
+            <div id="herman-hero-kpi" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <!-- Lane Health Side Panel -->
+        <div class="card col-4">
+          <div class="card-h"><h3>📊 Lane health</h3><span class="muted">October 2026</span></div>
+          <div id="herman-lane-health" style="font-size:12px">Loading…</div>
+        </div>
+
+        <!-- Important Dates This Month -->
+        <div class="card col-4">
+          <div class="card-h"><h3>📅 Important dates</h3><span class="muted">Genuinely useful</span></div>
+          <div id="herman-important-dates" style="font-size:12px">Loading…</div>
+        </div>
+
+        <!-- Monthly Focus Side Panel -->
+        <div class="card col-4">
+          <div class="card-h"><h3>🎯 Monthly focus</h3><span class="muted">The intent</span></div>
+          <ul id="herman-monthly-focus" style="font-size:12px;line-height:1.7;margin:0;padding-left:1rem"></ul>
+          <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--bd);font-size:10px;color:var(--tx-3);font-style:italic">Featured week: <b style="color:var(--accent)">Oct 12-16</b> — heaviest parallel execution.</div>
+        </div>
+      </div>
+
+      <!-- LANE LEGEND -->
+      <div class="card col-12">
+        <div class="card-h"><h3>🎨 Lane legend</h3><span class="muted">Each lane has its own purpose. Hover for the role.</span></div>
+        <div id="herman-lane-legend" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem;font-size:12px"></div>
+      </div>
+
+      <!-- FILTER CHIPS -->
+      <div class="card col-12">
+        <div class="card-h"><h3>📅 October 2026 calendar</h3><span class="muted">Click a lane to filter. Lanes run in parallel — they don't own a day.</span></div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
+          <button class="btn-mini primary" data-herman-filter="">All lanes</button>
+          <button class="btn-mini" data-herman-filter="product">Product</button>
+          <button class="btn-mini" data-herman-filter="fitting">Fitting</button>
+          <button class="btn-mini" data-herman-filter="coaching">Coaching</button>
+          <button class="btn-mini" data-herman-filter="workshop">Workshop</button>
+          <button class="btn-mini" data-herman-filter="human">Human</button>
+          <button class="btn-mini" data-herman-filter="apparel">Apparel</button>
+          <button class="btn-mini" data-herman-filter="campaign">Campaign</button>
+          <button class="btn-mini" data-herman-filter="paid">Paid</button>
+          <button class="btn-mini" data-herman-filter="search">Search</button>
+        </div>
+        <div id="herman-calendar" style="font-size:12px">Loading…</div>
+        <div style="margin-top:.5rem;font-size:10px;color:var(--tx-3);font-style:italic">
+          Each lane has its own cadence. Lanes overlap by cadence, not by day-of-week assignment.
+        </div>
+      </div>
+
+      <!-- PRODUCTION RUNWAY -->
+      <div class="card col-12">
+        <div class="card-h"><h3>⏱️ Production runway</h3><span class="muted">What needs to happen when</span></div>
+        <div id="herman-runway" style="font-size:12px"></div>
+      </div>
+
+      <!-- DEMO DISCLAIMER -->
+      <div class="card col-12" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3)">
+        <div style="font-size:11px;color:var(--warning);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem">DEMO DATA</div>
+        <div id="herman-demo-disclaimer" style="font-size:12px;color:var(--tx-2);line-height:1.6"></div>
+      </div>
+    </section>
+
+<!-- ─── STRATEGIC CALENDAR (Tier 3.15 — Big Idea + Parallel Lanes, 2026-09-07) -->
     <section class="section" id="sec-planning">
       <div class="section-h">
         <h2>📅 Strategic Calendar</h2>
