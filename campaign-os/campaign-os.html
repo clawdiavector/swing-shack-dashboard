@@ -11649,6 +11649,90 @@ async function plLoadMonthlyPlan() {
   document.getElementById('pl-load-monthly-plan')?.addEventListener('click', plLoadMonthlyPlan);
 })();
 
+
+
+// ─── STRATEGIC CALENDAR — Realistic parallel week + filter + cadences ───
+let _weekSampleCache = null;
+
+async function plLoadWeekSample(filter) {
+  const brand = _plBrand();
+  const url = '/api/planning/' + brand + '/week-sample' + (filter ? '?lane=' + filter : '');
+  const r = await API.get(url);
+  if (!r.ok) { toast('Week-sample load failed: ' + r.error, true); return; }
+  _weekSampleCache = r;
+  const el = document.getElementById('pl-week-sample');
+  if (!el) return;
+  const items = r.items || [];
+  const stats = r.stats || {};
+  // Group items by day
+  const byDay = {};
+  items.forEach(it => {
+    (byDay[it.date] = byDay[it.date] || []).push(it);
+  });
+  const days = Object.keys(byDay).sort();
+  const laneTags = (stats.per_lane_full || {});
+  const laneSummary = Object.keys(laneTags).map(l =>
+    '<span class="pill muted" style="font-size:10px;margin-right:.2rem">' + esc(l) + ': ' + laneTags[l] + '</span>'
+  ).join('');
+
+  const headerRow = '<div style="margin-bottom:.5rem"><div><b>' + esc(r.week_label || '') + '</b> · Big idea: ' + esc(r.big_brand_idea || '') + ' · Theme: ' + esc(r.monthly_theme || '') + '</div><div style="margin-top:.25rem">' + laneSummary + '</div>' +
+    (filter ? '<div style="margin-top:.5rem"><span class="pill on">Filtered: ' + esc(filter) + ' only (' + items.length + ' items)</span></div>' : '<div style="margin-top:.5rem"><span class="pill muted">' + (stats.all_lanes_total || 0) + ' items across ' + Object.keys(laneTags).length + ' lanes</span></div>') +
+    '</div>';
+
+  // Render days
+  const dayRows = days.map(d => {
+    const dayItems = byDay[d];
+    const day = dayItems[0]?.day || '';
+    return '<div style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:6px"><div style="font-weight:600;margin-bottom:.3rem;color:var(--accent)">' + esc(day) + ' ' + esc(d) + ' · ' + dayItems.length + ' lane' + (dayItems.length !== 1 ? 's' : '') + ' in parallel</div>' +
+      dayItems.map(it => '<div style="display:flex;gap:.5rem;align-items:center;padding:.3rem;border-bottom:1px solid var(--bd);font-size:11px"><span class="pill ' + (it.asset_status === 'READY' ? 'on' : it.asset_status === 'NEEDS_CAPTURE' ? 'live' : 'muted') + '" style="font-size:10px;min-width:80px">' + esc(it.lane) + '</span><span style="flex:1">' + esc(it.title) + '</span><span class="muted" style="font-size:10px">' + esc(it.execution_type || '') + '</span></div>').join('') +
+      '</div>';
+  }).join('');
+
+  el.innerHTML = headerRow + dayRows +
+    '<div style="margin-top:1rem;padding:.5rem;background:rgba(245,158,11,0.1);border-radius:6px;font-size:11px;color:var(--warning)"><b>⚠️ DEMO data</b> — ' + esc(r.demo_label || '') + '</div>';
+}
+
+async function plLoadCadences() {
+  const brand = _plBrand();
+  const r = await API.get('/api/planning/' + brand + '/cadences');
+  if (!r.ok) {
+    const el = document.getElementById('pl-cadences');
+    if (el) el.innerHTML = '<div class="muted">No cadence config for ' + brand + '.</div>';
+    return;
+  }
+  const el = document.getElementById('pl-cadences');
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">Each lane has its own cadence. Configurable planning rules, not mandatory quotas.</div>' +
+    (r.cadences || []).map(c =>
+      '<div style="display:flex;gap:1rem;padding:.4rem;border-bottom:1px solid var(--bd);align-items:center"><div style="min-width:120px;font-weight:600;color:var(--accent)">' + esc(c.lane) + '</div><div style="flex:1;color:var(--tx-2)">' + esc(c.cadence_text) + '</div><div class="muted" style="font-size:10px;min-width:200px">' + esc(c.rationale || '') + '</div></div>'
+    ).join('');
+}
+
+// Wire filter buttons
+document.querySelectorAll('[data-week-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-week-filter]').forEach(b => {
+      b.classList.remove('primary');
+      b.classList.add('btn-mini');
+    });
+    btn.classList.add('primary');
+    btn.classList.remove('btn-mini');
+    plLoadWeekSample(btn.dataset.weekFilter || '');
+  });
+});
+
+async function renderWeekSampleAndCadences() {
+  await plLoadWeekSample('');
+  await plLoadCadences();
+}
+
+// Hook into renderPlanning
+const _origRender = renderPlanning;
+renderPlanning = async function() {
+  await _origRender();
+  await renderWeekSampleAndCadences();
+};
+
 </script>
 
 
@@ -12417,10 +12501,33 @@ async function plLoadMonthlyPlan() {
         <div id="pl-monthly-plan-status" style="margin-top:.5rem"></div>
       </div>
 
-      <!-- 8. Sample month -->
+      <!-- 8. Sample week (DEMO) — realistic parallel density -->
       <div class="card col-12">
-        <div class="card-h"><h3>📦 Sample month (Stick October)</h3><span class="muted">Acceptance test — parallel lanes simultaneously</span></div>
-        <div id="pl-month-sample" style="font-size:12px">Loading sample…</div>
+        <div class="card-h">
+          <h3>📦 Sample week (DEMO)</h3>
+          <span class="muted">Realistic Stick week · parallel lanes · DEMO — replace with real planning before pilot</span>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
+          <button class="btn-mini primary" data-week-filter="">All lanes</button>
+          <button class="btn-mini" data-week-filter="product">Product only</button>
+          <button class="btn-mini" data-week-filter="human">Human only</button>
+          <button class="btn-mini" data-week-filter="campaign">Campaign only</button>
+          <button class="btn-mini" data-week-filter="fitting">Fitting only</button>
+          <button class="btn-mini" data-week-filter="workshop">Workshop only</button>
+          <button class="btn-mini" data-week-filter="apparel">Apparel only</button>
+          <button class="btn-mini" data-week-filter="paid">Paid only</button>
+          <button class="btn-mini" data-week-filter="search">Search only</button>
+        </div>
+        <div id="pl-week-sample" style="font-size:12px">Loading sample week…</div>
+        <div style="margin-top:.5rem;font-size:10px;color:var(--tx-3);font-style:italic">
+          Lanes overlap by cadence, not by day-of-week assignment. Product engine is independent of other lanes.
+        </div>
+      </div>
+
+      <!-- Lane cadences -->
+      <div class="card col-12">
+        <div class="card-h"><h3>⏱️ Lane cadences</h3><span class="muted">Configurable planning rules — NOT mandatory quotas</span></div>
+        <div id="pl-cadences" style="font-size:12px">Loading…</div>
       </div>
 
       <!-- 9. Production runway -->

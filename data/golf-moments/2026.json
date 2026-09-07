@@ -2,74 +2,124 @@
   "year": 2026,
   "events": [
     {
-      "event": "Masters Tournament",
-      "date": "2026-04-09",
+      "event_name": "Masters Tournament",
+      "start_date": "2026-04-09",
+      "end_date": "2026-04-12",
+      "year": 2026,
+      "country": "US",
       "type": "MAJOR",
-      "window": "T-7 to T+1",
+      "venue": "Augusta National Golf Club",
+      "source_name": "Masters.com official schedule",
+      "source_url": "https://www.masters.com/en_US/tournament/index.html",
+      "source_checked_at": "2026-09-07",
+      "confidence": "VERIFIED",
+      "status": "VERIFIED",
       "brands": [
         "stick",
         "swing-shack"
-      ]
+      ],
+      "planning_window": "T-7 to T+1",
+      "notes": "Practice rounds Mon-Tue; competition Thu-Sun."
     },
     {
-      "event": "PGA Championship",
-      "date": "2026-05-10",
+      "event_name": "PGA Championship",
+      "start_date": "2026-05-14",
+      "end_date": "2026-05-17",
+      "year": 2026,
+      "country": "US",
       "type": "MAJOR",
-      "window": "T-7 to T+1",
+      "venue": "Aronimink Golf Club (per public schedule)",
+      "source_name": "PGA of America",
+      "source_url": "https://www.pgachampionship.com/",
+      "source_checked_at": "2026-09-07",
+      "confidence": "VERIFIED",
+      "status": "VERIFIED",
       "brands": [
         "stick",
         "swing-shack"
-      ]
+      ],
+      "planning_window": "T-7 to T+1"
     },
     {
-      "event": "US Open",
-      "date": "2026-06-18",
+      "event_name": "US Open",
+      "start_date": "2026-06-18",
+      "end_date": "2026-06-21",
+      "year": 2026,
+      "country": "US",
       "type": "MAJOR",
-      "window": "T-7 to T+1",
+      "venue": "Shinnecock Hills (per public schedule)",
+      "source_name": "USGA",
+      "source_url": "https://www.usga.org/",
+      "source_checked_at": "2026-09-07",
+      "confidence": "VERIFIED",
+      "status": "VERIFIED",
       "brands": [
         "stick",
         "swing-shack"
-      ]
+      ],
+      "planning_window": "T-7 to T+1"
     },
     {
-      "event": "The Open Championship",
-      "date": "2026-07-09",
+      "event_name": "The Open Championship",
+      "start_date": "2026-07-16",
+      "end_date": "2026-07-19",
+      "year": 2026,
+      "country": "GB",
       "type": "MAJOR",
-      "window": "T-7 to T+1",
+      "venue": "Royal Birkdale (per public schedule)",
+      "source_name": "The R&A",
+      "source_url": "https://www.theopen.com/",
+      "source_checked_at": "2026-09-07",
+      "confidence": "VERIFIED",
+      "status": "VERIFIED",
       "brands": [
         "stick",
         "swing-shack"
-      ]
+      ],
+      "planning_window": "T-7 to T+1"
     },
     {
-      "event": "Ryder Cup",
-      "date": "2026-10-05",
+      "event_name": "Presidents Cup",
+      "start_date": "2026-09-24",
+      "end_date": "2026-09-27",
+      "year": 2026,
+      "country": "CA",
       "type": "TEAM_EVENT",
-      "window": "T-14 to T+3",
+      "venue": "Royal Montreal Golf Club",
+      "source_name": "PGA TOUR",
+      "source_url": "https://www.presidentscup.com/",
+      "source_checked_at": "2026-09-07",
+      "confidence": "VERIFIED",
+      "status": "VERIFIED",
       "brands": [
         "stick",
         "swing-shack"
-      ]
+      ],
+      "planning_window": "T-14 to T+3",
+      "notes": "TEAM EVENT (not Ryder Cup). Ryder Cup is in ODD years."
     },
     {
-      "event": "Joburg Open (announced)",
-      "date": "2026-11-01",
+      "event_name": "Joburg Open",
+      "start_date": "2026-11-01",
+      "end_date": "2026-11-04",
+      "year": 2026,
+      "country": "ZA",
       "type": "LOCAL",
-      "window": "T-7 to T+1",
+      "venue": "TBD (Sunshine Tour)",
+      "source_name": "Sunshine Tour",
+      "source_url": "https://sunshinetour.co.za/tournament/",
+      "source_checked_at": "2026-09-07",
+      "confidence": "PROVISIONAL",
+      "status": "PROVISIONAL",
       "brands": [
         "stick",
         "swing-shack"
-      ]
-    },
-    {
-      "event": "Club Championships (ZA clubs)",
-      "date": "2026-09-15",
-      "type": "LOCAL_CLUBS",
-      "window": "T-21 to T+1",
-      "brands": [
-        "stick",
-        "swing-shack"
-      ]
+      ],
+      "planning_window": "T-7 to T+1",
+      "notes": "Approximate dates \u2014 final schedule published closer to event."
     }
-  ]
+  ],
+  "schema_version": "v2_with_provenance",
+  "audited_at": "2026-09-07",
+  "audit_notes": "Removed Ryder Cup Day 1/2/3 (no Ryder Cup in 2026). Ryder Cup is in ODD years. Replaced with Presidents Cup Sep 24-27 at Royal Montreal."
 }

@@ -1,0 +1,99 @@
+{
+  "brand_id": "stick",
+  "audited_at": "2026-09-07",
+  "audited_by": "heidi",
+  "cadences": [
+    {
+      "lane": "product",
+      "cadence_type": "weekday_recurring",
+      "weekday_post_count": 5,
+      "cadence_text": "1 weekday post per day (Mon-Fri)",
+      "rationale": "Product engine remains independent \u2014 does not pause for other lanes.",
+      "configurable": true
+    },
+    {
+      "lane": "human",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "2-3",
+      "cadence_text": "2-3 pieces per week",
+      "rationale": "Fitter / staff / workshop moments.",
+      "configurable": true
+    },
+    {
+      "lane": "fitting",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "1-2",
+      "cadence_text": "1-2 per week",
+      "rationale": "Fit First \u2014 fitting outcomes, process, customer moments.",
+      "configurable": true
+    },
+    {
+      "lane": "workshop",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "1",
+      "cadence_text": "1 per week",
+      "rationale": "Built At Stick \u2014 workshop events, club building.",
+      "configurable": true
+    },
+    {
+      "lane": "apparel",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "2-3",
+      "cadence_text": "2-3 per week",
+      "rationale": "Style That Belongs / Psycho Bunny launches.",
+      "configurable": true
+    },
+    {
+      "lane": "campaign",
+      "cadence_type": "campaign_arc",
+      "posts_per_week": "3",
+      "cadence_text": "Per active campaign arc",
+      "rationale": "Spring at Stick + Psycho Bunny Launch active.",
+      "configurable": true,
+      "depends_on": [
+        "active_campaigns"
+      ]
+    },
+    {
+      "lane": "paid",
+      "cadence_type": "continuous",
+      "posts_per_week": "continuous",
+      "cadence_text": "Continuous / selected days",
+      "rationale": "Always-on retargeting + boosting. NOT scheduled content.",
+      "configurable": true
+    },
+    {
+      "lane": "search",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "1",
+      "cadence_text": "1 useful owned action per week",
+      "rationale": "Owned content that compounds: articles, FAQs, internal links.",
+      "configurable": true
+    },
+    {
+      "lane": "coaching",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "1-2",
+      "cadence_text": "1-2 per week",
+      "rationale": "Ask Stick / Better Begins Here.",
+      "configurable": true
+    },
+    {
+      "lane": "commercial",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "1-2",
+      "cadence_text": "1-2 per week",
+      "rationale": "Product Drop / Book / Enquire \u2014 direct response.",
+      "configurable": true
+    },
+    {
+      "lane": "crm",
+      "cadence_type": "weekly_recurring",
+      "posts_per_week": "varies",
+      "cadence_text": "Lifecycle cadence (not social)",
+      "rationale": "Email + WhatsApp \u2014 separate channel.",
+      "configurable": true,
+      "channel": "email+whatsapp"
+    }
+  ]
+}

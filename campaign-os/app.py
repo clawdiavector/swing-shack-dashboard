@@ -27924,6 +27924,8 @@ def _read_planning(brand_id):
 
 
 def _read_important_dates(year):
+    """Returns full provenance-rich date objects with status field
+    (VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED)."""
     p = os.path.join(IMPORTANT_DATES_DIR, f"{year}.json")
     if not os.path.exists(p):
         return []
@@ -27945,6 +27947,15 @@ def _read_golf_moments(year):
             return d.get("events") or []
     except Exception:
         return []
+
+
+def _date_is_demo(d):
+    return d.get("status") == "DEMO" or (d.get("event_name") or "").endswith("(DEMO)")
+
+
+def _filter_demo_out(dates):
+    """Real calendar data vs demo. Per heidi.txt #13, they must never silently mix."""
+    return [d for d in dates if not _date_is_demo(d)]
 
 
 # ─── 1. PLANNING HIERARCHY DATA (per heidi.txt #1-#4) ──────────────────────
@@ -28365,18 +28376,26 @@ def planning_month_view(brand_id):
             continue
         days.setdefault(d, []).append(it)
 
-    # Important dates for this month
+    # Important dates for this month — provenance-rich, demo filtered out by default
     year = int(month[:4])
     month_num = int(month[5:7])
     important = []
     for d in _read_important_dates(year):
-        if d["date"].startswith(month):
+        sd = d.get("start_date") or d.get("date", "")
+        if sd.startswith(month) and not _date_is_demo(d):
             important.append(d)
-    # Add golf moments
+    # Add golf moments (separately, with full provenance)
     for m in _read_golf_moments(year):
-        if m["date"].startswith(month):
-            important.append({"date": m["date"], "type": "GOLF_EVENT", "name": m["event"],
-                              "subtype": m.get("type"), "window": m.get("window")})
+        if m["start_date"].startswith(month):
+            important.append({
+                "event_name": m["event_name"],
+                "event_type": "GOLF_MOMENT",
+                "start_date": m["start_date"],
+                "end_date": m["end_date"],
+                "venue": m.get("venue"),
+                "status": m.get("status"),
+                "source_name": m.get("source_name"),
+            })
 
     return jsonify({
         "ok": True,
@@ -28439,11 +28458,16 @@ def planning_theme_why(brand_id):
 
 @app.route("/api/important-dates", methods=["GET"])
 def important_dates():
-    """GET /api/important-dates?year=YYYY&type=GOLF_EVENT&upcoming=true
+    """GET /api/important-dates?year=YYYY&type=GOLF_EVENT&upcoming=true&demo=false
 
-    Per heidi.txt #11: differentiates PUBLIC_HOLIDAY / RETAIL_MOMENT /
-    GOLF_EVENT / BRAND_EVENT / SCHOOL_HOLIDAY / LOCAL_EVENT. Does NOT
-    auto-create campaigns — surfaces them as 'upcoming opportunity'.
+    Per heidi.txt #2-#5, #11: provenance-rich. Each date carries
+    event_name, event_type, start_date, end_date, year, country,
+    source_name, source_url, source_checked_at, confidence, status.
+
+    Status values: VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED.
+    DEMO entries are filtered out by default.
+
+    Does NOT auto-create campaigns — surfaces as 'upcoming opportunity'.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -28453,38 +28477,47 @@ def important_dates():
     year = int(year)
     type_filter = request.args.get("type")
     upcoming = request.args.get("upcoming") == "true"
+    include_demo = request.args.get("demo") == "true"
     today = datetime.date.today().strftime("%Y-%m-%d")
 
     dates = _read_important_dates(year)
+    if not include_demo:
+        dates = _filter_demo_out(dates)
     if upcoming:
-        dates = [d for d in dates if d["date"] >= today]
+        dates = [d for d in dates if (d.get("start_date") or d.get("date", "")) >= today]
     if type_filter:
-        dates = [d for d in dates if d["type"] == type_filter]
+        dates = [d for d in dates if d["event_type"] == type_filter]
 
     # Group by type
     grouped = {}
     for d in dates:
-        grouped.setdefault(d["type"], []).append(d)
+        grouped.setdefault(d["event_type"], []).append(d)
 
-    # Add golf moments as their own category
+    # Add golf moments (separately tracked)
     golf = _read_golf_moments(year)
     if not type_filter or type_filter == "GOLF_EVENT":
-        golf_filtered = [m for m in golf if (not upcoming or m["date"] >= today)]
+        golf_filtered = [m for m in golf if (not upcoming or m["start_date"] >= today)]
         if golf_filtered:
-            grouped["GOLF_MOMENT"] = [{"date": m["date"], "type": "GOLF_MOMENT",
-                                        "name": m["event"], "subtype": m.get("type"),
-                                        "window": m.get("window")}
-                                       for m in golf_filtered]
+            grouped["GOLF_MOMENT"] = golf_filtered
+
+    # Canonical counts (per heidi.txt #5)
+    all_dates_real = _filter_demo_out(_read_important_dates(year))
+    canonical_counts = {}
+    for d in all_dates_real:
+        canonical_counts[d["event_type"]] = canonical_counts.get(d["event_type"], 0) + 1
+    canonical_counts["GOLF_MOMENT"] = len(_read_golf_moments(year))
 
     return jsonify({
         "ok": True,
         "year": year,
         "type_filter": type_filter,
         "upcoming_only": upcoming,
+        "include_demo": include_demo,
         "total": sum(len(v) for v in grouped.values()),
         "by_type": grouped,
+        "canonical_counts": canonical_counts,
         "campaign_actions": ["IGNORE", "CONTENT_HOOK", "SMALL_ACTIVATION", "CAMPAIGN"],
-        "disclaimer": "Opportunities, not mandatory campaigns. Decision is yours.",
+        "disclaimer": "Opportunities, not mandatory campaigns. Each date carries provenance (source + status).",
     }), 200
 
 
@@ -28494,8 +28527,12 @@ def important_dates():
 def golf_moments():
     """GET /api/golf-moments?year=YYYY&upcoming=true
 
-    Per heidi.txt #12: majors, Ryder Cup / Presidents Cup years, local
-    club championships, school holidays. Surfaces them early enough to plan.
+    Per heidi.txt #12: majors, Presidents Cup (even years) / Ryder Cup
+    (odd years), local club championships, school holidays. Each event
+    carries provenance + start/end dates (NO Day 1/2/3 splits).
+
+    NOTE: Ryder Cup is held in ODD years. There is NO Ryder Cup in 2026.
+    Presidents Cup is the relevant team event in 2026.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -28507,14 +28544,15 @@ def golf_moments():
     today = datetime.date.today().strftime("%Y-%m-%d")
     events = _read_golf_moments(year)
     if upcoming:
-        events = [e for e in events if e["date"] >= today]
+        events = [e for e in events if e["start_date"] >= today]
     return jsonify({
         "ok": True,
         "year": year,
         "upcoming_only": upcoming,
         "events": events,
         "count": len(events),
-        "disclaimer": "Opportunities, not mandatory campaigns. Surface them early enough to plan.",
+        "disclaimer": "Opportunities, not mandatory campaigns. Each event carries provenance + venue + start/end dates.",
+        "important_note": "Ryder Cup is in ODD years (next: 2027). Presidents Cup is in EVEN years (next: 2026). The system does NOT fabricate 'Day 1 / Day 2 / Day 3' splits.",
     }), 200
 
 
@@ -28522,50 +28560,119 @@ def golf_moments():
 
 @app.route("/api/planning/<brand_id>/month-sample", methods=["GET"])
 def planning_month_sample(brand_id):
-    """GET /api/planning/<brand>/month-sample
+    """GET /api/planning/<brand>/month-sample — DEMO sample only.
 
-    Per heidi.txt #15: returns a sample month demonstrating parallel
-    lanes. For Stick: October 2026, BIG IDEA = THE STICK STANDARD,
-    MONTHLY THEME = What belongs in your bag?
+    Returns the DEMO sample week demonstrating REAL parallel lane density
+    (NOT a weekly rota). Each lane has its own cadence.
 
-    Shows simultaneously:
-      - PRODUCT: daily/regular product features
-      - HUMAN: fitter / staff / workshop content
-      - FITTING: Fit First
-      - APPAREL: Style That Belongs / Psycho Bunny
-      - CAMPAIGN: one active monthly campaign
-      - PAID: supporting ads
-      - SEARCH: one or more owned-content actions
-
-    Then isolates each lane without duplicating.
+    Per heidi.txt #13: DEMO entries must be clearly labelled so they
+    never silently mix with real planning data.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-october.json")
+    # Prefer the realistic parallel week if it exists
+    realistic_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
+    legacy_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-october.json")
+    sample_path = realistic_path if os.path.exists(realistic_path) else legacy_path
     if not os.path.exists(sample_path):
-        # Auto-build a generic sample if none exists
-        data = _read_planning(brand_id)
-        if not data:
-            return jsonify({"ok": False, "error": "no planning data"}), 404
-        return jsonify({
-            "ok": True,
-            "brand_id": brand_id,
-            "month": "2026-10",
-            "month_name": "October 2026",
-            "big_brand_idea": data.get("big_brand_idea"),
-            "monthly_theme": "Sample theme for " + brand_id,
-            "monthly_theme_question": "What's the parallel-lane expression of this brand idea?",
-            "active_campaigns": data.get("active_campaigns") or [],
-            "weeks": [{"week_label": "Week 1",
-                        "lanes_in_action": [
-                            {"date": "2026-10-05", "day": "Mon",
-                             "items": [{"lane": "product", "title": "Sample product post",
-                                        "asset_status": "READY"}]}]}],
-            "note": "Generic sample — replace with brand-specific data when ready.",
-        }), 200
+        return jsonify({"ok": False, "error": "no sample month data"}), 404
     try:
         with open(sample_path) as f:
             sample = json.load(f)
-        return jsonify({"ok": True, "sample": sample}), 200
+        # Compute per-lane counts (no duplicates)
+        items = sample.get("items", sample.get("weeks", [{}])[0].get("lanes_in_action", []))
+        # If weeks-style, flatten
+        if items and isinstance(items[0], dict) and "lanes_in_action" in items[0]:
+            flat = []
+            for w in sample.get("weeks", []):
+                for d in w.get("lanes_in_action", []):
+                    flat.extend(d.get("items", []))
+            items = flat
+        from collections import Counter
+        per_lane = Counter(it.get("lane") for it in items)
+        per_day = Counter(it.get("date") for it in items)
+        return jsonify({
+            "ok": True,
+            "sample": sample,
+            "stats": {
+                "total_items": len(items),
+                "per_lane": dict(per_lane),
+                "per_day": {k: v for k, v in sorted(per_day.items())},
+                "demo": True,
+                "demo_reason": "Replace this file with real planning data when ready.",
+            },
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/planning/<brand_id>/week-sample", methods=["GET"])
+def planning_week_sample(brand_id):
+    """GET /api/planning/<brand>/week-sample — DEMO sample week with
+    per-lane filter.
+
+    Query params:
+      lane=product — filter to a single lane (returns items in that lane only)
+      week_start=YYYY-MM-DD — default 2026-10-05
+
+    Per heidi.txt #7, #12: shows ALL LANES in parallel, then filters to
+    one lane on request. No duplicates.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
+    if not os.path.exists(sample_path):
+        return jsonify({"ok": False, "error": "no sample week data"}), 404
+    try:
+        with open(sample_path) as f:
+            sample = json.load(f)
+        items = sample.get("items", [])
+        lane_filter = request.args.get("lane")
+        if lane_filter:
+            items = [it for it in items if it.get("lane") == lane_filter]
+        from collections import Counter
+        per_lane = Counter(it.get("lane") for it in sample.get("items", []))
+        per_day = Counter(it.get("date") for it in sample.get("items", []))
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "week_start": sample.get("week_start"),
+            "week_end": sample.get("week_end"),
+            "week_label": sample.get("week_label"),
+            "big_brand_idea": sample.get("big_brand_idea"),
+            "monthly_theme": sample.get("monthly_theme"),
+            "filter": {"lane": lane_filter} if lane_filter else None,
+            "items": items,
+            "stats": {
+                "all_lanes_total": len(sample.get("items", [])),
+                "filtered_total": len(items),
+                "per_lane_full": dict(per_lane),
+                "per_day_full": {k: v for k, v in sorted(per_day.items())},
+            },
+            "demo": True,
+            "demo_label": "DEMO sample — replace with real planning data when ready.",
+            "parallel_note": "Lanes overlap by cadence, not by day-of-week assignment.",
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/planning/<brand_id>/cadences", methods=["GET"])
+def planning_cadences(brand_id):
+    """GET /api/planning/<brand>/cadences
+
+    Per heidi.txt #8-#9: each lane has its own planning cadence.
+    Configurable planning rules, NOT mandatory quotas. The planner
+    uses them when proposing the month.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cadences_path = os.path.join(PLANNING_DIR, f"{brand_id}-cadences.json")
+    if not os.path.exists(cadences_path):
+        return jsonify({"ok": False, "error": "no cadence config"}), 404
+    try:
+        with open(cadences_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, **data}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
