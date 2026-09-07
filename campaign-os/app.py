@@ -27825,6 +27825,43 @@ def _ctx(body):
     return app.test_request_context(json=body)
 
 
+@app.route("/api/deploy-status", methods=["GET"])
+def deploy_status():
+    """GET /api/deploy-status — shows what tier is currently live.
+
+    Per heidi.txt #1: surfaces Railway deploy lag + which commits
+    are pending deployment.
+    """
+    import subprocess as _sp
+    sha_live = "f805801c56b7d1e292a72c1675c4230060542b46"  # last known Railway deploy
+    try:
+        sha_head = _sp.run(['git', '-C', '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard',
+                            'rev-parse', 'HEAD'],
+                           capture_output=True, text=True, timeout=5).stdout.strip()
+        commits_behind_count = _sp.run(['git', '-C', '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard',
+                                         'rev-list', '--count', f'{sha_live}..HEAD'],
+                                        capture_output=True, text=True, timeout=5).stdout.strip()
+        commits_ahead_list = _sp.run(['git', '-C', '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard',
+                                       'log', '--oneline', f'{sha_live}..HEAD'],
+                                      capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        sha_head = None
+        commits_behind_count = "unknown"
+        commits_ahead_list = ""
+
+    return jsonify({
+        "ok": True,
+        "live_sha": sha_live,
+        "live_sha_short": sha_live[:8],
+        "live_deploy_date": "2026-09-01T13:08:07Z",
+        "head_sha": sha_head,
+        "commits_ahead": int(commits_behind_count) if commits_behind_count.isdigit() else None,
+        "commits_pending": commits_ahead_list.split("\n") if commits_ahead_list else [],
+        "deploy_lag_warning": "Railway auto-deploy disconnected. Last successful Railway deployment was 2026-09-01. Christelle must click 'Redeploy' on Railway dashboard to deploy pending commits.",
+        "manual_action_url": "https://railway.com/project/9985d5ca-8c76-48e7-9a99-a07a76a52dbd?environmentId=9ebee856-8095-4e4a-80e9-1df201249f58",
+    }), 200
+
+
 @app.route("/api/build-post/recommended-slot", methods=["GET"])
 def build_post_recommended_slot():
     """GET /api/build-post/recommended-slot?brand_id=<id>&channel=<ig|fb|gbp>
