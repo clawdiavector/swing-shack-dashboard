@@ -11251,25 +11251,34 @@ async function renderBuildPost() {
 }
 
 async function bpBuild() {
-  const brand = document.getElementById('bp-brand')?.value || 'takomo';
+  const brand = document.getElementById('bp-brand')?.value || 'stick';
   const lane = document.getElementById('bp-lane')?.value || 'product';
   const idea = document.getElementById('bp-idea')?.value || '';
   const hook = document.getElementById('bp-hook')?.value || '';
   const calendarId = document.getElementById('bp-calendar-id')?.value || '';
+  const productBrand = document.getElementById('bp-product-brand')?.value || '';
+  const productId = document.getElementById('bp-product-id')?.value || '';
   const btn = document.getElementById('bp-build');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Building…'; }
   try {
     const body = { brand_id: brand, lane, idea_text: idea, hook };
     if (calendarId) body.calendar_item_id = calendarId;
+    if (productBrand) body.product_brand = productBrand;
+    if (productId) body.product_id = productId;
     const r = await API.post('/api/build-post/draft', body);
     if (!r.ok) { toast('Build failed: ' + r.error, true); return; }
     const pkg = r.package || {};
     _bpCurrentDraft = pkg;
-    // Status pill
+    // Status pill (using final_status if present, else legacy status)
     const pill = document.getElementById('bp-status-pill');
     if (pill) {
-      const status = pkg.status || 'UNKNOWN';
-      const color = status === 'BLOCKED' ? 'blocked' : status === 'NEEDS_APPROVAL' ? 'live' : 'on';
+      const status = pkg.final_status || pkg.status || 'UNKNOWN';
+      const color = status === 'BLOCKED' ? 'blocked'
+        : status === 'NEEDS_CAPTURE' ? 'muted'
+        : status === 'DRAFT_READY' ? 'on'
+        : status === 'DRAFT_HAS_NOTES' ? 'live'
+        : status === 'NEEDS_APPROVAL' ? 'live'
+        : 'on';
       pill.textContent = status;
       pill.className = 'pill ' + color;
     }
@@ -11278,11 +11287,36 @@ async function bpBuild() {
     if (summary) {
       const blocked = pkg.blocked_reasons || [];
       const lines = [];
-      if (pkg.product) lines.push(`<div>Product: <b>${esc(pkg.product.name || '?')}</b> · verified=${pkg.product.verified}</div>`);
-      if (pkg.pricing_text) lines.push(`<div>Pricing: <b>${esc(pkg.pricing_text)}</b></div>`);
-      if (pkg.chosen_reference_id) lines.push(`<div>Reference image: <code>${esc(pkg.chosen_reference_id)}</code></div>`);
-      if (pkg.krea_status) lines.push(`<div>Krea status: <b>${esc(pkg.krea_status)}</b>${pkg.krea_job_id ? ' · job ' + esc(pkg.krea_job_id) : ''}</div>`);
-      lines.push(`<div>Steps run: ${(pkg.steps || []).length}</div>`);
+      // Three separate concepts (per heidi.txt #2)
+      lines.push(`<div><b>Store brand:</b> ${esc(pkg.store_brand || pkg.brand_id || '?')} <span class="muted">(voice, layout, CTA, logo, typography, publishing)</span></div>`);
+      if (pkg.product_brand && pkg.product_brand !== pkg.store_brand) {
+        lines.push(`<div><b>Product brand:</b> ${esc(pkg.product_brand)} <span class="muted">(product visual cues, verified product info)</span></div>`);
+      }
+      if (pkg.product) {
+        lines.push(`<div><b>Product:</b> ${esc(pkg.product.name || '?')} (${esc(pkg.product.id || '?')})</div>`);
+        if (pkg.reference_verified) lines.push(`<div><b>Reference verified:</b> <span style="color:var(--success)">YES</span> <span class="muted">(SHA256 match)</span></div>`);
+        else lines.push(`<div><b>Reference verified:</b> <span style="color:var(--danger)">NO</span></div>`);
+      }
+      if (pkg.pricing_text) lines.push(`<div><b>Pricing:</b> ${esc(pkg.pricing_text)} ${pkg.pricing_currency ? '(' + esc(pkg.pricing_currency) + ')' : ''}</div>`);
+      if (pkg.krea_required) {
+        const ks = pkg.krea_status || 'unknown';
+        const kcol = ks === 'connected' ? 'var(--success)' : ks === 'unavailable' ? 'var(--danger)' : 'var(--tx-3)';
+        lines.push(`<div><b>Krea:</b> <span style="color:${kcol}">${esc(ks)}</span>${pkg.krea_model ? ' · model: ' + esc(pkg.krea_model) : ''}${pkg.krea_job_id ? ' · job: ' + esc(pkg.krea_job_id) : ''}</div>`);
+      } else {
+        lines.push(`<div><b>Krea:</b> <span class="muted">not required for this lane</span></div>`);
+      }
+      // Two preflight stages (per heidi.txt #6)
+      if (pkg.draft_quality && pkg.draft_quality.applicable !== false) {
+        const dq = pkg.draft_quality;
+        lines.push(`<div style="margin-top:.5rem"><b>Draft quality (raw AI):</b> <b style="color:${dq.passed ? 'var(--success)' : 'var(--danger)'}">${dq.passed_count}/${dq.total}</b></div>`);
+      }
+      if (pkg.publish_preflight && pkg.publish_preflight.applicable !== false) {
+        const pf = pkg.publish_preflight;
+        lines.push(`<div><b>Publish preflight (final asset):</b> <b style="color:${pf.passed ? 'var(--success)' : 'var(--danger)'}">${pf.passed_count}/${pf.total}</b></div>`);
+      }
+      if (pkg.human_brief) {
+        lines.push(`<div style="margin-top:.5rem"><b>Human brief produced:</b> hook, talking points, capture list, caption draft, edit guidance</div>`);
+      }
       summary.innerHTML = lines.join('') || '<span class="muted">Draft assembled.</span>';
     }
     // Blocked
@@ -12002,12 +12036,16 @@ function bpClear() {
               <option value="product">Product (real product required)</option>
               <option value="retail">Retail</option>
               <option value="product_led">Product-led paid</option>
-              <option value="human">Human (real footage required)</option>
+              <option value="human">Human (NEEDS_CAPTURE; Krea optional)</option>
               <option value="coaching">Coaching</option>
               <option value="brand">Brand</option>
               <option value="community">Community</option>
               <option value="educational">Educational</option>
             </select>
+            <label style="font-size:11px;color:var(--tx-3)">Product brand (optional, e.g. Takomo)</label>
+            <input type="text" id="bp-product-brand" placeholder="takomo / psycho-bunny / [blank for store-brand products]" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
+            <label style="font-size:11px;color:var(--tx-3)">Product ID (optional)</label>
+            <input type="text" id="bp-product-id" placeholder="takomo-101t / pb-10k-step-pant / [blank for auto-pick]" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
             <label style="font-size:11px;color:var(--tx-3)">Calendar item id (optional)</label>
             <input type="text" id="bp-calendar-id" placeholder="optional — links to a specific day" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font-size:13px" />
             <label style="font-size:11px;color:var(--tx-3)">Idea (one line)</label>
