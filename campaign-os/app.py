@@ -19343,9 +19343,7 @@ def debug_info():
     return jsonify({
         "ok": True,
         "total_routes": len(routes),
-        "planning_routes": [r for r in routes if "/api/planning/" in r["rule"]],
-        "build_post_routes": [r for r in routes if "/api/build-post/" in r["rule"]],
-        "deploy_status_routes": [r for r in routes if "/api/deploy-status" in r["rule"]],
+        "all_rules": [r["rule"] for r in routes],
     }), 200
 
 if __name__ == '__main__':
