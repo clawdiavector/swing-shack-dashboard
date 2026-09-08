@@ -1,0 +1,393 @@
+{
+  "brand_id": "stick",
+  "audited_at": "2026-09-07",
+  "audited_by": "heidi",
+  "source_of_truth": "data/brand-directory/stick (Brand Bible Draft v3 + Campaign OS Full Brand Bible Workbook 2, September 2026)",
+  "big_brand_idea": {
+    "name": "Better Begins Here.",
+    "tagline": "Better Begins Here.",
+    "belief": "Everything has to earn its place."
+  },
+  "brand_essence": "Better golf for a new breed of golfer.",
+  "brand_purpose": "To open the door to better golf for people who want to improve, while rejecting the outdated idea that serious golf must come wrapped in stuffy culture, legacy gatekeeping, and expensive nonsense.",
+  "brand_mission": "To help golfers get better through: smart coaching \u00b7 player-first fitting \u00b7 properly matched equipment \u00b7 modern product curation \u00b7 a welcoming, high-performance environment. STICK matches equipment to the player, not the player to the equipment.",
+  "brand_vision": "To become the benchmark for modern golf culture and performance retail in South Africa \u2014 credible, culturally relevant, technically sharp, accessible, distinctive.",
+  "brand_promise": "Better Begins Here.",
+  "brand_mantra_internal": "Modern golf. Real improvement.",
+  "brand_archetype": {
+    "primary": "The Rebel",
+    "secondary": "The Sage",
+    "combined": "The Smart Rebel",
+    "rationale": "Challenges outdated golf norms with substance. Not a punk brand. Not an engineering robot. Edge and brains."
+  },
+  "brand_personality": [
+    "sharp",
+    "modern",
+    "confident",
+    "informed",
+    "energetic",
+    "selective",
+    "culturally awake"
+  ],
+  "brand_personality_banned": [
+    "stuffy",
+    "snobbish",
+    "corporate",
+    "try-hard",
+    "fake luxury",
+    "old-money",
+    "salesy"
+  ],
+  "personality_shorthand": "Smart, rebellious, and serious about enjoying better golf.",
+  "brand_values": [
+    {
+      "name": "Attitude",
+      "summary": "STICK has edge. Does not ask traditional golf culture for approval. Not decoration \u2014 it's the reason for existing."
+    },
+    {
+      "name": "Precision",
+      "summary": "Takes golf seriously. The game is technical. Equipment, data, setup, details matter."
+    },
+    {
+      "name": "Access",
+      "summary": "Serious golf must be more open. Quality product, great advice, and meaningful improvement across budgets and backgrounds."
+    },
+    {
+      "name": "Honesty",
+      "summary": "Speaks plainly. No hype. No fake luxury theatre. No pretending expensive means better."
+    },
+    {
+      "name": "Progress",
+      "summary": "Obsessed with improvement. Golfers improve. Game evolves. Brands evolve. Culture evolves."
+    }
+  ],
+  "positioning": {
+    "category": "Modern golf performance retailer and culture brand",
+    "statement": "STICK is where modern golfers come to thrive.",
+    "intersection": [
+      "golf improvement",
+      "product expertise",
+      "modern culture",
+      "curated retail"
+    ]
+  },
+  "differentiation": [
+    "The attitude is real",
+    "Player-first (product matches player, not vice-versa)",
+    "Quality across price points (Takomo, Vice alongside premium OEM)",
+    "Curation is different (Takomo, Vice, Psycho Bunny \u2014 brands traditional shops ignore)",
+    "Environment matters (dark matte, wood, stone \u2014 modern studio, not pro-shop)",
+    "Culture is changing and STICK reflects that"
+  ],
+  "voice": {
+    "five_words": "Sharp, confident, direct, smart, rebellious",
+    "tone_rules": [
+      "Direct: Get to the point.",
+      "Smart: Use expertise without showing off.",
+      "Unpretentious: Serious without being pompous.",
+      "Modern: No stale golf phrases. No fake heritage voice.",
+      "Human: Never robotic. Never over-polished."
+    ],
+    "do": [
+      "speak plainly",
+      "make strong statements",
+      "explain simply",
+      "sound current",
+      "respect audience's intelligence"
+    ],
+    "dont": [
+      "use bloated marketing language",
+      "sound country-club formal",
+      "oversell",
+      "posture",
+      "sound bitter or hostile"
+    ],
+    "punctuations": "Sentence case for headlines. No full stops where brevity serves. No exclamation marks except genuine excitement. Comma-tight.",
+    "humour_level": "Wry, confident \u2014 never clownish. Edge comes from attitude, not punchlines.",
+    "emoji_policy": "Rare. Only when tone genuinely needs it. Never as substitute for personality.",
+    "profanity_policy": "None. The attitude makes profanity unnecessary.",
+    "south_african_cues": "Light. Occasional local reference (Winelands, Paarl, Cape Town). Never braai-ad. Feels SA through place and product truth."
+  },
+  "master_brand_line": "Better Begins Here.",
+  "supporting_lines_verbatim": [
+    "Everything has to earn its place.",
+    "Fit First. Buy Second.",
+    "Why It's Here.",
+    "Respect the Player.",
+    "This is why we stock it.",
+    "Your driver is telling you something.",
+    "Why this shaft? Because your current one is costing you 15 metres."
+  ],
+  "cta_set": {
+    "fitting": "Book a fitting",
+    "product_inquiry": "Enquire",
+    "fitting_entry": "Find your fit",
+    "shop_actions": [
+      "View product",
+      "Try it on",
+      "Visit us",
+      "Message to order",
+      "Ask us",
+      "Shop the drop",
+      "Get your spec done"
+    ]
+  },
+  "messaging_hierarchy": {
+    "master": "STICK is where modern golfers come to get better \u2014 and everything has to earn its place.",
+    "supporting": [
+      "Golf without the old gatekeeping",
+      "Better decisions, better golf",
+      "Quality is not one-size-fits-all",
+      "Modern golf is already here",
+      "Style and performance belong together"
+    ]
+  },
+  "commercial_messages": [
+    {
+      "message": "Club fitting (driver, iron, wedge, putter, shaft)",
+      "visibility": "persistent, Mar-Nov peak"
+    },
+    {
+      "message": "Workshop services (custom builds, loft/lie, regripping, shaft work)",
+      "visibility": "permanent"
+    },
+    {
+      "message": "Takomo irons / DTC brands",
+      "visibility": "fitting-led commercial"
+    },
+    {
+      "message": "Psycho Bunny / apparel",
+      "visibility": "6-week campaign cycles"
+    },
+    {
+      "message": "Bags, putters, wedges, balls",
+      "visibility": "product drops"
+    }
+  ],
+  "trust_messages": [
+    "TrackMan data in every fitting \u2014 real, explainable numbers",
+    "Workshop precision \u2014 Built at Stick (loft/lie, swing-weight, shaft prep)",
+    "Fit First principle \u2014 match product to player, not player to product",
+    "Multiple price points \u2014 Takomo, Vice alongside premium OEM. We do not push expensive by default."
+  ],
+  "seasonal_campaigns": [
+    {
+      "period": "Pre-season (Jan-Mar)",
+      "message": "Start the season fitted"
+    },
+    {
+      "period": "Winter workshop (May-Jul)",
+      "message": "loft/lie checks, regrips, bag refresh"
+    },
+    {
+      "period": "Gift season (Nov-Dec)",
+      "message": "Psycho Bunny, bags, putters as gifting"
+    }
+  ],
+  "brands_stocked": [
+    "Takomo",
+    "Srixon",
+    "Titleist",
+    "Callaway",
+    "Ping",
+    "TaylorMade",
+    "Mizuno",
+    "Vice",
+    "Psycho Bunny",
+    "L.A.B Putters",
+    "LA Golf",
+    "Miura",
+    "Avoda",
+    "Fujimoto"
+  ],
+  "proof_points": [
+    "Not a traditional shop \u2014 combines fitting, coaching, workshop, retail and culture under one roof with editorial curation.",
+    "Real attitude \u2014 does not ask traditional golf culture for permission.",
+    "Fitting data and workshop evidence are real: TrackMan, build sheets, specs.",
+    "Multiple price points \u2014 Takomo, Vice alongside premium OEM.",
+    "Partners with brands traditional shops ignore (Takomo, Vice, Psycho Bunny).",
+    "Physical environment deliberately modern: dark matte surfaces, wood, stone.",
+    "Founding team are fitters, coaches and builders \u2014 in-house expertise.",
+    "GBP generates real local interactions (1,100+ Mar-Aug 2026).",
+    "Fit Fact campaigns produced leads at R20-R32 each \u2014 education model works commercially."
+  ],
+  "primary_location": "Paarl, Western Cape, South Africa",
+  "website": "stickgolf.co.za",
+  "owners": [
+    "Hermanus Kriel",
+    "Dave Lamprecht"
+  ],
+  "version": "September 2026 (Brand Bible Draft v3 + Campaign OS Full Brand Bible Workbook 2)",
+  "visual_identity": {
+    "primary_colours": [
+      "Deep teal #004d5a",
+      "Charcoal #1a1a1a"
+    ],
+    "secondary_colours": [
+      "Warm grey #8a8a8a",
+      "Off-white #f5f5f0"
+    ],
+    "background_colours": [
+      "Near-black #0d0d0d",
+      "Dark charcoal #121212"
+    ],
+    "accent_colours": [
+      "Amber / burnt orange #f0a030"
+    ],
+    "primary_font": "Inter (400/600/700/900) \u2014 substitute: Plus Jakarta Sans",
+    "secondary_font": "JetBrains Mono (400)",
+    "card_radius": "6-8px",
+    "button_radius": "4px",
+    "border_style": "1px thin borders in charcoal or muted grey",
+    "icon_style": "Line icons 1.5-2px stroke, rounded terminals, no filled/duotone",
+    "look_feel": "Performance minimalism with attitude. Dark indoor studio. Diffused key light, controlled shadows. Product as hero. Slight desaturation."
+  },
+  "recurring_properties": [
+    {
+      "id": "why-its-here",
+      "name": "Why It's Here.",
+      "purpose": "Explain why Stick chose to stock a product or partner brand. Editorial reason behind every priority item.",
+      "visual_rules": "Product name lock-up + 'Why It's Here' title frame. Clean product shot. One-line reason. Use case. Stick verdict.",
+      "min_run": "6 weeks per priority brand, 8+ executions across 3+ formats"
+    },
+    {
+      "id": "fit-first",
+      "name": "Fit First.",
+      "purpose": "Demonstrate that clubs/shafts/putters are chosen through fitting, not guesswork.",
+      "visual_rules": "Problem/baseline club first. TrackMan data overlay. Before\u2192After comparison where possible.",
+      "min_run": "Continuous \u2014 every performance product should have a Fit First angle available"
+    },
+    {
+      "id": "built-at-stick",
+      "name": "Built At Stick.",
+      "purpose": "Show workshop precision: custom builds, loft/lie, regripping, shaft work. Turn craft into content.",
+      "visual_rules": "Workshop detail shot. Job title overlay. Finished spec card. Before/after where visual.",
+      "min_run": "Weekly minimum. Permanent content lane."
+    },
+    {
+      "id": "ask-stick",
+      "name": "Ask Stick.",
+      "purpose": "Utility/education. One golfer question gets one clear answer. Myth-busting, doubts, buying advice.",
+      "visual_rules": "One question headline. One answer. No filler. Product or fitting detail if relevant. Simple typography.",
+      "min_run": "2-3x per month minimum"
+    },
+    {
+      "id": "style-that-belongs",
+      "name": "Style That Belongs.",
+      "purpose": "Apparel and lifestyle. Show that style and performance belong together. Psycho Bunny.",
+      "visual_rules": "On-golfer shot or flat lay. Fabric close-up. Outfit context. Brand + Stick lock-up.",
+      "min_run": "6-week minimum per campaign cycle. Rotate seasonally."
+    },
+    {
+      "id": "product-drop",
+      "name": "Product Drop.",
+      "purpose": "New stock or limited availability. Timely product reveal.",
+      "visual_rules": "Fast reveal / product-first. 'Product Drop' title. Availability + message route. No generic 'new in'.",
+      "min_run": "As stock arrives. Minimum 3 executions per drop."
+    }
+  ],
+  "audience": {
+    "primary": "The 'Any Golfer' \u2014 wants to improve, curious about equipment, values expertise over brand prestige, open to modern brands, sees golf as part sport/part identity/part culture.",
+    "secondary": "The Culturally Curious Golfer \u2014 drawn to modern golf style, new brands, welcoming environment, less intimidating entry point.",
+    "excluded": "Golfers who only care about old-school brand prestige, want the same tired pro-shop experience, equate seriousness with formality, or treat golf as a social costume."
+  },
+  "internal_brand_standard": [
+    "Does this help golfers get better?",
+    "Does this feel like the future of golf rather than the past?",
+    "Does this respect the player?",
+    "Does this avoid empty golf snobbery?",
+    "Does this feel sharp, confident, and credible?",
+    "Does this support 'Better Begins Here'?"
+  ],
+  "lane_system": [
+    {
+      "lane": "product",
+      "name": "Why It's Here",
+      "description": "Real product features from Stick's curated catalogue. Each product earns its place on the rack."
+    },
+    {
+      "lane": "fitting",
+      "name": "Fit First",
+      "description": "The fitting process + outcomes. A fitting is the start, not the sale."
+    },
+    {
+      "lane": "coaching",
+      "name": "Ask Stick / Better Begins Here",
+      "description": "Coaching + education content. Questions, myth-busting, technique."
+    },
+    {
+      "lane": "workshop",
+      "name": "Built At Stick",
+      "description": "Workshop events, club building, custom work, on-site experiences."
+    },
+    {
+      "lane": "apparel",
+      "name": "Style That Belongs",
+      "description": "Apparel + lifestyle. How you look on the course / at the range."
+    },
+    {
+      "lane": "commercial",
+      "name": "Product Drop / Book / Enquire",
+      "description": "Direct-response: drop launches, fitting bookings, retail enquiries."
+    },
+    {
+      "lane": "human",
+      "name": "Human / Trust",
+      "description": "Staff, fitters, real moments. The people behind the standard."
+    },
+    {
+      "lane": "paid",
+      "name": "Paid Media",
+      "description": "Boosted posts + retargeting. Always in service of one of the above lanes."
+    },
+    {
+      "lane": "search",
+      "name": "Search / SEO",
+      "description": "Owned content that compounds: articles, FAQs, comparison guides."
+    },
+    {
+      "lane": "crm",
+      "name": "CRM / Lifecycle",
+      "description": "Email + WhatsApp to existing customers. Repeat purchase, retention, loyalty."
+    }
+  ],
+  "active_campaigns": [
+    {
+      "id": "spring-at-stick",
+      "name": "Spring at Stick",
+      "phase": "live",
+      "lanes": [
+        "apparel",
+        "workshop",
+        "human"
+      ]
+    },
+    {
+      "id": "psycho-bunny-launch",
+      "name": "Psycho Bunny Launch",
+      "phase": "launching",
+      "lanes": [
+        "apparel",
+        "product"
+      ]
+    }
+  ],
+  "monthly_themes": [
+    {
+      "month": "2026-10",
+      "theme": "What belongs in your bag?",
+      "question": "When every club in the bag has to earn its place \u2014 what's in yours, and why?",
+      "supported_bet": "Fitting + curation drive conversion; brand authority over volume.",
+      "what_we_prove": "Customers trust Stick to filter what's worth carrying. We curate, we don't sell.",
+      "what_changes_it": "If fitting bookings drop 30% week-on-week, or product mix shifts away from curated lineup.",
+      "lanes_emphasis": [
+        "product",
+        "fitting",
+        "apparel",
+        "human",
+        "campaign"
+      ],
+      "set_at": "2026-09-07T07:50:00Z"
+    }
+  ]
+}

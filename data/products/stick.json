@@ -1,0 +1,270 @@
+{
+  "schema": "https://campaign-os/products/v1",
+  "brand_id": "stick",
+  "updated": "2026-09-07",
+  "note": "DEMO seed \u2014 replace with real inventory upload from Stick before pilot.",
+  "products": [
+    {
+      "id": "takomo-101t",
+      "name": "Takomo 101T Mallet Putter",
+      "category": "putter",
+      "brand": "takomo",
+      "product_brand": "takomo",
+      "price_zar": 7899,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 6,
+      "reference_image_ids": [
+        "takomo-101t-1",
+        "takomo-101t-2"
+      ],
+      "tags": [
+        "mallet",
+        "face-balanced",
+        "fitting-led"
+      ],
+      "fit_priority": true
+    },
+    {
+      "id": "takomo-daytona",
+      "name": "Takomo Daytona Blade Putter",
+      "category": "putter",
+      "brand": "takomo",
+      "product_brand": "takomo",
+      "price_zar": 6899,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 4,
+      "reference_image_ids": [
+        "takomo-daytona-1"
+      ],
+      "tags": [
+        "blade",
+        "fitting-led"
+      ],
+      "fit_priority": true
+    },
+    {
+      "id": "lab-golf-mez",
+      "name": "L.A.B. Golf MEZ.1 Putter",
+      "category": "putter",
+      "brand": "lab-golf",
+      "product_brand": "lab-golf",
+      "price_zar": 11999,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 3,
+      "reference_image_ids": [
+        "lab-mez-1"
+      ],
+      "tags": [
+        "lie-angle-balanced",
+        "fitting-led"
+      ],
+      "fit_priority": true
+    },
+    {
+      "id": "lab-golf-df",
+      "name": "L.A.B. Golf DF 2.1 Putter",
+      "category": "putter",
+      "brand": "lab-golf",
+      "product_brand": "lab-golf",
+      "price_zar": 12999,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 2,
+      "reference_image_ids": [
+        "lab-df-1"
+      ],
+      "tags": [
+        "lie-angle-balanced",
+        "fitting-led"
+      ],
+      "fit_priority": true
+    },
+    {
+      "id": "pb-maverick-pant",
+      "name": "Psycho Bunny Maverick 10K Step Pant",
+      "category": "apparel",
+      "brand": "psycho-bunny",
+      "product_brand": "psycho-bunny",
+      "price_zar": 2199,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 12,
+      "reference_image_ids": [
+        "pb-maverick-1",
+        "pb-maverick-2"
+      ],
+      "tags": [
+        "apparel",
+        "bottoms",
+        "spring"
+      ]
+    },
+    {
+      "id": "pb-vance-polo",
+      "name": "Psycho Bunny Vance Polo",
+      "category": "apparel",
+      "brand": "psycho-bunny",
+      "product_brand": "psycho-bunny",
+      "price_zar": 1299,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 18,
+      "reference_image_ids": [
+        "pb-vance-1"
+      ],
+      "tags": [
+        "apparel",
+        "top",
+        "polo"
+      ]
+    },
+    {
+      "id": "pb-socks",
+      "name": "Psycho Bunny Cotton Socks 3-Pack",
+      "category": "apparel",
+      "brand": "psycho-bunny",
+      "product_brand": "psycho-bunny",
+      "price_zar": 449,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 30,
+      "reference_image_ids": [
+        "pb-socks-1"
+      ],
+      "tags": [
+        "apparel",
+        "accessories"
+      ]
+    },
+    {
+      "id": "pb-golf-umbrella",
+      "name": "Psycho Bunny Golf Umbrella",
+      "category": "apparel",
+      "brand": "psycho-bunny",
+      "product_brand": "psycho-bunny",
+      "price_zar": 999,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 8,
+      "reference_image_ids": [
+        "pb-umbrella-1"
+      ],
+      "tags": [
+        "apparel",
+        "accessories",
+        "weather"
+      ]
+    },
+    {
+      "id": "pb-cap",
+      "name": "Psycho Bunny Adjustable Cap",
+      "category": "apparel",
+      "brand": "psycho-bunny",
+      "product_brand": "psycho-bunny",
+      "price_zar": 749,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 15,
+      "reference_image_ids": [
+        "pb-cap-1"
+      ],
+      "tags": [
+        "apparel",
+        "accessories",
+        "headwear"
+      ]
+    },
+    {
+      "id": "vice-golf-ball",
+      "name": "Vice Golf Pro Plus Ball (dozen)",
+      "category": "balls",
+      "brand": "vice",
+      "product_brand": "vice",
+      "price_zar": 549,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 60,
+      "reference_image_ids": [
+        "vice-ball-1"
+      ],
+      "tags": [
+        "balls",
+        "accessories"
+      ]
+    },
+    {
+      "id": "titleist-pro-v1",
+      "name": "Titleist Pro V1 Ball (dozen)",
+      "category": "balls",
+      "brand": "titleist",
+      "product_brand": "titleist",
+      "price_zar": 749,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "live",
+      "stock_qty": 36,
+      "reference_image_ids": [
+        "titleist-ball-1"
+      ],
+      "tags": [
+        "balls",
+        "accessories"
+      ]
+    },
+    {
+      "id": "fitting-iron",
+      "name": "Iron Fitting Session (90 min)",
+      "category": "service",
+      "service_type": "fitting",
+      "price_zar": 1200,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "bookable",
+      "tags": [
+        "fitting",
+        "iron"
+      ]
+    },
+    {
+      "id": "fitting-wedge",
+      "name": "Wedge Fitting + Gapping Session (90 min)",
+      "category": "service",
+      "service_type": "fitting",
+      "price_zar": 1200,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "bookable",
+      "tags": [
+        "fitting",
+        "wedge"
+      ]
+    },
+    {
+      "id": "fitting-putter",
+      "name": "Putter Fitting Session (60 min)",
+      "category": "service",
+      "service_type": "fitting",
+      "price_zar": 950,
+      "currency": "ZAR",
+      "verified": true,
+      "stock_state": "bookable",
+      "tags": [
+        "fitting",
+        "putter"
+      ]
+    }
+  ]
+}

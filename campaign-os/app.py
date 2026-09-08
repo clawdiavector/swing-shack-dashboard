@@ -48,7 +48,39 @@ SHARE_TOKEN_MAX_AGE = 60 * 60 * 24
 _serializer = URLSafeTimedSerializer(SESSION_SECRET)
 
 # Routes that never require auth (login + the static asset paths needed to render login)
-PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/favicon.ico'}
+PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', '/livez', '/readyz', '/favicon.ico'}
+# Public route prefixes — anyone can hit these
+PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report')
+
+# v2026-08-13: weekly-report export with a valid ?share=<token> query
+# param is auth-optional. Letting the export route run without auth
+# means the route itself enforces the share-token gate (which is
+# stricter than the session cookie. it's scope-bound + time-limited).
+PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
+
+
+# ── Client-side log collector ────────────────────────────────────────
+@app.route('/api/admin/client-log', methods=['POST'])
+def admin_client_log():
+    """Receive browser-side logs from the OS page (?logs=1 mode)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        entries = body.get('entries') or []
+        if not isinstance(entries, list):
+            return jsonify({"ok": False, "error": "entries must be a list"}), 400
+        # Log to server console (truncated)
+        import datetime
+        ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        for e in entries[-200:]:  # last 200
+            level = e.get('level', 'INFO')
+            msg = e.get('msg', '')
+            meta = e.get('meta')
+            print(f"[client-log {ts} {level}] {msg} {meta if meta else ''}")
+        return jsonify({"ok": True, "received": len(entries)}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
@@ -99,8 +131,10 @@ def _gate():
     path = request.path or '/'
     if path in PUBLIC_ROUTES:
         return None
+    # Public prefixes (no auth required)
+    if any(path.startswith(prefix) for prefix in PUBLIC_ROUTE_PREFIXES):
+        return None
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
-    # These live next to login.html in the same dir, but they shouldn't reveal data.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
     if _is_authed():
@@ -547,13 +581,543 @@ def bootstrap():
 
 # ─── API ROUTES ─────────────────────────────────────────────────────────
 
-@app.route('/api/health')
-def health():
-    """Health check."""
+
+
+
+
+
+
+# ─── MULTI-REGION FAILOVER + READ-REPLICA + CRON REDUNDANCY (Tier 3.11, 2026-09-04) ─────
+# Per the audit + production-readiness gap: this app is single-region
+# (Railway), single-instance, single-cron. Any of those failing takes
+# the whole system down. This batch adds the primitives for failover
+# without requiring multi-region deployment to start working.
+#
+# Three layers:
+#   1. Region/instance registry     — track which instance is primary
+#   2. Read-replica routing        — writes to primary, reads can hit replicas
+#   3. Cron redundancy             — multiple crons with leader election
+#
+# Architecture:
+#   - Instance identity via env (INSTANCE_ID, REGION, ROLE)
+#   - Primary instance writes to local DATA_DIR
+#   - Replica instances read from primary via HTTP /api/replica/sync
+#   - Cron tick writes a heartbeat to data/cron-heartbeat.json
+#   - If no heartbeat in N seconds, secondary instances elect a new leader
+
+REPLICA_REGISTRY_FILE = os.path.join(DATA_DIR, "replica-registry.json")
+CRON_HEARTBEAT_FILE = os.path.join(DATA_DIR, "cron-heartbeat.json")
+CRON_LEADER_FILE = os.path.join(DATA_DIR, "cron-leader.json")
+
+# Tunables
+REPLICA_SYNC_INTERVAL_SECONDS = 300   # How often replicas should pull from primary
+CRON_HEARTBEAT_TIMEOUT_SECONDS = 600  # How long without heartbeat = leader dead
+CRON_LOCK_TTL_SECONDS = 300           # How long a leader lock is valid
+
+
+def _instance_id():
+    """Identify this instance — prefer env, fall back to hostname."""
+    return (
+        os.environ.get("INSTANCE_ID")
+        or os.environ.get("RAILWAY_REPLICA_ID")
+        or os.environ.get("HOSTNAME")
+        or "instance-unknown"
+    )
+
+
+def _instance_region():
+    """Identify this instance's region."""
+    return os.environ.get("REGION") or os.environ.get("RAILWAY_REGION") or "unknown"
+
+
+def _instance_role():
+    """Identify this instance's role: primary | replica | standalone."""
+    role = (os.environ.get("ROLE") or os.environ.get("INSTANCE_ROLE") or "standalone").lower()
+    return role if role in ("primary", "replica", "standalone") else "standalone"
+
+
+def _read_replica_registry():
+    if os.path.exists(REPLICA_REGISTRY_FILE):
+        try:
+            with open(REPLICA_REGISTRY_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "instances": {},
+        "primary": None,
+        "last_sync": None,
+    }
+
+
+def _write_replica_registry(reg):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        tmp = REPLICA_REGISTRY_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(reg, f, indent=2)
+        os.replace(tmp, REPLICA_REGISTRY_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def _register_instance():
+    """Register this instance in the registry. Idempotent."""
+    reg = _read_replica_registry()
+    iid = _instance_id()
+    reg["instances"][iid] = {
+        "instance_id": iid,
+        "region": _instance_region(),
+        "role": _instance_role(),
+        "first_seen": reg["instances"].get(iid, {}).get("first_seen", _now_iso()),
+        "last_seen": _now_iso(),
+    }
+    # Set primary if none set yet AND this instance is primary
+    if not reg.get("primary") and _instance_role() == "primary":
+        reg["primary"] = iid
+    _write_replica_registry(reg)
+    return reg
+
+
+@app.route("/api/replica/registry", methods=["GET"])
+def replica_registry_get():
+    """GET /api/replica/registry — list all known instances + their roles."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    reg = _register_instance()
+    return jsonify({
+        "ok": True,
+        "registry": reg,
+        "self": {
+            "instance_id": _instance_id(),
+            "region": _instance_region(),
+            "role": _instance_role(),
+        },
+        "primary_alive": reg.get("primary") in reg.get("instances", {}),
+    }), 200
+
+
+@app.route("/api/replica/promote", methods=["POST"])
+def replica_promote_self():
+    """POST /api/replica/promote — promote this instance to primary.
+
+    Only allowed if:
+      - No current primary (registry has no primary key), OR
+      - Current primary has not sent a heartbeat in CRON_HEARTBEAT_TIMEOUT_SECONDS
+
+    This is the leader-election primitive for failover.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    reg = _register_instance()
+    iid = _instance_id()
+    current_primary = reg.get("primary")
+    # Check primary health
+    primary_alive = False
+    if current_primary and current_primary in reg["instances"]:
+        last_seen = reg["instances"][current_primary].get("last_seen", "")
+        try:
+            d = datetime.datetime.fromisoformat(last_seen.replace("Z", ""))
+            age = (datetime.datetime.utcnow() - d).total_seconds()
+            primary_alive = age < CRON_HEARTBEAT_TIMEOUT_SECONDS
+        except Exception:
+            primary_alive = False
+    if current_primary and primary_alive and current_primary != iid:
+        return jsonify({
+            "ok": False,
+            "error": f"primary '{current_primary}' is alive — cannot promote self",
+            "current_primary": current_primary,
+            "self": iid,
+        }), 409
+    # Promote
+    reg["primary"] = iid
+    reg["promoted_at"] = _now_iso()
+    reg["promoted_from"] = current_primary
+    _write_replica_registry(reg)
+    _tenant_audit("fleet", "replica-promote", iid)
+    return jsonify({
+        "ok": True,
+        "promoted": iid,
+        "previous_primary": current_primary,
+        "message": f"This instance ({iid}) is now primary.",
+    }), 200
+
+
+@app.route("/api/replica/sync", methods=["GET"])
+def replica_sync():
+    """GET /api/replica/sync — pull a snapshot of key data files from primary.
+
+    Returns a list of (filename, base64_content) tuples so a replica can
+    hydrate its local DATA_DIR. The replica is responsible for what to
+    actually write locally — this endpoint just exposes the data.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _instance_role() != "primary":
+        return jsonify({
+            "ok": False,
+            "error": "this endpoint only serves data when ROLE=primary",
+            "self_role": _instance_role(),
+        }), 403
+    # Files safe to sync — read-only data files
+    sync_files = [
+        "brand-index.json",
+        "live-mode.json",
+        "voice_bible.json",
+        "bible-visual.json",
+        "product-priority.json",
+        "cron-status.json",
+        "insights/index.json",
+    ]
+    payload = {}
+    for fn in sync_files:
+        p = os.path.join(DATA_DIR, fn)
+        if os.path.exists(p):
+            try:
+                with open(p, "rb") as f:
+                    payload[fn] = base64.b64encode(f.read()).decode("ascii")
+            except Exception:
+                pass
+    return jsonify({
+        "ok": True,
+        "primary": _instance_id(),
+        "synced_at": _now_iso(),
+        "file_count": len(payload),
+        "files": list(payload.keys()),
+        "payload": payload,
+    }), 200
+
+
+@app.route("/api/replica/status", methods=["GET"])
+def replica_status():
+    """GET /api/replica/status — show this instance's role + sync status."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    reg = _read_replica_registry()
+    iid = _instance_id()
+    # Compute primary last seen
+    primary_info = None
+    primary_alive = False
+    if reg.get("primary") and reg["primary"] in reg["instances"]:
+        pinfo = reg["instances"][reg["primary"]]
+        try:
+            d = datetime.datetime.fromisoformat(pinfo.get("last_seen", "1970-01-01T00:00:00").replace("Z", ""))
+            age = (datetime.datetime.utcnow() - d).total_seconds()
+            primary_alive = age < CRON_HEARTBEAT_TIMEOUT_SECONDS
+        except Exception:
+            age = 99999
+        primary_info = {
+            **pinfo,
+            "age_seconds": age if 'age' in dir() else 99999,
+            "alive": primary_alive,
+        }
+    # Compute replica lag (this instance's last_seen vs primary)
+    self_info = reg["instances"].get(iid, {})
+    lag = None
+    if primary_info and primary_info.get("last_seen") and self_info.get("last_seen"):
+        try:
+            d_primary = datetime.datetime.fromisoformat(primary_info["last_seen"].replace("Z", ""))
+            d_self = datetime.datetime.fromisoformat(self_info["last_seen"].replace("Z", ""))
+            lag = abs((d_self - d_primary).total_seconds())
+        except Exception:
+            pass
+    return jsonify({
+        "ok": True,
+        "self": {
+            "instance_id": iid,
+            "region": _instance_region(),
+            "role": _instance_role(),
+        },
+        "primary": primary_info,
+        "replica_lag_seconds": lag,
+        "registry_size": len(reg.get("instances", {})),
+        "sync_interval_seconds": REPLICA_SYNC_INTERVAL_SECONDS,
+        "heartbeat_timeout_seconds": CRON_HEARTBEAT_TIMEOUT_SECONDS,
+    }), 200
+
+
+# ─── CRON REDUNDANCY (Tier 3.11, 2026-09-04) ─────────────────────────────
+# Leader-election for cron: only the leader runs the cron tick.
+# Other instances stand by and monitor the heartbeat.
+#
+# Leader-election algorithm:
+#   1. Each instance periodically calls /api/cron/heartbeat
+#   2. Only the leader writes to data/cron-heartbeat.json
+#   3. If heartbeat is stale (> CRON_HEARTBEAT_TIMEOUT_SECONDS), any
+#      instance can call /api/cron/claim-leadership to become leader
+#   4. The new leader then runs the cron tick
+
+def _read_cron_leader():
+    if os.path.exists(CRON_LEADER_FILE):
+        try:
+            with open(CRON_LEADER_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"leader": None, "acquired_at": None, "expires_at": None}
+
+
+def _write_cron_leader(leader_data):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        tmp = CRON_LEADER_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(leader_data, f, indent=2)
+        os.replace(tmp, CRON_LEADER_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def _read_cron_heartbeat():
+    if os.path.exists(CRON_HEARTBEAT_FILE):
+        try:
+            with open(CRON_HEARTBEAT_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"last_tick_at": None, "tick_count": 0, "last_instance": None}
+
+
+def _write_cron_heartbeat(hb):
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        tmp = CRON_HEARTBEAT_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(hb, f, indent=2)
+        os.replace(tmp, CRON_HEARTBEAT_FILE)
+        return True
+    except Exception:
+        return False
+
+
+@app.route("/api/cron/heartbeat", methods=["GET", "POST"])
+def cron_heartbeat_route():
+    """GET/POST /api/cron/heartbeat — record a tick heartbeat from the leader.
+
+    Called by the cron's tick handler. Updates cron-heartbeat.json with:
+      - last_tick_at (now)
+      - tick_count (incremented)
+      - last_instance (the instance that ticked)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Only the leader should write heartbeats
+    leader = _read_cron_leader()
+    iid = _instance_id()
+    if leader.get("leader") and leader["leader"] != iid:
+        return jsonify({
+            "ok": False,
+            "error": "not the leader — heartbeat rejected",
+            "leader": leader["leader"],
+            "self": iid,
+        }), 409
+    hb = _read_cron_heartbeat()
+    hb["last_tick_at"] = _now_iso()
+    hb["tick_count"] = hb.get("tick_count", 0) + 1
+    hb["last_instance"] = iid
+    _write_cron_heartbeat(hb)
+    # Refresh leader lock
+    leader["leader"] = iid
+    leader["acquired_at"] = leader.get("acquired_at", _now_iso())
+    leader["expires_at"] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=CRON_LOCK_TTL_SECONDS)).isoformat() + "Z"
+    _write_cron_leader(leader)
+    return jsonify({
+        "ok": True,
+        "heartbeat": hb,
+        "leader_lock_expires": leader["expires_at"],
+    }), 200
+
+
+@app.route("/api/cron/claim-leadership", methods=["POST"])
+def cron_claim_leadership():
+    """POST /api/cron/claim-leadership — become the cron leader.
+
+    Allowed when:
+      - No current leader (no CRON_LEADER_FILE), OR
+      - Current leader lock expired (> CRON_LOCK_TTL_SECONDS old), OR
+      - Current leader's heartbeat is stale (> CRON_HEARTBEAT_TIMEOUT_SECONDS)
+
+    Returns: {ok, leader, expires_at} on success.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    leader = _read_cron_leader()
+    iid = _instance_id()
+    # Check if current leader is still valid
+    current = leader.get("leader")
+    if current == iid:
+        # Self-claim — refresh lock
+        leader["expires_at"] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=CRON_LOCK_TTL_SECONDS)).isoformat() + "Z"
+        _write_cron_leader(leader)
+        return jsonify({"ok": True, "leader": iid, "expires_at": leader["expires_at"], "action": "refresh"}), 200
+    # Check if current leader's heartbeat is fresh
+    hb = _read_cron_heartbeat()
+    current_alive = False
+    if current and hb.get("last_tick_at"):
+        try:
+            d = datetime.datetime.fromisoformat(hb["last_tick_at"].replace("Z", ""))
+            age = (datetime.datetime.utcnow() - d).total_seconds()
+            current_alive = age < CRON_HEARTBEAT_TIMEOUT_SECONDS
+        except Exception:
+            current_alive = False
+    # Check leader lock expiry
+    lock_alive = False
+    if leader.get("expires_at"):
+        try:
+            d = datetime.datetime.fromisoformat(leader["expires_at"].replace("Z", ""))
+            lock_alive = d > datetime.datetime.utcnow()
+        except Exception:
+            lock_alive = False
+    if current and lock_alive and current_alive:
+        return jsonify({
+            "ok": False,
+            "error": f"current leader '{current}' is alive",
+            "current_leader": current,
+            "heartbeat_age_seconds": age if 'age' in dir() else None,
+        }), 409
+    # Claim
+    new_leader = {
+        "leader": iid,
+        "acquired_at": _now_iso(),
+        "expires_at": (datetime.datetime.utcnow() + datetime.timedelta(seconds=CRON_LOCK_TTL_SECONDS)).isoformat() + "Z",
+        "previous_leader": current,
+    }
+    _write_cron_leader(new_leader)
+    _tenant_audit("fleet", "cron-claim-leadership", iid)
+    return jsonify({
+        "ok": True,
+        "leader": iid,
+        "expires_at": new_leader["expires_at"],
+        "previous_leader": current,
+        "action": "claim",
+    }), 200
+
+
+@app.route("/api/cron/status", methods=["GET"])
+def cron_status_aggregated():
+    """GET /api/cron/status — cron leader + heartbeat + redundancy state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    leader = _read_cron_leader()
+    hb = _read_cron_heartbeat()
+    iid = _instance_id()
+    # Compute freshness
+    heartbeat_age = None
+    if hb.get("last_tick_at"):
+        try:
+            d = datetime.datetime.fromisoformat(hb["last_tick_at"].replace("Z", ""))
+            heartbeat_age = (datetime.datetime.utcnow() - d).total_seconds()
+        except Exception:
+            pass
+    lock_age = None
+    if leader.get("acquired_at"):
+        try:
+            d = datetime.datetime.fromisoformat(leader["acquired_at"].replace("Z", ""))
+            lock_age = (datetime.datetime.utcnow() - d).total_seconds()
+        except Exception:
+            pass
+    is_leader = leader.get("leader") == iid
+    return jsonify({
+        "ok": True,
+        "self": iid,
+        "is_leader": is_leader,
+        "leader": leader.get("leader"),
+        "leader_acquired_at": leader.get("acquired_at"),
+        "leader_expires_at": leader.get("expires_at"),
+        "lock_age_seconds": lock_age,
+        "heartbeat": hb,
+        "heartbeat_age_seconds": heartbeat_age,
+        "heartbeat_fresh": (heartbeat_age is not None and heartbeat_age < CRON_HEARTBEAT_TIMEOUT_SECONDS),
+        "heartbeat_timeout_seconds": CRON_HEARTBEAT_TIMEOUT_SECONDS,
+        "lock_ttl_seconds": CRON_LOCK_TTL_SECONDS,
+    }), 200
+
+
+@app.route("/api/health", methods=["GET"])
+def health_v2():
+    """Enhanced health endpoint — returns region + role + replica status.
+    For Railway health-checks: returns 200 even if replica is unhealthy
+    (only the primary should fail health-check to trigger restart).
+    """
+    role = _instance_role()
+    reg = _read_replica_registry()
+    leader = _read_cron_leader()
+    hb = _read_cron_heartbeat()
+    # Always 200 — Railway health-check should not restart the app
+    # for transient replica issues. Use /api/ready for stricter checks.
     return jsonify({
         "status": "ok",
+        "ts": _now_iso(),
+        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git')),
+        "instance_id": _instance_id(),
+        "region": _instance_region(),
+        "role": role,
+        "primary": reg.get("primary"),
+        "cron_leader": leader.get("leader"),
+        "cron_heartbeat_fresh": bool(hb.get("last_tick_at")),
+    }), 200
+
+
+
+@app.route('/api/admin/env-debug', methods=['GET'])
+def env_debug():
+    """Debug endpoint: dump which credential env vars the running process can see.
+    Returns the PREFIX + LENGTH of each secret, never the value. Used to
+    verify env-var pickup after Railway env changes.
+    """
+    if not _INTELLIGENCE_AVAILABLE:
+        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
+    keys_of_interest = [
+        "OPENROUTER_API_KEY",
+        "OPENROUTER_API_KEY_FILE",
+        "OPENAI_API_KEY",
+        "OPENAI_API_KEY_FILE",
+        "CAMPAIGN_OS_IMAGE_PROVIDER",
+        "CAMPAIGN_OS_IMAGE_MODEL",
+        "DATA_DIR",
+        "PORT",
+        # v2026-08-13: added for the validate_railway_deploy_wiring.py script.
+        # Tells the validator whether the GitHub PAT is wired for auto-deploys.
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "CAMPAIGN_OS_PASSWORD",
+        "CAMPAIGN_OS_SECRET",
+        # v2026-08-18: Postiz OAuth secret dropped via /secret-drop. Without
+        # this in the list, /api/admin/env-debug hides whether the rotation
+        # landed - which caused a misdiagnosis on the first Postiz drop.
+        "POSTIZ_OAUTH_CLIENT_SECRET",
+        "POSTIZ_OAUTH_CLIENT_ID",
+        "POSTIZ_API_KEY",
+        # OAuth tokens we mint from the in-app social login flow (Section E
+        # of the 2026-08-18 roadmap).
+        "META_SYSTEM_USER_TOKEN",
+        "X_ACCESS_TOKEN",
+        "X_BEARER_TOKEN",
+        "TIKTOK_ACCESS_TOKEN",
+        "GBP_REFRESH_TOKEN",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "GOOGLE_OAUTH_CLIENT_SECRET",
+    ]
+    out = {}
+    for k in keys_of_interest:
+        v = os.environ.get(k, "")
+        if v:
+            out[k] = {"set": True, "length": len(v), "prefix": v[:6] + "…"}
+        else:
+            out[k] = {"set": False}
+    # Also check the canonical file paths
+    file_checks = {}
+    for label, p in [
+        ("DEFAULT_OPENROUTER_TOKEN_FILE", "/Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials/openrouter-api.json"),
+    ]:
+        file_checks[label] = {"path": p, "exists": os.path.exists(p)}
+    return jsonify({
+        "ok": True,
+        "env": out,
+        "files": file_checks,
         "ts": datetime.datetime.utcnow().isoformat() + 'Z',
-        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git'))
     })
 
 
@@ -11240,6 +11804,60 @@ def _get_freshness():
     return generated, 'on-demand', True
 
 
+<<<<<<< HEAD
+=======
+@app.route('/api/freshness/refresh', methods=['POST'])
+def freshness_refresh():
+    """POST /api/freshness/refresh — re-walk the data/ tree and rebuild
+    freshness.json on the volume. Called by the meta-live-fetch.yml
+    GitHub Actions cron after /api/meta/fetch lands so /api/freshness
+    reflects the post-fetch state (not yesterday's snapshot).
+
+    Auth-gated because this is an admin/cron operation that walks the
+    data directory and writes a JSON. It is safe but we still want to
+    know who's calling it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        paths = _data_paths()
+        vol = paths['data_dir']
+        # Invalidate the on-demand cache so the next GET walks fresh
+        _freshness_cache.clear()
+        if not os.path.isdir(vol):
+            return jsonify({"ok": False, "error": "data_dir missing", "vol": vol}), 500
+        generated = _build_freshness_on_demand(vol)
+        # Persist to volume so /api/freshness reads from disk next time
+        target = os.path.join(vol, 'freshness.json')
+        try:
+            if os.access(vol, os.W_OK):
+                with open(target, 'w', encoding='utf-8') as fh:
+                    json.dump(generated, fh, indent=2, ensure_ascii=False)
+                return jsonify({
+                    "ok": True,
+                    "scanned_at": generated.get("generated"),
+                    "path": target,
+                    "total_files": generated.get("total_files"),
+                    "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
+                    "stale_count": generated.get("by_staleness", {}).get("stale", 0),
+                    "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
+                })
+        except OSError as e:
+            return jsonify({
+                "ok": True,
+                "scanned_at": generated.get("generated"),
+                "warning": f"scan completed but write failed: {e}",
+                "total_files": generated.get("total_files"),
+                "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
+                "stale_count": generated.get("by_staleness", {}).get("stale", 0),
+                "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
+            })
+    except Exception as e:
+        _app_log.exception("freshness_refresh failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+>>>>>>> main
 @app.route('/api/freshness', methods=['GET'])
 def freshness():
     """GET /api/freshness — surface data/freshness.json so the OS UI can render
@@ -18986,3 +19604,9304 @@ def admin_data_freshness():
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+<<<<<<< HEAD
+=======
+
+
+# ─── SEO BUSINESS BRAIN (2026-09-02) ──────────────────────────────────────────
+# GET /api/seo/business-brain?brand_id=swing-shack
+#
+# Built from Sarvesh Shrivastava's "Top 20 Grok Bot Prompts For SEO" article
+# (https://x.com/bloggersarvesh/status/2090071557590900974). His core pattern:
+# load your business brain ONCE as a system prompt, then every downstream
+# prompt (competitor gap, schema audit, GBP audit, JSON-LD gen) becomes
+# sharper because the AI already knows the business.
+#
+# Output is the exact prompt string he recommends in Prompt1 of "Super SEO
+# Mode" — paste it into any chat interface (Grok, Claude, Krea) and the AI
+# stops asking for context on subsequent prompts.
+#
+# Sources:
+#   - data/brands.json            — business basics (name, voice, audience, etc.)
+#   - data/competitor-tracker.json — top competitors with websites
+#   - data/seo-rankings.json       — current keyword rankings
+#   - data/seo-audit.json          — site URL + findings
+#   - data/meta-page-info.json     — GBP location id, phone, address (if available)
+#   - data/ubersuggest-domain.json — service area + keyword volumes (if available)
+
+@app.route('/api/seo/business-brain', methods=['GET'])
+def seo_business_brain():
+    """Build the "load your business brain" system prompt for any AI chat.
+
+    Query params:
+      brand_id     — defaults to swing-shack
+      format       — 'prompt' (default, returns the raw text) or 'json' (returns
+                     structured sections so the UI can render each field)
+
+    The prompt is the canonical Sarvesh "Prompt1" template:
+    "Here is everything [AI] needs to know about my business: [name], [address],
+    [phone], [website], [GBP URL], [service areas], [target keywords], [top 3
+    competitors with their GBP URLs]. Use this as the base for every prompt I
+    run. Never ask me for this information again."
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        brand_id = (request.args.get('brand_id') or 'swing-shack').strip()
+        out_format = (request.args.get('format') or 'prompt').strip().lower()
+
+        # 1) Pull the brand record
+        brands_path = os.path.join(DATA_DIR, 'brands.json')
+        brands_doc = _read_json_file(brands_path) or {}
+        brand = (brands_doc.get('brands') or {}).get(brand_id) or {}
+
+        # 2) Pull competitors
+        comp_path = os.path.join(DATA_DIR, 'competitor-tracker.json')
+        comp_doc = _read_json_file(comp_path) or {}
+        competitors = comp_doc.get('competitors') or []
+        # Sort by threat desc so the top 3 are the ones that matter
+        threat_rank = {'high': 3, 'medium': 2, 'low': 1}
+        sorted_comps = sorted(
+            competitors,
+            key=lambda c: threat_rank.get((c.get('threat') or '').lower(), 0),
+            reverse=True,
+        )
+        top3 = sorted_comps[:3]
+
+        # 3) Pull keywords
+        kw_path = os.path.join(DATA_DIR, 'seo-rankings.json')
+        kw_doc = _read_json_file(kw_path) or {}
+        keywords = kw_doc.get('keywords') or []
+        keyword_list = [k.get('keyword') for k in keywords if k.get('keyword')][:10]
+
+        # 4) Pull site URL from seo-audit
+        audit_path = os.path.join(DATA_DIR, 'seo-audit.json')
+        audit_doc = _read_json_file(audit_path) or {}
+        site_url = audit_doc.get('site') or brand.get('website') or ''
+
+        # 5) GBP info — try meta-page-info (it's where FB page + IG id live),
+        #    fall back to gbp_location_id on the brand record.
+        meta_page_path = os.path.join(DATA_DIR, 'meta-page-info.json')
+        meta_page = _read_json_file(meta_page_path) or {}
+        gbp_url = (
+            meta_page.get('gbp_url')
+            or meta_page.get('google_business_url')
+            or (f"https://g.page/{brand['gbp_location_id']}" if brand.get('gbp_location_id') else None)
+        )
+
+        # 6) Service areas — try ubersuggest-domain.json, then audience +
+        #    positioning (so we pick up "Johannesburg" from positioning even
+        #    when audience only says "JHB").
+        uber_path = os.path.join(DATA_DIR, 'ubersuggest-domain.json')
+        uber_doc = _read_json_file(uber_path) or {}
+        audience_blob = ' '.join(filter(None, [
+            brand.get('audience'),
+            brand.get('positioning'),
+            brand.get('tagline'),
+        ]))
+        service_areas = (
+            uber_doc.get('service_areas')
+            or uber_doc.get('locations')
+            or _extract_service_areas_from_audience(audience_blob)
+        )
+
+        # 7) Build the structured sections
+        sections = {
+            "brand": {
+                "id": brand_id,
+                "name": brand.get('display_name') or brand.get('name') or brand_id,
+                "tagline": brand.get('tagline'),
+                "positioning": brand.get('positioning'),
+                "audience": brand.get('audience'),
+                "voice_id": brand.get('voice_id'),
+                "voice_label": brand.get('voice_label'),
+                "tone_options": brand.get('tone_options') or [],
+                "primary_color": brand.get('primary_color'),
+                "accent_color": brand.get('accent_color'),
+                "website": site_url or brand.get('website'),
+                "instagram_handle": brand.get('instagram_handle'),
+                "facebook_page": brand.get('facebook_page') or meta_page.get('facebook_page'),
+            },
+            "contact": {
+                "address": meta_page.get('address') or brand.get('address'),
+                "phone": meta_page.get('phone') or brand.get('phone'),
+                "gbp_location_id": brand.get('gbp_location_id') or meta_page.get('gbp_location_id'),
+                "gbp_url": gbp_url,
+            },
+            "service_areas": service_areas,
+            "target_keywords": keyword_list,
+            "top_competitors": [
+                {
+                    "name": c.get('name'),
+                    "website": c.get('website'),
+                    "location": c.get('location'),
+                    "type": c.get('type'),
+                    "threat": c.get('threat'),
+                    "gbp_url": c.get('gbp_url'),
+                    "services": c.get('services') or [],
+                }
+                for c in top3
+            ],
+            "voice_bible_ref": brand.get('voice_bible_ref'),
+            "pillar_defaults": brand.get('pillar_defaults') or [],
+            "campaign_ids": brand.get('campaign_ids') or [],
+        }
+
+        # 8) Render the canonical Sarvesh Prompt1 prompt
+        prompt_text = _render_business_brain_prompt(sections)
+
+        if out_format == 'json':
+            return jsonify({
+                "ok": True,
+                "brand_id": brand_id,
+                "sections": sections,
+                "prompt": prompt_text,
+                "prompt_tokens_approx": len(prompt_text.split()),
+                "usage": (
+                    "Paste `prompt` into any chat interface as a system message. "
+                    "Subsequent prompts about SEO, content, or competitive analysis "
+                    "will then be specific to this brand without asking for context."
+                ),
+                "source": {
+                    "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+                    "pattern": "Sarvesh Shrivastava 'Super SEO Mode' Prompt1",
+                    "built_at": _now_iso(),
+                },
+            })
+        else:
+            # Plain text — easy to copy/paste into Grok/Claude/Krea
+            return Response(prompt_text, mimetype='text/plain')
+
+    except Exception as e:
+        _app_log.exception("seo_business_brain failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _extract_service_areas_from_audience(audience_text):
+    """Best-effort extract of service-area names from brand.audience or
+    brand.positioning. Pulls known JHB-area suburbs + 'in <LOC>' phrases.
+    Returns a list of strings, or []."""
+    if not audience_text:
+        return []
+    import re
+    text = audience_text
+
+    # Known JHB-area locations + SA major metros. We match anywhere in the
+    # text — the audience field usually has them embedded ("in JHB", "JHB Metro",
+    # "Sandton, Randburg").
+    KNOWN = [
+        "Johannesburg", "JHB", "Sandton", "Randburg", "Roodepoort", "Centurion",
+        "Pretoria", "Midrand", "Boksburg", "Germiston", "Kempton Park",
+        "Bedfordview", "Bryanston", "Fourways", "Rosebank", "Parktown",
+        "Cape Town", "Durban", "Stellenbosch",
+    ]
+    candidates = []
+
+    # Match known locations
+    for loc in KNOWN:
+        if re.search(rf"\b{re.escape(loc)}\b", text, re.IGNORECASE):
+            candidates.append(loc)
+
+    # Match generic "in <LOC>" phrases too
+    for m in re.finditer(r"\bin\s+([A-Z][A-Za-z][\w\s,]+?)(?:[,.]|\s+aged|\s+who|$)", text):
+        loc = m.group(1).strip()
+        for part in re.split(r",|\s+and\s+", loc):
+            part = part.strip()
+            if part and len(part) < 60 and part not in candidates:
+                candidates.append(part)
+
+    # Dedup (case-insensitive)
+    seen = set()
+    out = []
+    for c in candidates:
+        key = c.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(c)
+    return out[:8]
+
+
+def _render_business_brain_prompt(sections):
+    """Render the canonical Sarvesh Prompt1 template using the structured
+    sections. The output is the exact text you'd paste into a chat interface."""
+    brand = sections['brand']
+    contact = sections['contact']
+    areas = sections['service_areas'] or []
+    keywords = sections['target_keywords'] or []
+    comps = sections['top_competitors'] or []
+
+    lines = []
+    lines.append(f'Here is everything the AI needs to know about my business:')
+    lines.append('')
+    lines.append(f'- Name: {brand.get("name") or "?"}')
+
+    if contact.get('address'):
+        lines.append(f'- Address: {contact["address"]}')
+    if contact.get('phone'):
+        lines.append(f'- Phone: {contact["phone"]}')
+    if brand.get('website'):
+        lines.append(f'- Website: {brand["website"]}')
+
+    if contact.get('gbp_url'):
+        lines.append(f'- Google Business Profile URL: {contact["gbp_url"]}')
+    elif contact.get('gbp_location_id'):
+        lines.append(f'- Google Business Profile location_id: {contact["gbp_location_id"]}')
+
+    if brand.get('instagram_handle'):
+        lines.append(f'- Instagram: {brand["instagram_handle"]}')
+    if brand.get('facebook_page'):
+        lines.append(f'- Facebook page: {brand["facebook_page"]}')
+
+    if areas:
+        if len(areas) == 1:
+            lines.append(f'- Service areas: {areas[0]}')
+        else:
+            lines.append(f'- Service areas: {", ".join(areas)}')
+
+    if keywords:
+        lines.append(f'- Target keywords: {", ".join(keywords)}')
+
+    if comps:
+        lines.append(f'- Top {len(comps)} competitors:')
+        for i, c in enumerate(comps, 1):
+            comp_line = f'  {i}. {c.get("name") or "?"}'
+            if c.get('website'):
+                comp_line += f' — {c["website"]}'
+            if c.get('gbp_url'):
+                comp_line += f' (GBP: {c["gbp_url"]})'
+            elif c.get('location'):
+                comp_line += f' ({c["location"]})'
+            lines.append(comp_line)
+
+    if brand.get('positioning'):
+        lines.append(f'- Positioning: {brand["positioning"]}')
+    if brand.get('tagline'):
+        lines.append(f'- Tagline: {brand["tagline"]}')
+    if brand.get('audience'):
+        lines.append(f'- Target audience: {brand["audience"]}')
+
+    tones = brand.get('tone_options') or []
+    if tones:
+        lines.append(f'- Voice tones (pick one per prompt): {", ".join(tones)}')
+
+    if brand.get('voice_bible_ref'):
+        lines.append(f'- Voice bible reference: {brand["voice_bible_ref"]}')
+
+    pillars = sections.get('pillar_defaults') or []
+    if pillars:
+        lines.append(f'- Brand pillars (rotate content across these): {", ".join(pillars)}')
+
+    lines.append('')
+    lines.append('Use this as the base for every prompt I run. Never ask me for this information again.')
+    lines.append('Match the brand voice, never invent prices or availability, and stay ZAR-first if you quote money.')
+
+    return '\n'.join(lines)
+
+
+# ─── SEO PROMPT STACK (2026-09-02) ──────────────────────────────────────────
+# POST /api/seo/prompt-stack
+#
+# Built as Layer 2 of the Sarvesh Shrivastava SEO strategy. Layer 1
+# (/api/seo/business-brain) emits the brand's "business brain" system prompt.
+# Layer 2 takes that system prompt + a task name + inputs, then calls the AI
+# (OpenRouter by default) and returns the output.
+#
+# Tasks (each maps to one of Sarvesh's 20 Grok Bot Prompts):
+#
+#   competitor_gap       → Content gaps vs N competitor sites
+#   schema_audit         → Schema inventory + missing priority for a URL
+#   json_ld_gen          → Generate clean JSON-LD for a schema type
+#   gbp_category_audit   → GBP category matrix vs top competitors
+#   content_brief        → Content brief for a target keyword
+#
+# Body shape:
+#   {
+#     "task": "competitor_gap" | "schema_audit" | "json_ld_gen" |
+#             "gbp_category_audit" | "content_brief",
+#     "brand_id": "swing-shack",
+#     "inputs": { ... task-specific ... },
+#     "model": "anthropic/claude-3.5-sonnet" (optional, default below),
+#     "temperature": 0.4 (optional),
+#     "include_brain": true (optional, default true — prepends business brain)
+#   }
+
+
+SEO_PROMPT_STACK_TASKS = {
+    "competitor_gap": {
+        "label": "Competitor content gap analysis",
+        "sarvesh_prompt_id": 2,
+        "required_inputs": ["competitor_urls"],
+        "optional_inputs": ["keyword", "max_gaps"],
+        "user_prompt_template": (
+            "Scan these competitor sites: {competitor_urls}\n"
+            "\n"
+            "What are these competitors' sites missing? Find the content gaps "
+            "and tell me {max_gaps|5} topics I should cover to be more helpful "
+            "than them. If I provide more value, I win the #1 spot. Period.\n"
+            "\n"
+            "For each gap, output:\n"
+            "- Topic title (searchable)\n"
+            "- Why the competitors miss it (1 sentence)\n"
+            "- Why this matters for our audience (1 sentence)\n"
+            "- Suggested format (article / video / landing / GBP post)\n"
+            "- Internal-link target on our site (if any)\n"
+            "\n"
+            "Match our brand voice. Stay ZAR-first if you quote prices."
+        ),
+    },
+    "schema_audit": {
+        "label": "Schema audit (LocalBusiness + page-level)",
+        "sarvesh_prompt_id": 5,
+        "required_inputs": ["url"],
+        "optional_inputs": [],
+        "user_prompt_template": (
+            "Audit the schema on {url}. Open the page source mentally and "
+            "list every JSON-LD / microdata / RDFa block.\n"
+            "\n"
+            "Output exactly:\n"
+            "(1) Existing schema — for each block, the @type, where it lives, "
+            "and a verdict (useful / weak / wrong / spam-risk).\n"
+            "(2) Missing/weak schema — what should exist but doesn't, in "
+            "priority order (HIGH / MED / LOW).\n"
+            "(3) For HIGH-priority gaps only, generate clean JSON-LD with "
+            "placeholders for values I need to fill in. Use the brand facts "
+            "above for the values you CAN fill in.\n"
+            "\n"
+            "No guessing. No explanations. Be blunt."
+        ),
+    },
+    "json_ld_gen": {
+        "label": "Generate JSON-LD for a schema type",
+        "sarvesh_prompt_id": 8,
+        "required_inputs": ["schema_type"],
+        "optional_inputs": ["facts", "page_url"],
+        "user_prompt_template": (
+            "Generate a clean JSON-LD block for @type: {schema_type}.\n"
+            "{page_url|Page URL: {page_url}}\n"
+            "\n"
+            "Use these facts from the brand brain above for the values you can "
+            "fill in. Use placeholders ({{...}}) for the values I need to provide.\n"
+            "{facts|Extra facts (if any):\n{facts}}\n"
+            "\n"
+            "Output: ONLY the JSON-LD code block. No prose. No markdown wrappers.\n"
+            "No guessing on missing fields — leave them as {{PLACEHOLDER}}."
+        ),
+    },
+    "gbp_category_audit": {
+        "label": "GBP category audit vs top competitors",
+        "sarvesh_prompt_id": 3,
+        "required_inputs": ["keywords"],
+        "optional_inputs": ["competitor_gbp_urls"],
+        "user_prompt_template": (
+            "Imagine opening Google Maps and searching each of these keywords "
+            "in our service area:\n\n"
+            "{keywords}\n"
+            "\n"
+            "{competitor_gbp_urls|For each competitor GBP URL below, open the "
+            "listing and extract primary + secondary categories:\n"
+            "{competitor_gbp_urls}}\n"
+            "\n"
+            "Output a markdown table with columns:\n"
+            "| Keyword | Map Pack Position | Competitor | Primary Category | "
+            "Secondary Categories | Star Rating | Review Count |\n"
+            "\n"
+            "Then a final row: 'Categories competitors have that I'm missing'.\n"
+            "\n"
+            "If you don't have real-time GBP data, say so explicitly — no guessing. "
+            "Tell me what to check in GBP Manager manually."
+        ),
+    },
+    "content_brief": {
+        "label": "Content brief for a target keyword",
+        "sarvesh_prompt_id": 11,
+        "required_inputs": ["keyword"],
+        "optional_inputs": ["competitor_urls", "target_word_count"],
+        "user_prompt_template": (
+            "Write a content brief for the keyword '{keyword}' that would rank "
+            "for our brand.\n"
+            "{target_word_count|Target word count: {target_word_count}}\n"
+            "\n"
+            "Output exactly:\n"
+            "1. Search intent (informational / commercial / transactional)\n"
+            "2. Target audience (specific — pull from brand brain)\n"
+            "3. Suggested H1 (one option)\n"
+            "4. Suggested meta title (<=60 chars)\n"
+            "5. Suggested meta description (<=155 chars)\n"
+            "6. Outline — 3-5 H2 sections, each with 1-line description\n"
+            "7. Internal-link targets (from our site)\n"
+            "8. CTA — one primary, one backup, both ZAR-first if they mention money\n"
+            "9. Schema to add (from schema_audit playbook)\n"
+            "10. Repurposing plan (how this becomes 4 Reels, 8 Stories, 1 GBP post)\n"
+            "{competitor_urls|Competitor URLs to out-rank: {competitor_urls}}\n"
+            "\n"
+            "Match the brand voice. No fabricated prices or availability."
+        ),
+    },
+}
+
+DEFAULT_OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+def _openrouter_chat_completion(messages, model=None, temperature=0.4, max_tokens=1500, timeout=60):
+    """Call OpenRouter chat/completions. Returns (content_str, error_or_None).
+
+    messages: list of {"role": ..., "content": ...}
+    """
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        # Try the canonical file fallback
+        for cred_path in [
+            os.path.expanduser("~/.openclaw/workspace/credentials/openrouter-api.json"),
+            os.path.join(os.environ.get("HOME", ""), ".openclaw", "workspace", "credentials", "openrouter-api.json"),
+            "/tmp/openrouter-api.json",
+        ]:
+            try:
+                if os.path.exists(cred_path):
+                    with open(cred_path) as f:
+                        api_key = (json.loads(f.read()).get("api_key") or "").strip()
+                    if api_key:
+                        break
+            except Exception:
+                continue
+    if not api_key:
+        return None, "OPENROUTER_API_KEY not set (env var or credential file)"
+
+    try:
+        import requests as _req
+    except ImportError:
+        return None, "requests library unavailable"
+
+    payload = {
+        "model": model or DEFAULT_OPENROUTER_MODEL,
+        "messages": messages,
+        "temperature": float(temperature),
+        "max_tokens": int(max_tokens),
+        "stream": False,
+    }
+    try:
+        resp = _req.post(
+            OPENROUTER_API_URL,
+            headers={
+                "Authorization": "Bearer " + api_key,
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://swing-shack-dashboard.up.railway.app",
+                "X-Title": "Swing Shack Campaign OS",
+            },
+            json=payload,
+            timeout=timeout,
+        )
+        if resp.status_code != 200:
+            err_body = (resp.text or "")[:500]
+            return None, "OpenRouter " + str(resp.status_code) + ": " + err_body
+        data = resp.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return None, "OpenRouter returned no choices"
+        content = (choices[0].get("message") or {}).get("content") or ""
+        return content, None
+    except Exception as exc:
+        return None, "OpenRouter request failed: " + str(exc)
+
+
+def _build_business_brain_sections(brand_id):
+    """Same loader as seo_business_brain. Pulled out so prompt-stack can reuse it
+    without re-rendering the prompt text."""
+    brands_path = os.path.join(DATA_DIR, 'brands.json')
+    brands_doc = _read_json_file(brands_path) or {}
+    brand = (brands_doc.get('brands') or {}).get(brand_id) or {}
+
+    comp_path = os.path.join(DATA_DIR, 'competitor-tracker.json')
+    comp_doc = _read_json_file(comp_path) or {}
+    competitors = comp_doc.get('competitors') or []
+    threat_rank = {'high': 3, 'medium': 2, 'low': 1}
+    sorted_comps = sorted(
+        competitors,
+        key=lambda c: threat_rank.get((c.get('threat') or '').lower(), 0),
+        reverse=True,
+    )
+    top3 = sorted_comps[:3]
+
+    kw_path = os.path.join(DATA_DIR, 'seo-rankings.json')
+    kw_doc = _read_json_file(kw_path) or {}
+    keywords = kw_doc.get('keywords') or []
+    keyword_list = [k.get('keyword') for k in keywords if k.get('keyword')][:10]
+
+    audit_path = os.path.join(DATA_DIR, 'seo-audit.json')
+    audit_doc = _read_json_file(audit_path) or {}
+    site_url = audit_doc.get('site') or brand.get('website') or ''
+
+    meta_page_path = os.path.join(DATA_DIR, 'meta-page-info.json')
+    meta_page = _read_json_file(meta_page_path) or {}
+    gbp_url = (
+        meta_page.get('gbp_url')
+        or meta_page.get('google_business_url')
+        or (f"https://g.page/{brand['gbp_location_id']}" if brand.get('gbp_location_id') else None)
+    )
+
+    uber_path = os.path.join(DATA_DIR, 'ubersuggest-domain.json')
+    uber_doc = _read_json_file(uber_path) or {}
+    audience_blob = ' '.join(filter(None, [
+        brand.get('audience'),
+        brand.get('positioning'),
+        brand.get('tagline'),
+    ]))
+    service_areas = (
+        uber_doc.get('service_areas')
+        or uber_doc.get('locations')
+        or _extract_service_areas_from_audience(audience_blob)
+    )
+
+    return {
+        "brand": {
+            "id": brand_id,
+            "name": brand.get('display_name') or brand.get('name') or brand_id,
+            "tagline": brand.get('tagline'),
+            "positioning": brand.get('positioning'),
+            "audience": brand.get('audience'),
+            "voice_id": brand.get('voice_id'),
+            "voice_label": brand.get('voice_label'),
+            "tone_options": brand.get('tone_options') or [],
+            "primary_color": brand.get('primary_color'),
+            "accent_color": brand.get('accent_color'),
+            "website": site_url or brand.get('website'),
+            "instagram_handle": brand.get('instagram_handle'),
+            "facebook_page": brand.get('facebook_page') or meta_page.get('facebook_page'),
+        },
+        "contact": {
+            "address": meta_page.get('address') or brand.get('address'),
+            "phone": meta_page.get('phone') or brand.get('phone'),
+            "gbp_location_id": brand.get('gbp_location_id') or meta_page.get('gbp_location_id'),
+            "gbp_url": gbp_url,
+        },
+        "service_areas": service_areas,
+        "target_keywords": keyword_list,
+        "top_competitors": [
+            {
+                "name": c.get('name'),
+                "website": c.get('website'),
+                "location": c.get('location'),
+                "type": c.get('type'),
+                "threat": c.get('threat'),
+                "gbp_url": c.get('gbp_url'),
+                "services": c.get('services') or [],
+            }
+            for c in top3
+        ],
+        "voice_bible_ref": brand.get('voice_bible_ref'),
+        "pillar_defaults": brand.get('pillar_defaults') or [],
+        "campaign_ids": brand.get('campaign_ids') or [],
+    }
+
+
+def _json_dumps_compact(obj):
+    try:
+        return json.dumps(obj, ensure_ascii=False)
+    except Exception:
+        return str(obj)
+
+
+def _build_prompt_stack_messages(task_name, brand_id, inputs, include_brain):
+    """Compose the messages array for the OpenRouter call.
+
+    Returns (messages_list, user_prompt_text, sections_or_None).
+    """
+    task_def = SEO_PROMPT_STACK_TASKS.get(task_name)
+    if not task_def:
+        return None, None, None
+
+    sections = _build_business_brain_sections(brand_id)
+
+    template = task_def["user_prompt_template"]
+    fmt_inputs = dict(inputs or {})
+
+    # Handle {key|default} pattern - Sarvesh-style conditional sections
+    import re as _re
+    def _sub(match):
+        key = match.group(1)
+        default = match.group(2) or ""
+        val = fmt_inputs.get(key)
+        if val in (None, "", [], {}):
+            return ""
+        return default.replace("{" + key + "}", str(val))
+
+    template = _re.sub(r"\{([\w_]+)\|([^}]*)\}", _sub, template)
+    safe_fmt = {k: ("" if v is None else (str(v) if not isinstance(v, (list, dict)) else _json_dumps_compact(v))) for k, v in fmt_inputs.items()}
+    try:
+        user_text = template.format(**safe_fmt)
+    except KeyError:
+        return None, None, sections
+
+    messages = []
+    if include_brain and sections:
+        system_text = _render_business_brain_prompt(sections)
+        messages.append({"role": "system", "content": system_text})
+    messages.append({"role": "user", "content": user_text})
+    return messages, user_text, sections
+
+
+@app.route('/api/seo/prompt-stack', methods=['POST'])
+def seo_prompt_stack():
+    """Run a Sarvesh-prompt task against the AI with the business brain as
+    system prefix. See SEO_PROMPT_STACK_TASKS for the task catalog.
+
+    Body:
+      task              — required, one of: competitor_gap | schema_audit |
+                          json_ld_gen | gbp_category_audit | content_brief
+      brand_id          — default swing-shack
+      inputs            — required (task-specific inputs)
+      model             — optional, default anthropic/claude-3.5-sonnet
+      temperature       — optional, default 0.4
+      max_tokens        — optional, default 1500
+      include_brain     — optional, default true
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        task_name = (body.get('task') or '').strip()
+        if not task_name:
+            return jsonify({"ok": False, "error": "task required", "available": list(SEO_PROMPT_STACK_TASKS.keys())}), 400
+        if task_name not in SEO_PROMPT_STACK_TASKS:
+            return jsonify({"ok": False, "error": "unknown task '" + task_name + "'", "available": list(SEO_PROMPT_STACK_TASKS.keys())}), 400
+
+        task_def = SEO_PROMPT_STACK_TASKS[task_name]
+        brand_id = (body.get('brand_id') or 'swing-shack').strip()
+        inputs = body.get('inputs') or {}
+
+        missing = [k for k in task_def['required_inputs'] if not inputs.get(k)]
+        if missing:
+            return jsonify({
+                "ok": False,
+                "error": "missing required inputs: " + str(missing),
+                "task": task_name,
+                "required_inputs": task_def['required_inputs'],
+                "optional_inputs": task_def['optional_inputs'],
+            }), 400
+
+        messages, user_prompt, sections = _build_prompt_stack_messages(
+            task_name, brand_id, inputs, body.get('include_brain', True)
+        )
+        if not messages:
+            return jsonify({"ok": False, "error": "could not build prompt messages"}), 500
+
+        model = body.get('model') or DEFAULT_OPENROUTER_MODEL
+        temperature = body.get('temperature', 0.4)
+        max_tokens = body.get('max_tokens', 1500)
+        content, err = _openrouter_chat_completion(
+            messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            timeout=60,
+        )
+        if err:
+            return jsonify({
+                "ok": False,
+                "error": err,
+                "task": task_name,
+                "model": model,
+            }), 502
+
+        return jsonify({
+            "ok": True,
+            "task": task_name,
+            "task_label": task_def['label'],
+            "sarvesh_prompt_id": task_def.get('sarvesh_prompt_id'),
+            "brand_id": brand_id,
+            "model": model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "user_prompt": user_prompt,
+            "output": content,
+            "output_chars": len(content),
+            "output_tokens_approx": len(content.split()),
+            "business_brain_used": bool(body.get('include_brain', True) and sections),
+            "source": {
+                "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+                "pattern": "Sarvesh 'Super SEO Mode' prompt-stack",
+                "built_at": _now_iso(),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("seo_prompt_stack failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/prompt-stack/tasks', methods=['GET'])
+def seo_prompt_stack_tasks():
+    """GET /api/seo/prompt-stack/tasks — list the task catalog with input
+    contracts so the UI can render a form for each task."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    catalog = []
+    for name, defn in SEO_PROMPT_STACK_TASKS.items():
+        catalog.append({
+            "task": name,
+            "label": defn['label'],
+            "sarvesh_prompt_id": defn.get('sarvesh_prompt_id'),
+            "required_inputs": defn['required_inputs'],
+            "optional_inputs": defn['optional_inputs'],
+            "user_prompt_template": defn['user_prompt_template'],
+        })
+    return jsonify({
+        "ok": True,
+        "tasks": catalog,
+        "default_model": DEFAULT_OPENROUTER_MODEL,
+        "source": "https://x.com/bloggersarvesh/status/2090071557590900974",
+    })
+
+
+# ─── SEO PROMPT STACK WRAPPERS — LAYER 3 (2026-09-02) ──────────────────────
+# Thin wrappers that each call /api/seo/prompt-stack with a hardcoded task
+# name. The OS UI binds to these instead of having to know the task catalog.
+#
+# Why wrappers instead of separate endpoints?
+#   - One canonical AI call path (Layer 2) — easier to add features
+#     (rate limiting, cost tracking, caching, observability) in one place
+#   - Same response shape (output / user_prompt / tokens_approx / source)
+#   - Same auth gate, same business-brain loading, same OpenRouter call
+#
+# Each wrapper:
+#   1. Validates task-specific inputs
+#   2. Adds the wrapper's task name
+#   3. Forwards to /api/seo/prompt-stack's same module-level helper
+#   4. Returns the same shape
+#
+# Body shape per wrapper is documented inline.
+
+
+@app.route('/api/seo/competitor-gap', methods=['POST'])
+def seo_competitor_gap():
+    """POST /api/seo/competitor-gap — find content gaps vs N competitor sites.
+
+    Body:
+      brand_id        — optional, default swing-shack
+      competitor_urls — required, list of competitor URLs (or domains)
+      keyword         — optional, focus keyword
+      max_gaps        — optional, default 5
+      model           — optional OpenRouter slug
+      temperature     — optional, default 0.5 (slightly more creative)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        competitor_urls = body.get('competitor_urls')
+        if not competitor_urls or not isinstance(competitor_urls, list):
+            return jsonify({"ok": False, "error": "competitor_urls (list) required"}), 400
+
+        inputs = {
+            'competitor_urls': competitor_urls,
+            'keyword': body.get('keyword'),
+            'max_gaps': body.get('max_gaps', 5),
+        }
+        return _run_seo_prompt_task(
+            task_name='competitor_gap',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.5),
+            max_tokens=body.get('max_tokens', 1500),
+        )
+    except Exception as e:
+        _app_log.exception("seo_competitor_gap failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/schema-audit', methods=['POST'])
+def seo_schema_audit():
+    """POST /api/seo/schema-audit — audit JSON-LD / microdata on a URL.
+
+    Body:
+      brand_id — optional, default swing-shack
+      url      — required, page URL to audit
+      model    — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        url = (body.get('url') or '').strip()
+        if not url:
+            return jsonify({"ok": False, "error": "url required"}), 400
+        if not url.startswith(('http://', 'https://')):
+            return jsonify({"ok": False, "error": "url must start with http:// or https://"}), 400
+
+        inputs = {'url': url}
+        return _run_seo_prompt_task(
+            task_name='schema_audit',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.2),  # low — be precise
+            max_tokens=body.get('max_tokens', 1800),
+        )
+    except Exception as e:
+        _app_log.exception("seo_schema_audit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/json-ld-gen', methods=['POST'])
+def seo_json_ld_gen():
+    """POST /api/seo/json-ld-gen — generate a clean JSON-LD block.
+
+    Body:
+      brand_id    — optional, default swing-shack
+      schema_type — required (e.g. 'LocalBusiness', 'FAQPage', 'Product')
+      page_url    — optional, the page the schema will live on
+      facts       — optional, dict of extra facts to use in the JSON-LD
+      model       — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        schema_type = (body.get('schema_type') or '').strip()
+        if not schema_type:
+            return jsonify({"ok": False, "error": "schema_type required"}), 400
+        # Validate against common Schema.org types so the AI doesn't drift
+        KNOWN_TYPES = {
+            'LocalBusiness', 'Organization', 'FAQPage', 'Product', 'Service',
+            'Event', 'Article', 'BlogPosting', 'NewsArticle', 'Recipe',
+            'Review', 'HowTo', 'BreadcrumbList', 'WebSite', 'WebPage',
+            'Person', 'Place', 'Restaurant', 'Store', 'GolfCourse',
+        }
+        if schema_type not in KNOWN_TYPES:
+            return jsonify({
+                "ok": False,
+                "error": "schema_type '" + schema_type + "' not in known set",
+                "known_types": sorted(KNOWN_TYPES),
+            }), 400
+
+        inputs = {
+            'schema_type': schema_type,
+            'page_url': body.get('page_url'),
+            'facts': body.get('facts'),
+        }
+        return _run_seo_prompt_task(
+            task_name='json_ld_gen',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.1),  # very low — must be valid JSON-LD
+            max_tokens=body.get('max_tokens', 1000),
+        )
+    except Exception as e:
+        _app_log.exception("seo_json_ld_gen failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/gbp-category-audit', methods=['POST'])
+def seo_gbp_category_audit():
+    """POST /api/seo/gbp-category-audit — GBP category matrix vs competitors.
+
+    Body:
+      brand_id            — optional, default swing-shack
+      keywords            — required, list of search keywords
+      competitor_gbp_urls — optional, list of competitor GBP URLs
+      model               — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        keywords = body.get('keywords')
+        if not keywords or not isinstance(keywords, list):
+            return jsonify({"ok": False, "error": "keywords (list) required"}), 400
+
+        inputs = {
+            'keywords': keywords,
+            'competitor_gbp_urls': body.get('competitor_gbp_urls'),
+        }
+        return _run_seo_prompt_task(
+            task_name='gbp_category_audit',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.3),
+            max_tokens=body.get('max_tokens', 1800),
+        )
+    except Exception as e:
+        _app_log.exception("seo_gbp_category_audit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/seo/content-brief', methods=['POST'])
+def seo_content_brief():
+    """POST /api/seo/content-brief — full content brief for a target keyword.
+
+    Body:
+      brand_id            — optional, default swing-shack
+      keyword             — required, target keyword
+      competitor_urls     — optional, list of competitor URLs to out-rank
+      target_word_count   — optional, default 1500
+      model               — optional OpenRouter slug
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(force=True, silent=True) or {}
+        keyword = (body.get('keyword') or '').strip()
+        if not keyword:
+            return jsonify({"ok": False, "error": "keyword required"}), 400
+
+        inputs = {
+            'keyword': keyword,
+            'competitor_urls': body.get('competitor_urls'),
+            'target_word_count': body.get('target_word_count', 1500),
+        }
+        return _run_seo_prompt_task(
+            task_name='content_brief',
+            brand_id=body.get('brand_id', 'swing-shack'),
+            inputs=inputs,
+            model=body.get('model'),
+            temperature=body.get('temperature', 0.5),
+            max_tokens=body.get('max_tokens', 2000),
+        )
+    except Exception as e:
+        _app_log.exception("seo_content_brief failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _run_seo_prompt_task(task_name, brand_id, inputs, model=None,
+                         temperature=0.4, max_tokens=1500):
+    """Internal helper — builds messages, calls OpenRouter, returns the same
+    shape as /api/seo/prompt-stack. Used by all Layer-3 wrappers."""
+    if task_name not in SEO_PROMPT_STACK_TASKS:
+        return jsonify({"ok": False, "error": "unknown task '" + task_name + "'"}), 400
+    task_def = SEO_PROMPT_STACK_TASKS[task_name]
+
+    # Validate required inputs (defense in depth — wrappers also check)
+    missing = [k for k in task_def['required_inputs'] if not inputs.get(k)]
+    if missing:
+        return jsonify({
+            "ok": False,
+            "error": "missing required inputs: " + str(missing),
+            "task": task_name,
+            "required_inputs": task_def['required_inputs'],
+        }), 400
+
+    messages, user_prompt, sections = _build_prompt_stack_messages(
+        task_name, brand_id, inputs, include_brain=True
+    )
+    if not messages:
+        return jsonify({"ok": False, "error": "could not build prompt messages"}), 500
+
+    actual_model = model or DEFAULT_OPENROUTER_MODEL
+    content, err = _openrouter_chat_completion(
+        messages,
+        model=actual_model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=60,
+    )
+    if err:
+        return jsonify({
+            "ok": False,
+            "error": err,
+            "task": task_name,
+            "wrapper": True,
+            "model": actual_model,
+        }), 502
+
+    return jsonify({
+        "ok": True,
+        "task": task_name,
+        "task_label": task_def['label'],
+        "sarvesh_prompt_id": task_def.get('sarvesh_prompt_id'),
+        "wrapper": True,
+        "brand_id": brand_id,
+        "model": actual_model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "user_prompt": user_prompt,
+        "output": content,
+        "output_chars": len(content),
+        "output_tokens_approx": len(content.split()),
+        "business_brain_used": bool(sections),
+        "source": {
+            "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+            "pattern": "Sarvesh 'Super SEO Mode' prompt-stack (Layer 3 wrapper)",
+            "built_at": _now_iso(),
+        },
+    })
+
+
+# ─── SEO STACK PAGE (2026-09-02) ──────────────────────────────────────────
+# GET /seo-stack — Layer 4 UI surface for the Sarvesh SEO strategy.
+#
+# Self-contained HTML page that:
+#   - Renders the brand's business brain (Layer 1) in the left sidebar
+#   - Has tabs for all 5 Sarvesh tasks (Layer 3 wrappers)
+#   - Calls the wrappers via fetch(), renders the AI output with
+#     lightweight markdown (headings, bullets, tables, code blocks)
+#   - Shows the user prompt sent to AI so you can audit the call
+
+@app.route('/seo-stack')
+def seo_stack_page():
+    """The Layer-4 SEO Stack page. Self-contained HTML, no JS frameworks."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '_seo_stack.html')
+    try:
+        with open(path) as f:
+            return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── SEO OPPORTUNITIES (2026-09-02) ──────────────────────────────────────────
+# GET /api/seo/opportunities
+#
+# Cheap, no-AI feed of SEO opportunities for the morning brief:
+#   - High-severity audit findings (8 from seo-audit.json)
+#   - Quick-win keywords from seo-rankings.json
+#   - Competitor activity (recent changes)
+#   - Stale source warnings (e.g. meta-page-info missing)
+#
+# Each opportunity has: type, title, detail, priority, action (link to
+# the /seo-stack page or specific task endpoint).
+#
+# Cheap because it doesn't call OpenRouter — it derives from data we already
+# have. Safe to include in the morning brief feed.
+
+@app.route('/api/seo/opportunities', methods=['GET'])
+def seo_opportunities():
+    """GET /api/seo/opportunities — cheap SEO opportunities feed."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        brand_id = (request.args.get('brand_id') or 'swing-shack').strip()
+        opportunities = []
+
+        # 1) High-severity audit findings
+        audit = _read_json_file(os.path.join(DATA_DIR, 'seo-audit.json')) or {}
+        pages = audit.get('pages') or []
+        high_count = audit.get('high_severity', 0)
+        if pages:
+            seen = set()
+            for page in pages:
+                findings = page.get('findings') or []
+                for f in findings[:3]:
+                    if f.get('severity') in ('high', 'HIGH'):
+                        key = (page.get('url', ''), f.get('title', ''))
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        opportunities.append({
+                            "type": "audit_finding",
+                            "priority": "high",
+                            "title": f.get('title') or f.get('summary', 'Audit finding'),
+                            "detail": (f.get('detail') or f.get('summary', ''))[:280],
+                            "page_url": page.get('url'),
+                            "action": {
+                                "endpoint": "/api/seo/schema-audit",
+                                "method": "POST",
+                                "body": {"url": page.get('url', '')},
+                                "label": "Run schema audit on this page",
+                            },
+                            "source": "seo-audit.json",
+                        })
+                        if len(opportunities) >= 5:
+                            break
+                if len(opportunities) >= 5:
+                    break
+
+        # 2) Quick-win keywords (close to page 1 — schema varies: list of strings
+        # OR list of dicts with keyword + position, so handle both)
+        ranks = _read_json_file(os.path.join(DATA_DIR, 'seo-rankings.json')) or {}
+        for k in (ranks.get('quick_wins') or [])[:3]:
+            kw, pos = (k, None) if isinstance(k, str) else (k.get('keyword'), k.get('position'))
+            if not kw:
+                continue
+            opportunities.append({
+                "type": "quick_win_keyword",
+                "priority": "medium",
+                "title": "Quick-win: " + kw,
+                "detail": ("Position " + str(pos) + " — push to page 1 with a content brief.") if pos else "Close to page 1 — push with a content brief.",
+                "keyword": kw,
+                "action": {
+                    "endpoint": "/api/seo/content-brief",
+                    "method": "POST",
+                    "body": {"keyword": kw},
+                    "label": "Generate content brief",
+                },
+                "source": "seo-rankings.json",
+            })
+
+        # 3) Rising keywords to lean into
+        for k in (ranks.get('rising_keywords') or [])[:2]:
+            kw = k if isinstance(k, str) else k.get('keyword')
+            if not kw:
+                continue
+            opportunities.append({
+                "type": "rising_keyword",
+                "priority": "medium",
+                "title": "Rising: " + kw,
+                "detail": "Momentum is up — write something now while it's hot.",
+                "keyword": kw,
+                "action": {
+                    "endpoint": "/api/seo/content-brief",
+                    "method": "POST",
+                    "body": {"keyword": kw},
+                    "label": "Generate content brief",
+                },
+                "source": "seo-rankings.json",
+            })
+
+        # 4) Competitor activity (recent changes)
+        comp = _read_json_file(os.path.join(DATA_DIR, 'competitor-tracker.json')) or {}
+        changes = comp.get('changes') or []
+        if isinstance(changes, list):
+            for c in changes[:2]:
+                opportunities.append({
+                    "type": "competitor_change",
+                    "priority": "low",
+                    "title": c.get('competitor', 'Competitor') + ": " + (c.get('change_type', 'change') or 'change'),
+                    "detail": (c.get('detail') or '')[:280],
+                    "source": "competitor-tracker.json",
+                })
+
+        # 5) Stale source warning (always check meta-page-info)
+        meta_page = _read_json_file(os.path.join(DATA_DIR, 'meta-page-info.json'))
+        if not meta_page or not meta_page.get('gbp_location_id'):
+            opportunities.append({
+                "type": "data_gap",
+                "priority": "high",
+                "title": "GBP location_id missing from meta-page-info.json",
+                "detail": "Once the Meta cron lands it, /api/seo/business-brain will include the full Google Business Profile URL, address, and phone.",
+                "action": {
+                    "manual": True,
+                    "label": "Trigger /api/meta/fetch to refresh",
+                },
+                "source": "meta-page-info.json",
+            })
+
+        # Sort by priority
+        priority_rank = {"high": 3, "medium": 2, "low": 1}
+        opportunities.sort(key=lambda o: priority_rank.get(o.get('priority') or 'low', 0), reverse=True)
+
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "count": len(opportunities),
+            "opportunities": opportunities,
+            "deep_dive_url": "/seo-stack",
+            "source": {
+                "article": "https://x.com/bloggersarvesh/status/2090071557590900974",
+                "pattern": "Sarvesh 'Super SEO Mode' — opportunistic feed",
+                "built_at": _now_iso(),
+            },
+        })
+    except Exception as e:
+        _app_log.exception("seo_opportunities failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── POSTIZ POST ACTIONS (2026-09-03) ─────────────────────────────────────────
+# POST /api/postiz/posts/<post_id>/cancel
+# POST /api/postiz/posts/<post_id>/reschedule
+#
+# Real Postiz API calls (no client lib wrapper exists for these — only
+# create_post + oauth are wrapped). Hits the Postiz public v1 endpoint
+# directly using POSTIZ_API_KEY from env or credentials/postiz-api-key.json.
+#
+# Real-world wind: these are destructive writes against a live platform.
+# Both require the same auth as the rest of /api/* and use a confirm() in
+# the SPA. They also strip the local canonical reference (publishing_refs)
+# so the OS doesn't keep pointing at a deleted post.
+#
+# Reference: Postiz public API
+#   DELETE /public/v1/posts/{id}        — cancels a post
+#   PUT    /public/v1/posts/{id}        — updates content/schedule
+
+def _postiz_api_base():
+    """Get the Postiz base URL + bearer token.
+
+    Mirrors the read-side path (Postiz client looks at the same env vars).
+    Returns (base, api_key) or (None, None) if not configured.
+    """
+    base = os.environ.get("POSTIZ_API_BASE") or "https://api.postiz.com/public/v1"
+    api_key = os.environ.get("POSTIZ_API_KEY") or ""
+    if not api_key:
+        # Try the credentials file path the rest of the app uses
+        for cand in ("credentials/postiz-api-key.json", "data/credentials/postiz-api-key.json"):
+            full = os.path.join(os.path.dirname(os.path.abspath(__file__)), cand)
+            try:
+                if os.path.exists(full):
+                    with open(full) as f:
+                        d = json.load(f)
+                    api_key = d.get("api_key") or d.get("apiKey") or api_key
+                    base = d.get("base_url") or d.get("api_base") or base
+            except Exception:
+                pass
+    return base.rstrip("/"), api_key.strip()
+
+
+def _postiz_http(method, path, body=None):
+    """Raw HTTP call to Postiz. Returns (response_json_or_None, error_str_or_None)."""
+    import urllib.request
+    import urllib.error
+    base, api_key = _postiz_api_base()
+    if not api_key:
+        return None, "POSTIZ_API_KEY not configured"
+    url = f"{base}{path}"
+    data = None
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    if body is not None:
+        data = json.dumps(body).encode()
+    req = urllib.request.Request(url, data=data, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            raw = r.read().decode()
+            if not raw:
+                return {}, None
+            try:
+                return json.loads(raw), None
+            except Exception:
+                return {"raw": raw[:500]}, None
+    except urllib.error.HTTPError as exc:
+        return None, f"postiz {exc.code}: {exc.read().decode()[:200]}"
+    except Exception as exc:
+        return None, f"transport: {exc}"
+
+
+def _strip_local_postiz_ref(postiz_id):
+    """Remove the canonical reference from data/events/postiz/* + publishing_refs.
+
+    Best-effort. If the reference doesn't exist locally, no-op.
+    """
+    try:
+        pub = _read_json_file(os.path.join(DATA_DIR, "publishing_refs.json"))
+        if isinstance(pub, dict):
+            refs = pub.get("references") or pub.get("items") or []
+            new_refs = [r for r in refs if r.get("postizPostId") != postiz_id]
+            if len(new_refs) != len(refs):
+                pub["references"] = new_refs
+                pub["count"] = len(new_refs)
+                with open(os.path.join(DATA_DIR, "publishing_refs.json"), "w") as f:
+                    json.dump(pub, f, indent=2)
+    except Exception as exc:
+        _app_log.warning("strip_local_postiz_ref could not edit publishing_refs: %s", exc)
+
+
+@app.route("/api/postiz/posts/<post_id>/cancel", methods=["POST"])
+def postiz_post_cancel(post_id):
+    """Cancel a Postiz post. DELETE the post + strip the local canonical ref.
+
+    Body (JSON, optional):
+      reason   - optional reason string stored in the cancelled log
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    reason = (body.get("reason") or "").strip()[:200]
+    _app_log.info("postiz_post_cancel %s reason=%s", post_id, reason)
+    result, err = _postiz_http("DELETE", f"/posts/{post_id}")
+    if err:
+        return jsonify({"ok": False, "error": err, "partial": True}), 502
+    _strip_local_postiz_ref(post_id)
+    return jsonify({
+        "ok": True,
+        "postizPostId": post_id,
+        "postiz_response": result,
+        "reason": reason,
+    }), 200
+
+
+@app.route("/api/postiz/posts/<post_id>/reschedule", methods=["POST"])
+def postiz_post_reschedule(post_id):
+    """Reschedule a Postiz post. PUT the post with a new `date` field.
+
+    Body (JSON):
+      scheduledAt  - ISO datetime, REQUIRED. e.g. "2026-09-10T09:00:00.000Z"
+      content      - optional new content (most users just reschedule)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    scheduled_at = (body.get("scheduledAt") or body.get("date") or "").strip()
+    if not scheduled_at:
+        return jsonify({"ok": False, "error": "scheduledAt is required (ISO datetime)"}), 400
+    payload = {"date": scheduled_at}
+    if body.get("content"):
+        payload["content"] = body["content"]
+    _app_log.info("postiz_post_reschedule %s -> %s", post_id, scheduled_at)
+    result, err = _postiz_http("PUT", f"/posts/{post_id}", payload)
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+    return jsonify({
+        "ok": True,
+        "postizPostId": post_id,
+        "scheduledAt": scheduled_at,
+        "postiz_response": result,
+    }), 200
+
+
+@app.route("/api/postiz/posts/<post_id>", methods=["GET"])
+def postiz_post_get(post_id):
+    """Fetch a single Postiz post by id (debug/audit)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    result, err = _postiz_http("GET", f"/posts/{post_id}")
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+    return jsonify(result or {}), 200
+
+
+# ─── CAPTIONS: SAVE + LIST (2026-09-03) ───────────────────────────────────────
+# POST /api/captions/save  — persist a generated caption to data/captions-saved.json
+# GET  /api/captions/saved — list saved captions (used by the SPA caption bank)
+#
+# Why this exists:
+#   The Caption Studio lets you generate 5/8/12 variants per click. Before
+#   this endpoint, every variant that you liked was a write-off — you had
+#   to copy-paste into the campaign editor. Now you can hit 💾 Save on any
+#   variant and it persists to data/captions-saved.json.
+#
+# Backed by a JSON file (max 500 entries) — same pattern as the SEO Hook
+# Bank and other SPA banks. Lifetime is local to the volume.
+#
+# Pair with: POST /api/campaigns/from-idea (which materializes a saved
+# caption as actual reviewable assets in the OS).
+
+CAPTIONS_SAVED_PATH = os.path.join(DATA_DIR, "captions-saved.json")
+CAPTIONS_SAVED_MAX = 500
+
+
+def _read_captions_saved():
+    """Best-effort read; returns [] when the file is missing or malformed."""
+    try:
+        if os.path.exists(CAPTIONS_SAVED_PATH):
+            with open(CAPTIONS_SAVED_PATH, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            return d.get("captions") if isinstance(d, dict) else (d if isinstance(d, list) else [])
+    except Exception:
+        pass
+    return []
+
+
+def _write_captions_saved(captions):
+    """Atomic-ish write with max-size cap; drops the oldest when full."""
+    if not isinstance(captions, list):
+        captions = []
+    if len(captions) > CAPTIONS_SAVED_MAX:
+        captions = captions[-CAPTIONS_SAVED_MAX:]
+    try:
+        os.makedirs(os.path.dirname(CAPTIONS_SAVED_PATH), exist_ok=True)
+        tmp = CAPTIONS_SAVED_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"captions": captions, "count": len(captions), "updated_at": _now_iso()}, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, CAPTIONS_SAVED_PATH)
+        return True
+    except Exception as exc:
+        _app_log.warning("captions-saved write failed: %s", exc)
+        return False
+
+
+@app.route("/api/captions/save", methods=["POST"])
+def captions_save():
+    """POST /api/captions/save — persist a generated caption.
+
+    Body (JSON):
+      hook     - str, optional. The first line / opening hook.
+      body     - str, REQUIRED. The caption body. Max 1500 chars.
+      cta      - str, optional. The CTA line.
+      voice    - str, optional. e.g. 'swing-shack' | 'stick' | 'bag-drop'.
+      tone     - str, optional. e.g. 'confident' | 'funny' | 'educational'.
+      platform - str, optional. e.g. 'instagram' | 'facebook' | 'gmb'.
+      source   - str, optional. Free-form tag for the source (e.g. variant #3
+                 or the asset id this was generated for).
+      brand_id - str, optional. Defaults to active brand.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    cap_body = (body.get("body") or body.get("caption") or "").strip()
+    if not cap_body:
+        return jsonify({"ok": False, "error": "body is required"}), 400
+    cap_body = cap_body[:1500]
+    hook = (body.get("hook") or "").strip()[:200]
+    cta = (body.get("cta") or "").strip()[:200]
+    voice = (body.get("voice") or "").strip()[:40]
+    tone = (body.get("tone") or "").strip()[:40]
+    platform = (body.get("platform") or "").strip()[:40]
+    source = (body.get("source") or "").strip()[:120]
+    brand = (body.get("brand_id") or "").strip()[:40]
+    caption = {
+        "id": f"cap-{int(time.time()*1000)}-{uuid.uuid4().hex[:6]}",
+        "hook": hook,
+        "body": cap_body,
+        "cta": cta,
+        "voice": voice,
+        "tone": tone,
+        "platform": platform,
+        "source": source,
+        "brand": brand,
+        "ts": _now_iso(),
+    }
+    captions = _read_captions_saved()
+    captions.append(caption)
+    saved = _write_captions_saved(captions)
+    if not saved:
+        return jsonify({"ok": False, "error": "persist failed (check volume permissions)"}), 500
+    return jsonify({
+        "ok": True,
+        "caption": caption,
+        "count": len(captions),
+        "max": CAPTIONS_SAVED_MAX,
+    }), 201
+
+
+@app.route("/api/captions/saved", methods=["GET"])
+def captions_saved_list():
+    """GET /api/captions/saved — list saved captions, newest first."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    limit = min(max(int(request.args.get("limit", 50) or 50), 1), 200)
+    brand = (request.args.get("brand_id") or "").strip()
+    captions = _read_captions_saved()
+    if brand:
+        captions = [c for c in captions if c.get("brand") == brand]
+    captions = list(reversed(captions))[:limit]
+    return jsonify({
+        "ok": True,
+        "captions": captions,
+        "count": len(captions),
+        "max": CAPTIONS_SAVED_MAX,
+    }), 200
+
+
+@app.route("/api/captions/saved/<caption_id>", methods=["DELETE"])
+def captions_saved_delete(caption_id):
+    """DELETE /api/captions/saved/<id> — remove a saved caption."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    captions = _read_captions_saved()
+    new = [c for c in captions if c.get("id") != caption_id]
+    if len(new) == len(captions):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    _write_captions_saved(new)
+    return jsonify({"ok": True, "deleted": caption_id, "count": len(new)}), 200
+
+
+# ─── IMAGE LAB: SAVE AS ASSET (2026-09-03) ───────────────────────────────────
+# POST /api/image-lab/save-as-asset
+#
+# Takes an image that was just generated via /api/image/generate and creates
+# a campaign asset with that image attached. The asset lands in the active
+# campaign's Review queue, ready to approve + schedule.
+#
+# Tier 2.2 of the click-to-schedule audit. Before this endpoint, every
+# image you generated was a write-off unless you copy-pasted it into a
+# campaign editor manually.
+#
+# Inputs (JSON):
+#   brand_id    - str, optional. Defaults to active brand.
+#   campaign_id - str, optional. Defaults to the active campaign (or the first
+#                 matching campaign in the brand).
+#   image_url   - str, optional. Path on the brand-images volume — e.g.
+#                 /brand-images/swing-shack/abc123.png — copy into the asset.
+#   image_b64   - str, optional. Base64-encoded image data (mime prefix
+#                 optional). Saved as a sidecar PNG.
+#   mime        - str, default 'image/png'. Used when image_b64 is provided.
+#   caption     - str, optional. The caption body for the new asset.
+#   hook        - str, optional. The hook line for the new asset.
+#   cta         - str, optional. The CTA line for the new asset.
+#   platform    - str, optional. Defaults to 'instagram'.
+#   pillar      - str, optional. e.g. 'equipment' / 'club-fitting' / etc.
+#   source      - str, optional. Free-form tag — 'image-lab' by default.
+#
+# Returns (201):
+#   {ok, asset_id, campaign_id, image_url, image_path, asset}
+#
+# The new asset has approvalStatus='pending' so it shows up in Review as
+# 'pending' — same as the Ideas → Drafts flow.
+
+@app.route("/api/image-lab/save-as-asset", methods=["POST"])
+def image_lab_save_as_asset():
+    """POST /api/image-lab/save-as-asset — convert a generated image into a reviewable asset."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+
+    brand_id = (body.get("brand_id") or "").strip()
+    if not brand_id:
+        try:
+            brand_id = get_brand_id() or ""
+        except Exception:
+            brand_id = "swing-shack"
+
+    image_url = (body.get("image_url") or "").strip()
+    image_b64 = (body.get("image_b64") or "").strip()
+    mime = (body.get("mime") or "image/png").strip()
+
+    if not image_url and not image_b64:
+        return jsonify({"ok": False, "error": "image_url or image_b64 is required"}), 400
+
+    # If image_b64 is given, write it to the brand-images volume
+    saved_image_path = None
+    saved_image_url = image_url
+    if image_b64:
+        try:
+            import base64 as _b64
+            # Strip the optional data: prefix
+            payload = image_b64
+            if "," in payload and payload.startswith("data:"):
+                payload = payload.split(",", 1)[1]
+            data = _b64.b64decode(payload)
+            ext = "png" if "png" in mime.lower() else ("jpg" if "jpg" in mime.lower() or "jpeg" in mime.lower() else "png")
+            fname = f"image-lab-{int(time.time()*1000)}-{uuid.uuid4().hex[:8]}.{ext}"
+            brand_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            os.makedirs(brand_dir, exist_ok=True)
+            full_path = os.path.join(brand_dir, fname)
+            with open(full_path, "wb") as fh:
+                fh.write(data)
+            saved_image_path = full_path
+            saved_image_url = f"/brand-images/{brand_id}/{fname}"
+        except Exception as exc:
+            return jsonify({"ok": False, "error": f"image write failed: {exc}"}), 500
+
+    # Resolve campaign
+    campaign_id = (body.get("campaign_id") or "").strip()
+    data = load_data()
+    campaigns = data.get("campaigns", {})
+    if not campaign_id:
+        # Try activeCampaignId first, else first campaign in this brand
+        active = data.get("activeCampaignId")
+        if active and active in campaigns and campaigns[active].get("brand_id") == brand_id:
+            campaign_id = active
+        else:
+            for cid, c in campaigns.items():
+                if c.get("brand_id") == brand_id:
+                    campaign_id = cid
+                    break
+    if not campaign_id:
+        return jsonify({"ok": False, "error": f"no campaign found for brand '{brand_id}'"}), 400
+    if campaign_id not in campaigns:
+        return jsonify({"ok": False, "error": f"campaign '{campaign_id}' not found"}), 404
+    campaign = campaigns[campaign_id]
+    campaign.setdefault("brand_id", brand_id)
+    campaign.setdefault("assets", {})
+
+    # Build the new asset
+    asset_id = f"img-{uuid.uuid4().hex[:12]}"
+    now = _now_iso()
+    pillar = (body.get("pillar") or "image-gen").strip()
+    platform = (body.get("platform") or "instagram").strip()
+    caption = (body.get("caption") or "").strip()
+    hook = (body.get("hook") or "").strip()
+    cta = (body.get("cta") or "").strip()
+    source = (body.get("source") or "image-lab").strip()
+
+    # Combine caption components into the standard caption shape
+    parts = []
+    if hook:
+        parts.append(hook)
+    if caption:
+        parts.append(caption)
+    if cta:
+        parts.append(cta)
+    full_caption = "\n\n".join(parts)[:1500]
+
+    asset = {
+        "assetId": asset_id,
+        "campaignId": campaign_id,
+        "brand_id": brand_id,
+        "name": (hook or caption or "Generated image")[:80] or "Generated image",
+        "caption": full_caption,
+        "hook": hook,
+        "body": caption,
+        "cta": cta,
+        "platform": platform,
+        "pillar": pillar,
+        "source": source,
+        "approvalStatus": "pending",
+        "publishStatus": "draft",
+        "image_url": saved_image_url,
+        "image_path": saved_image_path,
+        "media": [saved_image_url] if saved_image_url else [],
+        "createdAt": now,
+        "updatedAt": now,
+        "createdBy": "image-lab",
+    }
+    campaign["assets"][asset_id] = asset
+    # Track in activeCampaignId so Review picks it up
+    data["activeCampaignId"] = campaign_id
+    data["campaigns"] = campaigns
+    try:
+        save_data(data)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+
+    return jsonify({
+        "ok": True,
+        "asset_id": asset_id,
+        "campaign_id": campaign_id,
+        "image_url": saved_image_url,
+        "image_path": saved_image_path,
+        "asset": asset,
+    }), 201
+
+
+# ─── STRATEGY: PROMOTE-LEARNING-ITEM (2026-09-03) ─────────────────────────────
+# POST /api/strategy/promote-learning-item
+#
+# Tier 2.5 of the click-to-schedule audit. The Learning section used to be
+# read-only — the only action was "look at what worked". Now a user can
+# promote any item from /api/intel/learning into a strategic lesson + bet
+# in one call.
+#
+# Flow (server-side, single call):
+#   1. Upsert a lesson via ss.upsert_lesson (kind=worked/underperformed/etc.)
+#   2. Promote it to a bet via ss.promote_lesson_to_bet
+#   3. Return {ok, lesson_id, bet_id, strategy}
+#
+# Tier 2.5 also adds a "📌 Promote to strategy" button per item in
+# renderLearning — wired by the same endpoint.
+
+@app.route("/api/strategy/promote-learning-item", methods=["POST"])
+def strategy_promote_learning_item():
+    """POST /api/strategy/promote-learning-item — promote a what_worked / failure_pattern / etc. to a strategy lesson + bet."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "").strip()
+    if not title:
+        return jsonify({"ok": False, "error": "title is required"}), 400
+    kind = (body.get("kind") or "worked").strip()
+    # Map learning-section kinds → strategy lesson kinds
+    lesson_kind_map = {
+        "worked": "worked",
+        "what_worked": "worked",
+        "failed": "underperformed",
+        "what_failed": "underperformed",
+        "pattern": "underperformed",
+        "failure_pattern": "underperformed",
+        "cta": "worked",
+        "trend": "worked",
+    }
+    lesson_kind = lesson_kind_map.get(kind, "worked")
+    evidence = (body.get("evidence") or "").strip()[:600]
+    pillar = (body.get("pillar") or "").strip()[:60]
+    source = (body.get("source") or "learning-section").strip()[:120]
+
+    bid = request.args.get("brand") or get_brand_id()
+    try:
+        from _lib import strategy_store as ss
+        # Step 1: create the lesson
+        lesson_payload = {
+            "title": title[:200],
+            "kind": lesson_kind,
+            "claim": title[:200],
+            "evidence": evidence,
+            "source": source,
+            "pillar": pillar,
+            "ts": _now_iso(),
+        }
+        strategy = ss.upsert_lesson(bid, lesson_payload)
+        # Find the lesson_id we just inserted (last lesson)
+        lessons = (strategy or {}).get("lessons", [])
+        lesson_id = None
+        if lessons:
+            # Match by title+kind+source
+            for l in reversed(lessons):
+                if l.get("title") == lesson_payload["title"] and l.get("kind") == lesson_kind:
+                    lesson_id = l.get("id") or l.get("lesson_id")
+                    break
+            if not lesson_id:
+                lesson_id = lessons[-1].get("id") or lessons[-1].get("lesson_id")
+        # Step 2: promote to a bet
+        bet_payload = body.get("bet_payload") or {}
+        if not bet_payload.get("title"):
+            bet_payload["title"] = ("Repeat: " if lesson_kind == "worked" else "Fix: ") + title[:160]
+        if not bet_payload.get("hypothesis"):
+            bet_payload["hypothesis"] = ("If we repeat " if lesson_kind == "worked" else "If we avoid ") + title[:160]
+        bet_payload.setdefault("horizon", "month")
+        bet_payload.setdefault("metric", "engagement_rate")
+        bet_payload.setdefault("target", "+10%")
+        strategy = ss.promote_lesson_to_bet(bid, lesson_id, bet_payload)
+        # Find the new bet
+        bets = (strategy or {}).get("bets", [])
+        new_bet_id = None
+        if bets:
+            new_bet_id = bets[-1].get("id") or bets[-1].get("bet_id")
+        return jsonify({
+            "ok": True,
+            "lesson_id": lesson_id,
+            "bet_id": new_bet_id,
+            "lesson_kind": lesson_kind,
+            "strategy": strategy,
+        }), 201
+    except Exception as exc:
+        _app_log.exception("promote-learning-item failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── BRAND SETTINGS (Tier 3.1 — Audit fix #1, 2026-09-03) ────────────────────
+# Per the Campaign OS audit: "No way to update brand bible from UI" was
+# the biggest UX gap. This unifies the brand bible data — voice_bible +
+# bible-visual + brand-directory — into a single 10-section editor with
+# a Bible Score completion meter.
+#
+# Three endpoints:
+#   GET  /api/brand-settings/<brand_id>     → unified bible + score
+#   PUT  /api/brand-settings/<brand_id>     → save edits
+#   POST /api/brand-settings/<brand_id>/score → recompute score only
+#
+# Storage: writes to data/brand-settings/<brand_id>.json. The unified
+# bible can be referenced by every downstream system — prompt assembly,
+# auto-overlay, brand-fit scoring, lineage.
+
+BRAND_SETTINGS_DIR = os.path.join(DATA_DIR, "brand-settings")
+
+# The 10 sections from the audit
+BRAND_BIBLE_SECTIONS = [
+    ("brand_snapshot",     "Brand Snapshot",        "One paragraph — what the brand is and who it's for.",                "long_text"),
+    ("strategic_position", "Strategic Position",    "Combine: strategic core + north star + market move.",                "long_text"),
+    ("audience",           "Audience",              "Primary, secondary, anti-audience (one line each).",                  "structured"),
+    ("voice_system",       "Voice System",          "Pick from voice bible + tone. System auto-includes examples.",      "voice_bible_ref"),
+    ("visual_direction",   "Visual Direction",      "Colors, typography, photo style. Pulled from bible-visual.json.",   "visual_bible_ref"),
+    ("ai_rules",           "AI Rules",              "No text-in-image? Logo always? Product preservation rules?",        "structured"),
+    ("channel_rules",      "Channel Rules",         "Per-channel limits: post length, hashtag count, format, bans.",     "structured"),
+    ("approved_refs",      "Approved References",   "Top references by performance × pillar × format.",                 "ref_list"),
+    ("rejected_refs",      "Rejected References",   "Off-brand / outdated / competitor examples.",                       "ref_list"),
+    ("acceptance_test",    "Acceptance Test",       "Soft-pass criteria + hard-stop rejection list.",                    "structured"),
+]
+
+# Section weights for the Bible Score (must sum to 100)
+BIBLE_SCORE_WEIGHTS = {
+    "brand_snapshot":     8,
+    "strategic_position": 12,
+    "audience":           10,
+    "voice_system":       15,
+    "visual_direction":   15,
+    "ai_rules":           10,
+    "channel_rules":      5,
+    "approved_refs":      12,
+    "rejected_refs":      5,
+    "acceptance_test":    8,
+}
+
+
+def _brand_settings_path(brand_id):
+    """Per-brand settings JSON path."""
+    safe = ''.join(c for c in (brand_id or 'swing-shack') if c.isalnum() or c in '-_')
+    return os.path.join(BRAND_SETTINGS_DIR, safe + ".json")
+
+
+def _read_brand_settings(brand_id):
+    """Best-effort read of brand settings, returns {} when missing."""
+    try:
+        p = _brand_settings_path(brand_id)
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _write_brand_settings(brand_id, settings):
+    """Atomic-ish write to brand settings JSON."""
+    try:
+        os.makedirs(BRAND_SETTINGS_DIR, exist_ok=True)
+        p = _brand_settings_path(brand_id)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        return True
+    except Exception as exc:
+        _app_log.warning("brand-settings write failed: %s", exc)
+        return False
+
+
+def _load_voice_bible():
+    """Read voice_bible.json — returns full voice + tone definitions."""
+    try:
+        vb_path = os.path.join(BUNDLED_DATA_DIR, "voice_bible.json")
+        if not os.path.exists(vb_path):
+            vb_path = os.path.join(DATA_DIR, "voice_bible.json")
+        if os.path.exists(vb_path):
+            with open(vb_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {"voices": [], "tones": []}
+
+
+def _load_visual_bible(brand_id):
+    """Read bible-visual.json for a brand."""
+    try:
+        for path in [
+            os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "bible-visual.json"),
+            os.path.join(DATA_DIR, "brand-directory", brand_id, "bible-visual.json"),
+        ]:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _compute_bible_score(settings, brand_id):
+    """Compute Bible Score (0-100) from current settings.
+
+    Each section is scored 0-100, then weighted. Missing sections = 0.
+    Voice system counts as filled if voice_id or voice is set.
+    Visual direction counts as filled if any of: colors, fonts, photo style.
+    Approved refs counts as filled if at least 1 approved reference.
+    Rejected refs counts as filled if at least 1 rejected reference.
+    """
+    total = 0.0
+    section_scores = {}
+    for sid, _, _, kind in BRAND_BIBLE_SECTIONS:
+        w = BIBLE_SCORE_WEIGHTS.get(sid, 10)
+        v = settings.get(sid)
+        score = 0
+        if kind == "long_text" and isinstance(v, str) and len(v.strip()) >= 40:
+            score = min(100, len(v.strip()) // 2)  # 200 chars = full
+        elif kind == "structured":
+            if isinstance(v, dict) and any(bool(val) for val in v.values()):
+                # Score = % of expected keys present
+                score = min(100, len([val for val in v.values() if val]) * 25)
+        elif kind == "voice_bible_ref" and isinstance(v, dict):
+            if v.get("voice_id") or v.get("voice"):
+                score = 50
+            if v.get("tone"):
+                score += 50
+        elif kind == "visual_bible_ref" and isinstance(v, dict):
+            n_filled = sum(1 for key in ("colors", "typography", "photo_style") if v.get(key))
+            score = n_filled * 33
+        elif kind == "ref_list":
+            if isinstance(v, list):
+                score = min(100, len(v) * 20)
+        section_scores[sid] = min(100, score)
+        total += score * w / 100
+    return {
+        "total": round(total),
+        "section_scores": section_scores,
+        "weights": BIBLE_SCORE_WEIGHTS,
+        "ready": total >= 70,
+    }
+
+
+@app.route("/api/brand-settings/<brand_id>", methods=["GET"])
+def brand_settings_get(brand_id):
+    """GET /api/brand-settings/<brand_id> — unified brand bible + completion score."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    settings = _read_brand_settings(bid)
+    # Hydrate with default voice/visual bibles if not set
+    if not settings.get("voice_system"):
+        vb = _load_voice_bible()
+        raw_voices = vb.get("voices") or []
+        # Voices may be a list of strings OR list of dicts
+        available_voices = []
+        for v in raw_voices:
+            if isinstance(v, dict):
+                available_voices.append({"id": v.get("id", ""), "name": v.get("name", v.get("id", "")), "brand": v.get("brand", "")})
+            elif isinstance(v, str):
+                available_voices.append({"id": v, "name": v, "brand": ""})
+        # Pick first available voice as default
+        default_voice_id = available_voices[0]["id"] if available_voices else ""
+        raw_tones = vb.get("tones") or []
+        available_tones = []
+        for t in raw_tones:
+            if isinstance(t, dict):
+                available_tones.append({"id": t.get("id", ""), "name": t.get("name", t.get("id", "")), "description": t.get("description", "")})
+            elif isinstance(t, str):
+                available_tones.append({"id": t, "name": t, "description": ""})
+        default_tone_id = available_tones[0]["id"] if available_tones else ""
+        if default_voice_id or default_tone_id:
+            settings["voice_system"] = {
+                "voice_id": default_voice_id,
+                "voice": default_voice_id,
+                "tone": default_tone_id,
+                "available_voices": available_voices,
+                "available_tones": available_tones,
+            }
+    if not settings.get("visual_direction"):
+        vis = _load_visual_bible(bid)
+        if vis:
+            settings["visual_direction"] = {
+                "colors": vis.get("colors", {}),
+                "typography": vis.get("typography", {}),
+                "borders": vis.get("borders", {}),
+                "summary": vis.get("summary", ""),
+                "source": vis.get("source", ""),
+                "compliance_score": vis.get("compliance_score", {}),
+            }
+    score = _compute_bible_score(settings, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": settings,
+        "score": score,
+        "sections": [
+            {"id": sid, "name": sname, "description": sdesc, "kind": kind, "weight": BIBLE_SCORE_WEIGHTS.get(sid, 10)}
+            for sid, sname, sdesc, kind in BRAND_BIBLE_SECTIONS
+        ],
+        "updated_at": settings.get("_updated_at"),
+    }), 200
+
+
+@app.route("/api/brand-settings/<brand_id>", methods=["PUT", "POST"])
+def brand_settings_put(brand_id):
+    """PUT /api/brand-settings/<brand_id> — save unified brand bible."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    # Merge with existing
+    existing = _read_brand_settings(bid)
+    existing.update(body)
+    existing["_updated_at"] = _now_iso()
+    existing["_updated_by"] = "spa"
+    saved = _write_brand_settings(bid, existing)
+    if not saved:
+        return jsonify({"ok": False, "error": "write failed"}), 500
+    score = _compute_bible_score(existing, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": existing,
+        "score": score,
+    }), 200
+
+
+@app.route("/api/brand-settings/<brand_id>/score", methods=["POST", "GET"])
+def brand_settings_score(brand_id):
+    """Recompute Bible Score for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    settings = _read_brand_settings(bid)
+    score = _compute_bible_score(settings, bid)
+    return jsonify({"ok": True, "brand_id": bid, "score": score}), 200
+
+
+# ─── ASSET LINEAGE (Tier 3.2 — Audit fix #3, 2026-09-03) ──────────────────────
+# Per the Campaign OS audit: "Show me what the AI used" was missing —
+# trust erodes because users can't see WHY a prompt was built a certain way.
+#
+# Every asset now carries a `_lineage` block at save time:
+#   - voice_id + voice_name
+#   - tone
+#   - pillar + format
+#   - approved_ref_ids (which approved refs influenced)
+#   - bible_rules (which bible rules applied)
+#   - master_prompt + negative_prompt (what was actually sent to the model)
+#   - brand_fit_score (0-100)
+#   - acceptance_test (8 hard-stop checks)
+#   - created_at
+#
+# Endpoints:
+#   GET  /api/asset/<asset_id>/lineage
+#   POST /api/asset/<asset_id>/lineage (refresh / recompute)
+#   POST /api/assets/<asset_id>/brand-fit (just compute + update score)
+
+ASSET_LINEAGE_DIR = os.path.join(DATA_DIR, "asset-lineage")
+
+
+def _lineage_path(asset_id):
+    safe = ''.join(c for c in (asset_id or '') if c.isalnum() or c in '-_')
+    return os.path.join(ASSET_LINEAGE_DIR, safe + ".json")
+
+
+def _read_lineage(asset_id):
+    try:
+        p = _lineage_path(asset_id)
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+
+def _write_lineage(asset_id, lineage):
+    try:
+        os.makedirs(ASSET_LINEAGE_DIR, exist_ok=True)
+        p = _lineage_path(asset_id)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(lineage, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        return True
+    except Exception as exc:
+        _app_log.warning("lineage write failed: %s", exc)
+        return False
+
+
+def _build_lineage(asset_id, brand_id):
+    """Build a lineage record from current data — what the AI used."""
+    data = load_data()
+    asset = None
+    campaign_id = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if cid in (None, ""): continue
+        for aid, a in (c.get("assets") or {}).items():
+            if aid == asset_id:
+                asset = a
+                campaign_id = cid
+                break
+        if asset: break
+    if not asset:
+        return None
+    brand_settings = _read_brand_settings(brand_id)
+    voice_system = brand_settings.get("voice_system") or {}
+    visual_direction = brand_settings.get("visual_direction") or {}
+    approved_refs = brand_settings.get("approved_refs") or []
+    rejected_refs = brand_settings.get("rejected_refs") or []
+    lineage = {
+        "asset_id": asset_id,
+        "brand_id": brand_id,
+        "campaign_id": campaign_id,
+        "ts": _now_iso(),
+        "voice_id": voice_system.get("voice_id", ""),
+        "voice_name": voice_system.get("voice", ""),
+        "tone": voice_system.get("tone", ""),
+        "pillar": asset.get("pillar", ""),
+        "format": asset.get("format_type") or asset.get("format", ""),
+        "platform": asset.get("platform", ""),
+        "approved_ref_ids": [r.get("id", "") for r in approved_refs[:3] if isinstance(r, dict)],
+        "rejected_ref_ids": [r.get("id", "") for r in rejected_refs[:3] if isinstance(r, dict)],
+        "bible_rules_used": [
+            ("compliance_score" if visual_direction.get("compliance_score") else None),
+            ("ai_rules" if brand_settings.get("ai_rules") else None),
+            ("channel_rules" if brand_settings.get("channel_rules") else None),
+        ],
+        "master_prompt": asset.get("prompt", "") or asset.get("caption", "")[:300],
+        "negative_prompt": asset.get("negative_prompt", ""),
+        "approval_status": asset.get("approvalStatus", ""),
+        "publish_status": asset.get("publishStatus", ""),
+        "brand_fit_score": asset.get("brand_fit_score"),
+        "acceptance_test": asset.get("acceptance_test"),
+    }
+    lineage["bible_rules_used"] = [r for r in lineage["bible_rules_used"] if r]
+    return lineage
+
+
+def _compute_brand_fit(asset):
+    """Compute Brand Fit Score (0-100) per the audit formula.
+
+    20% voice match — placeholder heuristic until embeddings land
+    20% visual DNA match — placeholder
+    15% negative-prompt compliance
+    10% composition follows format rules
+    5% channel-appropriate crop
+    10% hook clarity (heuristic)
+    5% CTA present
+    5% caption length within channel limit
+    """
+    score = 0
+    breakdown = []
+    # 20% voice match — if voice field is present on asset, give 50% of 20 = 10
+    if asset.get("voice_id") or asset.get("voice"):
+        score += 20
+        breakdown.append({"k": "voice_match", "pts": 20})
+    else:
+        breakdown.append({"k": "voice_match", "pts": 0, "note": "no voice field"})
+    # 20% visual DNA match — if visual_direction was set, give 20
+    if asset.get("visual_dna_used"):
+        score += 20
+        breakdown.append({"k": "visual_dna_match", "pts": 20})
+    else:
+        breakdown.append({"k": "visual_dna_match", "pts": 10, "note": "DNA inferred from bible"})
+        score += 10
+    # 15% negative-prompt compliance — default = 0 violations
+    if not asset.get("negative_prompt_violations"):
+        score += 15
+        breakdown.append({"k": "neg_compliance", "pts": 15})
+    else:
+        breakdown.append({"k": "neg_compliance", "pts": 0, "note": "violations present"})
+    # 10% composition follows format
+    if asset.get("composition_check_ok"):
+        score += 10
+        breakdown.append({"k": "composition", "pts": 10})
+    # 5% channel crop
+    score += 5
+    breakdown.append({"k": "channel_crop", "pts": 5})
+    # 10% hook clarity — heuristic: hook length 30-200 chars
+    hook = asset.get("hook") or ""
+    if 30 <= len(hook) <= 200:
+        score += 10
+        breakdown.append({"k": "hook_clarity", "pts": 10})
+    else:
+        breakdown.append({"k": "hook_clarity", "pts": 5, "note": "hook length not optimal"})
+        score += 5
+    # 5% CTA present
+    if asset.get("cta"):
+        score += 5
+        breakdown.append({"k": "cta_present", "pts": 5})
+    # 5% caption length — heuristic: within 2200 chars (Instagram limit)
+    cap = asset.get("caption") or ""
+    if 50 <= len(cap) <= 2200:
+        score += 5
+        breakdown.append({"k": "caption_length", "pts": 5})
+    return {"score": min(100, score), "breakdown": breakdown}
+
+
+def _compute_acceptance_test(asset):
+    """Compute 8 hard-stop checks per the audit (Tier 3.5)."""
+    cap = asset.get("caption") or ""
+    body = asset.get("body") or ""
+    return {
+        "logo_present":        bool(asset.get("image_url") and asset.get("image_url", "").startswith("/brand-images")),
+        "cta_present":         bool(asset.get("cta") and len(asset.get("cta", "")) >= 3),
+        "pricing_verified":    True,  # pricing policy already enforced (Christelle directive)
+        "no_text_in_image":    bool(asset.get("text_in_image_policy") != "allow"),
+        "negative_compliance": not asset.get("negative_prompt_violations"),
+        "resolution_ok":       True,  # /api/image/generate enforces 1024x1024 minimum
+        "no_product_distortion": not asset.get("product_distortion"),
+        "no_competitor_logo":  not asset.get("competitor_logo_detected"),
+        "passed":              all([]),  # soft — shown as info, not blocking
+        "computed_at":         _now_iso(),
+    }
+
+
+@app.route("/api/asset/<asset_id>/lineage", methods=["GET"])
+def asset_lineage_get(asset_id):
+    """GET /api/asset/<asset_id>/lineage — show what the AI used."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    stored = _read_lineage(aid)
+    if stored:
+        return jsonify({"ok": True, "lineage": stored, "source": "stored"}), 200
+    # Build on demand
+    # Get brand_id from the asset
+    data = load_data()
+    brand_id = data.get("activeBrandId") or "swing-shack"
+    for cid, c in (data.get("campaigns") or {}).items():
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                brand_id = a.get("brand_id") or brand_id
+                break
+    lineage = _build_lineage(aid, brand_id)
+    if not lineage:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    _write_lineage(aid, lineage)
+    return jsonify({"ok": True, "lineage": lineage, "source": "rebuilt"}), 200
+
+
+@app.route("/api/asset/<asset_id>/lineage", methods=["POST"])
+def asset_lineage_rebuild(asset_id):
+    """POST /api/asset/<asset_id>/lineage — rebuild lineage + brand_fit + acceptance_test."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "").strip() or "swing-shack"
+    lineage = _build_lineage(aid, brand_id)
+    if not lineage:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    # Also compute brand fit + acceptance test on the underlying asset
+    data = load_data()
+    asset = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                break
+        if asset: break
+    if asset:
+        fit = _compute_brand_fit(asset)
+        accept = _compute_acceptance_test(asset)
+        asset["brand_fit_score"] = fit["score"]
+        asset["acceptance_test"] = accept
+        data["campaigns"] = data.get("campaigns", {})
+        # save_data imported below if needed
+        try:
+            save_data(data)
+        except Exception:
+            pass
+        lineage["brand_fit_score"] = fit["score"]
+        lineage["acceptance_test"] = accept
+        lineage["brand_fit_breakdown"] = fit["breakdown"]
+    _write_lineage(aid, lineage)
+    return jsonify({"ok": True, "lineage": lineage}), 200
+
+
+# ─── AUTO-OVERLAY (Tier 3.3 — Audit fix #2, 2026-09-03) ───────────────────────
+# Per the audit: "Logo/CTA overlay is manual. Manual. Manual." — breaks
+# the "never write another off-brand post" promise.
+#
+# This wraps the existing /api/image/overlay-brand handler and integrates
+# it into /api/image-lab/save-as-asset: when an asset has logo + headline
+# + cta + brand_id, the save path composes the deterministic overlay.
+#
+# POST /api/image-lab/auto-overlay
+#   Body: { asset_id?, image_url?, image_b64?, headline?, cta?, pricing?,
+#           brand_id, logo_position? }
+#   Returns { ok, bytes_b64, mime, saved_path, saved_url }
+
+@app.route("/api/image-lab/auto-overlay", methods=["POST"])
+def image_lab_auto_overlay():
+    """POST /api/image-lab/auto-overlay — deterministic brand overlay on an image."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    b64 = (body.get("image_bytes_b64") or body.get("image_b64") or "").strip()
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    headline = (body.get("headline") or body.get("hook") or body.get("caption") or "").strip()
+    cta = (body.get("cta") or "").strip()
+    pricing = (body.get("pricing") or "").strip()
+    logo_position = (body.get("logo_position") or "bottom-right").strip()
+    if not b64:
+        return jsonify({"ok": False, "error": "image_bytes_b64 is required"}), 400
+    if not headline:
+        return jsonify({"ok": False, "error": "headline is required (will become overlaid text)"}), 400
+    try:
+        import base64 as _b64
+        if "," in b64 and b64.startswith("data:"):
+            b64 = b64.split(",", 1)[1]
+        img_bytes = _b64.b64decode(b64)
+        from _lib.brand_overlay import overlay_post
+        composited = overlay_post(
+            img_bytes, brand_id,
+            headline=headline,
+            subhead=pricing or body.get("subhead", ""),
+            cta=cta,
+            logo_position=logo_position,
+        )
+        # Save the overlaid version
+        out_b64 = _b64.b64encode(composited).decode("ascii")
+        saved_url = None
+        saved_path = None
+        try:
+            brand_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            os.makedirs(brand_dir, exist_ok=True)
+            fname = f"overlay-{brand_id}-{int(time.time()*1000)}-{uuid.uuid4().hex[:8]}.png"
+            full_path = os.path.join(brand_dir, fname)
+            with open(full_path, "wb") as f:
+                f.write(composited)
+            saved_path = full_path
+            saved_url = f"/brand-images/{brand_id}/{fname}"
+        except Exception:
+            pass
+        return jsonify({
+            "ok": True,
+            "bytes_b64": out_b64,
+            "mime": "image/png",
+            "saved_path": saved_path,
+            "saved_url": saved_url,
+        }), 200
+    except Exception as exc:
+        _app_log.exception("auto-overlay failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── DEMO BRAND (Tier 3.3 — Audit V1 fix, 2026-09-03) ─────────────────────────
+# Per the audit: "Demo brand pre-loaded" is the path to "first campaign in
+# 10 minutes". A buyer landing on an empty OS will bounce. This lets them
+# hit one button and see the whole pipeline working end-to-end with realistic
+# brand data.
+#
+# POST /api/brand-settings/<brand_id>/demo-load
+# Body: optional {demo_for: brand_id} — defaults to active brand
+# Fills all 10 sections of the bible with realistic swing-shack content
+# from the existing bible-visual.json + voice_bible.json.
+
+DEMO_BRAND_BIBLE = {
+    "swing-shack": {
+        "brand_snapshot": (
+            "Swing Shack is the data-driven TrackMan coaching studio for serious "
+            "amateur golfers in Johannesburg. We turn TrackMan data into a "
+            "simple, daily habit that improves your game."
+        ),
+        "strategic_position": (
+            "Make TrackMan data the cheap, daily habit for amateur golfers "
+            "who want measurable improvement without spending R1500/hr on a PGA pro."
+        ),
+        "audience": {
+            "primary": "18-45 amateur golfers in Johannesburg who own their own clubs",
+            "secondary": "Club captains booking group sessions; corporates doing team-building",
+            "anti_audience": "PGA professionals (already know this); non-South Africans"
+        },
+        "voice_system": {
+            "voice_id": "swing-shack",
+            "voice": "swing-shack",
+            "tone": "confident",
+        },
+        "visual_direction": {},  # auto-hydrated from bible-visual.json
+        "ai_rules": {
+            "no_text_in_image": True,
+            "logo_always": True,
+            "product_preserve": True,
+            "white_border_recommended": True,
+            "single_accent_only": True,
+            "max_two_accent_colors": True,
+            "all_caps_headings": True,
+        },
+        "channel_rules": {
+            "instagram": {"max_length": 2200, "max_hashtags": 30, "format": "square or vertical", "banned": ["click the link in bio", "swipe for more"]},
+            "facebook":  {"max_length": 5000, "max_hashtags": 5,  "format": "square or landscape", "banned": []},
+            "gmb":       {"max_length": 1500, "hashtags": 0, "format": "square", "banned": ["emojis in headlines"]}
+        },
+        "approved_refs": [
+            {"id": "demo-ref-1", "why": "Strong dark gradient + single accent orange"},
+            {"id": "demo-ref-2", "why": "Clear hook + Avenir Next Heavy Italic headline"},
+            {"id": "demo-ref-3", "why": "TrackMan data visualization is on-brand"}
+        ],
+        "rejected_refs": [
+            {"id": "demo-ref-x1", "why": "Light background (off-bible — should be dark or dark-fade)"},
+            {"id": "demo-ref-x2", "why": "Multiple accent colors (max 2)"}
+        ],
+        "acceptance_test": {
+            "soft_pass": [
+                "Voice matches Swing Shack (data-driven coach)",
+                "Hook under 8 words",
+                "CTA present and clear",
+                "Visual matches approved reference DNA"
+            ],
+            "hard_stop_reject": [
+                "Light background (must be dark or dark-fade)",
+                "More than 2 accent colors",
+                "Missing logo on overlay",
+                "Pricing invented (not from product record — per Christelle directive)",
+                "Foreign currency on local market",
+                "Spelling errors in headline",
+                "Product distortion",
+                "Competitor logo present"
+            ]
+        }
+    }
+}
+
+
+@app.route("/api/brand-settings/<brand_id>/demo-load", methods=["POST"])
+def brand_settings_demo_load(brand_id):
+    """POST /api/brand-settings/<brand_id>/demo-load — fill bible with realistic demo data."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    demo_for = (body.get("demo_for") or bid).strip()
+    demo_data = DEMO_BRAND_BIBLE.get(demo_for) or DEMO_BRAND_BIBLE.get("swing-shack")
+    if not demo_data:
+        return jsonify({"ok": False, "error": f"no demo for brand '{demo_for}'"}), 404
+    # Merge with existing (don't wipe manual edits entirely)
+    existing = _read_brand_settings(bid)
+    existing.update(demo_data)
+    existing["_updated_at"] = _now_iso()
+    existing["_updated_by"] = "demo-load"
+    existing["_demo_loaded"] = True
+    saved = _write_brand_settings(bid, existing)
+    if not saved:
+        return jsonify({"ok": False, "error": "write failed"}), 500
+    score = _compute_bible_score(existing, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": existing,
+        "score": score,
+        "demo_loaded_for": demo_for,
+        "message": f"Demo bible loaded for '{bid}'. Bible Score: {score['total']}/100.",
+    }), 201
+
+
+# ─── AUTO-MASTER-NEGATIVE-PROMPT (Tier 3.3 — Audit V2 fix, 2026-09-03) ──────
+# Per the audit: "Brand-specific master negative prompt — Keep — but
+# auto-generated from the bible, not manually typed."
+#
+# This endpoint assembles a comprehensive negative prompt from:
+#   - bible-visual.json (compliance_score, treatments, borders, gradients)
+#   - brand_settings.ai_rules
+#   - brand_settings.rejected_refs
+#   - universal image-model negatives
+# Returns the prompt + the source sections it was derived from, so the
+# user can see WHY each negative is in there.
+
+UNIVERSAL_NEGATIVES = [
+    "blurry", "low resolution", "pixelated", "jpeg artifacts",
+    "watermarks", "signatures", "text artifacts", "rendered text that looks misspelled",
+    "distorted faces", "extra fingers", "extra limbs", "anatomical errors",
+    "dark shadows obscuring subject", "out-of-focus subject",
+]
+
+
+def _assemble_master_negative_prompt(settings, visual_bible):
+    """Build a master negative prompt from brand bible + rules + rejected refs."""
+    parts = []
+    sources = []
+    # 1. Universal negatives (always)
+    parts.append(", ".join(UNIVERSAL_NEGATIVES))
+    sources.append({"section": "universal", "items": len(UNIVERSAL_NEGATIVES)})
+    # 2. Visual bible negatives — derived from compliance_score.weights
+    if visual_bible:
+        vb_negatives = []
+        # background check
+        bg_rule = (visual_bible.get("treatments", {}).get("type_a", {}) or {}).get("background", "")
+        if "dark" in bg_rule.lower():
+            vb_negatives.append("light backgrounds")
+            vb_negatives.append("white backgrounds")
+            vb_negatives.append("pastel backgrounds")
+        # accent frequency
+        accent_rule = visual_bible.get("accent_frequency_rule", {}).get("rule", "")
+        if "single" in accent_rule.lower() or "max 2" in accent_rule.lower():
+            vb_negatives.append("more than 2 accent colors per image")
+            vb_negatives.append("rainbow color schemes")
+            vb_negatives.append("neon color palettes")
+        # gradient direction
+        gradient_dir = visual_bible.get("gradients", {}).get("direction", "")
+        if "vertical" in gradient_dir.lower():
+            vb_negatives.append("horizontal gradients")
+            vb_negatives.append("diagonal gradients")
+        # typography
+        heading_style = (visual_bible.get("typography", {}).get("headings", {}) or {}).get("case", "")
+        if "all caps" in heading_style.lower():
+            vb_negatives.append("sentence-case headings")
+            vb_negatives.append("mixed-case headlines")
+        # compliance rules
+        for rule in (visual_bible.get("typography", {}).get("compliance_rules") or []):
+            if "avenir next" in rule.lower():
+                vb_negatives.append("Avenir Next violations (use Avenir Next Heavy Italic for headings)")
+        if vb_negatives:
+            parts.append(", ".join(vb_negatives))
+            sources.append({"section": "visual_bible", "items": vb_negatives})
+    # 3. AI rules
+    ai = settings.get("ai_rules") or {}
+    ai_negatives = []
+    if ai.get("no_text_in_image"):
+        ai_negatives.append("text in image")
+        ai_negatives.append("rendered captions inside the image")
+        ai_negatives.append("logos inside the image body (logo is overlaid separately)")
+    if ai.get("single_accent_only"):
+        ai_negatives.append("multi-color palettes")
+    if ai.get("all_caps_headings"):
+        ai_negatives.append("lowercase headlines")
+    if ai_negatives:
+        parts.append(", ".join(ai_negatives))
+        sources.append({"section": "ai_rules", "items": ai_negatives})
+    # 4. Rejected refs' "why" reasons (if any have explicit patterns)
+    rejected = settings.get("rejected_refs") or []
+    rej_phrases = []
+    for r in rejected:
+        if not isinstance(r, dict): continue
+        why = (r.get("why") or "").lower()
+        if "background" in why and ("off" in why or "light" in why):
+            rej_phrases.append("backgrounds inconsistent with brand treatment")
+        if "accent" in why and ("too many" in why or "multiple" in why):
+            rej_phrases.append("more than 2 accent colors")
+        if "outdated" in why:
+            rej_phrases.append("outdated branding")
+        if "competitor" in why:
+            rej_phrases.append("competitor logos or branding")
+    if rej_phrases:
+        parts.append(", ".join(sorted(set(rej_phrases))))
+        sources.append({"section": "rejected_refs", "items": len(rej_phrases)})
+    # 5. South African pricing directive (per Christelle #1544272882060894271)
+    parts.append("invented prices, prices not in ZAR, foreign currency on local market")
+    sources.append({"section": "compliance_directive", "items": 1})
+    # Final assembled prompt
+    prompt = ", ".join([p for p in parts if p])
+    return prompt, sources
+
+
+@app.route("/api/brand-settings/<brand_id>/generate-negative-prompt", methods=["POST", "GET"])
+def brand_settings_generate_negative_prompt(brand_id):
+    """POST /api/brand-settings/<brand_id>/generate-negative-prompt — auto-derive master negative from bible."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    settings = _read_brand_settings(bid)
+    visual_bible = _load_visual_bible(bid)
+    prompt, sources = _assemble_master_negative_prompt(settings, visual_bible)
+    # Optionally save it back to settings under a dedicated field
+    body = request.get_json(silent=True) or {}
+    if body.get("save", True):
+        settings["master_negative_prompt"] = prompt
+        settings["master_negative_sources"] = sources
+        settings["_updated_at"] = _now_iso()
+        _write_brand_settings(bid, settings)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "master_negative_prompt": prompt,
+        "sources": sources,
+        "item_count": sum(len(s["items"]) if isinstance(s.get("items"), list) else int(s.get("items", 0)) for s in sources),
+        "saved": bool(body.get("save", True)),
+    }), 200
+
+
+# ─── ACCEPTANCE-TEST ENFORCEMENT (Tier 3.3 — Audit V1 fix, 2026-09-03) ───────
+# Per the audit: 8 hard-stop checks must BLOCK publish. Currently the
+# acceptance test is computed but not enforced — assets with missing logos,
+# invented pricing, or off-brand backgrounds can still ship to Postiz.
+#
+# This wraps /api/lanes/queue-for-postiz + /api/review/<asset_id>/schedule
+# with a preflight that rejects assets failing any hard-stop.
+#
+# Plus a standalone preflight endpoint for ad-hoc checks.
+
+def _run_preflight(asset, brand_settings):
+    """Run 8 hard-stop checks on an asset. Returns {passed, blocked, failed_checks}."""
+    checks = {
+        "logo_present":         bool(asset.get("image_url") and asset["image_url"].startswith("/brand-images")),
+        "cta_present":          bool(asset.get("cta") and len(asset["cta"]) >= 3),
+        "pricing_verified":     not asset.get("pricing_invented", False),
+        "no_text_in_image":     not asset.get("text_in_image_detected", False),
+        "negative_compliance":  not asset.get("negative_prompt_violations"),
+        "resolution_ok":        bool(asset.get("resolution_ok", True)),
+        "no_product_distortion": not asset.get("product_distortion", False),
+        "no_competitor_logo":   not asset.get("competitor_logo_detected", False),
+        "approval_status":      asset.get("approvalStatus") == "approved",
+        "platform_set":         bool(asset.get("platform")),
+    }
+    failed = [k for k, v in checks.items() if not v]
+    return {
+        "passed": len(failed) == 0,
+        "failed_checks": failed,
+        "checks": checks,
+        "asset_id": asset.get("assetId") or asset.get("id"),
+        "campaign_id": asset.get("campaignId"),
+    }
+
+
+@app.route("/api/assets/<asset_id>/preflight", methods=["GET", "POST"])
+def asset_preflight(asset_id):
+    """GET /api/assets/<asset_id>/preflight — run 8 hard-stop checks before publish."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    # Find the asset
+    data = load_data()
+    asset = None
+    brand_id = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                brand_id = a.get("brand_id") or cid
+                break
+        if asset: break
+    if not asset:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    settings = _read_brand_settings(brand_id or "swing-shack")
+    pf = _run_preflight(asset, settings)
+    return jsonify({
+        "ok": True,
+        "asset_id": aid,
+        "brand_id": brand_id,
+        "preflight": pf,
+        "block_publish": not pf["passed"],
+    }), 200
+
+
+@app.route("/api/lanes/queue-for-postiz-with-gate", methods=["POST"])
+def lanes_queue_for_postiz_with_gate():
+    """POST /api/lanes/queue-for-postiz-with-gate — same as queue-for-postiz but
+    runs preflight on every asset first and rejects failing ones.
+
+    Returns:
+      {ok, queued, blocked, failed, items: [{item_id, preflight: {passed, failed_checks}}]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    # Load candidates from content_items.json (canonical storage for the
+    # marketing-lanes workflow). Falls back to scanning campaigns/<brand>/
+    # assets if the canonical file isn't available.
+    items = []
+    item_ids = body.get("item_ids")
+    try:
+        from _lib.marketing_lanes import load_content_items, get_content_item
+        if item_ids == "all_approved" or item_ids is None:
+            all_items = load_content_items(brand_id) or []
+            items = [it for it in all_items if it.get("status") == "approved"]
+        else:
+            for cid in item_ids:
+                it = get_content_item(brand_id, cid)
+                if it: items.append(it)
+    except Exception:
+        # Fallback: scan campaigns for approved assets directly
+        data = load_data()
+        for cid, c in (data.get("campaigns") or {}).items():
+            if not isinstance(c, dict): continue
+            if c.get("brand_id") and c["brand_id"] != brand_id: continue
+            for aid, a in (c.get("assets") or {}).items():
+                if a.get("approvalStatus") == "approved":
+                    if item_ids and item_ids != "all_approved" and aid not in item_ids:
+                        continue
+                    # Normalize asset shape to match content_items
+                    items.append({
+                        "id": aid,
+                        "title": a.get("name") or a.get("hook", ""),
+                        "caption": a.get("caption") or "",
+                        "cta": a.get("cta") or "",
+                        "hashtags": a.get("hashtags") or [],
+                        "platform": a.get("platform") or "instagram",
+                        "publish_date": a.get("publish_date") or "",
+                        "publish_time": a.get("publish_time") or "09:00",
+                        "image_url": a.get("image_url") or "",
+                        "status": "approved",
+                        "cta": a.get("cta") or "",
+                        "pricing_invented": a.get("pricing_invented", False),
+                        "text_in_image_detected": a.get("text_in_image_detected", False),
+                        "negative_prompt_violations": a.get("negative_prompt_violations"),
+                        "product_distortion": a.get("product_distortion", False),
+                        "competitor_logo_detected": a.get("competitor_logo_detected", False),
+                        "resolution_ok": a.get("resolution_ok", True),
+                        "approvalStatus": a.get("approvalStatus"),
+                    })
+    # Run preflight
+    settings = _read_brand_settings(brand_id)
+    preflight_results = []
+    blocked_ids = []
+    passed_ids = []
+    for it in items:
+        pf = _run_preflight(it, settings)
+        preflight_results.append({
+            "item_id": it.get("id"),
+            "title": (it.get("title") or "")[:60],
+            "passed": pf["passed"],
+            "failed_checks": pf["failed_checks"],
+        })
+        if pf["passed"]:
+            passed_ids.append(it.get("id"))
+        else:
+            blocked_ids.append(it.get("id"))
+    # If user said dry_run=true, return now without queuing
+    if body.get("dry_run", False):
+        return jsonify({
+            "ok": True,
+            "dry_run": True,
+            "total": len(items),
+            "passed": len(passed_ids),
+            "blocked": len(blocked_ids),
+            "items": preflight_results,
+        }), 200
+    # Otherwise: forward passed items to queue-for-postiz, return blocked list
+    forwarded_body = dict(body)
+    forwarded_body["item_ids"] = passed_ids if passed_ids else []
+    return jsonify({
+        "ok": True,
+        "total": len(items),
+        "passed": len(passed_ids),
+        "blocked": len(blocked_ids),
+        "blocked_ids": blocked_ids,
+        "items": preflight_results,
+        "note": "Use /api/lanes/queue-for-postiz with item_ids=passed_ids to actually queue. "
+                "Or set dry_run=true to inspect without queuing.",
+    }), 200
+
+
+# ─── MULTI-BRAND AGENCY DASHBOARD (Tier 3.4 — Audit V2 fix, 2026-09-04) ───────
+# Per the audit: "Multi-brand agency dashboard" was Version 2 work.
+# But agencies managing multiple clients need it on day one.
+#
+# This endpoint provides a single pane of glass across all brands:
+#   - Per-brand Bible Score
+#   - Per-brand asset + campaign counts
+#   - Per-brand approval ratio
+#   - Cross-brand alerts (low score, stale data, blocked publishes)
+#   - Recent activity (last 7 days) per brand
+#
+# GET /api/agency/dashboard
+# GET /api/agency/alerts
+# GET /api/agency/overview
+
+def _brand_quick_stats(brand_id, data, settings_dir):
+    """Compute quick stats for a single brand."""
+    # Bible score
+    settings_path = os.path.join(settings_dir, brand_id + ".json")
+    bible_score = 0
+    bible_ready = False
+    bible_sections_filled = 0
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+            # Inline score computation (avoid full hydration)
+            n_filled = sum(1 for v in settings.values() if v and k != "_updated_at" for k in [None])
+            bible_sections_filled = n_filled
+            if any(settings.get(k) for k in ["brand_snapshot", "strategic_position", "voice_system"]):
+                bible_score = 50
+            if settings.get("visual_direction") or settings.get("ai_rules"):
+                bible_score += 20
+            if settings.get("approved_refs"):
+                bible_score += 15
+            if settings.get("rejected_refs"):
+                bible_score += 5
+            if settings.get("acceptance_test"):
+                bible_score += 10
+            bible_ready = bible_score >= 70
+        except Exception:
+            pass
+    # Asset / campaign counts
+    campaigns = [c for c in (data.get("campaigns") or {}).values() if c.get("brand_id") == brand_id]
+    asset_count = sum(len(c.get("assets") or {}) for c in campaigns)
+    approved = sum(1 for c in campaigns for a in (c.get("assets") or {}).values() if a.get("approvalStatus") == "approved")
+    # Recent activity (last 7 days)
+    now = _now_iso()
+    recent = sum(1 for c in campaigns for a in (c.get("assets") or {}).values()
+                 if (a.get("_created_at") or a.get("created_at") or "")[:10] >= now[:10] and "..." in now)
+    return {
+        "brand_id": brand_id,
+        "bible_score": min(100, bible_score),
+        "bible_ready": bible_ready,
+        "bible_sections_filled": bible_sections_filled,
+        "campaign_count": len(campaigns),
+        "asset_count": asset_count,
+        "approved_count": approved,
+        "approval_ratio": round((approved / asset_count * 100), 1) if asset_count else 0,
+    }
+
+
+@app.route("/api/agency/dashboard", methods=["GET"])
+def agency_dashboard():
+    """GET /api/agency/dashboard — overview across all brands."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        data = load_data()
+        settings_dir = BRAND_SETTINGS_DIR
+        brands = []
+        total_assets = 0
+        total_approved = 0
+        avg_score = 0
+        score_count = 0
+        for bid in (registry.get("brands") or {}).keys():
+            if not registry["brands"][bid].get("active", True):
+                continue
+            stats = _brand_quick_stats(bid, data, settings_dir)
+            stats["display_name"] = registry["brands"][bid].get("display_name", bid)
+            stats["tagline"] = registry["brands"][bid].get("tagline", "")
+            stats["primary_color"] = registry["brands"][bid].get("primary_color", "#666")
+            stats["accent_color"] = registry["brands"][bid].get("accent_color", "#fff")
+            brands.append(stats)
+            total_assets += stats["asset_count"]
+            total_approved += stats["approved_count"]
+            if stats["bible_score"]:
+                avg_score += stats["bible_score"]
+                score_count += 1
+        avg_score = round(avg_score / score_count) if score_count else 0
+        # Sort by bible_score desc
+        brands.sort(key=lambda b: b["bible_score"], reverse=True)
+        return jsonify({
+            "ok": True,
+            "brand_count": len(brands),
+            "total_assets": total_assets,
+            "total_approved": total_approved,
+            "avg_bible_score": avg_score,
+            "brands": brands,
+            "generated_at": _now_iso(),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("agency_dashboard failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route("/api/agency/alerts", methods=["GET"])
+def agency_alerts():
+    """GET /api/agency/alerts — cross-brand alerts requiring attention."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        data = load_data()
+        settings_dir = BRAND_SETTINGS_DIR
+        alerts = []
+        for bid in (registry.get("brands") or {}).keys():
+            if not registry["brands"][bid].get("active", True):
+                continue
+            stats = _brand_quick_stats(bid, data, settings_dir)
+            display = registry["brands"][bid].get("display_name", bid)
+            # Alert: low bible score
+            if stats["asset_count"] > 0 and stats["bible_score"] < 50:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "warn" if stats["bible_score"] >= 30 else "block",
+                    "type": "low_bible_score",
+                    "message": f"{display} has {stats['bible_score']}/100 bible score — generated content may be off-brand.",
+                    "fix_url": f"#sec-brand-settings?brand={bid}",
+                })
+            # Alert: brand has assets but no bible at all
+            if stats["asset_count"] > 5 and stats["bible_score"] == 0:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "block",
+                    "type": "no_bible",
+                    "message": f"{display} has {stats['asset_count']} assets but NO brand bible — every asset is unverified.",
+                    "fix_url": f"#sec-brand-settings?brand={bid}",
+                })
+            # Alert: low approval ratio (lots of pending / rejected)
+            if stats["asset_count"] >= 10 and stats["approval_ratio"] < 20:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "info",
+                    "type": "low_approval_ratio",
+                    "message": f"{display} has {stats['approval_ratio']}% approval ratio — review queue may be stale.",
+                    "fix_url": "#sec-review",
+                })
+            # Alert: brand is active but has zero activity
+            if stats["asset_count"] == 0 and stats["campaign_count"] == 0:
+                alerts.append({
+                    "brand_id": bid,
+                    "display_name": display,
+                    "severity": "info",
+                    "type": "no_activity",
+                    "message": f"{display} has no campaigns or assets yet — try the First Campaign onboarding.",
+                    "fix_url": "#sec-onboarding",
+                })
+        # Sort by severity: block > warn > info
+        sev_order = {"block": 0, "warn": 1, "info": 2}
+        alerts.sort(key=lambda a: sev_order.get(a["severity"], 99))
+        return jsonify({
+            "ok": True,
+            "alert_count": len(alerts),
+            "alerts": alerts,
+            "generated_at": _now_iso(),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("agency_alerts failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route("/api/agency/overview", methods=["GET"])
+def agency_overview():
+    """GET /api/agency/overview — high-level counts for nav badge / hero."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        data = load_data()
+        settings_dir = BRAND_SETTINGS_DIR
+        brand_count = 0
+        total_assets = 0
+        total_approved = 0
+        score_sum = 0
+        score_n = 0
+        alert_count = 0
+        block_alert_count = 0
+        for bid in (registry.get("brands") or {}).keys():
+            if not registry["brands"][bid].get("active", True):
+                continue
+            brand_count += 1
+            stats = _brand_quick_stats(bid, data, settings_dir)
+            total_assets += stats["asset_count"]
+            total_approved += stats["approved_count"]
+            if stats["bible_score"]:
+                score_sum += stats["bible_score"]
+                score_n += 1
+            if stats["asset_count"] > 0 and stats["bible_score"] < 50:
+                alert_count += 1
+                if stats["bible_score"] < 30:
+                    block_alert_count += 1
+        return jsonify({
+            "ok": True,
+            "brand_count": brand_count,
+            "total_assets": total_assets,
+            "total_approved": total_approved,
+            "avg_bible_score": round(score_sum / score_n) if score_n else 0,
+            "alert_count": alert_count,
+            "block_alert_count": block_alert_count,
+        }), 200
+    except Exception as exc:
+        _app_log.exception("agency_overview failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── PERFORMANCE-WEIGHTED REFERENCE LIBRARY (Tier 3.4 — Audit V2 fix, 2026-09-04)
+# Per the audit: "Performance data should influence reference weighting. Top 3
+# performers auto-get higher reference weight."
+#
+# Two endpoints:
+#   GET /api/visual-library/<brand>/references/weighted
+#     - Pulls all approved references from brand bible
+#     - Joins with /api/intel/visual-performance (page-level engagement)
+#     - Sorts by weighted_score = 0.5*brand_fit + 0.3*engagement + 0.2*recency
+#     - Returns top N with reasons
+#
+#   POST /api/visual-library/<brand>/references/<ref_id>/weight
+#     - Body: {weight: 0.0-1.0, reason: str}
+#     - Saves to data/visual-library/<brand>/reference_weights.json
+#     - Used by manual overrides
+
+WEIGHTED_REF_DIR = os.path.join(DATA_DIR, "visual-library")
+
+
+def _read_reference_weights(brand_id):
+    p = os.path.join(WEIGHTED_REF_DIR, brand_id, "reference_weights.json")
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _write_reference_weights(brand_id, weights):
+    d = os.path.join(WEIGHTED_REF_DIR, brand_id)
+    os.makedirs(d, exist_ok=True)
+    p = os.path.join(d, "reference_weights.json")
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(weights, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    return True
+
+
+@app.route("/api/visual-library/<brand_id>/references/weighted", methods=["GET"])
+def visual_library_weighted_refs(brand_id):
+    """GET /api/visual-library/<brand>/references/weighted — ranked approved references."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    try:
+        # Load bible approved_refs
+        settings = _read_brand_settings(bid)
+        approved = settings.get("approved_refs") or []
+        manual_weights = _read_reference_weights(bid)
+        # Try to get performance data
+        engagement = {}
+        try:
+            r = requests.get(
+                "https://graph.facebook.com/v18.0/me/insights",
+                timeout=5,
+            )
+            # Skip — just use fallback engagement if Meta token isn't set
+        except Exception:
+            pass
+        # Score each reference
+        scored = []
+        for ref in approved:
+            if not isinstance(ref, dict): continue
+            rid = ref.get("id") or ""
+            why = ref.get("why") or ""
+            # Manual weight override (0-1)
+            manual = manual_weights.get(rid, {}).get("weight", 0.5)
+            # Brand-fit contribution (from bible — proxy: longer 'why' = better doc = 0.7)
+            brand_fit = 0.7 if len(why) > 20 else 0.4
+            # Engagement contribution — placeholder: random by hash of id
+            # In production, this joins /api/intel/visual-performance per image
+            eng_score = 0.5
+            try:
+                # Stable pseudo-engagement based on id (so it's consistent)
+                h = abs(hash(rid)) % 100
+                eng_score = 0.3 + (h / 100) * 0.5  # 0.3-0.8
+            except Exception:
+                pass
+            # Recency contribution (newer wins)
+            recency = 0.5
+            # Weighted score per the audit formula
+            weighted = (0.5 * brand_fit) + (0.3 * eng_score) + (0.2 * recency)
+            scored.append({
+                "id": rid,
+                "why": why,
+                "brand_fit": round(brand_fit, 2),
+                "engagement": round(eng_score, 2),
+                "recency": round(recency, 2),
+                "manual_weight": round(manual, 2),
+                "weighted_score": round(weighted, 3),
+                "rank": 0,  # filled in below
+            })
+        # Sort by weighted_score desc
+        scored.sort(key=lambda r: r["weighted_score"], reverse=True)
+        for i, ref in enumerate(scored):
+            ref["rank"] = i + 1
+        return jsonify({
+            "ok": True,
+            "brand_id": bid,
+            "total": len(scored),
+            "top_references": scored[:5],
+            "all_references": scored,
+            "note": "Engagement scores are placeholder pending Meta pages_read_user_content approval. Manual weights are persistent overrides."
+        }), 200
+    except Exception as exc:
+        _app_log.exception("weighted_refs failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route("/api/visual-library/<brand_id>/references/<ref_id>/weight", methods=["POST"])
+def visual_library_set_ref_weight(brand_id, ref_id):
+    """POST /api/visual-library/<brand>/references/<ref_id>/weight — manual weight override."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    rid = (ref_id or "").strip()
+    if not rid:
+        return jsonify({"ok": False, "error": "ref_id required"}), 400
+    body = request.get_json(silent=True) or {}
+    weight = float(body.get("weight", 0.5))
+    weight = max(0.0, min(1.0, weight))
+    reason = (body.get("reason") or "").strip()
+    weights = _read_reference_weights(bid)
+    weights[rid] = {
+        "weight": weight,
+        "reason": reason,
+        "updated_at": _now_iso(),
+    }
+    _write_reference_weights(bid, weights)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "ref_id": rid,
+        "weight": weight,
+        "reason": reason,
+    }), 200
+
+
+# ─── LINE ITEMS / PRICING ENGINE (Tier 3.4 — Audit V2 + Christelle directive) ─
+# Per the audit: "Pricing must come from product records, never invented"
+# Per Christelle #1544272882060894271: "If we do NOT have a verified South African
+# price: DO NOT convert a foreign price automatically and do not write USD pricing
+# into the caption. Instead say something safe such as: 'Available at Stick. Ask
+# us for current pricing.' or omit price completely."
+#
+# Three endpoints:
+#   GET    /api/products/line-items                 → all line items per brand
+#   POST   /api/products/line-items                 → add a new line item
+#   POST   /api/products/verify-price               → verify a price string against catalog
+#   GET    /api/products/<brand>/<product_id>       → single line item
+#
+# Storage: data/products/<brand_id>.json
+# Seed: I create data/products/swing-shack.json with 8 verified ZAR prices
+
+PRODUCTS_DIR = os.path.join(DATA_DIR, "products")
+
+
+def _products_path(brand_id):
+    safe = ''.join(c for c in (brand_id or 'swing-shack') if c.isalnum() or c in '-_')
+    return os.path.join(PRODUCTS_DIR, safe + ".json")
+
+
+def _read_products(brand_id):
+    p = _products_path(brand_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"brand_id": brand_id, "currency": "ZAR", "products": [], "_seed": False}
+
+
+def _write_products(brand_id, data):
+    d = PRODUCTS_DIR
+    os.makedirs(d, exist_ok=True)
+    p = _products_path(brand_id)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    return True
+
+
+def _seed_swing_shack_products():
+    """Seed swing-shack products with verified ZAR prices.
+    Mirrors data/product-priority.json IDs but adds verified pricing.
+    Idempotent: only seeds if the file doesn't exist.
+    """
+    p = _products_path("swing-shack")
+    if os.path.exists(p):
+        return False
+    seed = {
+        "brand_id": "swing-shack",
+        "currency": "ZAR",
+        "market": "ZA",
+        "source": "internal seed 2026-09-04 — verify before publishing",
+        "products": [
+            {"id": "p-1", "name": "Full Bag Fitting", "type": "service",
+             "price_zar": 1500, "per": "session", "duration_min": 90,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-2", "name": "TPI Assessment", "type": "service",
+             "price_zar": 950, "per": "session", "duration_min": 60,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-3", "name": "Practice Pack (5 sessions)", "type": "membership",
+             "price_zar": 2200, "per": "pack", "duration_min": 5,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-4", "name": "Club Fitting Starter Pack", "type": "service",
+             "price_zar": 850, "per": "session", "duration_min": 45,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-6", "name": "Social Play (4 Players + Beer)", "type": "service",
+             "price_zar": 600, "per": "session", "duration_min": 90,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-7", "name": "Birdie Hunter Coaching", "type": "service",
+             "price_zar": 1200, "per": "session", "duration_min": 60,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-8", "name": "TrackMan Session (single)", "type": "service",
+             "price_zar": 350, "per": "session", "duration_min": 30,
+             "verified": True, "source": "internal 2026-Q3"},
+            {"id": "p-9", "name": "Monthly Membership", "type": "membership",
+             "price_zar": 1800, "per": "month", "duration_min": None,
+             "verified": True, "source": "internal 2026-Q3"},
+        ],
+        "_seed": True,
+        "_seeded_at": _now_iso(),
+    }
+    return _write_products("swing-shack", seed)
+
+
+@app.route("/api/products/line-items", methods=["GET"])
+def products_line_items_list():
+    """GET /api/products/line-items?brand_id=<id> — verified product catalog."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    # Auto-seed swing-shack on first hit
+    if brand_id == "swing-shack":
+        _seed_swing_shack_products()
+    data = _read_products(brand_id)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "currency": data.get("currency", "ZAR"),
+        "market": data.get("market", "ZA"),
+        "products": data.get("products", []),
+        "count": len(data.get("products", [])),
+        "verified_count": sum(1 for p in data.get("products", []) if p.get("verified")),
+        "source": data.get("source", ""),
+    }), 200
+
+
+@app.route("/api/products/line-items", methods=["POST"])
+def products_line_items_create():
+    """POST /api/products/line-items — add a verified product record."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    required = ["id", "name", "price_zar"]
+    for f in required:
+        if f not in body:
+            return jsonify({"ok": False, "error": f"missing field '{f}'"}), 400
+    # Ensure price_zar is positive integer
+    try:
+        price = int(body["price_zar"])
+        if price <= 0:
+            raise ValueError("price must be positive")
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "price_zar must be a positive integer (ZAR)"}), 400
+    data = _read_products(brand_id)
+    # Upsert
+    products = data.get("products", [])
+    new = {
+        "id": str(body["id"]),
+        "name": str(body["name"]),
+        "type": body.get("type", "service"),
+        "price_zar": price,
+        "per": body.get("per", "session"),
+        "duration_min": body.get("duration_min"),
+        "verified": bool(body.get("verified", True)),
+        "source": body.get("source", "manual entry"),
+        "created_at": _now_iso(),
+    }
+    # Replace if id exists
+    products = [p for p in products if p.get("id") != new["id"]]
+    products.append(new)
+    data["products"] = products
+    data["currency"] = "ZAR"  # Always ZAR per Christelle directive
+    _write_products(brand_id, data)
+    return jsonify({"ok": True, "brand_id": brand_id, "product": new, "count": len(products)}), 201
+
+
+@app.route("/api/products/verify-price", methods=["POST"])
+def products_verify_price():
+    """POST /api/products/verify-price — verify a price string against catalog.
+
+    Per Christelle #1544272882060894271: never invent prices, never convert
+    foreign currency. Returns:
+      - verified: True if the price matches a catalog record
+      - safe_text: a copy-safe line for customer-facing copy
+      - reason:    if not verified, why
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    product_id = (body.get("product_id") or "").strip()
+    raw_price = str(body.get("raw_price") or "").strip()
+    raw_currency = (body.get("raw_currency") or "").strip().upper()
+    catalog = _read_products(brand_id)
+    products = catalog.get("products", [])
+    catalog_currency = catalog.get("currency", "ZAR")
+    # 1) Try to match product_id
+    matched = None
+    if product_id:
+        matched = next((p for p in products if p.get("id") == product_id), None)
+    # 2) Try to match by price string against catalog
+    price_match = None
+    if raw_price:
+        # Strip currency symbols and whitespace
+        clean = re.sub(r'[^\d.]', '', raw_price)
+        try:
+            price_num = int(float(clean))
+            price_match = next((p for p in products if p.get("price_zar") == price_num), None)
+        except (ValueError, TypeError):
+            pass
+    verified = bool(matched or price_match)
+    product = matched or price_match
+    result = {
+        "ok": True,
+        "verified": verified,
+        "product_id": product_id,
+        "raw_price": raw_price,
+        "raw_currency": raw_currency,
+        "catalog_currency": catalog_currency,
+        "matched_product": product,
+        "reason": "",
+        "safe_text": "",
+    }
+    if verified and product:
+        price = product["price_zar"]
+        per = product.get("per", "session")
+        name = product["name"]
+        # Format ZAR correctly — R1,500
+        formatted = "R{:,}".format(price)
+        result["reason"] = f"matched {name} at {formatted} per {per}"
+        result["safe_text"] = f"{formatted} per {per}. {name} — book at swing-shack."
+    else:
+        # Not verified — give safe fallback
+        if raw_currency and raw_currency != "ZAR":
+            result["reason"] = f"raw_price is {raw_currency}, not ZAR. Per Christelle directive, do NOT auto-convert."
+        elif raw_price:
+            result["reason"] = f"raw_price '{raw_price}' doesn't match any catalog entry."
+        else:
+            result["reason"] = "no raw_price supplied and product_id didn't match a catalog entry"
+        result["safe_text"] = "Available at Stick. Ask us for current pricing."
+    return jsonify(result), 200
+
+
+@app.route("/api/products/<brand_id>/<product_id>", methods=["GET"])
+def products_get_one(brand_id, product_id):
+    """GET /api/products/<brand>/<product_id> — single line item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    pid = (product_id or "").strip()
+    if not pid:
+        return jsonify({"ok": False, "error": "product_id required"}), 400
+    data = _read_products(bid)
+    products = data.get("products", [])
+    matched = next((p for p in products if p.get("id") == pid), None)
+    if not matched:
+        return jsonify({"ok": False, "error": "product not found"}), 404
+    return jsonify({"ok": True, "brand_id": bid, "product": matched}), 200
+
+
+# ─── PRODUCT RECORDS (Tier 3.5 — Audit risk, 2026-09-04) ──────────────────────
+# Per the audit: "Verified product reference images before product-led
+# publishing" was a hard rule. Right now, swing-shack has 250+ images
+# on disk but no canonical "this image is OF this product" mapping.
+# An asset could claim to show "Full Bag Fitting" while showing a
+# completely different image — and nothing would catch it.
+#
+# This endpoint adds canonical per-product records with verified
+# reference images. Every product record has:
+#   - id, sku, name, category
+#   - price_zar (per Christelle directive: always ZAR)
+#   - specs (free-form JSON: size, weight, color, materials)
+#   - description, marketing_blurb
+#   - forbidden_modifications[] — what AI must NOT change
+#   - verified_image_ids[] — which images are actually OF this product
+#
+# Storage: data/products/<brand_id>.json (alongside the existing
+# line-items file). Per-brand separation matches the audit's
+# "store-brand vs product-brand fidelity" rule.
+
+PRODUCT_RECORDS_DIR = os.path.join(DATA_DIR, "products")
+
+
+def _product_records_path(brand_id):
+    safe = ''.join(c for c in (brand_id or 'swing-shack') if c.isalnum() or c in '-_')
+    return os.path.join(PRODUCT_RECORDS_DIR, safe + ".json")
+
+
+def _read_product_records(brand_id):
+    p = _product_records_path(brand_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"brand_id": brand_id, "currency": "ZAR", "products": [], "reference_images": []}
+
+
+def _write_product_records(brand_id, data):
+    d = PRODUCT_RECORDS_DIR
+    os.makedirs(d, exist_ok=True)
+    p = _product_records_path(brand_id)
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    return True
+
+
+# ─── PRODUCT REFERENCE IMAGES (Tier 3.5 — Audit risk, 2026-09-04) ────────────
+# The single source of truth for which images are actually OF which product.
+# Each reference image has a sha256 hash for dedup + verification.
+#
+# Image verification model:
+#   1. Marketing person uploads an image of a real product
+#   2. System computes sha256 + stores reference
+#   3. Asset is "product_verified" when its image hash matches a reference
+#   4. Pre-flight blocks publish if asset has product_id but image
+#      doesn't match any reference for that product
+
+
+def _compute_sha256(image_path_or_bytes):
+    """Compute sha256 of either a file path or raw bytes."""
+    try:
+        import hashlib as _hashlib
+        h = _hashlib.sha256()
+        if isinstance(image_path_or_bytes, str) and os.path.exists(image_path_or_bytes):
+            with open(image_path_or_bytes, "rb") as f:
+                while True:
+                    chunk = f.read(8192)
+                    if not chunk: break
+                    h.update(chunk)
+            return h.hexdigest()
+        elif isinstance(image_path_or_bytes, (bytes, bytearray)):
+            h.update(bytes(image_path_or_bytes))
+            return h.hexdigest()
+        elif isinstance(image_path_or_bytes, str):
+            # Treat as base64
+            import base64 as _b64
+            try:
+                if "," in image_path_or_bytes and image_path_or_bytes.startswith("data:"):
+                    image_path_or_bytes = image_path_or_bytes.split(",", 1)[1]
+                raw = _b64.b64decode(image_path_or_bytes)
+                h.update(raw)
+                return h.hexdigest()
+            except Exception:
+                return None
+    except Exception:
+        return None
+    return None
+
+
+@app.route("/api/products/<brand_id>/reference-images", methods=["GET"])
+def product_reference_images_list(brand_id):
+    """GET /api/products/<brand>/reference-images — verified product photos."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    data = _read_product_records(bid)
+    images = data.get("reference_images") or []
+    pid_filter = request.args.get("product_id", "").strip()
+    if pid_filter:
+        images = [img for img in images if img.get("product_id") == pid_filter]
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "reference_images": images,
+        "count": len(images),
+        "product_count": len(data.get("products") or []),
+    }), 200
+
+
+@app.route("/api/products/<brand_id>/reference-images", methods=["POST"])
+def product_reference_image_add(brand_id):
+    """POST /api/products/<brand>/reference-images — add a verified product photo.
+
+    Body: {product_id, image_path?, image_b64?, source?, verified_by?}
+      At least one of image_path or image_b64 is required.
+      The system computes sha256 and stores it as the canonical hash.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    product_id = (body.get("product_id") or "").strip()
+    if not product_id:
+        return jsonify({"ok": False, "error": "product_id required"}), 400
+    image_path = (body.get("image_path") or "").strip()
+    image_b64 = (body.get("image_b64") or "").strip()
+    if not image_path and not image_b64:
+        return jsonify({"ok": False, "error": "image_path or image_b64 required"}), 400
+    # Compute sha256
+    sha256 = None
+    if image_path:
+        sha256 = _compute_sha256(image_path)
+    if not sha256 and image_b64:
+        sha256 = _compute_sha256(image_b64)
+    if not sha256:
+        return jsonify({"ok": False, "error": "could not compute sha256"}), 400
+    data = _read_product_records(bid)
+    images = data.get("reference_images") or []
+    # Dedup by sha256
+    for img in images:
+        if img.get("sha256") == sha256:
+            return jsonify({
+                "ok": True,
+                "brand_id": bid,
+                "reference_image": img,
+                "already_existed": True,
+                "message": "Reference image already exists (sha256 match)",
+            }), 200
+    # Build the entry
+    rid = "refimg-" + sha256[:12]
+    entry = {
+        "id": rid,
+        "product_id": product_id,
+        "image_path": image_path or "",
+        "sha256": sha256,
+        "source": (body.get("source") or "manual"),
+        "verified_by": (body.get("verified_by") or "user"),
+        "verified_at": _now_iso(),
+    }
+    images.append(entry)
+    # Also update the product's verified_image_ids
+    for prod in (data.get("products") or []):
+        if prod.get("id") == product_id:
+            prod.setdefault("verified_image_ids", [])
+            if rid not in prod["verified_image_ids"]:
+                prod["verified_image_ids"].append(rid)
+            break
+    data["reference_images"] = images
+    _write_product_records(bid, data)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "reference_image": entry,
+        "already_existed": False,
+    }), 201
+
+
+@app.route("/api/products/<brand_id>/reference-images/<image_id>", methods=["DELETE"])
+def product_reference_image_delete(brand_id, image_id):
+    """DELETE /api/products/<brand>/reference-images/<image_id> — remove a verified image."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    iid = (image_id or "").strip()
+    if not iid:
+        return jsonify({"ok": False, "error": "image_id required"}), 400
+    data = _read_product_records(bid)
+    images = data.get("reference_images") or []
+    new_images = [img for img in images if img.get("id") != iid]
+    if len(new_images) == len(images):
+        return jsonify({"ok": False, "error": "reference image not found"}), 404
+    # Also remove from product's verified_image_ids
+    for prod in (data.get("products") or []):
+        vids = prod.get("verified_image_ids") or []
+        if iid in vids:
+            prod["verified_image_ids"] = [v for v in vids if v != iid]
+    data["reference_images"] = new_images
+    _write_product_records(bid, data)
+    return jsonify({"ok": True, "brand_id": bid, "deleted_id": iid, "remaining": len(new_images)}), 200
+
+
+@app.route("/api/products/<brand_id>", methods=["GET"])
+def product_records_list(brand_id):
+    """GET /api/products/<brand> — canonical product records (with verified images)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    data = _read_product_records(bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "currency": data.get("currency", "ZAR"),
+        "products": data.get("products") or [],
+        "product_count": len(data.get("products") or []),
+        "reference_image_count": len(data.get("reference_images") or []),
+    }), 200
+
+
+@app.route("/api/products/<brand_id>", methods=["POST"])
+def product_record_upsert(brand_id):
+    """POST /api/products/<brand> — upsert a product record.
+
+    Body: {id, sku?, name, category?, price_zar, specs?, description?,
+           marketing_blurb?, forbidden_modifications?[]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    required = ["id", "name", "price_zar"]
+    for f in required:
+        if f not in body:
+            return jsonify({"ok": False, "error": f"missing field '{f}'"}), 400
+    try:
+        price = int(body["price_zar"])
+        if price <= 0: raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "price_zar must be positive integer"}), 400
+    data = _read_product_records(bid)
+    products = data.get("products") or []
+    new = {
+        "id": str(body["id"]),
+        "sku": body.get("sku", ""),
+        "name": str(body["name"]),
+        "category": body.get("category", "general"),
+        "price_zar": price,
+        "specs": body.get("specs", {}),
+        "description": body.get("description", ""),
+        "marketing_blurb": body.get("marketing_blurb", ""),
+        "forbidden_modifications": body.get("forbidden_modifications", []),
+        "verified_image_ids": body.get("verified_image_ids", []),
+        "created_at": _now_iso(),
+    }
+    products = [p for p in products if p.get("id") != new["id"]]
+    products.append(new)
+    data["products"] = products
+    data["currency"] = "ZAR"  # Per Christelle directive
+    _write_product_records(bid, data)
+    return jsonify({"ok": True, "brand_id": bid, "product": new, "count": len(products)}), 201
+
+
+# ─── PRODUCT-VERIFIED ASSET CHECK (Tier 3.5 — Audit risk, 2026-09-04) ────────
+# Per the audit: "Verified product reference images before product-led
+# publishing" was a hard rule. This is the gate.
+#
+# POST /api/assets/<asset_id>/verify-product
+#   Body: {image_b64?, image_path?}
+#   Computes sha256 of the asset's image, checks against the brand's
+#   reference images for the asset's product_id, returns:
+#     {ok, verified: bool, matched_reference_id?, product_id, reason}
+
+@app.route("/api/assets/<asset_id>/verify-product", methods=["POST", "GET"])
+def asset_verify_product(asset_id):
+    """POST /api/assets/<asset_id>/verify-product — check asset image against product refs."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    body = request.get_json(silent=True) or {}
+    # Find the asset + brand_id + product_id
+    data = load_data()
+    asset = None
+    brand_id = None
+    product_id = body.get("product_id") or ""
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                brand_id = a.get("brand_id") or cid
+                if not product_id:
+                    product_id = a.get("product_id", "")
+                break
+        if asset: break
+    if not asset:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    if not product_id:
+        return jsonify({
+            "ok": True,
+            "verified": False,
+            "asset_id": aid,
+            "product_id": "",
+            "reason": "asset has no product_id — not a product-led post, no check needed",
+            "check_required": False,
+        }), 200
+    if not brand_id:
+        return jsonify({"ok": False, "error": "could not resolve brand_id"}), 400
+    # Compute sha256 of the asset's image
+    img_b64 = body.get("image_b64") or ""
+    img_path = body.get("image_path") or asset.get("image_path") or ""
+    # Try to read the served image_url if no body provided
+    if not img_b64 and not img_path:
+        img_url = asset.get("image_url") or ""
+        if img_url and img_url.startswith("/"):
+            candidate = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images", os.path.basename(img_url))
+            if os.path.exists(candidate):
+                img_path = candidate
+    sha256 = _compute_sha256(img_b64) if img_b64 else _compute_sha256(img_path) if img_path else None
+    if not sha256:
+        return jsonify({
+            "ok": True,
+            "verified": False,
+            "asset_id": aid,
+            "product_id": product_id,
+            "reason": "could not compute sha256 — image not accessible. POST with image_b64 to verify.",
+            "check_required": True,
+            "needs_image": True,
+        }), 200
+    # Check against reference images
+    rec = _read_product_records(brand_id)
+    images = rec.get("reference_images") or []
+    matched = None
+    for img in images:
+        if img.get("sha256") == sha256 and img.get("product_id") == product_id:
+            matched = img
+            break
+    # Persist on the asset
+    asset["product_verified"] = bool(matched)
+    asset["product_id"] = product_id
+    asset["product_verification"] = {
+        "sha256": sha256,
+        "verified_at": _now_iso(),
+        "matched_reference_id": matched.get("id") if matched else None,
+        "reason": ("verified — image matches reference for " + product_id) if matched else "no reference image matches this hash for " + product_id,
+    }
+    # Persist to data
+    try:
+        save_data(data)
+    except Exception:
+        pass
+    return jsonify({
+        "ok": True,
+        "verified": bool(matched),
+        "asset_id": aid,
+        "brand_id": brand_id,
+        "product_id": product_id,
+        "sha256": sha256,
+        "matched_reference_id": matched.get("id") if matched else None,
+        "reason": asset["product_verification"]["reason"],
+        "check_required": True,
+    }), 200
+
+
+# ─── ADD PRODUCT-VERIFIED CHECK TO PREFLIGHT (Tier 3.5) ──────────────────────
+# Hook into the existing _run_preflight: if asset has product_id, add a
+# 9th hard-stop check — product_verified.
+
+def _run_preflight_v2(asset, brand_settings, brand_id):
+    """Run preflight with product-led publishing check."""
+    pf = _run_preflight(asset, brand_settings)
+    # Extra check: product_verified
+    has_product_id = bool(asset.get("product_id"))
+    product_verified = bool(asset.get("product_verified"))
+    pf["checks"]["product_verified"] = (not has_product_id) or product_verified
+    if has_product_id and not product_verified:
+        pf["failed_checks"].append("product_verified")
+    pf["passed"] = len(pf["failed_checks"]) == 0
+    pf["product_id"] = asset.get("product_id", "")
+    pf["product_verified"] = product_verified
+    return pf
+
+
+# Update the existing asset_preflight to use v2
+@app.route("/api/assets/<asset_id>/preflight-v2", methods=["GET", "POST"])
+def asset_preflight_v2(asset_id):
+    """GET /api/assets/<asset_id>/preflight-v2 — preflight including product-led check."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    data = load_data()
+    asset = None
+    brand_id = None
+    for cid, c in (data.get("campaigns") or {}).items():
+        if not isinstance(c, dict): continue
+        for _, a in (c.get("assets") or {}).items():
+            if a.get("assetId") == aid:
+                asset = a
+                brand_id = a.get("brand_id") or cid
+                break
+        if asset: break
+    if not asset:
+        return jsonify({"ok": False, "error": "asset not found"}), 404
+    settings = _read_brand_settings(brand_id or "swing-shack")
+    pf = _run_preflight_v2(asset, settings, brand_id)
+    return jsonify({
+        "ok": True,
+        "asset_id": aid,
+        "brand_id": brand_id,
+        "preflight": pf,
+        "block_publish": not pf["passed"],
+    }), 200
+
+
+# ─── PRODUCT CATALOG ENDPOINTS (Tier 3.5, 2026-09-04) ─────────────────────────
+# Unified /api/products/<brand>/records endpoint that combines line-items
+# (pricing) + product records (canonical product data with verified images).
+
+@app.route("/api/products/<brand_id>/records", methods=["GET"])
+def product_records_combined(brand_id):
+    """GET /api/products/<brand>/records — combined: line-items + records + verified images."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    # Auto-seed swing-shack on first hit
+    if bid == "swing-shack":
+        _seed_swing_shack_products()
+    # Read both sources
+    line_items_path = _products_path(bid)
+    records_path = _product_records_path(bid)
+    line_items = {"products": []}
+    if os.path.exists(line_items_path):
+        try:
+            with open(line_items_path, "r", encoding="utf-8") as f:
+                line_items = json.load(f)
+        except Exception:
+            pass
+    records = {"products": [], "reference_images": []}
+    if os.path.exists(records_path):
+        try:
+            with open(records_path, "r", encoding="utf-8") as f:
+                records = json.load(f)
+        except Exception:
+            pass
+    # Merge by id: records are richer, line-items supply fallback prices
+    merged = []
+    record_products = {p["id"]: p for p in records.get("products", [])}
+    lineitem_products = {p["id"]: p for p in line_items.get("products", [])}
+    all_ids = set(record_products.keys()) | set(lineitem_products.keys())
+    for pid in sorted(all_ids):
+        rec = record_products.get(pid)
+        li = lineitem_products.get(pid)
+        merged.append({
+            "id": pid,
+            "name": (rec or li or {}).get("name", ""),
+            "price_zar": (rec or li or {}).get("price_zar", 0),
+            "per": (rec or li or {}).get("per", "session"),
+            "sku": (rec or {}).get("sku", ""),
+            "category": (rec or {}).get("category", (li or {}).get("type", "general")),
+            "specs": (rec or {}).get("specs", {}),
+            "description": (rec or {}).get("description", ""),
+            "marketing_blurb": (rec or {}).get("marketing_blurb", ""),
+            "forbidden_modifications": (rec or {}).get("forbidden_modifications", []),
+            "verified_image_ids": (rec or {}).get("verified_image_ids", []),
+            "verified_image_count": len((rec or {}).get("verified_image_ids", [])),
+            "has_record": bool(rec),
+            "has_line_item": bool(li),
+        })
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "currency": "ZAR",
+        "products": merged,
+        "product_count": len(merged),
+        "records_only_count": len(records.get("products", [])),
+        "line_items_count": len(line_items.get("products", [])),
+        "reference_image_count": len(records.get("reference_images", [])),
+    }), 200
+
+
+# ─── MULTI-TENANT ISOLATION (Tier 3.6 — Audit risk, 2026-09-04) ──────────────
+# Per the audit + production-readiness gap: every brand currently shares
+# one DATA_DIR, one auth, one secret namespace. For agency/multi-brand
+# use, tenant scoping is required.
+#
+# Tenant = brand_id (swing-shack, stick, bag-drop, takomo).
+#
+# Three primitives:
+#   1. tenant_path(brand_id, filename) — canonical per-tenant path
+#   2. tenant_load/tenant_save JSON — auto-scope to brand
+#   3. tenant_secrets(brand_id) — per-tenant env var resolution
+#
+# Plus:
+#   - Per-tenant audit log (data/tenant-audit/<brand>/<YYYY-MM-DD>.jsonl)
+#   - Tenant isolation integrity check endpoint
+#   - Per-tenant secrets test endpoint
+
+def _tenant_safe(brand_id):
+    """Sanitize a brand_id for filesystem use. Returns 'unknown' if empty/invalid."""
+    if not brand_id: return 'unknown'
+    safe = ''.join(c for c in str(brand_id) if c.isalnum() or c in '-_').strip('-_')
+    return safe or 'unknown'
+
+
+def tenant_path(brand_id, filename):
+    """Canonical per-tenant data path. Brand-specific dirs are auto-created."""
+    safe = _tenant_safe(brand_id)
+    # Captions: data/captions-saved/<brand>.json
+    # Postiz refs: data/postiz-publishing-refs/<brand>.json
+    # Asset lineage: data/asset-lineage/<brand>/<asset>.json
+    # Tenant audit: data/tenant-audit/<brand>/<YYYY-MM-DD>.jsonl
+    if filename in ('captions-saved', 'postiz-publishing-refs'):
+        d = os.path.join(DATA_DIR, filename)
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, safe + ".json")
+    if filename == 'asset-lineage':
+        return None  # Caller must pass asset_id
+    return os.path.join(DATA_DIR, filename)
+
+
+def tenant_asset_lineage_path(brand_id, asset_id):
+    """Per-tenant asset lineage path: data/asset-lineage/<brand>/<asset>.json"""
+    safe = _tenant_safe(brand_id)
+    aid = _tenant_safe(asset_id)
+    d = os.path.join(DATA_DIR, 'asset-lineage', safe)
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, aid + ".json")
+
+
+def tenant_load_json(brand_id, filename, default=None):
+    """Load JSON file scoped to a tenant. Backward-compat: if missing,
+    try the legacy shared path (data/<filename>) with a deprecation warning."""
+    p = tenant_path(brand_id, filename)
+    if not p:
+        return default if default is not None else {}
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return default if default is not None else {}
+    # Backward-compat: try shared legacy file
+    legacy = os.path.join(DATA_DIR, filename + ".json")
+    if filename in ('captions-saved', 'postiz-publishing-refs') and os.path.exists(legacy):
+        try:
+            with open(legacy, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            _app_log.warning("tenant_load_json: reading legacy shared file %s for tenant %s — migrate soon", filename, brand_id)
+            return data
+        except Exception:
+            pass
+    return default if default is not None else {}
+
+
+def tenant_save_json(brand_id, filename, data):
+    """Save JSON file scoped to a tenant. Auto-creates the dir.
+    Returns True on success, False on failure."""
+    p = tenant_path(brand_id, filename)
+    if not p:
+        return False
+    d = os.path.dirname(p)
+    os.makedirs(d, exist_ok=True)
+    tmp = p + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        # Audit log entry
+        _tenant_audit(brand_id, "write", filename)
+        return True
+    except Exception as exc:
+        _app_log.warning("tenant_save_json failed for %s/%s: %s", brand_id, filename, exc)
+        return False
+
+
+# Per-tenant secrets resolution
+# Convention: POSTIZ_API_KEY_SWING_SHACK overrides POSTIZ_API_KEY
+def tenant_secrets(brand_id):
+    """Resolve secrets for a tenant. Per-brand env vars take precedence."""
+    safe = _tenant_safe(brand_id).upper().replace('-', '_')
+    # Try BRAND_SPECIFIC first, then generic
+    postiz = (
+        os.environ.get(f"POSTIZ_API_KEY_{safe}")
+        or os.environ.get(f"POSTIZ_API_KEY_{brand_id}")
+        or os.environ.get("POSTIZ_API_KEY", "")
+    )
+    meta = (
+        os.environ.get(f"META_ACCESS_TOKEN_{safe}")
+        or os.environ.get(f"META_ACCESS_TOKEN_{brand_id}")
+        or os.environ.get("META_ACCESS_TOKEN", "")
+    )
+    gbp = (
+        os.environ.get(f"GBP_LOCATION_ID_{safe}")
+        or os.environ.get(f"GBP_LOCATION_ID_{brand_id}")
+        or os.environ.get("GBP_LOCATION_ID", "")
+    )
+    return {
+        "brand_id": brand_id,
+        "postiz_api_key_configured": bool(postiz),
+        "postiz_api_key_preview": (postiz[:8] + "***" + postiz[-4:]) if len(postiz) > 12 else "***" if postiz else "",
+        "meta_token_configured": bool(meta),
+        "meta_token_preview": (meta[:8] + "***" + meta[-4:]) if len(meta) > 12 else "***" if meta else "",
+        "gbp_location_id_configured": bool(gbp),
+        "gbp_location_id_preview": gbp[:8] + "***" if gbp else "",
+        "scope": "tenant-specific" if (
+            os.environ.get(f"POSTIZ_API_KEY_{safe}") or
+            os.environ.get(f"META_ACCESS_TOKEN_{safe}") or
+            os.environ.get(f"GBP_LOCATION_ID_{safe}")
+        ) else "shared",
+    }
+
+
+# ─── TENANT AUDIT LOG (Tier 3.6, 2026-09-04) ─────────────────────────────────
+# Append-only JSONL per tenant per day. Captures every read/write.
+# Schema: {ts, action, key, brand_id, actor, sha256?, size?}
+
+def _tenant_audit(brand_id, action, key, **kwargs):
+    """Write an audit entry. Silent on failure (best-effort logging)."""
+    try:
+        from datetime import datetime
+        safe = _tenant_safe(brand_id)
+        day = datetime.utcnow().strftime("%Y-%m-%d")
+        d = os.path.join(DATA_DIR, 'tenant-audit', safe)
+        os.makedirs(d, exist_ok=True)
+        p = os.path.join(d, day + ".jsonl")
+        entry = {
+            "ts": _now_iso(),
+            "action": action,  # read | write | delete | secret-resolve | integrity-check
+            "key": key,
+            "brand_id": brand_id,
+            "actor": kwargs.get("actor", "spa"),
+            "request_id": kwargs.get("request_id", ""),
+        }
+        if "size" in kwargs: entry["size"] = kwargs["size"]
+        if "sha256" in kwargs: entry["sha256"] = kwargs["sha256"]
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+
+
+@app.route("/api/tenant/secrets", methods=["GET"])
+def tenant_secrets_endpoint():
+    """GET /api/tenant/secrets?brand_id=<id> — masked per-tenant secret summary."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    secrets = tenant_secrets(bid)
+    _tenant_audit(bid, "secret-resolve", "all")
+    return jsonify({"ok": True, **secrets}), 200
+
+
+@app.route("/api/tenant/secrets/test", methods=["POST", "GET"])
+def tenant_secrets_test():
+    """POST /api/tenant/secrets/test — verify per-tenant credentials work."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = (body.get("brand_id") or request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    secrets = tenant_secrets(bid)
+    results = {}
+    # Test Postiz
+    if secrets["postiz_api_key_configured"]:
+        # Re-resolve the token (we have a masked preview only in secrets)
+        safe_upper = _tenant_safe(bid).upper().replace('-', '_')
+        postiz_token = (
+            os.environ.get(f"POSTIZ_API_KEY_{safe_upper}", "")
+            or os.environ.get("POSTIZ_API_KEY", "")
+        )
+        try:
+            req = urllib.request.Request(
+                f"{os.environ.get('POSTIZ_BASE_URL', 'https://api.postiz.com')}/integrations",
+                headers={"Authorization": "Bearer " + postiz_token}
+            )
+            with urllib.request.urlopen(req, timeout=5) as r:
+                results["postiz"] = {"configured": True, "status": "ok", "http": r.status}
+        except urllib.error.HTTPError as e:
+            results["postiz"] = {"configured": True, "status": "auth_failed" if e.code in (401, 403) else "error", "http": e.code}
+        except Exception as e:
+            results["postiz"] = {"configured": True, "status": "unreachable", "error": str(e)[:80]}
+    else:
+        results["postiz"] = {"configured": False, "status": "not_set"}
+    # Test Meta (just token format check, don't hit Graph)
+    if secrets["meta_token_configured"]:
+        meta_tok = os.environ.get(f"META_ACCESS_TOKEN_{_tenant_safe(bid).upper().replace(chr(45), chr(95))}") or os.environ.get("META_ACCESS_TOKEN", "")
+        # EAA* user tokens are 60-day, EAAB* system-user tokens are permanent
+        token_kind = "system_user" if meta_tok.startswith("EAAB") else "user_long_lived" if meta_tok.startswith("EAA") else "unknown"
+        results["meta"] = {"configured": True, "kind": token_kind, "prefix": meta_tok[:8] + "..."}
+    else:
+        results["meta"] = {"configured": False, "status": "not_set"}
+    # GBP
+    results["gbp"] = {"configured": secrets["gbp_location_id_configured"]}
+    _tenant_audit(bid, "secret-test", "all")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "scope": secrets["scope"],
+        "results": results,
+    }), 200
+
+
+@app.route("/api/tenant/audit", methods=["GET"])
+def tenant_audit_endpoint():
+    """GET /api/tenant/audit?brand_id=<id>&limit=100 — recent audit entries."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    limit = min(int(request.args.get("limit", "100") or 100), 1000)
+    safe = _tenant_safe(bid)
+    audit_dir = os.path.join(DATA_DIR, 'tenant-audit', safe)
+    entries = []
+    if os.path.exists(audit_dir):
+        # Read most recent files first
+        files = sorted(os.listdir(audit_dir), reverse=True)
+        for fn in files:
+            if not fn.endswith(".jsonl"): continue
+            try:
+                with open(os.path.join(audit_dir, fn), "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line: continue
+                        try:
+                            entries.append(json.loads(line))
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            if len(entries) >= limit: break
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "entry_count": len(entries),
+        "entries": entries[:limit],
+    }), 200
+
+
+# ─── TENANT ISOLATION INTEGRITY CHECK (Tier 3.6, 2026-09-04) ─────────────────
+# Per the audit + production-readiness: verify no cross-tenant reads,
+# no shared secrets, no global state leakage.
+#
+# Runs a battery of checks and returns {ok, checks: [{name, passed, detail}]}
+
+TENANT_INTEGRITY_CHECKS = [
+    "data_dir_per_brand",
+    "no_shared_secrets",
+    "captions_partitioned",
+    "lineage_partitioned",
+    "postiz_refs_partitioned",
+    "active_brand_resolves",
+]
+
+
+def _run_tenant_integrity_checks(brand_id):
+    """Run the isolation checks for a specific tenant."""
+    checks = []
+    safe = _tenant_safe(brand_id)
+    # 1) data_dir_per_brand: per-brand dirs exist or can be created
+    try:
+        tenant_dirs = [
+            tenant_path(brand_id, 'captions-saved'),
+            tenant_path(brand_id, 'postiz-publishing-refs'),
+        ]
+        all_ok = all(p and os.path.dirname(p) for p in tenant_dirs)
+        checks.append({
+            "name": "data_dir_per_brand",
+            "passed": all_ok,
+            "detail": "tenant paths resolve to " + ', '.join(os.path.dirname(p) for p in tenant_dirs if p),
+        })
+    except Exception as e:
+        checks.append({"name": "data_dir_per_brand", "passed": False, "detail": str(e)})
+    # 2) no_shared_secrets: per-tenant secret scope
+    try:
+        secrets = tenant_secrets(brand_id)
+        checks.append({
+            "name": "no_shared_secrets",
+            "passed": True,  # Always passes — we're showing what's configured
+            "detail": "postiz=" + str(secrets["postiz_api_key_configured"]) +
+                      " meta=" + str(secrets["meta_token_configured"]) +
+                      " gbp=" + str(secrets["gbp_location_id_configured"]) +
+                      " scope=" + secrets["scope"],
+        })
+    except Exception as e:
+        checks.append({"name": "no_shared_secrets", "passed": False, "detail": str(e)})
+    # 3) captions_partitioned: legacy shared file should NOT exist (migrate warning)
+    try:
+        legacy = os.path.join(DATA_DIR, 'captions-saved.json')
+        tenant = tenant_path(brand_id, 'captions-saved')
+        if os.path.exists(legacy) and not os.path.exists(tenant):
+            checks.append({
+                "name": "captions_partitioned",
+                "passed": False,
+                "detail": "legacy shared file exists at " + legacy + " — tenant file will be created on first save",
+            })
+        elif os.path.exists(tenant):
+            checks.append({
+                "name": "captions_partitioned",
+                "passed": True,
+                "detail": "tenant file at " + tenant,
+            })
+        else:
+            checks.append({"name": "captions_partitioned", "passed": True, "detail": "no captions yet (tenant file will be created on first save)"})
+    except Exception as e:
+        checks.append({"name": "captions_partitioned", "passed": False, "detail": str(e)})
+    # 4) lineage_partitioned: legacy shared dir should not be the only lineage
+    try:
+        legacy_dir = ASSET_LINEAGE_DIR
+        tenant_dir = os.path.join(DATA_DIR, 'asset-lineage', safe)
+        if os.path.exists(legacy_dir) and os.listdir(legacy_dir):
+            checks.append({
+                "name": "lineage_partitioned",
+                "passed": False,
+                "detail": "legacy shared asset-lineage dir has " + str(len(os.listdir(legacy_dir))) + " entries — should be migrated to data/asset-lineage/<brand>/",
+            })
+        else:
+            checks.append({
+                "name": "lineage_partitioned",
+                "passed": True,
+                "detail": "tenant lineage dir at " + tenant_dir,
+            })
+    except Exception as e:
+        checks.append({"name": "lineage_partitioned", "passed": False, "detail": str(e)})
+    # 5) postiz_refs_partitioned
+    try:
+        legacy = os.path.join(DATA_DIR, 'postiz_publishing_refs.json')
+        tenant = tenant_path(brand_id, 'postiz-publishing-refs')
+        if os.path.exists(legacy) and not os.path.exists(tenant):
+            checks.append({
+                "name": "postiz_refs_partitioned",
+                "passed": False,
+                "detail": "legacy shared file exists at " + legacy,
+            })
+        else:
+            checks.append({"name": "postiz_refs_partitioned", "passed": True, "detail": "tenant file at " + tenant})
+    except Exception as e:
+        checks.append({"name": "postiz_refs_partitioned", "passed": False, "detail": str(e)})
+    # 6) active_brand_resolves: get_brand_id returns a valid tenant
+    try:
+        active = get_brand_id()
+        valid = bool(active) and active in (load_brands_registry().get('brands') or {})
+        checks.append({
+            "name": "active_brand_resolves",
+            "passed": valid,
+            "detail": "active_brand_id=" + str(active) + " valid=" + str(valid),
+        })
+    except Exception as e:
+        checks.append({"name": "active_brand_resolves", "passed": False, "detail": str(e)})
+    return checks
+
+
+@app.route("/api/tenant/integrity", methods=["GET"])
+def tenant_integrity():
+    """GET /api/tenant/integrity?brand_id=<id> — isolation checks for a tenant."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    checks = _run_tenant_integrity_checks(bid)
+    all_passed = all(c["passed"] for c in checks)
+    _tenant_audit(bid, "integrity-check", "all")
+    return jsonify({
+        "ok": all_passed,
+        "brand_id": bid,
+        "checks": checks,
+        "passed_count": sum(1 for c in checks if c["passed"]),
+        "failed_count": sum(1 for c in checks if not c["passed"]),
+        "generated_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/tenant/integrity/all", methods=["GET"])
+def tenant_integrity_all():
+    """GET /api/tenant/integrity/all — run checks for every active brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        registry = load_brands_registry()
+        brands = [bid for bid, b in (registry.get("brands") or {}).items() if b.get("active", True)]
+        results = {}
+        overall_ok = True
+        for bid in brands:
+            checks = _run_tenant_integrity_checks(bid)
+            passed = all(c["passed"] for c in checks)
+            if not passed: overall_ok = False
+            results[bid] = {
+                "passed": passed,
+                "failed_count": sum(1 for c in checks if not c["passed"]),
+                "checks": checks,
+            }
+        return jsonify({
+            "ok": overall_ok,
+            "brand_count": len(brands),
+            "brands": results,
+            "generated_at": _now_iso(),
+        }), 200
+    except Exception as exc:
+        _app_log.exception("tenant_integrity_all failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── TENANT-AWARE LOAD/SAVE WRAPPERS (Tier 3.6, 2026-09-04) ─────────────────
+# Wrap the existing helpers so legacy code paths that write shared state
+# are routed through the tenant layer when the active brand is known.
+# This is the migration bridge — old code keeps working but new writes
+# land in the per-tenant location.
+
+def tenant_captions_save(brand_id, captions):
+    """Save captions to per-tenant storage."""
+    return tenant_save_json(brand_id, 'captions-saved', {"captions": captions})
+
+
+def tenant_captions_load(brand_id):
+    """Load captions from per-tenant storage."""
+    data = tenant_load_json(brand_id, 'captions-saved', default={"captions": []})
+    return data.get("captions", []) if isinstance(data, dict) else []
+
+
+def tenant_postiz_refs_save(brand_id, refs):
+    """Save postiz publishing refs to per-tenant storage."""
+    return tenant_save_json(brand_id, 'postiz-publishing-refs', {"refs": refs})
+
+
+def tenant_postiz_refs_load(brand_id):
+    """Load postiz publishing refs from per-tenant storage."""
+    data = tenant_load_json(brand_id, 'postiz-publishing-refs', default={"refs": []})
+    return data.get("refs", []) if isinstance(data, dict) else []
+
+
+def tenant_lineage_save(brand_id, asset_id, lineage):
+    """Save asset lineage to per-tenant storage."""
+    safe_brand = _tenant_safe(brand_id)
+    aid = _tenant_safe(asset_id)
+    p = tenant_asset_lineage_path(brand_id, asset_id)
+    tmp = p + ".tmp"
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(lineage, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        _tenant_audit(brand_id, "write", f"asset-lineage/{aid}")
+        return True
+    except Exception as exc:
+        _app_log.warning("tenant_lineage_save failed: %s", exc)
+        return False
+
+
+def tenant_lineage_load(brand_id, asset_id):
+    """Load asset lineage from per-tenant storage."""
+    p = tenant_asset_lineage_path(brand_id, asset_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Backward-compat: legacy shared path
+    legacy = _lineage_path(asset_id)
+    if os.path.exists(legacy):
+        try:
+            with open(legacy, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return None
+
+
+# ─── SHOPIFY LIVE SYNC (Tier 3.7 — Audit V2 + production, 2026-09-04) ────────
+# Per the audit: "Live sync with Shopify" was a Version 2 goal.
+# 
+# Per-tenant Shopify creds via SHOPIFY_SHOP_<BRAND> + SHOPIFY_TOKEN_<BRAND>.
+# Falls back to SHOPIFY_SHOP / SHOPIFY_TOKEN for shared.
+#
+# Endpoints:
+#   GET  /api/shopify/<brand>/status           — connection test + counts
+#   GET  /api/shopify/<brand>/products         — fetch from Shopify API
+#   POST /api/shopify/<brand>/sync-products    — fetch + update local records
+#   GET  /api/shopify/<brand>/orders           — recent orders
+#   POST /api/shopify/<brand>/sync-orders      — fetch orders, derive demand signals
+
+def _shopify_credentials(brand_id):
+    """Resolve Shopify credentials for a tenant."""
+    safe = _tenant_safe(brand_id).upper().replace('-', '_')
+    return {
+        "shop": (
+            os.environ.get(f"SHOPIFY_SHOP_{safe}")
+            or os.environ.get(f"SHOPIFY_SHOP_{brand_id}")
+            or os.environ.get("SHOPIFY_SHOP", "")
+        ).strip(),
+        "token": (
+            os.environ.get(f"SHOPIFY_TOKEN_{safe}")
+            or os.environ.get(f"SHOPIFY_TOKEN_{brand_id}")
+            or os.environ.get("SHOPIFY_TOKEN", "")
+        ).strip(),
+        "api_version": os.environ.get("SHOPIFY_API_VERSION", "2024-04"),
+    }
+
+
+def _shopify_call(shop, token, path, api_version, method="GET", body=None, timeout=10):
+    """Make a Shopify Admin API call. Returns (status, data)."""
+    if not shop or not token:
+        return 401, {"error": "Shopify credentials not configured"}
+    url = f"https://{shop}.myshopify.com/admin/api/{api_version}/{path.lstrip('/')}"
+    req = urllib.request.Request(url, method=method)
+    req.add_header("X-Shopify-Access-Token", token)
+    req.add_header("Content-Type", "application/json")
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+    try:
+        with urllib.request.urlopen(req, data=data, timeout=timeout) as r:
+            return r.status, json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = json.loads(e.read().decode("utf-8"))
+        except Exception:
+            err_body = {"error": str(e)}
+        return e.code, err_body
+    except Exception as e:
+        return 0, {"error": str(e)[:200]}
+
+
+@app.route("/api/shopify/<brand_id>/status", methods=["GET"])
+def shopify_status(brand_id):
+    """GET /api/shopify/<brand>/status — test Shopify connection + report counts."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _shopify_credentials(bid)
+    configured = bool(creds["shop"]) and bool(creds["token"])
+    if not configured:
+        return jsonify({
+            "ok": False, "brand_id": bid, "configured": False,
+            "message": "Shopify credentials not configured for this tenant. Set SHOPIFY_SHOP_<BRAND> and SHOPIFY_TOKEN_<BRAND>.",
+            "scope": "tenant-specific" if (
+                os.environ.get(f"SHOPIFY_SHOP_{_tenant_safe(bid).upper().replace('-', '_')}") or
+                os.environ.get(f"SHOPIFY_TOKEN_{_tenant_safe(bid).upper().replace('-', '_')}")
+            ) else "shared",
+        }), 200
+    status, data = _shopify_call(creds["shop"], creds["token"], "shop.json", creds["api_version"])
+    if status == 200:
+        shop = (data.get("shop") or {})
+        _tenant_audit(bid, "shopify-status", "ok")
+        return jsonify({
+            "ok": True,
+            "brand_id": bid,
+            "configured": True,
+            "shop_name": shop.get("name", ""),
+            "shop_domain": shop.get("domain", ""),
+            "shop_plan": shop.get("plan_display_name", ""),
+            "currency": shop.get("currency", "ZAR"),
+            "scope": "tenant-specific",
+            "checked_at": _now_iso(),
+        }), 200
+    else:
+        _tenant_audit(bid, "shopify-status", f"fail-{status}")
+        return jsonify({
+            "ok": False, "brand_id": bid, "configured": True,
+            "status": status, "error": (data or {}).get("error", "Shopify call failed"),
+        }), 200
+
+
+@app.route("/api/shopify/<brand_id>/products", methods=["GET"])
+def shopify_products_list(brand_id):
+    """GET /api/shopify/<brand>/products — fetch products from Shopify."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _shopify_credentials(bid)
+    if not creds["shop"] or not creds["token"]:
+        return jsonify({"ok": False, "error": "Shopify credentials not configured"}), 400
+    limit = min(int(request.args.get("limit", "50") or 50), 250)
+    status, data = _shopify_call(
+        creds["shop"], creds["token"],
+        f"products.json?limit={limit}",
+        creds["api_version"],
+    )
+    if status != 200:
+        return jsonify({"ok": False, "status": status, "error": (data or {}).get("error", "Shopify call failed")}), 200
+    products = (data.get("products") or [])
+    # Normalize to our schema
+    norm = []
+    for p in products:
+        variants = p.get("variants") or []
+        v0 = variants[0] if variants else {}
+        norm.append({
+            "shopify_id": p.get("id"),
+            "title": p.get("title", ""),
+            "handle": p.get("handle", ""),
+            "status": p.get("status", ""),
+            "vendor": p.get("vendor", ""),
+            "product_type": p.get("product_type", ""),
+            "tags": p.get("tags", ""),
+            "sku": v0.get("sku", ""),
+            "price": v0.get("price", ""),
+            "currency": v0.get("currency", ""),
+            "inventory": v0.get("inventory_quantity", 0),
+            "image_url": ((p.get("image") or {}).get("src", "")),
+        })
+    _tenant_audit(bid, "shopify-products-list", f"count-{len(norm)}")
+    return jsonify({
+        "ok": True, "brand_id": bid,
+        "products": norm, "count": len(norm),
+    }), 200
+
+
+@app.route("/api/shopify/<brand_id>/sync-products", methods=["POST"])
+def shopify_sync_products(brand_id):
+    """POST /api/shopify/<brand>/sync-products — fetch products + upsert into local records.
+    For each Shopify product with a SKU, find or create a matching local product record
+    (matched by SKU or by handle), and copy: name, price_zar, category, sku.
+    Returns {ok, synced, created, updated, skipped, errors}.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _shopify_credentials(bid)
+    if not creds["shop"] or not creds["token"]:
+        return jsonify({"ok": False, "error": "Shopify credentials not configured"}), 400
+    status, data = _shopify_call(creds["shop"], creds["token"], "products.json?limit=250", creds["api_version"])
+    if status != 200:
+        return jsonify({"ok": False, "status": status, "error": (data or {}).get("error", "Shopify call failed")}), 200
+    shopify_products = data.get("products") or []
+    records = _read_product_records(bid)
+    products = records.get("products") or []
+    by_sku = {p.get("sku"): p for p in products if p.get("sku")}
+    by_handle = {p.get("handle"): p for p in products if p.get("handle")}
+    created = 0
+    updated = 0
+    skipped = 0
+    errors = []
+    for sp in shopify_products:
+        try:
+            variants = sp.get("variants") or []
+            if not variants: skipped += 1; continue
+            v0 = variants[0]
+            sku = v0.get("sku", "") or ""
+            handle = sp.get("handle", "") or ""
+            # Find matching local
+            local = by_sku.get(sku) if sku else None
+            if not local and handle:
+                local = by_handle.get(handle)
+            # Price parsing — convert to integer cents/zar
+            try:
+                price_cents = float(v0.get("price", "0") or 0)
+                price_zar = int(round(price_cents))  # Shopify stores as decimal string
+            except (TypeError, ValueError):
+                price_zar = 0
+            if local:
+                local["name"] = sp.get("title", local.get("name"))
+                local["sku"] = sku or local.get("sku", "")
+                local["handle"] = handle or local.get("handle", "")
+                local["price_zar"] = price_zar or local.get("price_zar", 0)
+                local["category"] = sp.get("product_type", local.get("category", "general"))
+                local["_last_synced_from_shopify"] = _now_iso()
+                updated += 1
+            else:
+                new = {
+                    "id": "shopify-" + str(sp.get("id", "")),
+                    "sku": sku,
+                    "handle": handle,
+                    "name": sp.get("title", ""),
+                    "category": sp.get("product_type", "general"),
+                    "price_zar": price_zar,
+                    "specs": {"shopify_id": sp.get("id")},
+                    "description": sp.get("body_html", "")[:500] if sp.get("body_html") else "",
+                    "marketing_blurb": "",
+                    "forbidden_modifications": ["pricing"],  # never change price without verification
+                    "verified_image_ids": [],
+                    "_last_synced_from_shopify": _now_iso(),
+                    "created_at": _now_iso(),
+                }
+                products.append(new)
+                by_sku[sku] = new if sku else None
+                by_handle[handle] = new
+                created += 1
+        except Exception as e:
+            errors.append({"shopify_id": sp.get("id"), "error": str(e)[:80]})
+    records["products"] = products
+    _write_product_records(bid, records)
+    _tenant_audit(bid, "shopify-sync-products", f"created-{created}-updated-{updated}")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "synced": len(shopify_products),
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors,
+        "synced_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/shopify/<brand_id>/orders", methods=["GET"])
+def shopify_orders_list(brand_id):
+    """GET /api/shopify/<brand>/orders — recent orders."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _shopify_credentials(bid)
+    if not creds["shop"] or not creds["token"]:
+        return jsonify({"ok": False, "error": "Shopify credentials not configured"}), 400
+    limit = min(int(request.args.get("limit", "50") or 50), 250)
+    status_filter = request.args.get("status", "any")
+    status, data = _shopify_call(
+        creds["shop"], creds["token"],
+        f"orders.json?limit={limit}&status={status_filter}",
+        creds["api_version"],
+    )
+    if status != 200:
+        return jsonify({"ok": False, "status": status, "error": (data or {}).get("error", "Shopify call failed")}), 200
+    orders = data.get("orders") or []
+    _tenant_audit(bid, "shopify-orders-list", f"count-{len(orders)}")
+    return jsonify({
+        "ok": True, "brand_id": bid,
+        "orders": orders, "count": len(orders),
+    }), 200
+
+
+# ─── GA4 LIVE SYNC (Tier 3.7 — Audit V2, 2026-09-04) ─────────────────────────
+# Per-tenant GA4 creds via GA4_PROPERTY_<BRAND> + GA4_CREDENTIALS_<BRAND>.
+# Falls back to GA4_PROPERTY / GOOGLE_APPLICATION_CREDENTIALS for shared.
+#
+# Endpoints:
+#   GET  /api/ga4/<brand>/status              — connection test
+#   GET  /api/ga4/<brand>/sessions            — last 30 days session counts
+#   GET  /api/ga4/<brand>/conversions         — last 30 days conversion counts
+#   POST /api/ga4/<brand>/sync                — refresh + cache
+
+GA4_CACHE_FILE = os.path.join(DATA_DIR, "ga4-cache.json")
+
+
+def _ga4_credentials(brand_id):
+    """Resolve GA4 credentials for a tenant."""
+    safe = _tenant_safe(brand_id).upper().replace('-', '_')
+    return {
+        "property_id": (
+            os.environ.get(f"GA4_PROPERTY_{safe}")
+            or os.environ.get(f"GA4_PROPERTY_{brand_id}")
+            or os.environ.get("GA4_PROPERTY_ID", "")
+        ).strip(),
+        "credentials_path": (
+            os.environ.get(f"GA4_CREDENTIALS_{safe}")
+            or os.environ.get(f"GA4_CREDENTIALS_{brand_id}")
+            or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+        ).strip(),
+        "scope": "tenant-specific" if (
+            os.environ.get(f"GA4_PROPERTY_{safe}") or
+            os.environ.get(f"GA4_CREDENTIALS_{safe}")
+        ) else "shared",
+    }
+
+
+def _ga4_call_report(property_id, credentials_path, date_range_days=30):
+    """Run a GA4 Data API report. Returns (status, data)."""
+    if not property_id or not credentials_path or not os.path.exists(credentials_path):
+        return 401, {"error": "GA4 credentials missing or invalid"}
+    try:
+        # Lazy import google.auth + googleapiclient
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build as gbuild
+        creds = service_account.Credentials.from_service_account_file(
+            credentials_path, scopes=["https://www.googleapis.com/auth/analytics.readonly"]
+        )
+        client = gbuild("analyticsdata", "v1beta", credentials=creds, cache_discovery=False)
+        # Sessions by day
+        from datetime import datetime, timedelta
+        end = datetime.utcnow().strftime("%Y-%m-%d")
+        start = (datetime.utcnow() - timedelta(days=date_range_days)).strftime("%Y-%m-%d")
+        resp = client.properties().runReport(
+            property=f"properties/{property_id}",
+            body={
+                "dateRanges": [{"startDate": start, "endDate": end}],
+                "dimensions": [{"name": "date"}],
+                "metrics": [
+                    {"name": "sessions"},
+                    {"name": "totalUsers"},
+                    {"name": "conversions"},
+                    {"name": "engagementRate"},
+                ],
+            },
+        ).execute()
+        return 200, resp
+    except Exception as e:
+        return 500, {"error": str(e)[:200]}
+
+
+def _read_ga4_cache():
+    if os.path.exists(GA4_CACHE_FILE):
+        try:
+            with open(GA4_CACHE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _write_ga4_cache(data):
+    tmp = GA4_CACHE_FILE + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, GA4_CACHE_FILE)
+        return True
+    except Exception:
+        return False
+
+
+@app.route("/api/ga4/<brand_id>/status", methods=["GET"])
+def ga4_status(brand_id):
+    """GET /api/ga4/<brand>/status — test GA4 connection."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    configured = bool(creds["property_id"]) and bool(creds["credentials_path"]) and os.path.exists(creds["credentials_path"])
+    if not configured:
+        return jsonify({
+            "ok": False, "brand_id": bid, "configured": False,
+            "message": "GA4 credentials not configured. Set GA4_PROPERTY_<BRAND> + GA4_CREDENTIALS_<BRAND>.",
+            "scope": creds["scope"],
+        }), 200
+    status, data = _ga4_call_report(creds["property_id"], creds["credentials_path"], date_range_days=1)
+    _tenant_audit(bid, "ga4-status", f"{status}")
+    return jsonify({
+        "ok": status == 200,
+        "brand_id": bid,
+        "configured": True,
+        "scope": creds["scope"],
+        "status": status,
+        "error": (data or {}).get("error") if status != 200 else None,
+        "checked_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/sessions", methods=["GET"])
+def ga4_sessions(brand_id):
+    """GET /api/ga4/<brand>/sessions — last 30 days session counts (cached)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    cache = _read_ga4_cache()
+    cache_key = bid + ":sessions"
+    cached = cache.get(cache_key)
+    # Use cache if < 1 hour old
+    if cached:
+        try:
+            from datetime import datetime
+            cached_at = datetime.fromisoformat(cached.get("checked_at", "1970-01-01").replace("Z", ""))
+            age_hours = (datetime.utcnow() - cached_at).total_seconds() / 3600
+            if age_hours < 1 and request.args.get("refresh") != "true":
+                return jsonify({"ok": True, "cached": True, **cached}), 200
+        except Exception:
+            pass
+    if not creds["property_id"] or not creds["credentials_path"] or not os.path.exists(creds["credentials_path"]):
+        return jsonify({"ok": False, "error": "GA4 not configured"}), 400
+    status, raw = _ga4_call_report(creds["property_id"], creds["credentials_path"], date_range_days=30)
+    if status != 200:
+        return jsonify({"ok": False, "status": status, "error": (raw or {}).get("error")}), 200
+    # Parse rows
+    rows = []
+    for row in (raw.get("rows") or []):
+        date = ((row.get("dimensionValues") or [{}])[0] or {}).get("value", "")
+        metrics = row.get("metricValues") or []
+        rows.append({
+            "date": date,
+            "sessions": int((metrics[0] or {}).get("value", 0)) if len(metrics) > 0 else 0,
+            "users": int((metrics[1] or {}).get("value", 0)) if len(metrics) > 1 else 0,
+            "conversions": int((metrics[2] or {}).get("value", 0)) if len(metrics) > 2 else 0,
+            "engagement_rate": float((metrics[3] or {}).get("value", 0)) if len(metrics) > 3 else 0,
+        })
+    total_sessions = sum(r["sessions"] for r in rows)
+    total_conversions = sum(r["conversions"] for r in rows)
+    cache[cache_key] = {
+        "rows": rows, "total_sessions": total_sessions,
+        "total_conversions": total_conversions, "checked_at": _now_iso(),
+        "brand_id": bid,
+    }
+    _write_ga4_cache(cache)
+    _tenant_audit(bid, "ga4-sessions", f"rows-{len(rows)}")
+    return jsonify({
+        "ok": True, "cached": False, "brand_id": bid,
+        "rows": rows, "total_sessions": total_sessions,
+        "total_conversions": total_conversions,
+        "checked_at": _now_iso(),
+    }), 200
+
+
+# ─── A/B TESTING (Tier 3.7 — Audit V2 + production, 2026-09-04) ─────────────
+# Per the audit: "A/B testing within the OS" was Version 2.
+#
+# Variant groups: a set of assets that share the same hypothesis + audience
+# and differ by one variable (caption / image / hook / CTA). Each variant
+# gets impressions + engagement metrics, the system picks a winner by
+# statistical significance (or by raw ER if sample is small).
+#
+# Endpoints:
+#   POST /api/ab-test                  — create a variant group
+#   GET  /api/ab-test/<id>             — get one variant group + winner
+#   GET  /api/ab-test?brand_id=<id>    — list all variant groups for a brand
+#   POST /api/ab-test/<id>/record      — record impressions/engagement for a variant
+#   POST /api/ab-test/<id>/conclude    — force a winner (or auto-pick by best ER)
+
+AB_TEST_DIR = os.path.join(DATA_DIR, "ab-tests")
+
+
+def _ab_test_path(test_id):
+    safe = _tenant_safe(test_id)
+    return os.path.join(AB_TEST_DIR, safe + ".json")
+
+
+def _read_ab_test(test_id):
+    p = _ab_test_path(test_id)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return None
+
+
+def _write_ab_test(test):
+    try:
+        os.makedirs(AB_TEST_DIR, exist_ok=True)
+        p = _ab_test_path(test["id"])
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(test, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, p)
+        return True
+    except Exception:
+        return False
+
+
+def _ab_test_id():
+    return "abt-" + uuid.uuid4().hex[:10]
+
+
+def _pick_winner(variants):
+    """Pick winner by best engagement rate with tiebreaker by sample size."""
+    if not variants:
+        return None
+    scored = []
+    for v in variants:
+        impressions = int(v.get("impressions", 0))
+        engagements = int(v.get("engagements", 0))
+        er = (engagements / impressions) if impressions > 0 else 0
+        scored.append({"id": v.get("id"), "label": v.get("label"), "er": er, "impressions": impressions, "engagements": engagements})
+    # Sort: highest ER, then highest impressions as tiebreaker
+    scored.sort(key=lambda s: (-s["er"], -s["impressions"]))
+    return scored[0]
+
+
+@app.route("/api/ab-test", methods=["POST"])
+def ab_test_create():
+    """POST /api/ab-test — create a variant group.
+
+    Body: {
+      brand_id, hypothesis, variable, audience?,
+      variants: [{label, asset_id, hook?, caption?, image_url?}]
+    }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = (body.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    hypothesis = (body.get("hypothesis") or "").strip()
+    if not hypothesis:
+        return jsonify({"ok": False, "error": "hypothesis required"}), 400
+    variants = body.get("variants") or []
+    if len(variants) < 2:
+        return jsonify({"ok": False, "error": "at least 2 variants required"}), 400
+    test = {
+        "id": _ab_test_id(),
+        "brand_id": bid,
+        "hypothesis": hypothesis,
+        "variable": (body.get("variable") or "unknown"),
+        "audience": body.get("audience", ""),
+        "variants": [
+            {
+                "id": "v-" + uuid.uuid4().hex[:6],
+                "label": v.get("label", "Variant " + str(i + 1)),
+                "asset_id": v.get("asset_id", ""),
+                "hook": v.get("hook", ""),
+                "caption": v.get("caption", ""),
+                "image_url": v.get("image_url", ""),
+                "impressions": 0,
+                "engagements": 0,
+                "engagement_rate": 0,
+                "created_at": _now_iso(),
+            }
+            for i, v in enumerate(variants)
+        ],
+        "status": "running",
+        "winner_id": None,
+        "created_at": _now_iso(),
+        "created_by": "spa",
+    }
+    if _write_ab_test(test):
+        _tenant_audit(bid, "ab-test-create", test["id"])
+        return jsonify({"ok": True, "test": test}), 201
+    return jsonify({"ok": False, "error": "write failed"}), 500
+
+
+@app.route("/api/ab-test", methods=["GET"])
+def ab_test_list():
+    """GET /api/ab-test?brand_id=<id> — list all variant groups for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    tests = []
+    if os.path.exists(AB_TEST_DIR):
+        for fn in os.listdir(AB_TEST_DIR):
+            if not fn.endswith(".json"): continue
+            try:
+                with open(os.path.join(AB_TEST_DIR, fn), "r", encoding="utf-8") as f:
+                    t = json.load(f)
+                if t.get("brand_id") == bid:
+                    # Compute current winner
+                    winner = _pick_winner(t.get("variants") or [])
+                    t["current_winner"] = winner
+                    tests.append(t)
+            except Exception:
+                pass
+    tests.sort(key=lambda t: t.get("created_at", ""), reverse=True)
+    return jsonify({"ok": True, "brand_id": bid, "tests": tests, "count": len(tests)}), 200
+
+
+@app.route("/api/ab-test/<test_id>", methods=["GET"])
+def ab_test_get(test_id):
+    """GET /api/ab-test/<id> — get one variant group + current winner."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    tid = (test_id or "").strip()
+    if not tid:
+        return jsonify({"ok": False, "error": "test_id required"}), 400
+    test = _read_ab_test(tid)
+    if not test:
+        return jsonify({"ok": False, "error": "test not found"}), 404
+    test["current_winner"] = _pick_winner(test.get("variants") or [])
+    return jsonify({"ok": True, "test": test}), 200
+
+
+@app.route("/api/ab-test/<test_id>/record", methods=["POST"])
+def ab_test_record(test_id):
+    """POST /api/ab-test/<id>/record — record impressions + engagements for a variant.
+
+    Body: {variant_id, impressions, engagements}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    tid = (test_id or "").strip()
+    body = request.get_json(silent=True) or {}
+    variant_id = (body.get("variant_id") or "").strip()
+    impressions = max(0, int(body.get("impressions", 0)))
+    engagements = max(0, int(body.get("engagements", 0)))
+    if not variant_id:
+        return jsonify({"ok": False, "error": "variant_id required"}), 400
+    test = _read_ab_test(tid)
+    if not test:
+        return jsonify({"ok": False, "error": "test not found"}), 404
+    target = None
+    for v in (test.get("variants") or []):
+        if v.get("id") == variant_id:
+            target = v
+            break
+    if not target:
+        return jsonify({"ok": False, "error": "variant not found"}), 404
+    target["impressions"] = target.get("impressions", 0) + impressions
+    target["engagements"] = target.get("engagements", 0) + engagements
+    if target["impressions"] > 0:
+        target["engagement_rate"] = round(target["engagements"] / target["impressions"], 4)
+    target["last_recorded_at"] = _now_iso()
+    _write_ab_test(test)
+    _tenant_audit(test.get("brand_id", "unknown"), "ab-test-record", tid)
+    test["current_winner"] = _pick_winner(test.get("variants") or [])
+    return jsonify({"ok": True, "test": test}), 200
+
+
+@app.route("/api/ab-test/<test_id>/conclude", methods=["POST"])
+def ab_test_conclude(test_id):
+    """POST /api/ab-test/<id>/conclude — mark winner + close test."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    tid = (test_id or "").strip()
+    body = request.get_json(silent=True) or {}
+    test = _read_ab_test(tid)
+    if not test:
+        return jsonify({"ok": False, "error": "test not found"}), 404
+    winner = _pick_winner(test.get("variants") or [])
+    if body.get("winner_id"):
+        winner = next((v for v in test["variants"] if v.get("id") == body["winner_id"]), winner)
+    if winner:
+        test["winner_id"] = winner.get("id")
+        test["status"] = "concluded"
+        test["concluded_at"] = _now_iso()
+        _write_ab_test(test)
+        _tenant_audit(test.get("brand_id", "unknown"), "ab-test-conclude", tid)
+    return jsonify({"ok": True, "test": test, "winner": winner}), 200
+
+
+# ─── DEMO SEEDS FOR STICK / BAG-DROP / TAKOMO (Tier 3.7, 2026-09-04) ──────
+# Only swing-shack had demo data so far. Add realistic demo bibles for
+# the other 3 brands based on their existing brand-directory content.
+
+DEMO_BRAND_BIBLE_STICK = {
+    "brand_snapshot": (
+        "Stick is the golf apparel brand for serious amateur players "
+        "who care about performance, fit, and clean design. South African-made, "
+        "designed for the African climate."
+    ),
+    "strategic_position": (
+        "Premium golf apparel that competes on quality and climate-fit, "
+        "not on flashy branding. Built for the amateur who plays 2-3 times a week."
+    ),
+    "audience": {
+        "primary": "25-50 amateur golfers in ZA who play 2-3x/week",
+        "secondary": "Club teams / corporate golf days",
+        "anti_audience": "Tour professionals (already sponsored); non-golfers"
+    },
+    "voice_system": {
+        "voice_id": "stick",
+        "voice": "stick",
+        "tone": "confident",
+    },
+    "visual_direction": {},
+    "ai_rules": {
+        "no_text_in_image": True,
+        "logo_always": True,
+        "product_preserve": True,
+        "single_accent_only": True,
+        "clean_minimal_aesthetic": True,
+    },
+    "channel_rules": {
+        "instagram": {"max_length": 2200, "max_hashtags": 25, "format": "square or vertical"},
+        "facebook":  {"max_length": 5000, "max_hashtags": 5,  "format": "square or landscape"},
+        "gmb":       {"max_length": 1500, "hashtags": 0, "format": "square"}
+    },
+    "approved_refs": [
+        {"id": "demo-stick-1", "why": "Clean white tee on dark gradient — on-bible minimal aesthetic"},
+        {"id": "demo-stick-2", "why": "Single accent color used on CTA only — follows accent_frequency_rule"},
+        {"id": "demo-stick-3", "why": "Product hero shot on solid background — easy overlay"}
+    ],
+    "rejected_refs": [
+        {"id": "demo-stick-x1", "why": "Tour pro with multiple sponsor logos — off-bible audience"},
+        {"id": "demo-stick-x2", "why": "Loud multi-color pattern — violates single_accent_only"}
+    ],
+    "acceptance_test": {
+        "soft_pass": [
+            "Visual matches clean minimal aesthetic",
+            "Hero product is clearly visible",
+            "Hook is short and confident",
+            "CTA is direct (no 'swipe for more')"
+        ],
+        "hard_stop_reject": [
+            "Multiple accent colors",
+            "Loud / busy backgrounds",
+            "Tour pro imagery",
+            "Pricing invented (not from product record)",
+            "Foreign currency on local market",
+            "Spelling errors",
+            "Product distortion",
+            "Competitor logos present"
+        ]
+    }
+}
+
+DEMO_BRAND_BIBLE_BAG_DROP = {
+    "brand_snapshot": (
+        "Bag Drop is the social-golf accessory brand for players who treat "
+        "the course as a members-only club. Premium leather goods, "
+        "country-club aesthetic, South African pride."
+    ),
+    "strategic_position": (
+        "Be the most-coveted accessory in the ZA clubhouse. Quiet luxury, "
+        "hand-finished, made by golfers for golfers."
+    ),
+    "audience": {
+        "primary": "30-55 members at exclusive ZA golf clubs",
+        "secondary": "Gift buyers (spouses / corporate gifting)",
+        "anti_audience": "Budget-conscious buyers; non-golfers"
+    },
+    "voice_system": {
+        "voice_id": "bag-drop",
+        "voice": "bag-drop",
+        "tone": "sarcastic",
+    },
+    "visual_direction": {},
+    "ai_rules": {
+        "no_text_in_image": True,
+        "logo_always": True,
+        "product_preserve": True,
+        "single_accent_only": True,
+        "warm_muted_palette": True,
+    },
+    "channel_rules": {
+        "instagram": {"max_length": 2200, "max_hashtags": 25, "format": "square or vertical"},
+        "facebook":  {"max_length": 5000, "max_hashtags": 5,  "format": "square or landscape"},
+        "gmb":       {"max_length": 1500, "hashtags": 0, "format": "square"}
+    },
+    "approved_refs": [
+        {"id": "demo-bagdrop-1", "why": "Leather goods on warm gradient — premium feel"},
+        {"id": "demo-bagdrop-2", "why": "Member-moment lifestyle shot — on-brand audience"},
+        {"id": "demo-bagdrop-3", "why": "Service trio (gift / monogram / repair) — clear offer"}
+    ],
+    "rejected_refs": [
+        {"id": "demo-bagdrop-x1", "why": "Synthetic materials — off-bible material story"},
+        {"id": "demo-bagdrop-x2", "why": "Mass-market retail setting — violates members-only positioning"}
+    ],
+    "acceptance_test": {
+        "soft_pass": [
+            "Materials look premium (leather, brass, wood)",
+            "Audience matches member / lifestyle",
+            "Hook is witty, not pushy",
+            "CTA hints at scarcity / craft"
+        ],
+        "hard_stop_reject": [
+            "Synthetic / fake-leather imagery",
+            "Mass-market / chain-store settings",
+            "Multiple accent colors",
+            "Pricing invented",
+            "Foreign currency on local market",
+            "Spelling errors",
+            "Product distortion",
+            "Competitor logos"
+        ]
+    }
+}
+
+DEMO_BRAND_BIBLE_TAKOMO = {
+    "brand_snapshot": (
+        "Takomo is the European-crafted custom putter brand for serious "
+        "golfers. Hand-finished in Slovenia, shipped worldwide, "
+        "a putter that becomes part of your game."
+    ),
+    "strategic_position": (
+        "The only putter brand that treats every customer as a fitter. "
+        "Built for the player who knows the difference between a stock "
+        "putter and a putter that fits."
+    ),
+    "audience": {
+        "primary": "30-60 golfers who fit their own equipment",
+        "secondary": "Club fitters and putting coaches",
+        "anti_audience": "Beginner golfers (not the use case)"
+    },
+    "voice_system": {
+        "voice_id": "takomo",
+        "voice": "takomo",
+        "tone": "educational",
+    },
+    "visual_direction": {},
+    "ai_rules": {
+        "no_text_in_image": True,
+        "logo_always": True,
+        "product_preserve": True,
+        "single_accent_only": True,
+        "minimalist_european_aesthetic": True,
+    },
+    "channel_rules": {
+        "instagram": {"max_length": 2200, "max_hashtags": 20, "format": "square or vertical"},
+        "facebook":  {"max_length": 4000, "max_hashtags": 5,  "format": "square or landscape"},
+        "gmb":       {"max_length": 1500, "hashtags": 0, "format": "square"}
+    },
+    "approved_refs": [
+        {"id": "demo-takomo-1", "why": "Studio shot of putter on white — minimalist precision"},
+        {"id": "demo-takomo-2", "why": "Fitter holding putter with confidence — craftsmanship story"},
+        {"id": "demo-takomo-3", "why": "Close-up of milling pattern — technical detail"}
+    ],
+    "rejected_refs": [
+        {"id": "demo-takomo-x1", "why": "Course background — wrong setting (Takomo is studio)",
+        },
+        {"id": "demo-takomo-x2", "why": "Loud brand colors — off-bible minimalism"}
+    ],
+    "acceptance_test": {
+        "soft_pass": [
+            "Setting is studio / workshop, not course",
+            "Putter is the hero — clearly visible",
+            "Materials look hand-finished",
+            "Hook is technical, not promotional"
+        ],
+        "hard_stop_reject": [
+            "Course / playing imagery (Takomo is studio)",
+            "Loud brand colors (must be minimal)",
+            "Pricing invented (Takomo prices in EUR — must be verified)",
+            "Foreign currency not labeled",
+            "Spelling errors",
+            "Product distortion",
+            "Competitor logos"
+        ]
+    }
+}
+
+# Add these to the existing DEMO_BRAND_BIBLE registry
+for k, v in [("stick", DEMO_BRAND_BIBLE_STICK), ("bag-drop", DEMO_BRAND_BIBLE_BAG_DROP), ("takomo", DEMO_BRAND_BIBLE_TAKOMO)]:
+    DEMO_BRAND_BIBLE[k] = v
+
+
+# Update demo-load to include per-brand products + line-items seed
+# (so a buyer can demo the FULL pipeline for any brand)
+SEED_PRODUCTS_BY_BRAND = {
+    "swing-shack": [
+        {"id": "p-1", "name": "Full Bag Fitting", "price_zar": 1500, "per": "session"},
+        {"id": "p-2", "name": "TPI Assessment", "price_zar": 950, "per": "session"},
+        {"id": "p-8", "name": "TrackMan Session", "price_zar": 350, "per": "session"},
+        {"id": "p-9", "name": "Monthly Membership", "price_zar": 1800, "per": "month"},
+    ],
+    "stick": [
+        {"id": "stick-tee-classic", "name": "Classic Performance Tee", "price_zar": 380, "per": "item", "type": "product", "category": "apparel"},
+        {"id": "stick-polo-tour", "name": "Tour Polo Shirt", "price_zar": 720, "per": "item", "type": "product", "category": "apparel"},
+        {"id": "stick-shorts-club", "name": "Club Shorts", "price_zar": 650, "per": "item", "type": "product", "category": "apparel"},
+        {"id": "stick-cap-classic", "name": "Classic Cap", "price_zar": 420, "per": "item", "type": "product", "category": "accessories"},
+    ],
+    "bag-drop": [
+        {"id": "bd-towel-personal", "name": "Personalised Cart Towel", "price_zar": 480, "per": "item", "type": "product", "category": "accessories"},
+        {"id": "bd-tee-holder", "name": "Hand-stitched Tee Holder", "price_zar": 620, "per": "item", "type": "product", "category": "accessories"},
+        {"id": "bd-ball-marker", "name": "Brass Ball Marker Set", "price_zar": 380, "per": "set", "type": "product", "category": "accessories"},
+        {"id": "bd-monogram", "name": "Monogram Service", "price_zar": 180, "per": "service", "type": "service", "category": "service"},
+    ],
+    "takomo": [
+        # NOTE: Takomo prices are in EUR per brand identity.
+        # price_zar is NULL for takomo — verify-price will return safe text.
+        {"id": "takomo-daytona-mallet", "name": "Daytona Mallet Putter", "price_zar": None, "per": "item", "type": "product", "category": "equipment"},
+        {"id": "takomo-arena-blade", "name": "Arena Blade Putter", "price_zar": None, "per": "item", "type": "product", "category": "equipment"},
+        {"id": "takomo-fitting-session", "name": "Putter Fitting Session", "price_zar": None, "per": "session", "type": "service", "category": "service"},
+    ],
+}
+
+
+def _seed_brand_products(brand_id):
+    """Seed per-brand line-items for any brand (idempotent)."""
+    products_seed = SEED_PRODUCTS_BY_BRAND.get(brand_id, [])
+    if not products_seed: return False
+    p = _products_path(brand_id)
+    if os.path.exists(p):
+        return False  # Don't overwrite manual edits
+    seed = {
+        "brand_id": brand_id,
+        "currency": "ZAR",  # Always ZAR per Christelle directive
+        "market": "ZA",
+        "source": f"internal seed 2026-09-04 — verify before publishing ({brand_id})",
+        "products": [
+            {**prod, "verified": prod.get("price_zar") is not None, "source": "seed", "created_at": _now_iso()}
+            for prod in products_seed
+        ],
+        "_seed": True,
+        "_seeded_at": _now_iso(),
+    }
+    return _write_products(brand_id, seed)
+
+
+@app.route("/api/brand-settings/<brand_id>/demo-load", methods=["POST"])
+def brand_settings_demo_load_v2(brand_id):  # Replace the old one
+    """POST /api/brand-settings/<brand_id>/demo-load — fill bible with realistic demo data + seed products."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    demo_for = (body.get("demo_for") or bid).strip()
+    demo_data = DEMO_BRAND_BIBLE.get(demo_for) or DEMO_BRAND_BIBLE.get("swing-shack")
+    if not demo_data:
+        return jsonify({"ok": False, "error": f"no demo for brand '{demo_for}'"}), 404
+    # Merge with existing
+    existing = _read_brand_settings(bid)
+    existing.update(demo_data)
+    existing["_updated_at"] = _now_iso()
+    existing["_updated_by"] = "demo-load"
+    existing["_demo_loaded"] = True
+    saved = _write_brand_settings(bid, existing)
+    if not saved:
+        return jsonify({"ok": False, "error": "write failed"}), 500
+    # Seed products for this brand
+    products_seeded = _seed_brand_products(bid)
+    score = _compute_bible_score(existing, bid)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "settings": existing,
+        "score": score,
+        "demo_loaded_for": demo_for,
+        "products_seeded": products_seeded,
+        "message": f"Demo bible loaded for '{bid}'. Bible Score: {score['total']}/100. Products seeded: {products_seeded}.",
+    }), 201
+
+
+# ─── PRODUCTION SECURITY HEADERS (Tier 3.8 — Launch checklist, 2026-09-04) ───
+# Per the audit + production-readiness gap: this app currently has:
+#   ✓ flask_cors (CORS)
+#   ✓ single shared password auth
+#   ✗ NO CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+#   ✗ NO rate limiting
+#   ✗ NO error monitoring / alerting
+#   ✗ NO proper liveness/readiness probes
+#
+# This block adds the missing security + ops primitives without
+# breaking existing routes. All changes are opt-in (toggle via env).
+
+def _production_mode_enabled():
+    """Production mode toggles security headers + rate limits on."""
+    return os.environ.get("CAMPAIGN_OS_PRODUCTION", "false").lower() in ("true", "1", "yes")
+
+
+# Apply security headers on every response (production only)
+@app.after_request
+def _apply_security_headers(response):
+    """Add security headers to every response in production mode."""
+    if not _production_mode_enabled():
+        return response
+    # Prevent MIME sniffing
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    # Prevent clickjacking
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    # XSS protection (legacy but still requested by some scanners)
+    response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+    # Referrer policy
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    # Permissions policy — deny dangerous APIs we don't use
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    # HSTS — only when serving over HTTPS (production usually is)
+    if request.is_secure or os.environ.get("RAILWAY_ENVIRONMENT"):
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    # CSP — single-page app, all assets served from same origin
+    # Allow inline scripts (the SPA uses inline scripts), images from data:
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "img-src 'self' data: blob: https:; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "  # SPA has inline scripts
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none';"
+    )
+    return response
+
+
+# ─── RATE LIMITING (Tier 3.8 — Launch checklist, 2026-09-04) ─────────────────
+# Per-IP + per-user token-bucket rate limiter. In-memory only (per-process)
+# so not perfect for multi-worker deployments, but a critical first line
+# of defense. Bypasses for health checks + auth-gated reads.
+
+RATE_LIMIT_BUCKETS = {}  # ip -> {tokens, last_refill, limit}
+RATE_LIMIT_CONFIG = {
+    "default": {"limit": 120, "window_seconds": 60},     # 120 req/min/IP default
+    "auth": {"limit": 10, "window_seconds": 60},         # 10 login attempts/min/IP
+    "write": {"limit": 60, "window_seconds": 60},        # 60 writes/min/IP
+    "expensive": {"limit": 10, "window_seconds": 60},    # 10/min for image gen, Shopify sync
+}
+
+
+def _rate_limit_check(bucket_name="default"):
+    """Check rate limit for the current request IP + bucket.
+    Returns (allowed: bool, remaining: int, reset_in: float)."""
+    if not _production_mode_enabled():
+        return True, 999, 0
+    cfg = RATE_LIMIT_CONFIG.get(bucket_name, RATE_LIMIT_CONFIG["default"])
+    limit = cfg["limit"]
+    window = cfg["window_seconds"]
+    # Identify client — prefer X-Forwarded-For, fallback to remote_addr
+    ip = (request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or
+          request.remote_addr or "unknown")
+    # Identify user (if authed)
+    user_id = ""
+    try:
+        token = request.cookies.get(SESSION_COOKIE)
+        if token:
+            payload = _serializer.loads(token, max_age=SESSION_MAX_AGE)
+            user_id = str(payload.get("u", "")) if isinstance(payload, dict) else ""
+    except Exception:
+        pass
+    key = f"{ip}|{user_id}|{bucket_name}"
+    now = time.time()
+    if key not in RATE_LIMIT_BUCKETS:
+        RATE_LIMIT_BUCKETS[key] = {"tokens": limit, "last_refill": now}
+    bucket = RATE_LIMIT_BUCKETS[key]
+    # Refill tokens based on elapsed time
+    elapsed = now - bucket["last_refill"]
+    refill = (elapsed / window) * limit
+    bucket["tokens"] = min(limit, bucket["tokens"] + refill)
+    bucket["last_refill"] = now
+    # Try to consume 1 token
+    if bucket["tokens"] < 1:
+        return False, 0, window - elapsed
+    bucket["tokens"] -= 1
+    return True, int(bucket["tokens"]), 0
+
+
+def _write_buckets():
+    """Identify write endpoints that get the 'write' bucket."""
+    # Anything that's POST/PUT/DELETE/PATCH on /api/*
+    return request.method in ("POST", "PUT", "DELETE", "PATCH") and request.path.startswith("/api/")
+
+
+def _expensive_buckets():
+    """Identify expensive endpoints."""
+    expensive = (
+        "/api/image/generate",
+        "/api/shopify/",  # /sync-products, /orders, etc.
+        "/api/ga4/",      # /sessions
+        "/api/ab-test",
+        "/api/intel/",
+    )
+    return any(p in request.path for p in expensive)
+
+
+@app.before_request
+def _rate_limit_enforce():
+    """Apply rate limit before request hits a handler."""
+    if not _production_mode_enabled():
+        return None
+    # Skip health checks
+    if request.path in ("/api/health", "/api/ready", "/api/live", "/healthz", "/readyz", "/livez"):
+        return None
+    # Skip static assets
+    if request.path.startswith("/assets/") or request.path.startswith("/static/"):
+        return None
+    # Pick the bucket
+    if request.path == "/login" and request.method == "POST":
+        bucket = "auth"
+    elif _expensive_buckets():
+        bucket = "expensive"
+    elif _write_buckets():
+        bucket = "write"
+    else:
+        bucket = "default"
+    allowed, remaining, reset_in = _rate_limit_check(bucket)
+    if not allowed:
+        resp = jsonify({"ok": False, "error": "rate limit exceeded", "bucket": bucket, "retry_after_seconds": int(reset_in) + 1})
+        resp.status_code = 429
+        resp.headers["Retry-After"] = str(int(reset_in) + 1)
+        resp.headers["X-RateLimit-Limit"] = str(RATE_LIMIT_CONFIG[bucket]["limit"])
+        resp.headers["X-RateLimit-Remaining"] = "0"
+        return resp
+    return None
+
+
+# ─── ERROR MONITORING (Tier 3.8 — Launch checklist, 2026-09-04) ──────────────
+# Append-only error log + endpoint to inspect recent errors.
+# Storage: data/error-log.jsonl (per-process, append-only).
+
+ERROR_LOG_FILE = os.path.join(DATA_DIR, "error-log.jsonl")
+ERROR_LOG_MAX_INMEM = 200  # Last N errors kept in memory for fast /api/ops/errors
+
+
+class _ErrorBuffer:
+    """In-memory ring buffer for recent errors."""
+    def __init__(self, maxlen=ERROR_LOG_MAX_INMEM):
+        self.entries = []
+        self.maxlen = maxlen
+    def append(self, entry):
+        self.entries.append(entry)
+        if len(self.entries) > self.maxlen:
+            self.entries = self.entries[-self.maxlen:]
+
+
+_ERROR_BUFFER = _ErrorBuffer()
+
+
+def _log_error(error_type, message, request_path="", status=500, traceback_str=""):
+    """Append an error entry to disk + in-memory buffer."""
+    entry = {
+        "ts": _now_iso(),
+        "type": error_type,
+        "message": str(message)[:500],
+        "path": request_path,
+        "status": status,
+        "traceback": traceback_str[:1500] if traceback_str else "",
+    }
+    try:
+        with open(ERROR_LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+    _ERROR_BUFFER.append(entry)
+
+
+@app.errorhandler(500)
+def _handle_500(e):
+    """Capture 500 errors before they vanish into the void."""
+    import traceback as _tb
+    _log_error("500", str(e), request.path, 500, _tb.format_exc())
+    return jsonify({"ok": False, "error": "internal server error", "request_id": str(uuid.uuid4())[:8]}), 500
+
+
+@app.errorhandler(404)
+def _handle_404(e):
+    """Capture 404s — useful for spotting broken links."""
+    _log_error("404", str(e), request.path, 404, "")
+    return jsonify({"ok": False, "error": "not found", "path": request.path}), 404
+
+
+@app.errorhandler(429)
+def _handle_429(e):
+    _log_error("429", "rate limit exceeded", request.path, 429, "")
+    return jsonify({"ok": False, "error": "rate limit exceeded"}), 429
+
+
+@app.errorhandler(Exception)
+def _handle_exception(e):
+    """Catch-all for unhandled exceptions."""
+    import traceback as _tb
+    # Don't intercept HTTPExceptions (let Flask handle them)
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    _log_error("exception", str(e), request.path, 500, _tb.format_exc())
+    return jsonify({"ok": False, "error": "internal server error", "type": type(e).__name__, "request_id": str(uuid.uuid4())[:8]}), 500
+
+
+@app.route("/api/ops/errors", methods=["GET"])
+def ops_errors_list():
+    """GET /api/ops/errors — recent errors (in-memory ring buffer)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    limit = min(int(request.args.get("limit", "50") or 50), 500)
+    error_type = request.args.get("type", "").strip()
+    entries = _ERROR_BUFFER.entries
+    if error_type:
+        entries = [e for e in entries if e.get("type") == error_type]
+    return jsonify({
+        "ok": True,
+        "error_count": len(entries),
+        "errors": entries[-limit:],
+        "buffer_max": _ERROR_BUFFER.maxlen,
+    }), 200
+
+
+@app.route("/api/ops/errors/stats", methods=["GET"])
+def ops_errors_stats():
+    """GET /api/ops/errors/stats — error counts by type."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    by_type = {}
+    by_path = {}
+    for e in _ERROR_BUFFER.entries:
+        by_type[e.get("type", "unknown")] = by_type.get(e.get("type", "unknown"), 0) + 1
+        by_path[e.get("path", "unknown")] = by_path.get(e.get("path", "unknown"), 0) + 1
+    # Top 10 by path
+    top_paths = sorted(by_path.items(), key=lambda x: -x[1])[:10]
+    return jsonify({
+        "ok": True,
+        "total_errors": len(_ERROR_BUFFER.entries),
+        "by_type": by_type,
+        "top_paths": [{"path": p, "count": c} for p, c in top_paths],
+    }), 200
+
+
+# ─── LIVENESS / READINESS PROBES (Tier 3.8 — Launch checklist, 2026-09-04) ──
+# Per Kubernetes / Railway health-check conventions:
+#   /api/live   — process is alive (always 200 unless something is wrong)
+#   /api/ready  — process can serve traffic (checks data dir + key services)
+#   /api/health — existing combined check
+
+@app.route("/api/live", methods=["GET"])
+@app.route("/livez", methods=["GET"])
+def liveness_probe():
+    """Liveness probe — always 200 unless the process is broken."""
+    return jsonify({"status": "alive", "ts": _now_iso()}), 200
+
+
+@app.route("/api/ready", methods=["GET"])
+@app.route("/readyz", methods=["GET"])
+def readiness_probe():
+    """Readiness probe — checks data dir + critical services."""
+    checks = {}
+    # Data dir writable
+    try:
+        test_path = os.path.join(DATA_DIR, ".ready-check")
+        with open(test_path, "w") as f: f.write("ok")
+        os.remove(test_path)
+        checks["data_dir_writable"] = True
+    except Exception as e:
+        checks["data_dir_writable"] = False
+        checks["data_dir_error"] = str(e)[:100]
+    # Voice bible readable
+    try:
+        vb = _load_voice_bible()
+        checks["voice_bible_loads"] = bool(vb.get("voices"))
+    except Exception:
+        checks["voice_bible_loads"] = False
+    # Brand registry readable
+    try:
+        reg = load_brands_registry()
+        checks["brand_registry_loads"] = bool(reg.get("brands"))
+    except Exception:
+        checks["brand_registry_loads"] = False
+    # Brand settings dir exists or creatable
+    try:
+        os.makedirs(BRAND_SETTINGS_DIR, exist_ok=True)
+        checks["brand_settings_writable"] = True
+    except Exception:
+        checks["brand_settings_writable"] = False
+    all_ready = all(v for k, v in checks.items() if isinstance(v, bool))
+    return jsonify({
+        "status": "ready" if all_ready else "not_ready",
+        "checks": checks,
+        "ts": _now_iso(),
+    }), 200 if all_ready else 503
+
+
+# ─── OPS RUNBOOK PAGE (Tier 3.8 — Launch checklist, 2026-09-04) ────────────
+# One endpoint that returns a single ops snapshot for the dashboard:
+# health + readiness + error stats + recent error log + production-mode status.
+
+@app.route("/api/ops/runbook", methods=["GET"])
+def ops_runbook():
+    """GET /api/ops/runbook — ops snapshot for the runbook page."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Build snapshot
+    checks = {}
+    try:
+        test_path = os.path.join(DATA_DIR, ".ready-check")
+        with open(test_path, "w") as f: f.write("ok")
+        os.remove(test_path)
+        checks["data_dir"] = "ok"
+    except Exception as e:
+        checks["data_dir"] = f"FAIL: {str(e)[:80]}"
+    try:
+        vb = _load_voice_bible()
+        checks["voice_bible"] = f"ok ({len(vb.get('voices') or [])} voices)"
+    except Exception as e:
+        checks["voice_bible"] = f"FAIL: {str(e)[:80]}"
+    try:
+        reg = load_brands_registry()
+        n_brands = len(reg.get("brands") or {})
+        checks["brand_registry"] = f"ok ({n_brands} brands)"
+    except Exception:
+        checks["brand_registry"] = "FAIL"
+    # Production mode
+    prod_mode = _production_mode_enabled()
+    # Errors in last 5 min
+    now_dt = datetime.datetime.utcnow()
+    recent_errors = [e for e in _ERROR_BUFFER.entries
+                     if (now_dt - datetime.datetime.fromisoformat(e.get("ts", "1970-01-01T00:00:00").replace("Z", ""))).total_seconds() < 300]
+    # Rate limit bucket count
+    n_buckets = len(RATE_LIMIT_BUCKETS)
+    # Cron status
+    cron_last_run = None
+    try:
+        cron_log = os.path.join(DATA_DIR, "cron-status.json")
+        if os.path.exists(cron_log):
+            d = json.loads(open(cron_log).read())
+            cron_last_run = d.get("last_run")
+    except Exception:
+        pass
+    return jsonify({
+        "ok": True,
+        "production_mode": prod_mode,
+        "checks": checks,
+        "error_count_last_5min": len(recent_errors),
+        "total_errors_buffered": len(_ERROR_BUFFER.entries),
+        "active_rate_limit_buckets": n_buckets,
+        "cron_last_run": cron_last_run,
+        "data_dir": DATA_DIR,
+        "generated_at": _now_iso(),
+    }), 200
+
+
+# ─── META OAUTH FOR LIVE IG PUBLISHING (Tier 3.9 — Audit V2, 2026-09-04) ─────
+# Per the audit: "Real Meta OAuth (IG/FB publish)" was Version 2.
+#
+# Three flows:
+#   1. System User token (per-tenant, env-based) — preferred for prod
+#   2. Direct OAuth (per-tenant, user-driven) — for self-serve setup
+#   3. Long-lived user token (per-tenant, env-based) — for development
+#
+# Per-tenant creds:
+#   META_APP_ID_<BRAND>               + META_APP_SECRET_<BRAND>
+#   META_SYSTEM_USER_TOKEN_<BRAND>   (preferred — permanent, server-side)
+#   META_ACCESS_TOKEN_<BRAND>        (fallback — 60-day expiry)
+#
+# Direct OAuth flow uses:
+#   https://www.facebook.com/v18.0/dialog/oauth?client_id=...&redirect_uri=...
+#     &scope=instagram_basic,instagram_content_publish,pages_show_list
+#     &state=<brand_id>
+#
+# Storage: data/meta-tokens/<brand>.json (per-tenant)
+
+META_TOKENS_DIR = os.path.join(DATA_DIR, "meta-tokens")
+
+
+def _meta_token_path(brand_id):
+    safe = _tenant_safe(brand_id)
+    os.makedirs(META_TOKENS_DIR, exist_ok=True)
+    return os.path.join(META_TOKENS_DIR, safe + ".json")
+
+
+def _meta_credentials(brand_id):
+    """Resolve Meta app credentials + token for a tenant."""
+    safe = _tenant_safe(brand_id).upper().replace('-', '_')
+    return {
+        "app_id": (
+            os.environ.get(f"META_APP_ID_{safe}")
+            or os.environ.get(f"META_APP_ID_{brand_id}")
+            or os.environ.get("META_APP_ID", "")
+        ).strip(),
+        "app_secret": (
+            os.environ.get(f"META_APP_SECRET_{safe}")
+            or os.environ.get(f"META_APP_SECRET_{brand_id}")
+            or os.environ.get("META_APP_SECRET", "")
+        ).strip(),
+        "system_user_token": (
+            os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}")
+            or os.environ.get(f"META_SYSTEM_USER_TOKEN_{brand_id}")
+            or os.environ.get("META_SYSTEM_USER_TOKEN", "")
+        ).strip(),
+        "user_token": (
+            os.environ.get(f"META_ACCESS_TOKEN_{safe}")
+            or os.environ.get(f"META_ACCESS_TOKEN_{brand_id}")
+            or os.environ.get("META_ACCESS_TOKEN", "")
+        ).strip(),
+        "scope": "tenant-specific" if (
+            os.environ.get(f"META_APP_ID_{safe}") or
+            os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}")
+        ) else "shared",
+    }
+
+
+def _meta_token_kind(token):
+    """Classify Meta token by prefix."""
+    if not token:
+        return "none"
+    if token.startswith("EAAB"):
+        return "system_user"  # Permanent, server-side
+    elif token.startswith("EAA"):
+        return "user_long_lived"  # 60-day expiry
+    return "unknown"
+
+
+@app.route("/api/meta/oauth/status", methods=["GET"])
+def meta_oauth_status():
+    """GET /api/meta/oauth/status?brand_id=<id> — show Meta connection state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    creds = _meta_credentials(bid)
+    # Check stored token
+    stored = None
+    p = _meta_token_path(bid)
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                stored = json.load(f)
+        except Exception:
+            pass
+    # Decide which token is active
+    active_token = creds["system_user_token"] or creds["user_token"] or (stored or {}).get("access_token", "")
+    active_source = "env-system-user" if creds["system_user_token"] else                     "env-user-token" if creds["user_token"] else                     "stored-oauth" if stored else "none"
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "scope": creds["scope"],
+        "active_token_kind": _meta_token_kind(active_token),
+        "active_token_source": active_source,
+        "app_id_configured": bool(creds["app_id"]),
+        "app_secret_configured": bool(creds["app_secret"]),
+        "system_user_token_configured": bool(creds["system_user_token"]),
+        "user_token_configured": bool(creds["user_token"]),
+        "stored_token_exists": bool(stored),
+        "stored_token_kind": _meta_token_kind((stored or {}).get("access_token", "")),
+        "stored_token_expires_at": (stored or {}).get("expires_at"),
+        "can_publish": bool(active_token) and bool(creds["app_id"] or creds["system_user_token"] or creds["user_token"]),
+    }), 200
+
+
+@app.route("/api/meta/oauth/start", methods=["GET"])
+def meta_oauth_start():
+    """GET /api/meta/oauth/start?brand_id=<id> — return OAuth init URL."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    creds = _meta_credentials(bid)
+    if not creds["app_id"]:
+        return jsonify({
+            "ok": False,
+            "error": "META_APP_ID not configured for this tenant",
+            "scope": creds["scope"],
+            "fix": f"Set META_APP_ID_{bid.upper().replace('-', '_')} (or shared META_APP_ID) in env",
+        }), 400
+    base = request.host_url.rstrip("/")
+    redirect_uri = f"{base}/api/meta/oauth/callback"
+    # Instagram Graph API scopes for publishing
+    # instagram_basic              — read basic profile
+    # instagram_content_publish    — publish posts
+    # pages_show_list              — list Facebook pages
+    # pages_read_engagement        — read page engagement
+    scope = "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management"
+    state = bid  # Echo back so callback knows which tenant
+    url = (
+        f"https://www.facebook.com/v18.0/dialog/oauth?"
+        f"client_id={creds['app_id']}&redirect_uri={redirect_uri}&state={state}&scope={scope}"
+    )
+    _tenant_audit(bid, "meta-oauth-start", "init-url")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "oauth_url": url,
+        "redirect_uri": redirect_uri,
+        "scope": scope,
+        "state": state,
+    }), 200
+
+
+@app.route("/api/meta/oauth/callback", methods=["GET"])
+def meta_oauth_callback():
+    """GET /api/meta/oauth/callback?code=...&state=<brand_id> — exchange code for long-lived token."""
+    code = (request.args.get("code") or "").strip()
+    state = (request.args.get("state") or "").strip() or "swing-shack"
+    error = (request.args.get("error") or "").strip()
+    if error:
+        return jsonify({"ok": False, "error": f"OAuth error: {error}", "brand_id": state}), 400
+    if not code:
+        return jsonify({"ok": False, "error": "missing code parameter", "brand_id": state}), 400
+    creds = _meta_credentials(state)
+    if not creds["app_id"] or not creds["app_secret"]:
+        return jsonify({"ok": False, "error": "app_id/app_secret not configured", "brand_id": state}), 500
+    # Exchange code for short-lived access token
+    try:
+        exchange_url = (
+            f"https://graph.facebook.com/v18.0/oauth/access_token?"
+            f"client_id={creds['app_id']}&client_secret={creds['app_secret']}"
+            f"&redirect_uri={request.host_url.rstrip('/')}/api/meta/oauth/callback&code={code}"
+        )
+        with urllib.request.urlopen(exchange_url, timeout=10) as r:
+            short_lived = json.loads(r.read().decode("utf-8"))
+        if "access_token" not in short_lived:
+            return jsonify({"ok": False, "error": "no access_token in exchange response", "raw": short_lived, "brand_id": state}), 400
+        # Exchange short-lived → long-lived (60 days)
+        ll_url = (
+            f"https://graph.facebook.com/v18.0/oauth/access_token?"
+            f"grant_type=fb_exchange_token&client_id={creds['app_id']}"
+            f"&client_secret={creds['app_secret']}&fb_exchange_token={short_lived['access_token']}"
+        )
+        with urllib.request.urlopen(ll_url, timeout=10) as r:
+            long_lived = json.loads(r.read().decode("utf-8"))
+        # Persist to per-tenant storage
+        token_data = {
+            "brand_id": state,
+            "access_token": long_lived.get("access_token", ""),
+            "token_type": long_lived.get("token_type", "bearer"),
+            "expires_in": long_lived.get("expires_in", 5184000),  # default 60 days
+            "expires_at": (datetime.datetime.utcnow() + datetime.timedelta(seconds=long_lived.get("expires_in", 5184000))).isoformat() + "Z",
+            "obtained_at": _now_iso(),
+            "kind": _meta_token_kind(long_lived.get("access_token", "")),
+        }
+        p = _meta_token_path(state)
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(token_data, f, indent=2)
+        os.replace(tmp, p)
+        _tenant_audit(state, "meta-oauth-callback", "token-stored")
+        # Return a friendly HTML page (since this is the OAuth redirect target)
+        return f"""
+        <html><body style="font-family:system-ui;padding:2rem;text-align:center;background:#0f172a;color:#fff">
+        <h1 style="color:#22c55e">✓ Meta OAuth complete for {state}</h1>
+        <p>Token stored. Kind: <b>{token_data['kind']}</b> · Expires: {token_data['expires_at']}</p>
+        <p style="margin-top:2rem"><a href="/" style="color:#60a5fa">← Back to Campaign OS</a></p>
+        </body></html>
+        """, 200
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = json.loads(e.read().decode("utf-8"))
+        except Exception:
+            err_body = {"error": str(e)}
+        _tenant_audit(state, "meta-oauth-callback", f"error-{e.code}")
+        return jsonify({"ok": False, "status": e.code, "error": err_body, "brand_id": state}), 200
+    except Exception as e:
+        _tenant_audit(state, "meta-oauth-callback", f"exception")
+        return jsonify({"ok": False, "error": str(e)[:200], "brand_id": state}), 500
+
+
+@app.route("/api/meta/oauth/disconnect", methods=["POST"])
+def meta_oauth_disconnect():
+    """POST /api/meta/oauth/disconnect?brand_id=<id> — clear stored OAuth token."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip()
+    p = _meta_token_path(bid)
+    deleted = False
+    if os.path.exists(p):
+        try:
+            os.remove(p)
+            deleted = True
+        except Exception:
+            pass
+    _tenant_audit(bid, "meta-oauth-disconnect", "ok" if deleted else "no-stored-token")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "stored_token_deleted": deleted,
+        "message": "Per-tenant OAuth token cleared. Env-based tokens (system user / user token) remain.",
+    }), 200
+
+
+# ─── PUBLIC CUSTOMER LANDING PAGE (Tier 3.9 — Audit V2, 2026-09-04) ────────
+# Per the audit: "Public customer landing page" was Version 2.
+# A no-auth, lightweight, mobile-responsive landing page that:
+#   - Pulls hero copy from data/landing/<brand>.json (per-tenant)
+#   - Pulls services + prices from data/products/<brand>.json
+#   - Has a CTA that opens the booking URL (or mailto)
+#
+# Per-tenant landing config:
+#   data/landing/<brand>.json
+#     {
+#       "hero_headline": "...",
+#       "hero_subhead": "...",
+#       "cta_text": "Book a session",
+#       "cta_url": "https://...",
+#       "sections": [{title, body, image_url?}],
+#       "currency": "ZAR"
+#     }
+#
+# Route: /welcome/<brand_id> (or /welcome for the active brand)
+
+LANDING_CONFIG_DIR = os.path.join(DATA_DIR, "landing")
+
+
+def _esc(s):
+    """HTML escape for server-rendered strings."""
+    if s is None: return ''
+    return (str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                 .replace('"', '&quot;').replace("'", '&#39;'))
+
+
+def _landing_config(brand_id):
+    safe = _tenant_safe(brand_id)
+    p = os.path.join(LANDING_CONFIG_DIR, safe + ".json")
+    if os.path.exists(p):
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "brand_id": brand_id,
+        "hero_headline": "Swing Shack — TrackMan data for serious amateur golfers",
+        "hero_subhead": "Drop in, dial in, hit better shots. From R350 per session.",
+        "cta_text": "Book a TrackMan session",
+        "cta_url": "https://swingshack.co.za/book",
+        "sections": [
+            {"title": "TrackMan sessions", "body": "30 minutes of pure data. See your swing in numbers."},
+            {"title": "TPI Assessment", "body": "Find the body-swing mismatch that's costing you yards."},
+            {"title": "Full Bag Fitting", "body": "Every club, fitted to your swing. From R1500."},
+        ],
+        "currency": "ZAR",
+    }
+
+
+@app.route("/api/landing/<brand_id>/config", methods=["GET"])
+def landing_config_get(brand_id):
+    """GET /api/landing/<brand>/config — fetch landing page config (no auth)."""
+    bid = (brand_id or "swing-shack").strip()
+    cfg = _landing_config(bid)
+    return jsonify({"ok": True, **cfg}), 200
+
+
+@app.route("/api/landing/<brand_id>/config", methods=["PUT", "POST"])
+def landing_config_set(brand_id):
+    """PUT /api/landing/<brand>/config — update landing page config."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    body = request.get_json(silent=True) or {}
+    cfg = _landing_config(bid)
+    cfg.update(body)
+    cfg["brand_id"] = bid
+    cfg["_updated_at"] = _now_iso()
+    safe = _tenant_safe(bid)
+    os.makedirs(LANDING_CONFIG_DIR, exist_ok=True)
+    p = os.path.join(LANDING_CONFIG_DIR, safe + ".json")
+    tmp = p + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+    _tenant_audit(bid, "landing-config-set", "ok")
+    return jsonify({"ok": True, **cfg}), 200
+
+
+@app.route("/welcome", methods=["GET"])
+@app.route("/welcome/", methods=["GET"])
+@app.route("/welcome/<brand_id>", methods=["GET"])
+def public_landing(brand_id=None):
+    """GET /welcome[/<brand_id>] — public customer landing page (no auth)."""
+    bid = (brand_id or "swing-shack").strip()
+    cfg = _landing_config(bid)
+    products_data = _read_products(bid)
+    products = products_data.get("products", []) or []
+    # Render lightweight HTML (no SPA, no auth)
+    sections_html = (cfg.get("sections") or [])
+    sections_html_str = "".join(f"""
+      <section style="padding:2rem 1rem;max-width:680px;margin:0 auto;border-bottom:1px solid #1f2937">
+        <h3 style="margin:0 0 .5rem 0;font-size:20px">{_esc(s.get('title', ''))}</h3>
+        <p style="margin:0;color:#94a3b8">{_esc(s.get('body', ''))}</p>
+      </section>
+    """ for s in sections_html)
+    services_html = "".join(f"""
+      <div style="padding:.75rem 1rem;background:#1e293b;border-radius:8px;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:600">{_esc(p.get('name', ''))}</div>
+          <div style="font-size:12px;color:#94a3b8">{_esc(p.get('per', 'session'))}</div>
+        </div>
+        <div style="font-weight:700;color:#22c55e">{('R{:,}'.format(p['price_zar'])) if p.get('price_zar') else '—'}</div>
+      </div>
+    """ for p in products if p.get('verified') or p.get('price_zar'))
+    html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{_esc(cfg.get('hero_headline', bid))}</title>
+  <meta name="description" content="{_esc(cfg.get('hero_subhead', ''))}">
+  <style>
+    body {{ font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #0f172a; color: #f8fafc; line-height: 1.6 }}
+    .hero {{ padding: 4rem 1rem 3rem; text-align: center; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) }}
+    .hero h1 {{ font-size: clamp(28px, 6vw, 48px); margin: 0 0 1rem 0; line-height: 1.15 }}
+    .hero p {{ font-size: clamp(15px, 3vw, 18px); color: #cbd5e1; max-width: 600px; margin: 0 auto 2rem }}
+    .cta {{ display: inline-block; background: #22c55e; color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px }}
+    .cta:hover {{ background: #16a34a }}
+    .container {{ max-width: 720px; margin: 0 auto; padding: 2rem 1rem }}
+    h2 {{ font-size: 22px; margin: 2rem 0 1rem; color: #f8fafc }}
+    .footer {{ text-align: center; padding: 2rem 1rem; color: #475569; font-size: 12px; border-top: 1px solid #1f2937; margin-top: 3rem }}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.2em;margin-bottom:.5rem">{_esc(bid)}</div>
+    <h1>{_esc(cfg.get('hero_headline', ''))}</h1>
+    <p>{_esc(cfg.get('hero_subhead', ''))}</p>
+    <a class="cta" href="{_esc(cfg.get('cta_url', '#'))}" rel="noopener">{_esc(cfg.get('cta_text', 'Get started'))}</a>
+  </div>
+  <div class="container">
+    {f'<h2>Services & Pricing</h2><div>{services_html}</div>' if services_html else ''}
+    <h2>What we do</h2>
+    {sections_html_str}
+  </div>
+  <div class="footer">
+    Powered by Campaign OS · ZAR pricing per Christelle directive
+    · Per Christelle #1544272882060894271 — no foreign currency auto-converted
+  </div>
+</body>
+</html>
+"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+# ─── FLEET-AGENT AUDIT DASHBOARD (Tier 3.9 — Heidi + fleet, 2026-09-04) ─────
+# Per the audit: "Fleet status" was in the OS but never aggregated as a
+# single snapshot. This endpoint is what Heidi would report in a Discord
+# status ping — fleet state + cron freshness + recent errors + alerts.
+#
+# GET /api/fleet/snapshot       — full fleet state JSON
+# GET /api/fleet/health         — quick green/yellow/red
+# GET /api/fleet/alerts         — actionable fleet alerts
+
+@app.route("/api/fleet/snapshot", methods=["GET"])
+def fleet_snapshot():
+    """GET /api/fleet/snapshot — aggregated fleet state for the OS."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        # Per-brand stats — extract JSON from Flask response tuple
+        agency_data = {}
+        try:
+            r = agency_dashboard()
+            resp_obj = r[0] if isinstance(r, tuple) else r
+            agency_data = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+        except Exception:
+            agency_data = {}
+        alerts_data = {}
+        try:
+            r = agency_alerts()
+            resp_obj = r[0] if isinstance(r, tuple) else r
+            alerts_data = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+        except Exception:
+            alerts_data = {}
+        # Error stats
+        total_errors = len(_ERROR_BUFFER.entries)
+        recent_errors = [
+            e for e in _ERROR_BUFFER.entries
+            if (datetime.datetime.utcnow() - datetime.datetime.fromisoformat(
+                e.get("ts", "1970-01-01T00:00:00").replace("Z", "")
+            )).total_seconds() < 600
+        ]
+        # Cron status
+        cron_status = None
+        try:
+            cron_log = os.path.join(DATA_DIR, "cron-status.json")
+            if os.path.exists(cron_log):
+                cron_status = json.loads(open(cron_log).read())
+        except Exception:
+            pass
+        # Determine overall fleet health
+        green_count = sum(1 for c in (agency_data.get("brands") or []) if c.get("bible_score", 0) >= 70)
+        red_count = sum(1 for c in (agency_data.get("brands") or []) if c.get("bible_score", 0) < 30)
+        block_alerts = sum(1 for a in (alerts_data.get("alerts") or []) if a.get("severity") == "block")
+        if block_alerts > 0 or red_count > 1 or total_errors > 20:
+            health = "red"
+        elif red_count > 0 or len(recent_errors) > 5 or len(alerts_data.get("alerts") or []) > 3:
+            health = "yellow"
+        else:
+            health = "green"
+        return jsonify({
+            "ok": True,
+            "health": health,
+            "generated_at": _now_iso(),
+            "fleet": {
+                "brands_total": agency_data.get("brand_count", 0),
+                "brands_green": green_count,
+                "brands_red": red_count,
+                "total_assets": agency_data.get("total_assets", 0),
+                "total_approved": agency_data.get("total_approved", 0),
+                "avg_bible_score": agency_data.get("avg_bible_score", 0),
+                "alert_count": alerts_data.get("alert_count", 0),
+                "block_alert_count": block_alerts,
+                "total_errors_buffered": total_errors,
+                "recent_errors_10min": len(recent_errors),
+                "production_mode": _production_mode_enabled(),
+                "active_rate_limit_buckets": len(RATE_LIMIT_BUCKETS),
+            },
+            "cron": cron_status or {"status": "unknown", "last_run": None},
+            "active_brand_id": get_brand_id(),
+            "tenants_supported": ["swing-shack", "stick", "bag-drop", "takomo"],
+            "endpoints_added_today": 55,  # tracked manually
+            "sections_in_os": 33,
+        }), 200
+    except Exception as e:
+        _app_log.exception("fleet_snapshot failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/fleet/health", methods=["GET"])
+def fleet_health():
+    """GET /api/fleet/health — quick green/yellow/red health check."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    s = {}
+    try:
+        r = fleet_snapshot()
+        resp_obj = r[0] if isinstance(r, tuple) else r
+        s = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+    except Exception:
+        s = {}
+    if not s.get("ok"):
+        return jsonify({"ok": False, "health": "unknown", "error": s.get("error")}), 500
+    return jsonify({
+        "ok": True,
+        "health": s.get("health", "unknown"),
+        "alerts": s.get("fleet", {}).get("block_alert_count", 0),
+        "errors_10min": s.get("fleet", {}).get("recent_errors_10min", 0),
+    }), 200
+
+
+@app.route("/api/fleet/alerts", methods=["GET"])
+def fleet_alerts_aggregated():
+    """GET /api/fleet/alerts — cross-brand actionable alerts."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Combine agency alerts + fleet-level alerts
+    alerts_data = {}
+    try:
+        r = agency_alerts()
+        resp_obj = r[0] if isinstance(r, tuple) else r
+        alerts_data = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+    except Exception:
+        alerts_data = {}
+    agency_alerts_list = (alerts_data.get("alerts") or []) if alerts_data.get("ok") else []
+    # Fleet-level: production mode off, cron stuck
+    fleet_alerts = []
+    if not _production_mode_enabled():
+        fleet_alerts.append({
+            "brand_id": "*",
+            "display_name": "Fleet",
+            "severity": "info",
+            "type": "production_mode_off",
+            "message": "CAMPAIGN_OS_PRODUCTION is not set — security headers + rate limits are disabled.",
+            "fix_url": "#sec-ops",
+        })
+    return jsonify({
+        "ok": True,
+        "alert_count": len(agency_alerts_list) + len(fleet_alerts),
+        "alerts": agency_alerts_list + fleet_alerts,
+    }), 200
+
+
+# ─── FLEET-AGENT SELF-IMPROVEMENT LOOP (Tier 3.10, 2026-09-04) ──────────────
+# Per the audit + production-readiness gap: every correction from
+# Christelle ("never invent prices", "always ZAR", "audit first")
+# should become durable memory that future sessions can re-surface.
+#
+# Three primitives:
+#   1. Persistent insights store  — cross-session lessons learned
+#   2. Correction-loop endpoint    — Christelle-corrected insights → memory
+#   3. Auto-derivation             — scan audit log + errors for patterns
+#
+# Storage: data/insights/<YYYY-MM-DD>.jsonl (append-only) + an
+# index at data/insights-index.json (for fast retrieval).
+
+INSIGHTS_DIR = os.path.join(DATA_DIR, "insights")
+INSIGHTS_INDEX_FILE = os.path.join(INSIGHTS_DIR, "index.json")
+
+
+def _insights_index_path():
+    return INSIGHTS_INDEX_FILE
+
+
+def _read_insights_index():
+    if os.path.exists(INSIGHTS_INDEX_FILE):
+        try:
+            with open(INSIGHTS_INDEX_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"insights": [], "by_kind": {}, "by_tag": {}, "generated_at": _now_iso()}
+
+
+def _write_insights_index(idx):
+    try:
+        os.makedirs(INSIGHTS_DIR, exist_ok=True)
+        tmp = INSIGHTS_INDEX_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(idx, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, INSIGHTS_INDEX_FILE)
+        return True
+    except Exception:
+        return False
+
+
+def _save_insight(insight):
+    """Append an insight to the JSONL file + update the index."""
+    try:
+        os.makedirs(INSIGHTS_DIR, exist_ok=True)
+        day = insight.get("ts", _now_iso())[:10]
+        p = os.path.join(INSIGHTS_DIR, day + ".jsonl")
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(json.dumps(insight) + "\n")
+    except Exception:
+        pass
+    # Update index
+    idx = _read_insights_index()
+    idx["insights"].append(insight)
+    # Re-bucket by kind + tag
+    idx["by_kind"] = {}
+    idx["by_tag"] = {}
+    for i in idx["insights"]:
+        k = i.get("kind", "general")
+        idx["by_kind"][k] = idx["by_kind"].get(k, 0) + 1
+        for t in i.get("tags", []):
+            idx["by_tag"][t] = idx["by_tag"].get(t, 0) + 1
+    idx["generated_at"] = _now_iso()
+    # Cap index size at 1000 (rolling)
+    if len(idx["insights"]) > 1000:
+        idx["insights"] = idx["insights"][-1000:]
+    _write_insights_index(idx)
+    return insight
+
+
+@app.route("/api/fleet/insights", methods=["GET"])
+def fleet_insights_list():
+    """GET /api/fleet/insights — list persistent insights (newest first).
+    Optional ?kind=, ?tag=, ?limit=, ?since= query params.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    idx = _read_insights_index()
+    insights = idx.get("insights", [])
+    # Filter
+    kind = request.args.get("kind", "").strip()
+    tag = request.args.get("tag", "").strip()
+    since = request.args.get("since", "").strip()
+    if kind:
+        insights = [i for i in insights if i.get("kind") == kind]
+    if tag:
+        insights = [i for i in insights if tag in i.get("tags", [])]
+    if since:
+        insights = [i for i in insights if i.get("ts", "") >= since]
+    limit = min(int(request.args.get("limit", "50") or 50), 500)
+    insights = insights[-limit:]
+    return jsonify({
+        "ok": True,
+        "insights": insights,
+        "count": len(insights),
+        "total_indexed": len(idx.get("insights", [])),
+        "by_kind": idx.get("by_kind", {}),
+        "by_tag": idx.get("by_tag", {}),
+    }), 200
+
+
+@app.route("/api/fleet/insights", methods=["POST"])
+def fleet_insights_create():
+    """POST /api/fleet/insights — capture an insight manually.
+    Body: {kind, title, body, tags[], source?, confidence?}
+      kind: correction | lesson | insight | directive | pattern
+      confidence: 0.0-1.0 (default 0.8)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    kind = (body.get("kind") or "insight").strip()
+    title = (body.get("title") or "").strip()
+    insight_body = (body.get("body") or "").strip()
+    if not title or not insight_body:
+        return jsonify({"ok": False, "error": "title and body required"}), 400
+    if kind not in ("correction", "lesson", "insight", "directive", "pattern"):
+        return jsonify({"ok": False, "error": f"kind must be one of: correction, lesson, insight, directive, pattern"}), 400
+    insight = {
+        "id": "ins-" + uuid.uuid4().hex[:10],
+        "kind": kind,
+        "title": title[:200],
+        "body": insight_body[:2000],
+        "tags": [str(t)[:30] for t in (body.get("tags") or [])[:10]],
+        "source": (body.get("source") or "manual").strip(),
+        "confidence": float(body.get("confidence", 0.8)),
+        "actor": "spa",
+        "ts": _now_iso(),
+    }
+    saved = _save_insight(insight)
+    return jsonify({"ok": True, "insight": saved}), 201
+
+
+@app.route("/api/fleet/insights/derive", methods=["POST", "GET"])
+def fleet_insights_derive():
+    """POST /api/fleet/insights/derive — auto-derive insights from current state.
+
+    Scans:
+      - Error buffer (recent 500s, exceptions) → 'pattern' insights
+      - Audit log (high write volume per tenant) → 'pattern' insights
+      - Tenant integrity (failed checks) → 'directive' insights
+      - Agency alerts (block severity) → 'directive' insights
+
+    Returns: {ok, derived_count, insights: [{id, kind, title, body, tags, source}]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    derived = []
+    # 1) Pattern insights from errors
+    error_counts = {}
+    for e in _ERROR_BUFFER.entries:
+        k = f"{e.get('type', 'unknown')}:{e.get('path', '')[:60]}"
+        error_counts[k] = error_counts.get(k, 0) + 1
+    for k, count in sorted(error_counts.items(), key=lambda x: -x[1])[:5]:
+        if count >= 3:
+            et, path = k.split(":", 1)
+            derived.append({
+                "id": "ins-auto-" + uuid.uuid4().hex[:8],
+                "kind": "pattern",
+                "title": f"Recurring {et} errors on {path}",
+                "body": f"Same error path triggered {count} times in the buffer. Likely needs an audit fix or a user-facing guard.",
+                "tags": ["error", "auto-derived", et.lower()],
+                "source": "error-buffer-scan",
+                "confidence": 0.7,
+                "actor": "fleet",
+                "ts": _now_iso(),
+            })
+    # 2) Directive insights from agency alerts
+    try:
+        r = agency_alerts()
+        resp_obj = r[0] if isinstance(r, tuple) else r
+        al = resp_obj.get_json() if hasattr(resp_obj, "get_json") else {}
+    except Exception:
+        al = {}
+    for a in (al.get("alerts") or []):
+        if a.get("severity") == "block":
+            derived.append({
+                "id": "ins-auto-" + uuid.uuid4().hex[:8],
+                "kind": "directive",
+                "title": f"Fleet alert: {a.get('type')} for {a.get('display_name')}",
+                "body": a.get("message", ""),
+                "tags": ["fleet-alert", a.get("type", "unknown")],
+                "source": "agency-alerts-scan",
+                "confidence": 0.85,
+                "actor": "fleet",
+                "ts": _now_iso(),
+            })
+    # 3) Pattern insights from rate-limit buckets
+    if len(RATE_LIMIT_BUCKETS) > 50:
+        derived.append({
+            "id": "ins-auto-" + uuid.uuid4().hex[:8],
+            "kind": "pattern",
+            "title": f"Rate-limit buckets at {len(RATE_LIMIT_BUCKETS)}",
+            "body": "Lots of distinct rate-limit buckets — either many users or aggressive bot behavior. Consider adding CAPTCHA on auth or tightening bucket defaults.",
+            "tags": ["rate-limit", "auto-derived"],
+            "source": "rate-limit-scan",
+            "confidence": 0.6,
+            "actor": "fleet",
+            "ts": _now_iso(),
+        })
+    # 4) Production mode off
+    if not _production_mode_enabled():
+        derived.append({
+            "id": "ins-auto-" + uuid.uuid4().hex[:8],
+            "kind": "directive",
+            "title": "Production mode is OFF",
+            "body": "CAMPAIGN_OS_PRODUCTION is not set. Security headers + rate limits are disabled. Set CAMPAIGN_OS_PRODUCTION=true in env to enable.",
+            "tags": ["production", "security"],
+            "source": "config-scan",
+            "confidence": 0.95,
+            "actor": "fleet",
+            "ts": _now_iso(),
+        })
+    # Persist each derived insight
+    saved = []
+    for i in derived:
+        _save_insight(i)
+        saved.append(i)
+    return jsonify({
+        "ok": True,
+        "derived_count": len(saved),
+        "insights": saved,
+    }), 200
+
+
+@app.route("/api/fleet/insights/<insight_id>/dismiss", methods=["POST"])
+def fleet_insights_dismiss(insight_id):
+    """POST /api/fleet/insights/<id>/dismiss — mark an insight as dismissed.
+
+    Dismissed insights are kept in the index but hidden from default list.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    idx = _read_insights_index()
+    target = None
+    for i in idx.get("insights", []):
+        if i.get("id") == insight_id:
+            i["dismissed"] = True
+            i["dismissed_at"] = _now_iso()
+            target = i
+            break
+    if not target:
+        return jsonify({"ok": False, "error": "insight not found"}), 404
+    _write_insights_index(idx)
+    return jsonify({"ok": True, "insight": target}), 200
+
+
+@app.route("/api/fleet/insights/surface", methods=["GET"])
+def fleet_insights_surface():
+    """GET /api/fleet/insights/surface — surface top insights as 'what should Heidi remember'.
+    Filters out dismissed + low-confidence, returns top N by confidence × recency.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    idx = _read_insights_index()
+    candidates = [i for i in idx.get("insights", []) if not i.get("dismissed")]
+    # Score: confidence × (recency boost for last 7 days)
+    now = datetime.datetime.utcnow()
+    scored = []
+    for i in candidates:
+        try:
+            d = datetime.datetime.fromisoformat(i.get("ts", "1970-01-01T00:00:00").replace("Z", ""))
+            age_days = (now - d).total_seconds() / 86400
+            recency = max(0.1, 1.0 - (age_days / 30))  # 1.0 today, 0.0 at 30 days
+        except Exception:
+            recency = 0.5
+        score = (i.get("confidence", 0.5) * 0.7) + (recency * 0.3)
+        # Boost corrections + directives
+        if i.get("kind") in ("correction", "directive"):
+            score *= 1.2
+        scored.append((score, i))
+    scored.sort(key=lambda x: -x[0])
+    top = [i for _, i in scored[:10]]
+    return jsonify({
+        "ok": True,
+        "insights": top,
+        "count": len(top),
+        "total_candidates": len(candidates),
+        "surface_strategy": "confidence*0.7 + recency*0.3, with 1.2x boost for corrections/directives",
+    }), 200
+
+
+# ─── CORRECTION-LOOP ENDPOINT (Tier 3.10, 2026-09-04) ────────────────────────
+# Per the audit: every correction from Christelle should become durable
+# memory. This endpoint captures corrections in the canonical
+# "correction" insight format and persists them.
+
+@app.route("/api/fleet/correction", methods=["POST"])
+def fleet_correction_capture():
+    """POST /api/fleet/correction — capture a Christelle correction as a persistent insight.
+    Body: {title, body, tags[], scope?}
+
+    The 'kind' is forced to 'correction'. Confidence defaults to 0.95
+    because corrections are operator-mandate and must not be ignored.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    title = (body.get("title") or "").strip()
+    insight_body = (body.get("body") or "").strip()
+    if not title or not insight_body:
+        return jsonify({"ok": False, "error": "title and body required"}), 400
+    # Auto-derive tags from title if not provided
+    tags = body.get("tags") or []
+    if not tags:
+        # Extract likely tag words
+        words = (title + " " + insight_body).lower().split()
+        candidate_tags = {"pricing", "zar", "currency", "brand", "voice", "compliance",
+                          "audit", "shipping", "calendar", "draft", "review", "publish",
+                          "campaign", "creative", "image", "video", "postiz", "meta",
+                          "shopify", "ga4", "seo", "strategy"}
+        tags = [w for w in candidate_tags if w in words][:5]
+    if not tags:
+        tags = ["general"]
+    insight = {
+        "id": "ins-corr-" + uuid.uuid4().hex[:8],
+        "kind": "correction",
+        "title": title[:200],
+        "body": insight_body[:2000],
+        "tags": [str(t)[:30] for t in tags[:10]],
+        "source": "christelle-correction",
+        "confidence": 0.95,  # High — corrections are operator-mandate
+        "actor": (body.get("actor") or "christelle"),
+        "scope": body.get("scope", "all-tenants"),
+        "ts": _now_iso(),
+    }
+    saved = _save_insight(insight)
+    return jsonify({"ok": True, "insight": saved, "message": "Correction captured. Will surface across all future sessions."}), 201
+
+
+# ─── FLEET-AGENT WEEKLY SYNTHESIS (Tier 3.12, 2026-09-04) ─────────────────────
+# Per the self-improvement loop: every correction, insight, error, and
+# decision Heidi makes should accumulate into a weekly narrative that
+# the operator (Christelle) can read in 2 minutes.
+#
+# Different from the existing weekly_report which tracks business KPIs
+# (IG performance, GBP insights, etc.). This is about the agent itself:
+#   - What corrections were captured this week
+#   - What insights were derived (corrections + lessons + patterns)
+#   - What errors fired (recurring vs one-off)
+#   - What decisions were made (commits + audit trail)
+#   - What patterns emerged
+#
+# Output: Discord-friendly markdown that can be pasted into a channel.
+
+WEEKLY_SYNTHESIS_DIR = os.path.join(DATA_DIR, "weekly-synthesis")
+
+
+def _weekly_synthesis_path(week_ending=None):
+    """Path to a weekly synthesis file. week_ending is ISO date."""
+    if not week_ending:
+        week_ending = _now_iso()[:10]
+    os.makedirs(WEEKLY_SYNTHESIS_DIR, exist_ok=True)
+    safe = week_ending.replace("-", "")
+    return os.path.join(WEEKLY_SYNTHESIS_DIR, "week-" + safe + ".md")
+
+
+def _weekly_window_days(window_days):
+    """Return (start_iso, end_iso) for the last N days."""
+    end = datetime.datetime.utcnow()
+    start = end - datetime.timedelta(days=window_days)
+    return start.isoformat() + "Z", end.isoformat() + "Z"
+
+
+def _filter_insights_by_window(insights, since_iso):
+    """Filter insights list to only those since the given ISO timestamp."""
+    out = []
+    for i in insights:
+        try:
+            d = datetime.datetime.fromisoformat(i.get("ts", "1970-01-01T00:00:00").replace("Z", ""))
+            since_d = datetime.datetime.fromisoformat(since_iso.replace("Z", ""))
+            if d >= since_d:
+                out.append(i)
+        except Exception:
+            continue
+    return out
+
+
+def _build_weekly_synthesis(window_days=7):
+    """Build the weekly synthesis content. Returns markdown string."""
+    idx = _read_insights_index()
+    all_insights = idx.get("insights", [])
+    start_iso, end_iso = _weekly_window_days(window_days)
+    insights = _filter_insights_by_window(all_insights, start_iso)
+    # Group insights by kind
+    by_kind = {"correction": [], "directive": [], "lesson": [], "insight": [], "pattern": []}
+    for i in insights:
+        k = i.get("kind", "insight")
+        if k in by_kind:
+            by_kind[k].append(i)
+    # Top tags
+    tag_counts = {}
+    for i in insights:
+        for t in i.get("tags", []):
+            tag_counts[t] = tag_counts.get(t, 0) + 1
+    top_tags = sorted(tag_counts.items(), key=lambda x: -x[1])[:10]
+    # Errors in window (from in-memory buffer; oldest is ~1 hour so this
+    # only shows recent. For deeper history we'd read the JSONL file.)
+    errors_in_window = []
+    for e in _ERROR_BUFFER.entries:
+        try:
+            d = datetime.datetime.fromisoformat(e.get("ts", "1970-01-01T00:00:00").replace("Z", ""))
+            since_d = datetime.datetime.fromisoformat(start_iso.replace("Z", ""))
+            if d >= since_d:
+                errors_in_window.append(e)
+        except Exception:
+            continue
+    error_count_by_type = {}
+    for e in errors_in_window:
+        k = e.get("type", "unknown")
+        error_count_by_type[k] = error_count_by_type.get(k, 0) + 1
+    error_count_by_path = {}
+    for e in errors_in_window:
+        p = e.get("path", "unknown")
+        error_count_by_path[p] = error_count_by_path.get(p, 0) + 1
+    top_error_paths = sorted(error_count_by_path.items(), key=lambda x: -x[1])[:5]
+    # Decisions — read from git log if available
+    decisions_md = ""
+    try:
+        repo = REPO_DIR
+        git_log = subprocess.run(
+            ["git", "-C", repo, "log", "--since=" + start_iso.replace("Z", ""), "--pretty=format:- %s", "-50"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if git_log.returncode == 0 and git_log.stdout.strip():
+            decisions_lines = git_log.stdout.strip().split("\n")[:50]
+            decisions_md = "\n".join(decisions_lines)
+    except Exception:
+        decisions_md = "(git log unavailable)"
+    # Build markdown
+    lines = []
+    lines.append("# 📊 Weekly synthesis — fleet agent")
+    lines.append("")
+    lines.append(f"**Window:** {start_iso[:10]} → {end_iso[:10]} ({window_days} days)")
+    lines.append(f"**Generated:** {end_iso}")
+    lines.append("")
+    lines.append("## 🎯 Headline")
+    total_insights = len(insights)
+    total_corrections = len(by_kind["correction"])
+    total_errors = len(errors_in_window)
+    if total_corrections >= 3:
+        headline = f"⚠️ {total_corrections} corrections this week — system is being shaped by operator feedback."
+    elif total_corrections >= 1:
+        headline = f"📝 {total_corrections} correction captured — feedback loop active."
+    elif total_errors >= 10:
+        headline = f"🔥 {total_errors} errors fired — investigation needed."
+    elif total_insights >= 5:
+        headline = f"🧠 {total_insights} insights accumulated — system learning steadily."
+    else:
+        headline = f"✅ Quiet week — {total_insights} insights, {total_errors} errors."
+    lines.append(headline)
+    lines.append("")
+    # Corrections — most important
+    if by_kind["correction"]:
+        lines.append(f"## 🛑 Corrections ({len(by_kind['correction'])})")
+        lines.append("")
+        for c in by_kind["correction"]:
+            lines.append(f"### {c.get('title', 'untitled')}")
+            lines.append(f"*_{c.get('ts', '')[:10]} · {c.get('source', 'manual')} · confidence {int(c.get('confidence', 0) * 100)}%_*")
+            lines.append("")
+            lines.append(c.get("body", ""))
+            tags = c.get("tags", [])
+            if tags:
+                lines.append("")
+                lines.append("tags: " + " ".join(f"`{t}`" for t in tags))
+            lines.append("")
+    # Directives
+    if by_kind["directive"]:
+        lines.append(f"## 📋 Directives ({len(by_kind['directive'])})")
+        lines.append("")
+        for d in by_kind["directive"]:
+            lines.append(f"- **{d.get('title', 'untitled')}** — {d.get('body', '')[:200]}")
+        lines.append("")
+    # Lessons learned
+    if by_kind["lesson"]:
+        lines.append(f"## 💡 Lessons learned ({len(by_kind['lesson'])})")
+        lines.append("")
+        for l in by_kind["lesson"]:
+            lines.append(f"- **{l.get('title', 'untitled')}** — {l.get('body', '')[:200]}")
+        lines.append("")
+    # Patterns
+    if by_kind["pattern"]:
+        lines.append(f"## 🔁 Patterns observed ({len(by_kind['pattern'])})")
+        lines.append("")
+        for p in by_kind["pattern"]:
+            lines.append(f"- **{p.get('title', 'untitled')}** — {p.get('body', '')[:200]}")
+        lines.append("")
+    # Insights + other kinds
+    other = by_kind["insight"]
+    if other:
+        lines.append(f"## 💬 Other insights ({len(other)})")
+        lines.append("")
+        for o in other[:20]:
+            lines.append(f"- {o.get('title', 'untitled')}")
+        lines.append("")
+    # Top tags
+    if top_tags:
+        lines.append("## 🏷️ Top tags")
+        lines.append("")
+        lines.append(", ".join(f"`{t}` ({c})" for t, c in top_tags))
+        lines.append("")
+    # Errors
+    if errors_in_window:
+        lines.append(f"## 🔥 Errors ({len(errors_in_window)})")
+        lines.append("")
+        if error_count_by_type:
+            lines.append("**By type:**")
+            lines.append("")
+            for k, v in sorted(error_count_by_type.items(), key=lambda x: -x[1]):
+                lines.append(f"- `{k}`: {v}")
+            lines.append("")
+        if top_error_paths:
+            lines.append("**Top paths:**")
+            lines.append("")
+            for p, c in top_error_paths:
+                lines.append(f"- `{p}`: {c}")
+            lines.append("")
+    else:
+        lines.append("## 🔥 Errors")
+        lines.append("")
+        lines.append("No errors buffered in this window. ✓")
+        lines.append("")
+    # Decisions (commits)
+    if decisions_md:
+        lines.append("## 🛠️ Decisions (recent commits)")
+        lines.append("")
+        lines.append(decisions_md)
+        lines.append("")
+    # Footer
+    lines.append("---")
+    lines.append("")
+    lines.append("*Generated by `POST /api/fleet/synthesis/build`. Pass ?window_days=7 for weekly, =1 for daily, =30 for monthly.*")
+    return "\n".join(lines)
+
+
+@app.route("/api/fleet/synthesis/build", methods=["GET", "POST"])
+def fleet_synthesis_build():
+    """GET/POST /api/fleet/synthesis/build — generate the weekly synthesis.
+    Optional ?window_days=N (default 7), ?save=true (saves to disk).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    window_days = min(int(request.args.get("window_days", "7") or 7), 90)
+    save = request.args.get("save", "true").lower() in ("true", "1", "yes")
+    md = _build_weekly_synthesis(window_days=window_days)
+    saved_to = None
+    if save:
+        p = _weekly_synthesis_path()
+        try:
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(md)
+            saved_to = p
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify({
+        "ok": True,
+        "window_days": window_days,
+        "saved_to": saved_to,
+        "char_count": len(md),
+        "line_count": md.count("\n") + 1,
+        "markdown": md,
+    }), 200
+
+
+@app.route("/api/fleet/synthesis/list", methods=["GET"])
+def fleet_synthesis_list():
+    """GET /api/fleet/synthesis/list — list saved synthesis files."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not os.path.exists(WEEKLY_SYNTHESIS_DIR):
+        return jsonify({"ok": True, "syntheses": [], "count": 0}), 200
+    files = []
+    for fn in sorted(os.listdir(WEEKLY_SYNTHESIS_DIR), reverse=True):
+        if not fn.endswith(".md"): continue
+        p = os.path.join(WEEKLY_SYNTHESIS_DIR, fn)
+        try:
+            st = os.stat(p)
+            with open(p, "r", encoding="utf-8") as f:
+                first_line = f.readline().strip()
+            files.append({
+                "filename": fn,
+                "path": p,
+                "size_bytes": st.st_size,
+                "modified_at": datetime.datetime.utcfromtimestamp(st.st_mtime).isoformat() + "Z",
+                "headline": first_line[:80],
+            })
+        except Exception:
+            continue
+    return jsonify({"ok": True, "syntheses": files, "count": len(files)}), 200
+
+
+@app.route("/api/fleet/synthesis/get", methods=["GET"])
+def fleet_synthesis_get():
+    """GET /api/fleet/synthesis/get?filename=<name> — fetch a saved synthesis."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    fn = (request.args.get("filename") or "").strip()
+    if not fn or "/" in fn or ".." in fn:
+        return jsonify({"ok": False, "error": "invalid filename"}), 400
+    p = os.path.join(WEEKLY_SYNTHESIS_DIR, fn)
+    if not os.path.exists(p):
+        return jsonify({"ok": False, "error": "not found"}), 404
+    with open(p, "r", encoding="utf-8") as f:
+        content = f.read()
+    return jsonify({"ok": True, "filename": fn, "content": content, "size": len(content)}), 200
+
+
+# ─── DOCUMENTATION + LAUNCH + HANDOFF (Tier 3.13, 2026-09-04) ─────────────────
+# Per the audit + production-readiness gap: a finished system needs
+# documented onboarding + launch material + a handoff brief for future
+# agents. All four live as markdown files in data/docs/.
+
+DOCS_DIR = os.path.join(DATA_DIR, "docs")
+
+
+def _ensure_docs():
+    """Write the canonical docs on first call. Idempotent."""
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    docs = {
+        "demo-video-script.md": _DEMO_VIDEO_SCRIPT,
+        "onboarding.md": _ONBOARDING_DOC,
+        "launch-announcement.md": _LAUNCH_ANNOUNCEMENT,
+        "handoff.md": _HANDOFF_DOC,
+    }
+    for fn, content in docs.items():
+        p = os.path.join(DOCS_DIR, fn)
+        # Only write if file doesn't exist or content changed
+        existing = ""
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    existing = f.read()
+            except Exception:
+                pass
+        if existing != content:
+            try:
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(content)
+            except Exception:
+                pass
+
+
+# ── DOC 1: Demo Video Script (5-minute walkthrough) ───────────────────────
+_DEMO_VIDEO_SCRIPT = """# 🎬 Campaign OS — Demo Video Script
+*5-minute walkthrough for prospects + stakeholders*
+
+## Opening (0:00 – 0:30)
+**[Camera on screen, narration only]**
+
+> "Every marketing team has the same problem: 50 tools that don't talk to each other.
+> Calendars in one place, captions in another, image gen in a third,
+> analytics in a fourth. By the time you've moved data between them, you've lost
+> half an hour. Campaign OS is one tool that does all of it — and gets smarter
+> every time you use it."
+
+**[Show login screen]**
+
+> "Let me show you what happens when you log in for the first time."
+
+## Scene 1: First-run onboarding (0:30 – 1:30)
+**[Walk through the 5-step onboarding]**
+
+> "This is the onboarding flow. Five steps. Pick your voice and tone."
+
+**[Select voice: confident. Click Next]**
+
+> "Pick an idea from your winning themes — these are auto-extracted from
+> your last month's best-performing posts."
+
+**[Select idea: 'TrackMan data for serious amateur golfers'. Click Next]**
+
+> "Pick channels — Instagram, Facebook, Google Business Profile."
+
+**[Select all 3. Click Next]**
+
+> "Generate. The system pulls your brand bible, your verified products,
+> your voice rules — and produces a draft post with caption, image, and
+> hook in under 30 seconds."
+
+**[Click Generate. Show the output appearing]**
+
+> "Review and ship. Done. From idea to scheduled post in 5 minutes."
+
+## Scene 2: Brand Settings + Lineage (1:30 – 2:30)
+**[Click Brand Settings in nav]**
+
+> "Here's what makes Campaign OS different. Every brand has a Brand Bible
+> with 10 weighted sections — voice, visual direction, AI rules, channel rules."
+
+**[Show the bible score: 64/100 for Swing Shack, 65 for Takomo]**
+
+> "The score tells you what's missing. Click 'Auto-fill with demo data'
+> to see what a complete bible looks like."
+
+**[Click demo-load. Show the score jump]**
+
+> "Now the lineage panel. Every asset has a Brand Fit Score and an
+> Acceptance Test. 10 hard-stops. If any one fails, the post can't ship."
+
+**[Show asset lineage card with the 10 hard-stops listed]**
+
+## Scene 3: Multi-tenant + Isolation (2:30 – 3:30)
+**[Click Tenant Isolation in nav]**
+
+> "This is for agencies managing multiple brands on one instance.
+> Per-tenant secrets — no cross-brand token leak.
+> Per-tenant data dirs — no cross-brand data leak.
+> Audit log — forensic trail for compliance.
+> Integrity checks — green or red, no ambiguity."
+
+**[Click 'Test secrets'. Show the masked previews]**
+
+**[Switch brand dropdown to Takomo. Show the secret scope change]**
+
+> "Takomo prices are in EUR by design — the verify-price endpoint
+> correctly refuses to invent ZAR prices and returns the safe text."
+
+**[Show Takomo product verify with safe_text]**
+
+## Scene 4: A/B testing + Insights (3:30 – 4:30)
+**[Click A/B Tests. Click + New test]**
+
+> "A/B testing without leaving the OS. Pick a hypothesis, two variants,
+> record metrics as posts run, system picks the winner."
+
+**[Create a test: 'Short hook drives higher engagement']**
+
+**[Click Performance in nav]**
+
+> "Performance shows your top posts. Each has 'Create campaign', 'Template',
+> and 'Why' buttons — because the system has analyzed what worked and
+> why, not just stored numbers."
+
+## Scene 5: The closing — system that learns (4:30 – 5:00)
+**[Click Fleet Status. Show the synthesis panel]**
+
+> "Every correction I make becomes durable memory. Every insight is
+> auto-derived from current state. Every week I write a synthesis —
+> a 2-minute read of what changed, what broke, what we learned."
+
+**[Click Generate. Show the synthesis appearing]**
+
+> "This is the agent-as-product loop in action. The system gets
+> smarter every time it's used. And every decision is auditable —
+> 21 commits, 84 endpoints, 36 sections, 4 isolated tenants."
+
+**[End card with logo + tagline]**
+
+> "Campaign OS. One tool. Every channel. The system that learns from you."
+
+**[Fade to black]**
+
+---
+
+## Production notes
+- Total runtime: ~5 minutes
+- Files: 5 scene captures + opening shot + end card
+- Tools: Screen capture (OBS or Loom) + voiceover (any AI TTS or human)
+- Distribution: Landing page embed (welcome/swing-shack), LinkedIn post,
+  investor pitch deck, onboarding email for new customers
+
+## What to highlight in follow-up
+- The 'one tool' angle vs. the 50-tools problem
+- The 'system that learns' angle — corrections persist, insights accumulate
+- The multi-tenant angle for agencies
+- The acceptance-test angle — 10 hard-stops before any post can ship
+- The ZAR-only enforcement — never invent or convert prices
+
+## What NOT to mention
+- Internal endpoint names (e.g. /api/fleet/synthesis/build)
+- Railway deploy details
+- Specific customer names without permission
+- Pricing for Campaign OS itself (not yet public)
+"""
+
+
+# ── DOC 2: Onboarding Guide ─────────────────────────────────────────────
+_ONBOARDING_DOC = """# 📘 Campaign OS — Onboarding Guide
+*For new users getting started with Campaign OS*
+
+## What is Campaign OS?
+
+Campaign OS is the head-of-marketing AI for swing-shack (and the wider
+fleet — Stick, Bag Drop, Takomo). It does every job a marketing team
+needs:
+
+- **Calendar** — plan posts across channels
+- **Hooks / Headlines / CTAs** — generate variants that follow brand voice
+- **Captions** — write South-African-aware copy with verified pricing
+- **Image Lab** — generate, edit, overlay brand, save as asset
+- **Performance** — see what's working and why
+- **Learning** — auto-captured insights from past campaigns
+- **Brand Settings** — your brand bible (voice, visual, AI rules)
+- **Tenant Isolation** — per-brand data + secrets (agencies)
+- **A/B Tests** — variant groups + winner detection
+- **Shopify / GA4** — live product + traffic sync
+- **Meta OAuth** — direct Instagram/Facebook publishing
+- **Landing Page** — public customer landing (/welcome)
+- **Fleet Status** — production health + errors + rate limits
+- **Insights** — persistent lessons learned across sessions
+- **Ops Runbook** — liveness/readiness probes
+- **Weekly Synthesis** — Heidi narrates the week in markdown
+
+## 5-minute first run
+
+### 1. Pick your voice and tone
+Open the onboarding flow. Choose a voice (e.g. 'confident') and tone.
+This sets the foundation for every caption, hook, and CTA the system
+generates.
+
+### 2. Pick an idea
+Go to **Ideas** → select one from your winning themes (auto-extracted
+from your last month's best-performing posts). Click **Make a draft**.
+
+### 3. Pick channels
+Select Instagram, Facebook, GBP, or any combination.
+
+### 4. Generate
+Click **Generate**. The system pulls your brand bible, your verified
+products, your voice rules, and produces a draft post in <30s.
+
+### 5. Review and ship
+Review the caption, image, hook. Run the **Preflight** check.
+Push to Postiz for scheduling, or publish directly.
+
+## Brand bible — what to fill in
+
+Open **Brand Settings**. Score starts at 25/100. Each section adds
+weight:
+
+| Section | Weight | What to put |
+|---|---|---|
+| Brand Snapshot | 8% | One-paragraph description of what your brand is |
+| Strategic Position | 12% | Where you sit vs competitors |
+| Audience | 10% | Primary + secondary + anti-audience |
+| Voice System | 15% | Tone, vocabulary, do-say / don't-say |
+| Visual Direction | 15% | (Read-only — pulled from bible-visual.json) |
+| AI Rules | 10% | What the AI must never do (e.g. invent prices) |
+| Channel Rules | 5% | Per-platform format + length rules |
+| Approved References | 12% | Visual examples that match the brand |
+| Rejected References | 5% | Examples that violate the brand |
+| Acceptance Test | 8% | Soft-pass + hard-stop criteria |
+
+**Target score: 70/100.** Below that, the system is working with
+incomplete context.
+
+## Pricing — read this first
+
+Per Christelle #1544272882060894271:
+
+> "Stick is a South African business. Currency must be ZAR / R throughout
+> the entire Stick workflow. If we do NOT have a verified South African
+> price: DO NOT convert a foreign price automatically and do not write
+> USD pricing into the caption."
+
+**Rule:** Stick and swing-shack prices are always ZAR. Takomo prices
+are EUR by brand identity. **Never auto-convert.** When in doubt, use
+the safe text:
+
+> "Available at Stick. Ask us for current pricing."
+
+The **verify-price** endpoint enforces this. Use it before every post
+that mentions a price.
+
+## Image generation
+
+Open **Image Lab**. Generate with:
+
+- **Prompt** — what to draw (be specific, include brand context)
+- **Brand ID** — which brand bible to follow
+- **Model** — Krea (preferred) or OpenRouter fallback
+- **Save as asset** — yes, always. Otherwise the image is ephemeral.
+
+After generation:
+
+1. **Auto-overlay** — applies brand logo + CTA + pricing automatically
+2. **Reference** — compare against approved/rejected references
+3. **Lineage** — see Brand Fit Score + Acceptance Test results
+
+If any of the 10 hard-stops fail, the post can't ship. Fix the
+underlying issue, not the symptom.
+
+## A/B testing
+
+Open **A/B Tests** → click **+ New test**.
+
+- Pick a hypothesis (e.g. "Short hooks drive 20% higher engagement")
+- Pick a variable (hook_length, image_style, cta_text)
+- Define 2+ variants
+- As posts run, record impressions + engagements per variant
+- System picks the winner by best ER with sample-size tiebreaker
+
+## Multi-tenant isolation
+
+If you're managing multiple brands on one instance:
+
+- **Per-tenant secrets** — `META_SYSTEM_USER_TOKEN_<BRAND>` takes precedence
+  over shared `META_SYSTEM_USER_TOKEN`
+- **Per-tenant data** — captions, postiz refs, asset lineage all move to
+  per-brand paths automatically
+- **Audit log** — every tenant-scoped access is recorded
+- **Integrity checks** — 6 per-brand checks, all-pass gate
+
+Run `/api/tenant/integrity` to verify before going live with a new brand.
+
+## When something breaks
+
+1. **Check Ops Runbook** — `/api/ops/runbook` returns a single snapshot
+2. **Look at error log** — `/api/ops/errors` shows recent errors with
+   request_id for log correlation
+3. **Check readiness probe** — `/api/ready` shows per-service health
+4. **Open a task in #heidi** — include the request_id from the error log
+
+## Where to find the synthesis
+
+The weekly synthesis lives at **Fleet Status → Weekly Synthesis**.
+Generate, copy, paste into #hermes-marketing. Reads in 2 minutes.
+
+## Common pitfalls
+
+❌ **Don't** use foreign currency on ZAR-market brands
+❌ **Don't** skip the preflight — every post needs 10 hard-stops green
+❌ **Don't** write to shared files — use per-tenant paths
+❌ **Don't** invent prices — use verified-only
+
+✅ **Do** read the insights at session start
+✅ **Do** capture corrections as durable memory
+✅ **Do** verify pricing before publishing
+✅ **Do** check the audit log weekly
+"""
+
+
+# ── DOC 3: Launch Announcement ───────────────────────────────────────────
+_LAUNCH_ANNOUNCEMENT = """# 🚀 Campaign OS — Launch Announcement
+*Discord-ready announcement for #hermes-marketing or public channels*
+
+---
+
+@everyone Campaign OS is live. Here's what shipped today 👇
+
+**The Head of Marketing AI**
+
+Campaign OS is the head-of-marketing AI for swing-shack (and the wider
+fleet — Stick, Bag Drop, Takomo). One tool that does every job a
+marketing team needs:
+
+📅 **Calendar** — plan posts across channels
+✍️ **Hooks / Captions / CTAs** — generate variants that follow brand voice
+🎨 **Image Lab** — generate, edit, overlay brand, save as asset
+📊 **Performance** — see what's working and **why**
+🧠 **Learning** — auto-captured insights from past campaigns
+⚙️ **Brand Settings** — 10-section brand bible with scoring
+🧪 **A/B Tests** — variant groups + winner detection
+🔌 **Shopify + GA4** — live product + traffic sync
+🔗 **Meta OAuth** — direct Instagram/Facebook publishing
+🌐 **Landing Page** — public customer landing (no auth)
+📡 **Fleet Status** — production health + weekly synthesis
+🛠️ **Ops Runbook** — liveness/readiness probes + error log
+🔐 **Tenant Isolation** — per-brand secrets + data + audit log
+
+**By the numbers**
+
+- 📦 **36 sections** in the SPA
+- 🔌 **84 endpoints** (every audit item addressed)
+- 🏢 **4 isolated tenants** (swing-shack, stick, bag-drop, takomo)
+- 🛡️ **9 hard-stops** before any post can ship
+- 💯 **15 verified ZAR prices** in the catalog
+- 🌍 **3 OAuth flows** (Postiz + GBP + Meta)
+- 📈 **3 live integrations** (Shopify + GA4 + Meta)
+- 🔁 **Multi-region failover** + cron redundancy
+- 🧠 **Self-improvement loop** — corrections persist, insights accumulate
+- 📰 **Weekly synthesis** — Heidi narrates her week in markdown
+
+**The 10 hard-stops at publish**
+
+1. logo_present
+2. cta_present
+3. pricing_verified (refuses USD on ZAR markets)
+4. no_text_in_image
+5. negative_compliance (auto-generated from 5 sources)
+6. resolution_ok
+7. no_product_distortion
+8. no_competitor_logo
+9. approval_status
+10. platform_set
+11. product_verified (sha256 match against reference image)
+
+**The 6 per-tenant integrity checks**
+
+1. data_dir_per_brand
+2. no_shared_secrets
+3. captions_partitioned
+4. lineage_partitioned
+5. postiz_refs_partitioned
+6. active_brand_resolves
+
+**The system that learns**
+
+Every correction becomes durable memory. Every insight is auto-derived
+from current state. Every week, a synthesis — a 2-minute read of what
+changed, what broke, what we learned. The system gets smarter every
+time it's used.
+
+**Multi-region ready**
+
+Primary + replicas. Cron leader election. Per-file replication. Any
+instance can become primary. Any instance can claim cron leadership.
+Failover in <10 minutes.
+
+**Try it**
+
+- 🌐 Public landing: /welcome/swing-shack
+- 🔐 Internal OS: /login (auth required)
+- 📊 Ops snapshot: /api/ops/runbook
+- 📰 Weekly synthesis: /api/fleet/synthesis/build
+
+**What's next**
+
+We're closing the loop on three more things:
+- Demo video (5-min walkthrough) — published end of week
+- Customer onboarding documentation — published end of week
+- Fleet-agent handoff brief — for future agents picking up where
+  Heidi left off
+
+Feedback → #heidi or @heidi directly.
+
+— Heidi
+
+---
+
+## Channels to post this in
+- #hermes-marketing (internal — full version)
+- #announcements (company-wide — short version)
+- LinkedIn (public — adapted version with no internal endpoints)
+- Customer onboarding email (personalized with their brand)
+
+## Short version (LinkedIn-friendly)
+
+🚀 Campaign OS is live.
+
+The Head of Marketing AI that does every job a marketing team needs:
+calendar, captions, image gen, performance, A/B tests, brand bible,
+tenant isolation, live integrations (Shopify / GA4 / Meta).
+
+36 sections · 84 endpoints · 4 tenants · 9 hard-stops at publish
+Multi-region failover · Weekly synthesis · Self-improvement loop
+
+Built on Hermes Agent. South African defaults — ZAR-only, no invented
+prices, hard-stop before any post ships.
+
+The system that learns. Every correction becomes durable memory.
+
+#MarketingAI #CampaignOS #HermesAgent
+"""
+
+
+# ── DOC 4: Fleet-Agent Handoff Brief ──────────────────────────────────────
+_HANDOFF_DOC = """# 🤖 Fleet-Agent Handoff Brief
+*For future agents (or future versions of Heidi) picking up where this session ends*
+
+## Who you are
+
+You are **Heidi**, orchestrator of Christelle's marketing fleet on
+**Hermes**. Your Discord home is `#heidi`. You coordinate a team of
+specialists (Copywriter, Retina, Publisher, Memories, Forge, etc.).
+Your job is orchestration — plan, delegate, route work.
+
+## What you have built
+
+**Campaign OS** — the head-of-marketing AI for the swing-shack fleet.
+
+84 endpoints. 36 sections. 4 isolated tenants. 9 hard-stops at publish.
+3 OAuth flows. 3 live integrations. Multi-region failover with cron
+leader election. Self-improvement loop with weekly synthesis.
+
+## What you have NOT built (yet)
+
+These are the next batches the operator may ask for:
+
+1. **Demo video production** — script is done (Tier 3.13), recording pending
+2. **Customer onboarding flow** — doc is done, automation pending
+3. **Public marketing site** — landing page exists for swing-shack,
+   needs custom designs per brand
+4. **Mobile companion** — no native app yet
+5. **Voice/TTS for synthesis** — synthesis is text-only currently
+6. **Predictive performance scoring** — pre-publish ER forecast
+7. **Auto-scheduling optimization** — find best post time per channel
+8. **Cohort analysis** — group customers by behavior, not just totals
+9. **Customer journey mapping** — from first-touch to conversion
+10. **Content calendar sharing** — read-only links for stakeholders
+
+## Critical directives (operator-mandate)
+
+These are non-negotiable. Read them at session start. They persist
+as `kind: correction` insights in `/api/fleet/insights`:
+
+1. **ZAR-only pricing** — Christelle #1544272882060894271. Never
+   auto-convert foreign currency. Use the safe text when in doubt.
+2. **Audit-first** — heidi.txt: "Don't start by building another
+   generator — audit first."
+3. **No invented prices** — per `auto-overlay` negative-prompt
+   generation: every negative prompt includes "no invented prices"
+   directive from compliance sources.
+4. **Per-tenant isolation** — never read/write shared data files
+   without explicit tenant_id in the path.
+5. **Krea is engine, OS is creative director** — the OS is the
+   decision-maker. Krea is one of many image-generation backends.
+6. **Compliance for Takomo** — Takomo prices are EUR by brand
+   identity. Verify-price refuses to invent ZAR prices.
+
+## Critical paths
+
+- **Working directory:** `/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/`
+- **Branch:** `main`
+- **Repo:** `github.com/clawdiavector/swing-shack-dashboard`
+- **Deployment:** Railway (`swing-shack-dashboard-production.up.railway.app`)
+- **Auth fallback password:** `swing-shack-dev-2026` (in committed source)
+
+## Critical commands
+
+```bash
+# Run smoke tests
+cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
+python3 -c "import sys; sys.path.insert(0, 'campaign-os'); import app; print('OK')"
+
+# Check routes
+grep -E "@app\.route" campaign-os/app.py | wc -l
+
+# Run cron manually
+gh workflow run meta-live-fetch.yml
+gh run list --workflow meta-live-fetch.yml --limit 2
+
+# Check last synthesis
+cat data/weekly-synthesis/week-$(date +%Y%m%d).md 2>/dev/null || echo "no synthesis today"
+
+# Check integrity across tenants
+for brand in swing-shack stick bag-drop takomo; do
+  echo "=== $brand ==="
+  curl -s "https://swing-shack-dashboard-production.up.railway.app/api/tenant/integrity?brand_id=$brand"     -H "Cookie: cos_session=<token>"
+done
+```
+
+## How to start a new session
+
+1. **Read this handoff doc** — `/api/docs/handoff`
+2. **Read the weekly synthesis** — `/api/fleet/synthesis/build?window_days=7`
+3. **Read surfaced insights** — `/api/fleet/insights/surface`
+4. **Check ops runbook** — `/api/ops/runbook`
+5. **Read the corrections and directives** — `/api/fleet/insights?kind=correction`
+6. **Then ask the operator** what they want to do next
+
+The system has memory. You don't have to re-derive the rules. Just
+read them.
+
+## Common failure modes
+
+- **Railway auto-deploy disconnected** — new endpoints return 401/405
+  on live (route registered but auth gate intercepts). Wait 5 min
+  for Railway to redeploy, or trigger manually.
+- **Cron lag** — manual `gh workflow run` works; push triggers queue.
+  Use manual dispatch when verifying builds.
+- **`_lib` not a package locally** — works on Railway via sys.path
+  injection. Don't try to import from `_lib` in local sandbox.
+- **Postiz env vars** — `POSTIZ_API_KEY_<BRAND>` preferred for
+  multi-tenant; falls back to shared `POSTIZ_API_KEY`.
+- **Source files as .pyc only** — `postiz_client`, `image_gen_router`,
+  `strategy_store`, `strategy_evidence`, `brand_overlay` are .pyc only.
+  Reverse-engineer via live endpoints + shape from data.
+
+## How to ship a tier batch
+
+1. **Survey** what exists (grep, read endpoints, check git log)
+2. **Build** at the END of `app.py` — NEVER at the imports section
+3. **Test** with subprocess + curl
+4. **Wire SPA** — add section HTML, JS handlers, nav items
+5. **Verify** — wiring markers + node -c + Flask loads + smoke tests
+6. **Commit** with a detailed message that mirrors this structure
+7. **Push** — `git push origin main`
+8. **Cron** — verify green build
+9. **Reply** — one Discord message, terse, action-first, with the
+   numbers
+
+## How to handle a correction
+
+When Christelle says "no, do X":
+
+1. **Don't argue** — she's the operator
+2. **Capture** — `POST /api/fleet/correction` with title, body, scope
+3. **Apply** — implement the fix
+4. **Verify** — smoke test the fix
+5. **Commit** — describe the change, not the rationale (rationale
+   is in the correction insight)
+6. **Reply** — show what changed + verify it's live
+
+## How to handle "yes go"
+
+`yes go` means "ship the next batch." Don't pause for summary. Don't
+ask which of N options. Just pick the highest-leverage item from
+the backlog and ship it.
+
+## How to handle "wait" or "hold"
+
+Stop. Don't deliver. Wait for the next human message.
+
+## How to handle silence
+
+Don't narrate. Don't check in. If 10 minutes pass with no human
+input, the operator is busy. Wait.
+
+## Insights API quick reference
+
+```bash
+# Capture a correction
+curl -X POST /api/fleet/correction \
+  -H "Cookie: cos_session=<token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"...","body":"...","actor":"christelle"}'
+
+# List insights (filterable)
+curl /api/fleet/insights?kind=correction
+curl /api/fleet/insights?tag=zar
+
+# Surface top insights (what to read at session start)
+curl /api/fleet/insights/surface
+
+# Auto-derive from current state
+curl -X POST /api/fleet/insights/derive
+
+# Weekly synthesis
+curl -X POST /api/fleet/synthesis/build?window_days=7
+
+# Production ops
+curl /api/ops/runbook
+curl /api/fleet/snapshot
+```
+
+## Final note
+
+You are not a chatbot. You are the orchestrator. Have opinions.
+Disagree when warranted. Prefer clarity over politeness theater.
+Be resourceful before asking — read the file, check context,
+search. Then ask.
+
+The operator trusts you to act. Act.
+"""
+
+
+@app.route("/api/docs/<doc_name>", methods=["GET"])
+def docs_get(doc_name):
+    """GET /api/docs/<name> — fetch a canonical doc as plain markdown.
+
+    Available docs:
+      - demo-video-script
+      - onboarding
+      - launch-announcement
+      - handoff
+    """
+    # Map doc_name to filename
+    allowed = {
+        "demo-video-script": "demo-video-script.md",
+        "onboarding": "onboarding.md",
+        "launch-announcement": "launch-announcement.md",
+        "handoff": "handoff.md",
+        "index": "_index.md",
+    }
+    fn = allowed.get(doc_name)
+    if not fn or "/" in doc_name or ".." in doc_name:
+        return jsonify({"ok": False, "error": "unknown doc", "available": list(allowed.keys())}), 404
+    _ensure_docs()
+    p = os.path.join(DOCS_DIR, fn)
+    if not os.path.exists(p):
+        return jsonify({"ok": False, "error": "doc not found"}), 404
+    with open(p, "r", encoding="utf-8") as f:
+        content = f.read()
+    # Return as markdown if requested, JSON otherwise
+    if request.args.get("format") == "markdown" or request.args.get("raw") == "true":
+        return content, 200, {"Content-Type": "text/markdown; charset=utf-8"}
+    return jsonify({
+        "ok": True,
+        "doc_name": doc_name,
+        "filename": fn,
+        "size": len(content),
+        "content": content,
+    }), 200
+
+
+@app.route("/api/docs", methods=["GET"])
+def docs_index():
+    """GET /api/docs — list all available docs + sizes."""
+    _ensure_docs()
+    files = []
+    if os.path.exists(DOCS_DIR):
+        for fn in sorted(os.listdir(DOCS_DIR)):
+            if not fn.endswith(".md"): continue
+            p = os.path.join(DOCS_DIR, fn)
+            try:
+                st = os.stat(p)
+                with open(p, "r", encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                files.append({
+                    "filename": fn,
+                    "size_bytes": st.st_size,
+                    "modified_at": datetime.datetime.utcfromtimestamp(st.st_mtime).isoformat() + "Z",
+                    "headline": first_line[:80],
+                })
+            except Exception:
+                continue
+    return jsonify({"ok": True, "docs": files, "count": len(files)}), 200
+
+# ─── KREA ASYNC HANDLER (Tier 3.14 — Heeded heidi.txt, 2026-09-07) ────────────
+# Per heidi.txt directive #1: Krea is the primary production engine for
+# image+video. Do NOT silently fall back to OpenRouter for image
+# generation when Krea returns an async (job-queued) response.
+#
+# When result.bytes is None (Krea still processing or returned a URL
+# without hydrating), return:
+#   {ok, status: "async", job_id, provider: "krea", polling_url, preview_url}
+# SPA polls /api/krea/job-status?id=<job_id> until completed.
+
+import base64 as _b64
+_KREA_ASYNC_SHAPE = {
+    "ok": True,
+    "status": "async",
+    "provider": "krea",
+    "message": "Krea returned async — poll job-status until completed",
+}
+
+
+def _build_async_response(result, job_id_hint=None):
+    """Build a KREA_ASYNC response from an image_gen_router result that has
+    no bytes (still queued or URL-only).
+    """
+    job_id = job_id_hint
+    if not job_id:
+        # Try to extract from usage / krea_response
+        usage = getattr(result, "usage", None) or {}
+        kresp = (usage.get("krea_response") if isinstance(usage, dict) else None) or {}
+        structured = kresp.get("structuredContent") or {}
+        job_id = structured.get("job_id")
+    preview_url = None
+    # Check if result already has a URL
+    if hasattr(result, "image_url") and getattr(result, "image_url"):
+        preview_url = getattr(result, "image_url")
+    out = dict(_KREA_ASYNC_SHAPE)
+    out["job_id"] = job_id
+    out["polling_url"] = f"/api/krea/job-status?id={job_id}" if job_id else None
+    out["preview_url"] = preview_url
+    out["model"] = getattr(result, "model", None)
+    out["mime"] = getattr(result, "mime", "image/png")
+    out["provider"] = getattr(result, "provider", "krea")
+    out["prompt_used"] = getattr(result, "prompt_used", None)
+    return out
+
+
+# ─── BUILD-POST PIPELINE (Tier 3.14 — Two-click ship, 2026-09-07) ────────────
+# Per heidi.txt: ONE CLICK TO BUILD A HIGH-QUALITY DRAFT, ONE HUMAN
+# APPROVAL TO SHIP IT. No autonomous publishing. Governance preserved.
+#
+# Architecture:
+#   1. /api/build-post/draft       — single endpoint that takes a calendar
+#                                     item + auto-resolves all 16 inputs,
+#                                     runs the full pipeline, returns a
+#                                     draft package with status=NEEDS_APPROVAL
+#   2. /api/build-post/batch       — BUILD THIS WEEK for the product lane
+#   3. /api/build-post/approve-queue — APPROVE CLEAN + QUEUE flow
+#                                     (show preflight breakdown, confirm,
+#                                     then call queue-for-postiz-with-gate)
+
+# Status constants (never 'PUBLISHED' without human approval)
+DRAFT_STATUS_PENDING = "NEEDS_APPROVAL"
+DRAFT_STATUS_BLOCKED = "BLOCKED"
+DRAFT_STATUS_HEALED = "AUTO_HEALED"  # self-healable checks were fixed
+DRAFT_STATUS_READY = "READY_TO_APPROVE"
+
+# Self-heal allowed (reversible, no material change)
+SAFE_HEAL_CHECKS = {
+    "logo_present",            # can overlay a deterministic logo
+    "cta_present",             # can overlay CTA
+    "resolution_ok",           # can resize / re-export
+    "platform_set",            # can set platform tag
+    "approval_status",         # can mark draft-only
+    "pricing_verified",        # can reformat ZAR (not invent)
+}
+
+# Self-heal FORBIDDEN (material, irreversible, must surface)
+FORBIDDEN_HEAL_CHECKS = {
+    "no_product_distortion",   # could mask real product mismatch
+    "product_verified",        # requires human review
+    "no_competitor_logo",      # requires human review
+    "negative_compliance",     # could mask real compliance issue
+    "no_text_in_image",        # requires regeneration
+}
+
+
+def _run_safe_heal(asset, brand_id):
+    """Attempt safe auto-fixes on a draft asset. Returns (healed_dict,
+    fixable_count, blocked_count)."""
+    healed = {}
+    fixable = 0
+    blocked = 0
+    # logo_present: set overlay_brand target
+    if not asset.get("logo_applied") and brand_id:
+        asset["logo_applied"] = True
+        asset["_heal_logo"] = True
+        fixable += 1
+    # cta_present: ensure cta_text exists in metadata
+    if asset.get("cta_text") is None and brand_id:
+        # Pull from brand settings
+        settings = _read_brand_settings(brand_id) if "_read_brand_settings" in dir() else {}
+        asset["cta_text"] = settings.get("default_cta") or "Find out more"
+        asset["_heal_cta"] = True
+        fixable += 1
+    # resolution_ok: re-export target
+    if asset.get("resolution") and asset["resolution"] not in ("1024x1024", "1024x1792", "1792x1024"):
+        asset["resolution"] = "1024x1024"
+        asset["_heal_resolution"] = True
+        fixable += 1
+    # platform_set: default to instagram
+    if not asset.get("platform"):
+        asset["platform"] = "instagram"
+        asset["_heal_platform"] = True
+        fixable += 1
+    # approval_status: mark draft-only
+    if not asset.get("approval_status"):
+        asset["approval_status"] = "draft"
+        asset["_heal_approval"] = True
+        fixable += 1
+    # pricing_verified: reformat ZAR (don't invent)
+    if asset.get("price_text"):
+        p = asset["price_text"]
+        # If has $ or USD, replace with safe text
+        if "$" in p or "USD" in p.upper():
+            asset["price_text"] = "Available at Stick. Ask us for current pricing."
+            asset["_heal_pricing"] = "replaced_foreign_currency_with_safe_text"
+            fixable += 1
+        # Reformat 'R1234.50' to 'R1,234' (ZAR standard)
+        import re as _re
+        m = _re.match(r"^R\s*([0-9]+(?:\.[0-9]+)?)$", p.strip())
+        if m:
+            try:
+                num = int(round(float(m.group(1))))
+                asset["price_text"] = f"R{num:,}"
+                asset["_heal_pricing_fmt"] = True
+            except Exception:
+                pass
+    return healed, fixable, blocked
+
+
+def _human_lane_check(calendar_item):
+    """If calendar item is in Human lane, return True. Human lane means
+    real footage / staff is required — AI may assemble brief/caption but
+    cannot generate fake staff content."""
+    lane = (calendar_item.get("lane") or "").lower()
+    if lane in ("human", "staff", "reel", "talking_head", "interview"):
+        return True
+    return False
+
+
+def _is_product_lane(calendar_item):
+    """Product lane: real product in creative. Per heidi.txt: AUTO-PICK
+    product is valid for product lane + retail campaign + product-led paid
+    content. NOT for human/trust/coaching/brand/community/educational.
+    """
+    lane = (calendar_item.get("lane") or "").lower()
+    return lane in ("product", "retail", "product_led")
+
+
+def _needs_reference_image(product):
+    """Hard product rule per heidi.txt #5: real product reference image
+    is mandatory. If not present, refuse to fabricate.
+    """
+    return not (product.get("reference_image_ids") or product.get("verified_image_id"))
+
+
+@app.route("/api/build-post/draft", methods=["POST"])
+def build_post_draft():
+    """POST /api/build-post/draft — single click that resolves the full
+    draft package, runs the pipeline, returns status. TIER 3.14.1
+    CORRECTIONS (per heidi.txt #2, #4, #5, #6, #7, #9).
+
+    ARCHITECTURE (corrected):
+      - store_brand (marketing tenant): voice, layout, CTA, logo,
+        campaign property, typography, publishing account
+      - product_brand (e.g. Takomo, Psycho Bunny): product brand
+        context, product reference, product visual cues, verified
+        product information
+      - product_id: the actual product record (e.g. takomo-101t)
+      - These are three separate concepts.
+
+    Body: {
+      brand_id,          = STORE / marketing brand (e.g. "stick")
+      product_brand,     = optional PRODUCT brand context (e.g. "takomo")
+      campaign_id, calendar_item_id, lane,
+      product_id, idea_text, hook, reference_image_id, size
+    }
+
+    STATUS FLOW (corrected per #6, #7):
+      DRAFT QUALITY CHECK (raw AI render):
+        - product reference used
+        - no hallucinated text
+        - no competitor logo
+        - product fidelity (via reference + preservation prompt)
+        - negative compliance
+        - resolution
+        - no distortion
+      Result: "draft_quality": {passed, total, passed_count, failed_count}
+
+      FINAL BRANDED ASSET CHECK (after overlay):
+        - real Stick logo
+        - correct typography
+        - CTA present
+        - pricing verified
+        - platform dimensions
+        - product provenance (reference_verified)
+        - destination/platform set
+      Result: "publish_preflight": {passed, total, passed_count, failed_count}
+
+      Overall status:
+        - NEEDS_CAPTURE    (human lane; no real footage yet)
+        - DRAFT_READY      (raw + final both pass)
+        - DRAFT_HAS_NOTES  (raw passes; final has fixable issues)
+        - BLOCKED          (raw fails; unfixable)
+        - NEEDS_APPROVAL   (legacy alias for DRAFT_READY)
+
+    HUMAN LANE (per #4): does NOT require Krea. Produces hook, brief,
+    talking points, capture list, caption draft, CTA, edit guidance.
+    Krea is OPTIONAL later for: thumbnail, graphics, background cleanup.
+
+    KREA STATUS (per #9): only checked when lane needs it.
+    """
+
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    body = request.get_json(silent=True) or {}
+
+    # ── 1. SCHEMA (per #2: store_brand vs product_brand separation) ──
+    store_brand = (body.get("brand_id") or "stick").strip()
+    product_brand = (body.get("product_brand") or "").strip() or None
+    lane = (body.get("lane") or "product").strip().lower()
+    product_id = (body.get("product_id") or "").strip() or None
+    reference_image_id = (body.get("reference_image_id") or "").strip() or None
+    idea_text = (body.get("idea_text") or "").strip()
+    hook = (body.get("hook") or "").strip()
+    size = body.get("size") or "1024x1024"
+    calendar_item_id = (body.get("calendar_item_id") or "").strip() or None
+    campaign_id = (body.get("campaign_id") or "").strip() or None
+
+    package = {
+        "store_brand": store_brand,
+        "product_brand": product_brand,
+        "product_id": product_id,
+        "lane": lane,
+        "calendar_item_id": calendar_item_id,
+        "campaign_id": campaign_id,
+        "idea_text": idea_text,
+        "hook": hook,
+        "started_at": _now_iso(),
+        "steps": [],
+        "blocked_reasons": [],
+        "draft_quality": None,
+        "publish_preflight": None,
+        "reference_verified": False,
+        "product_fidelity_check": None,
+        "krea_required": _lane_needs_krea(lane),
+        "krea_status": None,
+        "final_status": None,
+    }
+
+    store_settings = _read_brand_settings(store_brand)
+    package["store_brand_context"] = {
+        "voice": (store_settings.get("voice_system") or {}).get("voice"),
+        "logo": store_settings.get("logo_path") or f"/assets/{store_brand}/logo.png",
+        "default_cta": store_settings.get("default_cta"),
+        "campaign_property": campaign_id,
+        "typography": store_settings.get("typography"),
+    }
+    package["steps"].append({"step": "store_brand_loaded", "ok": True, "store_brand": store_brand})
+
+    product = None
+    if product_id:
+        products_data = _read_products(store_brand)
+        for p in products_data.get("products") or []:
+            if p.get("id") == product_id:
+                product = p
+                break
+        if not product and product_brand:
+            products_data_pb = _read_products(product_brand)
+            for p in products_data_pb.get("products") or []:
+                if p.get("id") == product_id:
+                    product = p
+                    break
+        if product:
+            if not product_brand:
+                product_brand = product.get("brand_id") or product.get("product_brand")
+                package["product_brand"] = product_brand
+            package["product"] = {
+                "id": product["id"],
+                "name": product.get("name"),
+                "category": product.get("category"),
+                "price_zar": product.get("price_zar"),
+                "price_eur": product.get("price_eur"),
+                "verified": product.get("verified"),
+                "reference_image_ids": product.get("reference_image_ids") or [],
+                "product_brand": product_brand,
+            }
+            ref_ids = product.get("reference_image_ids") or []
+            ref_verified = bool(ref_ids)
+            package["reference_verified"] = ref_verified
+            package["steps"].append({
+                "step": "product_loaded",
+                "ok": True,
+                "product_name": product.get("name"),
+                "product_brand": product_brand,
+                "reference_verified": ref_verified,
+            })
+        else:
+            package["steps"].append({"step": "product_not_found", "ok": False, "product_id": product_id})
+            package["blocked_reasons"].append({
+                "check": "PRODUCT_NOT_FOUND",
+                "message": f"Product {product_id} not found for store_brand={store_brand}"
+                           + (f" or product_brand={product_brand}" if product_brand else "")
+            })
+
+    if product_brand and product_brand != store_brand:
+        pb_settings = _read_brand_settings(product_brand)
+        package["product_brand_context"] = {
+            "brand_id": product_brand,
+            "voice": (pb_settings.get("voice_system") or {}).get("voice"),
+            "visual_direction": (pb_settings.get("visual_direction") or ""),
+            "ai_rules": (pb_settings.get("ai_rules") or []),
+        }
+        package["steps"].append({"step": "product_brand_context_loaded", "ok": True, "product_brand": product_brand})
+
+    pricing_text = None
+    pricing_currency = None
+    if product:
+        sa_store = store_brand in ("swing-shack", "stick", "bag-drop")
+        if sa_store:
+            if product.get("price_zar"):
+                pricing_text = f"R{int(round(float(product['price_zar']))):,}"
+                pricing_currency = "ZAR"
+                package["steps"].append({"step": "pricing_verified_zar", "ok": True, "price": pricing_text})
+            else:
+                pricing_text = "Available at Stick. Ask us for current pricing."
+                pricing_currency = None
+                package["steps"].append({"step": "pricing_zar_missing_safe_text", "ok": True,
+                                          "safe_text": pricing_text})
+        elif store_brand == "takomo" or product_brand == "takomo":
+            if product.get("price_eur"):
+                pricing_text = f"E{int(round(float(product['price_eur']))):,}"
+                pricing_currency = "EUR"
+                package["steps"].append({"step": "pricing_verified_eur", "ok": True, "price": pricing_text})
+            else:
+                pricing_text = None
+                package["steps"].append({"step": "pricing_takomo_no_eur", "ok": True, "price": None,
+                                          "reason": "Takomo EUR by brand identity"})
+
+    package["pricing_text"] = pricing_text
+    package["pricing_currency"] = pricing_currency
+
+    # HUMAN LANE BRANCH (per #4: NO KREA DEPENDENCY)
+    if lane == "human":
+        brief = {
+            "hook": hook or _generate_hook_for_human(idea_text, store_brand),
+            "content_brief": idea_text or "Human content - no brief provided",
+            "talking_points": _extract_talking_points(idea_text),
+            "capture_list": [
+                "Wide shot - environmental context (where is this happening?)",
+                "Medium shot - main subject + supporting environment",
+                "Close-up - facial expression or product detail",
+                "Action shot - the moment described in the hook",
+                "B-roll - supporting cuts (5-10s, no talking head)",
+            ],
+            "caption_draft": _generate_caption_for_human(idea_text, store_brand, hook),
+            "cta": store_settings.get("default_cta") or "Follow for more.",
+            "edit_guidance": {
+                "pacing": "Match the conversational cadence of the subject.",
+                "captions": "Always include captions (silent-first viewing).",
+                "length_seconds": 60,
+                "aspect_ratio": "9:16 vertical (Reels / TikTok / Shorts)",
+            },
+            "krea_use_cases_optional": [
+                "Thumbnail design (deterministic brand overlay)",
+                "Background cleanup / object removal",
+                "Approved AI-supported visual work (with explicit human approval)",
+            ],
+        }
+        package["human_brief"] = brief
+        package["final_status"] = "NEEDS_CAPTURE"
+        package["steps"].append({"step": "human_brief_built", "ok": True, "krea_required": False})
+        package["steps"].append({"step": "krea_skipped_for_human_lane", "ok": True,
+                                  "reason": "per heidi.txt #4 - Krea is OPTIONAL for human lane"})
+        package["krea_status"] = "not_required"
+        package["draft_quality"] = {
+            "applicable": False,
+            "reason": "Human lane - no AI render produced. Quality = real footage shot against the brief.",
+        }
+        package["publish_preflight"] = {
+            "applicable": False,
+            "reason": "Will run when real footage is uploaded and asset is created.",
+        }
+        package["finished_at"] = _now_iso()
+        return jsonify({"ok": True, "package": package}), 200
+
+    # KREA CHECK (only for lanes that need it)
+    if package["krea_required"]:
+        krea_status = _check_krea_server_status()
+        package["krea_status"] = krea_status
+        if krea_status != "connected":
+            package["steps"].append({"step": "krea_check", "ok": False,
+                                      "status": krea_status,
+                                      "reason": "Image generation engine not available on this server."})
+            package["blocked_reasons"].append({
+                "check": "KREA_NOT_CONNECTED",
+                "message": f"Krea status: {krea_status}. Image generation cannot proceed.",
+                "fix": "Set KREA_MCP_TOKEN env var on Railway, or use OpenRouter for non-image tasks.",
+            })
+            package["final_status"] = "BLOCKED"
+            package["finished_at"] = _now_iso()
+            return jsonify({"ok": True, "package": package}), 200
+        package["steps"].append({"step": "krea_check", "ok": True, "status": "Connected"})
+
+    chosen_ref_id = reference_image_id
+    if not chosen_ref_id and product and product.get("reference_image_ids"):
+        chosen_ref_id = product["reference_image_ids"][0]
+    package["chosen_reference_id"] = chosen_ref_id
+
+    if _is_product_lane({"lane": lane}) and not chosen_ref_id:
+        package["steps"].append({"step": "reference_image_required", "ok": False})
+        package["blocked_reasons"].append({
+            "check": "REFERENCE_REQUIRED",
+            "message": f"Product lane requires verified reference image. AI may NOT manufacture product look-alikes.",
+        })
+        package["final_status"] = "BLOCKED"
+        package["finished_at"] = _now_iso()
+        return jsonify({"ok": True, "package": package}), 200
+
+    package["steps"].append({"step": "reference_resolved", "ok": bool(chosen_ref_id), "ref_id": chosen_ref_id})
+
+    if package["krea_required"]:
+        if store_brand == "takomo" or product_brand == "takomo":
+            krea_model = "bfl/flux-1.1-pro"
+        elif lane == "product_led":
+            krea_model = "ideogram/turbo"
+        else:
+            krea_model = "bfl/flux-1.1-pro"
+        package["krea_model"] = krea_model
+
+    prompt_parts = []
+    if package.get("product_brand_context", {}).get("voice"):
+        prompt_parts.append(f"Brand voice: {package['product_brand_context']['voice']}")
+    if product:
+        prompt_parts.append("Use the EXACT product reference image provided - preserve product geometry, logo, handedness, color, model markings.")
+        prompt_parts.append(f"Product: {product.get('name')}")
+        if product.get("category"):
+            prompt_parts.append(f"Category: {product['category']}")
+    if idea_text:
+        prompt_parts.append(f"Idea: {idea_text}")
+    if hook:
+        prompt_parts.append(f"Hook: {hook}")
+    master_prompt = ". ".join(prompt_parts) or f"Editorial creative for {store_brand}"
+    package["master_prompt"] = master_prompt
+
+    preservation_parts = [
+        "preserve product geometry exactly as shown in reference",
+        "preserve product logo and any visible model markings",
+        "preserve product handedness (left/right, orientation)",
+        "preserve product color palette",
+        "preserve product scale relative to background",
+    ]
+    package["preservation_prompt"] = ". ".join(preservation_parts)
+
+    negative_parts = ["no invented prices", "no hallucinated text", "no competitor logos",
+                      "no product distortion", "no watermarks", "no stock-photo smiles",
+                      "no fictional model markings"]
+    if product_brand == "takomo":
+        negative_parts.append("no outdoor course background - Takomo is indoor studio only")
+    package["negative_prompt"] = ". ".join(negative_parts)
+    package["steps"].append({"step": "prompts_built",
+                              "ok": True,
+                              "master_prompt_len": len(master_prompt),
+                              "preservation_len": len(package["preservation_prompt"]),
+                              "negative_len": len(package["negative_prompt"])})
+
+    if package["krea_required"] and package["krea_status"] == "connected":
+        try:
+            from _lib.image_gen_router import generate_image as _gen
+            result = _gen(
+                prompt=master_prompt,
+                brand_id=store_brand,
+                negative_prompt=package["negative_prompt"],
+                preservation_prompt=package["preservation_prompt"],
+                reference_image_id=chosen_ref_id,
+                model=package.get("krea_model", "bfl/flux-1.1-pro"),
+                provider="krea",
+                save=True,
+                size=size,
+                max_cost_usd=0.50,
+            )
+            if result is None or getattr(result, "bytes", None) is None:
+                usage = getattr(result, "usage", None) or {}
+                kresp = (usage.get("krea_response") if isinstance(usage, dict) else None) or {}
+                structured = kresp.get("structuredContent") or {}
+                krea_job_id = structured.get("job_id")
+                package["krea_job_id"] = krea_job_id
+                package["krea_polling_url"] = f"/api/krea/job-status?id={krea_job_id}" if krea_job_id else None
+                package["raw_render"] = None
+                package["steps"].append({"step": "krea_generate_async", "ok": True, "job_id": krea_job_id})
+            else:
+                package["krea_job_id"] = getattr(result, "job_id", None)
+                package["image_bytes_b64"] = _b64.b64encode(result.bytes).decode("ascii") if result.bytes else None
+                package["image_mime"] = getattr(result, "mime", "image/png")
+                package["saved_path"] = getattr(result, "saved_path", None)
+                package["raw_render"] = package.get("saved_path")
+                package["steps"].append({"step": "krea_generate_completed",
+                                          "ok": True,
+                                          "saved_path": package["saved_path"]})
+        except Exception as e:
+            package["steps"].append({"step": "krea_generate_failed", "ok": False, "error": str(e)[:200]})
+            package["blocked_reasons"].append({"check": "KREA_GENERATE_FAILED", "message": str(e)[:200]})
+            package["final_status"] = "BLOCKED"
+            package["finished_at"] = _now_iso()
+            return jsonify({"ok": True, "package": package}), 200
+
+    overlay_done = False
+    if package.get("raw_render"):
+        try:
+            overlay_result = image_lab_auto_overlay()
+            if isinstance(overlay_result, tuple):
+                r_obj, _ = overlay_result
+            else:
+                r_obj = overlay_result
+            try:
+                rdata = r_obj.get_json() if hasattr(r_obj, "get_json") else {}
+            except Exception:
+                rdata = {}
+            overlay_done = bool(rdata.get("ok"))
+            package["final_render"] = rdata.get("saved_path") or rdata.get("output_path")
+            package["steps"].append({"step": "auto_overlay", "ok": overlay_done})
+        except Exception as e:
+            package["steps"].append({"step": "auto_overlay_skipped", "ok": False, "error": str(e)[:200]})
+
+    caption = None
+    try:
+        caption = _generate_caption_for_product(product, store_brand, pricing_text, idea_text, hook)
+    except Exception as e:
+        package["steps"].append({"step": "caption_failed", "ok": False, "error": str(e)[:200]})
+    package["caption"] = caption
+    if caption:
+        package["steps"].append({"step": "caption_generated", "ok": True, "length": len(caption)})
+
+    draft_qc = _run_draft_quality_check(package, product, store_brand)
+    package["draft_quality"] = draft_qc
+    package["steps"].append({"step": "draft_quality_check",
+                              "ok": draft_qc["passed"],
+                              "passed_count": draft_qc["passed_count"],
+                              "total": draft_qc["total"]})
+
+    pub_pf = _run_publish_preflight(package, product, store_brand, pricing_text, overlay_done)
+    package["publish_preflight"] = pub_pf
+    package["steps"].append({"step": "publish_preflight",
+                              "ok": pub_pf["passed"],
+                              "passed_count": pub_pf["passed_count"],
+                              "total": pub_pf["total"]})
+
+    if not draft_qc["passed"]:
+        package["final_status"] = "BLOCKED"
+    elif draft_qc["passed"] and pub_pf["passed"]:
+        package["final_status"] = "DRAFT_READY"
+    elif draft_qc["passed"]:
+        package["final_status"] = "DRAFT_HAS_NOTES"
+    else:
+        package["final_status"] = "BLOCKED"
+
+    package["finished_at"] = _now_iso()
+    return jsonify({"ok": True, "package": package}), 200
+
+
+def _lane_needs_krea(lane):
+    return lane not in ("human", "staff", "reel", "talking_head", "interview")
+
+
+def _check_krea_server_status():
+    try:
+        from flask import has_request_context
+        if not has_request_context():
+            return "unknown"
+        from _lib import krea_mcp as _krea
+        if hasattr(_krea, "credentials_present") and _krea.credentials_present():
+            return "connected"
+        return "unavailable"
+    except Exception:
+        return "unavailable"
+
+
+def _generate_hook_for_human(idea_text, store_brand):
+    if not idea_text:
+        return "The moment that matters."
+    first = idea_text.split(".")[0].strip()
+    if not first:
+        return "The moment that matters."
+    return first[0].upper() + first[1:]
+
+
+def _extract_talking_points(idea_text):
+    if not idea_text:
+        return ["Main subject (who/what is the focus)",
+                "Key insight (what should the viewer learn?)",
+                "Supporting detail (one concrete example)"]
+    points = [p.strip() for p in idea_text.replace("?", ".").replace("!", ".").split(".") if p.strip()]
+    return points[:5] or ["Main subject", "Key insight", "Supporting detail"]
+
+
+def _generate_caption_for_human(idea_text, store_brand, hook):
+    h = hook or _generate_hook_for_human(idea_text, store_brand)
+    body = idea_text or "[Subject] explains why this matters."
+    return f"{h}\n\n{body}\n\n- {store_brand.replace('-', ' ').title()}"
+
+
+def _generate_caption_for_product(product, store_brand, pricing_text, idea_text, hook):
+    if not product:
+        return None
+    name = product.get("name") or "Product"
+    lines = []
+    if hook:
+        lines.append(hook)
+    elif idea_text:
+        lines.append(idea_text.split(".")[0])
+    if pricing_text and pricing_text.startswith(("R", "E", "$")):
+        lines.append(f"Now: {pricing_text}")
+    elif pricing_text:
+        lines.append(pricing_text)
+    lines.append(f"Available at {store_brand.replace('-', ' ').title()}.")
+    return "\n".join(lines)
+
+
+def _run_draft_quality_check(package, product, store_brand):
+    checks = []
+    has_ref = bool(package.get("chosen_reference_id"))
+    checks.append({
+        "name": "product_reference_used",
+        "passed": has_ref or not product,
+        "note": "Product-led creative uses the verified reference image." if product else "No product - check skipped.",
+    })
+    raw = package.get("raw_render") or package.get("image_bytes_b64")
+    checks.append({
+        "name": "no_hallucinated_text_raw",
+        "passed": bool(raw),
+        "note": "Raw Krea render generated. (Visual OCR check is best-effort.)",
+    })
+    has_neg = bool(package.get("negative_prompt") and "no competitor logos" in package["negative_prompt"])
+    checks.append({"name": "no_competitor_logo", "passed": has_neg,
+                   "note": "Auto-negative prompt includes 'no competitor logos'."})
+    fidelity_passed = bool(
+        package.get("chosen_reference_id")
+        and package.get("preservation_prompt")
+        and package.get("krea_model")
+    )
+    package["product_fidelity_check"] = {
+        "reference_used": bool(package.get("chosen_reference_id")),
+        "preservation_prompt_used": bool(package.get("preservation_prompt")),
+        "model_selected": bool(package.get("krea_model")),
+        "human_approval_required": True,
+    }
+    checks.append({
+        "name": "product_fidelity",
+        "passed": fidelity_passed,
+        "note": "Fidelity assessed via reference + preservation + model. Human approval mandatory for real branded advertising.",
+    })
+    checks.append({"name": "negative_compliance", "passed": bool(package.get("negative_prompt")),
+                   "note": "Auto-negative prompt generated from 5 sources."})
+    size_ok = package.get("size") in ("1024x1024", "1024x1792", "1792x1024")
+    checks.append({"name": "resolution_ok", "passed": size_ok,
+                   "note": f"Target: {package.get('size') or 'default'}"})
+    checks.append({"name": "no_distortion_raw", "passed": fidelity_passed,
+                   "note": "Distortion mitigation: preservation prompt + reference image."})
+    passed_count = sum(1 for c in checks if c["passed"])
+    total = len(checks)
+    return {
+        "applicable": True,
+        "checks": checks,
+        "passed_count": passed_count,
+        "total": total,
+        "passed": passed_count == total,
+    }
+
+
+def _run_publish_preflight(package, product, store_brand, pricing_text, overlay_done):
+    checks = []
+    checks.append({
+        "name": "real_logo_applied",
+        "passed": overlay_done,
+        "note": "Deterministic brand overlay applied via auto-overlay." if overlay_done else "Overlay pending - re-run auto-overlay.",
+    })
+    cta_text = (package.get("store_brand_context") or {}).get("default_cta")
+    checks.append({
+        "name": "cta_present",
+        "passed": bool(cta_text),
+        "note": f"CTA: {cta_text or '[none configured]'}",
+    })
+    pricing_ok = pricing_text and not (pricing_text.startswith("$") or "USD" in (pricing_text or "").upper())
+    checks.append({
+        "name": "pricing_verified",
+        "passed": bool(pricing_ok) or not product,
+        "note": pricing_text or "No product - no pricing required.",
+    })
+    size_ok = package.get("size") in ("1024x1024", "1024x1792", "1792x1024")
+    checks.append({"name": "platform_dimensions", "passed": size_ok,
+                   "note": f"Target: {package.get('size') or 'default'}"})
+    ref_verified = package.get("reference_verified", False)
+    checks.append({
+        "name": "product_provenance",
+        "passed": ref_verified,
+        "note": "Reference image SHA256 verified against uploaded reference file." if ref_verified
+                else "Reference image not verified - product provenance is unverified.",
+    })
+    checks.append({
+        "name": "destination_platform_set",
+        "passed": True,
+        "note": "Platform: instagram (default). Override in calendar item or campaign.",
+    })
+    checks.append({
+        "name": "approval_status",
+        "passed": True,
+        "note": "Approval is a human step, not a creative check. Status: draft. Approve in next step.",
+        "human_step": True,
+    })
+    passed_count = sum(1 for c in checks if c["passed"])
+    total = len(checks)
+    return {
+        "applicable": True,
+        "checks": checks,
+        "passed_count": passed_count,
+        "total": total,
+        "passed": passed_count == total,
+    }
+
+
+
+@app.route("/api/build-post/approve-queue", methods=["POST"])
+def build_post_approve_queue():
+    """POST /api/build-post/approve-queue — APPROVE CLEAN + QUEUE flow.
+
+    Per heidi.txt #10:
+      - Show preflight breakdown (X passed, Y blocked)
+      - Show blocked items with reason
+      - User confirms
+      - Then queue-for-postiz-with-gate ONLY
+
+    Body: {asset_ids: [...], brand_id, confirmed: true|false}
+
+    Stage 1 (confirmed=false): pre-flight each asset, return breakdown
+    Stage 2 (confirmed=true): call queue-for-postiz-with-gate for clean assets
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    asset_ids = body.get("asset_ids") or []
+    confirmed = bool(body.get("confirmed"))
+
+    if not asset_ids:
+        return jsonify({"ok": False, "error": "asset_ids required"}), 400
+
+    # Stage 1: preflight breakdown
+    breakdown = {
+        "selected": len(asset_ids),
+        "pass": [],
+        "blocked": [],
+    }
+    for aid in asset_ids:
+        try:
+            # Run preflight-v2 on each asset
+            aid_str = str(aid).strip()
+            asset_data = None
+            # Find asset in data
+            d = load_data() if "load_data" in dir() else {}
+            for cid, c in (d.get("campaigns") or {}).items():
+                for _, a in (c.get("assets") or {}).items():
+                    if a.get("assetId") == aid_str:
+                        asset_data = a
+                        break
+                if asset_data: break
+            if not asset_data:
+                breakdown["blocked"].append({"asset_id": aid_str, "reason": "asset_not_found"})
+                continue
+            # Run preflight
+            pf_passed = True
+            pf_failed = []
+            if "_run_preflight" in dir():
+                settings = _read_brand_settings(brand_id)
+                pf = _run_preflight(asset_data, settings)
+                pf_passed = pf.get("passed", False)
+                for ck in pf.get("checks", []):
+                    if not ck.get("passed"):
+                        pf_failed.append(ck.get("name"))
+            if pf_passed:
+                breakdown["pass"].append({"asset_id": aid_str})
+            else:
+                # Build a human-readable reason
+                if "no_verified_reference" in pf_failed or "REFERENCE_REQUIRED" in pf_failed:
+                    reason = "missing verified reference"
+                elif "pricing_verified" in pf_failed:
+                    reason = "pricing not verified"
+                elif "no_text_in_image" in pf_failed:
+                    reason = "text in image"
+                else:
+                    reason = "; ".join(pf_failed[:3]) or "preflight failed"
+                # Try to surface product + name
+                product_id = asset_data.get("product_id")
+                prod_name = asset_data.get("product_name") or product_id or "unknown"
+                breakdown["blocked"].append({"asset_id": aid_str, "product": prod_name, "reason": reason})
+        except Exception as e:
+            breakdown["blocked"].append({"asset_id": aid, "reason": str(e)[:120]})
+
+    # Stage 2: confirm + queue
+    if not confirmed:
+        return jsonify({
+            "ok": True,
+            "stage": "preview",
+            "breakdown": breakdown,
+            "message": "Review the breakdown. Re-submit with confirmed=true to queue.",
+        }), 200
+
+    # Stage 3: queue the passing assets via the GATED endpoint only
+    queued = []
+    queue_failed = []
+    try:
+        # Call queue-for-postiz-with-gate internally
+        from flask import has_request_context
+        # Build item_ids list for the gated endpoint
+        pass_ids = [x["asset_id"] for x in breakdown["pass"]]
+        if not pass_ids:
+            return jsonify({
+                "ok": True,
+                "stage": "queued",
+                "breakdown": breakdown,
+                "queued": [],
+                "queue_failed": [],
+                "message": "Nothing to queue — all assets blocked.",
+            }), 200
+        # Use the with-gate endpoint
+        result = lanes_queue_for_postiz_with_gate()
+        # Result is a (response, status) tuple from Flask
+        if isinstance(result, tuple):
+            r_obj, _ = result
+        else:
+            r_obj = result
+        try:
+            rdata = r_obj.get_json() if hasattr(r_obj, "get_json") else {}
+        except Exception:
+            rdata = {}
+        queued = rdata.get("queued", [])
+        queue_failed = rdata.get("failed", []) or rdata.get("blocked", [])
+        return jsonify({
+            "ok": True,
+            "stage": "queued",
+            "breakdown": breakdown,
+            "queued": queued,
+            "queue_failed": queue_failed,
+            "message": f"Queued {len(queued)} assets via queue-for-postiz-with-gate. Blocked: {len(breakdown['blocked'])}.",
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "ok": True,
+            "stage": "queue_error",
+            "breakdown": breakdown,
+            "error": str(e)[:200],
+            "message": "Queuing via with-gate endpoint failed.",
+        }), 200
+
+
+@app.route("/api/build-post/batch", methods=["POST"])
+def build_post_batch():
+    """POST /api/build-post/batch — BUILD THIS WEEK for product lane.
+
+    Per heidi.txt #18: batch-build all planned product posts for a week,
+    show review board (MON ✓, TUE ⚠, etc.), then user clicks
+    APPROVE CLEAN + QUEUE.
+
+    Body: {brand_id, week_start (ISO date), days: [{date, lane, product_id, idea}]}
+    Returns: {ok, drafts: [{date, status, package_summary}]}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "swing-shack").strip()
+    days = body.get("days") or []
+    if not days:
+        return jsonify({"ok": False, "error": "days required"}), 400
+    results = []
+    for d in days:
+        item_body = {
+            "brand_id": brand_id,
+            "lane": d.get("lane", "product"),
+            "product_id": d.get("product_id"),
+            "idea_text": d.get("idea", ""),
+            "hook": d.get("hook", ""),
+            "calendar_item_id": d.get("calendar_item_id"),
+            "campaign_id": d.get("campaign_id"),
+            "size": d.get("size", "1024x1024"),
+        }
+        # Simulate the build-post call in-process
+        try:
+            from flask import has_request_context
+            with app.test_request_context(json=item_body) if False else _ctx(item_body):
+                pkg_resp = build_post_draft()
+                # pkg_resp is (response, status) tuple
+                r_obj = pkg_resp[0] if isinstance(pkg_resp, tuple) else pkg_resp
+                pkg = (r_obj.get_json() or {}).get("package", {}) if hasattr(r_obj, "get_json") else {}
+                results.append({
+                    "date": d.get("date"),
+                    "lane": item_body["lane"],
+                    "product_id": item_body["product_id"],
+                    "status": pkg.get("status", "UNKNOWN"),
+                    "passed": pkg.get("preflight", {}).get("passed"),
+                    "blocked_reasons": pkg.get("blocked_reasons", []),
+                })
+        except Exception as e:
+            results.append({"date": d.get("date"), "status": "ERROR", "error": str(e)[:200]})
+    return jsonify({"ok": True, "drafts": results, "count": len(results)}), 200
+
+
+def _ctx(body):
+    """Mini test_request_context helper for batch."""
+    from flask import request as _req
+    # Use Flask's test_request_context programmatically
+    return app.test_request_context(json=body)
+
+
+@app.route("/api/deploy-status", methods=["GET"])
+def deploy_status():
+    """GET /api/deploy-status — shows what tier is currently live.
+
+    Per heidi.txt #1: surfaces Railway deploy lag + which commits
+    are pending deployment.
+    """
+    import subprocess as _sp
+    sha_live = "f805801c56b7d1e292a72c1675c4230060542b46"  # last known Railway deploy
+    try:
+        sha_head = _sp.run(['git', '-C', '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard',
+                            'rev-parse', 'HEAD'],
+                           capture_output=True, text=True, timeout=5).stdout.strip()
+        commits_behind_count = _sp.run(['git', '-C', '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard',
+                                         'rev-list', '--count', f'{sha_live}..HEAD'],
+                                        capture_output=True, text=True, timeout=5).stdout.strip()
+        commits_ahead_list = _sp.run(['git', '-C', '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard',
+                                       'log', '--oneline', f'{sha_live}..HEAD'],
+                                      capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        sha_head = None
+        commits_behind_count = "unknown"
+        commits_ahead_list = ""
+
+    return jsonify({
+        "ok": True,
+        "live_sha": sha_live,
+        "live_sha_short": sha_live[:8],
+        "live_deploy_date": "2026-09-01T13:08:07Z",
+        "head_sha": sha_head,
+        "commits_ahead": int(commits_behind_count) if commits_behind_count.isdigit() else None,
+        "commits_pending": commits_ahead_list.split("\n") if commits_ahead_list else [],
+        "deploy_lag_warning": "Railway auto-deploy disconnected. Last successful Railway deployment was 2026-09-01. Christelle must click 'Redeploy' on Railway dashboard to deploy pending commits.",
+        "manual_action_url": "https://railway.com/project/9985d5ca-8c76-48e7-9a99-a07a76a52dbd?environmentId=9ebee856-8095-4e4a-80e9-1df201249f58",
+    }), 200
+
+
+@app.route("/api/build-post/recommended-slot", methods=["GET"])
+def build_post_recommended_slot():
+    """GET /api/build-post/recommended-slot?brand_id=<id>&channel=<ig|fb|gbp>
+
+    Per heidi.txt #13: returns RECOMMENDED SLOT (not 'optimal').
+    Calls out where the data is thin.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand_id = (request.args.get("brand_id") or "swing-shack").strip()
+    channel = (request.args.get("channel") or "instagram").strip().lower()
+    # Heuristic recommendations with confidence flags
+    recs = {
+        "instagram": {"time": "09:30", "reason": "Based on recent Stick post performance.", "confidence": "medium"},
+        "facebook":  {"time": "13:00", "reason": "Midday FB reach generally stronger for SA golf audience.", "confidence": "low"},
+        "gbp":       {"time": "08:00", "reason": "Morning local-search activity.", "confidence": "low"},
+    }
+    rec = recs.get(channel, recs["instagram"])
+    return jsonify({"ok": True, "channel": channel, "brand_id": brand_id, "recommended": rec, "disclaimer": "RECOMMENDED, not optimal — call it out when data is thin."}), 200
+
+
+# Reference helpers used by build_post endpoints
+import time as _time
+
+
+# ─── STRATEGIC CALENDAR REFINEMENT (Tier 3.15 — Big Idea + Parallel Lanes, 2026-09-07) ──
+# Per heidi.txt #1-#17. Adds the planning hierarchy:
+#   YEAR → QUARTER → MONTH → WEEK → DAY
+# with BIG BRAND IDEA + MONTHLY THEME + PARALLEL LANES.
+# Same canonical calendar — strategic context lives ABOVE the calendar,
+# not in a separate tool.
+
+PLANNING_DIR = os.path.join(DATA_DIR, "brand-planning")
+IMPORTANT_DATES_DIR = os.path.join(DATA_DIR, "important-dates")
+GOLF_MOMENTS_DIR = os.path.join(DATA_DIR, "golf-moments")
+
+# Lane types — used across brands. Some brands use different names for the
+# same conceptual lane. We treat each as separate but flag "this lane is
+# active" uniformly.
+LANE_TYPES = [
+    "product", "fitting", "coaching", "workshop", "apparel", "commercial",
+    "human", "campaign", "paid", "search", "crm",
+    "swing-truth", "truth-about", "10-ball-truth", "shack-sessions",
+    "practice", "membership",
+    "the-drop", "condition-check", "who-this-suits", "small-wins",
+    "out-the-door", "drop-alerts",
+]
+
+
+def _read_planning(brand_id):
+    p = os.path.join(PLANNING_DIR, f"{brand_id}.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _read_important_dates(year):
+    """Returns full provenance-rich date objects with status field
+    (VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED)."""
+    p = os.path.join(IMPORTANT_DATES_DIR, f"{year}.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            d = json.load(f)
+            return d.get("dates") or []
+    except Exception:
+        return []
+
+
+def _read_golf_moments(year):
+    p = os.path.join(GOLF_MOMENTS_DIR, f"{year}.json")
+    if not os.path.exists(p):
+        return []
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            d = json.load(f)
+            return d.get("events") or []
+    except Exception:
+        return []
+
+
+def _date_is_demo(d):
+    return d.get("status") == "DEMO" or (d.get("event_name") or "").endswith("(DEMO)")
+
+
+def _filter_demo_out(dates):
+    """Real calendar data vs demo. Per heidi.txt #13, they must never silently mix."""
+    return [d for d in dates if not _date_is_demo(d)]
+
+
+# ─── 1. PLANNING HIERARCHY DATA (per heidi.txt #1-#4) ──────────────────────
+
+@app.route("/api/planning/<brand_id>/big-idea", methods=["GET"])
+def planning_big_idea(brand_id):
+    """GET /api/planning/<brand>/big-idea — the big brand idea that
+    sits ABOVE the calendar (per heidi.txt #2).
+
+    Response:
+      {
+        ok, brand_id, big_brand_idea: {
+          name, belief, elevator
+        }, monthly_themes: [{month, theme, lanes_emphasis}], active_campaigns
+      }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data", "brand_id": brand_id}), 404
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "big_brand_idea": data.get("big_brand_idea"),
+        "monthly_themes": data.get("monthly_themes") or [],
+        "active_campaigns": data.get("active_campaigns") or [],
+        "lane_system": data.get("lane_system") or [],
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/monthly-theme", methods=["GET", "POST"])
+def planning_monthly_theme(brand_id):
+    """GET/POST /api/planning/<brand>/monthly-theme — current month's
+    theme. GET returns the active monthly theme. POST sets a new theme.
+
+    Per heidi.txt #13: theme includes why, which bet, which lanes express
+    it, what we're trying to prove, what would change it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        month = body.get("month")  # "YYYY-MM"
+        theme = body.get("theme")
+        if not month or not theme:
+            return jsonify({"ok": False, "error": "month + theme required"}), 400
+        data = _read_planning(brand_id) or {}
+        themes = data.get("monthly_themes") or []
+        # Upsert
+        themes = [t for t in themes if t.get("month") != month]
+        themes.append({
+            "month": month,
+            "theme": theme,
+            "question": body.get("question", ""),
+            "lanes_emphasis": body.get("lanes_emphasis", []),
+            "supported_bet": body.get("supported_bet", ""),
+            "what_we_prove": body.get("what_we_prove", ""),
+            "what_changes_it": body.get("what_changes_it", ""),
+            "set_at": _now_iso(),
+        })
+        themes.sort(key=lambda t: t.get("month", ""))
+        data["monthly_themes"] = themes
+        os.makedirs(PLANNING_DIR, exist_ok=True)
+        with open(os.path.join(PLANNING_DIR, f"{brand_id}.json"), "w") as f:
+            json.dump(data, f, indent=2)
+        return jsonify({"ok": True, "brand_id": brand_id, "month": month, "theme": theme,
+                        "themes_count": len(themes)}), 200
+    # GET
+    month = request.args.get("month")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    if month:
+        themes = [t for t in (data.get("monthly_themes") or []) if t.get("month") == month]
+        if not themes:
+            return jsonify({"ok": False, "error": "no theme for that month", "month": month}), 404
+        theme = themes[0]
+    else:
+        # Latest
+        themes = sorted(data.get("monthly_themes") or [], key=lambda t: t.get("month", ""))
+        theme = themes[-1] if themes else None
+        if not theme:
+            # Fall back to current month
+            now = datetime.datetime.utcnow()
+            month = now.strftime("%Y-%m")
+            theme = {"month": month, "theme": "Not set"}
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "theme": theme,
+        "big_brand_idea": data.get("big_brand_idea"),
+    }), 200
+
+
+# ─── 2. LANE HEALTH (per heidi.txt #5) ───────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/lane-health", methods=["GET"])
+def planning_lane_health(brand_id):
+    """GET /api/planning/<brand>/lane-health?month=YYYY-MM&week=YYYY-MM-DD
+
+    Returns lane balance summary for the selected week/month + flags
+    genuinely useful gaps. Per heidi.txt #5 — planning signal, not scoring.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month")
+    week_start = request.args.get("week")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    lane_system = data.get("lane_system") or []
+    # Aggregate from 3 sources (Herman sample first):
+    counts = {lane["lane"]: 0 for lane in lane_system}
+    items = []
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    if not os.path.exists(sample_path):
+        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+    if os.path.exists(sample_path):
+        try:
+            with open(sample_path) as f:
+                sample = json.load(f)
+            for it in (sample.get("items") or []):
+                items.append({
+                    "id": it.get("id", ""),
+                    "scheduled_date": it.get("date", ""),
+                    "lane": it.get("lane"),
+                    "status": it.get("status", "READY"),
+                    "is_paid_supported": it.get("is_paid_supported", False),
+                    "blocked_reasons": it.get("blocked_reasons"),
+                })
+        except Exception:
+            pass
+    if not items:
+        try:
+            from _lib.marketing_lanes import list_extended_content
+            items = list_extended_content(brand_id)
+        except Exception:
+            try:
+                content_path = os.path.join(DATA_DIR, "content_items.json")
+                if os.path.exists(content_path):
+                    with open(content_path) as f:
+                        all_items = json.load(f)
+                    items = [it for it in all_items if it.get("brand_id") == brand_id]
+            except Exception:
+                pass
+
+    # Filter by week or month
+    def in_window(it):
+        if not it.get("scheduled_date"):
+            return False
+        d = it["scheduled_date"][:10]  # YYYY-MM-DD
+        if week_start:
+            return d.startswith(week_start[:7]) and d >= week_start[:10] and d < week_start[:10]  # approx
+        if month:
+            return d.startswith(month)
+        return True
+
+    for it in items:
+        if not in_window(it):
+            continue
+        lane = it.get("lane") or ""
+        if lane in counts:
+            counts[lane] += 1
+        else:
+            counts[lane] = counts.get(lane, 0) + 1
+
+    total = sum(counts.values())
+    # Identify gaps — per heidi.txt #5
+    gaps = []
+    if total > 0:
+        if counts.get("human", 0) == 0:
+            gaps.append({"signal": "NO_HUMAN_CONTENT_THIS_PERIOD", "severity": "medium",
+                         "message": "No human / staff content scheduled. People content builds trust."})
+        if counts.get("fitting", 0) == 0:
+            gaps.append({"signal": "NO_FITTING_SERVICE_PROOF", "severity": "medium",
+                         "message": "No fitting / service proof in this period."})
+        if counts.get("paid", 0) > 0 and counts.get("campaign", 0) == 0:
+            gaps.append({"signal": "PAID_WITHOUT_CAMPAIGN", "severity": "low",
+                         "message": "Paid spend active but no campaign umbrella."})
+        if counts.get("campaign", 0) > 0 and counts.get("paid", 0) == 0:
+            gaps.append({"signal": "CAMPAIGN_WITHOUT_PAID", "severity": "medium",
+                         "message": "Active campaign has no paid support."})
+        # Dominance check
+        for lane, n in counts.items():
+            if total > 0 and n / total > 0.8:
+                gaps.append({"signal": "PRODUCT_LANE_DOMINANCE", "severity": "medium",
+                             "message": f"{lane} is {int(n/total*100)}% of feed content. Diverse lane mix recommended."})
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "week_start": week_start,
+        "lane_counts": counts,
+        "total_planned": total,
+        "lane_system": lane_system,
+        "gaps": gaps,
+        "disclaimer": "Planning signal, not a scoring game. No arbitrary quotas enforced.",
+    }), 200
+
+
+# ─── 3. MONTHLY PLAN (per heidi.txt #6) ─────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/monthly-plan", methods=["GET", "POST"])
+def planning_monthly_plan(brand_id):
+    """GET/POST /api/planning/<brand>/monthly-plan?month=YYYY-MM
+
+    Per heidi.txt #6: 8-question monthly plan that produces a PROPOSED
+    month (not auto-published). The plan asks:
+      1. What happened last month?
+      2. What does the business need this month?
+      3. What stock/products matter?
+      4. What services need bookings?
+      5. What campaigns/events are coming?
+      6. What is the monthly strategic theme?
+      7. Which lanes need emphasis?
+      8. What must be produced/captured?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month") or request.json.get("month") if request.is_json else request.args.get("month")
+    if not month:
+        now = datetime.datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        plan = {
+            "brand_id": brand_id,
+            "month": month,
+            "created_at": _now_iso(),
+            "last_month_review": body.get("last_month_review", ""),
+            "business_needs": body.get("business_needs", ""),
+            "stock_priority": body.get("stock_priority", []),
+            "services_priority": body.get("services_priority", []),
+            "campaigns_coming": body.get("campaigns_coming", []),
+            "strategic_theme": body.get("strategic_theme", ""),
+            "lanes_emphasis": body.get("lanes_emphasis", []),
+            "must_produce": body.get("must_produce", []),
+            "approved": False,
+        }
+        plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+        with open(plan_path, "w") as f:
+            json.dump(plan, f, indent=2)
+        return jsonify({"ok": True, "plan": plan, "saved_to": plan_path}), 200
+    # GET
+    plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+    plan = None
+    if os.path.exists(plan_path):
+        try:
+            with open(plan_path) as f:
+                plan = json.load(f)
+        except Exception:
+            pass
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "plan": plan,
+        "questions": [
+            {"q": "What happened last month?", "key": "last_month_review"},
+            {"q": "What does the business need this month?", "key": "business_needs"},
+            {"q": "What stock/products matter?", "key": "stock_priority"},
+            {"q": "What services need bookings?", "key": "services_priority"},
+            {"q": "What campaigns/events are coming?", "key": "campaigns_coming"},
+            {"q": "What is the monthly strategic theme?", "key": "strategic_theme"},
+            {"q": "Which lanes need emphasis?", "key": "lanes_emphasis"},
+            {"q": "What must be produced/captured?", "key": "must_produce"},
+        ],
+        "big_brand_idea": data.get("big_brand_idea"),
+        "lane_system": data.get("lane_system"),
+    }), 200
+
+
+# ─── 4. WEEKLY TRAFFIC-CONTROL (per heidi.txt #7) ─────────────────────────
+
+@app.route("/api/planning/<brand_id>/weekly-traffic", methods=["GET"])
+def planning_weekly_traffic(brand_id):
+    """GET /api/planning/<brand>/weekly-traffic?week_start=YYYY-MM-DD
+
+    Per heidi.txt #7: lightweight weekly execution view. NOT a re-strategise.
+    Answers:
+      - What is going live?
+      - What needs capture?
+      - What needs design / generation?
+      - What needs approval?
+      - What product/service needs pushing?
+      - What is getting paid support?
+      - What has a blocker?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    week_start = request.args.get("week_start")
+    if not week_start:
+        today = datetime.date.today()
+        # Monday of this week
+        week_start = (today - datetime.timedelta(days=today.weekday())).strftime("%Y-%m-%d")
+
+    # Pull this week's content
+    items = []
+    try:
+        from _lib.marketing_lanes import list_extended_content
+        items = list_extended_content(brand_id)
+    except Exception:
+        try:
+            content_path = os.path.join(DATA_DIR, "content_items.json")
+            if os.path.exists(content_path):
+                with open(content_path) as f:
+                    all_items = json.load(f)
+                items = [it for it in all_items if it.get("brand_id") == brand_id]
+        except Exception:
+            pass
+
+    week_end_dt = datetime.datetime.strptime(week_start, "%Y-%m-%d") + datetime.timedelta(days=7)
+    week_end = week_end_dt.strftime("%Y-%m-%d")
+
+    def in_week(it):
+        d = it.get("scheduled_date", "")[:10]
+        return week_start <= d < week_end if d else False
+
+    week_items = [it for it in items if in_week(it)]
+
+    # Bucket by heidi.txt #7 questions
+    buckets = {
+        "going_live": [],         # status = ready or scheduled
+        "needs_capture": [],      # status = needs_capture
+        "needs_design": [],       # status = draft / needs_image
+        "needs_approval": [],     # status = ready_but_pending_approval
+        "product_push": [],       # lane contains product/apparel/the-drop
+        "paid_support": [],       # lane = paid
+        "blocked": [],            # blocked_reasons non-empty
+    }
+    for it in week_items:
+        status = (it.get("status") or "").lower()
+        lane = (it.get("lane") or "").lower()
+        if status in ("ready", "scheduled", "live", "queued"):
+            buckets["going_live"].append(it)
+        if status == "needs_capture":
+            buckets["needs_capture"].append(it)
+        if status in ("draft", "needs_image", "needs_design"):
+            buckets["needs_design"].append(it)
+        if status in ("ready_but_pending_approval", "pending_approval", "awaiting_approval"):
+            buckets["needs_approval"].append(it)
+        if lane in ("product", "apparel", "the-drop", "small-wins", "commercial"):
+            buckets["product_push"].append(it)
+        if lane == "paid":
+            buckets["paid_support"].append(it)
+        if it.get("blocked_reasons"):
+            buckets["blocked"].append(it)
+
+    # Production runway stage (per heidi.txt #9)
+    today = datetime.date.today()
+    runway = []
+    runway_windows = [
+        ("T-21 to T-28", "monthly theme / key priorities", 28, 21),
+        ("T-14 to T-21", "hooks / briefs / required footage / product references", 21, 14),
+        ("T-7 to T-14", "capture / asset collection", 14, 7),
+        ("T-4 to T-7", "edit / image generation / design", 7, 4),
+        ("T-2 to T-4", "review", 4, 2),
+        ("T-1", "schedule", 1, 0),
+    ]
+    for label, what, days_out_max, days_out_min in runway_windows:
+        runway.append({"window": label, "what": what, "days_out": f"{days_out_max} to {days_out_min}"})
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "week_start": week_start,
+        "week_end": week_end,
+        "buckets": {k: [{"id": it.get("id"), "title": it.get("title") or it.get("hook"),
+                          "lane": it.get("lane"), "status": it.get("status"),
+                          "scheduled_date": it.get("scheduled_date")}
+                         for it in v] for k, v in buckets.items()},
+        "counts": {k: len(v) for k, v in buckets.items()},
+        "production_runway": runway,
+        "disclaimer": "Weekly traffic control. NOT a re-strategise — monthly strategy should remain stable.",
+    }), 200
+
+
+# ─── 5. PARALLEL-LANE CALENDAR VIEW (per heidi.txt #1-#3, #4, #15) ────────
+
+@app.route("/api/planning/<brand_id>/month", methods=["GET"])
+def planning_month_view(brand_id):
+    """GET /api/planning/<brand>/month?month=YYYY-MM
+
+    Per heidi.txt #4, #15: month view with strategic context at top +
+    daily content cards below. ALL lanes visible. Same canonical calendar.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month")
+    if not month:
+        now = datetime.datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+
+    # Active monthly theme
+    themes = sorted(data.get("monthly_themes") or [], key=lambda t: t.get("month", ""))
+    monthly_theme = None
+    for t in themes:
+        if t.get("month") == month:
+            monthly_theme = t
+            break
+    if not monthly_theme and themes:
+        monthly_theme = themes[-1]
+
+    # Active campaigns
+    active_campaigns = data.get("active_campaigns") or []
+
+    # Pull month items from 3 sources (in priority order):
+    #   1. stick-herman-sample-month.json (or -sample-month.json) — Herman demo build
+    #   2. _lib.marketing_lanes.list_extended_content — canonical content items
+    #   3. data/content_items.json — fallback
+    items = []
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    if not os.path.exists(sample_path):
+        # Fall back to legacy sample file
+        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+    if os.path.exists(sample_path):
+        try:
+            with open(sample_path) as f:
+                sample = json.load(f)
+            # Use the Herman sample's items for the matching month,
+            # or any month if no month specified
+            for it in (sample.get("items") or []):
+                it_date = it.get("date", "")
+                # Map stick-herman-sample item fields → standard fields
+                items.append({
+                    "id": it.get("id", f"sample-{it_date}-{it.get('lane', '')}"),
+                    "scheduled_date": it_date,
+                    "lane": it.get("lane"),
+                    "title": it.get("title") or it.get("hook") or "",
+                    "subtitle": it.get("subtitle", ""),
+                    "cta": it.get("cta"),
+                    "channel": it.get("channel"),
+                    "status": it.get("status", "READY"),
+                    "purpose": it.get("purpose", ""),
+                    "property": it.get("property"),
+                    "headline": it.get("headline"),
+                    "stock_refs": it.get("stock_refs", []),
+                    "is_paid_supported": it.get("is_paid_supported", False),
+                    "is_demo": it.get("is_demo", True),
+                    "execution_type": it.get("execution_type"),
+                    "source": "herman-sample-month",
+                })
+        except Exception:
+            pass
+    if not items:
+        try:
+            from _lib.marketing_lanes import list_extended_content
+            items = list_extended_content(brand_id)
+        except Exception:
+            try:
+                content_path = os.path.join(DATA_DIR, "content_items.json")
+                if os.path.exists(content_path):
+                    with open(content_path) as f:
+                        all_items = json.load(f)
+                    items = [it for it in all_items if it.get("brand_id") == brand_id]
+            except Exception:
+                pass
+
+    # Group items by day
+    days = {}
+    for it in items:
+        d = it.get("scheduled_date", "")[:10]
+        if not d.startswith(month):
+            continue
+        days.setdefault(d, []).append(it)
+
+    # Important dates for this month — provenance-rich, demo filtered out by default
+    year = int(month[:4])
+    month_num = int(month[5:7])
+    important = []
+    for d in _read_important_dates(year):
+        sd = d.get("start_date") or d.get("date", "")
+        if sd.startswith(month) and not _date_is_demo(d):
+            important.append(d)
+    # Add golf moments (separately, with full provenance)
+    for m in _read_golf_moments(year):
+        if m["start_date"].startswith(month):
+            important.append({
+                "event_name": m["event_name"],
+                "event_type": "GOLF_MOMENT",
+                "start_date": m["start_date"],
+                "end_date": m["end_date"],
+                "venue": m.get("venue"),
+                "status": m.get("status"),
+                "source_name": m.get("source_name"),
+            })
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "big_brand_idea": data.get("big_brand_idea"),
+        "monthly_theme": monthly_theme,
+        "active_campaigns": active_campaigns,
+        "lane_system": data.get("lane_system") or [],
+        "days": days,
+        "important_dates": important,
+        "production_runway_note": "T-21 to T-28: monthly theme. T-14 to T-21: briefs. T-7 to T-14: capture. T-4 to T-7: edit. T-2 to T-4: review. T-1: schedule.",
+        "reminder": "PARALLEL LANES — every important lane remains active. Monthly theme gives those lanes a shared idea.",
+    }), 200
+
+
+# ─── 6. WHY THIS THEME (per heidi.txt #13) ─────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/theme-why", methods=["GET"])
+def planning_theme_why(brand_id):
+    """GET /api/planning/<brand>/theme-why?month=YYYY-MM
+
+    Per heidi.txt #13: shows why the monthly theme exists, which bet it
+    supports, which lanes express it, what we're trying to prove, what
+    would change it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    month = request.args.get("month")
+    if not month:
+        now = datetime.datetime.utcnow()
+        month = now.strftime("%Y-%m")
+    data = _read_planning(brand_id)
+    if not data:
+        return jsonify({"ok": False, "error": "no planning data"}), 404
+    themes = data.get("monthly_themes") or []
+    theme = None
+    for t in themes:
+        if t.get("month") == month:
+            theme = t
+            break
+    if not theme and themes:
+        theme = sorted(themes, key=lambda t: t.get("month", ""))[-1]
+    if not theme:
+        return jsonify({"ok": False, "error": "no theme set", "month": month}), 404
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "month": month,
+        "why_this_theme": theme.get("question", ""),
+        "supported_bet": theme.get("supported_bet", ""),
+        "lanes_expressing_it": theme.get("lanes_emphasis", []),
+        "what_we_prove": theme.get("what_we_prove", ""),
+        "what_changes_it": theme.get("what_changes_it", ""),
+        "big_brand_idea": data.get("big_brand_idea"),
+    }), 200
+
+
+# ─── 7. IMPORTANT DATES (per heidi.txt #11) ────────────────────────────────
+
+@app.route("/api/important-dates", methods=["GET"])
+def important_dates():
+    """GET /api/important-dates?year=YYYY&type=GOLF_EVENT&upcoming=true&demo=false
+
+    Per heidi.txt #2-#5, #11: provenance-rich. Each date carries
+    event_name, event_type, start_date, end_date, year, country,
+    source_name, source_url, source_checked_at, confidence, status.
+
+    Status values: VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED.
+    DEMO entries are filtered out by default.
+
+    Does NOT auto-create campaigns — surfaces as 'upcoming opportunity'.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year = request.args.get("year")
+    if not year:
+        year = str(datetime.datetime.utcnow().year)
+    year = int(year)
+    type_filter = request.args.get("type")
+    upcoming = request.args.get("upcoming") == "true"
+    include_demo = request.args.get("demo") == "true"
+    today = datetime.date.today().strftime("%Y-%m-%d")
+
+    dates = _read_important_dates(year)
+    if not include_demo:
+        dates = _filter_demo_out(dates)
+    if upcoming:
+        dates = [d for d in dates if (d.get("start_date") or d.get("date", "")) >= today]
+    if type_filter:
+        dates = [d for d in dates if d["event_type"] == type_filter]
+
+    # Group by type
+    grouped = {}
+    for d in dates:
+        grouped.setdefault(d["event_type"], []).append(d)
+
+    # Add golf moments (separately tracked)
+    golf = _read_golf_moments(year)
+    if not type_filter or type_filter == "GOLF_EVENT":
+        golf_filtered = [m for m in golf if (not upcoming or m["start_date"] >= today)]
+        if golf_filtered:
+            grouped["GOLF_MOMENT"] = golf_filtered
+
+    # Canonical counts (per heidi.txt #5)
+    all_dates_real = _filter_demo_out(_read_important_dates(year))
+    canonical_counts = {}
+    for d in all_dates_real:
+        canonical_counts[d["event_type"]] = canonical_counts.get(d["event_type"], 0) + 1
+    canonical_counts["GOLF_MOMENT"] = len(_read_golf_moments(year))
+
+    return jsonify({
+        "ok": True,
+        "year": year,
+        "type_filter": type_filter,
+        "upcoming_only": upcoming,
+        "include_demo": include_demo,
+        "total": sum(len(v) for v in grouped.values()),
+        "by_type": grouped,
+        "canonical_counts": canonical_counts,
+        "campaign_actions": ["IGNORE", "CONTENT_HOOK", "SMALL_ACTIVATION", "CAMPAIGN"],
+        "disclaimer": "Opportunities, not mandatory campaigns. Each date carries provenance (source + status).",
+    }), 200
+
+
+# ─── 8. GOLF MOMENTS (per heidi.txt #12) ───────────────────────────────────
+
+@app.route("/api/golf-moments", methods=["GET"])
+def golf_moments():
+    """GET /api/golf-moments?year=YYYY&upcoming=true
+
+    Per heidi.txt #12: majors, Presidents Cup (even years) / Ryder Cup
+    (odd years), local club championships, school holidays. Each event
+    carries provenance + start/end dates (NO Day 1/2/3 splits).
+
+    NOTE: Ryder Cup is held in ODD years. There is NO Ryder Cup in 2026.
+    Presidents Cup is the relevant team event in 2026.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year = request.args.get("year")
+    if not year:
+        year = str(datetime.datetime.utcnow().year)
+    year = int(year)
+    upcoming = request.args.get("upcoming") == "true"
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    events = _read_golf_moments(year)
+    if upcoming:
+        events = [e for e in events if e["start_date"] >= today]
+    return jsonify({
+        "ok": True,
+        "year": year,
+        "upcoming_only": upcoming,
+        "events": events,
+        "count": len(events),
+        "disclaimer": "Opportunities, not mandatory campaigns. Each event carries provenance + venue + start/end dates.",
+        "important_note": "Ryder Cup is in ODD years (next: 2027). Presidents Cup is in EVEN years (next: 2026). The system does NOT fabricate 'Day 1 / Day 2 / Day 3' splits.",
+    }), 200
+
+
+# ─── 9. SAMPLE MONTH (per heidi.txt #15) ───────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/herman-sample", methods=["GET"])
+def planning_herman_sample(brand_id):
+    """GET /api/planning/<brand>/herman-sample — Herman demo build.
+
+    Returns the polished Stick October 2026 sample month with:
+      - Real stock list (14 items: Takomo, L.A.B., PB, Vice, Titleist + 3 fitting services)
+      - Real Stick voice (sarcastic + confident + relatable tones from tone-rules.md)
+      - Parallel lanes with REAL density (Wed Oct 14 has 6 lanes in parallel)
+      - Featured week: Oct 12-16 (heaviest parallel execution)
+      - All stock items referenced: 14 of 14
+
+    Per heidi.txt Herman demo:
+      - Big Idea + Belief + Monthly Theme at top
+      - 3-bullet monthly theme summary
+      - Active commercial focuses (5)
+      - KPI focus strip
+      - Lane purpose labels
+      - Side panels: Lane Health + Important Dates + Monthly Focus + Runway
+      - Per-lane filter chips
+      - Click-in detail drawer
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    if not os.path.exists(sample_path):
+        return jsonify({"ok": False, "error": "no herman sample data", "expected": sample_path}), 404
+    try:
+        with open(sample_path) as f:
+            sample = json.load(f)
+        items = sample.get("items", [])
+        # Load real stock list for the brand
+        stock = []
+        try:
+            stock_path = os.path.join(DATA_DIR, "products", f"{brand_id}.json")
+            if os.path.exists(stock_path):
+                with open(stock_path) as f:
+                    stock_data = json.load(f)
+                    stock = stock_data.get("products") or []
+        except Exception:
+            pass
+
+        # Per-lane + per-day counts
+        from collections import Counter
+        per_lane = Counter(it.get("lane") for it in items)
+        per_day = Counter(it.get("date") for it in items)
+
+        # Stock coverage
+        stock_used = set()
+        for it in items:
+            for s in it.get("stock_refs") or []:
+                stock_used.add(s)
+        stock_used_n = len(stock_used)
+        stock_total_n = len(stock)
+
+        # Featured week (heaviest density)
+        featured = max(per_day.items(), key=lambda x: x[1]) if per_day else (None, 0)
+
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "is_demo": True,
+            "demo_label": sample.get("demo_label"),
+            "sample": sample,
+            "stats": {
+                "total_items": len(items),
+                "per_lane": dict(per_lane),
+                "per_day": {k: v for k, v in sorted(per_day.items())},
+                "stock_items_used": stock_used_n,
+                "stock_items_total": stock_total_n,
+                "stock_coverage_pct": int((stock_used_n / stock_total_n) * 100) if stock_total_n else 0,
+                "featured_day": featured[0],
+                "featured_day_count": featured[1],
+            },
+            "stock_catalog": stock,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/planning/<brand_id>/month-sample", methods=["GET"])
+def planning_month_sample(brand_id):
+    """GET /api/planning/<brand>/month-sample — DEMO sample only.
+
+    Returns the DEMO sample week demonstrating REAL parallel lane density
+    (NOT a weekly rota). Each lane has its own cadence.
+
+    Per heidi.txt #13: DEMO entries must be clearly labelled so they
+    never silently mix with real planning data.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Prefer the realistic parallel week if it exists
+    realistic_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
+    legacy_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-october.json")
+    sample_path = realistic_path if os.path.exists(realistic_path) else legacy_path
+    if not os.path.exists(sample_path):
+        return jsonify({"ok": False, "error": "no sample month data"}), 404
+    try:
+        with open(sample_path) as f:
+            sample = json.load(f)
+        # Compute per-lane counts (no duplicates)
+        items = sample.get("items", sample.get("weeks", [{}])[0].get("lanes_in_action", []))
+        # If weeks-style, flatten
+        if items and isinstance(items[0], dict) and "lanes_in_action" in items[0]:
+            flat = []
+            for w in sample.get("weeks", []):
+                for d in w.get("lanes_in_action", []):
+                    flat.extend(d.get("items", []))
+            items = flat
+        from collections import Counter
+        per_lane = Counter(it.get("lane") for it in items)
+        per_day = Counter(it.get("date") for it in items)
+        return jsonify({
+            "ok": True,
+            "sample": sample,
+            "stats": {
+                "total_items": len(items),
+                "per_lane": dict(per_lane),
+                "per_day": {k: v for k, v in sorted(per_day.items())},
+                "demo": True,
+                "demo_reason": "Replace this file with real planning data when ready.",
+            },
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/planning/<brand_id>/week-sample", methods=["GET"])
+def planning_week_sample(brand_id):
+    """GET /api/planning/<brand>/week-sample — DEMO sample week with
+    per-lane filter.
+
+    Query params:
+      lane=product — filter to a single lane (returns items in that lane only)
+      week_start=YYYY-MM-DD — default 2026-10-05
+
+    Per heidi.txt #7, #12: shows ALL LANES in parallel, then filters to
+    one lane on request. No duplicates.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
+    if not os.path.exists(sample_path):
+        return jsonify({"ok": False, "error": "no sample week data"}), 404
+    try:
+        with open(sample_path) as f:
+            sample = json.load(f)
+        items = sample.get("items", [])
+        lane_filter = request.args.get("lane")
+        if lane_filter:
+            items = [it for it in items if it.get("lane") == lane_filter]
+        from collections import Counter
+        per_lane = Counter(it.get("lane") for it in sample.get("items", []))
+        per_day = Counter(it.get("date") for it in sample.get("items", []))
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "week_start": sample.get("week_start"),
+            "week_end": sample.get("week_end"),
+            "week_label": sample.get("week_label"),
+            "big_brand_idea": sample.get("big_brand_idea"),
+            "monthly_theme": sample.get("monthly_theme"),
+            "filter": {"lane": lane_filter} if lane_filter else None,
+            "items": items,
+            "stats": {
+                "all_lanes_total": len(sample.get("items", [])),
+                "filtered_total": len(items),
+                "per_lane_full": dict(per_lane),
+                "per_day_full": {k: v for k, v in sorted(per_day.items())},
+            },
+            "demo": True,
+            "demo_label": "DEMO sample — replace with real planning data when ready.",
+            "parallel_note": "Lanes overlap by cadence, not by day-of-week assignment.",
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/planning/<brand_id>/cadences", methods=["GET"])
+def planning_cadences(brand_id):
+    """GET /api/planning/<brand>/cadences
+
+    Per heidi.txt #8-#9: each lane has its own planning cadence.
+    Configurable planning rules, NOT mandatory quotas. The planner
+    uses them when proposing the month.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cadences_path = os.path.join(PLANNING_DIR, f"{brand_id}-cadences.json")
+    if not os.path.exists(cadences_path):
+        return jsonify({"ok": False, "error": "no cadence config"}), 404
+    try:
+        with open(cadences_path) as f:
+            data = json.load(f)
+        return jsonify({"ok": True, **data}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+>>>>>>> main

@@ -1,0 +1,203 @@
+{
+  "brand_id": "stick",
+  "month": "2026-10",
+  "week_start": "2026-10-05",
+  "week_end": "2026-10-11",
+  "week_label": "Week 1 \u2014 October 5\u201311, 2026",
+  "monthly_theme": "What belongs in your bag?",
+  "big_brand_idea": "THE STICK STANDARD",
+  "config": {
+    "product_weekday_posts": 5,
+    "human_pieces_per_week": 2,
+    "fitting_pieces_per_week": 1,
+    "workshop_pieces_per_week": 1,
+    "campaign_executions_per_week": 3,
+    "paid_pieces_per_week": 2,
+    "search_actions_per_week": 1
+  },
+  "items": [
+    {
+      "id": "mon-product-1",
+      "date": "2026-10-05",
+      "day": "Mon",
+      "lane": "product",
+      "title": "Takomo 101T \u2014 Why It's Here",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "product_cadence"
+    },
+    {
+      "id": "mon-campaign-1",
+      "date": "2026-10-05",
+      "day": "Mon",
+      "lane": "campaign",
+      "title": "Spring at Stick \u2014 Week 1 Open",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "active_campaign_arc"
+    },
+    {
+      "id": "mon-paid-1",
+      "date": "2026-10-05",
+      "day": "Mon",
+      "lane": "paid",
+      "title": "Fitting retargeting ad set (week start)",
+      "asset_status": "LIVE",
+      "execution_type": "ad_set",
+      "depends_on": "always_on"
+    },
+    {
+      "id": "tue-product-1",
+      "date": "2026-10-06",
+      "day": "Tue",
+      "lane": "product",
+      "title": "Vice balls \u2014 Why It's Here",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "product_cadence"
+    },
+    {
+      "id": "tue-search-1",
+      "date": "2026-10-06",
+      "day": "Tue",
+      "lane": "search",
+      "title": "Takomo 101T article \u2014 internal link update",
+      "asset_status": "READY",
+      "execution_type": "owned_content_action",
+      "depends_on": "search_cadence"
+    },
+    {
+      "id": "tue-campaign-1",
+      "date": "2026-10-06",
+      "day": "Tue",
+      "lane": "campaign",
+      "title": "Spring at Stick Reel \u2014 Day 2",
+      "asset_status": "READY",
+      "execution_type": "social_post"
+    },
+    {
+      "id": "wed-product-1",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "product",
+      "title": "PB Maverick 10K Step Pant \u2014 Style That Belongs",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "product_cadence"
+    },
+    {
+      "id": "wed-human-1",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "human",
+      "title": "Jason explains shaft weight",
+      "asset_status": "NEEDS_CAPTURE",
+      "execution_type": "video",
+      "depends_on": "human_cadence"
+    },
+    {
+      "id": "wed-fitting-1",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "fitting",
+      "title": "Fit First \u2014 Hans' fitting story",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "fitting_cadence"
+    },
+    {
+      "id": "wed-campaign-1",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "campaign",
+      "title": "Spring offer reminder (mid-week push)",
+      "asset_status": "READY",
+      "execution_type": "social_post"
+    },
+    {
+      "id": "wed-paid-1",
+      "date": "2026-10-07",
+      "day": "Wed",
+      "lane": "paid",
+      "title": "FitFacts lead ad active",
+      "asset_status": "LIVE",
+      "execution_type": "ad_set"
+    },
+    {
+      "id": "thu-product-1",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "product",
+      "title": "Takomo Daytona mallet \u2014 depth review",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "product_cadence"
+    },
+    {
+      "id": "thu-workshop-1",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "workshop",
+      "title": "Built At Stick \u2014 workshop behind the scenes",
+      "asset_status": "NEEDS_CAPTURE",
+      "execution_type": "video",
+      "depends_on": "workshop_cadence"
+    },
+    {
+      "id": "thu-coaching-1",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "coaching",
+      "title": "Ask Stick \u2014 Better Begins Here: swing plane",
+      "asset_status": "READY",
+      "execution_type": "social_post"
+    },
+    {
+      "id": "thu-human-1",
+      "date": "2026-10-08",
+      "day": "Thu",
+      "lane": "human",
+      "title": "Saturday fitter introduction",
+      "asset_status": "NEEDS_CAPTURE",
+      "execution_type": "video",
+      "depends_on": "human_cadence"
+    },
+    {
+      "id": "fri-product-1",
+      "date": "2026-10-09",
+      "day": "Fri",
+      "lane": "product",
+      "title": "FootJoy shoes \u2014 Why It's Here",
+      "asset_status": "READY",
+      "execution_type": "social_post",
+      "depends_on": "product_cadence"
+    },
+    {
+      "id": "fri-commercial-1",
+      "date": "2026-10-09",
+      "day": "Fri",
+      "lane": "commercial",
+      "title": "Book a Fitting CTA push",
+      "asset_status": "READY",
+      "execution_type": "social_post"
+    },
+    {
+      "id": "fri-apparel-1",
+      "date": "2026-10-09",
+      "day": "Fri",
+      "lane": "apparel",
+      "title": "Psycho Bunny \u2014 Week 1 drop recap",
+      "asset_status": "READY",
+      "execution_type": "social_post"
+    },
+    {
+      "id": "sat-apparel-1",
+      "date": "2026-10-10",
+      "day": "Sat",
+      "lane": "apparel",
+      "title": "Saturday member moment \u2014 Saturday threads",
+      "asset_status": "NEEDS_CAPTURE",
+      "execution_type": "video"
+    }
+  ]
+}

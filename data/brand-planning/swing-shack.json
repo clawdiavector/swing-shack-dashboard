@@ -1,0 +1,65 @@
+{
+  "big_brand_idea": {
+    "name": "Golf is more fun when it makes sense.",
+    "belief": "Confusion kills the game. Clarity makes it fun.",
+    "elevator": "Swing Shack is where golfers learn what's actually happening in their swing. Data, truth, no nonsense."
+  },
+  "lane_system": [
+    {
+      "lane": "swing-truth",
+      "name": "What Does Your Swing Say?",
+      "description": "TrackMan data, swing analysis, what your numbers mean."
+    },
+    {
+      "lane": "truth-about",
+      "name": "The Truth About",
+      "description": "Myth-busting content. Common golf mistakes explained."
+    },
+    {
+      "lane": "10-ball-truth",
+      "name": "10-Ball Truth",
+      "description": "Pressure test claims. Does it actually work?"
+    },
+    {
+      "lane": "shack-sessions",
+      "name": "Shack Sessions",
+      "description": "Member / lesson / studio experiences."
+    },
+    {
+      "lane": "practice",
+      "name": "Practice / Play",
+      "description": "Drills, range sessions, course play content."
+    },
+    {
+      "lane": "fitting",
+      "name": "Fitting",
+      "description": "Custom fitting content + service proof."
+    },
+    {
+      "lane": "coaching",
+      "name": "Coaching",
+      "description": "Lessons, coaching programs, instructor profiles."
+    },
+    {
+      "lane": "membership",
+      "name": "Membership",
+      "description": "Member stories, benefits, retention."
+    },
+    {
+      "lane": "paid",
+      "name": "Paid Media",
+      "description": "Boosted posts + retargeting."
+    },
+    {
+      "lane": "search",
+      "name": "Search / SEO",
+      "description": "Owned content that compounds."
+    },
+    {
+      "lane": "crm",
+      "name": "CRM / Lifecycle",
+      "description": "Email + WhatsApp. Repeat engagement."
+    }
+  ],
+  "active_campaigns": []
+}

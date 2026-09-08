@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEO Stack — Swing Shack</title>
+<style>
+:root {
+  --bg: #0c0d10;
+  --panel: #16181c;
+  --panel-2: #1d2025;
+  --line: #2a2d33;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent: #c2f64f;
+  --accent-2: #4f8eff;
+  --warn: #ff6b6b;
+  --ok: #42b883;
+  --chip: #2a2d33;
+  --hilite: #ffd166;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 14px; }
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+header h1 { margin: 0; font-size: 20px; font-weight: 700; }
+header h1 .emoji { margin-right: 8px; }
+header .meta { color: var(--muted); font-size: 13px; }
+header .nav { display: flex; gap: 12px; align-items: center; }
+header .nav a { color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+header .nav a:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
+header .nav a.active { background: var(--accent); color: #0c0d10; }
+header .pill { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px 10px; font-size: 11px; color: var(--muted); }
+
+.layout { display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 56px); }
+.sidebar { background: var(--panel); border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; }
+.main { padding: 24px; overflow-y: auto; max-width: 1200px; }
+
+/* Brain section */
+.brain-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 18px; }
+.brain-card h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+.brain-facts { font-size: 12px; line-height: 1.6; }
+.brain-facts .row { margin-bottom: 4px; }
+.brain-facts .row b { color: var(--hilite); font-weight: 600; }
+.brain-facts .row .pill { background: var(--chip); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin: 0 2px; display: inline-block; }
+.brain-actions { display: flex; gap: 8px; margin-top: 10px; }
+.brain-actions button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 11px; }
+.brain-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Tab strip */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.tab { padding: 10px 16px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-size: 13px; font-weight: 500; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab .sarvesh { font-size: 10px; opacity: 0.5; margin-left: 6px; }
+
+/* Task form */
+.task-panel { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 22px; }
+.task-panel h2 { margin: 0 0 4px; font-size: 18px; }
+.task-panel .desc { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+.task-panel .desc b { color: var(--hilite); }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+.field label .req { color: var(--warn); margin-left: 3px; }
+.field label .opt { color: var(--muted); opacity: 0.6; font-size: 10px; margin-left: 6px; }
+.field input[type="text"], .field textarea { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: inherit; font-size: 13px; }
+.field input[type="text"]:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 60px; }
+.field .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn { background: var(--accent); color: #0c0d10; border: 0; border-radius: 6px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn:hover { opacity: 0.9; }
+.btn.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.4; cursor: wait; }
+
+/* Result panel */
+.result { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-top: 18px; display: none; }
+.result.shown { display: block; }
+.result .meta { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); }
+.result .meta .pill { background: var(--chip); padding: 3px 8px; border-radius: 8px; }
+.result .meta .pill.ok { background: #133a26; color: var(--ok); }
+.result .meta .pill.err { background: #3a1313; color: var(--warn); }
+.result .output { background: #08090c; border: 1px solid var(--line); border-radius: 8px; padding: 14px; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.6; max-height: 600px; overflow-y: auto; }
+.result .output h1, .result .output h2, .result .output h3 { color: var(--accent); margin: 14px 0 6px; font-family: -apple-system, sans-serif; }
+.result .output h1 { font-size: 15px; }
+.result .output h2 { font-size: 14px; }
+.result .output h3 { font-size: 13px; }
+.result .output ul, .result .output ol { margin: 6px 0; padding-left: 22px; }
+.result .output li { margin: 4px 0; }
+.result .output code { background: var(--chip); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+.result .output table { border-collapse: collapse; margin: 8px 0; }
+.result .output th, .result .output td { border: 1px solid var(--line); padding: 4px 8px; font-size: 11px; }
+.result .output th { background: var(--chip); color: var(--accent); }
+
+.user-prompt-toggle { margin-top: 14px; }
+.user-prompt-toggle summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; }
+.user-prompt-toggle pre { background: #08090c; border: 1px solid var(--line); border-radius: 6px; padding: 10px; font-size: 11px; color: var(--muted); overflow-x: auto; white-space: pre-wrap; }
+
+/* Status bar */
+.status-bar { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 11px; color: var(--muted); margin-bottom: 14px; display: flex; gap: 16px; align-items: center; }
+.status-bar .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.status-bar .dot.green { background: var(--ok); }
+.status-bar .dot.yellow { background: var(--hilite); }
+.status-bar .dot.red { background: var(--warn); }
+
+/* Footer attribution */
+.footer-attrib { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); text-align: center; }
+.footer-attrib a { color: var(--accent-2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="emoji">🚀</span>SEO Stack</h1>
+  <div class="nav">
+    <span class="pill" id="brand-pill">brand: swing-shack</span>
+    <a href="/seo-audit">🔎 SEO Audit</a>
+    <a href="/" >← Back to OS</a>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- LEFT: Business Brain -->
+  <aside class="sidebar">
+    <div class="status-bar" id="status-bar">
+      <span class="dot yellow"></span>
+      <span>Loading business brain…</span>
+    </div>
+    <div class="brain-card">
+      <h3>🧠 Business Brain</h3>
+      <div class="brain-facts" id="brain-facts">
+        <div class="row" style="color: var(--muted)">Loading brand context…</div>
+      </div>
+      <div class="brain-actions">
+        <button onclick="loadBrain()">↻ Reload</button>
+        <button onclick="copyBrain()">📋 Copy prompt</button>
+      </div>
+    </div>
+    <div class="brain-card">
+      <h3>📦 Why this exists</h3>
+      <div style="font-size: 12px; color: var(--muted); line-height: 1.6;">
+        Built from <a href="https://x.com/bloggersarvesh/status/2090071557590900974" target="_blank">Sarvesh's "Top 20 Grok Bot Prompts For SEO"</a> article. The business brain is prepended as a system message so every downstream prompt is sharp without asking for context.
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Task tabs + form -->
+  <main class="main">
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-task="business-brain">🧠 Brain preview<span class="sarvesh"></span></div>
+      <div class="tab" data-task="competitor-gap">🎯 Competitor gaps<span class="sarvesh">#2</span></div>
+      <div class="tab" data-task="schema-audit">🔬 Schema audit<span class="sarvesh">#5</span></div>
+      <div class="tab" data-task="json-ld-gen">🧱 JSON-LD gen<span class="sarvesh">#8</span></div>
+      <div class="tab" data-task="gbp-category-audit">📍 GBP categories<span class="sarvesh">#3</span></div>
+      <div class="tab" data-task="content-brief">📝 Content brief<span class="sarvesh">#11</span></div>
+    </div>
+
+    <!-- Brain preview panel -->
+    <div class="task-panel" id="panel-business-brain">
+      <h2>🧠 Business Brain — preview</h2>
+      <div class="desc">
+        This is the exact <b>Prompt1</b> from Sarvesh's "Super SEO Mode" — paste it into any chat interface (Grok, Claude, Krea) and the AI stops asking for context on subsequent prompts.
+      </div>
+      <pre id="brain-prompt-preview" style="background:#08090c; border:1px solid var(--line); border-radius:8px; padding:14px; font-size:12px; white-space:pre-wrap; max-height:500px; overflow-y:auto; color:var(--text);">Loading…</pre>
+      <div class="actions">
+        <button class="btn ghost" onclick="copyBrain()">📋 Copy to clipboard</button>
+        <button class="btn ghost" onclick="downloadBrain()">⬇ Download .txt</button>
+      </div>
+    </div>
+
+    <!-- Competitor gap -->
+    <div class="task-panel" id="panel-competitor-gap" style="display:none">
+      <h2>🎯 Competitor content gap analysis</h2>
+      <div class="desc">
+        Scans competitor sites, returns the content gaps they miss + why each matters for <b>Swing Shack</b>.
+        <br>Mirror of Sarvesh's Prompt #2.
+      </div>
+      <div class="field">
+        <label>Competitor URLs <span class="req">*</span></label>
+        <textarea id="competitor_urls" placeholder="golfbar.co.za&#10;thegoldentee.co.za&#10;hometee.com" rows="3"></textarea>
+        <div class="hint">One domain per line. We've pre-filled Swing Shack's known top 3.</div>
+      </div>
+      <div class="field">
+        <label>Focus keyword <span class="opt">(optional)</span></label>
+        <input type="text" id="keyword" placeholder="indoor golf johannesburg">
+      </div>
+      <div class="field">
+        <label>Max gaps <span class="opt">(default 5)</span></label>
+        <input type="text" id="max_gaps" placeholder="5">
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="runTask('competitor_gap')">▶ Run</button>
+        <button class="btn ghost" onclick="prefillFromBrain('competitor_gap')">↻ Pre-fill from brand</button>
+      </div>
+    </div>
+
+    <!-- Schema audit -->
+    <div class="task-panel" id="panel-schema-audit" style="display:none">
+      <h2>🔬 Schema audit</h2>
+      <div class="desc">
+        Reads a URL's schema, returns an inventory + missing-priority list + clean JSON-LD for HIGH-priority gaps.
+        <br>Mirror of Sarvesh's Prompt #5.
+      </div>
+      <div class="field">
+        <label>URL <span class="req">*</span></label>
+        <input type="text" id="url" placeholder="https://swingshack.co.za/trackman-fitting">
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="runTask('schema_audit')">▶ Run</button>
+      </div>
+    </div>
+
+    <!-- JSON-LD gen -->
+    <div class="task-panel" id="panel-json-ld-gen" style="display:none">
+      <h2>🧱 JSON-LD generator</h2>
+      <div class="desc">
+        Generates a clean JSON-LD block for a specific schema type. The AI fills values from the business brain where possible and leaves placeholders ({{...}}) where you need to provide data.
+        <br>Mirror of Sarvesh's Prompt #8.
+      </div>
+      <div class="field">
+        <label>Schema type <span class="req">*</span></label>
+        <input type="text" id="schema_type" placeholder="LocalBusiness | FAQPage | Product | Event | ..." list="schema-types">
+        <datalist id="schema-types">
+          <option value="LocalBusiness"><option value="FAQPage"><option value="Product">
+          <option value="Service"><option value="Event"><option value="Article">
+          <option value="BlogPosting"><option value="HowTo"><option value="Organization">
+          <option value="GolfCourse"><option value="WebSite">
+        </datalist>
+      </div>
+      <div class="field">
+        <label>Page URL <span class="opt">(optional)</span></label>
+        <input type="text" id="page_url" placeholder="https://swingshack.co.za/trackman-fitting">
+      </div>
+      <div class="field">
+        <label>Extra facts <span class="opt">(optional)</span></label>
+        <textarea id="facts" rows="3" placeholder='{"priceRange": "R850-R1500", "services": ["TrackMan Fitting", "Lessons"]}'></textarea>
+        <div class="hint">JSON object with extra facts to use in the JSON-LD.</div>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="runTask('json_ld_gen')">▶ Run</button>
+      </div>
+    </div>
+
+    <!-- GBP category audit -->
+    <div class="task-panel" id="panel-gbp-category-audit" style="display:none">
+      <h2>📍 GBP category audit</h2>
+      <div class="desc">
+        Maps out the Map Pack position + categories for the top competitors on each keyword. The AI will tell you what to check manually in GBP Manager if it doesn't have live data.
+        <br>Mirror of Sarvesh's Prompt #3.
+      </div>
+      <div class="field">
+        <label>Keywords <span class="req">*</span></label>
+        <textarea id="keywords" rows="4" placeholder="indoor golf johannesburg&#10;golf simulator johannesburg&#10;club fitting johannesburg"></textarea>
+      </div>
+      <div class="field">
+        <label>Competitor GBP URLs <span class="opt">(optional)</span></label>
+        <textarea id="competitor_gbp_urls" rows="2" placeholder="https://g.page/golf-bar&#10;https://g.page/golden-tee"></textarea>
+        <div class="hint">If you have these, the AI can extract categories. Otherwise it tells you what to check.</div>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="runTask('gbp_category_audit')">▶ Run</button>
+        <button class="btn ghost" onclick="prefillFromBrain('gbp_category_audit')">↻ Use Swing Shack keywords</button>
+      </div>
+    </div>
+
+    <!-- Content brief -->
+    <div class="task-panel" id="panel-content-brief" style="display:none">
+      <h2>📝 Content brief</h2>
+      <div class="desc">
+        Full content brief for a target keyword — intent, audience, H1, meta, outline, internal links, CTA, schema, repurposing plan.
+        <br>Mirror of Sarvesh's Prompt #11.
+      </div>
+      <div class="field">
+        <label>Target keyword <span class="req">*</span></label>
+        <input type="text" id="kw" placeholder="indoor golf johannesburg">
+      </div>
+      <div class="field">
+        <label>Competitor URLs to out-rank <span class="opt">(optional)</span></label>
+        <textarea id="competitor_urls_cb" rows="2" placeholder="golfbar.co.za/indoor-golf&#10;thegoldentee.co.za/about"></textarea>
+      </div>
+      <div class="field">
+        <label>Target word count <span class="opt">(default 1500)</span></label>
+        <input type="text" id="target_word_count" placeholder="1500">
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="runTask('content_brief')">▶ Run</button>
+      </div>
+    </div>
+
+    <!-- Result panel (shared by all tasks) -->
+    <div class="result" id="result">
+      <div class="meta" id="result-meta"></div>
+      <div class="output" id="result-output"></div>
+      <details class="user-prompt-toggle">
+        <summary>Show user prompt sent to AI</summary>
+        <pre id="result-user-prompt"></pre>
+      </details>
+    </div>
+
+    <div class="footer-attrib">
+      Built from <a href="https://x.com/bloggersarvesh/status/2090071557590900974" target="_blank">Sarvesh Shrivastava's "Top 20 Grok Bot Prompts For SEO"</a> · business brain prepended as system prompt · OpenRouter backend · ZAR-first
+    </div>
+  </main>
+</div>
+
+<script>
+let BRAIN_TEXT = '';
+let BRAIN_JSON = null;
+
+const TASK_ENDPOINTS = {
+  'competitor_gap': '/api/seo/competitor-gap',
+  'schema_audit': '/api/seo/schema-audit',
+  'json_ld_gen': '/api/seo/json-ld-gen',
+  'gbp_category_audit': '/api/seo/gbp-category-audit',
+  'content_brief': '/api/seo/content-brief',
+};
+
+const TASK_LABEL = {
+  'competitor_gap': 'Competitor gap analysis',
+  'schema_audit': 'Schema audit',
+  'json_ld_gen': 'JSON-LD generation',
+  'gbp_category_audit': 'GBP category audit',
+  'content_brief': 'Content brief',
+};
+
+// Simple markdown to HTML for AI output (light-touch: headings, bullets, tables, bold)
+function renderMarkdown(md) {
+  if (!md) return '';
+  let html = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Headings
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Code blocks
+  html = html.replace(/```([\s\S]*?)```/g, '<pre style="background:var(--chip);padding:8px;border-radius:6px;overflow-x:auto;font-size:11px">$1</pre>');
+  // Tables
+  html = html.replace(/((?:\|.+\|[ \t]*\n?)+)/g, function(block) {
+    const rows = block.trim().split('\n').filter(r => r.trim());
+    if (rows.length < 2) return block;
+    const isSeparator = r => /^\|[\s\-\|:]+\|$/.test(r.trim());
+    const headers = rows[0].split('|').slice(1, -1).map(c => c.trim());
+    const bodyRows = rows.slice(1).filter(r => !isSeparator(r));
+    let out = '<table><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>';
+    for (const r of bodyRows) {
+      const cells = r.split('|').slice(1, -1).map(c => c.trim());
+      out += '<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>';
+    }
+    out += '</tbody></table>';
+    return out;
+  });
+  // Numbered list
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
+  // Bulleted list
+  html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive li blocks in ul
+  html = html.replace(/((?:<li>.*?<\/li>\n?)+)/g, function(block) {
+    if (block.includes('</ul>') || block.includes('</ol>')) return block;
+    return '<ul>' + block + '</ul>';
+  });
+  // Line breaks for double newlines
+  html = html.replace(/\n\n/g, '<br><br>');
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+async function loadBrain() {
+  setStatus('Loading business brain…', 'yellow');
+  try {
+    // Use format=json so we get both the sections and the rendered prompt
+    const r = await fetch('/api/seo/business-brain?brand_id=swing-shack&format=json', {credentials: 'same-origin'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    BRAIN_TEXT = d.prompt || '';
+    BRAIN_JSON = d.sections || {};
+    // Update sidebar
+    const f = document.getElementById('brain-facts');
+    const brand = BRAIN_JSON.brand || {};
+    const contact = BRAIN_JSON.contact || {};
+    const areas = BRAIN_JSON.service_areas || [];
+    const keywords = BRAIN_JSON.target_keywords || [];
+    const comps = BRAIN_JSON.top_competitors || [];
+    f.innerHTML = `
+      <div class="row"><b>${brand.name || '?'}</b> ${brand.tagline ? '— <span style="color:var(--muted)">"'+brand.tagline+'"</span>' : ''}</div>
+      <div class="row"><b>Positioning:</b> ${brand.positioning || '—'}</div>
+      <div class="row"><b>Audience:</b> ${brand.audience || '—'}</div>
+      <div class="row"><b>Website:</b> ${brand.website || '—'}</div>
+      ${contact.address ? '<div class="row"><b>Address:</b> '+contact.address+'</div>' : ''}
+      ${contact.phone ? '<div class="row"><b>Phone:</b> '+contact.phone+'</div>' : ''}
+      ${contact.gbp_url ? '<div class="row"><b>GBP:</b> <a href="'+contact.gbp_url+'" target="_blank">'+contact.gbp_url+'</a></div>' : '<div class="row" style="color:var(--warn)">⚠ GBP URL not set — fills in once Meta cron lands meta-page-info.json</div>'}
+      ${areas.length ? '<div class="row"><b>Areas:</b> '+areas.map(a=>'<span class="pill">'+a+'</span>').join('')+'</div>' : ''}
+      ${keywords.length ? '<div class="row"><b>Keywords ('+keywords.length+'):</b> '+keywords.slice(0,3).map(k=>'<span class="pill">'+k+'</span>').join('')+(keywords.length>3?' <span class="pill">+'+(keywords.length-3)+'</span>':'')+'</div>' : ''}
+      ${comps.length ? '<div class="row"><b>Top 3 competitors:</b> '+comps.map(c=>'<span class="pill">'+c.name+'</span>').join('')+'</div>' : ''}
+    `;
+    // Update brand pill
+    document.getElementById('brand-pill').textContent = 'brand: ' + (brand.id || 'swing-shack') + ' · ' + keywords.length + ' keywords · ' + comps.length + ' comps';
+    // Update brain preview panel
+    document.getElementById('brain-prompt-preview').textContent = BRAIN_TEXT;
+    setStatus('Brain loaded · ' + (d.prompt_tokens_approx || '?') + ' tokens', 'green');
+  } catch (e) {
+    setStatus('Brain load failed: ' + e.message, 'red');
+    console.error(e);
+  }
+}
+
+function setStatus(msg, color) {
+  const bar = document.getElementById('status-bar');
+  bar.innerHTML = `<span class="dot ${color || 'yellow'}"></span><span>${msg}</span>`;
+}
+
+function copyBrain() {
+  const txt = BRAIN_TEXT || document.getElementById('brain-prompt-preview').textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    toast('✓ Brain prompt copied');
+  }, () => {
+    toast('✗ Copy failed', true);
+  });
+}
+
+function downloadBrain() {
+  const txt = BRAIN_TEXT || '';
+  const blob = new Blob([txt], {type: 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'swing-shack-business-brain.txt';
+  a.click();
+}
+
+function toast(msg, err) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;top:20px;right:20px;background:'+(err?'var(--warn)':'var(--ok)')+';color:#0c0d10;padding:10px 16px;border-radius:6px;font-weight:600;z-index:1000;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.4)';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+function switchTab(task) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.task === task));
+  document.querySelectorAll('.task-panel').forEach(p => p.style.display = 'none');
+  const panel = document.getElementById('panel-' + task);
+  if (panel) panel.style.display = '';
+  // Hide result when switching
+  document.getElementById('result').classList.remove('shown');
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchTab(t.dataset.task));
+});
+
+function getInputs(task) {
+  const get = id => (document.getElementById(id)?.value || '').trim();
+  switch(task) {
+    case 'competitor_gap':
+      return {
+        competitor_urls: get('competitor_urls').split('\n').map(s=>s.trim()).filter(Boolean),
+        keyword: get('keyword') || undefined,
+        max_gaps: parseInt(get('max_gaps') || '5', 10),
+      };
+    case 'schema_audit':
+      return { url: get('url') };
+    case 'json_ld_gen':
+      const facts = get('facts');
+      return {
+        schema_type: get('schema_type'),
+        page_url: get('page_url') || undefined,
+        facts: facts ? JSON.parse(facts) : undefined,
+      };
+    case 'gbp_category_audit':
+      return {
+        keywords: get('keywords').split('\n').map(s=>s.trim()).filter(Boolean),
+        competitor_gbp_urls: get('competitor_gbp_urls') ? get('competitor_gbp_urls').split('\n').map(s=>s.trim()).filter(Boolean) : undefined,
+      };
+    case 'content_brief':
+      return {
+        keyword: get('kw'),
+        competitor_urls: get('competitor_urls_cb') ? get('competitor_urls_cb').split('\n').map(s=>s.trim()).filter(Boolean) : undefined,
+        target_word_count: parseInt(get('target_word_count') || '1500', 10),
+      };
+  }
+}
+
+async function runTask(task) {
+  const inputs = getInputs(task);
+  // Validate required fields
+  let missing = [];
+  if (task === 'competitor_gap' && (!inputs.competitor_urls || !inputs.competitor_urls.length)) missing.push('competitor_urls');
+  if (task === 'schema_audit' && !inputs.url) missing.push('url');
+  if (task === 'json_ld_gen' && !inputs.schema_type) missing.push('schema_type');
+  if (task === 'gbp_category_audit' && (!inputs.keywords || !inputs.keywords.length)) missing.push('keywords');
+  if (task === 'content_brief' && !inputs.keyword) missing.push('keyword');
+  if (missing.length) {
+    toast('✗ Missing: ' + missing.join(', '), true);
+    return;
+  }
+  const ep = TASK_ENDPOINTS[task];
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ Running…';
+  setStatus('Running ' + TASK_LABEL[task] + '…', 'yellow');
+  try {
+    const t0 = Date.now();
+    const r = await fetch(ep, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({brand_id: 'swing-shack', inputs: inputs, max_tokens: 1500}),
+    });
+    const dt = ((Date.now() - t0) / 1000).toFixed(1);
+    const d = await r.json();
+    if (!r.ok || !d.ok) {
+      toast('✗ ' + (d.error || ('HTTP ' + r.status)), true);
+      setStatus('Failed after ' + dt + 's: ' + (d.error || r.status), 'red');
+      btn.disabled = false;
+      btn.textContent = '▶ Run';
+      return;
+    }
+    // Render result
+    const meta = document.getElementById('result-meta');
+    meta.innerHTML = `
+      <span class="pill ok">${TASK_LABEL[task]}</span>
+      <span class="pill">model: ${d.model}</span>
+      <span class="pill">${dt}s</span>
+      <span class="pill">${d.output_tokens_approx} tokens</span>
+      <span class="pill">temp ${d.temperature}</span>
+      ${d.sarvesh_prompt_id ? '<span class="pill">Sarvesh prompt #'+d.sarvesh_prompt_id+'</span>' : ''}
+      ${d.business_brain_used ? '<span class="pill">brain ✓</span>' : ''}
+    `;
+    document.getElementById('result-output').innerHTML = renderMarkdown(d.output);
+    document.getElementById('result-user-prompt').textContent = d.user_prompt || '';
+    document.getElementById('result').classList.add('shown');
+    document.getElementById('result').scrollIntoView({behavior: 'smooth', block: 'start'});
+    setStatus('Done · ' + dt + 's · ' + d.output_tokens_approx + ' tokens', 'green');
+  } catch (e) {
+    toast('✗ ' + e.message, true);
+    setStatus('Failed: ' + e.message, 'red');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Run';
+  }
+}
+
+function prefillFromBrain(task) {
+  if (!BRAIN_JSON) { toast('Load brain first', true); return; }
+  if (task === 'competitor_gap') {
+    const comps = (BRAIN_JSON.top_competitors || []).map(c => c.website).filter(Boolean);
+    if (comps.length) document.getElementById('competitor_urls').value = comps.join('\n');
+    const kw = (BRAIN_JSON.target_keywords || [])[0];
+    if (kw) document.getElementById('keyword').value = kw;
+  } else if (task === 'gbp_category_audit') {
+    const kws = (BRAIN_JSON.target_keywords || []).slice(0, 5);
+    if (kws.length) document.getElementById('keywords').value = kws.join('\n');
+    const comps = (BRAIN_JSON.top_competitors || []).map(c => c.gbp_url).filter(Boolean);
+    if (comps.length) document.getElementById('competitor_gbp_urls').value = comps.join('\n');
+  }
+  toast('✓ Pre-filled from brain');
+}
+
+// Init
+loadBrain();
+</script>
+
+</body>
+</html>

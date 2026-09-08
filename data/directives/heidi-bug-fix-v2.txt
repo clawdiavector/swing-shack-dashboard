@@ -1,0 +1,396 @@
+@heidi#8099
+
+QUICK BUG-FIX PASS — NO NEW FEATURES
+
+I am testing the real marketer workspace and have three obvious issues that need fixing before anything else.
+
+==================================================
+1. USD / $ IS STILL LEAKING INTO GENERATED COPY
+==================================================
+
+The Takomo 101T caption currently says:
+
+“Price: less than $600 full set.”
+
+This is wrong.
+
+Stick is a South African business.
+Currency must be ZAR / R throughout the entire Stick workflow.
+
+This needs to be fixed at the SOURCE, not by replacing "$" in the final string.
+
+Audit:
+
+- product research
+- caption generation
+- product enrichment
+- AI research prompts
+- visual briefs
+- creative director prompts
+- product summaries
+- campaign copy
+- calendar copy
+- stock/product data
+- any cached research
+- any fallback templates
+
+For Stick / Swing Shack / Bag Drop:
+
+DEFAULT MARKET = South Africa
+DEFAULT CURRENCY = ZAR
+
+If we have a verified local price:
+use R.
+
+If we do NOT have a verified South African price:
+DO NOT convert a foreign price automatically and do not write USD pricing into the caption.
+
+Instead say something safe such as:
+
+“Available at Stick. Ask us for current pricing.”
+
+or omit price completely.
+
+VERY IMPORTANT:
+If external research finds:
+
+“under $600”
+
+that is source information, not automatically customer-facing copy.
+
+The research layer should store:
+
+source_price
+source_currency
+source_market
+
+separately from:
+
+local_verified_price
+local_currency
+
+Only local verified pricing may be used in customer-facing Stick copy.
+
+For the current Takomo caption, remove the USD price claim unless we have a verified Stick price.
+
+Also audit any existing generated drafts and flag customer-facing copy containing:
+
+$
+USD
+US$
+
+for SA brands.
+
+==================================================
+2. FIX BROKEN IMAGE / ASSET URLS
+==================================================
+
+The current visual is failing with:
+
+/assets/assets/campaigns/trackman/takomo-101t-hero-a.png
+
+I can immediately see a likely duplicate path:
+
+/assets/assets/
+
+Fix the asset URL resolver properly.
+
+Do NOT patch only this one Takomo image.
+
+Audit all places where asset paths are constructed.
+
+The canonical system needs to handle safely:
+
+assets/campaigns/...
+/assets/campaigns/...
+campaigns/...
+full https:// URLs
+generated Krea asset URLs
+uploaded asset URLs
+stored relative paths
+
+Create ONE canonical asset URL normaliser.
+
+Examples:
+
+stored:
+assets/campaigns/trackman/takomo-101t-hero-a.png
+
+served:
+ /assets/campaigns/trackman/takomo-101t-hero-a.png
+
+NOT:
+ /assets/assets/campaigns/...
+
+Likewise if stored value already starts with:
+
+/assets/
+
+do not prefix /assets again.
+
+==================================================
+3. CURRENT VISUAL SHOULD NEVER SHOW A BROKEN IMAGE CARD IF WE CAN RECOVER IT
+==================================================
+
+When a visual URL fails:
+
+1. Attempt canonical path normalisation.
+2. Check whether the referenced asset exists in asset storage.
+3. Check creative lineage / asset ID for the current valid path.
+4. If there is a generated replacement, use it.
+5. Only then show “image unavailable”.
+
+The UI should not casually tell me:
+
+“The image file may not be on this server.”
+
+if Campaign OS actually owns the asset and simply constructed the path incorrectly.
+
+If the asset truly does not exist:
+
+show:
+
+VISUAL MISSING
+
+and actions:
+
+FIND ASSET
+SELECT REFERENCE
+REGENERATE
+
+Do not leave a dead image URL as the current visual.
+
+==================================================
+4. TEST ALL ASSET SOURCES
+==================================================
+
+Test at minimum:
+
+- uploaded curated image
+- published social image
+- campaign asset
+- Krea generated image
+- deterministic branded output
+- product reference image
+- old existing campaign visual
+
+Every one should render correctly after a Railway deploy.
+
+This matters because local filesystem paths that disappear on redeploy are not acceptable for canonical marketing assets.
+
+If any current asset storage is ephemeral, identify it and move canonical generated/uploaded assets into the existing persistent storage solution.
+
+Do not lose user assets on redeploy.
+
+==================================================
+5. HIDE THE LOG PANEL
+==================================================
+
+The huge live log console at the bottom of the screen is blocking the marketer workspace.
+
+I cannot see the bottom of the page because the logs sit over the interface.
+
+This is a marketer-facing production workspace.
+
+DEBUG LOGS SHOULD NOT BE OPEN BY DEFAULT.
+
+Change it to:
+
+default = CLOSED / HIDDEN
+
+Add a small control such as:
+
+Developer logs ▸
+
+or
+
+Logs
+
+in a developer/settings area.
+
+When opened:
+
+- collapsible
+- resizable if easy
+- does not permanently cover primary actions
+- remembers closed/open state for that user/session
+
+For normal marketer use:
+NO LOG PANEL.
+
+Do not remove the logs entirely because they are useful for debugging.
+Just stop them dominating the UI.
+
+==================================================
+6. FIX THE MODAL / PAGE HEIGHT WHILE YOU ARE THERE
+==================================================
+
+The product research/detail panel is long.
+
+Ensure:
+
+- panel fits within viewport
+- internal content scrolls
+- header can remain visible
+- footer/actions remain reachable
+- body is not hidden underneath logs
+- no action buttons are below an inaccessible area
+- Escape closes modal where appropriate
+
+Test on normal laptop viewport sizes.
+
+==================================================
+7. CAPTION + VISUAL BRIEF SHOULD USE VERIFIED PRODUCT CONTEXT
+==================================================
+
+The Takomo research screen currently has:
+
+Caption
++
+Visual Brief
+
+Good.
+
+But make sure both are built from the same resolved context:
+
+STORE:
+Stick
+
+MARKET:
+South Africa
+
+CURRENCY:
+ZAR
+
+PRODUCT:
+Takomo 101T
+
+PRODUCT BRAND:
+Takomo
+
+VERIFIED PRODUCT REFERENCE:
+required for image generation
+
+VERIFIED PRODUCT FACTS:
+only facts we can support
+
+STICK BRAND CONTEXT:
+current Stick system
+
+Do not let the research layer produce a USD caption while the product/calendar layer thinks it is in ZAR.
+
+There should be ONE resolved commercial context.
+
+==================================================
+8. VISUAL BRIEF → IMAGE GENERATION
+==================================================
+
+The current Takomo item has a visual brief such as:
+
+“Dark background hero shot. Takomo 101T iron head…”
+
+Good.
+
+But before generation verify:
+
+ACTUAL TAKOMO 101T REFERENCE IMAGE = PRESENT
+
+If no actual 101T image is linked:
+
+show:
+
+REFERENCE REQUIRED
+
+and do not generate a fake iron.
+
+If reference exists:
+
+generate from the real product reference and preserve:
+
+- exact head geometry
+- cavity/back design
+- finish
+- logo
+- model marking
+- grooves
+- hosel
+- handedness
+- proportions
+
+The visual brief is creative direction.
+
+The real product reference controls product identity.
+
+==================================================
+9. ACCEPTANCE TEST
+==================================================
+
+Use the exact Takomo 101T item currently shown in the workspace.
+
+I want to see:
+
+A.
+Caption contains NO $ / USD.
+
+If no verified local price exists, price is omitted or replaced with:
+“Ask us for current pricing.”
+
+B.
+Current visual successfully renders.
+
+C.
+URL is canonical:
+ /assets/campaigns/...
+NOT:
+ /assets/assets/campaigns/...
+
+D.
+Real Takomo product reference is visible/linked.
+
+E.
+Visual brief is available.
+
+F.
+Image generation can use that actual Takomo reference.
+
+G.
+Logs are closed by default.
+
+H.
+I can scroll to and use every action at the bottom of the item panel.
+
+==================================================
+10. AUDIT OTHER ITEMS FOR THE SAME BUGS
+==================================================
+
+After fixing Takomo, scan existing Stick items for:
+
+broken /assets/assets/ paths
+$
+USD
+unreachable visual URLs
+missing product references
+
+Return counts and fix systemic causes.
+
+Do not manually edit 40 records if the renderer/resolver is the real problem.
+
+==================================================
+11. REPORT BACK
+==================================================
+
+Keep the response short.
+
+Tell me:
+
+1. USD source found + fix
+2. broken asset-path source found + fix
+3. whether any assets were actually missing
+4. log panel fix
+5. Takomo acceptance test result
+6. number of other affected records found
+7. direct URL for me to retest
+
+NO NEW FEATURES.
+
+This is a production usability bug-fix pass.

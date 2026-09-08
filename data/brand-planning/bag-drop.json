@@ -1,0 +1,55 @@
+{
+  "big_brand_idea": {
+    "name": "Good gear doesn't need to be new.",
+    "belief": "Pre-loved is a smarter way to play. Quality lasts.",
+    "elevator": "The Bag Drop is a curated resale channel for genuine golf gear. Condition-checked, fair-priced, ready to play."
+  },
+  "lane_system": [
+    {
+      "lane": "the-drop",
+      "name": "The Drop",
+      "description": "New inventory drops \u2014 weekly curated selection."
+    },
+    {
+      "lane": "condition-check",
+      "name": "Condition Check",
+      "description": "Behind-the-scenes grading + authenticity proof."
+    },
+    {
+      "lane": "who-this-suits",
+      "name": "Who This Suits",
+      "description": "Match products to player types / needs."
+    },
+    {
+      "lane": "small-wins",
+      "name": "Small Wins",
+      "description": "Affordable finds, under-R2000 gear, entry points."
+    },
+    {
+      "lane": "out-the-door",
+      "name": "Out The Door",
+      "description": "Newly sold / shipped moments \u2014 proof of velocity."
+    },
+    {
+      "lane": "drop-alerts",
+      "name": "Drop Alerts",
+      "description": "Coming-soon / waitlist notifications."
+    },
+    {
+      "lane": "paid",
+      "name": "Paid Media",
+      "description": "Retargeting + lookalike audiences."
+    },
+    {
+      "lane": "search",
+      "name": "Search / SEO",
+      "description": "Owned content: brand guides, condition guides."
+    },
+    {
+      "lane": "crm",
+      "name": "CRM / Lifecycle",
+      "description": "Buyer + seller lifecycle."
+    }
+  ],
+  "active_campaigns": []
+}

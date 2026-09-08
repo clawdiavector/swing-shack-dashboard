@@ -1,0 +1,1069 @@
+@heidi#8099
+
+PRODUCT CALENDAR → CREATIVE DIRECTOR INTEGRATION
++ ZAR CLEANUP
++ STRICT PRODUCT / BRAND FIDELITY
+
+The product-calendar flow is moving in the right direction, but there are two important problems:
+
+1. I am still seeing DOLLARS in parts of the product/calendar experience.
+2. Product posts do not yet feel smoothly connected to IMAGE GENERATION.
+
+I want this fixed as one coherent workflow.
+
+DO NOT BUILD A SEPARATE IMAGE GENERATOR.
+
+The product calendar should naturally feed the Creative Director we already built.
+
+==================================================
+1. REMOVE THE US DOLLAR DEFAULT PROPERLY
+==================================================
+
+For our current brands:
+
+Stick
+Swing Shack
+The Bag Drop
+
+DEFAULT CURRENCY = ZAR
+
+Display:
+
+R899
+R1,499
+R12,999
+
+NOT:
+
+$899
+$1,499
+
+Audit the entire product / calendar / proposal / stock / reporting flow for:
+
+$
+USD
+US-style price buckets
+
+including:
+
+- stock importer
+- product library
+- product calendar proposal
+- diversity statistics
+- calendar cards
+- item panel
+- product detail
+- creative brief
+- generated caption
+- campaign view
+- reports
+- alerts
+
+Do not simply replace the symbol in one UI component.
+
+Use the brand/store currency configuration as the canonical source.
+
+If Stick = ZAR, all relevant UI and generation context should inherit ZAR automatically.
+
+Price diversity buckets should either:
+
+A. be derived dynamically from the catalogue
+
+or
+
+B. use configurable ZAR ranges
+
+NOT hard-coded American ranges.
+
+==================================================
+2. PRODUCT CALENDAR ITEM MUST ALREADY KNOW HOW IT WILL BECOME A POST
+==================================================
+
+When Campaign OS schedules:
+
+Takomo 101T
+or
+Psycho Bunny 10K Step Pant
+or
+L.A.B. putter
+or
+Vice Golf ball
+
+that should not just be:
+
+product_id
+date
+lane
+
+It should also resolve a CREATIVE BRIEF.
+
+Example:
+
+PRODUCT
+Takomo 101T
+
+STORE BRAND
+Stick
+
+PRODUCT BRAND
+Takomo
+
+CREATIVE PROPERTY
+WHY IT'S HERE / FIT FIRST
+
+CONTENT ANGLE
+Hero Product
+
+REFERENCE REQUIREMENT
+Exact Takomo 101T imagery required
+
+IMAGE GENERATION MODE
+Reference-led product generation
+
+That information should be available before I click Generate.
+
+==================================================
+3. DISTINGUISH STORE BRAND FROM PRODUCT BRAND
+==================================================
+
+This is extremely important.
+
+Example:
+
+STORE / MARKETING BRAND:
+Stick
+
+PRODUCT BRAND:
+Takomo
+
+The final creative must respect BOTH.
+
+Stick controls:
+
+- campaign voice
+- layout system
+- typography
+- logo treatment
+- CTA
+- overall editorial attitude
+
+Takomo controls:
+
+- product identity
+- product colourway
+- product materials
+- product logo
+- product design
+- relevant manufacturer visual cues where useful
+
+The system should never flatten everything into:
+
+“Stick-looking golf product.”
+
+Likewise:
+
+Stick
++
+Psycho Bunny
+
+should feel different from:
+
+Stick
++
+Takomo
+
+while still clearly belonging to Stick's marketing system.
+
+==================================================
+4. ACTUAL PRODUCT IMAGE IS REQUIRED FOR PRODUCT-LED POSTS
+==================================================
+
+This must become a HARD RULE.
+
+If a post is advertising a specific real product:
+
+Takomo iron
+Psycho Bunny pants
+L.A.B. putter
+Vice ball
+Sausage putter
+Vessel bag
+shaft
+grip
+etc.
+
+Campaign OS should first ask:
+
+DO WE HAVE A VERIFIED PRODUCT REFERENCE IMAGE?
+
+Sources can include:
+
+1. uploaded product images
+2. stock/product library images
+3. supplier images
+4. previous approved Campaign OS assets
+5. approved published social references
+
+If YES:
+
+use the actual image/reference in generation.
+
+If NO:
+
+do NOT silently invent the product.
+
+Instead show:
+
+PRODUCT REFERENCE REQUIRED
+
+Actions:
+
+UPLOAD IMAGE
+SELECT EXISTING REFERENCE
+USE SUPPLIER IMAGE
+CREATE NON-PRODUCT-RENDER POST
+
+Do not hallucinate a Takomo iron from text.
+
+==================================================
+5. STRICT PRODUCT-PRESERVATION RULE
+==================================================
+
+For any real product advertisement, product fidelity outranks creativity.
+
+The Creative Director must create a PRESERVE block.
+
+Example for a Takomo iron:
+
+PRESERVE EXACTLY:
+
+- iron head geometry
+- topline
+- sole shape
+- cavity/back design
+- hosel
+- grooves
+- finish
+- colour
+- logo
+- model marking
+- badge position
+- shaft connection
+- handedness
+- proportions
+- material
+- visible text
+
+DO NOT:
+
+- add screws
+- invent weighting ports
+- change cavity design
+- change finish
+- move logo
+- invent model names
+- alter head shape
+- create impossible club geometry
+
+If the model cannot reliably preserve the product, use a workflow that keeps the original product image and changes only:
+
+background
+lighting
+environment
+composition
+supporting graphics
+
+Product fidelity wins.
+
+==================================================
+6. PRODUCT REFERENCE HIERARCHY
+==================================================
+
+For a product render, reference weighting should work like this:
+
+PRIMARY:
+ACTUAL PRODUCT REFERENCE
+
+SECONDARY:
+PRODUCT BRAND VISUAL REFERENCE
+
+TERTIARY:
+STICK CREATIVE REFERENCE
+
+Then:
+
+CURRENT CAMPAIGN CONTEXT
+
+Example:
+
+Takomo 101T product image
+>
+Takomo visual/product identity
+>
+previous Stick Takomo posts
+>
+Stick brand bible
+>
+campaign theme
+
+The product image controls:
+
+shape
+identity
+geometry
+colour
+markings
+
+The product-brand reference controls:
+
+mood
+material context
+manufacturer aesthetic
+
+Stick controls:
+
+marketing treatment
+graphic language
+caption
+CTA
+logo
+layout system
+
+==================================================
+7. PRODUCT BRAND INTELLIGENCE
+==================================================
+
+Add product-brand context to the Creative Director.
+
+Examples:
+
+TAKOMO
+- modern
+- clean
+- performance-led
+- technically credible
+- product-focused
+- minimal
+- equipment first
+- no fake luxury theatre
+
+PSYCHO BUNNY
+- premium apparel
+- personality
+- fashion-forward
+- playful edge
+- polished
+- modern golf lifestyle
+
+L.A.B.
+- technical
+- unconventional
+- putting-specific
+- performance conversation
+- product engineering
+
+VICE
+- modern
+- bold
+- accessible golf culture
+- distinctive colour
+- contemporary
+
+SAUSAGE PUTTERS
+- distinct personality
+- non-traditional
+- putting curiosity
+- product character
+
+Do NOT hard-code assumptions forever.
+
+Create:
+
+PRODUCT BRAND PROFILE
+
+with fields such as:
+
+brand_name
+visual_direction
+tone
+colour cues
+photography style
+product fidelity rules
+approved reference assets
+prohibited treatments
+
+These should be editable.
+
+==================================================
+8. IMAGE-GEN PROMPT MUST BE CREATED AUTOMATICALLY
+==================================================
+
+When I click a scheduled product post, I want to see:
+
+GENERATE CREATIVE
+
+and beneath that:
+
+PRODUCT
+Takomo 101T
+
+PRODUCT IMAGE
+✓ 3 verified references
+
+PRODUCT BRAND
+Takomo
+
+STORE BRAND
+Stick
+
+CREATIVE PROPERTY
+WHY IT'S HERE
+
+ANGLE
+Hero Product
+
+RECOMMENDED MODEL
+[model]
+
+Then automatically build:
+
+MASTER IMAGE PROMPT
+
+NEGATIVE / PRESERVATION PROMPT
+
+Do not make me manually write an image prompt for every product post.
+
+==================================================
+9. MASTER PROMPT STRUCTURE
+==================================================
+
+For product-led posts, compile:
+
+[JOB]
+
+[STORE BRAND]
+Stick brand direction.
+
+[PRODUCT BRAND]
+Takomo / PB / LAB / Vice etc.
+
+[PRODUCT]
+Exact product identity.
+
+[PRIMARY PRODUCT REFERENCES]
+Which supplied images control geometry and appearance.
+
+[PRODUCT-BRAND ART DIRECTION]
+Relevant visual language from product brand.
+
+[STICK ART DIRECTION]
+Stick creative treatment.
+
+[CREATIVE PROPERTY]
+WHY IT'S HERE / STYLE THAT BELONGS / FIT FIRST etc.
+
+[ANGLE]
+Hero / detail / use case / material / staff pick etc.
+
+[PRESERVE EXACTLY]
+
+[COMPOSITION]
+
+[BACKGROUND / ENVIRONMENT]
+
+[LIGHTING]
+
+[CAMERA]
+
+[MATERIAL DETAIL]
+
+[FORMAT]
+
+[SPACE FOR BRAND OVERLAY]
+
+[MODEL-SPECIFIC INSTRUCTIONS]
+
+==================================================
+10. NEGATIVE / PRESERVATION PROMPT
+==================================================
+
+Build this automatically too.
+
+For golf equipment:
+
+no altered head geometry
+no fake grooves
+no fake model name
+no fake logo
+no changed handedness
+no bent shaft
+no impossible hosel
+no invented screws
+no warped clubface
+no floating parts
+no duplicate club
+no fake specifications
+
+For apparel:
+
+no changed cut
+no altered seam placement
+no changed colour
+no invented pockets
+no fake logo
+no changed waistband
+no fake pattern
+no warped fabric
+no changed garment proportions
+
+For putters:
+
+no changed head shape
+no fake alignment marks
+no altered hosel
+no fake shaft connection
+no invented branding
+
+Plus:
+
+no fake Stick logo
+no generated typography
+no nonsense text
+no watermarks
+
+==================================================
+11. TEXT / LOGOS SHOULD STILL BE DETERMINISTIC
+==================================================
+
+Do not ask the AI model to generate the final Stick poster typography if it can be applied afterwards.
+
+AI GENERATES:
+
+- scene
+- product environment
+- lighting
+- shadows
+- photographic composition
+
+CAMPAIGN OS ADDS:
+
+- actual Stick logo
+- actual font
+- headline
+- price
+- CTA
+- campaign property
+- legal / offer text
+
+This must remain the preferred workflow.
+
+==================================================
+12. PRODUCT-BRAND COLOURWAY
+==================================================
+
+The product brand may influence the creative palette.
+
+BUT:
+
+never recolour the actual product unless the source product itself is that colour.
+
+Example:
+
+Takomo creative may borrow:
+
+background tones
+lighting mood
+graphic accents
+
+from Takomo references.
+
+But the iron itself must remain exact.
+
+Likewise:
+
+Psycho Bunny brand colours may influence the set/background.
+
+But the actual pants must remain the correct colour.
+
+==================================================
+13. GENERATION MODE SHOULD BE CHOSEN INTELLIGENTLY
+==================================================
+
+For a real product:
+
+PREFER:
+
+reference-image editing
+image-to-image
+product compositing
+reference-preserving models
+
+OVER:
+
+pure text-to-image
+
+where fidelity matters.
+
+AUTO MODEL ROUTER should score:
+
+product fidelity
+reference adherence
+material realism
+photorealism
+composition
+editing capability
+
+Typography should have LOW WEIGHT when deterministic overlay will handle typography.
+
+==================================================
+14. EXAMPLE — TAKOMO IRON
+==================================================
+
+Calendar:
+
+14 SEP
+PRODUCT
+Takomo 101T
+WHY IT'S HERE
+
+When opened:
+
+PRODUCT REFERENCES
+✓ 101T face
+✓ 101T rear
+✓ 101T angled product shot
+
+PAST REFERENCES
+✓ previous Stick Takomo creative
+✓ recent Stick Takomo social post
+
+PRODUCT BRAND
+Takomo
+
+STORE BRAND
+Stick
+
+Campaign OS creates:
+
+IMAGE BRIEF:
+
+“Create a premium Stick Golf product campaign image using the supplied Takomo 101T photographs as the exact product reference.
+
+Preserve the Takomo 101T iron exactly.
+
+Use the supplied product imagery to control:
+head geometry
+finish
+logo
+model marking
+shape
+proportions
+grooves
+hosel
+material.
+
+The surrounding scene should draw on Takomo’s clean, modern performance aesthetic while the overall marketing composition remains unmistakably Stick: technical, minimal, confident, slightly rebellious.
+
+Do not generate text or logos in the image.
+
+Leave negative space for the Stick WHY IT'S HERE lock-up.”
+
+Then:
+
+NEGATIVE:
+
+“No redesigned iron, no changed cavity, no altered logo, no fake Takomo marking, no incorrect handedness, no bent shaft, no imaginary weighting ports, no fake grooves, no warped hosel, no generated text…”
+
+THEN:
+
+Krea generates the photographic scene.
+
+THEN:
+
+Campaign OS applies:
+
+STICK logo
+WHY IT'S HERE
+Takomo 101T
+CTA
+
+==================================================
+15. EXAMPLE — PSYCHO BUNNY PANTS
+==================================================
+
+Calendar:
+
+16 SEP
+PRODUCT
+Maverick 10K Step Pant
+STYLE THAT BELONGS
+
+Use:
+
+actual pants imagery
++
+Psycho Bunny visual profile
++
+Stick STYLE THAT BELONGS system
+
+The output should feel:
+
+fashion-led
+modern
+premium
+golf relevant
+
+NOT:
+
+technical TrackMan fitting creative
+
+because the product category matters.
+
+==================================================
+16. IMAGE REQUIREMENT BADGE ON CALENDAR
+==================================================
+
+Product cards should show:
+
+REFERENCE ✓
+
+or
+
+REFERENCE NEEDED
+
+before generation.
+
+Example:
+
+Takomo 101T
+REFERENCE ✓
+3 images
+
+Maverick 10K Step Pant
+REFERENCE ✓
+2 images
+
+Unknown product
+REFERENCE NEEDED
+
+This prevents me clicking Generate only to discover there is nothing reliable to generate from.
+
+==================================================
+17. CALENDAR CREATIVE STATUS
+==================================================
+
+Product post statuses should make the generation flow obvious:
+
+PLANNED
+↓
+REFERENCE READY
+↓
+PROMPT READY
+↓
+GENERATING
+↓
+CREATIVE READY
+↓
+NEEDS APPROVAL
+↓
+APPROVED
+↓
+QUEUED
+↓
+PUBLISHED
+
+Do not create needless complexity in the visible card.
+
+The detailed status can live in the item panel.
+
+==================================================
+18. PROMPT MUST BE EDITABLE
+==================================================
+
+Before generation:
+
+show:
+
+MASTER PROMPT
+NEGATIVE / PRESERVE
+
+Allow:
+
+EDIT
+
+Then:
+
+GENERATE
+
+After generation:
+
+REFINE
+
+When I say:
+
+“Make the background cleaner”
+
+or:
+
+“More Takomo, less Stick”
+
+or:
+
+“Use the second product image as the primary reference”
+
+the system should retain the locked product-preservation constraints.
+
+A refinement must not accidentally remove them.
+
+==================================================
+19. NEVER LOSE THE REAL PRODUCT DURING REFINEMENT
+==================================================
+
+This is a hard constraint.
+
+Once a product reference is locked:
+
+REFINE CREATIVE
+
+may alter:
+
+composition
+environment
+lighting
+camera
+background
+
+but must retain:
+
+product identity
+product references
+preservation block
+
+unless I explicitly unlock/change the product.
+
+==================================================
+20. CAPTION GENERATION SHOULD USE THE SAME CONTEXT
+==================================================
+
+The caption generator should receive:
+
+store brand
+product brand
+product
+verified claims
+creative property
+campaign
+product angle
+
+Example:
+
+Takomo 101T
++
+Stick
++
+WHY IT'S HERE
+
+should sound like Stick talking about Takomo.
+
+Not Takomo corporate copy.
+
+And not generic golf copy.
+
+==================================================
+21. STRICT FACT BOUNDARY
+==================================================
+
+Do not invent:
+
+product technology
+materials
+specifications
+waterproof ratings
+shaft characteristics
+forgiveness claims
+spin claims
+performance claims
+prices
+availability
+
+If the verified product record does not contain the claim:
+
+do not write it.
+
+Creative ≠ fabrication.
+
+==================================================
+22. PRODUCT DETAILS SHOULD SUPPORT ENRICHMENT
+==================================================
+
+Each product should support:
+
+PRODUCT NAME
+PRODUCT BRAND
+SKU
+CATEGORY
+PRODUCT FAMILY
+VARIANT
+COLOUR
+SIZE
+PRICE
+STOCK
+DESCRIPTION
+VERIFIED FEATURES
+PRODUCT URL
+REFERENCE IMAGES
+SUPPLIER
+CAMPAIGN PRIORITY
+
+If description/features are missing:
+
+the post can still be generated
+
+but should use safer brand/product language.
+
+==================================================
+23. PRODUCT-CALENDAR ACCEPTANCE TEST
+==================================================
+
+Run these four tests:
+
+TEST 1
+Stick
+Takomo iron
+WHY IT'S HERE
+
+Must use actual iron reference.
+
+TEST 2
+Stick
+Psycho Bunny 10K Step Pant
+STYLE THAT BELONGS
+
+Must use actual pants reference and PB brand context.
+
+TEST 3
+Stick
+L.A.B. putter
+FIT FIRST
+
+Must use exact putter reference and putting context.
+
+TEST 4
+Stick
+Vice ball
+WHY IT'S HERE
+
+Must use exact Vice product image.
+
+For EACH show me:
+
+1. Product record
+2. Product brand profile
+3. Actual product images selected
+4. Stick references selected
+5. Product-brand references selected
+6. Master prompt
+7. Negative / preserve prompt
+8. Krea model selected + reason
+9. Raw AI image
+10. Final Stick overlay
+11. Caption
+12. CTA
+
+==================================================
+24. NO PRODUCT IMAGE = NO FAKE PRODUCT
+==================================================
+
+This is the most important rule in this prompt.
+
+If the product post says:
+
+TAKOMO 101T
+
+the image must contain the actual Takomo 101T.
+
+If we do not have a reliable reference:
+
+DO NOT GENERATE A FAKE TAKOMO 101T.
+
+Instead ask for / surface:
+
+PRODUCT IMAGE REQUIRED.
+
+The OS should rather fail safely than publish an incorrect product.
+
+==================================================
+25. END RESULT
+==================================================
+
+The marketer experience should become:
+
+Stock imported
+↓
+Product scheduled
+↓
+OS identifies product brand
+↓
+OS finds exact product references
+↓
+OS finds relevant product-brand references
+↓
+OS finds Stick brand/social references
+↓
+OS builds creative brief
+↓
+OS writes master prompt
+↓
+OS writes strict preservation/negative prompt
+↓
+OS chooses correct Krea model
+↓
+OS generates reference-led image
+↓
+OS applies exact Stick branding
+↓
+OS generates caption
+↓
+I approve
+↓
+Postiz
+
+That should feel like ONE FLOW.
+
+Not:
+
+calendar over here
+product library over there
+image generator somewhere else.
+
+The calendar item should be the centre of the workflow.
+
+==================================================
+26. REPORT BACK
+==================================================
+
+Do not give me another backend changelog.
+
+Show me:
+
+TAKOMO PRODUCT POST
+from calendar slot
+→ references
+→ prompt
+→ negative
+→ generation
+→ final Stick post.
+
+Then:
+
+PSYCHO BUNNY PRODUCT POST
+same flow.
+
+Also confirm:
+
+NO $ REMAINING IN THE STICK PRODUCT/CALENDAR WORKFLOW.
+
+The standard is:
+
+IF WE ARE ADVERTISING A REAL PRODUCT,
+THE REAL PRODUCT MUST BE IN THE CREATIVE.
