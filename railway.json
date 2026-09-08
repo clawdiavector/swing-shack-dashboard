@@ -5,12 +5,12 @@
     "nixpacks": {
       "languages": {
         "python": {
-          "version": "3.12"
+          "version": "3.11"
         }
       },
       "startCommand": "cd campaign-os && python app.py"
     },
-    "_redeploy_trigger": "force-no-cache-2026-09-08T07-30"
+    "_redeploy_trigger": "force-rebuild-py311"
   },
   "deploy": {
     "numReplicas": 1,
