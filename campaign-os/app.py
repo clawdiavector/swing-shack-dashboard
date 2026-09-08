@@ -19333,10 +19333,25 @@ def integrity_corrections():
 
 
 if __name__ == '__main__':
-    _boot_load_persisted_secrets()
-    _boot_selfheal_windsor()
+    import sys as _sys
+    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
+    try:
+        _boot_load_persisted_secrets()
+        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_selfheal_windsor()
+        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port)
+    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except Exception as _e:
+        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
+        raise
 
 
 
