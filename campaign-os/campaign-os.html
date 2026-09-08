@@ -4657,9 +4657,17 @@ async function renderSection(sec){
   attachExplainers();
   // Wire universal hover tooltips on every [data-help] element (brand switcher, all-tools toggle, topbar chrome, etc.)
   if (typeof HELP !== 'undefined' && HELP.autoAttach) HELP.autoAttach();
-  // Default active section: brief. Restore from localStorage if present.
+  // Default active section: brief. Override via URL path (/sec-<section>) if present.
+  // Restore from localStorage if no URL override.
   let activeSec = 'brief';
-  try { activeSec = localStorage.getItem('cos.activeSec') || 'brief'; } catch(_){}
+  try {
+    const pathSec = (window.location.pathname || '').match(/^\/sec-([\w-]+)/);
+    if (pathSec) {
+      activeSec = pathSec[1];
+    } else {
+      activeSec = localStorage.getItem('cos.activeSec') || 'brief';
+    }
+  } catch(_){}
   const activeSecEl = document.getElementById('sec-' + (SECTION_ALIASES[activeSec] || activeSec));
   if(!activeSecEl) activeSec = 'brief';
   // Mark the right nav item as active (handle alias)
@@ -4708,6 +4716,7 @@ async function loadSection(sec){
     if(sec==='postiz') return renderPostiz();
     if(sec==='campaigns') return renderCampaigns();
     if(sec==='agents') return renderAgents();
+    if(sec==='planning') return renderPlanning();
   } catch(e){ console.error(sec, e); toast('Failed to load '+sec, 'err'); }
 }
 

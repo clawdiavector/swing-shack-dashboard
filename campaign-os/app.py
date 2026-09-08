@@ -24,7 +24,7 @@ import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
 from typing import Optional, List
-from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -10921,7 +10921,18 @@ def cockpit():
 
 @app.route('/<path:filename>')
 def static_files(filename):
-    return send_from_directory('.', filename)
+    # SPA section deep-links (e.g. /sec-planning) → serve the SPA HTML
+    # so the SPA boots and switches to that section.
+    if filename.startswith('sec-'):
+        return send_from_directory('.', 'campaign-os.html')
+    target = os.path.join('.', filename)
+    if os.path.exists(target):
+        return send_from_directory('.', filename)
+    # SPA-style routes (no file extension, not in api/ or _lib/) → serve SPA
+    last = filename.split('/')[-1]
+    if '.' not in last and not filename.startswith(('api/', '_lib/', 'assets/')):
+        return send_from_directory('.', 'campaign-os.html')
+    abort(404)
 
 # ─── TRUTH COLLECTOR (Stage 4 — server-side only) ─────────────────────
 # The Truth Collector ingests real analytics (GA4 + Meta) and writes
