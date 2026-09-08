@@ -9609,7 +9609,10 @@ def get_schedule():
 
 # ─── REVIEW UPLOAD + PUSH-TO-POSTIZ (added 2026-08-04 polish pass) ────
 ASSET_MEDIA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'asset-media')
-os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
+try:
+    os.makedirs(ASSET_MEDIA_DIR, exist_ok=True)
+except (OSError, PermissionError):
+    pass
 
 
 def _update_asset_field(asset_id, campaign_id, field, value):
@@ -10389,7 +10392,10 @@ def review_push_postiz(asset_id):
 
 # ─── GMB DRAFTS CRUD (added 2026-08-04 polish pass) ──────────────────
 GMB_DRAFTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'gmb-drafts')
-os.makedirs(GMB_DRAFTS_DIR, exist_ok=True)
+try:
+    os.makedirs(GMB_DRAFTS_DIR, exist_ok=True)
+except (OSError, PermissionError):
+    pass
 
 
 def _gmb_draft_path(draft_id):
