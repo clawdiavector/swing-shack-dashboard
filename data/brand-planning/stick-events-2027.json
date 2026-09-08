@@ -1,0 +1,723 @@
+{
+  "brand_id": "stick",
+  "schema_version": "v1_event_spine",
+  "year": 2027,
+  "audited_at": "2026-09-08",
+  "audited_by": "tier-3.18-event-redesign",
+  "quarter_themes": [
+    {
+      "quarter": "Q1",
+      "name": "Pre-Season / Start Fitted"
+    },
+    {
+      "quarter": "Q2",
+      "name": "Major / What the Major Tells Us"
+    },
+    {
+      "quarter": "Q3",
+      "name": "Built At Stick / Workshop Season"
+    },
+    {
+      "quarter": "Q4",
+      "name": "Gifting Season / New Year New Bag"
+    }
+  ],
+  "always_on_pillars": [
+    {
+      "id": "retail-always-on",
+      "name": "RETAIL",
+      "purpose": "Steady new arrivals + walk-in retail."
+    },
+    {
+      "id": "fitting-always-on",
+      "name": "FITTING",
+      "purpose": "Iron / wedge / putter fitting on-ramp."
+    },
+    {
+      "id": "coaching-always-on",
+      "name": "COACHING",
+      "purpose": "Lesson packages + playing-coach sessions."
+    }
+  ],
+  "events": [
+    {
+      "id": "pre-season-2027",
+      "name": "Pre-Season / Start Fitted",
+      "tier": "A-PIN",
+      "category": "always-on-arc",
+      "start": "2027-01-04",
+      "end": "2027-03-21",
+      "public_peak": "2027-02-15",
+      "planning_start": "2026-12-07",
+      "commercial_push": "Q1 anchor. Use this as the new-year momentum arc — fitting is the on-ramp.",
+      "pillars": {
+        "fitting": "Iron + putter fitting as the year's first decision.",
+        "retail": "New-season stock + gifting leftover voucher redemption.",
+        "coaching": "Goal-setting lessons — start the year with a coach."
+      },
+      "lanes": {
+        "campaign": "Sustained — 'Start Fitted' content series.",
+        "paid": "New-year-intent audiences.",
+        "crm": "Voucher-redemption prompts from BF / Festive arcs.",
+        "search": "'Get fitted' SEO + landing pages."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 8,
+          "task": "Decide fitting-led arc structure"
+        },
+        {
+          "label": "Build",
+          "weeks_before_peak": 5,
+          "task": "Capture + landing pages"
+        },
+        {
+          "label": "Launch",
+          "weeks_before_peak": 3,
+          "task": "Public launch"
+        },
+        {
+          "label": "Sustain",
+          "weeks_before_peak": 0,
+          "task": "Run through March"
+        },
+        {
+          "label": "Hand off",
+          "weeks_before_peak": -3,
+          "task": "Hand to Q2 Major arc"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "valentines-day-2027",
+      "name": "Valentine's Day",
+      "tier": "B-PIN",
+      "category": "shopping-moment",
+      "start": "2027-02-08",
+      "end": "2027-02-14",
+      "public_peak": "2027-02-14",
+      "planning_start": "2027-01-25",
+      "commercial_push": "B-PIN retail hook. Gift vouchers + apparel + accessories.",
+      "pillars": {
+        "retail": "Valentine's gift edit — golf-mum / wife-of-golfer."
+      },
+      "lanes": {
+        "campaign": "Gift-guide content.",
+        "paid": "Last-minute reminder.",
+        "crm": "Voucher-led reminder."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 3,
+          "task": "Gift edit + landing"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 2,
+          "task": "Photography"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 1,
+          "task": "Public launch"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 0,
+          "task": "Last-minute"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "masters-week-2027",
+      "name": "Masters Week",
+      "tier": "A-PIN",
+      "category": "golf-moment",
+      "start": "2027-04-05",
+      "end": "2027-04-12",
+      "public_peak": "2027-04-11",
+      "planning_start": "2027-03-15",
+      "commercial_push": "Q2 anchor. The Major starts the Q2 narrative — 'what the Major tells us.'",
+      "pillars": {},
+      "lanes": {
+        "human": "Staff picks — who they fancy.",
+        "product": "Putter-led content during major week.",
+        "campaign": "Sustained content series.",
+        "paid": "Major-week-aware audiences."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 4,
+          "task": "Decide angle (staff picks / story-led)"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 2,
+          "task": "Reels + Stories"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Post during the major"
+        },
+        {
+          "label": "After",
+          "weeks_before_peak": -0.5,
+          "task": "Post-major commentary"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "mothers-day-2027",
+      "name": "Mother's Day (SA: 2nd Sun of May, falls 9 May 2027)",
+      "tier": "B-PIN",
+      "category": "shopping-moment",
+      "start": "2027-04-26",
+      "end": "2027-05-09",
+      "public_peak": "2027-05-09",
+      "planning_start": "2027-04-12",
+      "commercial_push": "Gift-led retail hook. Apparel + accessories + vouchers for golf-mum / wife-of-golfer.",
+      "pillars": {
+        "retail": "Mother's Day gift edit."
+      },
+      "lanes": {
+        "campaign": "Gift-guide content.",
+        "paid": "Last-minute reminder.",
+        "crm": "Voucher-led reminder."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 4,
+          "task": "Gift edit + landing"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 2,
+          "task": "Photography"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 1,
+          "task": "Public launch"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 0,
+          "task": "Mother's Day + last-minute"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "fathers-day-2027",
+      "name": "Father's Day (SA: 3rd Sun of June, falls 20 Jun 2027)",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-06-07",
+      "end": "2027-06-20",
+      "public_peak": "2027-06-20",
+      "planning_start": "2027-05-17",
+      "commercial_push": "Q2 commercial anchor. Golf-Dad gift guide — fitting voucher + club + apparel.",
+      "pillars": {
+        "retail": "Father's Day gift edit — clubs + apparel + accessories + balls.",
+        "fitting": "Father's Day fitting voucher — pitch it as 'the gift that earns its place'.",
+        "coaching": "Father-child lesson vouchers."
+      },
+      "lanes": {
+        "paid": "Gift-intent audiences + retargeting.",
+        "crm": "Last-minute reminders.",
+        "campaign": "Father's Day gift guide series.",
+        "search": "Father's Day golf gift SEO."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 6,
+          "task": "Decide gift structure"
+        },
+        {
+          "label": "Brief",
+          "weeks_before_peak": 5,
+          "task": "Creative brief"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 3,
+          "task": "Photography + creative build"
+        },
+        {
+          "label": "Warm-up",
+          "weeks_before_peak": 2,
+          "task": "Public tease"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 1,
+          "task": "Public launch + sustained push"
+        },
+        {
+          "label": "Last-call",
+          "weeks_before_peak": 0,
+          "task": "Father's Day + last-minute vouchers"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "heritage-day-2027",
+      "name": "Heritage Day (observed Monday 10 Aug 2027)",
+      "tier": "C-PIN",
+      "category": "sa-cultural",
+      "start": "2027-08-09",
+      "end": "2027-08-10",
+      "public_peak": "2027-08-10",
+      "planning_start": "2027-08-04",
+      "commercial_push": "Light SA-local content hook only. C-PIN by default — must NOT appear visually equal to A/B-PINs.",
+      "pillars": {},
+      "lanes": {
+        "human": "Optional — only if a genuine Stick-team moment exists."
+      },
+      "phases": [
+        {
+          "label": "Decide",
+          "weeks_before_peak": 0.7,
+          "task": "Yes/no on the day"
+        },
+        {
+          "label": "Post",
+          "weeks_before_peak": 0,
+          "task": "If yes, single post"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "womens-day-2027",
+      "name": "National Women's Day (observed Mon 9 Aug 2027)",
+      "tier": "B-PIN",
+      "category": "sa-cultural",
+      "start": "2027-08-09",
+      "end": "2027-08-09",
+      "public_peak": "2027-08-09",
+      "planning_start": "2027-08-02",
+      "commercial_push": "B-PIN. Women's golf content hook — women who play, women coaches, female-fitting journeys.",
+      "pillars": {
+        "coaching": "Women-coach-led lessons.",
+        "fitting": "Women-led fitting sessions."
+      },
+      "lanes": {
+        "human": "Female Stick-team content.",
+        "campaign": "Women-in-golf series."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 1,
+          "task": "Angle + capture"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Single post + Reel"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "ryder-cup-2027",
+      "name": "Ryder Cup (Adare Manor, Ireland)",
+      "tier": "A-PIN",
+      "category": "golf-moment",
+      "start": "2027-09-13",
+      "end": "2027-09-19",
+      "public_peak": "2027-09-19",
+      "planning_start": "2027-08-16",
+      "commercial_push": "Q3 commercial anchor. Odd-year Major — the biggest team-golf moment of the cycle.",
+      "pillars": {},
+      "lanes": {
+        "human": "Team-Europe / Team-USA staff picks — banter content.",
+        "product": "Putter face-off content.",
+        "campaign": "Ryder Cup content series.",
+        "paid": "Team-golf audiences."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 5,
+          "task": "Decide angle + capture list"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 3,
+          "task": "Reels + Stories + banter"
+        },
+        {
+          "label": "Warm-up",
+          "weeks_before_peak": 1,
+          "task": "Pre-event hype"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Post during the Ryder Cup"
+        },
+        {
+          "label": "After",
+          "weeks_before_peak": -0.4,
+          "task": "Post-event wrap"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "black-friday-2027",
+      "name": "Black Friday + Cyber Monday",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-10-11",
+      "end": "2027-11-29",
+      "public_peak": "2027-11-26",
+      "planning_start": "2027-10-04",
+      "commercial_push": "Repeat of 2026 BF play. Featured SKUs + vouchers + paid + CRM.",
+      "pillars": {
+        "retail": "Featured SKUs + giftable SKUs.",
+        "fitting": "Fitting vouchers if margin holds.",
+        "coaching": "Lesson vouchers if package is strong."
+      },
+      "lanes": {
+        "paid": "Major role.",
+        "crm": "Major role.",
+        "campaign": "Coordinated creative.",
+        "search": "Owned content + landing."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 6,
+          "task": "Decision + offer"
+        },
+        {
+          "label": "Lock",
+          "weeks_before_peak": 5,
+          "task": "Lock SKUs + vouchers"
+        },
+        {
+          "label": "Creative",
+          "weeks_before_peak": 4,
+          "task": "Briefs + capture"
+        },
+        {
+          "label": "Warm-up",
+          "weeks_before_peak": 2,
+          "task": "Public warm-up"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 1,
+          "task": "Promo goes live"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 0,
+          "task": "Black Friday peak"
+        },
+        {
+          "label": "Follow-up",
+          "weeks_before_peak": -0.4,
+          "task": "Cyber Monday follow-up"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "singles-day-2027",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "category": "test-moment",
+      "start": "2027-11-11",
+      "end": "2027-11-11",
+      "public_peak": "2027-11-11",
+      "planning_start": "2027-11-04",
+      "commercial_push": "Test only. Single SKU if margin holds.",
+      "pillars": {
+        "retail": "Single accessory SKU only."
+      },
+      "lanes": {},
+      "phases": [
+        {
+          "label": "Decide",
+          "weeks_before_peak": 1,
+          "task": "Yes/no"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "If yes, single post"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "festive-season-2027",
+      "name": "Festive Season",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2027-11-15",
+      "end": "2027-12-24",
+      "public_peak": "2027-12-22",
+      "planning_start": "2027-11-08",
+      "commercial_push": "Major retail arc. Giftable apparel + bags + balls + accessories + vouchers + premium products. Builds BEFORE Christmas.",
+      "pillars": {
+        "retail": "The whole shop becomes a gift guide.",
+        "fitting": "Fitting vouchers + gift experiences.",
+        "coaching": "Lesson vouchers + coaching gifts."
+      },
+      "lanes": {
+        "paid": "Sustained retargeting.",
+        "crm": "Lifecycle — gifting prompts.",
+        "campaign": "Gift-guide content series.",
+        "search": "Gift-guide SEO.",
+        "apparel": "Hero lane — gift edits.",
+        "human": "Staff gift picks.",
+        "workshop": "Build-the-recipient-a-club voucher angle."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 6,
+          "task": "Decide structure"
+        },
+        {
+          "label": "Build",
+          "weeks_before_peak": 4,
+          "task": "Capture + landing pages"
+        },
+        {
+          "label": "Launch",
+          "weeks_before_peak": 3,
+          "task": "Public launch"
+        },
+        {
+          "label": "Sustain",
+          "weeks_before_peak": 1,
+          "task": "Mid-decade push"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 0,
+          "task": "Last-shipping cues"
+        },
+        {
+          "label": "Close",
+          "weeks_before_peak": -0.3,
+          "task": "Cut-off communications"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "investec-sa-open-2027",
+      "name": "Investec SA Open",
+      "tier": "A-PIN",
+      "category": "golf-moment",
+      "start": "2027-11-29",
+      "end": "2027-12-05",
+      "public_peak": "2027-12-05",
+      "planning_start": "2027-10-25",
+      "commercial_push": "Q4 anchor. SA's flagship professional event — commercial + pride-of-SA moment.",
+      "pillars": {},
+      "lanes": {
+        "human": "SA-pride content — local Stick staff + their SA Open picks.",
+        "product": "Putter + iron content — what the pros play.",
+        "campaign": "SA Open content series."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 6,
+          "task": "SA-pride angle"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 4,
+          "task": "Reels + Stories"
+        },
+        {
+          "label": "Warm-up",
+          "weeks_before_peak": 1,
+          "task": "Pre-event hype"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "During event"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "day-of-reconciliation-2027",
+      "name": "Day of Reconciliation (Thu 16 Dec 2027)",
+      "tier": "C-PIN",
+      "category": "sa-holiday",
+      "start": "2027-12-16",
+      "end": "2027-12-16",
+      "public_peak": "2027-12-16",
+      "planning_start": "2027-12-13",
+      "commercial_push": "C-PIN / optional B hook. Holiday golf / availability. NOT major.",
+      "pillars": {},
+      "lanes": {
+        "human": "Optional — only if a genuine moment exists."
+      },
+      "phases": [
+        {
+          "label": "Decide",
+          "weeks_before_peak": 0.3,
+          "task": "Yes/no"
+        },
+        {
+          "label": "Post",
+          "weeks_before_peak": 0,
+          "task": "If yes, single post"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "day-of-goodwill-2027",
+      "name": "Day of Goodwill (observed Mon 28 Dec 2027 — falls Sun 26 Dec 2027)",
+      "tier": "B-PIN",
+      "category": "shopping-moment",
+      "start": "2027-12-26",
+      "end": "2027-12-28",
+      "public_peak": "2027-12-28",
+      "planning_start": "2027-12-15",
+      "commercial_push": "B-PIN follow-up. Gift-money + voucher redemption + 'didn't get the gear?'",
+      "pillars": {
+        "retail": "Voucher redemption + gift-money hooks."
+      },
+      "lanes": {
+        "campaign": "Redemption creative.",
+        "crm": "Voucher-holder re-engagement."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 1.5,
+          "task": "Redemption angle + audience"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Post + voucher-reminder"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "new-year-new-bag-2027",
+      "name": "New Year / New Bag (sustained)",
+      "tier": "A-PIN",
+      "category": "sustained-arc",
+      "start": "2027-12-27",
+      "end": "2028-01-31",
+      "public_peak": "2028-01-10",
+      "planning_start": "2027-12-15",
+      "commercial_push": "Sustained A/B arc — carried over from 2026 closing arc.",
+      "pillars": {
+        "fitting": "New-year fitting on-ramp.",
+        "retail": "Voucher redemption + new-season stock.",
+        "coaching": "Goal-setting lessons."
+      },
+      "lanes": {
+        "campaign": "New Year New Bag content series.",
+        "paid": "New-intent audiences.",
+        "crm": "Lifecycle + voucher nudge."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 4,
+          "task": "Decide arc structure"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 3,
+          "task": "Content + fitting-led creative"
+        },
+        {
+          "label": "Launch",
+          "weeks_before_peak": 2,
+          "task": "Public launch"
+        },
+        {
+          "label": "Sustain",
+          "weeks_before_peak": 0,
+          "task": "Run through Jan"
+        },
+        {
+          "label": "Close",
+          "weeks_before_peak": -2,
+          "task": "Voucher arc closes"
+        }
+      ],
+      "shopping_moment": true
+    }
+  ],
+  "shopping_moments_summary": [
+    {
+      "date": "2027-02-14",
+      "name": "Valentine's Day",
+      "tier": "B-PIN"
+    },
+    {
+      "date": "2027-05-09",
+      "name": "Mother's Day",
+      "tier": "B-PIN"
+    },
+    {
+      "date": "2027-06-20",
+      "name": "Father's Day",
+      "tier": "A-PIN"
+    },
+    {
+      "date": "2027-11-11",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "test_only": true
+    },
+    {
+      "date": "2027-11-26",
+      "name": "Black Friday",
+      "tier": "A-PIN"
+    },
+    {
+      "date": "2027-11-29",
+      "name": "Cyber Monday",
+      "tier": "A-PIN",
+      "followup_of": "black-friday-2027"
+    },
+    {
+      "date": "2027-12-25",
+      "name": "Christmas",
+      "tier": "A-PIN"
+    },
+    {
+      "date": "2027-12-26",
+      "name": "Day of Goodwill",
+      "tier": "B-PIN"
+    },
+    {
+      "date": "2027-12-31",
+      "name": "New Year's Eve",
+      "tier": "B-PIN"
+    }
+  ]
+}

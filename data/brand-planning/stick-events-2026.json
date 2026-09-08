@@ -1,0 +1,520 @@
+{
+  "brand_id": "stick",
+  "schema_version": "v1_event_spine",
+  "year": 2026,
+  "audited_at": "2026-09-08",
+  "audited_by": "tier-3.18-event-redesign",
+  "always_on_pillars": [
+    {
+      "id": "retail-always-on",
+      "name": "RETAIL",
+      "purpose": "Steady new arrivals + walk-in fitting retail. Always visible.",
+      "current_push_summary": "Takomo 101T + L.A.B. putters in stock; PB apparel + Vice balls + accessories; demo clubs available all season."
+    },
+    {
+      "id": "fitting-always-on",
+      "name": "FITTING",
+      "purpose": "Iron / wedge / putter fitting as the on-ramp to a Stick-built bag.",
+      "current_push_summary": "Putter fitting — L.A.B. + Takomo Daytona. Iron fitting — bookable, R1,200, 90 min."
+    },
+    {
+      "id": "coaching-always-on",
+      "name": "COACHING",
+      "purpose": "Lesson packages + on-course playing support.",
+      "current_push_summary": "Private lessons + playing-coach sessions available year-round."
+    }
+  ],
+  "events": [
+    {
+      "id": "presidents-cup-2026",
+      "name": "Presidents Cup",
+      "tier": "B-PIN",
+      "category": "golf-moment",
+      "start": "2026-09-22",
+      "end": "2026-09-27",
+      "public_peak": "2026-09-26",
+      "planning_start": "2026-09-08",
+      "commercial_push": "Team-golf + match-play content moment. Not Stick-affiliated — pure social play.",
+      "pillars": {},
+      "lanes": {
+        "human": "Behind-the-counter banter — which team each Stick staffer backs.",
+        "product": "Putter face-off videos — face-balanced vs toe-hang in match play.",
+        "campaign": "One Story / Reel: 'Who you got?' staff picks."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 2,
+          "task": "Decide angle + capture staff picks"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 1,
+          "task": "Reel + Stories"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Post during comp"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "heritage-day-2026",
+      "name": "Heritage Day",
+      "tier": "C-PIN",
+      "category": "sa-cultural",
+      "start": "2026-09-24",
+      "end": "2026-09-24",
+      "public_peak": "2026-09-24",
+      "planning_start": "2026-09-21",
+      "commercial_push": "Light SA-local content hook. NOT a major commercial push.",
+      "pillars": {},
+      "lanes": {
+        "human": "One Story: 'What we play for on Heritage Day.'",
+        "campaign": "Optional — only if we have a genuinely local angle."
+      },
+      "phases": [
+        {
+          "label": "Decide",
+          "weeks_before_peak": 0.3,
+          "task": "Day-of — only if angle is real"
+        },
+        {
+          "label": "Post",
+          "weeks_before_peak": 0,
+          "task": "Stories only"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "halloween-2026",
+      "name": "Halloween",
+      "tier": "C-PIN",
+      "category": "humour-moment",
+      "start": "2026-10-31",
+      "end": "2026-10-31",
+      "public_peak": "2026-10-31",
+      "planning_start": "2026-10-26",
+      "commercial_push": "Golf joke only. SA doesn't require a Halloween retail campaign.",
+      "pillars": {},
+      "lanes": {
+        "human": "One Story: 'Scariest thing in golf? Not knowing where it's going.'",
+        "campaign": "Single execution. NOT a campaign."
+      },
+      "phases": [
+        {
+          "label": "Idea",
+          "weeks_before_peak": 0.7,
+          "task": "One good joke — capture list, no production"
+        },
+        {
+          "label": "Post",
+          "weeks_before_peak": 0,
+          "task": "Stories only"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "singles-day-2026",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "category": "test-moment",
+      "start": "2026-11-11",
+      "end": "2026-11-11",
+      "public_peak": "2026-11-11",
+      "planning_start": "2026-11-04",
+      "commercial_push": "Small retail hook ONLY if useful. Do not assume SA customers care enough for a major push. Marked as test.",
+      "pillars": {
+        "retail": "Single accessory SKU only if margin holds up. Not a site-wide promo."
+      },
+      "lanes": {},
+      "phases": [
+        {
+          "label": "Decide",
+          "weeks_before_peak": 1,
+          "task": "Yes/no decision based on whether we have a margin-clean SKU"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "If yes, single post"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "black-friday-2026",
+      "name": "Black Friday + Cyber Monday",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2026-10-12",
+      "end": "2026-11-30",
+      "public_peak": "2026-11-27",
+      "planning_start": "2026-10-05",
+      "commercial_push": "One of the biggest commercial pushes of the year. Real retail moment in SA. 6-week runway.",
+      "pillars": {
+        "retail": "PRIMARY commercial push. Featured SKUs across Takomo / L.A.B. / PB / Vice. Vouchers available.",
+        "fitting": "Fitting vouchers if a strong offer makes sense — only if margin holds.",
+        "coaching": "Coaching package vouchers — only if package offer is strong."
+      },
+      "lanes": {
+        "paid": "Major role — boosted offers + retargeting cart abandoners.",
+        "crm": "Major role — warm-list tease, early-access window, post-purchase follow-up.",
+        "campaign": "Coordinated: creative → warm-up → live → peak → cyber follow-up.",
+        "search": "Owned content + website landing for offer terms.",
+        "workshop": "Build-any-club-in-stock pitch (where relevant).",
+        "apparel": "Gift-ready apparel — featured gift edits.",
+        "human": "Staff picks — what each Stick person is buying / gifting."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 6,
+          "task": "Decision — offer, SKUs, margin, budget"
+        },
+        {
+          "label": "Offer Lock",
+          "weeks_before_peak": 5,
+          "task": "Lock SKUs + voucher terms + landing destinations"
+        },
+        {
+          "label": "Creative",
+          "weeks_before_peak": 4,
+          "task": "Briefs + capture + creative build"
+        },
+        {
+          "label": "Warm-up",
+          "weeks_before_peak": 2,
+          "task": "Public warm-up + CRM tease + early access"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 1,
+          "task": "Promo goes live"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 0,
+          "task": "Black Friday peak"
+        },
+        {
+          "label": "Follow-up",
+          "weeks_before_peak": -0.4,
+          "task": "Cyber Monday follow-up + retarget"
+        }
+      ],
+      "deadlines": [
+        {
+          "label": "Offer must be locked",
+          "due": "2026-10-16"
+        },
+        {
+          "label": "Creative briefs due",
+          "due": "2026-10-30"
+        },
+        {
+          "label": "Paid setup complete",
+          "due": "2026-11-13"
+        },
+        {
+          "label": "Campaign warm-up begins",
+          "due": "2026-11-16"
+        },
+        {
+          "label": "Peak",
+          "due": "2026-11-27"
+        },
+        {
+          "label": "Cyber Monday follow-up",
+          "due": "2026-11-30"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "festive-gifting-2026",
+      "name": "Festive Gifting",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2026-11-16",
+      "end": "2026-12-24",
+      "public_peak": "2026-12-22",
+      "planning_start": "2026-11-09",
+      "commercial_push": "Major retail arc. Builds BEFORE Christmas, not on the day. Overlaps Black Friday — that is intentional.",
+      "pillars": {
+        "retail": "Giftable apparel, bags, balls, accessories, premium products, vouchers. The whole shop becomes a gift guide.",
+        "fitting": "Fitting vouchers + gift-experience packages.",
+        "coaching": "Lesson vouchers + coaching gifts — early-buy positioning."
+      },
+      "lanes": {
+        "paid": "Sustained retargeting from BF list + gifting-intent audiences.",
+        "crm": "Lifecycle — gifting prompts, voucher reminders, last-day cues.",
+        "campaign": "Gift-guide content series — by recipient, by budget.",
+        "search": "Gift-guide SEO + landing pages.",
+        "apparel": "Hero lane — gift edits lead with apparel.",
+        "human": "Staff gift picks — what each Stick person would give.",
+        "workshop": "Build-the-recipient-a-club voucher angle (where relevant)."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 6,
+          "task": "Decide gift-edit structure + voucher mechanic"
+        },
+        {
+          "label": "Build",
+          "weeks_before_peak": 4,
+          "task": "Capture gift-edit photography + voucher landing pages"
+        },
+        {
+          "label": "Launch",
+          "weeks_before_peak": 3,
+          "task": "Public launch — gifting series begins"
+        },
+        {
+          "label": "Sustain",
+          "weeks_before_peak": 1,
+          "task": "Mid-decade push — last-week reminders"
+        },
+        {
+          "label": "Peak",
+          "weeks_before_peak": 0,
+          "task": "Last-shipping-day + last-voucher-day cues"
+        },
+        {
+          "label": "Close",
+          "weeks_before_peak": -0.3,
+          "task": "Cut-off communications"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "school-holiday-family-2026",
+      "name": "School Holiday / Family Golf",
+      "tier": "B-PIN",
+      "category": "always-on-window",
+      "start": "2026-12-11",
+      "end": "2027-01-15",
+      "public_peak": "2026-12-18",
+      "planning_start": "2026-12-01",
+      "commercial_push": "Family / junior golf angle. Junior coaching + parent-child golf + holiday sessions + gifting.",
+      "pillars": {
+        "coaching": "Junior coaching blocks — bookable parent-child sessions.",
+        "retail": "Junior club packages + giftable accessories."
+      },
+      "lanes": {
+        "campaign": "Family-golf content series during school holidays.",
+        "workshop": "Junior-club regrip / re-shaft specials."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 2.5,
+          "task": "Junior package + content angle"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 1.5,
+          "task": "Family content + junior shoot"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Holiday promo runs through Jan"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "day-of-reconciliation-2026",
+      "name": "Day of Reconciliation",
+      "tier": "C-PIN",
+      "category": "sa-holiday",
+      "start": "2026-12-16",
+      "end": "2026-12-16",
+      "public_peak": "2026-12-16",
+      "planning_start": "2026-12-14",
+      "commercial_push": "Optional B hook. Holiday golf / availability. NOT a major campaign.",
+      "pillars": {},
+      "lanes": {
+        "human": "Optional — only if a genuine Stick-team moment exists."
+      },
+      "phases": [
+        {
+          "label": "Decide",
+          "weeks_before_peak": 0.3,
+          "task": "Yes/no on the day"
+        },
+        {
+          "label": "Post",
+          "weeks_before_peak": 0,
+          "task": "If yes, single post"
+        }
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "christmas-2026",
+      "name": "Christmas",
+      "tier": "A-PIN",
+      "category": "endpoint",
+      "start": "2026-12-24",
+      "end": "2026-12-25",
+      "public_peak": "2026-12-25",
+      "planning_start": "2026-11-16",
+      "commercial_push": "A-PIN END POINT. The campaign happens BEFORE this date. Christmas Day itself is the close.",
+      "pillars": {
+        "retail": "Last-shipping-day cues. Voucher validity closes."
+      },
+      "lanes": {
+        "campaign": "Last-call creative + closing communications.",
+        "crm": "Voucher expiry reminders + gift-recipient thank-you."
+      },
+      "phases": [
+        {
+          "label": "Last call",
+          "weeks_before_peak": 1,
+          "task": "Last shipping dates + voucher cut-off"
+        },
+        {
+          "label": "Cut-off",
+          "weeks_before_peak": 0.4,
+          "task": "Final reminder"
+        },
+        {
+          "label": "Close",
+          "weeks_before_peak": 0,
+          "task": "Vouchers expire, shop closes"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "day-of-goodwill-2026",
+      "name": "Day of Goodwill",
+      "tier": "B-PIN",
+      "category": "shopping-moment",
+      "start": "2026-12-26",
+      "end": "2026-12-27",
+      "public_peak": "2026-12-26",
+      "planning_start": "2026-12-15",
+      "commercial_push": "B-PIN follow-up. Gift-money + voucher redemption + 'didn't get the gear you wanted?' + holiday shopping.",
+      "pillars": {
+        "retail": "Voucher redemption messaging + gift-money hooks."
+      },
+      "lanes": {
+        "campaign": "'Didn't get the golf gear you wanted?' redemption creative.",
+        "crm": "Voucher-holder re-engagement."
+      },
+      "phases": [
+        {
+          "label": "Brief",
+          "weeks_before_peak": 1.5,
+          "task": "Redemption angle + audience"
+        },
+        {
+          "label": "Live",
+          "weeks_before_peak": 0,
+          "task": "Post + voucher-reminder send"
+        }
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "new-year-new-bag-2026",
+      "name": "New Year / New Bag",
+      "tier": "A-PIN",
+      "category": "sustained-arc",
+      "start": "2026-12-27",
+      "end": "2027-01-31",
+      "public_peak": "2027-01-10",
+      "planning_start": "2026-12-15",
+      "commercial_push": "Sustained A/B arc. Fitting + new-equipment decisions + coaching goals + voucher redemption + new-season golf.",
+      "pillars": {
+        "fitting": "New-year fitting — the on-ramp to a Stick-built bag. Putter + iron + wedge fits lead.",
+        "retail": "New-season stock + voucher redemption.",
+        "coaching": "New-year goals + coaching packages."
+      },
+      "lanes": {
+        "campaign": "New Year New Bag content series.",
+        "paid": "New-intent audiences + voucher redemption reminders.",
+        "crm": "Lifecycle — goal-setting prompt + voucher nudge.",
+        "search": "'New year new bag' SEO + landing."
+      },
+      "phases": [
+        {
+          "label": "Plan",
+          "weeks_before_peak": 4,
+          "task": "Decide arc structure + which lanes lead"
+        },
+        {
+          "label": "Capture",
+          "weeks_before_peak": 3,
+          "task": "New-year content + fitting-led creative"
+        },
+        {
+          "label": "Launch",
+          "weeks_before_peak": 2,
+          "task": "Public launch around 27 Dec"
+        },
+        {
+          "label": "Sustain",
+          "weeks_before_peak": 0,
+          "task": "Run through Jan"
+        },
+        {
+          "label": "Close",
+          "weeks_before_peak": -2,
+          "task": "Voucher arc closes end Jan"
+        }
+      ],
+      "shopping_moment": true
+    }
+  ],
+  "shopping_moments_summary": [
+    {
+      "date": "2026-11-11",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "test_only": true
+    },
+    {
+      "date": "2026-11-27",
+      "name": "Black Friday",
+      "tier": "A-PIN"
+    },
+    {
+      "date": "2026-11-30",
+      "name": "Cyber Monday",
+      "tier": "A-PIN",
+      "followup_of": "black-friday-2026"
+    },
+    {
+      "date": "2026-12-16",
+      "name": "Day of Reconciliation",
+      "tier": "C-PIN",
+      "sa_only": true
+    },
+    {
+      "date": "2026-12-25",
+      "name": "Christmas",
+      "tier": "A-PIN"
+    },
+    {
+      "date": "2026-12-26",
+      "name": "Day of Goodwill",
+      "tier": "B-PIN",
+      "followup": true
+    },
+    {
+      "date": "2026-12-31",
+      "name": "New Year's Eve",
+      "tier": "B-PIN"
+    }
+  ]
+}

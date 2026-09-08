@@ -28867,6 +28867,322 @@ def planning_cadences(brand_id):
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+# ─── TIER 3.18 — EVENT-FOCUSED CALENDAR (per heidi.txt 2026-09-08) ────────
+# Herman clarified: planning revolves around EVENTS / COMMERCIAL PUSHES,
+# not monthly themes. The calendar still shows the month grid below for
+# ops, but strategy ABOVE it comes from active events + the 3 always-on
+# pillars (RETAIL / FITTING / COACHING).
+# Tier hierarchy: A-PIN = 6-8 wk runway (orange), B-PIN = 3-4 wk (teal),
+# C-PIN = <2 wk (grey / outlined).
+
+import datetime as _dt
+from datetime import date as _date, timedelta as _td
+
+
+def _load_events_for_year(brand_id, year):
+    """Load the event spine for a brand + year. Falls back across volume/baked paths."""
+    candidates = [
+        os.path.join(_planning_dir(), f"{brand_id}-events-{year}.json"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "brand-planning", f"{brand_id}-events-{year}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as _f:
+                    return json.load(_f), p
+            except Exception:
+                continue
+    return None, None
+
+
+def _event_phase_dates(public_peak, weeks_before, weeks_after=0):
+    """Convert weeks_before/after to start/end dates relative to public_peak."""
+    if not public_peak:
+        return None, None
+    try:
+        peak = _dt.date.fromisoformat(public_peak)
+    except Exception:
+        return None, None
+    start = peak - _td(weeks=int(round(weeks_before * 7)))
+    end = peak + _td(weeks=int(round(weeks_after * 7)))
+    return start.isoformat(), end.isoformat()
+
+
+def _enrich_event(event):
+    """Convert phase weeks_before_peak into absolute sequential date ranges.
+
+    Each phase occupies a slot between consecutive weeks_before_peak values.
+    A NEGATIVE weeks_before_peak means the phase is AFTER peak (follow-up).
+
+    Pre-peak phases: phase_start = peak - weeks_before_peak * 7
+                     phase_end   = next phase's start (peak - next_w * 7)
+
+    Post-peak phases: phase_start = peak + abs(weeks_before_peak) * 7
+                      phase_end   = next phase's start (or + 7 days if last)
+    """
+    enriched = dict(event)
+    peak_str = event.get("public_peak")
+    peak = None
+    if peak_str:
+        try:
+            peak = _dt.date.fromisoformat(peak_str)
+        except Exception:
+            pass
+    raw_phases = list(event.get("phases") or [])
+    # Sort by weeks_before_peak DESCENDING — so phases CLOSEST to peak come first
+    # Pre-peak with positive w: smallest first (earliest)
+    # Post-peak with negative w: largest first (closest after peak)
+    raw_phases.sort(key=lambda p: p.get("weeks_before_peak", 0), reverse=True)
+    phases_out = []
+    for i, ph in enumerate(raw_phases):
+        w = ph.get("weeks_before_peak", 0)
+        if peak is None:
+            phase_start = None
+            phase_end = None
+        else:
+            days_offset = int(round(w * 7))
+            if days_offset >= 0:
+                # Pre-peak: phase_start = peak - days
+                phase_start = (peak - _td(days=days_offset)).isoformat()
+            else:
+                # Post-peak: phase_start = peak + abs(days)
+                phase_start = (peak + _td(days=-days_offset)).isoformat()
+            if i + 1 < len(raw_phases):
+                next_w = raw_phases[i + 1].get("weeks_before_peak", 0)
+                next_days = int(round(next_w * 7))
+                if next_days >= 0:
+                    phase_end = (peak - _td(days=next_days)).isoformat()
+                else:
+                    phase_end = (peak + _td(days=-next_days)).isoformat()
+            else:
+                # Last phase in the list — give it a reasonable end
+                if days_offset >= 0:
+                    phase_end = peak.isoformat()
+                else:
+                    # Post-peak: end 1 week later
+                    phase_end = (peak + _td(days=-days_offset + 7)).isoformat()
+        phases_out.append({
+            "label": ph.get("label"),
+            "task": ph.get("task"),
+            "start": phase_start,
+            "end": phase_end,
+            "weeks_before_peak": w,
+        })
+    # Return in chronological order: pre-peak (largest w first = earliest first),
+    # then peak, then post-peak (most negative first = earliest after peak first).
+    # Cleanest: sort ascending by weeks_before_peak DESC first, so peak/follow-ups at top
+    # Actually simplest: sort ascending by start date
+    phases_out.sort(key=lambda p: p.get("start") or "")
+    enriched["phases"] = phases_out
+    return enriched
+
+
+@app.route("/api/planning/<brand_id>/timeline", methods=["GET"])
+def planning_timeline(brand_id):
+    """GET /api/planning/<brand>/timeline?year=2026
+
+    Returns the event spine (always-on pillars + A/B/C events) for the year.
+    Sorted by start date. Each event includes enriched phase dates so the
+    SPA can render horizontal bars.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year_str = (request.args.get("year") or "").strip()
+    if not year_str:
+        year_str = str(_dt.date.today().year)
+    try:
+        year = int(year_str)
+    except Exception:
+        return jsonify({"ok": False, "error": f"invalid year: {year_str}"}), 400
+
+    spine, source = _load_events_for_year(brand_id, year)
+    if not spine:
+        return jsonify({"ok": False, "brand_id": brand_id, "year": year,
+                        "error": "no event spine for this brand/year",
+                        "expected": f"data/brand-planning/{brand_id}-events-{year}.json"}), 404
+
+    events = [_enrich_event(e) for e in (spine.get("events") or [])]
+    events.sort(key=lambda e: e.get("start") or "")
+
+    counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
+    for e in events:
+        counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "year": year,
+        "always_on_pillars": spine.get("always_on_pillars") or [],
+        "events": events,
+        "shopping_moments_summary": spine.get("shopping_moments_summary") or [],
+        "tier_counts": counts,
+        "source": source,
+        "event_count": len(events),
+        "shopping_moment_count": sum(1 for e in events if e.get("shopping_moment")),
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/right-now", methods=["GET"])
+def planning_right_now(brand_id):
+    """GET /api/planning/<brand>/right-now
+
+    Operational strip: what is the brand pushing RIGHT NOW across the 3
+    pillars + active A/B-PINs + next major deadline.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    today = _dt.date.today()
+    horizon = today + _td(days=90)
+    spine, source = _load_events_for_year(brand_id, today.year)
+
+    active_a = []
+    active_b = []
+    active_c = []
+    upcoming_deadlines = []
+    next_major = None
+
+    if spine:
+        for ev in (spine.get("events") or []):
+            try:
+                start = _dt.date.fromisoformat(ev.get("start"))
+                end = _dt.date.fromisoformat(ev.get("end"))
+            except Exception:
+                continue
+            tier = ev.get("tier")
+            # Active = peak window within +/- 7 days OR campaign window
+            peak_str = ev.get("public_peak")
+            peak = None
+            if peak_str:
+                try:
+                    peak = _dt.date.fromisoformat(peak_str)
+                except Exception:
+                    pass
+            in_window = (start <= today <= end) or (peak and abs((today - peak).days) <= 7)
+            if in_window and tier == "A-PIN":
+                active_a.append(ev)
+            elif in_window and tier == "B-PIN":
+                active_b.append(ev)
+            elif in_window and tier == "C-PIN":
+                active_c.append(ev)
+            # Upcoming deadlines (within horizon)
+            for d in (ev.get("deadlines") or []):
+                try:
+                    due = _dt.date.fromisoformat(d.get("due"))
+                    if today <= due <= horizon:
+                        upcoming_deadlines.append({"event_id": ev.get("id"), "event_name": ev.get("name"),
+                                                   "tier": tier, "due": d.get("due"),
+                                                   "label": d.get("label")})
+                except Exception:
+                    continue
+            # Next major (next A-PIN peak after today)
+            if tier == "A-PIN" and peak and peak >= today:
+                if not next_major or peak < _dt.date.fromisoformat(next_major.get("public_peak")):
+                    next_major = ev
+        # Sort deadlines by due date
+        upcoming_deadlines.sort(key=lambda d: d.get("due") or "")
+
+    # Pull always-on pillar current_push_summary from spine
+    always_on = (spine or {}).get("always_on_pillars") or []
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "today": today.isoformat(),
+        "right_now": {
+            "retail": next((p.get("current_push_summary") for p in always_on if p.get("id") == "retail-always-on"), None),
+            "fitting": next((p.get("current_push_summary") for p in always_on if p.get("id") == "fitting-always-on"), None),
+            "coaching": next((p.get("current_push_summary") for p in always_on if p.get("id") == "coaching-always-on"), None),
+        },
+        "active_a_pins": active_a,
+        "active_b_pins": active_b,
+        "active_c_pins": active_c,
+        "active_a_count": len(active_a),
+        "active_b_count": len(active_b),
+        "active_c_count": len(active_c),
+        "next_major_deadline": upcoming_deadlines[0] if upcoming_deadlines else None,
+        "upcoming_deadlines": upcoming_deadlines[:10],
+        "next_major_a_pin": next_major,
+        "source": source,
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/event/<event_id>", methods=["GET"])
+def planning_event_detail(brand_id, event_id):
+    """GET /api/planning/<brand>/event/<event_id>
+
+    Full event detail: phases + pillar pushes + supporting lanes + deadlines.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Search current year + next year for the event
+    today = _dt.date.today()
+    for yr in (today.year, today.year + 1):
+        spine, source = _load_events_for_year(brand_id, yr)
+        if not spine:
+            continue
+        for ev in (spine.get("events") or []):
+            if ev.get("id") == event_id:
+                enriched = _enrich_event(ev)
+                # Add always-on pillar context if relevant
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "year": yr,
+                    "event": enriched,
+                    "always_on_pillars": spine.get("always_on_pillars") or [],
+                    "source": source,
+                }), 200
+    return jsonify({"ok": False, "error": "event not found", "event_id": event_id}), 404
+
+
+@app.route("/api/shopping-moments", methods=["GET"])
+def shopping_moments():
+    """GET /api/shopping-moments?year=2026&brand=stick
+
+    Filtered list of A-PIN / B-PIN events that are commercial retail moments.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year_str = (request.args.get("year") or str(_dt.date.today().year)).strip()
+    brand = (request.args.get("brand") or "stick").strip()
+    try:
+        year = int(year_str)
+    except Exception:
+        return jsonify({"ok": False, "error": f"invalid year: {year_str}"}), 400
+    spine, source = _load_events_for_year(brand, year)
+    if not spine:
+        return jsonify({"ok": False, "year": year, "brand": brand, "error": "no spine"}), 404
+
+    moments = []
+    for ev in (spine.get("events") or []):
+        if not ev.get("shopping_moment"):
+            continue
+        if ev.get("tier") == "C-PIN" and not ev.get("category") in ("test-moment",):
+            # C-PIN retail moments are test-only per heidi.txt #10
+            pass
+        moments.append({
+            "id": ev.get("id"),
+            "name": ev.get("name"),
+            "tier": ev.get("tier"),
+            "start": ev.get("start"),
+            "end": ev.get("end"),
+            "public_peak": ev.get("public_peak"),
+            "category": ev.get("category"),
+            "commercial_push": ev.get("commercial_push"),
+            "shopping_moment": True,
+            "test_only": ev.get("tier") == "C-PIN",
+        })
+    moments.sort(key=lambda m: m.get("start") or "")
+
+    return jsonify({
+        "ok": True,
+        "brand": brand,
+        "year": year,
+        "moments": moments,
+        "count": len(moments),
+        "source": source,
+    }), 200
+
 
 if __name__ == '__main__':
     import sys as _sys
