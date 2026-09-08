@@ -19374,29 +19374,6 @@ def _app_runtime_info():
         "flask_version": __import__("flask").__version__,
     }
 
-if __name__ == '__main__':
-    import sys as _sys
-    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
-    try:
-        _boot_load_persisted_secrets()
-        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    try:
-        _boot_selfheal_windsor()
-        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    port = int(os.environ.get('PORT', 8000))
-    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
-    try:
-        app.run(host='0.0.0.0', port=port)
-    except Exception as _e:
-        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
-        raise
-
-
-
 # ── Staleness gates (added 2026-09-01 — restored after corruption) ─────────
 
 DEFAULT_MAX_AGE_DAYS = {
@@ -27964,6 +27941,18 @@ import time as _time
 # not in a separate tool.
 
 PLANNING_DIR = os.path.join(DATA_DIR, "brand-planning")
+PLANNING_DIR_BAKED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "brand-planning")
+
+
+def _planning_dir():
+    """Return the brand-planning dir, preferring DATA_DIR (Railway volume)
+    but falling back to baked /app/data/brand-planning/ if needed.
+    """
+    if os.path.isdir(PLANNING_DIR) and os.listdir(PLANNING_DIR):
+        return PLANNING_DIR
+    if os.path.isdir(PLANNING_DIR_BAKED) and os.listdir(PLANNING_DIR_BAKED):
+        return PLANNING_DIR_BAKED
+    return PLANNING_DIR
 IMPORTANT_DATES_DIR = os.path.join(DATA_DIR, "important-dates")
 GOLF_MOMENTS_DIR = os.path.join(DATA_DIR, "golf-moments")
 
@@ -27981,7 +27970,7 @@ LANE_TYPES = [
 
 
 def _read_planning(brand_id):
-    p = os.path.join(PLANNING_DIR, f"{brand_id}.json")
+    p = os.path.join(_planning_dir(), f"{brand_id}.json")
     if not os.path.exists(p):
         return None
     try:
@@ -28088,7 +28077,7 @@ def planning_monthly_theme(brand_id):
         themes.sort(key=lambda t: t.get("month", ""))
         data["monthly_themes"] = themes
         os.makedirs(PLANNING_DIR, exist_ok=True)
-        with open(os.path.join(PLANNING_DIR, f"{brand_id}.json"), "w") as f:
+        with open(os.path.join(_planning_dir(), f"{brand_id}.json"), "w") as f:
             json.dump(data, f, indent=2)
         return jsonify({"ok": True, "brand_id": brand_id, "month": month, "theme": theme,
                         "themes_count": len(themes)}), 200
@@ -28139,9 +28128,9 @@ def planning_lane_health(brand_id):
     # Aggregate from 3 sources (Herman sample first):
     counts = {lane["lane"]: 0 for lane in lane_system}
     items = []
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-herman-sample-month.json")
     if not os.path.exists(sample_path):
-        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+        sample_path = os.path.join(_planning_dir(), f"{brand_id}-sample-month.json")
     if os.path.exists(sample_path):
         try:
             with open(sample_path) as f:
@@ -28268,12 +28257,12 @@ def planning_monthly_plan(brand_id):
             "must_produce": body.get("must_produce", []),
             "approved": False,
         }
-        plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+        plan_path = os.path.join(_planning_dir(), f"{brand_id}-monthly-plan-{month}.json")
         with open(plan_path, "w") as f:
             json.dump(plan, f, indent=2)
         return jsonify({"ok": True, "plan": plan, "saved_to": plan_path}), 200
     # GET
-    plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+    plan_path = os.path.join(_planning_dir(), f"{brand_id}-monthly-plan-{month}.json")
     plan = None
     if os.path.exists(plan_path):
         try:
@@ -28443,10 +28432,10 @@ def planning_month_view(brand_id):
     #   2. _lib.marketing_lanes.list_extended_content — canonical content items
     #   3. data/content_items.json — fallback
     items = []
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-herman-sample-month.json")
     if not os.path.exists(sample_path):
         # Fall back to legacy sample file
-        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+        sample_path = os.path.join(_planning_dir(), f"{brand_id}-sample-month.json")
     if os.path.exists(sample_path):
         try:
             with open(sample_path) as f:
@@ -28703,7 +28692,7 @@ def planning_herman_sample(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-herman-sample-month.json")
     if not os.path.exists(sample_path):
         return jsonify({"ok": False, "error": "no herman sample data", "expected": sample_path}), 404
     try:
@@ -28772,8 +28761,8 @@ def planning_month_sample(brand_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     # Prefer the realistic parallel week if it exists
-    realistic_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
-    legacy_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-october.json")
+    realistic_path = os.path.join(_planning_dir(), f"{brand_id}-sample-week-oct5-11.json")
+    legacy_path = os.path.join(_planning_dir(), f"{brand_id}-sample-october.json")
     sample_path = realistic_path if os.path.exists(realistic_path) else legacy_path
     if not os.path.exists(sample_path):
         return jsonify({"ok": False, "error": "no sample month data"}), 404
@@ -28821,7 +28810,7 @@ def planning_week_sample(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-sample-week-oct5-11.json")
     if not os.path.exists(sample_path):
         return jsonify({"ok": False, "error": "no sample week data"}), 404
     try:
@@ -28868,7 +28857,7 @@ def planning_cadences(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    cadences_path = os.path.join(PLANNING_DIR, f"{brand_id}-cadences.json")
+    cadences_path = os.path.join(_planning_dir(), f"{brand_id}-cadences.json")
     if not os.path.exists(cadences_path):
         return jsonify({"ok": False, "error": "no cadence config"}), 404
     try:
@@ -28877,3 +28866,29 @@ def planning_cadences(brand_id):
         return jsonify({"ok": True, **data}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+if __name__ == '__main__':
+    import sys as _sys
+    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
+    try:
+        _boot_load_persisted_secrets()
+        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_selfheal_windsor()
+        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    port = int(os.environ.get('PORT', 8000))
+    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except Exception as _e:
+        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
+        raise
+
+
+
+
