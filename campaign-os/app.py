@@ -14670,7 +14670,12 @@ def intel_brand_context():
 #   • Cron /api/weekly-report/snapshot?brand=<id>  (archive current week)
 
 WEEKLY_REPORT_DATA_DIR = os.path.join(DATA_DIR, 'weekly-snapshots')
-os.makedirs(WEEKLY_REPORT_DATA_DIR, exist_ok=True)
+try:
+    os.makedirs(WEEKLY_REPORT_DATA_DIR, exist_ok=True)
+except (OSError, PermissionError):
+    # Persistent volume mount may be read-only at module import;
+    # dir already exists from previous deploy.
+    pass
 
 
 def _weekly_brand_meta(bid):
