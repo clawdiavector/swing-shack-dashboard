@@ -1,5 +1,10 @@
 FROM python:3.12-slim
 
+# git is required by Railway build context + some app-level metadata capture.
+# Without it: 'Git clone failed (non-fatal): [Errno 2] No such file or directory: git'
+RUN apt-get update && apt-get install -y --no-install-recommends git curl \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install deps first (better layer caching)
