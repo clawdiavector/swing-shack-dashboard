@@ -620,6 +620,291 @@ a:hover{text-decoration:underline}
 .help-collapsible .hc-body .hc-warn{color:var(--ac)}
 .help-collapsible .hc-body ul{margin:.35rem 0 .65rem;padding-left:1.2rem}
 .help-collapsible .hc-body li{margin-bottom:.25rem}
+
+      /* ─── Strategic Calendar — lane color palette ─── */
+      :root {
+        --lane-product: #f0a030;     /* amber — primary */
+        --lane-fitting: #14b8a6;     /* teal — fitting precision */
+        --lane-coaching: #d4af37;    /* gold — expertise */
+        --lane-workshop: #84cc16;    /* lime — workshop craft */
+        --lane-human: #f97316;       /* deep orange — people warmth */
+        --lane-apparel: #ec4899;     /* pink — PB bold */
+        --lane-campaign: #ef4444;    /* red — campaign energy */
+        --lane-paid: #a855f7;        /* purple — paid media */
+        --lane-search: #3b82f6;      /* blue — search */
+        --lane-commercial: #06b6d4;  /* cyan — commercial CTA */
+        --lane-crm: #6b7280;         /* grey — lifecycle */
+      }
+      #sec-planning .pl-lane-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .01em;
+        cursor: pointer;
+        transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+        border: 1px solid transparent;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      #sec-planning .pl-lane-chip:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,.18);
+      }
+      #sec-planning .pl-lane-chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      #sec-planning .pl-day-cell {
+        background: var(--bg-2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        min-height: 110px;
+        padding: 8px;
+        cursor: pointer;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        position: relative;
+        overflow: hidden;
+      }
+      #sec-planning .pl-day-cell:hover {
+        background: var(--bg-1);
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
+      #sec-planning .pl-day-cell.is-today {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(240,160,48,0.25);
+      }
+      #sec-planning .pl-day-cell.is-weekend {
+        background: rgba(0,0,0,0.06);
+      }
+      #sec-planning .pl-day-cell.is-other-month {
+        opacity: 0.4;
+      }
+      #sec-planning .pl-day-cell.is-featured {
+        border-color: #f0a030;
+        box-shadow: 0 0 0 2px rgba(240,160,48,0.15);
+      }
+      #sec-planning .pl-day-num {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--tx-2);
+        margin-bottom: 2px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      #sec-planning .pl-day-cell.is-today .pl-day-num {
+        color: var(--accent);
+      }
+      #sec-planning .pl-day-parallel {
+        font-size: 9px;
+        color: var(--tx-3);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+      #sec-planning .pl-day-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        align-items: flex-start;
+      }
+      #sec-planning .pl-day-empty {
+        font-size: 9px;
+        color: var(--tx-3);
+        font-style: italic;
+      }
+      #sec-planning .pl-dow-header {
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--tx-3);
+        padding: 6px 0;
+      }
+      #sec-planning .pl-dow-header.is-weekend {
+        color: var(--accent);
+      }
+      #sec-planning .pl-important-date {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 6px;
+        margin-bottom: 4px;
+        background: var(--bg-2);
+        border-left: 3px solid var(--accent);
+      }
+      #sec-planning .pl-important-date.is-a-pin {
+        border-left-color: #ef4444;
+        background: linear-gradient(90deg, rgba(239,68,68,0.08), transparent 50%);
+      }
+      #sec-planning .pl-important-date.is-b-pin {
+        border-left-color: #f0a030;
+        background: linear-gradient(90deg, rgba(240,160,48,0.06), transparent 50%);
+      }
+      #sec-planning .pl-important-date.is-c-pin {
+        border-left-color: #6b7280;
+      }
+      #sec-planning .pl-important-date .pl-idate-name {
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--tx);
+      }
+      #sec-planning .pl-important-date .pl-idate-type {
+        font-size: 9.5px;
+        color: var(--tx-3);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin-top: 1px;
+      }
+      #sec-planning .pl-important-date .pl-idate-date {
+        font-size: 10px;
+        color: var(--tx-3);
+        font-weight: 600;
+      }
+      #sec-planning .pl-runway-row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .35rem 0;
+        border-bottom: 1px solid var(--bd);
+      }
+      #sec-planning .pl-runway-row:last-child {
+        border-bottom: none;
+      }
+      #sec-planning .pl-runway-row .pl-rw-when {
+        min-width: 100px;
+        font-weight: 700;
+        color: #f0a030;
+        font-size: 11px;
+        letter-spacing: .03em;
+      }
+      #sec-planning .pl-runway-row .pl-rw-what {
+        flex: 1;
+        color: var(--tx-2);
+        font-size: 11px;
+      }
+      #sec-planning .pl-lane-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 9px;
+        background: var(--bg-2);
+        border-radius: 5px;
+        margin-bottom: 3px;
+        font-size: 12px;
+      }
+      #sec-planning .pl-lane-row .pl-lane-name {
+        font-weight: 600;
+      }
+      #sec-planning .pl-lane-row .pl-lane-count {
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+      #sec-planning .pl-gap {
+        padding: 6px 10px;
+        background: rgba(245,158,11,0.08);
+        border-left: 3px solid var(--warning);
+        border-radius: 0 6px 6px 0;
+        margin-bottom: 4px;
+        font-size: 11px;
+      }
+      #sec-planning .pl-gap b {
+        color: var(--warning);
+      }
+      #sec-planning .pl-theme-why-block {
+        padding: 8px 10px;
+        background: var(--bg-2);
+        border-radius: 6px;
+        margin-bottom: 6px;
+      }
+      #sec-planning .pl-theme-why-block .pl-why-label {
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--tx-3);
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      #sec-planning .pl-theme-why-block .pl-why-text {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--tx);
+      }
+      #sec-planning .pl-drawer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: .75rem;
+        border-bottom: 1px solid var(--bd);
+      }
+      #sec-planning .pl-drawer-item {
+        padding: 12px;
+        background: var(--bg-2);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: background .12s ease;
+      }
+      #sec-planning .pl-drawer-item:hover {
+        background: var(--bg-1);
+      }
+      #sec-planning .pl-drawer-item .pl-di-meta {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: 4px;
+      }
+      #sec-planning .pl-drawer-item .pl-di-title {
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+      #sec-planning .pl-drawer-item .pl-di-sub {
+        font-size: 12px;
+        color: var(--tx-2);
+        margin-bottom: 6px;
+      }
+      #sec-planning .pl-drawer-item .pl-di-detail {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 3px 12px;
+        font-size: 11px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--bd);
+      }
+      #sec-planning .pl-drawer-item .pl-di-detail .pl-di-key {
+        color: var(--tx-3);
+        font-weight: 600;
+      }
+      /* Featured-day banner */
+      #sec-planning .pl-featured-banner {
+        margin-top: .75rem;
+        padding: 10px 14px;
+        background: linear-gradient(135deg, rgba(240,160,48,0.15), rgba(240,160,48,0.05));
+        border: 1px solid #f0a030;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #f0a030;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+      }
 </style>
 <style>
 /* ─── ONBOARDING (Tier 3 — Audit V1 fix, 2026-09-03) ─── */
@@ -11453,540 +11738,385 @@ function _plMonth() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
+// ─── STRATEGIC CALENDAR (Tier 3.15.1 — Polished, color-coded, human-friendly) ──
+const LANE_META = {
+  product:     { color: 'var(--lane-product)',     label: 'PRODUCT · Why It\'s Here', purpose: 'Keeps real stock visible and sellable.' },
+  fitting:     { color: 'var(--lane-fitting)',     label: 'FITTING · Fit First',     purpose: 'Builds demand for custom fitting.' },
+  coaching:    { color: 'var(--lane-coaching)',    label: 'COACHING · Ask Stick',    purpose: 'Shows expertise + improvement.' },
+  workshop:    { color: 'var(--lane-workshop)',    label: 'WORKSHOP · Built At Stick', purpose: 'Proves technical capability.' },
+  human:       { color: 'var(--lane-human)',       label: 'HUMAN / TRUST',           purpose: 'Shows the real people behind Stick.' },
+  apparel:     { color: 'var(--lane-apparel)',     label: 'APPAREL · Style That Belongs', purpose: 'Keeps clothing + style visible.' },
+  campaign:    { color: 'var(--lane-campaign)',    label: 'CAMPAIGN',                purpose: 'Supports seasonal / sales pushes.' },
+  paid:        { color: 'var(--lane-paid)',        label: 'PAID',                    purpose: 'Active media support.' },
+  search:      { color: 'var(--lane-search)',      label: 'SEARCH',                  purpose: 'Owned-content + website actions.' },
+  commercial:  { color: 'var(--lane-commercial)',  label: 'COMMERCIAL',              purpose: 'Direct-response CTA push.' },
+  crm:         { color: 'var(--lane-crm)',         label: 'CRM',                     purpose: 'Lifecycle + repeat.' },
+};
+
+const PIN_COLORS = {
+  'A-PIN': { bg: 'rgba(239,68,68,0.10)', fg: '#ef4444', label: 'A-PIN major' },
+  'B-PIN': { bg: 'rgba(240,160,48,0.10)', fg: '#f0a030', label: 'B-PIN content week' },
+  'C-PIN': { bg: 'rgba(108,114,128,0.10)', fg: '#6b7280', label: 'C-PIN light' },
+};
+
+let _planningData = null;
+let _planningLaneFilter = '';
+
+function _todayIso() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function _shiftMonth(month, delta) {
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return d.toISOString().slice(0, 7);
+}
+
+function _plBrand() { return document.getElementById('pl-brand')?.value || 'stick'; }
+function _plMonth() { return document.getElementById('pl-month')?.value || '2026-10'; }
+
 async function renderPlanning() {
   const brand = _plBrand();
   const month = _plMonth();
+  // Fetch all in parallel
+  const [bigIdea, mv, tw, lh, imp] = await Promise.all([
+    API.get('/api/planning/' + brand + '/big-idea').catch(() => ({ ok: false })),
+    API.get('/api/planning/' + brand + '/month?month=' + month).catch(() => ({ ok: false })),
+    API.get('/api/planning/' + brand + '/theme-why?month=' + month).catch(() => ({ ok: false })),
+    API.get('/api/planning/' + brand + '/lane-health?month=' + month).catch(() => ({ ok: false })),
+    API.get('/api/important-dates?year=' + month.slice(0, 4)).catch(() => ({ ok: false })),
+  ]);
+  _planningData = { bigIdea, mv, tw, lh, imp };
+  renderHero(brand, bigIdea, mv);
+  renderLaneHealth(lh);
+  renderImportantDates(imp, month);
+  renderThemeWhy(tw);
+  renderRunway();
+  renderLaneLegend();
+  renderCalendar(mv);
+}
 
-  // 1. Big idea
-  const bi = await API.get('/api/planning/' + brand + '/big-idea');
-  if (bi.ok) {
-    const idea = bi.big_brand_idea || {};
-    const el1 = document.getElementById('pl-big-idea');
-    if (el1) el1.textContent = idea.name || '— not set —';
-    const el2 = document.getElementById('pl-big-idea-belief');
-    if (el2) el2.textContent = idea.belief ? '"' + idea.belief + '"' : '';
-  }
+function renderHero(brand, bigIdea, mv) {
+  const idea = (bigIdea?.big_brand_idea) || {};
+  const theme = (mv?.monthly_theme) || {};
+  document.getElementById('pl-hero-brand').textContent = brand === 'stick' ? 'STICK' : brand === 'swing-shack' ? 'SWING SHACK' : 'BAG DROP';
+  document.getElementById('pl-hero-bigidea').textContent = idea.name || (mv?.big_brand_idea?.name) || '—';
+  document.getElementById('pl-hero-belief').textContent = idea.belief ? '“' + idea.belief + '”' : '';
+  document.getElementById('pl-hero-theme').textContent = theme.theme || '—';
+  document.getElementById('pl-hero-question').textContent = theme.question || '';
+  // Theme summary bullets
+  const sumEl = document.getElementById('pl-hero-summary');
+  const summary = theme.monthly_theme_summary || mv?.sample?.monthly_theme_summary || [];
+  sumEl.innerHTML = summary.length
+    ? summary.map(b => '<li>' + esc(b) + '</li>').join('')
+    : '<li style="color:var(--tx-3);font-style:italic">Set a monthly theme summary in the monthly plan workflow.</li>';
+}
 
-  // 2. Month view (carries monthly theme + active campaigns + important dates)
-  const mv = await API.get('/api/planning/' + brand + '/month?month=' + month);
-  if (mv.ok) {
-    const mt = mv.monthly_theme || {};
-    document.getElementById('pl-monthly-theme').textContent = mt.theme || '— not set —';
-    document.getElementById('pl-monthly-theme-q').textContent = mt.question || '';
-    // Lanes emphasis
-    const lanesEl = document.getElementById('pl-lanes-emphasis');
-    if (lanesEl) {
-      lanesEl.innerHTML = (mt.lanes_emphasis || []).map(l => '<span class="pill on">' + esc(l) + '</span>').join('');
-    }
-    // Active campaigns
-    const cEl = document.getElementById('pl-active-campaigns');
-    if (cEl) {
-      cEl.innerHTML = (mv.active_campaigns || []).map(c => '<span class="pill live">' + esc(c.name) + ' · ' + esc(c.phase) + '</span>').join('');
-    }
-    // Important dates
-    const idEl = document.getElementById('pl-important-dates');
-    if (idEl) {
-      const dates = mv.important_dates || [];
-      if (dates.length === 0) {
-        idEl.innerHTML = '<div class="muted">No important dates this month.</div>';
-      } else {
-        idEl.innerHTML = dates.map(d => {
-          const dot = d.type === 'GOLF_EVENT' ? '⛳' : d.type === 'PUBLIC_HOLIDAY' ? '🏛️'
-            : d.type === 'RETAIL_MOMENT' ? '🛍️' : d.type === 'BRAND_EVENT' ? '🎯'
-            : d.type === 'SCHOOL_HOLIDAY' ? '🎒' : '📌';
-          return '<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem;border-bottom:1px solid var(--bd)"><div style="font-size:18px">' + dot + '</div><div style="flex:1"><div style="font-weight:600">' + esc(d.name) + '</div><div style="font-size:10px;color:var(--tx-3)">' + esc(d.type) + ' · ' + esc(d.date) + '</div></div></div>';
-        }).join('');
-      }
-    }
-    // Month view (parallel lanes)
-    const mvEl = document.getElementById('pl-month-view');
-    if (mvEl) {
-      const days = mv.days || {};
-      const dayKeys = Object.keys(days).sort();
-      if (dayKeys.length === 0) {
-        mvEl.innerHTML = '<div class="muted">No content scheduled yet. Use BUILD POST or the monthly plan workflow to propose content.</div>';
-      } else {
-        // Group by day, show all lanes in parallel
-        mvEl.innerHTML = dayKeys.map(day => {
-          const items = days[day] || [];
-          const lanes = [...new Set(items.map(i => i.lane || 'unknown'))];
-          return '<div style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem"><div style="font-weight:600">' + esc(day) + '</div><div style="display:flex;gap:.2rem;flex-wrap:wrap">' + lanes.map(l => '<span class="pill muted" style="font-size:10px">' + esc(l) + '</span>').join('') + '</div></div>' +
-            items.map(i => '<div style="font-size:11px;padding:.3rem;border-left:3px solid var(--accent);margin-left:.3rem;margin-bottom:.2rem">' + esc(i.lane || 'unknown') + ': ' + esc(i.title || i.hook || i.id || 'untitled') + ' <span class="muted">[' + esc(i.status || '?') + ']</span></div>').join('') +
-            '</div>';
-        }).join('');
-      }
-    }
-  }
-
-  // 3. Lane health
-  const lh = await API.get('/api/planning/' + brand + '/lane-health?month=' + month);
-  if (lh.ok) {
-    const counts = lh.lane_counts || {};
-    const total = lh.total_planned || 0;
-    const summaryEl = document.getElementById('pl-lane-health-summary');
-    if (summaryEl) summaryEl.textContent = total + ' planned';
-    const lhEl = document.getElementById('pl-lane-health');
-    if (lhEl) {
-      const laneNames = Object.keys(counts);
-      if (laneNames.length === 0) {
-        lhEl.innerHTML = '<div class="muted">No lanes configured for this brand.</div>';
-      } else {
-        lhEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:.3rem">' + laneNames.map(l => {
-          const n = counts[l] || 0;
-          return '<div style="display:flex;justify-content:space-between;padding:.3rem .5rem;background:var(--bg-2);border-radius:4px"><span>' + esc(l) + '</span><b>' + n + '</b></div>';
-        }).join('') + '</div>';
-      }
-    }
-    const gapsEl = document.getElementById('pl-lane-gaps');
-    if (gapsEl) {
-      const gaps = lh.gaps || [];
-      if (gaps.length === 0) {
-        gapsEl.innerHTML = '<div class="pill on" style="font-size:11px">✓ No gaps flagged this period.</div>';
-      } else {
-        gapsEl.innerHTML = gaps.map(g => '<div style="padding:.4rem .6rem;background:rgba(245,158,11,0.1);border-left:3px solid var(--warning);border-radius:0 6px 6px 0;margin-bottom:.3rem;font-size:11px"><b>' + esc(g.signal) + '</b><br>' + esc(g.message) + '</div>').join('');
-      }
-    }
-  }
-
-  // 4. Why this theme
-  const tw = await API.get('/api/planning/' + brand + '/theme-why?month=' + month);
-  if (tw.ok) {
-    const twEl = document.getElementById('pl-theme-why');
-    if (twEl) {
-      twEl.innerHTML = '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">WHY THIS THEME:</b><br>' + esc(tw.why_this_theme || '—') + '</div>'
-        + '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">SUPPORTED BET:</b><br>' + esc(tw.supported_bet || '—') + '</div>'
-        + '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">WHAT WE PROVE:</b><br>' + esc(tw.what_we_prove || '—') + '</div>'
-        + '<div style="margin-bottom:.5rem"><b style="color:var(--tx-3);font-size:11px">WHAT CHANGES IT:</b><br>' + esc(tw.what_changes_it || '—') + '</div>'
-        + '<div><b style="color:var(--tx-3);font-size:11px">LANES EXPRESSING IT:</b> ' + (tw.lanes_expressing_it || []).map(l => '<span class="pill on" style="font-size:10px;margin-right:.2rem">' + esc(l) + '</span>').join('') + '</div>';
-    }
-  }
-
-  // 5. Production runway
-  const wt = await API.get('/api/planning/' + brand + '/weekly-traffic?week_start=' + month + '-01');
-  if (wt.ok) {
-    const runwayEl = document.getElementById('pl-runway');
-    if (runwayEl) {
-      runwayEl.innerHTML = (wt.production_runway || []).map(r =>
-        '<div style="display:flex;gap:1rem;padding:.4rem;border-bottom:1px solid var(--bd);align-items:center"><div style="font-weight:600;color:var(--accent);min-width:120px">' + esc(r.window) + '</div><div style="flex:1;color:var(--tx-2)">' + esc(r.what) + '</div></div>'
+function renderLaneHealth(lh) {
+  const el = document.getElementById('pl-lane-health');
+  const gapsEl = document.getElementById('pl-lane-gaps');
+  if (!lh?.ok) { el.innerHTML = '<div class="muted">No lane data.</div>'; if (gapsEl) gapsEl.innerHTML = ''; return; }
+  const counts = lh.lane_counts || {};
+  const total = lh.total_planned || 0;
+  const lanes = Object.keys(LANE_META).filter(l => counts[l]);
+  el.innerHTML = '<div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">' + total + ' items across ' + lanes.length + ' lanes.</div>'
+    + lanes.map(l => {
+      const meta = LANE_META[l];
+      const n = counts[l];
+      return '<div class="pl-lane-row"><span class="pl-lane-name" style="color:' + meta.color + '">' + esc(meta.label) + '</span>'
+        + '<span class="pl-lane-count" style="background:' + meta.color + '22;color:' + meta.color + ';border:1px solid ' + meta.color + '55">' + n + '</span></div>';
+    }).join('');
+  if (gapsEl) {
+    const gaps = lh.gaps || [];
+    if (gaps.length === 0) {
+      gapsEl.innerHTML = '<div style="font-size:11px;color:var(--success);padding:6px 0">✓ No gaps flagged this period.</div>';
+    } else {
+      gapsEl.innerHTML = gaps.map(g =>
+        '<div class="pl-gap"><b>' + esc(g.signal) + '</b><br>' + esc(g.message) + '</div>'
       ).join('');
     }
   }
-
-  // 6. Sample month
-  const sm = await API.get('/api/planning/' + brand + '/month-sample');
-  if (sm.ok) {
-    const sample = sm.sample || {};
-    const smEl = document.getElementById('pl-month-sample');
-    if (smEl) {
-      const weeks = sample.weeks || [];
-      smEl.innerHTML = '<div style="margin-bottom:.5rem"><b>' + esc(sample.month_name || sample.month) + '</b> · Big idea: ' + esc((sample.big_brand_idea || {}).name || '?') + ' · Theme: ' + esc(sample.monthly_theme || '?') + '</div>'
-        + weeks.map(w => {
-          const days = w.lanes_in_action || [];
-          return '<div style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:6px"><div style="font-weight:600;margin-bottom:.3rem">' + esc(w.week_label || 'Week') + '</div>'
-            + days.map(d => '<div style="display:flex;gap:.5rem;padding:.3rem;border-bottom:1px solid var(--bd)"><div style="min-width:80px;font-weight:600;color:var(--accent)">' + esc(d.day) + ' ' + esc(d.date) + '</div><div style="flex:1;display:flex;flex-wrap:wrap;gap:.3rem">' + (d.items || []).map(i => '<span class="pill ' + (i.asset_status === 'READY' ? 'on' : i.asset_status === 'NEEDS_CAPTURE' ? 'live' : 'muted') + '" style="font-size:10px" title="' + esc(i.asset_status) + '">' + esc(i.lane) + ': ' + esc(i.title) + '</span>').join('') + '</div></div>').join('')
-            + '</div>';
-        }).join('');
-    }
-  }
 }
 
-async function plLoadWeek() {
-  const brand = _plBrand();
-  const weekStart = document.getElementById('pl-week-start')?.value || _plMonth() + '-01';
-  const wt = await API.get('/api/planning/' + brand + '/weekly-traffic?week_start=' + weekStart);
-  if (!wt.ok) { toast('Load failed: ' + wt.error, true); return; }
-  const buckets = wt.buckets || {};
-  const counts = wt.counts || {};
-  const el = document.getElementById('pl-weekly-traffic');
-  if (el) {
-    const labels = {
-      going_live: '📤 Going live',
-      needs_capture: '🎥 Needs capture',
-      needs_design: '🎨 Needs design / generation',
-      needs_approval: '👀 Needs approval',
-      product_push: '🛒 Product / service push',
-      paid_support: '💰 Paid support',
-      blocked: '⛔ Blocked'
-    };
-    el.innerHTML = Object.keys(labels).map(k =>
-      '<div style="display:flex;gap:.5rem;align-items:center;padding:.3rem;border-bottom:1px solid var(--bd)"><div style="min-width:200px">' + labels[k] + '</div><b>' + (counts[k] || 0) + '</b></div>'
-    ).join('') + '<div style="margin-top:.5rem;font-size:10px;color:var(--tx-3);font-style:italic">' + esc(wt.disclaimer || '') + '</div>';
-  }
-}
-
-async function plLoadMonthlyPlan() {
-  const brand = _plBrand();
-  const month = _plMonth();
-  const r = await API.get('/api/planning/' + brand + '/monthly-plan?month=' + month);
-  if (!r.ok) { toast('Plan load failed: ' + r.error, true); return; }
-  const formEl = document.getElementById('pl-monthly-plan-form');
-  if (!formEl) return;
-  const questions = r.questions || [];
-  const plan = r.plan || {};
-  formEl.innerHTML = '<form id="pl-month-form">' + questions.map((q, i) => {
-    const v = (plan[q.key] || '').toString();
-    return '<div style="margin-bottom:.75rem"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:.25rem">' + (i + 1) + '. ' + esc(q.q) + '</label><textarea data-key="' + esc(q.key) + '" rows="2" style="width:100%;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:.5rem;font-family:inherit;font-size:12px">' + esc(v) + '</textarea></div>';
-  }).join('') + '<button type="submit" class="btn primary">Save monthly plan (proposed)</button></form>';
-  document.getElementById('pl-month-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const body = { month, brand_id: brand };
-    document.querySelectorAll('#pl-month-form textarea[data-key]').forEach(ta => {
-      body[ta.dataset.key] = ta.value;
+function renderImportantDates(imp, month) {
+  const el = document.getElementById('pl-important-dates');
+  if (!imp?.ok) { el.innerHTML = '<div class="muted">No dates loaded.</div>'; return; }
+  const dates = (imp.by_type || {});
+  // Flatten and filter to current month
+  const flat = [];
+  Object.keys(dates).forEach(t => {
+    (dates[t] || []).forEach(d => {
+      const sd = d.start_date || d.date;
+      if (sd && sd.startsWith(month)) {
+        flat.push({ ...d, event_type: t });
+      }
     });
-    const sr = await API.post('/api/planning/' + brand + '/monthly-plan?month=' + month, body);
-    if (sr.ok) {
-      toast('✓ Monthly plan saved. NOT auto-published — your call to act on it.');
-      document.getElementById('pl-monthly-plan-status').innerHTML = '<div class="pill on">✓ Plan saved to data/brand-planning/' + brand + '-monthly-plan-' + month + '.json</div>';
-    } else {
-      toast('Save failed: ' + sr.error, true);
-    }
   });
-}
-
-(function wirePlanning() {
-  document.getElementById('pl-brand')?.addEventListener('change', renderPlanning);
-  document.getElementById('pl-month')?.addEventListener('change', renderPlanning);
-  document.getElementById('pl-load-week')?.addEventListener('click', plLoadWeek);
-  document.getElementById('pl-load-monthly-plan')?.addEventListener('click', plLoadMonthlyPlan);
-})();
-
-
-
-// ─── STRATEGIC CALENDAR — Realistic parallel week + filter + cadences ───
-let _weekSampleCache = null;
-
-async function plLoadWeekSample(filter) {
-  const brand = _plBrand();
-  const url = '/api/planning/' + brand + '/week-sample' + (filter ? '?lane=' + filter : '');
-  const r = await API.get(url);
-  if (!r.ok) { toast('Week-sample load failed: ' + r.error, true); return; }
-  _weekSampleCache = r;
-  const el = document.getElementById('pl-week-sample');
-  if (!el) return;
-  const items = r.items || [];
-  const stats = r.stats || {};
-  // Group items by day
-  const byDay = {};
-  items.forEach(it => {
-    (byDay[it.date] = byDay[it.date] || []).push(it);
-  });
-  const days = Object.keys(byDay).sort();
-  const laneTags = (stats.per_lane_full || {});
-  const laneSummary = Object.keys(laneTags).map(l =>
-    '<span class="pill muted" style="font-size:10px;margin-right:.2rem">' + esc(l) + ': ' + laneTags[l] + '</span>'
-  ).join('');
-
-  const headerRow = '<div style="margin-bottom:.5rem"><div><b>' + esc(r.week_label || '') + '</b> · Big idea: ' + esc(r.big_brand_idea || '') + ' · Theme: ' + esc(r.monthly_theme || '') + '</div><div style="margin-top:.25rem">' + laneSummary + '</div>' +
-    (filter ? '<div style="margin-top:.5rem"><span class="pill on">Filtered: ' + esc(filter) + ' only (' + items.length + ' items)</span></div>' : '<div style="margin-top:.5rem"><span class="pill muted">' + (stats.all_lanes_total || 0) + ' items across ' + Object.keys(laneTags).length + ' lanes</span></div>') +
-    '</div>';
-
-  // Render days
-  const dayRows = days.map(d => {
-    const dayItems = byDay[d];
-    const day = dayItems[0]?.day || '';
-    return '<div style="margin-bottom:.75rem;padding:.5rem;background:var(--bg-2);border-radius:6px"><div style="font-weight:600;margin-bottom:.3rem;color:var(--accent)">' + esc(day) + ' ' + esc(d) + ' · ' + dayItems.length + ' lane' + (dayItems.length !== 1 ? 's' : '') + ' in parallel</div>' +
-      dayItems.map(it => '<div style="display:flex;gap:.5rem;align-items:center;padding:.3rem;border-bottom:1px solid var(--bd);font-size:11px"><span class="pill ' + (it.asset_status === 'READY' ? 'on' : it.asset_status === 'NEEDS_CAPTURE' ? 'live' : 'muted') + '" style="font-size:10px;min-width:80px">' + esc(it.lane) + '</span><span style="flex:1">' + esc(it.title) + '</span><span class="muted" style="font-size:10px">' + esc(it.execution_type || '') + '</span></div>').join('') +
-      '</div>';
-  }).join('');
-
-  el.innerHTML = headerRow + dayRows +
-    '<div style="margin-top:1rem;padding:.5rem;background:rgba(245,158,11,0.1);border-radius:6px;font-size:11px;color:var(--warning)"><b>⚠️ DEMO data</b> — ' + esc(r.demo_label || '') + '</div>';
-}
-
-async function plLoadCadences() {
-  const brand = _plBrand();
-  const r = await API.get('/api/planning/' + brand + '/cadences');
-  if (!r.ok) {
-    const el = document.getElementById('pl-cadences');
-    if (el) el.innerHTML = '<div class="muted">No cadence config for ' + brand + '.</div>';
+  // Sort by date
+  flat.sort((a, b) => (a.start_date || a.date).localeCompare(b.start_date || b.date));
+  if (flat.length === 0) {
+    el.innerHTML = '<div class="muted" style="padding:8px;font-size:11px">No important dates this month.</div>';
     return;
   }
-  const el = document.getElementById('pl-cadences');
-  if (!el) return;
-  el.innerHTML = '<div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">Each lane has its own cadence. Configurable planning rules, not mandatory quotas.</div>' +
-    (r.cadences || []).map(c =>
-      '<div style="display:flex;gap:1rem;padding:.4rem;border-bottom:1px solid var(--bd);align-items:center"><div style="min-width:120px;font-weight:600;color:var(--accent)">' + esc(c.lane) + '</div><div style="flex:1;color:var(--tx-2)">' + esc(c.cadence_text) + '</div><div class="muted" style="font-size:10px;min-width:200px">' + esc(c.rationale || '') + '</div></div>'
-    ).join('');
-}
-
-// Wire filter buttons
-document.querySelectorAll('[data-week-filter]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-week-filter]').forEach(b => {
-      b.classList.remove('primary');
-      b.classList.add('btn-mini');
-    });
-    btn.classList.add('primary');
-    btn.classList.remove('btn-mini');
-    plLoadWeekSample(btn.dataset.weekFilter || '');
-  });
-});
-
-async function renderWeekSampleAndCadences() {
-  await plLoadWeekSample('');
-  await plLoadCadences();
-}
-
-// Hook into renderPlanning
-const _origRender = renderPlanning;
-renderPlanning = async function() {
-  await _origRender();
-  await renderWeekSampleAndCadences();
-};
-
-
-
-// ─── STICK HERMAN DEMO (Tier 3.16 — Polished demo month, 2026-09-07) ──
-let _hermanData = null;
-let _hermanFilter = '';
-
-const LANE_COLORS = {
-  product: '#004d5a',
-  fitting: '#2a9d8f',
-  coaching: '#d4af37',
-  workshop: '#8a8a8a',
-  human: '#f0a030',
-  apparel: '#c9ef62',
-  campaign: '#ef4444',
-  paid: '#a855f7',
-  search: '#3b82f6',
-  crm: '#6b7280',
-};
-
-function _laneLabel(lane) {
-  const labels = {
-    product: 'PRODUCT · Why It\'s Here',
-    fitting: 'FITTING · Fit First',
-    coaching: 'COACHING · Ask Stick',
-    workshop: 'WORKSHOP · Built At Stick',
-    human: 'HUMAN / TRUST',
-    apparel: 'APPAREL · Style That Belongs',
-    campaign: 'CAMPAIGN',
-    paid: 'PAID',
-    search: 'SEARCH',
-    crm: 'CRM',
-  };
-  return labels[lane] || lane.toUpperCase();
-}
-
-function _laneChipStyle(lane) {
-  const c = LANE_COLORS[lane] || '#6b7280';
-  return `background:${c}22;color:${c};border:1px solid ${c}55`;
-}
-
-async function loadHermanSample() {
-  const r = await API.get('/api/planning/stick/herman-sample');
-  if (!r.ok) { toast('Herman sample load failed: ' + r.error, true); return; }
-  _hermanData = r;
-  renderHermanHero();
-  renderHermanLaneLegend();
-  renderHermanLaneHealth();
-  renderHermanImportantDates();
-  renderHermanMonthlyFocus();
-  renderHermanCalendar();
-  renderHermanRunway();
-  renderHermanDemoDisclaimer();
-}
-
-function renderHermanHero() {
-  const s = _hermanData.sample;
-  document.getElementById('herman-hero-bigidea').textContent = s.big_brand_idea || '—';
-  document.getElementById('herman-hero-belief').textContent = '"' + (s.strategic_belief || '—') + '"';
-  document.getElementById('herman-hero-theme').textContent = s.monthly_theme || '—';
-  // Theme summary
-  const sumEl = document.getElementById('herman-hero-summary');
-  sumEl.innerHTML = (s.monthly_theme_summary || []).map(b => '<li>' + esc(b) + '</li>').join('');
-  // Active commercial focuses
-  const focusEl = document.getElementById('herman-hero-focus');
-  focusEl.innerHTML = (s.active_commercial_focuses || []).map(f => '<li>' + esc(f) + '</li>').join('');
-  // KPI focus strip
-  const kpiEl = document.getElementById('herman-hero-kpi');
-  kpiEl.innerHTML = (s.kpi_focus_strip || []).map(k =>
-    '<span class="pill on" style="font-size:10px">' + esc(k.lane) + ': ' + esc(k.status) + '</span>'
-  ).join('');
-}
-
-function renderHermanLaneLegend() {
-  const s = _hermanData.sample;
-  const labels = s.lane_purpose_labels || {};
-  const el = document.getElementById('herman-lane-legend');
-  el.innerHTML = Object.keys(labels).map(lane => {
-    return '<div style="padding:.75rem;background:var(--bg-2);border-radius:8px;border-left:4px solid ' + (LANE_COLORS[lane] || '#6b7280') + '">' +
-      '<div style="font-weight:700;margin-bottom:.25rem">' + esc(_laneLabel(lane)) + '</div>' +
-      '<div style="color:var(--tx-2);font-size:11px;line-height:1.5">' + esc(labels[lane]) + '</div>' +
-      '</div>';
-  }).join('');
-}
-
-function renderHermanLaneHealth() {
-  const s = _hermanData.stats;
-  const perLane = s.per_lane || {};
-  const total = s.total_items || 0;
-  const el = document.getElementById('herman-lane-health');
-  el.innerHTML = '<div style="font-size:11px;color:var(--tx-3);margin-bottom:.5rem">' + total + ' items across ' + Object.keys(perLane).length + ' lanes.</div>' +
-    '<div style="display:grid;grid-template-columns:1fr auto;gap:.3rem">' +
-    Object.keys(perLane).sort().map(l =>
-      '<div style="padding:.3rem .5rem;background:var(--bg-2);border-radius:4px;display:flex;justify-content:space-between;align-items:center">' +
-        '<span style="font-weight:600">' + esc(l) + '</span>' +
-        '<b style="' + _laneChipStyle(l) + ';padding:2px 6px;border-radius:3px">' + perLane[l] + '</b>' +
-      '</div>'
-    ).join('') +
-    '</div>';
-}
-
-function renderHermanImportantDates() {
-  const month = _hermanData.sample.month;
-  const r = _hermanData.important_dates || [];
-  const el = document.getElementById('herman-important-dates');
-  if (r.length === 0) {
-    el.innerHTML = '<div class="muted">No important dates this month.</div>';
-    return;
-  }
-  el.innerHTML = r.map(d => {
-    const dot = d.event_type === 'GOLF_EVENT' || d.event_type === 'GOLF_MOMENT' ? '⛳' :
-                d.event_type === 'PUBLIC_HOLIDAY' ? '🏛️' :
-                d.event_type === 'RETAIL_MOMENT' ? '🛍️' :
-                d.event_type === 'BRAND_EVENT' ? '🎯' :
-                d.event_type === 'SCHOOL_HOLIDAY' ? '🎒' : '📌';
+  el.innerHTML = flat.map(d => {
+    const type = d.event_type || 'EVENT';
     const name = d.event_name || d.name || '—';
-    return '<div style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--bd)">' +
-      '<div style="font-size:18px">' + dot + '</div>' +
-      '<div style="flex:1"><div style="font-weight:600">' + esc(name) + '</div>' +
-      '<div style="font-size:10px;color:var(--tx-3)">' + esc(d.event_type) + ' · ' + esc(d.start_date || d.date || '—') + '</div></div>' +
-      '</div>';
+    const dateStr = d.start_date || d.date;
+    const pin = d.status === 'DEMO' ? 'C-PIN' : (type === 'GOLF_EVENT' || type === 'GOLF_MOMENT' ? 'A-PIN' : type === 'PUBLIC_HOLIDAY' ? 'B-PIN' : 'C-PIN');
+    const pinCls = 'is-' + pin.toLowerCase();
+    const dot = type === 'GOLF_EVENT' || type === 'GOLF_MOMENT' ? '⛳'
+              : type === 'PUBLIC_HOLIDAY' ? '🏛️'
+              : type === 'RETAIL_MOMENT' ? '🛍️'
+              : type === 'BRAND_EVENT' ? '🎯'
+              : type === 'SCHOOL_HOLIDAY' ? '🎒' : '📌';
+    return '<div class="pl-important-date ' + pinCls + '">'
+      + '<div style="font-size:18px;line-height:1">' + dot + '</div>'
+      + '<div style="flex:1">'
+        + '<div class="pl-idate-name">' + esc(name) + '</div>'
+        + '<div class="pl-idate-type">' + esc(type) + ' · ' + esc(pin) + (d.status === 'DEMO' ? ' · DEMO' : '') + '</div>'
+      + '</div>'
+      + '<div class="pl-idate-date">' + esc(dateStr) + '</div>'
+      + '</div>';
   }).join('');
 }
 
-function renderHermanMonthlyFocus() {
-  const s = _hermanData.sample;
-  const el = document.getElementById('herman-monthly-focus');
-  const focusItems = [
-    'Sell more visible retail (stock-led)',
-    'Support fittings (Fit First)',
-    'Give Psycho Bunny proper airtime',
-    'Prove workshop credibility (Built At Stick)',
-    'Show the real people (Human / Trust)',
-  ];
-  el.innerHTML = focusItems.map(f => '<li>' + esc(f) + '</li>').join('');
+function renderThemeWhy(tw) {
+  const el = document.getElementById('pl-theme-why');
+  if (!tw?.ok) { el.innerHTML = '<div class="muted">No theme set yet.</div>'; return; }
+  el.innerHTML =
+    '<div class="pl-theme-why-block"><div class="pl-why-label">WHY THIS THEME</div><div class="pl-why-text">' + esc(tw.why_this_theme || '—') + '</div></div>'
+    + '<div class="pl-theme-why-block"><div class="pl-why-label">SUPPORTED BET</div><div class="pl-why-text">' + esc(tw.supported_bet || '—') + '</div></div>'
+    + '<div class="pl-theme-why-block"><div class="pl-why-label">WHAT WE PROVE</div><div class="pl-why-text">' + esc(tw.what_we_prove || '—') + '</div></div>'
+    + '<div class="pl-theme-why-block"><div class="pl-why-label">WHAT CHANGES IT</div><div class="pl-why-text">' + esc(tw.what_changes_it || '—') + '</div></div>';
 }
 
-function renderHermanCalendar() {
-  const items = _hermanData.sample.items || [];
-  const filtered = _hermanFilter ? items.filter(it => it.lane === _hermanFilter) : items;
-  const byDay = {};
-  filtered.forEach(it => {
-    (byDay[it.date] = byDay[it.date] || []).push(it);
-  });
-  const days = Object.keys(byDay).sort();
-  const el = document.getElementById('herman-calendar');
-  if (days.length === 0) {
-    el.innerHTML = '<div class="muted">No items match this lane filter.</div>';
-    return;
-  }
-  el.innerHTML = days.map(d => {
-    const dayItems = byDay[d];
-    const day = dayItems[0]?.day || '';
-    const parallelCount = dayItems.length;
-    const featured = d === '2026-10-14' ? ' <span class="pill on" style="font-size:10px">⭐ FEATURED</span>' : '';
-    return '<div style="margin-bottom:1rem;padding:.75rem;background:var(--bg-2);border-radius:8px;border:1px solid var(--bd)">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">' +
-        '<div><b>' + esc(day) + ' ' + esc(d) + '</b>' + featured + '</div>' +
-        '<div style="font-size:10px;color:var(--tx-3)">' + parallelCount + ' lane' + (parallelCount !== 1 ? 's' : '') + ' in parallel</div>' +
-      '</div>' +
-      dayItems.map(it => {
-        const prop = it.property ? '<span style="color:var(--tx-3);font-size:10px;margin-left:.4rem">[' + esc(it.property) + ']</span>' : '';
-        const paid = it.is_paid_supported ? ' <span class="pill" style="background:#a855f722;color:#a855f7;border:1px solid #a855f755;font-size:9px">💰 paid</span>' : '';
-        const status = it.status === 'READY' ? 'on' : it.status === 'NEEDS_CAPTURE' ? 'live' : 'muted';
-        return '<div style="display:flex;gap:.5rem;align-items:center;padding:.4rem;border-bottom:1px solid var(--bd);font-size:11px;cursor:pointer" data-item-id="' + esc(it.id) + '" onclick="openHermanItem(this.dataset.itemId)">>' +
-          '<span class="pill" style="' + _laneChipStyle(it.lane) + ';font-size:10px;min-width:90px">' + esc(it.lane) + '</span>' +
-          '<span style="flex:1">' + esc(it.title) + prop + paid + '</span>' +
-          '<span class="pill ' + status + '" style="font-size:9px">' + esc(it.status || 'planned') + '</span>' +
-        '</div>';
-      }).join('') +
-    '</div>';
-  }).join('');
-}
-
-function renderHermanRunway() {
+function renderRunway() {
+  const el = document.getElementById('pl-runway');
+  if (!el) return;
   const stages = [
     ['T-21 to T-28', 'Monthly theme / key priorities'],
-    ['T-14 to T-21', 'Hooks / briefs / required footage / product references'],
-    ['T-7 to T-14', 'Capture / asset collection'],
-    ['T-4 to T-7', 'Edit / image generation / design'],
-    ['T-2 to T-4', 'Review'],
-    ['T-1', 'Schedule'],
+    ['T-14 to T-21', 'Hooks / briefs / required footage'],
+    ['T-7 to T-14',  'Capture / asset collection'],
+    ['T-4 to T-7',   'Edit / image generation / design'],
+    ['T-2 to T-4',   'Review'],
+    ['T-1',          'Schedule'],
   ];
-  const el = document.getElementById('herman-runway');
   el.innerHTML = stages.map(s =>
-    '<div style="display:flex;gap:1rem;padding:.4rem;border-bottom:1px solid var(--bd);align-items:center">' +
-      '<div style="font-weight:700;color:#f0a030;min-width:140px">' + esc(s[0]) + '</div>' +
-      '<div style="flex:1;color:var(--tx-2)">' + esc(s[1]) + '</div>' +
-    '</div>'
+    '<div class="pl-runway-row"><div class="pl-rw-when">' + esc(s[0]) + '</div><div class="pl-rw-what">' + esc(s[1]) + '</div></div>'
   ).join('');
 }
 
-function renderHermanDemoDisclaimer() {
-  const s = _hermanData.sample;
-  const stats = _hermanData.stats;
-  const el = document.getElementById('herman-demo-disclaimer');
-  el.innerHTML = '<b>DEMO DATA — ' + (s.demo_label || '—') + '</b><br><br>' +
-    '<b>Real data:</b> brand bible, voice, tone, recurring properties, supported lines, brand name, monthly theme, location (Paarl, Western Cape), owners (Hermanus Kriel + Dave Lamprecht), website (stickgolf.co.za),<br>' +
-    '<b>Stock-driven:</b> ' + (stats.stock_items_used || 0) + ' of ' + (stats.stock_items_total || 0) + ' products referenced (' + (stats.stock_coverage_pct || 0) + '% coverage).<br>' +
-    '<b>Featured week:</b> ' + (s.featured_week || '—') + '. Wed ' + (stats.featured_day || '—') + ' has ' + (stats.featured_day_count || 0) + ' lanes running in parallel.<br><br>' +
-    '<b>Not real:</b> specific posts (mock titles), scheduled dates (illustrative October 2026 grid), stock QTY (placeholder inventory).';
-}
-
-function openHermanItem(id) {
-  const it = (_hermanData.sample.items || []).find(x => x.id === id);
-  if (!it) return;
-  const html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="this.remove()">' +
-    '<div style="background:var(--bg-1);border:1px solid var(--bd);border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;padding:2rem;color:var(--tx)" onclick="event.stopPropagation()">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">' +
-        '<div><span class="pill" style="' + _laneChipStyle(it.lane) + ';font-size:11px">' + esc(it.lane) + '</span>' +
-        (it.property ? ' <span style="font-size:11px;color:var(--tx-3);margin-left:.5rem">[' + esc(it.property) + ']</span>' : '') +
-        '</div>' +
-        '<button onclick="this.closest(\'div[style*=position]\').remove()" style="background:none;border:none;color:var(--tx-2);font-size:20px;cursor:pointer">×</button>' +
-      '</div>' +
-      '<h2 style="font-size:18px;font-weight:700;margin-bottom:.5rem">' + esc(it.title) + '</h2>' +
-      (it.subtitle ? '<div style="color:var(--tx-2);font-size:13px;margin-bottom:.75rem">' + esc(it.subtitle) + '</div>' : '') +
-      (it.headline?.text ? '<div style="font-style:italic;font-size:14px;margin:1rem 0;padding:.75rem;background:var(--bg-2);border-left:3px solid #f0a030;border-radius:0 6px 6px 0">"' + esc(it.headline.text) + '" <span style="color:var(--tx-3);font-size:11px">[' + esc(it.headline.tone) + ']</span></div>' : '') +
-      '<div style="display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem;font-size:12px;margin-top:1rem">' +
-        '<div style="color:var(--tx-3)">Date</div><div>' + esc(it.date) + ' (' + esc(it.day) + ')</div>' +
-        '<div style="color:var(--tx-3)">Channel</div><div>' + esc(it.channel) + '</div>' +
-        '<div style="color:var(--tx-3)">Status</div><div><span class="pill ' + (it.status === 'READY' ? 'on' : it.status === 'NEEDS_CAPTURE' ? 'live' : 'muted') + '">' + esc(it.status || 'planned') + '</span></div>' +
-        (it.cta ? '<div style="color:var(--tx-3)">CTA</div><div><b>' + esc(it.cta) + '</b></div>' : '') +
-        (it.is_paid_supported !== undefined ? '<div style="color:var(--tx-3)">Paid-supported</div><div>' + (it.is_paid_supported ? 'Yes' : 'No') + '</div>' : '') +
-        (it.stock_refs && it.stock_refs.length ? '<div style="color:var(--tx-3)">Linked stock</div><div>' + esc(it.stock_refs.join(', ')) + '</div>' : '') +
-        '<div style="color:var(--tx-3)">Purpose</div><div>' + esc(it.purpose || '—') + '</div>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-document.querySelectorAll('[data-herman-filter]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-herman-filter]').forEach(b => { b.classList.remove('primary'); b.classList.add('btn-mini'); });
-    btn.classList.add('primary');
-    btn.classList.remove('btn-mini');
-    _hermanFilter = btn.dataset.hermanFilter || '';
-    renderHermanCalendar();
+function renderLaneLegend() {
+  const el = document.getElementById('pl-lane-legend');
+  if (!el) return;
+  const lanes = Object.keys(LANE_META);
+  el.innerHTML = '<button class="pl-lane-chip" data-pl-filter="" style="background:var(--bg-2);color:var(--tx);border-color:var(--bd)"><span class="dot"></span>All lanes</button>'
+    + lanes.map(l => {
+      const m = LANE_META[l];
+      return '<button class="pl-lane-chip" data-pl-filter="' + l + '" style="background:' + m.color + '18;color:' + m.color + ';border-color:' + m.color + '55"><span class="dot"></span>' + esc(m.label) + '</button>';
+    }).join('');
+  // Wire click handlers
+  el.querySelectorAll('[data-pl-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _planningLaneFilter = btn.dataset.plFilter;
+      el.querySelectorAll('[data-pl-filter]').forEach(b => {
+        b.style.outline = '';
+        b.style.outlineOffset = '';
+      });
+      btn.style.outline = '2px solid currentColor';
+      btn.style.outlineOffset = '2px';
+      const filterLabel = _planningLaneFilter ? LANE_META[_planningLaneFilter]?.label : 'All lanes';
+      document.getElementById('pl-active-filter').innerHTML = _planningLaneFilter
+        ? 'Filtering by <b>' + esc(filterLabel) + '</b>. Click a day to see all lanes.'
+        : 'Showing all lanes. Click a lane chip to filter.';
+      renderCalendar(_planningData?.mv);
+    });
   });
+}
+
+function renderCalendar(mv) {
+  const el = document.getElementById('pl-calendar-grid');
+  const summaryEl = document.getElementById('pl-calendar-summary');
+  const titleEl = document.getElementById('pl-calendar-title');
+  if (!mv?.ok) { el.innerHTML = '<div class="muted">No month data.</div>'; return; }
+  const month = _plMonth();
+  const [year, m] = month.split('-').map(Number);
+  const todayIso = _todayIso();
+
+  // Update title
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if (titleEl) titleEl.textContent = '📅 ' + monthNames[m - 1] + ' ' + year + ' — calendar grid';
+
+  // Build 7-column grid
+  let html = '';
+  const dows = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  dows.forEach((d, i) => {
+    html += '<div class="pl-dow-header' + (i >= 5 ? ' is-weekend' : '') + '">' + d + '</div>';
+  });
+
+  // First day of month — find Monday
+  const firstDay = new Date(year, m - 1, 1);
+  const firstDow = (firstDay.getDay() + 6) % 7; // 0 = Monday
+  // Last day of month
+  const lastDay = new Date(year, m, 0).getDate();
+  // Last day of previous month
+  const prevLast = new Date(year, m - 1, 0).getDate();
+
+  // Days: prev-month padding + current month + next-month padding
+  const days = [];
+  for (let i = firstDow - 1; i >= 0; i--) {
+    days.push({ day: prevLast - i, other: true });
+  }
+  for (let d = 1; d <= lastDay; d++) {
+    days.push({ day: d, other: false });
+  }
+  while (days.length % 7 !== 0) {
+    days.push({ day: days.length - lastDay - firstDow + 1, other: true });
+  }
+
+  // Items by date
+  const byDay = mv.days || {};
+  // Featured days — from sample or first day with >=4 items
+  const itemsArr = Object.entries(byDay).filter(([d]) => d.startsWith(month)).map(([d, items]) => [d, items]);
+  let featuredDate = null;
+  if (itemsArr.length > 0) {
+    const densest = itemsArr.sort((a, b) => b[1].length - a[1].length)[0];
+    if (densest && densest[1].length >= 4) featuredDate = densest[0];
+  }
+
+  days.forEach(d => {
+    const isOtherMonth = d.other;
+    const dayNum = d.day;
+    let iso;
+    if (isOtherMonth) {
+      const mOff = dayNum > 15 ? 1 : -1;
+      const mAdj = m + mOff;
+      const yAdj = mAdj > 12 ? year + 1 : mAdj < 1 ? year - 1 : year;
+      const mAdjN = mAdj > 12 ? 1 : mAdj < 1 ? 12 : mAdj;
+      iso = yAdj + '-' + String(mAdjN).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+    } else {
+      iso = year + '-' + String(m).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+    }
+    const items = (byDay[iso] || []).filter(it => !_planningLaneFilter || it.lane === _planningLaneFilter);
+    const totalItems = (byDay[iso] || []).length;
+    const isToday = iso === todayIso;
+    const isFeatured = iso === featuredDate;
+    // Day of week: Monday = 0
+    const dObj = new Date(iso + 'T00:00:00');
+    const dowIdx = (dObj.getDay() + 6) % 7;
+    const isWeekend = dowIdx >= 5;
+    const cls = ['pl-day-cell'];
+    if (isToday) cls.push('is-today');
+    if (isWeekend) cls.push('is-weekend');
+    if (isOtherMonth) cls.push('is-other-month');
+    if (isFeatured) cls.push('is-featured');
+    html += '<div class="' + cls.join(' ') + '" data-day="' + iso + '" onclick="openDayDrawer(\'' + iso + '\')">';
+    html += '<div class="pl-day-num"><span>' + dayNum + '</span>';
+    if (totalItems > 0) html += '<span class="pl-day-parallel">' + totalItems + (totalItems === 1 ? ' lane' : ' lanes') + '</span>';
+    html += '</div>';
+    if (items.length === 0 && !isOtherMonth) {
+      html += '<div class="pl-day-empty">no content</div>';
+    } else if (items.length > 0) {
+      html += '<div class="pl-day-chips">';
+      items.forEach(it => {
+        const meta = LANE_META[it.lane] || { color: 'var(--tx-3)', label: it.lane };
+        const opacity = it.status === 'NEEDS_CAPTURE' ? 0.55 : 1;
+        html += '<div class="pl-lane-chip" style="background:' + meta.color + '22;color:' + meta.color + ';border-color:' + meta.color + '55;opacity:' + opacity + '" title="' + esc(it.title || '') + ' — ' + esc(it.lane) + ' (' + esc(it.status || '') + ')">'
+          + '<span class="dot"></span>' + esc((it.title || '').slice(0, 18)) + (it.title && it.title.length > 18 ? '…' : '')
+          + '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  el.innerHTML = html;
+  // Summary
+  if (summaryEl) {
+    const totalItems = Object.values(byDay).filter((_, i) => Object.keys(byDay)[i].startsWith(month)).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0);
+    const activeDays = Object.entries(byDay).filter(([d]) => d.startsWith(month)).length;
+    summaryEl.innerHTML = '<div class="pl-featured-banner">⭐ Featured day: <b>' + (featuredDate || '—') + '</b> with the highest lane density. Click any day to see all items.</div>'
+      + '<div style="margin-top:.75rem">' + totalItems + ' items across ' + activeDays + ' active days in this month.</div>';
+  }
+}
+
+function openDayDrawer(iso) {
+  const mv = _planningData?.mv;
+  if (!mv?.ok) return;
+  const items = mv.days?.[iso] || [];
+  const dateObj = new Date(iso + 'T00:00:00');
+  const dayName = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
+  const drawer = document.getElementById('pl-day-drawer');
+  const inner = document.getElementById('pl-day-drawer-inner');
+  let html = '<div class="pl-drawer-header">';
+  html += '<div><div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.06em;font-weight:700">' + dayName + '</div>';
+  html += '<div style="font-size:22px;font-weight:800;margin-top:2px">' + iso + '</div>';
+  html += '<div style="font-size:12px;color:var(--tx-3);margin-top:2px">' + items.length + ' item' + (items.length === 1 ? '' : 's') + ' planned</div></div>';
+  html += '<button onclick="closeDayDrawer()" style="background:none;border:none;color:var(--tx-2);font-size:24px;cursor:pointer;line-height:1">×</button>';
+  html += '</div>';
+  if (items.length === 0) {
+    html += '<div class="muted">No items scheduled for this day.</div>';
+  } else {
+    items.forEach(it => {
+      const meta = LANE_META[it.lane] || { color: 'var(--tx-3)', label: it.lane };
+      html += '<div class="pl-drawer-item">';
+      html += '<div class="pl-di-meta">';
+      html += '<span class="pl-lane-chip" style="background:' + meta.color + '22;color:' + meta.color + ';border-color:' + meta.color + '55;cursor:default"><span class="dot"></span>' + esc(meta.label) + '</span>';
+      if (it.status) {
+        const statusColor = it.status === 'READY' ? '#10b981' : it.status === 'NEEDS_CAPTURE' ? '#f97316' : '#6b7280';
+        html += '<span class="pill" style="background:' + statusColor + '22;color:' + statusColor + ';border:1px solid ' + statusColor + '55;font-size:10px">' + esc(it.status) + '</span>';
+      }
+      if (it.is_paid_supported) html += '<span class="pill" style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.4);font-size:10px">💰 paid</span>';
+      html += '</div>';
+      html += '<div class="pl-di-title">' + esc(it.title || it.hook || '—') + '</div>';
+      if (it.subtitle) html += '<div class="pl-di-sub">' + esc(it.subtitle) + '</div>';
+      html += '<div class="pl-di-detail">';
+      html += '<div class="pl-di-key">Pillar</div><div>' + esc(it.lane) + '</div>';
+      if (it.channel) html += '<div class="pl-di-key">Channel</div><div>' + esc(it.channel) + '</div>';
+      if (it.cta) html += '<div class="pl-di-key">CTA</div><div><b>' + esc(it.cta) + '</b></div>';
+      if (it.purpose) html += '<div class="pl-di-key">Purpose</div><div>' + esc(it.purpose) + '</div>';
+      if (it.property) html += '<div class="pl-di-key">Property</div><div>' + esc(it.property) + '</div>';
+      if (it.stock_refs?.length) html += '<div class="pl-di-key">Stock</div><div>' + esc(it.stock_refs.join(', ')) + '</div>';
+      html += '</div>';
+      html += '</div>';
+    });
+  }
+  inner.innerHTML = html;
+  drawer.style.display = 'flex';
+}
+
+function closeDayDrawer() {
+  document.getElementById('pl-day-drawer').style.display = 'none';
+}
+
+// Click on backdrop closes drawer
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'pl-day-drawer') closeDayDrawer();
 });
 
-// Hook into routing — when sec-herman shows, load data
-(function() {
-  const _origShow = window.showSection;
-  if (typeof _origShow === 'function') {
-    window.showSection = function(name) {
-      const r = _origShow.apply(this, arguments);
-      if (name === 'herman' && !_hermanData) {
-        loadHermanSample();
-      }
-      return r;
-    };
-  }
-})();
+// Wire prev/next month + brand + month change
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pl-brand')?.addEventListener('change', () => {
+    _planningLaneFilter = '';
+    renderPlanning();
+  });
+  document.getElementById('pl-month')?.addEventListener('change', renderPlanning);
+  document.getElementById('pl-prev-month')?.addEventListener('click', () => {
+    const inp = document.getElementById('pl-month');
+    inp.value = _shiftMonth(inp.value, -1);
+    renderPlanning();
+  });
+  document.getElementById('pl-next-month')?.addEventListener('click', () => {
+    const inp = document.getElementById('pl-month');
+    inp.value = _shiftMonth(inp.value, 1);
+    renderPlanning();
+  });
+  // ESC to close drawer
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDayDrawer();
+  });
+});
 
 </script>
 
@@ -12755,138 +12885,97 @@ document.querySelectorAll('[data-herman-filter]').forEach(btn => {
         <h2>📅 Strategic Calendar</h2>
         <span class="sub">Big Idea → Monthly Theme → Parallel Lanes → Daily Executions. Same calendar, strategic context on top.</span>
         <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
-          <select id="pl-brand" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)">
+          <select id="pl-brand" style="font-size:12px;padding:6px 10px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-weight:600">
             <option value="stick">Stick</option>
             <option value="swing-shack">Swing Shack</option>
             <option value="bag-drop">Bag Drop</option>
           </select>
-          <input type="month" id="pl-month" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)" />
+          <button id="pl-prev-month" class="btn-mini" title="Previous month">‹</button>
+          <input type="month" id="pl-month" style="font-size:12px;padding:6px 10px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-weight:600" />
+          <button id="pl-next-month" class="btn-mini" title="Next month">›</button>
         </div>
       </div>
 
-      <!-- 1. Big Idea + Monthly Theme banner -->
-      <div class="card col-12" id="pl-banner" style="background:linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.08));border:1px solid rgba(99,102,241,0.3)">
-        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem">
-          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">BIG BRAND IDEA</div>
-          <div id="pl-big-idea" style="font-size:24px;font-weight:700;letter-spacing:-.02em">Loading…</div>
-        </div>
-        <div id="pl-big-idea-belief" style="font-style:italic;color:var(--tx-2);margin-bottom:.75rem"></div>
-        <div style="display:flex;align-items:center;gap:1rem;margin-top:.5rem">
-          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">MONTHLY THEME</div>
-          <div id="pl-monthly-theme" style="font-size:18px;font-weight:600">Loading…</div>
-        </div>
-        <div id="pl-monthly-theme-q" style="color:var(--tx-2);margin-top:.25rem"></div>
-        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">LANES EXPRESSING IT</div>
-          <div id="pl-lanes-emphasis" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
-        </div>
-        <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-          <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">ACTIVE CAMPAIGNS</div>
-          <div id="pl-active-campaigns" style="display:flex;gap:.3rem;flex-wrap:wrap"></div>
-        </div>
-      </div>
-
-      <div class="grid">
-        <!-- 2. Lane Health -->
-        <div class="card col-6">
-          <div class="card-h"><h3>📊 Lane health</h3><span class="muted" id="pl-lane-health-summary">—</span></div>
-          <div id="pl-lane-health" style="font-size:12px;color:var(--tx-3)">Loading…</div>
-          <div id="pl-lane-gaps" style="margin-top:.5rem"></div>
-        </div>
-
-        <!-- 3. Important Dates + Golf Moments -->
-        <div class="card col-6">
-          <div class="card-h"><h3>📅 Important dates + Golf moments</h3><span class="muted">Opportunities, not mandatory campaigns</span></div>
-          <div id="pl-important-dates" style="font-size:12px;max-height:300px;overflow-y:auto"></div>
-        </div>
-      </div>
-
-      <!-- 4. Parallel lane month view -->
-      <div class="card col-12">
-        <div class="card-h">
-          <h3>🗓️ Parallel-lane month view</h3>
-          <span class="muted">Every lane remains active. Monthly theme gives them a shared idea.</span>
-        </div>
-        <div id="pl-month-view" style="font-size:12px">Loading…</div>
-        <div style="font-size:10px;color:var(--tx-3);margin-top:.75rem;font-style:italic">
-          Per heidi.txt: A useful weekly rhythm may exist, but lanes are parallel — a Tuesday can contain PRODUCT + HUMAN + CAMPAIGN + PAID + SEARCH all on the same day.
-        </div>
-      </div>
-
-      <div class="grid">
-        <!-- 5. Weekly Traffic Control -->
-        <div class="card col-6">
-          <div class="card-h"><h3>🚦 Weekly traffic control</h3><span class="muted">Lightweight execution view</span></div>
-          <div style="margin-bottom:.5rem">
-            <input type="date" id="pl-week-start" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd)" />
-            <button class="btn-mini primary" id="pl-load-week">Load week</button>
+      <!-- HERO HEADER — Big idea + Monthly theme + 3-bullet summary -->
+      <div class="card col-12" id="pl-hero" style="background:linear-gradient(135deg,#0d0d0d 0%,#1a1a1a 100%);color:#f5f5f0;border:1px solid #004d5a;padding:2rem 2rem 1.75rem 2rem;border-radius:14px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;right:0;width:280px;height:280px;background:radial-gradient(circle,rgba(240,160,48,0.12) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="position:relative;z-index:1">
+          <div style="display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;margin-bottom:.25rem">
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700">BRAND</div>
+            <div id="pl-hero-brand" style="font-size:14px;font-weight:700;letter-spacing:.05em;color:#f5f5f0"></div>
           </div>
-          <div id="pl-weekly-traffic" style="font-size:12px"></div>
-        </div>
-
-        <!-- 6. Why this theme -->
-        <div class="card col-6">
-          <div class="card-h"><h3>🎯 Why this theme?</h3><span class="muted">The strategic reasoning</span></div>
-          <div id="pl-theme-why" style="font-size:12px;line-height:1.7">Loading…</div>
+          <div style="margin-top:.75rem">
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.25rem">BIG BRAND IDEA</div>
+            <div id="pl-hero-bigidea" style="font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1.1;color:#f5f5f0"></div>
+            <div id="pl-hero-belief" style="font-size:14px;font-style:italic;color:#8a8a8a;margin-top:.5rem"></div>
+          </div>
+          <div style="margin-top:1.25rem">
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.25rem">MONTHLY THEME</div>
+            <div id="pl-hero-theme" style="font-size:20px;font-weight:700;color:#f5f5f0;line-height:1.25"></div>
+            <div id="pl-hero-question" style="font-size:13px;color:#8a8a8a;margin-top:.5rem;line-height:1.5"></div>
+          </div>
+          <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid #2a2a2a">
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.5rem">WHAT THIS MONTH IS TRYING TO DO</div>
+            <ul id="pl-hero-summary" style="font-size:13px;color:#f5f5f0;line-height:1.7;margin:0;padding-left:1.25rem"></ul>
+          </div>
         </div>
       </div>
 
-      <!-- 7. Monthly plan workflow -->
+      <div class="grid">
+        <!-- Lane Health -->
+        <div class="card col-3">
+          <div class="card-h"><h3>📊 Lane health</h3></div>
+          <div id="pl-lane-health" style="font-size:12px">Loading…</div>
+          <div id="pl-lane-gaps" style="margin-top:.75rem"></div>
+        </div>
+
+        <!-- Important Dates -->
+        <div class="card col-3">
+          <div class="card-h"><h3>📅 Important dates</h3><span class="muted">A-PIN major</span></div>
+          <div id="pl-important-dates" style="font-size:12px;max-height:340px;overflow-y:auto">Loading…</div>
+        </div>
+
+        <!-- Monthly Focus -->
+        <div class="card col-3">
+          <div class="card-h"><h3>🎯 Why this month</h3></div>
+          <div id="pl-theme-why" style="font-size:12px;line-height:1.6">Loading…</div>
+        </div>
+
+        <!-- Production Runway -->
+        <div class="card col-3">
+          <div class="card-h"><h3>⏱️ Production runway</h3></div>
+          <div id="pl-runway" style="font-size:11px">Loading…</div>
+        </div>
+      </div>
+
+      <!-- LANE LEGEND + FILTER -->
       <div class="card col-12">
         <div class="card-h">
-          <h3>📝 Monthly plan</h3>
-          <span class="muted">8 questions → proposed working month. NEVER auto-publishes.</span>
+          <h3>🛣️ Parallel lanes</h3>
+          <span class="muted">Click a lane to filter. Lanes run in parallel — they don't own a day.</span>
         </div>
-        <div style="font-size:11px;color:var(--tx-3);line-height:1.6">
-          <ol style="margin-left:1.5rem;margin-bottom:.75rem">
-            <li>What happened last month?</li>
-            <li>What does the business need this month?</li>
-            <li>What stock/products matter?</li>
-            <li>What services need bookings?</li>
-            <li>What campaigns/events are coming?</li>
-            <li>What is the monthly strategic theme?</li>
-            <li>Which lanes need emphasis?</li>
-            <li>What must be produced/captured?</li>
-          </ol>
-        </div>
-        <button class="btn primary" id="pl-load-monthly-plan">Load monthly plan workflow</button>
-        <div id="pl-monthly-plan-form" style="margin-top:1rem"></div>
-        <div id="pl-monthly-plan-status" style="margin-top:.5rem"></div>
+        <div id="pl-lane-legend" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem"></div>
+        <div id="pl-active-filter" style="font-size:11px;color:var(--tx-3);margin-bottom:.75rem"></div>
       </div>
 
-      <!-- 8. Sample week (DEMO) — realistic parallel density -->
+      <!-- CALENDAR GRID -->
       <div class="card col-12">
         <div class="card-h">
-          <h3>📦 Sample week (DEMO)</h3>
-          <span class="muted">Realistic Stick week · parallel lanes · DEMO — replace with real planning before pilot</span>
+          <h3 id="pl-calendar-title">📅 Month view</h3>
+          <div style="display:flex;gap:.4rem;align-items:center;margin-left:auto;font-size:11px">
+            <span class="pl-legend-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--lane-product)"></span>
+            <span>READY</span>
+            <span class="pl-legend-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--lane-product);opacity:.5;margin-left:.5rem"></span>
+            <span>NEEDS CAPTURE</span>
+          </div>
         </div>
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
-          <button class="btn-mini primary" data-week-filter="">All lanes</button>
-          <button class="btn-mini" data-week-filter="product">Product only</button>
-          <button class="btn-mini" data-week-filter="human">Human only</button>
-          <button class="btn-mini" data-week-filter="campaign">Campaign only</button>
-          <button class="btn-mini" data-week-filter="fitting">Fitting only</button>
-          <button class="btn-mini" data-week-filter="workshop">Workshop only</button>
-          <button class="btn-mini" data-week-filter="apparel">Apparel only</button>
-          <button class="btn-mini" data-week-filter="paid">Paid only</button>
-          <button class="btn-mini" data-week-filter="search">Search only</button>
-        </div>
-        <div id="pl-week-sample" style="font-size:12px">Loading sample week…</div>
-        <div style="margin-top:.5rem;font-size:10px;color:var(--tx-3);font-style:italic">
-          Lanes overlap by cadence, not by day-of-week assignment. Product engine is independent of other lanes.
-        </div>
+        <div id="pl-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:.5rem"></div>
+        <div id="pl-calendar-summary" style="margin-top:1rem;font-size:11px;color:var(--tx-3);font-style:italic"></div>
       </div>
 
-      <!-- Lane cadences -->
-      <div class="card col-12">
-        <div class="card-h"><h3>⏱️ Lane cadences</h3><span class="muted">Configurable planning rules — NOT mandatory quotas</span></div>
-        <div id="pl-cadences" style="font-size:12px">Loading…</div>
-      </div>
-
-      <!-- 9. Production runway -->
-      <div class="card col-12">
-        <div class="card-h"><h3>⏱️ Production runway</h3><span class="muted">No content-day panic</span></div>
-        <div id="pl-runway" style="font-size:12px"></div>
+      <!-- DAY DETAIL DRAWER (hidden by default, shown on day click) -->
+      <div id="pl-day-drawer" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center">
+        <div id="pl-day-drawer-inner" style="background:var(--bg-1);border:1px solid var(--bd);border-radius:14px;max-width:680px;width:90%;max-height:85vh;overflow-y:auto;padding:1.75rem;color:var(--tx);position:relative"></div>
       </div>
     </section>
 

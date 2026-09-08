@@ -28068,23 +28068,40 @@ def planning_lane_health(brand_id):
     if not data:
         return jsonify({"ok": False, "error": "no planning data"}), 404
     lane_system = data.get("lane_system") or []
-    # Aggregate from existing content_items.json if available
+    # Aggregate from 3 sources (Herman sample first):
     counts = {lane["lane"]: 0 for lane in lane_system}
-    # Try to read content_items
     items = []
-    try:
-        from _lib.marketing_lanes import list_extended_content
-        items = list_extended_content(brand_id)
-    except Exception:
-        # Fall back to data dir
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    if not os.path.exists(sample_path):
+        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+    if os.path.exists(sample_path):
         try:
-            content_path = os.path.join(DATA_DIR, "content_items.json")
-            if os.path.exists(content_path):
-                with open(content_path) as f:
-                    all_items = json.load(f)
-                items = [it for it in all_items if it.get("brand_id") == brand_id]
+            with open(sample_path) as f:
+                sample = json.load(f)
+            for it in (sample.get("items") or []):
+                items.append({
+                    "id": it.get("id", ""),
+                    "scheduled_date": it.get("date", ""),
+                    "lane": it.get("lane"),
+                    "status": it.get("status", "READY"),
+                    "is_paid_supported": it.get("is_paid_supported", False),
+                    "blocked_reasons": it.get("blocked_reasons"),
+                })
         except Exception:
             pass
+    if not items:
+        try:
+            from _lib.marketing_lanes import list_extended_content
+            items = list_extended_content(brand_id)
+        except Exception:
+            try:
+                content_path = os.path.join(DATA_DIR, "content_items.json")
+                if os.path.exists(content_path):
+                    with open(content_path) as f:
+                        all_items = json.load(f)
+                    items = [it for it in all_items if it.get("brand_id") == brand_id]
+            except Exception:
+                pass
 
     # Filter by week or month
     def in_window(it):
@@ -28353,20 +28370,57 @@ def planning_month_view(brand_id):
     # Active campaigns
     active_campaigns = data.get("active_campaigns") or []
 
-    # Pull month items
+    # Pull month items from 3 sources (in priority order):
+    #   1. stick-herman-sample-month.json (or -sample-month.json) — Herman demo build
+    #   2. _lib.marketing_lanes.list_extended_content — canonical content items
+    #   3. data/content_items.json — fallback
     items = []
-    try:
-        from _lib.marketing_lanes import list_extended_content
-        items = list_extended_content(brand_id)
-    except Exception:
+    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    if not os.path.exists(sample_path):
+        # Fall back to legacy sample file
+        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+    if os.path.exists(sample_path):
         try:
-            content_path = os.path.join(DATA_DIR, "content_items.json")
-            if os.path.exists(content_path):
-                with open(content_path) as f:
-                    all_items = json.load(f)
-                items = [it for it in all_items if it.get("brand_id") == brand_id]
+            with open(sample_path) as f:
+                sample = json.load(f)
+            # Use the Herman sample's items for the matching month,
+            # or any month if no month specified
+            for it in (sample.get("items") or []):
+                it_date = it.get("date", "")
+                # Map stick-herman-sample item fields → standard fields
+                items.append({
+                    "id": it.get("id", f"sample-{it_date}-{it.get('lane', '')}"),
+                    "scheduled_date": it_date,
+                    "lane": it.get("lane"),
+                    "title": it.get("title") or it.get("hook") or "",
+                    "subtitle": it.get("subtitle", ""),
+                    "cta": it.get("cta"),
+                    "channel": it.get("channel"),
+                    "status": it.get("status", "READY"),
+                    "purpose": it.get("purpose", ""),
+                    "property": it.get("property"),
+                    "headline": it.get("headline"),
+                    "stock_refs": it.get("stock_refs", []),
+                    "is_paid_supported": it.get("is_paid_supported", False),
+                    "is_demo": it.get("is_demo", True),
+                    "execution_type": it.get("execution_type"),
+                    "source": "herman-sample-month",
+                })
         except Exception:
             pass
+    if not items:
+        try:
+            from _lib.marketing_lanes import list_extended_content
+            items = list_extended_content(brand_id)
+        except Exception:
+            try:
+                content_path = os.path.join(DATA_DIR, "content_items.json")
+                if os.path.exists(content_path):
+                    with open(content_path) as f:
+                        all_items = json.load(f)
+                    items = [it for it in all_items if it.get("brand_id") == brand_id]
+            except Exception:
+                pass
 
     # Group items by day
     days = {}
