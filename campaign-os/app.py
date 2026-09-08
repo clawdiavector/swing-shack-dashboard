@@ -19344,7 +19344,25 @@ def debug_info():
         "ok": True,
         "total_routes": len(routes),
         "all_rules": [r["rule"] for r in routes],
+        "app_file_size": __file_size(),
+        "app_line_count": _app_line_count(),
     }), 200
+
+
+def __file_size():
+    import os
+    try:
+        return os.path.getsize(__file__)
+    except Exception:
+        return -1
+
+
+def _app_line_count():
+    try:
+        with open(__file__, "r", encoding="utf-8") as _f:
+            return sum(1 for _ in _f)
+    except Exception:
+        return -1
 
 if __name__ == '__main__':
     import sys as _sys
