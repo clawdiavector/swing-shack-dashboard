@@ -10,7 +10,7 @@
       },
       "startCommand": "cd campaign-os && python app.py"
     },
-    "_redeploy_trigger": "21ea216-tier3.14.1-fix"
+    "_redeploy_trigger": "c0c5f3a-tier3.17-final-cache-bust"
   },
   "deploy": {
     "numReplicas": 1,
