@@ -19346,6 +19346,7 @@ def debug_info():
         "all_rules": [r["rule"] for r in routes],
         "app_file_size": __file_size(),
         "app_line_count": _app_line_count(),
+        "runtime_info": _app_runtime_info(),
     }), 200
 
 
@@ -19363,6 +19364,15 @@ def _app_line_count():
             return sum(1 for _ in _f)
     except Exception:
         return -1
+
+
+def _app_runtime_info():
+    import sys, platform
+    return {
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "flask_version": __import__("flask").__version__,
+    }
 
 if __name__ == '__main__':
     import sys as _sys
