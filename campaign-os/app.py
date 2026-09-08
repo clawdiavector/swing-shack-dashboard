@@ -19332,6 +19332,22 @@ def integrity_corrections():
     return jsonify({"ok": True, "corrections": it.list_corrections(bid)}), 200
 
 
+@app.route("/api/admin/debug-info", methods=["GET"])
+def debug_info():
+    """Debug endpoint that exposes what Railway has registered."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    routes = []
+    for r in app.url_map.iter_rules():
+        routes.append({"rule": str(r.rule), "endpoint": str(r.endpoint), "methods": sorted(r.methods - {"HEAD", "OPTIONS"})})
+    return jsonify({
+        "ok": True,
+        "total_routes": len(routes),
+        "planning_routes": [r for r in routes if "/api/planning/" in r["rule"]],
+        "build_post_routes": [r for r in routes if "/api/build-post/" in r["rule"]],
+        "deploy_status_routes": [r for r in routes if "/api/deploy-status" in r["rule"]],
+    }), 200
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
