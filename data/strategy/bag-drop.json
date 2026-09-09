@@ -1,0 +1,19 @@
+{
+  "brand_id": "bag-drop",
+  "north_star": "",
+  "market_moves": [],
+  "bets": [],
+  "lessons": [],
+  "strip": {
+    "active": [],
+    "next_decision": null,
+    "day_strip": []
+  },
+  "trend": {
+    "bets": {},
+    "market_moves": {},
+    "generated_at": null
+  },
+  "source": "empty (seed removed)",
+  "cleared_at": "2026-08-25"
+}

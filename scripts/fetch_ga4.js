@@ -56,9 +56,28 @@ async function fetchGA4Data(authClient) {
     sessions: parseInt(r.metricValues?.[0]?.value || 0),
     engagementRate: parseFloat(r.metricValues?.[1]?.value || 0),
     avgSessionDuration: parseFloat(r.metricValues?.[2]?.value || 0),
-  })).sort((a, b) => b.sessions - a.sessions);
-  
-  const topPages = rows.slice(0, 10).map(r => ({
+  }));
+
+  // GA4 query is grouped by (pagePath, sessionSource) — collapse to per-pagePath
+  // before ranking, otherwise the top-10 is dominated by '/' across many sources.
+  // Sessions are summed; engagement rate is a session-weighted mean so a high-traffic
+  // homepage with one poor source doesn't drag the overall ER down.
+  const byPath = {};
+  rows.forEach(r => {
+    const p = byPath[r.pagePath] || { sessions: 0, weightedErSum: 0 };
+    p.sessions += r.sessions;
+    p.weightedErSum += r.engagementRate * r.sessions;
+    byPath[r.pagePath] = p;
+  });
+  const aggregated = Object.entries(byPath)
+    .map(([pagePath, v]) => ({
+      pagePath,
+      sessions: v.sessions,
+      engagementRate: v.sessions > 0 ? v.weightedErSum / v.sessions : 0,
+    }))
+    .sort((a, b) => b.sessions - a.sessions);
+
+  const topPages = aggregated.slice(0, 10).map(r => ({
     path: r.pagePath,
     sessions: r.sessions,
     engRate: (r.engagementRate * 100).toFixed(1) + '%',

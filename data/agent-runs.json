@@ -795,6 +795,31 @@
         },
         "passed": 1,
         "failed": 0
+      },
+      {
+        "agent_id": "caption_closer",
+        "run_at": "2026-08-13T11:14:40.137Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_captions.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/captions.json": {
+            "valid": true,
+            "count": 8
+          },
+          "data/caption-variants.json": {
+            "valid": true,
+            "count": 8
+          }
+        },
+        "passed": 1,
+        "failed": 0
       }
     ],
     "visual_forge": [
@@ -851,6 +876,35 @@
           "data/thumbnail-briefs.json": {
             "valid": true,
             "count": 20
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "visual_forge",
+        "run_at": "2026-08-13T11:14:40.225Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_visual_briefs.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/visual-briefs.json": {
+            "valid": true,
+            "count": 8
+          },
+          "data/image-prompts.json": {
+            "valid": true,
+            "count": 8
+          },
+          "data/thumbnail-briefs.json": {
+            "valid": true,
+            "count": 8
           }
         },
         "passed": 1,
@@ -944,6 +998,36 @@
         },
         "passed": 1,
         "failed": 0
+      },
+      {
+        "agent_id": "blog_beast",
+        "run_at": "2026-08-13T11:14:40.312Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_blog_drafts.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/blog-briefs.json": {
+            "valid": true,
+            "count": 8
+          },
+          "data/blog-drafts.json": {
+            "valid": true,
+            "count": 3
+          },
+          "data/faq-opportunities.json": {
+            "valid": true,
+            "count": 8
+          }
+        },
+        "passed": 1,
+        "failed": 0,
+        "partial": 0
       }
     ],
     "reddit_ghost": [
@@ -1004,6 +1088,36 @@
         },
         "passed": 1,
         "failed": 0
+      },
+      {
+        "agent_id": "reddit_ghost",
+        "run_at": "2026-08-13T11:14:40.396Z",
+        "duration_ms": 43,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "generate_reddit_ghost.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/reddit-replies.json": {
+            "valid": true,
+            "count": 5
+          },
+          "data/reddit-opportunities.json": {
+            "valid": true,
+            "count": 5
+          },
+          "data/forum-opportunities.json": {
+            "valid": true,
+            "count": 2
+          }
+        },
+        "passed": 1,
+        "failed": 0,
+        "partial": 0
       }
     ],
     "qa_inspector": [
@@ -1065,6 +1179,39 @@
         },
         "passed": 1,
         "failed": 0
+      },
+      {
+        "agent_id": "qa_inspector",
+        "run_at": "2026-08-13T11:14:40.485Z",
+        "duration_ms": 46,
+        "status": "PARTIAL",
+        "scripts": [
+          {
+            "script": "run_qa_inspector.js",
+            "status": "PARTIAL",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/qa-report.json": {
+            "valid": true,
+            "total": 40,
+            "pass": 37,
+            "fix": 0,
+            "reject": 3
+          },
+          "data/qa-failures.json": {
+            "valid": true,
+            "failures": 3
+          },
+          "data/ready-for-approval.json": {
+            "valid": true,
+            "ready": 37
+          }
+        },
+        "passed": 0,
+        "failed": 0,
+        "partial": 1
       }
     ],
     "approval_captain": [
@@ -1086,6 +1233,34 @@
             "total": 88,
             "waiting_copy": 48,
             "waiting_creative": 37,
+            "blocked": 3,
+            "high": 3
+          },
+          "data/approval-summary.json": {
+            "valid": true
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "approval_captain",
+        "run_at": "2026-08-13T11:14:40.571Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_approval_captain.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/approval-queue.json": {
+            "valid": true,
+            "total": 40,
+            "waiting_copy": 24,
+            "waiting_creative": 13,
             "blocked": 3,
             "high": 3
           },
@@ -1121,6 +1296,34 @@
           "data/tone-violations.json": {
             "valid": true,
             "violations": 1
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "brand_guard",
+        "run_at": "2026-08-13T11:14:40.658Z",
+        "duration_ms": 46,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_brand_guard.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/brand-guard-report.json": {
+            "valid": true,
+            "score": 100,
+            "pass": 16,
+            "warn": 0,
+            "fail": 0
+          },
+          "data/tone-violations.json": {
+            "valid": true,
+            "violations": 0
           }
         },
         "passed": 1,
@@ -1173,6 +1376,29 @@
         },
         "passed": 1,
         "failed": 0
+      },
+      {
+        "agent_id": "publisher",
+        "run_at": "2026-08-13T11:14:40.753Z",
+        "duration_ms": 53,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_publisher.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/publish-queue.json": {
+            "valid": true,
+            "queued": 21,
+            "failures": 0,
+            "mode": "DRY_RUN"
+          }
+        },
+        "passed": 1,
+        "failed": 0
       }
     ],
     "postback_logger": [
@@ -1193,6 +1419,28 @@
             "valid": true,
             "entries": 0,
             "used_marked": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "postback_logger",
+        "run_at": "2026-08-13T11:14:40.839Z",
+        "duration_ms": 46,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_postback_logger.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/postback-log.json": {
+            "valid": true,
+            "entries": 21,
+            "used_marked": 21
           }
         },
         "passed": 1,
@@ -1222,12 +1470,57 @@
         },
         "passed": 1,
         "failed": 0
+      },
+      {
+        "agent_id": "schedule_captain",
+        "run_at": "2026-08-13T11:14:40.927Z",
+        "duration_ms": 45,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_schedule_captain.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/schedule-board.json": {
+            "valid": true,
+            "slots": 1,
+            "filled": 1,
+            "balance_issues": 3
+          }
+        },
+        "passed": 1,
+        "failed": 0
       }
     ],
     "approval_runner": [
       {
         "agent_id": "approval_runner",
         "run_at": "2026-04-22T09:37:28.013Z",
+        "duration_ms": 44,
+        "status": "PASS",
+        "scripts": [
+          {
+            "script": "run_approval_runner.js",
+            "status": "PASS",
+            "err": ""
+          }
+        ],
+        "outputs": {
+          "data/approval-actions.json": {
+            "valid": true,
+            "actions": 0,
+            "expired": 0
+          }
+        },
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "agent_id": "approval_runner",
+        "run_at": "2026-08-13T11:14:41.012Z",
         "duration_ms": 44,
         "status": "PASS",
         "scripts": [
@@ -1283,5 +1576,5 @@
       }
     ]
   },
-  "updated": "2026-04-23T10:28:04.702Z"
+  "updated": "2026-08-13T11:14:41.013Z"
 }

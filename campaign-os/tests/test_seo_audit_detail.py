@@ -55,7 +55,14 @@ def _isolated_app_empty():
 
 
 class SeoScoreTests(unittest.TestCase):
-    """Unit tests for `_seo_audit_score`."""
+    """Unit tests for `_seo_audit_score`.
+
+    v2026-08-19 — formula changed: site score is now the average of per-page
+    scores (same 25/10/3 penalty scale `_seo_audit_group_by_page` uses), with
+    a +10 bonus when every page status is OK. The previous 15/8/3 math on
+    the recommendations list clamped to 0 the moment a site had more than
+    ~6 high findings, hiding the real per-page health.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -65,46 +72,126 @@ class SeoScoreTests(unittest.TestCase):
     def test_empty_audit_returns_zero(self):
         self.assertEqual(SeoScoreTests._score({}), 0)
 
-    def test_healthy_audit_no_findings_returns_full(self):
-        audit = {'recommendations': [], 'pages': [{'status': 'OK'}, {'status': 'OK'}]}
-        # No findings means no deduction + 10 status bonus = clamp 100
+    def test_audit_with_no_pages_returns_zero(self):
+        self.assertEqual(SeoScoreTests._score({'recommendations': [
+            {'severity': 'high'}, {'severity': 'high'},
+        ]}), 0)
+
+    def test_healthy_pages_no_findings_returns_full(self):
+        # 2 pages, no findings, both status OK -> avg 100 + 10 bonus = clamp 100
+        audit = {'pages': [
+            {'status': 'OK', 'findings': []},
+            {'status': 'OK', 'findings': []},
+        ]}
         self.assertEqual(SeoScoreTests._score(audit), 100)
 
-    def test_high_finding_deducts_15(self):
-        audit = {'recommendations': [{'severity': 'high'}]}
-        self.assertEqual(SeoScoreTests._score(audit), 85)
+    def test_per_page_high_finding_deducts_25(self):
+        # One page, one high finding: 100-25=75, no bonus (has findings) = 75
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [{'severity': 'high'}]},
+        ]}
+        self.assertEqual(SeoScoreTests._score(audit), 75)
 
-    def test_medium_finding_deducts_8(self):
-        audit = {'recommendations': [{'severity': 'medium'}]}
-        self.assertEqual(SeoScoreTests._score(audit), 92)
+    def test_per_page_medium_finding_deducts_10(self):
+        # One page, one medium finding: 100-10=90, no bonus (has findings) = 90
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [{'severity': 'medium'}]},
+        ]}
+        self.assertEqual(SeoScoreTests._score(audit), 90)
 
-    def test_low_finding_deducts_3(self):
-        audit = {'recommendations': [{'severity': 'low'}]}
+    def test_per_page_low_finding_deducts_3(self):
+        # One page, one low finding: 100-3=97, no bonus (has findings) = 97
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [{'severity': 'low'}]},
+        ]}
         self.assertEqual(SeoScoreTests._score(audit), 97)
 
-    def test_mixed_findings(self):
-        audit = {'recommendations': [
-            {'severity': 'high'}, {'severity': 'medium'},
-            {'severity': 'medium'}, {'severity': 'low'},
+    def test_mixed_findings_averaged_across_pages(self):
+        # Page A: 1 high (75), Page B: 1 medium (90). Avg = 82.5 -> round 82
+        # (Python banker's rounding). No bonus because pages have findings.
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [{'severity': 'high'}]},
+            {'status': 'OK', 'findings': [{'severity': 'medium'}]},
         ]}
-        # 100 - 15 - 8 - 8 - 3 = 66
-        self.assertEqual(SeoScoreTests._score(audit), 66)
+        self.assertEqual(SeoScoreTests._score(audit), 82)
 
-    def test_clamped_at_zero(self):
-        audit = {'recommendations': [{'severity': 'high'}] * 20}
+    def test_does_not_clamp_to_zero_with_realistic_findings(self):
+        # Regression: the bug that triggered this fix. A 4-page site with
+        # 8 highs + 4 mediums + 4 lows used to score 0 (penalty 164 > 100).
+        # With per-page averaging, each page scores 37 (2H+1M+1L) and
+        # site averages 37 (no bonus because pages have findings) — poor
+        # band, honest representation of per-page health.
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [
+                {'severity': 'high'}, {'severity': 'high'},
+                {'severity': 'medium'}, {'severity': 'low'},
+            ]},
+            {'status': 'OK', 'findings': [
+                {'severity': 'high'}, {'severity': 'high'},
+                {'severity': 'medium'}, {'severity': 'low'},
+            ]},
+            {'status': 'OK', 'findings': [
+                {'severity': 'high'}, {'severity': 'high'},
+                {'severity': 'medium'}, {'severity': 'low'},
+            ]},
+            {'status': 'OK', 'findings': [
+                {'severity': 'high'}, {'severity': 'high'},
+                {'severity': 'medium'}, {'severity': 'low'},
+            ]},
+        ]}
+        # 4 pages all scoring 37 (100-50-10-3=37) -> avg 37, no bonus (findings)
+        self.assertEqual(SeoScoreTests._score(audit), 37)
+
+    def test_clamped_at_zero_for_pages_with_only_high_findings(self):
+        # Page with 5 highs = 100-125=clamp 0; site avg = 0
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [{'severity': 'high'}] * 5},
+        ]}
         self.assertEqual(SeoScoreTests._score(audit), 0)
 
     def test_clamped_at_100(self):
-        audit = {'recommendations': [], 'pages': [{'status': 'OK'}] * 5}
+        audit = {'pages': [
+            {'status': 'OK', 'findings': []},
+            {'status': 'OK', 'findings': []},
+        ]}
         self.assertEqual(SeoScoreTests._score(audit), 100)
 
     def test_severity_case_insensitive(self):
-        audit = {'recommendations': [{'severity': 'HIGH'}]}
-        self.assertEqual(SeoScoreTests._score(audit), 85)
+        # HIGH (uppercase) still counts as high
+        audit = {'pages': [
+            {'status': 'OK', 'findings': [{'severity': 'HIGH'}]},
+        ]}
+        # 100-25=75, no bonus (has findings)
+        self.assertEqual(SeoScoreTests._score(audit), 75)
 
-    def test_status_bonus_only_when_all_ok(self):
-        audit = {'recommendations': [], 'pages': [{'status': 'OK'}, {'status': 'FAIL'}]}
-        # No bonus because not all OK; no deductions; result = 100
+    def test_status_bonus_only_when_no_findings(self):
+        # Bonus (+10) only fires when ALL pages are OK AND no page has findings.
+        audit_all_clean = {'pages': [
+            {'status': 'OK', 'findings': []},
+            {'status': 'OK', 'findings': []},
+        ]}
+        audit_with_findings = {'pages': [
+            {'status': 'OK', 'findings': []},
+            {'status': 'OK', 'findings': [{'severity': 'medium'}]},
+        ]}
+        audit_mixed_status = {'pages': [
+            {'status': 'OK', 'findings': []},
+            {'status': 'FAIL', 'findings': []},
+        ]}
+        # All clean: avg 100 + 10 bonus = clamp 100
+        self.assertEqual(SeoScoreTests._score(audit_all_clean), 100)
+        # Has findings: avg(100, 90)=95, no bonus
+        self.assertEqual(SeoScoreTests._score(audit_with_findings), 95)
+        # Mixed status: avg 100, no bonus (not all OK)
+        self.assertEqual(SeoScoreTests._score(audit_mixed_status), 100)
+
+    def test_skips_non_dict_pages(self):
+        audit = {'pages': [
+            {'status': 'OK', 'findings': []},
+            'not-a-dict',
+            None,
+        ]}
+        # Only one valid page (no findings, OK) -> 100+10 = clamp 100
         self.assertEqual(SeoScoreTests._score(audit), 100)
 
 

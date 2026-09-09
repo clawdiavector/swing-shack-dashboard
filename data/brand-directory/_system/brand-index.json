@@ -2,8 +2,8 @@
   "schema": "https://campaign-os/brand-directory/index/v1",
   "version": "1.0",
   "updated": "2026-07-30T14:30:27.699859+00:00",
-  "total_brands": 4,
-  "total_ready": 4,
+  "total_brands": 3,
+  "total_ready": 3,
   "brands": {
     "bag-drop": {
       "ready": true,
@@ -61,22 +61,15 @@
         "grid-3up-meme",
         "quote-card"
       ]
-    },
+    }
+  },
+  "product_brands": {
     "takomo": {
       "ready": true,
-      "gates": {
-        "tone_rules": true,
-        "palette": true,
-        "archetypes": true,
-        "ctas": true
-      },
-      "image_count": 1,
-      "primary_color": "#0A0B0A",
-      "accent_color": "#C2A878",
-      "archetype_ids": [
-        "takomo-product-hero",
-        "takomo-spec-card"
-      ]
+      "carried_by": ["swing-shack", "stick"],
+      "campaign_count": 1,
+      "primary_color": "#060706",
+      "accent_color": "#75742E"
     }
   }
 }

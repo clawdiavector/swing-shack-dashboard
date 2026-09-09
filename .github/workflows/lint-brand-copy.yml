@@ -1,0 +1,45 @@
+name: lint-brand-copy
+
+# Enforce Campaign OS standing rule 4 ("Em dash banned. Use pipes |
+# / commas , / full stops / colons : in published copy.") on every
+# PR + push to feat/asset-state-engine.
+#
+# Trigger paths: only the brand-directory published-copy lane. Other
+# changes don't need to trigger this workflow (they're noise here).
+#
+# Local-match: the .git/hooks/pre-commit hook runs the same script on
+# staged files. This workflow is the off-host fallback for the
+# --no-verify bypass case.
+
+on:
+  push:
+    branches: [feat/asset-state-engine]
+    paths:
+      - 'data/brand-directory/**/copy/*.md'
+      - 'data/brand-directory/**/examples/*.md'
+      - 'scripts/lint_brand_copy.py'
+  pull_request:
+    branches: [feat/asset-state-engine]
+    paths:
+      - 'data/brand-directory/**/copy/*.md'
+      - 'data/brand-directory/**/examples/*.md'
+      - 'scripts/lint_brand_copy.py'
+
+jobs:
+  lint:
+    name: lint-brand-copy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Lint published copy for em-dashes
+        run: |
+          python3 scripts/lint_brand_copy.py
+          # Exit 1 = violations found; that's how this script signals failure.

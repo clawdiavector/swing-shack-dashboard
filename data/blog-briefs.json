@@ -1,10 +1,10 @@
 {
   "schema": "https://clawdia.io/agents/blog-beast/v1",
-  "generated": "2026-04-23T09:37:27.915Z",
+  "generated": "2026-08-13T11:14:40.305Z",
   "total": 8,
   "by_intent": {
-    "informational": 8,
-    "transactional": 0
+    "informational": 7,
+    "transactional": 1
   },
   "by_priority": {
     "quick_win": 3,
@@ -14,9 +14,9 @@
   "ready_for_qa": 8,
   "briefs": [
     {
-      "brief_id": "bb-jmv58rrq",
+      "brief_id": "bb-0eu4mq5v",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.914Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -55,9 +55,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-imaelxeh",
+      "brief_id": "bb-zq1zown6",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -96,9 +96,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-wh1petuq",
+      "brief_id": "bb-nqlg1w51",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -137,24 +137,25 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-cr0b6rq4",
+      "brief_id": "bb-komj2vxt",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
-        "cluster": "Golf Coaching & Lessons",
+        "cluster": "TrackMan Golf Technology",
         "keywords": [
-          "golf lessons johannesburg",
-          "golf coach sandton",
-          "tpi assessment",
-          "golf improvement"
+          "trackman golf",
+          "trackman indoor golf",
+          "golf launch monitor",
+          "trackman johannesburg",
+          "indoor golf tech"
         ],
-        "angle": "Transformation story. Before/after numbers, certified coaches, real feedback."
+        "angle": "TrackMan is the gold standard for golf improvement. Show what it measures, why it matters, who it's for."
       },
-      "target_keyword": "/checkout/",
+      "target_keyword": "/philosophy/",
       "secondary_keywords": [
-        "golf lessons johannesburg",
-        "golf coach sandton",
-        "tpi assessment"
+        "trackman golf",
+        "trackman indoor golf",
+        "golf launch monitor"
       ],
       "search_intent": "informational",
       "word_count_target": 1800,
@@ -167,8 +168,8 @@
         "FAQ (5 questions)",
         "CTA (book session)"
       ],
-      "h1_suggestion": "/checkout/: What You Need to Know",
-      "seo_notes": "Target: /checkout/. Intent: informational. Include Transformation story. Before/after numbers, certif.",
+      "h1_suggestion": "/philosophy/: What You Need to Know",
+      "seo_notes": "Target: /philosophy/. Intent: informational. Include TrackMan is the gold standard for golf improvement.",
       "conversion_goal": "email_signup",
       "status": "draft",
       "confidence": 70,
@@ -177,24 +178,24 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-al5840ri",
+      "brief_id": "bb-run5773g",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
-        "cluster": "Practice & Warm-up",
+        "cluster": "Indoor Golf Johannesburg",
         "keywords": [
-          "golf practice indoor",
-          "golf warm up simulator",
-          "indoor range",
-          "golf bucket"
+          "indoor golf johannesburg",
+          "indoor golf sandton",
+          "golf simulator johannesburg",
+          "golf near me indoor"
         ],
-        "angle": "Convenience + preparation. How indoor practice fits into a real golf improvement program."
+        "angle": "Location-first intent. Clear directions, what to expect, pricing context, booking ease."
       },
       "target_keyword": "/club-fitting/",
       "secondary_keywords": [
-        "golf practice indoor",
-        "golf warm up simulator",
-        "indoor range"
+        "indoor golf johannesburg",
+        "indoor golf sandton",
+        "golf simulator johannesburg"
       ],
       "search_intent": "informational",
       "word_count_target": 1800,
@@ -208,7 +209,7 @@
         "CTA (book session)"
       ],
       "h1_suggestion": "Club Fitting in Johannesburg: What to Expect",
-      "seo_notes": "Target: /club-fitting/. Intent: informational. Include Convenience + preparation. How indoor practice fit.",
+      "seo_notes": "Target: /club-fitting/. Intent: informational. Include Location-first intent. Clear directions, what to e.",
       "conversion_goal": "email_signup",
       "status": "draft",
       "confidence": 70,
@@ -217,9 +218,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-8h1v853p",
+      "brief_id": "bb-ba4fbqvl",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
         "cluster": "Practice & Warm-up",
         "keywords": [
@@ -230,26 +231,25 @@
         ],
         "angle": "Convenience + preparation. How indoor practice fits into a real golf improvement program."
       },
-      "target_keyword": "/",
+      "target_keyword": "/bookings/",
       "secondary_keywords": [
         "golf practice indoor",
         "golf warm up simulator",
         "indoor range"
       ],
-      "search_intent": "informational",
-      "word_count_target": 1800,
+      "search_intent": "transactional",
+      "word_count_target": 1200,
       "tone": "knowledgeable, South African, data-driven, not salesy",
       "structure": [
-        "HOOK (stat or question)",
-        "PROBLEM (what golfers get wrong)",
-        "SOLUTION (TrackMan/data)",
-        "HOW IT WORKS (Swing Shack specifics)",
-        "FAQ (5 questions)",
-        "CTA (book session)"
+        "HOOK (direct benefit)",
+        "WHAT YOU GET (pricing/packages)",
+        "PROCESS (booking + session)",
+        "PROOF (numbers/results)",
+        "CTA (book now)"
       ],
-      "h1_suggestion": "/: What You Need to Know",
-      "seo_notes": "Target: /. Intent: informational. Include Convenience + preparation. How indoor practice fit.",
-      "conversion_goal": "email_signup",
+      "h1_suggestion": "/bookings/: What You Need to Know",
+      "seo_notes": "Target: /bookings/. Intent: transactional. Include Convenience + preparation. How indoor practice fit.",
+      "conversion_goal": "book_session",
       "status": "draft",
       "confidence": 70,
       "owner": "blog_beast",
@@ -257,9 +257,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-82ddty83",
+      "brief_id": "bb-v59do6x6",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
         "cluster": "TrackMan Golf Technology",
         "keywords": [
@@ -298,9 +298,9 @@
       "next_action": "Write draft, QA for SEO + brand, publish"
     },
     {
-      "brief_id": "bb-vfg48mvh",
+      "brief_id": "bb-kx2ae72k",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.304Z",
       "cluster": {
         "cluster": "Indoor Golf Johannesburg",
         "keywords": [

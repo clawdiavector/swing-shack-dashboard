@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/offer-margin-guard/v1",
-  "generated": "2026-04-23T09:05:42.994Z",
+  "generated": "2026-08-13T11:14:42.410Z",
   "rules": {
     "min_margin_percent": 45,
     "principle": "value_add_over_discounting"

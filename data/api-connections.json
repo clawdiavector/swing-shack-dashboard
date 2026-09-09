@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/api-connection-registry/v1",
-  "generated": "2026-07-21T11:54:08.232Z",
+  "generated": "2026-08-13T11:14:43.007Z",
   "summary": {
     "total": 8,
     "connected": 6,
@@ -13,7 +13,7 @@
       "name": "Postiz (Social Publishing)",
       "connected": true,
       "auth_status": "active",
-      "last_success": "2026-07-21T11:54:08.237Z",
+      "last_success": "2026-08-13T11:14:43.012Z",
       "scope_level": "full",
       "live_safe": true,
       "blockers": [],
@@ -24,7 +24,7 @@
         "approval_auto_promote"
       ],
       "evidence": "API key present in credentials/. Live postback URL configured.",
-      "api_key_prefix": "sk_live_...e001e6",
+      "api_key_prefix": "sk_live_...124326",
       "integration_id_postiz": "cmmdgfz3b00s1o20",
       "integration_id_instagram": "cmnfoum2703e6ql0"
     },
@@ -48,7 +48,7 @@
       "name": "GA4 Analytics",
       "connected": true,
       "auth_status": "active",
-      "last_success": "2026-04-22T06:31:02.569Z",
+      "last_success": "2026-08-13T11:14:38.314Z",
       "scope_level": "read_only",
       "live_safe": true,
       "blockers": [],
@@ -122,7 +122,7 @@
       "name": "Reddit API",
       "connected": true,
       "auth_status": "active",
-      "last_success": "2026-04-22T06:30:52.182Z",
+      "last_success": "2026-08-13T11:13:56.137Z",
       "scope_level": "read_only",
       "live_safe": true,
       "blockers": [

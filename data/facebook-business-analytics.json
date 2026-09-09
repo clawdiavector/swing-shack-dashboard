@@ -1,0 +1,29 @@
+{
+  "schema": "https://clawdia.io/agents/facebook-business-analytics/v1",
+  "channel": "facebook",
+  "updated": "2026-08-20T11:39:45.750226Z",
+  "generated_by": "fetch_facebook_analytics.py (live fetch 2026-08-20)",
+  "data_pending": false,
+  "account": {
+    "id": "198859063301219",
+    "handle": "swing-shack",
+    "name": "Swing Shack",
+    "biography": null,
+    "followers_count": 446,
+    "follows_count": null,
+    "media_count": null,
+    "verified": false
+  },
+  "daily_reach": [],
+  "media": [],
+  "top_post": {
+    "permalink": null
+  },
+  "window_totals": {
+    "page_views": null,
+    "page_likes": 446,
+    "page_impressions": null,
+    "post_engagements_30d": null
+  },
+  "_meta_pending_reason": "page-level engagement metrics blocked by Meta app review (pages_read_user_content + read_insights). Per-post engagement metrics pending same review. Fan count + page name are live."
+}

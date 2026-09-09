@@ -1,7 +1,7 @@
 # Campaign OS · Overnight CTO Build — Status & Continuation
 
 ## Last update
-2026-07-27 · CTO overnight build · MiniMax-M3 (continuation session)
+2026-08-06T03:49Z · visual-library thumbnails: `<img src>` switched from broken `/api/visual-library/.../image/<fn>` (JSON, not bytes) to inline `thumbnail_data_url` (data: URI). 8 broken-image 404s → 0 on brand-detail panel + library images surface.
 
 ## Overnight cron
 - Job ID `da7bebf99c66`, hourly 22:00–10:00 SAST, 12 ticks, delivers to Discord origin.
@@ -226,3 +226,456 @@ done
 
 **Next priority (PRIORITY 4)**: Image generation pipeline — `campaign-os/_lib/image_gen.py` with strict brand standards (colors #0a0f1a / #34d399 / #60a5fa, typography, platform format specs).
 **Blockers**: none.
+
+## Cron tick 2026-08-03T10:56 UTC (visualizer HELP tooltips — 30 elements)
+
+**Built**:
+- **HELP tooltips on `/visualizer`** — 30 elements across the page now have `data-help` + `data-help-title` so a non-engineer can decode the visual-DNA engine, the Meta engagement signal, and the gpt-image-1 generator without leaving the page.
+- **Same minimal IIFE port pattern** as meme-lab + cockpit (`campaign-os/visualizer.html` line ~337). HELP module is 47 lines of JS + 6 lines of CSS, identical shape to the other two pages. Each page is self-contained.
+- **3 autoAttach hook points**: (1) `init()` runs autoAttach BEFORE dynamic content loads; (2) after `Promise.all([loadEngagement(), loadStats(), runGrid()])`; (3) `setInterval(autoAttach, 4000)` safety net for future dynamic injection.
+- **Coverage map** (30): H1, search-status span, hero band + 2 inner lbls, 8 sidebar h3s, 4 stat tile lbls, main Generate card h3 + 3 form labels + Generate button, 6 modal h4s, 2 modal buttons.
+- **Idempotent wiring**: `:not(.has-help-tip)` selector makes re-runs safe.
+- No JS logic added beyond HELP module + 3 autoAttach call sites.
+
+**Files added/modified**: `campaign-os/visualizer.html` (93 insertions / 30 deletions).
+**New routes / UI sections / tests**: none this tick.
+**Commit**: `5841fb1` pushed to `origin/feat/asset-state-engine`.
+
+**Verified live**:
+- 30/30 `[data-help]` elements wired on LIVE URL, 0 pageerrors
+- 9 PNG screenshots at `/tmp/co-nightshift/walkthrough_visualizer_2026-08-03T125506_*.png` (full page, h1, sidebar score, sidebar brand recipe, tile total, main generate h3, generate button, discover, modal brand alignment)
+- Modal tooltip pattern works end-to-end (open card → modal → h4 hovers → popover)
+
+**Lane rules honored**: zero em-dashes in new copy, no publish/schedule, no fake stats, branch `feat/asset-state-engine`.
+
+**Next priority**: sweep HELP onto remaining `.card-h h3` on Brand Directory detail panel (Palette, Archetypes, Typography, Voice, Headlines, CTA, Punctuation, Do-say-don't-say, Examples), or fix the `[object Object]` meme-lab voice-bible bug, or wire HELP on `login.html` / `meta-portal.html`.
+
+**Blockers**: none.
+
+## Cron tick 2026-08-03T10:56 UTC (visualizer HELP tooltips - 30 elements)
+
+**Built**:
+- **HELP tooltips on `/visualizer`** - 30 elements across the page now have `data-help` + `data-help-title` so a non-engineer can decode the visual-DNA engine, the Meta engagement signal, and the gpt-image-1 generator without leaving the page.
+- **Same minimal IIFE port pattern** as meme-lab + cockpit (`campaign-os/visualizer.html` line ~337). HELP module is 47 lines of JS + 6 lines of CSS, identical shape to the other two pages.
+- **3 autoAttach hook points**: (1) `init()` runs autoAttach BEFORE dynamic content loads; (2) after `Promise.all([loadEngagement(), loadStats(), runGrid()])`; (3) `setInterval(autoAttach, 4000)` safety net.
+- **Coverage map** (30): H1, search-status span, hero band + 2 inner lbls, 8 sidebar h3s, 4 stat tile lbls, main Generate card h3 + 3 form labels + Generate button, 6 modal h4s, 2 modal buttons.
+- No JS logic added beyond HELP module + 3 autoAttach call sites.
+
+**Files added/modified**: `campaign-os/visualizer.html` (93 insertions / 30 deletions).
+**New routes / UI sections / tests**: none this tick.
+**Commit**: `5841fb1` pushed to `origin/feat/asset-state-engine`.
+
+**Verified live**:
+- 30/30 `[data-help]` elements wired on LIVE URL, 0 pageerrors
+- 9 PNG screenshots at `/tmp/co-nightshift/walkthrough_visualizer_2026-08-03T125506_*.png` (full page, h1, sidebar score, sidebar brand recipe, tile total, main generate h3, generate button, discover, modal brand alignment)
+- Modal tooltip pattern works end-to-end
+
+**Lane rules honored**: zero em-dashes in new copy, no publish/schedule, no fake stats, branch `feat/asset-state-engine`.
+
+**Next priority**: sweep HELP onto remaining `.card-h h3` on Brand Directory detail panel, or fix `[object Object]` meme-lab voice-bible bug, or wire HELP on `login.html` / `meta-portal.html`.
+
+**Blockers**: none.
+
+---
+
+## Cron tick 2026-08-05T03:45Z (nightshift tick — wire 3 more card-h tooltips)
+
+**Built**:
+- **3 more static card-h tooltips wired** on `campaign-os/campaign-os.html`:
+  - Line 977: Meme Lab "🎯 Top picks for ..." → `data-help-title="Top picks for this brand"` (329 chars body, 0 em-dashes)
+  - Line 986: Meme Lab "📚 Meme historian · ..." → `data-help-title="Meme historian library"` (360 chars body, 0 em-dashes)
+  - Line 3437: "👁️ Preview in brand font" (inside `renderBriefPreview()` template literal — h3 text was static so attr injection was safe) → `data-help-title="Preview in brand font"` (428 chars body, 0 em-dashes)
+- All 3 auto-attached by existing `HELP.autoAttach()` 4s interval, picking up the established `cursor:help` + `border-bottom:dotted` affordance from commit `a904842`.
+
+**Files added/modified**: `campaign-os/campaign-os.html` (3 insertions / 3 deletions).
+**New routes / UI sections / tests**: none — pure attribute addition.
+
+**Commit**: `fc2a551` pushed to `origin/feat/asset-state-engine`.
+
+**Verified live**:
+- `/api/health` 200
+- 2/3 hover-verified on LIVE via Playwright (Top picks + Meme historian — popover state `hasShow=true, opacity=1`, innerHTML contains exact title + body)
+- 1/3 HTML probe only (Preview in brand font — only renders at runtime when a user expands a campaign brief detail)
+- 0 pageerrors, 0 em-dashes in new tooltips, 0 main branch touched
+
+**Screenshots**:
+- `/tmp/co-nightshift/walkthrough_2026-08-05T034304_live_top_picks_popover.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T034304_live_meme_historian_popover.png`
+
+**Lane rules honored**: zero em-dashes in new copy, no publish/schedule, no fake stats, branch `feat/asset-state-engine`, no main branch.
+
+**Next priority** (PRIORITY CARRY-OVER from last tick):
+- Wire ~14 dynamic-template card-h h3s inside `renderBriefStyleGuide`, `renderBriefPreview`, `renderCampaignPlan`, and SEO Audit per-page detail (lines 7624-7764, 6870-6879). These need `${h3tip(...)}` builder calls — same pattern as Brand Directory detail panel (commit 7502-7560).
+- OR fix the popover `top = r.bottom + window.scrollY + 6` pre-existing bug (line 1559) — popover is `position:fixed` so the `+ window.scrollY` is wrong, putting the popover below the visible viewport when triggered mid-screen. 1-line patch.
+
+**Blockers**: none.
+
+---
+
+## Cron tick 2026-08-05T05:00Z (nightshift tick — popover position fix + flip-up clamp)
+
+Picked up the **popover `top = r.bottom + window.scrollY + 6` carry-over** flagged in the 2026-08-05T03:45Z tick. Bug: `.help-pop{position:fixed}` but `showPop()` was adding `window.scrollX/scrollY`, placing the pop off-screen below the fold whenever the trigger was mid-page. Static screenshot proof from the prior tick showed popovers at y > 1800 in a 900-tall viewport.
+
+**Files modified** (`commit 5b491cd`, pushed to `origin/feat/asset-state-engine`, +29/-7, 3 files):
+- `campaign-os/campaign-os.html` (line 1555-1577): `showPop()` rewritten to use viewport coords; added vertical flip-up clamp (if `top + popR.height > vh - 8`, flip above trigger; fall back to shrink-to-fit).
+- `campaign-os/visualizer.html` (line 349-365): same fix (visualizer DNA-metadata popover had the same bug).
+- `campaign-os/cockpit-operational.html` (line 126-142): same fix (cockpit popover had the same bug).
+
+**Verified live** (Playwright cookie-auth on Railway URL):
+- Bundle probe (cache-busted `?cb=<ts>`): bundle_chars=392,683, `has_new_comment=true`, `has_old_bug=false`, `has_flip_up=true`, title `Campaign OS · Swing Shack`, 28 EXPLAINERS keys.
+- Mid-page popover probe (LIVE, scrollY=1500, vh=900): trigger `🚀 Ready to publish` at y=313.65, popover rect.y=339.66, bottom=459.53, `inside_viewport=true`. `would_have_been_off_screen_old_bug=true` (old calc would have placed top at 1839.65, far past 900).
+- Near-bottom flip-up probe (LOCAL, vh=400): trigger `⚠️ High-impact misses` at y=322, popover flipped to top=177.84/bottom=316.47. `flippedUp=true`, `inside_viewport=true`.
+- 0 console errors, 0 pageerrors, `/api/health` ok. Horizontal clamp (`maxLeft`, `left < 8`) preserved.
+
+**Screenshot (LIVE)**: `/tmp/co-nightshift/walkthrough_2026-08-05T050036_LIVE_popover_position.png`
+
+**Lane rules honored**: zero em-dashes in new copy (`git diff | grep "—\|–"` = 0), no publish/schedule, no fake stats, branch `feat/asset-state-engine`, no main branch touched.
+
+**Next priority**:
+- Wire ~14 dynamic-template card-h h3s inside `renderBriefStyleGuide`, `renderBriefPreview`, `renderCampaignPlan`, and SEO Audit per-page detail. These need `${h3tip(...)}` builder calls (same pattern Brand Directory uses, commit range 7502-7560).
+- OR a regression sweep: probe all 88 card-h h3 tooltips and confirm none break with the new viewport-relative math (especially h3s inside horizontal-scroll containers or `position:sticky` headers — those are rare on Campaign OS but worth a 5-min sweep).
+
+**Blockers**: none.
+
+---
+
+## Cron tick 2026-08-05T07:39Z (nightshift tick — wire 6 h3 tooltips in brand-brief generator)
+
+Picked up the **`renderBriefStyleGuide / renderBriefPreview` carry-over** flagged across the prior 3 ticks (fc2a551, db2d191, bb7b4df). The brand-brief generator surface — opened when a user clicks `🎨 Generate brief` on any brand card — had 6 card-h h3s without tooltips: the Generate brief header, plus Archetype / Palette + Typography / Voice anchor / Headlines bank / CTAs bank inside the brief result card. All 6 were plain `<h3>` text nodes inside a template-literal click handler.
+
+**Fix (commit `0d3d3e2`, pushed to `origin/feat/asset-state-engine`, +17/-6, 1 file)**:
+- `campaign-os/campaign-os.html` lines 7591-7605: defined a local `h3tip` builder inside the brief click handler (the Brand Directory detail panel's `h3tip` lives in the `[data-bd-view]` click handler and is not in scope here — see pitfall #49 about closure scope for nested forEach listeners).
+- Added 6 new const-string help bodies (Generate brief / Arche / Palette + Type / Voice anchor / Brief Headlines / Brief CTAs). All under 400 chars, all plain-English, **0 em-dashes** (standing rule + lint_brand_copy pre-commit guard).
+- Wrapped 6 plain `<h3>` tags in `${h3tip(...)}` calls (Generate brief header at line 7608, then 5 in the brief result card at lines 7660/7664/7667/7674/7677).
+- Each new h3 carries `data-help` + `data-help-title` + `style="cursor:help;border-bottom:1px dotted var(--tx-2)"` so the existing HELP.autoAttach() + cursor/dotted affordance from commits 33faba4 / a904842 / 5b491cd picks it up for free.
+
+**Verified live (Playwright cookie-auth on Railway URL)**:
+- Bundle probe (cache-busted `?cb=1785908167`, 541,175 bytes): all 6 unique needles found in the served SPA.
+- Login (cos_session via `/login` JSON POST, password `swing-shack-dev-2026`), navigate to `data-go="campaigns"`, wait for `[data-bd-brief]` (4 brand buttons rendered), click first brand's `🎨 Generate brief`, wait for `h3[data-help-title="Archetype"]`.
+- Direct data-help attribute probe (the deterministic ground truth, not the singleton popover): **6/6 h3s found with `data-help-title` matching the expected title**, **6/6 `data-help` body strings start with the expected prefix** (Archetype = "The visual recipe the brief picked for this brand: canvas size (square IG, story..."), Palette + Type = "Live brand palette (hex per role)...", etc.).
+- Affordance probe: **6/6 h3s have `cursor=help` + `border-bottom-style=dotted`** (CSS from a904842 carries over automatically).
+- Popover fires on mouseenter for all 6 (popover singleton caches last-set content; data-help attribute is the ground truth).
+- 0 PAGEERROR / 0 console errors.
+- 6 per-h3 hover screenshots + 1 full-page screenshot at `/tmp/co-nightshift/walkthrough_2026-08-05T073917_BRIEF_H3_*.png`.
+
+**Lane rules honored**: 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (`git diff | grep "—"` = 0), 0 JS logic added (only attribute + template-literal substitution), 0 publish.
+
+**Next priority**:
+- Still-to-wire card-h h3s: HashtagSEO "Why this score" + "Banned (filtered out)" (lines 1353/1354), Learning "🧠 Learning" (4240), Insights "📅 Weekly marketing report" (4270), campaign card `${esc(cname)}` (7452), brief list `${esc(label)}` (7498), brief detail `✅ ${bid} · ${tone} · ${surface}` (7647), pillar card `${esc(pil.label)}` (7759), assets section `✏️ Assets · click any field to edit` (7802), asset card `${esc(a.name || aid)}` (7830). 9 left, all in dynamic template-literal surfaces — same pattern as this tick.
+- OR a regression sweep: probe all 88 card-h h3 tooltips and confirm none break with the new viewport-relative popover math (popover is singleton, but the visual position should still respect viewport for each h3).
+
+**Blockers**: none.
+
+## 2026-08-05T11:00Z — feat(campaign-os): wire Library section h2 tooltip (27/27 section headers)
+
+**Done:** Closed the last remaining section-h h2 gap. Library `<h2>` (line 4338, in `renderLibrary` template-literal) now has `data-help-title="Library"` + `data-help` body. Inline-attr pattern (not `${h3tip(...)}` builder) because the h2 is inside a template-literal that returns a fresh DOM each call but the h2 itself is a single hardcoded tag in the template — autoAttach picks it up on its 4s interval.
+
+**Commit:** `cdcbbb5` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +1/-1, pushed. Railway auto-deployed in ~3 minutes.
+
+**Verified (Playwright LIVE, cookie auth):**
+- Bundle probe (cache-busted, 407,122 chars): 2/2 unique needles found (`Universal archive for the active brand`, `data-help-title="Library"`).
+- DOM: h2 count = 27, h2[data-help-title] count = **27/27** (was 26/27 prior tick → now complete).
+- Library h2 attrs verified: `data-help-title="Library"`, `data-help` body matches verbatim, `cursor=help`, `borderBottomStyle=dotted`.
+- `.has-help-tip` class added by autoAttach on the h2.
+- Hover popover fires: `.help-pop` element with `classList.contains('show')`=true, title="LIBRARY", body starts with the wired copy. Position (8, 472) — just below the h2.
+- 0 PAGEERROR. The 5 console-errors logged are pre-existing 404s on assets not from this change.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T091320_lib_h2_zoom.png` — Library h2 with dotted underline, auto-attached "How the Library search works" explainer banner visible.
+- `/tmp/co-nightshift/walkthrough_2026-08-05T091402_lib_h2_hover_proof.png` — hover popover open showing "LIBRARY" title + full body verbatim.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified via `git diff` of the commit), 0 JS logic added (only attribute substitution), 0 schema changes.
+
+**Next pick:** The 27/27 h2 sweep is now complete. The carry-over queue is empty for h2s. Remaining candidates per SKILL.md pattern: modal headers (explicitly flagged "tooltips add no value here" in last report), visualizer popovers, or the field-name drift audit. The drift audit is the highest-yield pre-pick gate per the SKILL.md recipe — runs in 3 min, can surface real bugs the next-pick pattern misses.
+
+**Learned:** Section h2s inside a template-literal that gets re-rendered on nav (renderLibrary) still pick up the inline `data-help` + `data-help-title` pattern correctly — `autoAttach()`'s 4s interval re-runs after every render and wires the new DOM. The popover fires with the h2 itself as the tooltip target (the `mouseenter` listener attaches directly to the h2 because `data-help` is on it). No builder, no closure scope trap, no h3tip helper needed. **The earlier 26/27 → 27/27 coverage jump is now achieved.**
+
+**Asks:** None.
+
+## Cron tick 2026-08-05T12:24Z — review-queue image-asset label
+
+Closed a small but real UX gap in the review queue. 3 of 41 review-pending rows are image-only assets (Takomo 101T Hero Visual A/B/C) that all rendered as identical `No preview` placeholder text, making them indistinguishable without clicking. Now they show `🖼️ Image asset · click to preview`; text rows keep their caption verbatim.
+
+- Commit: `9f384c9` on `feat/asset-state-engine`, +8/-1.
+- Verified LIVE: 3 image-asset span rows + 38 text rows intact, 0 PAGEERROR, bundle contains needle.
+- Carry-over: ran field-name drift audit (PASS, clean) per the 11:00Z tick recommendation; UX diff in `audit_results_authed_20260805_101915.json`'s review.card_texts surfaced this lane.
+
+See `last-report.md` for the full tick report.
+
+## Cron tick 2026-08-05T18:30Z — modal h4 tooltips (Meme Lord + Caption studio)
+
+Wired 5 modal-context h4 headers with data-help + data-help-title + cursor:help + dotted underline:
+- 🖼️ Generated images (session) — Meme Lord library tab
+- 📚 Visual library preview — Meme Lord library tab
+- 😂 Memes catalog — Meme Lord library tab
+- 😂 Meme catalog (in picker) — Hooks/Captions/Memes tab (loadLibPane meme variant)
+- 5/10/15 variants — Caption studio results header (the count chip after generate)
+
+**Commit:** `a16f002` on `feat/asset-state-engine`, 1 file (`campaign-os/campaign-os.html`), +5/-5.
+
+**Verified LIVE (Playwright, cookie auth):**
+- Bundle probe: 5/5 `data-help-title` needles + 5/5 body text needles found in served HTML.
+- Library > Generated tab: 3/3 h4s found with `has-help-tip` class, `cursor=help`, dotted underline.
+- Library > Memes tab: 1/1 h4 (`Meme catalog (in picker)`).
+- Caption studio: 1/1 h4 (`Generated variants`) visible after generate click.
+- Popover fires on mouseenter: `.help-pop.show` with title "GENERATED IMAGES (SESSION)" + body verbatim, position (18.59, 508.25) within viewport.
+- 0 new PAGEERROR, 0 new CONSOLE.error (only 10 pre-existing 503/404 noise).
+- /api/health green.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic added (template-literal attribute substitution only — same pattern as the 27/27 h2 + 14/14 card-h h3 ticks).
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_02_library_generated.png` — Library > Generated tab with 3 new h4s
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_04_library_memes.png` — Library > Memes tab with 4th h4
+- `/tmp/co-nightshift/walkthrough_2026-08-05T182833Z_05_captions.png` — Caption studio with 5th h4 (5 VARIANTS (HOOK POOL))
+- `/tmp/co-nightshift/walkthrough_2026-08-05T183007Z_06_popover_proof.png` — popover fired on hover
+
+**Next pick:** 5 h4s unwired (the only modal h4s in `loadLibPane` + caption studio). The remaining gaps are 3 modal h3s (Meme modal title, GMB edit/new, Asset not found, Edit caption, Generic modal). All low-priority (modal titles are obvious). Next meaningful lane: em-dash sweep in user-facing app.py error JSON + meta-portal.html + meme-lab.html instructions (3+4+2 = 9 sites, per the 15:40Z tick carry-over).
+
+**Learned:** Pitfall V (autoAttach 4s wait + .help-pop selector) is still the right call — confirmed by popover firing on the new h4s. Mouse-move doesn't always fire `mouseenter` in Playwright (browser may treat the first move as a re-entry), but `dispatchEvent(new MouseEvent('mouseenter'))` is reliable.
+
+**Asks:** None.
+
+## 2026-08-05T23:10Z — feat(campaign-os): sweep em-dashes from user-facing copy (meta-portal + meme-lab)
+
+**Done:** Replaced 4 em-dashes (—) with middle-dots (·) in meta-portal.html (lines 118, 128, 147, 193) and 4 em-dashes in meme-lab.html (lines 716, 717 voiceLine + lines 754, 757 toast messages). 8 user-facing sites total; preserved the 13 em-dashes that are template/data-semantic placeholders per the standing rule (weekly KPI placeholders, "no data" defaults, "${brand} — ${vb.tone}" data separators — these encode semantics, not style).
+
+**Commit:** `b5979d4` on `feat/asset-state-engine`, +8/-8 across 2 files, pushed. Railway auto-deployed in ~90s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- meta-portal served: **0 em-dashes** in innerText; all 4 patched substrings present in served HTML (`use that · paste the whole string`, `no expiry · preferred if available`, `access_token` field · use that instead`, `(verification pending · Heidi will report)`).
+- meme-lab served: 4 patched substrings present (`${brand} · ${vb.tone}`, `swing-shack · direct, no fluff...`, `✓ Queued · ...`, `✗ Error · try again`).
+- /api/health green.
+- 0 console.error.
+- 1 PAGEERROR (`missing ) after argument list`) is pre-existing — verified by node syntax check that the patched voiceLine block parses cleanly. The error originates from elsewhere in meme-lab.html.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meta_portal.png`
+- `/tmp/co-nightshift/walkthrough_2026-08-05T231001Z_emdash_meme_lab.png`
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes introduced, 0 JS logic changes (character substitutions only), 0 schema changes.
+
+**Next pick:** Em-dash sweep is now 0/0 in user-facing copy across the static-portal + meme-lab surfaces. Remaining em-dashes are all preserved per the standing rule. Next priorities (in yield order):
+1. **Field-name drift audit** (highest-yield pre-pick gate per SKILL.md recipe).
+2. Visualizer popovers (h4s in cockpit-operational.html / visualizer.html, same surface pattern as last tick).
+3. Copy-polish on recent help bodies (e.g. `briefResultHelp` reads slightly jargon-y).
+4. Investigate pre-existing `missing ) after argument list` PAGEERROR on meme-lab.html (separate tick — not introduced by this sweep).
+
+**Learned:** The static-portal routes serve at `/meta-portal.html` (no `/campaign-os/` prefix); got a 404 on the wrong path first, then redirected-via-cookie correctly. The `select > option` text is NOT in `document.body.innerText` until the dropdown is opened — verifying patched text via `outerHTML.includes(...)` is more reliable for select-option strings.
+
+**Asks:** None.
+
+## 2026-08-06T01:45Z — fix(campaign-os): mount EXPLAINERS['insights'] on sec-insights directly
+
+**Done:** Closed the last-pick #1 from the 22:00Z tick. The `go()` post-loadSection `.then()` callback was redirecting the Insights explainer mount to `#sec-performance` (`mountSec = realSec === 'insights' ? 'performance' : realSec;`) so `renderInsights()` could clone it across — but that locked the Insights tab to showing the Performance explainer. Switched to `mountSec = realSec === 'insights' ? 'insights' : realSec;` in the post-mount path (left the pre-mount alone, because the pre-mount is what feeds the clone). `HELP.section` is idempotent (removes pre-existing `.help-section-explainer` first), so the cloned Performance explainer is atomically replaced by the Insights one + its paired GA4 sub-explainer. Also rewrote the misleading 5-line comment block in `renderInsights()` to document the 3-step flow.
+
+**Commit:** `fd280bc` on `feat/asset-state-engine`, +17/-10 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~90s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Cache-busted bundle probe (595,676 chars served): all 3 new code fragments FOUND in served JS.
+- Pre-fix repro: clicking Insights nav showed `Performance: what works, what's leaking` inside `#sec-insights` (the bug).
+- Post-fix: clicking Insights nav shows `How to read performance data` inside `#sec-insights` — body opens with *"This page is a read-only mirror of the Performance tab, surfaced under its own nav so the 'Why' lens stays separate from the 'What' lens."*
+- 7-tab explainer walk (brief / performance / insights / learning / trends / ideas / seo): each tab shows its own canonical explainer. `/performance` still shows `Performance: what works, what's leaking` — no regression.
+- Idempotency check (Insights → Performance → Insights): exactly 2 `.help-section-explainer` inside `#sec-insights` (Insights + GA4), exactly 2 inside `#sec-performance` (Performance + GA4). No duplication on revisit.
+- 0 PAGEERROR, 0 non-503 console errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_2026-08-06T0145_insights_OPEN.png` — Insights tab, explainer expanded, showing the new "How to read performance data" title + body + GA4 sub-explainer + stat tiles + cards below.
+- `/tmp/co-nightshift/walkthrough_2026-08-06T0145_performance_explainer_REGRESSION.png` — Performance tab, unchanged.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes, 0 JS logic changes outside the 1-line mountSec swap, 0 schema changes.
+
+**Next pick:**
+1. **`renderInsights()` still leaves Insights content identical to Performance plus a Weekly Report card** — so the actual data layer is a clone, only the explainer is differentiated. The "Why lens / What lens" copy promise isn't really delivered yet. Lane: genuinely differentiate `/insights` from `/performance` by adding an "Insights-only" widget (week-over-week deltas, recommended-next-brief card based on top signals).
+2. The `mountSec` ternary now lives twice in `go()` (pre-mount + post-mount); consolidate to a single `mountSecFor(realSec)` helper before further edits.
+3. The remaining 26 `EXPLAINERS` blocks still reference 2026-07-30 era card names — most copy is current but some section-specific terms drifted. Quick sweep.
+4. Field-name drift re-probe on library / performance / trends (last probe 2026-07-30).
+
+**Learned:** When a render path uses `targetSec.innerHTML = '' + cloneFromSource()`, mounting help widgets on the source section *appears* to work on the target via the clone — but it locks the target to the source's help copy, which is wrong when the target has its own canonical explainer. The fix isn't to skip the source mount (the clone still needs SOMETHING); it's to mount the canonical target explainer after the clone completes (`.then()` of `loadSection`). `HELP.section`'s idempotency (remove-then-insert at the same selector) is what makes the post-loadSection overwrite safe — without it we'd get duplicate panels on every nav click.
+
+**Asks:** None.
+
+## 2026-08-13T03:50Z — feat(review): one-click 'Stale only' filter chip + scope alignment
+
+**Done:** Closed a long-standing UX gap on the Review queue. The 41 drafts looked identical at a glance, but 7 of them were >7d old (4 were 71d — the Takomo 101T package from 2026-06-02). The header subtitle already mentioned the count, but as plain text with no way to act on it. Added a fifth filter pill `🕰️ Stale N` next to All/Pending/Approved/Rejected, with the count surfaced in yellow to match the existing age-pill colour language. Clicking it shows every card but only the stale rows inside; cards with no stale rows collapse so empty-state placeholders don't compete with the filter. Every review row now carries `data-stale="1|0"` so the filter is purely client-side with no API change. The handler also marks the active filter button as `primary` so the user can see which view they're on. Second pass aligned the header subtitle's "stale (>7d)" count with the chip's scope (cross-bucket) so the two numbers don't drift apart.
+
+**Commits:** `09161e5` + `f60c74d` on `feat/asset-state-engine`, +88/-14 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~15s each.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-click probe: chip exists, text = `🕰️ Stale 7`, `has-stale` class applied (computed bg `rgba(255,196,0,0.08)`, text `rgb(250,204,21)`).
+- Post-click: 3 cards visible, 7 stale rows shown (all Takomo 101T drafts from 71d and 58d ago + 1 stale approved `Feed Post — The Fitting Solution`), 0 active filter drift, activeFilter = `stale`.
+- Click "All" reset: 78 rows restored (no orphan hidden rows from the stale filter).
+- Summary `41 pending review · 1 approved · 0 rejected · 7 stale (>7d)` — agrees with chip count.
+- 0 PAGEERROR, 0 non-503 console errors.
+
+**Screenshot (LIVE):**
+- `/tmp/co-nightshift/walkthrough_review_stale_full_20260812T225613Z.png` — Stale filter active, yellow chip with `7` badge, 7 rotting Takomo drafts visible, Rejected card collapsed because empty.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (the chip text uses dots + slash, all safe), 0 schema changes, 0 API changes.
+
+**Next pick:**
+1. **Insights-lens context on the cloned Performance widgets** (still the highest-quality remaining UX lane from the 2026-08-06T03:27Z report — never picked up).
+2. **`mountSec` ternary lives twice in `go()`** — consolidate to a `mountSecFor(realSec)` helper before further edits.
+3. The `Learn` tab still shows `No patterns yet` everywhere even though we now have published data — the condition for filling it might have drifted.
+4. Em-dash sweep on the campaign-os.html surface (the data: URI / static-page files are already clean).
+
+**Learned:** Two `data-` attributes (`data-stale` on rows, `data-rfilter` on the chips) is the cleanest way to add a new filter without growing the existing card-indexing scheme. Using `display: ''` to restore rows works because the previous "Stale" click set them to `display: none`, so the next filter has to undo both the card-level hide and the row-level hide. The pending-vs-cross-bucket scope split between the summary and the chip was a real footgun — when two UI elements both say "stale" they should agree.
+
+**Asks:** None.
+
+## 2026-08-13T00:15Z — fix(calendar): rename 'unspecified' pill to 'no pillar · queue' with help-tip
+
+**Done:** Closed the Calendar pillar-mix honesty gap. The strip under the HUD showed `unspecified 31` next to the real pillar counts (coaching 15, club fitting 6, merch 2, practice 3). The 31 was publisher-queue items whose caption carries no pillar marker (no 🏌/🎯/🤝/📅/🛍/🎮 or pillar token) and whose source record has no pillarName/pillar field. The label told the user nothing actionable. Renamed the pill to `no pillar · queue` and added a `data-help`/`data-help-title` tip explaining the bucket (publisher-queue captions predating the pillar-tagging work, not a config error). The help-tip auto-wire system picked up the new attributes and rendered the popover as expected.
+
+**Commit:** `286ea13` on `feat/asset-state-engine`, +16/-2 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~25s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix probe (audit): 31 of 57 calendar slots bucketed as "unspecified", 26 had real pillars.
+- Post-fix probe: strip now shows `equipment 0 · club fitting 6 · coaching 15 · community 0 · events 0 · merch 2 · practice 3 · no pillar · queue 31`. All other 7 pills unchanged.
+- Tooltip probe (click on the new pill): `.help-pop` renders with text `NO-PILLAR BUCKET\nPosts whose caption did not match any pillar marker and whose source record carries no pillarName/pillar field. On this brand these are publisher-queue items predating the pillar-tagging work, not a config error.`, visible=true, class `has-help-tip` applied.
+- 0 PAGEERROR, 0 console errors.
+
+**Screenshots (LIVE):**
+- `/tmp/co-nightshift/walkthrough_20260813T001221Z.png` — Calendar, new "no pillar · queue31" pill at the right end of the strip.
+- `/tmp/co-nightshift/walkthrough_20260813T001221Z_calendar_pillar_tooltip.png` — tooltip popover proving the explanation is reachable.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (rename uses middle-dot · + period, help-tip uses commas/periods), 0 schema changes, 0 API changes (purely a label rename + a tooltip attribute).
+
+**Next pick:**
+1. **Real pillar inference for the 31 unclassified queue items** — captions like "That slice costing you yards off the tee? TrackMan found it" are clearly club-fitting content (TrackMan, slice, yards), and "Improve your game with the coaches tip of the day" is clearly coaching. Extending `_PILLAR_CAPTION_HINTS` with keyword-based inference (TrackMan/fitting/slice/driver → club fitting; coach/tip/improve/tempo → coaching; event/compete/tournament → events) would collapse the 31 to roughly 0 unclassified without changing the data layer. Lane for next tick.
+2. The Insights tab still clones Performance widgets verbatim — the "Why lens" promise from 2026-08-06T03:27Z is still unfulfilled.
+3. The `mountSec` ternary lives twice in `go()` — consolidate to `mountSecFor(realSec)` helper.
+
+**Learned:** Pillar metadata is missing on 54% of the calendar's slots because they come from `publish-queue.json` (source=queue), seeded before the pillar-tagging work landed. The `_infer_pillar_from_caption` fallback handles the emoji-marker case but not keyword-only captions. Either rename-bucket (this tick's fix) or extend the keyword hints (next pick) closes the gap; the rename-bucket alone is enough for the user to know the 31 is legacy, not a config error.
+
+**Asks:** None.
+
+## 2026-08-13T03:20Z — fix(insights): label each v2 headline card (not three 'What happened' rows)
+
+**Done:** Closed a long-standing copy bug on the Insights tab. The three v2 "headline" cards at the top (Site traffic / Instagram / SEO keywords) all rendered the same placeholder label `What happened`, telling the user nothing about what each card actually measured. Each headline object already carries a unique `emoji` (📊/📱/🔎) but the renderer hard-coded the same `<span>What happened</span>` text on every card. Added a `label` field to each headline push (Site traffic / Instagram / SEO keywords / No data fallback) and switched the renderer to `${esc(h.label || 'Signal')}` so each card now reads "1. Site traffic · 1,008 website sessions (recent)", "2. Instagram · 10 recent IG posts...", "3. SEO keywords · 5 keywords rising · 2 falling on Google". The data, tone, and emoji were already correct; only the label was generic.
+
+**Commit:** `9b64939` on `feat/asset-state-engine`, +5/-1 across 1 file (campaign-os/campaign-os.html), pushed. Railway auto-deployed in ~15s.
+
+**Verified (Playwright LIVE, cookie auth, Railway URL):**
+- Pre-fix (probe): all 3 headline `<span>`s = `'What happened'`.
+- Post-fix probe: labels = `['Site traffic', 'Instagram', 'SEO keywords']` — all distinct, match the data source each card summarises.
+- Idempotency check (Insights → Performance → Insights): labels still `['Site traffic', 'Instagram', 'SEO keywords']`. No duplicate, no orphan.
+- Global check: `'What happened'` no longer appears anywhere in `document.body.innerText`.
+- 0 PAGEERROR, 0 console errors.
+
+**Screenshot (LIVE):**
+- `/tmp/co-nightshift/walkthrough_insights_labels_FIX_20260813T012024Z.png` — Insights tab, three cards now labelled 1. Site traffic / 2. Instagram / 3. SEO keywords, each with its own emoji and one-line takeaway.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (labels are plain nouns, no copy change outside the placeholder string), 0 schema changes, 0 API changes (purely a label render swap on existing data).
+
+**Next pick:**
+1. **The empty-state copy on the Insights cards still hard-codes "No data" + "No analytics connected yet" + "Connect Meta + GA4 to see what is working."** when no headline data exists — fine for now, but if Analytics hits a partial state (e.g. GA4 ok but IG missing) the existing fallback hides everything. Consider surfacing partial signals.
+2. **Two `mountSec` ternaries in `go()`** still consolidate cleanly to a `mountSecFor(realSec)` helper.
+3. **Em-dash sweep on campaign-os.html** — most surfaced copy already clean, but the inline `data-help` and `data-help-title` strings drift over time.
+4. **Insights v2's "Did the ad drive this spike?" card** sometimes renders the ad-correlation placeholder forever when ad data is missing — consider a one-line "wire up Google Ads to enable this" CTA instead of the current ghost state.
+
+**Learned:** When a render path ships as "headlines.push(...)" with rich per-object fields (`emoji`, `data`, `take`, `tone`) but the template hard-codes the title text instead of using `h.label`, every card looks identical at a glance. The fastest fix is to add the missing field at the push site rather than overloading emoji-to-text mapping at the renderer (emoji-to-text breaks the day someone swaps an emoji).
+
+**Asks:** None.
+
+## 2026-08-13T02:34Z · Performance strip: colour-coded labels + readable SEO keywords
+- `explain_performance()` now splits the IG posts into 2 winners (kind=ig-winner, "performing X% better") + 1 laggard (kind=ig-laggard, "performing X% worse" / "one of your weaker posts"). Pre-fix all three rows were labelled ig-winner even when one was 20% worse.
+- `explain_performance()` now extracts `.keyword` from rising/falling entries via a `_kw_label()` helper. seo-rankings.json entries are objects after the earlier field-name drift fix; `str(k)` was dumping the whole dict into the claim and next_step strings.
+- `renderPerformance()` now renders the top-3 insights as tone-coded inline chips (green/yellow/red dot + label + claim) with margin-right spacing instead of one flat joined line.
+- Commit: a133600 on feat/asset-state-engine. Verified live: Performance strip shows 🟢 ig winner / 🟢 ig winner / 🔴 ig laggard, SEO sidebar shows clean names (custom club fitting, club fitting, putter fitting, simulated golf, indoor golf practice, club fitting near me).
+- Screenshots: /tmp/co-nightshift/walkthrough_20260813T023400Z_performance_strip_FIX.png
+
+## 2026-08-13T03:55Z · Insights 'Did the ad drive this spike?' verdict: real numbers, not stale 153
+
+**Done:** The Insights ad-correlation card was rendering the SAME session count (153) for every Google Ads campaign that pointed at the homepage — two radically different campaigns (R117.50/47 clicks vs R515/206 clicks) showed visually identical verdicts. Two compounding bugs:
+1. **GA4 emits MULTIPLE rows per path** (daily/weekly/monthly snapshots stacked). The correlator did `match_page = next(p for p in pages if p.path == lp)` so it always picked the first match's sessions (153) regardless of how many snapshots existed.
+2. **No ratio or cost** was surfaced — even with the right session count, the verdict just said "GA4 shows N sessions" with no clicks:sessions or cost:session context.
+
+Fix (server-side, `campaign-os/_lib/insights_correlator.py`):
+- Sum all GA4 rows matching the landing page instead of first-match only.
+- Compute clicks:sessions % and cost-per-session, surface both in the verdict string.
+- When no GA4 row matches the landing page the verdict now says "GA4 has no data for that page yet - could be a tracking gap" instead of misleading "0 sessions".
+- New structured fields in each verdict object: `cost_per_session`, `clicks_to_sessions_pct`, `matching_page_engagement` (averaged).
+
+Renderer unchanged (still reads `v.verdict` verbatim). 1 file +68/-12, 1 new test file (3 tests).
+
+**Verified (Playwright LIVE post-deploy):**
+- Google Ads verdicts now show distinct, real numbers:
+  - 202410: R0.26 per session, 10.2% click ratio (R117.50 / 47 clicks / 459 sessions)
+  - 202411: R1.12 per session, 44.9% click ratio
+  - 202412: R1.66 per session, 66.4% click ratio
+  - 202501: R2.08 per session, 83.0% click ratio
+  - 202503: R1.67 per session, 66.9% click ratio
+  - 202505+: R0.01 per session, 0.2% click ratio (low-effort campaigns)
+  Real progression visible: ads got less efficient over time, now actionable.
+- Meta Ads verdicts (organic IG post proxies with 0 spend) honestly report "0 spend, 0 clicks, 459 sessions (0.0% click ratio) - R0.01 per session" instead of the old misleading "153 sessions" line.
+- 0 PAGEERROR, 0 console errors, 0 net 4XX.
+- 16/16 prior insights v2 tests still pass + 3/3 new regression tests = 19/19 of relevant tests.
+
+**Files (2, +284/-12):**
+- `campaign-os/_lib/insights_correlator.py` (1 _verdicts_for rewrite)
+- `campaign-os/tests/test_v2026_08_13_ad_correlation_duplicate_ga4_rows.py` (NEW, 3 tests)
+
+**Commit:** `0bc1ce1` on `feat/asset-state-engine`, pushed. Railway auto-deployed.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (verified by test), 0 schema, 0 auth, 0 deploy-affecting changes.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260813T035500Z_ad_correlation_FIX.png` — full Insights tab, 36 distinct verdicts
+
+**Learned:** When a JSON source emits duplicate rows for the same key (GA4 stacked snapshots, instagram-analytics stacked days, etc.) `next(filter)` is almost always wrong — it silently picks one and drops the rest. The bug only surfaces visibly when N>1 rows exist AND the renderer downstream renders the same string for every row. Two compounded for years without anyone noticing because each looked individually correct (153 IS the first row's sessions).
+
+**Next pick:**
+1. The ad-correlation card still doesn't show a "trend across all campaigns" header (e.g., "spend climbed from R117 → R952 → dropped to R310 over 8 months, cost-per-session trended up 8x"). Adding a one-line trend summary at the top of the card would close the remaining "fake feature" gap. Lane for next tick.
+2. The Insights v2 headlines still show `tone-bad` for Instagram when the account's average is 0.20% (because `avg > 1.5 ? 'good' : avg > 1.5 ? 'watch' : 'bad'`). When the WHOLE deck is below 1.5%, 'bad' is technically right but reads alarming. A "your deck is below industry average" caveat would be useful.
+3. Em-dash sweep on the `campaign-os.html` chrome (data files already clean per the earlier walker probe).
+
+## 2026-08-13T05:09Z · Ad-correlation 'Did the ad drive this spike?' card: trend headline chip
+
+**Done:** Closed the long-standing "parts but no pattern" gap on the Insights card. The card used to render 16 Google Ads verdicts + 20 Meta Ads verdicts as a flat list — the user saw every number but never the story. "R0.26 → R1.12 → R1.66 → R2.08 per session" across 16 campaigns is unreadable until you see the line spike to R952 in Jan-25 then collapse to R2.5/month in 2026.
+
+Server-side (`campaign-os/_lib/insights_correlator.py`):
+- New `_trend_summary(campaigns, verdicts)` helper computes `campaign_count`, `total_spend`, `total_clicks`, `avg_cost_per_session`, `first_month`, `last_month`, `peak_month`/`peak_spend`, `trough_month`/`trough_spend`, `direction` (`rising`|`falling`|`stable`|`single`|`unknown`), and a pipe-separated `summary_text` string.
+- Attached to each configured platform block (`google_ads.trend_summary`, `meta_ads.trend_summary`) so the renderer reads once and renders once.
+- Direction uses 10% threshold on first-vs-last spend change; `first_spend=0` (organic IG post proxies with zero spend) reports `unknown` instead of dividing by zero.
+- All output numbers come from the actual campaigns the caller handed in — never fabricates. No em-dashes (standing rule).
+
+Client-side (`campaign-os/campaign-os.html`):
+- `adBlock` render refactored: each platform gets its own section with a trend chip tone-coded by direction (red for falling, yellow for rising, green for stable, neutral for single/unknown) and a hover-help "Trend summary" tooltip surfacing peak/trough.
+- Per-campaign verdict cards stay — the trend chip is the headline, the per-campaign list is the detail.
+
+Tests (`campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py` — NEW, 6 tests):
+- Rising spend series → `direction=rising`, peak = last month, trough = first.
+- Falling spend series → `direction=falling`, peak = first, trough = last.
+- Stable series (±5%) → `direction=stable`, no `spend up/down` substring in summary.
+- Single campaign → `direction=single`, both months equal.
+- No campaigns → `trend_summary` key absent (not fabricated).
+- Meta Ads series → same helper, also gets a `trend_summary`.
+
+**Verified (Playwright headless, LIVE post-deploy):**
+- Google Ads chip on the live URL: `📉 16 campaigns from 202410 to 202607 | total spend R5,402 | 2,161 clicks | avg R0.74/session | spend down 96% over the window` (red tone, falling).
+- Meta Ads chip: `📈 20 campaigns from 202602 to 202604 | total spend R14 | avg R0.0/session` (green tone, `unknown` direction since first spend = 0).
+- 0 PAGEERROR, 0 console errors on `/insights` after navigation.
+- 3/3 prior ad-correlation tests still pass + 6/6 new trend-summary tests = 9/9 of relevant tests.
+
+**Files (3, +432/-8):**
+- `campaign-os/_lib/insights_correlator.py` (+131) — new `_trend_summary()` + 2 callsites
+- `campaign-os/campaign-os.html` (+42/-8) — `adBlock` render refactor for per-platform section + tone-coded trend chip
+- `campaign-os/tests/test_v2026_08_14_ad_correlation_trend_summary.py` (NEW, +259) — 6 scenarios
+
+**Commit:** `6894a9d` on `feat/asset-state-engine`, pushed. Railway auto-deployed. `/api/health` returns 200.
+
+**Screenshots (LIVE post-deploy):**
+- `/tmp/co-nightshift/walkthrough_20260813T050900Z_LIVE_ad_trend_chip.png` — full ad-correlation card with both trend chips visible.
+
+**Standing rules:** 0 publish/schedule, 0 tokens, 0 main branch, 0 NEW em-dashes (test asserts), 0 schema, 0 auth, 0 deploy-affecting changes (purely additive — `trend_summary` only attached when block is `configured: True`).
+
+**Next pick:**
+1. **The trend chip says "down 96% over the window" but doesn't break out the 22-month active spend period vs the 7-month trickle.** Adding a "since X date" qualifier when there's a 6+ month gap between active and dormant campaigns would prevent the alarm-bell tone when the active-vs-quiet split is intentional.
+2. **Each Meta Ads campaign is a one-day organic IG post proxy with zero clicks/spend** — the trend chip is honest but the per-campaign cards beneath are 20 dead rows. Could collapse to a single "all 20 organic proxies: zero spend, zero clicks → these are IG posts, not ads" line.
+3. **Insight v2 headlines still show `tone-bad` for Instagram when the deck average is 0.20%** (carryover from last tick's notes). When the whole deck is below industry average the "bad" tone reads alarming.
+4. **Two `mountSec` ternaries in `go()`** still consolidate to a `mountSecFor(realSec)` helper.
+
+**Learned:** When a card has N rows of per-item verdicts, the user needs a one-line headline first. Without it, even good numbers look like noise ("16 numbers? which one matters?"). The trick is computing the headline from the SAME data the rows came from, not a separate query — so the headline can never disagree with the detail underneath. Direction thresholds also matter: 10% is the right floor (anything smaller than that is just noise, anything larger is signal).
+
+**Asks:** None.

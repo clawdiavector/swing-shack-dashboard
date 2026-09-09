@@ -1,0 +1,7 @@
+Weekly Drive Scrape — 2026-09-07
+Run at: 2026-09-07 04:01 SAST
+Status: FAILED — Drive not connected
+- No Drive token stored at the expected path (script's `connect()` returned None at line 117).
+- Scrape aborted before any folder/file walk. No images ingested, no new files recorded.
+- This is the same blocker as last week's run (per memory: token re-auth needed).
+Action needed: Re-authorise the Drive OAuth flow so a fresh refresh token lands at DRIVE_TOKEN_PATH, then re-run this cron. No other side effects; nothing else touched.

@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/email-nurture-builder/v1",
-  "generated": "2026-04-22T12:24:55.226Z",
+  "generated": "2026-08-13T11:14:41.618Z",
   "summary": {
     "total_sequences": 3,
     "total_emails": 9,
@@ -8,9 +8,9 @@
   },
   "sequences": [
     {
-      "sequence_id": "nur-g8qzzudp",
+      "sequence_id": "nur-oq9xcsxu",
       "schema": "https://clawdia.io/agents/email-nurture-builder/v1",
-      "generated": "2026-04-22T12:24:55.226Z",
+      "generated": "2026-08-13T11:14:41.618Z",
       "name": "Booking Recovery Sequence",
       "objective": "recover_abandoned_bookings",
       "target_audience": "visited_pricing_did_not_book",
@@ -45,9 +45,9 @@
       ]
     },
     {
-      "sequence_id": "nur-gqw8diim",
+      "sequence_id": "nur-hnsxzmpf",
       "schema": "https://clawdia.io/agents/email-nurture-builder/v1",
-      "generated": "2026-04-22T12:24:55.226Z",
+      "generated": "2026-08-13T11:14:41.618Z",
       "name": "Service Discovery — Club Fitting",
       "objective": "introduce_club_fitting_service",
       "target_audience": "engaged_blog_or_social_not_service_page",
@@ -82,9 +82,9 @@
       ]
     },
     {
-      "sequence_id": "nur-dem0io5h",
+      "sequence_id": "nur-ejf3u760",
       "schema": "https://clawdia.io/agents/email-nurture-builder/v1",
-      "generated": "2026-04-22T12:24:55.226Z",
+      "generated": "2026-08-13T11:14:41.618Z",
       "name": "Coaching Discovery",
       "objective": "convert_interested_leads_to_coaching",
       "target_audience": "visited_coaching_page_engaged",

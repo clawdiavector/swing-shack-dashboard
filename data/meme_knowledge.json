@@ -2996,5 +2996,17 @@
         "Don't skip the data"
       ]
     }
+  },
+  "_meta": {
+    "refreshed_at": "2026-07-30T08:27:17.555804Z",
+    "refreshed_at_human": "33 days ago",
+    "source": "manual catalog (imgflip.com + curator notes)",
+    "next_refresh_suggested": "2026-10-01",
+    "meme_count": 75,
+    "by_era": {
+      "classic": 25,
+      "recent": 22,
+      "current": 0
+    }
   }
 }

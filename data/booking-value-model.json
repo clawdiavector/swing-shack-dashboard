@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/booking-value-modeler/v1",
-  "generated": "2026-04-23T11:35:21.006Z",
+  "generated": "2026-08-13T11:14:43.562Z",
   "service_values": {
     "Full Bag Fitting": {
       "price": 1800,
@@ -114,25 +114,25 @@
   },
   "modelled_revenue": {
     "google": {
-      "sessions": 638,
-      "modelled_bookings": 6,
+      "sessions": 541,
+      "modelled_bookings": 5,
       "conversion_rate": 0.01,
       "avg_basket": 850,
-      "modelled_revenue": 5100,
+      "modelled_revenue": 4250,
       "confidence": "WEAK_PROXY",
       "note": "sessions × 1% × R850. This is a guess, not real revenue."
     },
     "(direct)": {
-      "sessions": 225,
-      "modelled_bookings": 2,
+      "sessions": 144,
+      "modelled_bookings": 1,
       "conversion_rate": 0.01,
       "avg_basket": 850,
-      "modelled_revenue": 1700,
+      "modelled_revenue": 850,
       "confidence": "WEAK_PROXY",
       "note": "sessions × 1% × R850. This is a guess, not real revenue."
     },
-    "c.yoco.com": {
-      "sessions": 98,
+    "clublab.app": {
+      "sessions": 111,
       "modelled_bookings": 1,
       "conversion_rate": 0.01,
       "avg_basket": 850,
@@ -141,16 +141,16 @@
       "note": "sessions × 1% × R850. This is a guess, not real revenue."
     },
     "(not set)": {
-      "sessions": 53,
-      "modelled_bookings": 1,
+      "sessions": 19,
+      "modelled_bookings": 0,
       "conversion_rate": 0.01,
       "avg_basket": 850,
-      "modelled_revenue": 850,
+      "modelled_revenue": 0,
       "confidence": "WEAK_PROXY",
       "note": "sessions × 1% × R850. This is a guess, not real revenue."
     },
-    "bing": {
-      "sessions": 29,
+    "instagram": {
+      "sessions": 10,
       "modelled_bookings": 0,
       "conversion_rate": 0.01,
       "avg_basket": 850,
@@ -161,14 +161,14 @@
   },
   "by_service": {
     "Coaching": {
-      "sessions": 638,
-      "modelled_bookings": 6,
-      "modelled_revenue": 5423
+      "sessions": 541,
+      "modelled_bookings": 5,
+      "modelled_revenue": 4599
     },
     "Practice Session": {
-      "sessions": 405,
-      "modelled_bookings": 4,
-      "modelled_revenue": 1014
+      "sessions": 284,
+      "modelled_bookings": 2,
+      "modelled_revenue": 711
     }
   },
   "conversion_rate_model": {
@@ -183,11 +183,11 @@
     "confidence": "MEDIUM"
   },
   "summary": {
-    "total_modelled_sessions": 1043,
-    "total_modelled_bookings": 10,
-    "total_modelled_revenue": 8500,
-    "ig_total_reach": 21731,
-    "ig_posts": 69,
+    "total_modelled_sessions": 825,
+    "total_modelled_bookings": 7,
+    "total_modelled_revenue": 5950,
+    "ig_total_reach": 0,
+    "ig_posts": 10,
     "conversion_rate_used": 0.01,
     "honest_note": "ALL REVENUE HERE IS MODELED. Not real bookings. Modelled = sessions × 1% × avg basket. Real revenue requires booking system → GA4 integration.",
     "labelled": "MODELLED — not verified revenue"

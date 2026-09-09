@@ -212,3 +212,68 @@ Next: Dark mode / theme tokens (priority 9)
 **Server:** restarted on PID 83959; Cloudflare tunnel still up
 
 **Next priority:** Trend Catcher v2 (priority 5) — split signals into 3 sources (marketing industry / golf news / competitors), add relevance scoring + suggested response for each signal.
+## Cron tick — 2026-08-05T08:49Z
+
+**Built:** Wire 5 card-h h3 tooltips in remaining dynamic-template surfaces (carry-over from 2026-08-05T07:39Z tick).
+
+**Files:** `campaign-os/campaign-os.html` (+11/-5, 1 file, commit `964ad78`)
+
+**New tooltips:**
+- 🧠 Learning (renderInsights, line ~4240) — inline `data-help`/`data-help-title` attrs since h3 is outside any h3tip scope
+- 📅 Weekly marketing report (renderWeeklyReport, line ~4270) — same inline-attr pattern
+- Pillar card (renderPlan, line ~7770) — uses the existing renderPlan `h3tip` builder; fires per pillar (5 in the Takomo 101T campaign)
+- ✏️ Assets · click any field to edit (renderPlan, line ~7813) — same `h3tip` builder
+- Asset card (assetEditorHtml, line ~7841) — local `h3tip` builder + `assetCardHelp` const string (assetEditorHtml is a separate function so it needs its own scope)
+
+**Verified via Playwright LIVE, cookie auth:**
+- Bundle probe: 3/3 needles (`pillarCardHelp`, `assetsSectionHelp`, `assetCardHelp`) found in served JS (404,619 chars).
+- DOM counts: Learning 1/1, Weekly 1/1, Pillar cards 5/5, Assets section 1/1, Asset cards 6/6.
+- Affordance: `cursor: help` + `border-bottom-style: dotted` on every new h3.
+- Popover: all 5 fire on hover with correct title + body text matching the wired copy.
+- 0 PAGEERROR, 0 console errors.
+- Helper-system audit re-ran clean (29/29 surfaces pass).
+
+**Next pick:** 4 remaining unwired h3s: campaign card cname (7452), brand directory brief list label (7498), brief detail `✅ bid · tone · surface` (7658), HashtagSEO "Why this score" + "Banned" (1353/1354). All in different function scopes so each needs its own local `h3tip` builder. Next tick.
+
+## Cron tick — 2026-08-05T20:55Z
+
+**Built:** Wire 3 modal-h h3 tooltips (Meme Lord, GMB edit, Edit caption) — the last 3 high-touch modals in the SPA.
+
+**Files:** `campaign-os/campaign-os.html` (+8/-3, 1 file, commit `e7ddb4e`)
+
+**New tooltips:**
+- 🖼️ Meme Lord modal title (`#meme-modal-title`) — two-layer approach: static inline `data-help` + `data-help-title` attrs on the h3, plus `setAttribute()` calls in `showMemeDetail()` and `memApply()` to re-attach the same attrs after `.textContent` overwrites the static body. Tooltip covers both detail view (meme name) and caption-drafts view (meme + caption batch).
+- 📋 GMB edit modal title (`openGmbEdit()`) — inline `data-help` + `data-help-title` in the `modal()` template literal. Tooltip explains the edit/new mode split and that saving does NOT auto-publish. Added `HELP.autoAttach()` call so the tooltip is wired immediately on render.
+- ✏️ Edit caption modal title (`window.reviewEdit()`) — inline `data-help` + `data-help-title`. `reviewEdit()` already had `HELP.autoAttach()` so the polling fallback is also fine.
+
+**Verified via Playwright LIVE, cookie auth:**
+- Bundle probe: 3/3 needles found in served JS (451,712 chars).
+- Static HTML probe: `document.getElementById('meme-modal-title')` returns `data-help` + `data-help-title` pre-render.
+- DOM data-help-title count: 156 (no regression).
+- Hover popover: Meme Lord h3 273 chars body, GMB edit h3 287 chars body, Edit caption h3 314 chars body — all fire and match the wired copy verbatim.
+- 0 PAGEERROR, 0 unexpected console errors (only pre-existing 503s on `/api/freshness` + 404s on stale asset files, unrelated).
+- `/api/health`: green.
+
+**Next pick:** Modal-h h3 lane now exhausted (only `reviewConfirm` h3 remains, but its title is fully caller-provided and the body text already explains the action — no value add). Other lanes: HashtagSEO "Why this score" + "Banned" h3s (lines 1353/1354), 4 other campaign/brand-directory h3s, EXPLAINERS body copy polish, or field-name drift re-probe on library/performance/trends.
+
+## Cron tick — 2026-08-06T03:27Z
+
+**Built:** Fix dead Learning card on `/insights` — render actual `/api/intel/learning` data (was reading wrong keys, always showed "No learnings yet").
+
+**Files:** `campaign-os/campaign-os.html` (+75/-3, 1 file, commit `84d7655`)
+
+**What changed:**
+- Rewrote the Learning card template at `renderInsights()` lines 4272-4346 to consume the actual API shape: `what_worked.{hooks,signals}`, `what_failed[]`, `recommendation_outcomes.best_channel`, `failure_patterns.by_agent_partial`, `confidence_bands`.
+- Renders 6 row kinds (hook / signal / fail / channel / agent / calibration), each with a kind pill (channel / agent / calibration / hook / signal / failed) + meta line.
+- Card sub-header shows `"N signals from past engagement"` or fallback `"No signals yet: keep publishing to surface patterns"`.
+- Updated h3 `data-help` body to point at the real endpoint fields.
+
+**Verified via Playwright LIVE, cookie auth:**
+- Pre-fix: card showed `"No learnings yet — keep posting to surface patterns."` (bug reproduced).
+- Post-fix: card sub header = `"6 signals from past engagement"`, 6 list rows (best channel: retarget_existing, partial-run agents hook_smith 3 / pulse_keeper 3 / blog_beast 1, calibration bands hook_performance 85% vs 65-75% and fitting_demand high vs confirmed).
+- Bundle probe (cache-busted): 5/5 new code fragments found in served HTML.
+- Regression sweep on 7 nav surfaces: all expected card counts, 0 PAGEERROR.
+- Em-dash sweep on diff: 1 (was pre-existing in deleted original).
+- `/api/health`: green throughout.
+
+**Next pick:** Add Insights-lens context to cloned Performance widgets (week-over-week deltas on SEO counts) OR add 503→retry helper to `/api/freshness` polling OR field-name drift re-probe on library / performance / trends (last 2026-07-30 — high-yield pre-pick gate).

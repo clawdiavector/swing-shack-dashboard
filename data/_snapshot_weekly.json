@@ -1,0 +1,1525 @@
+{
+  "snapshot_at": "2026-09-01T12:17:03.748560Z",
+  "brand": "swing-shack",
+  "weekly_report": {
+    "brand_id": "swing-shack",
+    "brand_meta": {
+      "audience": "Golfers in JHB aged 28–55 who care about getting better, not just looking good.",
+      "display_name": "Swing Shack",
+      "id": "swing-shack",
+      "pillar_defaults": [
+        "TrackMan Intelligence",
+        "Fitting Education",
+        "Membership Value",
+        "Coach Credibility",
+        "Performance Proof"
+      ],
+      "positioning": "Premium indoor golf experience in Johannesburg — TrackMan, fittings, coaching, memberships.",
+      "primary_color": "#0F766E",
+      "tagline": "Johannesburg's home of better golf.",
+      "voice_bible": {
+        "allowed_tones": [
+          "educational",
+          "confident",
+          "funny",
+          "relatable",
+          "provocative"
+        ],
+        "callout_style": "fact-based, coach voice, references data",
+        "cta_alternatives": [
+          "Book a TrackMan session → swingshack.co.za",
+          "Get fitted — your clubs aren't random",
+          "Try the 30-min data session → swingshack.co.za"
+        ],
+        "cta_default": "Book your session → swingshack.co.za",
+        "description": "Data-driven coach voice. Confident, educational, no-nonsense. References TrackMan data, fitting truth, evidence-based results.",
+        "example_caption": "Your slice isn't a mystery — TrackMan shows the exact cause in 30 minutes.",
+        "hashtag_suggestions": [
+          "#TrackManTuesday",
+          "#DataDrivenGolf",
+          "#SwingShack"
+        ],
+        "id": "swing-shack",
+        "label": "Swing Shack",
+        "meme_fit": [
+          "swing-shack"
+        ],
+        "personality": "data-driven coach, confident, educational, no-nonsense",
+        "template_prefix": "⛳ Here's the data-backed truth:",
+        "template_suffix": "TrackMan doesn't lie."
+      },
+      "voice_label": "Swing Shack"
+    },
+    "data_source_brand_id": "swing-shack",
+    "metrics": {
+      "attention": [
+        "<strong>Instagram reach (this week)</strong> is down <span class=\"down\">-100%</span> week-on-week."
+      ],
+      "current": {
+        "28d": {
+          "fb_fans": 452,
+          "fb_followers": 452,
+          "fb_name": "Swing Shack",
+          "fb_posts": 3,
+          "fb_posts_source": "instagram",
+          "fb_stories": 0,
+          "fb_stories_items": [],
+          "fb_stories_newest": null,
+          "fb_stories_oldest": null,
+          "fb_top_posts": [
+            "data",
+            "paging",
+            "_meta"
+          ],
+          "ig_follows": 0,
+          "ig_interactions": 24,
+          "ig_posts": 61,
+          "ig_reach": 19891,
+          "ig_stories": 3,
+          "ig_stories_follows": 0,
+          "ig_stories_interactions": 1,
+          "ig_stories_items": [
+            {
+              "follows": 0,
+              "id": "18100155491201032",
+              "media_type": "VIDEO",
+              "permalink": "https://www.instagram.com/stories/swingshack/3976480144310953838",
+              "reach": 20,
+              "timestamp": "2026-09-01T09:03:19+0000",
+              "total_interactions": 0
+            },
+            {
+              "follows": 0,
+              "id": "18083521445289960",
+              "media_type": "VIDEO",
+              "permalink": "https://www.instagram.com/stories/swingshack/3976003182765315111",
+              "reach": 36,
+              "timestamp": "2026-08-31T17:15:40+0000",
+              "total_interactions": 0
+            },
+            {
+              "follows": 0,
+              "id": "17956554597211066",
+              "media_type": "VIDEO",
+              "permalink": "https://www.instagram.com/stories/swingshack/3975952790937428729",
+              "reach": 45,
+              "timestamp": "2026-08-31T15:35:33+0000",
+              "total_interactions": 1
+            }
+          ],
+          "ig_stories_newest": "2026-09-01T09:03:19+0000",
+          "ig_stories_oldest": "2026-08-31T15:35:33+0000",
+          "ig_stories_reach": 101,
+          "ig_top_performers": [
+            {
+              "captionPreview": "Go to your coaching sessions. Your ball deserves better 🫂\n#golf #golfinglife #c",
+              "engagementRate": "4.75",
+              "id": "18111373378629295",
+              "likeCount": 18,
+              "permalink": "https://www.instagram.com/reel/DUAlhNJjGT1/",
+              "reach": 379,
+              "timestamp": "2026-01-27T09:33:27+0000",
+              "views": 816
+            },
+            {
+              "captionPreview": "Have you ever been for an elite level Custom Fitting? Get the clubs that are bui",
+              "engagementRate": "4.38",
+              "id": "17860872804563714",
+              "likeCount": 7,
+              "permalink": "https://www.instagram.com/reel/DS1LQPVCPtk/",
+              "reach": 160,
+              "timestamp": "2025-12-29T02:40:49+0000",
+              "views": 246
+            },
+            {
+              "captionPreview": "391,000 strokes later... 🤯 The stats are in and you guys absolutely crushed 202",
+              "engagementRate": "3.83",
+              "id": "18082095485134677",
+              "likeCount": 10,
+              "permalink": "https://www.instagram.com/reel/DSmG0QQjAOT/",
+              "reach": 261,
+              "timestamp": "2025-12-23T06:10:00+0000",
+              "views": 371
+            },
+            {
+              "captionPreview": "Santa’s off days\nDay 1/3\n#swingshack\n#santa\n#golf",
+              "engagementRate": "3.50",
+              "id": "18371404735083792",
+              "likeCount": 12,
+              "permalink": "https://www.instagram.com/reel/DSXNfzZDBKc/",
+              "reach": 400,
+              "timestamp": "2025-12-17T11:22:28+0000",
+              "views": 545
+            },
+            {
+              "captionPreview": "Have you had your loft and lies checked yet? Visit us today, we’ll fix it up for",
+              "engagementRate": "3.48",
+              "id": "18047839205452191",
+              "likeCount": 13,
+              "permalink": "https://www.instagram.com/reel/DRxdxG6DM5H/",
+              "reach": 374,
+              "timestamp": "2025-12-02T19:32:25+0000",
+              "views": 457
+            }
+          ],
+          "ig_views": 35385,
+          "stories_combined_count": 3,
+          "stories_combined_reach": 101,
+          "stories_truth_note": "Stories are only queryable while live (≤24h after posting). This summary reflects only currently-live stories. For an archival view we would need a separate daily snapshot fetch."
+        },
+        "brand_id": "swing-shack",
+        "generated_at": "2026-09-01T12:17:02.158909+00:00",
+        "sources": [
+          {
+            "fetched_at": "2026-08-13T11:18:53.950Z",
+            "name": "ga4",
+            "window": "2026-08-06 to 2026-08-13"
+          },
+          {
+            "fetched_at": "2026-04-10T05:04:06.680Z",
+            "name": "instagram",
+            "posts_tracked": 61
+          },
+          {
+            "days": 30,
+            "name": "ig_business_timeseries"
+          },
+          {
+            "fan_count": 452,
+            "followers_count": 452,
+            "name": "meta_page_info",
+            "page_id": "198859063301219"
+          },
+          {
+            "fetch_error": "Graph API auth failed (190): (#190) This method must be called with a Page Access Token",
+            "name": "meta_page_insights"
+          },
+          {
+            "combined": 3,
+            "fb_page_count": 0,
+            "ig_count": 3,
+            "name": "meta_stories",
+            "overlap_ids": [],
+            "reach_total": 101,
+            "window_label": "active (last 24h - Meta expires stories automatically)"
+          },
+          {
+            "configured": true,
+            "has_page_info": true,
+            "has_page_insights": false,
+            "name": "meta_graph",
+            "posts": 3,
+            "posts_source": "instagram"
+          },
+          {
+            "configured": true,
+            "name": "google_ads"
+          },
+          {
+            "configured": false,
+            "name": "review_queue",
+            "reason": "approval-queue.json not found"
+          },
+          {
+            "configured": false,
+            "name": "leads",
+            "reason": "no lead source wired"
+          }
+        ],
+        "weekly": {
+          "bookings_total": 0,
+          "content_published": 0,
+          "content_published_source": "campaign-data.json",
+          "ga4_sessions": 880,
+          "ga4_sources": [
+            {
+              "sessions": 541,
+              "source": "google"
+            },
+            {
+              "sessions": 144,
+              "source": "(direct)"
+            },
+            {
+              "sessions": 111,
+              "source": "clublab.app"
+            },
+            {
+              "sessions": 19,
+              "source": "(not set)"
+            },
+            {
+              "sessions": 10,
+              "source": "instagram"
+            }
+          ],
+          "ga4_top_pages": [
+            {
+              "engagement_rate": "65.9%",
+              "path": "/",
+              "sessions": 370
+            },
+            {
+              "engagement_rate": "76.8%",
+              "path": "/bookings/",
+              "sessions": 211
+            },
+            {
+              "engagement_rate": "75.0%",
+              "path": "/customer-portal/",
+              "sessions": 92
+            },
+            {
+              "engagement_rate": "54.2%",
+              "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
+              "sessions": 72
+            },
+            {
+              "engagement_rate": "88.1%",
+              "path": "/club-fitting/",
+              "sessions": 67
+            }
+          ],
+          "google_ads": {
+            "_meta": {
+              "campaigns_count": 16,
+              "domain": "swingshack.co.za",
+              "fetched_at": "2026-08-11T06:34:40.452137+00:00",
+              "note": "Synthesised from Ubersuggest paid metrics. Replace with live API for real campaign-level data.",
+              "source": "ubersuggest-domain.json"
+            },
+            "campaigns": [
+              {
+                "clicks": 47,
+                "currency": "ZAR",
+                "end_date": "202410-28",
+                "id": "ubs-paid-202410",
+                "impressions": 6900,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202410)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 117.5,
+                "start_date": "202410-01"
+              },
+              {
+                "clicks": 206,
+                "currency": "ZAR",
+                "end_date": "202411-28",
+                "id": "ubs-paid-202411",
+                "impressions": 8300,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202411)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 515.0,
+                "start_date": "202411-01"
+              },
+              {
+                "clicks": 305,
+                "currency": "ZAR",
+                "end_date": "202412-28",
+                "id": "ubs-paid-202412",
+                "impressions": 8900,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202412)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 762.5,
+                "start_date": "202412-01"
+              },
+              {
+                "clicks": 381,
+                "currency": "ZAR",
+                "end_date": "202501-28",
+                "id": "ubs-paid-202501",
+                "impressions": 5800,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202501)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 952.5,
+                "start_date": "202501-01"
+              },
+              {
+                "clicks": 310,
+                "currency": "ZAR",
+                "end_date": "202502-28",
+                "id": "ubs-paid-202502",
+                "impressions": 6200,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202502)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 775.0,
+                "start_date": "202502-01"
+              },
+              {
+                "clicks": 124,
+                "currency": "ZAR",
+                "end_date": "202503-28",
+                "id": "ubs-paid-202503",
+                "impressions": 7600,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202503)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 310.0,
+                "start_date": "202503-01"
+              },
+              {
+                "clicks": 189,
+                "currency": "ZAR",
+                "end_date": "202504-28",
+                "id": "ubs-paid-202504",
+                "impressions": 9700,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202504)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 472.5,
+                "start_date": "202504-01"
+              },
+              {
+                "clicks": 136,
+                "currency": "ZAR",
+                "end_date": "202505-28",
+                "id": "ubs-paid-202505",
+                "impressions": 9200,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202505)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 340.0,
+                "start_date": "202505-01"
+              },
+              {
+                "clicks": 132,
+                "currency": "ZAR",
+                "end_date": "202506-28",
+                "id": "ubs-paid-202506",
+                "impressions": 10300,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202506)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 330.0,
+                "start_date": "202506-01"
+              },
+              {
+                "clicks": 307,
+                "currency": "ZAR",
+                "end_date": "202507-28",
+                "id": "ubs-paid-202507",
+                "impressions": 10000,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202507)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 767.5,
+                "start_date": "202507-01"
+              },
+              {
+                "clicks": 18,
+                "currency": "ZAR",
+                "end_date": "202508-28",
+                "id": "ubs-paid-202508",
+                "impressions": 9500,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202508)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 45.0,
+                "start_date": "202508-01"
+              },
+              {
+                "clicks": 1,
+                "currency": "ZAR",
+                "end_date": "202602-28",
+                "id": "ubs-paid-202602",
+                "impressions": 7400,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202602)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 2.5,
+                "start_date": "202602-01"
+              },
+              {
+                "clicks": 1,
+                "currency": "ZAR",
+                "end_date": "202603-28",
+                "id": "ubs-paid-202603",
+                "impressions": 8400,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202603)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 2.5,
+                "start_date": "202603-01"
+              },
+              {
+                "clicks": 1,
+                "currency": "ZAR",
+                "end_date": "202605-28",
+                "id": "ubs-paid-202605",
+                "impressions": 7800,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202605)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 2.5,
+                "start_date": "202605-01"
+              },
+              {
+                "clicks": 1,
+                "currency": "ZAR",
+                "end_date": "202606-28",
+                "id": "ubs-paid-202606",
+                "impressions": 6500,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202606)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 2.5,
+                "start_date": "202606-01"
+              },
+              {
+                "clicks": 2,
+                "currency": "ZAR",
+                "end_date": "202607-28",
+                "id": "ubs-paid-202607",
+                "impressions": 5100,
+                "landing_page": "/",
+                "name": "Swing Shack Paid Search (202607)",
+                "note": "Derived from Ubersuggest paidKw/paidTraffic; not from live Google Ads API",
+                "source": "ubersuggest",
+                "spend": 5.0,
+                "start_date": "202607-01"
+              }
+            ]
+          },
+          "ig_reach_7d": 0,
+          "leads": 0,
+          "review_pending": 0
+        }
+      },
+      "fb_rows": [
+        {
+          "current": 0,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Views",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Reach",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Link clicks",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Interactions",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Conversations started",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "New contacts",
+          "missing_reason": null,
+          "previous": 0
+        }
+      ],
+      "has_archived_prev": false,
+      "has_derived_prev": true,
+      "has_prev": true,
+      "ig_rows": [
+        {
+          "current": 35385,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Views",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 19891,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Reach",
+          "missing_reason": null,
+          "previous": 6545
+        },
+        {
+          "current": 24,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Interactions",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Follows",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Conversations started",
+          "missing_reason": null,
+          "previous": 0
+        }
+      ],
+      "prev": {
+        "28d": {
+          "ig_reach": 6545
+        },
+        "_derived_ig_reach_7d": 6545,
+        "archived_at": "2026-09-01T12:17:03.583423+00:00",
+        "derived_from": "ig-business-analytics.json daily_reach time-series",
+        "iso_week": 36,
+        "iso_year": 2026,
+        "weekly": {},
+        "window": "2026-08-19 to 2026-08-25"
+      },
+      "prev_source": "derived",
+      "rows": [
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Content published",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Facebook reach",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 19891,
+          "fmt": "k",
+          "has_source": true,
+          "label": "Instagram reach (28d)",
+          "missing_reason": null,
+          "previous": 6545
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Instagram reach (this week)",
+          "missing_reason": null,
+          "previous": 6545
+        },
+        {
+          "current": 24,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Instagram interactions",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "New contacts / leads",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 880,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Website sessions (GA4)",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Review queue depth",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 3,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Facebook posts",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 0,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Facebook Stories",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 61,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Instagram posts",
+          "missing_reason": null,
+          "previous": 0
+        },
+        {
+          "current": 3,
+          "fmt": "int",
+          "has_source": true,
+          "label": "Instagram Stories",
+          "missing_reason": null,
+          "previous": 0
+        }
+      ],
+      "working": [
+        "<strong>Instagram reach (28d)</strong> is up <span class=\"up\">+204%</span> week-on-week.",
+        "<strong>Instagram interactions</strong> just came online at 24 this week — new measurement, first data point.",
+        "<strong>Reach</strong> is up <span class=\"up\">+204%</span> week-on-week."
+      ]
+    }
+  },
+  "seo": {
+    "average_position_trend": [
+      {
+        "date": "2026-06-30",
+        "position": 8.42
+      },
+      {
+        "date": "2026-07-07",
+        "position": 8
+      },
+      {
+        "date": "2026-07-14",
+        "position": 7.17
+      },
+      {
+        "date": "2026-07-21",
+        "position": 8
+      },
+      {
+        "date": "2026-07-28",
+        "position": 6.92
+      },
+      {
+        "date": "2026-08-04",
+        "position": 5.42
+      },
+      {
+        "date": "2026-08-11",
+        "position": 6.17
+      },
+      {
+        "date": "2026-08-18",
+        "position": 6.58
+      },
+      {
+        "date": "2026-08-25",
+        "position": 6.17
+      }
+    ],
+    "binned": {
+      "not_ranking": {
+        "new": 4,
+        "old": 4
+      },
+      "top_10": {
+        "new": 5,
+        "old": 3
+      },
+      "top_100": {
+        "new": 2,
+        "old": 3
+      },
+      "top_3": {
+        "new": 5,
+        "old": 6
+      }
+    },
+    "falling": [
+      {
+        "_has_change": true,
+        "competition": 0.47,
+        "current_date": "2026-08-25",
+        "current_rank": 7,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "club fitting near me",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 4,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 70,
+        "seo_difficulty": 20,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 1,
+        "current_date": "2026-08-25",
+        "current_rank": 3,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf practice",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 1,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 10,
+        "seo_difficulty": 44,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.59,
+        "current_date": "2026-08-25",
+        "current_rank": 14,
+        "current_url": "https://swingshack.co.za/club-fitting/",
+        "keyword": "club fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 12,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 50,
+        "seo_difficulty": 36,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.75,
+        "current_date": "2026-08-25",
+        "current_rank": 3,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 2,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 480,
+        "seo_difficulty": 6,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.07,
+        "current_date": "2026-08-25",
+        "current_rank": 4,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf course",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 3,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 20,
+        "seo_difficulty": 16,
+        "status": "ok"
+      }
+    ],
+    "keywords": [
+      {
+        "_has_change": true,
+        "competition": 1,
+        "current_date": "2026-08-25",
+        "current_rank": 3,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf practice",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 1,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 10,
+        "seo_difficulty": 44,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.47,
+        "current_date": "2026-08-25",
+        "current_rank": 7,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "club fitting near me",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 4,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 70,
+        "seo_difficulty": 20,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 0.03,
+        "current_date": "2026-08-25",
+        "current_rank": null,
+        "current_url": null,
+        "keyword": "golf course",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": null,
+        "previous_url": null,
+        "search_volume": 9900,
+        "seo_difficulty": 59,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 1,
+        "current_date": "2026-08-25",
+        "current_rank": null,
+        "current_url": null,
+        "keyword": "golf swing analysis",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": null,
+        "previous_url": null,
+        "search_volume": 10,
+        "seo_difficulty": 44,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 1,
+        "current_date": "2026-08-25",
+        "current_rank": 4,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "simulated golf",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 5,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 2400,
+        "seo_difficulty": 49,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.75,
+        "current_date": "2026-08-25",
+        "current_rank": 3,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 2,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 480,
+        "seo_difficulty": 6,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 0.04,
+        "current_date": "2026-08-25",
+        "current_rank": 1,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "swing shack",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 1,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 880,
+        "seo_difficulty": 32,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.2,
+        "current_date": "2026-08-25",
+        "current_rank": 17,
+        "current_url": "https://swingshack.co.za/club-fitting/",
+        "keyword": "custom club fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 24,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 10,
+        "seo_difficulty": 20,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.07,
+        "current_date": "2026-08-25",
+        "current_rank": 4,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf course",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 3,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 20,
+        "seo_difficulty": 16,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 0.71,
+        "current_date": "2026-08-25",
+        "current_rank": 2,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor driving range",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 2,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 140,
+        "seo_difficulty": 35,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.59,
+        "current_date": "2026-08-25",
+        "current_rank": 14,
+        "current_url": "https://swingshack.co.za/club-fitting/",
+        "keyword": "club fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 12,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 50,
+        "seo_difficulty": 36,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 0.22,
+        "current_date": "2026-08-25",
+        "current_rank": null,
+        "current_url": null,
+        "keyword": "golf lessons",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": null,
+        "previous_url": null,
+        "search_volume": 480,
+        "seo_difficulty": 33,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0,
+        "current_date": "2026-08-25",
+        "current_rank": 9,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "golf lessons for beginners in johannesburg",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 10,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 0,
+        "seo_difficulty": 4,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 0.56,
+        "current_date": "2026-08-25",
+        "current_rank": 2,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf range",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 2,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 20,
+        "seo_difficulty": 30,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.48,
+        "current_date": "2026-08-25",
+        "current_rank": 8,
+        "current_url": "https://swingshack.co.za/product/putter-fitting-1-5h-booking/",
+        "keyword": "putter fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 35,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 20,
+        "seo_difficulty": 33,
+        "status": "ok"
+      },
+      {
+        "_has_change": false,
+        "competition": 0.06,
+        "current_date": "2026-08-25",
+        "current_rank": null,
+        "current_url": null,
+        "keyword": "golf course near me",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": null,
+        "previous_url": null,
+        "search_volume": 12100,
+        "seo_difficulty": 56,
+        "status": "ok"
+      }
+    ],
+    "metadata": {
+      "domain": "swingshack.co.za",
+      "fetched_at": "2026-08-25",
+      "language": "en",
+      "next_update": "2026-09-01",
+      "project_id_prefix": "a4f17b569f9d",
+      "source": "ubersuggest.project_position_info",
+      "window": {
+        "end": "2026-08-25",
+        "start": "2026-06-30"
+      }
+    },
+    "quick_wins": [
+      {
+        "_has_change": true,
+        "competition": 0.47,
+        "current_date": "2026-08-25",
+        "current_rank": 7,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "club fitting near me",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 4,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 70,
+        "seo_difficulty": 20,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 1,
+        "current_date": "2026-08-25",
+        "current_rank": 4,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "simulated golf",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 5,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 2400,
+        "seo_difficulty": 49,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.2,
+        "current_date": "2026-08-25",
+        "current_rank": 17,
+        "current_url": "https://swingshack.co.za/club-fitting/",
+        "keyword": "custom club fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 24,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 10,
+        "seo_difficulty": 20,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.07,
+        "current_date": "2026-08-25",
+        "current_rank": 4,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "indoor golf course",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 3,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 20,
+        "seo_difficulty": 16,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.59,
+        "current_date": "2026-08-25",
+        "current_rank": 14,
+        "current_url": "https://swingshack.co.za/club-fitting/",
+        "keyword": "club fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 12,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 50,
+        "seo_difficulty": 36,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0,
+        "current_date": "2026-08-25",
+        "current_rank": 9,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "golf lessons for beginners in johannesburg",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 10,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 0,
+        "seo_difficulty": 4,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.48,
+        "current_date": "2026-08-25",
+        "current_rank": 8,
+        "current_url": "https://swingshack.co.za/product/putter-fitting-1-5h-booking/",
+        "keyword": "putter fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 35,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 20,
+        "seo_difficulty": 33,
+        "status": "ok"
+      }
+    ],
+    "rising": [
+      {
+        "_has_change": true,
+        "competition": 0.48,
+        "current_date": "2026-08-25",
+        "current_rank": 8,
+        "current_url": "https://swingshack.co.za/product/putter-fitting-1-5h-booking/",
+        "keyword": "putter fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 35,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 20,
+        "seo_difficulty": 33,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0.2,
+        "current_date": "2026-08-25",
+        "current_rank": 17,
+        "current_url": "https://swingshack.co.za/club-fitting/",
+        "keyword": "custom club fitting",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 24,
+        "previous_url": "https://swingshack.co.za/club-fitting/",
+        "search_volume": 10,
+        "seo_difficulty": 20,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 1,
+        "current_date": "2026-08-25",
+        "current_rank": 4,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "simulated golf",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 5,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 2400,
+        "seo_difficulty": 49,
+        "status": "ok"
+      },
+      {
+        "_has_change": true,
+        "competition": 0,
+        "current_date": "2026-08-25",
+        "current_rank": 9,
+        "current_url": "https://swingshack.co.za/",
+        "keyword": "golf lessons for beginners in johannesburg",
+        "language": "en",
+        "loc_id": 2710,
+        "marked_unstable": false,
+        "previous_date": "2026-06-30",
+        "previous_rank": 10,
+        "previous_url": "https://swingshack.co.za/",
+        "search_volume": 0,
+        "seo_difficulty": 4,
+        "status": "ok"
+      }
+    ],
+    "summary": {
+      "down": 5,
+      "unchanged": 7,
+      "up": 4
+    }
+  },
+  "funnel_leaks": {
+    "updated": "2026-08-13T11:14:38.954Z",
+    "generated": "generate_funnel_leaks.js",
+    "summary": {
+      "total_leaks": 2,
+      "high": 2,
+      "medium": 0,
+      "low": 0,
+      "most_urgent": "(high) Push booking CTA on IG this week — booking page traffic is t"
+    },
+    "leaks": [
+      {
+        "type": "booking_traffic_no_retargeting",
+        "page": "/bookings/",
+        "sessions": 211,
+        "severity": "high",
+        "revenue_impact": "211 sessions on booking page but < 2 booking CTAs in recent IG posts",
+        "easy_fix": "Push booking CTA on IG this week — booking page traffic is there",
+        "owner": "Swing Shack page",
+        "rank": 1
+      },
+      {
+        "type": "service_page_no_ig",
+        "service": "Club Fitting",
+        "page": "/customer-portal/",
+        "sessions": 92,
+        "severity": "high",
+        "revenue_impact": "92 sessions with no IG content pushing this service",
+        "easy_fix": "Create IG post about Club Fitting — GA4 shows 92 sessions this week",
+        "owner": "Divan",
+        "rank": 2
+      }
+    ]
+  },
+  "competitors": {
+    "_meta": {
+      "count": 15,
+      "domain": "swingshack.co.za",
+      "fetched_at": "2026-08-25"
+    },
+    "competitors": [
+      {
+        "backlinks": 170,
+        "commonKeywordCount": 19,
+        "domain": "justinharding.co.za",
+        "domainAuthority": 12,
+        "gapKeywordCount": 28,
+        "organic": 74,
+        "traffic": 220
+      },
+      {
+        "backlinks": 6,
+        "commonKeywordCount": 19,
+        "domain": "par72.co.za",
+        "domainAuthority": 4,
+        "gapKeywordCount": 0,
+        "organic": 37,
+        "traffic": 776
+      },
+      {
+        "backlinks": 71,
+        "commonKeywordCount": 30,
+        "domain": "foreandfine.org",
+        "domainAuthority": 10,
+        "gapKeywordCount": 48,
+        "organic": 128,
+        "traffic": 23
+      },
+      {
+        "backlinks": 18,
+        "commonKeywordCount": 25,
+        "domain": "golfroom.co.za",
+        "domainAuthority": 3,
+        "gapKeywordCount": 11,
+        "organic": 20,
+        "traffic": 73
+      },
+      {
+        "backlinks": 1383,
+        "commonKeywordCount": 12,
+        "domain": "flightscope.co.za",
+        "domainAuthority": 10,
+        "gapKeywordCount": 12,
+        "organic": 98,
+        "traffic": 260
+      },
+      {
+        "backlinks": 22,
+        "commonKeywordCount": 14,
+        "domain": "thetee.co.za",
+        "domainAuthority": 6,
+        "gapKeywordCount": 21,
+        "organic": 55,
+        "traffic": 22
+      },
+      {
+        "backlinks": 24,
+        "commonKeywordCount": 32,
+        "domain": "hometee.co.za",
+        "domainAuthority": 3,
+        "gapKeywordCount": 18,
+        "organic": 100,
+        "traffic": 715
+      },
+      {
+        "backlinks": 19,
+        "commonKeywordCount": 26,
+        "domain": "swinglounge.co.za",
+        "domainAuthority": 2,
+        "gapKeywordCount": 4,
+        "organic": 25,
+        "traffic": 636
+      },
+      {
+        "backlinks": 495,
+        "commonKeywordCount": 52,
+        "domain": "worldofgolf.co.za",
+        "domainAuthority": 24,
+        "gapKeywordCount": 354,
+        "organic": 460,
+        "traffic": 14434
+      },
+      {
+        "backlinks": 0,
+        "commonKeywordCount": 21,
+        "domain": "isim.co.za",
+        "domainAuthority": 1,
+        "gapKeywordCount": 14,
+        "organic": 32,
+        "traffic": 135
+      },
+      {
+        "backlinks": 4076216,
+        "commonKeywordCount": 11,
+        "domain": "golfmonthly.com",
+        "domainAuthority": 69,
+        "gapKeywordCount": 1150,
+        "organic": 243724,
+        "traffic": 557435
+      },
+      {
+        "backlinks": 28,
+        "commonKeywordCount": 46,
+        "domain": "golfbar.co.za",
+        "domainAuthority": 7,
+        "gapKeywordCount": 39,
+        "organic": 103,
+        "traffic": 1034
+      },
+      {
+        "backlinks": 9131,
+        "commonKeywordCount": 38,
+        "domain": "randpark.co.za",
+        "domainAuthority": 30,
+        "gapKeywordCount": 692,
+        "organic": 727,
+        "traffic": 37369
+      },
+      {
+        "backlinks": 4205,
+        "commonKeywordCount": 19,
+        "domain": "thecountryclub.co.za",
+        "domainAuthority": 31,
+        "gapKeywordCount": 781,
+        "organic": 1141,
+        "traffic": 18794
+      },
+      {
+        "backlinks": 41,
+        "commonKeywordCount": 25,
+        "domain": "humansport.co.za",
+        "domainAuthority": 4,
+        "gapKeywordCount": 23,
+        "organic": 60,
+        "traffic": 61
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "brand": "swing-shack",
+  "updated": 1786090811.9582632,
+  "samples": 0,
+  "win_threshold": 0.65,
+  "ready": false,
+  "preferences": {},
+  "anti_preferences": {},
+  "decision_criteria": {
+    "click_weight": 0.5,
+    "booking_weight": 0.4,
+    "engagement_weight": 0.1
+  },
+  "_note": "need at least 5 samples; have 0"
+}

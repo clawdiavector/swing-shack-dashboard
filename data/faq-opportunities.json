@@ -1,13 +1,13 @@
 {
   "schema": "https://clawdia.io/agents/blog-beast/v1",
-  "generated": "2026-04-23T09:37:27.915Z",
+  "generated": "2026-08-13T11:14:40.305Z",
   "total": 8,
   "ready_for_qa": 8,
   "faqs": [
     {
-      "faq_id": "faq-u2q6m4lz",
+      "faq_id": "faq-ulzdygno",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.305Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -22,9 +22,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-35vnmba8",
+      "faq_id": "faq-0yeyqb2e",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.305Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -39,9 +39,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-c84pguwg",
+      "faq_id": "faq-vlv6atqe",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.305Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -56,16 +56,16 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-2rzwu1bi",
+      "faq_id": "faq-74iwxpuf",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
-      "cluster": "Golf Coaching & Lessons",
-      "target_keyword": "/checkout/",
+      "generated": "2026-08-13T11:14:40.305Z",
+      "cluster": "TrackMan Golf Technology",
+      "target_keyword": "/philosophy/",
       "questions": [
-        "What is /checkout/?",
-        "How much does /checkout/ cost in Johannesburg?",
-        "Is /checkout/ worth it?",
-        "What's the best /checkout/ in Johannesburg?"
+        "What is /philosophy/?",
+        "How much does /philosophy/ cost in Johannesburg?",
+        "Is /philosophy/ worth it?",
+        "What's the best /philosophy/ in Johannesburg?"
       ],
       "source": "informational_intent",
       "status": "draft",
@@ -73,10 +73,10 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-6p9ucxwk",
+      "faq_id": "faq-4eibuvg9",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
-      "cluster": "Practice & Warm-up",
+      "generated": "2026-08-13T11:14:40.305Z",
+      "cluster": "Indoor Golf Johannesburg",
       "target_keyword": "/club-fitting/",
       "questions": [
         "What is /club-fitting/?",
@@ -90,26 +90,26 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-cllkpvdb",
+      "faq_id": "faq-u24mddmt",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.305Z",
       "cluster": "Practice & Warm-up",
-      "target_keyword": "/",
+      "target_keyword": "/bookings/",
       "questions": [
-        "What is /?",
-        "How much does / cost in Johannesburg?",
-        "Is / worth it?",
-        "What's the best / in Johannesburg?"
+        "What is /bookings/?",
+        "How much does /bookings/ cost in Johannesburg?",
+        "Is /bookings/ worth it?",
+        "What's the best /bookings/ in Johannesburg?"
       ],
-      "source": "informational_intent",
+      "source": "pricing_intent",
       "status": "draft",
       "owner": "blog_beast",
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-bw0h9l79",
+      "faq_id": "faq-5p4cenw8",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.305Z",
       "cluster": "TrackMan Golf Technology",
       "target_keyword": "trackman golf",
       "questions": [
@@ -124,9 +124,9 @@
       "ready_for_qa": true
     },
     {
-      "faq_id": "faq-hmeof3o2",
+      "faq_id": "faq-kyrfqlfk",
       "schema": "https://clawdia.io/agents/blog-beast/v1",
-      "generated": "2026-04-23T09:37:27.915Z",
+      "generated": "2026-08-13T11:14:40.305Z",
       "cluster": "Indoor Golf Johannesburg",
       "target_keyword": "indoor golf johannesburg",
       "questions": [

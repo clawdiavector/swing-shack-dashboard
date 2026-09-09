@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/live-mode-controller/v1",
-  "generated": "2026-04-23T09:45:45.332Z",
+  "generated": "2026-08-13T11:14:42.452Z",
   "modes": {
     "available": [
       "OFF",
@@ -85,7 +85,7 @@
     "mode": "LIVE",
     "trust_score": 9.4,
     "off_switches": 0,
-    "run_success_rate": "85%",
-    "total_runs": 39
+    "run_success_rate": "90%",
+    "total_runs": 51
   }
 }

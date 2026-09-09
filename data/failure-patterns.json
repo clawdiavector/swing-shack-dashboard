@@ -1,8 +1,8 @@
 {
   "schema": "https://clawdia.io/agents/failure-pattern-detector/v1",
-  "generated": "2026-04-23T09:45:45.495Z",
+  "generated": "2026-08-13T11:14:42.923Z",
   "summary": {
-    "total_runs": 39,
+    "total_runs": 50,
     "fails": 0,
     "partials": 9,
     "repeat_fail_agents": [],
@@ -14,28 +14,76 @@
   "patterns": {
     "by_time": {
       "afternoon": {
-        "total": 1,
+        "total": 13,
         "fails": 0,
-        "partials": 0
+        "partials": 1
       },
       "morning": {
-        "total": 38,
+        "total": 37,
         "fails": 0,
-        "partials": 9
+        "partials": 8
       }
     },
     "by_agent_fail": {},
     "by_agent_partial": {
-      "qa_inspector": 1,
+      "qa_inspector": 2,
       "reddit_ghost": 1,
       "blog_beast": 1,
       "hook_smith": 3,
-      "pulse_keeper": 3
+      "pulse_keeper": 2
     },
     "error_types": {
       "partial": 9
     },
     "sequences": {
+      "approval_runner → schedule_captain": {
+        "count": 2,
+        "fails": 0
+      },
+      "schedule_captain → postback_logger": {
+        "count": 2,
+        "fails": 0
+      },
+      "postback_logger → publisher": {
+        "count": 2,
+        "fails": 0
+      },
+      "publisher → brand_guard": {
+        "count": 2,
+        "fails": 0
+      },
+      "brand_guard → approval_captain": {
+        "count": 2,
+        "fails": 0
+      },
+      "approval_captain → qa_inspector": {
+        "count": 2,
+        "fails": 0
+      },
+      "qa_inspector → reddit_ghost": {
+        "count": 2,
+        "fails": 0
+      },
+      "reddit_ghost → blog_beast": {
+        "count": 3,
+        "fails": 0
+      },
+      "blog_beast → visual_forge": {
+        "count": 3,
+        "fails": 0
+      },
+      "visual_forge → caption_closer": {
+        "count": 3,
+        "fails": 0
+      },
+      "caption_closer → live_action_auditor": {
+        "count": 1,
+        "fails": 0
+      },
+      "live_action_auditor → weekly_reporter": {
+        "count": 1,
+        "fails": 0
+      },
       "weekly_reporter → publisher": {
         "count": 1,
         "fails": 0
@@ -44,48 +92,8 @@
         "count": 1,
         "fails": 0
       },
-      "approval_runner → schedule_captain": {
-        "count": 1,
-        "fails": 0
-      },
-      "schedule_captain → postback_logger": {
-        "count": 1,
-        "fails": 0
-      },
-      "postback_logger → publisher": {
-        "count": 1,
-        "fails": 0
-      },
-      "publisher → brand_guard": {
-        "count": 1,
-        "fails": 0
-      },
-      "brand_guard → approval_captain": {
-        "count": 1,
-        "fails": 0
-      },
-      "approval_captain → qa_inspector": {
-        "count": 1,
-        "fails": 0
-      },
       "qa_inspector → qa_inspector": {
         "count": 1,
-        "fails": 0
-      },
-      "qa_inspector → reddit_ghost": {
-        "count": 1,
-        "fails": 0
-      },
-      "reddit_ghost → blog_beast": {
-        "count": 2,
-        "fails": 0
-      },
-      "blog_beast → visual_forge": {
-        "count": 2,
-        "fails": 0
-      },
-      "visual_forge → caption_closer": {
-        "count": 2,
         "fails": 0
       },
       "caption_closer → reddit_ghost": {
@@ -149,7 +157,7 @@
         "fails": 0
       },
       "pulse_keeper → pulse_keeper": {
-        "count": 3,
+        "count": 2,
         "fails": 0
       }
     }

@@ -1,0 +1,44 @@
+{
+  "test_name": "PSYCHO BUNNY + 4-week product calendar",
+  "brand": "stick",
+  "start_date": "2026-09-08",
+  "end_date": "2026-10-08",
+  "propose_summary": {
+    "slot_count": 20,
+    "category_distribution": {
+      "bags": 2,
+      "balls": 2,
+      "grips": 2,
+      "irons": 4,
+      "pants": 3,
+      "polo": 2,
+      "putters": 2,
+      "shafts": 2,
+      "wedges": 1
+    },
+    "brand_distribution": {
+      "Golf Pride": 2,
+      "L.A.B.": 2,
+      "Project X": 2,
+      "Psycho Bunny": 5,
+      "Takomo": 5,
+      "Vessel": 2,
+      "Vice": 2
+    },
+    "price_distribution": {
+      "150-500": 3,
+      "50-150": 10,
+      "500-plus": 1,
+      "under-50": 6
+    }
+  },
+  "approved_count": 20,
+  "all_lanes_view": {
+    "total_items": 23,
+    "campaign_bands_count": 1,
+    "conflicts_count": 24
+  },
+  "product_only": 20,
+  "human_only": 1,
+  "campaign_only": 2
+}

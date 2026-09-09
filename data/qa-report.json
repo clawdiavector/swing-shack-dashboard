@@ -1,409 +1,193 @@
 {
   "schema": "https://clawdia.io/agents/qa-inspector/v1",
-  "generated": "2026-04-23T09:37:42.867Z",
-  "total_items": 88,
-  "pass": 85,
+  "generated": "2026-08-13T11:14:40.477Z",
+  "total_items": 40,
+  "pass": 37,
   "fix": 0,
   "reject": 3,
-  "pass_rate": 97,
+  "pass_rate": 93,
   "by_type": {
-    "caption": 20,
-    "caption_variant": 20,
+    "caption": 8,
+    "caption_variant": 8,
     "blog_draft": 3,
     "reddit_reply": 5,
-    "image_prompt": 20,
-    "visual_brief": 20
+    "image_prompt": 8,
+    "visual_brief": 8
   },
   "reports": [
     {
-      "item_id": "cap-2026-04-22-mlu5ww77",
+      "item_id": "cap-2026-08-13-mwbcy069",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-001",
+      "linked_blueprint_id": "bp-plan-2026-08-13-001",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-jc6egk51",
+      "item_id": "cap-2026-08-13-9b1h8ojw",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-002",
+      "linked_blueprint_id": "bp-plan-2026-08-13-002",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-eyntdt58",
+      "item_id": "cap-2026-08-13-bcb9apof",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-010",
+      "linked_blueprint_id": "bp-plan-2026-08-13-003",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-3ngo0q7x",
+      "item_id": "cap-2026-08-13-9rhx91cc",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-011",
+      "linked_blueprint_id": "bp-plan-2026-08-13-004",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-5q8fhmw7",
+      "item_id": "cap-2026-08-13-b6yff00k",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-012",
+      "linked_blueprint_id": "bp-plan-2026-08-13-005",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-kqu4lidi",
+      "item_id": "cap-2026-08-13-84p75tyz",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-016",
+      "linked_blueprint_id": "bp-2026-08-13-001",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-n8769oa3",
+      "item_id": "cap-2026-08-13-o4gn80m5",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-017",
+      "linked_blueprint_id": "bp-2026-08-13-002",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-7z32ws3m",
+      "item_id": "cap-2026-08-13-2q2sxpne",
       "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-019",
+      "linked_blueprint_id": "bp-2026-08-13-003",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 4,
       "total_checks": 4
     },
     {
-      "item_id": "cap-2026-04-22-28rmngt4",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-003",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-yln4wcfo",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-013",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-wjckbcny",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-014",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-y0h2ahgm",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-015",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-rd5x14j0",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-004",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-88rdulyn",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-005",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-1sm0bpdo",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-018",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-jza28sny",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-006",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-w2c9wos3",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-2026-04-22-007",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-e7i6x2z5",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-plan-2026-04-22-001",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-en98qhm4",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-plan-2026-04-22-002",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "cap-2026-04-22-x3s9noqk",
-      "item_type": "caption",
-      "linked_blueprint_id": "bp-plan-2026-04-22-003",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 4,
-      "total_checks": 4
-    },
-    {
-      "item_id": "var-0vn1ajbk",
+      "item_id": "var-dtmmfiu0",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-mlu5ww77",
+      "linked_caption_id": "cap-2026-08-13-mwbcy069",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-x3xw68t7",
+      "item_id": "var-buqw2ua8",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-jc6egk51",
+      "linked_caption_id": "cap-2026-08-13-9b1h8ojw",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-88p6fuv0",
+      "item_id": "var-d6k8jts1",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-eyntdt58",
+      "linked_caption_id": "cap-2026-08-13-bcb9apof",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-3izsvksk",
+      "item_id": "var-28vn1h84",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-3ngo0q7x",
+      "linked_caption_id": "cap-2026-08-13-9rhx91cc",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-5726g538",
+      "item_id": "var-w3z11ort",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-5q8fhmw7",
+      "linked_caption_id": "cap-2026-08-13-b6yff00k",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-wylvkjum",
+      "item_id": "var-a1dxkjl9",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-kqu4lidi",
+      "linked_caption_id": "cap-2026-08-13-84p75tyz",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-rqqhl6h0",
+      "item_id": "var-e9idx568",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-n8769oa3",
+      "linked_caption_id": "cap-2026-08-13-o4gn80m5",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-rb230hij",
+      "item_id": "var-ldfpolw9",
       "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-7z32ws3m",
+      "linked_caption_id": "cap-2026-08-13-2q2sxpne",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 3,
       "total_checks": 3
     },
     {
-      "item_id": "var-fux2obx8",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-28rmngt4",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-jfzjefnh",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-yln4wcfo",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-4k148913",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-wjckbcny",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-ralfwimz",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-y0h2ahgm",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-oe3vw31a",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-rd5x14j0",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-biccethg",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-88rdulyn",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-r6av4t13",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-1sm0bpdo",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-jf31fbnn",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-jza28sny",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-oj70jhjx",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-w2c9wos3",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-5qr5zw2z",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-e7i6x2z5",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-glv3r9zc",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-en98qhm4",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "var-42vwt3oz",
-      "item_type": "caption_variant",
-      "linked_caption_id": "cap-2026-04-22-x3s9noqk",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 3,
-      "total_checks": 3
-    },
-    {
-      "item_id": "bd-3wysuq3h",
+      "item_id": "bd-s58ozgqk",
       "item_type": "blog_draft",
-      "linked_brief_id": "bb-jmv58rrq",
+      "linked_brief_id": "bb-0eu4mq5v",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 5,
       "total_checks": 5
     },
     {
-      "item_id": "bd-2ptrd4p3",
+      "item_id": "bd-tb8xlgf6",
       "item_type": "blog_draft",
-      "linked_brief_id": "bb-imaelxeh",
+      "linked_brief_id": "bb-zq1zown6",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 5,
       "total_checks": 5
     },
     {
-      "item_id": "bd-14zo48t6",
+      "item_id": "bd-r1mkqwca",
       "item_type": "blog_draft",
-      "linked_brief_id": "bb-wh1petuq",
+      "linked_brief_id": "bb-nqlg1w51",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 5,
       "total_checks": 5
     },
     {
-      "item_id": "rr-d9k47bim",
+      "item_id": "rr-9127z9j8",
       "item_type": "reddit_reply",
       "sentiment": "medium_trust",
       "verdict": "pass",
@@ -412,7 +196,7 @@
       "total_checks": 4
     },
     {
-      "item_id": "rr-m4pdjmee",
+      "item_id": "rr-1ohjhij7",
       "item_type": "reddit_reply",
       "sentiment": "medium_trust",
       "verdict": "pass",
@@ -421,7 +205,7 @@
       "total_checks": 4
     },
     {
-      "item_id": "rr-gfgkp4ry",
+      "item_id": "rr-6558j2sr",
       "item_type": "reddit_reply",
       "sentiment": "medium_trust",
       "verdict": "pass",
@@ -430,7 +214,7 @@
       "total_checks": 4
     },
     {
-      "item_id": "rr-vbvjhpbr",
+      "item_id": "rr-aj918tv3",
       "item_type": "reddit_reply",
       "sentiment": "medium_trust",
       "verdict": "pass",
@@ -439,7 +223,7 @@
       "total_checks": 4
     },
     {
-      "item_id": "rr-xvf4xkfl",
+      "item_id": "rr-rpfc3e4j",
       "item_type": "reddit_reply",
       "sentiment": "medium_trust",
       "verdict": "pass",
@@ -448,9 +232,9 @@
       "total_checks": 4
     },
     {
-      "item_id": "ip-lo4rcwk9",
+      "item_id": "ip-h0j4zfbj",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-001",
+      "linked_blueprint_id": "bp-plan-2026-08-13-001",
       "verdict": "pass",
       "issues": [
         {
@@ -463,9 +247,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-sl3tc9dm",
+      "item_id": "ip-hrg6uxv8",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-002",
+      "linked_blueprint_id": "bp-plan-2026-08-13-002",
       "verdict": "pass",
       "issues": [
         {
@@ -478,9 +262,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-e8oinqu6",
+      "item_id": "ip-w2orzvz2",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-010",
+      "linked_blueprint_id": "bp-plan-2026-08-13-003",
       "verdict": "pass",
       "issues": [
         {
@@ -493,9 +277,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-7uhumdwv",
+      "item_id": "ip-nvzvip0n",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-011",
+      "linked_blueprint_id": "bp-plan-2026-08-13-004",
       "verdict": "pass",
       "issues": [
         {
@@ -508,9 +292,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-newchvkl",
+      "item_id": "ip-ddiksa7h",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-012",
+      "linked_blueprint_id": "bp-plan-2026-08-13-005",
       "verdict": "pass",
       "issues": [
         {
@@ -523,9 +307,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-9z3ztssj",
+      "item_id": "ip-frzfezfu",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-016",
+      "linked_blueprint_id": "bp-2026-08-13-001",
       "verdict": "pass",
       "issues": [
         {
@@ -538,9 +322,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-h78c0c87",
+      "item_id": "ip-4o40fuex",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-017",
+      "linked_blueprint_id": "bp-2026-08-13-002",
       "verdict": "pass",
       "issues": [
         {
@@ -553,9 +337,9 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-aqnareij",
+      "item_id": "ip-6obfsjxz",
       "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-019",
+      "linked_blueprint_id": "bp-2026-08-13-003",
       "verdict": "pass",
       "issues": [
         {
@@ -568,267 +352,18 @@
       "total_checks": 3
     },
     {
-      "item_id": "ip-joujzack",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-003",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-524e2jg2",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-013",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-tmlxu8xf",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-014",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-09qqiiqk",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-015",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-q8z5lj98",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-004",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-klyy23o3",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-005",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-fo61hfyy",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-018",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-46gp4a3t",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-006",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-s9xuyfnx",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-2026-04-22-007",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-bbav8kaz",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-plan-2026-04-22-001",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-ud0nu935",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-plan-2026-04-22-002",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "ip-ibp8p0uv",
-      "item_type": "image_prompt",
-      "linked_blueprint_id": "bp-plan-2026-04-22-003",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "hook_mismatch",
-          "severity": "low",
-          "msg": "Hook text not clearly referenced in prompt"
-        }
-      ],
-      "passed_checks": 2,
-      "total_checks": 3
-    },
-    {
-      "item_id": "vb-r06049s8",
+      "item_id": "vb-1edd5x5i",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-001",
+      "linked_blueprint_id": "bp-plan-2026-08-13-001",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 2,
       "total_checks": 2
     },
     {
-      "item_id": "vb-p5yzosgg",
+      "item_id": "vb-spoxxul4",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-002",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-l2cqab8m",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-010",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "missing_mood",
-          "severity": "low",
-          "msg": "No mood/style guidance in brief"
-        }
-      ],
-      "passed_checks": 1,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-ztole3m5",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-011",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-x8vhtsj4",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-012",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-v1q4owu1",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-016",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-c5slfcb9",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-017",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-r54i1oe8",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-019",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-xk7vo8ym",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-003",
+      "linked_blueprint_id": "bp-plan-2026-08-13-002",
       "verdict": "reject",
       "issues": [
         {
@@ -841,9 +376,18 @@
       "total_checks": 2
     },
     {
-      "item_id": "vb-a5o9p23z",
+      "item_id": "vb-ih42vnoz",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-013",
+      "linked_blueprint_id": "bp-plan-2026-08-13-003",
+      "verdict": "pass",
+      "issues": [],
+      "passed_checks": 2,
+      "total_checks": 2
+    },
+    {
+      "item_id": "vb-p4me0ces",
+      "item_type": "visual_brief",
+      "linked_blueprint_id": "bp-plan-2026-08-13-004",
       "verdict": "reject",
       "issues": [
         {
@@ -856,57 +400,36 @@
       "total_checks": 2
     },
     {
-      "item_id": "vb-mgigaatv",
+      "item_id": "vb-iffbehhr",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-014",
+      "linked_blueprint_id": "bp-plan-2026-08-13-005",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 2,
       "total_checks": 2
     },
     {
-      "item_id": "vb-xgue2dxv",
+      "item_id": "vb-tbu6ib1s",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-015",
-      "verdict": "pass",
-      "issues": [
-        {
-          "type": "missing_mood",
-          "severity": "low",
-          "msg": "No mood/style guidance in brief"
-        }
-      ],
-      "passed_checks": 1,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-mf7lvm2z",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-004",
+      "linked_blueprint_id": "bp-2026-08-13-001",
       "verdict": "pass",
       "issues": [],
       "passed_checks": 2,
       "total_checks": 2
     },
     {
-      "item_id": "vb-m2t9o25k",
+      "item_id": "vb-7q0sk9fe",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-005",
+      "linked_blueprint_id": "bp-2026-08-13-002",
       "verdict": "pass",
-      "issues": [
-        {
-          "type": "missing_mood",
-          "severity": "low",
-          "msg": "No mood/style guidance in brief"
-        }
-      ],
-      "passed_checks": 1,
+      "issues": [],
+      "passed_checks": 2,
       "total_checks": 2
     },
     {
-      "item_id": "vb-d3ocn1da",
+      "item_id": "vb-rsrr6h96",
       "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-018",
+      "linked_blueprint_id": "bp-2026-08-13-003",
       "verdict": "reject",
       "issues": [
         {
@@ -916,51 +439,6 @@
         }
       ],
       "passed_checks": 1,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-3d252rau",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-006",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-mf9tdkuh",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-2026-04-22-007",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-ldmqy2oz",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-plan-2026-04-22-001",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-opr3fc5m",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-plan-2026-04-22-002",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
-      "total_checks": 2
-    },
-    {
-      "item_id": "vb-w3gz40da",
-      "item_type": "visual_brief",
-      "linked_blueprint_id": "bp-plan-2026-04-22-003",
-      "verdict": "pass",
-      "issues": [],
-      "passed_checks": 2,
       "total_checks": 2
     }
   ]

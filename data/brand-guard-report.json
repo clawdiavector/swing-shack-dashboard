@@ -1,232 +1,96 @@
 {
   "schema": "https://clawdia.io/agents/brand-guard/v1",
-  "generated": "2026-04-22T09:10:48.533Z",
-  "total_items": 28,
-  "pass": 28,
+  "generated": "2026-08-13T11:14:40.651Z",
+  "total_items": 16,
+  "pass": 16,
   "warn": 0,
   "fail": 0,
-  "brand_score": 99,
+  "brand_score": 100,
   "voice_standard": "direct, South African, data-driven, no fluff",
-  "violations_found": [
-    {
-      "type": "too_american",
-      "severity": "low",
-      "phrase": "lit",
-      "msg": "\"lit\" — American slang, use SA alternatives",
-      "replacement_suggestion": "SA-friendly: \"really\", \"very good\", \"great\""
-    }
-  ],
+  "violations_found": [],
   "reports": [
     {
-      "item_id": "cap-2026-04-22-mlu5ww77",
+      "item_id": "cap-2026-08-13-mwbcy069",
       "item_type": "caption",
-      "hook_text": "That slice costing you yards off the tee? TrackMan found it ",
-      "text_preview": "That slice costing you yards off the tee? TrackMan found it \n\nClub Fitting That slice costing you ya",
+      "hook_text": "THAT SLICE COSTING YOU YARDS?",
+      "text_preview": "THAT SLICE COSTING YOU YARDS?\n\nPractice THAT SLICE COSTING YOU YARDS?\n\n🎮 Practice\n\nLink in bio · Bo",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-jc6egk51",
+      "item_id": "cap-2026-08-13-9b1h8ojw",
       "item_type": "caption",
-      "hook_text": "Need to relax and find your golf swing tempo? Join Coach Cat",
-      "text_preview": "Need to relax and find your golf swing tempo? Join Coach Cat\n\nCoaching Need to relax and find your g",
+      "hook_text": "POV: First time at Swing Shack",
+      "text_preview": "POV: First time at Swing Shack\n\nPractice POV: First time at Swing Shack\n\n🎮 Practice\n\nDM us to get s",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-eyntdt58",
+      "item_id": "cap-2026-08-13-bcb9apof",
       "item_type": "caption",
-      "hook_text": "Go to your coaching sessions. Your ball deserves better 🫂",
-      "text_preview": "Go to your coaching sessions. Your ball deserves better 🫂\n\nCoaching Go to your coaching sessions. Y",
+      "hook_text": "YOUR GOLF NEEDS A MENTOR",
+      "text_preview": "YOUR GOLF NEEDS A MENTOR\n\nPractice YOUR GOLF NEEDS A MENTOR\n\n🎮 Practice\n\nSwipe up · Learn more\n\n#In",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-3ngo0q7x",
+      "item_id": "cap-2026-08-13-9rhx91cc",
       "item_type": "caption",
-      "hook_text": "Improve your game with the coaches tip of the day 🙌",
-      "text_preview": "Improve your game with the coaches tip of the day 🙌\n\nCoaching Improve your game with the coaches ti",
+      "hook_text": "Coach Catherine explains a common swing flaw",
+      "text_preview": "Coach Catherine explains a common swing flaw\n\nPractice Coach Catherine explains a common swing flaw\n",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-5q8fhmw7",
+      "item_id": "cap-2026-08-13-b6yff00k",
       "item_type": "caption",
-      "hook_text": "SwingShack merch coming in hot 🔥",
-      "text_preview": "SwingShack merch coming in hot 🔥\n\nCoaching SwingShack merch coming in hot 🔥\n\n🎯 Coaching\n\nLink in ",
+      "hook_text": "YOUR CLUBS ARE HOLDING YOU BACK",
+      "text_preview": "YOUR CLUBS ARE HOLDING YOU BACK\n\nPractice YOUR CLUBS ARE HOLDING YOU BACK\n\n🎮 Practice\n\nLink in bio ",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-kqu4lidi",
+      "item_id": "cap-2026-08-13-84p75tyz",
       "item_type": "caption",
-      "hook_text": "Sometimes u just need a bit of tough love 😅🤣",
-      "text_preview": "Sometimes u just need a bit of tough love 😅🤣\n\nCoaching Sometimes u just need a bit of tough love \ud83d",
+      "hook_text": "And we certainly do have spirit 🤣. Visit SwingShack today f",
+      "text_preview": "And we certainly do have spirit 🤣. Visit SwingShack today f\n\nCoaching And we certainly do have spir",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-n8769oa3",
+      "item_id": "cap-2026-08-13-o4gn80m5",
       "item_type": "caption",
-      "hook_text": "New Callaway Quantum range in- store. Come give them a go 🏌",
-      "text_preview": "New Callaway Quantum range in- store. Come give them a go 🏌\n\nCoaching New Callaway Quantum range in",
+      "hook_text": "Book your ball fitting at Swing Shack today. DM us or book o",
+      "text_preview": "Book your ball fitting at Swing Shack today. DM us or book o\n\nClub Fitting Book your ball fitting at",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-7z32ws3m",
+      "item_id": "cap-2026-08-13-2q2sxpne",
       "item_type": "caption",
-      "hook_text": "Here’s to a New Year and Good Golf! 🥂😉",
-      "text_preview": "Here’s to a New Year and Good Golf! 🥂😉\n\nCoaching Here’s to a New Year and Good Golf! 🥂😉\n\n🎯 Coac",
+      "hook_text": "Sub 70 clubs are now available for fitting at Swing Shack.",
+      "text_preview": "Sub 70 clubs are now available for fitting at Swing Shack.\n\nClub Fitting Sub 70 clubs are now availa",
       "brand_score": 100,
       "verdict": "pass",
       "violations": [],
       "voice_example": null
     },
     {
-      "item_id": "cap-2026-04-22-28rmngt4",
-      "item_type": "caption",
-      "hook_text": "Need some help with your putting? Coach Cat explains what ma",
-      "text_preview": "Need some help with your putting? Coach Cat explains what ma\n\nCoaching Need some help with your putt",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-yln4wcfo",
-      "item_type": "caption",
-      "hook_text": "Catch your flow @swingshack ",
-      "text_preview": "Catch your flow @swingshack \n\nCoaching Catch your flow @swingshack \n\n🎯 Coaching\n\nDM us to get start",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-wjckbcny",
-      "item_type": "caption",
-      "hook_text": "Want to win a fully custom built driver?👀",
-      "text_preview": "Want to win a fully custom built driver?👀\n\nClub Fitting Want to win a fully custom built driver?👀\n",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-y0h2ahgm",
-      "item_type": "caption",
-      "hook_text": "Your balls are important too 👀 Learn the key differences be",
-      "text_preview": "Your balls are important too 👀 Learn the key differences be\n\nCoaching Your balls are important too ",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-rd5x14j0",
-      "item_type": "caption",
-      "hook_text": "Lowest net score wins a *new custom fitted driver!*",
-      "text_preview": "Lowest net score wins a *new custom fitted driver!*\n\nClub Fitting Lowest net score wins a *new custo",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-88rdulyn",
-      "item_type": "caption",
-      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
-      "text_preview": "Book your session with Coach Cat @swingshack ⛳️\n\nCoaching Book your session with Coach Cat @swingsha",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-1sm0bpdo",
-      "item_type": "caption",
-      "hook_text": "Editing our SwingShack Members Social like a reality TV show",
-      "text_preview": "Editing our SwingShack Members Social like a reality TV show\n\nCoaching Editing our SwingShack Member",
-      "brand_score": 80,
-      "verdict": "pass",
-      "violations": [
-        {
-          "type": "too_american",
-          "severity": "low",
-          "phrase": "lit",
-          "msg": "\"lit\" — American slang, use SA alternatives",
-          "replacement_suggestion": "SA-friendly: \"really\", \"very good\", \"great\""
-        }
-      ],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-jza28sny",
-      "item_type": "caption",
-      "hook_text": "It never rains in doors… Book your slot now before your tee ",
-      "text_preview": "It never rains in doors… Book your slot now before your tee \n\nCoaching It never rains in doors… Book",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-w2c9wos3",
-      "item_type": "caption",
-      "hook_text": "Coach Cat takes us through a simple process on getting into ",
-      "text_preview": "Coach Cat takes us through a simple process on getting into \n\nCoaching Coach Cat takes us through a ",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-e7i6x2z5",
-      "item_type": "caption",
-      "hook_text": "That slice costing you yards off the tee? TrackMan found it ",
-      "text_preview": "That slice costing you yards off the tee? TrackMan found it \n\nPractice That slice costing you yards ",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-en98qhm4",
-      "item_type": "caption",
-      "hook_text": "Need some help with your putting? Coach Cat explains what ma",
-      "text_preview": "Need some help with your putting? Coach Cat explains what ma\n\nPractice Need some help with your putt",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "cap-2026-04-22-x3s9noqk",
-      "item_type": "caption",
-      "hook_text": "Book your session with Coach Cat @swingshack ⛳️",
-      "text_preview": "Book your session with Coach Cat @swingshack ⛳️\n\nPractice Book your session with Coach Cat @swingsha",
-      "brand_score": 100,
-      "verdict": "pass",
-      "violations": [],
-      "voice_example": null
-    },
-    {
-      "item_id": "bd-ilhugujd",
+      "item_id": "bd-s58ozgqk",
       "item_type": "blog_draft",
       "headline": "What TrackMan Golf Technology Means for Your Game",
       "brand_score": 100,
@@ -234,7 +98,7 @@
       "violations": []
     },
     {
-      "item_id": "bd-xayy1q0n",
+      "item_id": "bd-tb8xlgf6",
       "item_type": "blog_draft",
       "headline": "What TrackMan Golf Technology Means for Your Game",
       "brand_score": 100,
@@ -242,7 +106,7 @@
       "violations": []
     },
     {
-      "item_id": "bd-kjextiks",
+      "item_id": "bd-r1mkqwca",
       "item_type": "blog_draft",
       "headline": "What TrackMan Golf Technology Means for Your Game",
       "brand_score": 100,
@@ -250,7 +114,7 @@
       "violations": []
     },
     {
-      "item_id": "rr-d9k47bim",
+      "item_id": "rr-9127z9j8",
       "item_type": "reddit_reply",
       "subreddit": "r/golf",
       "text_preview": "TrackMan is the standard in professional golf for a reason.\n\nIt measures everything: ball speed, lau",
@@ -260,7 +124,7 @@
       "soft_brand_present": true
     },
     {
-      "item_id": "rr-m4pdjmee",
+      "item_id": "rr-1ohjhij7",
       "item_type": "reddit_reply",
       "subreddit": "r/golf",
       "text_preview": "Indoor golf gets a bad rep but it's actually superior for data-driven practice.\n\nWith a proper launc",
@@ -270,7 +134,7 @@
       "soft_brand_present": true
     },
     {
-      "item_id": "rr-gfgkp4ry",
+      "item_id": "rr-6558j2sr",
       "item_type": "reddit_reply",
       "subreddit": "r/golf",
       "text_preview": "Getting fitted before buying clubs is the move.\n\nYou might think you need a stiff shaft but your swi",
@@ -280,7 +144,7 @@
       "soft_brand_present": true
     },
     {
-      "item_id": "rr-vbvjhpbr",
+      "item_id": "rr-aj918tv3",
       "item_type": "reddit_reply",
       "subreddit": "r/golftips",
       "text_preview": "TrackMan is the standard in professional golf for a reason.\n\nIt measures everything: ball speed, lau",
@@ -290,7 +154,7 @@
       "soft_brand_present": true
     },
     {
-      "item_id": "rr-xvf4xkfl",
+      "item_id": "rr-rpfc3e4j",
       "item_type": "reddit_reply",
       "subreddit": "r/Johannesburg",
       "text_preview": "Indoor golf gets a bad rep but it's actually superior for data-driven practice.\n\nWith a proper launc",

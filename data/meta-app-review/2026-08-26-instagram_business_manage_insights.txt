@@ -1,0 +1,250 @@
+==============================================================================
+Meta App Review — Live API test for instagram_business_manage_insights
+==============================================================================
+
+This script makes the same calls the Campaign OS makes in production.
+Run this once before submitting to Meta. Paste the raw response block
+below into the App Review 'API call evidence' field.
+
+Graph version: v21.0
+Token source:  META_SYSTEM_USER_TOKEN env (or canonical credentials file)
+
+------------------------------------------------------------------------------
+Call 1 — Account info (instagram_basic)
+------------------------------------------------------------------------------
+{
+  "_request": {
+    "method": "GET",
+    "path": "/17841456713897671",
+    "params": {
+      "fields": "id,username,followers_count,media_count,name,biography,profile_picture_url"
+    }
+  },
+  "_status": 200,
+  "_response": {
+    "id": "17841456713897671",
+    "username": "swingshack",
+    "followers_count": 2498,
+    "media_count": 788,
+    "name": "Swing Shack",
+    "biography": "Real Golf, Indoors\n\u2022 Social Golf \n\u2022 Golf Lessons\n\u2022 Golf Practice \n\u2022 Elite Custom Club Fitting",
+    "profile_picture_url": "https://scontent-cpt1-1.xx.fbcdn.net/v/t51.2885-15/472457908_571238269225420_9136716780648673436_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=7d201b&_nc_ohc=b-p8lsnYdOYQ7kNvwHWePNI&_nc_oc=AdpdmLih_7NC3XxWD5HJE0qBA9ZXV2fFazAGffUjESn_0_66NqmVsum_cqTm8l98jBY&_nc_zt=23&_nc_ht=scontent-cpt1-1.xx&edm=AL-3X8kEAAAA&oh=00_AQFp50b-RavTnTO3MdPsT_POqKxcVkBEdh4lza090KUM7A&oe=6A945612"
+  }
+}
+
+OK — HTTP 200
+------------------------------------------------------------------------------
+Call 2 — Account insights (instagram_business_manage_insights)
+------------------------------------------------------------------------------
+{
+  "_request": {
+    "method": "GET",
+    "path": "/17841456713897671/insights",
+    "params": {
+      "metric": "reach",
+      "period": "day",
+      "metric_type": "total_value",
+      "since": 1785135494,
+      "until": 1787727494
+    }
+  },
+  "_status": 200,
+  "_response": {
+    "data": [
+      {
+        "name": "reach",
+        "period": "day",
+        "title": "Accounts reached",
+        "description": "The number of unique accounts that have seen your content, at least once, including in ads. Content includes posts, stories, reels, videos and live videos. Reach is different from impressions, which may include multiple views of your content by the same accounts. This metric is estimated and in development.",
+        "total_value": {
+          "value": 28486
+        },
+        "id": "17841456713897671/insights/reach/day"
+      }
+    ],
+    "paging": {
+      "previous": "https://graph.facebook.com/v25.0/17841456713897671/insights?access_token=EAAQ4UeYO9McBRzuGnqde9gMJiHyroV1LtpBkZATZA8C2f97To46hwKGCvY1DtCbzwq3ul3daoS2hLwAvX0EFWu85Ts18ZAZCrBedVsYWm9Q9ArjQcdlXDMDKSKSrxUTpRouQTYZBYYtMdiPvd5dM3auKPOMB4iKIcDij7BEFj9n6AZCEGquDBgGvm1fsMZA&since=1782543493&until=1785135493&metric=reach&metric_type=total_value&period=day",
+      "next": "https://graph.facebook.com/v25.0/17841456713897671/insights?access_token=EAAQ4UeYO9McBRzuGnqde9gMJiHyroV1LtpBkZATZA8C2f97To46hwKGCvY1DtCbzwq3ul3daoS2hLwAvX0EFWu85Ts18ZAZCrBedVsYWm9Q9ArjQcdlXDMDKSKSrxUTpRouQTYZBYYtMdiPvd5dM3auKPOMB4iKIcDij7BEFj9n6AZCEGquDBgGvm1fsMZA&since=1787727495&until=1790319495&metric=reach&metric_type=total_value&period=day"
+    }
+  }
+}
+
+OK — HTTP 200
+------------------------------------------------------------------------------
+Call 3 — Recent media (instagram_basic + content_publish)
+------------------------------------------------------------------------------
+{
+  "_request": {
+    "method": "GET",
+    "path": "/17841456713897671/media",
+    "params": {
+      "fields": "id,caption,media_type,media_url,permalink,like_count,comments_count,timestamp",
+      "limit": 5
+    }
+  },
+  "_status": 200,
+  "_response": {
+    "data": [
+      {
+        "id": "17988987897030897",
+        "caption": "Too many swing thoughts? Lets lessen that \ud83e\udef5 Book your coaching session @swingshack \n#golf #coach #golflife #trackman #indoorgolf",
+        "media_type": "VIDEO",
+        "media_url": "https://scontent-cpt1-1.cdninstagram.com/o1/v/t2/f2/m86/AQOw9o3k2CVWh0RvqSieOUoS826Ai3_HDUFF5SIh_AxwBrUVbYR5IEJZMj-IRYYAvc2-RnolaiCladm0jSjke5gSBk2u-dvhzvrkQOU.mp4?_nc_cat=105&_nc_sid=5e9851&_nc_ht=scontent-cpt1-1.cdninstagram.com&_nc_ohc=2RbYc565DesQ7kNvwEkgFmM&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5JTlNUQUdSQU0uQ0xJUFMuQzMuNzIwLmRhc2hfYmFzZWxpbmVfMV92MSIsInhwdl9hc3NldF9pZCI6MTM3NTUzNjU4MTM3MjU4NCwiYXNzZXRfYWdlX2RheXMiOjYsInZpX3VzZWNhc2VfaWQiOjEwMDk5LCJkdXJhdGlvbl9zIjoxMSwidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&vs=146ecddeabf53116&_nc_vs=HBksFQIYUmlnX3hwdl9yZWVsc19wZXJtYW5lbnRfc3JfcHJvZC9EQzRDOUI3N0NDQkQ2NDYxNjIyRUUyQjJFOUI2MkI4NF92aWRlb19kYXNoaW5pdC5tcDQVAALIARIAFQIYUWlnX3hwdl9wbGFjZW1lbnRfcGVybWFuZW50X3YyLzE2NEZCNjM3NTk0ODM3NDFFNUEzQkVENTAwNjlCNkFBX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACbQqveU4sLxBBUCKAJDMywXQCd3S8an754YEmRhc2hfYmFzZWxpbmVfMV92MREAdf4HZeadAQA&_nc_gid=mniZdVkKG6eisjXsPQI07Q&edm=AM6HXa8EAAAA&_nc_zt=28&oh=00_AQEoTm7K2xLbyfPTxdChHVNwL2l9RuVHnc_p6DuK-ZPllQ&oe=6A90700E",
+        "permalink": "https://www.instagram.com/reel/DcNzhsjsClp/",
+        "like_count": 5,
+        "comments_count": 0,
+        "timestamp": "2026-08-19T08:57:13+0000"
+      },
+      {
+        "id": "18098215292347008",
+        "caption": "Sub 70 clubs are now available for fitting at Swing Shack.\nFind the right head, shaft and setup with one of our experienced fitters.\nBook your appointment today.",
+        "media_type": "VIDEO",
+        "media_url": "https://scontent-cpt1-1.cdninstagram.com/o1/v/t2/f2/m86/AQOVWY-fy2m6CkwWyyfvR12rgWbk7nbczbLrkSAggqjYMfG4U9PQBBRpYshDqpY32VS3CHl-3DCC5CaHpGWJefKrTc8q2TxgKBk2EoI.mp4?_nc_cat=107&_nc_sid=5e9851&_nc_ht=scontent-cpt1-1.cdninstagram.com&_nc_ohc=m1jc0bWdchIQ7kNvwH1_7iM&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5JTlNUQUdSQU0uQ0xJUFMuQzMuNzIwLmRhc2hfYmFzZWxpbmVfMV92MSIsInhwdl9hc3NldF9pZCI6MTgwMjI2NDIxODc4OTA0NjQsImFzc2V0X2FnZV9kYXlzIjoyMSwidmlfdXNlY2FzZV9pZCI6MTAwOTksImR1cmF0aW9uX3MiOjYsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&vs=4074aef077bb0f7a&_nc_vs=HBksFQIYUmlnX3hwdl9yZWVsc19wZXJtYW5lbnRfc3JfcHJvZC8xRDQwRDk5OUVGRTNBNDNGODg2RjU1QUJDMkFDMTU4N192aWRlb19kYXNoaW5pdC5tcDQVAALIARIAFQIYUWlnX3hwdl9wbGFjZW1lbnRfcGVybWFuZW50X3YyLzZFNDFCNzk4ODlGNjcwMjNFMzREQTBCNjE5OUMyMkFDX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACbAvK-Y7N-DQBUCKAJDMywXQBo9cKPXCj0YEmRhc2hfYmFzZWxpbmVfMV92MREAdf4HZeadAQA&_nc_gid=mniZdVkKG6eisjXsPQI07Q&edm=AM6HXa8EAAAA&_nc_zt=28&oh=00_AQHe3mcy9X1JAFJRxfMspUBSQ7LkuhSyPEXekTGdNphrKw&oe=6A906404",
+        "permalink": "https://www.instagram.com/reel/DbpcjRwG4Tx/",
+        "like_count": 2,
+        "comments_count": 0,
+        "timestamp": "2026-08-05T06:01:11+0000"
+      },
+      {
+        "id": "17980153908061122",
+        "caption": "You've seen the reviews.\nNow it's your turn.\nSub 70 is now available for professional fitting at Swing Shack.\n\nBook your fitting today.",
+        "media_type": "VIDEO",
+        "media_url": "https://scontent-cpt1-1.cdninstagram.com/o1/v/t2/f2/m86/AQNhcvqiA5na4O0uoHuf970AbcDy_jquVvpY-xrP-XkFOwdoUdpkGykfRQmyK6Fscx9WljG7a5m9yzFXQp1eDLpgr_iGnO9xdJk-2Xs.mp4?_nc_cat=103&_nc_sid=5e9851&_nc_ht=scontent-cpt1-1.cdninstagram.com&_nc_ohc=-DgPf0P9nFUQ7kNvwFNQm4K&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5JTlNUQUdSQU0uQ0xJUFMuQzMuNzIwLmRhc2hfYmFzZWxpbmVfMV92MSIsInhwdl9hc3NldF9pZCI6MTgwMjE4NjM0ODM4OTA0NjQsImFzc2V0X2FnZV9kYXlzIjoyNiwidmlfdXNlY2FzZV9pZCI6MTAwOTksImR1cmF0aW9uX3MiOjgsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&vs=46fb6d3ec79b6b47&_nc_vs=HBksFQIYUmlnX3hwdl9yZWVsc19wZXJtYW5lbnRfc3JfcHJvZC84MjQ4MkI2OEQwRDhDRjk1QTA2RTg3NUNGRkQzQkVCNF92aWRlb19kYXNoaW5pdC5tcDQVAALIARIAFQIYUWlnX3hwdl9wbGFjZW1lbnRfcGVybWFuZW50X3YyL0RDNDMzMThDQUQwQkREQTQzRkVCMEJEM0JCODlBMjk0X2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACbA7K6ywrKDQBUCKAJDMywXQCAAAAAAAAAYEmRhc2hfYmFzZWxpbmVfMV92MREAdf4HZeadAQA&_nc_gid=mniZdVkKG6eisjXsPQI07Q&edm=AM6HXa8EAAAA&_nc_zt=28&oh=00_AQEMsrtYyUgcmF4PTd3r6CD3dXiuS27pKY5nJgGDNNeK-w&oe=6A905C64",
+        "permalink": "https://www.instagram.com/reel/DbcP91WD6QZ/",
+        "like_count": 5,
+        "comments_count": 1,
+        "timestamp": "2026-07-31T03:01:40+0000"
+      },
+      {
+        "id": "18241808092308155",
+        "caption": "\ud835\udde6\ud835\ude02\ud835\uddef \ud835\udff3\ud835\udfec \ud835\uddf5\ud835\uddee\ud835\ude00 \ud835\uddee\ud835\uddff\ud835\uddff\ud835\uddf6\ud835\ude03\ud835\uddf2\ud835\uddf1 \ud835\uddee\ud835\ude01 \ud835\udde6\ud835\ude04\ud835\uddf6\ud835\uddfb\ud835\uddf4 \ud835\udde6\ud835\uddf5\ud835\uddee\ud835\uddf0\ud835\uddf8.\n\nGet professionally fitted for \ud835\udde6\ud835\ude02\ud835\uddef \ud835\udff3\ud835\udfec at Swing Shack.\n\nBook your fitting today.",
+        "media_type": "IMAGE",
+        "media_url": "https://scontent-cpt1-1.cdninstagram.com/v/t51.82787-15/760445140_18021780182890464_4007726630042523660_n.jpg?stp=dst-jpg_e35_tt6&_nc_cat=111&ig_cache_key=Mzk1MjcxODA3NjU2NjM5Mjg2OA%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=a54f6b&efg=eyJlZmdfdGFnIjoiYmVzdF9pbWFnZV91cmxnZW4uRkVFRC5DMyJ9&_nc_ohc=cPPSfQjG2_oQ7kNvwHieU3B&_nc_oc=AdpUFD8kQYHEak_hGHT-fx_wBlqlTLdyoBp9b1uLAxz-pVPTDyD54cduTv233q9rNp8&_nc_zt=23&_nc_ht=scontent-cpt1-1.cdninstagram.com&edm=AM6HXa8EAAAA&_nc_gid=mniZdVkKG6eisjXsPQI07Q&oh=00_AQGeMm22QCpxh7JA7noqVmQZNmbYg6GWF9q5rw6qwWbvLA&oe=6A947C25",
+        "permalink": "https://www.instagram.com/p/Dba4CXzAVAk/",
+        "like_count": 4,
+        "comments_count": 0,
+        "timestamp": "2026-07-30T14:13:21+0000"
+      },
+      {
+        "id": "18360953572213385",
+        "caption": "And we certainly do have spirit \ud83e\udd23. Visit SwingShack today for all your golfing needs\n#golf #coaching #fittings #tech #trackman",
+        "media_type": "VIDEO",
+        "media_url": "https://scontent-cpt1-1.cdninstagram.com/o1/v/t2/f2/m86/AQNHb16FNSXI7YQtjZJty7Zh78lMjpcovNMpc3P1i1pp0RRNhRTzOjyb6JZ-icXjrrHGZUsLxKZiqMuuXxMtqEby8GXhMrapgeVbI3w.mp4?_nc_cat=110&_nc_sid=5e9851&_nc_ht=scontent-cpt1-1.cdninstagram.com&_nc_ohc=u0WaWO4XknkQ7kNvwEA7LbF&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5JTlNUQUdSQU0uQ0xJUFMuQzMuNzIwLmRhc2hfYmFzZWxpbmVfMV92MSIsInhwdl9hc3NldF9pZCI6MTU0ODcwNzIzMzM3OTc2MiwiYXNzZXRfYWdlX2RheXMiOjI2LCJ2aV91c2VjYXNlX2lkIjoxMDA5OSwiZHVyYXRpb25fcyI6MTAsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&vs=4d1450e1b3180f9b&_nc_vs=HBksFQIYUmlnX3hwdl9yZWVsc19wZXJtYW5lbnRfc3JfcHJvZC82NjQ0OUMwN0Q2RkRDNUVGOTc2ODQxRjU5NzVEQjM4N192aWRlb19kYXNoaW5pdC5tcDQVAALIARIAFQIYUWlnX3hwdl9wbGFjZW1lbnRfcGVybWFuZW50X3YyL0Y3NDg2RTQ5MDFEMEJFNUM4RkVBMjk1NTM4QjZGMEI0X2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACbk1o2I0KLABRUCKAJDMywXQCTul41P3zsYEmRhc2hfYmFzZWxpbmVfMV92MREAdf4HZeadAQA&_nc_gid=mniZdVkKG6eisjXsPQI07Q&edm=AM6HXa8EAAAA&_nc_zt=28&oh=00_AQFJ9CKHwna1ljMvCvEi84atHAUrzPXCyh8Yg2GIt5wUaQ&oe=6A90693B",
+        "permalink": "https://www.instagram.com/reel/DbaZ2Y5MYdz/",
+        "like_count": 18,
+        "comments_count": 0,
+        "timestamp": "2026-07-30T09:52:04+0000"
+      }
+    ],
+    "paging": {
+      "cursors": {
+        "before": "QVFIVFpub1VJQUdTbDVjclVQeUFlSXZAOVVZAYS09SREtoUno3MTBNQzBLajNRRmNqejEtUDFaQWltdlJYcklHR2VIOExLWjJEbnQwQXRhblltaEpxaGJuZAEJ3",
+        "after": "QVFIVDJIT3NRZAjhtdDE1d2puS1IyLUVENkk1N2ZAyZAzItelpWMGtOQXk2MDlOekxUOGROOXFOTnE5eDgxMTFBcURPUTFOamVTSUNNM2RYZAXUxb3VIZAy11ZAkp3"
+      },
+      "next": "https://graph.facebook.com/v25.0/17841456713897671/media?access_token=EAAQ4UeYO9McBRzuGnqde9gMJiHyroV1LtpBkZATZA8C2f97To46hwKGCvY1DtCbzwq3ul3daoS2hLwAvX0EFWu85Ts18ZAZCrBedVsYWm9Q9ArjQcdlXDMDKSKSrxUTpRouQTYZBYYtMdiPvd5dM3auKPOMB4iKIcDij7BEFj9n6AZCEGquDBgGvm1fsMZA&fields=id%2Ccaption%2Cmedia_type%2Cmedia_url%2Cpermalink%2Clike_count%2Ccomments_count%2Ctimestamp&limit=5&after=QVFIVDJIT3NRZAjhtdDE1d2puS1IyLUVENkk1N2ZAyZAzItelpWMGtOQXk2MDlOekxUOGROOXFOTnE5eDgxMTFBcURPUTFOamVTSUNNM2RYZAXUxb3VIZAy11ZAkp3"
+    }
+  }
+}
+
+OK — HTTP 200
+------------------------------------------------------------------------------
+Call 4 — Media insights (instagram_business_manage_insights)
+------------------------------------------------------------------------------
+{
+  "_request": {
+    "method": "GET",
+    "path": "/17988987897030897/insights",
+    "params": {
+      "metric": "reach,likes,saved,comments,shares,total_interactions",
+      "period": "lifetime"
+    }
+  },
+  "_status": 200,
+  "_response": {
+    "data": [
+      {
+        "name": "reach",
+        "period": "lifetime",
+        "values": [
+          {
+            "value": 571
+          }
+        ],
+        "title": "Accounts reached",
+        "description": "The number of unique accounts that have seen this reel at least once. Reach is different from impressions, which may include multiple views of your reel by the same accounts. This metric is estimated.",
+        "id": "17988987897030897/insights/reach/lifetime"
+      },
+      {
+        "name": "likes",
+        "period": "lifetime",
+        "values": [
+          {
+            "value": 5
+          }
+        ],
+        "title": "Likes",
+        "description": "The number of likes on your reel.",
+        "id": "17988987897030897/insights/likes/lifetime"
+      },
+      {
+        "name": "saved",
+        "period": "lifetime",
+        "values": [
+          {
+            "value": 0
+          }
+        ],
+        "title": "Saved",
+        "description": "The number of saves of your reel.",
+        "id": "17988987897030897/insights/saved/lifetime"
+      },
+      {
+        "name": "comments",
+        "period": "lifetime",
+        "values": [
+          {
+            "value": 0
+          }
+        ],
+        "title": "Comments",
+        "description": "The number of comments on your reel.",
+        "id": "17988987897030897/insights/comments/lifetime"
+      },
+      {
+        "name": "shares",
+        "period": "lifetime",
+        "values": [
+          {
+            "value": 1
+          }
+        ],
+        "title": "Shares",
+        "description": "The number of shares of your reel.",
+        "id": "17988987897030897/insights/shares/lifetime"
+      },
+      {
+        "name": "total_interactions",
+        "period": "lifetime",
+        "values": [
+          {
+            "value": 6
+          }
+        ],
+        "title": "Reels interactions",
+        "description": "The number of likes, saves, comments and shares on your reels minus the number of unlikes, unsaves and deleted comments.",
+        "id": "17988987897030897/insights/total_interactions/lifetime"
+      }
+    ]
+  }
+}
+
+OK — HTTP 200
+==============================================================================
+SUMMARY
+==============================================================================
+Calls made:    4
+Calls passed:  4
+Calls failed:  0
+
+All API calls succeeded — you can submit to Meta App Review now.
+Copy the response block above into the 'API test calls' field.

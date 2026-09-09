@@ -302,7 +302,7 @@ const output = {
     top_service:     results[0]?.label || 'n/a',
     top_score:       results[0]?.score  || 0,
     runner_up:       results[1]?.label  || 'n/a',
-    season_note:     seasonalScores.events >= 7 ? 'School holidays — push events + simulator sessions' : 'Standard week — balance lessons + fittings',
+    season_note:     seasonalScores.events >= 7 ? 'School holidays · push events + simulator sessions' : 'Standard week · balance lessons + fittings',
   },
 };
 

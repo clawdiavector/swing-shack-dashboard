@@ -1,0 +1,242 @@
+<!--
+_governance.html — Governance, Permissions & Decision Integrity view.
+
+Shows:
+  - OS authority model
+  - Active automation policies
+  - Action receipts (what was actually executed)
+  - Conflict detection
+  - Decision Quality assessments
+  - Outcome reviews
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Campaign OS · Governance</title>
+<style>
+:root {
+  --bg: #0a0e1a; --bg-2: #0f172a; --bg-3: #1f2937; --bd: #374151;
+  --tx: #e5e7eb; --tx-2: #d1d5db; --tx-3: #9ca3af;
+  --gold: #fbbf24; --green: #5dff9d;
+  --blue: #63b3ff; --orange: #fb923c; --red: #ff6b6b;
+  --purple: #a78bfa;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--tx); margin: 0; font-family: 'Inter', -apple-system, sans-serif; padding: 2rem; }
+h1 { font-family: 'Fraunces', Georgia, serif; }
+.gov-card { background: var(--bg-2); border: 1px solid var(--bd); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+.gov-card h2 { margin: 0 0 1rem; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tx-3); }
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
+.perm { background: var(--bg-3); border-radius: 6px; padding: 0.8rem; }
+.perm .level { font-size: 10px; color: var(--gold); letter-spacing: 0.1em; }
+.perm .name { font-weight: 700; margin: 0.2rem 0; }
+.perm .desc { font-size: 12px; color: var(--tx-2); }
+.hierarchy { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.hierarchy .step { background: var(--bg-3); padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 12px; font-weight: 600; }
+.hierarchy .arrow { color: var(--gold); font-weight: 700; }
+.policy-row { background: var(--bg-3); border-radius: 6px; padding: 0.8rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.policy-row .rule { font-weight: 700; }
+.policy-row .meta { font-size: 11px; color: var(--tx-3); margin-top: 0.3rem; }
+.empty { color: var(--tx-3); font-size: 13px; font-style: italic; }
+.action-auth { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.4rem; font-size: 12px; }
+.action-auth .row { padding: 0.5rem; background: var(--bg-3); border-radius: 4px; }
+.action-auth .row .name { font-weight: 700; font-size: 11px; }
+.action-auth .row .mode { color: var(--tx-2); }
+.human-only { color: var(--red); }
+.policy-auth { color: var(--green); }
+button { background: var(--bg-3); color: var(--tx); border: 1px solid var(--bd); border-radius: 4px; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 12px; }
+button:hover { background: var(--bd); }
+button.primary { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.receipt { background: var(--bg-3); border-radius: 6px; padding: 0.7rem; margin-bottom: 0.5rem; font-size: 12px; }
+.receipt .when { color: var(--tx-3); font-size: 11px; }
+.receipt.reversed { opacity: 0.5; text-decoration: line-through; }
+</style>
+</head>
+<body>
+
+<h1 style="margin-top:0">Governance</h1>
+<p style="color:var(--tx-2);font-size:14px;max-width:780px">
+The OS may observe, analyse, recommend, prepare — automatically.
+It may execute only with explicit human approval or an active
+automation policy that matches. By default, PAUSE / REDUCE / INCREASE
+/ KILL / SCALE / RETIRE / CHANGE POSITIONING all require human approval.
+</p>
+
+<!-- Authority hierarchy -->
+<div class="gov-card">
+  <h2>Decision hierarchy</h2>
+  <div class="hierarchy">
+    <span class="step">OBSERVE</span> <span class="arrow">→</span>
+    <span class="step">VALIDATE</span> <span class="arrow">→</span>
+    <span class="step">INTERPRET</span> <span class="arrow">→</span>
+    <span class="step">RECOMMEND</span> <span class="arrow">→</span>
+    <span class="step">HUMAN DECISION</span> <span class="arrow">→</span>
+    <span class="step">EXECUTE</span> <span class="arrow">→</span>
+    <span class="step">RECORD</span> <span class="arrow">→</span>
+    <span class="step">REVIEW OUTCOME</span>
+  </div>
+</div>
+
+<!-- Permission levels -->
+<div class="gov-card">
+  <h2>Permission levels</h2>
+  <div class="perm-grid" id="perm-grid"></div>
+</div>
+
+<!-- Action authority defaults -->
+<div class="gov-card">
+  <h2>Action authority defaults</h2>
+  <p style="font-size:13px;color:var(--tx-2);margin-bottom:0.8rem">
+    Each action has a default authority source. Anything requiring
+    <code style="color:var(--red)">HUMAN_ONLY</code> cannot be
+    authorised by an automation policy.
+  </p>
+  <div class="action-auth" id="action-auth"></div>
+</div>
+
+<!-- Active policies -->
+<div class="gov-card">
+  <h2>Active automation policies</h2>
+  <div id="policies-list"></div>
+</div>
+
+<!-- Receipts -->
+<div class="gov-card">
+  <h2>Action receipts (executed)</h2>
+  <div id="receipts-list"></div>
+</div>
+
+<!-- Conflicts -->
+<div class="gov-card">
+  <h2>Conflicting subsystem recommendations</h2>
+  <div id="conflicts-list"></div>
+</div>
+
+<script>
+const brand = new URLSearchParams(location.search).get('brand') || 'swing-shack';
+document.querySelector('title').textContent = `Campaign OS · Governance · ${brand}`;
+
+const PERM_LEVELS = {
+  0: ['READ', 'Inspect data only.'],
+  1: ['RECOMMEND', 'Create recommendations and decision cards.'],
+  2: ['PREPARE', 'Prepare campaign changes, draft budgets, new bets — but not execute them.'],
+  3: ['LIMITED AUTOPILOT', 'Execute only actions covered by explicit automation policies.'],
+  4: ['HUMAN ONLY', 'Always requires human approval.'],
+};
+const ACTION_AUTH = {
+  PAUSE: {mode:'human-only', category:'operational'},
+  RESUME: {mode:'policy', category:'operational'},
+  HOLD: {mode:'policy', category:'internal'},
+  REDUCE_BUDGET: {mode:'human-only', category:'spend'},
+  INCREASE_BUDGET: {mode:'human-only', category:'spend'},
+  SCALE: {mode:'human-only', category:'spend'},
+  REFINE: {mode:'human-only', category:'strategic'},
+  KILL: {mode:'human-only', category:'strategic'},
+  RETIRE: {mode:'human-only', category:'strategic'},
+  APPROVE_BET: {mode:'human-only', category:'strategic'},
+  CHANGE_POSITIONING: {mode:'human-only', category:'strategic'},
+  CHANGE_NORTH_STAR: {mode:'human-only', category:'strategic'},
+  DELETE_HISTORY: {mode:'human-only', category:'destructive'},
+  LINK_TO_BET: {mode:'prepare', category:'internal'},
+  FIX_MEASUREMENT: {mode:'prepare', category:'measurement'},
+};
+
+function escHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadGov() {
+  try {
+    const r = await fetch(`/api/governance/status?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!d.ok || !d.status) return;
+    const s = d.status;
+
+    // Perm grid
+    const permGrid = document.getElementById('perm-grid');
+    permGrid.innerHTML = Object.entries(PERM_LEVELS).map(([k, v]) =>
+      `<div class="perm"><div class="level">LEVEL ${k}</div><div class="name">${escHtml(v[0])}</div><div class="desc">${escHtml(v[1])}</div></div>`
+    ).join('');
+
+    // Action auth
+    const actAuth = document.getElementById('action-auth');
+    actAuth.innerHTML = Object.entries(ACTION_AUTH).map(([k, v]) => {
+      const cls = v.mode === 'human-only' ? 'human-only' : (v.mode === 'policy' ? 'policy-auth' : '');
+      return `<div class="row"><div class="name">${escHtml(k)}</div><div class="mode ${cls}">${escHtml(v.mode)} · ${escHtml(v.category)}</div></div>`;
+    }).join('');
+
+    // Policies
+    const polList = document.getElementById('policies-list');
+    if (!s.active_policies || s.active_policies.length === 0) {
+      polList.innerHTML = `<div class="empty">No active policies. OS auto-act is currently disabled for everything except what the human explicitly approves.</div>`;
+    } else {
+      polList.innerHTML = s.active_policies.map(p => `
+        <div class="policy-row">
+          <div>
+            <div class="rule">${escHtml(p.rule)}</div>
+            <div class="meta">Scope: ${escHtml(p.scope)} · Action: ${escHtml(p.action)} · Expires: ${escHtml(p.expires || 'never')}</div>
+          </div>
+          <button onclick="removePolicy('${p.id}')">Remove</button>
+        </div>
+      `).join('');
+    }
+  } catch (e) { /* silent */ }
+}
+
+async function loadReceipts() {
+  try {
+    const r = await fetch(`/api/decisions/receipts?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('receipts-list');
+    if (!d.receipts || d.receipts.length === 0) {
+      el.innerHTML = `<div class="empty">No actions have been executed yet. Every decision the human approves is recorded as a receipt here.</div>`;
+      return;
+    }
+    el.innerHTML = d.receipts.slice().reverse().map(rc => `
+      <div class="receipt ${rc.reversed ? 'reversed' : ''}">
+        <div><strong>${escHtml(rc.action)}</strong> ${rc.reversed ? '(reversed)' : ''}</div>
+        <div class="when">${escHtml(rc.executed_at)} · authority: ${escHtml(rc.authority_source)}${rc.policy_id ? ` · policy ${escHtml(rc.policy_id)}` : ''} · ${rc.human_approved ? 'human-approved' : 'policy-only'}</div>
+        ${rc.reason ? `<div style="margin-top:0.3rem"><em>${escHtml(rc.reason)}</em></div>` : ''}
+      </div>
+    `).join('');
+  } catch (e) { /* silent */ }
+}
+
+async function loadConflicts() {
+  try {
+    const r = await fetch(`/api/governance/conflicts?brand=${brand}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('conflicts-list');
+    if (!d.conflicts || d.conflicts.length === 0) {
+      el.innerHTML = `<div class="empty">No conflicts detected. Subsystem recommendations are aligned.</div>`;
+      return;
+    }
+    el.innerHTML = d.conflicts.map(c => `
+      <div class="receipt" style="border-left:3px solid var(--red);padding-left:0.8rem">
+        <div><strong>${escHtml(c.target)}</strong></div>
+        <div class="when">${c.subsystems.map(escHtml).join(', ')} disagree</div>
+        <div style="margin-top:0.3rem">
+          ${c.recommendations.map(([src,rec,what]) => `<span style="margin-right:0.5rem"><em>${escHtml(src)}</em>: <strong>${escHtml(rec)}</strong></span>`).join('')}
+        </div>
+        <div style="margin-top:0.3rem;font-size:11px;color:var(--tx-2)"><em>${escHtml(c.manager_read)}</em></div>
+        <div style="margin-top:0.3rem"><strong>Recommended (after precedence):</strong> ${escHtml(c.recommended)} (confidence: ${escHtml(c.confidence)})</div>
+      </div>
+    `).join('');
+  } catch (e) { /* silent */ }
+}
+
+async function removePolicy(policyId) {
+  if (!confirm('Remove this automation policy? OS will require human approval for this action again.')) return;
+  await fetch(`/api/governance/policies/${policyId}?brand=${brand}`, { method: 'DELETE' });
+  loadGov();
+}
+
+loadGov();
+loadReceipts();
+loadConflicts();
+</script>
+
+</body>
+</html>

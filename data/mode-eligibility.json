@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/mode-promotion-manager/v1",
-  "generated": "2026-04-23T09:45:45.455Z",
+  "generated": "2026-08-13T11:14:42.836Z",
   "current": {
     "mode": "LIVE",
     "trust": 9.4
@@ -15,10 +15,10 @@
     },
     {
       "criterion": "Zero critical failures for 7 days",
-      "current": -20559,
+      "current": -20671,
       "threshold": 7,
       "met": false,
-      "evidence": "0 day streak"
+      "evidence": "1 day streak"
     },
     {
       "criterion": "Postback logging stable",

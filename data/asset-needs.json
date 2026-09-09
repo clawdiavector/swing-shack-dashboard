@@ -1,47 +1,18 @@
 {
-  "updated": "2026-04-22T06:31:14.460Z",
+  "updated": "2026-08-13T11:14:38.815Z",
   "generated": "generate_asset_needs.js",
-  "count": 6,
+  "count": 5,
   "by_owner": {
     "Coach Cat": [
       {
         "owner": "Coach Cat",
         "asset_type": "swing_clip",
         "asset_raw": "Swing clip or lesson photo",
-        "urgency": "today",
+        "urgency": "this_week",
         "posts": [
           {
-            "hook": "Need some help with your putting? Coach Cat explai",
-            "day": "Thursday Apr 23",
-            "source": "post_plan"
-          },
-          {
-            "hook": "Need to relax and find your golf swing tempo? Join",
-            "day": "Saturday Apr 25",
-            "source": "post_plan"
-          },
-          {
-            "hook": "Zero to 18 handicap in 6 months. Cat breaks down t",
-            "day": null,
-            "source": "follow_up_queue"
-          },
-          {
-            "hook": "One putting session with Cat changed everything. H",
-            "day": null,
-            "source": "follow_up_queue"
-          }
-        ],
-        "count": 4
-      },
-      {
-        "owner": "Coach Cat",
-        "asset_type": "text_graphic",
-        "asset_raw": "Text graphic or booking CTA image",
-        "urgency": "flexible",
-        "posts": [
-          {
-            "hook": "Book your session with Coach Cat @swingshack ⛳️",
-            "day": "Friday Apr 24",
+            "hook": "Coach Catherine explains a common swing flaw",
+            "day": "Sunday Aug 16",
             "source": "post_plan"
           }
         ],
@@ -53,11 +24,11 @@
         "owner": "Coach Cat / Divan",
         "asset_type": "trackman_screenshot",
         "asset_raw": "TrackMan screenshot or data graphic",
-        "urgency": "today",
+        "urgency": "flexible",
         "posts": [
           {
-            "hook": "That slice costing you yards off the tee? TrackMan",
-            "day": "Wednesday Apr 22",
+            "hook": "Show TrackMan data overlay - before/after swing",
+            "day": "Tuesday Aug 18",
             "source": "post_plan"
           }
         ],
@@ -67,33 +38,14 @@
     "Divan": [
       {
         "owner": "Divan",
-        "asset_type": "static_image",
-        "asset_raw": "Contest/prize image or graphic",
-        "urgency": "this_week",
+        "asset_type": "swing_clip",
+        "asset_raw": "Swing clip or video footage",
+        "urgency": "flexible",
         "posts": [
           {
-            "hook": "Lowest net score wins a *new custom fitted driver!",
-            "day": "Sunday Apr 26",
+            "hook": "Time-lapse of a full fitting session",
+            "day": "Wednesday Aug 19",
             "source": "post_plan"
-          },
-          {
-            "hook": "Have you ever been for an elite level Custom Fitti",
-            "day": "Tuesday Apr 28",
-            "source": "post_plan"
-          }
-        ],
-        "count": 2
-      },
-      {
-        "owner": "Divan",
-        "asset_type": "trackman_screenshot",
-        "asset_raw": "Club/fitting photo or TrackMan data screenshot",
-        "urgency": "high",
-        "posts": [
-          {
-            "hook": "Your driver data tells a story. TrackMan tells you",
-            "day": null,
-            "source": "follow_up_queue"
           }
         ],
         "count": 1
@@ -104,11 +56,35 @@
         "owner": "Swing Shack page",
         "asset_type": "static_image",
         "asset_raw": "High-quality static image",
-        "urgency": "this_week",
+        "urgency": "today",
         "posts": [
           {
-            "hook": "Go to your coaching sessions. Your ball deserves b",
-            "day": "Monday Apr 27",
+            "hook": "THAT SLICE COSTING YOU YARDS?",
+            "day": "Thursday Aug 13",
+            "source": "post_plan"
+          },
+          {
+            "hook": "YOUR GOLF NEEDS A MENTOR",
+            "day": "Saturday Aug 15",
+            "source": "post_plan"
+          },
+          {
+            "hook": "YOUR CLUBS ARE HOLDING YOU BACK",
+            "day": "Monday Aug 17",
+            "source": "post_plan"
+          }
+        ],
+        "count": 3
+      },
+      {
+        "owner": "Swing Shack page",
+        "asset_type": "swing_clip",
+        "asset_raw": "Swing clip or video footage",
+        "urgency": "today",
+        "posts": [
+          {
+            "hook": "POV: First time at Swing Shack",
+            "day": "Friday Aug 14",
             "source": "post_plan"
           }
         ],
@@ -118,123 +94,103 @@
   },
   "needs": [
     {
-      "owner": "Coach Cat / Divan",
-      "asset_type": "trackman_screenshot",
-      "asset_raw": "TrackMan screenshot or data graphic",
+      "owner": "Swing Shack page",
+      "asset_type": "static_image",
+      "asset_raw": "High-quality static image",
       "urgency": "today",
       "posts": [
         {
-          "hook": "That slice costing you yards off the tee? TrackMan",
-          "day": "Wednesday Apr 22",
+          "hook": "THAT SLICE COSTING YOU YARDS?",
+          "day": "Thursday Aug 13",
+          "source": "post_plan"
+        },
+        {
+          "hook": "YOUR GOLF NEEDS A MENTOR",
+          "day": "Saturday Aug 15",
+          "source": "post_plan"
+        },
+        {
+          "hook": "YOUR CLUBS ARE HOLDING YOU BACK",
+          "day": "Monday Aug 17",
+          "source": "post_plan"
+        }
+      ],
+      "count": 3,
+      "asset_label": "🖼 High-quality static image"
+    },
+    {
+      "owner": "Swing Shack page",
+      "asset_type": "swing_clip",
+      "asset_raw": "Swing clip or video footage",
+      "urgency": "today",
+      "posts": [
+        {
+          "hook": "POV: First time at Swing Shack",
+          "day": "Friday Aug 14",
           "source": "post_plan"
         }
       ],
       "count": 1,
-      "asset_label": "📊 TrackMan screenshot or data graphic"
+      "asset_label": "🎬 Swing clip (video or photo)"
     },
     {
       "owner": "Coach Cat",
       "asset_type": "swing_clip",
       "asset_raw": "Swing clip or lesson photo",
-      "urgency": "today",
+      "urgency": "this_week",
       "posts": [
         {
-          "hook": "Need some help with your putting? Coach Cat explai",
-          "day": "Thursday Apr 23",
+          "hook": "Coach Catherine explains a common swing flaw",
+          "day": "Sunday Aug 16",
           "source": "post_plan"
-        },
-        {
-          "hook": "Need to relax and find your golf swing tempo? Join",
-          "day": "Saturday Apr 25",
-          "source": "post_plan"
-        },
-        {
-          "hook": "Zero to 18 handicap in 6 months. Cat breaks down t",
-          "day": null,
-          "source": "follow_up_queue"
         }
       ],
-      "count": 4,
+      "count": 1,
       "asset_label": "🎬 Swing clip (video or photo)"
     },
     {
-      "owner": "Divan",
-      "asset_type": "static_image",
-      "asset_raw": "Contest/prize image or graphic",
-      "urgency": "this_week",
-      "posts": [
-        {
-          "hook": "Lowest net score wins a *new custom fitted driver!",
-          "day": "Sunday Apr 26",
-          "source": "post_plan"
-        },
-        {
-          "hook": "Have you ever been for an elite level Custom Fitti",
-          "day": "Tuesday Apr 28",
-          "source": "post_plan"
-        }
-      ],
-      "count": 2,
-      "asset_label": "🖼 High-quality static image"
-    },
-    {
-      "owner": "Swing Shack page",
-      "asset_type": "static_image",
-      "asset_raw": "High-quality static image",
-      "urgency": "this_week",
-      "posts": [
-        {
-          "hook": "Go to your coaching sessions. Your ball deserves b",
-          "day": "Monday Apr 27",
-          "source": "post_plan"
-        }
-      ],
-      "count": 1,
-      "asset_label": "🖼 High-quality static image"
-    },
-    {
-      "owner": "Coach Cat",
-      "asset_type": "text_graphic",
-      "asset_raw": "Text graphic or booking CTA image",
+      "owner": "Coach Cat / Divan",
+      "asset_type": "trackman_screenshot",
+      "asset_raw": "TrackMan screenshot or data graphic",
       "urgency": "flexible",
       "posts": [
         {
-          "hook": "Book your session with Coach Cat @swingshack ⛳️",
-          "day": "Friday Apr 24",
+          "hook": "Show TrackMan data overlay - before/after swing",
+          "day": "Tuesday Aug 18",
           "source": "post_plan"
-        }
-      ],
-      "count": 1,
-      "asset_label": "📝 Text graphic / booking CTA image"
-    },
-    {
-      "owner": "Divan",
-      "asset_type": "trackman_screenshot",
-      "asset_raw": "Club/fitting photo or TrackMan data screenshot",
-      "urgency": "high",
-      "posts": [
-        {
-          "hook": "Your driver data tells a story. TrackMan tells you",
-          "day": null,
-          "source": "follow_up_queue"
         }
       ],
       "count": 1,
       "asset_label": "📊 TrackMan screenshot or data graphic"
+    },
+    {
+      "owner": "Divan",
+      "asset_type": "swing_clip",
+      "asset_raw": "Swing clip or video footage",
+      "urgency": "flexible",
+      "posts": [
+        {
+          "hook": "Time-lapse of a full fitting session",
+          "day": "Wednesday Aug 19",
+          "source": "post_plan"
+        }
+      ],
+      "count": 1,
+      "asset_label": "🎬 Swing clip (video or photo)"
     }
   ],
   "summary": {
-    "total": 6,
+    "total": 5,
     "by_owner": {
+      "Swing Shack page": 2,
+      "Coach Cat": 1,
       "Coach Cat / Divan": 1,
-      "Coach Cat": 2,
-      "Divan": 2,
-      "Swing Shack page": 1
+      "Divan": 1
     },
     "by_urgency": {
       "today": 2,
-      "this_week": 2,
-      "flexible": 1
+      "this_week": 1,
+      "flexible": 2
     }
   }
 }

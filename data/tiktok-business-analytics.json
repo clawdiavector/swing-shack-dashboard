@@ -1,0 +1,33 @@
+{
+  "schema": "https://clawdia.io/agents/tiktok-business-analytics/v1",
+  "channel": "tiktok",
+  "updated": "2026-08-20T11:25:44.109608Z",
+  "generated_by": "seed_channel_analytics.py",
+  "data_pending": true,
+  "account": {
+    "id": null,
+    "handle": null,
+    "biography": null,
+    "followers_count": null,
+    "follows_count": null,
+    "media_count": null,
+    "verified": false,
+    "_account_meta_pending": {
+      "reason": "no live API token yet",
+      "what_we_need": "Live tiktok insights / display API token in credentials/ + this channel ID.",
+      "see_also": "scripts/fetch_tiktok_analytics.py — fetcher scaffold + endpoint pointers"
+    }
+  },
+  "daily_reach": [],
+  "media": [],
+  "top_post": {
+    "permalink": null
+  },
+  "window_totals": {
+    "video_views_30d": null,
+    "profile_views_30d": null,
+    "likes_30d": null,
+    "followers_gained_30d": null
+  },
+  "_pending_reason": "no TikTok Business API token yet; see scripts/fetch_tiktok_analytics.py"
+}

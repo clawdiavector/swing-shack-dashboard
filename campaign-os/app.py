@@ -59,6 +59,14 @@ PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/
 PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
 
 
+
+# v2026-08-13: weekly-report export with a valid ?share=<token> query
+# param is auth-optional. Letting the export route run without auth
+# means the route itself enforces the share-token gate (which is
+# stricter than the session cookie. it's scope-bound + time-limited).
+PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
+
+
 # ── Client-side log collector ────────────────────────────────────────
 @app.route('/api/admin/client-log', methods=['POST'])
 def admin_client_log():
@@ -1028,6 +1036,7 @@ def health_v2():
         "cron_leader": leader.get("leader"),
         "cron_heartbeat_fresh": bool(hb.get("last_tick_at")),
     }), 200
+
 
 
 
@@ -5680,6 +5689,7 @@ def feedback_import_ig():
         from _lib.feedback_loop import (
             add_record, load_performance, save_performance,
             compute_learned_signals, save_learned_signals, load_learned_signals,
+            update_record_by_key,
         )
         from _lib.meta_api import OPERATING_BRANDS
         # reference_dna is optional — only used for dna_snapshot lookup.
@@ -5720,6 +5730,7 @@ def feedback_import_ig():
 
         imported = 0
         skipped_duplicate = 0
+        refreshed = 0
         errors: list[str] = []
         new_records_added: list[dict] = []
         for r in records_in:
@@ -5740,9 +5751,32 @@ def feedback_import_ig():
                     )
                     continue
 
-                # Dedup key — image_id + platform_post_id
+                # Dedup key — image_id + platform_post_id.
+                # On a match, refresh the existing record's signal +
+                # score (IG metrics are time-varying) instead of
+                # silently dropping the re-ingestion. (432f30d intent)
                 if (image_id, post_id or "") in existing_keys:
-                    skipped_duplicate += 1
+                    nested_sig = r.get('captured_signal') or {}
+                    refresh_signal = nested_sig if isinstance(nested_sig, dict) and nested_sig else r
+                    allowed = ('impressions', 'likes', 'comments', 'saves', 'reach',
+                               'shares', 'link_clicks', 'ga_sessions',
+                               'ga_conversions', 'gmb_calls', 'bookings',
+                               'video_views', 'total_interactions', 'follows',
+                               'profile_visits', 'profile_activity',
+                               'ig_reels_avg_watch_time',
+                               'ig_reels_video_view_total_time',
+                               'engagement_rate')
+                    refresh_signal = {k: v for k, v in refresh_signal.items() if k in allowed}
+                    updated = update_record_by_key(
+                        brand,
+                        image_id=image_id,
+                        platform_post_id=post_id,
+                        captured_signal=refresh_signal,
+                    )
+                    if updated is not None:
+                        refreshed += 1
+                    else:
+                        skipped_duplicate += 1
                     continue
 
                 # Build the signal dict. Either the record carries a

@@ -1,0 +1,30 @@
+name: GBP Daily cron tick (06:00 SAST)
+
+on:
+  schedule:
+    # 04:00 UTC = 06:00 SAST. GitHub Actions cron uses UTC.
+    - cron: '0 4 * * *'
+  workflow_dispatch:  # manual trigger for testing
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/gbp/cron/tick on Railway
+        env:
+          CAMPAIGN_OS_AUTH: ${{ secrets.CAMPAIGN_OS_AUTH }}
+        run: |
+          set -e
+          # Get the session cookie via the password login.
+          COOKIE_JAR=$(mktemp)
+          trap "rm -f $COOKIE_JAR" EXIT
+          curl -s -c "$COOKIE_JAR" -X POST "https://swing-shack-dashboard-production.up.railway.app/login" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "password=$CAMPAIGN_OS_AUTH" \
+            -o /dev/null
+          # Fire the cron tick.
+          curl -s -b "$COOKIE_JAR" -X POST "https://swing-shack-dashboard-production.up.railway.app/api/gbp/cron/tick" \
+            -H "Content-Type: application/json" \
+            | tee /tmp/cron-tick.json
+          echo
+          echo "Cron tick fired. Output above."

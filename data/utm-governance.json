@@ -1,8 +1,8 @@
 {
   "schema": "https://clawdia.io/agents/utm-governor/v1",
-  "generated": "2026-04-23T11:35:20.923Z",
+  "generated": "2026-08-13T11:14:43.479Z",
   "summary": {
-    "total_posts": 20,
+    "total_posts": 10,
     "currently_compliant": 0,
     "needs_tagging": 10,
     "compliance_rate": "0%",
@@ -61,61 +61,61 @@
   },
   "posts_needing_utm": [
     {
-      "post_id": "18084979034373300",
+      "post_id": "18098215292347008",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18119221723645535",
+      "post_id": "17980153908061122",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18083236283620848",
+      "post_id": "18241808092308155",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18004103141731768",
+      "post_id": "18360953572213385",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18089100032462336",
+      "post_id": "17935510203346465",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18078655349442093",
+      "post_id": "18083616452674797",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "17973083486868104",
+      "post_id": "17866901091651089",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18073928609224626",
+      "post_id": "18024027806681782",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "17959293114110307",
+      "post_id": "18335254792283425",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"
     },
     {
-      "post_id": "18110075536631986",
+      "post_id": "18032418161824737",
       "hook": "",
       "service": "unknown",
       "full_url": "https://swingshack.co.za/?utm_source=instagram&utm_medium=social&utm_campaign=general&utm_content=h0"

@@ -1,103 +1,94 @@
 {
-  "updated": "2026-04-22T06:31:02.569Z",
-  "fetched_at": "2026-04-22T06:31:02.569Z",
+  "updated": "2026-08-13T11:18:53.950Z",
+  "fetched_at": "2026-08-13T11:18:53.950Z",
   "property_id": "427380680",
-  "data_window": "2026-04-15 to 2026-04-22",
-  "total_sessions": 1071,
+  "data_window": "2026-08-06 to 2026-08-13",
+  "total_sessions": 880,
   "pages": [
     {
       "path": "/",
-      "sessions": 281,
-      "engRate": "73.7%"
+      "sessions": 370,
+      "engRate": "65.9%"
     },
     {
       "path": "/bookings/",
-      "sessions": 179,
-      "engRate": "73.2%"
-    },
-    {
-      "path": "/",
-      "sessions": 95,
-      "engRate": "32.6%"
+      "sessions": 211,
+      "engRate": "76.8%"
     },
     {
       "path": "/customer-portal/",
-      "sessions": 61,
-      "engRate": "41.0%"
+      "sessions": 92,
+      "engRate": "75.0%"
     },
     {
-      "path": "/customer-portal/",
-      "sessions": 55,
-      "engRate": "69.1%"
-    },
-    {
-      "path": "/customer-portal/",
-      "sessions": 40,
-      "engRate": "60.0%"
-    },
-    {
-      "path": "/",
-      "sessions": 32,
-      "engRate": "65.6%"
+      "path": "/takomo-irons-south-africa-are-they-actually-worth-it/",
+      "sessions": 72,
+      "engRate": "54.2%"
     },
     {
       "path": "/club-fitting/",
-      "sessions": 32,
-      "engRate": "90.6%"
+      "sessions": 67,
+      "engRate": "88.1%"
     },
     {
-      "path": "/checkout/",
-      "sessions": 25,
-      "engRate": "92.0%"
+      "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
+      "sessions": 13,
+      "engRate": "69.2%"
     },
     {
-      "path": "/bookings/",
-      "sessions": 22,
-      "engRate": "72.7%"
+      "path": "/philosophy/",
+      "sessions": 12,
+      "engRate": "91.7%"
+    },
+    {
+      "path": "/vice-golf-balls-south-africa-which-one-should-you-play/",
+      "sessions": 10,
+      "engRate": "60.0%"
+    },
+    {
+      "path": "/404.html",
+      "sessions": 9,
+      "engRate": "66.7%"
+    },
+    {
+      "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "sessions": 7,
+      "engRate": "85.7%"
     }
   ],
   "sources": [
     {
       "source": "google",
-      "sessions": 638
+      "sessions": 541
     },
     {
       "source": "(direct)",
-      "sessions": 225
+      "sessions": 144
     },
     {
-      "source": "c.yoco.com",
-      "sessions": 98
+      "source": "clublab.app",
+      "sessions": 111
     },
     {
       "source": "(not set)",
-      "sessions": 53
+      "sessions": 19
     },
     {
-      "source": "bing",
-      "sessions": 29
+      "source": "instagram",
+      "sessions": 10
     }
   ],
   "insights": {
     "recommendations": [
       {
-        "type": "weak_cta",
-        "priority": "high",
-        "message": "2 pages with high traffic but <50% engagement. Review CTA placement.",
-        "pages": [
-          "/",
-          "/customer-portal/"
-        ]
-      },
-      {
         "type": "organic_opportunity",
         "priority": "medium",
-        "message": "638 organic sessions. Ensure these pages have clear booking CTAs."
+        "message": "541 organic sessions. Ensure these pages have clear booking CTAs."
       }
     ]
   },
   "top_pages_count": 10,
-  "insights_count": 2,
+  "insights_count": 1,
   "_stale": false,
   "_auth_worked": true
 }

@@ -1,9 +1,9 @@
 {
   "schema": "https://clawdia.io/agents/trust-optimizer/v1",
-  "generated": "2026-04-23T09:45:45.373Z",
+  "generated": "2026-08-13T11:14:42.708Z",
   "current_trust": 7.2,
   "summary": {
-    "trust_drag": 0.33,
+    "trust_drag": 0.28,
     "gap_to_limited": 0.8,
     "gap_to_live": 1.8,
     "days_to_limited": 8,
@@ -13,8 +13,8 @@
   "gaps": [
     {
       "issue": "Low run success rate",
-      "rate": "77%",
-      "impact": -0.13076923076923075,
+      "rate": "82%",
+      "impact": -0.08000000000000007,
       "fix": "Fix flaky agents — stability_engine will identify",
       "priority": 1
     },
@@ -28,8 +28,8 @@
   ],
   "quick_wins": [],
   "data_freshness": {
-    "ga4_days_stale": 1,
-    "reddit_days_stale": 1,
-    "ig_days_stale": 0
+    "ga4_days_stale": 0,
+    "reddit_days_stale": 0,
+    "ig_days_stale": 2
   }
 }

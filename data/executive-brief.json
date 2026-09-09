@@ -1,21 +1,21 @@
 {
   "schema": "https://clawdia.io/agents/executive-brief-builder/v1",
-  "generated": "2026-04-22T10:33:26.848Z",
+  "generated": "2026-08-13T11:14:41.138Z",
   "period": {
-    "from": "2026-04-15",
-    "to": "2026-04-22"
+    "from": "2026-08-06",
+    "to": "2026-08-13"
   },
   "headline": {
-    "published": 0,
-    "win_rate": "0%",
+    "published": 21,
+    "win_rate": "100%",
     "alerts": 0,
-    "owners_overload": 0
+    "owners_overload": 1
   },
   "bullets": [
     {
       "priority": 1,
       "type": "win",
-      "text": "0 items published this week"
+      "text": "21 items published this week"
     },
     {
       "priority": 2,
@@ -30,7 +30,7 @@
     {
       "priority": 4,
       "type": "risk",
-      "text": "Alert: "
+      "text": "Owner overload: clawdia"
     },
     {
       "priority": 5,

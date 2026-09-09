@@ -1,8 +1,8 @@
 {
   "schema": "https://clawdia.io/agents/trend-delta-reporter/v1",
-  "generated": "2026-04-22T10:33:26.929Z",
-  "period_from": "2026-04-15",
-  "period_to": "2026-04-22",
+  "generated": "2026-08-13T11:14:41.227Z",
+  "period_from": "2026-08-06",
+  "period_to": "2026-08-13",
   "summary": {
     "hook_patterns_rising": [],
     "cta_pattern_rising": null,
@@ -19,12 +19,19 @@
     "instagram": {
       "avg_engagement": 0,
       "engagement_delta_pct": 0,
-      "posts_this_week": 0,
-      "posts_delta_pct": 0,
+      "posts_this_week": 21,
+      "posts_delta_pct": 100,
       "booking_intent_pct": 0
     }
   },
-  "content_format_shift": [],
+  "content_format_shift": [
+    {
+      "format": "static",
+      "current": 21,
+      "previous": 0,
+      "delta": 21
+    }
+  ],
   "reddit_trends": {
     "active_topics": [],
     "total_this_week": 0,
@@ -34,7 +41,7 @@
     "top_queries": []
   },
   "week_over_week": {
-    "published_delta": "0%",
+    "published_delta": "100%",
     "engagement_delta": "0%"
   }
 }

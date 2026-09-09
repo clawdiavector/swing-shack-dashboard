@@ -1,17 +1,17 @@
 {
-  "updated": "2026-04-22T06:31:14.331Z",
+  "updated": "2026-08-13T11:14:38.687Z",
   "generated": "generate_sales_priority.js",
-  "this_week": "April 22",
+  "this_week": "August 13",
   "priorities": [
     {
       "service": "club_fitting",
       "label": "Club Fitting",
-      "score": 7.4,
-      "priority_level": "high",
-      "confidence": 6,
-      "confidence_band": "medium",
+      "score": 4.6,
+      "priority_level": "medium",
+      "confidence": 3.3,
+      "confidence_band": "low",
       "signals": {
-        "ig": 8,
+        "ig": 0,
         "ga4": 10,
         "reddit": 0,
         "youtube": 0,
@@ -20,16 +20,11 @@
       },
       "supporting_signals": [
         {
-          "signal": "instagram",
-          "strength": 8
-        },
-        {
           "signal": "website_traffic",
           "strength": 10
         }
       ],
       "reasons": [
-        "Strong IG engagement (8)",
         "High website traffic (10)"
       ],
       "recommended_cta": "Book your fit · swingshack.co.za/membership"
@@ -37,13 +32,13 @@
     {
       "service": "lessons",
       "label": "Golf Lessons",
-      "score": 4.8,
-      "priority_level": "medium",
-      "confidence": 2.7,
-      "confidence_band": "low",
+      "score": 1.7,
+      "priority_level": "low",
+      "confidence": 0.5,
+      "confidence_band": "unsubstantiated",
       "signals": {
-        "ig": 8,
-        "ga4": 0,
+        "ig": 0,
+        "ga4": 1.4,
         "reddit": 0,
         "youtube": 0,
         "news": 0,
@@ -51,16 +46,11 @@
       },
       "supporting_signals": [
         {
-          "signal": "instagram",
-          "strength": 8
-        },
-        {
           "signal": "seasonality",
           "strength": 7
         }
       ],
       "reasons": [
-        "Strong IG engagement (8)",
         "Seasonal boost (7)"
       ],
       "recommended_cta": "Book a lesson · swingshack.co.za/membership"
@@ -68,12 +58,12 @@
     {
       "service": "simulator_sessions",
       "label": "Simulator Sessions",
-      "score": 4.4,
-      "priority_level": "medium",
-      "confidence": 2.3,
-      "confidence_band": "low",
+      "score": 1.1,
+      "priority_level": "low",
+      "confidence": 0,
+      "confidence_band": "unsubstantiated",
       "signals": {
-        "ig": 6.8,
+        "ig": 0,
         "ga4": 0,
         "reddit": 0,
         "youtube": 0,
@@ -81,10 +71,6 @@
         "seasonal": 8
       },
       "supporting_signals": [
-        {
-          "signal": "instagram",
-          "strength": 6.8
-        },
         {
           "signal": "seasonality",
           "strength": 8
@@ -136,8 +122,8 @@
   ],
   "meta": {
     "top_service": "Club Fitting",
-    "top_score": 7.4,
+    "top_score": 4.6,
     "runner_up": "Golf Lessons",
-    "season_note": "Standard week — balance lessons + fittings"
+    "season_note": "Standard week · balance lessons + fittings"
   }
 }

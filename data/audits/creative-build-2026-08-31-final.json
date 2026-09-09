@@ -1,0 +1,56 @@
+{
+  "phase": "A-H \u2014 COMPLETE",
+  "completed": true,
+  "completed_phases": {
+    "A_audit": true,
+    "B_keep_fix_extend_remove_missing": true,
+    "C_p0_fixes": [
+      "Krea as primary provider",
+      "stick visual-dna-index built",
+      "visual library routes wired"
+    ],
+    "D_prompt_compiler": true,
+    "E_model_router": true,
+    "F_deterministic_overlay": true,
+    "G_feedback_lineage": true,
+    "H_brand_tests": true
+  },
+  "live_test_evidence": {
+    "test_1_stick_takomo": {
+      "job_id": "f8b01691-ea6b-4f85-bc19-41bb02f43545",
+      "model": "ideogram/ideogram-3",
+      "image_saved": "/data/campaign-os/stick/images/overlay/1788160972.png",
+      "verdict": "approved"
+    },
+    "test_2_swing_shack_fitting": {
+      "job_id": "3573e0c7-65e8-491e-95f3-db6e72f75c95",
+      "model": "bfl/flux-1.1-pro",
+      "verdict": "approved"
+    },
+    "test_3_bag_drop": {
+      "job_id": "eac1a440-3794-4898-8675-6a0220",
+      "model": "bfl/flux-1.1-pro-ultra",
+      "verdict": "approved"
+    }
+  },
+  "routing_decision_matrix": {
+    "text_to_image_with_reference_and_product": "bfl/flux-1.1-pro-ultra (verified, high-fidelity)",
+    "text_to_image_with_typography": "ideogram/ideogram-3 (verified, typography-strong)",
+    "image_edit_with_input": "bfl/flux-1-kontext-dev (edit-only model)",
+    "video_with_cinematic": "bytedance/seedance-2-5 (verified)",
+    "video_fast_social": "bytedance/seedance-2-fast (verified)"
+  },
+  "known_weaknesses": [
+    "AI models still hallucinate on-brand hero text \u2014 deterministic overlay is the workaround",
+    "Ideogram 3 sometimes interprets 'product hero' as a group scene rather than a single product",
+    "Flux Kontext was incorrectly recommended for text-to-image \u2014 fixed via edit_only penalty",
+    "Many models returned by Krea's list_models are NOT actually callable \u2014 verified flag now penalises them"
+  ],
+  "what_still_needs_work": [
+    "Brand bibles (swing-shack is placeholder, stick/takomo/bag-drop missing)",
+    "Daily web-research execution (queue is built, executor not)",
+    "Real logo.png files for each brand (overlay falls back silently without them)",
+    "Refine loop in the UI (currently a manual re-call)",
+    "Comparison mode (same brief, multiple models side-by-side)"
+  ]
+}

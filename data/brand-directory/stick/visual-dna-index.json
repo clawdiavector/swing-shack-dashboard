@@ -1,0 +1,131 @@
+{
+  "schema_version": "0.1",
+  "directory": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images",
+  "image_count": 10,
+  "framing": "Auto-built from dissector sweep 2026-08-31 (10 stick images). Stick has no bible-visual.json yet, so compliance scores reflect palette/composition heuristics. Run again after stick/bible-visual.json is filled.",
+  "by_filename": {
+    "stick_ballfittingpost.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingpost.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#516a3c",
+      "width": 1081,
+      "height": 1350,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingpost_1.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingpost_1.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#556d3d",
+      "width": 1081,
+      "height": 1351,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingpost_2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingpost_2.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#083a4d",
+      "width": 1081,
+      "height": 1351,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingpost_3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingpost_3.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#546b3b",
+      "width": 1081,
+      "height": 1351,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingpost_4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingpost_4.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#526a3a",
+      "width": 1081,
+      "height": 1351,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingstory copy 2.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingstory copy 2.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#093a4c",
+      "width": 1081,
+      "height": 1921,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingstory copy 3.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingstory copy 3.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#50683b",
+      "width": 1081,
+      "height": 1921,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingstory copy 4.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingstory copy 4.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#4d673c",
+      "width": 1081,
+      "height": 1921,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingstory copy.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingstory copy.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#4d683d",
+      "width": 1081,
+      "height": 1921,
+      "orientation": "portrait"
+    },
+    "stick_ballfittingstory.jpg": {
+      "dna_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/stick/images/stick_ballfittingstory.jpg.visual-dna.json",
+      "score": 0.9,
+      "passes": true,
+      "luminance": "mid",
+      "dominant": "#4e663b",
+      "width": 1081,
+      "height": 1921,
+      "orientation": "portrait"
+    }
+  },
+  "by_alignment": {},
+  "by_dominant_color": {
+    "#516a3c": 1,
+    "#556d3d": 1,
+    "#083a4d": 1,
+    "#546b3b": 1,
+    "#526a3a": 1,
+    "#093a4c": 1,
+    "#50683b": 1,
+    "#4d673c": 1,
+    "#4d683d": 1,
+    "#4e663b": 1
+  },
+  "by_luminance": {
+    "mid": 10
+  },
+  "by_orientation": {
+    "portrait": 10
+  },
+  "by_product": {},
+  "errors": [],
+  "product_taxonomy_version": "1.0",
+  "tagged_count": 10
+}

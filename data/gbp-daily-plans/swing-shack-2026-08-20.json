@@ -1,0 +1,157 @@
+{
+  "ok": true,
+  "brand_id": "swing-shack",
+  "plan_id": "d44ddb85c493",
+  "days": 7,
+  "posts_per_day": 1,
+  "posts": [
+    {
+      "title": "Indoor golf johannesburg \u00b7 open today",
+      "body": "Indoor golf johannesburg \u2014 straight answer from the team at Swing Shack.\n\nOpen 7 days a week \u2014 and we're right here in Randburg, Johannesburg.\n\nWhatsapp us to book \u2192 swingshack.co.za",
+      "hashtags": [
+        "#golf",
+        "#indoor",
+        "#johannesburg",
+        "#swingshack"
+      ],
+      "keyword": "indoor golf johannesburg",
+      "intent": "informational",
+      "cta": "WhatsApp us to book",
+      "proof_point": "Open 7 days a week",
+      "neighborhood": "Randburg"
+    },
+    {
+      "title": "Trackman simulator johannesburg \u00b7 open today",
+      "body": "Trackman simulator johannesburg \u2014 straight answer from the team at Swing Shack.\n\nMembers average 12-shot improvement in their first month \u2014 and we're right here in Randburg, Johannesburg.\n\nWhatsapp us to book \u2192 swingshack.co.za",
+      "hashtags": [
+        "#johannesburg",
+        "#simulator",
+        "#swingshack",
+        "#trackman"
+      ],
+      "keyword": "trackman simulator johannesburg",
+      "intent": "informational",
+      "cta": "WhatsApp us to book",
+      "proof_point": "Members average 12-shot improvement in their first month",
+      "neighborhood": "Randburg"
+    },
+    {
+      "title": "Golf simulator parkview \u00b7 open today",
+      "body": "Golf simulator parkview \u2014 straight answer from the team at Swing Shack.\n\nFree swing analysis on first visit \u2014 and we're right here in Westcliff, Johannesburg.\n\nBook a trackman session \u2192 swingshack.co.za",
+      "hashtags": [
+        "#golf",
+        "#parkview",
+        "#simulator",
+        "#swingshack"
+      ],
+      "keyword": "golf simulator parkview",
+      "intent": "informational",
+      "cta": "Book a TrackMan session",
+      "proof_point": "Free swing analysis on first visit",
+      "neighborhood": "Westcliff"
+    },
+    {
+      "title": "Club fitting johannesburg \u00b7 open today",
+      "body": "Club fitting johannesburg \u2014 straight answer from the team at Swing Shack.\n\nMembers average 12-shot improvement in their first month \u2014 and we're right here in Linden, Johannesburg.\n\nWhatsapp us to book \u2192 swingshack.co.za",
+      "hashtags": [
+        "#club",
+        "#fitting",
+        "#johannesburg",
+        "#swingshack"
+      ],
+      "keyword": "club fitting johannesburg",
+      "intent": "informational",
+      "cta": "WhatsApp us to book",
+      "proof_point": "Members average 12-shot improvement in their first month",
+      "neighborhood": "Linden"
+    },
+    {
+      "title": "Golf lessons johannesburg \u00b7 open today",
+      "body": "Golf lessons johannesburg \u2014 straight answer from the team at Swing Shack.\n\nTrackman data in every bay \u2014 and we're right here in Linden, Johannesburg.\n\nBook a trackman session \u2192 swingshack.co.za",
+      "hashtags": [
+        "#golf",
+        "#johannesburg",
+        "#lessons",
+        "#swingshack"
+      ],
+      "keyword": "golf lessons johannesburg",
+      "intent": "informational",
+      "cta": "Book a TrackMan session",
+      "proof_point": "TrackMan data in every bay",
+      "neighborhood": "Linden"
+    },
+    {
+      "title": "Takomo fitting south africa \u00b7 open today",
+      "body": "Takomo fitting south africa \u2014 straight answer from the team at Swing Shack.\n\nFree swing analysis on first visit \u2014 and we're right here in Randburg, Johannesburg.\n\nBook a trackman session \u2192 swingshack.co.za",
+      "hashtags": [
+        "#africa",
+        "#fitting",
+        "#south",
+        "#swingshack",
+        "#takomo"
+      ],
+      "keyword": "takomo fitting south africa",
+      "intent": "informational",
+      "cta": "Book a TrackMan session",
+      "proof_point": "Free swing analysis on first visit",
+      "neighborhood": "Randburg"
+    },
+    {
+      "title": "Indoor golf bay johannesburg \u00b7 open today",
+      "body": "Indoor golf bay johannesburg \u2014 straight answer from the team at Swing Shack.\n\nTrackman data in every bay \u2014 and we're right here in Randburg, Johannesburg.\n\nBook a trackman session \u2192 swingshack.co.za",
+      "hashtags": [
+        "#golf",
+        "#indoor",
+        "#johannesburg",
+        "#swingshack"
+      ],
+      "keyword": "indoor golf bay johannesburg",
+      "intent": "informational",
+      "cta": "Book a TrackMan session",
+      "proof_point": "TrackMan data in every bay",
+      "neighborhood": "Randburg"
+    }
+  ],
+  "schedule": [
+    {
+      "post_index": 0,
+      "scheduled_for": "2026-08-21T09:00:00+00:00",
+      "keyword": "indoor golf johannesburg"
+    },
+    {
+      "post_index": 1,
+      "scheduled_for": "2026-08-22T15:00:00+00:00",
+      "keyword": "trackman simulator johannesburg"
+    },
+    {
+      "post_index": 2,
+      "scheduled_for": "2026-08-23T09:00:00+00:00",
+      "keyword": "golf simulator parkview"
+    },
+    {
+      "post_index": 3,
+      "scheduled_for": "2026-08-24T15:00:00+00:00",
+      "keyword": "club fitting johannesburg"
+    },
+    {
+      "post_index": 4,
+      "scheduled_for": "2026-08-25T09:00:00+00:00",
+      "keyword": "golf lessons johannesburg"
+    },
+    {
+      "post_index": 5,
+      "scheduled_for": "2026-08-26T15:00:00+00:00",
+      "keyword": "takomo fitting south africa"
+    },
+    {
+      "post_index": 6,
+      "scheduled_for": "2026-08-27T09:00:00+00:00",
+      "keyword": "indoor golf bay johannesburg"
+    }
+  ],
+  "source_breakdown": {
+    "ubersuggest": 0,
+    "fallback": 20
+  },
+  "generated_at": "2026-08-20T09:45:04.631135+00:00"
+}

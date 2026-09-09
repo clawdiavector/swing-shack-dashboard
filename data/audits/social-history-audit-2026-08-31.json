@@ -1,0 +1,120 @@
+{
+  "phase": "I-A \u2014 AUDIT of existing Meta/social ingestion",
+  "completed_at": "2026-08-31",
+  "findings": {
+    "fetchers_exist": {
+      "ig_business": "scripts/fetch_ig_business.py (25.6 KB)",
+      "fb_page": "scripts/fetch_facebook_page.py (11.2 KB)",
+      "tiktok": "scripts/fetch_tiktok_analytics.py (4.4 KB) \u2014 exists",
+      "x": "scripts/fetch_x_analytics.py (4.8 KB) \u2014 exists",
+      "windsor": "scripts/fetch_windsir.py \u2014 exists",
+      "ga4_attribution": "scripts/fetch_ga4_attribution.py (14.8 KB) \u2014 conversion attribution"
+    },
+    "ig_business_data_file": "data/ig-business-analytics.json (6.5 KB)",
+    "fb_page_data_file": "data/fb-page-analytics.json (23.3 KB)",
+    "ig_fields_stored_per_post": [
+      "id",
+      "caption_preview (truncated 160 chars)",
+      "media_type",
+      "permalink",
+      "timestamp",
+      "metrics (reach/comments/likes/saved/shares/total_interactions)",
+      "engagement_rate_pct",
+      "hook_id",
+      "insights_errors"
+    ],
+    "fb_fields_stored_per_post": [
+      "id",
+      "message_preview (truncated)",
+      "permalink",
+      "timestamp",
+      "status_type",
+      "reactions_total",
+      "reactions_breakdown",
+      "shares",
+      "clicks",
+      "metrics (per-post reactions + clicks)"
+    ],
+    "missing_critical_fields": {
+      "ig": [
+        "media_url / thumbnail_url \u2014 NOT REQUESTED from Graph API",
+        "caption_full \u2014 only caption_preview (160 chars) stored",
+        "hashtags \u2014 NOT extracted",
+        "linked_url \u2014 NOT extracted",
+        "media dimensions / aspect ratio \u2014 NOT stored"
+      ],
+      "fb": [
+        "full_picture \u2014 REQUESTED but NOT stored in sidecar",
+        "message_full \u2014 only message_preview (truncated) stored",
+        "hashtags \u2014 NOT extracted",
+        "linked_url \u2014 NOT extracted",
+        "campaign / property classification \u2014 not derivable"
+      ]
+    },
+    "what_works": [
+      "IG fetcher lists media since/until timestamp window",
+      "FB fetcher lists page posts with metrics",
+      "Performance metrics (reach, engagement_rate, reactions, clicks) are captured",
+      "Timestamps + permalinks are stored",
+      "Hook IDs generated from caption first line (deduplication key)"
+    ],
+    "what_doesnt_work": [
+      "No media URL stored \u2192 cannot display post thumbnails in creative reference library",
+      "No full caption \u2192 cannot extract copy patterns or recurring phrases",
+      "No hashtags \u2192 cannot search by hashtag or brand campaign",
+      "No brand classification (curated/published/strong/old system/campaign) \u2014 these are creative-intelligence concepts that don't exist in the data model",
+      "No creative search by brand voice / pattern / colour",
+      "Performance not linked to specific posts in the lineage graph",
+      "No 'use as reference' / 'strong brand example' / 'do not learn' classifications"
+    ],
+    "what_to_extend_not_rebuild": [
+      "Add media_url + thumbnail_url to IG fetcher fields param",
+      "Add full_picture + message_full + hashtags to FB fetcher output",
+      "Build a brand-directory/social-history.json that stores the extended post records",
+      "Add creative-classification (curated/published/strong/old_system/campaign/high_performing/low_performing/rejected) per asset",
+      "Add ingestion endpoint that triggers the fetcher + downloads thumbnails",
+      "Add /api/creative/search that searches both curated + social posts",
+      "Add /api/social/posts/<platform>/<post_id>/classify endpoint to mark a post as STRONG / DO NOT LEARN / etc."
+    ],
+    "platforms_to_ingest": {
+      "swing-shack": [
+        "instagram",
+        "facebook"
+      ],
+      "stick": [
+        "instagram",
+        "facebook"
+      ],
+      "bag-drop": [
+        "instagram",
+        "facebook"
+      ],
+      "tiktok": "available if needed (already have fetcher)",
+      "x_twitter": "available if needed (already have fetcher)"
+    },
+    "key_decisions_to_ask_christelle": [
+      "Stick doesn't have IG/FB accounts configured \u2014 only Takomo appears as a brand in brand-directory/stick. Confirm which IG/FB account IDs are canonical.",
+      "Bag Drop doesn't have IG/FB accounts configured in scripts/fetch_*.py \u2014 need the FB Page ID + IG Business ID.",
+      "Should the social history be ingested continuously (cron) or only on-demand?",
+      "Where should downloaded thumbnails live? data/brand-directory/<brand>/social/<platform>/<post_id>.<ext>?",
+      "Should 'do not learn' classifications automatically exclude the post from creative_director.compose_prompt's reference_dna search? (recommended: yes)"
+    ]
+  },
+  "plan": {
+    "phase_I-A_audit": "COMPLETE",
+    "phase_I-B_extend_fetchers": [
+      "Extend IG fetcher: add media_url + thumbnail_url + caption_full + hashtags + linked_url to fields",
+      "Extend FB fetcher: store full_picture + message_full + hashtags + linked_url",
+      "Add fetch_social_history.py \u2014 downloads thumbnails + builds social-history.json",
+      "Add /api/social/ingest endpoint to trigger ingestion"
+    ],
+    "phase_I-C_classification": [
+      "Add classification taxonomy to brand-directory/<brand>/social/asset-classifications.json",
+      "Add /api/social/classify endpoint (USE_AS_REFERENCE / STRONG / OLD_SYSTEM / DO_NOT_LEARN)",
+      "Add /api/creative/search that searches BOTH curated AND published with brand weighting"
+    ],
+    "phase_I-D_run_test": [
+      "Test 11: Stick/Takomo reference + published history search \u2192 visual patterns \u2192 generate"
+    ]
+  }
+}

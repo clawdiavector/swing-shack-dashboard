@@ -1,11 +1,11 @@
 {
   "schema": "https://clawdia.io/agents/tracking-break-detector/v1",
-  "generated": "2026-04-23T12:02:54.364Z",
+  "generated": "2026-08-13T11:14:43.776Z",
   "breaks": [
     {
       "type": "MISSING_UTM",
       "severity": "HIGH",
-      "count": 69,
+      "count": 10,
       "example": "",
       "impact": "Post-to-session chain is broken. Sessions from these posts are untrackable.",
       "fix": "Add UTM parameters with hook_id to all posts. Retro-tag existing posts.",
@@ -14,7 +14,7 @@
     {
       "type": "MISSING_HOOK_ID",
       "severity": "HIGH",
-      "count": 69,
+      "count": 10,
       "example": "",
       "impact": "Cannot link post to session. A/B testing impossible without hook-level attribution.",
       "fix": "Add hook_id to utm_content param in all post links.",
@@ -23,7 +23,7 @@
     {
       "type": "MISSING_RECOMMENDATION_ID",
       "severity": "MEDIUM",
-      "count": 69,
+      "count": 10,
       "example": "",
       "impact": "Cannot link post to marketing decision. Recommendation quality cannot be measured.",
       "fix": "Add recommendation_id to post metadata in Postiz.",
@@ -43,7 +43,7 @@
       "type": "BROKEN_SOURCE_CHAIN",
       "severity": "MEDIUM",
       "count": 1,
-      "example": "53 sessions with no source",
+      "example": "19 sessions with no source",
       "impact": "Sessions come from somewhere but cannot be attributed. Unknown traffic = wasted budget.",
       "fix": "Ensure all traffic sources are properly tagged with UTM parameters.",
       "automated_fix_possible": false
@@ -62,7 +62,7 @@
       "type": "META_TOKEN_EXPIRED",
       "severity": "HIGH",
       "count": 1,
-      "example": "Meta token 649h old — likely invalid",
+      "example": "Meta token 1054h old — likely invalid",
       "impact": "Meta Ads API calls will fail. Budget shifts cannot execute.",
       "fix": "Reconnect Meta OAuth — generate new token via Meta Developer Console.",
       "automated_fix_possible": false,

@@ -12,7 +12,13 @@ const DEST = '/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashbo
 function run() {
   try {
     const data = JSON.parse(fs.readFileSync(SOURCE, 'utf8'));
-    const posts = (data.posts || []).map(p => {
+    // Shape-tolerant: source may use either `posts: [...]` (old) or `recentPosts: [...]` (new IG API).
+    // If `posts` is an int/count, fall through to recentPosts.
+    const rawPosts = Array.isArray(data.posts) ? data.posts
+                   : Array.isArray(data.recentPosts) ? data.recentPosts
+                   : Array.isArray(data.media) ? data.media
+                   : [];
+    const posts = rawPosts.map(p => {
       const caption = p.caption || '';
       const hook = caption.split('\n')[0] || caption.substring(0, 80) || 'unknown';
       return {
@@ -22,7 +28,9 @@ function run() {
         captionPreview: caption.substring(0, 80),
         hook_text: hook.substring(0, 80),
         hook_id: hook.toLowerCase().replace(/[^a-z0-9]/g, '-').substring(0, 50),
-        format_type: caption.match(/carousel/i) ? 'carousel' : caption.match(/reel|video/i) ? 'reel' : 'static',
+        format_type: (p.mediaType === 'VIDEO' || /reel|video/i.test(caption)) ? 'reel'
+                     : /carousel/i.test(caption) ? 'carousel'
+                     : 'static',
         topic_cluster: caption.match(/fitting|clubs|equipment/i) ? 'equipment' :
                        caption.match(/slice|hook|swing|technique/i) ? 'technique' :
                        caption.match(/coach|lesson/i) ? 'coaching' :

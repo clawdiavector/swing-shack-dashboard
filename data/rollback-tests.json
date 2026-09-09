@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/rollback-simulator/v1",
-  "generated": "2026-04-23T09:28:42.603Z",
+  "generated": "2026-08-13T11:14:42.879Z",
   "scenarios": [
     {
       "scenario_id": "bad_publish",
@@ -61,7 +61,7 @@
     "total": 6,
     "passed": 6,
     "failed": 0,
-    "drill_date": "2026-04-23T09:28:42.603Z",
+    "drill_date": "2026-08-13T11:14:42.879Z",
     "next_drill": "In 7 days — add real outcome tracking"
   },
   "recommendations": [

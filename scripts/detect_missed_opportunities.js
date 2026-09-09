@@ -43,9 +43,9 @@ winners.forEach(w => {
       topic:        w.youtube_topic_match?.[0] || 'unknown',
       ig_score:     w.ig_proof_score,
       owner:        'Coach Cat',
-      suggested_fix:`Rework the "${w.youtube_topic_match?.[0]}" hook into a follow-up Reel this week — IG proof ${w.ig_proof_score}.`,
+      suggested_fix:`Rework the "${w.youtube_topic_match?.[0]}" hook into a follow-up Reel this week · IG proof ${w.ig_proof_score}.`,
       suggestion:   `Hook scored ${w.ig_proof_score} on IG. No follow-up posts found for "${w.youtube_topic_match?.[0]}". Push this angle.`,
-      why:          `IG proof: ${w.ig_proof_score} — strong performer with no refresh`,
+      why:          `IG proof: ${w.ig_proof_score} · strong performer with no refresh`,
     });
   }
 });
@@ -68,7 +68,7 @@ ga4Pages.slice(0, 10).forEach(p => {
       page:         p.path || '/',
       sessions,
       owner:        pageOwner,
-      suggested_fix:`Create IG content targeting "${p.path}" — ${sessions} sessions with no social link.`,
+      suggested_fix:`Create IG content targeting "${p.path}" · ${sessions} sessions with no social link.`,
       suggestion:   `Page "${p.path}" gets ${sessions} sessions but no IG post links to it. Create content.`,
       why:          `${sessions} sessions with no social presence`,
     });
@@ -93,7 +93,7 @@ rdTrends.filter(t => (t.score || 0) >= 30).forEach(t => {
       owner:        'Swing Shack page',
       suggested_fix:`Spin r/${t.subreddit} conversation "${t.title}" into an IG post angle this week.`,
       suggestion:   `r/${t.subreddit} is discussing "${t.title}". IG hasn't covered this.`,
-      why:          `Reddit score: ${t.score} — community pain point uncovered`,
+      why:          `Reddit score: ${t.score} · community pain point uncovered`,
     });
   }
 });
@@ -121,7 +121,7 @@ Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
       yt_video_count: ytMatch.length,
       yt_examples:     ytMatch.slice(0, 2).map(v => v.title),
       owner:          'Swing Shack page',
-      suggested_fix:  `Create IG post on "${svc}" — YouTube has ${ytMatch.length} trending videos.`,
+      suggested_fix:  `Create IG post on "${svc}" · YouTube has ${ytMatch.length} trending videos.`,
       suggestion:     `YouTube has ${ytMatch.length} videos on "${svc}" but IG hasn't covered it.`,
       why:             `${ytMatch.length} YouTube videos trending on this topic`,
     });
@@ -142,7 +142,7 @@ Object.entries(ytSvcMap).forEach(([svc, kwArr]) => {
       rank:         kw.current_rank || '?',
       delta:        kw.delta || kw.delta_7d || 0,
       owner:        'Swing Shack page',
-      suggested_fix:`Write and schedule IG post targeting "${keyword}" — SEO rank rising.` ,
+      suggested_fix:`Write and schedule IG post targeting "${keyword}" · SEO rank rising.` ,
       suggestion:   `"${kw.keyword || kw.term}" is rising in SEO but no IG post covers it.`,
       why:          `Rank: ${kw.current_rank || '?'}, Delta: +${kw.delta || kw.delta_7d || 0}`,
     });

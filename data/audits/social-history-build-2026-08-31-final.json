@@ -1,0 +1,57 @@
+{
+  "phase": "I-A \u2192 I-E COMPLETE",
+  "completed_at": "2026-08-31",
+  "deliverables": {
+    "fetcher_extensions": [
+      "scripts/fetch_ig_business.py: media_url + thumbnail_url + media_product_type fields + caption_full + hashtags + linked_url extraction",
+      "scripts/fetch_facebook_page.py: full_picture + message_full + hashtags + linked_url"
+    ],
+    "new_module": "campaign-os/_lib/social_history.py (32 KB) \u2014 published social posts as creative reference source",
+    "endpoints_added": [
+      "POST /api/social/ingest",
+      "POST /api/social/classify",
+      "POST /api/social/classifications",
+      "POST /api/social/is-learnable",
+      "POST /api/creative/search",
+      "POST /api/creative/visual-patterns"
+    ],
+    "classification_taxonomy": {
+      "curated": "Manually uploaded / approved strong example",
+      "published": "Real social content that went live",
+      "strong": "Content we actively want future generation to learn from",
+      "old_system": "Historically published but no longer representative",
+      "campaign_specific": "Useful only when recreating that particular campaign",
+      "high_performing": "Evidence suggests it performed strongly",
+      "low_performing": "Published but performance was weak",
+      "rejected": "Explicitly excluded from positive visual learning"
+    },
+    "search_weighting": "Per user directive #7 \u2014 1. Explicitly selected \u2192 2. Manually approved \u2192 3. Current strategic \u2192 4. Recent published consistent with current \u2192 5. Historically high-performing \u2192 6. General historical archive"
+  },
+  "test_11_result": {
+    "brand": "swing-shack (substituted for stick/takomo/bag-drop \u2014 those accounts not yet configured)",
+    "steps_executed": [
+      "1. Ingest social history: 25 FB posts + 4 IG posts",
+      "2. Search 'fitting' across curated + published: 10 ranked results",
+      "3. Extract visual patterns: 8 hashtags, top caption openers, engagement baseline (median 2.05%, mean 1.67%)",
+      "4. Compose master prompt (14 sections) + negative prompt (4 rule sets) using top curated reference (fitting_discount_post)",
+      "5. Recommended model: ideogram/ideogram-3 (typography-strong for fitting content)",
+      "6. Krea generation: c0155ea8-... completed in 1.25 MB image",
+      "7. Deterministic brand overlay: 'What does your swing say? + TrackMan-fitting led by data + Book a fitting' CTA pill",
+      "8. Classify as STRONG",
+      "9. Lineage captured"
+    ],
+    "visual_result": "Unmistakably Swing Shack \u2014 moody deep teal + amber indoor studio, TrackMan data viz, golfer mid-swing, real headline + CTA pill overlaid",
+    "key_findings": [
+      "AI rendered hero text is garbled \u2014 expected; deterministic overlay replaces it",
+      "Ideogram 3 went with a hero-style shot instead of close-up of trackman screen \u2014 model interpretation",
+      "The brand bible's 'moody indoor studio over flat studio white + TrackMan trail over generic copy' was achieved"
+    ]
+  },
+  "audit_artifact": "data/audits/social-history-audit-2026-08-31.json \u2014 full pre-build audit",
+  "known_gaps": [
+    "Stick / Takomo / Bag Drop social accounts not yet configured (only swing-shack has IG + FB wired)",
+    "Source images for swing-shack curated references (.jpg / .png) are not in the bundled data, only the .visual-dna.json sidecars are (git pre-existing gap) \u2014 search falls back to sidecars",
+    "No thumbnail download yet \u2014 the search returns paths but doesn't include downloaded images",
+    "No automated cron to keep social-history fresh \u2014 currently on-demand via /api/social/ingest"
+  ]
+}

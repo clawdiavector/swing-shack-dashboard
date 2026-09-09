@@ -1,6 +1,6 @@
 {
   "schema": "https://clawdia.io/agents/whatsapp-template-pack/v1",
-  "generated": "2026-04-23T10:54:50.063Z",
+  "generated": "2026-08-13T11:14:43.307Z",
   "templates": {
     "greeting": "Hi {{name}}, thanks for reaching out to Swing Shack! How can we help?",
     "fitting_interest": "That's great — our Full Bag Fitting with TrackMan is a brilliant place to start. Want to book a session this week?",

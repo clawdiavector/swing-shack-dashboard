@@ -1,0 +1,141 @@
+{
+  "phase": "A \u2014 AUDIT",
+  "completed": true,
+  "findings_summary": {
+    "what_is_built": [
+      "image_gen_router.py (37KB) \u2014 unified image gen router with OpenAI + OpenRouter",
+      "krea_mcp.py (19KB) \u2014 Krea AI MCP client (32 tools, 90 models)",
+      "image_dissector.py (23KB) \u2014 visual DNA extraction (palette, composition, OCR, recipe)",
+      "brand_dna.py (19KB) \u2014 BrandContext loader + prompt + negative builder",
+      "reference_dna.py (22KB) \u2014 visual reference library + similarity",
+      "visual_dna_query.py (17KB) \u2014 search/tag/find similar across the library",
+      "brand_directory.py (8KB) \u2014 canonical brand loader (gates + readiness)",
+      "brand_brief_intel.py (31KB) \u2014 real-data brand intel feed",
+      "product_service_library.py (20KB) \u2014 products + services with prompt fragments",
+      "feedback_loop.py (19KB) \u2014 performance tracking + learned signals",
+      "meme_templates.py (11KB) \u2014 meme template catalog",
+      "image-lab.html (55KB) \u2014 generator UI",
+      "visualizer.html (79KB) \u2014 visual library + recipe explorer",
+      "image-portal.html (8KB) \u2014 image keys admin page"
+    ],
+    "what_actually_works": [
+      "Krea image gen works end-to-end (live test 2026-08-31: bfl/flux-1.1-pro \u2192 1024\u00d71024 PNG, 7.5s)",
+      "Krea model registry: 90 models cached across 4 categories (image/video/enhance/3d)",
+      "Krea prompt-guide + schema caching works (90 guides cached)",
+      "Brand-directory index returns all 3 brands (swing-shack, stick, bag-drop)",
+      "Brand-readiness gates work (stick=ready, swing-shack=placeholder)",
+      "Brand DNA system returns palette + archetypes for all brands",
+      "Visual library stats: swing-shack has 122 images indexed",
+      "Product library: 9 products for swing-shack (TrackMan, Takomo 101T, etc.)",
+      "Intel/brand-context endpoint returns positioning + tone + assets"
+    ],
+    "what_is_broken_or_weak": [
+      "P0 \u2014 OpenRouter credits exhausted (7,198 remaining). Default route /api/image/generate fails with 402 Payment Required. Image gen currently cannot run via the unified router.",
+      "P0 \u2014 Brand bibles are placeholders. swing-shack/bible-visual.json has TODO keywords + explicit `_todos_for_christelle` for Christelle to fill in. stick/takomo/bag-drop don't have bible-visual.json at all. Generation has no canonical creative direction for these brands.",
+      "P0 \u2014 Stick has no visual-dna-index. brand_dna reports 'visual-dna-index.json missing \u2014 no visual reference anchors'. Reference DNA flow has nothing to point at for stick.",
+      "P1 \u2014 Krea token doesn't survive Railway deploys. Every time Railway restarts the env, `connected: false` until secret-drop is called again. Permanent storage solution missing.",
+      "P1 \u2014 /api/krea/knowledge endpoints require scripts/ in deploy path (fixed in Dockerfile, but cron/refresh requires on-disk scripts access)",
+      "P1 \u2014 No AUTO model router. Krea has 90 models; the user must pick one explicitly. The user's directive #4 specifically asks for this.",
+      "P1 \u2014 No product-fidelity preservation logic. The existing image_gen_router has `_detect_logo_preserve_drift(instruction)` but no PRESERVE block builder.",
+      "P1 \u2014 No deterministic post-composition. AI models hallucinate logos + typography. The system has no way to overlay the real logo + brand fonts on top of AI output.",
+      "P2 \u2014 No reference-led 'make me another one like this' pipeline that ties reference DNA \u2192 product preservation \u2192 auto brand rules. The user directive specifically asks for this.",
+      "P2 \u2014 No creative lineage from asset \u2192 campaign \u2192 performance. /api/image/outputs/<brand> returns 0 outputs; lineage broken.",
+      "P2 \u2014 No creative feedback / approval / rejection tagging. The 'feedback_loop.py' module exists but has 0 records; never populated.",
+      "P2 \u2014 No negative-prompt constraint engine specific to golf equipment (bent shaft, wrong club geometry, etc.). The current `build_negative_prompt` is generic.",
+      "P3 \u2014 No daily web-research cron for Krea prompt best-practices. /api/krea/knowledge/research queues queries but doesn't execute them.",
+      "P3 \u2014 The 'prompt preview' button in image-lab calls a UI-only preview; not saved with the generated output."
+    ],
+    "what_should_be_kept": [
+      "image_gen_router.py (with fix for credits) \u2014 the OpenAI/OpenRouter path",
+      "krea_mcp.py + the 90-model knowledge centre \u2014 already proven",
+      "brand_dna.py \u2014 BrandContext loader + compose_full_prompt + build_negative_prompt",
+      "reference_dna.py \u2014 visual reference library",
+      "visual_dna_query.py + brand_directory.py \u2014 search and indexing",
+      "image_dissector.py \u2014 palette/composition/recipe extraction",
+      "product_service_library.py \u2014 products + services with prompt fragments",
+      "feedback_loop.py \u2014 performance tracking (once populated)",
+      "brand_brief_intel.py \u2014 real-data brand intel feed",
+      "image-lab.html + visualizer.html \u2014 existing UIs (don't replace)"
+    ],
+    "what_should_be_fixed": [
+      "P0 \u2014 Add OpenRouter credits OR fall back to Krea as primary image gen path (router should prefer Krea when OpenRouter exhausted)",
+      "P0 \u2014 Fill stick + takomo + bag-drop bibles (Christelle owns the values; system prompts for them in the next step)",
+      "P0 \u2014 Run an image_dissector sweep on stick/images/*. to build the missing visual-dna-index",
+      "P1 \u2014 Persistent Krea token storage (Railway volume)",
+      "P1 \u2014 AUTO model router that scores models against job requirements",
+      "P1 \u2014 PRESERVE block builder for product fidelity",
+      "P1 \u2014 Deterministic post-composition layer (overlay real logos + brand fonts on AI output)",
+      "P2 \u2014 Reference-led 'make me another one like this' pipeline (compose new prompt from reference + new product + brand rules)",
+      "P2 \u2014 Creative lineage (asset \u2192 campaign \u2192 performance)",
+      "P2 \u2014 Approval / rejection feedback loop",
+      "P2 \u2014 Golf-specific negative prompt library (club geometry, shaft, ball, etc.)",
+      "P3 \u2014 Daily web-research cron execution",
+      "P3 \u2014 Save composed prompt with the generated output for post-generation review"
+    ],
+    "what_should_be_removed": [
+      "image-portal.html \u2014 it just configures OpenAI/OpenRouter keys (which Christelle already manages via env vars). The dedicated /image-lab entry is enough."
+    ],
+    "what_is_missing": [
+      "A model router that scores Krea's 90 models against the job. (User directive #4)",
+      "A negative prompt constraint engine specific to golf equipment + Swing Shack brand. (User directive #10)",
+      "Deterministic post-composition layer (real logo + brand fonts overlay). (User directive #8)",
+      "Reference-led 'make me another one like this' pipeline. (User directive #6)",
+      "PRESERVE block for product fidelity. (User directive #7)",
+      "Auto model selection UX in image-lab. (User directive #4)",
+      "Creative lineage persistence (asset \u2192 campaign \u2192 performance). (User directive #15)",
+      "Approval / rejection tagging. (User directive #14)",
+      "Daily web-research execution for prompt best-practices. (User directive #23)",
+      "Comparison mode (same brief, multiple models). (User directive #13)",
+      "Refine loop (modify last prompt, regenerate). (User directive #6)",
+      "Brand-context-per-brand with proper archetype routing."
+    ],
+    "live_test_results": {
+      "krea_status": {
+        "connected": true,
+        "source": "env",
+        "date": "2026-08-31"
+      },
+      "openrouter_image_gen": {
+        "status": 502,
+        "error": "OpenRouter 402 \u2014 out of credits (7,198 remaining)"
+      },
+      "krea_image_gen_test": {
+        "status": 200,
+        "job_id": "601ba849-11eb-45d0-8bc6-b2e4489cd97c",
+        "image_url": "https://app-uploads.krea.ai/public/3069a0dd-3eb0-4fcf-b151-64f5d71d189a.png",
+        "duration": "7.5s"
+      },
+      "brand_directory": {
+        "brands_ready": [
+          "stick",
+          "takomo",
+          "swing-shack"
+        ]
+      },
+      "image_router": {
+        "active_provider": "openrouter",
+        "active_model": "google/gemini-2.5-flash-image",
+        "krea_alternative": "not currently routed through image_gen_router"
+      },
+      "visual_library": {
+        "swing-shack_total": 122,
+        "swing-shack_tagged": 122,
+        "stick_total": 0,
+        "takomo_total": 1,
+        "bag-drop_total": 0
+      },
+      "reference_dna": {
+        "swing-shack": 0,
+        "stick": 0,
+        "takomo": 0,
+        "bag-drop": 0
+      },
+      "brand_bible_status": {
+        "swing-shack": "PLACEHOLDER (TODO)",
+        "stick": "MISSING",
+        "takomo": "MISSING",
+        "bag-drop": "MISSING"
+      }
+    }
+  }
+}

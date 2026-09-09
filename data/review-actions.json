@@ -1,22 +1,22 @@
 {
   "schema": "https://clawdia.io/agents/reputation-responder/v1",
-  "generated": "2026-04-23T09:20:46.809Z",
-  "mode": "MINIMAL",
+  "generated": "2026-08-13T11:14:42.665Z",
+  "mode": "LIVE",
   "hard_rule": "negative_reviews_never_auto_posted",
   "actions": [
     {
-      "action_id": "rev-mob9ucpmpyjp",
+      "action_id": "rev-msrf89yhzhd0",
       "review_id": "r-1",
       "type": "draft_only",
       "rating": 5,
       "reviewer": "Liam M",
       "response_draft": "Thanks [name]! So glad you loved [service]. Come back and see us soon! — The Swing Shack team",
-      "why": "Mode=MINIMAL. Would need LIVE mode to post live.",
+      "why": "Mode=LIVE. Would need LIVE mode to post live.",
       "status": "drafted",
       "live_allowed": false
     },
     {
-      "action_id": "rev-mob9ucpmcyo8",
+      "action_id": "rev-msrf89yhe5wq",
       "review_id": "r-2",
       "type": "draft_only",
       "rating": 4,
@@ -29,7 +29,7 @@
       "live_allowed": false
     },
     {
-      "action_id": "rev-mob9ucpmo60t",
+      "action_id": "rev-msrf89yhgkyq",
       "review_id": "r-3",
       "type": "manual_only",
       "rating": 3,
@@ -42,18 +42,18 @@
       "live_allowed": false
     },
     {
-      "action_id": "rev-mob9ucpm51k4",
+      "action_id": "rev-msrf89yhfqqr",
       "review_id": "r-4",
       "type": "draft_only",
       "rating": 5,
       "reviewer": "Naledi D",
       "response_draft": "Thanks [name]! So glad you loved [service]. Come back and see us soon! — The Swing Shack team",
-      "why": "Mode=MINIMAL. Would need LIVE mode to post live.",
+      "why": "Mode=LIVE. Would need LIVE mode to post live.",
       "status": "drafted",
       "live_allowed": false
     },
     {
-      "action_id": "rev-mob9ucpmct1e",
+      "action_id": "rev-msrf89yhy4oc",
       "review_id": "r-5",
       "type": "manual_only",
       "rating": 2,
