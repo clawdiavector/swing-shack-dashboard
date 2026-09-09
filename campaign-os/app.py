@@ -5745,13 +5745,23 @@ def feedback_import_ig():
                     skipped_duplicate += 1
                     continue
 
-                signal = {k: v for k, v in r.items()
-                          if k in ('impressions', 'likes', 'comments', 'saves', 'reach',
-                                   'link_clicks', 'ga_sessions', 'ga_conversions',
-                                   'gmb_calls', 'bookings', 'video_views',
-                                   'ig_reels_avg_watch_time',
-                                   'ig_reels_video_view_total_time',
-                                   'engagement_rate')}
+                # Build the signal dict. Either the record carries a
+                # nested captured_signal sub-object (canonical shape
+                # from sync-now), or the signal fields are at the top
+                # level (legacy flat shape). Both are valid.
+                allowed_metrics = ('impressions', 'likes', 'comments', 'saves', 'reach',
+                                    'shares', 'link_clicks', 'ga_sessions',
+                                    'ga_conversions', 'gmb_calls', 'bookings',
+                                    'video_views', 'total_interactions', 'follows',
+                                    'profile_visits', 'profile_activity',
+                                    'ig_reels_avg_watch_time',
+                                    'ig_reels_video_view_total_time',
+                                    'engagement_rate')
+                nested = r.get('captured_signal') or {}
+                if isinstance(nested, dict) and nested:
+                    signal = {k: v for k, v in nested.items() if k in allowed_metrics}
+                else:
+                    signal = {k: v for k, v in r.items() if k in allowed_metrics}
 
                 # Look up DNA from library if image_id looks like a ref
                 # (only if reference_dna module is available — it's
