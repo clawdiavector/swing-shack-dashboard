@@ -157,44 +157,175 @@ def load_publishing_references() -> dict:
         return {}
 
 
-def build_mapper():
+def load_external_publications() -> dict:
+    """Load external publications from data/meta-post-index.json.
+
+    External publications = IG media items that exist on the live Meta API
+    but are NOT mapped to a Campaign OS / Postiz asset. These are
+    historical posts or posts published outside Campaign OS.
+
+    The IG media ID is the deterministic identity — no fuzzy matching
+    required. Per heidi.txt (2026-09-09): "the IG media ID itself
+    provides deterministic identity."
+    """
+    index = load_meta_post_index()
+    return index.get("external_publications") or {}
+
+
+def save_meta_post_index(index: dict) -> bool:
+    """Persist the (possibly updated) meta-post-index.json.
+
+    Updates generated + count + external_publications counts when
+    writing so the next reader sees consistent schema.
+    """
+    p = REPO / "data" / "meta-post-index.json"
+    try:
+        existing = index.get("by_asset_id") or {}
+        existing_media = index.get("by_media_id") or {}
+        existing_external = index.get("external_publications") or {}
+        index["generated"] = datetime.now(timezone.utc).isoformat()
+        index["count"] = len(existing)
+        index["external_count"] = len(existing_external)
+        # by_media_id only counts internal mappings; external has its own map
+        index["media_id_count"] = len(existing_media) + len(existing_external)
+        if "_meta" not in index:
+            index["_meta"] = {}
+        index.setdefault("_meta", {}).setdefault(
+            "source_files",
+            ["data/publishing-references.json", "data/events/postiz/*.json"],
+        )
+        index["_meta"]["schema_version"] = "1.1"
+        index["_meta"][
+            "external_publication_note"
+        ] = "external_publications are IG media not mapped to any Campaign OS / Postiz asset"
+        p.write_text(json.dumps(index, indent=2, default=str))
+        return True
+    except Exception as e:
+        log(f"  save_meta_post_index failed: {e}")
+        return False
+
+
+def upsert_external_publication(
+    index: dict,
+    brand_id: str,
+    ig_media_id: str,
+    permalink: str | None,
+    media_type: str,
+    published_at: str | None,
+    caption: str | None,
+) -> tuple[dict, bool]:
+    """Insert or update an external publication record.
+
+    Idempotent: keyed by ig_media_id. Updates last_seen_at + permalink
+    on re-discovery; preserves first_seen_at for audit trail.
+
+    Returns (record, was_created). was_created=True on first insert.
+    """
+    ig_media_id = str(ig_media_id)
+    ext = index.setdefault("external_publications", {})
+    now_iso = datetime.now(timezone.utc).isoformat()
+    existing = ext.get(ig_media_id)
+    asset_id = f"ig-{ig_media_id}"
+    if existing:
+        existing["last_seen_at"] = now_iso
+        if permalink and not existing.get("permalink"):
+            existing["permalink"] = permalink
+        if caption and not existing.get("caption"):
+            existing["caption"] = caption
+        existing["last_brand_id"] = brand_id
+        return existing, False
+    record = {
+        "asset_id": asset_id,
+        "brand_id": brand_id,
+        "origin": "external",
+        "publisher": "external",
+        "platform": "instagram",
+        "ig_media_id": ig_media_id,
+        "permalink": permalink,
+        "media_type": media_type,
+        "published_at": published_at,
+        "caption": (caption or "")[:500] if caption else None,
+        "campaign_id": None,
+        "first_seen_at": now_iso,
+        "last_seen_at": now_iso,
+        "last_brand_id": brand_id,
+        "created_by": "ig_insights_pull.py",
+    }
+    ext[ig_media_id] = record
+    return record, True
+
+
+def build_mapper(index: dict | None = None):
     """Build the IG media → Campaign OS asset mapper.
 
     Returns a function (ig_media_id: str) → dict | None.
     Resolution order:
-      1. meta-post-index.json by_media_id
-      2. publishing-references.json Postiz → IG back-map
-      3. asset_id reverse lookup from publishing-references
-      (no deterministic fallback — per heidi.txt: never fuzzy attribute)
+      1. meta-post-index.json by_media_id (internal — published via Postiz)
+      2. publishing-references.json Postiz → IG back-map (internal)
+      3. asset_id reverse lookup from publishing-references (internal)
+      4. meta-post-index.json external_publications (external — historical
+         or off-Campaign-OS posts). IG media ID = deterministic identity.
+    Per heidi.txt (2026-09-09): external assets are valid; the IG media
+    ID itself is the canonical identity; no fuzzy mapping is required.
+
+    `index` is optional — pass the meta-post-index dict to also use the
+    live external_publications map (mutable across calls). When None, a
+    fresh load is performed (read-only path).
     """
-    index = load_meta_post_index()
+    if index is None:
+        index = load_meta_post_index()
     pub_refs = load_publishing_references()
+    by_media_id = index.get("by_media_id") or {}
 
     def mapper(ig_media_id: str) -> dict | None:
-        # 1. by_media_id from meta-post-index
-        rec = (index.get("by_media_id") or {}).get(str(ig_media_id))
+        media_key = str(ig_media_id)
+        # Look up external_publications at call time so upserts
+        # made AFTER mapper build are visible. The empty-dict-or
+        # idiom below returns the ACTUAL dict reference when the
+        # key exists (even if it's empty), else a transient {}.
+        ext = index.get("external_publications")
+        if ext is None:
+            ext = {}
+        # 1. by_media_id from meta-post-index (internal)
+        rec = by_media_id.get(media_key)
         if rec:
             return {
                 "asset_id": rec.get("asset_id"),
                 "campaign_id": rec.get("campaign_id"),
                 "postiz_post_id": rec.get("postiz_post_id"),
-                "platform_media_id": str(ig_media_id),
+                "platform_media_id": media_key,
                 "publisher": "postiz",
                 "source": "meta-post-index",
+                "origin": "internal",
             }
-        # 2/3. publishing-references lookup
+        # 2/3. publishing-references lookup (internal)
         for k, v in pub_refs.items():
             if k.startswith("asset:"):
                 continue
-            if str(v) == str(ig_media_id):
+            if str(v) == media_key:
                 return {
                     "asset_id": None,
                     "campaign_id": None,
                     "postiz_post_id": k,
-                    "platform_media_id": str(ig_media_id),
+                    "platform_media_id": media_key,
                     "publisher": "postiz",
                     "source": "publishing-references",
+                    "origin": "internal",
                 }
+        # 4. external_publications (external — IG media exists but no
+        #    Campaign OS / Postiz mapping). Per heidi: deterministic
+        #    identity via ig_media_id itself.
+        ext_rec = ext.get(media_key)
+        if ext_rec:
+            return {
+                "asset_id": ext_rec.get("asset_id"),
+                "campaign_id": ext_rec.get("campaign_id"),  # null for external
+                "postiz_post_id": None,
+                "platform_media_id": media_key,
+                "publisher": "external",
+                "source": "external_publications",
+                "origin": "external",
+            }
         return None
 
     return mapper
@@ -247,6 +378,8 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
         "unmatched": 0,
         "feedback_imported": 0,
         "duplicates_skipped": 0,
+        "external_created": 0,
+        "external_reused": 0,
         "errors": [],
         "duration_seconds": 0,
     }
@@ -350,9 +483,16 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
         log(f"  Filtered to last {since_days} days: {len(filtered)} media items")
         all_media = filtered
 
+    # Load meta-post-index once (mutable; external publications get appended)
+    index = load_meta_post_index()
+    # Re-bind mapper to this fresh index (with external map included)
+    mapper = build_mapper(index=index)
+
     # Pull insights + map + import
     records_to_import: list[dict] = []
     unmatched_log: list[dict] = []
+    external_created = 0
+    external_reused = 0
     for m in all_media:
         media_id = m.get("id")
         media_type = m.get("media_type", "IMAGE")
@@ -378,11 +518,32 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
         # Map to Campaign OS asset
         mapping = mapper(media_id)
         if not mapping:
-            result["unmatched"] += 1
-            unmatched_log.append({"media_id": media_id,
-                                   "reason": "no_asset_mapping",
-                                   "caption_preview": (m.get("caption") or "")[:80]})
-            continue
+            # Per heidi (2026-09-09): external publication is a valid
+            # origin. Create canonical external asset keyed by IG media
+            # ID; reuse if already present (idempotent upsert).
+            ext_rec, was_created = upsert_external_publication(
+                index=index,
+                brand_id=brand_id,
+                ig_media_id=media_id,
+                permalink=m.get("permalink"),
+                media_type=media_type,
+                published_at=m.get("timestamp"),
+                caption=m.get("caption"),
+            )
+            if was_created:
+                external_created += 1
+            else:
+                external_reused += 1
+            # Build mapping record pointing at the now-canonical external asset
+            mapping = {
+                "asset_id": ext_rec.get("asset_id"),
+                "campaign_id": None,
+                "postiz_post_id": None,
+                "platform_media_id": media_id,
+                "publisher": "external",
+                "source": "external_publications",
+                "origin": "external",
+            }
         result["mapped"] += 1
         # Build the feedback record
         asset_id = mapping.get("asset_id") or f"unmapped-{brand_id}-{media_id}"
@@ -399,6 +560,7 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
             "mapping_source": mapping.get("source"),
             "postiz_post_id": mapping.get("postiz_post_id"),
             "campaign_id": mapping.get("campaign_id"),
+            "origin": mapping.get("origin"),
         })
 
     # Send to feedback endpoint
@@ -422,6 +584,15 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
     elif dry_run:
         result["feedback_imported"] = 0
         result["duplicates_skipped"] = 0
+
+    # Persist (possibly updated) external publications
+    if not dry_run:
+        result["external_created"] = external_created
+        result["external_reused"] = external_reused
+        if external_created > 0 or external_reused > 0:
+            ok = save_meta_post_index(index)
+            if not ok:
+                result["errors"].append("meta_post_index_save_failed")
 
     # Update config sync timestamps
     if not dry_run:
@@ -500,11 +671,13 @@ def main() -> int:
 
     log("\n=== SUMMARY ===")
     for r in results:
+        ext = f" ext_new={r.get('external_created', 0)} ext_reuse={r.get('external_reused', 0)}"
         log(f"  {r['brand_id']}: {r['status']} | "
             f"media={r['media_discovered']} insights={r['insights_fetched']} "
             f"mapped={r['mapped']} unmatched={r['unmatched']} "
             f"imported={r['feedback_imported']} dup={r['duplicates_skipped']} "
-            f"err={len(r.get('errors', []))} dur={r['duration_seconds']}s")
+            f"err={len(r.get('errors', []))} dur={r['duration_seconds']}s"
+            f"{ext}")
 
     # Exit non-zero only on genuine job-level failure
     if any_real_failure and all(r["status"] == "error" for r in results):
