@@ -5677,17 +5677,42 @@ def feedback_import_ig():
     the library if image_id is a ref_id).
     """
     try:
-        from _lib.feedback_loop import add_record
+        from _lib.feedback_loop import (
+            add_record, load_performance, save_performance,
+            compute_learned_signals, save_learned_signals, load_learned_signals,
+        )
+        from _lib.meta_api import OPERATING_BRANDS
         from _lib.reference_dna import load_reference_dna
 
         body = request.get_json(force=True, silent=True) or {}
         brand = body.get('brand') or get_brand_id() or 'swing-shack'
         records_in = body.get('records') or []
+
+        # ── BRAND GUARD — per heidi.txt P0 architecture rule ────────────
+        if brand not in OPERATING_BRANDS:
+            return jsonify({
+                "ok": False,
+                "error": f"brand {brand!r} is not an operating brand",
+                "operating_brands": list(OPERATING_BRANDS),
+                "note": "Takomo is a product_brand, not an operating brand."
+            }), 400
+
         if not records_in:
             return jsonify({"ok": False, "error": "no records provided"}), 400
 
+        # ── IDEMPOTENCY — load existing records, dedup by
+        # (image_id, platform_post_id) so re-runs don't double-count ──
+        existing = load_performance(brand)
+        existing_keys = set()
+        for r in existing.get("records", []):
+            key = (str(r.get("image_id") or ""),
+                   str(r.get("platform_post_id") or ""))
+            existing_keys.add(key)
+
         imported = 0
+        skipped_duplicate = 0
         errors: list[str] = []
+        new_records_added: list[dict] = []
         for r in records_in:
             try:
                 image_id = r.get('image_id', '').strip()
@@ -5695,10 +5720,29 @@ def feedback_import_ig():
                 if not image_id:
                     continue
 
+                # ── CROSS-BRAND CONTAMINATION CHECK ────────────────────
+                # If the record carries a brand_id and it doesn't match
+                # the route's brand, reject. Stops Stick IG data leaking
+                # into Swing Shack's learning even on misrouted requests.
+                rec_brand = r.get('brand_id')
+                if rec_brand and rec_brand != brand:
+                    errors.append(
+                        f"brand_mismatch:{image_id} claimed={rec_brand} route={brand}"
+                    )
+                    continue
+
+                # Dedup key — image_id + platform_post_id
+                if (image_id, post_id or "") in existing_keys:
+                    skipped_duplicate += 1
+                    continue
+
                 signal = {k: v for k, v in r.items()
                           if k in ('impressions', 'likes', 'comments', 'saves', 'reach',
                                    'link_clicks', 'ga_sessions', 'ga_conversions',
-                                   'gmb_calls', 'bookings')}
+                                   'gmb_calls', 'bookings', 'video_views',
+                                   'ig_reels_avg_watch_time',
+                                   'ig_reels_video_view_total_time',
+                                   'engagement_rate')}
 
                 # Look up DNA from library if image_id looks like a ref
                 dna_snapshot = r.get('dna_snapshot')
@@ -5708,7 +5752,22 @@ def feedback_import_ig():
                         from _lib.feedback_loop import snapshot_from_reference
                         dna_snapshot = snapshot_from_reference(ref)
 
-                add_record(
+                # Carry mapping context from the IG ingestion script
+                # into notes so the WIN profile can later attribute
+                # performance to a specific campaign / postiz mapping.
+                notes = r.get('notes', '')
+                extras = []
+                for k in ("ig_media_id", "permalink", "media_type",
+                           "ig_timestamp", "mapping_source",
+                           "postiz_post_id", "campaign_id", "platform"):
+                    v = r.get(k)
+                    if v is not None:
+                        extras.append(f"{k}={v}")
+                if extras:
+                    sep = "\n" if notes else ""
+                    notes = notes + sep + "\n".join(extras)
+
+                rec = add_record(
                     brand,
                     image_id=image_id,
                     kind='reference',
@@ -5716,13 +5775,41 @@ def feedback_import_ig():
                     captured_signal=signal,
                     dna_snapshot=dna_snapshot or {},
                     platform_post_id=post_id,
-                    notes=r.get('notes', ''),
+                    notes=notes,
                 )
+                existing_keys.add((image_id, post_id or ""))
                 imported += 1
+                new_records_added.append(rec)
             except Exception as e:
                 errors.append(str(e))
 
-        return jsonify({"ok": True, "imported": imported, "errors": errors[:5]})
+        # ── RECOMPUTE WIN PROFILE (learned-signals.json) ──────────────
+        # Per heidi.txt: "A WIN PROFILE should only be marked as
+        # meaningful/ready when it has enough valid mapped performance
+        # samples according to the existing learning rules."
+        win_status = None
+        try:
+            signals = compute_learned_signals(brand)
+            save_learned_signals(signals, brand)
+            samples = signals.get("samples", 0)
+            win_threshold = signals.get("win_threshold", 0.65)
+            win_status = {
+                "ready": samples >= 5,  # min_samples floor in compute_learned_signals
+                "samples": samples,
+                "win_threshold": win_threshold,
+                "updated": signals.get("updated"),
+            }
+        except Exception as e:
+            errors.append(f"learned_signals_recompute:{e}")
+
+        return jsonify({
+            "ok": True,
+            "brand": brand,
+            "imported": imported,
+            "skipped_duplicate": skipped_duplicate,
+            "errors": errors[:5],
+            "win_profile": win_status,
+        })
     except Exception as e:
         _app_log.exception("feedback_import_ig failed")
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -28877,6 +28964,141 @@ def planning_cadences(brand_id):
         return jsonify({"ok": True, **data}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+# ─── TIER 1.4 — PER-BRAND INSTAGRAM CONNECTION CENTRE ─────────────────────
+# Per heidi.txt architecture rule:
+#   Each OPERATING brand has its own connection record (page_id +
+#   ig_business_account_id + credential). Connection health is per-brand,
+#   not global. Bag Drop may not have the same integrations as Swing Shack.
+
+@app.route("/api/integrations/<brand_id>/instagram", methods=["GET"])
+def integrations_instagram_brand_status(brand_id):
+    """GET /api/integrations/<brand>/instagram — per-brand IG connection state.
+
+    Returns honest state:
+      - not_configured (no config file OR configured=false)
+      - no_credentials (config present but env vars missing)
+      - unhealthy (credentials present but live checks failed)
+      - healthy (all live checks passed)
+
+    Raw credentials are NEVER returned.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import (
+            OPERATING_BRANDS, load_brand_integration,
+            resolve_credentials_for_brand, health_check_for_brand,
+            list_recent_posts_for_brand,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({
+            "ok": False,
+            "error": f"{brand_id} is not an operating brand",
+            "operating_brands": list(OPERATING_BRANDS),
+            "note": "Takomo is a product_brand, not an operating brand."
+        }), 400
+
+    cfg = load_brand_integration(brand_id)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+
+    out = {
+        "ok": True,
+        "brand_id": brand_id,
+        "platform": "instagram",
+        "status": None,  # healthy | unhealthy | no_credentials | not_configured
+        "configured": cfg.get("configured", False),
+        "credential_mode": creds.get("mode"),
+        "credential_source": creds.get("source"),
+        "credential_errors": creds.get("errors", []),
+        "last_media_sync": cfg.get("last_media_sync"),
+        "last_insights_sync": cfg.get("last_insights_sync"),
+        "last_error": cfg.get("last_error"),
+        "page_id": cfg.get("facebook_page_id"),
+        "ig_account_id": cfg.get("ig_business_account_id"),
+        "scopes_required": cfg.get("scopes_required", []),
+        "scopes_publishing": cfg.get("scopes_publishing", []),
+        "health_checks": {},
+        "issues": [],
+    }
+
+    if not cfg.get("configured", False):
+        out["status"] = "not_configured"
+        out["issues"].append("brand_marked_not_configured")
+        return jsonify(out), 200
+
+    if not creds.get("token"):
+        out["status"] = "no_credentials"
+        out["issues"].append("no_credentials_resolved")
+        return jsonify(out), 200
+
+    # Live health checks
+    try:
+        health = health_check_for_brand(brand_id)
+        out["health_checks"] = health.get("checks", {})
+        out["issues"] = health.get("issues", [])
+        out["status"] = "healthy" if health.get("healthy") else "unhealthy"
+    except Exception as e:
+        out["status"] = "unhealthy"
+        out["issues"].append(f"health_check_exception:{type(e).__name__}:{e}")
+
+    return jsonify(out), 200
+
+
+@app.route("/api/integrations/<brand_id>/instagram/sync-now", methods=["POST"])
+def integrations_instagram_brand_sync_now(brand_id):
+    """POST /api/integrations/<brand>/instagram/sync-now — trigger an
+    immediate IG ingestion for one brand. Returns the sync summary.
+
+    Used by the Connection Centre "Sync now" button. The actual sync
+    logic lives in scripts/ig_insights_pull.py — this endpoint shells
+    out to it. For sync-from-API, this can also do an in-process sync
+    if --in-process is set; otherwise it spawns the script.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import OPERATING_BRANDS
+    except Exception:
+        return jsonify({"ok": False, "error": "meta_api unavailable"}), 500
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({
+            "ok": False,
+            "error": f"{brand_id} is not an operating brand",
+            "operating_brands": list(OPERATING_BRANDS),
+        }), 400
+    # Spawn the script as a subprocess so the live sync state we report
+    # matches what the cron job will do.
+    import subprocess as _sp
+    body = request.get_json(force=True, silent=True) or {}
+    limit = int(body.get("limit") or 50)
+    since_days = int(body.get("since_days") or 30)
+    try:
+        result = _sp.run(
+            [
+                ".venv/bin/python",
+                "scripts/ig_insights_pull.py",
+                "--brand", brand_id,
+                "--limit", str(limit),
+                "--since-days", str(since_days),
+                "--api-base", request.host_url.rstrip("/").replace("http://", "https://") if request.is_secure else request.host_url.rstrip("/"),
+                "--password", os.environ.get("CAMPAIGN_OS_PASSWORD", "swing-shack-dev-2026"),
+            ],
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            capture_output=True, text=True, timeout=300,
+        )
+        return jsonify({
+            "ok": result.returncode == 0,
+            "exit_code": result.returncode,
+            "stdout_tail": result.stdout[-2000:],
+            "stderr_tail": result.stderr[-2000:],
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"sync_now exception: {type(e).__name__}:{e}"}), 500
+
 
 # ─── TIER 3.18 — EVENT-FOCUSED CALENDAR (per heidi.txt 2026-09-08) ────────
 # Herman clarified: planning revolves around EVENTS / COMMERCIAL PUSHES,

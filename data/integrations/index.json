@@ -1,0 +1,24 @@
+{
+  "generated": "2026-09-08T13:00:00Z",
+  "schema_version": "1.0",
+  "purpose": "Per-operating-brand integration configuration. Each operating brand has its own credential + page/account resolution. Takomo is NOT a configured operating brand.",
+  "operating_brands": [
+    "swing-shack",
+    "stick",
+    "bag-drop"
+  ],
+  "product_brands": [
+    "takomo",
+    "lab-golf",
+    "psycho-bunny",
+    "vice",
+    "titleist"
+  ],
+  "integrations": {
+    "instagram": {
+      "swing-shack": "data/integrations/swing-shack/instagram.json",
+      "stick": "data/integrations/stick/instagram.json",
+      "bag-drop": "data/integrations/bag-drop/instagram.json"
+    }
+  }
+}

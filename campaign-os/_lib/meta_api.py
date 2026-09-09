@@ -481,3 +481,348 @@ def get_page_post_comments(post_id: str, limit: int = 50) -> dict:
         "source": "facebook_page",
     }
     return out
+
+
+# ─── PER-BRAND CREDENTIAL RESOLUTION (Phase 1.4 IG ingestion) ──────────────
+#
+# Per heidi.txt 2026-09-08 architecture rule:
+#   Each configured OPERATING brand needs an explicit connection record
+#   resolving brand_id → facebook_page_id → instagram_business_account_id
+#   → server-side credential. The same shared token may be reused where
+#   technically appropriate, but the resolved Page + IG account
+#   relationship MUST be explicit per brand.
+#
+# Operating brands: swing-shack, stick, bag-drop.
+# Takomo is NOT an operating brand — it is a product_brand inside stick.
+
+OPERATING_BRANDS = ("swing-shack", "stick", "bag-drop")
+
+INTEGRATIONS_INDEX_PATH = Path(
+    os.environ.get("CAMPAIGN_OS_REPO", str(Path(__file__).resolve().parents[2]))
+    + "/data/integrations/index.json"
+)
+
+
+def _integrations_root() -> Path:
+    """Path to data/integrations/ — per-brand config dir."""
+    repo = Path(os.environ.get("CAMPAIGN_OS_REPO", str(Path(__file__).resolve().parents[2])))
+    return repo / "data" / "integrations"
+
+
+def _read_system_user_token() -> Optional[str]:
+    """Read Meta System User token (EAAB) from env. Never expires when used as designed."""
+    raw = os.environ.get("META_SYSTEM_USER_TOKEN", "").strip()
+    if raw:
+        return raw
+    # File fallback
+    path = os.environ.get("META_SYSTEM_USER_TOKEN_FILE", "").strip()
+    if path:
+        try:
+            data = json.loads(Path(path).read_text())
+            tok = data.get("access_token") or data.get("token")
+            if tok:
+                return str(tok).strip()
+        except Exception as e:
+            _LOG.warning("could not read META_SYSTEM_USER_TOKEN_FILE=%s: %s", path, e)
+    return None
+
+
+def load_brand_integration(brand_id: str, platform: str = "instagram") -> dict[str, Any]:
+    """Load per-brand integration config from data/integrations/<brand>/<platform>.json.
+
+    Returns the raw config dict. The brand may not be configured — caller is
+    responsible for checking `configured` flag and missing fields.
+    """
+    if brand_id not in OPERATING_BRANDS:
+        raise ValueError(
+            f"brand_id {brand_id!r} is not an operating brand. "
+            f"Operating brands: {OPERATING_BRANDS}. "
+            "Takomo is a product_brand, not an operating brand."
+        )
+    cfg_path = _integrations_root() / brand_id / f"{platform}.json"
+    if not cfg_path.exists():
+        return {"brand_id": brand_id, "platform": platform, "configured": False,
+                "notes": "No config file at " + str(cfg_path)}
+    try:
+        return json.loads(cfg_path.read_text())
+    except Exception as e:
+        return {"brand_id": brand_id, "platform": platform, "configured": False,
+                "notes": f"Config unreadable: {e}"}
+
+
+def resolve_credentials_for_brand(
+    brand_id: str,
+    cfg: Optional[dict] = None,
+) -> dict[str, Any]:
+    """Resolve Meta credentials for a specific operating brand.
+
+    Resolution order:
+      1. cfg["credential_env"] env var (per-brand override) — preferred
+      2. cfg["credential_env_file"] file — per-brand file override
+      3. META_SYSTEM_USER_TOKEN env var — system user fallback
+      4. META_ACCESS_TOKEN env var — legacy user token fallback
+
+    Returns dict with:
+      - token (str | None) — never logged
+      - mode ("system_user_token" | "user_token" | "page_token" | None)
+      - source (str | None) — which path the token came from (for diagnostics)
+      - errors (list[str]) — non-fatal warnings about partial config
+    """
+    out: dict[str, Any] = {
+        "token": None,
+        "mode": None,
+        "source": None,
+        "errors": [],
+    }
+    if cfg is None:
+        cfg = load_brand_integration(brand_id)
+    env_name = cfg.get("credential_env")
+    env_file = cfg.get("credential_env_file")
+
+    # 1. Per-brand env
+    if env_name:
+        tok = os.environ.get(env_name, "").strip()
+        if tok:
+            out["token"] = tok
+            out["mode"] = cfg.get("credential_mode", "system_user_token")
+            out["source"] = f"env:{env_name}"
+            return out
+        out["errors"].append(f"{env_name} not set in env")
+
+    # 2. Per-brand file
+    if env_file:
+        path = Path(env_file)
+        if not path.is_absolute():
+            # Relative to repo root
+            repo = Path(os.environ.get("CAMPAIGN_OS_REPO", str(Path(__file__).resolve().parents[2])))
+            path = repo / env_file
+        try:
+            data = json.loads(path.read_text())
+            tok = data.get("access_token") or data.get("token")
+            if tok:
+                out["token"] = str(tok).strip()
+                out["mode"] = cfg.get("credential_mode", "system_user_token")
+                out["source"] = f"file:{path}"
+                return out
+            out["errors"].append(f"{path} missing access_token")
+        except Exception as e:
+            out["errors"].append(f"could not read {path}: {e}")
+
+    # 3. System user fallback
+    sys_tok = _read_system_user_token()
+    if sys_tok:
+        out["token"] = sys_tok
+        out["mode"] = "system_user_token"
+        out["source"] = "env:META_SYSTEM_USER_TOKEN"
+        return out
+
+    # 4. Legacy user-token fallback
+    user_tok = _read_meta_access_token()
+    if user_tok:
+        out["token"] = user_tok
+        out["mode"] = "user_token"
+        out["source"] = "env:META_ACCESS_TOKEN"
+        out["errors"].append("Using legacy META_ACCESS_TOKEN — System User token preferred")
+        return out
+
+    return out
+
+
+# ─── PER-BRAND OVERRIDES for the existing domain methods ─────────────────────
+# The existing functions (list_recent_posts, get_post_comments, get_post_insights)
+# use global env. We add per-brand variants below that the IG ingestion script
+# uses. The original functions remain for backwards compatibility.
+
+def list_recent_posts_for_brand(
+    brand_id: str,
+    limit: int = 25,
+    fields: Optional[list[str]] = None,
+) -> dict[str, Any]:
+    """Per-brand IG media listing. Resolves account_id + token from
+    data/integrations/<brand>/instagram.json.
+
+    Returns:
+      {
+        "data": [...],
+        "paging": {...},
+        "_meta": {
+          brand_id, ig_account_id, credential_mode,
+          credential_source, fetched, endpoint,
+        }
+      }
+    """
+    if brand_id not in OPERATING_BRANDS:
+        raise ValueError(f"{brand_id} is not an operating brand")
+    cfg = load_brand_integration(brand_id)
+    ig_account_id = cfg.get("ig_business_account_id")
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+    if not creds["token"]:
+        raise MetaAuthError(
+            f"No Meta credentials resolved for {brand_id}. "
+            f"Errors: {creds['errors']}"
+        )
+    if not ig_account_id:
+        raise MetaAuthError(
+            f"No ig_business_account_id configured for {brand_id}. "
+            "Add it to data/integrations/<brand>/instagram.json or run a "
+            "discovery pass via /me/accounts → /{page_id}?fields=instagram_business_account."
+        )
+    default_fields = [
+        "id", "caption", "media_type", "media_url", "permalink",
+        "thumbnail_url", "timestamp", "username", "is_comment_enabled",
+    ]
+    fields = fields or default_fields
+    params = {
+        "fields": ",".join(fields),
+        "limit": min(int(limit), 100),
+    }
+    out = _graph_get(f"/{ig_account_id}/media", params, use_page_token=False)
+    out["_meta"] = {
+        "brand_id": brand_id,
+        "ig_account_id": ig_account_id,
+        "credential_mode": creds["mode"],
+        "credential_source": creds["source"],
+        "fetched": len(out.get("data", [])),
+        "endpoint": f"/{ig_account_id}/media",
+    }
+    return out
+
+
+def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
+    """Per-brand IG media insights.
+
+    Supports media-type-aware metric selection:
+      - IMAGE / CAROUSEL_ALBUM: impressions, reach, saved, likes, comments, shares
+      - VIDEO / REELS: same + video_views, ig_reels_avg_watch_time,
+                       ig_reels_video_view_total_time
+    Metrics that the API does not return are omitted from the flat dict
+    rather than recorded as zero (truth-before-cleverness).
+    """
+    if brand_id not in OPERATING_BRANDS:
+        raise ValueError(f"{brand_id} is not an operating brand")
+    if not media_id or not str(media_id).isdigit():
+        raise ValueError(f"IG media_id must be numeric, got: {media_id!r}")
+    cfg = load_brand_integration(brand_id)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+    if not creds["token"]:
+        raise MetaAuthError(f"No Meta credentials for {brand_id}")
+    # Base metrics (all media types)
+    metrics = ["impressions", "reach", "saved", "likes", "comments", "shares"]
+    # Reels/Video extras — Meta exposes these for video-format media only.
+    # We include them in the request; Meta just won't return them for images.
+    metrics += ["video_views", "ig_reels_avg_watch_time", "ig_reels_video_view_total_time"]
+    params = {"metric": ",".join(metrics), "period": "lifetime"}
+    out = _graph_get(f"/{media_id}/insights", params, use_page_token=False)
+    flat: dict[str, Any] = {}
+    for entry in out.get("data", []):
+        name = entry.get("name", "?")
+        values = entry.get("data", [])
+        if values and isinstance(values, list) and values:
+            v = values[0].get("value")
+            # Meta returns None or omits missing metrics — keep None if not numeric
+            flat[name] = v
+    # Engagement rate = interactions / reach, if both available
+    er = None
+    try:
+        reach = flat.get("reach") or 0
+        if reach and reach > 0:
+            interactions = sum(filter(None, [
+                flat.get("likes"), flat.get("comments"),
+                flat.get("shares"), flat.get("saved"),
+            ]))
+            er = round((interactions / reach) * 100, 3)
+    except Exception:
+        er = None
+    flat["engagement_rate"] = er
+    out["_flat"] = flat
+    out["_meta"] = {
+        "brand_id": brand_id,
+        "media_id": media_id,
+        "credential_mode": creds["mode"],
+        "credential_source": creds["source"],
+        "metrics_requested": metrics,
+        "fetched": len(out.get("data", [])),
+        "endpoint": f"/{media_id}/insights",
+    }
+    return out
+
+
+def health_check_for_brand(brand_id: str) -> dict[str, Any]:
+    """Run a live API check against the per-brand resolved connection.
+
+    Validates:
+      - token works (lightweight /me call)
+      - facebook page is reachable
+      - IG business account is reachable
+      - media endpoint reachable
+      - (insights endpoint spot-checked at first media, see caller)
+
+    Returns health dict. NEVER raises — always returns a structured
+    status so the Connection Centre can render it without exceptions.
+    """
+    out: dict[str, Any] = {
+        "brand_id": brand_id,
+        "platform": "instagram",
+        "checks": {},
+        "healthy": False,
+        "issues": [],
+    }
+    if brand_id not in OPERATING_BRANDS:
+        out["issues"].append(f"{brand_id} is not an operating brand")
+        return out
+    cfg = load_brand_integration(brand_id)
+    out["configured"] = cfg.get("configured", False)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+    out["credential_mode"] = creds["mode"]
+    out["credential_source"] = creds["source"]
+    out["credential_errors"] = creds["errors"]
+    if not cfg.get("configured", False):
+        out["issues"].append("brand_marked_not_configured")
+        return out
+    if not creds["token"]:
+        out["issues"].append("no_credentials_resolved")
+        return out
+    # Token liveness — /me endpoint
+    try:
+        me = _graph_get("/me", {"fields": "id,name"})
+        out["checks"]["token"] = {"ok": True, "name": me.get("name")}
+    except MetaAuthError as e:
+        out["checks"]["token"] = {"ok": False, "error": str(e)}
+        out["issues"].append("token_invalid_or_missing_scope")
+        return out
+    except Exception as e:
+        out["checks"]["token"] = {"ok": False, "error": str(e)}
+        out["issues"].append("token_endpoint_unreachable")
+        return out
+    # Page reachability
+    page_id = cfg.get("facebook_page_id")
+    if page_id:
+        try:
+            _graph_get(f"/{page_id}", {"fields": "id,name"})
+            out["checks"]["page"] = {"ok": True, "page_id": page_id}
+        except Exception as e:
+            out["checks"]["page"] = {"ok": False, "page_id": page_id, "error": str(e)}
+            out["issues"].append("page_unreachable")
+    # IG account reachability
+    ig_account_id = cfg.get("ig_business_account_id")
+    if ig_account_id:
+        try:
+            _graph_get(f"/{ig_account_id}", {"fields": "id,username"})
+            out["checks"]["ig_account"] = {"ok": True, "ig_account_id": ig_account_id}
+        except Exception as e:
+            out["checks"]["ig_account"] = {"ok": False, "ig_account_id": ig_account_id, "error": str(e)}
+            out["issues"].append("ig_account_unreachable")
+            return out
+        # Media endpoint
+        try:
+            media = _graph_get(f"/{ig_account_id}/media", {"limit": 1, "fields": "id"})
+            out["checks"]["media_endpoint"] = {"ok": True, "sample_media_count": len(media.get("data", []))}
+        except Exception as e:
+            out["checks"]["media_endpoint"] = {"ok": False, "error": str(e)}
+            out["issues"].append("media_endpoint_unreachable")
+            return out
+    else:
+        out["issues"].append("ig_business_account_id_not_configured")
+        return out
+    out["healthy"] = len(out["issues"]) == 0
+    return out
