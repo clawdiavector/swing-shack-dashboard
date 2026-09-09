@@ -29100,13 +29100,40 @@ def integrations_instagram_brand_probe_media(brand_id):
     creds = resolve_credentials_for_brand(brand_id, cfg)
     if not creds["token"]:
         return jsonify({"ok": False, "error": "no credentials resolved"}), 400
+    include_insights = request.args.get("insights", "").lower() in ("1", "true", "yes")
     try:
         out = _graph_get(f"/{media_id}", {
             "fields": "id,caption,media_type,media_url,permalink,"
                        "thumbnail_url,timestamp,username,is_comment_enabled,"
                        "media_product_type,owner"
         }, use_page_token=False, token_override=creds["token"])
-        return jsonify({"ok": True, "brand_id": brand_id, "media": out})
+        response: dict = {"ok": True, "brand_id": brand_id, "media": out}
+        if include_insights:
+            try:
+                mtype = (out.get("media_type") or "").upper()
+                if mtype in ("VIDEO", "REEL", "IG_REEL", "CLIPS"):
+                    metrics = ["reach", "saved", "likes", "comments",
+                                "shares", "total_interactions"]
+                else:
+                    metrics = ["impressions", "reach", "saved", "likes",
+                                "comments", "shares", "total_interactions",
+                                "follows", "profile_visits", "profile_activity"]
+                insights = _graph_get(
+                    f"/{media_id}/insights",
+                    {"metric": ",".join(metrics), "period": "lifetime"},
+                    use_page_token=False, token_override=creds["token"]
+                )
+                flat: dict = {}
+                for entry in insights.get("data", []):
+                    name = entry.get("name", "?")
+                    values = entry.get("data", [])
+                    if values and isinstance(values, list) and values:
+                        flat[name] = values[0].get("value")
+                response["insights_raw"] = insights
+                response["insights_flat"] = flat
+            except Exception as _ie:
+                response["insights_error"] = f"{type(_ie).__name__}: {_ie}"
+        return jsonify(response)
     except Exception as e:
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
