@@ -29260,8 +29260,19 @@ def integrations_instagram_brand_sync_now(brand_id):
                 ins = get_post_insights_for_brand(brand_id, mid)
                 insights_fetched += 1
             except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
-                unmatched_log.append({"media_id": mid,
-                                       "reason": f"insights:{type(e).__name__}"})
+                # Capture enough context to debug: media_type, error
+                # class, error message (truncated), Meta error code if any
+                err_msg = str(e)[:200]
+                err_code = getattr(e, "code", None) or (
+                    (e.upstream.get("error", {}) if hasattr(e, "upstream") and e.upstream else {}).get("code")
+                    if hasattr(e, "upstream") else None
+                )
+                unmatched_log.append({
+                    "media_id": mid,
+                    "media_type": mtype,
+                    "reason": f"insights:{type(e).__name__}:code={err_code}",
+                    "error": err_msg,
+                })
                 continue
             flat = ins.get("_flat") or {}
             signal = {}
