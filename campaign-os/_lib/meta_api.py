@@ -263,7 +263,7 @@ def get_post_insights(media_id: str) -> dict:
     flat: dict[str, Any] = {}
     for entry in out.get("data", []):
         name = entry.get("name", "?")
-        values = entry.get("data", [])
+        values = entry.get("values", [])
         if values and isinstance(values, list) and values:
             v = values[0].get("value")
             flat[name] = v
@@ -773,7 +773,7 @@ def get_post_insights_for_brand(
     flat: dict[str, Any] = {}
     for entry in out.get("data", []):
         name = entry.get("name", "?")
-        values = entry.get("data", [])
+        values = entry.get("values", [])
         if values and isinstance(values, list) and values:
             v = values[0].get("value")
             flat[name] = v

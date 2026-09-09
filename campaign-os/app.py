@@ -29126,7 +29126,7 @@ def integrations_instagram_brand_probe_media(brand_id):
                 flat: dict = {}
                 for entry in insights.get("data", []):
                     name = entry.get("name", "?")
-                    values = entry.get("data", [])
+                    values = entry.get("values", [])
                     if values and isinstance(values, list) and values:
                         flat[name] = values[0].get("value")
                 response["insights_raw"] = insights
