@@ -742,11 +742,13 @@ def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
     creds = resolve_credentials_for_brand(brand_id, cfg)
     if not creds["token"]:
         raise MetaAuthError(f"No Meta credentials for {brand_id}")
-    # Base metrics (all media types)
-    metrics = ["impressions", "reach", "saved", "likes", "comments", "shares"]
-    # Reels/Video extras — Meta exposes these for video-format media only.
-    # We include them in the request; Meta just won't return them for images.
-    metrics += ["video_views", "ig_reels_avg_watch_time", "ig_reels_video_view_total_time"]
+    # Base metrics that Meta returns for ALL media types (per current
+    # IG Graph API 2026). Video-specific metrics use a different
+    # endpoint (/insights/video) and break the main /insights call
+    # for VIDEO media if included.
+    metrics = ["impressions", "reach", "saved", "likes", "comments",
+               "shares", "total_interactions", "follows", "profile_visits",
+               "profile_activity"]
     params = {"metric": ",".join(metrics), "period": "lifetime"}
     out = _graph_get(f"/{media_id}/insights", params,
                       use_page_token=False, token_override=creds["token"])

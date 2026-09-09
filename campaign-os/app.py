@@ -29282,7 +29282,10 @@ def integrations_instagram_brand_sync_now(brand_id):
                                   ("comments", "comments"),
                                   ("saved", "saves"),
                                   ("shares", "shares"),
-                                  ("video_views", "video_views"),
+                                  ("total_interactions", "total_interactions"),
+                                  ("follows", "follows"),
+                                  ("profile_visits", "profile_visits"),
+                                  ("profile_activity", "profile_activity"),
                                   ("engagement_rate", "engagement_rate")]:
                 v = flat.get(k_in)
                 if isinstance(v, (int, float)):
