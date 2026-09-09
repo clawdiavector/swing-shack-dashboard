@@ -59,28 +59,6 @@ PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/
 PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
 
 
-# ── Client-side log collector ────────────────────────────────────────
-@app.route('/api/admin/client-log', methods=['POST'])
-def admin_client_log():
-    """Receive browser-side logs from the OS page (?logs=1 mode)."""
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "auth required"}), 401
-    try:
-        body = request.get_json(silent=True) or {}
-        entries = body.get('entries') or []
-        if not isinstance(entries, list):
-            return jsonify({"ok": False, "error": "entries must be a list"}), 400
-        # Log to server console (truncated)
-        import datetime
-        ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
-        for e in entries[-200:]:  # last 200
-            level = e.get('level', 'INFO')
-            msg = e.get('msg', '')
-            meta = e.get('meta')
-            print(f"[client-log {ts} {level}] {msg} {meta if meta else ''}")
-        return jsonify({"ok": True, "received": len(entries)}), 200
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
 
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
@@ -1060,65 +1038,6 @@ def health_v2():
     }), 200
 
 
-
-@app.route('/api/admin/env-debug', methods=['GET'])
-def env_debug():
-    """Debug endpoint: dump which credential env vars the running process can see.
-    Returns the PREFIX + LENGTH of each secret, never the value. Used to
-    verify env-var pickup after Railway env changes.
-    """
-    if not _INTELLIGENCE_AVAILABLE:
-        return jsonify({"ok": False, "error": "Intelligence unavailable"}), 503
-    keys_of_interest = [
-        "OPENROUTER_API_KEY",
-        "OPENROUTER_API_KEY_FILE",
-        "OPENAI_API_KEY",
-        "OPENAI_API_KEY_FILE",
-        "CAMPAIGN_OS_IMAGE_PROVIDER",
-        "CAMPAIGN_OS_IMAGE_MODEL",
-        "DATA_DIR",
-        "PORT",
-        # v2026-08-13: added for the validate_railway_deploy_wiring.py script.
-        # Tells the validator whether the GitHub PAT is wired for auto-deploys.
-        "GITHUB_TOKEN",
-        "GH_TOKEN",
-        "CAMPAIGN_OS_PASSWORD",
-        "CAMPAIGN_OS_SECRET",
-        # v2026-08-18: Postiz OAuth secret dropped via /secret-drop. Without
-        # this in the list, /api/admin/env-debug hides whether the rotation
-        # landed - which caused a misdiagnosis on the first Postiz drop.
-        "POSTIZ_OAUTH_CLIENT_SECRET",
-        "POSTIZ_OAUTH_CLIENT_ID",
-        "POSTIZ_API_KEY",
-        # OAuth tokens we mint from the in-app social login flow (Section E
-        # of the 2026-08-18 roadmap).
-        "META_SYSTEM_USER_TOKEN",
-        "X_ACCESS_TOKEN",
-        "X_BEARER_TOKEN",
-        "TIKTOK_ACCESS_TOKEN",
-        "GBP_REFRESH_TOKEN",
-        "GOOGLE_OAUTH_CLIENT_ID",
-        "GOOGLE_OAUTH_CLIENT_SECRET",
-    ]
-    out = {}
-    for k in keys_of_interest:
-        v = os.environ.get(k, "")
-        if v:
-            out[k] = {"set": True, "length": len(v), "prefix": v[:6] + "…"}
-        else:
-            out[k] = {"set": False}
-    # Also check the canonical file paths
-    file_checks = {}
-    for label, p in [
-        ("DEFAULT_OPENROUTER_TOKEN_FILE", "/Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials/openrouter-api.json"),
-    ]:
-        file_checks[label] = {"path": p, "exists": os.path.exists(p)}
-    return jsonify({
-        "ok": True,
-        "env": out,
-        "files": file_checks,
-        "ts": datetime.datetime.utcnow().isoformat() + 'Z',
-    })
 
 
 @app.route('/api/admin/env-debug', methods=['GET'])
