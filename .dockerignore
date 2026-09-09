@@ -1,5 +1,6 @@
-# Anything COPY'd by the Dockerfile must NOT be listed here.
-# Dockerfile copies: campaign-os/, campaign-os/requirements.txt, data/, assets/, scripts/
+# Mirror of .railwayignore, minus anything the Dockerfile COPY's
+# (scripts/, data/, assets/, campaign-os/requirements.txt, campaign-os/).
+# Local `docker build` must see the same context Railway sees.
 
 credentials/
 clients/
@@ -11,7 +12,10 @@ docs/
 node_modules/
 media/
 .git/
+logs/
 *.log
+.agent-job.json
+.agent-job/
 campaign-os/*.bak
 campaign-os/build-board.html
 campaign-os/cockpit.html
