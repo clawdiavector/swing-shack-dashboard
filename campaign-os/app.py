@@ -19584,6 +19584,53 @@ def _weekly_report_data_freshness_summary(sources):
     return summary
 
 
+@app.route('/api/admin/meta-index', methods=['GET'])
+def admin_meta_index():
+    """GET /api/admin/meta-index — return the live data/meta-post-index.json
+    content so the operator can commit any external publications that the
+    runtime sync-now created back into the repo (so they survive the next
+    image rebuild). Auth required.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    candidates = [
+        os.path.join(BUNDLED_DATA_DIR, 'meta-post-index.json'),
+        os.path.join(DATA_DIR, 'meta-post-index.json'),
+        os.path.join(REPO_ROOT, 'data', 'meta-post-index.json'),
+        'data/meta-post-index.json',
+    ]
+    chosen = None
+    body = None
+    for c in candidates:
+        try:
+            if os.path.exists(c):
+                with open(c) as f:
+                    body = f.read()
+                chosen = c
+                break
+        except Exception:
+            continue
+    if body is None:
+        return jsonify({
+            "ok": True,
+            "exists": False,
+            "path": None,
+            "index": {"by_asset_id": {}, "by_media_id": {},
+                      "external_publications": {}, "_meta": {}},
+        })
+    try:
+        parsed = json.loads(body)
+    except Exception:
+        parsed = None
+    return jsonify({
+        "ok": True,
+        "exists": True,
+        "path": chosen,
+        "bytes": len(body),
+        "index": parsed if parsed is not None else {"_raw": body},
+    })
+
+
 @app.route('/api/admin/data-freshness', methods=['GET'])
 def admin_data_freshness():
     """GET /api/admin/data-freshness — read from data/freshness.json which is

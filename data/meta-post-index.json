@@ -1,0 +1,19 @@
+{
+  "by_asset_id": {},
+  "by_media_id": {},
+  "external_publications": {},
+  "unresolved": [],
+  "generated": null,
+  "count": 0,
+  "external_count": 0,
+  "media_id_count": 0,
+  "_meta": {
+    "schema_version": "1.1",
+    "source_files": [
+      "data/publishing-references.json",
+      "data/events/postiz/*.json"
+    ],
+    "external_publication_note": "external_publications are IG media not mapped to any Campaign OS / Postiz asset",
+    "note": "Empty bootstrap file. Entries are populated at runtime by scripts/ig_insights_pull.py and /api/integrations/<brand>/instagram/sync-now. Committed so it ships in the image and survives redeploys (Railway baked-image context)."
+  }
+}
