@@ -29110,7 +29110,7 @@ def integrations_instagram_brand_discover(brand_id):
         cfg["ig_business_account_id"] = match.get("ig_account_id")
         cfg["configured"] = bool(match.get("ig_account_id"))
         cfg["last_discovered_at"] = _now.now(_tz.utc).isoformat()
-        cfg_p = Path(REPO_ROOT) / "data" / "integrations" / brand_id / "instagram.json"
+        cfg_p = Path(DATA_DIR) / "integrations" / brand_id / "instagram.json"
         try:
             cfg_p.parent.mkdir(parents=True, exist_ok=True)
             cfg_p.write_text(json.dumps(cfg, indent=2))
@@ -29300,7 +29300,7 @@ def integrations_instagram_brand_sync_now(brand_id):
         # Update config sync timestamps
         cfg["last_media_sync"] = datetime.now(timezone.utc).isoformat()
         cfg["last_insights_sync"] = datetime.now(timezone.utc).isoformat()
-        cfg_p = Path(REPO_ROOT) / "data" / "integrations" / brand_id / "instagram.json"
+        cfg_p = Path(DATA_DIR) / "integrations" / brand_id / "instagram.json"
         cfg_p.parent.mkdir(parents=True, exist_ok=True)
         cfg_p.write_text(json.dumps(cfg, indent=2))
 
