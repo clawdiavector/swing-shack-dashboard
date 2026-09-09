@@ -29309,10 +29309,33 @@ def integrations_instagram_brand_sync_now(brand_id):
                 filtered.append(m)
         media = filtered
 
+        # Load meta-post-index (mutable; external publications get appended)
+        try:
+            from _lib.meta_api import _integrations_root  # noqa: F401
+        except Exception:
+            pass
+        meta_index_path = Path(REPO_ROOT) / "data" / "meta-post-index.json"
+        if meta_index_path.exists():
+            try:
+                meta_index = json.loads(meta_index_path.read_text())
+            except Exception:
+                meta_index = {"by_asset_id": {}, "by_media_id": {},
+                                "external_publications": {}, "_meta": {}}
+        else:
+            meta_index = {"by_asset_id": {}, "by_media_id": {},
+                           "external_publications": {}, "_meta": {}}
+        meta_index.setdefault("by_asset_id", {})
+        meta_index.setdefault("by_media_id", {})
+        meta_index.setdefault("external_publications", {})
+        # Re-bind mapper to the live index (with external map)
+        mapper = mod.build_mapper(index=meta_index)
+
         # Pull insights for each media
         records = []
         unmatched_log = []
         insights_fetched = 0
+        external_created = 0
+        external_reused = 0
         for m_item in media:
             mid = m_item.get("id")
             mtype = m_item.get("media_type", "IMAGE")
@@ -29355,8 +29378,31 @@ def integrations_instagram_brand_sync_now(brand_id):
                     signal[k_out] = int(v) if k_out != "engagement_rate" else round(float(v), 3)
             mapping = mapper(mid)
             if not mapping:
-                unmatched_log.append({"media_id": mid, "reason": "no_asset_mapping"})
-                continue
+                # Per heidi (2026-09-09): external publication is a valid
+                # origin. Create canonical external asset keyed by IG
+                # media ID; reuse if already present (idempotent upsert).
+                ext_rec, was_created = mod.upsert_external_publication(
+                    index=meta_index,
+                    brand_id=brand_id,
+                    ig_media_id=mid,
+                    permalink=m_item.get("permalink"),
+                    media_type=mtype,
+                    published_at=m_item.get("timestamp"),
+                    caption=m_item.get("caption"),
+                )
+                if was_created:
+                    external_created += 1
+                else:
+                    external_reused += 1
+                mapping = {
+                    "asset_id": ext_rec.get("asset_id"),
+                    "campaign_id": None,
+                    "postiz_post_id": None,
+                    "platform_media_id": mid,
+                    "publisher": "external",
+                    "source": "external_publications",
+                    "origin": "external",
+                }
             asset_id = mapping.get("asset_id") or f"unmapped-{brand_id}-{mid}"
             records.append({
                 "image_id": asset_id,
@@ -29369,6 +29415,7 @@ def integrations_instagram_brand_sync_now(brand_id):
                 "mapping_source": mapping.get("source"),
                 "postiz_post_id": mapping.get("postiz_post_id"),
                 "campaign_id": mapping.get("campaign_id"),
+                "origin": mapping.get("origin"),
                 "captured_signal": signal,
             })
 
@@ -29380,6 +29427,21 @@ def integrations_instagram_brand_sync_now(brand_id):
         cfg_p = Path(DATA_DIR) / "integrations" / brand_id / "instagram.json"
         cfg_p.parent.mkdir(parents=True, exist_ok=True)
         cfg_p.write_text(json.dumps(cfg, indent=2))
+
+        # Persist (possibly updated) meta-post-index with external
+        # publications so the next sync sees them.
+        if external_created > 0 or external_reused > 0:
+            try:
+                meta_index["generated"] = datetime.now(timezone.utc).isoformat()
+                meta_index["external_count"] = len(meta_index.get("external_publications") or {})
+                meta_index.setdefault("_meta", {}).setdefault(
+                    "source_files",
+                    ["data/publishing-references.json", "data/events/postiz/*.json"],
+                )
+                meta_index["_meta"]["schema_version"] = "1.1"
+                meta_index_path.write_text(json.dumps(meta_index, indent=2, default=str))
+            except Exception as _e:
+                _app_log.warning("meta_index save failed: %s", _e)
 
         mapped = len(records)
         unmatched = len(unmatched_log)
@@ -29394,6 +29456,8 @@ def integrations_instagram_brand_sync_now(brand_id):
             "unmatched": unmatched,
             "feedback_imported": imported,
             "duplicates_skipped": skipped,
+            "external_created": external_created,
+            "external_reused": external_reused,
             "errors": feedback_result.get("errors", []),
             "win_profile": feedback_result.get("win_profile"),
             "unmatched_sample": unmatched_log[:5],
