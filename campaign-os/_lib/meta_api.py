@@ -522,8 +522,25 @@ INTEGRATIONS_INDEX_PATH = Path(
 
 
 def _integrations_root() -> Path:
-    """Path to data/integrations/ — per-brand config dir."""
-    repo = Path(os.environ.get("CAMPAIGN_OS_REPO", str(Path(__file__).resolve().parents[2])))
+    """Path to data/integrations/ — per-brand config dir.
+
+    On Railway the writable persistent volume is mounted at DATA_DIR
+    (set by the Railway container). The repo copy (REPO_ROOT/data)
+    is baked into the image and is read-only. We prefer DATA_DIR
+    if it exists so writes survive deploys.
+    """
+    data_dir = os.environ.get("DATA_DIR", "")
+    if data_dir:
+        # Check if DATA_DIR exists and is writable
+        try:
+            p = Path(data_dir) / "integrations"
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+        except Exception:
+            pass
+    # Fallback to repo copy
+    repo = Path(os.environ.get("CAMPAIGN_OS_REPO",
+                                 str(Path(__file__).resolve().parents[2])))
     return repo / "data" / "integrations"
 
 
