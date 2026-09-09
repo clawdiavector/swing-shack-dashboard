@@ -29073,6 +29073,44 @@ def integrations_instagram_brand_status(brand_id):
     return jsonify(out), 200
 
 
+@app.route("/api/integrations/<brand_id>/instagram/probe-media", methods=["GET"])
+def integrations_instagram_brand_probe_media(brand_id):
+    """GET /api/integrations/<brand>/instagram/probe-media?id=<media_id>
+
+    Returns full Meta details for a single IG media item — used to
+    identify content for deterministic mapping. NOT for production
+    monitoring. Returns caption, media_type, permalink, timestamp,
+    media_url.
+
+    Per heidi: credentials never logged; raw token never returned.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import OPERATING_BRANDS, _graph_get
+        from _lib.meta_api import resolve_credentials_for_brand, load_brand_integration
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({"ok": False, "error": f"{brand_id} is not an operating brand"}), 400
+    media_id = request.args.get("id", "").strip()
+    if not media_id or not media_id.isdigit():
+        return jsonify({"ok": False, "error": "valid ?id=<numeric_media_id> required"}), 400
+    cfg = load_brand_integration(brand_id)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+    if not creds["token"]:
+        return jsonify({"ok": False, "error": "no credentials resolved"}), 400
+    try:
+        out = _graph_get(f"/{media_id}", {
+            "fields": "id,caption,media_type,media_url,permalink,"
+                       "thumbnail_url,timestamp,username,is_comment_enabled,"
+                       "media_product_type,owner"
+        }, use_page_token=False, token_override=creds["token"])
+        return jsonify({"ok": True, "brand_id": brand_id, "media": out})
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
 @app.route("/api/integrations/<brand_id>/instagram/discover", methods=["POST"])
 def integrations_instagram_brand_discover(brand_id):
     """POST /api/integrations/<brand>/instagram/discover
