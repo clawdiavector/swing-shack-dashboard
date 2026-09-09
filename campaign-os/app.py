@@ -29154,34 +29154,63 @@ def integrations_instagram_brand_sync_now(brand_id):
             "error": f"{brand_id} is not an operating brand",
             "operating_brands": list(OPERATING_BRANDS),
         }), 400
-    # Spawn the script as a subprocess so the live sync state we report
-    # matches what the cron job will do.
-    import subprocess as _sp
+    # Run the ingestion IN-PROCESS so we don't depend on a subprocess.
+    # The script's functions are imported and called directly with
+    # parameters that mirror the CLI flags. This is what the nightly
+    # cron will do too (cron imports the same functions).
     body = request.get_json(force=True, silent=True) or {}
     limit = int(body.get("limit") or 50)
     since_days = int(body.get("since_days") or 30)
     try:
-        result = _sp.run(
-            [
-                ".venv/bin/python",
-                "scripts/ig_insights_pull.py",
-                "--brand", brand_id,
-                "--limit", str(limit),
-                "--since-days", str(since_days),
-                "--api-base", request.host_url.rstrip("/").replace("http://", "https://") if request.is_secure else request.host_url.rstrip("/"),
-                "--password", os.environ.get("CAMPAIGN_OS_PASSWORD", "swing-shack-dev-2026"),
-            ],
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            capture_output=True, text=True, timeout=300,
+        # Build the mapper once
+        repo_root = Path(REPO_ROOT)
+        # Add scripts dir to sys.path so we can import the script as a module
+        scripts_path = str(repo_root / "scripts")
+        if scripts_path not in sys.path:
+            sys.path.insert(0, scripts_path)
+        # Add campaign-os dir for _lib imports
+        co_path = str(repo_root / "campaign-os")
+        if co_path not in sys.path:
+            sys.path.insert(0, co_path)
+        # Import the script module
+        import importlib
+        mod = importlib.import_module("ig_insights_pull")
+        # Build mapper
+        mapper = mod.build_mapper()
+        # Get a session cookie for posting feedback
+        sess_cookie = request.headers.get("Cookie", "")
+        # Build a fake API base URL — the script's feedback POST goes
+        # to the same host the request came from.
+        api_base = request.host_url.rstrip("/")
+        # Override CAMPAIGN_OS_API_BASE in the script's module env
+        os.environ["CAMPAIGN_OS_API_BASE"] = api_base
+        # Build an api_login compatible cookie (the script will
+        # re-login with the password; we have the session cookie).
+        # Actually, the script logs in itself. Pass password through env.
+        os.environ["CAMPAIGN_OS_PASSWORD"] = os.environ.get(
+            "CAMPAIGN_OS_PASSWORD", "swing-shack-dev-2026"
         )
+        # Login (script does this itself)
+        cookie_str = mod.api_login(api_base, os.environ["CAMPAIGN_OS_PASSWORD"])
+        # Run the per-brand sync
+        r = mod.sync_brand(
+            brand_id, mapper, cookie_str, api_base,
+            limit=limit, since_days=since_days, dry_run=False,
+        )
+        # Persist last sync time on the live server (Railway has its
+        # own copy of the config; writing here would only affect this
+        # request's process. The script itself writes the config
+        # already via its own persist logic.)
         return jsonify({
-            "ok": result.returncode == 0,
-            "exit_code": result.returncode,
-            "stdout_tail": result.stdout[-2000:],
-            "stderr_tail": result.stderr[-2000:],
+            "ok": True,
+            "result": r,
         })
     except Exception as e:
-        return jsonify({"ok": False, "error": f"sync_now exception: {type(e).__name__}:{e}"}), 500
+        _app_log.exception("sync_now crashed")
+        return jsonify({
+            "ok": False,
+            "error": f"sync_now exception: {type(e).__name__}: {e}",
+        }), 500
 
 
 # ─── TIER 3.18 — EVENT-FOCUSED CALENDAR (per heidi.txt 2026-09-08) ────────
