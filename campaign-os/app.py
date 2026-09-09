@@ -19456,48 +19456,6 @@ def integrity_corrections():
     return jsonify({"ok": True, "corrections": it.list_corrections(bid)}), 200
 
 
-@app.route("/api/admin/debug-info", methods=["GET"])
-def debug_info():
-    """Debug endpoint that exposes what Railway has registered."""
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "auth required"}), 401
-    routes = []
-    for r in app.url_map.iter_rules():
-        routes.append({"rule": str(r.rule), "endpoint": str(r.endpoint), "methods": sorted(r.methods - {"HEAD", "OPTIONS"})})
-    return jsonify({
-        "ok": True,
-        "total_routes": len(routes),
-        "all_rules": [r["rule"] for r in routes],
-        "app_file_size": __file_size(),
-        "app_line_count": _app_line_count(),
-        "runtime_info": _app_runtime_info(),
-    }), 200
-
-
-def __file_size():
-    import os
-    try:
-        return os.path.getsize(__file__)
-    except Exception:
-        return -1
-
-
-def _app_line_count():
-    try:
-        with open(__file__, "r", encoding="utf-8") as _f:
-            return sum(1 for _ in _f)
-    except Exception:
-        return -1
-
-
-def _app_runtime_info():
-    import sys, platform
-    return {
-        "python_version": sys.version,
-        "platform": platform.platform(),
-        "flask_version": __import__("flask").__version__,
-    }
-
 # ── Staleness gates (added 2026-09-01 — restored after corruption) ─────────
 
 DEFAULT_MAX_AGE_DAYS = {
@@ -25136,6 +25094,40 @@ def liveness_probe():
     return jsonify({"status": "alive", "ts": _now_iso()}), 200
 
 
+_LIB_MODULE_GAP = None
+_LIB_MODULE_GAP_DONE = False
+
+
+def _lib_module_gap_fields():
+    """Cached AST scan of missing _lib modules. Informational — never a check."""
+    global _LIB_MODULE_GAP, _LIB_MODULE_GAP_DONE
+    if _LIB_MODULE_GAP_DONE:
+        return _LIB_MODULE_GAP
+    _LIB_MODULE_GAP_DONE = True
+    try:
+        import importlib.util
+        checker = os.path.join(REPO_ROOT, "scripts", "check_lib_modules.py")
+        spec = importlib.util.spec_from_file_location("check_lib_modules", checker)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("cannot load check_lib_modules")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        report = mod.scan()
+        _LIB_MODULE_GAP = {
+            "lib_modules_missing": report["lib_modules_missing"],
+            "lib_modules_present": report["present_count"],
+            "strategy_page_present": report["strategy_page_present"],
+        }
+    except Exception:
+        _app_log.warning("lib-module gap scan failed; emitting nulls", exc_info=True)
+        _LIB_MODULE_GAP = {
+            "lib_modules_missing": None,
+            "lib_modules_present": None,
+            "strategy_page_present": None,
+        }
+    return _LIB_MODULE_GAP
+
+
 @app.route("/api/ready", methods=["GET"])
 @app.route("/readyz", methods=["GET"])
 def readiness_probe():
@@ -25169,10 +25161,14 @@ def readiness_probe():
     except Exception:
         checks["brand_settings_writable"] = False
     all_ready = all(v for k, v in checks.items() if isinstance(v, bool))
+    gap = _lib_module_gap_fields()
     return jsonify({
         "status": "ready" if all_ready else "not_ready",
         "checks": checks,
         "ts": _now_iso(),
+        "lib_modules_missing": gap["lib_modules_missing"],
+        "lib_modules_present": gap["lib_modules_present"],
+        "strategy_page_present": gap["strategy_page_present"],
     }), 200 if all_ready else 503
 
 
@@ -26890,7 +26886,7 @@ cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
 python3 -c "import sys; sys.path.insert(0, 'campaign-os'); import app; print('OK')"
 
 # Check routes
-grep -E "@app\.route" campaign-os/app.py | wc -l
+grep -E "@app\\.route" campaign-os/app.py | wc -l
 
 # Run cron manually
 gh workflow run meta-live-fetch.yml

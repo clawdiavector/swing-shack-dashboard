@@ -1,5 +1,9 @@
 # Fly.io config for Campaign OS
 # Generated 2026-07-28
+#
+# Dockerfile at repo root is the shared build artefact (Railway + Fly).
+# Railway config lives in railway.json — this file is the Fly backup target,
+# not the live deploy source of truth.
 app = "campaign-os-christelle"
 primary_region = "jnb"   # Johannesburg — closest to Christelle (Africa/Johannesburg UTC+2)
 
@@ -28,7 +32,7 @@ primary_region = "jnb"   # Johannesburg — closest to Christelle (Africa/Johann
     timeout = "5s"
     grace_period = "20s"
     method = "GET"
-    path = "/"
+    path = "/api/health"
 
 [[vm]]
   size = "shared-cpu-1x"
