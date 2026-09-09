@@ -25093,6 +25093,40 @@ def liveness_probe():
     return jsonify({"status": "alive", "ts": _now_iso()}), 200
 
 
+_LIB_MODULE_GAP = None
+_LIB_MODULE_GAP_DONE = False
+
+
+def _lib_module_gap_fields():
+    """Cached AST scan of missing _lib modules. Informational — never a check."""
+    global _LIB_MODULE_GAP, _LIB_MODULE_GAP_DONE
+    if _LIB_MODULE_GAP_DONE:
+        return _LIB_MODULE_GAP
+    _LIB_MODULE_GAP_DONE = True
+    try:
+        import importlib.util
+        checker = os.path.join(REPO_ROOT, "scripts", "check_lib_modules.py")
+        spec = importlib.util.spec_from_file_location("check_lib_modules", checker)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("cannot load check_lib_modules")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        report = mod.scan()
+        _LIB_MODULE_GAP = {
+            "lib_modules_missing": report["lib_modules_missing"],
+            "lib_modules_present": report["present_count"],
+            "strategy_page_present": report["strategy_page_present"],
+        }
+    except Exception:
+        _app_log.warning("lib-module gap scan failed; emitting nulls", exc_info=True)
+        _LIB_MODULE_GAP = {
+            "lib_modules_missing": None,
+            "lib_modules_present": None,
+            "strategy_page_present": None,
+        }
+    return _LIB_MODULE_GAP
+
+
 @app.route("/api/ready", methods=["GET"])
 @app.route("/readyz", methods=["GET"])
 def readiness_probe():
@@ -25126,10 +25160,14 @@ def readiness_probe():
     except Exception:
         checks["brand_settings_writable"] = False
     all_ready = all(v for k, v in checks.items() if isinstance(v, bool))
+    gap = _lib_module_gap_fields()
     return jsonify({
         "status": "ready" if all_ready else "not_ready",
         "checks": checks,
         "ts": _now_iso(),
+        "lib_modules_missing": gap["lib_modules_missing"],
+        "lib_modules_present": gap["lib_modules_present"],
+        "strategy_page_present": gap["strategy_page_present"],
     }), 200 if all_ready else 503
 
 
