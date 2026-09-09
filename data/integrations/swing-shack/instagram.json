@@ -1,0 +1,23 @@
+{
+  "brand_id": "swing-shack",
+  "platform": "instagram",
+  "facebook_page_id": "198859063301219",
+  "ig_business_account_id": "17841456713897671",
+  "credential_env": "META_SYSTEM_USER_TOKEN",
+  "credential_mode": "system_user_token",
+  "scopes_required": [
+    "pages_show_list",
+    "instagram_basic",
+    "pages_read_engagement",
+    "instagram_manage_insights"
+  ],
+  "scopes_publishing": [
+    "instagram_content_publish"
+  ],
+  "last_media_sync": null,
+  "last_insights_sync": null,
+  "last_error": null,
+  "configured": true,
+  "notes": "Live IG account. Token present on Railway but page/account id needs discovery via /me/accounts.",
+  "last_discovered_at": "2026-09-09T07:11:00Z"
+}

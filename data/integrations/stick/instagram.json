@@ -1,0 +1,22 @@
+{
+  "brand_id": "stick",
+  "platform": "instagram",
+  "facebook_page_id": null,
+  "ig_business_account_id": null,
+  "credential_env": null,
+  "credential_mode": "system_user_token",
+  "scopes_required": [
+    "pages_show_list",
+    "instagram_basic",
+    "pages_read_engagement",
+    "instagram_manage_insights"
+  ],
+  "scopes_publishing": [
+    "instagram_content_publish"
+  ],
+  "last_media_sync": null,
+  "last_insights_sync": null,
+  "last_error": null,
+  "configured": false,
+  "notes": "Stick IG not yet configured. Add page_id + ig_account_id + credential when ready."
+}

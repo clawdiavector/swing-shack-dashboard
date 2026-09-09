@@ -24,7 +24,7 @@ import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
 from typing import Optional, List
-from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -5767,17 +5767,53 @@ def feedback_import_ig():
     the library if image_id is a ref_id).
     """
     try:
-        from _lib.feedback_loop import add_record
-        from _lib.reference_dna import load_reference_dna
+        from _lib.feedback_loop import (
+            add_record, load_performance, save_performance,
+            compute_learned_signals, save_learned_signals, load_learned_signals,
+            update_record_by_key,
+        )
+        from _lib.meta_api import OPERATING_BRANDS
+        # reference_dna is optional — only used for dna_snapshot lookup.
+        # If the module doesn't exist or fails to import, we just
+        # skip the DNA snapshot enrichment (still imports the signal).
+        try:
+            from _lib.reference_dna import load_reference_dna
+            _has_reference_dna = True
+        except Exception as _e:
+            _app_log.warning("reference_dna unavailable: %s", _e)
+            load_reference_dna = None
+            _has_reference_dna = False
 
         body = request.get_json(force=True, silent=True) or {}
         brand = body.get('brand') or get_brand_id() or 'swing-shack'
         records_in = body.get('records') or []
+
+        # ── BRAND GUARD — per heidi.txt P0 architecture rule ────────────
+        if brand not in OPERATING_BRANDS:
+            return jsonify({
+                "ok": False,
+                "error": f"brand {brand!r} is not an operating brand",
+                "operating_brands": list(OPERATING_BRANDS),
+                "note": "Takomo is a product_brand, not an operating brand."
+            }), 400
+
         if not records_in:
             return jsonify({"ok": False, "error": "no records provided"}), 400
 
+        # ── IDEMPOTENCY — load existing records, dedup by
+        # (image_id, platform_post_id) so re-runs don't double-count ──
+        existing = load_performance(brand)
+        existing_keys = set()
+        for r in existing.get("records", []):
+            key = (str(r.get("image_id") or ""),
+                   str(r.get("platform_post_id") or ""))
+            existing_keys.add(key)
+
         imported = 0
+        skipped_duplicate = 0
+        refreshed = 0
         errors: list[str] = []
+        new_records_added: list[dict] = []
         for r in records_in:
             try:
                 image_id = r.get('image_id', '').strip()
@@ -5785,20 +5821,93 @@ def feedback_import_ig():
                 if not image_id:
                     continue
 
-                signal = {k: v for k, v in r.items()
-                          if k in ('impressions', 'likes', 'comments', 'saves', 'reach',
-                                   'link_clicks', 'ga_sessions', 'ga_conversions',
-                                   'gmb_calls', 'bookings')}
+                # ── CROSS-BRAND CONTAMINATION CHECK ────────────────────
+                # If the record carries a brand_id and it doesn't match
+                # the route's brand, reject. Stops Stick IG data leaking
+                # into Swing Shack's learning even on misrouted requests.
+                rec_brand = r.get('brand_id')
+                if rec_brand and rec_brand != brand:
+                    errors.append(
+                        f"brand_mismatch:{image_id} claimed={rec_brand} route={brand}"
+                    )
+                    continue
+
+                # Dedup key — image_id + platform_post_id.
+                # On a match, refresh the existing record's signal +
+                # score (IG metrics are time-varying) instead of
+                # silently dropping the re-ingestion. (432f30d intent)
+                if (image_id, post_id or "") in existing_keys:
+                    nested_sig = r.get('captured_signal') or {}
+                    refresh_signal = nested_sig if isinstance(nested_sig, dict) and nested_sig else r
+                    allowed = ('impressions', 'likes', 'comments', 'saves', 'reach',
+                               'shares', 'link_clicks', 'ga_sessions',
+                               'ga_conversions', 'gmb_calls', 'bookings',
+                               'video_views', 'total_interactions', 'follows',
+                               'profile_visits', 'profile_activity',
+                               'ig_reels_avg_watch_time',
+                               'ig_reels_video_view_total_time',
+                               'engagement_rate')
+                    refresh_signal = {k: v for k, v in refresh_signal.items() if k in allowed}
+                    updated = update_record_by_key(
+                        brand,
+                        image_id=image_id,
+                        platform_post_id=post_id,
+                        captured_signal=refresh_signal,
+                    )
+                    if updated is not None:
+                        refreshed += 1
+                    else:
+                        skipped_duplicate += 1
+                    continue
+
+                # Build the signal dict. Either the record carries a
+                # nested captured_signal sub-object (canonical shape
+                # from sync-now), or the signal fields are at the top
+                # level (legacy flat shape). Both are valid.
+                allowed_metrics = ('impressions', 'likes', 'comments', 'saves', 'reach',
+                                    'shares', 'link_clicks', 'ga_sessions',
+                                    'ga_conversions', 'gmb_calls', 'bookings',
+                                    'video_views', 'total_interactions', 'follows',
+                                    'profile_visits', 'profile_activity',
+                                    'ig_reels_avg_watch_time',
+                                    'ig_reels_video_view_total_time',
+                                    'engagement_rate')
+                nested = r.get('captured_signal') or {}
+                if isinstance(nested, dict) and nested:
+                    signal = {k: v for k, v in nested.items() if k in allowed_metrics}
+                else:
+                    signal = {k: v for k, v in r.items() if k in allowed_metrics}
 
                 # Look up DNA from library if image_id looks like a ref
+                # (only if reference_dna module is available — it's
+                # optional for the import endpoint)
                 dna_snapshot = r.get('dna_snapshot')
-                if not dna_snapshot:
-                    ref = load_reference_dna(image_id, brand)
-                    if ref:
-                        from _lib.feedback_loop import snapshot_from_reference
-                        dna_snapshot = snapshot_from_reference(ref)
+                if not dna_snapshot and _has_reference_dna and load_reference_dna:
+                    try:
+                        ref = load_reference_dna(image_id, brand)
+                        if ref:
+                            from _lib.feedback_loop import snapshot_from_reference
+                            dna_snapshot = snapshot_from_reference(ref)
+                    except Exception as _e:
+                        _app_log.warning("load_reference_dna failed for %s: %s",
+                                          image_id, _e)
 
-                add_record(
+                # Carry mapping context from the IG ingestion script
+                # into notes so the WIN profile can later attribute
+                # performance to a specific campaign / postiz mapping.
+                notes = r.get('notes', '')
+                extras = []
+                for k in ("ig_media_id", "permalink", "media_type",
+                           "ig_timestamp", "mapping_source",
+                           "postiz_post_id", "campaign_id", "platform"):
+                    v = r.get(k)
+                    if v is not None:
+                        extras.append(f"{k}={v}")
+                if extras:
+                    sep = "\n" if notes else ""
+                    notes = notes + sep + "\n".join(extras)
+
+                rec = add_record(
                     brand,
                     image_id=image_id,
                     kind='reference',
@@ -5806,13 +5915,42 @@ def feedback_import_ig():
                     captured_signal=signal,
                     dna_snapshot=dna_snapshot or {},
                     platform_post_id=post_id,
-                    notes=r.get('notes', ''),
+                    notes=notes,
                 )
+                existing_keys.add((image_id, post_id or ""))
                 imported += 1
+                new_records_added.append(rec)
             except Exception as e:
                 errors.append(str(e))
 
-        return jsonify({"ok": True, "imported": imported, "errors": errors[:5]})
+        # ── RECOMPUTE WIN PROFILE (learned-signals.json) ──────────────
+        # Per heidi.txt: "A WIN PROFILE should only be marked as
+        # meaningful/ready when it has enough valid mapped performance
+        # samples according to the existing learning rules."
+        win_status = None
+        try:
+            signals = compute_learned_signals(brand)
+            save_learned_signals(signals, brand)
+            samples = signals.get("samples", 0)
+            win_threshold = signals.get("win_threshold", 0.65)
+            win_status = {
+                "ready": samples >= 5,  # min_samples floor in compute_learned_signals
+                "samples": samples,
+                "win_threshold": win_threshold,
+                "updated": signals.get("updated"),
+            }
+        except Exception as e:
+            errors.append(f"learned_signals_recompute:{e}")
+
+        return jsonify({
+            "ok": True,
+            "brand": brand,
+            "imported": imported,
+            "skipped_duplicate": skipped_duplicate,
+            "refreshed": refreshed,
+            "errors": errors[:5],
+            "win_profile": win_status,
+        })
     except Exception as e:
         _app_log.exception("feedback_import_ig failed")
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -11011,7 +11149,18 @@ def cockpit():
 
 @app.route('/<path:filename>')
 def static_files(filename):
-    return send_from_directory('.', filename)
+    # SPA section deep-links (e.g. /sec-planning) → serve the SPA HTML
+    # so the SPA boots and switches to that section.
+    if filename.startswith('sec-'):
+        return send_from_directory('.', 'campaign-os.html')
+    target = os.path.join('.', filename)
+    if os.path.exists(target):
+        return send_from_directory('.', filename)
+    # SPA-style routes (no file extension, not in api/ or _lib/) → serve SPA
+    last = filename.split('/')[-1]
+    if '.' not in last and not filename.startswith(('api/', '_lib/', 'assets/')):
+        return send_from_directory('.', 'campaign-os.html')
+    abort(404)
 
 # ─── TRUTH COLLECTOR (Stage 4 — server-side only) ─────────────────────
 # The Truth Collector ingests real analytics (GA4 + Meta) and writes
@@ -11810,8 +11959,6 @@ def _get_freshness():
     return generated, 'on-demand', True
 
 
-<<<<<<< HEAD
-=======
 @app.route('/api/freshness/refresh', methods=['POST'])
 def freshness_refresh():
     """POST /api/freshness/refresh — re-walk the data/ tree and rebuild
@@ -11863,7 +12010,6 @@ def freshness_refresh():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
->>>>>>> main
 @app.route('/api/freshness', methods=['GET'])
 def freshness():
     """GET /api/freshness — surface data/freshness.json so the OS UI can render
@@ -19425,29 +19571,6 @@ def integrity_corrections():
     return jsonify({"ok": True, "corrections": it.list_corrections(bid)}), 200
 
 
-if __name__ == '__main__':
-    import sys as _sys
-    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
-    try:
-        _boot_load_persisted_secrets()
-        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    try:
-        _boot_selfheal_windsor()
-        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    port = int(os.environ.get('PORT', 8000))
-    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
-    try:
-        app.run(host='0.0.0.0', port=port)
-    except Exception as _e:
-        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
-        raise
-
-
-
 # ── Staleness gates (added 2026-09-01 — restored after corruption) ─────────
 
 DEFAULT_MAX_AGE_DAYS = {
@@ -19630,8 +19753,6 @@ def admin_data_freshness():
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
-<<<<<<< HEAD
-=======
 
 
 # ─── SEO BUSINESS BRAIN (2026-09-02) ──────────────────────────────────────────
@@ -25088,6 +25209,40 @@ def liveness_probe():
     return jsonify({"status": "alive", "ts": _now_iso()}), 200
 
 
+_LIB_MODULE_GAP = None
+_LIB_MODULE_GAP_DONE = False
+
+
+def _lib_module_gap_fields():
+    """Cached AST scan of missing _lib modules. Informational — never a check."""
+    global _LIB_MODULE_GAP, _LIB_MODULE_GAP_DONE
+    if _LIB_MODULE_GAP_DONE:
+        return _LIB_MODULE_GAP
+    _LIB_MODULE_GAP_DONE = True
+    try:
+        import importlib.util
+        checker = os.path.join(REPO_ROOT, "scripts", "check_lib_modules.py")
+        spec = importlib.util.spec_from_file_location("check_lib_modules", checker)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("cannot load check_lib_modules")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        report = mod.scan()
+        _LIB_MODULE_GAP = {
+            "lib_modules_missing": report["lib_modules_missing"],
+            "lib_modules_present": report["present_count"],
+            "strategy_page_present": report["strategy_page_present"],
+        }
+    except Exception:
+        _app_log.warning("lib-module gap scan failed; emitting nulls", exc_info=True)
+        _LIB_MODULE_GAP = {
+            "lib_modules_missing": None,
+            "lib_modules_present": None,
+            "strategy_page_present": None,
+        }
+    return _LIB_MODULE_GAP
+
+
 @app.route("/api/ready", methods=["GET"])
 @app.route("/readyz", methods=["GET"])
 def readiness_probe():
@@ -25121,10 +25276,14 @@ def readiness_probe():
     except Exception:
         checks["brand_settings_writable"] = False
     all_ready = all(v for k, v in checks.items() if isinstance(v, bool))
+    gap = _lib_module_gap_fields()
     return jsonify({
         "status": "ready" if all_ready else "not_ready",
         "checks": checks,
         "ts": _now_iso(),
+        "lib_modules_missing": gap["lib_modules_missing"],
+        "lib_modules_present": gap["lib_modules_present"],
+        "strategy_page_present": gap["strategy_page_present"],
     }), 200 if all_ready else 503
 
 
@@ -26842,7 +27001,7 @@ cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
 python3 -c "import sys; sys.path.insert(0, 'campaign-os'); import app; print('OK')"
 
 # Check routes
-grep -E "@app\.route" campaign-os/app.py | wc -l
+grep -E "@app\\.route" campaign-os/app.py | wc -l
 
 # Run cron manually
 gh workflow run meta-live-fetch.yml
@@ -28017,6 +28176,18 @@ import time as _time
 # not in a separate tool.
 
 PLANNING_DIR = os.path.join(DATA_DIR, "brand-planning")
+PLANNING_DIR_BAKED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "brand-planning")
+
+
+def _planning_dir():
+    """Return the brand-planning dir, preferring DATA_DIR (Railway volume)
+    but falling back to baked /app/data/brand-planning/ if needed.
+    """
+    if os.path.isdir(PLANNING_DIR) and os.listdir(PLANNING_DIR):
+        return PLANNING_DIR
+    if os.path.isdir(PLANNING_DIR_BAKED) and os.listdir(PLANNING_DIR_BAKED):
+        return PLANNING_DIR_BAKED
+    return PLANNING_DIR
 IMPORTANT_DATES_DIR = os.path.join(DATA_DIR, "important-dates")
 GOLF_MOMENTS_DIR = os.path.join(DATA_DIR, "golf-moments")
 
@@ -28034,7 +28205,7 @@ LANE_TYPES = [
 
 
 def _read_planning(brand_id):
-    p = os.path.join(PLANNING_DIR, f"{brand_id}.json")
+    p = os.path.join(_planning_dir(), f"{brand_id}.json")
     if not os.path.exists(p):
         return None
     try:
@@ -28141,7 +28312,7 @@ def planning_monthly_theme(brand_id):
         themes.sort(key=lambda t: t.get("month", ""))
         data["monthly_themes"] = themes
         os.makedirs(PLANNING_DIR, exist_ok=True)
-        with open(os.path.join(PLANNING_DIR, f"{brand_id}.json"), "w") as f:
+        with open(os.path.join(_planning_dir(), f"{brand_id}.json"), "w") as f:
             json.dump(data, f, indent=2)
         return jsonify({"ok": True, "brand_id": brand_id, "month": month, "theme": theme,
                         "themes_count": len(themes)}), 200
@@ -28192,9 +28363,9 @@ def planning_lane_health(brand_id):
     # Aggregate from 3 sources (Herman sample first):
     counts = {lane["lane"]: 0 for lane in lane_system}
     items = []
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-herman-sample-month.json")
     if not os.path.exists(sample_path):
-        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+        sample_path = os.path.join(_planning_dir(), f"{brand_id}-sample-month.json")
     if os.path.exists(sample_path):
         try:
             with open(sample_path) as f:
@@ -28321,12 +28492,12 @@ def planning_monthly_plan(brand_id):
             "must_produce": body.get("must_produce", []),
             "approved": False,
         }
-        plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+        plan_path = os.path.join(_planning_dir(), f"{brand_id}-monthly-plan-{month}.json")
         with open(plan_path, "w") as f:
             json.dump(plan, f, indent=2)
         return jsonify({"ok": True, "plan": plan, "saved_to": plan_path}), 200
     # GET
-    plan_path = os.path.join(PLANNING_DIR, f"{brand_id}-monthly-plan-{month}.json")
+    plan_path = os.path.join(_planning_dir(), f"{brand_id}-monthly-plan-{month}.json")
     plan = None
     if os.path.exists(plan_path):
         try:
@@ -28496,10 +28667,10 @@ def planning_month_view(brand_id):
     #   2. _lib.marketing_lanes.list_extended_content — canonical content items
     #   3. data/content_items.json — fallback
     items = []
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-herman-sample-month.json")
     if not os.path.exists(sample_path):
         # Fall back to legacy sample file
-        sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-month.json")
+        sample_path = os.path.join(_planning_dir(), f"{brand_id}-sample-month.json")
     if os.path.exists(sample_path):
         try:
             with open(sample_path) as f:
@@ -28756,7 +28927,7 @@ def planning_herman_sample(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-herman-sample-month.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-herman-sample-month.json")
     if not os.path.exists(sample_path):
         return jsonify({"ok": False, "error": "no herman sample data", "expected": sample_path}), 404
     try:
@@ -28825,8 +28996,8 @@ def planning_month_sample(brand_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     # Prefer the realistic parallel week if it exists
-    realistic_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
-    legacy_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-october.json")
+    realistic_path = os.path.join(_planning_dir(), f"{brand_id}-sample-week-oct5-11.json")
+    legacy_path = os.path.join(_planning_dir(), f"{brand_id}-sample-october.json")
     sample_path = realistic_path if os.path.exists(realistic_path) else legacy_path
     if not os.path.exists(sample_path):
         return jsonify({"ok": False, "error": "no sample month data"}), 404
@@ -28874,7 +29045,7 @@ def planning_week_sample(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    sample_path = os.path.join(PLANNING_DIR, f"{brand_id}-sample-week-oct5-11.json")
+    sample_path = os.path.join(_planning_dir(), f"{brand_id}-sample-week-oct5-11.json")
     if not os.path.exists(sample_path):
         return jsonify({"ok": False, "error": "no sample week data"}), 404
     try:
@@ -28921,7 +29092,7 @@ def planning_cadences(brand_id):
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    cadences_path = os.path.join(PLANNING_DIR, f"{brand_id}-cadences.json")
+    cadences_path = os.path.join(_planning_dir(), f"{brand_id}-cadences.json")
     if not os.path.exists(cadences_path):
         return jsonify({"ok": False, "error": "no cadence config"}), 404
     try:
@@ -28930,4 +29101,855 @@ def planning_cadences(brand_id):
         return jsonify({"ok": True, **data}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
->>>>>>> main
+
+# ─── TIER 1.4 — PER-BRAND INSTAGRAM CONNECTION CENTRE ─────────────────────
+# Per heidi.txt architecture rule:
+#   Each OPERATING brand has its own connection record (page_id +
+#   ig_business_account_id + credential). Connection health is per-brand,
+#   not global. Bag Drop may not have the same integrations as Swing Shack.
+
+@app.route("/api/integrations/<brand_id>/instagram", methods=["GET"])
+def integrations_instagram_brand_status(brand_id):
+    """GET /api/integrations/<brand>/instagram — per-brand IG connection state.
+
+    Returns honest state:
+      - not_configured (no config file OR configured=false)
+      - no_credentials (config present but env vars missing)
+      - unhealthy (credentials present but live checks failed)
+      - healthy (all live checks passed)
+
+    Raw credentials are NEVER returned.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import (
+            OPERATING_BRANDS, load_brand_integration,
+            resolve_credentials_for_brand, health_check_for_brand,
+            list_recent_posts_for_brand,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({
+            "ok": False,
+            "error": f"{brand_id} is not an operating brand",
+            "operating_brands": list(OPERATING_BRANDS),
+            "note": "Takomo is a product_brand, not an operating brand."
+        }), 400
+
+    cfg = load_brand_integration(brand_id)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+
+    out = {
+        "ok": True,
+        "brand_id": brand_id,
+        "platform": "instagram",
+        "status": None,  # healthy | unhealthy | no_credentials | not_configured
+        "configured": cfg.get("configured", False),
+        "credential_mode": creds.get("mode"),
+        "credential_source": creds.get("source"),
+        "credential_errors": creds.get("errors", []),
+        "last_media_sync": cfg.get("last_media_sync"),
+        "last_insights_sync": cfg.get("last_insights_sync"),
+        "last_error": cfg.get("last_error"),
+        "page_id": cfg.get("facebook_page_id"),
+        "ig_account_id": cfg.get("ig_business_account_id"),
+        "scopes_required": cfg.get("scopes_required", []),
+        "scopes_publishing": cfg.get("scopes_publishing", []),
+        "health_checks": {},
+        "issues": [],
+    }
+
+    if not cfg.get("configured", False):
+        out["status"] = "not_configured"
+        out["issues"].append("brand_marked_not_configured")
+        return jsonify(out), 200
+
+    if not creds.get("token"):
+        out["status"] = "no_credentials"
+        out["issues"].append("no_credentials_resolved")
+        return jsonify(out), 200
+
+    # Live health checks
+    try:
+        health = health_check_for_brand(brand_id)
+        out["health_checks"] = health.get("checks", {})
+        out["issues"] = health.get("issues", [])
+        out["status"] = "healthy" if health.get("healthy") else "unhealthy"
+    except Exception as e:
+        out["status"] = "unhealthy"
+        out["issues"].append(f"health_check_exception:{type(e).__name__}:{e}")
+
+    return jsonify(out), 200
+
+
+@app.route("/api/integrations/<brand_id>/instagram/probe-media", methods=["GET"])
+def integrations_instagram_brand_probe_media(brand_id):
+    """GET /api/integrations/<brand>/instagram/probe-media?id=<media_id>
+
+    Returns full Meta details for a single IG media item — used to
+    identify content for deterministic mapping. NOT for production
+    monitoring. Returns caption, media_type, permalink, timestamp,
+    media_url.
+
+    Per heidi: credentials never logged; raw token never returned.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import OPERATING_BRANDS, _graph_get
+        from _lib.meta_api import resolve_credentials_for_brand, load_brand_integration
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({"ok": False, "error": f"{brand_id} is not an operating brand"}), 400
+    media_id = request.args.get("id", "").strip()
+    if not media_id or not media_id.isdigit():
+        return jsonify({"ok": False, "error": "valid ?id=<numeric_media_id> required"}), 400
+    cfg = load_brand_integration(brand_id)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+    if not creds["token"]:
+        return jsonify({"ok": False, "error": "no credentials resolved"}), 400
+    include_insights = request.args.get("insights", "").lower() in ("1", "true", "yes")
+    try:
+        out = _graph_get(f"/{media_id}", {
+            "fields": "id,caption,media_type,media_url,permalink,"
+                       "thumbnail_url,timestamp,username,is_comment_enabled,"
+                       "media_product_type,owner"
+        }, use_page_token=False, token_override=creds["token"])
+        response: dict = {"ok": True, "brand_id": brand_id, "media": out}
+        if include_insights:
+            try:
+                mtype = (out.get("media_type") or "").upper()
+                if mtype in ("VIDEO", "REEL", "IG_REEL", "CLIPS"):
+                    metrics = ["reach", "saved", "likes", "comments",
+                                "shares", "total_interactions"]
+                else:
+                    metrics = ["impressions", "reach", "saved", "likes",
+                                "comments", "shares", "total_interactions",
+                                "follows", "profile_visits", "profile_activity"]
+                insights = _graph_get(
+                    f"/{media_id}/insights",
+                    {"metric": ",".join(metrics), "period": "lifetime"},
+                    use_page_token=False, token_override=creds["token"]
+                )
+                flat: dict = {}
+                for entry in insights.get("data", []):
+                    name = entry.get("name", "?")
+                    values = entry.get("values", [])
+                    if values and isinstance(values, list) and values:
+                        flat[name] = values[0].get("value")
+                response["insights_raw"] = insights
+                response["insights_flat"] = flat
+            except Exception as _ie:
+                response["insights_error"] = f"{type(_ie).__name__}: {_ie}"
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route("/api/integrations/<brand_id>/instagram/discover", methods=["POST"])
+def integrations_instagram_brand_discover(brand_id):
+    """POST /api/integrations/<brand>/instagram/discover
+
+    Discover Facebook Pages + IG accounts reachable by the resolved
+    credential. Returns the list. If `?page_id=X` or
+    `{"page_id": "X"}` is passed, persists that selection into the
+    per-brand config (so subsequent syncs know which page to use).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import (
+            OPERATING_BRANDS, discover_pages_and_ig_account,
+            MetaAuthError, MetaUpstreamError,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({
+            "ok": False,
+            "error": f"{brand_id} is not an operating brand",
+            "operating_brands": list(OPERATING_BRANDS),
+        }), 400
+
+    try:
+        discovery = discover_pages_and_ig_account(brand_id)
+    except (MetaAuthError, MetaUpstreamError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    except Exception as e:
+        _app_log.exception("discover_pages_and_ig_account crashed")
+        return jsonify({
+            "ok": False,
+            "error": f"discovery failed: {type(e).__name__}: {e}",
+            "traceback": str(e.__traceback__) if hasattr(e, '__traceback__') else None,
+        }), 500
+
+    pages = discovery.get("pages", [])
+
+    # Optional: persist a specific page_id + ig_account_id
+    body = request.get_json(force=True, silent=True) or {}
+    select_page_id = body.get("page_id") or request.args.get("page_id")
+    selected = None
+    persisted = False
+    if select_page_id:
+        match = next((p for p in pages if p.get("page_id") == select_page_id), None)
+        if not match:
+            return jsonify({
+                "ok": False,
+                "error": f"page_id {select_page_id!r} not in discovered pages",
+                "pages": pages,
+            }), 400
+        selected = match
+        # Persist
+        from _lib.meta_api import load_brand_integration
+        from datetime import datetime as _now, timezone as _tz
+        cfg = load_brand_integration(brand_id)
+        cfg["facebook_page_id"] = match["page_id"]
+        cfg["ig_business_account_id"] = match.get("ig_account_id")
+        cfg["configured"] = bool(match.get("ig_account_id"))
+        cfg["last_discovered_at"] = _now.now(_tz.utc).isoformat()
+        cfg_p = Path(DATA_DIR) / "integrations" / brand_id / "instagram.json"
+        try:
+            cfg_p.parent.mkdir(parents=True, exist_ok=True)
+            cfg_p.write_text(json.dumps(cfg, indent=2))
+            persisted = True
+        except Exception as e:
+            _app_log.exception("discover persist crashed")
+            return jsonify({"ok": False, "error": f"persist failed: {type(e).__name__}: {e}",
+                            "discovery": discovery}), 500
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "credential_mode": discovery.get("credential_mode"),
+        "credential_source": discovery.get("credential_source"),
+        "fetched": discovery.get("fetched"),
+        "pages": pages,
+        "selected": selected,
+        "persisted": persisted,
+    })
+
+
+@app.route("/api/integrations/<brand_id>/instagram/sync-now", methods=["POST"])
+def integrations_instagram_brand_sync_now(brand_id):
+    """POST /api/integrations/<brand>/instagram/sync-now — trigger an
+    immediate IG ingestion for one brand. Returns the sync summary.
+
+    Used by the Connection Centre "Sync now" button. The actual sync
+    logic lives in scripts/ig_insights_pull.py — this endpoint shells
+    out to it. For sync-from-API, this can also do an in-process sync
+    if --in-process is set; otherwise it spawns the script.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import OPERATING_BRANDS
+    except Exception:
+        return jsonify({"ok": False, "error": "meta_api unavailable"}), 500
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({
+            "ok": False,
+            "error": f"{brand_id} is not an operating brand",
+            "operating_brands": list(OPERATING_BRANDS),
+        }), 400
+    # Run the ingestion IN-PROCESS so we don't depend on a subprocess.
+    # We bypass the script's api_login entirely — we already have an
+    # authed session (this endpoint enforces _is_authed() above).
+    # Feedback POST happens in-process via Flask's test client so we
+    # don't go through the public /login rate limiter.
+    body = request.get_json(force=True, silent=True) or {}
+    limit = int(body.get("limit") or 50)
+    since_days = int(body.get("since_days") or 30)
+    try:
+        # Add scripts dir to sys.path so we can import the script
+        repo_root = Path(REPO_ROOT)
+        scripts_path = str(repo_root / "scripts")
+        if scripts_path not in sys.path:
+            sys.path.insert(0, scripts_path)
+        co_path = str(repo_root / "campaign-os")
+        if co_path not in sys.path:
+            sys.path.insert(0, co_path)
+        import importlib
+        mod = importlib.import_module("ig_insights_pull")
+        mapper = mod.build_mapper()
+
+        # Use Flask test client to call /api/image/feedback/import-ig
+        # internally — this bypasses HTTP entirely AND uses the existing
+        # auth context (we are already authed).
+        with app.test_request_context(
+            "/api/image/feedback/import-ig",
+            method="POST",
+            json={"brand": brand_id, "records": []},
+            headers={"Cookie": request.headers.get("Cookie", "")},
+        ):
+            # The test client will set up the request context but
+            # won't auto-evaluate the view. We'll call the view
+            # function directly below.
+            pass
+
+        # Build a fake cookie-bearing transport that doesn't hit HTTP.
+        # Just call feedback_import_ig() directly with our own context.
+        def _post_feedback(records):
+            """Post feedback records to the feedback endpoint in-process."""
+            if not records:
+                return {"imported": 0, "skipped_duplicate": 0,
+                        "refreshed": 0,
+                        "errors": [], "win_profile": None}
+            with app.test_request_context(
+                "/api/image/feedback/import-ig",
+                method="POST",
+                json={"brand": brand_id, "records": records},
+                headers={"Cookie": request.headers.get("Cookie", "")},
+            ):
+                rv = feedback_import_ig()
+                # rv may be a (response, status) tuple or a response
+                if isinstance(rv, tuple):
+                    resp_obj, _ = rv
+                else:
+                    resp_obj = rv
+                try:
+                    payload = resp_obj.get_json()
+                except Exception:
+                    payload = {"ok": False,
+                                "error": "could not parse feedback response"}
+                return payload
+
+        # Pull media + insights via the existing per-brand functions
+        # from _lib.meta_api — already configured for swing-shack.
+        from _lib.meta_api import (
+            load_brand_integration, list_recent_posts_for_brand,
+            get_post_insights_for_brand, MetaAuthError,
+            MetaUpstreamError, MetaNetworkError,
+        )
+        cfg = load_brand_integration(brand_id)
+        if not cfg.get("configured"):
+            return jsonify({"ok": False,
+                            "error": f"{brand_id} not configured. Run /discover first."}), 400
+        # Pull media
+        media_resp = list_recent_posts_for_brand(brand_id, limit=limit)
+        media = media_resp.get("data", [])
+        # Filter to last N days
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(days=since_days)
+        filtered = []
+        for m in media:
+            ts = m.get("timestamp")
+            if not ts:
+                filtered.append(m)
+                continue
+            try:
+                m_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if m_dt >= cutoff:
+                    filtered.append(m)
+            except Exception:
+                filtered.append(m)
+        media = filtered
+
+        # Load meta-post-index (mutable; external publications get appended)
+        try:
+            from _lib.meta_api import _integrations_root  # noqa: F401
+        except Exception:
+            pass
+        meta_index_path = Path(REPO_ROOT) / "data" / "meta-post-index.json"
+        if meta_index_path.exists():
+            try:
+                meta_index = json.loads(meta_index_path.read_text())
+            except Exception:
+                meta_index = {"by_asset_id": {}, "by_media_id": {},
+                                "external_publications": {}, "_meta": {}}
+        else:
+            meta_index = {"by_asset_id": {}, "by_media_id": {},
+                           "external_publications": {}, "_meta": {}}
+        meta_index.setdefault("by_asset_id", {})
+        meta_index.setdefault("by_media_id", {})
+        meta_index.setdefault("external_publications", {})
+        # Re-bind mapper to the live index (with external map)
+        mapper = mod.build_mapper(index=meta_index)
+
+        # Pull insights for each media
+        records = []
+        unmatched_log = []
+        insights_fetched = 0
+        external_created = 0
+        external_reused = 0
+        for m_item in media:
+            mid = m_item.get("id")
+            mtype = m_item.get("media_type", "IMAGE")
+            if not mid or not str(mid).isdigit():
+                unmatched_log.append({"media_id": mid, "reason": "non_numeric"})
+                continue
+            try:
+                ins = get_post_insights_for_brand(brand_id, mid, media_type=mtype)
+                insights_fetched += 1
+            except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
+                # Capture enough context to debug: media_type, error
+                # class, error message (truncated), Meta error code if any
+                err_msg = str(e)[:200]
+                err_code = getattr(e, "code", None) or (
+                    (e.upstream.get("error", {}) if hasattr(e, "upstream") and e.upstream else {}).get("code")
+                    if hasattr(e, "upstream") else None
+                )
+                unmatched_log.append({
+                    "media_id": mid,
+                    "media_type": mtype,
+                    "reason": f"insights:{type(e).__name__}:code={err_code}",
+                    "error": err_msg,
+                })
+                continue
+            flat = ins.get("_flat") or {}
+            signal = {}
+            for k_in, k_out in [("impressions", "impressions"),
+                                  ("reach", "reach"),
+                                  ("likes", "likes"),
+                                  ("comments", "comments"),
+                                  ("saved", "saves"),
+                                  ("shares", "shares"),
+                                  ("total_interactions", "total_interactions"),
+                                  ("follows", "follows"),
+                                  ("profile_visits", "profile_visits"),
+                                  ("profile_activity", "profile_activity"),
+                                  ("engagement_rate", "engagement_rate")]:
+                v = flat.get(k_in)
+                if isinstance(v, (int, float)):
+                    signal[k_out] = int(v) if k_out != "engagement_rate" else round(float(v), 3)
+            mapping = mapper(mid)
+            if not mapping:
+                # Per heidi (2026-09-09): external publication is a valid
+                # origin. Create canonical external asset keyed by IG
+                # media ID; reuse if already present (idempotent upsert).
+                ext_rec, was_created = mod.upsert_external_publication(
+                    index=meta_index,
+                    brand_id=brand_id,
+                    ig_media_id=mid,
+                    permalink=m_item.get("permalink"),
+                    media_type=mtype,
+                    published_at=m_item.get("timestamp"),
+                    caption=m_item.get("caption"),
+                )
+                if was_created:
+                    external_created += 1
+                else:
+                    external_reused += 1
+                mapping = {
+                    "asset_id": ext_rec.get("asset_id"),
+                    "campaign_id": None,
+                    "postiz_post_id": None,
+                    "platform_media_id": mid,
+                    "publisher": "external",
+                    "source": "external_publications",
+                    "origin": "external",
+                }
+            asset_id = mapping.get("asset_id") or f"unmapped-{brand_id}-{mid}"
+            records.append({
+                "image_id": asset_id,
+                "post_id": mid,
+                "ig_media_id": mid,
+                "platform": "instagram",
+                "media_type": mtype,
+                "permalink": m_item.get("permalink"),
+                "ig_timestamp": m_item.get("timestamp"),
+                "mapping_source": mapping.get("source"),
+                "postiz_post_id": mapping.get("postiz_post_id"),
+                "campaign_id": mapping.get("campaign_id"),
+                "origin": mapping.get("origin"),
+                "captured_signal": signal,
+            })
+
+        # POST feedback in-process
+        feedback_result = _post_feedback(records)
+        # Update config sync timestamps
+        cfg["last_media_sync"] = datetime.now(timezone.utc).isoformat()
+        cfg["last_insights_sync"] = datetime.now(timezone.utc).isoformat()
+        cfg_p = Path(DATA_DIR) / "integrations" / brand_id / "instagram.json"
+        cfg_p.parent.mkdir(parents=True, exist_ok=True)
+        cfg_p.write_text(json.dumps(cfg, indent=2))
+
+        # Persist (possibly updated) meta-post-index with external
+        # publications so the next sync sees them.
+        if external_created > 0 or external_reused > 0:
+            try:
+                meta_index["generated"] = datetime.now(timezone.utc).isoformat()
+                meta_index["external_count"] = len(meta_index.get("external_publications") or {})
+                meta_index.setdefault("_meta", {}).setdefault(
+                    "source_files",
+                    ["data/publishing-references.json", "data/events/postiz/*.json"],
+                )
+                meta_index["_meta"]["schema_version"] = "1.1"
+                meta_index_path.write_text(json.dumps(meta_index, indent=2, default=str))
+            except Exception as _e:
+                _app_log.warning("meta_index save failed: %s", _e)
+
+        mapped = len(records)
+        unmatched = len(unmatched_log)
+        imported = feedback_result.get("imported", 0)
+        skipped = feedback_result.get("skipped_duplicate", 0)
+        result = {
+            "brand_id": brand_id,
+            "status": "success" if not feedback_result.get("errors") else "partial_success",
+            "media_discovered": len(media),
+            "insights_fetched": insights_fetched,
+            "mapped": mapped,
+            "unmatched": unmatched,
+            "feedback_imported": imported,
+            "duplicates_skipped": skipped,
+            "refreshed": feedback_result.get("refreshed", 0),
+            "external_created": external_created,
+            "external_reused": external_reused,
+            "errors": feedback_result.get("errors", []),
+            "win_profile": feedback_result.get("win_profile"),
+            "unmatched_sample": unmatched_log[:5],
+        }
+        return jsonify({"ok": True, "result": result})
+    except Exception as e:
+        _app_log.exception("sync_now crashed")
+        return jsonify({
+            "ok": False,
+            "error": f"sync_now exception: {type(e).__name__}: {e}",
+        }), 500
+
+
+# ─── TIER 3.18 — EVENT-FOCUSED CALENDAR (per heidi.txt 2026-09-08) ────────
+# Herman clarified: planning revolves around EVENTS / COMMERCIAL PUSHES,
+# not monthly themes. The calendar still shows the month grid below for
+# ops, but strategy ABOVE it comes from active events + the 3 always-on
+# pillars (RETAIL / FITTING / COACHING).
+# Tier hierarchy: A-PIN = 6-8 wk runway (orange), B-PIN = 3-4 wk (teal),
+# C-PIN = <2 wk (grey / outlined).
+
+import datetime as _dt
+from datetime import date as _date, timedelta as _td
+
+
+def _load_events_for_year(brand_id, year):
+    """Load the event spine for a brand + year. Falls back across volume/baked paths."""
+    candidates = [
+        os.path.join(_planning_dir(), f"{brand_id}-events-{year}.json"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "brand-planning", f"{brand_id}-events-{year}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as _f:
+                    return json.load(_f), p
+            except Exception:
+                continue
+    return None, None
+
+
+def _event_phase_dates(public_peak, weeks_before, weeks_after=0):
+    """Convert weeks_before/after to start/end dates relative to public_peak."""
+    if not public_peak:
+        return None, None
+    try:
+        peak = _dt.date.fromisoformat(public_peak)
+    except Exception:
+        return None, None
+    start = peak - _td(weeks=int(round(weeks_before * 7)))
+    end = peak + _td(weeks=int(round(weeks_after * 7)))
+    return start.isoformat(), end.isoformat()
+
+
+def _enrich_event(event):
+    """Convert phase weeks_before_peak into absolute sequential date ranges.
+
+    Each phase occupies a slot between consecutive weeks_before_peak values.
+    A NEGATIVE weeks_before_peak means the phase is AFTER peak (follow-up).
+
+    Pre-peak phases: phase_start = peak - weeks_before_peak * 7
+                     phase_end   = next phase's start (peak - next_w * 7)
+
+    Post-peak phases: phase_start = peak + abs(weeks_before_peak) * 7
+                      phase_end   = next phase's start (or + 7 days if last)
+    """
+    enriched = dict(event)
+    peak_str = event.get("public_peak")
+    peak = None
+    if peak_str:
+        try:
+            peak = _dt.date.fromisoformat(peak_str)
+        except Exception:
+            pass
+    raw_phases = list(event.get("phases") or [])
+    # Sort by weeks_before_peak DESCENDING — so phases CLOSEST to peak come first
+    # Pre-peak with positive w: smallest first (earliest)
+    # Post-peak with negative w: largest first (closest after peak)
+    raw_phases.sort(key=lambda p: p.get("weeks_before_peak", 0), reverse=True)
+    phases_out = []
+    for i, ph in enumerate(raw_phases):
+        w = ph.get("weeks_before_peak", 0)
+        if peak is None:
+            phase_start = None
+            phase_end = None
+        else:
+            days_offset = int(round(w * 7))
+            if days_offset >= 0:
+                # Pre-peak: phase_start = peak - days
+                phase_start = (peak - _td(days=days_offset)).isoformat()
+            else:
+                # Post-peak: phase_start = peak + abs(days)
+                phase_start = (peak + _td(days=-days_offset)).isoformat()
+            if i + 1 < len(raw_phases):
+                next_w = raw_phases[i + 1].get("weeks_before_peak", 0)
+                next_days = int(round(next_w * 7))
+                if next_days >= 0:
+                    phase_end = (peak - _td(days=next_days)).isoformat()
+                else:
+                    phase_end = (peak + _td(days=-next_days)).isoformat()
+            else:
+                # Last phase in the list — give it a reasonable end
+                if days_offset >= 0:
+                    phase_end = peak.isoformat()
+                else:
+                    # Post-peak: end 1 week later
+                    phase_end = (peak + _td(days=-days_offset + 7)).isoformat()
+        phases_out.append({
+            "label": ph.get("label"),
+            "task": ph.get("task"),
+            "start": phase_start,
+            "end": phase_end,
+            "weeks_before_peak": w,
+        })
+    # Return in chronological order: pre-peak (largest w first = earliest first),
+    # then peak, then post-peak (most negative first = earliest after peak first).
+    # Cleanest: sort ascending by weeks_before_peak DESC first, so peak/follow-ups at top
+    # Actually simplest: sort ascending by start date
+    phases_out.sort(key=lambda p: p.get("start") or "")
+    enriched["phases"] = phases_out
+    return enriched
+
+
+@app.route("/api/planning/<brand_id>/timeline", methods=["GET"])
+def planning_timeline(brand_id):
+    """GET /api/planning/<brand>/timeline?year=2026
+
+    Returns the event spine (always-on pillars + A/B/C events) for the year.
+    Sorted by start date. Each event includes enriched phase dates so the
+    SPA can render horizontal bars.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year_str = (request.args.get("year") or "").strip()
+    if not year_str:
+        year_str = str(_dt.date.today().year)
+    try:
+        year = int(year_str)
+    except Exception:
+        return jsonify({"ok": False, "error": f"invalid year: {year_str}"}), 400
+
+    spine, source = _load_events_for_year(brand_id, year)
+    if not spine:
+        return jsonify({"ok": False, "brand_id": brand_id, "year": year,
+                        "error": "no event spine for this brand/year",
+                        "expected": f"data/brand-planning/{brand_id}-events-{year}.json"}), 404
+
+    events = [_enrich_event(e) for e in (spine.get("events") or [])]
+    events.sort(key=lambda e: e.get("start") or "")
+
+    counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
+    for e in events:
+        counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "year": year,
+        "always_on_pillars": spine.get("always_on_pillars") or [],
+        "events": events,
+        "shopping_moments_summary": spine.get("shopping_moments_summary") or [],
+        "tier_counts": counts,
+        "source": source,
+        "event_count": len(events),
+        "shopping_moment_count": sum(1 for e in events if e.get("shopping_moment")),
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/right-now", methods=["GET"])
+def planning_right_now(brand_id):
+    """GET /api/planning/<brand>/right-now
+
+    Operational strip: what is the brand pushing RIGHT NOW across the 3
+    pillars + active A/B-PINs + next major deadline.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    today = _dt.date.today()
+    horizon = today + _td(days=90)
+    spine, source = _load_events_for_year(brand_id, today.year)
+
+    active_a = []
+    active_b = []
+    active_c = []
+    upcoming_deadlines = []
+    next_major = None
+
+    if spine:
+        for ev in (spine.get("events") or []):
+            try:
+                start = _dt.date.fromisoformat(ev.get("start"))
+                end = _dt.date.fromisoformat(ev.get("end"))
+            except Exception:
+                continue
+            tier = ev.get("tier")
+            # Active = peak window within +/- 7 days OR campaign window
+            peak_str = ev.get("public_peak")
+            peak = None
+            if peak_str:
+                try:
+                    peak = _dt.date.fromisoformat(peak_str)
+                except Exception:
+                    pass
+            in_window = (start <= today <= end) or (peak and abs((today - peak).days) <= 7)
+            if in_window and tier == "A-PIN":
+                active_a.append(ev)
+            elif in_window and tier == "B-PIN":
+                active_b.append(ev)
+            elif in_window and tier == "C-PIN":
+                active_c.append(ev)
+            # Upcoming deadlines (within horizon)
+            for d in (ev.get("deadlines") or []):
+                try:
+                    due = _dt.date.fromisoformat(d.get("due"))
+                    if today <= due <= horizon:
+                        upcoming_deadlines.append({"event_id": ev.get("id"), "event_name": ev.get("name"),
+                                                   "tier": tier, "due": d.get("due"),
+                                                   "label": d.get("label")})
+                except Exception:
+                    continue
+            # Next major (next A-PIN peak after today)
+            if tier == "A-PIN" and peak and peak >= today:
+                if not next_major or peak < _dt.date.fromisoformat(next_major.get("public_peak")):
+                    next_major = ev
+        # Sort deadlines by due date
+        upcoming_deadlines.sort(key=lambda d: d.get("due") or "")
+
+    # Pull always-on pillar current_push_summary from spine
+    always_on = (spine or {}).get("always_on_pillars") or []
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "today": today.isoformat(),
+        "right_now": {
+            "retail": next((p.get("current_push_summary") for p in always_on if p.get("id") == "retail-always-on"), None),
+            "fitting": next((p.get("current_push_summary") for p in always_on if p.get("id") == "fitting-always-on"), None),
+            "coaching": next((p.get("current_push_summary") for p in always_on if p.get("id") == "coaching-always-on"), None),
+        },
+        "active_a_pins": active_a,
+        "active_b_pins": active_b,
+        "active_c_pins": active_c,
+        "active_a_count": len(active_a),
+        "active_b_count": len(active_b),
+        "active_c_count": len(active_c),
+        "next_major_deadline": upcoming_deadlines[0] if upcoming_deadlines else None,
+        "upcoming_deadlines": upcoming_deadlines[:10],
+        "next_major_a_pin": next_major,
+        "source": source,
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/event/<event_id>", methods=["GET"])
+def planning_event_detail(brand_id, event_id):
+    """GET /api/planning/<brand>/event/<event_id>
+
+    Full event detail: phases + pillar pushes + supporting lanes + deadlines.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    # Search current year + next year for the event
+    today = _dt.date.today()
+    for yr in (today.year, today.year + 1):
+        spine, source = _load_events_for_year(brand_id, yr)
+        if not spine:
+            continue
+        for ev in (spine.get("events") or []):
+            if ev.get("id") == event_id:
+                enriched = _enrich_event(ev)
+                # Add always-on pillar context if relevant
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "year": yr,
+                    "event": enriched,
+                    "always_on_pillars": spine.get("always_on_pillars") or [],
+                    "source": source,
+                }), 200
+    return jsonify({"ok": False, "error": "event not found", "event_id": event_id}), 404
+
+
+@app.route("/api/shopping-moments", methods=["GET"])
+def shopping_moments():
+    """GET /api/shopping-moments?year=2026&brand=stick
+
+    Filtered list of A-PIN / B-PIN events that are commercial retail moments.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    year_str = (request.args.get("year") or str(_dt.date.today().year)).strip()
+    brand = (request.args.get("brand") or "stick").strip()
+    try:
+        year = int(year_str)
+    except Exception:
+        return jsonify({"ok": False, "error": f"invalid year: {year_str}"}), 400
+    spine, source = _load_events_for_year(brand, year)
+    if not spine:
+        return jsonify({"ok": False, "year": year, "brand": brand, "error": "no spine"}), 404
+
+    moments = []
+    for ev in (spine.get("events") or []):
+        if not ev.get("shopping_moment"):
+            continue
+        if ev.get("tier") == "C-PIN" and not ev.get("category") in ("test-moment",):
+            # C-PIN retail moments are test-only per heidi.txt #10
+            pass
+        moments.append({
+            "id": ev.get("id"),
+            "name": ev.get("name"),
+            "tier": ev.get("tier"),
+            "start": ev.get("start"),
+            "end": ev.get("end"),
+            "public_peak": ev.get("public_peak"),
+            "category": ev.get("category"),
+            "commercial_push": ev.get("commercial_push"),
+            "shopping_moment": True,
+            "test_only": ev.get("tier") == "C-PIN",
+        })
+    moments.sort(key=lambda m: m.get("start") or "")
+
+    return jsonify({
+        "ok": True,
+        "brand": brand,
+        "year": year,
+        "moments": moments,
+        "count": len(moments),
+        "source": source,
+    }), 200
+
+
+if __name__ == '__main__':
+    import sys as _sys
+    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
+    try:
+        _boot_load_persisted_secrets()
+        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_selfheal_windsor()
+        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    port = int(os.environ.get('PORT', 8000))
+    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except Exception as _e:
+        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
+        raise
+
+
+
+
