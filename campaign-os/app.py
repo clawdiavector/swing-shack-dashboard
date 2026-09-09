@@ -29155,56 +29155,173 @@ def integrations_instagram_brand_sync_now(brand_id):
             "operating_brands": list(OPERATING_BRANDS),
         }), 400
     # Run the ingestion IN-PROCESS so we don't depend on a subprocess.
-    # The script's functions are imported and called directly with
-    # parameters that mirror the CLI flags. This is what the nightly
-    # cron will do too (cron imports the same functions).
+    # We bypass the script's api_login entirely — we already have an
+    # authed session (this endpoint enforces _is_authed() above).
+    # Feedback POST happens in-process via Flask's test client so we
+    # don't go through the public /login rate limiter.
     body = request.get_json(force=True, silent=True) or {}
     limit = int(body.get("limit") or 50)
     since_days = int(body.get("since_days") or 30)
     try:
-        # Build the mapper once
+        # Add scripts dir to sys.path so we can import the script
         repo_root = Path(REPO_ROOT)
-        # Add scripts dir to sys.path so we can import the script as a module
         scripts_path = str(repo_root / "scripts")
         if scripts_path not in sys.path:
             sys.path.insert(0, scripts_path)
-        # Add campaign-os dir for _lib imports
         co_path = str(repo_root / "campaign-os")
         if co_path not in sys.path:
             sys.path.insert(0, co_path)
-        # Import the script module
         import importlib
         mod = importlib.import_module("ig_insights_pull")
-        # Build mapper
         mapper = mod.build_mapper()
-        # Get a session cookie for posting feedback
-        sess_cookie = request.headers.get("Cookie", "")
-        # Build a fake API base URL — the script's feedback POST goes
-        # to the same host the request came from.
-        api_base = request.host_url.rstrip("/")
-        # Override CAMPAIGN_OS_API_BASE in the script's module env
-        os.environ["CAMPAIGN_OS_API_BASE"] = api_base
-        # Build an api_login compatible cookie (the script will
-        # re-login with the password; we have the session cookie).
-        # Actually, the script logs in itself. Pass password through env.
-        os.environ["CAMPAIGN_OS_PASSWORD"] = os.environ.get(
-            "CAMPAIGN_OS_PASSWORD", "swing-shack-dev-2026"
+
+        # Use Flask test client to call /api/image/feedback/import-ig
+        # internally — this bypasses HTTP entirely AND uses the existing
+        # auth context (we are already authed).
+        with app.test_request_context(
+            "/api/image/feedback/import-ig",
+            method="POST",
+            json={"brand": brand_id, "records": []},
+            headers={"Cookie": request.headers.get("Cookie", "")},
+        ):
+            # The test client will set up the request context but
+            # won't auto-evaluate the view. We'll call the view
+            # function directly below.
+            pass
+
+        # Build a fake cookie-bearing transport that doesn't hit HTTP.
+        # Just call feedback_import_ig() directly with our own context.
+        def _post_feedback(records):
+            """Post feedback records to the feedback endpoint in-process."""
+            if not records:
+                return {"imported": 0, "skipped_duplicate": 0,
+                        "errors": [], "win_profile": None}
+            with app.test_request_context(
+                "/api/image/feedback/import-ig",
+                method="POST",
+                json={"brand": brand_id, "records": records},
+                headers={"Cookie": request.headers.get("Cookie", "")},
+            ):
+                rv = feedback_import_ig()
+                # rv may be a (response, status) tuple or a response
+                if isinstance(rv, tuple):
+                    resp_obj, _ = rv
+                else:
+                    resp_obj = rv
+                try:
+                    payload = resp_obj.get_json()
+                except Exception:
+                    payload = {"ok": False,
+                                "error": "could not parse feedback response"}
+                return payload
+
+        # Pull media + insights via the existing per-brand functions
+        # from _lib.meta_api — already configured for swing-shack.
+        from _lib.meta_api import (
+            load_brand_integration, list_recent_posts_for_brand,
+            get_post_insights_for_brand, MetaAuthError,
+            MetaUpstreamError, MetaNetworkError,
         )
-        # Login (script does this itself)
-        cookie_str = mod.api_login(api_base, os.environ["CAMPAIGN_OS_PASSWORD"])
-        # Run the per-brand sync
-        r = mod.sync_brand(
-            brand_id, mapper, cookie_str, api_base,
-            limit=limit, since_days=since_days, dry_run=False,
-        )
-        # Persist last sync time on the live server (Railway has its
-        # own copy of the config; writing here would only affect this
-        # request's process. The script itself writes the config
-        # already via its own persist logic.)
-        return jsonify({
-            "ok": True,
-            "result": r,
-        })
+        cfg = load_brand_integration(brand_id)
+        if not cfg.get("configured"):
+            return jsonify({"ok": False,
+                            "error": f"{brand_id} not configured. Run /discover first."}), 400
+        # Pull media
+        media_resp = list_recent_posts_for_brand(brand_id, limit=limit)
+        media = media_resp.get("data", [])
+        # Filter to last N days
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(days=since_days)
+        filtered = []
+        for m in media:
+            ts = m.get("timestamp")
+            if not ts:
+                filtered.append(m)
+                continue
+            try:
+                m_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if m_dt >= cutoff:
+                    filtered.append(m)
+            except Exception:
+                filtered.append(m)
+        media = filtered
+
+        # Pull insights for each media
+        records = []
+        unmatched_log = []
+        insights_fetched = 0
+        for m_item in media:
+            mid = m_item.get("id")
+            mtype = m_item.get("media_type", "IMAGE")
+            if not mid or not str(mid).isdigit():
+                unmatched_log.append({"media_id": mid, "reason": "non_numeric"})
+                continue
+            try:
+                ins = get_post_insights_for_brand(brand_id, mid)
+                insights_fetched += 1
+            except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
+                unmatched_log.append({"media_id": mid,
+                                       "reason": f"insights:{type(e).__name__}"})
+                continue
+            flat = ins.get("_flat") or {}
+            signal = {}
+            for k_in, k_out in [("impressions", "impressions"),
+                                  ("reach", "reach"),
+                                  ("likes", "likes"),
+                                  ("comments", "comments"),
+                                  ("saved", "saves"),
+                                  ("shares", "shares"),
+                                  ("video_views", "video_views"),
+                                  ("engagement_rate", "engagement_rate")]:
+                v = flat.get(k_in)
+                if isinstance(v, (int, float)):
+                    signal[k_out] = int(v) if k_out != "engagement_rate" else round(float(v), 3)
+            mapping = mapper(mid)
+            if not mapping:
+                unmatched_log.append({"media_id": mid, "reason": "no_asset_mapping"})
+                continue
+            asset_id = mapping.get("asset_id") or f"unmapped-{brand_id}-{mid}"
+            records.append({
+                "image_id": asset_id,
+                "post_id": mid,
+                "ig_media_id": mid,
+                "platform": "instagram",
+                "media_type": mtype,
+                "permalink": m_item.get("permalink"),
+                "ig_timestamp": m_item.get("timestamp"),
+                "mapping_source": mapping.get("source"),
+                "postiz_post_id": mapping.get("postiz_post_id"),
+                "campaign_id": mapping.get("campaign_id"),
+                "captured_signal": signal,
+            })
+
+        # POST feedback in-process
+        feedback_result = _post_feedback(records)
+        # Update config sync timestamps
+        cfg["last_media_sync"] = datetime.now(timezone.utc).isoformat()
+        cfg["last_insights_sync"] = datetime.now(timezone.utc).isoformat()
+        cfg_p = Path(REPO_ROOT) / "data" / "integrations" / brand_id / "instagram.json"
+        cfg_p.parent.mkdir(parents=True, exist_ok=True)
+        cfg_p.write_text(json.dumps(cfg, indent=2))
+
+        mapped = len(records)
+        unmatched = len(unmatched_log)
+        imported = feedback_result.get("imported", 0)
+        skipped = feedback_result.get("skipped_duplicate", 0)
+        result = {
+            "brand_id": brand_id,
+            "status": "success" if not feedback_result.get("errors") else "partial_success",
+            "media_discovered": len(media),
+            "insights_fetched": insights_fetched,
+            "mapped": mapped,
+            "unmatched": unmatched,
+            "feedback_imported": imported,
+            "duplicates_skipped": skipped,
+            "errors": feedback_result.get("errors", []),
+            "win_profile": feedback_result.get("win_profile"),
+            "unmatched_sample": unmatched_log[:5],
+        }
+        return jsonify({"ok": True, "result": result})
     except Exception as e:
         _app_log.exception("sync_now crashed")
         return jsonify({
