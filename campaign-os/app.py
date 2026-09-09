@@ -29109,7 +29109,7 @@ def integrations_instagram_brand_discover(brand_id):
         cfg["facebook_page_id"] = match["page_id"]
         cfg["ig_business_account_id"] = match.get("ig_account_id")
         cfg["configured"] = bool(match.get("ig_account_id"))
-        cfg["last_discovered_at"] = _now(_tz.utc).isoformat()
+        cfg["last_discovered_at"] = _now.now(_tz.utc).isoformat()
         cfg_p = Path(REPO_ROOT) / "data" / "integrations" / brand_id / "instagram.json"
         try:
             cfg_p.parent.mkdir(parents=True, exist_ok=True)
