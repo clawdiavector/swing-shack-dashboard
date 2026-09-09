@@ -19455,48 +19455,6 @@ def integrity_corrections():
     return jsonify({"ok": True, "corrections": it.list_corrections(bid)}), 200
 
 
-@app.route("/api/admin/debug-info", methods=["GET"])
-def debug_info():
-    """Debug endpoint that exposes what Railway has registered."""
-    if not _is_authed():
-        return jsonify({"ok": False, "error": "auth required"}), 401
-    routes = []
-    for r in app.url_map.iter_rules():
-        routes.append({"rule": str(r.rule), "endpoint": str(r.endpoint), "methods": sorted(r.methods - {"HEAD", "OPTIONS"})})
-    return jsonify({
-        "ok": True,
-        "total_routes": len(routes),
-        "all_rules": [r["rule"] for r in routes],
-        "app_file_size": __file_size(),
-        "app_line_count": _app_line_count(),
-        "runtime_info": _app_runtime_info(),
-    }), 200
-
-
-def __file_size():
-    import os
-    try:
-        return os.path.getsize(__file__)
-    except Exception:
-        return -1
-
-
-def _app_line_count():
-    try:
-        with open(__file__, "r", encoding="utf-8") as _f:
-            return sum(1 for _ in _f)
-    except Exception:
-        return -1
-
-
-def _app_runtime_info():
-    import sys, platform
-    return {
-        "python_version": sys.version,
-        "platform": platform.platform(),
-        "flask_version": __import__("flask").__version__,
-    }
-
 # ── Staleness gates (added 2026-09-01 — restored after corruption) ─────────
 
 DEFAULT_MAX_AGE_DAYS = {
@@ -26889,7 +26847,7 @@ cd /Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard
 python3 -c "import sys; sys.path.insert(0, 'campaign-os'); import app; print('OK')"
 
 # Check routes
-grep -E "@app\.route" campaign-os/app.py | wc -l
+grep -E "@app\\.route" campaign-os/app.py | wc -l
 
 # Run cron manually
 gh workflow run meta-live-fetch.yml
