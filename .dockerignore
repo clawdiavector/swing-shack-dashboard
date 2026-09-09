@@ -14,6 +14,8 @@ media/
 .git/
 logs/
 *.log
+**/__pycache__/
+*.pyc
 .agent-job.json
 .agent-job/
 campaign-os/*.bak

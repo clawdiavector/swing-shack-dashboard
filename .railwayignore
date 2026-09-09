@@ -12,6 +12,8 @@ node_modules/
 media/
 .git/
 *.log
+**/__pycache__/
+*.pyc
 campaign-os/*.bak
 campaign-os/build-board.html
 campaign-os/cockpit.html
