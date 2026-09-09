@@ -29078,6 +29078,13 @@ def integrations_instagram_brand_discover(brand_id):
         discovery = discover_pages_and_ig_account(brand_id)
     except (MetaAuthError, MetaUpstreamError) as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+    except Exception as e:
+        _app_log.exception("discover_pages_and_ig_account crashed")
+        return jsonify({
+            "ok": False,
+            "error": f"discovery failed: {type(e).__name__}: {e}",
+            "traceback": str(e.__traceback__) if hasattr(e, '__traceback__') else None,
+        }), 500
 
     pages = discovery.get("pages", [])
 
@@ -29108,7 +29115,8 @@ def integrations_instagram_brand_discover(brand_id):
             cfg_p.write_text(json.dumps(cfg, indent=2))
             persisted = True
         except Exception as e:
-            return jsonify({"ok": False, "error": f"persist failed: {e}",
+            _app_log.exception("discover persist crashed")
+            return jsonify({"ok": False, "error": f"persist failed: {type(e).__name__}: {e}",
                             "discovery": discovery}), 500
 
     return jsonify({
