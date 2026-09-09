@@ -29104,12 +29104,13 @@ def integrations_instagram_brand_discover(brand_id):
         selected = match
         # Persist
         from _lib.meta_api import load_brand_integration
+        from datetime import datetime as _now, timezone as _tz
         cfg = load_brand_integration(brand_id)
         cfg["facebook_page_id"] = match["page_id"]
         cfg["ig_business_account_id"] = match.get("ig_account_id")
         cfg["configured"] = bool(match.get("ig_account_id"))
-        cfg["last_discovered_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
-        cfg_p = REPO_ROOT / "data" / "integrations" / brand_id / "instagram.json"
+        cfg["last_discovered_at"] = _now(_tz.utc).isoformat()
+        cfg_p = Path(REPO_ROOT) / "data" / "integrations" / brand_id / "instagram.json"
         try:
             cfg_p.parent.mkdir(parents=True, exist_ok=True)
             cfg_p.write_text(json.dumps(cfg, indent=2))
