@@ -1,1 +1,0 @@
-web: cd campaign-os && python app.py
