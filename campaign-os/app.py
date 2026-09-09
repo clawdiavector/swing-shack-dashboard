@@ -29048,6 +29048,81 @@ def integrations_instagram_brand_status(brand_id):
     return jsonify(out), 200
 
 
+@app.route("/api/integrations/<brand_id>/instagram/discover", methods=["POST"])
+def integrations_instagram_brand_discover(brand_id):
+    """POST /api/integrations/<brand>/instagram/discover
+
+    Discover Facebook Pages + IG accounts reachable by the resolved
+    credential. Returns the list. If `?page_id=X` or
+    `{"page_id": "X"}` is passed, persists that selection into the
+    per-brand config (so subsequent syncs know which page to use).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import (
+            OPERATING_BRANDS, discover_pages_and_ig_account,
+            MetaAuthError, MetaUpstreamError,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    if brand_id not in OPERATING_BRANDS:
+        return jsonify({
+            "ok": False,
+            "error": f"{brand_id} is not an operating brand",
+            "operating_brands": list(OPERATING_BRANDS),
+        }), 400
+
+    try:
+        discovery = discover_pages_and_ig_account(brand_id)
+    except (MetaAuthError, MetaUpstreamError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+    pages = discovery.get("pages", [])
+
+    # Optional: persist a specific page_id + ig_account_id
+    body = request.get_json(force=True, silent=True) or {}
+    select_page_id = body.get("page_id") or request.args.get("page_id")
+    selected = None
+    persisted = False
+    if select_page_id:
+        match = next((p for p in pages if p.get("page_id") == select_page_id), None)
+        if not match:
+            return jsonify({
+                "ok": False,
+                "error": f"page_id {select_page_id!r} not in discovered pages",
+                "pages": pages,
+            }), 400
+        selected = match
+        # Persist
+        from _lib.meta_api import load_brand_integration
+        cfg = load_brand_integration(brand_id)
+        cfg["facebook_page_id"] = match["page_id"]
+        cfg["ig_business_account_id"] = match.get("ig_account_id")
+        cfg["configured"] = bool(match.get("ig_account_id"))
+        cfg["last_discovered_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        cfg_p = REPO_ROOT / "data" / "integrations" / brand_id / "instagram.json"
+        try:
+            cfg_p.parent.mkdir(parents=True, exist_ok=True)
+            cfg_p.write_text(json.dumps(cfg, indent=2))
+            persisted = True
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"persist failed: {e}",
+                            "discovery": discovery}), 500
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "credential_mode": discovery.get("credential_mode"),
+        "credential_source": discovery.get("credential_source"),
+        "fetched": discovery.get("fetched"),
+        "pages": pages,
+        "selected": selected,
+        "persisted": persisted,
+    })
+
+
 @app.route("/api/integrations/<brand_id>/instagram/sync-now", methods=["POST"])
 def integrations_instagram_brand_sync_now(brand_id):
     """POST /api/integrations/<brand>/instagram/sync-now — trigger an

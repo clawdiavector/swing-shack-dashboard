@@ -826,3 +826,64 @@ def health_check_for_brand(brand_id: str) -> dict[str, Any]:
         return out
     out["healthy"] = len(out["issues"]) == 0
     return out
+
+
+def discover_pages_and_ig_account(brand_id: str) -> dict[str, Any]:
+    """Discover Facebook Pages + linked IG business accounts available
+    to the resolved credential.
+
+    Returns:
+      {
+        "pages": [
+          {"page_id": "...", "page_name": "...", "ig_account_id": "...", "ig_username": "..."},
+          ...
+        ],
+        "credential_mode": "system_user_token" | ...,
+        "credential_source": "...",
+      }
+
+    This is used ONCE per brand to populate the config. Once
+    facebook_page_id + ig_business_account_id are known, the
+    ingestion script uses them directly.
+
+    System User tokens can list ALL pages + IG accounts the token has
+    access to. This is the canonical way to discover what brands +
+    IG accounts a single token can reach.
+    """
+    if brand_id not in OPERATING_BRANDS:
+        raise ValueError(f"{brand_id} is not an operating brand")
+    cfg = load_brand_integration(brand_id)
+    creds = resolve_credentials_for_brand(brand_id, cfg)
+    if not creds["token"]:
+        raise MetaAuthError(f"No credentials for {brand_id}")
+    # /me/accounts returns all pages the token can act on
+    try:
+        out = _graph_get("/me/accounts", {"fields": "id,name,instagram_business_account"}, use_page_token=False)
+    except Exception as e:
+        raise MetaUpstreamError(f"/me/accounts failed: {e}") from e
+    pages = []
+    for p in out.get("data", []):
+        page_id = p.get("id")
+        page_name = p.get("name")
+        ig = p.get("instagram_business_account") or {}
+        ig_id = ig.get("id") if isinstance(ig, dict) else None
+        # Get username if we have an IG account
+        ig_username = None
+        if ig_id:
+            try:
+                ig_info = _graph_get(f"/{ig_id}", {"fields": "id,username"}, use_page_token=False)
+                ig_username = ig_info.get("username")
+            except Exception:
+                pass
+        pages.append({
+            "page_id": page_id,
+            "page_name": page_name,
+            "ig_account_id": ig_id,
+            "ig_username": ig_username,
+        })
+    return {
+        "pages": pages,
+        "credential_mode": creds["mode"],
+        "credential_source": creds["source"],
+        "fetched": len(pages),
+    }
