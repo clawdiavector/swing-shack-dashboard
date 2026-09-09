@@ -5682,7 +5682,16 @@ def feedback_import_ig():
             compute_learned_signals, save_learned_signals, load_learned_signals,
         )
         from _lib.meta_api import OPERATING_BRANDS
-        from _lib.reference_dna import load_reference_dna
+        # reference_dna is optional — only used for dna_snapshot lookup.
+        # If the module doesn't exist or fails to import, we just
+        # skip the DNA snapshot enrichment (still imports the signal).
+        try:
+            from _lib.reference_dna import load_reference_dna
+            _has_reference_dna = True
+        except Exception as _e:
+            _app_log.warning("reference_dna unavailable: %s", _e)
+            load_reference_dna = None
+            _has_reference_dna = False
 
         body = request.get_json(force=True, silent=True) or {}
         brand = body.get('brand') or get_brand_id() or 'swing-shack'
@@ -5745,12 +5754,18 @@ def feedback_import_ig():
                                    'engagement_rate')}
 
                 # Look up DNA from library if image_id looks like a ref
+                # (only if reference_dna module is available — it's
+                # optional for the import endpoint)
                 dna_snapshot = r.get('dna_snapshot')
-                if not dna_snapshot:
-                    ref = load_reference_dna(image_id, brand)
-                    if ref:
-                        from _lib.feedback_loop import snapshot_from_reference
-                        dna_snapshot = snapshot_from_reference(ref)
+                if not dna_snapshot and _has_reference_dna and load_reference_dna:
+                    try:
+                        ref = load_reference_dna(image_id, brand)
+                        if ref:
+                            from _lib.feedback_loop import snapshot_from_reference
+                            dna_snapshot = snapshot_from_reference(ref)
+                    except Exception as _e:
+                        _app_log.warning("load_reference_dna failed for %s: %s",
+                                          image_id, _e)
 
                 # Carry mapping context from the IG ingestion script
                 # into notes so the WIN profile can later attribute
