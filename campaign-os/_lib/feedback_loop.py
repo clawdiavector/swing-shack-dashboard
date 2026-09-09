@@ -192,6 +192,38 @@ def add_record(
     return record
 
 
+def update_record_by_key(
+    brand: str,
+    *,
+    image_id: str,
+    platform_post_id: str | None,
+    captured_signal: dict[str, Any],
+    root: Path | None = None,
+) -> dict[str, Any] | None:
+    """Refresh an existing performance record's signal + score.
+
+    Looks up by (image_id, platform_post_id). If found, replaces
+    captured_signal + score + captured_at (preserves notes, kind,
+    source, dna_snapshot, image_id, platform_post_id).
+
+    Returns the updated record, or None if no matching record exists.
+    Used by IG re-ingestion to refresh metrics for an external
+    asset without creating duplicates.
+    """
+    perf = load_performance(brand, root)
+    score = compute_score(captured_signal)
+    for rec in perf.get("records", []):
+        if (str(rec.get("image_id") or "") == str(image_id)
+                and str(rec.get("platform_post_id") or "") == str(platform_post_id or "")):
+            rec["captured_signal"] = captured_signal
+            rec["score"] = score
+            rec["captured_at"] = time.time()
+            rec["updated_at"] = time.time()
+            save_performance(perf, brand, root)
+            return rec
+    return None
+
+
 def list_records(
     brand: str,
     *,

@@ -5832,6 +5832,7 @@ def feedback_import_ig():
             "brand": brand,
             "imported": imported,
             "skipped_duplicate": skipped_duplicate,
+            "refreshed": refreshed,
             "errors": errors[:5],
             "win_profile": win_status,
         })
@@ -29285,6 +29286,7 @@ def integrations_instagram_brand_sync_now(brand_id):
             """Post feedback records to the feedback endpoint in-process."""
             if not records:
                 return {"imported": 0, "skipped_duplicate": 0,
+                        "refreshed": 0,
                         "errors": [], "win_profile": None}
             with app.test_request_context(
                 "/api/image/feedback/import-ig",
@@ -29483,6 +29485,7 @@ def integrations_instagram_brand_sync_now(brand_id):
             "unmatched": unmatched,
             "feedback_imported": imported,
             "duplicates_skipped": skipped,
+            "refreshed": feedback_result.get("refreshed", 0),
             "external_created": external_created,
             "external_reused": external_reused,
             "errors": feedback_result.get("errors", []),
