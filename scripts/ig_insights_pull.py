@@ -365,7 +365,8 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
             continue
         # Pull insights
         try:
-            ins = get_post_insights_for_brand(brand_id, media_id)
+            ins = get_post_insights_for_brand(brand_id, media_id,
+                                                media_type=media_type)
             result["insights_fetched"] += 1
         except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
             result["errors"].append(f"insights:{media_id}:{type(e).__name__}:{e}")

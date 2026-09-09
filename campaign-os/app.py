@@ -29257,7 +29257,7 @@ def integrations_instagram_brand_sync_now(brand_id):
                 unmatched_log.append({"media_id": mid, "reason": "non_numeric"})
                 continue
             try:
-                ins = get_post_insights_for_brand(brand_id, mid)
+                ins = get_post_insights_for_brand(brand_id, mid, media_type=mtype)
                 insights_fetched += 1
             except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
                 # Capture enough context to debug: media_type, error

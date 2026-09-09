@@ -724,15 +724,39 @@ def list_recent_posts_for_brand(
     return out
 
 
-def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
-    """Per-brand IG media insights.
+def _metrics_for_media_type(media_type: str) -> list[str]:
+    """Pick the metrics set Meta accepts for this media product type.
 
-    Supports media-type-aware metric selection:
-      - IMAGE / CAROUSEL_ALBUM: impressions, reach, saved, likes, comments, shares
-      - VIDEO / REELS: same + video_views, ig_reels_avg_watch_time,
-                       ig_reels_video_view_total_time
-    Metrics that the API does not return are omitted from the flat dict
-    rather than recorded as zero (truth-before-cleverness).
+    Per Meta Graph API (2026) — different media types support
+    different metric sets. Requesting an unsupported metric fails
+    the whole call with error 100.
+    """
+    mt = (media_type or "").upper()
+    if mt in ("IMAGE", "CAROUSEL_ALBUM"):
+        # Full set including impressions, follows, profile_*
+        return ["impressions", "reach", "saved", "likes", "comments",
+                "shares", "total_interactions", "follows",
+                "profile_visits", "profile_activity"]
+    if mt in ("VIDEO", "REEL", "IG_REEL", "CLIPS"):
+        # VIDEO doesn't support impressions/follows/profile_visits/profile_activity
+        # via /{media_id}/insights — those are only on /insights/video
+        return ["reach", "saved", "likes", "comments", "shares",
+                "total_interactions"]
+    # Default = safest minimal set
+    return ["impressions", "reach", "saved", "likes", "comments",
+            "shares", "total_interactions"]
+
+
+def get_post_insights_for_brand(
+    brand_id: str, media_id: str, media_type: str | None = None,
+) -> dict[str, Any]:
+    """Per-brand IG media insights, media-type-aware.
+
+    For VIDEO/REEL media, impressions / follows / profile_visits /
+    profile_activity are NOT supported via /{media_id}/insights —
+    they live on /{media_id}/insights?metric=video_views (a
+    separate endpoint). We pick the metric set that works for the
+    given media_type.
     """
     if brand_id not in OPERATING_BRANDS:
         raise ValueError(f"{brand_id} is not an operating brand")
@@ -742,13 +766,7 @@ def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
     creds = resolve_credentials_for_brand(brand_id, cfg)
     if not creds["token"]:
         raise MetaAuthError(f"No Meta credentials for {brand_id}")
-    # Base metrics that Meta returns for ALL media types (per current
-    # IG Graph API 2026). Video-specific metrics use a different
-    # endpoint (/insights/video) and break the main /insights call
-    # for VIDEO media if included.
-    metrics = ["impressions", "reach", "saved", "likes", "comments",
-               "shares", "total_interactions", "follows", "profile_visits",
-               "profile_activity"]
+    metrics = _metrics_for_media_type(media_type or "")
     params = {"metric": ",".join(metrics), "period": "lifetime"}
     out = _graph_get(f"/{media_id}/insights", params,
                       use_page_token=False, token_override=creds["token"])
@@ -758,9 +776,7 @@ def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
         values = entry.get("data", [])
         if values and isinstance(values, list) and values:
             v = values[0].get("value")
-            # Meta returns None or omits missing metrics — keep None if not numeric
             flat[name] = v
-    # Engagement rate = interactions / reach, if both available
     er = None
     try:
         reach = flat.get("reach") or 0
@@ -777,6 +793,7 @@ def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
     out["_meta"] = {
         "brand_id": brand_id,
         "media_id": media_id,
+        "media_type": media_type,
         "credential_mode": creds["mode"],
         "credential_source": creds["source"],
         "metrics_requested": metrics,
