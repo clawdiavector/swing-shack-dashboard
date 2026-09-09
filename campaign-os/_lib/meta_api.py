@@ -106,7 +106,9 @@ def _read_meta_page_token() -> Optional[str]:
 
 # ── Low-level Graph API caller ────────────────────────────────────────────────
 
-def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15, use_page_token: bool = False) -> dict:
+def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15,
+                  use_page_token: bool = False,
+                  token_override: Optional[str] = None) -> dict:
     """Make a GET request to the Meta Graph API. Returns parsed JSON.
 
     Args:
@@ -116,16 +118,32 @@ def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15, use_
       use_page_token: if True, use the page-scoped token (META_PAGE_ACCESS_TOKEN[_FILE])
         instead of the user token. Required for endpoints like /{page_id}/posts
         and /{post_id}/comments which reject user tokens post-2024.
+      token_override: explicit token to use. Takes priority over
+        env-based resolution. Used by per-brand functions that
+        resolve credentials via resolve_credentials_for_brand().
+
+    Resolution order for the bearer token:
+      1. token_override (explicit per-call)
+      2. use_page_token ? META_PAGE_ACCESS_TOKEN : META_ACCESS_TOKEN
+      3. System User token (META_SYSTEM_USER_TOKEN — EAAB)
+      4. Page token fallback if use_page_token=True
 
     Raises:
       MetaAuthError: token missing or 401/403 from upstream
       MetaUpstreamError: other 4xx/5xx from upstream
       MetaNetworkError: connection/timeout failure
     """
-    if use_page_token:
+    if token_override:
+        token = token_override
+    elif use_page_token:
         token = _read_meta_page_token()
     else:
         token = _read_meta_access_token()
+        if not token:
+            # Fallback to system user token (EAAB, never expires)
+            sys_tok = _read_system_user_token()
+            if sys_tok:
+                token = sys_tok
     if not token:
         if use_page_token:
             raise MetaAuthError("META_PAGE_ACCESS_TOKEN (or _FILE) not configured — and user token fallback also missing")
@@ -676,7 +694,8 @@ def list_recent_posts_for_brand(
         "fields": ",".join(fields),
         "limit": min(int(limit), 100),
     }
-    out = _graph_get(f"/{ig_account_id}/media", params, use_page_token=False)
+    out = _graph_get(f"/{ig_account_id}/media", params,
+                      use_page_token=False, token_override=creds["token"])
     out["_meta"] = {
         "brand_id": brand_id,
         "ig_account_id": ig_account_id,
@@ -712,7 +731,8 @@ def get_post_insights_for_brand(brand_id: str, media_id: str) -> dict[str, Any]:
     # We include them in the request; Meta just won't return them for images.
     metrics += ["video_views", "ig_reels_avg_watch_time", "ig_reels_video_view_total_time"]
     params = {"metric": ",".join(metrics), "period": "lifetime"}
-    out = _graph_get(f"/{media_id}/insights", params, use_page_token=False)
+    out = _graph_get(f"/{media_id}/insights", params,
+                      use_page_token=False, token_override=creds["token"])
     flat: dict[str, Any] = {}
     for entry in out.get("data", []):
         name = entry.get("name", "?")
@@ -782,9 +802,9 @@ def health_check_for_brand(brand_id: str) -> dict[str, Any]:
     if not creds["token"]:
         out["issues"].append("no_credentials_resolved")
         return out
-    # Token liveness — /me endpoint
+    # Token liveness — /me endpoint (passing per-brand token)
     try:
-        me = _graph_get("/me", {"fields": "id,name"})
+        me = _graph_get("/me", {"fields": "id,name"}, token_override=creds["token"])
         out["checks"]["token"] = {"ok": True, "name": me.get("name")}
     except MetaAuthError as e:
         out["checks"]["token"] = {"ok": False, "error": str(e)}
@@ -798,7 +818,7 @@ def health_check_for_brand(brand_id: str) -> dict[str, Any]:
     page_id = cfg.get("facebook_page_id")
     if page_id:
         try:
-            _graph_get(f"/{page_id}", {"fields": "id,name"})
+            _graph_get(f"/{page_id}", {"fields": "id,name"}, token_override=creds["token"])
             out["checks"]["page"] = {"ok": True, "page_id": page_id}
         except Exception as e:
             out["checks"]["page"] = {"ok": False, "page_id": page_id, "error": str(e)}
@@ -807,7 +827,7 @@ def health_check_for_brand(brand_id: str) -> dict[str, Any]:
     ig_account_id = cfg.get("ig_business_account_id")
     if ig_account_id:
         try:
-            _graph_get(f"/{ig_account_id}", {"fields": "id,username"})
+            _graph_get(f"/{ig_account_id}", {"fields": "id,username"}, token_override=creds["token"])
             out["checks"]["ig_account"] = {"ok": True, "ig_account_id": ig_account_id}
         except Exception as e:
             out["checks"]["ig_account"] = {"ok": False, "ig_account_id": ig_account_id, "error": str(e)}
@@ -815,7 +835,7 @@ def health_check_for_brand(brand_id: str) -> dict[str, Any]:
             return out
         # Media endpoint
         try:
-            media = _graph_get(f"/{ig_account_id}/media", {"limit": 1, "fields": "id"})
+            media = _graph_get(f"/{ig_account_id}/media", {"limit": 1, "fields": "id"}, token_override=creds["token"])
             out["checks"]["media_endpoint"] = {"ok": True, "sample_media_count": len(media.get("data", []))}
         except Exception as e:
             out["checks"]["media_endpoint"] = {"ok": False, "error": str(e)}
@@ -858,7 +878,10 @@ def discover_pages_and_ig_account(brand_id: str) -> dict[str, Any]:
         raise MetaAuthError(f"No credentials for {brand_id}")
     # /me/accounts returns all pages the token can act on
     try:
-        out = _graph_get("/me/accounts", {"fields": "id,name,instagram_business_account"}, use_page_token=False)
+        out = _graph_get("/me/accounts",
+                          {"fields": "id,name,instagram_business_account"},
+                          use_page_token=False,
+                          token_override=creds["token"])
     except Exception as e:
         raise MetaUpstreamError(f"/me/accounts failed: {e}") from e
     pages = []
@@ -871,7 +894,9 @@ def discover_pages_and_ig_account(brand_id: str) -> dict[str, Any]:
         ig_username = None
         if ig_id:
             try:
-                ig_info = _graph_get(f"/{ig_id}", {"fields": "id,username"}, use_page_token=False)
+                ig_info = _graph_get(f"/{ig_id}", {"fields": "id,username"},
+                                      use_page_token=False,
+                                      token_override=creds["token"])
                 ig_username = ig_info.get("username")
             except Exception:
                 pass
