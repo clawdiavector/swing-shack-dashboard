@@ -1,0 +1,635 @@
+"""campaign_brief.py — full campaign brief generator for from-idea pipeline.
+
+Built 2026-08-20. Closes the gap on the 'one-button does everything'
+campaign brief that a real agency brief would have. For each channel
+the brief includes:
+  - Full caption (already produced by gbp_daily_poster.py / the
+    from-idea route's per-channel prompts)
+  - Image prompt (model suggestion, prompt text, aspect ratio,
+    text overlay or 'no overlay')
+  - UTM link (per-channel template with source/medium/campaign/content)
+  - Hook formula (one of: question, bold_claim, story_seed, contrarian, list)
+  - Paid ad budget recommendation (best-practice for the brand's market)
+  - Expected outcome (engagement rate, CTR, reach estimate based on
+    industry baselines for the channel + brand size)
+
+The full brief is computed server-side once and persisted on the
+campaign identity so the user can come back and find it later (the
+review queue shows a 'see brief' link per asset).
+
+The brief is read-only — destructive writes (live publishes) stay
+gated behind the per-asset approve+schedule flow per
+agent-destructive-write-discipline.
+"""
+
+from __future__ import annotations
+
+import datetime as _dt
+import re as _re
+import urllib.parse as _urlparse
+from typing import Optional
+
+
+# ── UTM template per channel ────────────────────────────────────────
+# Best-practice UTM convention for South African market. Source tells
+# analytics where the click came from (gmb/local, instagram, etc.),
+# medium tells what kind (organic, paid, bio-link), campaign ties back
+# to the campaign_id, content lets you A/B variations on the same source.
+
+
+def build_utm(channel: str, *, campaign_id: str, content_tag: Optional[str] = None,
+              domain: str = "swingshack.co.za") -> dict:
+    """Build the per-channel UTM link for the campaign.
+
+    Returns: { url, tracking_url (with UTM), source, medium, campaign, content }
+    All channels point to a single destination (the booking page) since
+    the builder's job is to drive bookings. Add destination overrides per
+    channel later if needed (e.g. a TikTok creator profile link).
+    """
+    base_url = f"https://{domain}/book"
+    # Strip the campaign_id down to alphanumeric + dash (UTM safe)
+    safe_cid = _re.sub(r'[^a-z0-9-]', '-', campaign_id.lower()).strip('-')[:90]
+
+    channel_config = {
+        "gmb":       {"source": "gmb",            "medium": "local_post", "default_content": "cta-swing-analysis"},
+        "instagram": {"source": "instagram",       "medium": "social",     "default_content": "link_in_bio"},
+        "facebook":  {"source": "facebook",        "medium": "social",     "default_content": "post_caption"},
+        "x":         {"source": "twitter",         "medium": "social",     "default_content": "tweet_link"},
+        "tiktok":    {"source": "tiktok",          "medium": "social",     "default_content": "bio_link"},
+    }.get(channel, {"source": channel, "medium": "social", "default_content": "post_link"})
+
+    content = content_tag or channel_config["default_content"]
+    qs = {
+        "utm_source": channel_config["source"],
+        "utm_medium": channel_config["medium"],
+        "utm_campaign": safe_cid,
+        "utm_content": content,
+    }
+    tracking_url = base_url + "?" + _urlparse.urlencode(qs)
+    return {
+        "url": base_url,
+        "tracking_url": tracking_url,
+        "source": channel_config["source"],
+        "medium": channel_config["medium"],
+        "campaign": safe_cid,
+        "content": content,
+    }
+
+
+# ── Image prompt per channel ────────────────────────────────────────
+# Each channel gets a recommended model + a per-channel-focused prompt +
+# aspect ratio. Models: Nano Banana = default; Gemini 3 Pro = hero
+# compositions; Ideogram 3 = text-heavy; FLUX 1.1 = humans; Grok for X.
+
+_IMAGE_MODELS_BY_CHANNEL = {
+    "instagram": "nano-banana",  # moody, editorial, lifestyle
+    "facebook": "nano-banana",   # similar editorial, larger text tolerance
+    "gmb": "gemini-3-pro",       # hero/landscape — storefront + signage
+    "tiktok": "grok",            # punchy, contrasty, attention-grabbing
+    "x": "grok",                 # simple graphic / quote
+}
+
+
+def image_brief(channel: str, idea: str, *, brand_id: str = "swing-shack",
+                neighbourhood: Optional[str] = None, pillar: Optional[str] = None) -> dict:
+    """Return an image brief for one channel.
+
+    The user runs the prompt through the model in the Image Lab (or via
+    /api/image/brand-dna for brand-aware composition). The model choice
+    is per-channel so we don't ship moody editorial stills to X (which
+    needs readable quote cards) or punchy TikTok thumbnails to GBP
+    (which needs heros + signage).
+    """
+    model = _IMAGE_MODELS_BY_CHANNEL.get(channel, "nano-banana")
+    aspect = {
+        "instagram": "4:5",    # vertical, maximum in-feed real estate
+        "tiktok":    "9:16",   # full-vertical
+        "facebook":  "1:1",    # square, works in feed + sidebar
+        "gmb":       "4:3",    # landscape hero
+        "x":         "16:9",   # landscape card
+    }.get(channel, "1:1")
+
+    # Per-channel prompt scaffolding — the brand_dna + bible overlays
+    # render-time overlays (logo placement + colour palette + bay refs).
+    base_subject = idea.strip().rstrip(".").rstrip("?")
+    prompts = {
+        "instagram": (
+            f"Editorial photograph inside a TrackMan-equipped indoor golf bay, "
+            f"mid-swing overhead shot, warm lighting, ball-flight trail visible. "
+            f"Subject: {base_subject}. "
+            f"Tone: confident, premium, not stock-photo. "
+            f"Composition: subject slightly right of centre, ball-flight left-to-right."
+        ),
+        "facebook": (
+            f"Wide-angle indoor golf scene, golfer at the hitting area with a TrackMan "
+            f"screen behind showing launch data. Subject: {base_subject}. "
+            f"Inclusion: a partner / friend watching adds community feel. "
+            f"Mood: warm, mid-day, inclusive."
+        ),
+        "gmb": (
+            f"Photograph of the Swing Shack storefront + signage, clearly visible "
+            f"and well-lit, OPEN sign. Subject: {base_subject}. "
+            f"Layer text overlay top-left: 'Indoor Golf — Johannesburg'. "
+            f"Bottom-right: 'Book R250' badge. "
+            f"Local SEO priority — entrance + signage must be legible."
+        ),
+        "tiktok": (
+            f"Vertical 9:16 frame, close-up of TrackMan screen showing launch "
+            f"data + face angle, golfer's reaction visible behind. "
+            f"Subject: {base_subject}. "
+            f"Mood: punchy, contrasty, attention-grabbing. "
+            f"Text overlays: hook on line 1, CTA on line 3."
+        ),
+        "x": (
+            f"Clean quote-card composition, dark background, large readable "
+            f"type: '{base_subject}'. "
+            f"Bottom-right: Swing Shack mark. "
+            f"Aesthetic: minimal, high-contrast, scannable in 0.5s."
+        ),
+    }
+    return {
+        "model": model,
+        "prompt": prompts.get(channel, prompts["instagram"]),
+        "aspect_ratio": aspect,
+        "overlay_text": _suggest_overlay(channel, base_subject, neighbourhood),
+        "negative_prompts": ["people with arms in pockets", "stock-photo smiles", "cluttered text", "watermarks"],
+    }
+
+
+def _suggest_overlay(channel: str, base_subject: str, neighbourhood: Optional[str]) -> dict:
+    """Text overlay suggestions for the image — split by channel.
+    'no overlay' for channels that keep captions fully in the caption
+    (most editorial), 'forced overlay' for channels that demand in-image
+    text (GBP needs signage, TikTok demands a hook)."""
+    if channel == "gmb":
+        return {"position": "top-left", "line_1": "Indoor Golf", "line_2": neighbourhood or "Johannesburg", "style": "bold sans-serif"}
+    if channel == "tiktok":
+        return {"position": "line 1 of 3", "line_1": base_subject[:50], "line_2": None, "style": "heavy contrast text"}
+    if channel == "x":
+        return {"position": "centered", "line_1": base_subject[:100], "line_2": "swingshack.co.za", "style": "minimal sans-serif"}
+    return {"position": "none", "line_1": None, "line_2": None, "style": "captions carry the message"}
+
+
+# ── Hook formula per channel ────────────────────────────────────────
+# Hook formula taxonomy: question / bold_claim / story_seed / contrarian / list / stat.
+# A/B test against your own historical winners + formula mixing.
+
+_HOOK_FORMULAS = {
+    "instagram": "bold_claim + story_seed",  # IG thrives on hook + soft follow
+    "facebook":  "question + community ask",  # FB thrives on conversation starts
+    "gmb":       "local-intent question",     # Google rewards local queries
+    "tiktok":    "bold_claim + contrarian",    # TikTok demands a hook that earns the watch
+    "x":         "punchy stat or list",       # X rewards dense single-pass reads
+}
+
+
+# ── Paid ad budget per channel ──────────────────────────────────────
+# Best-practice for SA market. GBP local-intent posts are FREE — the
+# only "spend" is the team's time to engage with reviews. Facebook +
+# Instagram paid amplification is the cheapest reach. TikTok Spark Ads
+# unlock the algorithm. X is expensive relative to the audience size
+# for the brand, so we mark it as 'organic only by default'.
+
+def paid_ad_plan(channel: str, *, brand_size: str = "local",
+                 brand_id: str = "swing-shack",
+                 intel: Optional[dict] = None) -> dict:
+    """Paid-ad budget — DATA when on file, BASELINE otherwise.
+
+    Rules (built 2026-08-20 from real swing-shack data):
+      - GBP: never paid (local-intent searches are free).
+      - X: organic-only until audience equity is confirmed.
+      - Instagram: paid R150/d default UNLESS followers < 500.
+      - Facebook / TikTok: paid baseline unless audience data says otherwise.
+
+    Returns: { channel, recommended, daily_budget_zar, objective, target,
+    expected_reach, rationale, source }
+    """
+    # DATA PATH
+    try:
+        if intel is None:
+            from _lib import brand_brief_intel as _bbi
+            intel = _bbi.build_brand_intel(brand_id=brand_id)
+        iga = (intel or {}).get("ig_analytics") or {}
+        igb = (intel or {}).get("ig_business") or {}
+        gbp = (intel or {}).get("gbp_insights") or {}
+        # Per-channel business JSONs
+        fbb = (intel or {}).get("facebook_business") or {}
+        ttb = (intel or {}).get("tiktok_business") or {}
+        xb = (intel or {}).get("x_business") or {}
+        followers = igb.get("followers_count") or 0
+        if intel and intel.get("ok"):
+            # GBP branch — always organic, real numbers if available
+            if channel == "gmb":
+                calls = gbp.get("calls_30d", 0) or 0
+                return {
+                    "channel": "gmb", "recommended": False, "daily_budget_zar": 0,
+                    "objective": "organic local post + photo upload + review reply",
+                    "target": "local-intent searchers within 5km radius",
+                    "expected_reach": f"{calls} calls last 30d" if calls else "unknown (no GBP insight cache yet)",
+                    "rationale": "Google GBP local-intent posts are free; the spend is on review replies + photo uploads, not impressions.",
+                    "source": f"data:{gbp.get('source')}" if gbp.get('ok') else "baseline",
+                }
+            # Facebook branch — pull real follower count from business JSON
+            if channel == "facebook":
+                fb_followers = fbb.get("followers_count") if fbb.get("ok") else None
+                if fb_followers is None:
+                    return {
+                        "channel": "facebook", "recommended": True, "daily_budget_zar": 200,
+                        "objective": "post engagement + link click",
+                        "target": "Johannesburg 30-65, lookalike from page followers + interest targeting",
+                        "expected_reach": "1,500-4,000 reach/day at R200/day",
+                        "rationale": "FB algorithm favours longer captions + link clicks — perfect for free-swing-analysis CTAs. R200/day for 7 days = R1,400.",
+                        "source": "data_facebook_pending (no live Page access token yet — add Meta System User token + run scripts/fetch_facebook_analytics.py)",
+                    }
+                if fb_followers < 500:
+                    return {
+                        "channel": "facebook", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic post + comment-stir CTA",
+                        "target": "current followers + Facebook-recommended free reach",
+                        "expected_reach": f"{fb_followers} followers · FB algorithmic free reach",
+                        "rationale": f"Only {fb_followers} FB followers on file — paid on free content until you've passed 500 followers + got 10+ posts in rotation.",
+                        "source": f"data:{fbb.get('source')}",
+                    }
+                return {
+                    "channel": "facebook", "recommended": True, "daily_budget_zar": 200,
+                    "objective": "post engagement + link click",
+                    "target": f"Johannesburg 30-65, lookalike from {fb_followers}-follower base",
+                    "expected_reach": "1,500-4,000 reach/day at R200/day",
+                    "rationale": f"R200/day for 7 days = R1,400. FB algo favours longer captions + link clicks. {fb_followers} followers give the algorithm seed audience.",
+                    "source": f"data:{fbb.get('source')}",
+                }
+            # TikTok branch
+            if channel == "tiktok":
+                tt_followers = ttb.get("followers_count") if ttb.get("ok") else None
+                if tt_followers is None:
+                    return {
+                        "channel": "tiktok", "recommended": True, "daily_budget_zar": 250,
+                        "objective": "video views + profile visit",
+                        "target": "Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle']",
+                        "expected_reach": "800-2,500 views/day at R250/day (Spark Ads)",
+                        "rationale": "TikTok Spark Ads unlock the algorithm — R250/day for 7 days = R1,750.",
+                        "source": "data_tiktok_pending (no live TikTok Business API token yet — add + run scripts/fetch_tiktok_analytics.py)",
+                    }
+                if tt_followers < 500:
+                    return {
+                        "channel": "tiktok", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic video + For You Page free reach",
+                        "target": "TikTok algorithmic free reach (no paid boost needed yet)",
+                        "expected_reach": f"{tt_followers} followers + free For-You exposure",
+                        "rationale": f"Only {tt_followers} TikTok followers on file — focus on free For You exposure first.",
+                        "source": f"data:{ttb.get('source')}",
+                    }
+                return {
+                    "channel": "tiktok", "recommended": True, "daily_budget_zar": 250,
+                    "objective": "video views + profile visit",
+                    "target": f"Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle'], lookalike from {tt_followers}-follower base",
+                    "expected_reach": f"800-2,500 views/day at R250/day ({tt_followers}-follower baseline)",
+                    "rationale": f"TikTok Spark Ads unlock the algorithm — R250/day for 7 days = R1,750.",
+                    "source": f"data:{ttb.get('source')}",
+                }
+            # X branch — always organic-only given audience data is missing per the system-budget gate
+            if channel == "x":
+                x_followers = xb.get("followers_count") if xb.get("ok") else None
+                if x_followers is None:
+                    return {
+                        "channel": "x", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic tweet + hashtag use",
+                        "target": "SA golf Twitter + creators",
+                        "expected_reach": "200-1,500 organic impressions (no live data on file)",
+                        "rationale": "No X API token on file yet. Add X Basic token ($100/mo per agent-budget gate) + run scripts/fetch_x_analytics.py. Until then, organic-only.",
+                        "source": "data_x_pending (no live X API Basic+ token yet)",
+                    }
+                if x_followers < 200:
+                    return {
+                        "channel": "x", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic tweet + creator reply",
+                        "target": f"small audience: {x_followers} followers + reply-radius",
+                        "expected_reach": f"{x_followers * 5}-{x_followers * 20} organic impressions per tweet",
+                        "rationale": f"Only {x_followers} X followers on file — grow audience organically before paid.",
+                        "source": f"data:{xb.get('source')}",
+                    }
+                return {
+                    "channel": "x", "recommended": True, "daily_budget_zar": 100,
+                    "objective": "tweet engagement + profile visit",
+                    "target": f"SA golf Twitter + creator lookalike from {x_followers}-follower base",
+                    "expected_reach": f"{x_followers * 10:,}-{x_followers * 30:,} impressions per tweet at R100/day",
+                    "rationale": f"R100/day X promoted post for 7 days = R700. Cheap when you've got a healthy {x_followers}-follower base.",
+                    "source": f"data:{xb.get('source')}",
+                }
+            if channel == "instagram":
+                if followers and followers < 500:
+                    return {
+                        "channel": "instagram", "recommended": False, "daily_budget_zar": 0,
+                        "objective": "organic post + bio-link CTA",
+                        "target": "current followers + explore-feed free reach",
+                        "expected_reach": f"{followers} followers · algorithm-driven free reach",
+                        "rationale": f"Only {followers} IG followers on file — boost on free content until you've passed 500 followers + 10+ posts in rotation.",
+                        "source": f"data:{igb.get('source')}",
+                    }
+                return {
+                    "channel": "instagram", "recommended": True, "daily_budget_zar": 150,
+                    "objective": "post engagement + profile visit + bio-link click",
+                    "target": f"Johannesburg golf-curious 25-55, lookalike from {followers}-follower base",
+                    "expected_reach": "1,200-3,500 reach/day at R150/day ({followers}-follower baseline × industry 2025 multiplier)",
+                    "rationale": "R150/day for 7 days = R1,050. Cheapest reach in SA golf per Meta 2024 benchmarks. The follower count is your seed audience.",
+                    "source": f"data:{igb.get('source')}",
+                }
+    except Exception:
+        pass
+
+    # BASELINE PATH
+    plans = {
+        "gmb": {
+            "channel": "gmb",
+            "recommended": False,
+            "daily_budget_zar": 0,
+            "objective": "organic local post + review engagement",
+            "target": "local-intent searchers within 5km radius",
+            "expected_reach": "5-20% of view-to-actions on the post",
+            "rationale": "Google GBP local-intent posts are free; spend time on review replies + photo uploads instead.",
+        },
+        "instagram": {
+            "channel": "instagram",
+            "recommended": True,
+            "daily_budget_zar": 150,
+            "objective": "post engagement + profile visit",
+            "target": "Johannesburg golf-curious, 25-55, interests ['golf', 'fitness', 'trackman']",
+            "expected_reach": "1,200-3,500 reach per day at R150/day",
+            "rationale": "Cheapest SA reach for golf/lifestyle. Boosted post + carousel both work well.",
+        },
+        "facebook": {
+            "channel": "facebook",
+            "recommended": True,
+            "daily_budget_zar": 200,
+            "objective": "post engagement + link click",
+            "target": "Johannesburg 30-65, lookalike from page followers",
+            "expected_reach": "1,500-4,000 reach per day at R200/day",
+            "rationale": "FB algorithm favours longer captions + link clicks — perfect for free-swing-analysis CTAs.",
+        },
+        "tiktok": {
+            "channel": "tiktok",
+            "recommended": True,
+            "daily_budget_zar": 250,
+            "objective": "video views + profile visit",
+            "target": "Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle']",
+            "expected_reach": "800-2,500 views per day at R250/day (Spark Ads)",
+            "rationale": "TikTok Spark Ads unlock the algorithm — well worth R250/day for a 15s swing-data clip.",
+        },
+        "x": {
+            "channel": "x",
+            "recommended": False,
+            "daily_budget_zar": 0,
+            "objective": "organic tweet + hashtag",
+            "target": "SA golf Twitter, #golfRSA, swing-data creators",
+            "expected_reach": "200-1,000 organic impressions per tweet at this brand size",
+            "rationale": "X is small in SA golf and paid X is expensive per impression. Organic-only by default unless you specifically want UGC creator collabs.",
+        },
+    }
+    return plans.get(channel, plans["instagram"])
+
+
+# ── Expected outcomes per channel ──────────────────────────────────
+# Conservative ranges based on industry baselines (HubSpot 2024, Hootsuite,
+# Rival IQ 2025). For a brand with <5K social followers in the SA golf
+# market. Adjust upward if follower count > 20K.
+
+def expected_outcomes(channel: str, *, cta: str = "", brand_id: str = "swing-shack",
+                     intel: Optional[dict] = None) -> dict:
+    """Expected outcomes per channel — DATA when on file, BASELINE otherwise.
+
+    Returns: { engagement_rate, ctr, expected_reach, expected_clicks,
+    conversion_rate_estimate, expected_bookings, source }
+
+    When intel (brand_brief_intel.build_brand_intel() snapshot) is
+    passed, this function uses real engagement rates for the SPECIFIC
+    channel being asked about (not IG's data for every channel).
+    - 'instagram' reads ig_analytics
+    - 'facebook' reads facebook_analytics
+    - 'tiktok' reads tiktok_analytics
+    - 'x' reads x_analytics
+    - 'gmb' reads gbp_insights
+
+    The `source` field says 'data:<file>' when computed from on-file
+    metrics, or 'baseline' when industry-average.
+    """
+    if intel is None:
+        try:
+            from _lib import brand_brief_intel as _bbi
+            intel = _bbi.build_brand_intel(brand_id=brand_id)
+        except Exception:
+            intel = {}
+
+    # DATA PATH: build from intel for the SPECIFIC channel
+    if intel and intel.get("ok"):
+        # Pick the per-channel analytics + business loader outputs
+        per_channel_analytics_key = f"{channel}_analytics"
+        per_channel_business_key = f"{channel}_business"
+        cha = (intel.get(per_channel_analytics_key) or {})
+        chb = (intel.get(per_channel_business_key) or {})
+        gbp = intel.get("gbp_insights") or {}
+        psc = intel.get("post_conversion") or {}
+        # Fallback: GA4/IG numbers if per-channel absent
+        ga4 = intel.get("ga4") or {}
+        igb = intel.get("ig_business") or {}
+
+        # Per-channel engagement rate from THAT channel's analytics (if available)
+        chosen_er = None
+        if cha.get("ok") and cha.get("by_format"):
+            chosen_er = list(cha["by_format"].values())[0]  # primary format
+            if not chosen_er and cha.get("median_engagement_pct"):
+                chosen_er = cha["median_engagement_pct"]
+        elif cha.get("ok") and cha.get("median_engagement_pct"):
+            chosen_er = cha["median_engagement_pct"]
+
+        # Per-channel reach from THAT channel's business JSON
+        reach = chb.get("avg_daily_reach_30d") if chb.get("ok") else None
+        source = "no_data"
+        if chosen_er:
+            source = f"data:{cha.get('source', per_channel_analytics_key + '.json')}"
+        if reach:
+            source = f"data:{chb.get('source', per_channel_business_key + '.json')}"
+
+        # Bookings estimate
+        bookings_per_post = None
+        if channel == "gmb" and gbp.get("calls_30d"):
+            bookings_per_post = round(gbp["calls_30d"] / 30, 2)
+            source = f"data:{gbp.get('source')}"
+        elif psc.get("baseline_bookings_per_post") is not None:
+            lift_mult = 1 + (psc.get("median_lift_pct") or 0) / 100
+            bookings_per_post = round(psc["baseline_bookings_per_post"] * lift_mult, 2)
+            source = f"data:{psc.get('source')}"
+
+        if chosen_er or reach or bookings_per_post is not None:
+            return {
+                "engagement_rate": f"{chosen_er:.2f}%" if chosen_er else "unknown (data_pending)",
+                "ctr": "0.8-2.0% baseline (no per-channel CTR on file yet)",
+                "expected_reach": f"{reach:,}/d" if reach else "unknown (data_pending)",
+                "expected_clicks": "8-25 per post (industry baseline, no per-brand click data on file)",
+                "conversion_rate_estimate": "3-7% baseline (no per-brand conversion data on file)",
+                "expected_bookings": (f"{bookings_per_post} per post (from {source})" if bookings_per_post is not None
+                                       else "unknown"),
+                "source": source,
+            }
+
+    # BASELINE PATH: industry averages
+    outcomes = {
+        "gmb": {
+            "engagement_rate": "0.05-0.20 (call+website+directions)",
+            "ctr": "n/a (calls/directions not link-driven)",
+            "expected_reach": "100-300 local impressions/day",
+            "expected_clicks": "5-15 website clicks/day",
+            "conversion_rate_estimate": "5-10% of clicks → bookings",
+            "expected_bookings": "0.3-1.5/day from GBP alone at this brand size",
+        },
+        "instagram": {
+            "engagement_rate": "1.5-3.5%",
+            "ctr": "0.8-2.0% on link-in-bio",
+            "expected_reach": "20-40% of followers per post",
+            "expected_clicks": "8-25 link-in-bio clicks per post",
+            "conversion_rate_estimate": "3-7% of bio clicks → bookings",
+            "expected_bookings": "0.2-1.7 per post (organic + R150 boost)",
+        },
+        "facebook": {
+            "engagement_rate": "0.8-2.5%",
+            "ctr": "1.0-2.5% on link post",
+            "expected_reach": "30-60% of followers per post",
+            "expected_clicks": "12-35 link clicks per post",
+            "conversion_rate_estimate": "2-5% of clicks → bookings",
+            "expected_bookings": "0.3-1.7 per post (organic + R200 boost)",
+        },
+        "tiktok": {
+            "engagement_rate": "4-9%",
+            "ctr": "0.5-1.5% on bio link",
+            "expected_reach": "varies wildly; 500-50,000 views possible",
+            "expected_clicks": "3-15 bio clicks per video",
+            "conversion_rate_estimate": "2-6% of clicks → bookings",
+            "expected_bookings": "0.1-1.0 per video (organic + R250 boost)",
+        },
+        "x": {
+            "engagement_rate": "0.5-1.5%",
+            "ctr": "1.5-3.5% on link tweet",
+            "expected_reach": "200-1,500 impressions per tweet",
+            "expected_clicks": "3-15 link clicks per tweet",
+            "conversion_rate_estimate": "2-4% of clicks → bookings",
+            "expected_bookings": "0.05-0.6 per tweet (organic only by default)",
+        },
+    }
+    return outcomes.get(channel, outcomes["instagram"])
+
+
+# ── Per-channel brief assembly ─────────────────────────────────────
+
+def build_channel_brief(channel: str, *, idea: str, brand_id: str, campaign_id: str,
+                        pillar: Optional[str] = None, neighbourhood: Optional[str] = None,
+                        content_tag: Optional[str] = None, domain: Optional[str] = None) -> dict:
+    """Compose a full brief per channel — DATA when on file.
+
+    Pipeline:
+      1. Build brand intel snapshot (post-conversion-score, hook-bank,
+         ig-analytics, ig-business, ga4, gbp-insights, audience equity)
+      2. Pick hook_formula from data (winning formula by lift when
+         available, else hook-bank cross-signal rank, else baseline)
+      3. Pick paid_plan from data (follower/calls thresholds)
+      4. Pick expected_outcome from data (real IG engagement rates,
+         real GBP calls, real baseline+lift booking estimate)
+
+    Returns: { channel, image, utm, hook_formula, paid_plan,
+    expected_outcome, intel_summary } — every field carries a
+    source citation so the user knows what is data vs guess.
+    """
+    dom = domain or ("swingshack.co.za" if brand_id == "swing-shack"
+                     else ("sticksa.co.za" if brand_id == "stick" else "bagdropgolf.co.za"))
+
+    # Build the brand intel snapshot ONCE per call
+    intel = None
+    try:
+        from _lib import brand_brief_intel as _bbi
+        intel = _bbi.build_brand_intel(brand_id=brand_id)
+    except Exception:
+        intel = {}
+
+    # Hook formula = data when possible
+    if intel and intel.get("ok"):
+        try:
+            from _lib import brand_brief_intel as _bbi2
+            formula, formula_src = _bbi2.derive_recommended_hook_formula(
+                intel, channel=channel, pillar=pillar)
+        except Exception:
+            formula, formula_src = _HOOK_FORMULAS.get(channel, "bold_claim"), "baseline"
+    else:
+        formula, formula_src = _HOOK_FORMULAS.get(channel, "bold_claim"), "baseline"
+
+    return {
+        "channel": channel,
+        "image": image_brief(channel, idea, brand_id=brand_id,
+                              neighbourhood=neighbourhood, pillar=pillar),
+        "utm": build_utm(channel, campaign_id=campaign_id, content_tag=content_tag, domain=dom),
+        "hook_formula": formula,
+        "hook_formula_source": formula_src,
+        "paid_plan": paid_ad_plan(channel, brand_id=brand_id, intel=intel),
+        "expected_outcome": expected_outcomes(channel, brand_id=brand_id, intel=intel),
+        "intel_summary": {
+            "followers_count": (intel or {}).get("ig_business", {}).get("followers_count"),
+            "posts_scored": (intel or {}).get("post_conversion", {}).get("posts_scored"),
+            "winning_themes": (intel or {}).get("post_conversion", {}).get("winning_themes", [])[:3],
+            "winning_format": (intel or {}).get("post_conversion", {}).get("winning_format"),
+            "median_lift_pct": (intel or {}).get("post_conversion", {}).get("median_lift_pct"),
+            "hook_proven_count": (intel or {}).get("hook_bank", {}).get("proven_count"),
+            "gbp_calls_30d": (intel or {}).get("gbp_insights", {}).get("calls_30d"),
+        } if intel else {},
+    }
+
+
+# ── Tracking sheet (Google Sheet-compatible) ────────────────────────
+
+def tracking_sheet_rows(campaign_id: str, channels: list[str], *,
+                         pillar: Optional[str] = None,
+                         neighbourhood: Optional[str] = None) -> list[dict]:
+    """Generate a tracking-sheet row per channel for the campaign.
+
+    Returns: list of dicts whose keys are column headers you can paste
+    straight into a Google Sheet / Excel. Columns:
+      campaign_id, channel, asset_id, planned_date, utm_tracking_url,
+      image_model, expected_ctr, expected_bookings, paid_recommended,
+      paid_daily_zar, hook_formula
+    """
+    base_date = _dt.date.today()
+    rows = []
+    for i, ch in enumerate(channels):
+        brief = build_channel_brief(ch, idea=campaign_id, brand_id="swing-shack",
+                                     campaign_id=campaign_id, pillar=pillar,
+                                     neighbourhood=neighbourhood)
+        schedule_offset = {"gmb": 1, "instagram": 1, "facebook": 3, "tiktok": 2, "x": 4}.get(ch, 1)
+        planned = base_date + _dt.timedelta(days=schedule_offset)
+        rows.append({
+            "campaign_id": campaign_id,
+            "channel": ch,
+            "asset_id": f"{campaign_id}-{ch}",
+            "planned_date": planned.isoformat(),
+            "utm_tracking_url": brief["utm"]["tracking_url"],
+            "image_model": brief["image"]["model"],
+            "image_aspect_ratio": brief["image"]["aspect_ratio"],
+            "expected_ctr": brief["expected_outcome"]["ctr"],
+            "expected_bookings": brief["expected_outcome"]["expected_bookings"],
+            "paid_recommended": brief["paid_plan"]["recommended"],
+            "paid_daily_zar": brief["paid_plan"]["daily_budget_zar"],
+            "hook_formula": brief["hook_formula"],
+            "overlay_required": "no" if brief["image"]["overlay_text"]["position"] == "none" else "yes",
+        })
+    return rows
+
+
+def tracking_sheet_csv(campaign_id: str, channels: list[str], *,
+                         pillar: Optional[str] = None,
+                         neighbourhood: Optional[str] = None) -> str:
+    """Generate a CSV string for the tracking sheet (paste-ready)."""
+    import io, csv
+    rows = tracking_sheet_rows(campaign_id, channels, pillar=pillar, neighbourhood=neighbourhood)
+    if not rows:
+        return ""
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+    writer.writeheader()
+    for r in rows:
+        writer.writerow(r)
+    return buf.getvalue()
