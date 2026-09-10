@@ -19631,6 +19631,57 @@ def admin_meta_index():
     })
 
 
+@app.route('/api/admin/feedback-dump', methods=['GET'])
+def admin_feedback_dump():
+    """GET /api/admin/feedback-dump — return the live feedback + learned
+    files for all operating brands so the operator can commit them back to
+    the repo (so they survive the next image rebuild). Auth required.
+
+    Returns a dict keyed by brand_id, each containing:
+      - image-performance.json
+      - learned-signals.json
+      - integrations/<brand>/instagram.json (config)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib.meta_api import OPERATING_BRANDS
+    except Exception:
+        return jsonify({"ok": False, "error": "meta_api unavailable"}), 500
+    out = {"ok": True, "brands": {}}
+    for brand_id in sorted(OPERATING_BRANDS):
+        bundle = {"files": {}}
+        # 1. brand-directory/<brand>/feedback/image-performance.json
+        for relpath, key in [
+            ("brand-directory/" + brand_id + "/feedback/image-performance.json", "image_performance"),
+            ("brand-directory/" + brand_id + "/feedback/learned-signals.json", "learned_signals"),
+            ("integrations/" + brand_id + "/instagram.json", "instagram_config"),
+        ]:
+            for base_dir in (BUNDLED_DATA_DIR, DATA_DIR, str(REPO_ROOT / "data"), "data"):
+                try:
+                    p = Path(base_dir) / relpath
+                    if p.exists():
+                        body = p.read_text()
+                        try:
+                            bundle["files"][key] = {
+                                "path": str(p),
+                                "bytes": len(body),
+                                "data": json.loads(body),
+                            }
+                        except Exception:
+                            bundle["files"][key] = {
+                                "path": str(p),
+                                "bytes": len(body),
+                                "data": None,
+                                "raw": body[:2000],
+                            }
+                        break
+                except Exception:
+                    continue
+        out["brands"][brand_id] = bundle
+    return jsonify(out)
+
+
 @app.route('/api/admin/data-freshness', methods=['GET'])
 def admin_data_freshness():
     """GET /api/admin/data-freshness — read from data/freshness.json which is
