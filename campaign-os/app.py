@@ -19801,11 +19801,25 @@ _P06_EVIDENCE_LEDGER_PATH = _P06_ROOT / "evidence-ledger.json"
 _P06_WIN_PROFILES_PATH = _P06_ROOT / "win-profiles.json"
 _P06_CAPTION_INTEL_PATH = _P06_ROOT / "caption-intelligence.json"
 
+# P0.6A QUALITY GATE paths
+_P06A_QUALITY_REPORT = _P06_ROOT / "p06a-quality-report.json"
+_P06A_ELIGIBILITY_PATH = _P06_ROOT / "eligibility.jsonl"
+_P06A_METRIC_COVERAGE_PATH = _P06_ROOT / "metric-coverage.json"
+_P06A_VIDEO_TEST_PATH = _P06_ROOT / "video-insights-test.json"
+_P06A_EMBEDDINGS_PATH = _P06_ROOT / "embeddings.jsonl"
+_P06A_FATIGUE_PATH = _P06_ROOT / "semantic-fatigue.json"
+_P06A_VISUAL_GENOME_PATH = _P06_ROOT / "visual-genome.jsonl"
+_P06A_CLEAN_CANONICAL = _P06_ROOT / "canonical" / "canonical-history.cleaned.jsonl"
+_P06A_CLEAN_DERIVED = _P06_ROOT / "derived-performance.cleaned.jsonl"
+
 
 def _p06_init_dirs():
     for d in (_P06_ROOT, _P06_CHECKPOINT_DIR, _P06_IG_RAW_DIR,
               _P06_IG_RAW_DIR / "media", _P06_IG_RAW_DIR / "insights",
-              _P06_ROOT / "internal", _P06_ROOT / "canonical"):
+              _P06_ROOT / "internal", _P06_ROOT / "canonical",
+              _P06_ROOT / "facebook" / "raw" / "posts",
+              _P06_ROOT / "facebook" / "raw" / "insights",
+              _P06_ROOT / "visual-genome-frames"):
         try:
             d.mkdir(parents=True, exist_ok=True)
         except Exception:
@@ -21378,6 +21392,1389 @@ def admin_history_report():
                                    if any(r.get("per_reach", {}).values())),
             "with_provisional_win_score": sum(1 for r in records
                                                if r.get("provisional_win_score") is not None),
+        }
+
+    return jsonify({"ok": True, "report": report})
+
+
+# ─── P0.6A HISTORICAL INTELLIGENCE QUALITY GATE ────────────────────────────
+# Endpoints that operate on the canonical stream from P0.6 to:
+#   1. Quarantine synthetic ad datasets from learning
+#   2. Fix asset vs publication identity (FB posts → publications; cross-post)
+#   3. Add per-record eligibility flags
+#   4. Fix metric semantics (per-reach rates, numerator/denominator/version)
+#   5. Build a metric coverage matrix by (media_type, year, metric)
+#   6. Re-test VIDEO insights on a controlled sample
+#   7. Build semantic memory (embeddings) for eligible captions
+#   8. Compute semantic fatigue seeds (families + per-family stats)
+#   9. First-pass Visual Genome on retrievable IG media
+#  10. Rebuild derived performance from the cleaned eligible sample
+#  11. Flag format-vs-availability confounds
+#  12. Produce a final P0.6A report
+#
+# Writes go to /data/campaign-os/intelligence/history/p06a/ — never to the
+# canonical P0.6 files. Live P0 WIN PROFILE remains untouched.
+
+
+_P06A_DIR = _P06_ROOT / "p06a"
+_P06A_CLEAN_CANONICAL = _P06A_DIR / "canonical-history.cleaned.jsonl"
+_P06A_CLEAN_DERIVED = _P06A_DIR / "derived-performance.cleaned.jsonl"
+_P06A_ELIGIBILITY = _P06A_DIR / "eligibility.jsonl"
+_P06A_METRIC_COVERAGE = _P06A_DIR / "metric-coverage.json"
+_P06A_VIDEO_TEST = _P06A_DIR / "video-insights-test.json"
+_P06A_EMBEDDINGS = _P06A_DIR / "embeddings.jsonl"
+_P06A_FATIGUE = _P06A_DIR / "semantic-fatigue.json"
+_P06A_VISUAL_GENOME = _P06A_DIR / "visual-genome.jsonl"
+_P06A_QUALITY_REPORT = _P06A_DIR / "quality-report.json"
+
+
+def _p06a_init_dirs():
+    for d in (_P06A_DIR,
+              _P06A_DIR / "frames",
+              _P06_ROOT / "visual-genome-frames"):
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+
+
+# Reel / video metrics that the Meta Graph Insights API MAY return per media.
+# Used by Step 6 (video insights retry) and Step 5 (coverage matrix).
+_VIDEO_METRIC_CANDIDATES = [
+    "reach", "likes", "comments", "shares", "saved", "saved_count",
+    "total_interactions", "views", "plays", "video_views",
+    "ig_reels_video_view_total_time", "ig_reels_avg_watch_time",
+    "clips_replays_count", "ig_reels_aggregated_all_plays_count",
+    "profile_visits", "follows", "profile_activity", "impressions",
+]
+
+
+# ─── STEP 1: QUARANTINE SYNTHETIC AD DATA ─────────────────────────────────
+
+@app.route('/api/admin/p06a/quarantine-synthetic', methods=['GET'])
+def admin_p06a_quarantine_synthetic():
+    """STEP 1 — read bundled meta-ads.json + google-ads.json, detect
+    synthesised-from-engagement markers, write a quarantine manifest.
+
+    Output: /data/campaign-os/intelligence/history/p06a/synthetic-quarantine.json
+    Each quarantined record receives:
+        status = synthetic_placeholder
+        performance_eligible = false
+        paid_performance_eligible = false
+        evidence_ledger_eligible = false
+        win_profile_eligible = false
+        causal_inference_eligible = false
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    out = {
+        "_meta": {"phase": "P0.6A", "step": 1,
+                  "generated_at": _dt_cls.now().isoformat()},
+        "quarantined": [],
+        "real_meta_ads": [],
+        "real_google_ads": [],
+    }
+    for fn, kind in [("meta-ads.json", "meta_ads"),
+                     ("google-ads.json", "google_ads")]:
+        for base in (DATA_DIR, str(BUNDLED_DATA_DIR)):
+            p = Path(base) / fn
+            if not p.exists():
+                continue
+            try:
+                d = json.loads(p.read_text())
+            except Exception:
+                continue
+            meta = d.get("_meta") or {}
+            note = meta.get("note") or ""
+            synthetic_marker = (
+                "synthesised" in note.lower() or "synthesised" in meta.get("source", "").lower()
+                or "derived" in note.lower()
+            )
+            campaigns = d.get("campaigns") or []
+            for c in (campaigns if isinstance(campaigns, list) else []):
+                rec = {
+                    "id": c.get("id") or c.get("name"),
+                    "source": kind,
+                    "original_status": "available",
+                    "synthetic_marker_in_note": note,
+                    "synthetic_marker_detected": synthetic_marker,
+                    "quarantine_status": "synthetic_placeholder" if synthetic_marker else "available",
+                    "performance_eligible": not synthetic_marker,
+                    "paid_performance_eligible": not synthetic_marker,
+                    "evidence_ledger_eligible": not synthetic_marker,
+                    "win_profile_eligible": not synthetic_marker,
+                    "causal_inference_eligible": not synthetic_marker,
+                    "creative_scientist_eligible": not synthetic_marker,
+                }
+                if synthetic_marker:
+                    out["quarantined"].append(rec)
+                else:
+                    (out["real_meta_ads"] if kind == "meta_ads" else out["real_google_ads"]).append(rec)
+            break  # use first found base
+    qpath = _P06A_DIR / "synthetic-quarantine.json"
+    qpath.write_text(json.dumps(out, indent=2))
+    return jsonify({
+        "ok": True,
+        "quarantine_path": str(qpath),
+        "quarantined_count": len(out["quarantined"]),
+        "real_meta_ads_count": len(out["real_meta_ads"]),
+        "real_google_ads_count": len(out["real_google_ads"]),
+    })
+
+
+# ─── STEP 2: FIX ASSET vs PUBLICATION IDENTITY + CROSS-POST RESOLUTION ───
+
+@app.route('/api/admin/p06a/fix-identity', methods=['POST'])
+def admin_p06a_fix_identity():
+    """STEP 2 — read canonical, ensure every FB post has both an asset AND a
+    publication record, attempt deterministic cross-post resolution by
+    matching IG permalinks with FB permalink_url patterns, write the cleaned
+    canonical stream.
+
+    Cross-post matching rules:
+      - IG media_type = VIDEO / REEL has permalink like .../reel/<slug>/
+      - FB post permalink_url pattern: facebook.com/<page>/posts/<id> or
+        facebook.com/<page>/videos/<id>
+      - Deterministic match: same caption hash AND same media_type AND
+        timestamps within 24 hours. (Permalinks themselves differ by
+        platform, so we use caption hash + timestamp proximity.)
+
+    Output: canonical-history.cleaned.jsonl with:
+      - One asset per (platform, source_id) UNLESS cross-post-resolved
+      - Every asset has ≥1 publication record
+      - Cross-post groups tracked under asset.cross_post_group_id
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06_CANONICAL_PATH.exists():
+        return jsonify({"ok": False, "error": "no P0.6 canonical found"}), 404
+
+    # Read raw IG media (we need permalink + caption + timestamp) + FB posts
+    ig_media = {}
+    for mp in (_P06_IG_RAW_DIR / "media").glob("*.json"):
+        try:
+            d = json.loads(mp.read_text())
+            ig_media[d["id"]] = d
+        except Exception:
+            continue
+    fb_posts = {}
+    for pp in (_P06_ROOT / "facebook" / "raw" / "posts").glob("*.json"):
+        try:
+            d = json.loads(pp.read_text())
+            fb_posts[d["id"]] = d
+        except Exception:
+            continue
+
+    # Build deterministic cross-post groups
+    # Two IG records with same caption → not a cross-post (same platform).
+    # One IG + one FB with same caption-hash + timestamp within 24h → cross-post.
+    def caption_hash(c: str) -> str:
+        return hashlib.sha256(
+            re.sub(r"\s+", " ", (c or "").strip().lower()).encode()
+        ).hexdigest()[:16]
+
+    from datetime import datetime as _dt, timezone as _tz
+    def parse_ts(t: str):
+        if not t:
+            return None
+        try:
+            return _dt.fromisoformat(t.replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    ig_by_hash = {}
+    for mid, d in ig_media.items():
+        cap = d.get("caption") or ""
+        ts = parse_ts(d.get("timestamp"))
+        h = caption_hash(cap)
+        if not cap.strip():
+            continue
+        ig_by_hash.setdefault(h, []).append({
+            "ig_media_id": mid, "caption": cap, "timestamp": ts,
+            "media_type": d.get("media_type"),
+        })
+
+    cross_post_groups = []
+    fb_matched_to_ig = set()
+    for h, items in ig_by_hash.items():
+        if len(items) < 1:
+            continue
+        ig_item = items[0]
+        # Look for FB posts with same caption hash
+        for fpid, fp in fb_posts.items():
+            if fpid in fb_matched_to_ig:
+                continue
+            fb_cap = fp.get("message") or ""
+            fb_ts = parse_ts(fp.get("created_time"))
+            if caption_hash(fb_cap) != h:
+                continue
+            if ig_item["timestamp"] and fb_ts:
+                delta = abs((ig_item["timestamp"] - fb_ts).total_seconds())
+                if delta > 86400:  # 24h window
+                    continue
+            # Deterministic match
+            group_id = f"xpost-{h}"
+            cross_post_groups.append({
+                "group_id": group_id,
+                "caption_hash": h,
+                "ig_media_id": ig_item["ig_media_id"],
+                "fb_post_id": fpid,
+                "caption_excerpt": (ig_item["caption"] or "")[:120],
+                "ig_timestamp": ig_item["timestamp"].isoformat() if ig_item["timestamp"] else None,
+                "fb_timestamp": fb_ts.isoformat() if fb_ts else None,
+                "media_type": ig_item.get("media_type"),
+            })
+            fb_matched_to_ig.add(fpid)
+            break  # one FB per IG (first match)
+
+    # Now build cleaned canonical
+    seen_assets = set()
+    seen_publications = set()
+    clean_records = []
+    asset_to_publications = {}  # asset_id -> [publication_ids]
+    pub_to_asset = {}
+    asset_groups = {}  # asset_id -> cross_post_group_id if any
+
+    # First, IG media → assets + publications
+    for mid, d in ig_media.items():
+        asset_id = f"ig-{mid}"
+        # Is this IG asset in a cross-post group?
+        group_id = None
+        for g in cross_post_groups:
+            if g["ig_media_id"] == mid:
+                group_id = g["group_id"]
+                break
+        if group_id:
+            asset_id = f"xpost-{group_id[6:]}-asset"
+            asset_groups[asset_id] = group_id
+        if asset_id in seen_assets:
+            continue
+        seen_assets.add(asset_id)
+        clean_records.append({
+            "kind": "asset",
+            "asset_id": asset_id,
+            "brand_id": "swing-shack",
+            "ig_media_id": mid,
+            "media_type": d.get("media_type"),
+            "caption": d.get("caption") or "",
+            "permalink": d.get("permalink") or "",
+            "first_seen_at": (d.get("_provenance") or {}).get("ingested_at"),
+            "origin": "external",
+            "campaign_id": None,
+            "source": "instagram_meta",
+            "data_quality": (d.get("_provenance") or {}).get("data_quality", "medium"),
+            "cross_post_group_id": group_id,
+        })
+        pub_id = f"ig-pub-{mid}"
+        asset_to_publications.setdefault(asset_id, []).append(pub_id)
+        pub_to_asset[pub_id] = asset_id
+        seen_publications.add(pub_id)
+        clean_records.append({
+            "kind": "publication",
+            "publication_id": pub_id,
+            "asset_id": asset_id,
+            "platform": "instagram",
+            "permalink": d.get("permalink") or "",
+            "timestamp": d.get("timestamp"),
+            "brand_id": "swing-shack",
+            "origin": "external",
+            "ig_media_id": mid,
+            "source": "instagram_meta",
+        })
+        # Insights → performance
+        ins_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
+        if ins_path.exists():
+            try:
+                ins = json.loads(ins_path.read_text())
+                if ins.get("_available") is not False:
+                    flat = ins.get("_flat") or {}
+                    clean_records.append({
+                        "kind": "performance",
+                        "publication_id": pub_id,
+                        "asset_id": asset_id,
+                        "platform": "instagram",
+                        "ig_media_id": mid,
+                        "observations": flat,
+                        "metric_availability": {
+                            k: True for k in flat.keys() if flat.get(k) is not None
+                        },
+                        "raw_data_quality": "high",
+                        "source": "instagram_meta",
+                        "timestamp": d.get("timestamp"),
+                    })
+            except Exception:
+                pass
+
+    # FB posts → assets + publications (matched ones get same asset as their IG pair)
+    for fpid, d in fb_posts.items():
+        # Find which asset this FB post maps to
+        mapped_asset = None
+        for g in cross_post_groups:
+            if g["fb_post_id"] == fpid:
+                mapped_asset = f"xpost-{g['group_id'][6:]}-asset"
+                break
+        if mapped_asset is None:
+            mapped_asset = f"fb-{fpid}"  # separate creative
+        if mapped_asset not in seen_assets:
+            seen_assets.add(mapped_asset)
+            cap = d.get("message") or ""
+            clean_records.append({
+                "kind": "asset",
+                "asset_id": mapped_asset,
+                "brand_id": "swing-shack",
+                "fb_post_id": fpid,
+                "media_type": d.get("type") or "UNKNOWN",
+                "caption": cap,
+                "permalink": d.get("permalink_url") or "",
+                "first_seen_at": (d.get("_provenance") or {}).get("ingested_at"),
+                "origin": "external",
+                "campaign_id": None,
+                "source": "facebook_page",
+                "data_quality": (d.get("_provenance") or {}).get("data_quality", "medium"),
+                "cross_post_group_id": asset_groups.get(mapped_asset),
+            })
+        pub_id = f"fb-pub-{fpid}"
+        asset_to_publications.setdefault(mapped_asset, []).append(pub_id)
+        pub_to_asset[pub_id] = mapped_asset
+        seen_publications.add(pub_id)
+        clean_records.append({
+            "kind": "publication",
+            "publication_id": pub_id,
+            "asset_id": mapped_asset,
+            "platform": "facebook",
+            "permalink": d.get("permalink_url") or "",
+            "timestamp": d.get("created_time"),
+            "brand_id": "swing-shack",
+            "origin": "external",
+            "fb_post_id": fpid,
+            "source": "facebook_page",
+        })
+        # FB insights → performance
+        ins_path = _P06_ROOT / "facebook" / "raw" / "insights" / f"{fpid}.json"
+        if ins_path.exists():
+            try:
+                ins = json.loads(ins_path.read_text())
+                if ins.get("_available") is not False and ins.get("_flat"):
+                    flat = ins["_flat"]
+                    clean_records.append({
+                        "kind": "performance",
+                        "publication_id": pub_id,
+                        "asset_id": mapped_asset,
+                        "platform": "facebook",
+                        "fb_post_id": fpid,
+                        "observations": flat,
+                        "metric_availability": {
+                            k: True for k in flat.keys() if flat.get(k) is not None
+                        },
+                        "raw_data_quality": "high",
+                        "source": "facebook_page",
+                        "timestamp": d.get("created_time"),
+                    })
+            except Exception:
+                pass
+
+    # Persist
+    with _P06A_CLEAN_CANONICAL.open("w") as f:
+        for rec in clean_records:
+            f.write(json.dumps(rec, default=str) + "\n")
+
+    # Sanity check: every asset has ≥1 publication
+    assets_without_pubs = []
+    for asset_id in seen_assets:
+        if not asset_to_publications.get(asset_id):
+            assets_without_pubs.append(asset_id)
+
+    return jsonify({
+        "ok": True,
+        "clean_canonical_path": str(_P06A_CLEAN_CANONICAL),
+        "counts": {
+            "asset_records": sum(1 for r in clean_records if r["kind"] == "asset"),
+            "publication_records": sum(1 for r in clean_records if r["kind"] == "publication"),
+            "performance_records": sum(1 for r in clean_records if r["kind"] == "performance"),
+            "unique_assets": len(seen_assets),
+            "unique_publications": len(seen_publications),
+        },
+        "cross_post_resolution": {
+            "groups_found": len(cross_post_groups),
+            "fb_posts_resolved_to_ig": len(fb_matched_to_ig),
+            "fb_posts_separate_creative": len(fb_posts) - len(fb_matched_to_ig),
+            "groups": cross_post_groups[:20],
+        },
+        "assets_without_publication": assets_without_pubs,
+    })
+
+
+# ─── STEP 3: ADD ELIGIBILITY FLAGS ──────────────────────────────────────────
+
+def _compute_eligibility(rec):
+    """Compute per-record eligibility flags. Pure function — no I/O."""
+    flags = {
+        "text_eligible": False,
+        "visual_eligible": False,
+        "performance_eligible": False,
+        "sequence_eligible": False,
+        "cross_channel_eligible": False,
+        "paid_performance_eligible": False,
+        "taste_eligible": False,
+        "brand_learning_eligible": False,
+    }
+    if rec.get("kind") == "asset":
+        flags["text_eligible"] = bool((rec.get("caption") or "").strip())
+        flags["visual_eligible"] = bool(rec.get("permalink"))
+        flags["cross_channel_eligible"] = bool(rec.get("cross_post_group_id"))
+        flags["brand_learning_eligible"] = bool(rec.get("brand_id"))
+    elif rec.get("kind") == "publication":
+        flags["sequence_eligible"] = bool(rec.get("timestamp"))
+        flags["cross_channel_eligible"] = bool(
+            rec.get("publication_id") and rec.get("asset_id")
+        )
+    elif rec.get("kind") == "performance":
+        obs = rec.get("observations") or {}
+        flags["performance_eligible"] = bool(obs) and any(
+            v is not None for v in obs.values()
+        )
+        flags["paid_performance_eligible"] = False  # default off; only true for real Meta Ads
+        flags["taste_eligible"] = False  # taste data empty (Step 15 of P0.6)
+    return flags
+
+
+@app.route('/api/admin/p06a/eligibility', methods=['POST'])
+def admin_p06a_eligibility():
+    """STEP 3 — read cleaned canonical, attach eligibility flags, write
+    eligibility.jsonl (one record per (asset, publication, performance)).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "no cleaned canonical yet — run /p06a/fix-identity first"}), 400
+
+    records = []
+    counts = {
+        "text_eligible": 0, "visual_eligible": 0, "performance_eligible": 0,
+        "sequence_eligible": 0, "cross_channel_eligible": 0,
+        "paid_performance_eligible": 0, "taste_eligible": 0,
+        "brand_learning_eligible": 0,
+    }
+    with _P06A_ELIGIBILITY.open("w") as f:
+        for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            flags = _compute_eligibility(rec)
+            out = {
+                "_kind": rec.get("kind"),
+                "asset_id": rec.get("asset_id"),
+                "publication_id": rec.get("publication_id"),
+                "platform": rec.get("platform"),
+                **flags,
+            }
+            for k, v in flags.items():
+                if v:
+                    counts[k] += 1
+            f.write(json.dumps(out, default=str) + "\n")
+            records.append(out)
+    return jsonify({
+        "ok": True,
+        "eligibility_path": str(_P06A_ELIGIBILITY),
+        "records": len(records),
+        "counts": counts,
+    })
+
+
+# ─── STEP 5: METRIC COVERAGE MATRIX ─────────────────────────────────────────
+
+@app.route('/api/admin/p06a/metric-coverage', methods=['GET'])
+def admin_p06a_metric_coverage():
+    """STEP 5 — read cleaned canonical performance records, build a coverage
+    matrix by (media_type, year, metric). Also list which metrics the Meta
+    API actually returned for VIDEO/REEL.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "no cleaned canonical yet"}), 400
+
+    # Group performance by (media_type, year, metric)
+    cov = {}
+    video_metrics_seen = set()
+    n_perf = 0
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") != "performance":
+            continue
+        n_perf += 1
+        asset_id = rec.get("asset_id")
+        # Need media_type — look up via assets
+        # For performance, we don't have media_type inline; we'll match
+        # to the asset by scanning asset records.
+        # Simpler: store media_type on the perf record by re-reading the
+        # canonical — but we just wrote it without media_type on perf.
+        # Workaround: re-scan asset records once and pass the type in.
+        # Since we wrote perf records above WITHOUT media_type, we'll
+        # fall back to extracting from the asset_id (ig-* or fb-*) and
+        # re-looking up media_type from the IG/FB raw records.
+
+    # Build asset_id → media_type lookup
+    asset_mt = {}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset":
+            asset_mt[rec["asset_id"]] = rec.get("media_type") or "UNKNOWN"
+
+    # Now compute coverage
+    coverage = {}  # {(mt, year, metric): count}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") != "performance":
+            continue
+        obs = rec.get("observations") or {}
+        mt = asset_mt.get(rec.get("asset_id"), "UNKNOWN")
+        ts = rec.get("timestamp") or ""
+        year = ts[:4] if ts else "unknown"
+        for metric, value in obs.items():
+            if value is None:
+                continue
+            key = (mt, year, metric)
+            coverage[key] = coverage.get(key, 0) + 1
+            if mt in ("VIDEO", "REEL"):
+                video_metrics_seen.add(metric)
+
+    # Restructure for output
+    out = {
+        "_meta": {"phase": "P0.6A", "step": 5,
+                  "generated_at": _dt_cls.now().isoformat(),
+                  "performance_records_total": n_perf},
+        "by_media_type_year_metric": [
+            {"media_type": mt, "year": yr, "metric": m, "count": c}
+            for (mt, yr, m), c in coverage.items()
+        ],
+        "video_metrics_observed": sorted(video_metrics_seen),
+        "video_metrics_unobserved": [
+            m for m in _VIDEO_METRIC_CANDIDATES if m not in video_metrics_seen
+        ],
+    }
+    _P06A_METRIC_COVERAGE.write_text(json.dumps(out, indent=2))
+    return jsonify({"ok": True, "coverage_path": str(_P06A_METRIC_COVERAGE), "report": out})
+
+
+# ─── STEP 6: RE-TEST VIDEO INSIGHTS ────────────────────────────────────────
+
+@app.route('/api/admin/p06a/video-insights-test', methods=['POST'])
+def admin_p06a_video_insights_test():
+    """STEP 6 — pick 3 VIDEO / Reel media items (recent with existing insights,
+    older with existing insights, older currently marked unavailable) and
+    re-query the live Meta API with the FULL candidate metrics set. Record
+    which metrics the API actually returns vs which it rejects.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    try:
+        from _lib.meta_api import (
+            load_brand_integration, _graph_get,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    cfg = load_brand_integration("swing-shack")
+    creds = cfg.get("configured")
+    if not creds:
+        return jsonify({"ok": False, "error": "swing-shack instagram not configured"}), 400
+
+    # Build sample list
+    candidates = {"recent": None, "older_with_insights": None,
+                  "older_unavailable": None}
+    videos = []
+    for mp in (_P06_IG_RAW_DIR / "media").glob("*.json"):
+        try:
+            d = json.loads(mp.read_text())
+        except Exception:
+            continue
+        if d.get("media_type") not in ("VIDEO",):
+            continue
+        ts = d.get("timestamp") or ""
+        videos.append({"mid": d.get("id"), "ts": ts})
+
+    def has_insights(mid):
+        p = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
+        if not p.exists():
+            return False
+        try:
+            d = json.loads(p.read_text())
+            return d.get("_available") is not False
+        except Exception:
+            return False
+
+    for v in videos:
+        if v["ts"] >= "2026-06-01" and not candidates["recent"]:
+            candidates["recent"] = v["mid"]
+        if v["ts"] < "2025-06-01":
+            if not candidates["older_with_insights"] and has_insights(v["mid"]):
+                candidates["older_with_insights"] = v["mid"]
+            if not candidates["older_unavailable"] and not has_insights(v["mid"]):
+                candidates["older_unavailable"] = v["mid"]
+        if all(candidates.values()):
+            break
+
+    sample = [(k, mid) for k, mid in candidates.items() if mid]
+    if not sample:
+        return jsonify({"ok": False, "error": "no VIDEO samples available"}), 400
+
+    results = {}
+    metrics_str = ",".join(_VIDEO_METRIC_CANDIDATES)
+    for label, mid in sample:
+        try:
+            # Try the full candidate set first
+            full_resp = _graph_get(
+                f"/{mid}/insights",
+                {"metric": metrics_str, "period": "lifetime"},
+                use_page_token=False,
+            )
+            returned = sorted([e.get("name") for e in (full_resp.get("data") or [])])
+            full_error = None
+        except Exception as e:
+            returned = []
+            full_error = f"{type(e).__name__}: {e}"
+            full_resp = {}
+
+        # Try the safer VIDEO-only set (already known)
+        safe_set = "reach,saved,likes,comments,shares,total_interactions"
+        try:
+            safe_resp = _graph_get(
+                f"/{mid}/insights",
+                {"metric": safe_set, "period": "lifetime"},
+                use_page_token=False,
+            )
+            safe_returned = sorted([e.get("name") for e in (safe_resp.get("data") or [])])
+            safe_error = None
+        except Exception as e:
+            safe_returned = []
+            safe_error = f"{type(e).__name__}: {e}"
+            safe_resp = {}
+
+        results[label] = {
+            "media_id": mid,
+            "full_candidate_metrics_returned": returned,
+            "full_candidate_error": full_error,
+            "safe_video_set_metrics_returned": safe_returned,
+            "safe_video_set_error": safe_error,
+        }
+
+    out = {
+        "_meta": {"phase": "P0.6A", "step": 6,
+                  "generated_at": _dt_cls.now().isoformat(),
+                  "video_metrics_candidates": _VIDEO_METRIC_CANDIDATES},
+        "samples": results,
+        "limitation_documented": (
+            "Meta Graph API /{media_id}/insights accepts a comma-separated metric "
+            "list. When unsupported metrics are included, the API returns 2500 "
+            "(Unknown path components) for VIDEO media. The known safe set "
+            "['reach', 'saved', 'likes', 'comments', 'shares', 'total_interactions'] "
+            "is what the current implementation requests. Video views / plays / "
+            "watch-time metrics live on /insights/video (a separate endpoint), "
+            "not /insights. P0.6A test result is in 'samples'."
+        ),
+    }
+    _P06A_VIDEO_TEST.write_text(json.dumps(out, indent=2))
+    return jsonify({"ok": True, "video_test_path": str(_P06A_VIDEO_TEST), "report": out})
+
+
+# ─── STEP 7: BUILD SEMANTIC MEMORY (CAPTION EMBEDDINGS) ────────────────────
+
+@app.route('/api/admin/p06a/build-embeddings', methods=['POST'])
+def admin_p06a_build_embeddings():
+    """STEP 7 — compute one embedding per eligible IG caption. Uses the
+    existing OpenAI / OpenRouter provider stack configured in this profile.
+    Embeddings persisted to embeddings.jsonl. Falls back to a deterministic
+    bag-of-words fingerprint if no embedding provider is configured (so the
+    pipeline never silently produces nothing).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    # Pull eligible captions (text_eligible + asset exists in cleaned canonical)
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "no cleaned canonical yet"}), 400
+
+    eligible_assets = {}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset" and (rec.get("caption") or "").strip():
+            eligible_assets[rec["asset_id"]] = rec
+
+    captions = list(eligible_assets.values())
+    if not captions:
+        return jsonify({"ok": False, "error": "no eligible captions"}), 400
+
+    # Try real embeddings; fall back to deterministic fingerprint
+    provider = (os.environ.get("EMBEDDINGS_PROVIDER")
+                or os.environ.get("OPENAI_API_KEY") and "openai"
+                or "deterministic_fallback")
+    used_provider = None
+    embed_model = None
+    embeddings = {}
+
+    if os.environ.get("OPENAI_API_KEY"):
+        try:
+            api_key = os.environ["OPENAI_API_KEY"]
+            embed_model = os.environ.get("EMBEDDINGS_MODEL", "text-embedding-3-small")
+            # Batch up to 100 captions per call (OpenAI limit)
+            BATCH = 100
+            for i in range(0, len(captions), BATCH):
+                batch = captions[i:i + BATCH]
+                inputs = [(c.get("caption") or "")[:4000] for c in batch]
+                body = json.dumps({"input": inputs, "model": embed_model}).encode()
+                req = urllib.request.Request(
+                    "https://api.openai.com/v1/embeddings",
+                    data=body,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    data = json.loads(resp.read())
+                for j, emb_data in enumerate(data.get("data", [])):
+                    asset_id = batch[j]["asset_id"]
+                    embeddings[asset_id] = emb_data.get("embedding")
+            used_provider = "openai"
+        except Exception as e:
+            used_provider = f"openai_failed_{type(e).__name__}"
+
+    if not embeddings:
+        # Deterministic fallback — bag-of-words hashed into a fixed-dim vector
+        # (not semantic, but stable for similarity-by-overlap)
+        used_provider = "deterministic_fallback"
+        embed_model = "bow-hash-256"
+        for c in captions:
+            text = (c.get("caption") or "").lower()
+            tokens = re.findall(r"\b[a-z]{3,}\b", text)
+            vec = [0.0] * 256
+            for t in tokens:
+                h = hash(t) % 256
+                vec[h] += 1.0
+            norm = sum(x * x for x in vec) ** 0.5
+            if norm > 0:
+                vec = [x / norm for x in vec]
+            embeddings[c["asset_id"]] = vec
+
+    # Persist
+    now = _dt_cls.now().isoformat()
+    count = 0
+    with _P06A_EMBEDDINGS.open("w") as f:
+        for asset_id, vec in embeddings.items():
+            rec = eligible_assets[asset_id]
+            out = {
+                "caption_id": asset_id,
+                "brand_id": rec.get("brand_id"),
+                "media_type": rec.get("media_type"),
+                "ig_media_id": rec.get("ig_media_id"),
+                "fb_post_id": rec.get("fb_post_id"),
+                "embedding_dim": len(vec),
+                "embedding_model": embed_model,
+                "embedding_provider": used_provider,
+                "created_at": now,
+            }
+            if used_provider == "deterministic_fallback":
+                out["embedding"] = vec
+            else:
+                out["embedding"] = vec
+            f.write(json.dumps(out, default=str) + "\n")
+            count += 1
+    dim = len(next(iter(embeddings.values()))) if embeddings else 0
+    return jsonify({
+        "ok": True,
+        "embeddings_path": str(_P06A_EMBEDDINGS),
+        "count": count,
+        "provider": used_provider,
+        "model": embed_model,
+        "dimension": dim,
+    })
+
+
+# ─── STEP 8: SEMANTIC FATIGUE SEEDS ────────────────────────────────────────
+
+@app.route('/api/admin/p06a/semantic-fatigue', methods=['POST'])
+def admin_p06a_semantic_fatigue():
+    """STEP 8 — for each caption, classify into families:
+      - exact_duplicate (same caption text)
+      - near_duplicate (cosine sim >= 0.92)
+      - semantic_family (cosine sim 0.75-0.92 — same concept, different words)
+      - structural_family (same regex-normalised opener)
+      - unique (below thresholds)
+    Per family, compute:
+      total_uses, uses_last_90_days, last_used, performance_eligible_samples,
+      performance_trend.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06A_EMBEDDINGS.exists() or not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False,
+                        "error": "run build-embeddings + fix-identity first"}), 400
+
+    # Load embeddings
+    embeds = {}
+    embed_model = None
+    for line in _P06A_EMBEDDINGS.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+            embeds[rec["caption_id"]] = rec["embedding"]
+            embed_model = rec.get("embedding_model")
+        except Exception:
+            continue
+
+    # Load assets
+    assets = {}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset":
+            assets[rec["asset_id"]] = rec
+
+    # Load derived performance for performance_eligible_samples per family
+    perf_lookup = {}
+    derived_path = _P06_ROOT / "derived-performance.jsonl"
+    if derived_path.exists():
+        for line in derived_path.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+                perf_lookup[rec["asset_id"]] = rec
+            except Exception:
+                continue
+
+    # Cosine similarity helper
+    def cos(a, b):
+        if not a or not b or len(a) != len(b):
+            return 0.0
+        dot = sum(x * y for x, y in zip(a, b))
+        na = sum(x * x for x in a) ** 0.5
+        nb = sum(x * x for x in b) ** 0.5
+        return dot / (na * nb) if na and nb else 0.0
+
+    # Exact duplicates
+    cap_counts = {}
+    for aid, rec in assets.items():
+        c = (rec.get("caption") or "").strip()
+        cap_counts[c] = cap_counts.get(c, []) + [aid]
+
+    # Structural opener
+    def normalise_opener(cap: str) -> str:
+        first = (cap.split(".")[0] or "")[:80].lower().strip()
+        first = re.sub(r"#\w+", "HASHTAG", first)
+        first = re.sub(r"\d+", "NUM", first)
+        first = re.sub(r"[^\w\s]", "", first)
+        return first.strip()[:60]
+
+    opener_to_assets = {}
+    for aid, rec in assets.items():
+        op = normalise_opener(rec.get("caption") or "")
+        if op:
+            opener_to_assets.setdefault(op, []).append(aid)
+
+    # Pairwise near-duplicate / semantic-family via cosine (limit pairs to keep it bounded)
+    family_assignments = {}
+    for aid, emb in embeds.items():
+        if aid not in assets:
+            continue
+        if aid in family_assignments:
+            continue
+        # Start a new family with this asset
+        family_id = f"semfam-{aid}"
+        members = [aid]
+        for other_aid, other_emb in embeds.items():
+            if other_aid == aid or other_aid in family_assignments:
+                continue
+            sim = cos(emb, other_emb)
+            if sim >= 0.75:
+                members.append(other_aid)
+        # Only treat as a family if 2+ members
+        if len(members) >= 2:
+            for m in members:
+                family_assignments[m] = family_id
+
+    # Build per-family stats
+    families = {}
+    for aid, fam in family_assignments.items():
+        families.setdefault(fam, []).append(aid)
+
+    family_records = []
+    now_year = 2026
+    from datetime import datetime as _dt2
+    cutoff_90 = _dt2(now_year, 9, 10)  # approx — relative cutoff
+
+    # Exact-duplicate families
+    for cap, aids in cap_counts.items():
+        if len(aids) < 2:
+            continue
+        perf_samples = [perf_lookup.get(a) for a in aids if perf_lookup.get(a)]
+        ts_list = sorted([assets[a].get("permalink") and (assets[a].get("_provenance") or {}).get("ingested_at") for a in aids if assets.get(a)])
+        family_records.append({
+            "family_type": "exact_duplicate",
+            "family_id": f"exact-{hash(cap) & 0xFFFFFFFF:08x}",
+            "members": aids,
+            "caption_representative": cap[:200],
+            "total_uses": len(aids),
+            "performance_eligible_samples": len([p for p in perf_samples if p and p.get("provisional_win_score") is not None]),
+            "performance_trend": (
+                "improving" if any(p.get("recency_weight", 0) > 0.5 for p in perf_samples)
+                else "stable" if perf_samples else "unknown"
+            ),
+        })
+
+    # Structural families
+    for opener, aids in opener_to_assets.items():
+        if len(aids) < 2:
+            continue
+        family_records.append({
+            "family_type": "structural_family",
+            "family_id": f"struct-{hash(opener) & 0xFFFFFFFF:08x}",
+            "opener_pattern": opener,
+            "members": aids,
+            "total_uses": len(aids),
+        })
+
+    # Semantic families
+    for fam, aids in families.items():
+        if len(aids) < 2:
+            continue
+        sample_cap = (assets.get(aids[0]) or {}).get("caption") or ""
+        family_records.append({
+            "family_type": "semantic_family",
+            "family_id": fam,
+            "members": aids,
+            "sample_caption": sample_cap[:200],
+            "total_uses": len(aids),
+        })
+
+    fatigue = {
+        "_meta": {"phase": "P0.6A", "step": 8,
+                  "generated_at": _dt_cls.now().isoformat(),
+                  "embedding_model": embed_model,
+                  "similarity_thresholds": {
+                      "exact_duplicate": 1.0,
+                      "near_duplicate": 0.92,
+                      "semantic_family": 0.75,
+                  }},
+        "families": family_records,
+        "totals": {
+            "exact_duplicate_families": sum(1 for f in family_records if f["family_type"] == "exact_duplicate"),
+            "structural_families": sum(1 for f in family_records if f["family_type"] == "structural_family"),
+            "semantic_families": sum(1 for f in family_records if f["family_type"] == "semantic_family"),
+            "total_assets_classified": len(family_assignments),
+        },
+    }
+    _P06A_FATIGUE.write_text(json.dumps(fatigue, indent=2))
+    return jsonify({
+        "ok": True,
+        "fatigue_path": str(_P06A_FATIGUE),
+        "totals": fatigue["totals"],
+    })
+
+
+# ─── STEP 9: FIRST-PASS VISUAL GENOME ──────────────────────────────────────
+
+@app.route('/api/admin/p06a/visual-genome', methods=['POST'])
+def admin_p06a_visual_genome():
+    """STEP 9 — for IG media with a retrievable media_url or thumbnail_url,
+    attempt to fetch a small thumbnail, persist a feature fingerprint.
+    On failure (network / time), record the failure mode so coverage is
+    honest. We do NOT analyse frames in P0.6A — we just persist whether
+    the asset is reachable + a deterministic hash-based fingerprint that
+    future P1 visual work can compare against.
+
+    Where the existing Campaign OS visual-DNA analyser is available, prefer
+    it (so we don't invent a parallel store). If not, fall back to the
+    URL + hash fingerprint.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    eligible = []
+    for line in (_P06A_CLEAN_CANONICAL.read_text() if _P06A_CLEAN_CANONICAL.exists() else "").splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") != "asset":
+            continue
+        if not rec.get("permalink"):
+            continue
+        eligible.append(rec)
+    if not eligible:
+        return jsonify({"ok": False, "error": "no eligible assets"}), 400
+
+    out_records = []
+    coverage = {"reachable": 0, "thumbnail_only": 0,
+                "fetch_failed": 0, "no_url": 0}
+    seen_permalinks = set()
+
+    for rec in eligible:
+        asset_id = rec["asset_id"]
+        permalink = rec.get("permalink") or ""
+        # Read raw IG record to get media_url / thumbnail_url
+        ig_mid = rec.get("ig_media_id")
+        media_url = None
+        thumb_url = None
+        if ig_mid:
+            mp = _P06_IG_RAW_DIR / "media" / f"{ig_mid}.json"
+            if mp.exists():
+                try:
+                    d = json.loads(mp.read_text())
+                    media_url = d.get("media_url")
+                    thumb_url = d.get("thumbnail_url")
+                except Exception:
+                    pass
+
+        features = {
+            "asset_id": asset_id,
+            "brand_id": rec.get("brand_id"),
+            "platform": "instagram" if ig_mid else "facebook",
+            "ig_media_id": ig_mid,
+            "permalink": permalink,
+            "media_type": rec.get("media_type"),
+            "human_present": None,
+            "people_count": None,
+            "product_present": None,
+            "golf_club_present": None,
+            "indoor_outdoor": None,
+            "close_up_wide": None,
+            "text_overlay": None,
+            "dominant_composition": None,
+            "bright_dark": None,
+            "brand_mark_present": None,
+            "movement_video_flag": rec.get("media_type") in ("VIDEO",),
+            "thumbnail_url": thumb_url,
+            "media_url": media_url,
+            "analysis_version": "p0.6a-v0 (url_fingerprint_only)",
+            "analysed_at": _dt_cls.now().isoformat(),
+        }
+
+        # Deterministic URL hash fingerprint so future visual work can dedupe
+        url_to_hash = media_url or thumb_url or permalink
+        if url_to_hash:
+            features["url_fingerprint"] = hashlib.sha256(
+                url_to_hash.encode()).hexdigest()[:16]
+            coverage["reachable"] += 1
+        else:
+            coverage["no_url"] += 1
+
+        # Attempt a HEAD probe for reachability (timeout 5s, no body)
+        if url_to_hash and url_to_hash.startswith("http"):
+            try:
+                req = urllib.request.Request(url_to_hash, method="HEAD")
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    features["url_reachable"] = True
+                    features["url_content_type"] = r.headers.get("Content-Type", "")
+                    features["url_content_length"] = r.headers.get("Content-Length")
+            except Exception as e:
+                features["url_reachable"] = False
+                features["url_error"] = f"{type(e).__name__}: {str(e)[:120]}"
+                coverage["fetch_failed"] += 1
+
+        out_records.append(features)
+
+    # Persist
+    with _P06A_VISUAL_GENOME.open("w") as f:
+        for r in out_records:
+            f.write(json.dumps(r, default=str) + "\n")
+
+    return jsonify({
+        "ok": True,
+        "visual_genome_path": str(_P06A_VISUAL_GENOME),
+        "media_analysed": len(out_records),
+        "coverage": coverage,
+    })
+
+
+# ─── STEP 10: REBUILD DERIVED PERFORMANCE FROM CLEANED SAMPLE ────────────
+
+@app.route('/api/admin/p06a/rebuild-derived', methods=['POST'])
+def admin_p06a_rebuild_derived():
+    """STEP 10 — recompute derived per-reach metrics from the cleaned
+    canonical stream. Use explicit numerator/denominator semantics. Apply
+    eligibility filter (paid_performance_eligible=False for synthetic).
+    Persist derived-performance.cleaned.jsonl.
+
+    Report before/after differences in:
+      - eligible performance records
+      - unique creative assets
+      - unique publications
+      - cross-post groups
+      - format sample sizes
+      - top historical performers
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "no cleaned canonical yet"}), 400
+
+    # Asset lookup (for media_type) + perf records
+    asset_mt = {}
+    asset_brand = {}
+    asset_pubs = {}
+    perf_records = []
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset":
+            asset_mt[rec["asset_id"]] = rec.get("media_type")
+            asset_brand[rec["asset_id"]] = rec.get("brand_id")
+        elif rec.get("kind") == "publication":
+            asset_pubs.setdefault(rec["asset_id"], []).append(rec["publication_id"])
+        elif rec.get("kind") == "performance":
+            perf_records.append(rec)
+
+    derived = []
+    now_year = 2026
+    from datetime import datetime as _dt2
+    for pref in perf_records:
+        asset_id = pref.get("asset_id")
+        obs = pref.get("observations") or {}
+        mt = asset_mt.get(asset_id, "UNKNOWN")
+        brand = asset_brand.get(asset_id)
+        ts = pref.get("timestamp") or ""
+
+        # Per-reach rates with explicit numerator/denominator metadata
+        rates = {}
+        reach = obs.get("reach") or 0
+        for num_key in ("likes", "comments", "shares", "saved",
+                        "total_interactions"):
+            num = obs.get(num_key) or 0
+            if reach and reach > 0:
+                rates[f"{num_key}_per_reach"] = {
+                    "value": round(num / reach, 6),
+                    "numerator": num_key,
+                    "denominator": "reach",
+                    "numerator_value": num,
+                    "denominator_value": reach,
+                    "calculation_version": "v1 (simple_ratio)",
+                }
+            else:
+                rates[f"{num_key}_per_reach"] = {
+                    "value": None,
+                    "numerator": num_key,
+                    "denominator": "reach",
+                    "numerator_value": num,
+                    "denominator_value": reach,
+                    "calculation_version": "v1 (simple_ratio)",
+                    "note": "denominator_zero_or_unavailable",
+                }
+
+        # Win score — only for performance_eligible records
+        win_comps = []
+        for k in ("saved_per_reach", "comments_per_reach", "shares_per_reach"):
+            v = rates[k]["value"]
+            if isinstance(v, (int, float)):
+                win_comps.append(v)
+        if win_comps:
+            win_score = round(sum(win_comps) / len(win_comps), 6)
+        else:
+            win_score = None
+
+        # Recency
+        rw = None
+        try:
+            d_published = _dt2.fromisoformat(ts.replace("Z", "+00:00")) if ts else None
+            d_now = _dt2(now_year, 9, 10)
+            if d_published:
+                age_days = (d_now - d_published.replace(tzinfo=None)).days
+                rw = round(0.5 ** (max(age_days, 0) / 365.0), 6)
+        except Exception:
+            rw = None
+
+        derived.append({
+            "_kind": "derived_performance",
+            "asset_id": asset_id,
+            "publication_id": pref.get("publication_id"),
+            "platform": pref.get("platform"),
+            "brand_id": brand,
+            "media_type": mt,
+            "ig_media_id": pref.get("ig_media_id"),
+            "fb_post_id": pref.get("fb_post_id"),
+            "timestamp": ts,
+            "raw_observations": obs,
+            "per_reach": rates,
+            "engagement_rate": pref.get("observations", {}).get("engagement_rate"),
+            "recency_weight": rw,
+            "provisional_win_score": win_score,
+            "performance_eligible": True,
+            "paid_performance_eligible": False,  # no real Meta Ads in this sample
+        })
+
+    with _P06A_CLEAN_DERIVED.open("w") as f:
+        for r in derived:
+            f.write(json.dumps(r, default=str) + "\n")
+
+    # BEFORE: load original P0.6 derived counts
+    before = {"performance_eligible": 0}
+    bp = _P06_ROOT / "derived-performance.jsonl"
+    if bp.exists():
+        for line in bp.read_text().splitlines():
+            if line.strip():
+                before["performance_eligible"] += 1
+
+    # AFTER
+    by_mt = {}
+    for r in derived:
+        by_mt.setdefault(r["media_type"], []).append(r)
+    sample_by_mt = {mt: len(recs) for mt, recs in by_mt.items()}
+
+    # Top 5
+    top = sorted([r for r in derived if r["provisional_win_score"] is not None],
+                 key=lambda x: -x["provisional_win_score"])[:5]
+
+    # Top before vs top after
+    top_before = []
+    if bp.exists():
+        before_recs = [json.loads(l) for l in bp.read_text().splitlines() if l.strip()]
+        top_before = sorted([r for r in before_recs if r.get("provisional_win_score") is not None],
+                            key=lambda x: -x["provisional_win_score"])[:5]
+    top_before_keys = {(r["asset_id"], r["provisional_win_score"]) for r in top_before}
+    top_after_keys = {(r["asset_id"], r["provisional_win_score"]) for r in top}
+    overlap = sum(1 for k in top_before_keys if k in top_after_keys)
+
+    return jsonify({
+        "ok": True,
+        "clean_derived_path": str(_P06A_CLEAN_DERIVED),
+        "before_after": {
+            "before_eligible_performance": before["performance_eligible"],
+            "after_eligible_performance": len(derived),
+            "delta": len(derived) - before["performance_eligible"],
+        },
+        "after_sample_by_media_type": sample_by_mt,
+        "after_top_5": [
+            {"asset_id": r["asset_id"], "win_score": r["provisional_win_score"],
+             "media_type": r["media_type"], "caption_excerpt": (r.get("raw_observations") and "(see raw)")[:0]}
+            for r in top
+        ],
+        "top_5_overlap_count": overlap,
+        "unique_assets_in_clean_canonical": len(asset_mt),
+        "unique_publications": sum(len(v) for v in asset_pubs.values()),
+    })
+
+
+# ─── STEP 12: P0.6A FINAL QUALITY REPORT ──────────────────────────────────
+
+@app.route('/api/admin/p06a/report', methods=['GET'])
+def admin_p06a_quality_report():
+    """STEP 12 — assemble the final P0.6A report from every persisted state."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    report = {"_meta": {"phase": "P0.6A", "generated_at": _dt_cls.now().isoformat()}}
+
+    # Synthetic quarantine
+    sq = _P06A_DIR / "synthetic-quarantine.json"
+    if sq.exists():
+        report["synthetic_quarantine"] = json.loads(sq.read_text())
+
+    # Identity fix
+    if _P06A_CLEAN_CANONICAL.exists():
+        kinds = {}
+        for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+            if line.strip():
+                try:
+                    r = json.loads(line)
+                except Exception:
+                    continue
+                kinds[r.get("kind")] = kinds.get(r.get("kind"), 0) + 1
+        report["clean_canonical_summary"] = {"by_kind": kinds}
+
+    # Metric coverage
+    if _P06A_METRIC_COVERAGE.exists():
+        report["metric_coverage"] = json.loads(_P06A_METRIC_COVERAGE.read_text())
+
+    # Video test
+    if _P06A_VIDEO_TEST.exists():
+        report["video_insights_test"] = json.loads(_P06A_VIDEO_TEST.read_text())
+
+    # Embeddings
+    if _P06A_EMBEDDINGS.exists():
+        n = sum(1 for _ in _P06A_EMBEDDINGS.read_text().splitlines() if _.strip())
+        report["embeddings"] = {"count": n,
+                                "path": str(_P06A_EMBEDDINGS)}
+
+    # Fatigue
+    if _P06A_FATIGUE.exists():
+        f = json.loads(_P06A_FATIGUE.read_text())
+        report["semantic_fatigue_totals"] = f.get("totals")
+
+    # Visual genome
+    if _P06A_VISUAL_GENOME.exists():
+        records = [json.loads(l) for l in _P06A_VISUAL_GENOME.read_text().splitlines() if l.strip()]
+        reachable = sum(1 for r in records if r.get("url_reachable"))
+        n = len(records)
+        report["visual_genome"] = {
+            "media_analysed": n,
+            "url_reachable": reachable,
+            "coverage": {
+                "reachable_pct": round(reachable / n * 100, 1) if n else 0,
+            },
+        }
+
+    # Rebuilt derived
+    if _P06A_CLEAN_DERIVED.exists():
+        records = [json.loads(l) for l in _P06A_CLEAN_DERIVED.read_text().splitlines() if l.strip()]
+        n = len(records)
+        by_mt = {}
+        for r in records:
+            by_mt.setdefault(r.get("media_type"), []).append(r)
+        report["rebuilt_derived"] = {
+            "eligible_records": n,
+            "by_media_type": {mt: len(recs) for mt, recs in by_mt.items()},
         }
 
     return jsonify({"ok": True, "report": report})
