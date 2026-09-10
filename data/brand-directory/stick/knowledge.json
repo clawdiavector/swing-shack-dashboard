@@ -28,11 +28,14 @@
       "fact_id": "tk-product-101T",
       "type": "product",
       "subject": "Takomo 101T",
-      "value": "Takomo 101T entry forged iron (model identity confirmed by Takomo's own copy + voice-do-say list). Specific shaft/grip/loft specs are NOT in authoritative manufacturer docs in this knowledge store.",
+      "value": "Takomo 101T entry forged iron. Model identity verified against official manufacturer catalogue (matches Iron 101T). Specific shaft/grip/loft specs are NOT in authoritative manufacturer docs in this knowledge store.",
       "source": "data/brand-directory/takomo/README.md + data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/README.md",
       "source_class": "approved_internal",
       "authority_level": "high",
+      "verified_status": "verified_current",
+      "manufacturer_match": "Iron 101T",
+      "manufacturer_audit": "Confirmed present on official manufacturer list (Iron 101, Iron 101T, Iron 101 MKII, Iron 201, Iron 201 MKII, Iron 201T MKII, Iron 301 CB, Iron 301 MB, Iron 301 Combo).",
       "confidence": "high",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -42,7 +45,7 @@
         "category": "iron",
         "positioning": "entry forged iron",
         "specs_known": false,
-        "specs_note": "Loft/lie/length/shaft/grip values have NOT been promoted to canonical product specs because the only available source (visual-spec/archetypes.json) is a visual_reference, not an authoritative manufacturer spec document."
+        "specs_note": "Loft/lie/length/shaft/grip values have NOT been promoted to canonical product specs because the only available source (visual-spec/archetypes.json) is a visual_reference, not an authoritative manufacturer spec document. To ground product_spec claims (loft, lie, length, shaft, grip), supply an official_manufacturer source."
       },
       "visual_references": [
         {
@@ -58,84 +61,102 @@
       "fact_id": "tk-product-101T-CB",
       "type": "product",
       "subject": "Takomo 101T-CB",
-      "value": "101T cavity-back variant (model name listed in Takomo's do-say vocabulary)",
+      "value": "QUARANTINED — name appears in takomo/voice/do-say-dont-say.md but does not match the official manufacturer catalogue (Iron 101, Iron 101T, Iron 101 MKII, Iron 201, Iron 201 MKII, Iron 201T MKII, Iron 301 CB, Iron 301 MB, Iron 301 Combo). Internal voice files cannot independently establish manufacturer product identity.",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_class": "approved_internal",
       "authority_level": "high",
-      "confidence": "medium",
+      "verified_status": "quarantined",
+      "manufacturer_match": "no_match",
+      "manufacturer_audit": "Not present on official manufacturer list (Iron 101 / 101T / 101 MKII / 201 / 201 MKII / 201T MKII / 301 CB / 301 MB / 301 Combo).",
+      "confidence": "low",
       "valid_from": "2026-09-10",
       "valid_to": null,
-      "status": "active",
+      "status": "quarantined",
       "last_verified": "2026-09-10",
       "details": {
         "category": "iron",
-        "variant_of": "Takomo 101T",
         "specs_known": false,
-        "specs_note": "No authoritative specs in canonical sources — leave unknown. Takomo's voice-do-say list names the model but does not specify loft/lie/etc."
-      }
+        "specs_note": "Quarantined — do NOT generate product claims about this identity.",
+        "do_not_use": true
+      },
+      "migration_aliases": ["tk-product-101T-CB (deprecated)"]
     },
     {
       "fact_id": "tk-product-101T-MB",
       "type": "product",
       "subject": "Takomo 101T-MB",
-      "value": "101T muscle-back variant (model name listed in Takomo's do-say vocabulary)",
+      "value": "QUARANTINED — name appears in takomo/voice/do-say-dont-say.md but does not match the official manufacturer catalogue. Internal voice files cannot independently establish manufacturer product identity.",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_class": "approved_internal",
       "authority_level": "high",
-      "confidence": "medium",
+      "verified_status": "quarantined",
+      "manufacturer_match": "no_match",
+      "manufacturer_audit": "Not present on official manufacturer list.",
+      "confidence": "low",
       "valid_from": "2026-09-10",
       "valid_to": null,
-      "status": "active",
+      "status": "quarantined",
       "last_verified": "2026-09-10",
       "details": {
         "category": "iron",
-        "variant_of": "Takomo 101T",
         "specs_known": false,
-        "specs_note": "No authoritative specs in canonical sources — leave unknown."
-      }
+        "specs_note": "Quarantined — do NOT generate product claims about this identity.",
+        "do_not_use": true
+      },
+      "migration_aliases": ["tk-product-101T-MB (deprecated)"]
     },
     {
       "fact_id": "tk-product-201T",
       "type": "product",
       "subject": "Takomo 201T",
-      "value": "Higher-tier Takomo iron (model name listed in Takomo's do-say vocabulary)",
+      "value": "QUARANTINED — likely legacy / misnamed. Official list has Iron 201 / Iron 201 MKII / Iron 201T MKII, but no plain '201T'. Internal voice files cannot independently establish manufacturer product identity.",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_class": "approved_internal",
       "authority_level": "high",
+      "verified_status": "quarantined",
+      "manufacturer_match": "likely_legacy_or_misnamed",
+      "manufacturer_audit": "Not present on official manufacturer list as 'Iron 201T'. Closest verified: Iron 201, Iron 201 MKII, Iron 201T MKII.",
       "confidence": "low",
       "valid_from": "2026-09-10",
       "valid_to": null,
-      "status": "active",
+      "status": "quarantined",
       "last_verified": "2026-09-10",
       "details": {
         "category": "iron",
         "specs_known": false,
-        "specs_note": "Only the name is in canonical source — leave all other fields unknown."
-      }
+        "specs_note": "Quarantined — do NOT generate product claims about this identity.",
+        "do_not_use": true,
+        "possible_canonical_matches": ["Iron 201", "Iron 201 MKII", "Iron 201T MKII"]
+      },
+      "migration_aliases": ["tk-product-201T (deprecated)"]
     },
     {
       "fact_id": "tk-product-101T-Pro",
       "type": "product",
       "subject": "Takomo 101T Pro",
-      "value": "Pro-tier Takomo 101T variant (model name listed in Takomo's do-say vocabulary)",
+      "value": "QUARANTINED — name appears in takomo/voice/do-say-dont-say.md but does not match the official manufacturer catalogue. No 'Pro' variant on the official list.",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_class": "approved_internal",
       "authority_level": "high",
+      "verified_status": "quarantined",
+      "manufacturer_match": "no_match",
+      "manufacturer_audit": "Not present on official manufacturer list.",
       "confidence": "low",
       "valid_from": "2026-09-10",
       "valid_to": null,
-      "status": "active",
+      "status": "quarantined",
       "last_verified": "2026-09-10",
       "details": {
         "category": "iron",
-        "variant_of": "Takomo 101T",
         "specs_known": false,
-        "specs_note": "Only the name is in canonical source — leave all other fields unknown."
-      }
+        "specs_note": "Quarantined — do NOT generate product claims about this identity.",
+        "do_not_use": true
+      },
+      "migration_aliases": ["tk-product-101T-Pro (deprecated)"]
     }
   ],
   "visual_references": [

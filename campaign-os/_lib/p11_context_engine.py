@@ -265,6 +265,43 @@ SOFT_QUANTIFIER_PATTERNS = [
     r"\b\d+\s*out\s*of\s*\d+\b",
 ]
 
+# Invented specifics that must NEVER be allowed unless the user supplied
+# them verbatim in the brief. These are session-specific facts that have NO
+# canonical source by default.
+INVENTED_SPECIFIC_PATTERNS = [
+    # Specific time-of-day
+    (r"\b\d{1,2}[:h]\d{2}\s*(am|pm|AM|PM)\b", "invented_time"),
+    (r"\b\d{1,2}\s*(am|pm|AM|PM)\b", "invented_time"),
+    # Specific time word (not generic day-of-week)
+    (r"\bat\s+\d{1,2}\s*[:h]\s*\d{0,2}\b", "invented_time"),
+    # Currency / price
+    (r"\bR\s?\d{2,6}(?:\s?(?:per|each|p\.?p\.?|guests?|person|members?))?\b",
+     "invented_price"),
+    (r"\$\s?\d{2,6}\b", "invented_price"),
+    (r"\b\d+\s*ZAR\b", "invented_price"),
+    (r"\b\d+\s*rand\b", "invented_price"),
+    # Venue / address specifics
+    (r"\b(?:at|venue|address|location)\s*[:=]?\s*[\"']?[A-Z][\w\s]{3,40},?\s*[A-Z]{2,}\b",
+     "invented_venue"),
+    # "Limited spots" / urgency
+    (r"\blimited\s+(?:spots?|spaces?|availability|tickets?)\b",
+     "invented_limited"),
+    (r"\bdon'?t\s+miss\s+out\b", "invented_limited"),
+    (r"\bhurry\b", "invented_limited"),
+    (r"\bfirst\s+come[,\s]+first\s+served\b", "invented_limited"),
+    # Recurring schedule (only if user didn't supply)
+    (r"\b(?:every|each)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|month)\b",
+     "invented_recurring"),
+    # Equipment / format specifics
+    (r"\b\d+\s+(?:balls?|clubs?|holes?|bays?|sessions?)\s+included\b",
+     "invented_format"),
+    # "Free" / "complimentary" unless user said it
+    (r"\b(?:free|complimentary|no\s+charge|gratis)\b", "invented_free"),
+    # Specific guest fee
+    (r"\bguest\s+fee\b", "invented_guest_fee"),
+    (r"\bentry\s+fee\b", "invented_guest_fee"),
+]
+
 COMPARATIVE_CAUSAL_PATTERNS = [
     r"\b\w+\s+vs\.?\s+\w+\b\s*(=\s*|means|leads\s+to|gives|equals)",
     r"\bcauses?\s+\w+",
@@ -360,6 +397,81 @@ def _detect_comparative_causal_claim(text: str) -> dict:
     return {"matched": False}
 
 
+_session_brief_user_supplied_claim_types = {
+    # When the user supplies a phrase in the brief (e.g. event name, named
+    # product, supplied date), the candidate may use those exact words.
+    # NOT allowed: invented time / venue / price / guest fee / schedule / format /
+    # equipment unless separately grounded.
+    "product_reference", "event_name", "user_supplied_date",
+    "session_phrase_echo",
+}
+
+
+def _extract_user_supplied_phrases(user_brief: str) -> List[str]:
+    """Extract noun phrases / named entities from the user brief that the
+    candidate is allowed to echo. Used for session-brief grounding.
+
+    Returns a list of phrases (case-insensitive) the LLM may use verbatim
+    in the candidate without inventing canonical truth.
+    """
+    text = user_brief or ""
+    cl = text.lower()
+    phrases = []
+
+    # 1. Quoted strings (single or double quotes)
+    for m in re.findall(r"['\"]([^'\"]{2,80})['\"]", text):
+        phrases.append(m.lower().strip())
+
+    # 2. Title-cased multi-word phrases (likely event names / product names)
+    for m in re.findall(r"\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,5})\b", text):
+        phrases.append(m.lower().strip())
+
+    # 3. Alphanumeric product codes (e.g. "101T", "MkII", "101 MKII")
+    for m in re.findall(r"\b([0-9]+[A-Za-z]*(?:\s*[A-Z][A-Za-z]+)?)\b", text):
+        if len(m) >= 3:
+            phrases.append(m.lower().strip())
+
+    # 4. Common event-time phrasing that the user explicitly wrote
+    for trigger in ["friday", "monday", "tuesday", "wednesday", "thursday",
+                    "saturday", "sunday", "tonight", "today", "tomorrow"]:
+        if trigger in cl:
+            phrases.append(trigger)
+
+    # 5. "the X" patterns where X looks like a session event name
+    for m in re.findall(r"\bthe\s+([A-Z][a-zA-Z]+(?:\s+[A-Za-z]+){0,4})\b", text):
+        phrase = m.lower().strip()
+        if 3 < len(phrase) < 50:
+            phrases.append(phrase)
+
+    # De-dupe + filter short / noise
+    seen = set()
+    out = []
+    for p in phrases:
+        if not p or len(p) < 3:
+            continue
+        if p in seen:
+            continue
+        seen.add(p)
+        out.append(p)
+    return out
+
+
+def _claim_traced_to_brief(claim_substring: str, user_brief: str,
+                            supplied_phrases: List[str]) -> bool:
+    """Whether this claim is directly traceable to the user's brief.
+    Returns True if the claim substring appears in user_brief OR is one of
+    the user-supplied phrases (e.g. quoted event name, Title-Cased entity)."""
+    cl = (user_brief or "").lower()
+    if claim_substring and claim_substring.lower() in cl:
+        return True
+    sub_cl = (claim_substring or "").lower()
+    if sub_cl and any(p in sub_cl for p in supplied_phrases):
+        return True
+    if any(p in sub_cl for p in supplied_phrases):
+        return True
+    return False
+
+
 def _facts_to_grounded_claims(
     candidate_text: str,
     knowledge_facts: List[dict],
@@ -384,6 +496,10 @@ def _facts_to_grounded_claims(
     by_auth = _classify_facts_by_authority(knowledge_facts or [])
     grounding_facts = by_auth["grounding"]
     non_canonical_facts = by_auth["non_canonical"]
+
+    # Extract user-supplied phrases (named entities, event names, etc.) from the brief.
+    # These are allowed to be echoed in the candidate as user_supplied session facts.
+    supplied_phrases = _extract_user_supplied_phrases(user_brief)
 
     def _match_fact(claim_substring: str, claim_type: str,
                     allowed_scopes: Optional[List[str]] = None):
@@ -586,12 +702,68 @@ def _facts_to_grounded_claims(
             })
             break  # don't double-count
 
-    # 6. Brand / product name claims (only grounded when a fact names the
-    # exact subject; visual_references cannot ground product spec claims).
+    # 5b. Invented specifics (time, price, venue, limited, recurring, free, etc.)
+    # These MUST be unsupported unless the user explicitly wrote them in the
+    # brief OR a canonical service fact already establishes them.
+    # Canonical-facts first (so e.g. "every Thursday" in bd-service-thursday-social
+    # is grounded, but "every Friday" for a fictional event is not).
+    cl_lower = candidate_text.lower()
+    fact_blob = json.dumps(grounding_facts or [], default=str).lower()
+    for pattern, claim_type in INVENTED_SPECIFIC_PATTERNS:
+        for hit in re.findall(pattern, candidate_text, re.I):
+            hit_str = (hit if isinstance(hit, str) else " ".join(hit)).strip()
+            if not hit_str:
+                continue
+            hit_lower = hit_str.lower()
+            # Canonical supports it?
+            if hit_lower in fact_blob:
+                claims.append({
+                    "claim": hit_str,
+                    "claim_type": claim_type,
+                    "source_fact_id": "canonical",
+                    "source_class": "approved_internal",
+                    "authority_level": "high",
+                    "grounding_status": "grounded",
+                })
+                continue
+            # User supplied it?
+            if hit_lower in cl_lower and hit_lower in (user_brief or "").lower():
+                claims.append({
+                    "claim": hit_str,
+                    "claim_type": claim_type,
+                    "source_fact_id": "user_brief",
+                    "source_class": "session_brief",
+                    "authority_level": "non_canonical",
+                    "grounding_status": "user_supplied",
+                    "scope": "generation_session",
+                    "canonical": False,
+                })
+                continue
+            # Soft-creative: this is a brand-relevant safety signal, not a
+            # knowledge claim. E.g. "Join us" without any specific time is fine.
+            # But explicit invented specifics are unsupported.
+            claims.append({
+                "claim": hit_str,
+                "claim_type": claim_type,
+                "source_fact_id": None,
+                "source_class": None,
+                "authority_level": None,
+                "grounding_status": "unsupported",
+            })
+
+    # 6. Brand / product name claims.
+    # A fact's subject grounds the claim IF the fact's source_class can ground
+    # product references AND the fact is not quarantined. Session-brief
+    # subjects (phrases the user supplied) ground as user_supplied with
+    # scope=generation_session when the candidate echoes the brief verbatim.
     seen_subjects = set()
     for f in grounding_facts:
         subject = f.get("subject") or ""
         if subject and subject.lower() in candidate_text.lower() and subject not in seen_subjects:
+            # Skip quarantined facts — they cannot ground claims even if source_class
+            # is approved_internal.
+            if (f.get("verified_status") or "").lower() in ("quarantined", "unsupported", "misnamed"):
+                continue
             seen_subjects.add(subject)
             claims.append({
                 "claim": subject,
@@ -600,6 +772,28 @@ def _facts_to_grounded_claims(
                 "source_class": f.get("source_class"),
                 "authority_level": f.get("authority_level"),
                 "grounding_status": "grounded",
+                "verified_status": f.get("verified_status"),
+            })
+
+    # 7. Session-brief phrase echoes — when the candidate contains a phrase
+    # that was directly supplied by the user (Title-Cased event name, quoted
+    # string, "the X" pattern), the candidate may echo it. This is
+    # user_supplied + scope=generation_session + canonical=false.
+    # NOT for invented specifics (those are caught by claim patterns 1-4).
+    for phrase in supplied_phrases:
+        if len(phrase) < 4:
+            continue
+        if phrase in cl_lower and phrase not in seen_subjects:
+            seen_subjects.add(phrase)
+            claims.append({
+                "claim": phrase,
+                "claim_type": "session_phrase_echo",
+                "source_fact_id": "user_brief",
+                "source_class": "session_brief",
+                "authority_level": "non_canonical",
+                "grounding_status": "user_supplied",
+                "scope": "generation_session",
+                "canonical": False,
             })
 
     return claims
@@ -980,8 +1174,6 @@ def build_generation_context(
     if product_id:
         pid_facts = _knowledge_facts_matching(brand_knowledge, [product_id])
         relevant_facts.extend(pid_facts)
-    # Filter to active facts only
-    relevant_facts = [f for f in relevant_facts if _is_fact_active(f)]
     # De-dupe
     seen = set()
     unique_facts = []
@@ -990,6 +1182,20 @@ def build_generation_context(
             seen.add(f.get("fact_id"))
             unique_facts.append(f)
     relevant_facts = unique_facts
+
+    # Filter to active facts only — quarantine means status != active.
+    # Quarantined facts ARE preserved in the knowledge store for audit but
+    # are NOT passed into the generation context.
+    active_facts = []
+    quarantined_count = 0
+    for f in relevant_facts:
+        status = (f.get("status") or "active").lower()
+        verified = (f.get("verified_status") or "").lower()
+        if status == "quarantined" or verified in ("quarantined", "unsupported", "misnamed"):
+            quarantined_count += 1
+            continue
+        active_facts.append(f)
+    relevant_facts = active_facts
 
     product_layer = {
         "product_brand": product_brand,
@@ -1017,9 +1223,10 @@ def build_generation_context(
         "canonical_facts_used": [f.get("fact_id") for f in relevant_facts],
         "canonical_facts": relevant_facts,
         "knowledge_store_loaded": bool(brand_knowledge),
+        "quarantined_count": quarantined_count,
         "session_fact_note": (
             "User brief contains session-scoped phrases. Subject words are treated as "
-            "session facts (this generation only) and must not be saved into permanent "
+            "session facts for this generation only and must not be saved into permanent "
             "Brand Knowledge."
             if is_session_brief else None
         ),
@@ -2093,6 +2300,7 @@ def run_caption_pipeline(request: dict) -> dict:
             "loaded": bool(ctx.get("product_service", {}).get("knowledge_store_loaded")),
             "canonical_facts_used": ctx.get("product_service", {}).get("canonical_facts_used") or [],
             "is_session_brief": ctx.get("product_service", {}).get("is_session_brief"),
+            "quarantined_facts_excluded": ctx.get("product_service", {}).get("quarantined_count"),
         },
         "quality_warning": quality_warning,
     }
