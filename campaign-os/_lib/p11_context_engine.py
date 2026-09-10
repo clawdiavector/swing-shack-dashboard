@@ -74,6 +74,51 @@ PRODUCT_BRANDS = {"takomo": "stick"}
 # Canonical brand knowledge directory
 _P11B_KNOWLEDGE_DIR_NAME = "knowledge.json"
 
+# ─── P1.1C SOURCE AUTHORITY MODEL ──────────────────────────────────────
+SOURCE_CLASSES = (
+    "official_business",         # HIGH — owner-authored business doc (README, CTAs)
+    "official_manufacturer",     # HIGH — manufacturer spec sheet
+    "approved_internal",         # HIGH — internal voice/tone/copy rules
+    "contract_or_pricing_doc",   # HIGH — pricing/contract document
+    "verified_user_input",       # CONDITIONAL — user-verified input
+    "historical_marketing",      # NON-CANONICAL — historical captions/marketing
+    "visual_reference",          # NON-CANONICAL — visual archetypes / design references
+    "generated",                 # NON-CANONICAL — LLM-generated output
+    "test_fixture",              # NON-CANONICAL — test fixture / synthetic
+    "session_brief",             # NON-CANONICAL — user brief / session fact
+    "unknown",                   # NON-CANONICAL — provenance not established
+)
+SOURCE_CLASS_AUTHORITY = {
+    "official_business": "high",
+    "official_manufacturer": "high",
+    "contract_or_pricing_doc": "high",
+    "approved_internal": "high",
+    "verified_user_input": "conditional",
+    "historical_marketing": "non_canonical",
+    "visual_reference": "non_canonical",
+    "generated": "non_canonical",
+    "test_fixture": "non_canonical",
+    "session_brief": "non_canonical",
+    "unknown": "non_canonical",
+}
+
+# What each source class can ground
+SOURCE_CLASS_GROUNDS = {
+    "official_business":      {"product_spec", "service", "policy", "price", "schedule",
+                                "business_relationship"},
+    "official_manufacturer":  {"product_spec", "product_model_identity"},
+    "approved_internal":      {"service", "voice", "cta", "product_model_identity",
+                                "policy"},
+    "contract_or_pricing_doc":{"price", "product_spec"},
+    "verified_user_input":    {"schedule", "venue", "price", "event_specifics"},
+    "historical_marketing":   {"tone_reference"},   # NOT factual truth
+    "visual_reference":       {"appearance", "composition", "colour", "layout"},  # NOT specs
+    "generated":              set(),
+    "test_fixture":           set(),
+    "session_brief":          set(),  # explicitly forbidden from canonical truth
+    "unknown":                set(),
+}
+
 # Rhetorical structure families — distinct from mechanisms
 RHETORICAL_STRUCTURES = [
     "myth_vs_reality", "question_then_answer", "listicle_3_things",
@@ -208,75 +253,355 @@ def _is_fact_active(fact: dict) -> bool:
     return True
 
 
+SOFT_QUANTIFIER_PATTERNS = [
+    r"\bmost\s+\w+",
+    r"\bmany\s+\w+",
+    r"\ba\s+staggering\s+\w+\s+of\s+\w+",
+    r"\bthe\s+majority\s+of\s+\w+",
+    r"\bcommonly\b",
+    r"\btypically\b",
+    r"\boften\b",
+    r"\bthe\s+overwhelming\s+majority\s+of\b",
+    r"\b\d+\s*out\s*of\s*\d+\b",
+]
+
+COMPARATIVE_CAUSAL_PATTERNS = [
+    r"\b\w+\s+vs\.?\s+\w+\b\s*(=\s*|means|leads\s+to|gives|equals)",
+    r"\bcauses?\s+\w+",
+    r"\bgives?\s+you\s+\w+",
+    r"\bcosts?\s+you\s+\w+",
+    r"\bimproves?\s+\w+",
+    r"\bfixes?\s+\w+",
+    r"\bmeans\s+(\w+\s+){0,3}(strokes?|yards?|distance|meters?|metres)",
+    r"\bthe\s+data\s+(proves|shows)",
+    r"\bresults\s+in\b",
+    r"\bleads?\s+to\b",
+    r"\bproven\s+to\b",
+    r"\bguaranteed?\s+to\b",
+    r"\bsuperior\s+to\b",
+    r"\bbetter\s+than\b",
+    r"\bworse\s+than\b",
+    r"\bmakes?\s+(consistency|alignment|precision|confidence)\s+(easier|harder|better|worse)",
+]
+
+
+def _authority_can_ground(source_class: str, claim_type: str) -> bool:
+    """Whether a fact with this source_class can ground a claim of this type."""
+    if not source_class:
+        return False
+    grounds = SOURCE_CLASS_GROUNDS.get(source_class, set())
+    if claim_type in grounds:
+        return True
+    # Population / prevalence / frequency claims need HIGH-authority + service/business data
+    if claim_type in ("prevalence_claim", "frequency_claim", "population_claim"):
+        return source_class in (
+            "official_business", "approved_internal", "contract_or_pricing_doc",
+            "verified_user_input",
+        )
+    # Comparative / causal claims need product_spec authority or service authority
+    if claim_type in ("comparative_claim", "causal_claim", "causal_certainty"):
+        return source_class in (
+            "official_business", "official_manufacturer", "approved_internal",
+            "contract_or_pricing_doc",
+        )
+    return False
+
+
+def _classify_facts_by_authority(facts: List[dict]) -> dict:
+    """Partition facts by their source authority.
+    Returns {"grounding": [...], "non_canonical": [...]}
+    """
+    grounding = []
+    non_canonical = []
+    for f in facts:
+        sc = (f.get("source_class") or "unknown").lower()
+        auth = (f.get("authority_level")
+                or SOURCE_CLASS_AUTHORITY.get(sc, "non_canonical")).lower()
+        if auth == "non_canonical":
+            non_canonical.append(f)
+        else:
+            grounding.append(f)
+    return {"grounding": grounding, "non_canonical": non_canonical}
+
+
+def _detect_soft_quantifier_claim(text: str) -> dict:
+    """Return {matched: bool, sample: matched_text, severity} or {}"""
+    cl = (text or "").lower()
+    for pat in SOFT_QUANTIFIER_PATTERNS:
+        m = re.search(pat, cl)
+        if m:
+            return {
+                "matched": True,
+                "claim_type": "prevalence_claim",
+                "sample": m.group(0),
+            }
+    return {"matched": False}
+
+
+def _detect_comparative_causal_claim(text: str) -> dict:
+    """Return {matched, claim_type, sample} or {}"""
+    cl = (text or "").lower()
+    for pat in COMPARATIVE_CAUSAL_PATTERNS:
+        m = re.search(pat, cl)
+        if m:
+            # Determine subtype
+            if any(kw in cl for kw in ["causes", "results in", "leads to"]):
+                ct = "causal_claim"
+            elif any(kw in cl for kw in ["vs", "vs.", "better than", "worse than",
+                                          "superior to"]):
+                ct = "comparative_claim"
+            else:
+                ct = "causal_claim"
+            return {
+                "matched": True,
+                "claim_type": ct,
+                "sample": m.group(0)[:80],
+            }
+    return {"matched": False}
+
+
 def _facts_to_grounded_claims(
     candidate_text: str,
     knowledge_facts: List[dict],
     user_brief: str = "",
 ) -> List[dict]:
-    """For each potentially-factual claim in candidate_text, decide its
-    grounding_status against the brand's canonical facts + user_brief.
+    """P1.1C claim grounding with source authority.
+    For each potentially-factual claim in candidate_text, decide its
+    grounding_status by:
+      1. Identifying the claim type.
+      2. Matching against canonical facts (where supported by source authority).
+      3. If the claim requires authoritative grounding (prevalence / frequency /
+         population / comparative / causal / causal_certainty), the matching
+         fact's source_class must be in the authority allow-list.
 
-    Returns a list of {claim, claim_type, source_fact_id, grounding_status}
+    Returns a list of {claim, claim_type, source_fact_id, source_class,
+    authority_level, grounding_status}
     where status ∈ {grounded, user_supplied, soft_creative_claim, unsupported}.
     """
     claims = []
+
+    # Pre-classify facts by authority
+    by_auth = _classify_facts_by_authority(knowledge_facts or [])
+    grounding_facts = by_auth["grounding"]
+    non_canonical_facts = by_auth["non_canonical"]
+
+    def _match_fact(claim_substring: str, claim_type: str,
+                    allowed_scopes: Optional[List[str]] = None):
+        """Match a claim substring against canonical facts whose source class
+        can ground this claim type. Returns the matching fact + its source
+        class, or None."""
+        for f in grounding_facts:
+            sc = (f.get("source_class") or "unknown").lower()
+            if not _authority_can_ground(sc, claim_type):
+                continue
+            for k, v in (f.get("details") or {}).items():
+                if isinstance(v, str) and claim_substring in v:
+                    return f, sc
+            for k, v in (f or {}).items():
+                if isinstance(v, str) and claim_substring in v:
+                    return f, sc
+        return None, None
+
     # 1. Percentage claims
     for pct in re.findall(r"\b\d{1,3}\s?%", candidate_text):
         pcts = pct.strip()
-        grounded = None
-        for f in knowledge_facts:
+        matched = None
+        for f in grounding_facts:
             for v in (f.get("details") or {}).values():
                 if isinstance(v, str) and pcts in v:
-                    grounded = f.get("fact_id")
-                    break
-            if grounded:
+                    if _authority_can_ground((f.get("source_class") or "").lower(),
+                                              "product_spec"):
+                        matched = f
+                        break
+            if matched:
                 break
-        if not grounded and pcts in (user_brief or ""):
-            grounded = "user_brief"
-        claims.append({
-            "claim": pcts,
-            "claim_type": "percentage",
-            "source_fact_id": grounded,
-            "grounding_status": "grounded" if grounded else "unsupported",
-        })
-    # 2. Distance / speed claims
-    for hit in re.findall(r"\b\d+(\.\d+)?\s*(metres|meters|yards|km/h|mph|seconds?|minutes?)\b", candidate_text, re.I):
+        if not matched and pcts in (user_brief or ""):
+            claims.append({
+                "claim": pcts,
+                "claim_type": "percentage",
+                "source_fact_id": "user_brief",
+                "source_class": "session_brief",
+                "authority_level": "non_canonical",
+                "grounding_status": "user_supplied",
+            })
+            continue
+        if matched:
+            claims.append({
+                "claim": pcts,
+                "claim_type": "percentage",
+                "source_fact_id": matched.get("fact_id"),
+                "source_class": matched.get("source_class"),
+                "authority_level": matched.get("authority_level"),
+                "grounding_status": "grounded",
+            })
+        else:
+            claims.append({
+                "claim": pcts,
+                "claim_type": "percentage",
+                "source_fact_id": None,
+                "source_class": None,
+                "authority_level": None,
+                "grounding_status": "unsupported",
+            })
+
+    # 2. Distance / speed / measurable claims
+    for hit in re.findall(r"\b\d+(\.\d+)?\s*(metres|meters|yards|km/h|mph|seconds?|minutes?|strokes?)\b", candidate_text, re.I):
         num = hit[0]
         unit = hit[1].lower()
-        grounded = None
-        for f in knowledge_facts:
+        claim_str = f"{num} {unit}"
+        matched = None
+        for f in grounding_facts:
             for v in (f.get("details") or {}).values():
                 if isinstance(v, str) and num in v and unit.lower() in v.lower():
-                    grounded = f.get("fact_id")
-                    break
-            if grounded:
+                    if _authority_can_ground((f.get("source_class") or "").lower(),
+                                              "product_spec"):
+                        matched = f
+                        break
+            if matched:
                 break
-        claims.append({
-            "claim": f"{num} {unit}",
-            "claim_type": "measurable_quantity",
-            "source_fact_id": grounded,
-            "grounding_status": "grounded" if grounded else "unsupported",
-        })
-    # 3. Causal / certainty language
-    for term in ["proves", "guarantee", "guarantees", "guaranteed", "the truth", "nobody tells", "the only way"]:
-        if term in candidate_text.lower():
-            # These are voice-level claims — soft creative, not factual.
+        if matched:
+            claims.append({
+                "claim": claim_str,
+                "claim_type": "measurable_quantity",
+                "source_fact_id": matched.get("fact_id"),
+                "source_class": matched.get("source_class"),
+                "authority_level": matched.get("authority_level"),
+                "grounding_status": "grounded",
+            })
+        else:
+            claims.append({
+                "claim": claim_str,
+                "claim_type": "measurable_quantity",
+                "source_fact_id": None,
+                "source_class": None,
+                "authority_level": None,
+                "grounding_status": "unsupported",
+            })
+
+    # 3. Soft-quantifier claims (population / prevalence / frequency)
+    sq = _detect_soft_quantifier_claim(candidate_text)
+    if sq["matched"]:
+        sample = sq["sample"]
+        # Check if a fact already mentions a specific number for this prevalence
+        # (e.g. "70% of strokes" — only grounded if product_facts explicitly mentions 70%)
+        # Otherwise: the soft quantifier is unsupported UNLESS the user brief
+        # supplied the same wording.
+        if sample in (user_brief or "").lower():
+            claims.append({
+                "claim": sample,
+                "claim_type": "prevalence_claim",
+                "source_fact_id": "user_brief",
+                "source_class": "session_brief",
+                "authority_level": "non_canonical",
+                "grounding_status": "user_supplied",
+            })
+        else:
+            # Try to find a fact that mentions this exact quantifier phrase
+            matched = None
+            for f in grounding_facts:
+                for v in (f.get("details") or {}).values():
+                    if isinstance(v, str) and sample in v.lower():
+                        if _authority_can_ground(
+                                (f.get("source_class") or "").lower(),
+                                "prevalence_claim"):
+                            matched = f
+                            break
+                if matched:
+                    break
+            if matched:
+                claims.append({
+                    "claim": sample,
+                    "claim_type": "prevalence_claim",
+                    "source_fact_id": matched.get("fact_id"),
+                    "source_class": matched.get("source_class"),
+                    "authority_level": matched.get("authority_level"),
+                    "grounding_status": "grounded",
+                })
+            else:
+                claims.append({
+                    "claim": sample,
+                    "claim_type": "prevalence_claim",
+                    "source_fact_id": None,
+                    "source_class": None,
+                    "authority_level": None,
+                    "grounding_status": "unsupported",
+                })
+
+    # 4. Comparative / causal claims
+    cc = _detect_comparative_causal_claim(candidate_text)
+    if cc["matched"]:
+        sample = cc["sample"]
+        ct = cc["claim_type"]
+        # Search grounding_facts for explicit support of the comparison
+        matched = None
+        for f in grounding_facts:
+            # A fact that names the comparison/relationship can ground it
+            val_blob = json.dumps(f or {}, default=str).lower()
+            if sample.lower() in val_blob:
+                if _authority_can_ground((f.get("source_class") or "").lower(), ct):
+                    matched = f
+                    break
+        if sample.lower() in (user_brief or "").lower():
+            claims.append({
+                "claim": sample,
+                "claim_type": ct,
+                "source_fact_id": "user_brief",
+                "source_class": "session_brief",
+                "authority_level": "non_canonical",
+                "grounding_status": "user_supplied",
+            })
+        elif matched:
+            claims.append({
+                "claim": sample,
+                "claim_type": ct,
+                "source_fact_id": matched.get("fact_id"),
+                "source_class": matched.get("source_class"),
+                "authority_level": matched.get("authority_level"),
+                "grounding_status": "grounded",
+            })
+        else:
+            claims.append({
+                "claim": sample,
+                "claim_type": ct,
+                "source_fact_id": None,
+                "source_class": None,
+                "authority_level": None,
+                "grounding_status": "unsupported",
+            })
+
+    # 5. Causal / certainty language (proves, guarantees, the truth, nobody tells)
+    certainty_terms = ["proves", "guarantee", "guarantees", "guaranteed",
+                       "the truth", "nobody tells", "the only way",
+                       "always works", "the data proves"]
+    cl = candidate_text.lower()
+    for term in certainty_terms:
+        if term in cl:
             claims.append({
                 "claim": term,
                 "claim_type": "causal_certainty",
                 "source_fact_id": None,
+                "source_class": None,
+                "authority_level": None,
                 "grounding_status": "soft_creative_claim",
             })
-    # 4. Brand / product name claims (any time a known product is mentioned)
-    for f in knowledge_facts:
+            break  # don't double-count
+
+    # 6. Brand / product name claims (only grounded when a fact names the
+    # exact subject; visual_references cannot ground product spec claims).
+    seen_subjects = set()
+    for f in grounding_facts:
         subject = f.get("subject") or ""
-        if subject and subject.lower() in candidate_text.lower():
+        if subject and subject.lower() in candidate_text.lower() and subject not in seen_subjects:
+            seen_subjects.add(subject)
             claims.append({
                 "claim": subject,
                 "claim_type": "product_reference",
                 "source_fact_id": f.get("fact_id"),
+                "source_class": f.get("source_class"),
+                "authority_level": f.get("authority_level"),
                 "grounding_status": "grounded",
             })
+
     return claims
 
 

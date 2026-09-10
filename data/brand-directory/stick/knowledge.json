@@ -1,5 +1,5 @@
 {
-  "schema_version": "p11b-v1",
+  "schema_version": "p11c-v1",
   "brand_id": "stick",
   "product_brands": {
     "takomo": {
@@ -9,6 +9,8 @@
       "value": "Finnish golf club maker (forged irons). Lives under Stick as a product_brand. Operating brand is stick.",
       "source": "data/brand-directory/takomo/README.md + data/brand-directory/stick/README.md",
       "source_path": "data/brand-directory/takomo/README.md",
+      "source_class": "approved_internal",
+      "authority_level": "high",
       "confidence": "high",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -26,9 +28,11 @@
       "fact_id": "tk-product-101T",
       "type": "product",
       "subject": "Takomo 101T",
-      "value": "Takomo 101T entry forged iron",
-      "source": "data/brand-directory/takomo/README.md + data/brand-directory/takomo/visual-spec/archetypes.json",
+      "value": "Takomo 101T entry forged iron (model identity confirmed by Takomo's own copy + voice-do-say list). Specific shaft/grip/loft specs are NOT in authoritative manufacturer docs in this knowledge store.",
+      "source": "data/brand-directory/takomo/README.md + data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/README.md",
+      "source_class": "approved_internal",
+      "authority_level": "high",
       "confidence": "high",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -37,23 +41,28 @@
       "details": {
         "category": "iron",
         "positioning": "entry forged iron",
-        "specs": {
-          "loft_28_deg": "28° (per visual-spec archetypes.json example prompt seed)",
-          "lie_59_deg": "59° (per visual-spec archetypes.json example prompt seed)",
-          "length_39_in": "39\" (per visual-spec archetypes.json example prompt seed)",
-          "shaft_example": "DG S300 (per visual-spec archetypes.json example prompt seed; not guaranteed for every build)",
-          "grip_example": "Tour Velvet (per visual-spec archetypes.json example prompt seed; not guaranteed for every build)"
-        },
-        "specs_caveat": "The 28°/59°/39\"/DG S300/Tour Velvet values come from a single example-prompt-seed in archetypes.json. Treat as the reference frame the brand uses in spec cards; do not present as universal for every build."
-      }
+        "specs_known": false,
+        "specs_note": "Loft/lie/length/shaft/grip values have NOT been promoted to canonical product specs because the only available source (visual-spec/archetypes.json) is a visual_reference, not an authoritative manufacturer spec document."
+      },
+      "visual_references": [
+        {
+          "ref_fact_id": "tk-visual-spec-card-101T",
+          "source_path": "data/brand-directory/takomo/visual-spec/archetypes.json",
+          "source_class": "visual_reference",
+          "authority_level": "low",
+          "note": "Visual archetype example-prompt-seed mentions loft 28° | lie 59° | length 39\" | shaft DG S300 | grip Tour Velvet. This describes a rendered hero card, NOT the universal Takomo 101T spec sheet. Useful for design rendering, NOT for product claims."
+        }
+      ]
     },
     {
       "fact_id": "tk-product-101T-CB",
       "type": "product",
       "subject": "Takomo 101T-CB",
-      "value": "101T cavity-back variant",
+      "value": "101T cavity-back variant (model name listed in Takomo's do-say vocabulary)",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_class": "approved_internal",
+      "authority_level": "high",
       "confidence": "medium",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -62,16 +71,19 @@
       "details": {
         "category": "iron",
         "variant_of": "Takomo 101T",
-        "specs_caveat": "No further specs known in canonical source — leave unknown."
+        "specs_known": false,
+        "specs_note": "No authoritative specs in canonical sources — leave unknown. Takomo's voice-do-say list names the model but does not specify loft/lie/etc."
       }
     },
     {
       "fact_id": "tk-product-101T-MB",
       "type": "product",
       "subject": "Takomo 101T-MB",
-      "value": "101T muscle-back variant",
+      "value": "101T muscle-back variant (model name listed in Takomo's do-say vocabulary)",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_class": "approved_internal",
+      "authority_level": "high",
       "confidence": "medium",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -80,16 +92,19 @@
       "details": {
         "category": "iron",
         "variant_of": "Takomo 101T",
-        "specs_caveat": "No further specs known in canonical source — leave unknown."
+        "specs_known": false,
+        "specs_note": "No authoritative specs in canonical sources — leave unknown."
       }
     },
     {
       "fact_id": "tk-product-201T",
       "type": "product",
       "subject": "Takomo 201T",
-      "value": "Higher-tier Takomo iron",
+      "value": "Higher-tier Takomo iron (model name listed in Takomo's do-say vocabulary)",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_class": "approved_internal",
+      "authority_level": "high",
       "confidence": "low",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -97,16 +112,19 @@
       "last_verified": "2026-09-10",
       "details": {
         "category": "iron",
-        "specs_caveat": "Only the name is in canonical source — leave all other fields unknown."
+        "specs_known": false,
+        "specs_note": "Only the name is in canonical source — leave all other fields unknown."
       }
     },
     {
       "fact_id": "tk-product-101T-Pro",
       "type": "product",
       "subject": "Takomo 101T Pro",
-      "value": "Pro-tier Takomo 101T variant",
+      "value": "Pro-tier Takomo 101T variant (model name listed in Takomo's do-say vocabulary)",
       "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
       "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_class": "approved_internal",
+      "authority_level": "high",
       "confidence": "low",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -115,7 +133,29 @@
       "details": {
         "category": "iron",
         "variant_of": "Takomo 101T",
-        "specs_caveat": "Only the name is in canonical source — leave all other fields unknown."
+        "specs_known": false,
+        "specs_note": "Only the name is in canonical source — leave all other fields unknown."
+      }
+    }
+  ],
+  "visual_references": [
+    {
+      "ref_fact_id": "tk-visual-spec-card-101T",
+      "type": "visual_reference",
+      "subject": "Takomo 101T spec card archetype",
+      "value": "An example rendered spec card showing a Takomo 101T with loft 28° | lie 59° | length 39\" | shaft DG S300 | grip Tour Velvet. Useful for design rendering (what a spec card LOOKS like) — NOT a manufacturer spec sheet.",
+      "source": "data/brand-directory/takomo/visual-spec/archetypes.json",
+      "source_path": "data/brand-directory/takomo/visual-spec/archetypes.json",
+      "source_class": "visual_reference",
+      "authority_level": "low",
+      "confidence": "medium",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "example_prompt_seed_quote": "Takomo 101T spec card: loft 28° | lie 59° | length 39\" | shaft DG S300 | grip Tour Velvet. Black backdrop, brass label rail.",
+        "grounding_role": "Can ground: visual appearance / colour / layout of a spec card. Cannot ground: universal product specification."
       }
     }
   ],
@@ -127,6 +167,8 @@
       "value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
       "source": "data/brand-directory/stick/README.md",
       "source_path": "data/brand-directory/stick/README.md",
+      "source_class": "official_business",
+      "authority_level": "high",
       "confidence": "high",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -144,6 +186,8 @@
       "value": "TrackMan session where the player tries the Takomo 101T in their numbers",
       "source": "data/brand-directory/takomo/copy/ctas.md",
       "source_path": "data/brand-directory/takomo/copy/ctas.md",
+      "source_class": "official_business",
+      "authority_level": "high",
       "confidence": "high",
       "valid_from": "2026-09-10",
       "valid_to": null,
@@ -158,6 +202,8 @@
   ],
   "voice_rules": {
     "source": "data/brand-directory/stick/README.md + data/brand-directory/stick/voice/do-say-dont-say.md",
+    "source_class": "approved_internal",
+    "authority_level": "high",
     "do_say": [
       "range myth",
       "off-the-rack",
@@ -178,6 +224,8 @@
   },
   "cta_rules": {
     "source": "data/brand-directory/takomo/copy/ctas.md",
+    "source_class": "approved_internal",
+    "authority_level": "high",
     "default_cta": "Build your 101T → swingshack.co.za/takomo",
     "hard_ctas": [
       "Build your 101T → swingshack.co.za/takomo",
