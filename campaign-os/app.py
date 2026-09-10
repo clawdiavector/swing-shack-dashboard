@@ -23627,6 +23627,62 @@ def admin_knowledge_audit():
     return jsonify(audit)
 
 
+# ─── P1.2 SLICE A — BLIND IMAGE OBSERVATION ──────────────────────────────────
+
+@app.route('/api/admin/creative-genome/list-assets', methods=['GET'])
+def admin_cg_list_assets():
+    """List canonical assets with brand + media_type + thumbnail_url presence.
+    Used by the admin UI to pick one asset_id to observe."""
+    from _lib.p11_context_engine import _P06A_CLEAN_CANONICAL
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "no cleaned canonical yet"}), 400
+    media_type = request.args.get("media_type") or None
+    brand = request.args.get("brand_id") or None
+    limit = min(int(request.args.get("limit") or 50), 200)
+    out = []
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+        if r.get("kind") != "asset":
+            continue
+        if media_type and r.get("media_type") != media_type:
+            continue
+        if brand and r.get("brand_id") != brand:
+            continue
+        out.append({
+            "asset_id": r.get("asset_id"),
+            "brand_id": r.get("brand_id"),
+            "media_type": r.get("media_type"),
+            "has_thumbnail_url": bool(r.get("thumbnail_url")),
+            "has_media_url": bool(r.get("media_url")),
+        })
+        if len(out) >= limit:
+            break
+    return jsonify({"ok": True, "count": len(out), "assets": out})
+
+
+@app.route('/api/admin/creative-genome/observe', methods=['POST'])
+def admin_cg_observe():
+    """P1.2 Slice A: blind visual observation of one IMAGE / CAROUSEL asset.
+
+    Input:  {brand_id, asset_id}
+    Output: the persisted observation record (see _lib/p12_creative_genome.py)
+    """
+    from _lib import p12_creative_genome as p12a
+    body = request.get_json(force=True, silent=True) or {}
+    asset_id = body.get("asset_id")
+    brand_id = body.get("brand_id")
+    if not asset_id or not brand_id:
+        return jsonify({"ok": False, "error": "asset_id and brand_id required"}), 400
+    result = p12a.observe_visual_asset(asset_id=str(asset_id), brand_id=str(brand_id))
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
+
 # ─── STEP 6: CLOSE-OUT REPORT ──────────────────────────────────────────────
 
 @app.route('/api/admin/p06a/fix-identity-strict', methods=['POST'])
