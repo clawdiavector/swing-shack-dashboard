@@ -598,6 +598,22 @@ def _append_observation(record: Dict[str, Any]) -> str:
     return obs_id
 
 
+def _load_observation_by_id(observation_id: str) -> Optional[Dict[str, Any]]:
+    """Read one observation record from observations.jsonl by observation_id."""
+    if not P12A_OBSERVATIONS.exists() or not observation_id:
+        return None
+    for line in P12A_OBSERVATIONS.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("observation_id") == observation_id:
+            return rec
+    return None
+
+
 def observe_visual_asset(asset_id: str, brand_id: str,
                            use_derivative: bool = True,
                            max_dim: int = 1024,
@@ -674,7 +690,9 @@ def observe_visual_asset(asset_id: str, brand_id: str,
     # per asset content version).
     cached = _cache_lookup(asset_id, source_content_hash, P12A_ANALYSIS_VERSION)
     if cached:
-        return {
+        obs_id = cached.get("observation_id")
+        existing = _load_observation_by_id(obs_id) if obs_id else None
+        result = {
             "ok": True,
             "cached": True,
             "asset_id": asset_id,
@@ -682,10 +700,15 @@ def observe_visual_asset(asset_id: str, brand_id: str,
             "media_type": media_type,
             "content_hash": source_content_hash,
             "analysis_version": P12A_ANALYSIS_VERSION,
-            "vision_model": model or P12A_VISION_MODEL,
-            "observation_id": cached.get("observation_id"),
+            "vision_model": (existing or {}).get("vision_model") or (model or P12A_VISION_MODEL),
+            "observation_id": obs_id,
             "derivative_stats": deriv_stats,
+            "observations": (existing or {}).get("observations") or {},
+            "normalisation_warnings": (existing or {}).get("normalisation_warnings") or [],
+            "model_usage": None,  # no model call on cache hit
+            "duration_ms": None,
         }
+        return result
 
     # Choose what to send to the vision model
     if use_derivative and derivative:
