@@ -1037,25 +1037,23 @@ def _check_fact(candidate: str, ctx: dict) -> dict:
         if not cf.get("price_zar") and not cf.get("offer"):
             fails.append(f"invented_price:{','.join(price_hits)}")
     # 2. Invented percentages
-    # Match ANY "X% of Y" pattern (not just golf-specific words). Only allow
-    # if the percentage appears in canonical product facts OR user_brief.
-    pct_hits = re.findall(r"\b\d{1,3}\s?%\s?of\s+\w+", candidate, re.I)
+    # Match any percentage claim: "X% of Y", "X% struggle", "X% improve", etc.
+    # Only allow if the percentage appears in canonical product facts OR user_brief.
+    pct_hits = re.findall(r"\b\d{1,3}\s?%", candidate)
     if pct_hits:
         ps = ctx.get("product_service", {}) or {}
         cf = ps.get("product_facts", {}) or {}
         allowed = False
-        # Allowed if user_brief mentions the same percentage
         ub = ctx.get("user_brief") or ""
         for hit in pct_hits:
-            num = re.findall(r"\b\d{1,3}\s?%", hit)[0] if hit else ""
-            if num and num in ub:
+            num = hit.replace(" ", "")
+            if num in ub:
                 allowed = True
                 break
         if not allowed and cf:
-            # Allowed if any product fact matches
             for v in cf.values():
                 if isinstance(v, (int, float, str)):
-                    if f"{v}%" in candidate or (isinstance(v, str) and v in candidate):
+                    if f"{v}%" in candidate:
                         allowed = True
                         break
         if not allowed:
