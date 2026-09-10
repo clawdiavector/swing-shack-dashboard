@@ -22230,16 +22230,9 @@ def admin_p06a_build_embeddings():
 
 @app.route('/api/admin/p06a/semantic-fatigue', methods=['POST'])
 def admin_p06a_semantic_fatigue():
-    """STEP 8 — for each caption, classify into families:
-      - exact_duplicate (same caption text)
-      - near_duplicate (cosine sim >= 0.92)
-      - semantic_family (cosine sim 0.75-0.92 — same concept, different words)
-      - structural_family (same regex-normalised opener)
-      - unique (below thresholds)
-    Per family, compute:
-      total_uses, uses_last_90_days, last_used, performance_eligible_samples,
-      performance_trend.
-    """
+    """STEP 8 — classify captions into families (exact_duplicate /
+    near_duplicate via cosine / semantic_family / structural_family) and
+    compute per-family stats."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     _p06a_init_dirs()
@@ -22248,6 +22241,15 @@ def admin_p06a_semantic_fatigue():
         return jsonify({"ok": False,
                         "error": "run build-embeddings + fix-identity first"}), 400
 
+    try:
+        return _admin_p06a_semantic_fatigue_inner()
+    except Exception as e:
+        import traceback as _tb
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}",
+                        "traceback": _tb.format_exc()[-1500:]}), 500
+
+
+def _admin_p06a_semantic_fatigue_inner():
     # Load embeddings
     embeds = {}
     embed_model = None
@@ -22351,7 +22353,6 @@ def admin_p06a_semantic_fatigue():
         if len(aids) < 2:
             continue
         perf_samples = [perf_lookup.get(a) for a in aids if perf_lookup.get(a)]
-        ts_list = sorted([assets[a].get("permalink") and (assets[a].get("_provenance") or {}).get("ingested_at") for a in aids if assets.get(a)])
         family_records.append({
             "family_type": "exact_duplicate",
             "family_id": f"exact-{hash(cap) & 0xFFFFFFFF:08x}",
@@ -22377,9 +22378,9 @@ def admin_p06a_semantic_fatigue():
             "total_uses": len(aids),
         })
 
-    # Semantic families
+    # Semantic families — filter to families of size 2-20 (skip giant hash-collision blobs)
     for fam, aids in families.items():
-        if len(aids) < 2:
+        if len(aids) < 2 or len(aids) > 20:
             continue
         sample_cap = (assets.get(aids[0]) or {}).get("caption") or ""
         family_records.append({
