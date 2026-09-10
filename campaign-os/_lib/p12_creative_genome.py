@@ -133,22 +133,36 @@ def _ensure_dirs() -> None:
 def _download_image_to_b64(url: str, max_bytes: int = 8_000_000,
                             timeout: int = 30) -> Tuple[Optional[str], Optional[str]]:
     """Download an image URL and return (base64_data_url, content_hash) or
-    (None, error_string)."""
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "campaign-os/p12a"})
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            data = r.read(max_bytes + 1)
-            if len(data) > max_bytes:
-                return None, f"image too large ({len(data)} > {max_bytes})"
-            ctype = r.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
-            if not ctype.startswith("image/"):
-                return None, f"not an image (content-type={ctype})"
-            b64 = base64.b64encode(data).decode("ascii")
-            content_hash = hashlib.sha256(data).hexdigest()[:16]
-            data_url = f"data:{ctype};base64,{b64}"
-            return data_url, content_hash
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
-        return None, f"download error: {type(e).__name__}: {e}"
+    (None, error_string). Uses a real browser user-agent because Instagram's
+    CDN returns login HTML for most bot user-agents."""
+    user_agents = [
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+        "(KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+        "curl/8.4.0",  # fallback
+    ]
+    last_err = None
+    for ua in user_agents:
+        try:
+            req = urllib.request.Request(url, headers={
+                "User-Agent": ua,
+                "Accept": "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.5",
+            })
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read(max_bytes + 1)
+                if len(data) > max_bytes:
+                    return None, f"image too large ({len(data)} > {max_bytes})"
+                ctype = r.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
+                if not ctype.startswith("image/"):
+                    last_err = f"not an image (content-type={ctype})"
+                    continue
+                b64 = base64.b64encode(data).decode("ascii")
+                content_hash = hashlib.sha256(data).hexdigest()[:16]
+                data_url = f"data:{ctype};base64,{b64}"
+                return data_url, content_hash
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as e:
+            last_err = f"download error ({ua[:20]}): {type(e).__name__}: {e}"
+            continue
+    return None, last_err or "all user-agents failed"
 
 
 def _save_frame(asset_id: str, content_hash: str, data_bytes: bytes) -> Optional[str]:
