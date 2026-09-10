@@ -24066,6 +24066,165 @@ def admin_cg_ab_compare():
     })
 
 
+@app.route('/api/admin/creative-genome/carousel-contact-sheet', methods=['GET'])
+def admin_cg_carousel_contact_sheet():
+    """Build an HTML contact sheet for ONE carousel asset showing each slide
+    in order with its observation values.
+
+    Query params:
+      asset_id: required
+    """
+    from _lib import p12_creative_genome as p12a
+    asset_id = request.args.get("asset_id")
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    p12a._ensure_dirs()
+    # Find the carousel record
+    rec = None
+    if p12a.P12A_OBSERVATIONS.exists():
+        for line in p12a.P12A_OBSERVATIONS.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            if (r.get("kind") == "carousel_observation"
+                    and r.get("asset_id") == asset_id):
+                rec = r
+                break
+    if not rec:
+        return jsonify({"ok": False, "error": f"no carousel observation for {asset_id}"}), 404
+
+    derived = rec.get("derived") or {}
+    slides = rec.get("slides") or []
+
+    slide_html = []
+    for s in slides:
+        si = s.get("slide_index")
+        # load full slide observation record by observation_id
+        obs = {}
+        if s.get("observation_id"):
+            full = p12a._load_observation_by_id(s["observation_id"])
+            if full:
+                obs = full.get("observations") or {}
+        # find derivative file for this slide
+        slide_key = f"{asset_id}__s{si}"
+        deriv_paths = sorted(p12a.P12A_FRAMES_DIR.glob(f"{slide_key}__*derivative.jpg"))
+        deriv_b64 = None
+        if deriv_paths:
+            try:
+                deriv_b64 = base64.b64encode(deriv_paths[-1].read_bytes()).decode("ascii")
+            except Exception:
+                deriv_b64 = None
+
+        def _cell(k):
+            o = obs.get(k) or {}
+            v = o.get("value")
+            c = o.get("confidence") or "—"
+            if v is None: vs = "null"
+            elif isinstance(v, bool): vs = "T" if v else "F"
+            else: vs = str(v)
+            return f"{vs}/{c[0].upper()}"
+
+        img_html = (
+            f'<img src="data:image/jpeg;base64,{deriv_b64}" alt="slide {si}"/>'
+            if deriv_b64 else "<em>no derivative</em>"
+        )
+        slide_html.append(f"""
+        <div class="slide">
+          <h3>slide #{si} {'(cached)' if s.get('duration_ms') is None else ''}</h3>
+          <div class="img">{img_html}</div>
+          <table>
+            <tr><th>human_present</th><td>{_cell('human_present')}</td></tr>
+            <tr><th>face_visible</th><td>{_cell('face_visible')}</td></tr>
+            <tr><th>golfer_present</th><td>{_cell('golfer_present')}</td></tr>
+            <tr><th>golf_club_present</th><td>{_cell('golf_club_present')}</td></tr>
+            <tr><th>golf_ball_present</th><td>{_cell('golf_ball_present')}</td></tr>
+            <tr><th>screen_visible</th><td>{_cell('screen_visible')}</td></tr>
+            <tr><th>text_overlay</th><td>{_cell('text_overlay')}</td></tr>
+            <tr><th>logo_visible</th><td>{_cell('logo_visible')}</td></tr>
+            <tr><th>shot_type</th><td>{_cell('shot_type')}</td></tr>
+            <tr><th>dominant_subject</th><td>{_cell('dominant_subject')}</td></tr>
+          </table>
+          <div class="status">ok={s.get('ok')} error={s.get('error') or 'none'} ms={s.get('duration_ms')}</div>
+        </div>""")
+
+    op = derived.get("opening") or {}
+    cl = derived.get("closing") or {}
+    vv = derived.get("visual_variety") or {}
+    body = f"""<!doctype html>
+<html><head><meta charset="utf-8"><title>Carousel {asset_id}</title>
+<style>
+body {{ font-family: ui-monospace, monospace; background: #111; color: #ddd; padding: 16px; }}
+.slides {{ display: flex; gap: 12px; flex-wrap: wrap; }}
+.slide {{ background: #1a1a1a; border: 1px solid #333; padding: 10px; border-radius: 6px; width: 280px; }}
+.slide h3 {{ margin: 0 0 6px; font-size: 12px; color: #999; }}
+.slide img {{ width: 100%; height: auto; display: block; border-radius: 4px; }}
+table {{ width: 100%; font-size: 10px; margin-top: 6px; }}
+th {{ text-align: left; color: #888; font-weight: normal; }}
+td {{ text-align: right; }}
+.status {{ color: #888; font-size: 10px; margin-top: 4px; }}
+.derived {{ background: #181818; padding: 12px; border: 1px solid #333; margin-bottom: 16px; border-radius: 6px; }}
+.derived h2 {{ margin: 0 0 8px; font-size: 13px; color: #aaa; }}
+.derived pre {{ font-size: 11px; }}
+</style></head><body>
+<h1>Carousel contact sheet — {asset_id}</h1>
+<div class="derived">
+  <h2>Coverage</h2>
+  <pre>slide_count = {derived.get('slide_count')}
+slides_analysed = {derived.get('slides_analysed')}
+slides_failed = {derived.get('slides_failed')}
+coverage_ratio = {derived.get('coverage_ratio')}</pre>
+  <h2>Asset-level features</h2>
+  <pre>human_anywhere        = {derived.get('human_anywhere')}  ratio={derived.get('human_slide_ratio')}  slides={derived.get('human_evidence_slides')}
+product_anywhere      = {derived.get('product_anywhere')}  ratio={derived.get('product_slide_ratio')}  slides={derived.get('product_evidence_slides')}
+golf_club_anywhere    = {derived.get('golf_club_anywhere')}  slides={derived.get('golf_club_evidence_slides')}
+golf_ball_anywhere    = {derived.get('golf_ball_anywhere')}  slides={derived.get('golf_ball_evidence_slides')}
+screen_anywhere       = {derived.get('screen_anywhere')}  slides={derived.get('screen_evidence_slides')}
+text_overlay_anywhere = {derived.get('text_overlay_anywhere')}  ratio={derived.get('text_overlay_slide_ratio')}  slides={derived.get('text_overlay_evidence_slides')}
+logo_anywhere         = {derived.get('logo_anywhere')}  ratio={derived.get('logo_slide_ratio')}  slides={derived.get('logo_evidence_slides')}
+indoor_anywhere       = {derived.get('indoor_anywhere')}  slides={derived.get('indoor_evidence_slides')}
+outdoor_anywhere      = {derived.get('outdoor_anywhere')}  slides={derived.get('outdoor_evidence_slides')}</pre>
+  <h2>Opening</h2>
+  <pre>{json.dumps(op, indent=2)}</pre>
+  <h2>Closing</h2>
+  <pre>{json.dumps(cl, indent=2)}</pre>
+  <h2>Visual variety</h2>
+  <pre>{json.dumps(vv, indent=2)}</pre>
+  <h2>Dominant subject progression</h2>
+  <pre>{derived.get('dominant_subject_progression')}</pre>
+</div>
+<div class="slides">{''.join(slide_html)}</div>
+</body></html>"""
+    return body, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route('/api/admin/creative-genome/observe-carousel', methods=['POST'])
+def admin_cg_observe_carousel():
+    """P1.2 Slice C: blind per-slide analysis of a CAROUSEL_ALBUM asset +
+    asset-level derived features.
+
+    Input:  {brand_id, asset_id, max_dim?, quality?, model?}
+    Output: slides[] (each with slide_index, observations), derived{}.
+    """
+    from _lib import p12_creative_genome as p12a
+    body = request.get_json(force=True, silent=True) or {}
+    asset_id = body.get("asset_id")
+    brand_id = body.get("brand_id")
+    if not asset_id or not brand_id:
+        return jsonify({"ok": False, "error": "asset_id and brand_id required"}), 400
+    result = p12a.observe_carousel(
+        asset_id=str(asset_id),
+        brand_id=str(brand_id),
+        max_dim=int(body.get("max_dim") or 1024),
+        quality=int(body.get("quality") or 80),
+        model=body.get("model") or None,
+    )
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
+
 @app.route('/api/admin/creative-genome/observe', methods=['POST'])
 def admin_cg_observe():
     """P1.2 Slice B: blind visual observation of one IMAGE / CAROUSEL asset.

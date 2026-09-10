@@ -556,6 +556,505 @@ def _resolve_image_url_via_meta(asset: Dict[str, Any]) -> Tuple[Optional[str], O
         return None, f"meta error: {type(e).__name__}: {e}"
 
 
+def _resolve_image_url_for_carousel_child(child: Dict[str, Any]) -> Optional[str]:
+    """Get image URL for a single carousel child. The child dict is a
+    sub-object from the Meta Graph API `children` field, which carries
+    its own media_url / thumbnail_url."""
+    if not isinstance(child, dict):
+        return None
+    url = child.get("media_url") or child.get("thumbnail_url")
+    if url and isinstance(url, str) and "/p/" not in url and not url.startswith("/"):
+        return url
+    return None
+
+
+def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    """Fetch child media for a CAROUSEL_ALBUM asset via Meta Graph API.
+
+    Returns (children_list, error_string). children_list is ordered (by the
+    IG API's own ordering); each item carries at least:
+      child_media_id, media_url, thumbnail_url, media_type
+    Errors return empty list + error string.
+    """
+    ig_media_id = asset.get("ig_media_id") or asset.get("source_media_id")
+    if not ig_media_id and str(asset.get("asset_id", "")).startswith("ig-"):
+        ig_media_id = str(asset.get("asset_id"))[3:]
+    if not ig_media_id or not str(ig_media_id).isdigit():
+        return [], "no ig_media_id"
+    try:
+        from _lib.meta_api import (
+            _read_meta_access_token, _graph_get,
+            MetaAuthError, MetaUpstreamError, MetaNetworkError,
+        )
+    except Exception as e:
+        return [], f"meta_api import failed: {e}"
+    token = _read_meta_access_token()
+    if not token:
+        return [], "no Meta access token"
+    try:
+        out = _graph_get(
+            f"/{ig_media_id}",
+            {"fields": "media_type,media_url,thumbnail_url,permalink,"
+                       "children{media_type,media_url,thumbnail_url,id}"},
+        )
+    except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
+        return [], f"meta error: {type(e).__name__}: {e}"
+    children = out.get("children") or []
+    # Filter to entries that have an image URL
+    ordered = []
+    for c in children:
+        if not isinstance(c, dict):
+            continue
+        url = _resolve_image_url_for_carousel_child(c)
+        if url:
+            ordered.append({
+                "child_media_id": str(c.get("id") or ""),
+                "media_type": c.get("media_type") or "IMAGE",
+                "media_url": url,
+            })
+    return ordered, None
+
+
+def _analyse_one_slide(asset_id: str, brand_id: str, slide_index: int,
+                        child: Dict[str, Any], slide_cache_key: str,
+                        max_dim: int = 1024, quality: int = 80,
+                        model: Optional[str] = None) -> Dict[str, Any]:
+    """Analyse one carousel slide. Reuses the same blind visual observer
+    as Slice B. Returns a per-slide observation record with:
+      slide_index, child_media_id, content_hash, analysis_version,
+      observations, model_usage, duration_ms, image_url_source, error.
+    Does NOT derive asset-level features — those happen in
+    _derive_carousel_features.
+    """
+    _ensure_dirs()
+    image_url = child.get("media_url")
+    if not image_url:
+        return {
+            "ok": False,
+            "slide_index": slide_index,
+            "child_media_id": child.get("child_media_id"),
+            "error": "no media_url on child",
+        }
+    raw, ctype_or_err = _download_image_raw(image_url)
+    if not raw:
+        return {
+            "ok": False,
+            "slide_index": slide_index,
+            "child_media_id": child.get("child_media_id"),
+            "image_url": image_url,
+            "error": ctype_or_err or "download failed",
+        }
+    source_content_hash = hashlib.sha256(raw).hexdigest()[:16]
+    # Save source bytes
+    _save_frame(slide_cache_key, source_content_hash, raw)
+    # Make derivative
+    derivative, deriv_stats = _make_analysis_derivative(
+        raw, slide_cache_key, source_content_hash,
+        max_dim=max_dim, quality=quality,
+    )
+    # Check slide cache: (slide_cache_key, content_hash, analysis_version)
+    cached = _cache_lookup(slide_cache_key, source_content_hash, P12A_ANALYSIS_VERSION)
+    if cached:
+        obs_id = cached.get("observation_id")
+        existing = _load_observation_by_id(obs_id) if obs_id else None
+        return {
+            "ok": True,
+            "cached": True,
+            "slide_index": slide_index,
+            "child_media_id": child.get("child_media_id"),
+            "content_hash": source_content_hash,
+            "analysis_version": P12A_ANALYSIS_VERSION,
+            "image_url": image_url,
+            "image_url_source": "meta_graph_api_children",
+            "observation_id": obs_id,
+            "observations": (existing or {}).get("observations") or {},
+            "normalisation_warnings": (existing or {}).get("normalisation_warnings") or [],
+            "model_usage": None,
+            "duration_ms": None,
+            "derivative_stats": deriv_stats,
+        }
+    # Choose what to send
+    if derivative:
+        send_bytes = derivative
+        send_dimensions = deriv_stats.get("derivative_dimensions")
+    else:
+        send_bytes = raw
+        send_dimensions = None
+    data_url = _bytes_to_data_url(send_bytes, "image/jpeg")
+    t0 = time.time()
+    api_result = _call_vision(data_url, slide_cache_key, brand_id, model=model)
+    if "error" in api_result:
+        return {
+            "ok": False,
+            "slide_index": slide_index,
+            "child_media_id": child.get("child_media_id"),
+            "error": api_result["error"],
+        }
+    obs, nw = _validate_observation(api_result.get("observation") or {})
+    duration_ms = int((time.time() - t0) * 1000)
+    # Persist under a slide-specific observation_id
+    obs_id = f"slide_{slide_index}_{slide_cache_key}_{int(time.time() * 1000)}"
+    record = {
+        "observation_id": obs_id,
+        "asset_id": slide_cache_key,
+        "brand_id": brand_id,
+        "media_type": "CAROUSEL_SLIDE",
+        "analysis_version": P12A_ANALYSIS_VERSION,
+        "vision_model": model or P12A_VISION_MODEL,
+        "content_hash": source_content_hash,
+        "image_url": image_url,
+        "image_url_source": "meta_graph_api_children",
+        "image_sent_to_model": {
+            "source": "derivative",
+            "bytes": len(send_bytes),
+            "dimensions": send_dimensions,
+        },
+        "analysis_kind": "visual_observation",
+        "pass": "A",
+        "slide_kind": "carousel",
+        "context_inputs_forbidden": [
+            "caption", "hashtags", "filename", "campaign", "service",
+            "topic", "product_name", "performance", "win_score",
+            "historical_classification",
+        ],
+        "context_inputs_actually_sent": ["image_url (data URL) only"],
+        "normalisation_warnings": nw,
+        "observations": obs,
+        "model_usage": api_result.get("usage") or {},
+        "analysed_at": time.time(),
+        "duration_ms": duration_ms,
+    }
+    _append_observation(record)
+    _cache_write(slide_cache_key, source_content_hash, P12A_ANALYSIS_VERSION, obs_id)
+    return {
+        "ok": True,
+        "cached": False,
+        "slide_index": slide_index,
+        "child_media_id": child.get("child_media_id"),
+        "content_hash": source_content_hash,
+        "analysis_version": P12A_ANALYSIS_VERSION,
+        "image_url": image_url,
+        "image_url_source": "meta_graph_api_children",
+        "observation_id": obs_id,
+        "observations": obs,
+        "normalisation_warnings": nw,
+        "model_usage": api_result.get("usage") or {},
+        "duration_ms": duration_ms,
+        "derivative_stats": deriv_stats,
+    }
+
+
+def _derive_carousel_features(asset_id: str, brand_id: str,
+                                 slide_results: List[Dict[str, Any]],
+                                 slides_expected: int) -> Dict[str, Any]:
+    """Derive asset-level features from per-slide observations.
+
+    slide_results is a list of per-slide return dicts from
+    _analyse_one_slide. Order is preserved.
+
+    Returns a dict with derived fields + per-feature evidence
+    (which slide_index contributed).
+
+    Important rules:
+      - Unknown stays unknown. We never turn "I don't know" into a
+        confident "no".
+      - features are computed from analysable slides only; coverage
+        is recorded.
+      - opening / closing slides are kept separate.
+    """
+    analysed = [s for s in slide_results if s.get("ok") and s.get("observations")]
+    failed = [s for s in slide_results if not s.get("ok")]
+    coverage_ratio = (len(analysed) / slides_expected) if slides_expected else 0
+
+    def _bool_at(slide, field):
+        return slide.get("observations", {}).get(field, {}).get("value")
+
+    def _cat_at(slide, field):
+        return slide.get("observations", {}).get(field, {}).get("value")
+
+    # human_anywhere
+    human_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "human_present") is True]
+    human_anywhere = True if human_slides else None if analysed else None
+    # product_anywhere: human OR product dominant anywhere
+    product_slides = [i for i, s in enumerate(analysed)
+                      if _bool_at(s, "product_closeup") is True
+                      or _cat_at(s, "dominant_subject") == "product"]
+    product_anywhere = True if product_slides else None if analysed else None
+    # golf_club_anywhere
+    club_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "golf_club_present") is True]
+    club_anywhere = True if club_slides else None if analysed else None
+    # golf_ball_anywhere
+    ball_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "golf_ball_present") is True]
+    ball_anywhere = True if ball_slides else None if analysed else None
+    # screen_anywhere
+    screen_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "screen_visible") is True]
+    screen_anywhere = True if screen_slides else None if analysed else None
+    # text_overlay_anywhere
+    text_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "text_overlay") is True]
+    text_anywhere = True if text_slides else None if analysed else None
+    # logo_anywhere
+    logo_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "logo_visible") is True]
+    logo_anywhere = True if logo_slides else None if analysed else None
+    # indoor_anywhere / outdoor_anywhere
+    indoor_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "indoor") is True]
+    indoor_anywhere = True if indoor_slides else None if analysed else None
+    outdoor_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "outdoor") is True]
+    outdoor_anywhere = True if outdoor_slides else None if analysed else None
+
+    # opening / closing
+    opening = analysed[0] if analysed else None
+    closing = analysed[-1] if analysed else None
+    def _opening(field):
+        if not opening: return None
+        return _bool_at(opening, field) if field in P12A_BOOLEAN_FIELDS else _cat_at(opening, field)
+    def _closing(field):
+        if not closing: return None
+        return _bool_at(closing, field) if field in P12A_BOOLEAN_FIELDS else _cat_at(closing, field)
+
+    # closing_cta_visual_signal: closing slide has high text density + logo + product/human absence
+    closing_cta_signal = None
+    if closing:
+        cv = closing.get("observations", {})
+        text_v = cv.get("text_overlay", {}).get("value")
+        logo_v = cv.get("logo_visible", {}).get("value")
+        dom = cv.get("dominant_subject", {}).get("value")
+        if text_v is True:
+            # high text density + logo + (product OR text dominant) → CTA-like
+            if logo_v is True and dom in ("text", "product"):
+                closing_cta_signal = True
+            elif dom == "text":
+                closing_cta_signal = "possible"
+            else:
+                closing_cta_signal = False
+        else:
+            closing_cta_signal = False
+
+    # unique dominant subjects / shot types
+    dom_set = sorted({s.get("observations", {}).get("dominant_subject", {}).get("value")
+                      for s in analysed
+                      if s.get("observations", {}).get("dominant_subject", {}).get("value") not in (None, "unknown")})
+    shot_set = sorted({s.get("observations", {}).get("shot_type", {}).get("value")
+                       for s in analysed
+                       if s.get("observations", {}).get("shot_type", {}).get("value") not in (None, "unknown")})
+
+    # human_to_product_transition: opening has human, closing has product (or vice versa)
+    h2p = None
+    if opening and closing and len(analysed) >= 2:
+        o_human = _bool_at(opening, "human_present")
+        c_human = _bool_at(closing, "human_present")
+        o_prod = (_bool_at(opening, "product_closeup") is True
+                  or _cat_at(opening, "dominant_subject") == "product")
+        c_prod = (_bool_at(closing, "product_closeup") is True
+                  or _cat_at(closing, "dominant_subject") == "product")
+        if o_human is True and c_prod is True:
+            h2p = "human_to_product"
+        elif o_prod is True and c_human is True:
+            h2p = "product_to_human"
+
+    # text_density_change
+    text_count_open = sum(1 for i, s in enumerate(analysed[:max(1, len(analysed) // 2)])
+                          if _bool_at(s, "text_overlay") is True)
+    text_count_close = sum(1 for i, s in enumerate(analysed[len(analysed) // 2:])
+                           if _bool_at(s, "text_overlay") is True)
+    half = max(1, len(analysed) // 2)
+    text_change = (text_count_close / max(1, len(analysed) - half)) - (text_count_open / half)
+
+    return {
+        "asset_id": asset_id,
+        "brand_id": brand_id,
+        "slide_count": slides_expected,
+        "slides_analysed": len(analysed),
+        "slides_failed": len(failed),
+        "coverage_ratio": round(coverage_ratio, 3),
+        "human_anywhere": human_anywhere,
+        "human_slide_ratio": round(len(human_slides) / len(analysed), 3) if analysed else None,
+        "human_evidence_slides": human_slides,
+        "product_anywhere": product_anywhere,
+        "product_slide_ratio": round(len(product_slides) / len(analysed), 3) if analysed else None,
+        "product_evidence_slides": product_slides,
+        "golf_club_anywhere": club_anywhere,
+        "golf_club_evidence_slides": club_slides,
+        "golf_ball_anywhere": ball_anywhere,
+        "golf_ball_evidence_slides": ball_slides,
+        "screen_anywhere": screen_anywhere,
+        "screen_evidence_slides": screen_slides,
+        "text_overlay_anywhere": text_anywhere,
+        "text_overlay_slide_ratio": round(len(text_slides) / len(analysed), 3) if analysed else None,
+        "text_overlay_evidence_slides": text_slides,
+        "logo_anywhere": logo_anywhere,
+        "logo_slide_ratio": round(len(logo_slides) / len(analysed), 3) if analysed else None,
+        "logo_evidence_slides": logo_slides,
+        "indoor_anywhere": indoor_anywhere,
+        "indoor_evidence_slides": indoor_slides,
+        "outdoor_anywhere": outdoor_anywhere,
+        "outdoor_evidence_slides": outdoor_slides,
+        "opening": {
+            "slide_index": 0 if opening else None,
+            "human_present": _opening("human_present"),
+            "dominant_subject": _opening("dominant_subject"),
+            "text_overlay": _opening("text_overlay"),
+            "logo_visible": _opening("logo_visible"),
+            "shot_type": _opening("shot_type"),
+            "product_closeup": _opening("product_closeup"),
+            "golf_club_present": _opening("golf_club_present"),
+            "golf_ball_present": _opening("golf_ball_present"),
+        },
+        "closing": {
+            "slide_index": (len(analysed) - 1) if closing else None,
+            "human_present": _closing("human_present"),
+            "dominant_subject": _closing("dominant_subject"),
+            "text_overlay": _closing("text_overlay"),
+            "logo_visible": _closing("logo_visible"),
+            "shot_type": _closing("shot_type"),
+            "product_closeup": _closing("product_closeup"),
+            "golf_club_present": _closing("golf_club_present"),
+            "golf_ball_present": _closing("golf_ball_present"),
+            "cta_visual_signal": closing_cta_signal,
+        },
+        "remainder_summary": {
+            "human_count": len(human_slides),
+            "product_count": len(product_slides),
+            "text_count": len(text_slides),
+            "logo_count": len(logo_slides),
+        } if len(analysed) >= 3 else None,
+        "visual_variety": {
+            "unique_dominant_subjects": dom_set,
+            "unique_shot_types": shot_set,
+            "human_to_product_transition": h2p,
+            "text_density_change_first_half_vs_second_half": round(text_change, 3),
+            "visual_change_count": len(dom_set) + len(shot_set),  # heuristic
+        },
+        "dominant_subject_progression": [
+            s.get("observations", {}).get("dominant_subject", {}).get("value")
+            for s in analysed
+        ],
+        "analysis_version": P12A_ANALYSIS_VERSION,
+    }
+
+
+def observe_carousel(asset_id: str, brand_id: str,
+                       max_dim: int = 1024, quality: int = 80,
+                       model: Optional[str] = None) -> Dict[str, Any]:
+    """Slice C: blind per-slide analysis of a CAROUSEL_ALBUM asset +
+    derivation of asset-level features.
+    """
+    _ensure_dirs()
+    asset = _find_asset(asset_id)
+    if not asset:
+        return {"ok": False, "error": f"asset_id '{asset_id}' not in canonical"}
+    asset_brand = asset.get("brand_id") or brand_id
+    if asset_brand and asset_brand != brand_id:
+        return {"ok": False, "error": f"brand mismatch: asset={asset_brand} request={brand_id}"}
+    media_type = asset.get("media_type") or "unknown"
+    if media_type != "CAROUSEL_ALBUM":
+        return {"ok": False, "error": f"observe_carousel requires CAROUSEL_ALBUM (got {media_type})"}
+
+    children, fetch_err = _fetch_carousel_children(asset)
+    slides_expected = len(children)
+    if fetch_err:
+        return {"ok": False, "error": f"children fetch failed: {fetch_err}",
+                "asset_keys": list(asset.keys())}
+    if slides_expected == 0:
+        return {"ok": False, "error": "no children with image URL resolvable"}
+
+    # Analyse each slide
+    slide_results = []
+    total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    total_ms = 0
+    cache_hits = 0
+    vision_calls = 0
+    for i, child in enumerate(children):
+        slide_cache_key = f"{asset_id}__s{i}"
+        r = _analyse_one_slide(
+            asset_id, asset_brand, i, child, slide_cache_key,
+            max_dim=max_dim, quality=quality, model=model,
+        )
+        slide_results.append(r)
+        if r.get("cached"):
+            cache_hits += 1
+        else:
+            vision_calls += 1
+        u = r.get("model_usage") or {}
+        total_usage["prompt_tokens"] += u.get("prompt_tokens", 0)
+        total_usage["completion_tokens"] += u.get("completion_tokens", 0)
+        total_usage["total_tokens"] += u.get("total_tokens", 0)
+        total_ms += r.get("duration_ms", 0) or 0
+
+    # Derive carousel-level features
+    derived = _derive_carousel_features(asset_id, asset_brand, slide_results, slides_expected)
+
+    # Persist the carousel-level record
+    carousel_record = {
+        "asset_id": asset_id,
+        "brand_id": asset_brand,
+        "media_type": "CAROUSEL_ALBUM",
+        "kind": "carousel_observation",
+        "analysis_version": P12A_ANALYSIS_VERSION,
+        "vision_model": model or P12A_VISION_MODEL,
+        "slide_count": slides_expected,
+        "slides_expected": slides_expected,
+        "slides_analysed": derived["slides_analysed"],
+        "slides_failed": derived["slides_failed"],
+        "coverage_ratio": derived["coverage_ratio"],
+        "slides": [
+            {
+                "slide_index": s.get("slide_index"),
+                "child_media_id": s.get("child_media_id"),
+                "content_hash": s.get("content_hash"),
+                "ok": s.get("ok"),
+                "error": s.get("error"),
+                "observation_id": s.get("observation_id"),
+                "model_usage": s.get("model_usage"),
+                "duration_ms": s.get("duration_ms"),
+                "analysis_version": s.get("analysis_version"),
+                "derivative_stats": s.get("derivative_stats"),
+            }
+            for s in slide_results
+        ],
+        "derived": derived,
+        "total_usage": total_usage,
+        "total_duration_ms": total_ms,
+        "vision_calls": vision_calls,
+        "cache_hits": cache_hits,
+        "context_inputs_forbidden": [
+            "caption", "hashtags", "filename", "campaign", "service",
+            "topic", "product_name", "performance", "win_score",
+            "historical_classification",
+        ],
+        "context_inputs_actually_sent": ["image_url (data URL) only — per slide"],
+        "analysed_at": time.time(),
+    }
+    _append_observation(carousel_record)
+
+    return {
+        "ok": True,
+        "asset_id": asset_id,
+        "brand_id": asset_brand,
+        "media_type": media_type,
+        "slide_count": slides_expected,
+        "slides_expected": slides_expected,
+        "slides_analysed": derived["slides_analysed"],
+        "slides_failed": derived["slides_failed"],
+        "coverage_ratio": derived["coverage_ratio"],
+        "vision_calls": vision_calls,
+        "cache_hits": cache_hits,
+        "total_usage": total_usage,
+        "total_duration_ms": total_ms,
+        "derived": derived,
+        "slides": [
+            {
+                "slide_index": s.get("slide_index"),
+                "child_media_id": s.get("child_media_id"),
+                "ok": s.get("ok"),
+                "error": s.get("error"),
+                "observation_id": s.get("observation_id"),
+                "duration_ms": s.get("duration_ms"),
+            }
+            for s in slide_results
+        ],
+    }
+
+
 def _cache_lookup(asset_id: str, content_hash: str,
                    analysis_version: str) -> Optional[Dict[str, Any]]:
     """Return the cached observation if (asset_id, content_hash, analysis_version)
