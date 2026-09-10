@@ -23561,6 +23561,237 @@ def admin_p06a_semantic_v2():
 
 # ─── STEP 6: CLOSE-OUT REPORT ──────────────────────────────────────────────
 
+@app.route('/api/admin/p06a/fix-identity-strict', methods=['POST'])
+def admin_p06a_fix_identity_strict():
+    """Strict re-build of fix-identity using the audited ambiguity rules.
+
+    Rebuilds canonical-history.cleaned.jsonl from scratch, applying:
+      - 1:1 caption-hash + 24h window + media_type_compatible for cross-post merge
+      - ambiguous / rejected pairs kept as separate creative assets
+
+    Returns the new counts so the operator can compare to the prior relaxed run.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    # Re-load raw
+    ig_media = {}
+    for mp in (_P06_IG_RAW_DIR / "media").glob("*.json"):
+        try:
+            d = json.loads(mp.read_text())
+            ig_media[d["id"]] = d
+        except Exception:
+            continue
+    fb_posts = {}
+    for pp in (_P06_ROOT / "facebook" / "raw" / "posts").glob("*.json"):
+        try:
+            d = json.loads(pp.read_text())
+            fb_posts[d["id"]] = d
+        except Exception:
+            continue
+
+    def caption_hash(c):
+        return hashlib.sha256(
+            re.sub(r"\s+", " ", (c or "").strip().lower()).encode()
+        ).hexdigest()[:16]
+
+    from datetime import datetime as _dt
+    def parse_ts(t):
+        if not t:
+            return None
+        try:
+            return _dt.fromisoformat(t.replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    # Group by hash
+    ig_by_hash = {}
+    for mid, d in ig_media.items():
+        cap = d.get("caption") or ""
+        if not cap.strip():
+            continue
+        ig_by_hash.setdefault(caption_hash(cap), []).append({
+            "ig_media_id": mid, "caption": cap,
+            "timestamp": parse_ts(d.get("timestamp")),
+            "media_type": d.get("media_type"),
+        })
+    fb_by_hash = {}
+    for fpid, d in fb_posts.items():
+        cap = d.get("message") or ""
+        if not cap.strip():
+            continue
+        fb_by_hash.setdefault(caption_hash(cap), []).append({
+            "fb_post_id": fpid, "caption": cap,
+            "timestamp": parse_ts(d.get("created_time")),
+            "media_type": d.get("type"),
+        })
+
+    # Strict merge: only 1:1 + within 24h + media_type_compatible
+    strict_merge_pairs = set()
+    for h, ig_items in ig_by_hash.items():
+        fb_items = fb_by_hash.get(h, [])
+        if len(ig_items) != 1 or len(fb_items) != 1:
+            continue
+        ig = ig_items[0]
+        fb = fb_items[0]
+        if ig["timestamp"] and fb["timestamp"]:
+            if abs((ig["timestamp"] - fb["timestamp"]).total_seconds()) > 86400:
+                continue
+        ig_mt = ig.get("media_type") or "UNKNOWN"
+        fb_mt = fb.get("media_type") or "UNKNOWN"
+        mt_compat = (ig_mt == fb_mt or ig_mt == "UNKNOWN" or fb_mt == "UNKNOWN"
+                     or (ig_mt == "VIDEO" and fb_mt in ("video", "status")))
+        if mt_compat:
+            strict_merge_pairs.add((ig["ig_media_id"], fb["fb_post_id"]))
+
+    # Rebuild canonical strictly
+    seen_assets = set()
+    seen_publications = set()
+    clean_records = []
+    asset_to_pubs = {}
+
+    # IG side
+    for mid, d in ig_media.items():
+        # Is this IG part of a strict merge?
+        merged_with = None
+        for ig_mid_v, fb_post_id in strict_merge_pairs:
+            if ig_mid_v == mid:
+                merged_with = fb_post_id
+                break
+        if merged_with:
+            asset_id = f"xpost-{caption_hash(d.get('caption') or '')}-asset"
+        else:
+            asset_id = f"ig-{mid}"
+        if asset_id in seen_assets:
+            continue
+        seen_assets.add(asset_id)
+        clean_records.append({
+            "kind": "asset", "asset_id": asset_id,
+            "brand_id": "swing-shack",
+            "ig_media_id": mid,
+            "media_type": d.get("media_type"),
+            "caption": d.get("caption") or "",
+            "permalink": d.get("permalink") or "",
+            "first_seen_at": (d.get("_provenance") or {}).get("ingested_at"),
+            "origin": "external", "campaign_id": None,
+            "source": "instagram_meta",
+            "data_quality": (d.get("_provenance") or {}).get("data_quality", "medium"),
+            "cross_post_group_id": (f"xpost-{caption_hash(d.get('caption') or '')}"
+                                    if merged_with else None),
+        })
+        pub_id = f"ig-pub-{mid}"
+        asset_to_pubs.setdefault(asset_id, []).append(pub_id)
+        seen_publications.add(pub_id)
+        clean_records.append({
+            "kind": "publication", "publication_id": pub_id,
+            "asset_id": asset_id, "platform": "instagram",
+            "permalink": d.get("permalink") or "",
+            "timestamp": d.get("timestamp"),
+            "brand_id": "swing-shack", "origin": "external",
+            "ig_media_id": mid, "source": "instagram_meta",
+        })
+        ins_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
+        if ins_path.exists():
+            try:
+                ins = json.loads(ins_path.read_text())
+                if ins.get("_available") is not False:
+                    flat = ins.get("_flat") or {}
+                    clean_records.append({
+                        "kind": "performance", "publication_id": pub_id,
+                        "asset_id": asset_id, "platform": "instagram",
+                        "ig_media_id": mid, "observations": flat,
+                        "metric_availability": {k: True for k in flat.keys()
+                                                 if flat.get(k) is not None},
+                        "raw_data_quality": "high",
+                        "source": "instagram_meta",
+                        "timestamp": d.get("timestamp"),
+                    })
+            except Exception:
+                pass
+
+    # FB side
+    for fpid, d in fb_posts.items():
+        # Is this FB part of a strict merge?
+        merged_with = None
+        for ig_mid_v, fb_post_id in strict_merge_pairs:
+            if fb_post_id == fpid:
+                merged_with = ig_mid_v
+                break
+        if merged_with:
+            asset_id = f"xpost-{caption_hash(d.get('message') or '')}-asset"
+        else:
+            asset_id = f"fb-{fpid}"
+        if asset_id in seen_assets:
+            continue
+        seen_assets.add(asset_id)
+        cap = d.get("message") or ""
+        clean_records.append({
+            "kind": "asset", "asset_id": asset_id,
+            "brand_id": "swing-shack",
+            "fb_post_id": fpid,
+            "media_type": d.get("type") or "UNKNOWN",
+            "caption": cap,
+            "permalink": d.get("permalink_url") or "",
+            "first_seen_at": (d.get("_provenance") or {}).get("ingested_at"),
+            "origin": "external", "campaign_id": None,
+            "source": "facebook_page",
+            "data_quality": (d.get("_provenance") or {}).get("data_quality", "medium"),
+            "cross_post_group_id": (f"xpost-{caption_hash(cap)}"
+                                    if merged_with else None),
+        })
+        pub_id = f"fb-pub-{fpid}"
+        asset_to_pubs.setdefault(asset_id, []).append(pub_id)
+        seen_publications.add(pub_id)
+        clean_records.append({
+            "kind": "publication", "publication_id": pub_id,
+            "asset_id": asset_id, "platform": "facebook",
+            "permalink": d.get("permalink_url") or "",
+            "timestamp": d.get("created_time"),
+            "brand_id": "swing-shack", "origin": "external",
+            "fb_post_id": fpid, "source": "facebook_page",
+        })
+        ins_path = _P06_ROOT / "facebook" / "raw" / "insights" / f"{fpid}.json"
+        if ins_path.exists():
+            try:
+                ins = json.loads(ins_path.read_text())
+                if ins.get("_available") is not False and ins.get("_flat"):
+                    flat = ins["_flat"]
+                    clean_records.append({
+                        "kind": "performance", "publication_id": pub_id,
+                        "asset_id": asset_id, "platform": "facebook",
+                        "fb_post_id": fpid, "observations": flat,
+                        "metric_availability": {k: True for k in flat.keys()
+                                                 if flat.get(k) is not None},
+                        "raw_data_quality": "high",
+                        "source": "facebook_page",
+                        "timestamp": d.get("created_time"),
+                    })
+            except Exception:
+                pass
+
+    with _P06A_CLEAN_CANONICAL.open("w") as f:
+        for rec in clean_records:
+            f.write(json.dumps(rec, default=str) + "\n")
+
+    return jsonify({
+        "ok": True,
+        "canonical_path": str(_P06A_CLEAN_CANONICAL),
+        "strict_merge_pairs": len(strict_merge_pairs),
+        "counts": {
+            "asset_records": sum(1 for r in clean_records if r["kind"] == "asset"),
+            "publication_records": sum(1 for r in clean_records if r["kind"] == "publication"),
+            "performance_records": sum(1 for r in clean_records if r["kind"] == "performance"),
+            "unique_assets": len(seen_assets),
+            "unique_publications": len(seen_publications),
+        },
+        "note": "Strict rule: 1:1 caption-hash + 24h window + media_type_compatible. "
+                "Cross-post audit found 9 ambiguous + 6 rejected in addition to "
+                "269 strict 1:1 pairs. This run preserves all 4 groups as: "
+                "269 cross-post merged assets + remaining IG/FB kept as separate.",
+    })
+
+
 @app.route('/api/admin/p06a/closeout-report', methods=['GET'])
 def admin_p06a_closeout_report():
     """P0.6A close-out final report."""
