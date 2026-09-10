@@ -310,6 +310,40 @@ def _resolve_image_url(asset: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def _resolve_image_url_via_meta(asset: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    """Fall back to Meta Graph API for IG-sourced assets. Returns
+    (image_url, error_string). Requires the asset to carry an ig_media_id
+    OR a numeric id we can use. Requires Meta credentials in env."""
+    ig_media_id = asset.get("ig_media_id") or asset.get("source_media_id")
+    # Some asset_ids are themselves numeric IG IDs (e.g. ig-18051415261918226)
+    if not ig_media_id and str(asset.get("asset_id", "")).startswith("ig-"):
+        ig_media_id = str(asset.get("asset_id"))[3:]
+    if not ig_media_id or not ig_media_id.isdigit():
+        return None, "no ig_media_id resolvable"
+    # Pull token + account
+    try:
+        from _lib.meta_api import (
+            _read_meta_access_token, _graph_get,
+            MetaAuthError, MetaUpstreamError, MetaNetworkError,
+        )
+    except Exception as e:
+        return None, f"meta_api import failed: {e}"
+    token = _read_meta_access_token()
+    if not token:
+        return None, "no Meta access token"
+    try:
+        out = _graph_get(
+            f"/{ig_media_id}",
+            {"fields": "media_url,thumbnail_url,permalink"},
+        )
+        url = out.get("media_url") or out.get("thumbnail_url")
+        if not url:
+            return None, f"meta returned no media_url/thumbnail_url: {out}"
+        return url, None
+    except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
+        return None, f"meta error: {type(e).__name__}: {e}"
+
+
 def _cache_lookup(asset_id: str, content_hash: str,
                    analysis_version: str) -> Optional[Dict[str, Any]]:
     """Return the cached observation if (asset_id, content_hash, analysis_version)
@@ -378,8 +412,20 @@ def observe_visual_asset(asset_id: str, brand_id: str) -> Dict[str, Any]:
         return {"ok": False, "error": f"slice A supports IMAGE / CAROUSEL_ALBUM only (got {media_type})"}
 
     image_url = _resolve_image_url(asset)
+    image_url_source = "canonical_record"
     if not image_url:
-        return {"ok": False, "error": "no thumbnail_url / media_url / image_url on asset", "asset_keys": list(asset.keys())}
+        # Fall back to Meta Graph API for IG-sourced assets
+        url, err = _resolve_image_url_via_meta(asset)
+        if url:
+            image_url = url
+            image_url_source = "meta_graph_api"
+        else:
+            return {
+                "ok": False,
+                "error": "no usable image URL resolvable",
+                "asset_keys": list(asset.keys()),
+                "meta_attempt_error": err,
+            }
 
     data_url, content_hash_or_err = _download_image_to_b64(image_url)
     if not data_url:
@@ -422,6 +468,7 @@ def observe_visual_asset(asset_id: str, brand_id: str) -> Dict[str, Any]:
         "vision_model": P12A_VISION_MODEL,
         "content_hash": content_hash,
         "image_url": image_url,
+        "image_url_source": image_url_source,
         "image_url_fingerprint": hashlib.sha256(image_url.encode()).hexdigest()[:16],
         "frame_path": frame_path,
         "analysis_kind": "visual_observation",
@@ -449,6 +496,7 @@ def observe_visual_asset(asset_id: str, brand_id: str) -> Dict[str, Any]:
         "content_hash": content_hash,
         "analysis_version": P12A_ANALYSIS_VERSION,
         "vision_model": P12A_VISION_MODEL,
+        "image_url_source": image_url_source,
         "observation_id": obs_id,
         "observations": obs,
         "model_usage": api_result.get("usage") or {},
