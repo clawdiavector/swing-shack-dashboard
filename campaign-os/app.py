@@ -19818,6 +19818,9 @@ def admin_history_inventory():
     source Campaign OS can already access. Writes (and returns)
     history-source-inventory.json to /data/campaign-os/intelligence/history/.
 
+    Pass ?from_disk=1 to read the previously persisted inventory without
+    re-probing. Default: re-probe and overwrite.
+
     Probes (no mutations, no writes outside /data/campaign-os/intelligence/):
       - instagram_meta (swing-shack)
       - facebook_page (swing-shack, via same token)
@@ -19831,6 +19834,27 @@ def admin_history_inventory():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     _p06_init_dirs()
+
+    # Read-only mode: return the previously persisted inventory
+    if request.args.get("from_disk") == "1":
+        if _P06_INVENTORY_PATH.exists():
+            try:
+                inv = json.loads(_P06_INVENTORY_PATH.read_text())
+                return jsonify({
+                    "ok": True,
+                    "inventory_path": str(_P06_INVENTORY_PATH),
+                    "from_disk": True,
+                    "inventory": inv,
+                    "sources_inventoried": len(inv.get("sources") or []),
+                    "summary": {
+                        src["source"]: src["status"]
+                        for src in (inv.get("sources") or [])
+                    },
+                })
+            except Exception as e:
+                return jsonify({"ok": False, "error": f"read failed: {e}"}), 500
+        return jsonify({"ok": False,
+                        "error": "no persisted inventory yet — re-run without ?from_disk"}), 404
 
     inventory = {
         "_meta": {
@@ -20194,6 +20218,7 @@ def admin_history_inventory():
         "ok": True,
         "inventory_path": str(_P06_INVENTORY_PATH),
         "sources_inventoried": len(inventory["sources"]),
+        "inventory": inventory,
         "summary": {
             src["source"]: src["status"]
             for src in inventory["sources"]
