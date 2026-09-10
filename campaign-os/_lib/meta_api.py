@@ -1493,10 +1493,17 @@ def _graph_get_url(url: str, timeout: int = 15) -> dict:
     qs.pop("__cft__", None)  # fbclid-style instrumentation
     qs.pop("__tn__", None)
     # Determine token: page vs user vs system
-    path = parsed.path.replace(GRAPH_API_BASE, "", 1) or parsed.path
-    use_page = bool(re.match(r"^/\d+/", path))
+    # parsed.path is like /v25.0/17841456713897671/media — strip the /v<NUM>/
+    # version prefix so we can rebuild a clean URL.
+    path = parsed.path
+    m_ver = re.match(r"^/v\d+\.\d+/(.*)$", path)
+    if m_ver:
+        clean_path = "/" + m_ver.group(1)
+    else:
+        clean_path = path
+    use_page = bool(re.match(r"^/\d+/", clean_path))
     if use_page:
-        m = re.match(r"^/(\d+)/", path)
+        m = re.match(r"^/(\d+)/", clean_path)
         requested_page = m.group(1) if m else None
         global _PAGE_TOKEN_CACHE
         token = (
@@ -1514,7 +1521,7 @@ def _graph_get_url(url: str, timeout: int = 15) -> dict:
     merged = {k: v[0] if isinstance(v, list) and len(v) == 1 else v
               for k, v in qs.items()}
     merged["access_token"] = token
-    full = f"{GRAPH_API_BASE}{path}?{urlencode(merged)}"
+    full = f"{GRAPH_API_BASE}{clean_path}?{urlencode(merged)}"
     req = Request(full, headers={"User-Agent": "campaign-os/1.0"})
     try:
         with urlopen(req, timeout=timeout) as resp:

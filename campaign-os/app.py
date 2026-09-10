@@ -20363,6 +20363,14 @@ def admin_history_ig_backfill():
             stats["by_media_type"][mt] = stats["by_media_type"].get(mt, 0) + 1
 
             media_path = _P06_IG_RAW_DIR / "media" / f"{mid}.json"
+            # Read existing file to extract media_type (if previously written)
+            existing_mt = None
+            if media_path.exists():
+                try:
+                    existing_mt = json.loads(media_path.read_text()).get("media_type")
+                except Exception:
+                    pass
+            mt_for_insights = mt if mt != "UNKNOWN" else existing_mt
             if media_path.exists():
                 stats["media_skipped_existing"] += 1
                 # Still refresh insights if requested and not yet present
@@ -20370,7 +20378,9 @@ def admin_history_ig_backfill():
                     insights_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
                     if not insights_path.exists():
                         try:
-                            ins = get_post_insights_for_brand("swing-shack", mid)
+                            ins = get_post_insights_for_brand(
+                                "swing-shack", mid, media_type=mt_for_insights,
+                            )
                             insights_path.write_text(json.dumps(ins, indent=2, default=str))
                             if ins.get("ok") or "data" in ins:
                                 stats["insights_fetched"] += 1
@@ -20406,7 +20416,9 @@ def admin_history_ig_backfill():
                 if include_insights:
                     insights_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
                     try:
-                        ins = get_post_insights_for_brand("swing-shack", mid)
+                        ins = get_post_insights_for_brand(
+                            "swing-shack", mid, media_type=mt_for_insights,
+                        )
                         insights_path.write_text(json.dumps(ins, indent=2, default=str))
                         if ins.get("ok") or "data" in ins:
                             stats["insights_fetched"] += 1
@@ -20416,6 +20428,7 @@ def admin_history_ig_backfill():
                         # Insights not available is a legitimate state, NOT zero
                         insights_path.write_text(json.dumps({
                             "_available": False,
+                            "media_type": mt_for_insights,
                             "error": f"{type(e).__name__}: {e}",
                             "_provenance": {
                                 "source": "instagram_meta",
