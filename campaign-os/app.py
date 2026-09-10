@@ -20646,7 +20646,8 @@ def admin_history_fb_backfill():
                     ins = get_page_post_insights(pid)
                     (fb_raw_dir / "insights").mkdir(parents=True, exist_ok=True)
                     ins_path.write_text(json.dumps(ins, indent=2, default=str))
-                    if ins.get("data") or ins.get("ok"):
+                    # get_page_post_insights returns _flat + data + _meta
+                    if ins.get("_flat") or ins.get("data") or ins.get("ok"):
                         stats["insights_fetched"] += 1
                     else:
                         stats["insights_unavailable"] += 1
@@ -21242,6 +21243,31 @@ def admin_history_derive_evidence():
         "derived_path": str(derived_path),
         "derived_count": len(derived_records),
         "by_media_type": {mt: len(recs) for mt, recs in by_mt.items()},
+    })
+
+
+@app.route('/api/admin/history/read-derived', methods=['GET'])
+def admin_history_read_derived():
+    """GET /api/admin/history/read-derived — stream the derived-performance
+    records back so the operator can compute findings locally. Caps at 5000
+    records and 200KB response size for safety.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    derived_path = _P06_ROOT / "derived-performance.jsonl"
+    if not derived_path.exists():
+        return jsonify({"ok": False, "error": "no derived records yet"}), 404
+    records = []
+    for line in derived_path.read_text().splitlines():
+        if line.strip():
+            try:
+                records.append(json.loads(line))
+            except Exception:
+                pass
+    return jsonify({
+        "ok": True,
+        "count": len(records),
+        "records": records[:5000],
     })
 
 
