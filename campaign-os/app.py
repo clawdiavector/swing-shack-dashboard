@@ -24200,6 +24200,61 @@ outdoor_anywhere      = {derived.get('outdoor_anywhere')}  slides={derived.get('
     return body, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+@app.route('/api/admin/creative-genome/carousel-debug', methods=['GET'])
+def admin_cg_carousel_debug():
+    """P1.2 Slice C debug: return the raw Meta Graph API response for a
+    carousel asset's children field. Used to diagnose empty/incomplete
+    children fetches."""
+    from _lib import p12_creative_genome as p12a
+    asset_id = request.args.get("asset_id")
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    asset = p12a._find_asset(asset_id)
+    if not asset:
+        return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not in canonical"}), 404
+    # Get ig_media_id
+    ig_media_id = asset.get("ig_media_id") or asset.get("source_media_id")
+    if not ig_media_id and str(asset_id).startswith("ig-"):
+        ig_media_id = str(asset_id)[3:]
+    if not ig_media_id:
+        return jsonify({"ok": False, "error": "no ig_media_id resolvable"}), 400
+    try:
+        from _lib.meta_api import (
+            _read_meta_access_token, _graph_get,
+            MetaAuthError, MetaUpstreamError, MetaNetworkError,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api import failed: {e}"}), 500
+    token = _read_meta_access_token()
+    if not token:
+        return jsonify({"ok": False, "error": "no Meta access token"}), 400
+    try:
+        out = _graph_get(
+            f"/{ig_media_id}",
+            {"fields": "media_type,media_url,thumbnail_url,permalink,"
+                       "children{media_type,media_url,thumbnail_url,id}"},
+        )
+        return jsonify({
+            "ok": True,
+            "asset_id": asset_id,
+            "ig_media_id": ig_media_id,
+            "raw_meta_response": out,
+            "children_count_raw": len(out.get("children") or []),
+            "children_with_url": [
+                {
+                    "id": c.get("id"),
+                    "media_type": c.get("media_type"),
+                    "has_media_url": bool(c.get("media_url")),
+                    "has_thumbnail_url": bool(c.get("thumbnail_url")),
+                    "media_url_preview": (c.get("media_url") or "")[:80],
+                }
+                for c in (out.get("children") or [])
+            ],
+        })
+    except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
+        return jsonify({"ok": False, "error": f"meta error: {type(e).__name__}: {e}"}), 500
+
+
 @app.route('/api/admin/creative-genome/observe-carousel', methods=['POST'])
 def admin_cg_observe_carousel():
     """P1.2 Slice C: blind per-slide analysis of a CAROUSEL_ALBUM asset +
