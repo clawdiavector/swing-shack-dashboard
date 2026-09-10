@@ -1401,8 +1401,21 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"DO NOT name internal agents: {', '.join(rs.get('internal_agents_banned', []))}.\n"
         f"DO NOT invent prices, offers, specs, dates, distances, percentages, "
         f"or causal claims not backed by verified source.\n"
-        f"If the brief mentions a session-scoped event (e.g. 'this Thursday'), you may use the EXACT "
-        f"wording from the brief as a session fact. Do NOT promote it to permanent brand truth.\n"
+        f"DO NOT use soft prevalence/frequency claims ('most golfers', 'many "
+        f"golfers', 'the majority', 'commonly', 'typically', 'often') unless "
+        f"you can cite a specific number from verified source. Without a "
+        f"specific number, rewrite as a CONDITIONAL observation about the "
+        f"player's own setup, NOT a population claim. For example, instead of "
+        f"'Many golfers use the wrong putter', write 'Playing a putter that "
+        f"doesn't suit your stroke can make consistency harder.'\n"
+        f"DO NOT use causal/comparative certainty ('X causes Y', 'X vs Y = "
+        f"better', 'the data proves', 'proven to', 'guaranteed to', 'results "
+        f"in', 'leads to') unless the relationship is in the canonical facts "
+        f"above. Use tentative language instead ('can', 'may', 'often in our "
+        f"sessions').\n"
+        f"If the brief mentions a session-scoped event (e.g. 'this Thursday'), "
+        f"you may use the EXACT wording from the brief as a session fact. Do NOT "
+        f"promote it to permanent brand truth.\n"
         + (f"DO NOT reference other operating brands.\n" if rs.get("cross_brand_text_banned") else "")
     )
 
