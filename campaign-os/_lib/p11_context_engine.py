@@ -1214,7 +1214,11 @@ def _check_brand(candidate: str, brand_id: str, banned: List[str]) -> dict:
     if "—" in c:
         fails.append("em_dash")
     cl = c.lower()
-    for bad in banned:
+    # Pull banned phrases from both the markdown extractor AND the canonical
+    # knowledge.json voice_rules.dont_say list.
+    kb = _load_brand_knowledge(brand_id)
+    kb_dont = (kb.get("voice_rules") or {}).get("dont_say") or []
+    for bad in list(banned) + list(kb_dont):
         if not bad or bad == "—":
             continue
         if bad.lower() in cl:
