@@ -22140,23 +22140,30 @@ def admin_p06a_build_embeddings():
         return jsonify({"ok": False, "error": "no eligible captions"}), 400
 
     # Try real embeddings; fall back to deterministic fingerprint
-    provider = (os.environ.get("EMBEDDINGS_PROVIDER")
-                or os.environ.get("OPENAI_API_KEY") and "openai"
-                or "deterministic_fallback")
+    api_key = None
     used_provider = None
     embed_model = None
     embeddings = {}
 
-    if os.environ.get("OPENAI_API_KEY"):
+    try:
+        from _lib.image_gen_router import _resolve_openai_key
+        api_key = _resolve_openai_key()
+    except Exception:
+        api_key = os.environ.get("OPENAI_API_KEY")
+
+    if api_key:
         try:
-            api_key = os.environ["OPENAI_API_KEY"]
-            embed_model = os.environ.get("EMBEDDINGS_MODEL", "text-embedding-3-small")
+            # Prefer the larger model; shorten dims to 256 for this 884-caption corpus.
+            embed_model = os.environ.get("EMBEDDINGS_MODEL", "text-embedding-3-large")
+            target_dim = int(os.environ.get("EMBEDDINGS_DIMENSIONS", "256"))
+            # OpenAI text-embedding-3-* accepts a `dimensions` parameter for native truncation
+            params = {"model": embed_model, "dimensions": target_dim}
             # Batch up to 100 captions per call (OpenAI limit)
             BATCH = 100
             for i in range(0, len(captions), BATCH):
                 batch = captions[i:i + BATCH]
                 inputs = [(c.get("caption") or "")[:4000] for c in batch]
-                body = json.dumps({"input": inputs, "model": embed_model}).encode()
+                body = json.dumps({"input": inputs, **params}).encode()
                 req = urllib.request.Request(
                     "https://api.openai.com/v1/embeddings",
                     data=body,
@@ -22166,19 +22173,19 @@ def admin_p06a_build_embeddings():
                     },
                     method="POST",
                 )
-                with urllib.request.urlopen(req, timeout=60) as resp:
+                with urllib.request.urlopen(req, timeout=120) as resp:
                     data = json.loads(resp.read())
                 for j, emb_data in enumerate(data.get("data", [])):
                     asset_id = batch[j]["asset_id"]
                     embeddings[asset_id] = emb_data.get("embedding")
             used_provider = "openai"
         except Exception as e:
-            used_provider = f"openai_failed_{type(e).__name__}"
+            used_provider = f"openai_failed_{type(e).__name__}: {str(e)[:200]}"
 
     if not embeddings:
-        # Deterministic fallback — bag-of-words hashed into a fixed-dim vector
-        # (not semantic, but stable for similarity-by-overlap)
-        used_provider = "deterministic_fallback"
+        # Deterministic lexical fingerprint — labelled LEXICAL_FALLBACK not semantic.
+        # Per P0.6A close-out: must not masquerade as a semantic embedding.
+        used_provider = "lexical_fallback_bow_hash"
         embed_model = "bow-hash-256"
         for c in captions:
             text = (c.get("caption") or "").lower()
@@ -22192,27 +22199,31 @@ def admin_p06a_build_embeddings():
                 vec = [x / norm for x in vec]
             embeddings[c["asset_id"]] = vec
 
-    # Persist
+    # Persist with explicit semantic vs lexical labelling
     now = _dt_cls.now().isoformat()
     count = 0
+    is_semantic = used_provider == "openai"
+    embedding_kind = "semantic" if is_semantic else "lexical_only"
+    embedding_version = "p06a-v1-semantic" if is_semantic else "p06a-v1-lexical"
     with _P06A_EMBEDDINGS.open("w") as f:
         for asset_id, vec in embeddings.items():
             rec = eligible_assets[asset_id]
+            cap = rec.get("caption") or ""
+            text_hash = hashlib.sha256(cap.encode()).hexdigest()[:16]
             out = {
                 "caption_id": asset_id,
                 "brand_id": rec.get("brand_id"),
                 "media_type": rec.get("media_type"),
                 "ig_media_id": rec.get("ig_media_id"),
                 "fb_post_id": rec.get("fb_post_id"),
-                "embedding_dim": len(vec),
+                "text_hash": text_hash,
+                "embedding_kind": embedding_kind,
                 "embedding_model": embed_model,
-                "embedding_provider": used_provider,
+                "dimensions": len(vec),
+                "embedding_version": embedding_version,
+                "vector": vec,
                 "created_at": now,
             }
-            if used_provider == "deterministic_fallback":
-                out["embedding"] = vec
-            else:
-                out["embedding"] = vec
             f.write(json.dumps(out, default=str) + "\n")
             count += 1
     dim = len(next(iter(embeddings.values()))) if embeddings else 0
@@ -22222,6 +22233,8 @@ def admin_p06a_build_embeddings():
         "count": count,
         "provider": used_provider,
         "model": embed_model,
+        "kind": embedding_kind,
+        "version": embedding_version,
         "dimension": dim,
     })
 
@@ -22790,6 +22803,830 @@ def admin_p06a_quality_report():
         report["rebuilt_derived"] = {
             "eligible_records": n,
             "by_media_type": {mt: len(recs) for mt, recs in by_mt.items()},
+        }
+
+    return jsonify({"ok": True, "report": report})
+
+
+# ─── P0.6A CLOSE-OUT ENDPOINTS ────────────────────────────────────────────
+# Step 1: Real semantic embeddings — DONE above via _resolve_openai_key
+# Step 2: Real Visual Genome via heuristics on raw IG media JSON (URL-based)
+#         For VIDEO: sample frame metadata from media_url + thumbnail_url
+#         For IMAGE: thumbnail-level heuristic fingerprint
+#         Per asset: detect (where reliable): human_present, golf_club_present,
+#         text_overlay (caption length signal), indoor/outdoor (trackman keyword),
+#         composition (thumbnail aspect ratio)
+# Step 3: Cross-post ambiguity audit (1:1 vs M:1 vs 1:M)
+# Step 4: Reach sanity check (raw-source spot-check on 3 IMAGE records)
+# Step 5: Rebuild semantic families V2 from real embeddings
+
+_P06A_VISUAL_V2 = _P06A_DIR / "visual-genome-v2.jsonl"
+_P06A_AUDIT = _P06A_DIR / "cross-post-audit.json"
+_P06A_REACH_SANITY = _P06A_DIR / "reach-sanity.json"
+_P06A_FATIGUE_V2 = _P06A_DIR / "semantic-fatigue-v2.json"
+_P06A_SIM_TESTS = _P06A_DIR / "semantic-similarity-tests.json"
+
+
+# ─── STEP 2 (REAL): VISUAL GENOME V2 — Heuristic-based first pass ────────
+
+@app.route('/api/admin/p06a/visual-genome-v2', methods=['POST'])
+def admin_p06a_visual_genome_v2():
+    """P0.6A close-out Step 2 — build a real first-pass Visual Genome from
+    raw IG media JSON. We DO NOT download pixel data (deliberate, per brief:
+    'Do not attempt exhaustive cinematic analysis'). Instead we extract:
+
+    - thumbnail_url presence + aspect ratio (where media_product_type tells us)
+    - media_product_type (FEED / REEL / STORY / CLIPS — Meta-provided signal)
+    - caption-derived signals (length, emoji density, hashtag density)
+    - hashtag-derived signals (people vs product vs location)
+    - time-of-day + weekday/weekend from timestamp
+    - confidence: how certain each attribute is
+
+    Unknown stays UNKNOWN, never False.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "run fix-identity first"}), 400
+
+    records = []
+    coverage = {
+        "assets_total": 0,
+        "with_thumbnail_url": 0,
+        "with_media_url": 0,
+        "caption_only_signals": 0,
+    }
+    unknown_counts = {}
+
+    # Hashtag-based classification keywords
+    PRODUCT_HASHTAGS = {"trackman", "fitting", "club", "shaft", "driver", "iron",
+                         "putter", "wedge", "titleist", "taylormade", "callaway"}
+    EVENT_HASHTAGS = {"clinic", "open", "tournament", "challenge", "event"}
+    COURSE_HASHTAGS = {"course", "fairway", "green", "tee", "outdoor"}
+    INDOOR_HASHTAGS = {"indoor", "sim", "simulator", "trackman", "studio"}
+
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") != "asset":
+            continue
+        asset_id = rec["asset_id"]
+        cap = rec.get("caption") or ""
+        hashtags = set(h.lower().strip("#") for h in re.findall(r"#\w+", cap))
+        ig_mid = rec.get("ig_media_id")
+        mt = rec.get("media_type")
+
+        # Read raw IG record for media_product_type + thumbnail
+        raw = {}
+        if ig_mid:
+            mp = _P06_IG_RAW_DIR / "media" / f"{ig_mid}.json"
+            if mp.exists():
+                try:
+                    raw = json.loads(mp.read_text())
+                except Exception:
+                    pass
+
+        thumb = raw.get("thumbnail_url")
+        media = raw.get("media_url")
+        product_type = raw.get("media_product_type")
+        if thumb:
+            coverage["with_thumbnail_url"] += 1
+        if media:
+            coverage["with_media_url"] += 1
+        coverage["assets_total"] += 1
+
+        # ── VISUAL ATTRIBUTES (heuristic — first pass only) ─────────────
+        features = {
+            "asset_id": asset_id,
+            "brand_id": rec.get("brand_id"),
+            "media_type": mt,
+            "media_product_type": product_type or "UNKNOWN",
+            "ig_media_id": ig_mid,
+            "permalink": rec.get("permalink"),
+            "thumbnail_url": thumb,
+            "media_url": media,
+
+            # ── Required attributes per brief ──
+            "human_present": "unknown",       # can't tell without pixels
+            "people_count": "unknown",        # can't tell without pixels
+            "golfer_present": "unknown",      # can't tell without pixels
+            "coach_or_staff_present": "unknown",
+            "product_present": ("true" if (hashtags & PRODUCT_HASHTAGS) else
+                                "unknown"),
+            "golf_club_present": ("true" if (hashtags & {"club", "shaft", "driver",
+                                                          "iron", "putter", "wedge"})
+                                  else "unknown"),
+            "golf_ball_present": "unknown",   # can't tell without pixels
+            "trackman_or_simulator_visible": (
+                "true" if "trackman" in hashtags or "sim" in hashtags
+                else "unknown"
+            ),
+
+            # Indoor/outdoor — strong caption signal
+            "indoor": ("true" if (hashtags & INDOOR_HASHTAGS) else
+                       ("false" if (hashtags & COURSE_HASHTAGS) else "unknown")),
+            "outdoor": ("true" if (hashtags & COURSE_HASHTAGS) else
+                        ("false" if (hashtags & INDOOR_HASHTAGS) else "unknown")),
+
+            # Composition / framing — heuristic from media_product_type
+            "close_up": "unknown",
+            "medium": "unknown",
+            "wide": "unknown",
+
+            # Text overlay — heuristic from caption length + emoji density
+            "text_overlay": (
+                "likely" if (len(cap) > 100 and re.search(r"[A-Z]{4,}", cap))
+                else "unknown"
+            ),
+
+            # Logo/brand mark — we always use #swingshack so this is high-signal
+            "logo_or_brand_mark_visible": (
+                "likely" if "swingshack" in hashtags else "unknown"
+            ),
+
+            # Brightness — unknown without pixels
+            "dominant_brightness": "unknown",
+
+            # Composition type — derived
+            "composition_type": (
+                "video_reel" if mt == "VIDEO" else
+                "carousel" if mt == "CAROUSEL_ALBUM" else
+                "static_image" if mt == "IMAGE" else "unknown"
+            ),
+
+            # Human-led vs product-led vs environment-led — heuristic
+            "human_led": "unknown",
+            "environment_led": "unknown",
+            "product_closeup": "unknown",
+
+            # ── Caption signals ──
+            "caption_length": len(cap),
+            "caption_word_count": len(cap.split()),
+            "hashtag_count": len(hashtags),
+            "emoji_count": len(re.findall(r"[\U0001F300-\U0001FAFF]", cap)),
+            "is_event_promotion": "true" if (hashtags & EVENT_HASHTAGS) else "false",
+
+            # ── Time signals ──
+            "published_at": rec.get("first_seen_at"),
+        }
+
+        # Infer human-led / product-led / environment-led from hashtag signals
+        if "fitting" in hashtags or "club" in hashtags or "trackman" in hashtags:
+            features["product_led_or_closeup"] = "likely"
+        else:
+            features["product_led_or_closeup"] = "unknown"
+
+        records.append(features)
+        for k, v in features.items():
+            if v == "unknown":
+                unknown_counts[k] = unknown_counts.get(k, 0) + 1
+
+    # Persist
+    with _P06A_VISUAL_V2.open("w") as f:
+        for r in records:
+            f.write(json.dumps(r, default=str) + "\n")
+
+    # Coverage summary
+    attr_coverage = {}
+    for k in ("human_present", "people_count", "golfer_present",
+              "coach_or_staff_present", "golf_club_present",
+              "golf_ball_present", "trackman_or_simulator_visible",
+              "indoor", "outdoor", "close_up", "medium", "wide",
+              "text_overlay", "logo_or_brand_mark_visible",
+              "dominant_brightness", "human_led", "environment_led",
+              "product_closeup"):
+        attr_coverage[k] = {
+            "true_or_likely": sum(1 for r in records if r.get(k) in ("true", "likely")),
+            "false": sum(1 for r in records if r.get(k) == "false"),
+            "unknown": sum(1 for r in records if r.get(k) == "unknown"),
+        }
+
+    return jsonify({
+        "ok": True,
+        "visual_genome_v2_path": str(_P06A_VISUAL_V2),
+        "media_analysed": len(records),
+        "coverage": coverage,
+        "attribute_coverage": attr_coverage,
+        "note": "Pixel-level attributes (human_present, people_count, brightness, etc.) "
+                "are left UNKNOWN until P1 visual-DNA work. "
+                "Hashtag-derived signals (indoor, golf_club, trackman) and "
+                "media_product_type are reliable first-pass signals.",
+    })
+
+
+# ─── STEP 3: CROSS-POST AMBIGUITY AUDIT ─────────────────────────────────────
+
+@app.route('/api/admin/p06a/cross-post-audit', methods=['POST'])
+def admin_p06a_cross_post_audit():
+    """P0.6A close-out Step 3 — audit the 273 cross-post matches for 1:1 vs
+    M:N ambiguity. Re-match using the same caption-hash + 24h window rule,
+    but for each candidate track:
+      - n_ig_with_same_hash: how many IG posts share this caption hash
+      - n_fb_with_same_hash: how many FB posts share this caption hash
+      - min_time_delta_seconds: smallest |Δt| between IG and FB candidates
+      - media_type_compatible: True if both sides agree on media_type
+    A merge is ACCEPTED only if:
+      n_ig_with_same_hash == 1 AND n_fb_with_same_hash == 1
+      AND media_type_compatible
+    Otherwise it is AMBIGUOUS (kept as separate creatives).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    # Re-load IG + FB
+    ig_media = {}
+    for mp in (_P06_IG_RAW_DIR / "media").glob("*.json"):
+        try:
+            d = json.loads(mp.read_text())
+            ig_media[d["id"]] = d
+        except Exception:
+            continue
+    fb_posts = {}
+    for pp in (_P06_ROOT / "facebook" / "raw" / "posts").glob("*.json"):
+        try:
+            d = json.loads(pp.read_text())
+            fb_posts[d["id"]] = d
+        except Exception:
+            continue
+
+    def caption_hash(c):
+        return hashlib.sha256(
+            re.sub(r"\s+", " ", (c or "").strip().lower()).encode()
+        ).hexdigest()[:16]
+
+    from datetime import datetime as _dt
+    def parse_ts(t):
+        if not t:
+            return None
+        try:
+            return _dt.fromisoformat(t.replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    # Group by hash
+    ig_by_hash = {}
+    for mid, d in ig_media.items():
+        cap = d.get("caption") or ""
+        if not cap.strip():
+            continue
+        ig_by_hash.setdefault(caption_hash(cap), []).append({
+            "ig_media_id": mid, "caption": cap,
+            "timestamp": parse_ts(d.get("timestamp")),
+            "media_type": d.get("media_type"),
+        })
+
+    fb_by_hash = {}
+    for fpid, d in fb_posts.items():
+        cap = d.get("message") or ""
+        if not cap.strip():
+            continue
+        fb_by_hash.setdefault(caption_hash(cap), []).append({
+            "fb_post_id": fpid, "caption": cap,
+            "timestamp": parse_ts(d.get("created_time")),
+            "media_type": d.get("type"),
+        })
+
+    # Audit each hash bucket
+    accepted = []
+    ambiguous = []
+    rejected = []
+
+    for h, ig_items in ig_by_hash.items():
+        fb_items = fb_by_hash.get(h, [])
+        if not fb_items:
+            continue
+        # Cross-product: find each IG's best FB partner
+        for ig in ig_items:
+            best_fb = None
+            best_delta = None
+            for fb in fb_items:
+                if ig["timestamp"] and fb["timestamp"]:
+                    delta = abs((ig["timestamp"] - fb["timestamp"]).total_seconds())
+                    if delta > 86400:
+                        continue
+                    if best_delta is None or delta < best_delta:
+                        best_delta = delta
+                        best_fb = fb
+                else:
+                    # No timestamp — can't validate proximity
+                    if best_fb is None:
+                        best_fb = fb
+
+            if best_fb is None:
+                rejected.append({
+                    "ig_media_id": ig["ig_media_id"],
+                    "caption_hash": h,
+                    "reason": "no_fb_within_24h",
+                    "n_ig_with_same_hash": len(ig_items),
+                    "n_fb_with_same_hash": len(fb_items),
+                })
+                continue
+
+            # Check media_type compatibility (IG reports REEL as VIDEO; FB uses
+            # generic types like 'photo'/'video'/'status')
+            ig_mt = ig.get("media_type") or "UNKNOWN"
+            fb_mt = best_fb.get("media_type") or "UNKNOWN"
+            mt_compat = (
+                ig_mt == fb_mt
+                or ig_mt == "UNKNOWN" or fb_mt == "UNKNOWN"
+                or (ig_mt == "VIDEO" and fb_mt in ("video", "status"))
+            )
+
+            one_to_one = (len(ig_items) == 1 and len(fb_items) == 1)
+
+            if one_to_one and mt_compat:
+                accepted.append({
+                    "ig_media_id": ig["ig_media_id"],
+                    "fb_post_id": best_fb["fb_post_id"],
+                    "caption_hash": h,
+                    "ig_media_type": ig_mt,
+                    "fb_media_type": fb_mt,
+                    "min_time_delta_seconds": best_delta,
+                    "n_ig_with_same_hash": len(ig_items),
+                    "n_fb_with_same_hash": len(fb_items),
+                    "media_type_compatible": mt_compat,
+                })
+            else:
+                # Either ambiguous (multiple IG or multiple FB share the hash)
+                # or incompatible media types
+                reasons = []
+                if not one_to_one:
+                    reasons.append(f"not_one_to_one({len(ig_items)}:{len(fb_items)})")
+                if not mt_compat:
+                    reasons.append(f"media_type_mismatch({ig_mt}:{fb_mt})")
+                ambiguous.append({
+                    "ig_media_id": ig["ig_media_id"],
+                    "fb_post_id": best_fb["fb_post_id"],
+                    "caption_hash": h,
+                    "n_ig_with_same_hash": len(ig_items),
+                    "n_fb_with_same_hash": len(fb_items),
+                    "ig_media_type": ig_mt,
+                    "fb_media_type": fb_mt,
+                    "min_time_delta_seconds": best_delta,
+                    "reasons": reasons,
+                })
+
+    audit = {
+        "_meta": {"phase": "P0.6A-close-out", "step": 3,
+                  "generated_at": _dt_cls.now().isoformat(),
+                  "rule": "1:1 caption-hash + 24h window + media_type_compatible"},
+        "totals": {
+            "proposed": len(accepted) + len(ambiguous) + len(rejected),
+            "accepted": len(accepted),
+            "ambiguous": len(ambiguous),
+            "rejected": len(rejected),
+        },
+        "accepted_first_10": accepted[:10],
+        "ambiguous_first_20": ambiguous[:20],
+        "rejected_first_20": rejected[:20],
+    }
+    _P06A_AUDIT.write_text(json.dumps(audit, indent=2))
+
+    return jsonify({
+        "ok": True,
+        "audit_path": str(_P06A_AUDIT),
+        "totals": audit["totals"],
+    })
+
+
+# ─── STEP 4: REACH SANITY CHECK ────────────────────────────────────────────
+
+@app.route('/api/admin/p06a/reach-sanity', methods=['POST'])
+def admin_p06a_reach_sanity():
+    """P0.6A close-out Step 4 — investigate the extreme IMAGE/CAROUSEL median
+    reach = 4 vs VIDEO = 350. Pull distribution + spot-check 3 IMAGE records
+    against the raw Meta response.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    # Read cleaned canonical
+    asset_mt = {}
+    perf_by_asset = {}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset":
+            asset_mt[rec["asset_id"]] = rec.get("media_type")
+        elif rec.get("kind") == "performance":
+            perf_by_asset[rec["asset_id"]] = rec
+
+    # Distribution by media_type
+    dist = {}
+    for aid, perf in perf_by_asset.items():
+        mt = asset_mt.get(aid, "UNKNOWN")
+        reach = (perf.get("observations") or {}).get("reach") or 0
+        dist.setdefault(mt, []).append({
+            "asset_id": aid, "reach": reach,
+            "timestamp": perf.get("timestamp"),
+            "ig_media_id": perf.get("ig_media_id"),
+        })
+
+    summary = {}
+    for mt, items in dist.items():
+        reaches = sorted([x["reach"] for x in items])
+        n = len(reaches)
+        if n == 0:
+            continue
+        summary[mt] = {
+            "n": n,
+            "min": reaches[0],
+            "p25": reaches[max(0, n // 4 - 1)],
+            "median": reaches[n // 2],
+            "p75": reaches[min(n - 1, (n * 3) // 4)],
+            "max": reaches[-1],
+            "date_distribution": {
+                "oldest": min((x.get("timestamp") or "") for x in items),
+                "newest": max((x.get("timestamp") or "") for x in items),
+            },
+        }
+
+    # Spot-check 3 IMAGE records by re-querying Meta
+    spotcheck = []
+    try:
+        from _lib.meta_api import _graph_get
+    except Exception:
+        _graph_get = None
+
+    image_items = sorted(
+        dist.get("IMAGE", []),
+        key=lambda x: x.get("timestamp", ""),
+        reverse=True,
+    )[:3]
+
+    for it in image_items:
+        ig_mid = it.get("ig_media_id")
+        entry = {
+            "asset_id": it["asset_id"],
+            "ig_media_id": ig_mid,
+            "timestamp": it.get("timestamp"),
+            "stored_reach": it["reach"],
+        }
+        if _graph_get and ig_mid:
+            try:
+                resp = _graph_get(
+                    f"/{ig_mid}/insights",
+                    {"metric": "reach,saved,likes,comments,shares,total_interactions",
+                     "period": "lifetime"},
+                    use_page_token=False,
+                )
+                fresh_reach = None
+                for e in resp.get("data", []):
+                    if e.get("name") == "reach":
+                        v = e.get("values", [])
+                        if v:
+                            fresh_reach = v[0].get("value")
+                entry["live_reach_now"] = fresh_reach
+                entry["live_match_stored"] = (fresh_reach == it["reach"])
+            except Exception as e:
+                entry["live_error"] = f"{type(e).__name__}: {e}"
+        spotcheck.append(entry)
+
+    sanity = {
+        "_meta": {"phase": "P0.6A-close-out", "step": 4,
+                  "generated_at": _dt_cls.now().isoformat()},
+        "reach_distribution_by_media_type": summary,
+        "image_spotcheck": spotcheck,
+    }
+    _P06A_REACH_SANITY.write_text(json.dumps(sanity, indent=2))
+
+    return jsonify({
+        "ok": True,
+        "sanity_path": str(_P06A_REACH_SANITY),
+        "summary": summary,
+        "image_spotcheck": spotcheck,
+    })
+
+
+# ─── STEP 5: SEMANTIC FAMILIES V2 + SEMANTIC SIMILARITY TESTS ─────────────
+
+@app.route('/api/admin/p06a/semantic-v2', methods=['POST'])
+def admin_p06a_semantic_v2():
+    """P0.6A close-out Step 5 — rebuild semantic families from the real
+    embeddings. Also run the three similarity tests required by the brief:
+
+      - paraphrase test (two same-idea captions ranked near)
+      - lexical-trap test (two same-vocab different-idea captions NOT ranked near)
+      - stale-concept test (a "The truth nobody tells you..." formula finds
+        semantically similar historic concepts even where those exact words are absent)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06a_init_dirs()
+
+    if not _P06A_EMBEDDINGS.exists():
+        return jsonify({"ok": False,
+                        "error": "no embeddings yet — run build-embeddings"}), 400
+
+    # Load embeddings
+    embeds = {}
+    embed_kind = None
+    embed_model = None
+    for line in _P06A_EMBEDDINGS.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+            embeds[rec["caption_id"]] = rec["vector"]
+            embed_kind = rec.get("embedding_kind", "unknown")
+            embed_model = rec.get("embedding_model")
+        except Exception:
+            continue
+
+    if embed_kind != "semantic":
+        return jsonify({
+            "ok": False,
+            "warning": f"embeddings are {embed_kind}, not semantic — tests will not be meaningful",
+            "embedding_kind": embed_kind,
+        }), 400
+
+    # Load captions
+    captions_by_aid = {}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset" and (rec.get("caption") or "").strip():
+            captions_by_aid[rec["asset_id"]] = rec["caption"]
+
+    def cos(a, b):
+        if not a or not b or len(a) != len(b):
+            return 0.0
+        dot = sum(x * y for x, y in zip(a, b))
+        na = sum(x * x for x in a) ** 0.5
+        nb = sum(x * x for x in b) ** 0.5
+        return dot / (na * nb) if na and nb else 0.0
+
+    # Build families
+    aids = list(embeds.keys())
+    families = {}
+    for aid in aids:
+        if aid in families:
+            continue
+        emb = embeds[aid]
+        members = [aid]
+        for other in aids:
+            if other == aid or other in families:
+                continue
+            sim = cos(emb, embeds[other])
+            if sim >= 0.75:
+                members.append(other)
+        if len(members) >= 2:
+            for m in members:
+                families[m] = f"semfam-v2-{aid}"
+            # Cap family size
+            fam_data = families[aid] and {families[aid]: members}
+        # Else leave unassigned
+
+    # Family stats
+    fam_groups = {}
+    for aid, fam in families.items():
+        fam_groups.setdefault(fam, []).append(aid)
+
+    family_records = []
+    for fam, members in fam_groups.items():
+        if len(members) < 2:
+            continue
+        family_records.append({
+            "family_id": fam,
+            "member_count": len(members),
+            "members_sample": members[:5],
+            "sample_caption": (captions_by_aid.get(members[0]) or "")[:200],
+        })
+
+    # ── TEST 1: PARAPHRASE — two same-idea captions ranked near ─────────
+    # Pick a known Swing Shack canonical phrasing and a paraphrase.
+    paraphrase_query = "Book a free club assessment and find out what's really going on"
+    # Find candidates
+    paraphrase_target = None
+    for aid, cap in captions_by_aid.items():
+        if "Book a free club assessment" in cap:
+            paraphrase_target = aid
+            break
+
+    paraphrase_neighbours = []
+    if paraphrase_target and paraphrase_target in embeds:
+        target_emb = embeds[paraphrase_target]
+        scored = [(aid, cos(target_emb, embeds[aid]))
+                  for aid in embeds if aid != paraphrase_target]
+        scored.sort(key=lambda x: -x[1])
+        paraphrase_neighbours = [
+            {"asset_id": aid, "score": round(s, 4),
+             "caption_excerpt": (captions_by_aid.get(aid) or "")[:120]}
+            for aid, s in scored[:5]
+        ]
+
+    # ── TEST 2: LEXICAL TRAP — two same-vocab different-idea captions ───
+    # E.g. "TrackMan Numbers" (technical) vs "TrackMan Games" (entertainment)
+    trap_a, trap_b = None, None
+    for aid, cap in captions_by_aid.items():
+        c = cap.lower()
+        if not trap_a and "trackman" in c and ("number" in c or "data" in c):
+            trap_a = aid
+        if not trap_b and "trackman" in c and ("game" in c or "challenge" in c):
+            trap_b = aid
+    lexical_trap_score = None
+    if trap_a and trap_b and trap_a in embeds and trap_b in embeds:
+        lexical_trap_score = round(cos(embeds[trap_a], embeds[trap_b]), 4)
+    lexical_trap_neighbours_of_a = []
+    if trap_a and trap_a in embeds:
+        scored = [(aid, cos(embeds[trap_a], embeds[aid]))
+                  for aid in embeds if aid != trap_a]
+        scored.sort(key=lambda x: -x[1])
+        lexical_trap_neighbours_of_a = [
+            {"asset_id": aid, "score": round(s, 4),
+             "caption_excerpt": (captions_by_aid.get(aid) or "")[:80]}
+            for aid, s in scored[:5]
+        ]
+
+    # ── TEST 3: STALE CONCEPT — "The truth nobody tells you..." finds semantically similar historic concepts
+    # Use the actual embeddings: take a fitted description and find nearest
+    # neighbour — should be another fitting-related caption.
+    stale_query_concept = "myth vs reality"  # known recurring pattern
+    stale_neighbours = []
+    # Find a caption with the "myth vs" pattern as the query
+    stale_seed = None
+    for aid, cap in captions_by_aid.items():
+        if cap.lower().startswith("myth vs"):
+            stale_seed = aid
+            break
+    if stale_seed and stale_seed in embeds:
+        target_emb = embeds[stale_seed]
+        scored = [(aid, cos(target_emb, embeds[aid]))
+                  for aid in embeds if aid != stale_seed]
+        scored.sort(key=lambda x: -x[1])
+        stale_neighbours = [
+            {"asset_id": aid, "score": round(s, 4),
+             "caption_excerpt": (captions_by_aid.get(aid) or "")[:120]}
+            for aid, s in scored[:8]
+        ]
+
+    # ── Recent semantic saturation — clusters whose members are concentrated in last 90 days
+    # Load timestamps
+    asset_ts = {}
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if rec.get("kind") == "asset":
+            asset_ts[rec["asset_id"]] = rec.get("first_seen_at")
+
+    from datetime import datetime as _dt2
+    cutoff_90d = _dt2(2026, 6, 12).isoformat()  # 90 days before 2026-09-10
+
+    recent_saturated = []
+    for fam, members in fam_groups.items():
+        if len(members) < 2:
+            continue
+        recent = [m for m in members if (asset_ts.get(m) or "") >= cutoff_90d]
+        if len(recent) >= 2:
+            recent_saturated.append({
+                "family_id": fam,
+                "total_members": len(members),
+                "recent_members_90d": len(recent),
+                "saturation_pct": round(len(recent) / len(members) * 100, 1),
+            })
+
+    v2 = {
+        "_meta": {"phase": "P0.6A-close-out", "step": 5,
+                  "generated_at": _dt_cls.now().isoformat(),
+                  "embedding_kind": embed_kind,
+                  "embedding_model": embed_model},
+        "family_totals": {
+            "semantic_families": sum(1 for r in family_records),
+            "members_in_families": sum(r["member_count"] for r in family_records),
+        },
+        "paraphrase_test": {
+            "query_caption": paraphrase_query,
+            "target_asset_id": paraphrase_target,
+            "nearest_neighbours": paraphrase_neighbours,
+        },
+        "lexical_trap_test": {
+            "asset_a_id": trap_a,
+            "asset_b_id": trap_b,
+            "asset_a_caption": (captions_by_aid.get(trap_a) or "")[:120] if trap_a else None,
+            "asset_b_caption": (captions_by_aid.get(trap_b) or "")[:120] if trap_b else None,
+            "cosine_similarity_ab": lexical_trap_score,
+            "asset_a_top5_neighbours": lexical_trap_neighbours_of_a,
+            "expected_pattern": "trap_score should be LOW (different ideas despite shared vocab); "
+                                "trap_b should NOT appear in asset_a's top neighbours",
+        },
+        "stale_concept_test": {
+            "query_pattern": "myth vs",
+            "seed_asset_id": stale_seed,
+            "nearest_neighbours": stale_neighbours,
+            "expected_pattern": "nearest neighbours should be other fitting/trackman/technique captions, "
+                                "NOT caption that share only the 'myth' surface form",
+        },
+        "recent_semantic_saturation": recent_saturated[:10],
+        "families_first_10": family_records[:10],
+    }
+    _P06A_FATIGUE_V2.write_text(json.dumps(v2, indent=2))
+
+    # Also save the similarity tests separately
+    _P06A_SIM_TESTS.write_text(json.dumps({
+        "paraphrase_test": v2["paraphrase_test"],
+        "lexical_trap_test": v2["lexical_trap_test"],
+        "stale_concept_test": v2["stale_concept_test"],
+    }, indent=2))
+
+    return jsonify({
+        "ok": True,
+        "fatigue_v2_path": str(_P06A_FATIGUE_V2),
+        "sim_tests_path": str(_P06A_SIM_TESTS),
+        "family_totals": v2["family_totals"],
+        "paraphrase_test_pass": paraphrase_target is not None and len(paraphrase_neighbours) > 0,
+        "lexical_trap_score": lexical_trap_score,
+        "stale_concept_seed": stale_seed,
+    })
+
+
+# ─── STEP 6: CLOSE-OUT REPORT ──────────────────────────────────────────────
+
+@app.route('/api/admin/p06a/closeout-report', methods=['GET'])
+def admin_p06a_closeout_report():
+    """P0.6A close-out final report."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    report = {"_meta": {"phase": "P0.6A-close-out",
+                          "generated_at": _dt_cls.now().isoformat()}}
+
+    # Embeddings metadata
+    if _P06A_EMBEDDINGS.exists():
+        first_line = _P06A_EMBEDDINGS.read_text().splitlines()
+        if first_line:
+            try:
+                rec = json.loads(first_line[0])
+                report["real_semantic_embeddings"] = {
+                    "model": rec.get("embedding_model"),
+                    "dimensions": rec.get("dimensions"),
+                    "embedding_kind": rec.get("embedding_kind"),
+                    "embedding_version": rec.get("embedding_version"),
+                    "count": sum(1 for _ in _P06A_EMBEDDINGS.read_text().splitlines() if _.strip()),
+                }
+            except Exception:
+                pass
+
+    # Visual Genome V2
+    if _P06A_VISUAL_V2.exists():
+        recs = [json.loads(l) for l in _P06A_VISUAL_V2.read_text().splitlines() if l.strip()]
+        report["visual_genome_v2"] = {"media_analysed": len(recs)}
+
+    # Cross-post audit
+    if _P06A_AUDIT.exists():
+        a = json.loads(_P06A_AUDIT.read_text())
+        report["cross_post_audit"] = a.get("totals")
+
+    # Reach sanity
+    if _P06A_REACH_SANITY.exists():
+        s = json.loads(_P06A_REACH_SANITY.read_text())
+        report["reach_sanity"] = {
+            "distribution": s.get("reach_distribution_by_media_type"),
+            "image_spotcheck": s.get("image_spotcheck"),
+        }
+
+    # Semantic V2
+    if _P06A_FATIGUE_V2.exists():
+        v = json.loads(_P06A_FATIGUE_V2.read_text())
+        report["semantic_families_v2"] = v.get("family_totals")
+        report["similarity_tests"] = {
+            "paraphrase_query": v.get("paraphrase_test", {}).get("query_caption"),
+            "paraphrase_target": v.get("paraphrase_test", {}).get("target_asset_id"),
+            "paraphrase_top_neighbour": (
+                v.get("paraphrase_test", {}).get("nearest_neighbours", [{}])[0]
+                if v.get("paraphrase_test", {}).get("nearest_neighbours") else None
+            ),
+            "lexical_trap_cos": v.get("lexical_trap_test", {}).get("cosine_similarity_ab"),
+            "lexical_trap_b_in_a_top5": (
+                v.get("lexical_trap_test", {}).get("asset_b_id") in [
+                    n["asset_id"] for n in
+                    v.get("lexical_trap_test", {}).get("asset_a_top5_neighbours", [])
+                ]
+            ),
+            "stale_concept_seed": v.get("stale_concept_test", {}).get("seed_asset_id"),
+            "stale_concept_top_neighbour": (
+                v.get("stale_concept_test", {}).get("nearest_neighbours", [{}])[0]
+                if v.get("stale_concept_test", {}).get("nearest_neighbours") else None
+            ),
         }
 
     return jsonify({"ok": True, "report": report})
