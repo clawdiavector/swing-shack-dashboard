@@ -24212,7 +24212,6 @@ def admin_cg_carousel_debug():
     asset = p12a._find_asset(asset_id)
     if not asset:
         return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not in canonical"}), 404
-    # Get ig_media_id
     ig_media_id = asset.get("ig_media_id") or asset.get("source_media_id")
     if not ig_media_id and str(asset_id).startswith("ig-"):
         ig_media_id = str(asset_id)[3:]
@@ -24234,25 +24233,32 @@ def admin_cg_carousel_debug():
             {"fields": "media_type,media_url,thumbnail_url,permalink,"
                        "children{media_type,media_url,thumbnail_url,id}"},
         )
-        return jsonify({
-            "ok": True,
-            "asset_id": asset_id,
-            "ig_media_id": ig_media_id,
-            "raw_meta_response": out,
-            "children_count_raw": len(out.get("children") or []),
-            "children_with_url": [
-                {
-                    "id": c.get("id"),
-                    "media_type": c.get("media_type"),
-                    "has_media_url": bool(c.get("media_url")),
-                    "has_thumbnail_url": bool(c.get("thumbnail_url")),
-                    "media_url_preview": (c.get("media_url") or "")[:80],
-                }
-                for c in (out.get("children") or [])
-            ],
-        })
     except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
         return jsonify({"ok": False, "error": f"meta error: {type(e).__name__}: {e}"}), 500
+    except Exception as e:
+        import traceback as _tb
+        return jsonify({"ok": False, "error": f"unexpected: {type(e).__name__}: {e}",
+                        "traceback": _tb.format_exc()[:1500]}), 500
+    # Build a small debug-friendly view (don't jsonify the entire raw
+    # response — it can be huge and may contain non-JSON-serialisable types)
+    children = out.get("children") or []
+    return jsonify({
+        "ok": True,
+        "asset_id": asset_id,
+        "ig_media_id": ig_media_id,
+        "media_type": out.get("media_type"),
+        "children_count": len(children),
+        "children_summary": [
+            {
+                "id": c.get("id"),
+                "media_type": c.get("media_type"),
+                "has_media_url": bool(c.get("media_url")),
+                "has_thumbnail_url": bool(c.get("thumbnail_url")),
+            }
+            for c in children
+        ],
+        "top_level_keys": list(out.keys()),
+    })
 
 
 @app.route('/api/admin/creative-genome/observe-carousel', methods=['POST'])
