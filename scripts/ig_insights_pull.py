@@ -62,6 +62,13 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "campaign-os"))
 
+# P0.5: persistent DATA_DIR preferred over bundled REPO/data when set.
+# The Railway container sets DATA_DIR=/data/campaign-os and the volume
+# is mounted at /data — the runtime writes here survive image rebuilds.
+DATA_DIR = Path(os.environ.get("DATA_DIR") or (REPO / "data")).resolve()
+# Bundled repo copy (bootstrap only) — runtime never writes here.
+BUNDLED_DATA_DIR = REPO / "data"
+
 # Default API base — Railway production. Override with --api-base.
 DEFAULT_API_BASE = os.environ.get(
     "CAMPAIGN_OS_API_BASE",
@@ -124,14 +131,18 @@ def api_post(path: str, body: dict, cookie: str, api_base: str) -> dict:
 # ─── MAPPING ─────────────────────────────────────────────────────────────────
 
 def load_meta_post_index() -> dict:
-    """Load data/meta-post-index.json. Returns dict with by_media_id + by_asset_id."""
-    p = REPO / "data" / "meta-post-index.json"
-    if not p.exists():
-        return {"by_media_id": {}, "by_asset_id": {}, "unresolved": []}
-    try:
-        return json.loads(p.read_text())
-    except Exception:
-        return {"by_media_id": {}, "by_asset_id": {}, "unresolved": []}
+    """Load data/meta-post-index.json. P0.5: prefer DATA_DIR (persistent
+    volume), fall back to bundled REPO/data. Returns dict with
+    by_media_id + by_asset_id + external_publications.
+    """
+    for candidate in (DATA_DIR / "meta-post-index.json",
+                      BUNDLED_DATA_DIR / "meta-post-index.json"):
+        if candidate.exists():
+            try:
+                return json.loads(candidate.read_text())
+            except Exception:
+                continue
+    return {"by_media_id": {}, "by_asset_id": {}, "unresolved": []}
 
 
 def load_publishing_references() -> dict:
@@ -173,12 +184,10 @@ def load_external_publications() -> dict:
 
 
 def save_meta_post_index(index: dict) -> bool:
-    """Persist the (possibly updated) meta-post-index.json.
-
-    Updates generated + count + external_publications counts when
-    writing so the next reader sees consistent schema.
+    """Persist the (possibly updated) meta-post-index.json to DATA_DIR
+    (persistent volume). P0.5: never write back to the bundled git copy.
     """
-    p = REPO / "data" / "meta-post-index.json"
+    p = DATA_DIR / "meta-post-index.json"
     try:
         existing = index.get("by_asset_id") or {}
         existing_media = index.get("by_media_id") or {}
@@ -198,6 +207,7 @@ def save_meta_post_index(index: dict) -> bool:
         index["_meta"][
             "external_publication_note"
         ] = "external_publications are IG media not mapped to any Campaign OS / Postiz asset"
+        p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(index, indent=2, default=str))
         return True
     except Exception as e:
@@ -598,7 +608,7 @@ def sync_brand(brand_id: str, mapper, cookie: str, api_base: str,
     if not dry_run:
         cfg["last_media_sync"] = datetime.now(timezone.utc).isoformat()
         cfg["last_insights_sync"] = datetime.now(timezone.utc).isoformat()
-        cfg_path = REPO / "data" / "integrations" / brand_id / "instagram.json"
+        cfg_path = DATA_DIR / "integrations" / brand_id / "instagram.json"
         try:
             cfg_path.write_text(json.dumps(cfg, indent=2))
         except Exception as e:

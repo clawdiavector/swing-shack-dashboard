@@ -93,6 +93,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import statistics
 import time
 from collections import defaultdict
@@ -106,6 +107,17 @@ from typing import Any
 
 
 def _default_brand_root() -> Path:
+    # P0.5: prefer DATA_DIR (persistent volume) over the bundled repo
+    # copy. If DATA_DIR isn't mounted (e.g. local tests), fall back to
+    # the bundled git copy so the module still loads.
+    data_dir = os.environ.get("DATA_DIR")
+    if data_dir:
+        candidate = Path(data_dir) / "brand-directory"
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            return candidate
+        except Exception:
+            pass
     repo_root = Path(__file__).resolve().parent.parent.parent
     return repo_root / "data" / "brand-directory"
 

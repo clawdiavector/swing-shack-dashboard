@@ -33,8 +33,12 @@ RUN python /app/scripts/check_lib_modules.py --warn-only \
       --source /app/campaign-os/app.py \
       --lib-dir /app/campaign-os/_lib
 
-# Persistent data dir — Fly volume mounts here at runtime
-# (mkdir only needed for local Docker; Fly will mount over it)
+# Persistent data dir — Railway volume (swing-shack-dashboard-volume)
+# is mounted at /data; DATA_DIR lives under that mount so runtime writes
+# survive image rebuilds. The Dockerfile's `mkdir -p` is a no-op when
+# the volume is already mounted (the volume's contents are not erased).
+# P0.5: every mutable runtime file lives under DATA_DIR; the bundled
+# /app/data is bootstrap-only.
 RUN mkdir -p /data/campaign-os
 ENV DATA_DIR=/data/campaign-os
 

@@ -17262,6 +17262,87 @@ def _boot_selfheal_windsor():
         _app_log.warning('Boot self-heal dispatch failed: %s', e)
 
 
+def _boot_seed_persistent_data():
+    """On startup, seed DATA_DIR from the bundled git defaults — but only
+    for files that DON'T already exist in DATA_DIR. Once a runtime write
+    lands in the persistent volume, a future deploy must NOT clobber it.
+
+    This is the contract that makes Railway volumes (and any other
+    persistent DATA_DIR mount) work: git is bootstrap, runtime is truth.
+
+    Per P0.5 (heidi.txt 2026-09-10):
+      "On startup:
+       1. If required persistent file/folder does not exist, seed it
+          from repo defaults.
+       2. If persistent state already exists, DO NOT replace it with
+          the git copy.
+       3. Writes thereafter go to persistent DATA_DIR.
+       Git must never overwrite newer runtime learning simply because
+       a new image was deployed."
+
+    Mutable files we seed (relative to BUNDLED_DATA_DIR = repo data/):
+      - meta-post-index.json
+      - integrations/<brand>/instagram.json (per operating brand)
+      - brand-directory/<brand>/feedback/image-performance.json
+      - brand-directory/<brand>/feedback/learned-signals.json
+    """
+    try:
+        # Ensure DATA_DIR exists (idempotent — Dockerfile also creates it)
+        os.makedirs(DATA_DIR, exist_ok=True)
+        seeded = []
+        skipped_existing = []
+        seed_targets = [
+            "meta-post-index.json",
+        ]
+        # Add per-brand feedback + integration files
+        try:
+            from _lib.meta_api import OPERATING_BRANDS as _OB
+            for _bid in _OB:
+                seed_targets.append(f"integrations/{_bid}/instagram.json")
+                seed_targets.append(f"brand-directory/{_bid}/feedback/image-performance.json")
+                seed_targets.append(f"brand-directory/{_bid}/feedback/learned-signals.json")
+        except Exception:
+            pass
+
+        for relpath in seed_targets:
+            src = os.path.join(BUNDLED_DATA_DIR, relpath)
+            dst = os.path.join(DATA_DIR, relpath)
+            # CRITICAL: only seed when dst does NOT exist
+            if os.path.exists(dst):
+                skipped_existing.append(relpath)
+                continue
+            if not os.path.exists(src):
+                # No bundled default to seed from; that's fine (e.g. a
+                # brand that's never been configured). Skip silently.
+                continue
+            # Make sure the destination directory exists
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            try:
+                # Read + write (don't use shutil.copy to keep imports light)
+                with open(src, "r", encoding="utf-8") as _f:
+                    _body = _f.read()
+                with open(dst, "w", encoding="utf-8") as _f:
+                    _f.write(_body)
+                seeded.append(relpath)
+            except Exception as _e:
+                _app_log.warning(
+                    "Boot seed: failed to seed %s -> %s: %s",
+                    src, dst, _e,
+                )
+        if seeded:
+            _app_log.info(
+                "Boot seed: seeded %d file(s) into DATA_DIR=%s: %s",
+                len(seeded), DATA_DIR, seeded,
+            )
+        if skipped_existing:
+            _app_log.info(
+                "Boot seed: preserved %d existing DATA_DIR file(s) (not overwritten by git): %s",
+                len(skipped_existing), skipped_existing,
+            )
+    except Exception as _e:
+        _app_log.warning("Boot seed: dispatcher failed (non-fatal): %s", _e)
+
+
 
 # ─── Strategy layer API ────────────────────────────────────────────────
 # Big-picture strategy view — sits above the calendar.
@@ -19594,9 +19675,9 @@ def admin_meta_index():
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     candidates = [
+        os.path.join(DATA_DIR, 'meta-post-index.json'),  # P0.5: persistent volume first
         os.path.join(BUNDLED_DATA_DIR, 'meta-post-index.json'),
-        os.path.join(DATA_DIR, 'meta-post-index.json'),
-        os.path.join(REPO_ROOT, 'data', 'meta-post-index.json'),
+        os.path.join(str(REPO_ROOT), 'data', 'meta-post-index.json'),
         'data/meta-post-index.json',
     ]
     chosen = None
@@ -19659,7 +19740,11 @@ def admin_feedback_dump():
                 ("integrations/" + brand_id + "/instagram.json", "instagram_config"),
             ]:
                 candidates = []
-                for base_dir in (BUNDLED_DATA_DIR, DATA_DIR, os.path.join(str(REPO_ROOT), "data"), "data"):
+                # P0.5: DATA_DIR (persistent volume) is the source of truth.
+                # BUNDLED_DATA_DIR (git copy) is bootstrap-only — read it
+                # only as a last-resort fallback when the volume has no
+                # record yet (e.g. first-ever boot before the seed step).
+                for base_dir in (DATA_DIR, BUNDLED_DATA_DIR, os.path.join(str(REPO_ROOT), "data"), "data"):
                     try:
                         candidates.append(str(Path(str(base_dir)) / relpath))
                     except Exception:
@@ -29485,7 +29570,14 @@ def integrations_instagram_brand_sync_now(brand_id):
             from _lib.meta_api import _integrations_root  # noqa: F401
         except Exception:
             pass
-        meta_index_path = Path(REPO_ROOT) / "data" / "meta-post-index.json"
+        # P0.5: writes go to DATA_DIR (persistent volume), reads prefer
+        # DATA_DIR and fall back to the bundled git copy. The bundled
+        # copy is bootstrap-only — runtime truth lives on the volume.
+        meta_index_path = Path(DATA_DIR) / "meta-post-index.json"
+        if not meta_index_path.exists():
+            bundled = Path(BUNDLED_DATA_DIR) / "meta-post-index.json"
+            if bundled.exists():
+                meta_index_path = bundled
         if meta_index_path.exists():
             try:
                 meta_index = json.loads(meta_index_path.read_text())
@@ -29600,7 +29692,9 @@ def integrations_instagram_brand_sync_now(brand_id):
         cfg_p.write_text(json.dumps(cfg, indent=2))
 
         # Persist (possibly updated) meta-post-index with external
-        # publications so the next sync sees them.
+        # publications so the next sync sees them. P0.5: ALWAYS write to
+        # DATA_DIR (the persistent volume), never back to the bundled
+        # git copy.
         if external_created > 0 or external_reused > 0:
             try:
                 meta_index["generated"] = datetime.now(timezone.utc).isoformat()
@@ -29610,7 +29704,10 @@ def integrations_instagram_brand_sync_now(brand_id):
                     ["data/publishing-references.json", "data/events/postiz/*.json"],
                 )
                 meta_index["_meta"]["schema_version"] = "1.1"
-                meta_index_path.write_text(json.dumps(meta_index, indent=2, default=str))
+                # P0.5: write to DATA_DIR (persistent volume), not the bundled git copy
+                runtime_meta_index_path = Path(DATA_DIR) / "meta-post-index.json"
+                runtime_meta_index_path.parent.mkdir(parents=True, exist_ok=True)
+                runtime_meta_index_path.write_text(json.dumps(meta_index, indent=2, default=str))
             except Exception as _e:
                 _app_log.warning("meta_index save failed: %s", _e)
 
@@ -29968,6 +30065,11 @@ if __name__ == '__main__':
         print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
     except Exception as _e:
         print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_seed_persistent_data()
+        print(f'[boot] persistent-data seed complete', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] persistent-data seed failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     try:
         _boot_selfheal_windsor()
         print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
