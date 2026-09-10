@@ -24242,18 +24242,22 @@ def admin_cg_carousel_debug():
     # Build a small debug-friendly view (don't jsonify the entire raw
     # response — it can be huge and may contain non-JSON-serialisable types)
     children = out.get("children") or []
+    # Normalise: Meta may return children as dicts OR as a list of ID strings.
+    # In the latter case we need to fetch each child individually.
     return jsonify({
         "ok": True,
         "asset_id": asset_id,
         "ig_media_id": ig_media_id,
         "media_type": out.get("media_type"),
         "children_count": len(children),
+        "children_are_strings": all(isinstance(c, str) for c in children),
         "children_summary": [
             {
-                "id": c.get("id"),
-                "media_type": c.get("media_type"),
-                "has_media_url": bool(c.get("media_url")),
-                "has_thumbnail_url": bool(c.get("thumbnail_url")),
+                "id": c.get("id") if isinstance(c, dict) else c,
+                "is_string": isinstance(c, str),
+                "media_type": c.get("media_type") if isinstance(c, dict) else None,
+                "has_media_url": bool(c.get("media_url")) if isinstance(c, dict) else False,
+                "has_thumbnail_url": bool(c.get("thumbnail_url")) if isinstance(c, dict) else False,
             }
             for c in children
         ],

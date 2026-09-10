@@ -575,6 +575,11 @@ def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
     IG API's own ordering); each item carries at least:
       child_media_id, media_url, thumbnail_url, media_type
     Errors return empty list + error string.
+
+    The Meta API can return children in two forms:
+      1. Expanded: [{"id": "...", "media_type": "IMAGE", "media_url": "..."}]
+      2. Collapsed: ["id1", "id2", ...]   (only when sub-fields aren't granted)
+    In case 2 we fetch each child individually via GET /<child_id>.
     """
     ig_media_id = asset.get("ig_media_id") or asset.get("source_media_id")
     if not ig_media_id and str(asset.get("asset_id", "")).startswith("ig-"):
@@ -599,20 +604,43 @@ def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
         )
     except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
         return [], f"meta error: {type(e).__name__}: {e}"
-    children = out.get("children") or []
-    # Filter to entries that have an image URL
-    ordered = []
-    for c in children:
-        if not isinstance(c, dict):
-            continue
-        url = _resolve_image_url_for_carousel_child(c)
-        if url:
-            ordered.append({
-                "child_media_id": str(c.get("id") or ""),
-                "media_type": c.get("media_type") or "IMAGE",
-                "media_url": url,
-            })
-    return ordered, None
+    children_raw = out.get("children") or []
+    ordered: List[Dict[str, Any]] = []
+
+    # Case 1: expanded dicts — directly resolve URLs
+    if children_raw and all(isinstance(c, dict) for c in children_raw):
+        for c in children_raw:
+            url = _resolve_image_url_for_carousel_child(c)
+            if url:
+                ordered.append({
+                    "child_media_id": str(c.get("id") or ""),
+                    "media_type": c.get("media_type") or "IMAGE",
+                    "media_url": url,
+                })
+        return ordered, None
+
+    # Case 2: collapsed list of ID strings — fetch each child individually
+    if children_raw and all(isinstance(c, str) for c in children_raw):
+        for child_id in children_raw:
+            try:
+                child_out = _graph_get(
+                    f"/{child_id}",
+                    {"fields": "media_type,media_url,thumbnail_url,id"},
+                )
+            except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
+                # skip this child but continue
+                continue
+            url = _resolve_image_url_for_carousel_child(child_out)
+            if url:
+                ordered.append({
+                    "child_media_id": str(child_id),
+                    "media_type": child_out.get("media_type") or "IMAGE",
+                    "media_url": url,
+                })
+        return ordered, None
+
+    # Mixed or unexpected — return empty
+    return [], f"unexpected children format: {type(children_raw).__name__} of {len(children_raw)}"
 
 
 def _analyse_one_slide(asset_id: str, brand_id: str, slide_index: int,
