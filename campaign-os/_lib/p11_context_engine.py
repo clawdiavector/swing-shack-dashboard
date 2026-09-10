@@ -513,14 +513,17 @@ def _load_performance_evidence(brand_id: str) -> List[dict]:
 def _detect_brief_subject(brief: str, service: str = None, product_id: str = None) -> str:
     """Return the dominant subject of the brief (e.g. 'putter fitting')."""
     text = (brief or "").lower()
+    # Service param wins if explicit
     if service:
         return service.lower()
-    if product_id:
-        return product_id.lower()
-    # Try service keywords
+    # First try to detect a service keyword from the brief text
     for svc, kws in SERVICE_KEYWORDS.items():
         if any(kw in text for kw in kws):
             return svc
+    # If a product_id is supplied AND the brief mentions that product,
+    # combine them. Otherwise return the product_id as the subject.
+    if product_id:
+        return product_id.lower()
     # Fallback: most distinctive noun-ish word in brief
     words = re.findall(r"\b[a-z]{4,}\b", text)
     if words:
@@ -1343,6 +1346,9 @@ def _check_brief_fidelity(candidate: str, ctx: dict) -> dict:
     keyword OR a clearly related family (e.g. 'putter' → 'putting/green/short game')
     to appear in the candidate. Reject if neither the brief_subject word nor any
     of its known related keywords appear.
+
+    Special case: when brief_subject is a product code (e.g. '101t'), the
+    product_brand is also accepted as a hit.
     """
     if not candidate:
         return {"passed": False, "reason": "empty"}
@@ -1350,6 +1356,7 @@ def _check_brief_fidelity(candidate: str, ctx: dict) -> dict:
     if not brief_subject:
         return {"passed": True, "reason": "no_brief_subject_specified"}
     cl = candidate.lower()
+    ps = ctx.get("product_service", {}) or {}
     # Direct hit on subject word(s)
     subj_words = [w for w in re.findall(r"\b[a-z]{4,}\b", brief_subject)]
     direct_hit = any(w in cl for w in subj_words)
@@ -1369,12 +1376,16 @@ def _check_brief_fidelity(candidate: str, ctx: dict) -> dict:
             related = kws
             break
     related_hit = any(kw in cl for kw in related)
-    if related_hit:
+    # Product-code path: if brief_subject is alphanumeric like "101t", accept
+    # the product_brand as a hit (e.g. "takomo")
+    pb = ps.get("product_brand") or ""
+    product_brand_hit = bool(pb) and pb.lower() in cl
+    if related_hit or product_brand_hit:
         return {
             "passed": True,
-            "reason": "related_keyword_match",
+            "reason": "related_keyword_match" if related_hit else "product_brand_match",
             "brief_subject": brief_subject,
-            "detected_subject": ", ".join([k for k in related if k in cl][:3]),
+            "detected_subject": ", ".join([k for k in related if k in cl][:3]) if related_hit else pb,
             "subject_match": True,
             "specificity": "medium",
         }
@@ -1387,7 +1398,7 @@ def _check_brief_fidelity(candidate: str, ctx: dict) -> dict:
         "specificity": "low",
         "failure_reason": (
             f"Candidate is generically about club fitting but not specifically about {brief_subject}. "
-            f"Subject words {subj_words!r} and related {related!r} not present."
+            f"Subject words {subj_words!r} and related {related!r} not present, and product_brand={pb!r} not in body."
         ),
     }
 
