@@ -20499,7 +20499,6 @@ def admin_history_summarize():
     media_files = list((_P06_IG_RAW_DIR / "media").glob("*.json"))
     insights_files = list((_P06_IG_RAW_DIR / "insights").glob("*.json"))
 
-    # By-media-type breakdown
     type_counts = {}
     year_counts = {}
     month_counts = {}
@@ -20529,7 +20528,6 @@ def admin_history_summarize():
         if d.get("caption"):
             captions += 1
 
-    # By-insight-availability
     insights_ok = 0
     insights_unavailable = 0
     for ip in insights_files:
@@ -20559,6 +20557,804 @@ def admin_history_summarize():
         "insights_unavailable": insights_unavailable,
         "stats_from_last_run": ckpt,
     })
+
+
+@app.route('/api/admin/history/fb-backfill', methods=['POST'])
+def admin_history_fb_backfill():
+    """POST /api/admin/history/fb-backfill — walk Facebook Page posts for
+    swing-shack via cursor pagination. Same checkpointing + idempotency
+    contract as the IG backfill.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06_init_dirs()
+
+    try:
+        from _lib.meta_api import (
+            list_page_posts, get_page_post_insights,
+            _graph_get_url,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    fb_raw_dir = _P06_ROOT / "facebook" / "raw"
+    fb_raw_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_path = _P06_CHECKPOINT_DIR / "facebook.json"
+    ckpt = {
+        "pages_processed": 0, "posts_seen": 0, "new_posts": 0,
+        "insights_fetched": 0, "insights_unavailable": 0,
+        "errors": [], "started_at": _dt_cls.now().isoformat(),
+        "completed": False,
+    }
+    if ckpt_path.exists():
+        try:
+            ckpt.update(json.loads(ckpt_path.read_text()))
+            ckpt["started_at"] = _dt_cls.now().isoformat()
+        except Exception:
+            pass
+
+    stats = dict(ckpt)
+    cursor_url = None
+    pages_done = 0
+
+    while True:
+        pages_done += 1
+        try:
+            if cursor_url is None:
+                resp = list_page_posts(limit=50)
+            else:
+                resp = _graph_get_url(cursor_url)
+        except Exception as e:
+            stats["errors"].append({"page": pages_done,
+                                    "type": type(e).__name__,
+                                    "msg": str(e)})
+            ckpt.update(stats, errors=stats["errors"])
+            ckpt["pages_processed"] = pages_done - 1
+            ckpt["updated_at"] = _dt_cls.now().isoformat()
+            ckpt_path.write_text(json.dumps(ckpt, indent=2))
+            return jsonify({"ok": False, "error": f"page {pages_done} failed: {e}",
+                            "stats": stats, "checkpoint": str(ckpt_path)}), 500
+
+        posts = resp.get("data", [])
+        stats["posts_seen"] += len(posts)
+        for p in posts:
+            pid = p.get("id")
+            if not pid:
+                continue
+            post_path = fb_raw_dir / "posts" / f"{pid}.json"
+            if not post_path.exists():
+                p_with_meta = dict(p)
+                p_with_meta["_provenance"] = {
+                    "source": "facebook_page",
+                    "brand_id": "swing-shack",
+                    "ingested_at": _dt_cls.now().isoformat(),
+                    "historical_backfill": True,
+                    "data_quality": "high" if p.get("permalink_url") else "medium",
+                }
+                try:
+                    (fb_raw_dir / "posts").mkdir(parents=True, exist_ok=True)
+                    post_path.write_text(json.dumps(p_with_meta, indent=2, default=str))
+                    stats["new_posts"] += 1
+                except Exception as e:
+                    stats["errors"].append({"post_id": pid, "phase": "write",
+                                            "type": type(e).__name__, "msg": str(e)})
+
+            # Pull insights per post
+            ins_path = fb_raw_dir / "insights" / f"{pid}.json"
+            if not ins_path.exists():
+                try:
+                    ins = get_page_post_insights(pid)
+                    (fb_raw_dir / "insights").mkdir(parents=True, exist_ok=True)
+                    ins_path.write_text(json.dumps(ins, indent=2, default=str))
+                    if ins.get("data") or ins.get("ok"):
+                        stats["insights_fetched"] += 1
+                    else:
+                        stats["insights_unavailable"] += 1
+                except Exception as e:
+                    (fb_raw_dir / "insights").mkdir(parents=True, exist_ok=True)
+                    ins_path.write_text(json.dumps({
+                        "_available": False,
+                        "error": f"{type(e).__name__}: {e}",
+                        "_provenance": {"source": "facebook_page",
+                                        "ingested_at": _dt_cls.now().isoformat()},
+                    }, indent=2))
+                    stats["insights_unavailable"] += 1
+        next_url = (resp.get("paging") or {}).get("next")
+        if not next_url:
+            stats["completed"] = True
+            stats["pages_processed"] = pages_done
+            break
+        cursor_url = next_url
+
+    ckpt.update(stats)
+    ckpt["updated_at"] = _dt_cls.now().isoformat()
+    ckpt_path.write_text(json.dumps(ckpt, indent=2))
+    return jsonify({"ok": True, "checkpoint": str(ckpt_path), "stats": stats})
+
+
+@app.route('/api/admin/history/internal-archaeology', methods=['GET'])
+def admin_history_internal_archaeology():
+    """GET /api/admin/history/internal-archaeology — scan repo + DATA_DIR
+    for legacy record-bearing JSON files, normalise each into the
+    internal-records.normalised.jsonl canonical stream. Provenance +
+    brand_resolution_method tracked per record.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06_init_dirs()
+
+    # Files to scan
+    scan_targets = {
+        "captions":      ["captions.json", "caption-variants.json"],
+        "hooks":         ["hooks-bank.json", "hook-bank.json"],
+        "headlines":     ["headlines.json", "headline-bank.json"],
+        "ctas":          ["cta_knowledge.json", "cta-performance.json"],
+        "published":     ["published-items.json", "published-posts.json",
+                          "autopublished-items.json"],
+        "drafts":        ["drafts.json", "blog-drafts.json"],
+        "approvals":     ["approval-queue.json", "approval-actions.json",
+                          "approval-summary.json", "approval-expiry.json",
+                          "auto-approval-actions.json"],
+        "edits":         ["edits.json", "auto-swaps.json"],
+        "assets":        ["asset-needs.json", "asset-image-spec.json"],
+        "performance":   ["performance-history.json", "history.json",
+                          "_snapshot_weekly.json"],
+        "intel":         ["seo-rankings.json", "ga4-attribution.json",
+                          "ga4-metrics.json", "meta-ads.json", "google-ads.json",
+                          "ubersuggest-domain.json", "ubersuggest-competitors.json",
+                          "ubersuggest-backlinks.json", "seo-audit.json"],
+        "creative_intel": ["ig-business-analytics.json", "website-insights.json"],
+        "strategy":      ["strategy/", "brand-planning/", "directives/", "brand/"],
+        "dna":           ["brand-directory/"],
+        "events":        ["events/postiz/", "live-publish-runs/", "auto-messages.json",
+                          "agent-runs.json"],
+    }
+    # Brand markers
+    operating_brands = ("swing-shack", "stick", "bag-drop")
+
+    out_path = _P06_INTERNAL_PATH
+    counts = {}
+    unresolved = 0
+    resolved = 0
+    by_source_kind = {}
+    with out_path.open("w") as out:
+        for kind, names in scan_targets.items():
+            counts[kind] = 0
+            for name in names:
+                # Scan both DATA_DIR and BUNDLED_DATA_DIR
+                for base in (DATA_DIR, str(BUNDLED_DATA_DIR)):
+                    base_path = Path(base) / name
+                    if not base_path.exists():
+                        continue
+                    paths = (list(base_path.glob("**/*.json"))
+                             if base_path.is_dir()
+                             else [base_path])
+                    for p in paths:
+                        try:
+                            d = json.loads(p.read_text())
+                        except Exception:
+                            continue
+                        # Records can be list, dict-of-lists, or single dict
+                        records = []
+                        if isinstance(d, list):
+                            records = d
+                        elif isinstance(d, dict):
+                            for k, v in d.items():
+                                if isinstance(v, list):
+                                    for r in v:
+                                        if isinstance(r, dict):
+                                            records.append(r)
+                                elif isinstance(v, dict):
+                                    records.append(v)
+                            if not records:
+                                records = [d]
+                        for r in records:
+                            if not isinstance(r, dict):
+                                continue
+                            # Brand resolution (deterministic only)
+                            brand_id = None
+                            brand_method = None
+                            # 1. explicit field
+                            for bk in ("brand_id", "brand", "operating_brand"):
+                                v = r.get(bk)
+                                if isinstance(v, str) and v in operating_brands:
+                                    brand_id = v
+                                    brand_method = f"explicit_{bk}"
+                                    break
+                            # 2. file path heuristic
+                            if not brand_id:
+                                rel = str(p.relative_to(base))
+                                for ob in operating_brands:
+                                    if ob in rel:
+                                        brand_id = ob
+                                        brand_method = "file_path"
+                                        break
+                            # 3. nested brand marker
+                            if not brand_id:
+                                for ob in operating_brands:
+                                    if (r.get("metadata") or {}).get("brand") == ob or \
+                                       (r.get("context") or {}).get("brand_id") == ob:
+                                        brand_id = ob
+                                        brand_method = "nested_metadata"
+                                        break
+                            if not brand_id:
+                                brand_id = None
+                                brand_method = "unresolved"
+                                unresolved += 1
+                            else:
+                                resolved += 1
+
+                            out.write(json.dumps({
+                                "_kind": kind,
+                                "_source_file": str(p),
+                                "_source_base": base,
+                                "brand_id": brand_id,
+                                "brand_resolution_method": brand_method,
+                                "_ingested_at": _dt_cls.now().isoformat(),
+                                "data": r,
+                            }, default=str) + "\n")
+                            counts[kind] += 1
+            by_source_kind[kind] = counts[kind]
+
+    return jsonify({
+        "ok": True,
+        "internal_records_normalised": str(out_path),
+        "by_kind": counts,
+        "by_source_kind": by_source_kind,
+        "total_records": sum(counts.values()),
+        "brand_resolution": {
+            "resolved": resolved, "unresolved": unresolved,
+            "methods": sorted(set(
+                (json.loads(l).get("brand_resolution_method") for l in
+                 out_path.read_text().splitlines()[:500] if l)
+            )) if out_path.exists() else [],
+        },
+    })
+
+
+@app.route('/api/admin/history/caption-intelligence', methods=['GET'])
+def admin_history_caption_intelligence():
+    """GET /api/admin/history/caption-intelligence — analyse all 777 IG
+    captions. Detect:
+      - exact repetition (same text)
+      - structural repetition (template openers, e.g. "Here's the truth...")
+      - hook families (initial sentence)
+      - hashtag patterns
+      - length buckets
+      - emoji density
+      - question_open / problem_open / proof_open flags
+      - top word frequencies (excluding stopwords)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    STOPWORDS = set(("the a an and or but if is it this that these those you your we our "
+                     "us to for of in on at by with from as be are was were have has had do "
+                     "does did not no so very can could should would will may might shall "
+                     "i me my mine them they their there here when where why how what who "
+                     "whom which whose then than also just only into over out up down about "
+                     "more most much many some any all one two three get got let lets").split())
+
+    captions = []
+    media_files = list((_P06_IG_RAW_DIR / "media").glob("*.json"))
+    for mp in media_files:
+        try:
+            d = json.loads(mp.read_text())
+        except Exception:
+            continue
+        cap = d.get("caption")
+        if cap and isinstance(cap, str) and cap.strip():
+            captions.append({
+                "media_id": d.get("id"),
+                "media_type": d.get("media_type"),
+                "timestamp": d.get("timestamp"),
+                "permalink": d.get("permalink"),
+                "caption": cap.strip(),
+                "char_len": len(cap),
+                "word_count": len(cap.split()),
+                "hashtags": re.findall(r"#\w+", cap),
+                "emojis": re.findall(r"[\U0001F300-\U0001FAFF\U0001F000-\U0001F2FF\U00002600-\U000027BF]",
+                                     cap),
+                "first_sentence": cap.split(".")[0][:80],
+            })
+
+    # Exact-repetition
+    cap_counts = {}
+    for c in captions:
+        cap_counts[c["caption"]] = cap_counts.get(c["caption"], 0) + 1
+    exact_repeats = [{"caption": k, "count": v}
+                     for k, v in cap_counts.items() if v > 1]
+    exact_repeats.sort(key=lambda x: -x["count"])
+
+    # First-sentence patterns (structural)
+    opener_counts = {}
+    for c in captions:
+        op = c["first_sentence"].strip().lower()
+        # Normalise: collapse numbers, hashtag-stripped
+        op_n = re.sub(r"#\w+", "HASHTAG", op)
+        op_n = re.sub(r"\d+", "NUM", op_n)
+        op_n = op_n.strip()[:60]
+        if op_n:
+            opener_counts[op_n] = opener_counts.get(op_n, 0) + 1
+    structural_repeats = [{"opener": k, "count": v}
+                         for k, v in opener_counts.items() if v >= 2]
+    structural_repeats.sort(key=lambda x: -x["count"])
+
+    # Hook families — look for common advertising template openers
+    HOOK_FAMILIES = [
+        ("truth_nobody", [r"\bthe truth\b", r"\bhere'?s the truth\b",
+                          r"\bnobody tells? you\b", r"\bnobody talks? about\b",
+                          r"\btruth about\b"]),
+        ("question_open", [r"^(what|why|how|when|where|who|do you|did you|are you|have you|can you)\b"]),
+        ("problem_open", [r"\bproblem\b", r"\bstruggling\b", r"\bfrustrat", r"\bannoying\b",
+                          r"\bsucks\b", r"\bhate\b", r"\bbroken\b"]),
+        ("proof_open", [r"\bstudy\b", r"\bresearch\b", r"\bdata\b", r"\b\d+%\b",
+                        r"\baccording to\b", r"\bproven\b"]),
+        ("humour", [r"\blol\b", r"\bmeme\b", r"\bjoke\b", r"\)", r":\)", r"😂", r"🤣"]),
+        ("you_open", [r"^you\b", r"^your\b", r"\byou(?:'re| are)\b"]),
+        ("we_open", [r"^we\b", r"^our\b", r"\bwe(?:'re| are)\b"]),
+        ("membership_open", [r"\bmember\b", r"\bmembership\b", r"\bsubscription\b"]),
+        ("fitting_open", [r"\bfitting\b", r"\bfitted\b", r"\bfitter\b"]),
+        ("coaching_open", [r"\bcoaching\b", r"\bcoach\b", r"\bsession\b"]),
+    ]
+    family_counts = {fam: 0 for fam, _ in HOOK_FAMILIES}
+    family_examples = {fam: [] for fam, _ in HOOK_FAMILIES}
+    for c in captions:
+        text = c["caption"]
+        for fam, patterns in HOOK_FAMILIES:
+            for p in patterns:
+                if re.search(p, text, re.IGNORECASE):
+                    family_counts[fam] += 1
+                    if len(family_examples[fam]) < 3:
+                        family_examples[fam].append({
+                            "media_id": c["media_id"],
+                            "snippet": text[:120],
+                            "permalink": c["permalink"],
+                        })
+                    break
+
+    # Hashtag top
+    ht_counts = {}
+    for c in captions:
+        for h in c["hashtags"]:
+            ht_counts[h.lower()] = ht_counts.get(h.lower(), 0) + 1
+    top_hashtags = sorted(ht_counts.items(), key=lambda x: -x[1])[:30]
+
+    # Length distribution
+    len_buckets = {"0-100": 0, "100-300": 0, "300-600": 0, "600-1200": 0, "1200+": 0}
+    for c in captions:
+        n = c["char_len"]
+        if n < 100: len_buckets["0-100"] += 1
+        elif n < 300: len_buckets["100-300"] += 1
+        elif n < 600: len_buckets["300-600"] += 1
+        elif n < 1200: len_buckets["600-1200"] += 1
+        else: len_buckets["1200+"] += 1
+
+    # Word frequencies
+    word_counts = {}
+    for c in captions:
+        for w in re.findall(r"\b[a-z]{3,}\b", c["caption"].lower()):
+            if w in STOPWORDS:
+                continue
+            word_counts[w] = word_counts.get(w, 0) + 1
+    top_words = sorted(word_counts.items(), key=lambda x: -x[1])[:40]
+
+    intel = {
+        "_meta": {
+            "captions_analyzed": len(captions),
+            "media_files_total": len(media_files),
+            "phase": "P0.6",
+        },
+        "exact_repetition": exact_repeats[:20],
+        "structural_opener_repetition": structural_repeats[:20],
+        "hook_family_counts": family_counts,
+        "hook_family_examples": family_examples,
+        "top_hashtags": top_hashtags,
+        "length_distribution": len_buckets,
+        "top_words": top_words,
+        "emoji_density": {
+            "with_emoji": sum(1 for c in captions if c["emojis"]),
+            "without_emoji": sum(1 for c in captions if not c["emojis"]),
+        },
+    }
+
+    # Persist
+    _P06_CAPTION_INTEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _P06_CAPTION_INTEL_PATH.write_text(json.dumps(intel, indent=2))
+    return jsonify({"ok": True, "intel_path": str(_P06_CAPTION_INTEL_PATH), "intel": intel})
+
+
+@app.route('/api/admin/history/build-canonical', methods=['POST'])
+def admin_history_build_canonical():
+    """POST /api/admin/history/build-canonical — merge IG (raw media +
+    insights) + FB (raw posts + insights) + internal-records into a single
+    canonical normalised stream. Brand-resolved, provenance-stamped, deduped.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    out_path = _P06_CANONICAL_PATH
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    canonical = {"assets": [], "publications": [], "performance": []}
+    seen_media = set()
+    seen_post = set()
+
+    with out_path.open("w") as out:
+        # ---- IG (external publications) ----
+        for mp in (_P06_IG_RAW_DIR / "media").glob("*.json"):
+            try:
+                d = json.loads(mp.read_text())
+            except Exception:
+                continue
+            mid = d.get("id")
+            if not mid or mid in seen_media:
+                continue
+            seen_media.add(mid)
+            ts = d.get("timestamp")
+            media_type = d.get("media_type") or "UNKNOWN"
+            permalink = d.get("permalink") or ""
+            caption = d.get("caption") or ""
+
+            # Asset (external)
+            asset = {
+                "asset_id": f"ig-{mid}",
+                "brand_id": "swing-shack",
+                "ig_media_id": mid,
+                "media_type": media_type,
+                "caption": caption,
+                "permalink": permalink,
+                "first_seen_at": (d.get("_provenance") or {}).get("ingested_at"),
+                "origin": "external",  # P0.6 marks all historical IG as external unless mapped
+                "campaign_id": None,
+                "source": "instagram_meta",
+                "data_quality": (d.get("_provenance") or {}).get("data_quality", "medium"),
+            }
+            # Insights
+            ins_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
+            perf = None
+            if ins_path.exists():
+                try:
+                    ins = json.loads(ins_path.read_text())
+                    if ins.get("_available") is not False:
+                        flat = ins.get("_flat") or {}
+                        perf = {
+                            "asset_id": asset["asset_id"],
+                            "ig_media_id": mid,
+                            "platform": "instagram",
+                            "observations": flat,
+                            "engagement_rate": flat.get("engagement_rate"),
+                            "metric_availability": {k: True for k in flat.keys()},
+                            "data_quality": "high",
+                            "source": "instagram_meta",
+                            "timestamp": ts,
+                        }
+                except Exception:
+                    pass
+            else:
+                perf = {
+                    "asset_id": asset["asset_id"],
+                    "ig_media_id": mid,
+                    "platform": "instagram",
+                    "observations": {},
+                    "metric_availability": {},
+                    "data_quality": "low",
+                    "source": "instagram_meta",
+                    "timestamp": ts,
+                }
+            # Publication
+            publication = {
+                "publication_id": f"ig-pub-{mid}",
+                "asset_id": asset["asset_id"],
+                "platform": "instagram",
+                "permalink": permalink,
+                "timestamp": ts,
+                "brand_id": "swing-shack",
+                "origin": "external",
+                "ig_media_id": mid,
+                "source": "instagram_meta",
+            }
+            out.write(json.dumps({"kind": "asset", **asset}) + "\n")
+            out.write(json.dumps({"kind": "publication", **publication}) + "\n")
+            if perf:
+                out.write(json.dumps({"kind": "performance", **perf}) + "\n")
+            canonical["assets"].append(asset)
+            canonical["publications"].append(publication)
+            if perf:
+                canonical["performance"].append(perf)
+
+        # ---- FB ----
+        for mp in (_P06_ROOT / "facebook" / "raw" / "posts").glob("*.json"):
+            try:
+                d = json.loads(mp.read_text())
+            except Exception:
+                continue
+            pid = d.get("id")
+            if not pid or pid in seen_post:
+                continue
+            seen_post.add(pid)
+            ts = d.get("created_time")
+            asset = {
+                "asset_id": f"fb-{pid}",
+                "brand_id": "swing-shack",
+                "fb_post_id": pid,
+                "media_type": d.get("type") or "UNKNOWN",
+                "caption": d.get("message") or "",
+                "permalink": d.get("permalink_url") or "",
+                "first_seen_at": (d.get("_provenance") or {}).get("ingested_at"),
+                "origin": "external",
+                "campaign_id": None,
+                "source": "facebook_page",
+                "data_quality": (d.get("_provenance") or {}).get("data_quality", "medium"),
+            }
+            out.write(json.dumps({"kind": "asset", **asset}) + "\n")
+            canonical["assets"].append(asset)
+
+    return jsonify({
+        "ok": True,
+        "canonical_path": str(out_path),
+        "counts": {k: len(v) for k, v in canonical.items()},
+        "ig_unique_ids": len(seen_media),
+        "fb_unique_ids": len(seen_post),
+    })
+
+
+@app.route('/api/admin/history/derive-evidence', methods=['POST'])
+def admin_history_derive_evidence():
+    """POST /api/admin/history/derive-evidence — compute derived metrics
+    (engagement per reach, normalised) + recency weights + build initial
+    Evidence Ledger from the canonical stream.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    # Read canonical
+    canon = []
+    if _P06_CANONICAL_PATH.exists():
+        for line in _P06_CANONICAL_PATH.read_text().splitlines():
+            if line.strip():
+                try:
+                    canon.append(json.loads(line))
+                except Exception:
+                    pass
+
+    # Group performance by asset
+    perf_by_asset = {}
+    asset_meta = {}
+    for r in canon:
+        if r.get("kind") == "asset":
+            asset_meta[r["asset_id"]] = r
+        elif r.get("kind") == "performance":
+            perf_by_asset.setdefault(r["asset_id"], []).append(r)
+
+    # Compute derived features
+    derived_records = []
+    now_year = 2026  # Fixed: don't use clock for reproducibility of "now"
+    for asset_id, perfs in perf_by_asset.items():
+        am = asset_meta.get(asset_id, {})
+        # Prefer Instagram perf (platforms differ)
+        ig_p = next((p for p in perfs if p.get("platform") == "instagram"), perfs[0])
+        obs = ig_p.get("observations") or {}
+        reach = obs.get("reach") or 0
+        likes = obs.get("likes") or 0
+        comments = obs.get("comments") or 0
+        shares = obs.get("shares") or 0
+        saves = obs.get("saved") or 0
+        total_int = obs.get("total_interactions") or 0
+        er = ig_p.get("engagement_rate")
+        # Derived
+        if reach and reach > 0:
+            per_reach = {
+                "likes_per_reach": round((likes or 0) / reach, 6),
+                "comments_per_reach": round((comments or 0) / reach, 6),
+                "shares_per_reach": round((shares or 0) / reach, 6),
+                "saves_per_reach": round((saves or 0) / reach, 6),
+                "interactions_per_reach": round((likes + comments + shares + saves) / reach, 6),
+            }
+        else:
+            per_reach = {k: None for k in [
+                "likes_per_reach", "comments_per_reach", "shares_per_reach",
+                "saves_per_reach", "interactions_per_reach",
+            ]}
+        # Recency weight — exponential half-life of 365 days
+        try:
+            ts = am.get("permalink")  # not used; use ts from performance
+            ts = ig_p.get("timestamp") or am.get("first_seen_at")
+            if ts:
+                # Parse year
+                y = int(ts[:4])
+                age_days = (now_year - y) * 365
+                # Adjust for month/day
+                try:
+                    from datetime import datetime as _dt
+                    d_published = _dt.fromisoformat(ts.replace("Z", "+00:00"))
+                    d_now = _dt(now_year, 9, 10, tzinfo=d_published.tzinfo)
+                    age_days = (d_now - d_published).days
+                except Exception:
+                    pass
+                # Half-life 365 days
+                import math
+                recency_weight = 0.5 ** (age_days / 365.0)
+            else:
+                recency_weight = None
+        except Exception:
+            recency_weight = None
+
+        # WIN score (P0.6 version) — keep separate from the live WIN PROFILE
+        # (which uses win_threshold 0.65). This is a per-record composite.
+        # Components per reach are the primary signal (avoids popularity bias).
+        win_components = []
+        for k in ("saves_per_reach", "comments_per_reach", "shares_per_reach"):
+            v = per_reach.get(k)
+            if isinstance(v, (int, float)):
+                win_components.append(v)
+        if win_components:
+            provisional_win_score = round(sum(win_components) / len(win_components), 6)
+        else:
+            provisional_win_score = None
+
+        derived_records.append({
+            "_kind": "derived_performance",
+            "asset_id": asset_id,
+            "brand_id": am.get("brand_id"),
+            "media_type": am.get("media_type"),
+            "ig_media_id": am.get("ig_media_id"),
+            "fb_post_id": am.get("fb_post_id"),
+            "permalink": am.get("permalink"),
+            "caption": am.get("caption"),
+            "timestamp": ig_p.get("timestamp"),
+            "raw_observations": obs,
+            "per_reach": per_reach,
+            "engagement_rate": er,
+            "recency_weight": recency_weight,
+            "provisional_win_score": provisional_win_score,
+        })
+
+    # Persist derived records
+    derived_path = _P06_ROOT / "derived-performance.jsonl"
+    with derived_path.open("w") as f:
+        for r in derived_records:
+            f.write(json.dumps(r, default=str) + "\n")
+
+    # Build Evidence Ledger (initial — observational only)
+    # Group by media_type
+    by_mt = {}
+    for r in derived_records:
+        if r.get("provisional_win_score") is None:
+            continue
+        mt = r.get("media_type") or "UNKNOWN"
+        by_mt.setdefault(mt, []).append(r)
+
+    ledger = {"_meta": {"phase": "P0.6", "scope": "instagram_organic"},
+              "beliefs": []}
+    # Belief 1: distribution by media_type
+    ledger["beliefs"].append({
+        "belief": "Sample-size of historical IG posts is sufficient for media_type-level analysis only.",
+        "brand_id": "swing-shack",
+        "scope": "instagram_organic",
+        "evidence_count": len(derived_records),
+        "by_media_type": {mt: len(recs) for mt, recs in by_mt.items()},
+        "status": "observational",
+        "confidence": "low (n too small for per-format causal claims)",
+    })
+
+    return jsonify({
+        "ok": True,
+        "derived_path": str(derived_path),
+        "derived_count": len(derived_records),
+        "by_media_type": {mt: len(recs) for mt, recs in by_mt.items()},
+    })
+
+
+@app.route('/api/admin/history/report', methods=['GET'])
+def admin_history_report():
+    """GET /api/admin/history/report — assemble the P0.6 final report from
+    every persisted state. Read-only.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    report = {"_meta": {"phase": "P0.6", "generated_at": _dt_cls.now().isoformat()}}
+
+    # Source inventory
+    if _P06_INVENTORY_PATH.exists():
+        try:
+            inv = json.loads(_P06_INVENTORY_PATH.read_text())
+            report["source_inventory"] = inv
+        except Exception as e:
+            report["source_inventory_error"] = str(e)
+
+    # Instagram checkpoint
+    ckpt_path = _P06_CHECKPOINT_DIR / "instagram.json"
+    if ckpt_path.exists():
+        try:
+            ckpt = json.loads(ckpt_path.read_text())
+            report["ig_checkpoint"] = ckpt
+        except Exception:
+            pass
+
+    # IG summary
+    media_files = list((_P06_IG_RAW_DIR / "media").glob("*.json"))
+    insights_files = list((_P06_IG_RAW_DIR / "insights").glob("*.json"))
+    report["ig_summary"] = {
+        "media_files": len(media_files),
+        "insights_files": len(insights_files),
+    }
+
+    # FB
+    fb_posts = list((_P06_ROOT / "facebook" / "raw" / "posts").glob("*.json"))
+    fb_insights = list((_P06_ROOT / "facebook" / "raw" / "insights").glob("*.json"))
+    report["fb_summary"] = {
+        "post_files": len(fb_posts),
+        "insights_files": len(fb_insights),
+    }
+
+    # Internal archaeology
+    internal_path = _P06_INTERNAL_PATH
+    if internal_path.exists():
+        lines = internal_path.read_text().splitlines()
+        kinds = {}
+        brands = {}
+        methods = {}
+        for l in lines:
+            try:
+                d = json.loads(l)
+            except Exception:
+                continue
+            kinds[d.get("_kind", "?")] = kinds.get(d.get("_kind", "?"), 0) + 1
+            brands[d.get("brand_id") or "unresolved"] = brands.get(d.get("brand_id") or "unresolved", 0) + 1
+            m = d.get("brand_resolution_method") or "?"
+            methods[m] = methods.get(m, 0) + 1
+        report["internal_summary"] = {
+            "total_records": len(lines),
+            "by_kind": kinds,
+            "by_brand": brands,
+            "by_resolution_method": methods,
+        }
+
+    # Caption intelligence
+    if _P06_CAPTION_INTEL_PATH.exists():
+        try:
+            ci = json.loads(_P06_CAPTION_INTEL_PATH.read_text())
+            report["caption_intelligence"] = {
+                "captions_analyzed": ci.get("_meta", {}).get("captions_analyzed"),
+                "exact_repetition_count": len(ci.get("exact_repetition") or []),
+                "structural_opener_count": len(ci.get("structural_opener_repetition") or []),
+                "hook_family_counts": ci.get("hook_family_counts"),
+                "length_distribution": ci.get("length_distribution"),
+                "top_hashtags_top5": ci.get("top_hashtags", [])[:5],
+                "top_words_top10": ci.get("top_words", [])[:10],
+                "top_structural_openers": (ci.get("structural_opener_repetition") or [])[:10],
+            }
+        except Exception as e:
+            report["caption_intelligence_error"] = str(e)
+
+    # Canonical counts
+    if _P06_CANONICAL_PATH.exists():
+        kinds = {}
+        brands = {}
+        for l in _P06_CANONICAL_PATH.read_text().splitlines():
+            try:
+                d = json.loads(l)
+            except Exception:
+                continue
+            kinds[d.get("kind", "?")] = kinds.get(d.get("kind", "?"), 0) + 1
+            if d.get("brand_id"):
+                brands[d["brand_id"]] = brands.get(d["brand_id"], 0) + 1
+        report["canonical_summary"] = {"by_kind": kinds, "by_brand": brands}
+
+    # Derived performance
+    derived_path = _P06_ROOT / "derived-performance.jsonl"
+    if derived_path.exists():
+        records = [json.loads(l) for l in derived_path.read_text().splitlines() if l.strip()]
+        report["derived_summary"] = {
+            "total": len(records),
+            "with_per_reach": sum(1 for r in records
+                                   if any(r.get("per_reach", {}).values())),
+            "with_provisional_win_score": sum(1 for r in records
+                                               if r.get("provisional_win_score") is not None),
+        }
+
+    return jsonify({"ok": True, "report": report})
 
 
 @app.route('/api/admin/data-freshness', methods=['GET'])
