@@ -23631,9 +23631,8 @@ def admin_knowledge_audit():
 
 @app.route('/api/admin/creative-genome/list-assets', methods=['GET'])
 def admin_cg_list_assets():
-    """List canonical assets with brand + media_type + thumbnail_url presence.
-    Used by the admin UI to pick one asset_id to observe."""
-    from _lib.p11_context_engine import _P06A_CLEAN_CANONICAL
+    """List canonical assets with brand + media_type + thumbnail_url presence."""
+    from app import _P06A_CLEAN_CANONICAL
     if not _P06A_CLEAN_CANONICAL.exists():
         return jsonify({"ok": False, "error": "no cleaned canonical yet"}), 400
     media_type = request.args.get("media_type") or None

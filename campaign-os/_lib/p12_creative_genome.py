@@ -250,8 +250,18 @@ def _validate_observation(obs: Dict[str, Any]) -> Dict[str, Any]:
 def _load_canonical_assets() -> List[Dict[str, Any]]:
     """Load canonical asset records (kind=asset) from the P0.6A cleaned
     canonical file."""
-    from _lib.p11_context_engine import _P06A_CLEAN_CANONICAL  # type: ignore
-    path = _P06A_CLEAN_CANONICAL
+    try:
+        # Path is defined in app.py (volume-backed)
+        from app import _P06A_CLEAN_CANONICAL  # type: ignore
+    except Exception:
+        # Local dev fallback
+        candidate = (
+            Path(os.environ.get("DATA_DIR", "/data"))
+            / "campaign-os" / "intelligence" / "history" / "p06a"
+            / "canonical-history.cleaned.jsonl"
+        )
+        _P06A_CLEAN_CANONICAL = candidate  # type: ignore
+    path = _P06A_CLEAN_CANONICAL  # type: ignore
     if not path.exists():
         return []
     out = []
