@@ -420,6 +420,18 @@ def build_generation_context(
             "error": f"product_brand={product_brand!r} is not a known product_brand. "
                      f"Known: {list(PRODUCT_BRANDS.keys())}.",
         }
+    # Cross-brand attack: if product_brand is registered to a DIFFERENT
+    # operating brand, reject the request. E.g. takomo belongs to stick —
+    # you cannot request takomo under brand_id=swing-shack.
+    if product_brand and product_brand in PRODUCT_BRANDS:
+        owner = PRODUCT_BRANDS[product_brand]
+        if owner != brand_id:
+            return {
+                "ok": False,
+                "error": f"product_brand={product_brand!r} belongs to operating_brand={owner!r}, "
+                         f"not {brand_id!r}. Use brand_id={owner!r} for {product_brand!r}.",
+                "cross_brand_attack": True,
+            }
 
     vb = _load_voice_bible()
     voice = vb.get("voices", {}).get(brand_id, {})
