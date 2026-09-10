@@ -11167,50 +11167,162 @@ $('#cap-gen').addEventListener('click', async () => {
   const voice = $('#cap-voice-select').value || undefined;
   const tone  = $('#cap-tone-select').value  || undefined;
   const brief = $('#cap-seed-input')?.value?.trim() || undefined;
-  const payload = { n };
-  if(id) payload.assetId = id;
-  if(voice) payload.voice = voice;
-  if(tone)  payload.tone  = tone;
-  if(brief) payload.brief = brief;
+  const channel = $('#cap-channel-select')?.value || 'instagram_feed';
+  // P1.1 FINAL — call the v2 pipeline. The old /api/captions/generate
+  // endpoint (hook-pool shuffler) is no longer used by the UI.
+  const payload = {
+    brand_id: voice || 'swing-shack',
+    user_brief: brief || '',
+    channel,
+    n_survivors: n,
+    n_candidates: Math.max(n * 2, 10),
+  };
+  if(id) payload.campaign_id = id;
+  if(tone) payload.audience = tone;
 
-  const r = await API.post('/api/captions/generate', payload);
+  const r = await API.post('/api/captions/v2/generate', payload);
   if(!r.ok){ toast(r.error||'Failed', 'err'); return; }
+  const survivors = r.survivors || [];
+  const ctxId = r.context_id || '';
 
-  const voiceChip = r._voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint);color:var(--ac)">${esc(r._voice)}</span>` : '';
-  const toneChip  = r._tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(r._tone)}</span>` : '';
-  const subtitle = [voiceChip, toneChip].filter(Boolean).join(' ');
-  const assetLabel = r.asset ? ` for ${esc(r.asset)}` : (id ? ` for ${esc(id)}` : ' (hook pool)');
-  const saChip = renderSaRewritesBadge(r._sa_rewrites);
-
-  $('#cap-results').dataset.genState = 'filled';  // suppress empty-state on next visit (matches Headlines + CTAs pattern)
+  $('#cap-results').dataset.genState = 'filled';
   $('#cap-results').innerHTML =
-    `${saChip}<h4 data-help="Number of caption variants the agent just produced for the chosen asset / voice / tone combo. Each variant below can be edited inline or sent to the Review queue. The voice + tone chips show which recipe was applied." data-help-title="Generated variants" style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;cursor:help;border-bottom:1px dotted var(--tx-2)">${r.count} variants${assetLabel} ${subtitle}</h4>` +
-    (r.variants||[]).map((v, i) => {
-      const vVoice = v.voice ? `<span class="meme-chip" style="background:var(--badge-voice-tint-2);color:var(--ac)">${esc(v.voice)}</span>` : '';
-      const vTone  = v.tone  ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.tone)}</span>` : '';
-      const vPayload = encodeURIComponent(JSON.stringify({
-        hook: v.hook || '', body: v.body || '', cta: v.cta || '',
-        voice: v.voice || '', tone: v.tone || '', platform: v.platform || '',
-        source: v.source || ('variant-' + (i+1)),
+    `<h4 data-help="..." data-help-title="Generated variants" style="font-size:13px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;cursor:help;border-bottom:1px dotted var(--tx-2)">${survivors.length} variants${brief ? ' · ' + esc(brief.slice(0,60)) : ''}</h4>` +
+    survivors.map((v, i) => {
+      const vMech = v.mechanism ? `<span class="meme-chip" style="background:var(--badge-voice-tint);color:var(--ac)">${esc(v.mechanism)}</span>` : '';
+      const vRheto = v.rhetorical_structure ? `<span class="meme-chip" style="background:var(--bg-4)">${esc(v.rhetorical_structure)}</span>` : '';
+      const vProp = v.core_proposition ? `<div class="muted" style="font-size:11px;margin-top:.2rem">Proposition: ${esc(v.core_proposition.slice(0,140))}</div>` : '';
+      const vWhy = v.why_this_route ? `<div class="muted" style="font-size:11px;margin-top:.2rem">Why: ${esc(v.why_this_route.slice(0,200))}</div>` : '';
+      const evPayload = encodeURIComponent(JSON.stringify({
+        candidate_id: v.candidate_id,
+        generation_id: ctxId,
+        context_id: ctxId,
+        brand_id: payload.brand_id,
+        route: v.mechanism,
+        rhetorical_structure: v.rhetorical_structure,
+        core_proposition: v.core_proposition,
+        original_candidate: v.body || '',
+        body: v.body || '',
+        cta: v.cta_strategy || '',
+        voice: payload.brand_id,
+        tone: tone || '',
+        platform: payload.channel,
       }));
       return `<div class="review" style="margin-bottom:.5rem">
         <div class="review-cap">
-          <div class="review-cap-t">${esc(v.hook||'')}</div>
+          <div class="review-cap-t">${esc((v.body||'').split('\\n')[0]||'')}</div>
           <div class="review-cap-x">${esc(v.body||'')}</div>
-          ${v.cta ? `<div style="margin-top:.4rem;font-size:12px;color:var(--ac);font-weight:600">${esc(v.cta)}</div>` : ''}
         </div>
         <div class="review-meta">
-          ${v.platform?pill('live', v.platform):''} ${vVoice} ${vTone}
-          <span class="muted">${esc(v.source||'')}</span>
+          ${vMech} ${vRheto}
+          ${vProp}
+          ${vWhy}
           <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap" class="cap-act-row">
-            <button class="btn-mini primary" data-cap-save="${vPayload}">💾 Save</button>
-            <button class="btn-mini primary" data-cap-schedule="${vPayload}">📅 Schedule</button>
-            <button class="btn-mini" data-cap-copy="${encodeURIComponent((v.body || v.hook || ''))}">📋 Copy</button>
+            <button class="btn-mini primary" data-cap-select="${evPayload}">✅ Select</button>
+            <button class="btn-mini" data-cap-different="${evPayload}">🔄 Make different</button>
+            <button class="btn-mini" data-cap-more="${evPayload}">➕ More like this</button>
+            <button class="btn-mini" data-cap-edit="${evPayload}">✏️ Edit</button>
+            <button class="btn-mini" data-cap-approve="${evPayload}">👍 Approve</button>
+            <button class="btn-mini" data-cap-copy="${encodeURIComponent(v.body || '')}">📋 Copy</button>
           </div>
         </div>
       </div>`;
     }).join('');
-  toast(`Generated ${r.count} caption variants${r._voice ? ' in '+r._voice+' voice' : ''}`);
+  // Persist "shown" taste event
+  try {
+    await API.post('/api/captions/v2/select', {
+      event_type: 'shown',
+      generation_id: ctxId,
+      context_id: ctxId,
+      brand_id: payload.brand_id,
+      candidate_count: survivors.length,
+      candidate_ids: survivors.map(s => s.candidate_id),
+    });
+  } catch(e) {}
+  // Wire action buttons
+  $$('#cap-results [data-cap-different]').forEach(el => el.addEventListener('click', async () => {
+    const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-different')));
+    const payload2 = {
+      brand_id: p.brand_id || 'swing-shack',
+      user_brief: p.original_candidate || brief,
+      channel: p.platform || 'instagram_feed',
+      n_survivors: n,
+      n_candidates: Math.max(n * 2, 10),
+      previous_route: p.route,
+    };
+    const r2 = await API.post('/api/captions/v2/regenerate-different', payload2);
+    if (r2.ok) {
+      toast('Regenerated with different territory', 'ok');
+      // Re-render in-place: simple reload of the generator
+      $('#cap-gen')?.click();
+    } else { toast(r2.error || 'Failed', 'err'); }
+  }));
+  $$('#cap-results [data-cap-more]').forEach(el => el.addEventListener('click', async () => {
+    const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-more')));
+    const payload2 = {
+      brand_id: p.brand_id || 'swing-shack',
+      user_brief: p.original_candidate || brief,
+      channel: p.platform || 'instagram_feed',
+      liked_mechanism: p.route,
+      liked_body: p.body || '',
+      n_survivors: n,
+    };
+    const r2 = await API.post('/api/captions/v2/more-like-this', payload2);
+    if (r2.ok) {
+      toast('Generated more like this', 'ok');
+      $('#cap-gen')?.click();
+    } else { toast(r2.error || 'Failed', 'err'); }
+  }));
+  $$('#cap-results [data-cap-select]').forEach(el => el.addEventListener('click', async () => {
+    const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-select')));
+    const r2 = await API.post('/api/captions/v2/select', {
+      event_type: 'selected',
+      generation_id: p.generation_id,
+      candidate_id: p.candidate_id,
+      context_id: p.context_id,
+      brand_id: p.brand_id,
+      route: p.route,
+      rhetorical_structure: p.rhetorical_structure,
+      core_proposition: p.core_proposition,
+      original_candidate: p.original_candidate,
+    });
+    if (r2.ok) toast('Selected (taste event recorded)', 'ok');
+  }));
+  $$('#cap-results [data-cap-edit]').forEach(el => el.addEventListener('click', async () => {
+    const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-edit')));
+    const edited = prompt('Edit the caption:', p.original_candidate || '');
+    if (edited === null) return;
+    const r2 = await API.post('/api/captions/v2/edit-approve', {
+      generation_id: p.generation_id,
+      candidate_id: p.candidate_id,
+      context_id: p.context_id,
+      brand_id: p.brand_id,
+      route: p.route,
+      rhetorical_structure: p.rhetorical_structure,
+      core_proposition: p.core_proposition,
+      original_candidate: p.original_candidate,
+      final_text: edited,
+      edit_delta: 'manual edit via Caption Studio UI',
+    });
+    if (r2.ok) toast('Edited + Approved (taste events recorded)', 'ok');
+  }));
+  $$('#cap-results [data-cap-approve]').forEach(el => el.addEventListener('click', async () => {
+    const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-approve')));
+    const r2 = await API.post('/api/captions/v2/edit-approve', {
+      generation_id: p.generation_id,
+      candidate_id: p.candidate_id,
+      context_id: p.context_id,
+      brand_id: p.brand_id,
+      route: p.route,
+      rhetorical_structure: p.rhetorical_structure,
+      core_proposition: p.core_proposition,
+      original_candidate: p.original_candidate,
+      final_text: p.original_candidate,
+      edit_delta: 'approved without edit',
+    });
+    if (r2.ok) toast('Approved (taste event recorded)', 'ok');
+  }));
+  toast(`Generated ${survivors.length} caption variants via v2 pipeline`);
 });
 
 // ─── HEADLINES v2 ─────────────────────────────────────────────
