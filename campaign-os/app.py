@@ -19646,39 +19646,53 @@ def admin_feedback_dump():
         return jsonify({"ok": False, "error": "auth required"}), 401
     try:
         from _lib.meta_api import OPERATING_BRANDS
-    except Exception:
-        return jsonify({"ok": False, "error": "meta_api unavailable"}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
     out = {"ok": True, "brands": {}}
-    for brand_id in sorted(OPERATING_BRANDS):
-        bundle = {"files": {}}
-        # 1. brand-directory/<brand>/feedback/image-performance.json
-        for relpath, key in [
-            ("brand-directory/" + brand_id + "/feedback/image-performance.json", "image_performance"),
-            ("brand-directory/" + brand_id + "/feedback/learned-signals.json", "learned_signals"),
-            ("integrations/" + brand_id + "/instagram.json", "instagram_config"),
-        ]:
-            for base_dir in (BUNDLED_DATA_DIR, DATA_DIR, str(REPO_ROOT / "data"), "data"):
-                try:
-                    p = Path(base_dir) / relpath
-                    if p.exists():
-                        body = p.read_text()
-                        try:
-                            bundle["files"][key] = {
-                                "path": str(p),
-                                "bytes": len(body),
-                                "data": json.loads(body),
-                            }
-                        except Exception:
-                            bundle["files"][key] = {
-                                "path": str(p),
-                                "bytes": len(body),
-                                "data": None,
-                                "raw": body[:2000],
-                            }
-                        break
-                except Exception:
-                    continue
-        out["brands"][brand_id] = bundle
+    try:
+        for brand_id in sorted(OPERATING_BRANDS):
+            bundle = {"files": {}}
+            # 1. brand-directory/<brand>/feedback/image-performance.json
+            for relpath, key in [
+                ("brand-directory/" + brand_id + "/feedback/image-performance.json", "image_performance"),
+                ("brand-directory/" + brand_id + "/feedback/learned-signals.json", "learned_signals"),
+                ("integrations/" + brand_id + "/instagram.json", "instagram_config"),
+            ]:
+                candidates = []
+                for base_dir in (BUNDLED_DATA_DIR, DATA_DIR, str(REPO_ROOT / "data"), "data"):
+                    try:
+                        candidates.append(str(Path(str(base_dir)) / relpath))
+                    except Exception:
+                        continue
+                for c in candidates:
+                    try:
+                        p = Path(c)
+                        if p.exists() and p.is_file():
+                            body = p.read_text()
+                            try:
+                                bundle["files"][key] = {
+                                    "path": str(p),
+                                    "bytes": len(body),
+                                    "data": json.loads(body),
+                                }
+                            except Exception:
+                                bundle["files"][key] = {
+                                    "path": str(p),
+                                    "bytes": len(body),
+                                    "data": None,
+                                    "raw": body[:2000],
+                                }
+                            break
+                    except Exception:
+                        continue
+            out["brands"][brand_id] = bundle
+    except Exception as e:
+        import traceback as _tb
+        return jsonify({
+            "ok": False,
+            "error": f"dump failed: {type(e).__name__}: {e}",
+            "traceback": _tb.format_exc(),
+        }), 500
     return jsonify(out)
 
 
