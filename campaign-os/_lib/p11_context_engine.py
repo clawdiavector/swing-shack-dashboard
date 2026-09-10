@@ -762,16 +762,22 @@ def _mechanism_rationale(m: str, brand_id: str, context: dict) -> str:
 
 # ─── LLM PROVIDER ─────────────────────────────────────────────────────
 def _resolve_openai_chat_key() -> Optional[str]:
-    """Use the same provider-resolution path as image_gen_router."""
+    """Use the same provider-resolution path as image_gen_router.
+    Strip any trailing whitespace/newlines that may exist in env vars."""
     env = os.environ.get("OPENAI_API_KEY")
-    if env and env.startswith("sk-"):
-        return env
+    if env:
+        env = env.strip()
+        if env.startswith("sk-"):
+            return env
     # Fallback to the image_gen_router path
     try:
         from _lib.image_gen_router import _resolve_openai_key
-        return _resolve_openai_key()
+        key = _resolve_openai_key()
+        if key:
+            return key.strip()
     except Exception:
-        return env
+        pass
+    return env
 
 
 def _call_llm_chat_completions(
