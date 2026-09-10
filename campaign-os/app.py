@@ -19659,7 +19659,7 @@ def admin_feedback_dump():
                 ("integrations/" + brand_id + "/instagram.json", "instagram_config"),
             ]:
                 candidates = []
-                for base_dir in (BUNDLED_DATA_DIR, DATA_DIR, str(REPO_ROOT / "data"), "data"):
+                for base_dir in (BUNDLED_DATA_DIR, DATA_DIR, os.path.join(str(REPO_ROOT), "data"), "data"):
                     try:
                         candidates.append(str(Path(str(base_dir)) / relpath))
                     except Exception:
