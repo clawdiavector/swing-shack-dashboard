@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urlencode
@@ -210,7 +211,6 @@ def _graph_get(path: str, params: Optional[dict] = None, timeout: int = 15,
                   use_page_token: bool = False,
                   token_override: Optional[str] = None) -> dict:
     """Make a GET request to the Meta Graph API. Returns parsed JSON.
-
     Args:
       path: Graph API path (e.g. "/me/accounts", "/{page_id}/posts")
       params: query string parameters
@@ -1472,3 +1472,65 @@ def discover_pages_and_ig_account(brand_id: str) -> dict[str, Any]:
         "credential_source": creds["source"],
         "fetched": len(pages),
     }
+
+
+# ─── CURSOR / PAGINATION HELPER (P0.6) ─────────────────────────────────────
+
+def _graph_get_url(url: str, timeout: int = 15) -> dict:
+    """GET an absolute Meta Graph URL (e.g. a paging.next link from a previous
+    response). Strips the access_token from the URL before re-adding the
+    system-user / page token (which may have rotated since the URL was
+    issued). Used by the historical IG backfill to walk the full cursor.
+
+    Returns parsed JSON.
+    """
+    # Parse the URL and pull out the path + params
+    from urllib.parse import urlparse, parse_qs, urlencode
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+    # Drop access_token from the URL — we re-add our own fresh one
+    qs.pop("access_token", None)
+    qs.pop("__cft__", None)  # fbclid-style instrumentation
+    qs.pop("__tn__", None)
+    # Determine token: page vs user vs system
+    path = parsed.path.replace(GRAPH_API_BASE, "", 1) or parsed.path
+    use_page = bool(re.match(r"^/\d+/", path))
+    if use_page:
+        m = re.match(r"^/(\d+)/", path)
+        requested_page = m.group(1) if m else None
+        global _PAGE_TOKEN_CACHE
+        token = (
+            (_PAGE_TOKEN_CACHE.get(requested_page) if requested_page else None)
+            or _read_meta_page_token()
+        )
+    else:
+        token = _read_meta_access_token()
+        if not token:
+            sys_tok = _read_system_user_token()
+            if sys_tok:
+                token = sys_tok
+    if not token:
+        raise MetaAuthError("no token available for cursor fetch")
+    merged = {k: v[0] if isinstance(v, list) and len(v) == 1 else v
+              for k, v in qs.items()}
+    merged["access_token"] = token
+    full = f"{GRAPH_API_BASE}{path}?{urlencode(merged)}"
+    req = Request(full, headers={"User-Agent": "campaign-os/1.0"})
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except HTTPError as e:
+        try:
+            err_body = json.loads(e.read().decode("utf-8"))
+        except Exception:
+            err_body = {"error": {"message": str(e), "code": e.code}}
+        upstream_err = err_body.get("error", {})
+        code = upstream_err.get("code")
+        msg = upstream_err.get("message", "")
+        if code in (401, 403) or "access token" in msg.lower() or "permission" in msg.lower():
+            raise MetaAuthError(f"Graph API auth failed ({code}): {msg}",
+                                upstream=err_body) from e
+        raise MetaUpstreamError(f"Graph API error ({code}): {msg}",
+                                upstream=err_body, code=code) from e
+    except URLError as e:
+        raise MetaNetworkError(f"network error reaching Graph API: {e}") from e

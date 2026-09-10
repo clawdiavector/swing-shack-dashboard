@@ -19781,6 +19781,748 @@ def admin_feedback_dump():
     return jsonify(out)
 
 
+# ─── P0.6 HISTORICAL INTELLIGENCE BACKFILL ───────────────────────────────────
+# Endpoints that read every existing source Campaign OS can already access,
+# walk full cursor pagination where supported, and write a normalised
+# historical intelligence layer to /data/campaign-os/intelligence/history/.
+# These endpoints MUST NOT be wired into production generation paths — they
+# exist solely to populate the evidence ledger that future P1 features
+# (Caption Studio rebuild, Home rewrite, etc.) will consume.
+
+
+_P06_ROOT = Path(DATA_DIR) / "intelligence" / "history"
+_P06_INVENTORY_PATH = _P06_ROOT / "history-source-inventory.json"
+_P06_CHECKPOINT_DIR = _P06_ROOT / "checkpoints"
+_P06_IG_RAW_DIR = _P06_ROOT / "instagram" / "raw"
+_P06_IG_FLAT_PATH = _P06_ROOT / "instagram" / "posts.normalised.jsonl"
+_P06_INTERNAL_PATH = _P06_ROOT / "internal" / "internal-records.normalised.jsonl"
+_P06_CANONICAL_PATH = _P06_ROOT / "canonical" / "canonical-history.jsonl"
+_P06_EVIDENCE_LEDGER_PATH = _P06_ROOT / "evidence-ledger.json"
+_P06_WIN_PROFILES_PATH = _P06_ROOT / "win-profiles.json"
+_P06_CAPTION_INTEL_PATH = _P06_ROOT / "caption-intelligence.json"
+
+
+def _p06_init_dirs():
+    for d in (_P06_ROOT, _P06_CHECKPOINT_DIR, _P06_IG_RAW_DIR,
+              _P06_IG_RAW_DIR / "media", _P06_IG_RAW_DIR / "insights",
+              _P06_ROOT / "internal", _P06_ROOT / "canonical"):
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
+
+
+@app.route('/api/admin/history/inventory', methods=['GET'])
+def admin_history_inventory():
+    """GET /api/admin/history/inventory — probe every existing historical
+    source Campaign OS can already access. Writes (and returns)
+    history-source-inventory.json to /data/campaign-os/intelligence/history/.
+
+    Probes (no mutations, no writes outside /data/campaign-os/intelligence/):
+      - instagram_meta (swing-shack)
+      - facebook_page (swing-shack, via same token)
+      - meta_ads (windsor-cache + bundled)
+      - ga4 (env-credentials check only, never pulls unless asked)
+      - seo (search_console + ubersuggest bundled + seo-rankings)
+      - gbp (env-credentials check)
+      - postiz (env-credentials check)
+      - internal (filesystem scan of repo data/ for legacy stores)
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06_init_dirs()
+
+    inventory = {
+        "_meta": {
+            "generated_at": _dt_cls.now().isoformat(),
+            "phase": "P0.6",
+            "data_dir": str(_P06_ROOT),
+        },
+        "sources": [],
+    }
+
+    # ---- instagram_meta ----
+    ig_block = {"source": "instagram", "brand_id": "swing-shack",
+                "status": "not_configured", "connection": "live_api",
+                "earliest_record": None, "latest_record": None,
+                "records_available": 0, "records_imported": 0,
+                "pagination_complete": False,
+                "metrics_available": [], "limitations": [],
+                "data_quality": "unknown"}
+    try:
+        from _lib.meta_api import (
+            load_brand_integration, list_recent_posts_for_brand,
+            OPERATING_BRANDS,
+        )
+        ss_cfg = load_brand_integration("swing-shack")
+        if ss_cfg.get("configured"):
+            # Probe ONE page (no pagination) to see earliest/latest.
+            probe = list_recent_posts_for_brand("swing-shack", limit=25)
+            data = probe.get("data", [])
+            ig_block["status"] = "available"
+            if data:
+                timestamps = sorted([m.get("timestamp") for m in data if m.get("timestamp")])
+                ig_block["earliest_record"] = timestamps[0]
+                ig_block["latest_record"] = timestamps[-1]
+                ig_block["records_available"] = len(data)
+                ig_block["has_paging_next"] = bool(
+                    (probe.get("paging") or {}).get("next")
+                )
+            ig_block["metrics_available"] = [
+                "reach", "likes", "comments", "shares", "saved",
+                "profile_visits", "follows", "plays", "total_interactions",
+                "engagement_rate", "impressions",
+            ]
+            ig_block["data_quality"] = "high"
+            ig_block["limitations"] = [
+                "Meta Graph /{ig_user_id}/media supports cursor pagination only",
+                "No historical date filter — pagination depth = ~2 years typical",
+                "Insights metric set varies by media_type (REEL vs IMAGE vs CAROUSEL)",
+            ]
+        else:
+            ig_block["status"] = "not_configured"
+    except Exception as e:
+        ig_block["status"] = "failed"
+        ig_block["error"] = f"{type(e).__name__}: {e}"
+    inventory["sources"].append(ig_block)
+
+    # ---- facebook_page ----
+    fb_block = {"source": "facebook_page", "brand_id": "swing-shack",
+                "status": "not_configured", "connection": "live_api",
+                "earliest_record": None, "latest_record": None,
+                "records_available": 0, "records_imported": 0,
+                "pagination_complete": False,
+                "metrics_available": [], "limitations": [],
+                "data_quality": "unknown"}
+    try:
+        from _lib.meta_api import list_page_posts
+        # Try a small probe
+        fb_probe = list_page_posts(limit=5)
+        data = fb_probe.get("data", [])
+        fb_block["status"] = "available"
+        fb_block["records_available"] = len(data)
+        if data:
+            timestamps = sorted([p.get("created_time") for p in data if p.get("created_time")])
+            fb_block["earliest_record"] = timestamps[0] if timestamps else None
+            fb_block["latest_record"] = timestamps[-1] if timestamps else None
+        fb_block["has_paging_next"] = bool(
+            (fb_probe.get("paging") or {}).get("next")
+        )
+        fb_block["metrics_available"] = [
+            "post_impressions", "post_impressions_unique", "post_reactions_by_type_total",
+            "post_clicks", "post_clicks_by_type", "post_engaged_users",
+            "post_negative_feedback_by_type",
+        ]
+        fb_block["data_quality"] = "high"
+        fb_block["limitations"] = [
+            "Same Meta token as Instagram — auth applies",
+            "FB organic posts may be 1:1 cross-posts of IG reels (will dedupe by permalink)",
+        ]
+    except Exception as e:
+        fb_block["status"] = "failed"
+        fb_block["error"] = f"{type(e).__name__}: {e}"
+        # Check if it's a permission error
+        if "permission" in str(e).lower() or "(#10)" in str(e) or "(#200)" in str(e):
+            fb_block["status"] = "partial"
+            fb_block["limitations"].append(
+                "Token likely lacks pages_read_engagement scope for organic posts"
+            )
+    inventory["sources"].append(fb_block)
+
+    # ---- meta_ads (windsor + bundled) ----
+    ma_block = {"source": "meta_ads", "brand_id": "swing-shack",
+                "status": "available", "connection": "cached_file",
+                "earliest_record": None, "latest_record": None,
+                "records_available": 0, "records_imported": 0,
+                "pagination_complete": True,
+                "metrics_available": [], "limitations": [],
+                "data_quality": "medium"}
+    try:
+        ma_path = Path(DATA_DIR) / "meta-ads.json"
+        if not ma_path.exists():
+            ma_path = Path(BUNDLED_DATA_DIR) / "meta-ads.json"
+        if ma_path.exists():
+            ma_raw = json.loads(ma_path.read_text())
+            if isinstance(ma_raw, dict):
+                ma_block["records_available"] = len(ma_raw.get("data") or [])
+                date_range = ma_raw.get("date_range")
+                if date_range:
+                    ma_block["earliest_record"] = date_range.get("start")
+                    ma_block["latest_record"] = date_range.get("end")
+                if isinstance(ma_raw.get("columns"), dict):
+                    ma_block["metrics_available"] = list(ma_raw["columns"].keys())
+            elif isinstance(ma_raw, list):
+                ma_block["records_available"] = len(ma_raw)
+            ma_block["file_size_bytes"] = ma_path.stat().st_size
+            ma_block["file_path"] = str(ma_path)
+            ma_block["data_quality"] = "medium"
+            ma_block["limitations"] = [
+                "Bundled Windsor export; live pull not yet scheduled",
+                "No per-creative breakdown — aggregated to ad-level",
+            ]
+    except Exception as e:
+        ma_block["status"] = "failed"
+        ma_block["error"] = f"{type(e).__name__}: {e}"
+    inventory["sources"].append(ma_block)
+
+    # ---- google_ads ----
+    ga_block = {"source": "google_ads", "brand_id": "swing-shack",
+                "status": "available", "connection": "cached_file",
+                "earliest_record": None, "latest_record": None, "records_available": 0,
+                "records_imported": 0, "pagination_complete": True,
+                "metrics_available": [], "limitations": [], "data_quality": "medium"}
+    try:
+        ga_path = Path(DATA_DIR) / "google-ads.json"
+        if not ga_path.exists():
+            ga_path = Path(BUNDLED_DATA_DIR) / "google-ads.json"
+        if ga_path.exists():
+            ga_raw = json.loads(ga_path.read_text())
+            if isinstance(ga_raw, dict):
+                ga_block["records_available"] = len(ga_raw.get("data") or [])
+            elif isinstance(ga_raw, list):
+                ga_block["records_available"] = len(ga_raw)
+            ga_block["file_size_bytes"] = ga_path.stat().st_size
+            ga_block["file_path"] = str(ga_path)
+    except Exception as e:
+        ga_block["status"] = "failed"
+        ga_block["error"] = f"{type(e).__name__}: {e}"
+    inventory["sources"].append(ga_block)
+
+    # ---- ga4 ----
+    ga4_block = {"source": "ga4", "brand_id": "swing-shack",
+                 "status": "no_data", "connection": "live_api",
+                 "earliest_record": None, "latest_record": None, "records_available": 0,
+                 "records_imported": 0, "pagination_complete": False,
+                 "metrics_available": [], "limitations": [], "data_quality": "unknown"}
+    try:
+        from _lib.ga4_fetcher import ga4_credentials_present  # type: ignore
+        present = ga4_credentials_present()
+        if present:
+            ga4_block["status"] = "available"
+            ga4_block["limitations"] = [
+                "Live pull not run during inventory — only credentials probe",
+                "GA4 admin API has rate limits (10k tokens/day); daily pull recommended",
+            ]
+        else:
+            ga4_block["status"] = "not_configured"
+            ga4_block["limitations"] = [
+                "No GA4 service-account credentials found in env or DATA_DIR/credentials/",
+            ]
+    except Exception as e:
+        ga4_block["status"] = "partial"
+        ga4_block["error"] = f"probe: {type(e).__name__}: {e}"
+    # Also check for cached ga4-attribution.json / ga4-metrics.json
+    try:
+        for cached in ("ga4-attribution.json", "ga4-metrics.json"):
+            for base in (DATA_DIR, str(BUNDLED_DATA_DIR)):
+                p = Path(base) / cached
+                if p.exists():
+                    d = json.loads(p.read_text())
+                    rows = d.get("rows") or d.get("data") or []
+                    ga4_block.setdefault("cached_files", []).append({
+                        "file": str(p),
+                        "rows": len(rows) if isinstance(rows, list) else 0,
+                    })
+                    ga4_block["status"] = "partial" if ga4_block["status"] in ("no_data", "unknown") else ga4_block["status"]
+    except Exception:
+        pass
+    inventory["sources"].append(ga4_block)
+
+    # ---- seo ----
+    seo_block = {"source": "seo", "brand_id": "swing-shack",
+                 "status": "available", "connection": "cached_files",
+                 "earliest_record": None, "latest_record": None, "records_available": 0,
+                 "records_imported": 0, "pagination_complete": True,
+                 "metrics_available": [], "limitations": [], "data_quality": "medium"}
+    try:
+        seo_files = []
+        for fn in ("seo-rankings.json", "seo-audit.json",
+                   "ubersuggest-domain.json", "ubersuggest-competitors.json",
+                   "ubersuggest-backlinks.json", "hashtag_seo_pack.json"):
+            for base in (DATA_DIR, str(BUNDLED_DATA_DIR)):
+                p = Path(base) / fn
+                if p.exists():
+                    d = json.loads(p.read_text())
+                    if isinstance(d, list):
+                        rows = len(d)
+                    elif isinstance(d, dict):
+                        rows = sum(
+                            len(v) if isinstance(v, list) else 1
+                            for v in d.values()
+                        )
+                    else:
+                        rows = 0
+                    seo_files.append({"file": str(p), "rows": rows})
+                    seo_block["records_available"] += rows
+        seo_block["cached_files"] = seo_files
+        seo_block["metrics_available"] = [
+            "rank", "clicks", "impressions", "ctr", "position",
+            "keyword_difficulty", "search_volume", "backlinks_count",
+        ]
+        seo_block["limitations"] = [
+            "Mix of providers (Search Console + Ubersuggest + legacy SEO rankings)",
+            "Daily granularity depends on provider export cadence",
+            "Never silently merge metrics across providers — tag source",
+        ]
+    except Exception as e:
+        seo_block["status"] = "failed"
+        seo_block["error"] = f"{type(e).__name__}: {e}"
+    inventory["sources"].append(seo_block)
+
+    # ---- gbp ----
+    gbp_block = {"source": "gbp", "brand_id": "swing-shack",
+                 "status": "available", "connection": "live_api",
+                 "earliest_record": None, "latest_record": None, "records_available": 0,
+                 "records_imported": 0, "pagination_complete": False,
+                 "metrics_available": [], "limitations": [], "data_quality": "unknown"}
+    try:
+        # Check for GBP creds in env
+        gbp_creds = os.environ.get("GBP_REFRESH_TOKEN") or os.environ.get("GBP_TOKEN_FILE")
+        if gbp_creds:
+            gbp_block["status"] = "available"
+            gbp_block["metrics_available"] = [
+                "views_search", "views_maps", "actions_phone", "actions_driving_directions",
+                "actions_website", "local_post_views", "queries_direct", "queries_indirect",
+                "queries_chain",
+            ]
+        else:
+            gbp_block["status"] = "not_configured"
+            gbp_block["limitations"].append("GBP_REFRESH_TOKEN not in env")
+    except Exception as e:
+        gbp_block["status"] = "failed"
+        gbp_block["error"] = f"{type(e).__name__}: {e}"
+    # Check for cached GBP files
+    try:
+        gbp_dir = Path(DATA_DIR) / "gbp-daily-plans"
+        if not gbp_dir.exists():
+            gbp_dir = Path(BUNDLED_DATA_DIR) / "gbp-daily-plans"
+        if gbp_dir.exists():
+            cached = sorted(gbp_dir.glob("*.json"))
+            gbp_block["cached_files_count"] = len(cached)
+            gbp_block["cached_files_sample"] = [str(p) for p in cached[:5]]
+    except Exception:
+        pass
+    inventory["sources"].append(gbp_block)
+
+    # ---- postiz ----
+    postiz_block = {"source": "postiz", "brand_id": "swing-shack",
+                    "status": "available", "connection": "live_api",
+                    "earliest_record": None, "latest_record": None, "records_available": 0,
+                    "records_imported": 0, "pagination_complete": False,
+                    "metrics_available": [], "limitations": [], "data_quality": "medium"}
+    try:
+        postiz_key = os.environ.get("POSTIZ_API_KEY")
+        if postiz_key:
+            postiz_block["status"] = "available"
+            postiz_block["metrics_available"] = [
+                "post_published_at", "destination_platforms",
+                "post_status", "schedule_metadata",
+            ]
+        else:
+            postiz_block["status"] = "not_configured"
+    except Exception as e:
+        postiz_block["status"] = "failed"
+        postiz_block["error"] = f"{type(e).__name__}: {e}"
+    # Inspect bundled postiz event files
+    try:
+        events_dir = Path(BUNDLED_DATA_DIR) / "events" / "postiz"
+        if events_dir.exists():
+            ev_files = sorted(events_dir.glob("*.json"))
+            postiz_block["cached_event_files"] = len(ev_files)
+            postiz_block["cached_event_files_sample"] = [str(p) for p in ev_files[:5]]
+    except Exception:
+        pass
+    inventory["sources"].append(postiz_block)
+
+    # ---- internal ----
+    int_block = {"source": "internal", "brand_id": "*",
+                "status": "available", "connection": "filesystem",
+                "earliest_record": None, "latest_record": None,
+                "records_available": 0, "records_imported": 0,
+                "pagination_complete": True,
+                "metrics_available": [], "limitations": [], "data_quality": "high"}
+    try:
+        # Scan data/ for legacy record-bearing files
+        legacy_kinds = {
+            "captions": ["captions.json", "caption-variants.json"],
+            "hooks": ["hooks-bank.json", "hook-bank.json"],
+            "headlines": ["headlines.json", "headline-bank.json"],
+            "ctas": ["cta_knowledge.json", "cta-performance.json"],
+            "published": ["published-items.json", "published-posts.json",
+                          "autopublished-items.json"],
+            "drafts": ["drafts.json", "blog-drafts.json"],
+            "approvals": ["approval-queue.json", "approval-actions.json",
+                          "approval-summary.json", "approval-expiry.json"],
+            "rejections": ["rejections.json"],
+            "edits": ["edits.json", "auto-swaps.json"],
+            "assets": ["asset-needs.json", "asset-image-spec.json"],
+            "dna": ["brand-directory/"],
+            "reports": ["_snapshot_weekly.json", "weekly-report-history.json"],
+            "performance": ["performance-history.json", "history.json"],
+            "strategy": ["strategy/", "brand-planning/", "directives/"],
+            "intel": ["seo-rankings.json", "ga4-attribution.json",
+                      "ga4-metrics.json"],
+        }
+        seen = {}
+        for kind, names in legacy_kinds.items():
+            for name in names:
+                for base in (DATA_DIR, str(BUNDLED_DATA_DIR)):
+                    p = Path(base) / name
+                    if p.exists():
+                        if p.is_dir():
+                            files = list(p.glob("**/*.json"))
+                            seen.setdefault(kind, []).extend([str(f) for f in files[:20]])
+                        else:
+                            seen.setdefault(kind, []).append(str(p))
+        int_block["file_groups"] = seen
+        int_block["total_legacy_files"] = sum(len(v) for v in seen.values())
+        int_block["file_group_count"] = len(seen)
+    except Exception as e:
+        int_block["status"] = "failed"
+        int_block["error"] = f"{type(e).__name__}: {e}"
+    inventory["sources"].append(int_block)
+
+    # Persist
+    try:
+        _P06_INVENTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _P06_INVENTORY_PATH.write_text(json.dumps(inventory, indent=2))
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"persist failed: {e}",
+                        "inventory": inventory}), 500
+
+    return jsonify({
+        "ok": True,
+        "inventory_path": str(_P06_INVENTORY_PATH),
+        "sources_inventoried": len(inventory["sources"]),
+        "summary": {
+            src["source"]: src["status"]
+            for src in inventory["sources"]
+        },
+    })
+
+
+@app.route('/api/admin/history/ig-backfill', methods=['POST'])
+def admin_history_ig_backfill():
+    """POST /api/admin/history/ig-backfill — full historical IG backfill
+    for swing-shack. Walks the cursor pagination until no next cursor.
+    Stores:
+      - /data/campaign-os/intelligence/history/instagram/raw/media/<ig_media_id>.json
+      - /data/campaign-os/intelligence/history/instagram/raw/insights/<ig_media_id>.json
+      - /data/campaign-os/intelligence/history/instagram/posts.normalised.jsonl (one per media)
+      - /data/campaign-os/intelligence/history/checkpoints/instagram.json
+
+    Skips media already imported (idempotent on ig_media_id).
+    Does NOT touch meta-post-index.json or image-performance.json — that's
+    the live P0 runtime contract. P0.6 reads them but writes to /history/ only.
+
+    Body:
+      {"max_pages": 0 (0 = no limit), "page_size": 50, "include_insights": true}
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06_init_dirs()
+
+    body = request.get_json(force=True, silent=True) or {}
+    max_pages = int(body.get("max_pages") or 0)
+    page_size = min(int(body.get("page_size") or 50), 100)
+    include_insights = bool(body.get("include_insights", True))
+
+    try:
+        from _lib.meta_api import (
+            load_brand_integration, list_recent_posts_for_brand,
+            get_post_insights_for_brand, _graph_get_url,
+            OPERATING_BRANDS,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"meta_api unavailable: {e}"}), 500
+
+    cfg = load_brand_integration("swing-shack")
+    if not cfg.get("configured"):
+        return jsonify({"ok": False,
+                        "error": "swing-shack instagram not configured"}), 400
+    if "swing-shack" not in OPERATING_BRANDS:
+        return jsonify({"ok": False, "error": "swing-shack not an operating brand"}), 400
+
+    # Checkpoint
+    ckpt_path = _P06_CHECKPOINT_DIR / "instagram.json"
+    ckpt = {
+        "last_cursor": None,
+        "pages_processed": 0,
+        "media_seen": 0,
+        "new_media": 0,
+        "media_skipped_existing": 0,
+        "insights_fetched": 0,
+        "insights_unavailable": 0,
+        "errors": [],
+        "started_at": _dt_cls.now().isoformat(),
+        "updated_at": None,
+        "completed": False,
+    }
+    if ckpt_path.exists():
+        try:
+            ckpt.update(json.loads(ckpt_path.read_text()))
+            ckpt["started_at"] = _dt_cls.now().isoformat()  # new run timestamp
+        except Exception:
+            pass
+
+    stats = {
+        "media_seen": 0,
+        "new_media": 0,
+        "media_skipped_existing": 0,
+        "insights_fetched": 0,
+        "insights_unavailable": 0,
+        "pages_processed": 0,
+        "earliest_seen": None,
+        "latest_seen": None,
+        "errors": [],
+        "by_media_type": {},
+        "by_year": {},
+        "by_month": {},
+    }
+
+    # Walk via the public list_recent_posts_for_brand for page 1, then
+    # follow the paging.next URL via _graph_get to get subsequent pages.
+    ig_account_id = cfg.get("ig_business_account_id")
+    cursor_url = None
+    pages_done = 0
+
+    while True:
+        pages_done += 1
+        if max_pages and pages_done > max_pages:
+            ckpt["pages_processed"] = pages_done - 1
+            ckpt["updated_at"] = _dt_cls.now().isoformat()
+            ckpt_path.write_text(json.dumps(ckpt, indent=2))
+            break
+        try:
+            if cursor_url is None:
+                # First page — use the brand helper
+                resp = list_recent_posts_for_brand(
+                    "swing-shack", limit=page_size
+                )
+            else:
+                # Subsequent pages — _graph_get follows paging.next
+                resp = _graph_get_url(cursor_url, ig_account_id=ig_account_id)
+        except Exception as e:
+            stats["errors"].append({
+                "page": pages_done, "type": type(e).__name__, "msg": str(e)
+            })
+            ckpt["errors"] = stats["errors"]
+            ckpt["pages_processed"] = pages_done
+            ckpt["updated_at"] = _dt_cls.now().isoformat()
+            ckpt_path.write_text(json.dumps(ckpt, indent=2))
+            return jsonify({"ok": False, "error": f"page {pages_done} failed: {e}",
+                            "stats": stats, "checkpoint": str(ckpt_path)}), 500
+
+        media_list = resp.get("data", [])
+        stats["media_seen"] += len(media_list)
+        stats["pages_processed"] = pages_done
+
+        for m in media_list:
+            mid = m.get("id")
+            if not mid:
+                continue
+            ts = m.get("timestamp")
+            if ts:
+                if stats["earliest_seen"] is None or ts < stats["earliest_seen"]:
+                    stats["earliest_seen"] = ts
+                if stats["latest_seen"] is None or ts > stats["latest_seen"]:
+                    stats["latest_seen"] = ts
+                try:
+                    y = ts[:4]
+                    stats["by_year"][y] = stats["by_year"].get(y, 0) + 1
+                    ym = ts[:7]
+                    stats["by_month"][ym] = stats["by_month"].get(ym, 0) + 1
+                except Exception:
+                    pass
+            mt = m.get("media_type") or "UNKNOWN"
+            stats["by_media_type"][mt] = stats["by_media_type"].get(mt, 0) + 1
+
+            media_path = _P06_IG_RAW_DIR / "media" / f"{mid}.json"
+            if media_path.exists():
+                stats["media_skipped_existing"] += 1
+                # Still refresh insights if requested and not yet present
+                if include_insights:
+                    insights_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
+                    if not insights_path.exists():
+                        try:
+                            ins = get_post_insights_for_brand("swing-shack", mid)
+                            insights_path.write_text(json.dumps(ins, indent=2, default=str))
+                            if ins.get("ok") or "data" in ins:
+                                stats["insights_fetched"] += 1
+                            else:
+                                stats["insights_unavailable"] += 1
+                        except Exception as e:
+                            stats["insights_unavailable"] += 1
+                            stats["errors"].append({
+                                "media_id": mid, "phase": "insights",
+                                "type": type(e).__name__, "msg": str(e),
+                            })
+            else:
+                # Persist raw media record (include _meta for provenance)
+                m_with_meta = dict(m)
+                m_with_meta["_provenance"] = {
+                    "source": "instagram_meta",
+                    "ig_account_id": ig_account_id,
+                    "brand_id": "swing-shack",
+                    "ingested_at": _dt_cls.now().isoformat(),
+                    "historical_backfill": True,
+                    "data_quality": "high" if mid and m.get("permalink") else "low",
+                }
+                try:
+                    media_path.write_text(json.dumps(m_with_meta, indent=2, default=str))
+                    stats["new_media"] += 1
+                except Exception as e:
+                    stats["errors"].append({
+                        "media_id": mid, "phase": "write",
+                        "type": type(e).__name__, "msg": str(e),
+                    })
+
+                # Pull insights
+                if include_insights:
+                    insights_path = _P06_IG_RAW_DIR / "insights" / f"{mid}.json"
+                    try:
+                        ins = get_post_insights_for_brand("swing-shack", mid)
+                        insights_path.write_text(json.dumps(ins, indent=2, default=str))
+                        if ins.get("ok") or "data" in ins:
+                            stats["insights_fetched"] += 1
+                        else:
+                            stats["insights_unavailable"] += 1
+                    except Exception as e:
+                        # Insights not available is a legitimate state, NOT zero
+                        insights_path.write_text(json.dumps({
+                            "_available": False,
+                            "error": f"{type(e).__name__}: {e}",
+                            "_provenance": {
+                                "source": "instagram_meta",
+                                "ingested_at": _dt_cls.now().isoformat(),
+                            },
+                        }, indent=2))
+                        stats["insights_unavailable"] += 1
+                        # Don't pollute errors[] — UNAVAILABLE is a documented outcome
+
+        # Next cursor?
+        next_url = (resp.get("paging") or {}).get("next")
+        if not next_url:
+            ckpt["completed"] = True
+            ckpt["pages_processed"] = pages_done
+            ckpt["updated_at"] = _dt_cls.now().isoformat()
+            ckpt["last_cursor"] = None
+            ckpt_path.write_text(json.dumps(ckpt, indent=2))
+            break
+        cursor_url = next_url
+
+        # Periodic checkpoint (after page 1) so progress is durable
+        if pages_done == 1 or pages_done % 5 == 0:
+            ckpt.update({
+                "pages_processed": pages_done,
+                "updated_at": _dt_cls.now().isoformat(),
+                "last_cursor": cursor_url,
+                "media_seen": stats["media_seen"],
+                "new_media": stats["new_media"],
+                "media_skipped_existing": stats["media_skipped_existing"],
+                "insights_fetched": stats["insights_fetched"],
+                "insights_unavailable": stats["insights_unavailable"],
+                "errors": stats["errors"][-20:],
+            })
+            ckpt_path.write_text(json.dumps(ckpt, indent=2))
+
+    # Final checkpoint
+    ckpt.update({
+        "pages_processed": stats["pages_processed"],
+        "updated_at": _dt_cls.now().isoformat(),
+        "media_seen": stats["media_seen"],
+        "new_media": stats["new_media"],
+        "media_skipped_existing": stats["media_skipped_existing"],
+        "insights_fetched": stats["insights_fetched"],
+        "insights_unavailable": stats["insights_unavailable"],
+        "errors": stats["errors"][-20:],
+        "completed": True,
+    })
+    ckpt_path.write_text(json.dumps(ckpt, indent=2))
+    return jsonify({
+        "ok": True,
+        "checkpoint": str(ckpt_path),
+        "stats": stats,
+    })
+
+
+@app.route('/api/admin/history/summarize', methods=['GET'])
+def admin_history_summarize():
+    """GET /api/admin/history/summarize — read the checkpoint + raw dir
+    and report counts without re-pulling. Used for the report's
+    'INSTAGRAM BACKFILL' section.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    _p06_init_dirs()
+
+    ckpt_path = _P06_CHECKPOINT_DIR / "instagram.json"
+    ckpt = json.loads(ckpt_path.read_text()) if ckpt_path.exists() else {}
+    media_files = list((_P06_IG_RAW_DIR / "media").glob("*.json"))
+    insights_files = list((_P06_IG_RAW_DIR / "insights").glob("*.json"))
+
+    # By-media-type breakdown
+    type_counts = {}
+    year_counts = {}
+    month_counts = {}
+    earliest = None
+    latest = None
+    permalinks = 0
+    captions = 0
+    for mp in media_files:
+        try:
+            d = json.loads(mp.read_text())
+        except Exception:
+            continue
+        mt = d.get("media_type") or "UNKNOWN"
+        type_counts[mt] = type_counts.get(mt, 0) + 1
+        ts = d.get("timestamp")
+        if ts:
+            if earliest is None or ts < earliest:
+                earliest = ts
+            if latest is None or ts > latest:
+                latest = ts
+            y = ts[:4]
+            year_counts[y] = year_counts.get(y, 0) + 1
+            ym = ts[:7]
+            month_counts[ym] = month_counts.get(ym, 0) + 1
+        if d.get("permalink"):
+            permalinks += 1
+        if d.get("caption"):
+            captions += 1
+
+    # By-insight-availability
+    insights_ok = 0
+    insights_unavailable = 0
+    for ip in insights_files:
+        try:
+            d = json.loads(ip.read_text())
+            if d.get("_available") is False:
+                insights_unavailable += 1
+            else:
+                insights_ok += 1
+        except Exception:
+            insights_unavailable += 1
+
+    return jsonify({
+        "ok": True,
+        "checkpoint": str(ckpt_path),
+        "checkpoint_completed": ckpt.get("completed", False),
+        "media_files_count": len(media_files),
+        "insights_files_count": len(insights_files),
+        "earliest_post": earliest,
+        "latest_post": latest,
+        "by_media_type": type_counts,
+        "by_year": year_counts,
+        "by_month": month_counts,
+        "permalinks_present": permalinks,
+        "captions_present": captions,
+        "insights_ok": insights_ok,
+        "insights_unavailable": insights_unavailable,
+        "stats_from_last_run": ckpt,
+    })
+
+
 @app.route('/api/admin/data-freshness', methods=['GET'])
 def admin_data_freshness():
     """GET /api/admin/data-freshness — read from data/freshness.json which is
