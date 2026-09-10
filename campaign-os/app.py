@@ -23561,12 +23561,14 @@ def admin_p06a_semantic_v2():
 
 @app.route('/api/admin/knowledge/audit', methods=['GET'])
 def admin_knowledge_audit():
-    """P1.1C — audit canonical knowledge stores. Returns provenance for every
-    fact + flags any fact whose provenance traces back to user_brief /
-    generated / test_fixture / session_brief / unknown."""
+    """P1.1C — audit canonical knowledge stores. Returns provenance + verified
+    status for every fact. Flags facts whose source_class is non-canonical
+    (session_brief / generated / test_fixture / unknown) AND facts whose
+    verified_status is quarantined."""
     from _lib.p11_context_engine import _load_brand_knowledge, OPERATING_BRANDS
     audit = {"ok": True, "brands": {}}
     contaminated = []
+    quarantined = []
     for brand in OPERATING_BRANDS:
         kb = _load_brand_knowledge(brand)
         if not kb:
@@ -23582,16 +23584,22 @@ def admin_knowledge_audit():
                 if not isinstance(f, dict):
                     continue
                 sc = (f.get("source_class") or "unknown").lower()
+                verified = (f.get("verified_status") or "").lower()
                 facts.append({
                     "fact_id": f.get("fact_id"),
                     "type": f.get("type"),
                     "subject": f.get("subject"),
                     "source_class": sc,
                     "authority_level": f.get("authority_level"),
+                    "verified_status": verified,
+                    "status": f.get("status"),
+                    "manufacturer_match": f.get("manufacturer_match"),
+                    "manufacturer_audit": f.get("manufacturer_audit"),
                     "source": f.get("source"),
                     "source_path": f.get("source_path"),
                     "first_seen": f.get("first_seen"),
                     "provenance": f.get("provenance"),
+                    "do_not_use": f.get("details", {}).get("do_not_use") if isinstance(f.get("details"), dict) else None,
                 })
                 if sc in ("session_brief", "generated", "test_fixture", "unknown"):
                     contaminated.append({
@@ -23601,9 +23609,21 @@ def admin_knowledge_audit():
                         "source_class": sc,
                         "action_recommended": "remove_or_reclassify",
                     })
+                if verified in ("quarantined", "unsupported", "misnamed"):
+                    quarantined.append({
+                        "brand": brand,
+                        "fact_id": f.get("fact_id"),
+                        "subject": f.get("subject"),
+                        "verified_status": verified,
+                        "manufacturer_match": f.get("manufacturer_match"),
+                        "manufacturer_audit": f.get("manufacturer_audit"),
+                        "action": "excluded_from_generation_context",
+                    })
         audit["brands"][brand] = {"loaded": True, "facts": facts}
     audit["contaminated_facts"] = contaminated
     audit["contaminated_count"] = len(contaminated)
+    audit["quarantined_facts"] = quarantined
+    audit["quarantined_count"] = len(quarantined)
     return jsonify(audit)
 
 
