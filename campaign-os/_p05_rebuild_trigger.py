@@ -10,3 +10,4 @@ post-volume-mount, the durability contract holds.
 The file is intentionally a no-op module — the app doesn't import it.
 """
 REBUILD_TRIGGER = "P0.5-rebuild-test-2026-09-10"
+# Second rebuild for P0.5 write-test — 1789020996
