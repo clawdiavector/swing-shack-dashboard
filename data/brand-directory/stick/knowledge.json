@@ -1,0 +1,197 @@
+{
+  "schema_version": "p11b-v1",
+  "brand_id": "stick",
+  "product_brands": {
+    "takomo": {
+      "fact_id": "stick-pb-takomo",
+      "type": "product_brand",
+      "subject": "takomo",
+      "value": "Finnish golf club maker (forged irons). Lives under Stick as a product_brand. Operating brand is stick.",
+      "source": "data/brand-directory/takomo/README.md + data/brand-directory/stick/README.md",
+      "source_path": "data/brand-directory/takomo/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "country": "Finland",
+        "specialty": "forged irons",
+        "process": "forged once at 950°C, then normalised"
+      }
+    }
+  },
+  "products": [
+    {
+      "fact_id": "tk-product-101T",
+      "type": "product",
+      "subject": "Takomo 101T",
+      "value": "Takomo 101T entry forged iron",
+      "source": "data/brand-directory/takomo/README.md + data/brand-directory/takomo/visual-spec/archetypes.json",
+      "source_path": "data/brand-directory/takomo/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "category": "iron",
+        "positioning": "entry forged iron",
+        "specs": {
+          "loft_28_deg": "28° (per visual-spec archetypes.json example prompt seed)",
+          "lie_59_deg": "59° (per visual-spec archetypes.json example prompt seed)",
+          "length_39_in": "39\" (per visual-spec archetypes.json example prompt seed)",
+          "shaft_example": "DG S300 (per visual-spec archetypes.json example prompt seed; not guaranteed for every build)",
+          "grip_example": "Tour Velvet (per visual-spec archetypes.json example prompt seed; not guaranteed for every build)"
+        },
+        "specs_caveat": "The 28°/59°/39\"/DG S300/Tour Velvet values come from a single example-prompt-seed in archetypes.json. Treat as the reference frame the brand uses in spec cards; do not present as universal for every build."
+      }
+    },
+    {
+      "fact_id": "tk-product-101T-CB",
+      "type": "product",
+      "subject": "Takomo 101T-CB",
+      "value": "101T cavity-back variant",
+      "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "confidence": "medium",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "category": "iron",
+        "variant_of": "Takomo 101T",
+        "specs_caveat": "No further specs known in canonical source — leave unknown."
+      }
+    },
+    {
+      "fact_id": "tk-product-101T-MB",
+      "type": "product",
+      "subject": "Takomo 101T-MB",
+      "value": "101T muscle-back variant",
+      "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "confidence": "medium",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "category": "iron",
+        "variant_of": "Takomo 101T",
+        "specs_caveat": "No further specs known in canonical source — leave unknown."
+      }
+    },
+    {
+      "fact_id": "tk-product-201T",
+      "type": "product",
+      "subject": "Takomo 201T",
+      "value": "Higher-tier Takomo iron",
+      "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "confidence": "low",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "category": "iron",
+        "specs_caveat": "Only the name is in canonical source — leave all other fields unknown."
+      }
+    },
+    {
+      "fact_id": "tk-product-101T-Pro",
+      "type": "product",
+      "subject": "Takomo 101T Pro",
+      "value": "Pro-tier Takomo 101T variant",
+      "source": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "source_path": "data/brand-directory/takomo/voice/do-say-dont-say.md",
+      "confidence": "low",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "category": "iron",
+        "variant_of": "Takomo 101T",
+        "specs_caveat": "Only the name is in canonical source — leave all other fields unknown."
+      }
+    }
+  ],
+  "services": [
+    {
+      "fact_id": "stick-service-fitting",
+      "type": "service",
+      "subject": "fitting (cross-reference to swing-shack)",
+      "value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+      "source": "data/brand-directory/stick/README.md",
+      "source_path": "data/brand-directory/stick/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "operated_by": "swing-shack",
+        "written_by": "stick"
+      }
+    },
+    {
+      "fact_id": "stick-service-takomo-fitting",
+      "type": "service",
+      "subject": "Takomo 101T fitting",
+      "value": "TrackMan session where the player tries the Takomo 101T in their numbers",
+      "source": "data/brand-directory/takomo/copy/ctas.md",
+      "source_path": "data/brand-directory/takomo/copy/ctas.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "product": "Takomo 101T",
+        "uses_trackman": true,
+        "booking_url": "swingshack.co.za"
+      }
+    }
+  ],
+  "voice_rules": {
+    "source": "data/brand-directory/stick/README.md + data/brand-directory/stick/voice/do-say-dont-say.md",
+    "do_say": [
+      "range myth",
+      "off-the-rack",
+      "fitting",
+      "TrackMan",
+      "data over hype",
+      "spoiler",
+      "we disagree",
+      "your swing is not your mate's swing"
+    ],
+    "dont_say": [
+      "Take your game to the next level",
+      "Elevate",
+      "Unleash",
+      "—",
+      "Bag Drop / Swing Shack (cross-brand text banned unless approved)"
+    ]
+  },
+  "cta_rules": {
+    "source": "data/brand-directory/takomo/copy/ctas.md",
+    "default_cta": "Build your 101T → swingshack.co.za/takomo",
+    "hard_ctas": [
+      "Build your 101T → swingshack.co.za/takomo",
+      "Spec the 101T → swingshack.co.za/takomo/spec",
+      "Order head-only → swingshack.co.za/takomo",
+      "Try the 101T on TrackMan → swingshack.co.za",
+      "Book a Takomo fitting → swingshack.co.za"
+    ],
+    "soft_ctas": [
+      "The spec is the spec.",
+      "Forged once. Normalised. The grain is the spec.",
+      "Head only, head + shaft, full set.",
+      "The 101T sits at 7° of bounce.",
+      "Nothing extra, nothing missing."
+    ]
+  }
+}

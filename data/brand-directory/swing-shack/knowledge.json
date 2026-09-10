@@ -1,0 +1,224 @@
+{
+  "schema_version": "p11b-v1",
+  "brand_id": "swing-shack",
+  "generated_at": "2026-09-10T15:55:00+00:00",
+  "services": [
+    {
+      "fact_id": "ss-service-coaching",
+      "type": "service",
+      "subject": "coaching",
+      "value": "1-on-1 TrackMan-backed coaching sessions",
+      "source": "data/brand-directory/swing-shack/README.md + voice/do-say-dont-say.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "duration_minutes": null,
+        "uses_trackman": true,
+        "fitter_or_coach": "Swing Shack coaches",
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-fitting",
+      "type": "service",
+      "subject": "fitting",
+      "value": "Custom club fitting service using TrackMan data",
+      "source": "data/brand-directory/swing-shack/README.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "uses_trackman": true,
+        "subtypes": ["driver fitting", "iron fitting", "wedge fitting", "putter fitting", "full bag fitting"],
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-putter-fitting",
+      "type": "service",
+      "subject": "putter fitting",
+      "value": "Putter-specific fitting session focused on stroke type, eye position, length, lie, grip size",
+      "source": "data/brand-directory/swing-shack/README.md + voice/tone-rules.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "uses_trackman": true,
+        "primary_variables": ["length", "lie angle", "grip size", "head weight", "stroke type match"],
+        "audience_tension": "miss pattern / alignment / short game consistency",
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-driver-fitting",
+      "type": "service",
+      "subject": "driver fitting",
+      "value": "Driver-specific fitting focused on launch conditions, shaft, swing speed, attack angle",
+      "source": "data/brand-directory/swing-shack/README.md + voice/do-say-dont-say.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "uses_trackman": true,
+        "primary_variables": ["shaft flex", "shaft weight", "loft", "swing speed", "attack angle", "smash factor", "launch conditions"],
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-iron-fitting",
+      "type": "service",
+      "subject": "iron fitting",
+      "value": "Iron-set fitting using TrackMan carry + dispersion data",
+      "source": "data/brand-directory/swing-shack/README.md + voice/tone-rules.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "uses_trackman": true,
+        "primary_variables": ["shaft flex", "shaft weight", "lie angle", "loft", "set composition"],
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-wedge-fitting",
+      "type": "service",
+      "subject": "wedge fitting",
+      "value": "Wedge fitting focused on bounce, grind, loft, short-game scoring",
+      "source": "data/brand-directory/swing-shack/README.md + voice/tone-rules.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "uses_trackman": true,
+        "primary_variables": ["bounce", "grind", "loft", "shaft flex", "shaft weight"],
+        "audience_tension": "scoring inside 100 yards / bunker / rough",
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-tpi-assessment",
+      "type": "service",
+      "subject": "TPI assessment",
+      "value": "Titleist Performance Institute physical-swing assessment",
+      "source": "data/brand-directory/swing-shack/README.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "method": "TPI",
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-trackman-session",
+      "type": "service",
+      "subject": "trackman session",
+      "value": "30-minute data-only TrackMan session",
+      "source": "data/brand-directory/swing-shack/copy/ctas.md",
+      "source_path": "data/brand-directory/swing-shack/copy/ctas.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "duration_minutes": 30,
+        "format": "data session, not a fitting",
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "ss-service-membership",
+      "type": "service",
+      "subject": "membership",
+      "value": "Swing Shack membership / bay waiting",
+      "source": "data/brand-directory/swing-shack/copy/ctas.md",
+      "source_path": "data/brand-directory/swing-shack/copy/ctas.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "booking_url": "swingshack.co.za",
+        "note": "Price unknown — not advertised in canonical sources"
+      }
+    },
+    {
+      "fact_id": "ss-service-indoor-bay",
+      "type": "service",
+      "subject": "indoor bay play",
+      "value": "Indoor TrackMan-equipped bay play / practice",
+      "source": "data/brand-directory/swing-shack/README.md",
+      "source_path": "data/brand-directory/swing-shack/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "facility": "indoor bay with TrackMan",
+        "booking_url": "swingshack.co.za"
+      }
+    }
+  ],
+  "products": [
+    {
+      "fact_id": "ss-product-retail-clubs",
+      "type": "product",
+      "subject": "retail club brands",
+      "value": "Swing Shack retails clubs from multiple brands (Titleist, Sub 70, Vice, Mileseey, Takomo via Stick)",
+      "source": "data/brand-directory/swing-shack/voice/do-say-dont-say.md + examples",
+      "source_path": "data/brand-directory/swing-shack/voice/do-say-dont-say.md",
+      "confidence": "medium",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "note": "Specific retail pricing not in canonical source — only use with care."
+      }
+    }
+  ],
+  "voice_rules": {
+    "source": "data/brand-directory/swing-shack/voice/do-say-dont-say.md",
+    "do_say": ["TrackMan", "fitting", "club fitting", "custom fit", "shaft", "smash factor", "attack angle", "swing speed", "loft", "lie", "carry"],
+    "dont_say": [
+      "Unlock your potential",
+      "Take your game to the next level",
+      "World-class",
+      "The ultimate golfing experience",
+      "Elevate your game",
+      "Unleash",
+      "Master the art",
+      "—"
+    ]
+  },
+  "cta_rules": {
+    "source": "data/brand-directory/swing-shack/copy/ctas.md",
+    "default_cta": "Book your session → swingshack.co.za",
+    "banned": ["Click here", "Learn more", "Sign up now", "Shop now", "Buy now"]
+  }
+}

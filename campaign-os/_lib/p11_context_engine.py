@@ -71,6 +71,9 @@ MECHANISM_FIT: Dict[str, Dict[str, int]] = {
 OPERATING_BRANDS = ("swing-shack", "stick", "bag-drop")
 PRODUCT_BRANDS = {"takomo": "stick"}
 
+# Canonical brand knowledge directory
+_P11B_KNOWLEDGE_DIR_NAME = "knowledge.json"
+
 # Rhetorical structure families — distinct from mechanisms
 RHETORICAL_STRUCTURES = [
     "myth_vs_reality", "question_then_answer", "listicle_3_things",
@@ -141,6 +144,131 @@ def _cosine(a: list, b: list) -> float:
     na = sum(x * x for x in a) ** 0.5
     nb = sum(x * x for x in b) ** 0.5
     return dot / (na * nb) if na and nb else 0.0
+
+
+# ─── P1.1B CANONICAL KNOWLEDGE STORE ──────────────────────────────────
+def _load_brand_knowledge(brand_id: str) -> dict:
+    """Load the canonical knowledge.json for a brand. Prefers DATA_DIR.
+    Each fact carries {fact_id, brand_id, type, subject, value, source,
+    source_path, confidence, valid_from, valid_to, status, last_verified,
+    details}.
+    """
+    # Prefer DATA_DIR (volume) over bundled data
+    for base in (_data_dir(), _bundled_data_dir()):
+        p = Path(base) / "brand-directory" / brand_id / _P11B_KNOWLEDGE_DIR_NAME
+        if p.exists():
+            try:
+                return json.loads(p.read_text())
+            except Exception:
+                continue
+    return {}
+
+
+def _knowledge_facts_matching(knowledge: dict, subject_keys: List[str]) -> List[dict]:
+    """Return facts whose subject matches any of the keys (case-insensitive)."""
+    facts = []
+    for cat in ("services", "products", "product_brands"):
+        for f in (knowledge.get(cat) or []):
+            sub = (f.get("subject") or "").lower()
+            if any(k.lower() in sub for k in subject_keys):
+                facts.append(f)
+    return facts
+
+
+def _is_fact_active(fact: dict) -> bool:
+    """A fact is active if status=='active' and today is within valid_from/valid_to."""
+    status = (fact.get("status") or "active").lower()
+    if status != "active":
+        return False
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    vf = fact.get("valid_from")
+    vt = fact.get("valid_to")
+    if vf and today < vf:
+        return False
+    if vt and today > vt:
+        return False
+    return True
+
+
+def _facts_to_grounded_claims(
+    candidate_text: str,
+    knowledge_facts: List[dict],
+    user_brief: str = "",
+) -> List[dict]:
+    """For each potentially-factual claim in candidate_text, decide its
+    grounding_status against the brand's canonical facts + user_brief.
+
+    Returns a list of {claim, claim_type, source_fact_id, grounding_status}
+    where status ∈ {grounded, user_supplied, soft_creative_claim, unsupported}.
+    """
+    claims = []
+    # 1. Percentage claims
+    for pct in re.findall(r"\b\d{1,3}\s?%", candidate_text):
+        pcts = pct.strip()
+        grounded = None
+        for f in knowledge_facts:
+            for v in (f.get("details") or {}).values():
+                if isinstance(v, str) and pcts in v:
+                    grounded = f.get("fact_id")
+                    break
+            if grounded:
+                break
+        if not grounded and pcts in (user_brief or ""):
+            grounded = "user_brief"
+        claims.append({
+            "claim": pcts,
+            "claim_type": "percentage",
+            "source_fact_id": grounded,
+            "grounding_status": "grounded" if grounded else "unsupported",
+        })
+    # 2. Distance / speed claims
+    for hit in re.findall(r"\b\d+(\.\d+)?\s*(metres|meters|yards|km/h|mph|seconds?|minutes?)\b", candidate_text, re.I):
+        num = hit[0]
+        unit = hit[1].lower()
+        grounded = None
+        for f in knowledge_facts:
+            for v in (f.get("details") or {}).values():
+                if isinstance(v, str) and num in v and unit.lower() in v.lower():
+                    grounded = f.get("fact_id")
+                    break
+            if grounded:
+                break
+        claims.append({
+            "claim": f"{num} {unit}",
+            "claim_type": "measurable_quantity",
+            "source_fact_id": grounded,
+            "grounding_status": "grounded" if grounded else "unsupported",
+        })
+    # 3. Causal / certainty language
+    for term in ["proves", "guarantee", "guarantees", "guaranteed", "the truth", "nobody tells", "the only way"]:
+        if term in candidate_text.lower():
+            # These are voice-level claims — soft creative, not factual.
+            claims.append({
+                "claim": term,
+                "claim_type": "causal_certainty",
+                "source_fact_id": None,
+                "grounding_status": "soft_creative_claim",
+            })
+    # 4. Brand / product name claims (any time a known product is mentioned)
+    for f in knowledge_facts:
+        subject = f.get("subject") or ""
+        if subject and subject.lower() in candidate_text.lower():
+            claims.append({
+                "claim": subject,
+                "claim_type": "product_reference",
+                "source_fact_id": f.get("fact_id"),
+                "grounding_status": "grounded",
+            })
+    return claims
+
+
+def _is_subject_brief_session_fact(user_brief: str) -> bool:
+    """Whether the brief contains subject words that should be treated as
+    session-scoped (not permanent brand facts)."""
+    indicators = ["promote the", "tonight", "this thursday", "this week",
+                  "next saturday", "today only", "limited"]
+    cl = (user_brief or "").lower()
+    return any(ind in cl for ind in indicators)
 
 
 # ─── Voice bible + brand rules ─────────────────────────────────────────
@@ -435,6 +563,8 @@ def build_generation_context(
     intel = _load_caption_intel()
     embeds, embed_kind, embed_model = _load_embeddings()
     perf_evidence = _load_performance_evidence(brand_id)
+    brand_knowledge = _load_brand_knowledge(brand_id)
+    is_session_brief = _is_subject_brief_session_fact(user_brief or "")
 
     # ── Split facts by relevance to brief_subject ───────────────────
     GLOBAL_FACTS = {
@@ -486,12 +616,42 @@ def build_generation_context(
     }
 
     # ── Layer 2: PRODUCT/SERVICE ──
+    # ── Layer 2: PRODUCT/SERVICE — relevance-aware, grounded by canonical ──
+    # Resolve canonical facts relevant to brief_subject + product_brand
+    relevant_facts = []
+    if brief_subject:
+        # When brief_subject maps to a service_keyword, pull matching service facts
+        if brief_subject in SERVICE_KEYWORDS:
+            relevant_facts = _knowledge_facts_matching(
+                brand_knowledge, [brief_subject] + SERVICE_KEYWORDS[brief_subject][:3]
+            )
+        else:
+            relevant_facts = _knowledge_facts_matching(brand_knowledge, [brief_subject])
+    # Pull product facts when product_brand or product_id specified
+    if product_brand:
+        pb_facts = _knowledge_facts_matching(brand_knowledge, [product_brand])
+        relevant_facts.extend(pb_facts)
+    if product_id:
+        pid_facts = _knowledge_facts_matching(brand_knowledge, [product_id])
+        relevant_facts.extend(pid_facts)
+    # Filter to active facts only
+    relevant_facts = [f for f in relevant_facts if _is_fact_active(f)]
+    # De-dupe
+    seen = set()
+    unique_facts = []
+    for f in relevant_facts:
+        if f.get("fact_id") not in seen:
+            seen.add(f.get("fact_id"))
+            unique_facts.append(f)
+    relevant_facts = unique_facts
+
     product_layer = {
         "product_brand": product_brand,
         "product_id": product_id,
         "service": service,
         "audience": audience,
         "brief_subject": brief_subject,
+        "is_session_brief": is_session_brief,
         "factual_constraints": [
             "Never invent prices — only use price_zar or known published offers.",
             "Never invent product names — use the canonical product-library.json.",
@@ -508,6 +668,15 @@ def build_generation_context(
         "service_facts": service_facts,
         "product_facts": product_facts,
         "optional_related_facts": OPTIONAL_RELATED,
+        "canonical_facts_used": [f.get("fact_id") for f in relevant_facts],
+        "canonical_facts": relevant_facts,
+        "knowledge_store_loaded": bool(brand_knowledge),
+        "session_fact_note": (
+            "User brief contains session-scoped phrases. Subject words are treated as "
+            "session facts (this generation only) and must not be saved into permanent "
+            "Brand Knowledge."
+            if is_session_brief else None
+        ),
     }
 
     # ── Layer 3: CAMPAIGN ──
@@ -832,6 +1001,7 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
     brief_subject = ps.get("brief_subject") or ""
     service_facts = ps.get("service_facts") or {}
     product_facts = ps.get("product_facts") or {}
+    canonical_facts = ps.get("canonical_facts") or []
 
     subject_keywords = service_facts.get("subject_keywords", [])
     product_facts_text = ""
@@ -843,6 +1013,28 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
             f"key_features={' | '.join(product_facts.get('key_features', [])[:3]) or 'n/a'}, "
             f"category={product_facts.get('category', 'n/a')}"
         )
+
+    # Canonical knowledge facts (only ACTIVE ones with confidence high/medium)
+    canonical_block = ""
+    if canonical_facts:
+        lines = []
+        for f in canonical_facts[:6]:
+            if (f.get("confidence") or "").lower() in ("low",):
+                continue
+            sub = f.get("subject") or "?"
+            val = f.get("value") or "?"
+            details = f.get("details") or {}
+            spec_lines = []
+            for k, v in list(details.items())[:4]:
+                if isinstance(v, (str, int, float)):
+                    spec_lines.append(f"{k}={v}")
+            specs = " | ".join(spec_lines[:3])
+            lines.append(f"- {sub}: {val}" + (f" ({specs})" if specs else ""))
+        if lines:
+            canonical_block = (
+                "\nCANONICAL KNOWLEDGE (from brand knowledge store — only use ACTIVE facts):\n"
+                + "\n".join(lines)
+            )
 
     # Semantic + structural areas to avoid
     semantic_neighbours = (ctx.get("semantic_history", {}) or {}).get("neighbours_for_brief", [])
@@ -863,6 +1055,8 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"DO NOT name internal agents: {', '.join(rs.get('internal_agents_banned', []))}.\n"
         f"DO NOT invent prices, offers, specs, dates, distances, percentages, "
         f"or causal claims not backed by verified source.\n"
+        f"If the brief mentions a session-scoped event (e.g. 'this Thursday'), you may use the EXACT "
+        f"wording from the brief as a session fact. Do NOT promote it to permanent brand truth.\n"
         + (f"DO NOT reference other operating brands.\n" if rs.get("cross_brand_text_banned") else "")
     )
 
@@ -882,8 +1076,16 @@ def _build_llm_prompt(ctx: dict, route: dict) -> Tuple[str, str]:
         f"- Avoid these stale structural openers (different wording does NOT bypass the check): {structural_openers[:3]}",
         f"- Brand voice: {b['personality']}",
     ]
+    if canonical_block:
+        user_parts.append(canonical_block)
     if product_facts_text:
         user_parts.append(f"\n{product_facts_text}")
+    if ps.get("is_session_brief"):
+        user_parts.append(
+            "\nSESSION-SCOPED FACT: words from the brief describing this specific event "
+            "(date / time / price / venue) are session facts for this generation only — "
+            "do not assert them as permanent brand truth."
+        )
     user_parts.append(
         f"\nReturn ONLY the caption text. No commentary. No emoji beyond what fits the voice. "
         f"End with the brand's default CTA."
@@ -1374,6 +1576,26 @@ def run_caption_pipeline(request: dict) -> dict:
                 f"Prior: {prior.get('confidence', 'unknown')}, "
                 f"n_comparable={prior.get('comparable_posts', 0)}."
             )
+            # P1.1B: claim grounding — emit per-candidate claim list with status
+            kb_facts = ctx.get("product_service", {}).get("canonical_facts") or []
+            c["claims"] = _facts_to_grounded_claims(
+                c["body"], kb_facts, user_brief=ctx.get("user_brief") or ""
+            )
+            # Reject candidates whose factual claims are unsupported
+            unsupported = [cl for cl in c["claims"]
+                           if cl.get("grounding_status") == "unsupported"]
+            if unsupported:
+                # Treat as a fact-check fail and bounce this candidate
+                rejects["fact"].append(c["candidate_id"])
+                c["rejected_by"] = "claim_grounding"
+                c["checks"]["claim_grounding"] = {
+                    "passed": False,
+                    "reason": "unsupported_factual_claim",
+                    "unsupported_claims": [cl["claim"] for cl in unsupported],
+                }
+                c["claims"] = []  # clear stale claims
+                detailed_rejects.append(c)
+                continue
             survivors.append(c)
         else:
             c["rejected_by"] = next((k for k, v in checks.items() if not v.get("passed")), "unknown")
@@ -1382,18 +1604,75 @@ def run_caption_pipeline(request: dict) -> dict:
         if len(survivors) >= n_survivors:
             break
 
+    # P1.1B: SIBLING DEDUPE — compare survivors pairwise. If two share a
+    # near-duplicate proposition (cosine ≥ sibling_dup_threshold), keep the
+    # one with the higher performance_prior comparable_posts and discard the
+    # other. Attempt to refill by trying remaining candidates from
+    # candidates_considered that haven't been used yet.
+    SIBLING_DUP_THRESHOLD = 0.88
+    n_candidates_generated = len(candidates)
+    refill_used = 0
+    if survivors and len(survivors) > 1:
+        keep = []
+        discarded = []
+        for s in survivors:
+            dup_of = None
+            for k in keep:
+                sim = _cosine(_bag_vector(s["body"]), _bag_vector(k["body"]))
+                if sim >= SIBLING_DUP_THRESHOLD:
+                    dup_of = (k, sim)
+                    break
+            if dup_of is None:
+                keep.append(s)
+            else:
+                discarded.append(s)
+        # If we have too few survivors, attempt to refill from detailed_rejects
+        # that have passed_all checks but weren't selected due to dedupe.
+        while len(keep) < n_survivors and detailed_rejects:
+            # Try to add the strongest remaining candidate
+            candidate = detailed_rejects.pop(0)
+            # Re-check: skip ones that already failed a gate
+            if candidate.get("rejected_by"):
+                continue
+            keep.append(candidate)
+            refill_used += 1
+        survivors = keep
+
+    # Compute sibling similarities + nearest_sibling_id + proposition_embedding
+    # for each survivor
+    survivor_vecs = {s["candidate_id"]: _bag_vector(s["body"]) for s in survivors}
+    for s in survivors:
+        s_vec = survivor_vecs[s["candidate_id"]]
+        best_sim = 0.0
+        best_id = None
+        for t in survivors:
+            if t["candidate_id"] == s["candidate_id"]:
+                continue
+            sim = _cosine(s_vec, survivor_vecs[t["candidate_id"]])
+            if sim > best_sim:
+                best_sim = sim
+                best_id = t["candidate_id"]
+        s["sibling_max_similarity"] = round(best_sim, 4)
+        s["nearest_sibling_id"] = best_id
+        s["core_proposition_embedding_dim"] = len(s_vec)
+
     # Route diversity check at the proposition level
     propositions = [s["core_proposition"] for s in survivors]
     unique_props = len(set(propositions))
     mechanisms = [s["mechanism"] for s in survivors]
     unique_mechs = len(set(mechanisms))
+    structures = [s.get("rhetorical_structure") or "?" for s in survivors]
+    unique_structures = len(set(structures))
+    tensions = [s.get("audience_tension") or "?" for s in survivors]
+    unique_tensions = len(set(tensions))
 
-    # Nearest-neighbour within the surviving set (sibling similarity)
+    # Max sibling similarity (cosine over candidate bodies)
     sibling_sims = []
     for i, s in enumerate(survivors):
         for j, t in enumerate(survivors):
             if i < j:
-                sim = _cosine(_bag_vector(s["body"]), _bag_vector(t["body"]))
+                sim = _cosine(survivor_vecs[s["candidate_id"]],
+                              survivor_vecs[t["candidate_id"]])
                 sibling_sims.append(round(sim, 4))
     max_sibling_sim = max(sibling_sims) if sibling_sims else 0.0
 
@@ -1418,6 +1697,14 @@ def run_caption_pipeline(request: dict) -> dict:
         "brand_rejects": len(rejects["brand"]),
         "fact_rejects": len(rejects["fact"]),
         "brief_fidelity_rejects": len(rejects["brief_fidelity"]),
+        "claim_grounding_rejects": sum(
+            1 for c in detailed_rejects
+            if c.get("rejected_by") == "claim_grounding"
+        ),
+        "sibling_dedupe_rejects": (
+            n_candidates_generated - len(survivors) - len(detailed_rejects)
+        ) if survivors else 0,
+        "refill_used": refill_used,
         "final_survivors": len(final_survivors),
         "model": os.environ.get("CAPTION_MODEL", "gpt-4o-mini"),
         "provider": "openai" if _resolve_openai_chat_key() else "none",
@@ -1425,8 +1712,16 @@ def run_caption_pipeline(request: dict) -> dict:
         "embedding_model": embed_model,
         "route_diversity": {
             "unique_mechanisms": unique_mechs,
+            "unique_structures": unique_structures,
             "unique_propositions": unique_props,
+            "unique_tensions": unique_tensions,
             "max_sibling_similarity": max_sibling_sim,
+            "sibling_dup_threshold": SIBLING_DUP_THRESHOLD,
+        },
+        "knowledge_store": {
+            "loaded": bool(ctx.get("product_service", {}).get("knowledge_store_loaded")),
+            "canonical_facts_used": ctx.get("product_service", {}).get("canonical_facts_used") or [],
+            "is_session_brief": ctx.get("product_service", {}).get("is_session_brief"),
         },
         "quality_warning": quality_warning,
     }

@@ -1,0 +1,85 @@
+{
+  "schema_version": "p11b-v1",
+  "brand_id": "bag-drop",
+  "generated_at": "2026-09-10T15:55:00+00:00",
+  "services": [
+    {
+      "fact_id": "bd-service-bag-drop",
+      "type": "service",
+      "subject": "bag drop",
+      "value": "Bag Drop service — members leave their golf bag at Swing Shack and play lighter. The bag lives at Swing Shack between sessions.",
+      "source": "data/brand-directory/bag-drop/README.md + data/brand-directory/bag-drop/copy/ctas.md",
+      "source_path": "data/brand-directory/bag-drop/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "operated_by": "swing-shack",
+        "format": "ongoing bag storage + session access",
+        "booking_url": "swingshack.co.za"
+      }
+    },
+    {
+      "fact_id": "bd-service-thursday-social",
+      "type": "event",
+      "subject": "Thursday member social",
+      "value": "Recurring Bag Drop member social on Thursdays (weekly). Format: shared social + TrackMan session + community.",
+      "source": "data/brand-directory/bag-drop/README.md + data/brand-directory/bag-drop/copy/ctas.md",
+      "source_path": "data/brand-directory/bag-drop/README.md",
+      "confidence": "high",
+      "valid_from": "2026-09-10",
+      "valid_to": null,
+      "status": "active",
+      "last_verified": "2026-09-10",
+      "details": {
+        "schedule": "weekly, Thursdays",
+        "format": "member social / community session",
+        "booking_url": "swingshack.co.za",
+        "detail_caveat": "Exact start time and any guest fee are not in canonical source — leave unknown unless user supplies it in the brief."
+      }
+    }
+  ],
+  "products": [],
+  "voice_rules": {
+    "source": "data/brand-directory/bag-drop/README.md + data/brand-directory/bag-drop/voice/do-say-dont-say.md",
+    "do_say": [
+      "members",
+      "community",
+      "the bag that lives at Swing Shack",
+      "play lighter",
+      "Thursday",
+      "social",
+      "you'll never go back"
+    ],
+    "dont_say": [
+      "Take your game to the next level",
+      "Unlock your potential",
+      "Elevate",
+      "—",
+      "Stick / Swing Shack (cross-brand text banned unless approved)",
+      "Limited spots",
+      "Join the family",
+      "Join our community",
+      "Learn more",
+      "Click here"
+    ]
+  },
+  "cta_rules": {
+    "source": "data/brand-directory/bag-drop/copy/ctas.md",
+    "default_cta": "Drop your bag with us → swingshack.co.za",
+    "hard_ctas": [
+      "Drop your bag with us → swingshack.co.za",
+      "Member social every Thursday. Join us",
+      "Book your drop → swingshack.co.za"
+    ],
+    "soft_ctas": [
+      "You'll never go back.",
+      "Apologise never.",
+      "The bag that lives at Swing Shack.",
+      "Play lighter."
+    ]
+  },
+  "performance_history_note": "Bag Drop has 0 eligible Instagram records (P0.6A close-out audit). Performance prior must default to confidence=unknown."
+}
