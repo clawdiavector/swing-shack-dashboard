@@ -1,24 +1,24 @@
 {
   "_meta": {
     "external_publication_note": "external_publications are IG media not mapped to any Campaign OS / Postiz asset",
-    "note": "Live state from /api/admin/meta-index after Phase 1.4 P0 re-ingestion (2026-09-10). External publications are durably persisted here so they survive Railway image rebuilds.",
-    "schema_version": "1.1",
-    "source_files": [
-      "data/publishing-references.json",
-      "data/events/postiz/*.json"
-    ],
     "live_p0_proof": {
-      "verified_at": "2026-09-10T05:40:50Z",
-      "session": "phase-1.4-retry",
-      "asset_count": 4,
-      "canonical_p0_reel": "17944293486325011",
       "all_four_real_reels": [
         "17944293486325011",
         "17988987897030897",
         "17997501827798340",
         "18617524501005459"
-      ]
-    }
+      ],
+      "asset_count": 4,
+      "canonical_p0_reel": "17944293486325011",
+      "session": "phase-1.4-retry",
+      "verified_at": "2026-09-10T05:40:50Z"
+    },
+    "note": "Live state from /api/admin/meta-index after Phase 1.4 P0 re-ingestion (2026-09-10). External publications are durably persisted here so they survive Railway image rebuilds.",
+    "schema_version": "1.1",
+    "source_files": [
+      "data/publishing-references.json",
+      "data/events/postiz/*.json"
+    ]
   },
   "by_asset_id": {},
   "by_media_id": {},

@@ -1,0 +1,84 @@
+{
+  "brand": "swing-shack",
+  "records": [
+    {
+      "captured_at": 1789019431.4683003,
+      "captured_signal": {
+        "comments": 0,
+        "engagement_rate": 3.509,
+        "likes": 9,
+        "reach": 342,
+        "saves": 0,
+        "shares": 3,
+        "total_interactions": 12
+      },
+      "dna_snapshot": {},
+      "image_id": "ig-17944293486325011",
+      "kind": "reference",
+      "notes": "ig_media_id=17944293486325011\npermalink=https://www.instagram.com/reel/Dc2_MhasqFi/\nmedia_type=VIDEO\nig_timestamp=2026-09-04T09:28:22+0000\nmapping_source=external_publications\nplatform=instagram",
+      "platform_post_id": "17944293486325011",
+      "score": 0.4215,
+      "source": "ig"
+    },
+    {
+      "captured_at": 1789019431.4706292,
+      "captured_signal": {
+        "comments": 0,
+        "engagement_rate": 2.046,
+        "likes": 7,
+        "reach": 391,
+        "saves": 0,
+        "shares": 1,
+        "total_interactions": 8
+      },
+      "dna_snapshot": {},
+      "image_id": "ig-18617524501005459",
+      "kind": "reference",
+      "notes": "ig_media_id=18617524501005459\npermalink=https://www.instagram.com/reel/Dck7MSSM-59/\nmedia_type=VIDEO\nig_timestamp=2026-08-28T08:28:12+0000\nmapping_source=external_publications\nplatform=instagram",
+      "platform_post_id": "18617524501005459",
+      "score": 0.4138,
+      "source": "ig"
+    },
+    {
+      "captured_at": 1789019431.4710996,
+      "captured_signal": {
+        "comments": 0,
+        "engagement_rate": 2.941,
+        "likes": 8,
+        "reach": 272,
+        "saves": 0,
+        "shares": 0,
+        "total_interactions": 8
+      },
+      "dna_snapshot": {},
+      "image_id": "ig-17997501827798340",
+      "kind": "reference",
+      "notes": "ig_media_id=17997501827798340\npermalink=https://www.instagram.com/reel/Dcf0TUiM1gX/\nmedia_type=VIDEO\nig_timestamp=2026-08-26T08:51:00+0000\nmapping_source=external_publications\nplatform=instagram",
+      "platform_post_id": "17997501827798340",
+      "score": 0.4243,
+      "source": "ig"
+    },
+    {
+      "captured_at": 1789019431.4714372,
+      "captured_signal": {
+        "comments": 0,
+        "engagement_rate": 1.18,
+        "likes": 6,
+        "reach": 593,
+        "saves": 0,
+        "shares": 1,
+        "total_interactions": 7
+      },
+      "dna_snapshot": {},
+      "image_id": "ig-17988987897030897",
+      "kind": "reference",
+      "notes": "ig_media_id=17988987897030897\npermalink=https://www.instagram.com/reel/DcNzhsjsClp/\nmedia_type=VIDEO\nig_timestamp=2026-08-19T08:57:13+0000\nmapping_source=external_publications\nplatform=instagram",
+      "platform_post_id": "17988987897030897",
+      "score": 0.4068,
+      "source": "ig"
+    }
+  ],
+  "updated": 1789019431.471471,
+  "version": 1,
+  "win_threshold": 0.65
+}
