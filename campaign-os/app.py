@@ -24248,6 +24248,10 @@ def admin_cg_carousel_debug():
     # (i.e. {'data': [...]}) rather than the direct list we asked for.
     raw_children = out.get("children")
     children_is_paginated = isinstance(raw_children, dict) and "data" in raw_children
+    children_data_preview = None
+    if children_is_paginated and isinstance(raw_children, dict):
+        data = raw_children.get("data") or []
+        children_data_preview = data[:5]
     return jsonify({
         "ok": True,
         "asset_id": asset_id,
@@ -24260,6 +24264,8 @@ def admin_cg_carousel_debug():
         "children_wrapper_keys": (list(raw_children.keys())
                                    if (children_is_paginated and isinstance(raw_children, dict))
                                    else None),
+        "children_data_preview": children_data_preview,
+        "raw_children_type": type(raw_children).__name__,
         "top_level_keys": list(out.keys()),
     })
 

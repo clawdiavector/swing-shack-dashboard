@@ -576,9 +576,10 @@ def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
       child_media_id, media_url, thumbnail_url, media_type
     Errors return empty list + error string.
 
-    The Meta API can return children in two forms:
+    The Meta API can return children in three forms:
       1. Expanded: [{"id": "...", "media_type": "IMAGE", "media_url": "..."}]
-      2. Collapsed: ["id1", "id2", ...]   (only when sub-fields aren't granted)
+      2. Collapsed: ["id1", "id2", ...]
+      3. Paginated wrapper: {"data": [...], "paging": {...}}
     In case 2 we fetch each child individually via GET /<child_id>.
     """
     ig_media_id = asset.get("ig_media_id") or asset.get("source_media_id")
@@ -604,7 +605,12 @@ def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
         )
     except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
         return [], f"meta error: {type(e).__name__}: {e}"
-    children_raw = out.get("children") or []
+    children_field = out.get("children")
+    # Case 3: paginated wrapper {"data": [...], "paging": ...}
+    if isinstance(children_field, dict) and "data" in children_field:
+        children_raw = children_field.get("data") or []
+    else:
+        children_raw = children_field or []
     ordered: List[Dict[str, Any]] = []
 
     # Case 1: expanded dicts — directly resolve URLs
@@ -628,7 +634,6 @@ def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
                     {"fields": "media_type,media_url,thumbnail_url,id"},
                 )
             except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
-                # skip this child but continue
                 continue
             url = _resolve_image_url_for_carousel_child(child_out)
             if url:
@@ -639,7 +644,6 @@ def _fetch_carousel_children(asset: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
                 })
         return ordered, None
 
-    # Mixed or unexpected — return empty
     return [], f"unexpected children format: {type(children_raw).__name__} of {len(children_raw)}"
 
 
