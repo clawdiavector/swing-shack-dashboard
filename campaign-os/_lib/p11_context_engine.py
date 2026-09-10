@@ -165,12 +165,30 @@ def _load_brand_knowledge(brand_id: str) -> dict:
 
 
 def _knowledge_facts_matching(knowledge: dict, subject_keys: List[str]) -> List[dict]:
-    """Return facts whose subject matches any of the keys (case-insensitive)."""
+    """Return facts whose subject matches any of the keys (case-insensitive).
+
+    Handles both list-typed categories (services, products) and dict-typed
+    categories (product_brands keyed by product_brand name).
+    """
     facts = []
-    for cat in ("services", "products", "product_brands"):
-        for f in (knowledge.get(cat) or []):
+    cats = knowledge or {}
+    for cat_name in ("services", "products", "product_brands"):
+        cat_value = cats.get(cat_name)
+        if cat_value is None:
+            continue
+        # Normalize: if it's a dict (product_brands keyed by name), unwrap
+        # values into a list.
+        if isinstance(cat_value, dict):
+            items = list(cat_value.values())
+        elif isinstance(cat_value, list):
+            items = cat_value
+        else:
+            continue
+        for f in items:
+            if not isinstance(f, dict):
+                continue
             sub = (f.get("subject") or "").lower()
-            if any(k.lower() in sub for k in subject_keys):
+            if any((k or "").lower() in sub for k in subject_keys):
                 facts.append(f)
     return facts
 
