@@ -22454,12 +22454,10 @@ def admin_p06a_visual_genome():
     out_records = []
     coverage = {"reachable": 0, "thumbnail_only": 0,
                 "fetch_failed": 0, "no_url": 0}
-    seen_permalinks = set()
 
-    for rec in eligible:
+    def _probe_one(rec):
         asset_id = rec["asset_id"]
         permalink = rec.get("permalink") or ""
-        # Read raw IG record to get media_url / thumbnail_url
         ig_mid = rec.get("ig_media_id")
         media_url = None
         thumb_url = None
@@ -22496,30 +22494,46 @@ def admin_p06a_visual_genome():
             "analysis_version": "p0.6a-v0 (url_fingerprint_only)",
             "analysed_at": _dt_cls.now().isoformat(),
         }
-
-        # Deterministic URL hash fingerprint so future visual work can dedupe
         url_to_hash = media_url or thumb_url or permalink
         if url_to_hash:
             features["url_fingerprint"] = hashlib.sha256(
                 url_to_hash.encode()).hexdigest()[:16]
-            coverage["reachable"] += 1
-        else:
-            coverage["no_url"] += 1
+            if url_to_hash.startswith("http"):
+                try:
+                    req = urllib.request.Request(
+                        url_to_hash, method="HEAD",
+                        headers={"User-Agent": "campaign-os/1.0"},
+                    )
+                    with urllib.request.urlopen(req, timeout=3) as r:
+                        features["url_reachable"] = True
+                        features["url_content_type"] = r.headers.get("Content-Type", "")
+                        features["url_content_length"] = r.headers.get("Content-Length")
+                    return features, "reachable"
+                except Exception as e:
+                    features["url_reachable"] = False
+                    features["url_error"] = f"{type(e).__name__}: {str(e)[:120]}"
+                    return features, "fetch_failed"
+            return features, "reachable"
+        features["url_reachable"] = None
+        return features, "no_url"
 
-        # Attempt a HEAD probe for reachability (timeout 5s, no body)
-        if url_to_hash and url_to_hash.startswith("http"):
-            try:
-                req = urllib.request.Request(url_to_hash, method="HEAD")
-                with urllib.request.urlopen(req, timeout=5) as r:
-                    features["url_reachable"] = True
-                    features["url_content_type"] = r.headers.get("Content-Type", "")
-                    features["url_content_length"] = r.headers.get("Content-Length")
-            except Exception as e:
-                features["url_reachable"] = False
-                features["url_error"] = f"{type(e).__name__}: {str(e)[:120]}"
-                coverage["fetch_failed"] += 1
-
-        out_records.append(features)
+    # Run probes in parallel with bounded concurrency (CDN-friendly)
+    import concurrent.futures as _cf
+    completed = 0
+    try:
+        with _cf.ThreadPoolExecutor(max_workers=12) as pool:
+            futures = {pool.submit(_probe_one, rec): rec for rec in eligible}
+            for fut in _cf.as_completed(futures, timeout=120):
+                try:
+                    feats, status = fut.result(timeout=5)
+                except Exception:
+                    continue
+                out_records.append(feats)
+                coverage[status] += 1
+                completed += 1
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"probe pool failed: {e}",
+                        "completed": completed}), 500
 
     # Persist
     with _P06A_VISUAL_GENOME.open("w") as f:
