@@ -20325,8 +20325,8 @@ def admin_history_ig_backfill():
                     "swing-shack", limit=page_size
                 )
             else:
-                # Subsequent pages — _graph_get follows paging.next
-                resp = _graph_get_url(cursor_url, ig_account_id=ig_account_id)
+                # Subsequent pages — _graph_get_url follows paging.next
+                resp = _graph_get_url(cursor_url)
         except Exception as e:
             stats["errors"].append({
                 "page": pages_done, "type": type(e).__name__, "msg": str(e)
