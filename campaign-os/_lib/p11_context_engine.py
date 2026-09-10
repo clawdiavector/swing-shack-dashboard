@@ -1530,3 +1530,4 @@ def list_taste_events(brand_id: Optional[str] = None,
         out.append(rec)
     out.sort(key=lambda x: x.get("recorded_at", ""), reverse=True)
     return out[:limit]
+# Touch for rebuild — 1789048443
