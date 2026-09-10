@@ -284,6 +284,32 @@ def _find_asset(asset_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _resolve_image_url(asset: Dict[str, Any]) -> Optional[str]:
+    """Find a usable image URL on the asset record, trying multiple field
+    names. The canonical schema is loose so we look across common variants."""
+    candidates = [
+        "thumbnail_url", "media_url", "image_url",
+        "preview_url", "url", "permalink", "display_url",
+    ]
+    for k in candidates:
+        v = asset.get(k)
+        if v and isinstance(v, str) and v.startswith(("http://", "https://", "data:")):
+            return v
+    # Also check nested dicts
+    for k, v in (asset.get("media") or {}).items() if isinstance(asset.get("media"), dict) else []:
+        if isinstance(v, str) and v.startswith(("http://", "https://")):
+            return v
+    # And inside images[]
+    images = asset.get("images") or []
+    if isinstance(images, list) and images:
+        first = images[0]
+        if isinstance(first, dict):
+            return first.get("thumbnail_url") or first.get("url") or first.get("media_url")
+        if isinstance(first, str):
+            return first
+    return None
+
+
 def _cache_lookup(asset_id: str, content_hash: str,
                    analysis_version: str) -> Optional[Dict[str, Any]]:
     """Return the cached observation if (asset_id, content_hash, analysis_version)
@@ -351,9 +377,9 @@ def observe_visual_asset(asset_id: str, brand_id: str) -> Dict[str, Any]:
     if media_type not in ("IMAGE", "CAROUSEL_ALBUM"):
         return {"ok": False, "error": f"slice A supports IMAGE / CAROUSEL_ALBUM only (got {media_type})"}
 
-    image_url = asset.get("thumbnail_url") or asset.get("media_url")
+    image_url = _resolve_image_url(asset)
     if not image_url:
-        return {"ok": False, "error": "no thumbnail_url / media_url on asset"}
+        return {"ok": False, "error": "no thumbnail_url / media_url / image_url on asset", "asset_keys": list(asset.keys())}
 
     data_url, content_hash_or_err = _download_image_to_b64(image_url)
     if not data_url:

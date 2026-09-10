@@ -23664,6 +23664,34 @@ def admin_cg_list_assets():
     return jsonify({"ok": True, "count": len(out), "assets": out})
 
 
+@app.route('/api/admin/creative-genome/debug-asset', methods=['GET'])
+def admin_cg_debug_asset():
+    """Inspect the raw fields of a canonical asset by asset_id."""
+    from app import _P06A_CLEAN_CANONICAL
+    if not _P06A_CLEAN_CANONICAL.exists():
+        return jsonify({"ok": False, "error": "no cleaned canonical yet"}), 400
+    asset_id = request.args.get("asset_id")
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    for line in _P06A_CLEAN_CANONICAL.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+        if r.get("kind") == "asset" and r.get("asset_id") == asset_id:
+            # Return full record but truncate any very long base64 strings
+            safe = {}
+            for k, v in r.items():
+                if isinstance(v, str) and len(v) > 200 and not v.startswith(("http", "data:")):
+                    safe[k] = v[:200] + "...(truncated)"
+                else:
+                    safe[k] = v
+            return jsonify({"ok": True, "asset": safe})
+    return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not found"}), 404
+
+
 @app.route('/api/admin/creative-genome/observe', methods=['POST'])
 def admin_cg_observe():
     """P1.2 Slice A: blind visual observation of one IMAGE / CAROUSEL asset.
