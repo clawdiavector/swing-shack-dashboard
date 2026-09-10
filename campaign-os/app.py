@@ -23694,9 +23694,18 @@ def admin_cg_debug_asset():
 
 @app.route('/api/admin/creative-genome/observe', methods=['POST'])
 def admin_cg_observe():
-    """P1.2 Slice A: blind visual observation of one IMAGE / CAROUSEL asset.
+    """P1.2 Slice B: blind visual observation of one IMAGE / CAROUSEL asset.
 
-    Input:  {brand_id, asset_id}
+    Input:
+      {
+        "brand_id": "swing-shack",
+        "asset_id": "<real canonical asset>",
+        "use_derivative": true | false (default true),
+        "max_dim": 1024,
+        "quality": 80,
+        "model": "gpt-4o-mini"  (optional override)
+      }
+
     Output: the persisted observation record (see _lib/p12_creative_genome.py)
     """
     from _lib import p12_creative_genome as p12a
@@ -23705,9 +23714,73 @@ def admin_cg_observe():
     brand_id = body.get("brand_id")
     if not asset_id or not brand_id:
         return jsonify({"ok": False, "error": "asset_id and brand_id required"}), 400
-    result = p12a.observe_visual_asset(asset_id=str(asset_id), brand_id=str(brand_id))
+    result = p12a.observe_visual_asset(
+        asset_id=str(asset_id),
+        brand_id=str(brand_id),
+        use_derivative=bool(body.get("use_derivative", True)),
+        max_dim=int(body.get("max_dim") or 1024),
+        quality=int(body.get("quality") or 80),
+        model=body.get("model") or None,
+    )
     status = 200 if result.get("ok") else 400
     return jsonify(result), status
+
+
+@app.route('/api/admin/creative-genome/calibration-batch', methods=['POST'])
+def admin_cg_calibration_batch():
+    """P1.2 Slice B: run blind observation on a calibration sample.
+
+    Input:
+      {
+        "asset_ids": ["ig-...", ...],   # 10 representative IDs
+        "max_dim": 1024,                # optional
+        "quality": 80,                  # optional
+      }
+
+    Output:
+      {ok: true, batch_id, sample_size, results: [{asset_id, ok, ...}], total_usage, total_duration_ms}
+    """
+    from _lib import p12_creative_genome as p12a
+    body = request.get_json(force=True, silent=True) or {}
+    asset_ids = body.get("asset_ids") or []
+    if not isinstance(asset_ids, list) or not asset_ids:
+        return jsonify({"ok": False, "error": "asset_ids list required"}), 400
+    if len(asset_ids) > 50:
+        return jsonify({"ok": False, "error": "max 50 assets per batch"}), 400
+    max_dim = int(body.get("max_dim") or 1024)
+    quality = int(body.get("quality") or 80)
+    use_derivative = bool(body.get("use_derivative", True))
+
+    p12a._ensure_dirs()
+    batch_id = f"batch_{int(time.time() * 1000)}"
+    results = []
+    total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    total_ms = 0
+    for aid in asset_ids:
+        try:
+            r = p12a.observe_visual_asset(
+                asset_id=str(aid),
+                brand_id="swing-shack",  # Slice B is swing-shack only
+                use_derivative=use_derivative,
+                max_dim=max_dim,
+                quality=quality,
+            )
+        except Exception as e:
+            r = {"ok": False, "asset_id": aid, "error": f"exception: {type(e).__name__}: {e}"}
+        results.append(r)
+        u = r.get("model_usage") or {}
+        total_usage["prompt_tokens"] += u.get("prompt_tokens", 0)
+        total_usage["completion_tokens"] += u.get("completion_tokens", 0)
+        total_usage["total_tokens"] += u.get("total_tokens", 0)
+        total_ms += r.get("duration_ms", 0) or 0
+    return jsonify({
+        "ok": True,
+        "batch_id": batch_id,
+        "sample_size": len(asset_ids),
+        "results": results,
+        "total_usage": total_usage,
+        "total_duration_ms": total_ms,
+    })
 
 
 # ─── STEP 6: CLOSE-OUT REPORT ──────────────────────────────────────────────
