@@ -429,7 +429,26 @@ def observe_visual_asset(asset_id: str, brand_id: str) -> Dict[str, Any]:
 
     data_url, content_hash_or_err = _download_image_to_b64(image_url)
     if not data_url:
-        return {"ok": False, "error": content_hash_or_err}
+        # Inspect why — maybe the URL redirected to HTML
+        try:
+            req = urllib.request.Request(image_url, headers={"User-Agent": "campaign-os/p12a"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                final_url = r.geturl()
+                ctype = r.headers.get("Content-Type", "")
+                body_preview = r.read(500).decode("utf-8", errors="ignore")
+        except Exception as ex:
+            final_url = None
+            ctype = None
+            body_preview = str(ex)[:300]
+        return {
+            "ok": False,
+            "error": content_hash_or_err or "image download failed",
+            "image_url": image_url,
+            "image_url_source": image_url_source,
+            "final_url": final_url,
+            "content_type": ctype,
+            "body_preview": body_preview,
+        }
     content_hash: str = content_hash_or_err  # type: ignore[assignment]
 
     # Cache hit?
