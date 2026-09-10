@@ -1,19 +1,100 @@
 {
-  "by_asset_id": {},
-  "by_media_id": {},
-  "external_publications": {},
-  "unresolved": [],
-  "generated": null,
-  "count": 0,
-  "external_count": 0,
-  "media_id_count": 0,
   "_meta": {
+    "external_publication_note": "external_publications are IG media not mapped to any Campaign OS / Postiz asset",
+    "note": "Live state from /api/admin/meta-index after Phase 1.4 P0 re-ingestion (2026-09-10). External publications are durably persisted here so they survive Railway image rebuilds.",
     "schema_version": "1.1",
     "source_files": [
       "data/publishing-references.json",
       "data/events/postiz/*.json"
     ],
-    "external_publication_note": "external_publications are IG media not mapped to any Campaign OS / Postiz asset",
-    "note": "Empty bootstrap file. Entries are populated at runtime by scripts/ig_insights_pull.py and /api/integrations/<brand>/instagram/sync-now. Committed so it ships in the image and survives redeploys (Railway baked-image context)."
-  }
+    "live_p0_proof": {
+      "verified_at": "2026-09-10T05:40:50Z",
+      "session": "phase-1.4-retry",
+      "asset_count": 4,
+      "canonical_p0_reel": "17944293486325011",
+      "all_four_real_reels": [
+        "17944293486325011",
+        "17988987897030897",
+        "17997501827798340",
+        "18617524501005459"
+      ]
+    }
+  },
+  "by_asset_id": {},
+  "by_media_id": {},
+  "count": 0,
+  "external_count": 4,
+  "external_publications": {
+    "17944293486325011": {
+      "asset_id": "ig-17944293486325011",
+      "brand_id": "swing-shack",
+      "campaign_id": null,
+      "caption": "If you’ve played golf..you know how annoying missing the hole by just that little bit is 😭 Let us help you get the specs right to drop more putts 🙌\n#golf #golflife #coach #clubfitting #keepgoing",
+      "created_by": "ig_insights_pull.py",
+      "first_seen_at": "2026-09-10T05:40:49.948750+00:00",
+      "ig_media_id": "17944293486325011",
+      "last_brand_id": "swing-shack",
+      "last_seen_at": "2026-09-10T05:40:49.948750+00:00",
+      "media_type": "VIDEO",
+      "origin": "external",
+      "permalink": "https://www.instagram.com/reel/Dc2_MhasqFi/",
+      "platform": "instagram",
+      "published_at": "2026-09-04T09:28:22+0000",
+      "publisher": "external"
+    },
+    "17988987897030897": {
+      "asset_id": "ig-17988987897030897",
+      "brand_id": "swing-shack",
+      "campaign_id": null,
+      "caption": "Too many swing thoughts? Lets lessen that 🫵 Book your coaching session @swingshack \n#golf #coach #golflife #trackman #indoorgolf",
+      "created_by": "ig_insights_pull.py",
+      "first_seen_at": "2026-09-10T05:40:50.968926+00:00",
+      "ig_media_id": "17988987897030897",
+      "last_brand_id": "swing-shack",
+      "last_seen_at": "2026-09-10T05:40:50.968926+00:00",
+      "media_type": "VIDEO",
+      "origin": "external",
+      "permalink": "https://www.instagram.com/reel/DcNzhsjsClp/",
+      "platform": "instagram",
+      "published_at": "2026-08-19T08:57:13+0000",
+      "publisher": "external"
+    },
+    "17997501827798340": {
+      "asset_id": "ig-17997501827798340",
+      "brand_id": "swing-shack",
+      "campaign_id": null,
+      "caption": "For only 399/pm you get to enjoy some great perks from discounts to members clinics and more! Visit us in-store and become a member today! ⛳️\n#golf #coaching #fitting #trackman",
+      "created_by": "ig_insights_pull.py",
+      "first_seen_at": "2026-09-10T05:40:50.597805+00:00",
+      "ig_media_id": "17997501827798340",
+      "last_brand_id": "swing-shack",
+      "last_seen_at": "2026-09-10T05:40:50.597805+00:00",
+      "media_type": "VIDEO",
+      "origin": "external",
+      "permalink": "https://www.instagram.com/reel/Dcf0TUiM1gX/",
+      "platform": "instagram",
+      "published_at": "2026-08-26T08:51:00+0000",
+      "publisher": "external"
+    },
+    "18617524501005459": {
+      "asset_id": "ig-18617524501005459",
+      "brand_id": "swing-shack",
+      "campaign_id": null,
+      "caption": "It’s not as easy as 1,2,3.. it’s the time and knowledge taken to find the right head, frequency, bend profile etc\nCome down to @swingshack to get fitted ⛳️\n#golf #coach #fittings #golfaddict #golflife",
+      "created_by": "ig_insights_pull.py",
+      "first_seen_at": "2026-09-10T05:40:50.235367+00:00",
+      "ig_media_id": "18617524501005459",
+      "last_brand_id": "swing-shack",
+      "last_seen_at": "2026-09-10T05:40:50.235367+00:00",
+      "media_type": "VIDEO",
+      "origin": "external",
+      "permalink": "https://www.instagram.com/reel/Dck7MSSM-59/",
+      "platform": "instagram",
+      "published_at": "2026-08-28T08:28:12+0000",
+      "publisher": "external"
+    }
+  },
+  "generated": "2026-09-10T05:40:50.995247+00:00",
+  "media_id_count": 0,
+  "unresolved": []
 }
