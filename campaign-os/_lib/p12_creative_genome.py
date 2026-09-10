@@ -300,18 +300,25 @@ def _find_asset(asset_id: str) -> Optional[Dict[str, Any]]:
 
 def _resolve_image_url(asset: Dict[str, Any]) -> Optional[str]:
     """Find a usable image URL on the asset record, trying multiple field
-    names. The canonical schema is loose so we look across common variants."""
+    names. The canonical schema is loose so we look across common variants.
+    `permalink` is explicitly excluded — it's a post page URL, not an image."""
     candidates = [
         "thumbnail_url", "media_url", "image_url",
-        "preview_url", "url", "permalink", "display_url",
+        "preview_url", "display_url",
+        # Note: 'url' and 'permalink' are EXCLUDED — permalink is the
+        # Instagram post page, not the image. Generic 'url' is too ambiguous.
     ]
     for k in candidates:
         v = asset.get(k)
-        if v and isinstance(v, str) and v.startswith(("http://", "https://", "data:")):
+        if v and isinstance(v, str) and v.startswith(("http://", "https://")):
+            # Quick heuristic: image URLs typically end in image extension
+            # or come from CDN domains. Skip obvious post pages.
+            if "instagram.com/p/" in v or "/p/" in v.split("?")[0]:
+                continue
             return v
-    # Also check nested dicts
+    # Also check nested dicts (non-post-page)
     for k, v in (asset.get("media") or {}).items() if isinstance(asset.get("media"), dict) else []:
-        if isinstance(v, str) and v.startswith(("http://", "https://")):
+        if isinstance(v, str) and v.startswith(("http://", "https://")) and "/p/" not in v:
             return v
     # And inside images[]
     images = asset.get("images") or []
@@ -319,7 +326,7 @@ def _resolve_image_url(asset: Dict[str, Any]) -> Optional[str]:
         first = images[0]
         if isinstance(first, dict):
             return first.get("thumbnail_url") or first.get("url") or first.get("media_url")
-        if isinstance(first, str):
+        if isinstance(first, str) and "/p/" not in first:
             return first
     return None
 
