@@ -24244,6 +24244,10 @@ def admin_cg_carousel_debug():
     children = out.get("children") or []
     # Normalise: Meta may return children as dicts OR as a list of ID strings.
     # In the latter case we need to fetch each child individually.
+    # Also detect when 'children' is actually a paginated Meta response wrapper
+    # (i.e. {'data': [...]}) rather than the direct list we asked for.
+    raw_children = out.get("children")
+    children_is_paginated = isinstance(raw_children, dict) and "data" in raw_children
     return jsonify({
         "ok": True,
         "asset_id": asset_id,
@@ -24251,16 +24255,11 @@ def admin_cg_carousel_debug():
         "media_type": out.get("media_type"),
         "children_count": len(children),
         "children_are_strings": all(isinstance(c, str) for c in children),
-        "children_summary": [
-            {
-                "id": c.get("id") if isinstance(c, dict) else c,
-                "is_string": isinstance(c, str),
-                "media_type": c.get("media_type") if isinstance(c, dict) else None,
-                "has_media_url": bool(c.get("media_url")) if isinstance(c, dict) else False,
-                "has_thumbnail_url": bool(c.get("thumbnail_url")) if isinstance(c, dict) else False,
-            }
-            for c in children
-        ],
+        "children_first_5": children[:5] if isinstance(children, list) else None,
+        "children_is_paginated_wrapper": children_is_paginated,
+        "children_wrapper_keys": (list(raw_children.keys())
+                                   if (children_is_paginated and isinstance(raw_children, dict))
+                                   else None),
         "top_level_keys": list(out.keys()),
     })
 
