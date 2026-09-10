@@ -23863,6 +23863,282 @@ def admin_p06a_closeout_report():
     return jsonify({"ok": True, "report": report})
 
 
+# ─── P1.1 — CONTEXT ENGINE + ROUTE PLANNER + CAPTION PIPELINE ──────────
+# Wraps campaign-os/_lib/p11_context_engine.py so the existing app.py
+# routes can call into it without re-deriving state.
+
+# BUNDLED_DATA_DIR is needed by the context engine; reuse module-level constant
+_BUNDLED_DATA_DIR = BUNDLED_DATA_DIR
+
+# Ensure the module is importable
+import importlib as _importlib
+_p11_engine = _importlib.import_module("_lib.p11_context_engine")
+
+# Re-bind symbols for convenience in routes
+build_generation_context = _p11_engine.build_generation_context
+plan_routes = _p11_engine.plan_routes
+run_caption_pipeline = _p11_engine.run_caption_pipeline
+record_taste_event = _p11_engine.record_taste_event
+list_taste_events = _p11_engine.list_taste_events
+_P11_OPERATING_BRANDS = _p11_engine.OPERATING_BRANDS
+_P11_PRODUCT_BRANDS = _p11_engine.PRODUCT_BRANDS
+
+
+# ─── ROUTE: context preview (debug view) ─────────────────────────────
+
+@app.route('/api/admin/context/preview', methods=['GET', 'POST'])
+def admin_context_preview():
+    """GET /api/admin/context/preview?brand_id=...&user_brief=...
+    Build a real context for the given brand and return it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+    else:
+        body = {k: v for k, v in request.args.items()}
+    ctx = build_generation_context(
+        brand_id=body.get("brand_id", "swing-shack"),
+        task_type=body.get("task_type", "caption"),
+        campaign_id=body.get("campaign_id"),
+        product_brand=body.get("product_brand"),
+        product_id=body.get("product_id"),
+        service=body.get("service"),
+        audience=body.get("audience"),
+        channel=body.get("channel", "instagram_feed"),
+        objective=body.get("objective"),
+        user_brief=body.get("user_brief"),
+    )
+    return jsonify(ctx), 200
+
+
+# ─── ROUTE: caption generation v2 (the pipeline) ─────────────────────
+
+@app.route('/api/captions/v2/generate', methods=['POST'])
+def api_captions_v2_generate():
+    """POST /api/captions/v2/generate
+    Body: { brand_id, user_brief, channel?, product_brand?, product_id?,
+            service?, audience?, objective?, n_survivors?, n_candidates?,
+            avoid_mechanisms? }
+
+    Returns: full context, routes planned, candidates considered,
+    survivors (final 5), rejects by check, observability.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        result = run_caption_pipeline(body)
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("api/captions/v2/generate failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── ROUTE: regenerate-different (move away from current route) ──────
+
+@app.route('/api/captions/v2/regenerate-different', methods=['POST'])
+def api_captions_v2_regenerate_different():
+    """POST /api/captions/v2/regenerate-different
+    Same body as /generate but with the previous winner's route in
+    `avoid_mechanisms` so the new candidates deliberately move away
+    from the current semantic + structural + hook family.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        # The client passes the previous route under `previous_route`
+        prev = body.pop("previous_route", None) or body.pop("avoid_mechanisms", [])
+        if isinstance(prev, dict):
+            prev = [prev.get("mechanism", "")]
+        body["avoid_mechanisms"] = list(prev) + list(body.get("avoid_mechanisms", []))
+        result = run_caption_pipeline(body)
+        return jsonify(result), 200
+    except Exception as exc:
+        _app_log.exception("api/captions/v2/regenerate-different failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── ROUTE: more-like-this (preserve territory, no copy) ─────────────
+
+@app.route('/api/captions/v2/more-like-this', methods=['POST'])
+def api_captions_v2_more_like_this():
+    """POST /api/captions/v2/more-like-this
+    Body: { brand_id, user_brief, liked_route, liked_candidate_id, ... }
+
+    Keeps the same strategic territory (mechanism) but enforces
+    semantic + exact dedupe against the liked candidate. Generates
+    fresh candidates within the same mechanism.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        # Pin to the liked mechanism
+        liked_mech = body.get("liked_mechanism") or (
+            body.get("liked_route", {}).get("mechanism")
+            if isinstance(body.get("liked_route"), dict) else None
+        )
+        if liked_mech:
+            # Build context and run pipeline with only that mechanism allowed
+            ctx = build_generation_context(
+                brand_id=body.get("brand_id", ""),
+                user_brief=body.get("user_brief"),
+                channel=body.get("channel"),
+            )
+            if not ctx.get("ok"):
+                return jsonify(ctx), 400
+            routes = plan_routes(ctx, n=1, avoid_mechanisms=[
+                m for m in _p11_engine.MECHANISMS if m != liked_mech
+            ])
+            if not routes:
+                routes = [{
+                    "route_id": f"route-mlt-{liked_mech}",
+                    "mechanism": liked_mech,
+                    "brand_fit": 4,
+                    "rationale": _p11_engine._mechanism_rationale(liked_mech, ctx["brand_id"], ctx),
+                }]
+            # Generate several candidates within the same mechanism
+            candidates = []
+            for i in range(int(body.get("n_survivors", 5))):
+                fake_route = dict(routes[0])
+                fake_route["route_id"] = f"route-mlt-{i}-{liked_mech}"
+                candidates.append(_p11_engine._generate_candidate(ctx, fake_route))
+            # Run checks (with the liked candidate added to the dedupe pool)
+            recent = _p11_engine._load_recent_content(ctx["brand_id"], limit=50)
+            liked_body = body.get("liked_body", "")
+            if liked_body:
+                recent = [{
+                    "asset_id": "liked-" + _p11_engine._hash(liked_body)[:8],
+                    "caption": liked_body,
+                    "media_type": "n/a",
+                    "first_seen_at": _dt_cls.now().isoformat(),
+                }] + recent
+            intel = _p11_engine._load_caption_intel()
+            embeds, embed_kind, embed_model = _p11_engine._load_embeddings()
+            banned = _p11_engine._extract_banned_terms(ctx["brand_id"])
+            structural_fams = intel.get("structural_families", [])
+            survivors = []
+            for c in candidates:
+                ok = True
+                if not _p11_engine._check_exact(c["body"], recent)["passed"]:
+                    ok = False
+                if ok and not _p11_engine._check_structural(c["body"], structural_fams)["passed"]:
+                    ok = False
+                if ok and not _p11_engine._check_brand(c["body"], ctx["brand_id"], banned)["passed"]:
+                    ok = False
+                if ok and not _p11_engine._check_fact(c["body"], ctx)["passed"]:
+                    ok = False
+                if ok:
+                    prior = _p11_engine._performance_prior(c["body"], ctx)
+                    c["performance_prior"] = prior
+                    c["why_this_route"] = (
+                        f"More-like-this: same mechanism ({liked_mech}), "
+                        f"different wording, same strategic territory."
+                    )
+                    survivors.append(c)
+            return jsonify({
+                "ok": True,
+                "context_id": ctx.get("context_id"),
+                "liked_mechanism": liked_mech,
+                "candidates_considered": candidates,
+                "survivors": survivors,
+                "ts": _dt_cls.now().isoformat(),
+            }), 200
+        return jsonify({"ok": False, "error": "liked_mechanism not provided"}), 400
+    except Exception as exc:
+        _app_log.exception("api/captions/v2/more-like-this failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+# ─── ROUTE: taste events (shown/select/edit/approve) ─────────────────
+
+@app.route('/api/captions/v2/select', methods=['POST'])
+def api_captions_v2_select():
+    """POST /api/captions/v2/select
+    Body: { generation_id, candidate_id, brand_id, route, context_id, original_candidate }
+    Records a `selected` event.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        ev = dict(body or {})
+        ev["event_type"] = "selected"
+        result = record_taste_event(ev)
+        return jsonify(result), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/captions/v2/edit-approve', methods=['POST'])
+def api_captions_v2_edit_approve():
+    """POST /api/captions/v2/edit-approve
+    Body: { generation_id, candidate_id, brand_id, route, context_id,
+            original_candidate, final_text, edit_delta }
+    Records an `edited` event (and implicitly `approved`).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        body = request.get_json(silent=True) or {}
+        ev = dict(body or {})
+        ev["event_type"] = "edited"
+        result = record_taste_event(ev)
+        # Also record an approved event
+        ev2 = dict(ev)
+        ev2["event_type"] = "approved"
+        result2 = record_taste_event(ev2)
+        return jsonify({
+            "ok": True,
+            "edited_event_id": result.get("event_id"),
+            "approved_event_id": result2.get("event_id"),
+        }), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/captions/v2/taste-events', methods=['GET'])
+def api_captions_v2_taste_events():
+    """GET /api/captions/v2/taste-events?brand_id=...&limit=50
+    List recent taste events for inspection.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        brand_id = request.args.get("brand_id")
+        limit = int(request.args.get("limit", 50))
+        evs = list_taste_events(brand_id=brand_id, limit=limit)
+        return jsonify({"ok": True, "events": evs, "count": len(evs)}), 200
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/captions/v2/recipe', methods=['GET'])
+def api_captions_v2_recipe():
+    """GET /api/captions/v2/recipe
+    Returns the 15-mechanism taxonomy + brand fit scores so the UI
+    can show 'why this route' details.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    return jsonify({
+        "ok": True,
+        "mechanisms": _p11_engine.MECHANISMS,
+        "brand_fit": _p11_engine.MECHANISM_FIT,
+        "operating_brands": list(_P11_OPERATING_BRANDS),
+        "product_brands": _P11_PRODUCT_BRANDS,
+        "channel_rules": {
+            "instagram_reel": "Vertical video. Caption can be longer; first 1-2 lines are the hook above the 'more' cut.",
+            "instagram_feed": "Static or carousel. Caption can be 100-300 words. First line = hook.",
+            "facebook": "Longer caption acceptable. Slightly more conversational.",
+            "paid_meta": "Tighter. First 3 words matter most. 1-2 sentence body max.",
+            "gbp": "Short post. Local context. No hashtags.",
+        },
+    }), 200
+
+
 @app.route('/api/admin/data-freshness', methods=['GET'])
 def admin_data_freshness():
     """GET /api/admin/data-freshness — read from data/freshness.json which is
