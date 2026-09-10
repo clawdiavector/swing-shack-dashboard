@@ -23692,6 +23692,176 @@ def admin_cg_debug_asset():
     return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not found"}), 404
 
 
+@app.route('/api/admin/creative-genome/frame/<asset_id>', methods=['GET'])
+def admin_cg_frame(asset_id: str):
+    """Serve the derivative JPG for an asset (or the source bytes if no
+    derivative exists). Used for internal visual inspection only.
+
+    Query params:
+      kind: 'derivative' (default) | 'source'
+    """
+    from _lib import p12_creative_genome as p12a
+    from flask import Response
+    p12a._ensure_dirs()
+    kind = request.args.get("kind", "derivative")
+    # Find the asset's content_hash from the observations.jsonl
+    obs_id = None
+    if p12a.P12A_OBSERVATIONS.exists():
+        for line in p12a.P12A_OBSERVATIONS.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            if rec.get("asset_id") == asset_id:
+                obs_id = rec.get("observation_id")
+                break
+    if not obs_id:
+        return jsonify({"ok": False, "error": "no observation for asset"}), 404
+    # Find the derivative/source file
+    if kind == "source":
+        # Source path comes from derivative_stats.source_dimensions + content_hash
+        # We need to read observation record to get content_hash
+        rec = p12a._load_observation_by_id(obs_id)
+        if not rec:
+            return jsonify({"ok": False, "error": "observation not loadable"}), 404
+        content_hash = rec.get("content_hash")
+        path = p12a.P12A_FRAMES_DIR / f"{asset_id}__{content_hash}.bin"
+    else:
+        # Find any derivative file matching asset_id__
+        paths = sorted(p12a.P12A_FRAMES_DIR.glob(f"{asset_id}__*derivative.jpg"))
+        if not paths:
+            return jsonify({"ok": False, "error": "no derivative for asset"}), 404
+        path = paths[-1]
+    if not path.exists():
+        return jsonify({"ok": False, "error": f"file missing: {path}"}), 404
+    with path.open("rb") as f:
+        data = f.read()
+    mime = "image/jpeg" if path.suffix == ".jpg" else "application/octet-stream"
+    return Response(data, mimetype=mime, headers={
+        "Cache-Control": "private, max-age=60",
+        "X-Asset-Id": asset_id,
+        "X-Path": str(path),
+    })
+
+
+@app.route('/api/admin/creative-genome/contact-sheet', methods=['GET'])
+def admin_cg_contact_sheet():
+    """Build a contact sheet HTML page that loads the 10 derivative images
+    inline (base64 data URLs) so the operator can inspect them in one page.
+
+    Query params:
+      asset_ids: comma-separated list (default: known Slice B sample)
+    """
+    from _lib import p12_creative_genome as p12a
+    p12a._ensure_dirs()
+    asset_ids_param = request.args.get("asset_ids") or ""
+    if asset_ids_param:
+        asset_ids = [a.strip() for a in asset_ids_param.split(",") if a.strip()]
+    else:
+        # Default: last 10 unique assets in observations.jsonl
+        seen = []
+        if p12a.P12A_OBSERVATIONS.exists():
+            for line in p12a.P12A_OBSERVATIONS.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                aid = rec.get("asset_id")
+                if aid and aid not in seen:
+                    seen.append(aid)
+        asset_ids = seen[-10:] if seen else []
+
+    rows = []
+    for aid in asset_ids:
+        rec = None
+        if p12a.P12A_OBSERVATIONS.exists():
+            for line in p12a.P12A_OBSERVATIONS.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    r = json.loads(line)
+                except Exception:
+                    continue
+                if r.get("asset_id") == aid:
+                    rec = r
+                    break
+        deriv_path = None
+        deriv_b64 = None
+        if rec:
+            deriv_paths = sorted(p12a.P12A_FRAMES_DIR.glob(f"{aid}__*derivative.jpg"))
+            if deriv_paths:
+                deriv_path = str(deriv_paths[-1])
+                try:
+                    deriv_b64 = base64.b64encode(deriv_paths[-1].read_bytes()).decode("ascii")
+                except Exception:
+                    deriv_b64 = None
+        obs = (rec or {}).get("observations") or {}
+
+        def _cell(k):
+            o = obs.get(k) or {}
+            v = o.get("value")
+            c = o.get("confidence") or "—"
+            ev = (o.get("visual_evidence") or "")[:60]
+            if v is None:
+                vs = "null"
+            elif isinstance(v, bool):
+                vs = "T" if v else "F"
+            else:
+                vs = str(v)
+            return f"{vs}/{c[0].upper()}"
+
+        img_html = (
+            f'<img src="data:image/jpeg;base64,{deriv_b64}" alt="{aid}"/>'
+            if deriv_b64 else "<em>no derivative</em>"
+        )
+        rows.append(f"""
+        <div class="card">
+          <h3>{aid}</h3>
+          <div class="img">{img_html}</div>
+          <table>
+            <tr><th>human_present</th><td>{_cell('human_present')}</td></tr>
+            <tr><th>people_count</th><td>{_cell('people_count')}</td></tr>
+            <tr><th>face_visible</th><td>{_cell('face_visible')}</td></tr>
+            <tr><th>golfer_present</th><td>{_cell('golfer_present')}</td></tr>
+            <tr><th>golf_club_present</th><td>{_cell('golf_club_present')}</td></tr>
+            <tr><th>golf_ball_present</th><td>{_cell('golf_ball_present')}</td></tr>
+            <tr><th>screen_visible</th><td>{_cell('screen_visible')}</td></tr>
+            <tr><th>simulator_environment</th><td>{_cell('simulator_environment')}</td></tr>
+            <tr><th>golfer_swinging</th><td>{_cell('golfer_swinging')}</td></tr>
+            <tr><th>golfer_putting</th><td>{_cell('golfer_putting')}</td></tr>
+            <tr><th>product_closeup</th><td>{_cell('product_closeup')}</td></tr>
+            <tr><th>indoor</th><td>{_cell('indoor')}</td></tr>
+            <tr><th>outdoor</th><td>{_cell('outdoor')}</td></tr>
+            <tr><th>text_overlay</th><td>{_cell('text_overlay')}</td></tr>
+            <tr><th>logo_visible</th><td>{_cell('logo_visible')}</td></tr>
+            <tr><th>shot_type</th><td>{_cell('shot_type')}</td></tr>
+            <tr><th>dominant_subject</th><td>{_cell('dominant_subject')}</td></tr>
+          </table>
+        </div>""")
+
+    body = f"""<!doctype html>
+<html><head><meta charset="utf-8"><title>Slice B contact sheet</title>
+<style>
+body {{ font-family: ui-monospace, monospace; background: #111; color: #ddd; padding: 16px; }}
+.grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }}
+.card {{ background: #1a1a1a; border: 1px solid #333; padding: 12px; border-radius: 6px; }}
+.card h3 {{ margin: 0 0 8px; font-size: 12px; color: #999; word-break: break-all; }}
+.img img {{ width: 100%; height: auto; display: block; border-radius: 4px; }}
+table {{ width: 100%; font-size: 11px; margin-top: 8px; }}
+th {{ text-align: left; color: #888; font-weight: normal; }}
+td {{ text-align: right; font-family: ui-monospace, monospace; }}
+</style></head><body>
+<h1>Slice B contact sheet — 10 calibration assets</h1>
+<p style="color:#888">Each card: derivative JPG (model input) + key observations. value/confidence.</p>
+<div class="grid">{''.join(rows)}</div>
+</body></html>"""
+    return body, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 @app.route('/api/admin/creative-genome/observe', methods=['POST'])
 def admin_cg_observe():
     """P1.2 Slice B: blind visual observation of one IMAGE / CAROUSEL asset.
