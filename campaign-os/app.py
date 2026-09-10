@@ -23559,6 +23559,54 @@ def admin_p06a_semantic_v2():
     })
 
 
+@app.route('/api/admin/knowledge/audit', methods=['GET'])
+def admin_knowledge_audit():
+    """P1.1C — audit canonical knowledge stores. Returns provenance for every
+    fact + flags any fact whose provenance traces back to user_brief /
+    generated / test_fixture / session_brief / unknown."""
+    from _lib.p11_context_engine import _load_brand_knowledge, OPERATING_BRANDS
+    audit = {"ok": True, "brands": {}}
+    contaminated = []
+    for brand in OPERATING_BRANDS:
+        kb = _load_brand_knowledge(brand)
+        if not kb:
+            audit["brands"][brand] = {"loaded": False, "facts": []}
+            continue
+        facts = []
+        for cat in ("services", "products", "product_brands", "visual_references"):
+            val = kb.get(cat)
+            if val is None:
+                continue
+            items = list(val.values()) if isinstance(val, dict) else val
+            for f in (items or []):
+                if not isinstance(f, dict):
+                    continue
+                sc = (f.get("source_class") or "unknown").lower()
+                facts.append({
+                    "fact_id": f.get("fact_id"),
+                    "type": f.get("type"),
+                    "subject": f.get("subject"),
+                    "source_class": sc,
+                    "authority_level": f.get("authority_level"),
+                    "source": f.get("source"),
+                    "source_path": f.get("source_path"),
+                    "first_seen": f.get("first_seen"),
+                    "provenance": f.get("provenance"),
+                })
+                if sc in ("session_brief", "generated", "test_fixture", "unknown"):
+                    contaminated.append({
+                        "brand": brand,
+                        "fact_id": f.get("fact_id"),
+                        "subject": f.get("subject"),
+                        "source_class": sc,
+                        "action_recommended": "remove_or_reclassify",
+                    })
+        audit["brands"][brand] = {"loaded": True, "facts": facts}
+    audit["contaminated_facts"] = contaminated
+    audit["contaminated_count"] = len(contaminated)
+    return jsonify(audit)
+
+
 # ─── STEP 6: CLOSE-OUT REPORT ──────────────────────────────────────────────
 
 @app.route('/api/admin/p06a/fix-identity-strict', methods=['POST'])
