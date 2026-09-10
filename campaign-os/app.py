@@ -23862,6 +23862,210 @@ td {{ text-align: right; font-family: ui-monospace, monospace; }}
     return body, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+@app.route('/api/admin/creative-genome/ab-compare', methods=['POST'])
+def admin_cg_ab_compare():
+    """P1.2 Slice B close-out: clean source-vs-derivative A/B comparison.
+
+    Runs TWO observations on the same asset WITHOUT touching the production
+    cache or persisting anything to /data/campaign-os/intelligence/creative-genome/.
+    Uses a temporary analysis_version so the production cache is bypassed
+    and not contaminated.
+
+    Input:
+      {
+        "brand_id": "swing-shack",
+        "asset_id": "ig-18051415261918226",
+        "max_dim": 1024,
+        "quality": 80
+      }
+
+    Returns:
+      {
+        ok: true,
+        config_a: {description, prompt_tokens, completion_tokens, duration_ms, observations},
+        config_b: {description, prompt_tokens, completion_tokens, duration_ms, observations},
+        comparison: {
+          attributes_identical, attributes_changed, material_changes,
+          prompt_tokens_reduction_pct, duration_delta_ms,
+          prompt_tokens_a, prompt_tokens_b,
+          completion_tokens_a, completion_tokens_b
+        }
+      }
+    """
+    from _lib import p12_creative_genome as p12a
+    body = request.get_json(force=True, silent=True) or {}
+    asset_id = body.get("asset_id")
+    brand_id = body.get("brand_id") or "swing-shack"
+    max_dim = int(body.get("max_dim") or 1024)
+    quality = int(body.get("quality") or 80)
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+
+    # Resolve the asset + download bytes once
+    asset = p12a._find_asset(asset_id)
+    if not asset:
+        return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not in canonical"}), 404
+    image_url = p12a._resolve_image_url(asset)
+    if not image_url:
+        url, err = p12a._resolve_image_url_via_meta(asset)
+        if url:
+            image_url = url
+        else:
+            return jsonify({"ok": False, "error": "no image URL resolvable", "meta_attempt_error": err}), 400
+
+    raw, ctype_or_err = p12a._download_image_raw(image_url)
+    if not raw:
+        return jsonify({"ok": False, "error": ctype_or_err or "download failed"}), 400
+
+    # Use a TEMPORARY analysis_version so we don't pollute the production cache
+    import uuid as _uuid
+    tmp_version = f"ab-{_uuid.uuid4().hex[:12]}"
+
+    derivative, deriv_stats = p12a._make_analysis_derivative(
+        raw, asset_id, "ab", max_dim=max_dim, quality=quality
+    )
+
+    # ── Config A: source bytes, detail="high" (no override -> default) ──
+    # We need to call _call_vision directly because we want to bypass cache
+    # entirely. We don't write to observations.jsonl.
+    data_url_a = p12a._bytes_to_data_url(raw, "image/jpeg")
+    payload_a = {
+        "model": p12a.P12A_VISION_MODEL,
+        "messages": [
+            {"role": "system", "content": p12a._vision_system_prompt()},
+            {"role": "user", "content": [
+                # No detail override -> defaults to high (max)
+                {"type": "image_url", "image_url": {"url": data_url_a}},
+                {"type": "text", "text": p12a._vision_user_prompt()},
+            ]},
+        ],
+        "max_tokens": 800,
+        "temperature": 0.0,
+        "response_format": {"type": "json_object"},
+    }
+    import urllib.error as _ue
+    api_key = p12a._resolve_openai_key()
+    if not api_key:
+        return jsonify({"ok": False, "error": "no_openai_key"}), 500
+    t0_a = time.time()
+    try:
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=json.dumps(payload_a).encode(),
+            method="POST",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp_a = json.loads(r.read())
+    except (_ue.URLError, _ue.HTTPError, TimeoutError) as e:
+        return jsonify({"ok": False, "error": f"openai A failed: {e}"}), 500
+    dur_a = int((time.time() - t0_a) * 1000)
+    raw_obs_a = json.loads(resp_a["choices"][0]["message"]["content"])
+    obs_a, nw_a = p12a._validate_observation(raw_obs_a)
+    usage_a = resp_a.get("usage", {})
+
+    # ── Config B: derivative bytes, detail="low" ──
+    if not derivative:
+        return jsonify({"ok": False, "error": "derivative creation failed", "deriv_stats": deriv_stats}), 500
+    data_url_b = p12a._bytes_to_data_url(derivative, "image/jpeg")
+    payload_b = {
+        "model": p12a.P12A_VISION_MODEL,
+        "messages": [
+            {"role": "system", "content": p12a._vision_system_prompt()},
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": data_url_b, "detail": "low"}},
+                {"type": "text", "text": p12a._vision_user_prompt()},
+            ]},
+        ],
+        "max_tokens": 800,
+        "temperature": 0.0,
+        "response_format": {"type": "json_object"},
+    }
+    t0_b = time.time()
+    try:
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=json.dumps(payload_b).encode(),
+            method="POST",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp_b = json.loads(r.read())
+    except (_ue.URLError, _ue.HTTPError, TimeoutError) as e:
+        return jsonify({"ok": False, "error": f"openai B failed: {e}"}), 500
+    dur_b = int((time.time() - t0_b) * 1000)
+    raw_obs_b = json.loads(resp_b["choices"][0]["message"]["content"])
+    obs_b, nw_b = p12a._validate_observation(raw_obs_b)
+    usage_b = resp_b.get("usage", {})
+
+    # ── Compare ──
+    all_fields = (p12a.P12A_BOOLEAN_FIELDS + p12a.P12A_INTEGER_FIELDS
+                  + list(p12a.P12A_CATEGORICAL_FIELDS.keys()))
+    identical = []
+    changed = []
+    material = []
+    for f in all_fields:
+        va = obs_a.get(f, {}).get("value")
+        vb = obs_b.get(f, {}).get("value")
+        ca = obs_a.get(f, {}).get("confidence")
+        cb = obs_b.get(f, {}).get("confidence")
+        if va == vb:
+            identical.append({"field": f, "value": va, "confidence_a": ca,
+                              "confidence_b": cb})
+        else:
+            changed.append({"field": f, "value_a": va, "value_b": vb,
+                            "confidence_a": ca, "confidence_b": cb})
+            # Material change = both non-null AND differ (null vs concrete also material)
+            if (va is not None and vb is not None and va != vb) \
+                    or (va is None) != (vb is None):
+                material.append({"field": f, "value_a": va, "value_b": vb})
+
+    pt_a = usage_a.get("prompt_tokens", 0)
+    pt_b = usage_b.get("prompt_tokens", 0)
+    ct_a = usage_a.get("completion_tokens", 0)
+    ct_b = usage_b.get("completion_tokens", 0)
+    pct_red = round((1 - pt_b / pt_a) * 100, 1) if pt_a else None
+
+    return jsonify({
+        "ok": True,
+        "asset_id": asset_id,
+        "tmp_version": tmp_version,  # not persisted anywhere
+        "deriv_stats": deriv_stats,
+        "config_a": {
+            "description": "SOURCE bytes (no resize), default detail (high)",
+            "image_bytes_sent": len(raw),
+            "prompt_tokens": pt_a,
+            "completion_tokens": ct_a,
+            "duration_ms": dur_a,
+            "observations": obs_a,
+            "normalisation_warnings": nw_a,
+        },
+        "config_b": {
+            "description": f"DERIVATIVE bytes ({max_dim}px JPEG q{quality}), detail=low",
+            "image_bytes_sent": len(derivative),
+            "prompt_tokens": pt_b,
+            "completion_tokens": ct_b,
+            "duration_ms": dur_b,
+            "observations": obs_b,
+            "normalisation_warnings": nw_b,
+        },
+        "comparison": {
+            "attributes_identical_count": len(identical),
+            "attributes_changed_count": len(changed),
+            "material_changes": material,
+            "all_changed": changed,
+            "prompt_tokens_a": pt_a,
+            "prompt_tokens_b": pt_b,
+            "completion_tokens_a": ct_a,
+            "completion_tokens_b": ct_b,
+            "prompt_tokens_reduction_pct": pct_red,
+            "duration_a_ms": dur_a,
+            "duration_b_ms": dur_b,
+            "duration_delta_ms": dur_b - dur_a,
+        },
+    })
+
+
 @app.route('/api/admin/creative-genome/observe', methods=['POST'])
 def admin_cg_observe():
     """P1.2 Slice B: blind visual observation of one IMAGE / CAROUSEL asset.
