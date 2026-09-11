@@ -3238,6 +3238,325 @@ def social_debug():
 
 
 # ── MARKETING LANES + CALENDAR + STOCK IMPORT (added 2026-08-31 per user directive J) ──
+@app.route('/api/calendar/context/<brand_id>', methods=['GET'])
+def calendar_context(brand_id: str):
+    """P1.2 → Marketing Calendar Slice 0.1: Brand calendar context.
+
+    The contract between Campaign OS and Hermes Scout. Returns enough
+    for the Scout to plan without scraping internal files.
+
+    Brand isolation: brand_id must be an operating brand.
+    """
+    try:
+        from _lib.marketing_calendar import get_brand_calendar_context
+        horizon = int(request.args.get("horizon_days") or 120)
+        ctx = get_brand_calendar_context(brand_id, horizon_days=horizon)
+        if not ctx.get("brand", {}).get("configured", False):
+            return jsonify({
+                **ctx,
+                "ok": False,
+                "error": f"brand_id '{brand_id}' has no calendar_config.json configured yet",
+            }), 404
+        return jsonify(ctx), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("calendar_context failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/candidates', methods=['POST'])
+def calendar_candidates_post():
+    """P1.2 → Marketing Calendar Slice 0.1: Write a candidate / moment /
+    reminder / watchlist record. Brand isolation enforced.
+
+    Reject brand_id='takomo' (product_brand under stick, not operating brand).
+    """
+    try:
+        from _lib.marketing_calendar import add_candidate, VALID_RECORD_TYPES, VALID_STATUSES
+        body = request.get_json(force=True, silent=True) or {}
+        brand_id = body.get("brand_id")
+        if not brand_id:
+            return jsonify({"ok": False, "error": "brand_id required"}), 400
+        if brand_id == "takomo":
+            return jsonify({
+                "ok": False,
+                "error": "brand_id='takomo' is not an operating brand. Use brand_id='stick' + product_brand='takomo'.",
+            }), 400
+        record_type = body.get("type") or "moment"
+        if record_type not in VALID_RECORD_TYPES:
+            return jsonify({
+                "ok": False,
+                "error": f"type '{record_type}' invalid. Valid: {VALID_RECORD_TYPES}",
+            }), 400
+        # Default status from record type when caller didn't pass one.
+        # type=watchlist -> status=watchlist (monitor, not yet plan)
+        # anything else   -> status=candidate
+        if body.get("status"):
+            status = body["status"]
+        elif record_type == "watchlist":
+            status = "watchlist"
+        else:
+            status = "candidate"
+        if status not in VALID_STATUSES:
+            return jsonify({
+                "ok": False,
+                "error": f"status '{status}' invalid. Valid: {VALID_STATUSES}",
+            }), 400
+        record = {k: v for k, v in body.items() if k != "brand_id"}
+        persisted = add_candidate(brand_id, record, initial_status=status)
+        return jsonify({"ok": True, "record": persisted}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("calendar_candidates_post failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/candidates/<brand_id>', methods=['GET'])
+def calendar_candidates_list(brand_id: str):
+    """List existing calendar records for a brand."""
+    try:
+        from _lib.marketing_calendar import list_records
+        status_filter = request.args.get("status")
+        records = list_records(brand_id, status_filter=status_filter)
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "count": len(records),
+            "records": records,
+        }), 200
+    except Exception as e:
+        _app_log.exception("calendar_candidates_list failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/transition', methods=['POST'])
+def calendar_transition():
+    """Transition a record between statuses (e.g. watchlist → candidate)."""
+    try:
+        from _lib.marketing_calendar import transition_status, VALID_STATUSES
+        body = request.get_json(force=True, silent=True) or {}
+        brand_id = body.get("brand_id")
+        calendar_id = body.get("calendar_id")
+        new_status = body.get("new_status")
+        reason = body.get("reason") or ""
+        if not (brand_id and calendar_id and new_status):
+            return jsonify({"ok": False, "error": "brand_id, calendar_id, new_status required"}), 400
+        if new_status not in VALID_STATUSES:
+            return jsonify({
+                "ok": False,
+                "error": f"new_status '{new_status}' invalid. Valid: {VALID_STATUSES}",
+            }), 400
+        updated = transition_status(brand_id, calendar_id, new_status, reason=reason)
+        if not updated:
+            return jsonify({"ok": False, "error": "calendar_id not found"}), 404
+        return jsonify({"ok": True, "record": updated}), 200
+    except Exception as e:
+        _app_log.exception("calendar_transition failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/calendar/<brand_id>', methods=['GET'])
+def calendar_view(brand_id: str):
+    """Calendar view assembly: pillar summary + records in date range."""
+    try:
+        from _lib.marketing_calendar import get_calendar_view
+        start = request.args.get("start")
+        end = request.args.get("end")
+        include_watchlist = (request.args.get("include_watchlist") or "true").lower() == "true"
+        view = get_calendar_view(brand_id, start_date_iso=start, end_date_iso=end,
+                                   include_watchlist=include_watchlist)
+        if not view.get("brand_configured"):
+            return jsonify({
+                **view,
+                "ok": False,
+                "error": f"brand_id '{brand_id}' has no calendar_config.json configured yet",
+            }), 404
+        return jsonify(view), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("calendar_view failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/lead-time', methods=['POST'])
+def calendar_lead_time():
+    """Compute deterministic lead-time schedule for an event_date + class."""
+    try:
+        from _lib.marketing_calendar import (
+            compute_lead_time_schedule, load_brand_config, VALID_LEAD_TIME_CLASSES
+        )
+        body = request.get_json(force=True, silent=True) or {}
+        brand_id = body.get("brand_id")
+        event_date = body.get("event_date")
+        lead_time_class = body.get("lead_time_class") or "normal_campaign"
+        if not event_date:
+            return jsonify({"ok": False, "error": "event_date required"}), 400
+        if lead_time_class not in VALID_LEAD_TIME_CLASSES:
+            return jsonify({
+                "ok": False,
+                "error": f"lead_time_class '{lead_time_class}' invalid. Valid: {VALID_LEAD_TIME_CLASSES}",
+            }), 400
+        brand_cfg = load_brand_config(brand_id) if brand_id else {}
+        sched = compute_lead_time_schedule(event_date, lead_time_class, brand_cfg=brand_cfg)
+        return jsonify({"ok": True, "schedule": sched, "lead_time_class": lead_time_class}), 200
+    except Exception as e:
+        _app_log.exception("calendar_lead_time failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/section/<brand_id>', methods=['GET'])
+def calendar_section(brand_id: str):
+    """Render the brand-aware marketing-calendar section as HTML.
+
+    Designed to drop into the existing Calendar SPA section without
+    creating a new disconnected mini-app. Shows:
+      - Top: active brand + pillar North Stars summary
+      - Calendar items in chronological order with pillar colour
+      - Watchlist items at the bottom
+      - Click-through to detail (data attributes the SPA can read)
+    """
+    try:
+        from _lib.marketing_calendar import get_calendar_view, get_brand_calendar_context
+        ctx = get_brand_calendar_context(brand_id, horizon_days=120)
+        if not ctx.get("brand", {}).get("configured", False):
+            return f"<div class='brand-cal-error'>Brand '{brand_id}' has no calendar_config.json configured yet.</div>", 404
+        view = get_calendar_view(brand_id, include_watchlist=True)
+        pillars = view.get("pillars") or []
+        items = view.get("items") or []
+        # Sort items chronologically; watchlist items (no date) at end
+        def _sort_key(it):
+            d = it.get("event_date") or it.get("campaign_start") or ""
+            return (0 if d else 1, d)
+        items_sorted = sorted(items, key=_sort_key)
+
+        # North Star summary at top
+        ns_html = ""
+        for p in pillars:
+            wk = p.get("derived_weekly_target")
+            wk_str = f"{wk:.0f}/wk" if wk is not None else ""
+            colour = p.get("colour") or "#888"
+            ns_html += (
+                f"<div class='brand-pillar' style='border-left:4px solid {colour}'>"
+                f"<div class='brand-pillar-name'>{p.get('name','')}</div>"
+                f"<div class='brand-pillar-meta'>{p.get('north_star_metric','—')} {wk_str}</div>"
+                f"</div>"
+            )
+
+        # Items
+        items_html = ""
+        for it in items_sorted:
+            colour = (it.get("colour") or "#888")
+            tid = it.get("event_date") or it.get("campaign_start") or "—"
+            planning = it.get("planning_start") or "—"
+            items_html += (
+                f"<div class='brand-cal-item' data-id='{it.get('calendar_id','')}' "
+                f"style='border-left:4px solid {colour}'>"
+                f"<div class='brand-cal-item-head'>"
+                f"<span class='brand-cal-item-title'>{it.get('title','')}</span>"
+                f"<span class='brand-cal-item-relevance'>{(it.get('relevance_score') or 0):.2f}</span>"
+                f"</div>"
+                f"<div class='brand-cal-item-meta'>"
+                f"<span class='brand-cal-item-type'>{it.get('type','')}</span>"
+                f"<span class='brand-cal-item-status'>{it.get('status','')}</span>"
+                f"<span class='brand-cal-item-date'>{tid}</span>"
+                f"<span class='brand-cal-item-planning'>plan: {planning}</span>"
+                f"</div>"
+                f"<div class='brand-cal-item-reason'>{it.get('relevance_reason','')}</div>"
+                f"</div>"
+            )
+
+        body = f"""<div class="brand-cal" data-brand="{brand_id}">
+  <div class="brand-cal-head">
+    <h3>{brand_id.upper()} · Marketing Calendar</h3>
+    <span class="brand-cal-meta">{len(items)} items · {view.get('watchlist_count',0)} watchlist</span>
+  </div>
+  <div class="brand-cal-pillars">
+    {ns_html or '<em>No pillars configured</em>'}
+  </div>
+  <div class="brand-cal-items">
+    {items_html or '<em>No calendar items yet — run the Scout to discover moments.</em>'}
+  </div>
+  <style>
+    .brand-cal {{ font-family: ui-sans-serif, system-ui; color: var(--tx,#e0e0e0); padding: 16px; }}
+    .brand-cal-head {{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }}
+    .brand-cal-head h3 {{ margin: 0; font-size: 16px; }}
+    .brand-cal-meta {{ font-size: 11px; color: var(--tx-3,#999); }}
+    .brand-cal-pillars {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-bottom: 16px; }}
+    .brand-pillar {{ background: var(--bg-2,#1a1a1a); padding: 10px 12px; border-radius: 6px; }}
+    .brand-pillar-name {{ font-size: 13px; font-weight: 600; }}
+    .brand-pillar-meta {{ font-size: 11px; color: var(--tx-3,#999); margin-top: 4px; }}
+    .brand-cal-items {{ display: flex; flex-direction: column; gap: 8px; }}
+    .brand-cal-item {{ background: var(--bg-2,#1a1a1a); padding: 10px 12px; border-radius: 6px; cursor: pointer; }}
+    .brand-cal-item:hover {{ background: var(--bg-3,#222); }}
+    .brand-cal-item-head {{ display: flex; justify-content: space-between; align-items: center; }}
+    .brand-cal-item-title {{ font-size: 13px; font-weight: 500; }}
+    .brand-cal-item-relevance {{ font-size: 11px; background: var(--bg-3,#222); padding: 2px 8px; border-radius: 10px; color: var(--ac,#FF3D00); }}
+    .brand-cal-item-meta {{ display: flex; gap: 12px; font-size: 11px; color: var(--tx-3,#999); margin-top: 4px; }}
+    .brand-cal-item-reason {{ font-size: 12px; color: var(--tx-2,#bbb); margin-top: 6px; }}
+    .brand-cal-error {{ padding: 16px; color: var(--err,#e74c3c); }}
+  </style>
+</div>"""
+        return body, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except ValueError as e:
+        return f"<div class='brand-cal-error'>{e}</div>", 400
+    except Exception as e:
+        _app_log.exception("calendar_section failed")
+        return f"<div class='brand-cal-error'>{type(e).__name__}: {e}</div>", 500
+
+
+@app.route('/api/calendar/path-debug', methods=['GET'])
+def calendar_path_debug():
+    """Surface the brand config search paths so we can diagnose why a
+    calendar_config.json isn't being found."""
+    from _lib import marketing_calendar as mc
+    return jsonify({
+        "ok": True,
+        "_BRAND_DIR": str(mc._BRAND_DIR),
+        "_BUNDLED_DATA_DIR": str(mc._BUNDLED_DATA_DIR),
+        "_DEFAULT_LOCAL_DIR": str(mc._DEFAULT_LOCAL_DIR),
+        "_DATA_DIR": str(mc._DATA_DIR),
+        "_CALENDAR_DIR": str(mc._CALENDAR_DIR),
+        "brand_dir_exists": mc._BRAND_DIR.exists(),
+        "bundled_dir_exists": mc._BUNDLED_DATA_DIR.exists(),
+        "default_local_dir_exists": mc._DEFAULT_LOCAL_DIR.exists(),
+        "stick_bundled_path": str(mc._BUNDLED_DATA_DIR / "brand-directory" / "stick" / "calendar_config.json"),
+        "stick_bundled_exists": (mc._BUNDLED_DATA_DIR / "brand-directory" / "stick" / "calendar_config.json").exists(),
+        "DATA_DIR_env": os.environ.get("DATA_DIR"),
+        "BUNDLED_DATA_DIR_env": os.environ.get("BUNDLED_DATA_DIR"),
+    })
+
+
+@app.route('/api/calendar/brand-adaptability-test', methods=['GET'])
+def calendar_brand_adaptability_test():
+    """In-memory demonstration that switching brand_id changes pillars,
+    North Stars, scouting profile, relevance reasoning, and colours.
+    Does NOT persist any second brand config."""
+    try:
+        from _lib.marketing_calendar import brand_adaptability_test, get_brand_calendar_context
+        target = request.args.get("target_brand_id") or "bag-drop"
+        test = brand_adaptability_test(target)
+        # Load both stick (real) and the in-memory test
+        stick_ctx = get_brand_calendar_context("stick", horizon_days=120)
+        return jsonify({
+            "ok": True,
+            "real_brand": {
+                "brand_id": "stick",
+                "pillar_count": len(stick_ctx.get("pillars") or []),
+                "pillar_names": [p.get("name") for p in (stick_ctx.get("pillars") or [])],
+                "north_star_metrics": [p.get("north_star_metric") for p in (stick_ctx.get("pillars") or [])],
+                "pillar_colours": [p.get("colour") for p in (stick_ctx.get("pillars") or [])],
+                "scouting_interest_areas": list((stick_ctx.get("scouting_profile") or {}).get("interest_areas", {}).keys()),
+            },
+            "test_brand": test,
+        }), 200
+    except Exception as e:
+        _app_log.exception("calendar_brand_adaptability_test failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
 @app.route('/api/lanes/calendar', methods=['POST'])
 def lanes_calendar():
     """POST /api/lanes/calendar — multi-lane calendar view for a date range.
