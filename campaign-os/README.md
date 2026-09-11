@@ -2,74 +2,38 @@
 
 Operational marketing application for Swing Shack's indoor golf content pipeline.
 
+**Read root [`AGENTS.md`](../AGENTS.md) first** — branches, `$DATA_DIR`, registered jobs, standing rules.
+
 ## Architecture
 
-**Client-side only. No backend. State lives in localStorage.**
+**Flask backend + one SPA.** Not client-only.
 
-- `campaign-data.json` — Seed data for all campaigns, assets, approvals, shoots, stats, and activity
-- `app.js` — Core application logic (state management, rendering, mutations)
-- `command-centre.html` — Main dashboard (campaign overview, stats, approvals, activity)
-- `workspace-*.html` — Per-campaign workspace (pipeline, collateral, schedule)
-
-## How It Works
-
-1. **Init**: `CampaignOS.init()` loads `campaign-data.json` into localStorage on first visit
-2. **State**: All mutations hit localStorage via `saveState()` — survives page reloads
-3. **Rendering**: `renderCommandCentre()` and `renderWorkspace(campaignId)` overwrite HTML content with live data from state
-4. **Navigation**: `openCampaign(id)` navigates to `workspace-trackman.html?campaign=<id>`
-5. **URL**: `getCampaignFromURL()` reads `?campaign=` param to load correct campaign
-
-## Key Functions
-
-```javascript
-CampaignOS.init()                      // Init + load seed
-CampaignOS.getState()                  // Get current localStorage state
-CampaignOS.saveState(state)            // Persist state
-CampaignOS.resetState()                // Reset to seed data
-
-// Campaign actions
-CampaignOS.approveAsset(cid, aid)      // READY → SCHEDULED
-CampaignOS.rejectAsset(cid, aid)       // → LEARNING
-CampaignOS.scheduleAsset(cid, aid, date, time)  // → LIVE
-CampaignOS.publishAsset(cid, aid)      // → LIVE
-CampaignOS.archiveAsset(cid, aid)     // → LEARNING
-CampaignOS.moveAssetToStage(cid, aid, stage)  // arbitrary move
-
-// Approval actions
-CampaignOS.approveItem(approvalId)      // approves + removes from queue
-CampaignOS.rejectItem(approvalId)       // removes from queue
-
-// Navigation
-CampaignOS.openCampaign(campaignId)    // navigate to workspace
-CampaignOS.getCampaignFromURL()        // read ?campaign= param
-
-// Rendering
-CampaignOS.renderCommandCentre()       // render main dashboard
-CampaignOS.renderWorkspace(campaignId) // render campaign workspace
-CampaignOS.renderPipeline(campaignId)  // render 7-stage pipeline
-CampaignOS.renderCollateral(campaignId)// render collateral gallery
-
-// Activity
-CampaignOS.logActivity(type, message)  // add to activity feed
-
-// Detail modal
-showAssetDetail(campaignId, assetId)    // opens asset detail modal
-```
+- `app.py` — Flask app (session auth for humans; bearer `COS_JOB_TOKEN` for job endpoints). Serves the SPA and the `/api/*` surface.
+- `campaign-os.html` — The product UI (**44 sections / 45 nav keys**). See `../WORKSPACE_MAP.md`.
+- `$DATA_DIR` — Runtime state (Railway: `/data/campaign-os`). Editorial and job outputs live here. **Not** `localStorage`.
+- `data/` (repo) — Seed data only. Human-committed. Automation never writes it.
+- `campaign-data.json` — Seed campaign document; runtime copy is under `$DATA_DIR`.
+- `_lib/jobs/` — Registered jobs: `meta_refresh`, `gbp_tick`, `freshness_scan` (see `AGENTS.md` §6).
 
 ## Deployment
 
-Deploy to GitHub Pages. All paths are relative.
+Deploys to **Railway** via the **repo-root** `Dockerfile` + `railway.json` (`python app.py`, healthcheck `/api/health`). Details: `../RAILWAY.md`.
 
-Media assets: `../../media/generated/...` (resolved from `/campaign-os/`)
+GitHub Pages (if still wired) is legacy static output — Railway is the product.
 
 ## Development
 
-```bash
-# View locally (any static server)
-python3 -m http.server 8080
-# then open http://localhost:8080/campaign-os/command-centre.html
+Port comes from your agent-job file (`runtime.ports.web`). Never hardcode 8765/8080.
 
-# Reset state (clear localStorage and re-seed)
-# → open DevTools → Application → Local Storage → Clear
-# → refresh
+```bash
+export DATA_DIR=/tmp/campaign-os-scratch
+export COS_JOB_TOKEN=dev-token   # any non-empty string
+cd campaign-os && python3 app.py
+# open http://localhost:<port>/
+```
+
+Job smoke:
+
+```bash
+curl -H "Authorization: Bearer $COS_JOB_TOKEN" http://localhost:<port>/api/jobs/status
 ```

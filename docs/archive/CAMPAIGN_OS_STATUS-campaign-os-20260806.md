@@ -1,3 +1,9 @@
+> **ARCHIVED 2026-09-11 — do not read this as current state, do not append to it.**
+> Superseded by root `AGENTS.md` (repo shape, jobs, branches, paths, standing rules)
+> and `RAILWAY.md` (deployment). Kept for history only.
+> Known-false below: port 8765, branch `feat/asset-state-engine`, the trycloudflare URLs,
+> "23 intelligence endpoints", "21 nav entries", and every test count.
+
 # Campaign OS — Status Handoff
 
 **Branch:** `feat/asset-state-engine`
