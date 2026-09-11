@@ -159,6 +159,20 @@ def load_brand_config(brand_id: str) -> Dict[str, Any]:
             "config_path": str(path),
             "parse_error": str(e),
         }
+    # Validate the parsed structure — a file that exists but doesn't
+    # have a brand_id is not actually a calendar config.
+    if not isinstance(cfg, dict) or "brand_id" not in cfg:
+        return {
+            "brand_id": brand_id,
+            "timezone": "Africa/Johannesburg",
+            "pillars": [],
+            "scouting_profile": {},
+            "lead_time_rules": {},
+            "calendar_preferences": {},
+            "configured": False,
+            "config_path": str(path),
+            "parse_error": "missing brand_id at root",
+        }
     cfg.setdefault("brand_id", brand_id)
     cfg.setdefault("timezone", "Africa/Johannesburg")
     cfg.setdefault("pillars", [])
