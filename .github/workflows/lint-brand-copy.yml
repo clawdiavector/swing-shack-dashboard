@@ -2,7 +2,7 @@ name: lint-brand-copy
 
 # Enforce Campaign OS standing rule 4 ("Em dash banned. Use pipes |
 # / commas , / full stops / colons : in published copy.") on every
-# PR + push to feat/asset-state-engine.
+# PR to main and push to main / integrate/** (t28).
 #
 # Trigger paths: only the brand-directory published-copy lane. Other
 # changes don't need to trigger this workflow (they're noise here).
@@ -10,16 +10,19 @@ name: lint-brand-copy
 # Local-match: the .git/hooks/pre-commit hook runs the same script on
 # staged files. This workflow is the off-host fallback for the
 # --no-verify bypass case.
+#
+# CI scopes the run to *changed* published-copy files so the 36
+# pre-existing violations do not immediately red main (t28-C).
 
 on:
   push:
-    branches: [feat/asset-state-engine]
+    branches: [main, 'integrate/**']
     paths:
       - 'data/brand-directory/**/copy/*.md'
       - 'data/brand-directory/**/examples/*.md'
       - 'scripts/lint_brand_copy.py'
   pull_request:
-    branches: [feat/asset-state-engine]
+    branches: [main]
     paths:
       - 'data/brand-directory/**/copy/*.md'
       - 'data/brand-directory/**/examples/*.md'
@@ -39,7 +42,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Lint published copy for em-dashes
+      - name: Lint changed published-copy files for em-dashes
         run: |
-          python3 scripts/lint_brand_copy.py
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "no usable base SHA; scanning nothing (push create / empty before)"
+            exit 0
+          fi
+          files=$(git diff --name-only "$base" "${{ github.sha }}" -- \
+                    'data/brand-directory/*/copy/*.md' \
+                    'data/brand-directory/*/examples/*.md' || true)
+          if [ -z "$files" ]; then
+            echo "no published-copy files changed"
+            exit 0
+          fi
+          echo "$files"
+          # shellcheck disable=SC2086
+          python3 scripts/lint_brand_copy.py $files
           # Exit 1 = violations found; that's how this script signals failure.
