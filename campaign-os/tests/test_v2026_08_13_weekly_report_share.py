@@ -49,8 +49,8 @@ class ShareTokenExportTests(unittest.TestCase):
 
     def test_01_share_endpoint_requires_auth(self):
         """Unauthed POST to /api/intel/weekly_report/share returns 401."""
-        # Drop any auth cookie first.
-        client = self.flask_app.test_client()
+        # Drop any auth cookie first. cos_anon opts out of t25 auto-login.
+        client = self.flask_app.test_client(cos_anon=True)
         r = client.post("/api/intel/weekly_report/share", json={})
         self.assertEqual(r.status_code, 401, r.data[:200])
         body = r.get_json() or {}
@@ -116,7 +116,8 @@ class ShareTokenExportTests(unittest.TestCase):
 
     def test_05_export_rejects_invalid_share_token(self):
         """Garbage tokens get 401."""
-        fresh = self.flask_app.test_client()
+        # cos_anon: cookie auth would short-circuit and return 200 markdown.
+        fresh = self.flask_app.test_client(cos_anon=True)
         for bad in ("not-a-real-token", "abc.def.ghi", "", "Im-different-payload.Hello"):
             with self.subTest(token=bad[:20]):
                 r = fresh.get(f"/api/intel/weekly_report/export?share={bad}")
@@ -130,7 +131,8 @@ class ShareTokenExportTests(unittest.TestCase):
         # Mint a token for a different scope directly via the serializer.
         bad_payload = {"scope": "anything_else", "v": 1}
         bad_token = _serializer.dumps(bad_payload)
-        fresh = self.flask_app.test_client()
+        # cos_anon: cookie auth would short-circuit and return 200 markdown.
+        fresh = self.flask_app.test_client(cos_anon=True)
         r = fresh.get(f"/api/intel/weekly_report/export?share={bad_token}")
         self.assertEqual(r.status_code, 401, r.data[:200])
 

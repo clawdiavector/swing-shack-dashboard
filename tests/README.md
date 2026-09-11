@@ -1,4 +1,4 @@
-# Phase 2 Wizard + API Test Suite
+# Phase 2 Wizard + API Test Suite (+ P1a pytest notes)
 
 Two-layer test approach:
 
@@ -19,13 +19,13 @@ Runs against a live Flask backend:
 - Wizard payload without campaignId returns 400
 - Health endpoint returns ok
 
-## Running
+## Running (JS wizard)
 
 ```bash
 # 1. Start the Flask server (in one terminal)
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-DATA_DIR=/tmp/campaign-os-test PORT=8765 python3 app.py
+DATA_DIR=/tmp/campaign-os-test PORT=<job-runtime.ports.web> python3 app.py
 
 # 2. Run the suite (in another terminal)
 node tests/test_phase2_wizard.js
@@ -33,8 +33,48 @@ node tests/test_phase2_wizard.js
 
 Expected: `Total: 33, Passed: 33, Failed: 0`
 
+## Pytest (P1a / t25–t27)
+
+From repo root (preferred for CI):
+
+```bash
+export DATA_DIR=/tmp/cos-scratch OPENCLAW_CREDENTIALS_DIR=/tmp/cos-creds
+mkdir -p "$DATA_DIR" "$OPENCLAW_CREDENTIALS_DIR"
+python3 -m pytest -q                    # uses pytest.ini testpaths
+xargs -a tests/ci-allowlist.txt python3 -m pytest -q   # CI gate subset
+```
+
+From `campaign-os/` (same auth behaviour via `campaign-os/tests/conftest.py`):
+
+```bash
+cd campaign-os && python3 -m pytest tests/ -q
+```
+
+Auth: `cos_session` / auto-login via `POST /login` (t25). Opt out with
+`app.test_client(cos_anon=True)`. Bearer / `COS_JOB_TOKEN` is out of scope
+(`t25_scope` → t31).
+
+### Root `tests/` disposition (t26)
+
+- `tests/test_parity.py` is a real pytest test (was a module-scope
+  `sys.exit` script that caused `INTERNALERROR` / exit 3). Standalone
+  `python3 tests/test_parity.py` still works.
+- `scripts/tests/` collects via `pytest.ini` `pythonpath = scripts`
+  (avoids editing that tree; its local `SCRIPTS = HERE.parent / "scripts"`
+  path is wrong but harmless once `scripts/` is on `sys.path`).
+- After any full-suite run, check `git status --porcelain data/` and
+  `git checkout -- data/` if tests dirtied tracked seed files (risk 9.7).
+
+### CI allowlist
+
+`tests/ci-allowlist.txt` is the blocking green subset. It may only grow
+(see `allowlist_ratchet` in `.github/workflows/ci.yml`). Removing a path
+needs a written reason in the PR body.
+
 ## What's NOT covered here
 - Browser-runtime wizard flow (Back/Next/Cancel, validation, refresh persistence)
   → covered manually via the `browser_*` tools, reported in the morning report.
 - Pillars parsing edge cases (empty lines, no separator, special chars)
   → handled by the JS code, not unit-tested in isolation.
+- Residual campaign-os failures after t25 (stale HTML, Mac paths, etc.) —
+  triage classes, not fixed in P1a.
