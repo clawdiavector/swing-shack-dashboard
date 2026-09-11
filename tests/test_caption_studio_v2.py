@@ -287,9 +287,12 @@ sys.path.insert(0, '{REPO}/campaign-os/_lib')
 os.environ['DATA_DIR'] = '{REPO}/data'
 os.environ['FLASK_ENV'] = 'testing'
 
-from app import app
+from app import app, SHARED_PASSWORD
 
+# Subprocess has no pytest conftest patch — login explicitly (t25 follow-up).
 client = app.test_client()
+login = client.post('/login', data={{'password': SHARED_PASSWORD}})
+assert login.status_code == 200, f'login failed: {{login.status_code}} {{login.data[:80]}}'
 
 # GET with voice/tone query params — correct route is /api/intel/generate/captions/<id>
 rv = client.get('/api/intel/generate/captions/test-asset-404?voice=swing-shack&tone=funny&n=3')
@@ -360,9 +363,12 @@ sys.path.insert(0, '{REPO}/campaign-os/_lib')
 os.environ['DATA_DIR'] = '{REPO}/data'
 os.environ['FLASK_ENV'] = 'testing'
 
-from app import app
+from app import app, SHARED_PASSWORD
 
+# Subprocess has no pytest conftest patch — login explicitly (t25 follow-up).
 client = app.test_client()
+login = client.post('/login', data={{'password': SHARED_PASSWORD}})
+assert login.status_code == 200, f'login failed: {{login.status_code}} {{login.data[:80]}}'
 
 # POST to new /api/captions/generate route with voice/tone
 rv = client.post('/api/captions/generate',

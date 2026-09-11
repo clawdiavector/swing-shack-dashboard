@@ -77,4 +77,5 @@ needs a written reason in the PR body.
 - Pillars parsing edge cases (empty lines, no separator, special chars)
   → handled by the JS code, not unit-tested in isolation.
 - Residual campaign-os failures after t25 (stale HTML, Mac paths, etc.) —
-  triage classes, not fixed in P1a.
+  named classes + owners in [`RESIDUAL-TRIAGE.md`](./RESIDUAL-TRIAGE.md) (t25-E).
+  Not fixed in P1a except the caption_studio subprocess login follow-up.
