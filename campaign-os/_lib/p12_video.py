@@ -195,20 +195,16 @@ def _resolve_video_metadata(asset: Dict[str, Any]) -> Tuple[Optional[str], Optio
     try:
         out = _graph_get(
             f"/{ig_media_id}",
-            {"fields": "media_type,media_url,thumbnail_url,permalink,length"},
+            {"fields": "media_type,media_url,thumbnail_url,permalink"},
         )
     except (MetaAuthError, MetaUpstreamError, MetaNetworkError) as e:
         return None, None, f"meta error: {type(e).__name__}: {e}"
     media_url = out.get("media_url")
     if not media_url:
         return None, None, "meta returned no media_url"
-    duration = out.get("length")
-    if duration is not None:
-        try:
-            duration = float(duration)
-        except Exception:
-            duration = None
-    return media_url, duration, None
+    # IG Media doesn't expose a numeric length field; fall back to ffprobe
+    # on the downloaded video. (Facebook Video would have "length" — IG does not.)
+    return media_url, None, None
 
 
 def _video_content_hash(video_bytes: bytes) -> str:
@@ -556,7 +552,7 @@ def observe_video(asset_id: str, brand_id: str,
     if media_type != "VIDEO":
         return {"ok": False, "error": f"observe_video requires VIDEO (got {media_type})"}
 
-    media_url, duration_meta, fetch_err = _resolve_video_metadata(asset)
+    media_url, _, fetch_err = _resolve_video_metadata(asset)
     if fetch_err:
         return {"ok": False, "error": f"metadata fetch failed: {fetch_err}",
                 "failure_type": "source_unavailable"}
@@ -579,14 +575,11 @@ def observe_video(asset_id: str, brand_id: str,
                 "failure_type": "download_failed"}
 
     ffprobe_duration = _ffprobe_duration(tmp_path)
-    duration = ffprobe_duration if ffprobe_duration is not None else duration_meta
+    duration = ffprobe_duration
     coverage_notes = []
-    if ffprobe_duration is None and duration_meta is not None:
-        coverage_notes.append(f"duration_from_meta_only ({duration_meta:.1f}s)")
-    elif ffprobe_duration is None and duration_meta is None:
+    if ffprobe_duration is None:
         coverage_notes.append("duration_unknown")
-        if duration is None:
-            duration = 5.0
+        duration = 5.0  # sensible default for adaptive sampling when ffprobe fails
 
     if use_adaptive:
         timestamps = _adaptive_initial_timestamps(duration)
