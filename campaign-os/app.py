@@ -3389,6 +3389,106 @@ def calendar_lead_time():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/section/<brand_id>', methods=['GET'])
+def calendar_section(brand_id: str):
+    """Render the brand-aware marketing-calendar section as HTML.
+
+    Designed to drop into the existing Calendar SPA section without
+    creating a new disconnected mini-app. Shows:
+      - Top: active brand + pillar North Stars summary
+      - Calendar items in chronological order with pillar colour
+      - Watchlist items at the bottom
+      - Click-through to detail (data attributes the SPA can read)
+    """
+    try:
+        from _lib.marketing_calendar import get_calendar_view, get_brand_calendar_context
+        ctx = get_brand_calendar_context(brand_id, horizon_days=120)
+        if not ctx.get("brand", {}).get("configured", False):
+            return f"<div class='brand-cal-error'>Brand '{brand_id}' has no calendar_config.json configured yet.</div>", 404
+        view = get_calendar_view(brand_id, include_watchlist=True)
+        pillars = view.get("pillars") or []
+        items = view.get("items") or []
+        # Sort items chronologically; watchlist items (no date) at end
+        def _sort_key(it):
+            d = it.get("event_date") or it.get("campaign_start") or ""
+            return (0 if d else 1, d)
+        items_sorted = sorted(items, key=_sort_key)
+
+        # North Star summary at top
+        ns_html = ""
+        for p in pillars:
+            wk = p.get("derived_weekly_target")
+            wk_str = f"{wk:.0f}/wk" if wk is not None else ""
+            colour = p.get("colour") or "#888"
+            ns_html += (
+                f"<div class='brand-pillar' style='border-left:4px solid {colour}'>"
+                f"<div class='brand-pillar-name'>{p.get('name','')}</div>"
+                f"<div class='brand-pillar-meta'>{p.get('north_star_metric','—')} {wk_str}</div>"
+                f"</div>"
+            )
+
+        # Items
+        items_html = ""
+        for it in items_sorted:
+            colour = (it.get("colour") or "#888")
+            tid = it.get("event_date") or it.get("campaign_start") or "—"
+            planning = it.get("planning_start") or "—"
+            items_html += (
+                f"<div class='brand-cal-item' data-id='{it.get('calendar_id','')}' "
+                f"style='border-left:4px solid {colour}'>"
+                f"<div class='brand-cal-item-head'>"
+                f"<span class='brand-cal-item-title'>{it.get('title','')}</span>"
+                f"<span class='brand-cal-item-relevance'>{(it.get('relevance_score') or 0):.2f}</span>"
+                f"</div>"
+                f"<div class='brand-cal-item-meta'>"
+                f"<span class='brand-cal-item-type'>{it.get('type','')}</span>"
+                f"<span class='brand-cal-item-status'>{it.get('status','')}</span>"
+                f"<span class='brand-cal-item-date'>{tid}</span>"
+                f"<span class='brand-cal-item-planning'>plan: {planning}</span>"
+                f"</div>"
+                f"<div class='brand-cal-item-reason'>{it.get('relevance_reason','')}</div>"
+                f"</div>"
+            )
+
+        body = f"""<div class="brand-cal" data-brand="{brand_id}">
+  <div class="brand-cal-head">
+    <h3>{brand_id.upper()} · Marketing Calendar</h3>
+    <span class="brand-cal-meta">{len(items)} items · {view.get('watchlist_count',0)} watchlist</span>
+  </div>
+  <div class="brand-cal-pillars">
+    {ns_html or '<em>No pillars configured</em>'}
+  </div>
+  <div class="brand-cal-items">
+    {items_html or '<em>No calendar items yet — run the Scout to discover moments.</em>'}
+  </div>
+  <style>
+    .brand-cal {{ font-family: ui-sans-serif, system-ui; color: var(--tx,#e0e0e0); padding: 16px; }}
+    .brand-cal-head {{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }}
+    .brand-cal-head h3 {{ margin: 0; font-size: 16px; }}
+    .brand-cal-meta {{ font-size: 11px; color: var(--tx-3,#999); }}
+    .brand-cal-pillars {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-bottom: 16px; }}
+    .brand-pillar {{ background: var(--bg-2,#1a1a1a); padding: 10px 12px; border-radius: 6px; }}
+    .brand-pillar-name {{ font-size: 13px; font-weight: 600; }}
+    .brand-pillar-meta {{ font-size: 11px; color: var(--tx-3,#999); margin-top: 4px; }}
+    .brand-cal-items {{ display: flex; flex-direction: column; gap: 8px; }}
+    .brand-cal-item {{ background: var(--bg-2,#1a1a1a); padding: 10px 12px; border-radius: 6px; cursor: pointer; }}
+    .brand-cal-item:hover {{ background: var(--bg-3,#222); }}
+    .brand-cal-item-head {{ display: flex; justify-content: space-between; align-items: center; }}
+    .brand-cal-item-title {{ font-size: 13px; font-weight: 500; }}
+    .brand-cal-item-relevance {{ font-size: 11px; background: var(--bg-3,#222); padding: 2px 8px; border-radius: 10px; color: var(--ac,#FF3D00); }}
+    .brand-cal-item-meta {{ display: flex; gap: 12px; font-size: 11px; color: var(--tx-3,#999); margin-top: 4px; }}
+    .brand-cal-item-reason {{ font-size: 12px; color: var(--tx-2,#bbb); margin-top: 6px; }}
+    .brand-cal-error {{ padding: 16px; color: var(--err,#e74c3c); }}
+  </style>
+</div>"""
+        return body, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except ValueError as e:
+        return f"<div class='brand-cal-error'>{e}</div>", 400
+    except Exception as e:
+        _app_log.exception("calendar_section failed")
+        return f"<div class='brand-cal-error'>{type(e).__name__}: {e}</div>", 500
+
+
 @app.route('/api/calendar/path-debug', methods=['GET'])
 def calendar_path_debug():
     """Surface the brand config search paths so we can diagnose why a
