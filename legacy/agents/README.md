@@ -1,3 +1,5 @@
+> **DEPRECATED 2026-09-11.** This tree is retired evidence only. See root `AGENTS.md` for real jobs (`meta_refresh`, `gbp_tick`, `freshness_scan`). Do not run these agents.
+
 # Swing Shack Agent System
 
 ## Architecture

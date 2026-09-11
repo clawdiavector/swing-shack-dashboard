@@ -1,3 +1,5 @@
+> **DEPRECATED 2026-09-11.** Superseded by root `AGENTS.md` and `$DATA_DIR` JobSpec writes. Kept byte-stable for t30 diff baseline aside from this header.
+
 # Shared Agent Output Schema
 
 **Version:** 1.0  
