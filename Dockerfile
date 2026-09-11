@@ -2,7 +2,9 @@ FROM python:3.12-slim-bookworm
 
 # git is required by Railway build context + some app-level metadata capture.
 # Without it: 'Git clone failed (non-fatal): [Errno 2] No such file or directory: git'
-RUN apt-get update && apt-get install -y --no-install-recommends git curl \
+# ffmpeg/ffprobe: required by P1.2 Slice D (adaptive VIDEO observation).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git curl ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
