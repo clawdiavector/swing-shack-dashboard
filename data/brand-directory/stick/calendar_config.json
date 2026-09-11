@@ -1,0 +1,143 @@
+{
+  "brand_id": "stick",
+  "timezone": "Africa/Johannesburg",
+  "pillars": [
+    {
+      "pillar_id": "stick-retail",
+      "name": "Retail",
+      "always_active": true,
+      "colour": "#FF3D00",
+      "objective": "Drive Psycho Bunny sales in-store and online",
+      "north_star_metric": "psycho_bunny_monthly_revenue_zar",
+      "north_star_target": {
+        "daily_volume": null,
+        "operating_days_per_week": 26,
+        "monthly_target_zar": 350000,
+        "currency": "ZAR",
+        "monthly_target_note": "R350,000 per month (psycho bunny sales target)",
+        "source": "Christelle direct (September 2026 marketing directive)",
+        "source_provenance": "user_supplied, scope=operating_target, canonical=false"
+      },
+      "cadence": "continuous",
+      "priority": "high"
+    },
+    {
+      "pillar_id": "stick-fitting",
+      "name": "Fitting",
+      "always_active": true,
+      "colour": "#d4a849",
+      "objective": "4 fittings per day, 6 operating days per week (derived: 24/week)",
+      "north_star_metric": "fittings_per_week",
+      "north_star_target": {
+        "daily_volume": 4,
+        "operating_days_per_week": 6,
+        "monthly_target_zar": null,
+        "source": "Christelle direct (September 2026 marketing directive)",
+        "source_provenance": "user_supplied, scope=operating_target, canonical=false"
+      },
+      "cadence": "daily",
+      "priority": "high"
+    },
+    {
+      "pillar_id": "stick-coaching",
+      "name": "Coaching",
+      "always_active": true,
+      "colour": "#5b9bd5",
+      "objective": "4 coaching sessions per day, 6 operating days per week (derived: 24/week)",
+      "north_star_metric": "coaching_sessions_per_week",
+      "north_star_target": {
+        "daily_volume": 4,
+        "operating_days_per_week": 6,
+        "monthly_target_zar": null,
+        "source": "Christelle direct (September 2026 marketing directive)",
+        "source_provenance": "user_supplied, scope=operating_target, canonical=false"
+      },
+      "cadence": "daily",
+      "priority": "high"
+    }
+  ],
+  "scouting_profile": {
+    "interest_areas": {
+      "golf_events": [
+        "South African golf",
+        "Sunshine Tour",
+        "majors (Masters, US Open, The Open, PGA Championship)",
+        "DP World Tour",
+        "PGA Tour (where relevant to Stick audience)",
+        "LPGA",
+        "Ladies European Tour",
+        "Solheim Cup",
+        "Ryder Cup",
+        "Walker Cup",
+        "Presidents Cup",
+        "TGL",
+        "WTGL",
+        "notable amateur golf"
+      ],
+      "womens_golf": [
+        "LPGA results / storylines",
+        "LET storylines",
+        "Solheim Cup",
+        "women's majors",
+        "South African women golfers",
+        "women's participation/golf culture"
+      ],
+      "creator_culture": [
+        "YGT / YouTube Golf",
+        "Takomo creator activity",
+        "Internet Invitational",
+        "notable golf creator tournaments",
+        "golf YouTube developments",
+        "emerging golf culture moments"
+      ],
+      "retail_commercial": [
+        "Christmas",
+        "Black Friday",
+        "Father's Day",
+        "Mother's Day (where relevant)",
+        "Valentine's Day (where relevant)",
+        "South African public holidays",
+        "school holidays",
+        "payday / commercial periods",
+        "gifting periods",
+        "apparel/fashion moments"
+      ]
+    },
+    "weighted_preferences": {
+      "womens_golf": "meaningful weighting — do not treat as afterthought",
+      "south_african_golf": "high relevance for the Swing Shack operating context"
+    }
+  },
+  "lead_time_rules": {
+    "default": {
+      "research_start": 30,
+      "planning_start": 14,
+      "production_deadline": 7,
+      "campaign_live_start": 3
+    },
+    "major_retail": {
+      "research_start": 90,
+      "planning_start": 60,
+      "production_deadline": 21,
+      "campaign_live_start": 14
+    },
+    "major_sporting_event": {
+      "research_start": 60,
+      "planning_start": 30,
+      "production_deadline": 14,
+      "campaign_live_start": 7
+    },
+    "reactive_opportunity": {
+      "research_start": 7,
+      "planning_start": 3,
+      "production_deadline": 1,
+      "campaign_live_start": 0
+    }
+  },
+  "calendar_preferences": {
+    "month_view": true,
+    "default_horizon_days": 120,
+    "show_north_star_top_of_calendar": true,
+    "watchlist_visible_by_default": true
+  }
+}
