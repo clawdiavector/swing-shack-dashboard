@@ -80,19 +80,36 @@ def _ffprobe_duration(video_path: Path) -> Optional[float]:
 def _extract_frame(video_path: Path, timestamp_sec: float, out_path: Path,
                     width: int = 1024) -> Optional[bytes]:
     """Extract one frame at a timestamp via ffmpeg. Returns image bytes or None."""
+    # Real ffmpeg command — explicitly select the video stream, output to
+    # JPEG, set -ss BEFORE -i for fast keyframe-based seeking.
+    vf = f"scale='min({width},iw)':-1"
+    cmd = [
+        "ffmpeg", "-y",
+        "-ss", f"{timestamp_sec:.3f}",
+        "-i", str(video_path),
+        "-frames:v", "1",
+        "-an",
+        "-sn",
+        "-dn",
+        "-vf", vf,
+        "-q:v", "2",
+        "-f", "image2",
+        str(out_path),
+    ]
     try:
-        cmd = [
-            "ffmpeg", "-y", "-ss", f"{timestamp_sec:.3f}",
-            "-i", str(video_path),
-            "-frames:v", "1",
-            "-vf", f"scale='min({width},iw)':-1",
-            "-q:v", "3",
-            str(out_path),
-        ]
         out = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        if out.returncode != 0 or not out_path.exists():
+        if out.returncode != 0:
+            _LOG.warning("ffmpeg failed (rc=%d) for %s @ %.2fs: stderr=%s",
+                         out.returncode, video_path, timestamp_sec,
+                         (out.stderr or "")[:300])
+            return None
+        if not out_path.exists():
+            _LOG.warning("ffmpeg exit 0 but no output file at %s", out_path)
             return None
         return out_path.read_bytes()
+    except subprocess.TimeoutExpired:
+        _LOG.warning("ffmpeg timed out for %s @ %.2fs", video_path, timestamp_sec)
+        return None
     except Exception as e:
         _LOG.warning("frame extract failed for %s @ %.2fs: %s", video_path, timestamp_sec, e)
         return None
