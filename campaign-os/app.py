@@ -2813,7 +2813,7 @@ def visual_library_generate(brand_id):
         save = body.get("save", False)
         # Resolve save dir for this brand
         try:
-            save_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            save_dir = os.path.join(_data_paths()['data_dir'], "brand-directory", brand_id, "images")
         except Exception:
             save_dir = None
 
@@ -13066,25 +13066,61 @@ def intel_generate_ctas_for_asset():
 
 # ─── HEADLINES & CTAs STUDIO v2 — voice/pillar/platform-filtered CTAs + seeds
 
-@functools.lru_cache(maxsize=4)
-def _load_cta_knowledge(_cache_key=0):
-    """Load and cache cta_knowledge.json with headline seeds + curated CTAs.
+_CTA_KNOWLEDGE_CACHE = {"path": None, "mtime": None, "data": None}
 
-    Mirrors `_load_meme_knowledge` — sentinel arg so tests can force a fresh
-    load by passing any value.
+
+def _load_cta_knowledge(_cache_key=0):
+    """Load cta_knowledge.json with mtime-invalidated cache.
+
+    Job writes to $DATA_DIR become visible on the next request without redeploy.
+    `_cache_key` sentinel forces a fresh load when tests pass a non-zero value.
     """
     candidates = [
         os.path.join(_data_paths()['data_dir'], 'cta_knowledge.json'),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'cta_knowledge.json'),
     ]
+    path = None
     for c in candidates:
         try:
             if os.path.exists(c):
-                with open(c, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except (json.JSONDecodeError, OSError):
+                path = c
+                break
+        except OSError:
             continue
-    return {"categories": [], "ctas": [], "headline_seeds": []}
+    mtime = None
+    if path:
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            mtime = None
+    cache = _CTA_KNOWLEDGE_CACHE
+    if (
+        _cache_key == 0
+        and cache["data"] is not None
+        and cache["path"] == path
+        and cache["mtime"] == mtime
+    ):
+        return cache["data"]
+    data = {"categories": [], "ctas": [], "headline_seeds": []}
+    if path:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    cache["path"] = path
+    cache["mtime"] = mtime
+    cache["data"] = data
+    return data
+
+
+def _load_cta_knowledge_cache_clear():
+    _CTA_KNOWLEDGE_CACHE["path"] = None
+    _CTA_KNOWLEDGE_CACHE["mtime"] = None
+    _CTA_KNOWLEDGE_CACHE["data"] = None
+
+
+_load_cta_knowledge.cache_clear = _load_cta_knowledge_cache_clear
 
 
 @app.route('/api/intel/cta_knowledge', methods=['GET'])
@@ -13295,24 +13331,55 @@ def cta_index():
 
 # ─── MEME LORD v2 — meme historian + brand-fit recommender ─────────────
 
-@functools.lru_cache(maxsize=4)
-def _load_meme_knowledge(_cache_key=0):
-    """Load and cache the meme_knowledge.json file. Data dir resolved per-call.
+_MEME_KNOWLEDGE_CACHE = {"path": None, "mtime": None, "data": None}
 
-    The `_cache_key` argument is a sentinel so tests can call with different
-    DATA_DIR envs and still get a fresh load. In normal operation we always
-    call without arguments so the cache hits.
+
+def _load_meme_knowledge(_cache_key=0):
+    """Load meme_knowledge.json with mtime-invalidated cache.
+
+    Job writes to $DATA_DIR become visible on the next request without redeploy
+    or a manual `.cache_clear()` call.
     """
     paths = _data_paths()
     candidate = os.path.join(paths['data_dir'], 'meme_knowledge.json')
     if not os.path.exists(candidate):
-        # Fall back to bundled repo copy
         candidate = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'meme_knowledge.json')
-    try:
-        with open(candidate, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return {"memes": [], "taxonomy": {"eras": [], "formats": [], "mechanisms": []}, "voice_bible": {}, "stats": {}}
+    path = candidate if os.path.exists(candidate) else None
+    mtime = None
+    if path:
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            mtime = None
+    cache = _MEME_KNOWLEDGE_CACHE
+    if (
+        _cache_key == 0
+        and cache["data"] is not None
+        and cache["path"] == path
+        and cache["mtime"] == mtime
+    ):
+        return cache["data"]
+    empty = {"memes": [], "taxonomy": {"eras": [], "formats": [], "mechanisms": []}, "voice_bible": {}, "stats": {}}
+    data = empty
+    if path:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            data = empty
+    cache["path"] = path
+    cache["mtime"] = mtime
+    cache["data"] = data
+    return data
+
+
+def _load_meme_knowledge_cache_clear():
+    _MEME_KNOWLEDGE_CACHE["path"] = None
+    _MEME_KNOWLEDGE_CACHE["mtime"] = None
+    _MEME_KNOWLEDGE_CACHE["data"] = None
+
+
+_load_meme_knowledge.cache_clear = _load_meme_knowledge_cache_clear
 
 
 def _score_meme_brand_fit(meme, voice='swing-shack', pillar='education', platform='instagram'):
@@ -13657,13 +13724,13 @@ def meme_apply_route():
 
 # ─── HASHTAG & SEO PACK ENGINE — /api/intel/<verb> routes ─────────────
 
-@functools.lru_cache(maxsize=4)
-def _load_hashtag_seo(_cache_key=0):
-    """Load hashtag_seo_pack.json with DATA_DIR + bundled fallback.
+_HASHTAG_SEO_CACHE = {"path": None, "mtime": None, "data": None}
 
-    The `_cache_key` sentinel lets tests force a fresh load when DATA_DIR is
-    monkey-patched. In normal operation we always call without arguments so
-    the cache hits.
+
+def _load_hashtag_seo(_cache_key=0):
+    """Load hashtag_seo_pack.json with mtime-invalidated cache.
+
+    Job writes to $DATA_DIR become visible on the next request without redeploy.
     """
     paths = _data_paths()
     candidate = os.path.join(paths['data_dir'], 'hashtag_seo_pack.json')
@@ -13672,23 +13739,53 @@ def _load_hashtag_seo(_cache_key=0):
             os.path.dirname(os.path.abspath(__file__)),
             '..', 'data', 'hashtag_seo_pack.json'
         )
-    try:
-        with open(candidate, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            data.setdefault('voices', {})
-            data.setdefault('pillars', {})
-            data.setdefault('platforms', {})
-            data.setdefault('trending_signals', [])
-            data.setdefault('banned', [])
-            data.setdefault('seo_templates', {})
-            data.setdefault('brand', {})
-            return data
-    except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return {
-            "voices": {}, "pillars": {}, "platforms": {},
-            "trending_signals": [], "banned": [], "seo_templates": {},
-            "brand": {}, "stats": {}
-        }
+    path = candidate if os.path.exists(candidate) else None
+    mtime = None
+    if path:
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            mtime = None
+    cache = _HASHTAG_SEO_CACHE
+    if (
+        _cache_key == 0
+        and cache["data"] is not None
+        and cache["path"] == path
+        and cache["mtime"] == mtime
+    ):
+        return cache["data"]
+    empty = {
+        "voices": {}, "pillars": {}, "platforms": {},
+        "trending_signals": [], "banned": [], "seo_templates": {},
+        "brand": {}, "stats": {}
+    }
+    data = empty
+    if path:
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                data.setdefault('voices', {})
+                data.setdefault('pillars', {})
+                data.setdefault('platforms', {})
+                data.setdefault('trending_signals', [])
+                data.setdefault('banned', [])
+                data.setdefault('seo_templates', {})
+                data.setdefault('brand', {})
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            data = empty
+    cache["path"] = path
+    cache["mtime"] = mtime
+    cache["data"] = data
+    return data
+
+
+def _load_hashtag_seo_cache_clear():
+    _HASHTAG_SEO_CACHE["path"] = None
+    _HASHTAG_SEO_CACHE["mtime"] = None
+    _HASHTAG_SEO_CACHE["data"] = None
+
+
+_load_hashtag_seo.cache_clear = _load_hashtag_seo_cache_clear
 
 
 _VALID_PILLARS = {'education', 'club-fitting', 'community', 'events'}
@@ -20136,8 +20233,8 @@ def admin_history_inventory():
                  "records_imported": 0, "pagination_complete": False,
                  "metrics_available": [], "limitations": [], "data_quality": "unknown"}
     try:
-        from _lib.ga4_fetcher import ga4_credentials_present  # type: ignore
-        present = ga4_credentials_present()
+        from truth_collector import ga4_credentials_present as _ga4_creds_probe
+        present = _ga4_creds_probe()
         if present:
             ga4_block["status"] = "available"
             ga4_block["limitations"] = [
@@ -26874,7 +26971,7 @@ def image_lab_save_as_asset():
             data = _b64.b64decode(payload)
             ext = "png" if "png" in mime.lower() else ("jpg" if "jpg" in mime.lower() or "jpeg" in mime.lower() else "png")
             fname = f"image-lab-{int(time.time()*1000)}-{uuid.uuid4().hex[:8]}.{ext}"
-            brand_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            brand_dir = os.path.join(_data_paths()['data_dir'], "brand-directory", brand_id, "images")
             os.makedirs(brand_dir, exist_ok=True)
             full_path = os.path.join(brand_dir, fname)
             with open(full_path, "wb") as fh:
@@ -27601,7 +27698,7 @@ def image_lab_auto_overlay():
         saved_url = None
         saved_path = None
         try:
-            brand_dir = os.path.join(BUNDLED_DATA_DIR, "brand-directory", brand_id, "images")
+            brand_dir = os.path.join(_data_paths()['data_dir'], "brand-directory", brand_id, "images")
             os.makedirs(brand_dir, exist_ok=True)
             fname = f"overlay-{brand_id}-{int(time.time()*1000)}-{uuid.uuid4().hex[:8]}.png"
             full_path = os.path.join(brand_dir, fname)

@@ -141,15 +141,9 @@ DEFAULT_MODEL_EDIT = "google/gemini-2.5-flash-image"
 DEFAULT_MODEL_CHEAP = "openai/gpt-5-image-mini"
 DEFAULT_MODEL_HERO = "google/gemini-3-pro-image"  # "Nano Banana Pro"
 
-# Canonical credential file (matches the convention used for Meta/Ubersuggest)
-DEFAULT_OPENAI_TOKEN_FILE = (
-    "/Users/fivefriday/.openclaw-instance2/workspace/"
-    "clients/swing-shack/credentials/openai-api.json"
-)
-DEFAULT_OPENROUTER_TOKEN_FILE = (
-    "/Users/fivefriday/.openclaw-instance2/workspace/"
-    "clients/swing-shack/credentials/openrouter-api.json"
-)
+# Canonical credential file paths come from env only (no Mac absolute defaults).
+DEFAULT_OPENAI_TOKEN_FILE = ""
+DEFAULT_OPENROUTER_TOKEN_FILE = ""
 DEFAULT_OUTPUT_BASE = "data/brand-directory"  # written under <brand>/images/
 
 # Size normalization (Nano Banana emits 1024² native; gpt-image-1 accepts 1024²/1792²)

@@ -28,10 +28,9 @@ COPY assets/ /app/assets/
 # — referenced by the in-app /refresh endpoints)
 COPY scripts/ /app/scripts/
 
-# Module-gap visibility (Tier: deploy determinism, 2026-09-09).
-# WARNING ONLY — must not fail the build while the 36 _lib modules are
-# still absent from the remote. Flip --warn-only off once they land.
-RUN python /app/scripts/check_lib_modules.py --warn-only \
+# Module-gap gate (Tier: deploy determinism, 2026-09-09 / P0a t05).
+# Missing imported _lib modules fail the image build.
+RUN python /app/scripts/check_lib_modules.py \
       --source /app/campaign-os/app.py \
       --lib-dir /app/campaign-os/_lib
 

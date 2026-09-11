@@ -98,20 +98,20 @@ PLATFORMS = ["instagram", "facebook", "tiktok", "x", "linkedin", "gbp", "youtube
 
 # ── Path resolution ───────────────────────────────────────────────────────
 def _data_root() -> Path:
-    """BUNDLED_DATA_DIR first (the canonical brand-data path), then
-    DATA_DIR (Railway volume), then the local dev path."""
+    """DATA_DIR (Railway volume) first, then BUNDLED_DATA_DIR (seed), then cwd/data."""
     candidates = []
+    data_dir = os.environ.get("DATA_DIR")
+    if data_dir:
+        candidates.append(Path(data_dir))
     bundled = os.environ.get("BUNDLED_DATA_DIR")
     if bundled:
         candidates.append(Path(bundled))
-    candidates.append(Path(os.environ.get("DATA_DIR") or "/data/campaign-os"))
-    candidates.append(Path(
-        "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"
-    ))
+    candidates.append(Path("/data/campaign-os"))
+    candidates.append(Path.cwd() / "data")
     for c in candidates:
         if c.exists():
             return c
-    return candidates[-1]
+    return candidates[0] if candidates else Path.cwd() / "data"
 
 
 def _lanes_dir(brand_id: str) -> Path:
