@@ -36,12 +36,13 @@ from typing import Any, Dict, List, Optional, Tuple
 _LOG = logging.getLogger("campaign_os.marketing_calendar")
 
 # ─── Paths ──────────────────────────────────────────────────────────────────
-_BRAND_DIR = Path(os.environ.get("BRAND_DIR", "/data/brand-directory"))
+_BRAND_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os")) / "brand-directory"
+_BUNDLED_DATA_DIR = Path(os.environ.get("BUNDLED_DATA_DIR", "/app/data"))
 _DEFAULT_LOCAL_DIR = Path(
     os.environ.get("BRAND_DIR_LOCAL", "/Users/fivefriday/hermes-fleet/shared/data/brand-directory")
 )
-_DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
-_CALENDAR_DIR = _DATA_DIR / "campaign-os" / "intelligence" / "marketing-calendar"
+_DATA_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
+_CALENDAR_DIR = _DATA_DIR / "intelligence" / "marketing-calendar"
 _CALENDAR_DIR.mkdir(parents=True, exist_ok=True)
 
 # ─── Constants ──────────────────────────────────────────────────────────────
@@ -108,9 +109,11 @@ DEFAULT_LEAD_TIME_TEMPLATE: Dict[str, Dict[str, int]] = {
 # ─── Generic Brand Calendar Context Loader ──────────────────────────────────
 
 def _find_brand_config(brand_id: str) -> Optional[Path]:
-    """Locate calendar_config.json for a brand. Tries both /data volume
-    and the local working-copy under .hermes profiles."""
-    for base in (_BRAND_DIR, _DEFAULT_LOCAL_DIR):
+    """Locate calendar_config.json for a brand. Mirrors p11_context_engine
+    lookup pattern: tries DATA_DIR/brand-directory/<brand> (volume) +
+    BUNDLED_DATA_DIR/brand-directory/<brand> (image-bundled) + local
+    working-copy."""
+    for base in (_BRAND_DIR, _BUNDLED_DATA_DIR, _DEFAULT_LOCAL_DIR):
         candidate = base / brand_id / "calendar_config.json"
         if candidate.exists():
             return candidate
