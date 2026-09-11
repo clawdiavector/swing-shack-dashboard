@@ -3271,7 +3271,15 @@ def calendar_candidates_post():
                 "ok": False,
                 "error": f"type '{record_type}' invalid. Valid: {VALID_RECORD_TYPES}",
             }), 400
-        status = body.get("status") or "candidate"
+        # Default status from record type when caller didn't pass one.
+        # type=watchlist -> status=watchlist (monitor, not yet plan)
+        # anything else   -> status=candidate
+        if body.get("status"):
+            status = body["status"]
+        elif record_type == "watchlist":
+            status = "watchlist"
+        else:
+            status = "candidate"
         if status not in VALID_STATUSES:
             return jsonify({
                 "ok": False,
