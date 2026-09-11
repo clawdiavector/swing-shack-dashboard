@@ -1,17 +1,19 @@
 # Residual failure triage (t25-E)
 
+Before/after suite totals + V3 401 proof: [`BASELINE.md`](./BASELINE.md) (t25-D).
+
 Measured on `feat/campaign-os-p1a-tests` after t25 conftest (desk Python 3.14.7).
 
 ```bash
 export DATA_DIR=/tmp/cos-scratch OPENCLAW_CREDENTIALS_DIR=/tmp/cos-creds
 python3 -m pytest campaign-os/tests tests scripts/tests -q --tb=line \
   --ignore=campaign-os/tests/test_v2026_08_08_orphan_dna_placeholder.py
-# -> 162 failed, 1401 passed, 16 skipped, 18 errors (pre caption_studio login fix)
+# latest: 160 failed, 1403 passed, 16 skipped, 18 errors; 401 on tb lines = 0
 ```
 
-Counts below are **FAILED+ERROR node lines** from that report (177). Pytest’s
-headline `162 failed` folds some subfailures; use the table for triage, the
-headline for suite health.
+Counts below are **FAILED+ERROR node lines** from an earlier post-conftest
+report (177). Pytest’s headline folds some subfailures; use the table for
+triage, the headline / `BASELINE.md` for suite health.
 
 t25 did **not** fix these — it made auth-401 noise disappear so these classes
 are legible. Owner tasks are follow-ups, not P1a.
@@ -29,7 +31,7 @@ are legible. Owner tasks are follow-ups, not P1a.
 | Generation / meme / image router drift | 4 | Generation routes ticket |
 | Calendar schedule IndexError / empty fixture | 2 | Calendar lane (leave free; not gated by CI allowlist) |
 | Theme token / raw hex assertions | 2 | Theme tokens ticket |
-| auth-401 subprocess (caption_studio `python -c`) | 2 | **Closed in P1a follow-up** — explicit `POST /login` in subprocess |
+| auth-401 subprocess (caption_studio `python -c`) | 2 | **Closed in P1a** — explicit `POST /login` + scratch `DATA_DIR` |
 | **Sum** | **177** | |
 
 ### Intentionally not in this table
