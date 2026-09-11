@@ -38,7 +38,7 @@ are legible. Owner tasks are follow-ups, not P1a.
 
 ### Re-check after caption_studio fix
 Post-fix desk re-run: **160 failed, 1403 passed, 18 errors**; auth-401 class → **0**;
-`401` lines in `--tb=line` output → **0**. Allowlist still **897 passed** exit 0.
+`401` lines in `--tb=line` output → **0**.
 
 ### Re-check after t27 data-gate isolation (2026-09-11 rerun)
 Allowlisted writers no longer leave tracked `data/` dirty:
@@ -47,3 +47,8 @@ Allowlisted writers no longer leave tracked `data/` dirty:
 `test_v2026_08_13_html_export` uses `cos_anon=True` for format probes.
 CI `git diff --quiet -- data/` after allowlist → **PASS**. `STRICT=1 smoke_boot` → **PASS**.
 `check_lib_modules` → `missing_count: 0`.
+
+### Allowlist ratchet (verify FAIL follow-up)
+`tests/test_caption_studio_v2.py` added to `tests/ci-allowlist.txt` so the two
+session-gated subprocess routes that previously returned 401 stay in the
+blocking CI subset (was green after explicit `POST /login`, but off-list).

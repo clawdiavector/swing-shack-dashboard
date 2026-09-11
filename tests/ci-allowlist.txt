@@ -92,6 +92,7 @@ campaign-os/tests/test_v2026_08_20_insights_seo_audit_subs.py
 campaign-os/tests/test_v2026_08_20_review_gmb_publish_socials_cta_postiz_camp_subs.py
 campaign-os/tests/test_visual_library_image_missing.py
 campaign-os/tests/test_weekly_report_v2026_08_04.py
+tests/test_caption_studio_v2.py
 tests/test_data_dir_fallback.py
 tests/test_meme_summary_no_debug.py
 tests/test_v2026_08_09_ideas_empty_collapse.py
