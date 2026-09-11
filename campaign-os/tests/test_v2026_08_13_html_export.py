@@ -208,7 +208,9 @@ class HtmlFormatQueryParamTests(unittest.TestCase):
             sys.path.insert(0, os.path.join(REPO, "campaign-os"))
             from app import app
             cls.app = app
-            cls.client = app.test_client()
+            # cos_anon: these cases only assert "not 404". Authed GETs would
+            # persist weekly-report.md into tracked data/ (t27 CI gate).
+            cls.client = app.test_client(cos_anon=True)
             cls.available = True
         except Exception as exc:
             cls.available = False
