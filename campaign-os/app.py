@@ -24289,6 +24289,75 @@ def admin_cg_carousel_debug():
     })
 
 
+@app.route('/api/admin/creative-genome/video-ffmpeg-debug', methods=['GET'])
+def admin_cg_video_ffmpeg_debug():
+    """Debug: download the video, attempt a single ffmpeg frame extract at
+    t=0, and return ffmpeg's stderr verbatim. Diagnoses frame-extract
+    failures without running the full pipeline.
+    """
+    import subprocess
+    import tempfile as _tf
+    from pathlib import Path as _P
+    from _lib import p12_video as p12v
+    asset_id = request.args.get("asset_id")
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    asset = p12v._find_asset(asset_id)
+    if not asset:
+        return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not in canonical"}), 404
+    media_url, _, fetch_err = p12v._resolve_video_metadata(asset)
+    if fetch_err or not media_url:
+        return jsonify({"ok": False, "error": f"meta: {fetch_err or 'no media_url'}"}), 400
+    raw, err = p12v._download_video_raw(media_url, max_bytes=80_000_000)
+    if not raw:
+        return jsonify({"ok": False, "error": f"download: {err}"}), 400
+    tmp = _P(_tf.gettempdir()) / f"creative_genome_videos/ffprobe_{asset_id}.mp4"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_bytes(raw)
+    # ffprobe
+    try:
+        probe = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_format", "-show_streams", str(tmp)],
+            capture_output=True, text=True, timeout=15,
+        )
+        probe_stdout = probe.stdout[:3000]
+        probe_stderr = probe.stderr[:1500]
+        probe_rc = probe.returncode
+    except Exception as e:
+        probe_stdout = f"probe exception: {type(e).__name__}: {e}"
+        probe_stderr = ""
+        probe_rc = -1
+    # ffmpeg extract at t=0
+    out_jpg = tmp.parent / f"ffprobe_{asset_id}_t0.jpg"
+    try:
+        ext = subprocess.run(
+            ["ffmpeg", "-y", "-ss", "0.0", "-i", str(tmp),
+             "-frames:v", "1", "-an", "-sn", "-dn",
+             "-vf", "scale='min(1024,iw)':-1",
+             "-q:v", "2", "-f", "image2", str(out_jpg)],
+            capture_output=True, text=True, timeout=30,
+        )
+        ext_rc = ext.returncode
+        ext_stderr = (ext.stderr or "")[:1500]
+        out_size = out_jpg.stat().st_size if out_jpg.exists() else 0
+    except Exception as e:
+        ext_rc = -1
+        ext_stderr = f"exception: {type(e).__name__}: {e}"
+        out_size = 0
+    return jsonify({
+        "ok": True,
+        "asset_id": asset_id,
+        "video_bytes": len(raw),
+        "ffprobe_rc": probe_rc,
+        "ffprobe_stdout": probe_stdout,
+        "ffprobe_stderr": probe_stderr,
+        "ffmpeg_extract_rc": ext_rc,
+        "ffmpeg_extract_stderr": ext_stderr,
+        "extract_output_bytes": out_size,
+        "extract_path": str(out_jpg),
+    })
+
+
 @app.route('/api/admin/creative-genome/video-debug', methods=['GET'])
 def admin_cg_video_debug():
     """Debug endpoint: return the resolved Meta media_url + content-type +
