@@ -211,6 +211,35 @@ def _video_content_hash(video_bytes: bytes) -> str:
     return hashlib.sha256(video_bytes).hexdigest()[:16]
 
 
+def _download_video_raw(url: str, max_bytes: int = 80_000_000,
+                         timeout: int = 120) -> Tuple[Optional[bytes], Optional[str]]:
+    """Download a VIDEO URL and return (bytes, error_string).
+    No content-type restriction — accepts mp4/mov/quicktime/whatever the
+    server returns.
+    """
+    import urllib.request as _ur
+    import urllib.error as _uer
+    headers = {
+        "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/124.0 Safari/537.36"),
+        "Accept": "*/*",
+    }
+    req = _ur.Request(url, headers=headers)
+    try:
+        with _ur.urlopen(req, timeout=timeout) as resp:
+            data = resp.read(max_bytes + 1)
+            if len(data) > max_bytes:
+                return None, f"video too large (>{max_bytes} bytes)"
+            return data, None
+    except _uer.HTTPError as e:
+        return None, f"HTTP {e.code}: {e.reason}"
+    except _uer.URLError as e:
+        return None, f"URLError: {e.reason}"
+    except Exception as e:
+        return None, f"{type(e).__name__}: {e}"
+
+
 def _analyse_one_frame(asset_id: str, brand_id: str,
                         timestamp_sec: float,
                         frame_bytes: bytes,
@@ -559,7 +588,7 @@ def observe_video(asset_id: str, brand_id: str,
     if not media_url:
         return {"ok": False, "error": "no media_url"}
 
-    raw_bytes, err = _download_image_raw(media_url, max_bytes=80_000_000)
+    raw_bytes, err = _download_video_raw(media_url, max_bytes=80_000_000)
     if not raw_bytes:
         return {"ok": False, "error": f"download_failed: {err}",
                 "failure_type": "download_failed"}
