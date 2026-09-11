@@ -37,13 +37,14 @@ _LOG = logging.getLogger("campaign_os.marketing_calendar")
 
 # ─── Paths ──────────────────────────────────────────────────────────────────
 _BRAND_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os")) / "brand-directory"
-_BUNDLED_DATA_DIR = Path(os.environ.get("BUNDLED_DATA_DIR", "/app/data"))
+_BUNDLED_DATA_DIR = Path(os.environ.get("BUNDLED_DATA_DIR", "/app/data")) / "brand-directory"
 _DEFAULT_LOCAL_DIR = Path(
     os.environ.get("BRAND_DIR_LOCAL", "/Users/fivefriday/hermes-fleet/shared/data/brand-directory")
 )
+_REPO_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "brand-directory"  # repo-local data/brand-directory/
 _DATA_DIR = Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 _CALENDAR_DIR = _DATA_DIR / "intelligence" / "marketing-calendar"
-_CALENDAR_DIR.mkdir(parents=True, exist_ok=True)
+_CALENDAR_DIR_READY = False
 
 # ─── Constants ──────────────────────────────────────────────────────────────
 VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
@@ -113,7 +114,7 @@ def _find_brand_config(brand_id: str) -> Optional[Path]:
     lookup pattern: tries DATA_DIR/brand-directory/<brand> (volume) +
     BUNDLED_DATA_DIR/brand-directory/<brand> (image-bundled) + local
     working-copy."""
-    for base in (_BRAND_DIR, _BUNDLED_DATA_DIR, _DEFAULT_LOCAL_DIR):
+    for base in (_BRAND_DIR, _BUNDLED_DATA_DIR, _REPO_DATA_DIR, _DEFAULT_LOCAL_DIR):
         candidate = base / brand_id / "calendar_config.json"
         if candidate.exists():
             return candidate
@@ -292,12 +293,27 @@ def compute_lead_time_schedule(
 
 # ─── Generic Calendar Record ──────────────────────────────────────────────
 
+def _ensure_calendar_dir() -> Path:
+    """Lazy-create the calendar storage dir. Skips if the parent dir is
+    on a read-only filesystem (e.g. when running locally)."""
+    global _CALENDAR_DIR_READY
+    if _CALENDAR_DIR_READY:
+        return _CALENDAR_DIR
+    try:
+        _CALENDAR_DIR.mkdir(parents=True, exist_ok=True)
+        _CALENDAR_DIR_READY = True
+    except (OSError, PermissionError):
+        # Read-only filesystem — config-only runs still work
+        _CALENDAR_DIR_READY = True  # don't retry every call
+    return _CALENDAR_DIR
+
+
 def _calendar_path(brand_id: str) -> Path:
-    return _CALENDAR_DIR / f"{brand_id}.jsonl"
+    return _ensure_calendar_dir() / f"{brand_id}.jsonl"
 
 
 def _watchlist_path(brand_id: str) -> Path:
-    return _CALENDAR_DIR / f"{brand_id}__watchlist.jsonl"
+    return _ensure_calendar_dir() / f"{brand_id}__watchlist.jsonl"
 
 
 def _now_iso() -> str:
