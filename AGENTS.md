@@ -73,7 +73,7 @@ Adding a job = a `JobSpec` in `_lib/jobs/`, **not** a folder of JS under `legacy
 curl -H "Authorization: Bearer $COS_JOB_TOKEN" <prod>/api/jobs/status
 ```
 
-(Host that runs the crons: open decision — exactly one host; record when chosen.)
+**Cron host default (P0c, Kyle override window):** Linux desk box — **exactly one host**. Do not also run these crons on the Mac.
 
 ## 8. Standing rules
 
@@ -120,128 +120,10 @@ agent-control: `manifests/campaign-os-master-plan-20260910.yaml` (ordered task l
 
 ## Appendix A — Layer 1 salvage (t20 → t29)
 
-Machine-readable salvage of `inputs{}` / `outputs{}` / `criticality` from the five Layer 1
-manifests, captured **before** `agents/` moved to `legacy/agents/`. Survives t33 deletion of
-`legacy/agents/`. Consumer: t29 (map → ~7 Python JobSpecs).
+Canonical machine-readable salvage of Layer 1 `inputs{}` / `outputs{}` / `criticality`:
 
-```yaml
-# Salvaged from agents/<name>/manifest.json before the move to legacy/agents/ (t20).
-# Consumer: t29 (map 5 Layer 1 manifests -> ~7 Python JobSpecs). Survives t33.
-version: 1
-salvaged_at: 2026-09-11
-salvaged_from: agents/{data_harvester,insight_analyst,taskmaster,memory_keeper,pulse_keeper}/manifest.json
-note: |
-  outputs[] are recorded with their ORIGINAL repo-relative "data/" prefix.
-  In the job registry these become $DATA_DIR-relative JobSpec.writes (drop the "data/" prefix) —
-  data/ is seed-only since t09. The rewrite is t29's call, not a transcription detail.
-  Every Layer 1 manifest declares criticality: HIGH. That is uncalibrated (74 of 74 agents say HIGH
-  or MEDIUM with no LOW anywhere), so it is preserved as manifest_criticality and must be
-  re-derived in t29 rather than copied into JobSpec.criticality.
+**`docs/layer1-salvage-20260911.yaml`**
 
-agents:
-  data_harvester:
-    manifest_criticality: HIGH
-    runs_on: [daily_pipeline]
-    scripts_count: 9
-    inputs:
-      credentials/instagram-api-token.json: Instagram API token
-      credentials/gcp-service-account.json: GA4/GSC service account
-    outputs:
-      data/ig-analytics.json: Instagram analytics
-      data/ga4-report.json: GA4 web analytics
-      data/seo-rankings.json: SEO rankings
-      data/reddit-trends.json: Reddit trends
-      data/golf-news.json: Golf news
-      data/youtube-trends.json: YouTube trends
-      data/website-insights.json: Website insights
-      data/seo-audit.json: SEO audit
-      data/geo-audit.json: Geo audit
-    ga4_risk: true
-    proposed_jobs: [meta_refresh, golf_news, reddit_trends, seo_rankings, ga4_report, youtube_trends]
-    unaccounted_outputs: [data/website-insights.json, data/seo-audit.json, data/geo-audit.json]
-
-  insight_analyst:
-    manifest_criticality: HIGH
-    runs_on: [daily_pipeline]
-    scripts_count: 9
-    inputs:
-      data/ig-analytics.json: IG posts and engagement
-      data/ga4-report.json: Web traffic data
-      data/seo-rankings.json: SEO rankings
-      data/hook-bank.json: Hook performance history
-      data/recommendation-scores.json: Prior recommendation scores
-    outputs:
-      data/hook-bank.json: Updated hook bank
-      data/anomaly-alerts.json: Anomaly detections
-      data/missed-opportunities.json: Missed opportunities
-      data/funnel-leaks.json: Funnel leak analysis
-      data/conversion-attribution.json: Conversion attribution
-      data/retargeting-recommendations.json: Retargeting recs
-      data/recommendation-scores.json: Recommendation scores
-      data/recommendation-outcomes.json: Recommendation outcomes
-    proposed_jobs: [insights]
-    t29_note: Nine scripts / eight outputs as one job will likely breach JobSpec.timeout_seconds: 60 — consider splitting.
-
-  taskmaster:
-    manifest_criticality: HIGH
-    runs_on: [daily_pipeline]
-    scripts_count: 13
-    inputs:
-      data/post-plan.json: Post plan
-      data/missed-opportunities.json: Opportunities
-      data/retargeting-recommendations.json: Retargeting recs
-      data/experiment-queue.json: Experiments
-      data/hook-bank.json: Hook bank
-    outputs:
-      data/post-plan.json: Post plan
-      data/sales-priority.json: Sales priority
-      data/daily-task-cards.json: Task cards
-      data/approval-queue.json: Approval queue
-      data/deadline-risk.json: Deadline risks
-      data/blockers.json: Blockers
-      data/capacity-shift.json: Capacity shifts
-      data/asset-needs.json: Asset needs
-      data/owner-workload.json: Owner workload
-      data/experiment-queue.json: Experiments
-      data/scaling-recommendations.json: Scale recommendations
-      data/kill-list.json: Kill list
-    proposed_jobs: []
-    t29_note: |
-      No P1 port named yet. SPA reads daily-task-cards.json and post-plan.json.
-      Either a seventh job or consciously dropped — t29 must say which.
-
-  memory_keeper:
-    manifest_criticality: HIGH
-    runs_on: [daily_pipeline, manual_trigger]
-    scripts_count: 1
-    inputs:
-      data/system-health.json: System health
-      data/agent-scorecards.json: Agent scores
-      data/recommendation-scores.json: Rec scores
-      data/recommendation-outcomes.json: Rec outcomes
-      memory/index.json: Prior memory index
-    outputs:
-      memory/daily/YYYY-MM-DD.json: Daily learning log
-      memory/index.json: Updated memory index
-      memory/wins/YYYY-MM-DD.json: Win records
-      memory/losses/YYYY-MM-DD.json: Loss records
-      memory/bugs/YYYY-MM-DD.json: Bug records
-    superseded_by: job_ledger
-    proposed_jobs: []
-
-  pulse_keeper:
-    manifest_criticality: HIGH
-    runs_on: [daily_pipeline, manual_trigger]
-    scripts_count: 3
-    inputs:
-      logs/daily-run.log: Pipeline execution log
-      data/build-meta.json: Build metadata
-      data/dashboard-summary.json: Dashboard summary
-      data/system-health.json: Prior health state
-    outputs:
-      data/system-health.json: System health report
-      data/agent-scorecards.json: Agent scorecards
-      memory/daily/YYYY-MM-DD.json: Daily learning log
-    superseded_by: job_ledger
-    proposed_jobs: []
-```
+Captured from the five Layer 1 manifests before `agents/` moved to `legacy/agents/`.
+Survives t33 deletion of `legacy/agents/`. Consumer: t29 (map → ~7 Python JobSpecs).
+Do not re-derive from `legacy/agents/` — that tree is frozen evidence only.
