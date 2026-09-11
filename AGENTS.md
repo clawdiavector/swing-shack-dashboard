@@ -40,7 +40,7 @@ Never `/Users/fivefriday/...` — that is a dead Mac path in old docs.
 - There is no other build config. `Procfile` / `runtime.txt` / `campaign-os/railway.json` were deleted 2026-09-09 and must not return.
 - Details: `RAILWAY.md`.
 
-## 6. The jobs (this replaced the "74 agents")
+## 6. The jobs (replaces the retired Node fleet)
 
 There are **no agents** in the live product. There are **three registered jobs** under
 `campaign-os/_lib/jobs/{spec,registry,runner,ledger}.py`:
