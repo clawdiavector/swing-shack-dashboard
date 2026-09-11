@@ -24289,6 +24289,52 @@ def admin_cg_carousel_debug():
     })
 
 
+@app.route('/api/admin/creative-genome/video-debug', methods=['GET'])
+def admin_cg_video_debug():
+    """Debug endpoint: return the resolved Meta media_url + content-type +
+    download size for one VIDEO asset. Helps diagnose download / frame-extract
+    failures."""
+    from _lib import p12_video as p12v
+    asset_id = request.args.get("asset_id")
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    asset = p12v._find_asset(asset_id)
+    if not asset:
+        return jsonify({"ok": False, "error": f"asset_id '{asset_id}' not in canonical"}), 404
+    media_url, _, fetch_err = p12v._resolve_video_metadata(asset)
+    if fetch_err:
+        return jsonify({"ok": False, "error": f"meta: {fetch_err}"}), 400
+    if not media_url:
+        return jsonify({"ok": False, "error": "no media_url"}), 400
+    # Probe the URL with a HEAD-equivalent (small range GET)
+    import urllib.request as _ur
+    import urllib.error as _uer
+    info = {"media_url": media_url, "media_url_prefix": media_url[:120]}
+    try:
+        req = _ur.Request(media_url, method="GET", headers={
+            "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                           "AppleWebKit/537.36 (KHTML, like Gecko) "
+                           "Chrome/124.0 Safari/537.36"),
+            "Accept": "*/*",
+            "Range": "bytes=0-1023",
+        })
+        with _ur.urlopen(req, timeout=30) as resp:
+            info["status_code"] = resp.status
+            info["content_type"] = resp.headers.get("Content-Type")
+            info["content_length"] = resp.headers.get("Content-Length")
+            info["content_range"] = resp.headers.get("Content-Range")
+            first_bytes = resp.read(1024)
+            info["first_bytes_hex"] = first_bytes[:64].hex()
+            info["looks_like_mp4"] = (first_bytes[:12] == b"\x00\x00\x00 ftyp".replace(b" ", b"\x00")
+                                       or first_bytes[:4] == b"\x00\x00\x00\x20"
+                                       or first_bytes[4:8] == b"ftyp")
+    except _uer.HTTPError as e:
+        info["http_error"] = f"{e.code} {e.reason}"
+    except Exception as e:
+        info["error"] = f"{type(e).__name__}: {e}"
+    return jsonify({"ok": True, "asset_id": asset_id, **info})
+
+
 @app.route('/api/admin/creative-genome/observe-video', methods=['POST'])
 def admin_cg_observe_video():
     """P1.2 Slice D: adaptive VIDEO observation + frame-level features.
