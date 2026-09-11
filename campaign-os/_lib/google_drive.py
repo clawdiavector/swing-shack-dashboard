@@ -25,6 +25,7 @@ Usage:
 """
 from __future__ import annotations
 
+import functools
 import json
 import os
 from pathlib import Path
@@ -35,17 +36,17 @@ from typing import Any, Iterable
 # OAuth 2.0 spec explicitly exempts localhost for installed/Desktop apps.
 os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "***")
 
-# Defaults — overridden by env if present. We try the canonical OpenClaw
-# credentials location first (the one the setup-portal uses), then fall
-# back to the user-supplied env var.
+# Defaults — overridden by env if present. Home-relative only (no absolute
+# /Users/... paths) so Linux import/collection never touches Mac paths.
 _DEFAULT_CREDENTIALS_DIRS = [
-    Path("/Users/fivefriday/.openclaw/workspace/credentials"),
-    Path("/Users/fivefriday/.openclaw-instance2/workspace/credentials"),
     Path.home() / ".openclaw" / "workspace" / "credentials",
+    Path.home() / ".openclaw-instance2" / "workspace" / "credentials",
 ]
 
 
+@functools.lru_cache(maxsize=1)
 def _resolve_credentials_dir() -> Path:
+    """Resolve credentials dir lazily (call-time), never at import."""
     env_dir = os.environ.get("OPENCLAW_CREDENTIALS_DIR")
     if env_dir:
         return Path(env_dir)
@@ -53,21 +54,34 @@ def _resolve_credentials_dir() -> Path:
         if p.exists() or p.parent.exists():
             p.mkdir(parents=True, exist_ok=True)
             return p
-    # Fallback to first default
     p = _DEFAULT_CREDENTIALS_DIRS[0]
     p.mkdir(parents=True, exist_ok=True)
     return p
 
 
-CREDENTIALS_DIR = _resolve_credentials_dir()
-OAUTH_CLIENT_PATH = Path(
-    os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
-    or CREDENTIALS_DIR / "google-oauth-client.json"
-)
-DRIVE_TOKEN_PATH = Path(
-    os.environ.get("GOOGLE_DRIVE_TOKEN")
-    or CREDENTIALS_DIR / "google-drive-token.json"
-)
+def _oauth_client_path() -> Path:
+    return Path(
+        os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+        or (_resolve_credentials_dir() / "google-oauth-client.json")
+    )
+
+
+def _drive_token_path() -> Path:
+    return Path(
+        os.environ.get("GOOGLE_DRIVE_TOKEN")
+        or (_resolve_credentials_dir() / "google-drive-token.json")
+    )
+
+
+def __getattr__(name: str):
+    """Lazy back-compat for CREDENTIALS_DIR / OAUTH_CLIENT_PATH / DRIVE_TOKEN_PATH."""
+    if name == "CREDENTIALS_DIR":
+        return _resolve_credentials_dir()
+    if name == "OAUTH_CLIENT_PATH":
+        return _oauth_client_path()
+    if name == "DRIVE_TOKEN_PATH":
+        return _drive_token_path()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # Scope = read-only Drive. Token will only ever read.
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
@@ -75,10 +89,11 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
 def _load_client_secrets() -> dict[str, Any] | None:
     """Load the OAuth client secrets JSON (Desktop-app credentials)."""
-    if not OAUTH_CLIENT_PATH.exists():
+    path = _oauth_client_path()
+    if not path.exists():
         return None
     try:
-        with OAUTH_CLIENT_PATH.open() as f:
+        with path.open() as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -86,10 +101,11 @@ def _load_client_secrets() -> dict[str, Any] | None:
 
 def _load_stored_token() -> dict[str, Any] | None:
     """Load the persisted refresh-token JSON (if any)."""
-    if not DRIVE_TOKEN_PATH.exists():
+    path = _drive_token_path()
+    if not path.exists():
         return None
     try:
-        with DRIVE_TOKEN_PATH.open() as f:
+        with path.open() as f:
             return json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
@@ -97,11 +113,12 @@ def _load_stored_token() -> dict[str, Any] | None:
 
 def _save_token(token: dict[str, Any]) -> Path:
     """Persist the refresh token to disk with 0600 perms."""
-    DRIVE_TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with DRIVE_TOKEN_PATH.open("w") as f:
+    path = _drive_token_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as f:
         json.dump(token, f, indent=2)
-    os.chmod(DRIVE_TOKEN_PATH, 0o600)
-    return DRIVE_TOKEN_PATH
+    os.chmod(path, 0o600)
+    return path
 
 
 def connect():
@@ -282,14 +299,15 @@ def setup_interactive(port: int = 8765, method: str = "console") -> dict[str, An
         "mismatching_state" error we hit at 8766).
       - "auto": try local first, fall back to console on mismatch.
 
-    The resulting refresh token lands at DRIVE_TOKEN_PATH. You only do this
+    The resulting refresh token lands at the resolved DRIVE_TOKEN_PATH. You only do this
     dance once; subsequent calls use the cached token.
     """
     from google_auth_oauthlib.flow import InstalledAppFlow
 
     client = _load_client_secrets()
+    client_path = _oauth_client_path()
     if not client:
-        return {"ok": False, "error": f"client secrets not found at {OAUTH_CLIENT_PATH}",
+        return {"ok": False, "error": f"client secrets not found at {client_path}",
                 "instructions": oauth_instructions()}
 
     if "installed" not in client and "web" not in client:
@@ -297,7 +315,7 @@ def setup_interactive(port: int = 8765, method: str = "console") -> dict[str, An
                 "error": "client JSON is not 'installed' or 'web' type — did you download the right file?",
                 "instructions": oauth_instructions()}
 
-    flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_PATH), SCOPES)
+    flow = InstalledAppFlow.from_client_secrets_file(str(client_path), SCOPES)
 
     # Force redirect_uri. The OAuth client JSON registers "http://localhost"
     # but google-auth-oauthlib >=1.0 occasionally drops the redirect_uri param
@@ -347,7 +365,7 @@ def setup_interactive(port: int = 8765, method: str = "console") -> dict[str, An
             print(f"\n[!] local-server dance failed: {e}")
             print(f"[!] falling back to console-paste mode.\n", flush=True)
             # Re-create the flow so the state is fresh
-            flow = InstalledAppFlow.from_client_secrets_file(str(OAUTH_CLIENT_PATH), SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(str(client_path), SCOPES)
             auth_url, _ = flow.authorization_url(
                 access_type="offline", prompt="consent", include_granted_scopes="true"
             )
@@ -374,8 +392,10 @@ def status() -> dict[str, Any]:
     expired so the dashboard can render a clean "needs re-auth" badge
     instead of a raw Python tuple error.
     """
-    has_client = OAUTH_CLIENT_PATH.exists()
-    has_token = DRIVE_TOKEN_PATH.exists()
+    client_path = _oauth_client_path()
+    token_path = _drive_token_path()
+    has_client = client_path.exists()
+    has_token = token_path.exists()
     auth_error = None
     drive = None
     if has_token:
@@ -390,8 +410,8 @@ def status() -> dict[str, Any]:
     return {
         "has_oauth_client": has_client,
         "has_token": has_token,
-        "client_path": str(OAUTH_CLIENT_PATH),
-        "token_path": str(DRIVE_TOKEN_PATH),
+        "client_path": str(client_path),
+        "token_path": str(token_path),
         "connected": drive is not None,
         "auth_error": auth_error,
         "instructions": oauth_instructions(),
