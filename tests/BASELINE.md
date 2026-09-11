@@ -25,7 +25,7 @@ python3 -m pytest campaign-os/tests tests scripts/tests -q --tb=line \
 | skipped | 16 | **16** |
 | auth-401 on `--tb=line` failure lines | ~190 (audit) | **0** |
 
-SHA at measurement: see `git rev-parse HEAD` on the implement branch after the
+SHA at measurement: `687e7c94b9754c4037210edb2c79d0a3c470b4eb` (desk Python 3.14.7).
 caption_studio subprocess login + allowlist ratchet commits.
 
 Residual **non-auth** failures are named in [`RESIDUAL-TRIAGE.md`](./RESIDUAL-TRIAGE.md)
