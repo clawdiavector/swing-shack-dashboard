@@ -3381,6 +3381,28 @@ def calendar_lead_time():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/path-debug', methods=['GET'])
+def calendar_path_debug():
+    """Surface the brand config search paths so we can diagnose why a
+    calendar_config.json isn't being found."""
+    from _lib import marketing_calendar as mc
+    return jsonify({
+        "ok": True,
+        "_BRAND_DIR": str(mc._BRAND_DIR),
+        "_BUNDLED_DATA_DIR": str(mc._BUNDLED_DATA_DIR),
+        "_DEFAULT_LOCAL_DIR": str(mc._DEFAULT_LOCAL_DIR),
+        "_DATA_DIR": str(mc._DATA_DIR),
+        "_CALENDAR_DIR": str(mc._CALENDAR_DIR),
+        "brand_dir_exists": mc._BRAND_DIR.exists(),
+        "bundled_dir_exists": mc._BUNDLED_DATA_DIR.exists(),
+        "default_local_dir_exists": mc._DEFAULT_LOCAL_DIR.exists(),
+        "stick_bundled_path": str(mc._BUNDLED_DATA_DIR / "brand-directory" / "stick" / "calendar_config.json"),
+        "stick_bundled_exists": (mc._BUNDLED_DATA_DIR / "brand-directory" / "stick" / "calendar_config.json").exists(),
+        "DATA_DIR_env": os.environ.get("DATA_DIR"),
+        "BUNDLED_DATA_DIR_env": os.environ.get("BUNDLED_DATA_DIR"),
+    })
+
+
 @app.route('/api/calendar/brand-adaptability-test', methods=['GET'])
 def calendar_brand_adaptability_test():
     """In-memory demonstration that switching brand_id changes pillars,
