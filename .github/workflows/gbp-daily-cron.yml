@@ -10,21 +10,19 @@ jobs:
   tick:
     runs-on: ubuntu-latest
     steps:
-      - name: POST /api/gbp/cron/tick on Railway
+      - name: POST /api/jobs/run/gbp_tick on Railway
         env:
-          CAMPAIGN_OS_AUTH: ${{ secrets.CAMPAIGN_OS_AUTH }}
+          COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
         run: |
-          set -e
-          # Get the session cookie via the password login.
-          COOKIE_JAR=$(mktemp)
-          trap "rm -f $COOKIE_JAR" EXIT
-          curl -s -c "$COOKIE_JAR" -X POST "https://swing-shack-dashboard-production.up.railway.app/login" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "password=$CAMPAIGN_OS_AUTH" \
-            -o /dev/null
-          # Fire the cron tick.
-          curl -s -b "$COOKIE_JAR" -X POST "https://swing-shack-dashboard-production.up.railway.app/api/gbp/cron/tick" \
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
+            exit 1
+          fi
+          curl -sf -X POST "https://swing-shack-dashboard-production.up.railway.app/api/jobs/run/gbp_tick" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
-            | tee /tmp/cron-tick.json
+            | tee /tmp/job-run.json
           echo
-          echo "Cron tick fired. Output above."
+          python3 -c "import json,sys; d=json.load(open('/tmp/job-run.json')); sys.exit(0 if d.get('ok') else 1)"
+          echo "gbp_tick fired. Output above."

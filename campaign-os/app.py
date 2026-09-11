@@ -103,6 +103,20 @@ def _is_authed():
         return False
 
 
+# Additive job-runner bearer (t15). Unset in local/dev; workflows set in prod.
+# Dual-auth is temporary — tighten to bearer-only when deferred security (t02–t04) lands.
+COS_JOB_TOKEN = os.environ.get('COS_JOB_TOKEN')
+
+
+def _is_job_authed():
+    """Job endpoints: bearer COS_JOB_TOKEN OR existing session cookie."""
+    auth = request.headers.get('Authorization', '')
+    token = COS_JOB_TOKEN
+    if token and auth.startswith('Bearer ') and auth[len('Bearer '):] == token:
+        return True
+    return _is_authed()
+
+
 @app.before_request
 def _gate():
     """Redirect unauthed requests to /login. Allow public routes + static asset paths."""
@@ -115,7 +129,11 @@ def _gate():
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
-    if _is_authed():
+    # Dual-auth paths: bearer OR session (t15); session-only elsewhere
+    if path.startswith('/api/jobs') or path.startswith('/api/freshness'):
+        if _is_job_authed():
+            return None
+    elif _is_authed():
         return None
     # API requests get 401 JSON; browser requests get a redirect to login
     if path.startswith('/api/'):
@@ -11878,6 +11896,39 @@ def _get_freshness():
     return generated, 'on-demand', True
 
 
+def _run_freshness_scan_job():
+    """Job-registry wrapper around the existing freshness walk+persist (no new ETL)."""
+    paths = _data_paths()
+    vol = paths['data_dir']
+    _freshness_cache.clear()
+    if not os.path.isdir(vol):
+        return {"ok": False, "error": "data_dir missing", "vol": vol}
+    generated = _build_freshness_on_demand(vol)
+    target = os.path.join(vol, 'freshness.json')
+    warning = None
+    try:
+        if os.access(vol, os.W_OK):
+            with open(target, 'w', encoding='utf-8') as fh:
+                json.dump(generated, fh, indent=2, ensure_ascii=False)
+        else:
+            warning = "data_dir not writable"
+    except OSError as e:
+        warning = f"scan completed but write failed: {e}"
+    out = {
+        "ok": True,
+        "rows": generated.get("total_files", 0),
+        "total_files": generated.get("total_files"),
+        "scanned_at": generated.get("generated"),
+        "path": target,
+        "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
+        "stale_count": generated.get("by_staleness", {}).get("stale", 0),
+        "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
+    }
+    if warning:
+        out["warning"] = warning
+    return out
+
+
 @app.route('/api/freshness/refresh', methods=['POST'])
 def freshness_refresh():
     """POST /api/freshness/refresh — re-walk the data/ tree and rebuild
@@ -11889,44 +11940,96 @@ def freshness_refresh():
     data directory and writes a JSON. It is safe but we still want to
     know who's calling it.
     """
-    if not _is_authed():
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     try:
-        paths = _data_paths()
-        vol = paths['data_dir']
-        # Invalidate the on-demand cache so the next GET walks fresh
-        _freshness_cache.clear()
-        if not os.path.isdir(vol):
-            return jsonify({"ok": False, "error": "data_dir missing", "vol": vol}), 500
-        generated = _build_freshness_on_demand(vol)
-        # Persist to volume so /api/freshness reads from disk next time
-        target = os.path.join(vol, 'freshness.json')
-        try:
-            if os.access(vol, os.W_OK):
-                with open(target, 'w', encoding='utf-8') as fh:
-                    json.dump(generated, fh, indent=2, ensure_ascii=False)
-                return jsonify({
-                    "ok": True,
-                    "scanned_at": generated.get("generated"),
-                    "path": target,
-                    "total_files": generated.get("total_files"),
-                    "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
-                    "stale_count": generated.get("by_staleness", {}).get("stale", 0),
-                    "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
-                })
-        except OSError as e:
-            return jsonify({
-                "ok": True,
-                "scanned_at": generated.get("generated"),
-                "warning": f"scan completed but write failed: {e}",
-                "total_files": generated.get("total_files"),
-                "fresh_count": generated.get("by_staleness", {}).get("fresh", 0),
-                "stale_count": generated.get("by_staleness", {}).get("stale", 0),
-                "rotten_count": generated.get("by_staleness", {}).get("rotten", 0),
-            })
+        result = _run_freshness_scan_job()
+        if not result.get("ok"):
+            return jsonify(result), 500
+        return jsonify(result)
     except Exception as e:
         _app_log.exception("freshness_refresh failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── Job registry (P0b / t12–t16) ──────────────────────────────────────────
+# Logic lives in _lib/jobs/; app.py only registers callables defined above
+# and exposes thin dual-auth routes. gbp_tick / freshness_scan register here
+# to avoid circular imports (plan §2.2 option a).
+# importlib keeps the package import out of check_lib_modules' flat *.py AST
+# scan (that scanner does not yet count _lib/<pkg>/ directories as present).
+try:
+    import importlib as _importlib
+    _job_registry_mod = _importlib.import_module('_lib.jobs.registry')
+    _job_spec_mod = _importlib.import_module('_lib.jobs.spec')
+    _job_runner_mod = _importlib.import_module('_lib.jobs.runner')
+    _JOBS_REGISTRY = _job_registry_mod.JOBS
+    _register_job = _job_registry_mod.register
+    _JobSpec = _job_spec_mod.JobSpec
+    _run_named_job = _job_runner_mod.run_job
+    _jobs_build_status = _job_runner_mod.build_status
+    _jobs_build_digest = _job_runner_mod.build_digest
+
+    _register_job(_JobSpec(
+        name="gbp_tick",
+        fn=_gbp_daily_cron_tick,
+        every_seconds=86400,
+        criticality="MEDIUM",
+        credentials=("GOOGLE_OAUTH_CLIENT_SECRET",),
+        writes=("gbp-daily-plans/",),
+    ))
+    _register_job(_JobSpec(
+        name="freshness_scan",
+        fn=_run_freshness_scan_job,
+        every_seconds=86400,
+        criticality="LOW",
+        best_effort=True,
+        writes=("freshness.json",),
+    ))
+    _JOBS_AVAILABLE = True
+except Exception as _jobs_exc:  # noqa: BLE001
+    _JOBS_AVAILABLE = False
+    _JOBS_REGISTRY = {}
+    _app_log.warning("job registry import/register failed: %s", _jobs_exc)
+
+
+@app.route('/api/jobs/run/<name>', methods=['POST'])
+def jobs_run(name):
+    """POST /api/jobs/run/<name> — run a registered job (bearer or session)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE or name not in _JOBS_REGISTRY:
+        return jsonify({"ok": False, "error": "unknown job", "job": name}), 404
+    # reason / heal_of accepted-but-ignored in P0 (t58 wires them later)
+    _ = request.args.get('reason')
+    _ = request.args.get('heal_of')
+    try:
+        row = _run_named_job(name, triggered_by=request.args.get('reason') or 'schedule')
+        return jsonify(row), 200
+    except Exception as e:
+        _app_log.exception("jobs_run failed name=%s", name)
+        return jsonify({"ok": False, "job": name, "status": "FAILED", "error": str(e)}), 500
+
+
+@app.route('/api/jobs/status', methods=['GET'])
+def jobs_status():
+    """GET /api/jobs/status — verdict table with timestamps."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    return jsonify(_jobs_build_status()), 200
+
+
+@app.route('/api/jobs/digest', methods=['GET'])
+def jobs_digest():
+    """GET /api/jobs/digest — timestamp-free stable bytes for hermes monitor."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    body = _jobs_build_digest()
+    return Response(body, mimetype='application/json')
 
 
 @app.route('/api/freshness', methods=['GET'])
