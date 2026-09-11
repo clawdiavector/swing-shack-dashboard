@@ -25,8 +25,7 @@ python3 -m pytest campaign-os/tests tests scripts/tests -q --tb=line \
 | skipped | 16 | **16** |
 | auth-401 on `--tb=line` failure lines | ~190 (audit) | **0** |
 
-SHA at measurement: `687e7c94b9754c4037210edb2c79d0a3c470b4eb` (desk Python 3.14.7).
-caption_studio subprocess login + allowlist ratchet commits.
+SHA at measurement: `687e7c94b9754c4037210edb2c79d0a3c470b4eb` (suite numbers; tip may be docs-only ahead). Desk Python 3.14.7.
 
 Residual **non-auth** failures are named in [`RESIDUAL-TRIAGE.md`](./RESIDUAL-TRIAGE.md)
 (t25-E). t25 does not fix them — it made them legible.
