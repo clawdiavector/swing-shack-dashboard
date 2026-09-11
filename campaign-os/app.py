@@ -24289,6 +24289,44 @@ def admin_cg_carousel_debug():
     })
 
 
+@app.route('/api/admin/creative-genome/observe-video', methods=['POST'])
+def admin_cg_observe_video():
+    """P1.2 Slice D: adaptive VIDEO observation + frame-level features.
+
+    Input:  {brand_id, asset_id, use_adaptive?, fixed_n_frames?, model?}
+    Output: frames[] (each with timestamp, observation), derived{}
+    """
+    from _lib import p12_video as p12v
+    body = request.get_json(force=True, silent=True) or {}
+    asset_id = body.get("asset_id")
+    brand_id = body.get("brand_id")
+    if not asset_id or not brand_id:
+        return jsonify({"ok": False, "error": "asset_id and brand_id required"}), 400
+    result = p12v.observe_video(
+        asset_id=str(asset_id),
+        brand_id=str(brand_id),
+        max_dim=int(body.get("max_dim") or 1024),
+        quality=int(body.get("quality") or 80),
+        model=body.get("model") or None,
+        use_adaptive=bool(body.get("use_adaptive", True)),
+        fixed_n_frames=int(body.get("fixed_n_frames") or 4),
+    )
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
+
+@app.route('/api/admin/creative-genome/video-contact-sheet', methods=['GET'])
+def admin_cg_video_contact_sheet():
+    """Build an HTML contact sheet for one VIDEO asset showing each analysed
+    frame in chronological order."""
+    from _lib import p12_video as p12v
+    asset_id = request.args.get("asset_id")
+    if not asset_id:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    html = p12v.video_contact_sheet_html(asset_id)
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 @app.route('/api/admin/creative-genome/observe-carousel', methods=['POST'])
 def admin_cg_observe_carousel():
     """P1.2 Slice C: blind per-slide analysis of a CAROUSEL_ALBUM asset +
