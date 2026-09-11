@@ -24153,6 +24153,22 @@ def admin_cg_carousel_contact_sheet():
     op = derived.get("opening") or {}
     cl = derived.get("closing") or {}
     vv = derived.get("visual_variety") or {}
+    dup_groups = derived.get("duplicate_slide_groups") or []
+    # Build the derived-fields summary with three-state evidence
+    def _evidence_line(prefix, name):
+        return (f"{name:18s} = {derived.get(prefix+name)}  "
+                f"pos={derived.get(prefix+name+'_positive_count')}  "
+                f"neg={derived.get(prefix+name+'_negative_count')}  "
+                f"unk={derived.get(prefix+name+'_unknown_count')}  "
+                f"observed_ratio={derived.get(prefix+name+'_observed_ratio')}  "
+                f"slides={derived.get(prefix+name+'_evidence_slides')}\n")
+    derived_summary = ""
+    for p, n in [("human_", "anywhere"), ("product_", "anywhere"),
+                 ("golf_club_", "anywhere"), ("golf_ball_", "anywhere"),
+                 ("screen_", "anywhere"), ("text_overlay_", "anywhere"),
+                 ("logo_", "anywhere"), ("indoor_", "anywhere"),
+                 ("outdoor_", "anywhere")]:
+        derived_summary += _evidence_line(p, n)
     body = f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>Carousel {asset_id}</title>
 <style>
@@ -24176,22 +24192,25 @@ td {{ text-align: right; }}
 slides_analysed = {derived.get('slides_analysed')}
 slides_failed = {derived.get('slides_failed')}
 coverage_ratio = {derived.get('coverage_ratio')}</pre>
-  <h2>Asset-level features</h2>
-  <pre>human_anywhere        = {derived.get('human_anywhere')}  ratio={derived.get('human_slide_ratio')}  slides={derived.get('human_evidence_slides')}
-product_anywhere      = {derived.get('product_anywhere')}  ratio={derived.get('product_slide_ratio')}  slides={derived.get('product_evidence_slides')}
-golf_club_anywhere    = {derived.get('golf_club_anywhere')}  slides={derived.get('golf_club_evidence_slides')}
-golf_ball_anywhere    = {derived.get('golf_ball_anywhere')}  slides={derived.get('golf_ball_evidence_slides')}
-screen_anywhere       = {derived.get('screen_anywhere')}  slides={derived.get('screen_evidence_slides')}
-text_overlay_anywhere = {derived.get('text_overlay_anywhere')}  ratio={derived.get('text_overlay_slide_ratio')}  slides={derived.get('text_overlay_evidence_slides')}
-logo_anywhere         = {derived.get('logo_anywhere')}  ratio={derived.get('logo_slide_ratio')}  slides={derived.get('logo_evidence_slides')}
-indoor_anywhere       = {derived.get('indoor_anywhere')}  slides={derived.get('indoor_evidence_slides')}
-outdoor_anywhere      = {derived.get('outdoor_anywhere')}  slides={derived.get('outdoor_evidence_slides')}</pre>
+  <h2>Asset-level features (three-state: true / false / null)</h2>
+  <pre>{derived_summary}</pre>
   <h2>Opening</h2>
-  <pre>{json.dumps(op, indent=2)}</pre>
+  <pre>{json.dumps(op, indent=2)}
+
+opening_human = {derived.get('opening_human')}
+opening_product = {derived.get('opening_product')}
+opening_text_heavy = {derived.get('opening_text_heavy')}</pre>
   <h2>Closing</h2>
-  <pre>{json.dumps(cl, indent=2)}</pre>
+  <pre>{json.dumps(cl, indent=2)}
+
+closing_text_heavy = {derived.get('closing_text_heavy')}
+closing_logo = {derived.get('closing_logo')}
+closing_cta_visual_signal = {derived.get('closing_cta_visual_signal')}</pre>
   <h2>Visual variety</h2>
   <pre>{json.dumps(vv, indent=2)}</pre>
+  <h2>Duplicate slide groups (byte-identical content)</h2>
+  <pre>{json.dumps(dup_groups, indent=2) if dup_groups else '(none)'}
+duplicate_slide_count = {derived.get('duplicate_slide_count')}</pre>
   <h2>Dominant subject progression</h2>
   <pre>{derived.get('dominant_subject_progression')}</pre>
 </div>

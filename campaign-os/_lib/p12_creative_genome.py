@@ -44,7 +44,7 @@ from typing import Any, Dict, List, Optional, Tuple
 _LOG = logging.getLogger(__name__)
 
 # Schema version — bump to invalidate the cache.
-P12A_ANALYSIS_VERSION = "p12a-v0.2"
+P12A_ANALYSIS_VERSION = "p12a-v0.3"
 
 # Vision model — gpt-4o-mini supports image_url input.
 P12A_VISION_MODEL = os.environ.get("CREATIVE_GENOME_VISION_MODEL", "gpt-4o-mini")
@@ -784,15 +784,17 @@ def _derive_carousel_features(asset_id: str, brand_id: str,
     slide_results is a list of per-slide return dicts from
     _analyse_one_slide. Order is preserved.
 
-    Returns a dict with derived fields + per-feature evidence
-    (which slide_index contributed).
+    Three-state discipline (true / false / null):
+      - null = evidence was insufficient (model returned null OR no
+        analysable slides covered this attribute)
+      - true = at least one analysable slide observed the feature
+      - false = at least one analysable slide confidently observed
+        the absence AND no analysable slide observed the feature
 
-    Important rules:
-      - Unknown stays unknown. We never turn "I don't know" into a
-        confident "no".
-      - features are computed from analysable slides only; coverage
-        is recorded.
-      - opening / closing slides are kept separate.
+    Coverage is tracked per attribute so ratios know their denominator.
+    Slide-identity preservation: slides_expected reflects what Meta
+    returned; duplicate_byte_hashes tracks identical-content duplicates
+    without inflating ratios.
     """
     analysed = [s for s in slide_results if s.get("ok") and s.get("observations")]
     failed = [s for s in slide_results if not s.get("ok")]
@@ -802,66 +804,157 @@ def _derive_carousel_features(asset_id: str, brand_id: str,
         return slide.get("observations", {}).get(field, {}).get("value")
 
     def _cat_at(slide, field):
-        return slide.get("observations", {}).get(field, {}).get("value")
+        return slide.get("observations", {}).get("value" if False else field, {}).get("value")
 
-    # human_anywhere
-    human_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "human_present") is True]
-    human_anywhere = True if human_slides else None if analysed else None
-    # product_anywhere: human OR product dominant anywhere
-    product_slides = [i for i, s in enumerate(analysed)
-                      if _bool_at(s, "product_closeup") is True
-                      or _cat_at(s, "dominant_subject") == "product"]
-    product_anywhere = True if product_slides else None if analysed else None
-    # golf_club_anywhere
-    club_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "golf_club_present") is True]
-    club_anywhere = True if club_slides else None if analysed else None
-    # golf_ball_anywhere
-    ball_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "golf_ball_present") is True]
-    ball_anywhere = True if ball_slides else None if analysed else None
-    # screen_anywhere
-    screen_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "screen_visible") is True]
-    screen_anywhere = True if screen_slides else None if analysed else None
-    # text_overlay_anywhere
-    text_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "text_overlay") is True]
-    text_anywhere = True if text_slides else None if analysed else None
-    # logo_anywhere
-    logo_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "logo_visible") is True]
-    logo_anywhere = True if logo_slides else None if analysed else None
-    # indoor_anywhere / outdoor_anywhere
-    indoor_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "indoor") is True]
-    indoor_anywhere = True if indoor_slides else None if analysed else None
-    outdoor_slides = [i for i, s in enumerate(analysed) if _bool_at(s, "outdoor") is True]
-    outdoor_anywhere = True if outdoor_slides else None if analysed else None
+    # For each boolean field, derive (positive, negative, unknown) counts
+    # plus an evidence-list of slide indices that voted positive.
+    bool_fields = [
+        "human_present", "golf_club_present", "golf_ball_present",
+        "screen_visible", "text_overlay", "logo_visible", "indoor",
+        "outdoor", "product_closeup", "golfer_present", "golfer_swinging",
+        "golfer_putting", "simulator_environment", "face_visible",
+        "human_dominant", "product_dominant", "environment_dominant",
+        "golf_bag_present",
+    ]
+    # product_anywhere is special: any product_closeup OR dominant_subject=="product"
+    by_field = {}
+    for f in bool_fields:
+        pos = []
+        neg = []
+        unk = []
+        for i, s in enumerate(analysed):
+            v = _bool_at(s, f)
+            if v is True:
+                pos.append(i)
+            elif v is False:
+                neg.append(i)
+            else:
+                unk.append(i)
+        # Three-state derived:
+        #   if any positive: true  (with evidence list = pos)
+        #   elif any negative: false  (with evidence list = neg)
+        #   else: null (no usable evidence)
+        if pos:
+            derived = True
+            evidence = pos
+        elif neg:
+            derived = False
+            evidence = neg
+        else:
+            derived = None
+            evidence = []
+        by_field[f] = {
+            "derived": derived,
+            "evidence_slides": evidence,
+            "positive_count": len(pos),
+            "negative_count": len(neg),
+            "unknown_count": len(unk),
+            "observed_count": len(pos) + len(neg),
+            "observed_ratio": round((len(pos) + len(neg)) / len(analysed), 3) if analysed else None,
+            "positive_ratio": round(len(pos) / len(analysed), 3) if analysed else None,
+            # legacy field names kept for downstream callers
+            "value": derived,
+        }
+
+    # product_anywhere special handling: any product_closeup OR dom=product
+    pos = []
+    neg = []
+    unk = []
+    product_evidence = []
+    for i, s in enumerate(analysed):
+        v = _bool_at(s, "product_closeup")
+        dom = _cat_at(s, "dominant_subject")
+        is_product = (v is True) or (dom == "product")
+        is_not_product = (v is False) and (dom in ("human", "environment", "text", "mixed"))
+        if is_product:
+            pos.append(i)
+            product_evidence.append(i)
+        elif is_not_product:
+            neg.append(i)
+        else:
+            unk.append(i)
+    if pos:
+        prod_derived = True
+    elif neg:
+        prod_derived = False
+    else:
+        prod_derived = None
+    by_field["product_anywhere"] = {
+        "derived": prod_derived,
+        "evidence_slides": product_evidence,
+        "positive_count": len(pos),
+        "negative_count": len(neg),
+        "unknown_count": len(unk),
+        "observed_count": len(pos) + len(neg),
+        "observed_ratio": round((len(pos) + len(neg)) / len(analysed), 3) if analysed else None,
+        "positive_ratio": round(len(pos) / len(analysed), 3) if analysed else None,
+        "value": prod_derived,
+    }
 
     # opening / closing
     opening = analysed[0] if analysed else None
     closing = analysed[-1] if analysed else None
+
     def _opening(field):
         if not opening: return None
-        return _bool_at(opening, field) if field in P12A_BOOLEAN_FIELDS else _cat_at(opening, field)
+        if field in by_field:
+            return _bool_at(opening, field)
+        return _cat_at(opening, field)
     def _closing(field):
         if not closing: return None
-        return _bool_at(closing, field) if field in P12A_BOOLEAN_FIELDS else _cat_at(closing, field)
+        if field in by_field:
+            return _bool_at(closing, field)
+        return _cat_at(closing, field)
 
     # closing_cta_visual_signal: closing slide has high text density + logo + product/human absence
+    # Three-state:
+    #   text=T + (logo=T + dom∈{text,product}) → True
+    #   text=T + dom∈{text,product} (no logo confirmation) → True  (CTA-like)
+    #   text=T + dom other → False
+    #   text=F → False
+    #   text=null OR dom=null OR logo=null → Null (insufficient evidence)
     closing_cta_signal = None
     if closing:
         cv = closing.get("observations", {})
         text_v = cv.get("text_overlay", {}).get("value")
         logo_v = cv.get("logo_visible", {}).get("value")
         dom = cv.get("dominant_subject", {}).get("value")
-        if text_v is True:
-            # high text density + logo + (product OR text dominant) → CTA-like
-            if logo_v is True and dom in ("text", "product"):
+        # If any required evidence is unknown, defer to null
+        if text_v is None or dom is None:
+            closing_cta_signal = None
+        elif text_v is False:
+            closing_cta_signal = False
+        elif text_v is True:
+            # Has text overlay; assess structure
+            if dom in ("text", "product"):
                 closing_cta_signal = True
-            elif dom == "text":
-                closing_cta_signal = "possible"
             else:
+                # text=T but dominant is human/mixed/environment — not a CTA graphic
                 closing_cta_signal = False
         else:
-            closing_cta_signal = False
+            closing_cta_signal = None
 
-    # unique dominant subjects / shot types
+    # opening_human, opening_product, opening_text_heavy (three-state)
+    opening_human = _opening("human_present") if opening else None
+    opening_product = (True if (opening and (
+        _bool_at(opening, "product_closeup") is True
+        or _cat_at(opening, "dominant_subject") == "product")) else
+        False if (opening and _bool_at(opening, "product_closeup") is False
+                  and _cat_at(opening, "dominant_subject") in ("human", "environment", "text", "mixed")) else
+        None) if opening else None
+    opening_text_heavy = (True if (opening and _bool_at(opening, "text_overlay") is True) else
+                          False if (opening and _bool_at(opening, "text_overlay") is False) else
+                          None) if opening else None
+
+    # closing_text_heavy, closing_logo (three-state)
+    closing_text_heavy = (True if (closing and _bool_at(closing, "text_overlay") is True) else
+                          False if (closing and _bool_at(closing, "text_overlay") is False) else
+                          None) if closing else None
+    closing_logo = (True if (closing and _bool_at(closing, "logo_visible") is True) else
+                    False if (closing and _bool_at(closing, "logo_visible") is False) else
+                    None) if closing else None
+
+    # unique dominant subjects / shot types (exclude None and "unknown")
     dom_set = sorted({s.get("observations", {}).get("dominant_subject", {}).get("value")
                       for s in analysed
                       if s.get("observations", {}).get("dominant_subject", {}).get("value") not in (None, "unknown")})
@@ -882,44 +975,108 @@ def _derive_carousel_features(asset_id: str, brand_id: str,
             h2p = "human_to_product"
         elif o_prod is True and c_human is True:
             h2p = "product_to_human"
+        # null in either side → null transition (insufficient evidence)
 
-    # text_density_change
-    text_count_open = sum(1 for i, s in enumerate(analysed[:max(1, len(analysed) // 2)])
+    # text_density_change: only counts positive vs negative observed text_overlay
+    text_pos_first = sum(1 for i, s in enumerate(analysed[:max(1, len(analysed) // 2)])
                           if _bool_at(s, "text_overlay") is True)
-    text_count_close = sum(1 for i, s in enumerate(analysed[len(analysed) // 2:])
+    text_neg_first = sum(1 for i, s in enumerate(analysed[:max(1, len(analysed) // 2)])
+                          if _bool_at(s, "text_overlay") is False)
+    text_pos_second = sum(1 for i, s in enumerate(analysed[len(analysed) // 2:])
                            if _bool_at(s, "text_overlay") is True)
-    half = max(1, len(analysed) // 2)
-    text_change = (text_count_close / max(1, len(analysed) - half)) - (text_count_open / half)
+    text_neg_second = sum(1 for i, s in enumerate(analysed[len(analysed) // 2:])
+                           if _bool_at(s, "text_overlay") is False)
+    n_first = max(1, text_pos_first + text_neg_first)
+    n_second = max(1, text_pos_second + text_neg_second)
+    text_change = (text_pos_second / n_second) - (text_pos_first / n_first)
 
-    return {
+    # ── Duplicate slide detection ──
+    # Group analysed slides by their content_hash (byte-identity of source bytes).
+    # Same content_hash = same image. We track groups but keep slides_expected
+    # intact (Meta genuinely returned these slides).
+    content_hashes = [s.get("content_hash") for s in analysed]
+    from collections import Counter
+    hash_counts = Counter([h for h in content_hashes if h])
+    duplicate_groups = []
+    for h, n in hash_counts.items():
+        if n >= 2:
+            idxs = [i for i, hh in enumerate(content_hashes) if hh == h]
+            duplicate_groups.append({
+                "content_hash": h,
+                "slide_indices": idxs,
+                "count": n,
+            })
+    duplicate_slide_count = sum(n - 1 for n in hash_counts.values() if n >= 2)
+    # Unique content count (for downstream visual-variety inflation control)
+    unique_content_count = len([h for h in hash_counts if h])
+
+    # ── Build the final derived dict ──
+    # Use by_field for all the *_anywhere aggregates; surface the new
+    # *_observed_count / *_unknown_count for the analytical layer.
+    derived = {
         "asset_id": asset_id,
         "brand_id": brand_id,
         "slide_count": slides_expected,
         "slides_analysed": len(analysed),
         "slides_failed": len(failed),
         "coverage_ratio": round(coverage_ratio, 3),
-        "human_anywhere": human_anywhere,
-        "human_slide_ratio": round(len(human_slides) / len(analysed), 3) if analysed else None,
-        "human_evidence_slides": human_slides,
-        "product_anywhere": product_anywhere,
-        "product_slide_ratio": round(len(product_slides) / len(analysed), 3) if analysed else None,
-        "product_evidence_slides": product_slides,
-        "golf_club_anywhere": club_anywhere,
-        "golf_club_evidence_slides": club_slides,
-        "golf_ball_anywhere": ball_anywhere,
-        "golf_ball_evidence_slides": ball_slides,
-        "screen_anywhere": screen_anywhere,
-        "screen_evidence_slides": screen_slides,
-        "text_overlay_anywhere": text_anywhere,
-        "text_overlay_slide_ratio": round(len(text_slides) / len(analysed), 3) if analysed else None,
-        "text_overlay_evidence_slides": text_slides,
-        "logo_anywhere": logo_anywhere,
-        "logo_slide_ratio": round(len(logo_slides) / len(analysed), 3) if analysed else None,
-        "logo_evidence_slides": logo_slides,
-        "indoor_anywhere": indoor_anywhere,
-        "indoor_evidence_slides": indoor_slides,
-        "outdoor_anywhere": outdoor_anywhere,
-        "outdoor_evidence_slides": outdoor_slides,
+        # Per-attribute three-state fields
+        "human_anywhere": by_field["human_present"]["derived"],
+        "human_evidence_slides": by_field["human_present"]["evidence_slides"],
+        "human_positive_count": by_field["human_present"]["positive_count"],
+        "human_negative_count": by_field["human_present"]["negative_count"],
+        "human_unknown_count": by_field["human_present"]["unknown_count"],
+        "human_observed_count": by_field["human_present"]["observed_count"],
+        "human_observed_ratio": by_field["human_present"]["observed_ratio"],
+        "human_positive_ratio": by_field["human_present"]["positive_ratio"],
+        "product_anywhere": by_field["product_anywhere"]["derived"],
+        "product_evidence_slides": by_field["product_anywhere"]["evidence_slides"],
+        "product_positive_count": by_field["product_anywhere"]["positive_count"],
+        "product_negative_count": by_field["product_anywhere"]["negative_count"],
+        "product_unknown_count": by_field["product_anywhere"]["unknown_count"],
+        "product_observed_count": by_field["product_anywhere"]["observed_count"],
+        "product_observed_ratio": by_field["product_anywhere"]["observed_ratio"],
+        "product_positive_ratio": by_field["product_anywhere"]["positive_ratio"],
+        "golf_club_anywhere": by_field["golf_club_present"]["derived"],
+        "golf_club_evidence_slides": by_field["golf_club_present"]["evidence_slides"],
+        "golf_club_positive_count": by_field["golf_club_present"]["positive_count"],
+        "golf_club_negative_count": by_field["golf_club_present"]["negative_count"],
+        "golf_club_unknown_count": by_field["golf_club_present"]["unknown_count"],
+        "golf_ball_anywhere": by_field["golf_ball_present"]["derived"],
+        "golf_ball_evidence_slides": by_field["golf_ball_present"]["evidence_slides"],
+        "golf_ball_positive_count": by_field["golf_ball_present"]["positive_count"],
+        "golf_ball_negative_count": by_field["golf_ball_present"]["negative_count"],
+        "golf_ball_unknown_count": by_field["golf_ball_present"]["unknown_count"],
+        "screen_anywhere": by_field["screen_visible"]["derived"],
+        "screen_evidence_slides": by_field["screen_visible"]["evidence_slides"],
+        "screen_positive_count": by_field["screen_visible"]["positive_count"],
+        "screen_negative_count": by_field["screen_visible"]["negative_count"],
+        "screen_unknown_count": by_field["screen_visible"]["unknown_count"],
+        "text_overlay_anywhere": by_field["text_overlay"]["derived"],
+        "text_overlay_evidence_slides": by_field["text_overlay"]["evidence_slides"],
+        "text_overlay_positive_count": by_field["text_overlay"]["positive_count"],
+        "text_overlay_negative_count": by_field["text_overlay"]["negative_count"],
+        "text_overlay_unknown_count": by_field["text_overlay"]["unknown_count"],
+        "text_overlay_observed_ratio": by_field["text_overlay"]["observed_ratio"],
+        "text_overlay_positive_ratio": by_field["text_overlay"]["positive_ratio"],
+        "logo_anywhere": by_field["logo_visible"]["derived"],
+        "logo_evidence_slides": by_field["logo_visible"]["evidence_slides"],
+        "logo_positive_count": by_field["logo_visible"]["positive_count"],
+        "logo_negative_count": by_field["logo_visible"]["negative_count"],
+        "logo_unknown_count": by_field["logo_visible"]["unknown_count"],
+        "logo_observed_ratio": by_field["logo_visible"]["observed_ratio"],
+        "logo_positive_ratio": by_field["logo_visible"]["positive_ratio"],
+        "indoor_anywhere": by_field["indoor"]["derived"],
+        "indoor_evidence_slides": by_field["indoor"]["evidence_slides"],
+        "indoor_positive_count": by_field["indoor"]["positive_count"],
+        "indoor_negative_count": by_field["indoor"]["negative_count"],
+        "indoor_unknown_count": by_field["indoor"]["unknown_count"],
+        "outdoor_anywhere": by_field["outdoor"]["derived"],
+        "outdoor_evidence_slides": by_field["outdoor"]["evidence_slides"],
+        "outdoor_positive_count": by_field["outdoor"]["positive_count"],
+        "outdoor_negative_count": by_field["outdoor"]["negative_count"],
+        "outdoor_unknown_count": by_field["outdoor"]["unknown_count"],
+        # Opening / closing — three-state on each attribute
         "opening": {
             "slide_index": 0 if opening else None,
             "human_present": _opening("human_present"),
@@ -943,11 +1100,17 @@ def _derive_carousel_features(asset_id: str, brand_id: str,
             "golf_ball_present": _closing("golf_ball_present"),
             "cta_visual_signal": closing_cta_signal,
         },
+        "opening_human": opening_human,
+        "opening_product": opening_product,
+        "opening_text_heavy": opening_text_heavy,
+        "closing_text_heavy": closing_text_heavy,
+        "closing_logo": closing_logo,
+        "closing_cta_visual_signal": closing_cta_signal,
         "remainder_summary": {
-            "human_count": len(human_slides),
-            "product_count": len(product_slides),
-            "text_count": len(text_slides),
-            "logo_count": len(logo_slides),
+            "human_count": by_field["human_present"]["positive_count"],
+            "product_count": by_field["product_anywhere"]["positive_count"],
+            "text_count": by_field["text_overlay"]["positive_count"],
+            "logo_count": by_field["logo_visible"]["positive_count"],
         } if len(analysed) >= 3 else None,
         "visual_variety": {
             "unique_dominant_subjects": dom_set,
@@ -955,13 +1118,18 @@ def _derive_carousel_features(asset_id: str, brand_id: str,
             "human_to_product_transition": h2p,
             "text_density_change_first_half_vs_second_half": round(text_change, 3),
             "visual_change_count": len(dom_set) + len(shot_set),  # heuristic
+            "unique_content_count": unique_content_count,
+            "duplicate_content_count": duplicate_slide_count,
         },
+        "duplicate_slide_groups": duplicate_groups,
+        "duplicate_slide_count": duplicate_slide_count,
         "dominant_subject_progression": [
             s.get("observations", {}).get("dominant_subject", {}).get("value")
             for s in analysed
         ],
         "analysis_version": P12A_ANALYSIS_VERSION,
     }
+    return derived
 
 
 def observe_carousel(asset_id: str, brand_id: str,
