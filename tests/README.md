@@ -64,6 +64,11 @@ Auth: `cos_session` / auto-login via `POST /login` (t25). Opt out with
   path is wrong but harmless once `scripts/` is on `sys.path`).
 - After any full-suite run, check `git status --porcelain data/` and
   `git checkout -- data/` if tests dirtied tracked seed files (risk 9.7).
+  Allowlisted writers are isolated: `test_freshness_sanity_range` restores
+  `data/freshness.json`; `test_v2026_08_13_weekly_report_share` redirects
+  `intelligence.DATA_DIR` to a temp dir; `test_v2026_08_13_html_export`
+  uses `cos_anon=True` so format probes do not persist markdown. Keeps
+  CI's `git diff --quiet -- data/` gate green without dropping coverage.
 
 ### CI allowlist
 

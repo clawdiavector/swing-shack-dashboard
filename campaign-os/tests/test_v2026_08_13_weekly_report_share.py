@@ -18,7 +18,9 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import shutil
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -40,8 +42,36 @@ class ShareTokenExportTests(unittest.TestCase):
         os.environ.setdefault("PORT", "0")
         # Import app module
         from app import app as flask_app
+        from _lib import intelligence as intel
+
+        # intelligence.DATA_DIR is hardcoded to REPO/data (ignores env). Export
+        # persists weekly-report.md there. Redirect AND snapshot the seed file —
+        # a bare DATA_DIR patch can be clobbered by earlier suite imports.
+        cls._intel = intel
+        cls._orig_data_dir = intel.DATA_DIR
+        cls._tmp_data = tempfile.mkdtemp(prefix="cos-share-")
+        intel.DATA_DIR = cls._tmp_data
+        cls._weekly_report_path = _REPO / "data" / "weekly-report.md"
+        cls._weekly_backup = (
+            cls._weekly_report_path.read_bytes()
+            if cls._weekly_report_path.exists()
+            else None
+        )
+
         cls.flask_app = flask_app
         cls.client = flask_app.test_client()
+
+    @classmethod
+    def tearDownClass(cls):
+        if getattr(cls, "_intel", None) is not None and hasattr(cls, "_orig_data_dir"):
+            cls._intel.DATA_DIR = cls._orig_data_dir
+        tmp = getattr(cls, "_tmp_data", None)
+        if tmp and os.path.isdir(tmp):
+            shutil.rmtree(tmp, ignore_errors=True)
+        path = getattr(cls, "_weekly_report_path", None)
+        backup = getattr(cls, "_weekly_backup", None)
+        if path is not None and backup is not None:
+            path.write_bytes(backup)
 
     def _login(self):
         """Authenticate the test client. Returns the session cookie."""

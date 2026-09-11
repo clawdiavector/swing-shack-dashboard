@@ -20,9 +20,27 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts" / "data_freshness_check.js"
 FRESHNESS = REPO / "data" / "freshness.json"
+FRESHNESS_DETAIL = REPO / "data" / "freshness-detail.json"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _restore_tracked_freshness_json():
+    """Regenerate into place for assertions, then restore seed files (t27 data gate)."""
+    backups = {}
+    for path in (FRESHNESS, FRESHNESS_DETAIL):
+        if path.exists():
+            backups[path] = path.read_bytes()
+    yield
+    for path, data in backups.items():
+        path.write_bytes(data)
+    for path in (FRESHNESS, FRESHNESS_DETAIL):
+        if path not in backups and path.exists():
+            path.unlink()
 
 
 def test_node_available():
@@ -177,10 +195,22 @@ def test_real_data_files_no_longer_rotten_with_9000_days():
 
 
 if __name__ == "__main__":
-    test_node_available()
-    test_freshness_regenerates(Path(tempfile.gettempdir()))
-    test_no_year_2001_artifacts()
-    test_no_thousand_day_ages()
-    test_parseTs_rejects_bare_month_day()
-    test_real_data_files_no_longer_rotten_with_9000_days()
-    print("✅ freshness sanity-range regression suite passed")
+    backups = {
+        path: path.read_bytes()
+        for path in (FRESHNESS, FRESHNESS_DETAIL)
+        if path.exists()
+    }
+    try:
+        test_node_available()
+        test_freshness_regenerates(Path(tempfile.gettempdir()))
+        test_no_year_2001_artifacts()
+        test_no_thousand_day_ages()
+        test_parseTs_rejects_bare_month_day()
+        test_real_data_files_no_longer_rotten_with_9000_days()
+        print("✅ freshness sanity-range regression suite passed")
+    finally:
+        for path, data in backups.items():
+            path.write_bytes(data)
+        for path in (FRESHNESS, FRESHNESS_DETAIL):
+            if path not in backups and path.exists():
+                path.unlink()
