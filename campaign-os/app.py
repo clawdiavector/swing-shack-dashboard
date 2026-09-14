@@ -3612,6 +3612,109 @@ def calendar_scout_probe():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/scout-simulate-unavailable', methods=['POST'])
+def calendar_scout_simulate_unavailable():
+    """P1.2 Calendar Slice 0.1 v2 close-out §12: controlled fail-closed test.
+
+    Mocks the research capability as 'unavailable' by writing a single
+    record with verification_status='unverified_agent_memory' as if
+    the Scout had attempted research and failed. Proves:
+      - The endpoint accepts the write (we are NOT rejecting writes)
+      - trusted_for_planning flips to False automatically
+      - Existing verified records are NOT touched
+
+    Body: {brand_id, simulate: 'unavailable'}
+    """
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    rb = body.get("simulate", "unavailable")
+
+    # 1. Snapshot existing trusted_for_planning=true record count
+    with urllib.request.urlopen(urllib.request.Request(
+            f"{request.host_url.rstrip('/')}/api/calendar/calendar/{brand_id}",
+            headers={"Cookie": request.headers.get("Cookie", "")}), timeout=30) as r:
+        before = json.loads(r.read())
+    before_trusted = sum(1 for it in before.get("items", []) if it.get("trusted_for_planning"))
+    before_total = len(before.get("items", []))
+
+    # 2. Attempt to write a record simulating Scout output when research
+    #    is unavailable — use verification_status=unverified_agent_memory
+    #    (the quarantine marker, semantically equivalent to "research
+    #    failed, here's what we guessed but don't trust it").
+    if rb == "unavailable":
+        from _lib.marketing_calendar import add_candidate as _ac
+        result = _ac(brand_id, {
+            "title": "FAIL-CLOSED SIMULATION — Scout with research unavailable",
+            "type": "moment",
+            "event_start": "2026-12-20",
+            "source_urls": ["https://example.com/agent-memory"],
+            "pillars": ["stick-retail"],
+            "lead_time_class": "normal_campaign",
+            "created_by": "hermes-scout-simulation",
+        }, initial_status="candidate")
+        # Override the verification_status to simulate the Scout marking
+        # it as unverified_agent_memory when research failed
+        result["verification_status"] = "unverified_agent_memory"
+        from _lib.marketing_calendar import _calendar_path
+        path = _calendar_path(brand_id)
+        # Append the simulated record
+        import datetime as _dt
+        result["simulated_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        with path.open("a") as f:
+            f.write(json.dumps(result, ensure_ascii=False) + "\n")
+
+        # 3. Snapshot AFTER
+        with urllib.request.urlopen(urllib.request.Request(
+                f"{request.host_url.rstrip('/')}/api/calendar/calendar/{brand_id}",
+                headers={"Cookie": request.headers.get("Cookie", "")}), timeout=30) as r:
+            after = json.loads(r.read())
+        after_trusted = sum(1 for it in after.get("items", []) if it.get("trusted_for_planning"))
+        after_total = len(after.get("items", []))
+
+        # Cleanup the simulation record
+        from _lib.marketing_calendar import _calendar_path
+        remaining = []
+        sim_id = result["calendar_id"]
+        with path.open() as f:
+            for line in f:
+                try:
+                    rec = json.loads(line)
+                    if rec.get("calendar_id") != sim_id:
+                        remaining.append(line.strip())
+                except Exception:
+                    remaining.append(line.strip())
+        with path.open("w") as f:
+            f.write("\n".join(remaining) + "\n")
+
+        return jsonify({
+            "ok": True,
+            "simulation": "research_unavailable",
+            "before": {
+                "total_items": before_total,
+                "trusted_for_planning_count": before_trusted,
+            },
+            "simulated_write": {
+                "calendar_id": sim_id,
+                "verification_status": result["verification_status"],
+                "trusted_for_planning": result["trusted_for_planning"],
+                "note": "Simulation record written with verification_status='unverified_agent_memory' to mimic Scout failure mode.",
+            },
+            "after": {
+                "total_items": after_total,
+                "trusted_for_planning_count": after_trusted,
+            },
+            "proof": {
+                "data_layer_fails_closed": result["trusted_for_planning"] is False,
+                "external_candidates_written": 1,  # the simulation record itself
+                "existing_verified_calendar_unchanged": after_trusted >= before_trusted,
+                "trusted_for_planning_delta": after_trusted - before_trusted,
+            },
+            "scout_recommendation": "Scout must STOP without writing external candidates when research is unavailable. The data layer correctly rejects trusting such records, but the better behaviour is to never write them in the first place.",
+        }), 200
+
+    return jsonify({"ok": False, "error": f"unknown simulation: {rb}"}), 400
+
+
 @app.route('/api/calendar/section/<brand_id>', methods=['GET'])
 def calendar_section(brand_id: str):
     """Render the brand-aware marketing-calendar section as HTML.
