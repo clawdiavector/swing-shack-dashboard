@@ -1,7 +1,8 @@
-"""Run jobs with hard timeout; ledger entry+exit; status/digest/verdicts."""
+"""Run jobs with hard timeout; Tier-0 retry; ledger entry+exit; status/digest/verdicts."""
 
 from __future__ import annotations
 
+import logging
 import secrets
 import threading
 import time
@@ -9,8 +10,14 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from . import ledger
+from .errors import RETRYABLE, classify, fingerprint
 from .registry import JOBS
 from .spec import JobSpec
+
+log = logging.getLogger("campaign-os.jobs.runner")
+
+# Backoff before attempt N (1-indexed): attempt 2 → 2s, attempt 3 → 8s.
+_BACKOFF_BEFORE_ATTEMPT = {2: 2.0, 3: 8.0}
 
 
 def _utc_now() -> datetime:
@@ -72,9 +79,37 @@ def _status_from_result(result: Any) -> tuple[str, Optional[str]]:
     return "OK", None
 
 
+def _run_once(spec: JobSpec) -> tuple[str, Optional[str], Optional[int], Any, Optional[BaseException], float]:
+    """Execute one attempt in a daemon thread with hard timeout."""
+    box: dict[str, Any] = {"result": None, "exc": None}
+
+    def _target() -> None:
+        try:
+            box["result"] = spec.fn()
+        except Exception as exc:  # noqa: BLE001 — ledger must capture any crash
+            box["exc"] = exc
+
+    thread = threading.Thread(target=_target, name=f"job-{spec.name}", daemon=True)
+    t0 = time.monotonic()
+    thread.start()
+    thread.join(timeout=spec.timeout_seconds)
+    duration_s = round(time.monotonic() - t0, 3)
+
+    if thread.is_alive():
+        return "TIMEOUT", f"exceeded timeout_seconds={spec.timeout_seconds}", None, None, None, duration_s
+    if box["exc"] is not None:
+        return "FAILED", str(box["exc"])[:500], None, None, box["exc"], duration_s
+    status, error = _status_from_result(box["result"])
+    rows = _extract_rows(box["result"])
+    return status, error, rows, box["result"], None, duration_s
+
+
 def run_job(name: str, triggered_by: str = "schedule") -> dict:
-    """Look up JOBS[name], run fn() in a thread with hard timeout,
-    write ledger row on entry and exit, return the exit row (+ response fields).
+    """Look up JOBS[name], run fn() with Tier-0 retry for RETRYABLE classes,
+    write ledger rows, optionally write a diagnostic bundle on non-OK.
+
+    Wall-clock worst case: (retries+1) * timeout_seconds + 10s backoff budget
+    (2s + 8s). Synchronous POST /api/jobs/run/<name> blocks for that long.
     """
     spec = JOBS.get(name)
     if spec is None:
@@ -84,6 +119,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
     started = _iso(started_dt)
     run_id = _make_run_id(name, started_dt)
 
+    # Exactly one started row per run_id — outside the retry loop (§3.5).
     ledger.append_row(
         {
             "job": name,
@@ -94,35 +130,56 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         }
     )
 
-    box: dict[str, Any] = {"result": None, "exc": None}
+    max_attempts = max(1, int(getattr(spec, "retries", 0)) + 1)
+    attempt = 0
+    status = "FAILED"
+    error: Optional[str] = None
+    rows: Optional[int] = None
+    result: Any = None
+    exc: Optional[BaseException] = None
+    duration_s = 0.0
+    error_class = "unknown"
+    t_run0 = time.monotonic()
 
-    def _target() -> None:
-        try:
-            box["result"] = spec.fn()
-        except Exception as exc:  # noqa: BLE001 — ledger must capture any crash
-            box["exc"] = exc
+    while True:
+        attempt += 1
+        if attempt > 1:
+            delay = _BACKOFF_BEFORE_ATTEMPT.get(attempt, 8.0)
+            time.sleep(delay)
 
-    thread = threading.Thread(target=_target, name=f"job-{name}", daemon=True)
-    t0 = time.monotonic()
-    thread.start()
-    thread.join(timeout=spec.timeout_seconds)
-    duration_s = round(time.monotonic() - t0, 3)
+        status, error, rows, result, exc, duration_s = _run_once(spec)
+        error_class, _ = classify(
+            exc=exc, message=error, spec=spec, result=result, status=status
+        )
+
+        if status == "OK":
+            break
+
+        can_retry = (
+            error_class in RETRYABLE
+            and attempt < max_attempts
+            and status != "TIMEOUT"
+        )
+        if not can_retry:
+            break
+
+        next_attempt = attempt + 1
+        ledger.append_row(
+            {
+                "job": name,
+                "run_id": run_id,
+                "phase": "retry",
+                "attempt": next_attempt,
+                "error_class": error_class,
+                "started": started,
+                "triggered_by": triggered_by,
+            }
+        )
+
     finished = _iso(_utc_now())
-
-    if thread.is_alive():
-        status = "TIMEOUT"
-        error = f"exceeded timeout_seconds={spec.timeout_seconds}"
-        rows = None
-        result_ok = False
-    elif box["exc"] is not None:
-        status = "FAILED"
-        error = str(box["exc"])[:500]
-        rows = None
-        result_ok = False
-    else:
-        status, error = _status_from_result(box["result"])
-        rows = _extract_rows(box["result"])
-        result_ok = status == "OK"
+    total_duration = round(time.monotonic() - t_run0, 3)
+    result_ok = status == "OK"
+    fp = fingerprint(name, error_class, error) if not result_ok else None
 
     exit_row = {
         "job": name,
@@ -135,7 +192,11 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         "rows": rows,
         "writes": list(spec.writes),
         "error": error,
-        "duration_s": duration_s,
+        "duration_s": total_duration,
+        "attempt": attempt,
+        "attempts": attempt,
+        "error_class": error_class if not result_ok else None,
+        "error_fingerprint": fp,
     }
     ledger.append_row(
         {
@@ -149,14 +210,37 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
             "rows": rows,
             "writes": list(spec.writes),
             "error": error,
+            "attempt": attempt,
+            "attempts": attempt,
+            "error_class": error_class if not result_ok else None,
+            "error_fingerprint": fp,
         }
     )
+
+    if not result_ok:
+        try:
+            from .diagnostics import write_bundle
+
+            write_bundle(
+                spec=spec,
+                run_id=run_id,
+                attempt=attempt,
+                status=status,
+                started=started,
+                finished=finished,
+                duration_s=total_duration,
+                error=error,
+                exc=exc,
+                result=result,
+            )
+        except Exception:  # noqa: BLE001 — bundle must never fail the run
+            log.warning("write_bundle raised job=%s run_id=%s", name, run_id, exc_info=True)
 
     return {
         "ok": result_ok,
         "job": name,
         "status": status,
-        "duration_s": duration_s,
+        "duration_s": total_duration,
         "rows": rows,
         "writes": list(spec.writes),
         "run_id": run_id,
@@ -165,6 +249,10 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         "finished": finished,
         "triggered_by": triggered_by,
         "phase": "finished",
+        "attempt": attempt,
+        "attempts": attempt,
+        "error_class": error_class if not result_ok else None,
+        "error_fingerprint": fp,
     }
 
 
