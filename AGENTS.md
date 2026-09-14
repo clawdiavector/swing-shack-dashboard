@@ -106,10 +106,20 @@ curl -H "Authorization: Bearer $COS_JOB_TOKEN" <prod>/api/jobs/status
 Spawn profile: `profiles/campaign-os-ticket.yaml`. Ticket manifests: `manifests/`.
 This repo does not define its own permission model — the profile points back at **section 8**.
 
-## 11. Pages vs Railway
+## 11. Pages is retired (t51, 2026-09-14)
 
-Railway is the product. The GitHub Pages cockpit (`.github/workflows/deploy.yml`) is legacy static output.
-Do not "fix" Pages to match Railway unless Kyle asks.
+Railway is the only product surface. `.github/workflows/deploy.yml` is deleted; it had
+0 successes in its last 500 runs and never published anything (legacy Jekyll from `main`
+was the real publisher). GitHub Pages is reduced to a **media-only mirror** (`_config.yml`
+includes `media/**` only) so inbound image hotlinks keep working; the cockpit URL on
+github.io is not a product surface.
+
+`campaign-os/cockpit-operational.html` **is kept** — it is a live Railway route
+(`app.py` `/cockpit-operational`) linked from the SPA nav, not a Pages artefact.
+There is no cockpit regeneration pipeline any more; `patch-cockpit.js`,
+`regenerate-cockpit.py`, `patch-cockpit-local.py`, `regen_local.py` and `gate7-verify.py`
+are deleted. Any doc describing "agent writes → Git → Pages regenerates the cockpit" is
+drift — correct it toward Railway or delete the claim.
 
 ## 12. Tests
 
