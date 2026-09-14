@@ -3389,6 +3389,180 @@ def calendar_lead_time():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/quarantine', methods=['POST'])
+def calendar_quarantine():
+    """P1.2 Calendar Slice 0.1 close-out: quarantine existing records.
+
+    Marks every record whose `source_type='scout'` and verification_status
+    is not 'verified_primary' as `verification_status='unverified_agent_memory'`
+    + sets `trusted_for_planning=False`.
+
+    Body:
+      brand_id: 'stick'
+      mode: 'all' | 'created_by' | 'calendar_id'
+      value: optional filter value
+
+    Records stay in the jsonl store (for traceability) but are excluded
+    from trusted planning pipelines.
+    """
+    try:
+        from _lib.marketing_calendar import (
+            list_records, transition_status, VALID_STATUSES,
+        )
+        body = request.get_json(force=True, silent=True) or {}
+        brand_id = body.get("brand_id")
+        if not brand_id:
+            return jsonify({"ok": False, "error": "brand_id required"}), 400
+        mode = body.get("mode") or "all"
+        filter_value = body.get("value")
+        existing = list_records(brand_id)
+        quarantined = []
+        skipped = []
+        for r in existing:
+            # Don't double-quarantine records that are already quarantined
+            if r.get("verification_status") == "unverified_agent_memory":
+                skipped.append(r.get("calendar_id"))
+                continue
+            # Filter
+            if mode == "created_by":
+                if r.get("created_by") != filter_value:
+                    continue
+            elif mode == "calendar_id":
+                if r.get("calendar_id") != filter_value:
+                    continue
+            elif mode != "all":
+                return jsonify({
+                    "ok": False, "error": f"mode '{mode}' invalid. Use: all, created_by, calendar_id",
+                }), 400
+            # Only quarantine records that are NOT verified_primary
+            if r.get("verification_status") == "verified_primary":
+                skipped.append(r.get("calendar_id"))
+                continue
+            # Transition: re-write the record with the quarantine flag.
+            # Append-only jsonl — write a new entry with verification_status
+            # = 'unverified_agent_memory' and trusted_for_planning = False.
+            updated = dict(r)
+            updated["verification_status"] = "unverified_agent_memory"
+            updated["trusted_for_planning"] = False
+            updated["last_verified"] = (
+                __import__("datetime").datetime
+                .now(__import__("datetime").timezone.utc).isoformat()
+            )
+            updated["quarantine_reason"] = (
+                "Manual Scout run used model/training memory instead of fresh "
+                "research; quarantined pending re-verification from primary sources."
+            )
+            from _lib import marketing_calendar as _mc
+            target_path = (
+                _mc._watchlist_path(brand_id)
+                if updated.get("status") == "watchlist"
+                else _mc._calendar_path(brand_id)
+            )
+            with target_path.open("a") as f:
+                f.write(json.dumps(updated, ensure_ascii=False) + "\n")
+            quarantined.append({
+                "calendar_id": r.get("calendar_id"),
+                "title": r.get("title"),
+                "previous_verification_status": r.get("verification_status"),
+                "previous_trusted_for_planning": r.get("trusted_for_planning"),
+            })
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "quarantined_count": len(quarantined),
+            "skipped_count": len(skipped),
+            "quarantined": quarantined,
+            "skipped": skipped,
+        }), 200
+    except Exception as e:
+        _app_log.exception("calendar_quarantine failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/remove', methods=['POST'])
+def calendar_remove():
+    """Remove records by calendar_id. Hard-removes them from the jsonl
+    store by rewriting the file with the record excluded.
+
+    Used after quarantine when the user has decided the record is
+    unrecoverable.
+    """
+    try:
+        from _lib import marketing_calendar as _mc
+        body = request.get_json(force=True, silent=True) or {}
+        brand_id = body.get("brand_id")
+        calendar_ids = body.get("calendar_ids") or []
+        if not brand_id or not calendar_ids:
+            return jsonify({"ok": False, "error": "brand_id + calendar_ids[] required"}), 400
+        cal_path = _mc._calendar_path(brand_id)
+        wat_path = _mc._watchlist_path(brand_id)
+        removed = []
+        for path in (cal_path, wat_path):
+            if not path.exists():
+                continue
+            lines = path.read_text().splitlines()
+            kept = []
+            for line in lines:
+                if not line.strip():
+                    continue
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    kept.append(line)
+                    continue
+                if rec.get("calendar_id") in calendar_ids:
+                    removed.append(rec.get("calendar_id"))
+                else:
+                    kept.append(line)
+            path.write_text("\n".join(kept) + ("\n" if kept else ""))
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "removed_count": len(removed),
+            "removed_ids": removed,
+        }), 200
+    except Exception as e:
+        _app_log.exception("calendar_remove failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/scout-health', methods=['GET'])
+def calendar_scout_health():
+    """P1.2 Calendar Slice 0.1 close-out: report Scout health.
+
+    Web access is assumed to be configurable via env var RESEARCH_WEB_ENABLED.
+    If 'false', the Scout MUST refuse to write externally-sourced candidates.
+
+    Returns:
+      web_access_status: 'enabled' | 'disabled' | 'unknown'
+      can_write_external_candidates: bool
+      message: human-readable summary
+    """
+    web = os.environ.get("RESEARCH_WEB_ENABLED", "true").lower()
+    if web in ("false", "0", "no", "off"):
+        web_status = "disabled"
+        can_write = False
+        msg = "Web research disabled — Scout MUST fail closed (no external candidates written)."
+    elif web in ("true", "1", "yes", "on"):
+        web_status = "enabled"
+        can_write = True
+        msg = "Web research enabled — Scout may write externally-sourced candidates."
+    else:
+        web_status = "unknown"
+        can_write = False
+        msg = (
+            "Web research status unparseable — Scout MUST fail closed. "
+            f"Set RESEARCH_WEB_ENABLED=true to enable."
+        )
+    return jsonify({
+        "ok": True,
+        "web_access_status": web_status,
+        "can_write_external_candidates": can_write,
+        "research_status": "available" if can_write else "unavailable",
+        "message": msg,
+    }), 200
+
+
 @app.route('/api/calendar/section/<brand_id>', methods=['GET'])
 def calendar_section(brand_id: str):
     """Render the brand-aware marketing-calendar section as HTML.

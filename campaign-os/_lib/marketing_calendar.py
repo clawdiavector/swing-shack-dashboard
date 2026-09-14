@@ -338,6 +338,17 @@ def add_candidate(
 
     Returns the persisted record (with assigned calendar_id, status,
     created_at, etc.).
+
+    Fail-closed default: every externally-sourced candidate must carry
+    a verification_status. Valid states:
+      verified_primary, verified_secondary, conflicting, unverified
+    Records without one are written with verification_status='unverified'
+    (unless the caller passed one explicitly).
+
+    Records whose `source_type` is 'scout' but whose verification_status
+    is 'unverified' are NOT trusted for planning reminders / Morning Brief
+    alerts / automatic content planning. They appear in the calendar view
+    but carry an explicit unverified flag.
     """
     if brand_id not in VALID_BRAND_IDS:
         raise ValueError(
@@ -363,6 +374,61 @@ def add_candidate(
     enriched.setdefault("created_by", "manual")
     enriched.setdefault("created_at", _now_iso())
     enriched.setdefault("last_verified", _now_iso())
+
+    # Source verification contract — every externally-sourced record must
+    # declare its source URL(s) and verification status. Without these
+    # the record is treated as UNVERIFIED and excluded from trusted
+    # planning pipelines.
+    VALID_VERIFICATION_STATES = (
+        "verified_primary",
+        "verified_secondary",
+        "conflicting",
+        "unverified",
+        "unverified_agent_memory",  # explicit marker for quarantined records
+    )
+    src = enriched.get("source_urls") or []
+    ver = enriched.get("verification_status")
+    if ver is None:
+        if src:
+            # Has source URLs but no verification_status — default to unverified
+            enriched["verification_status"] = "unverified"
+        else:
+            # No sources at all — definitely unverified
+            enriched["verification_status"] = "unverified"
+    elif ver not in VALID_VERIFICATION_STATES:
+        raise ValueError(
+            f"verification_status '{ver}' invalid. "
+            f"Valid: {VALID_VERIFICATION_STATES}"
+        )
+    # Date-confidence lifecycle (Slice 0.1 §14)
+    lifecycle = enriched.get("event_lifecycle")
+    if lifecycle and lifecycle not in ("upcoming", "live", "recently_completed", "expired"):
+        raise ValueError(
+            f"event_lifecycle '{lifecycle}' invalid. "
+            f"Valid: upcoming, live, recently_completed, expired"
+        )
+    # Opportunity mode (Slice 0.1 §13)
+    opp_mode = enriched.get("opportunity_mode")
+    if opp_mode and opp_mode not in ("planned", "reactive", "watch"):
+        raise ValueError(
+            f"opportunity_mode '{opp_mode}' invalid. Valid: planned, reactive, watch"
+        )
+    # Date confidence (Slice 0.1 §5)
+    date_conf = enriched.get("date_confidence")
+    if date_conf and date_conf not in ("confirmed_date", "announced_window", "expected_unannounced"):
+        raise ValueError(
+            f"date_confidence '{date_conf}' invalid. "
+            f"Valid: confirmed_date, announced_window, expected_unannounced"
+        )
+
+    # Trusted-for-planning flag — True only when source verified primary.
+    # Downstream consumers (planning reminders, Morning Brief, automatic
+    # content planning) must filter on this.
+    enriched["trusted_for_planning"] = (
+        enriched.get("verification_status") == "verified_primary"
+        and enriched.get("date_confidence") in ("confirmed_date", "announced_window")
+        and src  # at least one source URL
+    )
 
     # Auto-compute lead_time_days + schedule if event_date + lead_time_class given
     if enriched.get("event_date") and enriched.get("lead_time_class"):
@@ -531,6 +597,17 @@ def get_calendar_view(
             "colour": (pillar_colour_map.get((r.get("pillars") or [None])[0])
                        if r.get("pillars") else None),
             "planning_start": (r.get("lead_time_schedule") or {}).get("planning_start"),
+            # Slice 0.1 close-out — source verification + lifecycle
+            "verification_status": r.get("verification_status"),
+            "trusted_for_planning": r.get("trusted_for_planning", False),
+            "event_lifecycle": r.get("event_lifecycle"),
+            "opportunity_mode": r.get("opportunity_mode"),
+            "date_confidence": r.get("date_confidence"),
+            "source_domain": r.get("source_domain"),
+            "source_title": r.get("source_title"),
+            "source_class": r.get("source_class"),
+            "retrieved_at": r.get("retrieved_at"),
+            "created_by": r.get("created_by"),
         })
 
     return {
