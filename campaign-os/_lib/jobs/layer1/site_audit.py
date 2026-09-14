@@ -8,6 +8,7 @@ from typing import Any
 
 import requests
 
+from ..errors import describe_exception
 from ._io import atomic_write, utc_now_iso
 
 SEO_OUTPUT = "seo-audit.json"
@@ -276,7 +277,7 @@ def run() -> dict:
             html = _fetch_page(url)
         except Exception as exc:  # noqa: BLE001 — network stubs may raise any type
             fetch_failures += 1
-            network_errors.append(f"{page['name']}: {type(exc).__name__}")
+            network_errors.append(f"{page['name']}: {describe_exception(exc)}")
             seo_reports.append({"name": page["name"], "url": url, "status": "FETCH_FAILED", "findings": []})
             geo_reports.append({"name": page["name"], "status": "FETCH_FAILED", "findings": [], "positive": []})
             continue

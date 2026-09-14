@@ -12,6 +12,7 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+from ..errors import describe_exception
 from ._io import atomic_write, utc_now_iso
 
 OUTPUT = "golf-news.json"
@@ -173,7 +174,7 @@ def run() -> dict:
             all_news.extend(_parse_rss(xml_bytes, feed))
         except Exception as exc:  # noqa: BLE001 — network stubs may raise any type
             host = urlparse(feed["url"]).netloc or feed["name"]
-            network_errors.append(f"{host}: {type(exc).__name__}")
+            network_errors.append(f"{host}: {describe_exception(exc)}")
 
     if not all_news and network_errors:
         return {"ok": False, "error": "golf news fetch failed: " + "; ".join(network_errors[:3])}

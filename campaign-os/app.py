@@ -14417,7 +14417,12 @@ except Exception as _jobs_exc:  # noqa: BLE001
 
 @app.route('/api/jobs/run/<name>', methods=['POST'])
 def jobs_run(name):
-    """POST /api/jobs/run/<name> — run a registered job (bearer or session)."""
+    """POST /api/jobs/run/<name> — run a registered job (bearer or session).
+
+    Synchronous. With Tier-0 retry, wall-clock worst case is
+    (retries+1) * timeout_seconds + 10s backoff (2s+8s). Example: site_audit
+    retries=2 timeout=90 → up to ~280s. meta_refresh/gbp_tick keep retries=0.
+    """
     if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     if not _JOBS_AVAILABLE or name not in _JOBS_REGISTRY:
@@ -14452,6 +14457,41 @@ def jobs_digest():
         return jsonify({"ok": False, "error": "job registry unavailable"}), 503
     body = _jobs_build_digest()
     return Response(body, mimetype='application/json')
+
+
+@app.route('/api/jobs/failures', methods=['GET'])
+def jobs_failures():
+    """GET /api/jobs/failures — open incidents + bundle refs (excludes best_effort)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    try:
+        from _lib.jobs.diagnostics import list_open_failures
+        return jsonify({"failures": list_open_failures()}), 200
+    except Exception as e:
+        _app_log.exception("jobs_failures failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/jobs/diagnostics/<run_id>', methods=['GET'])
+def jobs_diagnostics(run_id):
+    """GET /api/jobs/diagnostics/<run_id> — redacted diagnostic bundle."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    try:
+        from _lib.jobs.diagnostics import RUN_ID_RE, read_bundle
+        if not RUN_ID_RE.match(run_id or ""):
+            return jsonify({"ok": False, "error": "not found"}), 404
+        bundle = read_bundle(run_id)
+        if bundle is None:
+            return jsonify({"ok": False, "error": "not found"}), 404
+        return jsonify(bundle), 200
+    except Exception as e:
+        _app_log.exception("jobs_diagnostics failed run_id=%s", run_id)
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/freshness', methods=['GET'])

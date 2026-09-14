@@ -57,9 +57,17 @@ Endpoints (bearer `COS_JOB_TOKEN` **or** session):
 - `POST /api/jobs/run/<name>`
 - `GET /api/jobs/status`
 - `GET /api/jobs/digest`
+- `GET /api/jobs/failures` — open incidents (excludes `best_effort`); includes bundle refs
+- `GET /api/jobs/diagnostics/<run_id>` — redacted diagnostic bundle
 
-Ledger: `$DATA_DIR/job-runs.jsonl` — one entry row + one exit row per `run_id`.
-Verdicts: `OK` \| `LATE` \| `FAILED` \| `STUCK` \| `NEVER`.
+Ledger: `$DATA_DIR/job-runs.jsonl` — one entry row + one exit row per `run_id`
+(plus optional `phase: retry` rows between them). Verdicts: `OK` \| `LATE` \|
+`FAILED` \| `STUCK` \| `NEVER`.
+
+Diagnostics: `$DATA_DIR/diagnostics/<job>/<run_id>.json` — schema
+`campaign-os/diagnostic-bundle/v1`, written on every non-OK terminal run.
+`credentials{}` is presence booleans only. Retention: 30 days or 200 bundles
+per job, whichever first.
 
 Adding a job = a `JobSpec` in `_lib/jobs/`, **not** a folder of JS under `legacy/agents/`.
 
