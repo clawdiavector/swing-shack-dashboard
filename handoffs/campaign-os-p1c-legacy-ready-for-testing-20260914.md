@@ -17,11 +17,11 @@
 
 | Item | Value |
 |---|---|
-| Feature tip SHA | `008035181af9b1ea3b22d6c713ed56d33c57f482` |
-| Code-complete SHA (pre-RFT docs) | `f9dac891a07419bcdbebded97f6a4b7c4c58e337` |
+| Code-complete SHA | `f9dac891a07419bcdbebded97f6a4b7c4c58e337` |
+| Origin tip | `origin/feat/campaign-os-p1c-legacy` — run `git rev-parse origin/feat/campaign-os-p1c-legacy` (RFT finalize landed as `6a7a94a`+) |
 | Base | `origin/integrate/campaign-os-option-c` @ `69b64e2ad185e4ffd75f4a97d20e39a82ed32180` |
-| On origin? | **YES** — `origin/feat/campaign-os-p1c-legacy` @ `0080351` (pushed 2026-09-14 by RFT job) |
-| Push command used | `git push -u origin feat/campaign-os-p1c-legacy` — **exit 0** (no workflow-scope 403; this range does not touch `.github/workflows`) |
+| On origin? | **YES** — pushed 2026-09-14 by RFT job (`git push -u origin feat/campaign-os-p1c-legacy` exit 0) |
+| Push note | No workflow-scope 403 (unlike P0c); this range does not touch `.github/workflows` |
 
 ## Commit shape (§8)
 
@@ -73,8 +73,8 @@ Passed −1 vs pre-delete baseline is intentional (`test_node_available` removed
 
 ## Suggested board / comment draft
 
-Campaign OS P1c ready for testing. `feat/campaign-os-p1c-legacy` @ `0080351` on origin. Verify PASS t33+t34 (19 JS; pytest 418/1122/18 flat; guards frozen). Target merge: `integrate/campaign-os-option-c`. No deploy from this ticket. Suggested column: **Ready for testing**.
+Campaign OS P1c ready for testing. `feat/campaign-os-p1c-legacy` on origin (code-complete `f9dac89`; tip = origin tip). Verify PASS t33+t34 (19 JS; pytest 418/1122/18 flat; guards frozen). Target merge: `integrate/campaign-os-option-c`. No deploy from this ticket. Suggested column: **Ready for testing**.
 
 ## Land (next job)
 
-Land merges `feat/campaign-os-p1c-legacy` → `integrate/campaign-os-option-c` (may push **integrate**, not `main`). Feat already on origin @ `0080351`. No Railway deploy from RFT.
+Land merges `feat/campaign-os-p1c-legacy` → `integrate/campaign-os-option-c` (may push **integrate**, not `main`). Feat already on origin. No Railway deploy from RFT.
