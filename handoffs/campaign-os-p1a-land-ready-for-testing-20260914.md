@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-14  
 **Job:** `job-20260914-campaign-os-p1a-land-ready-for-testing` (Cursor, ready-for-testing)  
-**Implement:** `job-20260914-campaign-os-p1a-land-implement` — **done** @ `736473b`  
+**Implement:** `job-20260914-campaign-os-p1a-land-implement` — **done** @ `736473b` (code-complete)  
 **Plan:** `plan/campaign-os-p1a-land/handoffs/campaign-os-p1a-land-plan-20260914.md`  
 **Worktree:** `/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/campaign-os-p1a-land`  
 **Merge target:** `integrate/campaign-os-option-c` @ `9683b16` — **do not** push `main` / `master` / `develop`.  
@@ -17,7 +17,7 @@ P1a CI gate (`ci.yml` + allowlist pytest + `data/` gate + smoke) rebased onto po
 | Source | Verdict | Notes |
 |---|---|---|
 | Pi job `job-20260914-campaign-os-p1a-land-verify` | **FAIL (stale)** | Checked `review/campaign-os-p1a-land` still @ integrate `9683b16` — artifacts absent. Not a product FAIL. |
-| RFT re-verify on `feat/campaign-os-p1a-land` @ `736473b` | **PASS** | Plan §3 gates + t25–t28 artifact checks (this job, 2026-09-14) |
+| RFT re-verify on `feat/campaign-os-p1a-land` @ `736473b` (pre-handoff tip) | **PASS** | Plan §3 gates + t25–t28 artifact checks (this job, 2026-09-14) |
 
 ### Fresh gate evidence (RFT)
 
@@ -37,12 +37,15 @@ t25: `cos_session` / `cos_anon` fixtures in `campaign-os/tests/conftest.py`.
 
 | Item | Value |
 |---|---|
-| Tip SHA | `736473b2a73445246efab602a6914a35a22a0e1c` |
+| Origin tip (RFT) | `889ad637e228750772a5a876c43cc92c3fa31c13` (`docs(p1a-land): ready-for-testing handoff…`) |
+| Code-complete SHA | `736473b2a73445246efab602a6914a35a22a0e1c` |
 | Branch | `feat/campaign-os-p1a-land` |
 | Base | `origin/integrate/campaign-os-option-c` @ `9683b16ca1d90dfe1d33d16afb2781ea0094e1ef` |
-| Commits ahead of integrate | 8 (7 cherry-picked P1a + 1 land fix) |
+| Commits ahead of integrate | 9 (7 cherry-picked P1a + 1 land fix + RFT handoff) |
+| On origin? | **YES** after this job’s `git push -u origin feat/campaign-os-p1a-land` |
 
 ```
+889ad63 docs(p1a-land): ready-for-testing handoff after verify PASS
 736473b fix(p1a-land): Layer1 allowlist + bearer tests under cos_anon
 fa8d4e5 docs(p1a): finalize BASELINE.md SHA line
 5761d62 docs(p1a): pin BASELINE.md to measurement SHA
@@ -93,8 +96,8 @@ If push hits **workflow-scope 403** (PAT missing `workflow`): Kyle runs `gh auth
 
 ## Suggested board / comment draft
 
-Campaign OS P1a land ready for testing. `feat/campaign-os-p1a-land` @ `736473b` (RFT re-verify PASS: 935P/16S/0F, check_lib + smoke + data clean). Pi verify job failed only because `review/` was stale at integrate tip. Target merge: `integrate/campaign-os-option-c`. No deploy. Suggested column: **Ready for testing**.
+Campaign OS P1a land ready for testing. `feat/campaign-os-p1a-land` on origin @ `889ad63` (code-complete `736473b`; RFT re-verify PASS: 935P/16S/0F, check_lib + smoke + data clean). Pi verify job failed only because `review/` was stale at integrate tip. Target merge: `integrate/campaign-os-option-c`. No deploy. Suggested column: **Ready for testing**.
 
 ## Land (next job)
 
-Land merges `feat/campaign-os-p1a-land` → `integrate/campaign-os-option-c` and may push **integrate** (not `main`). After integrate tip moves, P1d should rebase onto it so t39 CI “required check” can go PASS.
+Land merges `feat/campaign-os-p1a-land` → `integrate/campaign-os-option-c` and may push **integrate** (not `main`). Feature branch on origin @ `889ad63`. After integrate tip moves, P1d should rebase onto it so t39 CI “required check” can go PASS.
