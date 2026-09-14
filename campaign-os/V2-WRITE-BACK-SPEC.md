@@ -602,7 +602,13 @@ Every Clawfix-verified commit includes a write summary in the git commit message
 
 ## 7. How the Cockpit Updates After the Write
 
-### Update Flow
+> **t51 (2026-09-14):** The Pages regeneration loop below is **retired**.
+> `.github/workflows/deploy.yml`, `scripts/regenerate-cockpit.py`, and
+> `scripts/patch-cockpit.js` are deleted. Railway Flask serves
+> `campaign-os/cockpit-operational.html` and loads state via `/api/*` at
+> request time — there is no HTML regenerate-on-push path.
+
+### Update Flow (historical — do not rebuild)
 
 ```
 Git push (campaign-data.json updated)
@@ -611,9 +617,13 @@ Git push (campaign-data.json updated)
     → OpenClaw cron or webhook receiver processes payload
     → campaign-data.json is re-read
     → Cockpit HTML is regenerated from template + data
-    → New cockpit is deployed to GitHub Pages
+    → New cockpit is deployed to GitHub Pages   ← RETIRED t51
     → Operators see updated state on next refresh (or auto-refresh)
 ```
+
+**Live path today:** operators hit Railway `/cockpit-operational`; the page
+fetches `/api/health`, `/api/schedule`, `/api/campaigns`, etc. No static
+HTML rewrite.
 
 ### What Triggers a Cockpit Regeneration
 
@@ -627,18 +637,18 @@ Git push (campaign-data.json updated)
 | Health score change | Lab calculation | Health ring, diagnostic, Campaign overview |
 | New campaign created | Campaign Factory | All views reset for new campaign |
 
+*(Table retained for domain events; the HTML regenerate mechanism is gone.)*
+
 ### Cockpit Update Latency
 
-- **Ideal:** < 60 seconds from Git push to live cockpit update
-- **Acceptable:** < 5 minutes
-- **Measured:** tracked in HEARTBEAT.md per cron job
+- **Ideal:** immediate on next `/api/*` fetch against Railway
+- **Acceptable:** same
+- Pages latency targets (<60s regenerate) are obsolete after t51
 
 ### Manual Refresh Option
 
-Operators can force a cockpit refresh via:
-- OpenClaw command: `openclaw cron run refresh-cockpit`
-- Or wait for the automatic refresh cycle
-
+Operators refresh the Railway cockpit in the browser. There is no
+`openclaw cron run refresh-cockpit` / Pages regenerate path.
 ---
 
 ## Implementation Sequence
@@ -656,7 +666,7 @@ Christelle creates personal GitHub account
 1. Create campaign-data.json schema with all domains
 2. Set up write staging mechanism (campaign-data-staged.json)
 3. Configure Clawfix verification on every write
-4. Set up GitHub webhook for cockpit trigger
+4. Set up GitHub webhook for cockpit trigger — **obsolete after t51**; Railway serves live
 5. Test write-back loop with single agent (Copywriter first)
 ```
 
@@ -671,10 +681,10 @@ Publisher → write-back script
 
 ### Phase 4: Cockpit Live Updates
 ```
-1. Webhook receiver configured
-2. Cockpit regeneration triggered on each push
-3. Latency measured and optimized
-4. Auto-refresh implemented
+1. Webhook receiver / Pages regenerate — RETIRED t51
+2. Railway serves cockpit-operational.html + /api/*
+3. Latency = next browser fetch
+4. Auto-refresh is client-side if desired; no HTML rewrite pipeline
 ```
 
 ---

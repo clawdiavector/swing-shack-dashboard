@@ -400,21 +400,21 @@ Each agent writes their output directly to `campaign-data.json`. Changes commit 
 - Clawfix → verificationState on all assets
 - Publisher → publishState, postizDraftId, publishedAt
 - All writes committed to git
-- GitHub Actions regenerate cockpit on push
+- ~~GitHub Actions regenerate cockpit on push~~ — retired t51; Railway serves the cockpit live
 
 **Still to build:**
 - Agent write-back scripts (automated write path from Discord agent to JSON)
-- Webhook triggering (agent write → git commit → cockpit refresh)
+- Webhook triggering (agent write → git commit → cockpit refresh) — Pages regenerate path retired; any refresh is Railway-side
 - Discord notification routing (approved asset → notify Christelle)
 - Write-back staging (write to temp first, only commit on clean exit — prevents partial writes on timeout)
-- M3 action loop (agent write → auto-regenerate cockpit without manual push)
+- M3 action loop (agent write → live Railway cockpit; no Pages regenerate)
 
 ---
 
 ### 3.10 Campaign Mothership Dashboard
 
 **What it is:**
-The user-facing dashboard at `https://clawdiavector.github.io/swing-shack-dashboard/campaign-os/cockpit-operational.html`
+The user-facing dashboard served by Railway at `/cockpit-operational` (`campaign-os/cockpit-operational.html`). The github.io URL is retired (t51).
 
 **What's built:**
 - Overview tab (campaign list, health rings, priority stack)

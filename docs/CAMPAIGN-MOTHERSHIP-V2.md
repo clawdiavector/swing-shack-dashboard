@@ -594,8 +594,8 @@ The visual direction is the brief. Every image, every design decision, every cap
 
 ### Phase 2 — Code Migration (agents + cockpit)
 
-1. **Update `regenerate-cockpit.py`:** Iterate `campaigns` dict, generate portfolio view + campaign views
-2. **Update `patch-cockpit.js`:** Target `campaigns[activeCampaignId].assets` not flat `assets`
+1. ~~**Update `regenerate-cockpit.py`:**~~ **Deleted t51** — do not restore; Railway serves the cockpit
+2. ~~**Update `patch-cockpit.js`:**~~ **Deleted t51** — do not restore
 3. **Update all agent write-back scripts:** Update JSON path in each agent
 4. **Update cockpit HTML:** Add campaign selector, portfolio view, campaign detail view
 5. **Verify:** Clawfix runs end-to-end verification on all campaigns
@@ -610,8 +610,8 @@ The visual direction is the brief. Every image, every design decision, every cap
 ### Migration Order
 
 1. Schema migration + commit (this spec approved)
-2. Regenerate cockpit Python updated
-3. Deploy → verify Portfolio View works
+2. ~~Regenerate cockpit Python updated~~ — retired t51; skip
+3. Deploy Railway → verify Portfolio View works
 4. Agent write-back paths updated (one agent at a time, verify)
 5. UI campaign selector + views built
 

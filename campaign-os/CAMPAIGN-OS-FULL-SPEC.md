@@ -28,7 +28,7 @@ Read this document to understand the current state of the system, what each comp
 
 ### What Campaign OS Is
 
-A campaign production machine that lives in GitHub Pages, backed by a JSON data file, maintained by a fleet of agents. Every campaign, asset, and decision is stateful, inspectable, and honest.
+A campaign production machine that runs on Railway (Flask), backed by a JSON data file, maintained by jobs/agents. Every campaign, asset, and decision is stateful, inspectable, and honest. (GitHub Pages lane retired in t51, 2026-09-14.)
 
 The system answers four questions at all times:
 1. **What is the state of every campaign?** (campaign list, health rings)
@@ -81,7 +81,7 @@ history[], status
 ### A. Campaign Data Layer ✅
 
 **Location:** `campaign-os/campaign-data.json`
-**Status:** Active, committed, GitHub Pages backed
+**Status:** Active, committed; served by Railway (Pages lane retired t51)
 
 4 campaigns exist:
 - `trackman-intelligence` (evergreen, 0 assets, blueprint not built)
@@ -96,14 +96,14 @@ The "Use the Right Equipment" campaign is the most complete — it has:
 - 36 asset shells with research grounding
 - M6 complete — all 36 assets at `approvalStatus: review`
 
-**Write-back path:** Agent writes → Git commit → GitHub Actions → `cockpit-operational.html` regenerated → deployed to GitHub Pages (~60s latency after push)
+**Write-back path (legacy story, retired t51):** Agent writes → Git commit → Pages regenerate is **gone**. Live path: Railway Flask serves `campaign-os/cockpit-operational.html` and reads campaign state via `/api/*` at request time.
 
 ---
 
 ### B. Cockpit Dashboard ✅
 
-**Location:** `https://clawdiavector.github.io/swing-shack-dashboard/campaign-os/cockpit-operational.html`
-**Status:** Live, regenerating from campaign-data.json on every push
+**Location:** Railway product route `/cockpit-operational` (file `campaign-os/cockpit-operational.html`). The old github.io URL is retired (t51); do not treat it as the dashboard.
+**Status:** Live on Railway; fetches `/api/*` at runtime. No Pages regeneration.
 
 Views available:
 1. **Campaign List** — all 4 campaigns, health rings, status
@@ -111,7 +111,7 @@ Views available:
 3. **Production Plan** — 30-day calendar, asset counts, pillar distribution
 4. **Asset Queue** — all assets with caption/visual/approval/publish status
 
-**Current limitation:** Cockpit reads from embedded campaign-data at build time. Real-time updates require Git push. No live WebSocket connection.
+**Current limitation:** No live WebSocket; operators refresh the Railway page. State comes from `/api/*` at request time (Pages build-time embed story retired t51).
 
 ---
 
@@ -430,11 +430,9 @@ planned → skipped (Christelle skips)
    - Clawfix commits to `campaign-data.json`
    - Git push fires → webhook → cockpit refresh
 
-3. **Webhook infrastructure:**
-   - GitHub webhook fires on push to main
-   - Webhook calls regeneration script
-   - `regenerate-cockpit.py` reads campaign-data.json → rewrites cockpit HTML
-   - Latency target: <60s from push to live
+3. **Webhook / Pages regeneration (RETIRED t51):**
+   - Deleted: `scripts/regenerate-cockpit.py`, `scripts/patch-cockpit.js`, `.github/workflows/deploy.yml`
+   - Do not rebuild a Pages regenerate loop; Railway serves the cockpit live
 
 4. **Clawfix verification service:**
    - Clawfix reads staged changes
@@ -446,7 +444,7 @@ planned → skipped (Christelle skips)
 - V2-WRITE-BACK-SPEC.md exists and is detailed
 - No write-back scripts built for any agent
 - Staged write path not implemented
-- Webhook fires but regeneration script had a dict/list bug (fixed by Clawfix)
+- Pages regeneration lane retired (t51); cockpit is a Railway route
 - Clawfix verification service concept exists but not wired to agent write paths
 
 ### Why this is blocking:
@@ -566,7 +564,7 @@ Christelle (decision authority)
     ▼
 campaign-data.json (source of truth)
     │
-    ├──▶ cockpit-operational.html (GitHub Pages, regenerates on push)
+    ├──▶ cockpit-operational.html (Railway route /cockpit-operational; live API)
     │
     ├──▶ Agents (read state, write actions)
     │       │
@@ -580,10 +578,8 @@ campaign-data.json (source of truth)
     └──▶ Clawfix ──verifies──▶ staged writes ──commits──▶ campaign-data.json
                                                     │
                                                     ▼
-                                           GitHub Actions ──push──▶ Webhook
-                                                                      │
-                                                                      ▼
-                                                             cockpit refresh (<60s)
+                                           Railway /cockpit-operational
+                                           (live /api/*; Pages regenerate retired t51)
 ```
 
 ---
@@ -596,7 +592,7 @@ campaign-data.json (source of truth)
 | `campaign-os/cockpit-operational.html` | Live dashboard — reads embedded campaign data |
 | `scripts/generate-blueprint.py` | M2 — builds campaign blueprint |
 | `scripts/generate-production-plan.py` | M5 — builds production plan + asset shells |
-| `scripts/regenerate-cockpit.py` | Reads campaign-data.json → rewrites cockpit HTML |
+| ~~`scripts/regenerate-cockpit.py`~~ | **Deleted t51** — was the Pages regenerate footgun; do not restore |
 | `V2-FOUNDATION-SPEC.md` | Operational philosophy — why the system exists |
 | `V2-TEMPLATE-SPEC.md` | Template schema — campaign type definitions |
 | `V2-WRITE-BACK-SPEC.md` | Write-back layer — agent → data → cockpit flow |
@@ -607,7 +603,7 @@ campaign-data.json (source of truth)
 ## What's Live Today
 
 ✅ **Campaign data layer** — 4 campaigns, 40 assets, all state tracked  
-✅ **Cockpit dashboard** — live at GitHub Pages, regenerates on push  
+✅ **Cockpit dashboard** — live on Railway (`/cockpit-operational`); Pages lane retired t51  
 ✅ **Blueprint generation** — M2 works for "Use the Right Equipment"  
 ✅ **Production plan generation** — M5 works with G1-G8 validation  
 ✅ **M6 content pipeline** — 36 assets fully briefed through batched process  
@@ -636,7 +632,7 @@ campaign-data.json (source of truth)
 
 ## Cockpit URL
 
-**Live:** `https://clawdiavector.github.io/swing-shack-dashboard/campaign-os/cockpit-operational.html`
+**Live:** Railway `/cockpit-operational` (repo file `campaign-os/cockpit-operational.html`). github.io cockpit URL retired t51.
 
 **Repository:** `https://github.com/clawdiavector/swing-shack-dashboard`
 
