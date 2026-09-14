@@ -1991,6 +1991,16 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         </div>
         <div class="muted" style="font-size:11px;margin-top:.75rem">Drag a card to another day to reschedule · colors show pillar / brand · queue items are safe to move</div>
       </div>
+      <!-- Calendar Event Detail Panel — Slice 0.3 §9-10. Hidden by default;
+           shown when Calendar Intelligence click or other nav selects an event. -->
+      <div class="card" id="cal-detail-panel" style="display:none;margin-top:.6rem;border-left:4px solid var(--ac)">
+        <div class="card-h">
+          <h3>📅 <span id="cal-detail-title">—</span></h3>
+          <span class="muted" id="cal-detail-meta" style="font-size:11px"></span>
+          <button class="btn-mini" id="cal-detail-close" style="margin-left:auto">✕ Close</button>
+        </div>
+        <div id="cal-detail-body" style="font-size:13px;line-height:1.55">Loading…</div>
+      </div>
     </section>
 
     <!-- ── TRENDS ───────────────────────────────────────── -->
@@ -8000,21 +8010,29 @@ async function renderBrief(){
             }
             body.innerHTML = sections.join('');
             if(meta) meta.textContent = `Brand: ${esc(d.brand_id||'')} · evaluated ${new Date(d.evaluated_at).toLocaleTimeString()}`;
-            // Click handler — view event detail on Calendar page. Per brief §13, click
+            // Click handler — view event detail on Calendar surface. Per brief §13, click
             // → calendar event detail (source/evidence + strategy connection).
             body.querySelectorAll('.cal-intel-event-link').forEach(a => {
               a.addEventListener('click', (e) => {
                 e.preventDefault();
                 const ek = a.getAttribute('data-cal-event-key') || '';
                 const eid = a.getAttribute('data-cal-event-id') || '';
-                // Navigate to the Calendar surface with the event selected.
+                // Navigate to the Calendar surface (sec-calendar holds both the
+                // publishing calendar grid + the new cal-detail-panel).
                 if(typeof goTo === 'function'){
                   try { goTo('calendar'); } catch(_){ /* goTo may not exist in this build */ }
                 }
-                // Drop the selected event into the Calendar section's selection state.
+                // Drop the selected event into the Calendar section's selection
+                // state and re-render the detail panel so it shows the chosen
+                // event immediately on arrival.
                 try {
                   S.calSelectedEvent = { event_key: ek, calendar_id: eid };
-                  if(typeof renderCalendar === 'function') renderCalendar();
+                  if(typeof renderCalendar === 'function'){
+                    try { renderCalendar(); } catch(_){ }
+                  }
+                  if(typeof renderCalendarDetailPanel === 'function'){
+                    renderCalendarDetailPanel();
+                  }
                 } catch(_){ /* non-fatal */ }
               });
             });
@@ -9787,6 +9805,139 @@ async function renderCalendar(){
   });
   grid.innerHTML = html;
 }
+
+// ─── Calendar Event Detail Panel — Slice 0.3 §9-10 ─────────────────
+// Renders a detail panel for the currently selected marketing-calendar
+// event. Hidden by default; shown when an event is selected via the
+// Calendar Intelligence click handler (renderCalendarIntel) or any
+// other selector.
+//
+// Reads the canonical event via the existing context endpoint so the
+// source of truth is the brand calendar (not a parallel cache).
+async function renderCalendarDetailPanel(){
+  const panel = $('#cal-detail-panel');
+  const body  = $('#cal-detail-body');
+  const titleEl = $('#cal-detail-title');
+  const meta  = $('#cal-detail-meta');
+  if(!panel || !body) return;
+  const sel = S.calSelectedEvent;
+  if(!sel || !sel.event_key){
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+  const brand = S.brand || 'stick';
+  titleEl.textContent = sel.event_key;
+  meta.textContent = `Brand: ${brand} · ${esc(sel.calendar_id || '')}`;
+  body.innerHTML = '<div class="muted">Loading detail…</div>';
+  try {
+    // Pull context (canonical_events has the latest revision)
+    const ctx = await API.get('/api/calendar/context/' + encodeURIComponent(brand) + '?horizon_days=180');
+    if(!ctx.ok){
+      body.innerHTML = `<div class="muted">Could not load context: ${esc(ctx.error || 'unknown')}</div>`;
+      return;
+    }
+    // Resolve the selected event from canonical_events
+    let ev = (ctx.canonical_events || []).find(e => (e.event_key || e.calendar_id) === sel.event_key
+                                                    || e.calendar_id === sel.calendar_id);
+    if(!ev && ctx.canonical_watchlist){
+      ev = ctx.canonical_watchlist.find(e => (e.event_key || e.calendar_id) === sel.event_key
+                                            || e.calendar_id === sel.calendar_id);
+    }
+    if(!ev){
+      body.innerHTML = `<div class="muted">Event <code>${esc(sel.event_key)}</code> not found in canonical view.</div>`;
+      return;
+    }
+    body.innerHTML = calDetailPanelHtml(ev, ctx);
+  } catch (e) {
+    body.innerHTML = `<div class="muted">Detail fetch failed: ${esc(e.message || String(e))}</div>`;
+  }
+}
+
+function calDetailPanelHtml(ev, ctx){
+  const pillar = (ctx.pillars || []).find(p => p.pillar_id === ev.pillar_id || (ev.pillar_ids || []).includes(p.pillar_id));
+  const pillarColour = pillar?.colour || '#888';
+  const pillarLine = pillar ? `
+    <div style="margin-top:.4rem"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${pillarColour};margin-right:.4rem;vertical-align:middle"></span><b>${esc(pillar.name)}</b> · pillar_id: <code>${esc(pillar.pillar_id)}</code></div>
+    <div style="font-size:11.5px;color:var(--tx-2);margin-top:.15rem">North Star: <b>${esc(pillar.north_star_metric || '—')}</b>${pillar.north_star_target ? ` (target ${esc(JSON.stringify(pillar.north_star_target))})` : ''}</div>
+  ` : '';
+  const status = ev.event_lifecycle || ev.status || '—';
+  const verification = ev.verification_status || '—';
+  const sourceOrigin = ev.source_origin || '—';
+  const evidence = (ev.evidence || []).slice(0,3);
+  const evidenceHtml = evidence.length === 0 ? '<div class="muted" style="font-size:11px">No structured evidence recorded yet.</div>' :
+    evidence.map(e => `<div style="font-size:11px;padding:.2rem 0;border-bottom:1px dashed var(--bd)">
+      <b>${esc(e.fact_type || 'fact')}</b>: ${esc(String(e.supported_value || '').slice(0,120))}
+      ${e.source_class ? `<span class="muted"> · ${esc(e.source_class)}</span>` : ''}
+      ${e.source_url ? ` · <a href="${esc(e.source_url)}" target="_blank" rel="noopener">source</a>` : ''}
+    </div>`).join('');
+  const conflicts = (ev.conflicting_sources || []);
+  const conflictHtml = conflicts.length === 0 ? '' :
+    `<div style="margin-top:.5rem;padding:.4rem .55rem;border-left:3px solid var(--warning, #f59e0b);background:rgba(245,158,11,.08);border-radius:0 6px 6px 0">
+      <b>⚠ Conflicting sources</b>:
+      <ul style="margin:.3rem 0 0 1.2rem;font-size:11.5px">${conflicts.map(c => `<li>${esc(typeof c === 'string' ? c : JSON.stringify(c))}</li>`).join('')}</ul>
+    </div>`;
+  const lastVerified = ev.last_verified_at || ev.created_at || '—';
+  const nextVerify = ev.reverify_after || '—';
+  const sources = (ev.source_urls || ev.evidence?.map(e => e.source_url) || []).filter(Boolean);
+  const sourceList = sources.length === 0 ? '<span class="muted">none on record</span>'
+    : sources.slice(0,4).map(s => `<a href="${esc(s)}" target="_blank" rel="noopener">${esc(s.slice(0,60))}${s.length>60?'…':''}</a>`).join(' · ');
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.8rem">
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">Status / lifecycle</div>
+        <div style="font-weight:600">${esc(status)}</div>
+        ${pillarLine}
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-top:.5rem">Verification</div>
+        <div><b>${esc(verification)}</b> · source_origin: <code>${esc(sourceOrigin)}</code></div>
+      </div>
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">Event dates / window</div>
+        <div>${ev.event_start ? `<b>${esc(ev.event_start)}</b> → ${esc(ev.event_end || '—')}` : '—'}</div>
+        ${ev.event_window_start && ev.event_window_start !== ev.event_start ? `<div class="muted" style="font-size:11px">Window opens: ${esc(ev.event_window_start)} (window closes: ${esc(ev.event_window_end || '—')})</div>` : ''}
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-top:.5rem">Planning / lead time</div>
+        <div>${esc(ev.lead_time_class || 'normal_campaign')} · planning_start: <code>${esc(ev.planning_start || '—')}</code></div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-top:.5rem">Last verified / next reverify</div>
+        <div>${esc(lastVerified)} → ${esc(nextVerify)}</div>
+      </div>
+      <div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">Why relevant</div>
+        <div>${esc(ev.why_relevant || ev.message || ev.relevance || 'No relevance note recorded.')}</div>
+        <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-top:.5rem">Suggested opportunity angles</div>
+        <div>${esc(ev.suggested_angles || ev.angles || 'Add suggested angles via the Calendar Scout run.')}</div>
+      </div>
+    </div>
+    ${conflictHtml}
+    <div style="margin-top:.6rem">
+      <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.04em">Source evidence</div>
+      ${evidenceHtml}
+    </div>
+    <div style="margin-top:.4rem;font-size:11px">
+      <b>Sources:</b> ${sourceList}
+    </div>
+  `;
+}
+
+(function wireCalDetailPanel(){
+  const close = $('#cal-detail-close');
+  if(close && !close._wired){
+    close._wired = true;
+    close.addEventListener('click', () => {
+      S.calSelectedEvent = null;
+      const panel = $('#cal-detail-panel');
+      if(panel) panel.style.display = 'none';
+    });
+  }
+  // When the Calendar section becomes visible, render the detail panel
+  const sec = document.getElementById('sec-calendar');
+  if(sec && !sec._calDetailWired){
+    sec._calDetailWired = true;
+    const obs = new MutationObserver(() => {
+      if(sec.style.display !== 'none') renderCalendarDetailPanel();
+    });
+    obs.observe(sec, { attributes: true, attributeFilter: ['style'] });
+  }
+})();
 
 // Bind calendar filters
 $('#cal-filter-platform')?.addEventListener('change', () => renderCalendar());
