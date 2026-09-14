@@ -1085,12 +1085,16 @@ def _material_change_detected(
         return False, "no_change", []
 
     # Decide change_type based on which fields moved
-    if "verification_status" in changed_fields or "source_class" in changed_fields:
-        return True, "verification_change", changed_fields
+    # Order matters — promotion check must come BEFORE verification_change
+    # because a watchlist→candidate transition also changes verification_status.
+    if "event_lifecycle" in changed_fields and prev.get("event_lifecycle") == "watchlist":
+        return True, "promotion", changed_fields
     if any(f.startswith("event_") or f.startswith("competition_") or f == "event_end" for f in changed_fields):
         if "event_lifecycle" in changed_fields and prev.get("event_lifecycle") == "watchlist":
             return True, "promotion", changed_fields
         return True, "date_change", changed_fields
+    if "verification_status" in changed_fields or "source_class" in changed_fields:
+        return True, "verification_change", changed_fields
     if "venue" in changed_fields:
         return True, "venue_change", changed_fields
     if "event_lifecycle" in changed_fields:
@@ -1166,6 +1170,8 @@ def upsert_event(
     record, change_type, changed_fields, supersedes_calendar_id.
     """
     record = _ensure_event_key(record)
+    # Ensure brand_id is set on the record (used by event_key building)
+    record.setdefault("brand_id", brand_id)
     event_key = record["event_key"]
 
     # Default schema v2 fields
