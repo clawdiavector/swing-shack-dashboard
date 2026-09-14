@@ -5123,7 +5123,10 @@ def calendar_v3_today_section():
         if not ev_date:
             continue
         try:
-            ev_dt = datetime.fromisoformat(ev_date.replace("Z", "+00:00"))
+            ev_str = ev_date.replace("Z", "+00:00")
+            ev_dt = datetime.fromisoformat(ev_str)
+            if ev_dt.tzinfo is None:
+                ev_dt = ev_dt.replace(tzinfo=timezone.utc)
         except Exception:
             continue
         if ev_dt < now or ev_dt > horizon:
