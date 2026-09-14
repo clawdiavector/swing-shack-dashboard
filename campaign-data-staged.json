@@ -48,5 +48,5 @@
     ]
   },
   "updatedAt": "2026-06-01T14:00:00+02:00",
-  "notes": "campaign-data-staged.json is the atomic write target. Write-back pipeline: agent writes staged → commit → push → GitHub Actions regenerates cockpit. See scripts/write-campaign.js and scripts/write-back.js."
+  "notes": "campaign-data-staged.json is the atomic write target. Write-back pipeline historically used deleted Node scripts (write-campaign.js / write-back.js, removed in t33); regenerate via scripts/regenerate-cockpit.py + scripts/patch-cockpit.js (Pages lane, t51-gated)."
 }

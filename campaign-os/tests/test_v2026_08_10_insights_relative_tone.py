@@ -75,10 +75,20 @@ class TestInsightsRelativeTone(unittest.TestCase):
         self.assertNotIn("–", block, "En-dash (–) leaked into the IG-post render block")
 
     def test_postiz_fetcher_captures_permalink(self):
-        """The Postiz fetcher must extract permalink so the next sync has it."""
-        fetcher = (REPO / "scripts" / "fetch_postiz_analytics.js").read_text(encoding="utf-8")
-        self.assertIn("permalink", fetcher, "Postiz fetcher no longer captures permalink")
-        self.assertIn("p.releaseURL", fetcher, "Postiz releaseURL fallback missing")
+        """IG media fetch must request permalink so the next sync has it.
+
+        Pre-t33 this asserted against scripts/fetch_postiz_analytics.js
+        (deleted; superseded by meta_refresh / _lib/meta_live_fetch.py).
+        The Postiz-side p.releaseURL fallback had no successor and is dropped.
+        """
+        fetcher = (REPO / "campaign-os" / "_lib" / "meta_live_fetch.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "permalink",
+            fetcher,
+            "meta_live_fetch no longer requests permalink on IG media",
+        )
 
     def _igList_block(self) -> str:
         """Return the text of the IG-post igList render block (or fail the test)."""
