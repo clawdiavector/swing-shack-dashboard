@@ -16,7 +16,11 @@ class JobSpec:
 
     # t13: self-heal prerequisite fields (declared now, unused until P1.5)
     criticality: str = "MEDIUM"  # HIGH | MEDIUM | LOW
-    retries: int = 0  # tier-0 retry count; 0 = no retry in P0
+    retries: int = 0  # declared; inert until t35 (runner has no retry loop yet)
     heal_policy: str = "no_heal"
     credentials: tuple[str, ...] = field(default_factory=tuple)  # env var NAMES
     writes: tuple[str, ...] = field(default_factory=tuple)  # $DATA_DIR-relative paths
+
+    # t29/t30: declarative inputs + upstream graph (scheduler ignores until t37)
+    reads: tuple[str, ...] = field(default_factory=tuple)  # $DATA_DIR-relative inputs
+    upstream: tuple[str, ...] = field(default_factory=tuple)  # job names that should run first
