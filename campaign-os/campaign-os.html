@@ -7878,6 +7878,11 @@ async function renderBrief(){
       ? API.get('/api/whats-new').then(v => { S.whatsNew = v.items || []; S.whatsNewTs = Date.now(); }).catch(() => null)
       : Promise.resolve();
     const fetchFreshness = !S.freshness ? API.get('/api/freshness').then(v => S.freshness = v).catch(() => null) : Promise.resolve();
+    // Calendar Intelligence — Slice 0.3 §1. Brand-scoped. Cache bust on brand change.
+    const fetchCalIntel = (!S.calIntel || S.calIntel.__cacheBrand !== cacheKey)
+      ? API.get('/api/calendar/v3/today-section?brand_id=' + encodeURIComponent(cacheKey))
+          .then(v => { S.calIntel = Object.assign({__cacheBrand: cacheKey}, v); }).catch(() => null)
+      : Promise.resolve();
     // Each feed endpoint can fail independently (transient network, auth
     // expiry, backend restart). Previously the 3 direct API.get calls had
     // no .catch(), so a single Failed-to-fetch on any of them rejected the
@@ -7894,7 +7899,10 @@ async function renderBrief(){
       fetchTodayPanel,
       fetchWhatsNew,
       fetchFreshness,
-    ]);
+      fetchCalIntel,
+      ]);
+  // Calendar Intelligence fetch is fire-and-forget inside renderBrief;
+  // renderCalendarIntel() is called explicitly below after grid render.
     if(!b){
       // Primary brief payload missing (keep any cached version the user
       // was already looking at and surface a quiet non-blocking notice.
@@ -7935,12 +7943,121 @@ async function renderBrief(){
               <div><b style="color:var(--tx-2);font-size:11px">${(c.axes[3].score||0).toFixed(0)}</b><br>cost</div>
             </div>
             ${c.axes[0].reasons && c.axes[0].reasons[0] ? `<div style="font-size:10.5px;color:var(--tx-3);margin-top:.25rem;line-height:1.4">${esc(c.axes[0].reasons[0])}</div>` : ''}
-          </div>
-        `).join('')}
-      </div>
-      <div style="margin-top:.6rem;font-size:11px;color:var(--tx-3)">Top channel today: <b style="color:var(--green)">${d.ranked[0].label.split(' (')[0]}</b>. Score = data coverage (0-25) + engagement velocity (0-25) + conversion potential (0-25) + cost efficiency (0-25).</div>
-    `;
-  }
+            </div>
+            `).join('')}
+            </div>
+            <div style="margin-top:.6rem;font-size:11px;color:var(--tx-3)">Top channel today: <b style="color:var(--green)">${d.ranked[0].label.split(' (')[0]}</b>. Score = data coverage (0-25) + engagement velocity (0-25) + conversion potential (0-25) + cost efficiency (0-25).</div>
+            `;
+            }
+            // ─── Calendar Intelligence — Slice 0.3 §1-3 ────────────────────────
+            // Brand-aware. Reads Campaign OS state (does NOT perform its own web research).
+            // Renders 4 priority buckets: needs_attention → new_opportunities → changed → coming_up.
+            // Empty buckets are skipped (per brief §1).
+            function renderCalendarIntel(){
+            const body = $('#cal-intel-body');
+            const meta = $('#cal-intel-meta');
+            if(!body) return;
+            const d = S.calIntel;
+            if(!d || !d.ok){
+            body.innerHTML = '<div class="muted" style="padding:.4rem 0">Calendar intelligence unavailable. The Calendar Scout may need attention.</div>';
+            return;
+            }
+            if(!d.totals){
+            body.innerHTML = '<div class="muted" style="padding:.4rem 0">This brand has no calendar configured yet.</div>';
+            if(meta) meta.textContent = `Brand: ${esc(d.brand_id||'')}`;
+            return;
+            }
+            const t = d.totals || {};
+            const totalItems = (t.needs_attention_count||0) + (t.new_opportunities_count||0) + (t.changed_count||0) + (t.coming_up_count||0);
+            if(totalItems === 0){
+            body.innerHTML = '<div class="muted" style="padding:.4rem 0">No calendar intelligence to surface right now. Scout will return Monday.</div>';
+            if(meta) meta.textContent = `Brand: ${esc(d.brand_id||'')}`;
+            return;
+            }
+            const priorityOrder = [
+            ['needs_attention', '🚨 Needs attention', t.needs_attention_count],
+            ['new_opportunities', '✨ New opportunities', t.new_opportunities_count],
+            ['changed', '🔁 Changed', t.changed_count],
+            ['coming_up', '📅 Coming up', t.coming_up_count],
+            ];
+            const sections = [];
+            for(const [key, label, count] of priorityOrder){
+            const items = d[key] || [];
+            if(!count || count === 0) continue; // Skip empty buckets per brief §1
+            const cardHtml = items.map(it => calIntelItemHtml(it, key)).join('');
+            sections.push(`
+            <div class="cal-intel-bucket" style="margin-top:.65rem">
+            <div class="card-h" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+            <h4 style="margin:0;font-size:13px;font-weight:600">${esc(label)}</h4>
+            <span class="muted" style="font-size:11px">${count}</span>
+            </div>
+            <div class="cal-intel-items" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.5rem">
+            ${cardHtml}
+            </div>
+            </div>
+            `);
+            }
+            body.innerHTML = sections.join('');
+            if(meta) meta.textContent = `Brand: ${esc(d.brand_id||'')} · evaluated ${new Date(d.evaluated_at).toLocaleTimeString()}`;
+            // Click handler — view event detail on Calendar page. Per brief §13, click
+            // → calendar event detail (source/evidence + strategy connection).
+            body.querySelectorAll('.cal-intel-event-link').forEach(a => {
+              a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const ek = a.getAttribute('data-cal-event-key') || '';
+                const eid = a.getAttribute('data-cal-event-id') || '';
+                // Navigate to the Calendar surface with the event selected.
+                if(typeof goTo === 'function'){
+                  try { goTo('calendar'); } catch(_){ /* goTo may not exist in this build */ }
+                }
+                // Drop the selected event into the Calendar section's selection state.
+                try {
+                  S.calSelectedEvent = { event_key: ek, calendar_id: eid };
+                  if(typeof renderCalendar === 'function') renderCalendar();
+                } catch(_){ /* non-fatal */ }
+              });
+            });
+            }
+            function calIntelItemHtml(item, bucketKey){
+            const priority = (item.priority || 'normal');
+            const pColour = ({urgent:'#ef4444',high:'#f59e0b',normal:'#3b82f6',low:'#6b7280'})[priority] || '#3b82f6';
+            const title = item.title || item.message || 'Untitled';
+            let pillarLine = '';
+            const pcontexts = item.pillar_context || [];
+            if(pcontexts.length > 0){
+            const pc = pcontexts[0];
+            const colour = pc.colour || '#888';
+            const ns = pc.north_star_metric ? ` · Target: ${esc(pc.north_star_metric)}${pc.north_star_target ? ' ('+esc(pc.north_star_target)+')' : ''}` : '';
+            pillarLine = `<div style="font-size:11px;color:var(--tx-2);margin-top:.2rem"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colour};margin-right:.3rem;vertical-align:middle"></span><b>${esc(pc.name || pc.pillar_id)}</b>${ns}</div>`;
+            } else if(item.pillar_ids && item.pillar_ids.length){
+            pillarLine = `<div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">Pillar: ${esc(item.pillar_ids[0])}</div>`;
+            }
+            let timingLine = '';
+            if(bucketKey === 'coming_up' && typeof item.days_to_event === 'number'){
+            const d = item.days_to_event;
+            timingLine = `<div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">📆 in ${d} day${d===1?'':'s'}</div>`;
+            } else if(item.due_at){
+            const due = new Date(item.due_at);
+            if(!isNaN(due.getTime())){
+            timingLine = `<div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">⏰ due ${esc(due.toLocaleDateString())}</div>`;
+            }
+            }
+            const reason = item.message && bucketKey !== 'coming_up' ? `<div style="font-size:11.5px;color:var(--tx-2);margin-top:.25rem;line-height:1.35">${esc(item.message).slice(0,200)}${(item.message||'').length>200?'…':''}</div>` : '';
+            const eventKey = item.event_key || '';
+            const evId = item.calendar_id || '';
+            const eventLink = eventKey ? ` <a href="#" data-cal-event-key="${esc(eventKey)}" data-cal-event-id="${esc(evId)}" class="cal-intel-event-link" style="font-size:10.5px;color:var(--blue);margin-left:.4rem">view →</a>` : '';
+            return `
+            <div class="cal-intel-item" style="padding:.5rem .65rem;border-left:3px solid ${pColour};background:var(--bg-2);border-radius:0 6px 6px 0">
+            <div style="display:flex;justify-content:space-between;align-items:start;gap:.5rem">
+            <div style="font-weight:600;font-size:12.5px;line-height:1.3">${esc(title)}${eventLink}</div>
+            <span style="font-size:9.5px;text-transform:uppercase;padding:1px 5px;border-radius:3px;background:${pColour}22;color:${pColour};font-weight:600;flex-shrink:0">${esc(priority)}</span>
+            </div>
+            ${pillarLine}
+            ${timingLine}
+            ${reason}
+            </div>
+            `;
+            }
   const b = S.brief;
   // The brief-feed safeGet wrapper (top of this function) can leave S.brief
   // null on a cold start with no cache. Render a quiet placeholder for the
@@ -8179,6 +8296,14 @@ async function renderBrief(){
       <div id="channel-rank-body" class="muted">Loading channel ranks…</div>
     </div>
 
+    <div class="card col-12" id="cal-intel-card" data-help="Calendar Intelligence section. Brand-aware. Lists 4 priority buckets (needs attention, new opportunities, changed, coming up) sourced from Calendar Alerts + canonical Calendar events. Items link to the Calendar event detail. Reads Campaign OS state only — does NOT perform its own web research." data-help-title="Calendar Intelligence">
+      <div class="card-h">
+        <h3>📅 Calendar Intelligence</h3>
+        <span class="muted" id="cal-intel-meta" style="font-size:11px"></span>
+      </div>
+      <div id="cal-intel-body" class="muted">Loading calendar intelligence…</div>
+    </div>
+
     <div class="card col-6"><div class="card-h"><h3 data-help="The single highest-leverage action for today, ranked by recency and brand-fit. Start here every morning. If you only do one thing in Campaign OS today, do the first item on this list." data-help-title="Do first">🎯 Do first</h3></div><ul class="list">${dofirst.map(x=>itemHtml(x)).join('') || '<li class="empty">Nothing urgent right now</li>'}</ul></div>
     <div class="card col-6"><div class="card-h"><h3 data-help="Drafts the agent produced that you have not approved or rejected yet. Click any item to open the review modal where you can approve, reject, or send back for revision. Empty state means the inbox is clean." data-help-title="Needs your review">📝 Needs your review</h3>${reviewTotal > review.length ? `<span class="muted" style="font-size:11px">showing ${review.length} of ${reviewTotal}</span>` : ''}</div><ul class="list">${review.map(x => { const a = Object.assign({approvalStatus: 'revisionRequested'}, x); return itemHtml(a); }).join('') || '<li class="empty">No pending review</li>'}</ul>${reviewTotal > review.length ? `<div style="padding:.4rem .25rem 0;font-size:12px"><button type="button" class="btn" data-home-empty-action="review">Open Review (${reviewTotal}) \u2192</button></div>` : ''}</div>
 
@@ -8214,6 +8339,10 @@ async function renderBrief(){
 
   // GBP Daily tile (read-only mirror of latest plan)
   _briefRenderGbpToday();
+
+  // Calendar Intelligence — Slice 0.3 §1. Reads Campaign OS state only.
+  // Brand-aware (re-fetches on brand switch via cacheKey check).
+  renderCalendarIntel();
 }
 
 // ─── REVIEW ─────────────────────────────────────────────────────
@@ -18005,7 +18134,104 @@ async function renderOps() {
       toast('✓ Local view cleared');
     });
   }
+  // Calendar job health panel — Slice 0.3 final close-out §4
+  const calRefresh = document.getElementById('ops-cal-jobs-refresh');
+  if (calRefresh && !calRefresh._wired) {
+    calRefresh._wired = true;
+    calRefresh.addEventListener('click', renderCalJobs);
+  }
+  // Auto-load when ops section is rendered
+  const sec = document.getElementById('sec-ops');
+  if (sec && !sec._calJobsWired) {
+    sec._calJobsWired = true;
+    const obs = new MutationObserver(() => {
+      if (sec.style.display !== 'none') renderCalJobs();
+    });
+    obs.observe(sec, { attributes: true, attributeFilter: ['style'] });
+  }
 })();
+
+async function renderCalJobs() {
+  const body = document.getElementById('ops-cal-jobs');
+  if (!body) return;
+  body.innerHTML = 'Loading…';
+  try {
+    const r = await API.get('/api/calendar/v3/jobs/hermes-list');
+    if (!r.ok || !r.jobs) {
+      body.innerHTML = '<div class="muted">Job health unavailable.</div>';
+      return;
+    }
+    body.innerHTML = r.jobs.map(j => calJobCardHtml(j)).join('');
+    // Wire controls
+    body.querySelectorAll('[data-cal-job-control]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const jobKey = btn.getAttribute('data-cal-job-key');
+        const action = btn.getAttribute('data-cal-job-control');
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = '…';
+        try {
+          const r2 = await API.post('/api/calendar/v3/jobs/control', { job_key: jobKey, action });
+          if (r2.ok) {
+            toast(`✓ ${action} → ${jobKey}`);
+            // Refresh the panel after a short delay so Hermes has time to commit
+            setTimeout(() => renderCalJobs(), 1500);
+          } else {
+            toast(`✗ ${r2.error || 'control failed'}`, 'err');
+            btn.textContent = original;
+            btn.disabled = false;
+          }
+        } catch (e) {
+          toast(`✗ ${e.message || e}`, 'err');
+          btn.textContent = original;
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    body.innerHTML = '<div class="muted">Job health fetch failed: ' + esc(e.message || String(e)) + '</div>';
+  }
+}
+
+function calJobCardHtml(j) {
+  const stateColour = j.hermes_status === 'active' ? '#22c55e'
+                    : j.hermes_status === 'paused' ? '#f59e0b'
+                    : j.hermes_status === 'unknown' ? '#6b7280'
+                    : '#ef4444';
+  const lastRun = j.last_run || 'never';
+  const nextRun = j.next_run || '—';
+  const ctrlSupported = j.control_supported !== false;
+  return `
+    <div class="cal-job-card" style="padding:.6rem .75rem;border:1px solid var(--bd);border-radius:8px;background:var(--bg-2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+        <div style="font-weight:600;font-size:13px">${esc(labelForJobKey(j.job_key))}</div>
+        <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:11px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${stateColour};display:inline-block"></span>
+          <span style="color:var(--tx-2)">${esc(j.hermes_status)}</span>
+        </span>
+      </div>
+      <div style="font-size:11px;color:var(--tx-3);line-height:1.5">
+        <div>mode: <b>${esc(j.mode || '—')}</b></div>
+        <div>schedule: <code style="font-size:10.5px">${esc(j.schedule || '—')}</code></div>
+        <div>next run: ${esc(nextRun)}</div>
+        <div>last run: ${esc(lastRun)}</div>
+        <div style="font-size:10px;margin-top:.3rem;opacity:.6">id: ${esc(j.job_id || '—')}</div>
+      </div>
+      <div style="display:flex;gap:.3rem;margin-top:.5rem;flex-wrap:wrap">
+        <button class="btn-mini primary" data-cal-job-control="run_now" data-cal-job-key="${esc(j.job_key)}" ${ctrlSupported?'':'disabled title="Hermes CLI not on container PATH"'}>▶ Run now</button>
+        <button class="btn-mini" data-cal-job-control="pause" data-cal-job-key="${esc(j.job_key)}" ${ctrlSupported?'':'disabled'}>⏸ Pause</button>
+        <button class="btn-mini" data-cal-job-control="resume" data-cal-job-key="${esc(j.job_key)}" ${ctrlSupported?'':'disabled'}>▶ Resume</button>
+      </div>
+    </div>
+  `;
+}
+
+function labelForJobKey(k) {
+  if (k === 'lead_time_watcher') return '📦 Lead-Time Watcher';
+  if (k === 'opportunity_scout') return '🔭 Opportunity Scout';
+  if (k === 'reactive_watch') return '🌊 Reactive Watch';
+  return k || '—';
+}
 
 
 
@@ -19820,6 +20046,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="btn-mini" id="ops-clear-errors" style="margin-left:auto">🗑 Clear buffer</button>
           </div>
           <div id="ops-errors" style="max-height:400px;overflow-y:auto;font-family:var(--mono,monospace);font-size:11px"></div>
+        </div>
+
+        <div class="card col-12" data-help="Live status of the three Slice 0.3 Calendar cron jobs, sourced from Hermes cron + Campaign OS run logs. Each card shows last run, last result, next scheduled fire, and mode. Controls (Run now / Pause / Resume) operate on the real Hermes job IDs — they do NOT mutate local UI state. Per brief §18." data-help-title="Calendar scheduled intelligence">
+          <div class="card-h">
+            <h3>📅 Calendar scheduled intelligence</h3>
+            <button class="btn-mini" id="ops-cal-jobs-refresh" style="margin-left:auto">🔄 Refresh</button>
+          </div>
+          <div id="ops-cal-jobs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.65rem">Loading…</div>
         </div>
       </div>
     </section>
