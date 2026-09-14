@@ -413,13 +413,32 @@ def add_candidate(
         raise ValueError(
             f"opportunity_mode '{opp_mode}' invalid. Valid: planned, reactive, watch"
         )
-    # Date confidence (Slice 0.1 §5)
+    # Date confidence (Slice 0.1 §5 + Slice 0.1 v2 close-out §5)
+    # 'unannounced' added in v2 close-out to mark records where the source
+    # was about a DIFFERENT calendar year (e.g. 2026 season = 2025 calendar
+    # year event) and the future-year event is not yet announced.
     date_conf = enriched.get("date_confidence")
-    if date_conf and date_conf not in ("confirmed_date", "announced_window", "expected_unannounced"):
+    if date_conf and date_conf not in ("confirmed_date", "announced_window",
+                                       "expected_unannounced", "unannounced"):
         raise ValueError(
             f"date_confidence '{date_conf}' invalid. "
-            f"Valid: confirmed_date, announced_window, expected_unannounced"
+            f"Valid: confirmed_date, announced_window, expected_unannounced, unannounced"
         )
+    # Source origin (Slice 0.1 v2 close-out §10)
+    # external              → date from external internet source
+    # deterministic_calendar → date is a fixed civil/public holiday
+    # internal_strategy     → date is defined by brand campaign strategy
+    src_origin = enriched.get("source_origin")
+    if src_origin and src_origin not in ("external", "deterministic_calendar", "internal_strategy"):
+        raise ValueError(
+            f"source_origin '{src_origin}' invalid. "
+            f"Valid: external, deterministic_calendar, internal_strategy"
+        )
+    # Season label vs calendar year (Slice 0.1 v2 close-out §3)
+    # e.g. season_label='2026' but calendar_year=2025 if the event was
+    # played in Dec 2025 as part of the 2026 DP World Tour season.
+    if enriched.get("calendar_year") and not isinstance(enriched["calendar_year"], int):
+        raise ValueError(f"calendar_year must be int, got {type(enriched['calendar_year']).__name__}")
 
     # Trusted-for-planning flag — True only when source verified primary.
     # Downstream consumers (planning reminders, Morning Brief, automatic
