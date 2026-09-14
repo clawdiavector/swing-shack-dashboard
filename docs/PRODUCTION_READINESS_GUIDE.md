@@ -86,13 +86,17 @@ But for now, the inheritance model works.
 
 `data/ubersuggest-domain.json`, `ubersuggest-competitors.json`, `ubersuggest-backlinks.json` all live in the repo and feed the ad-correlation view. No setup needed unless you want a fresher snapshot (cron pulls weekly).
 
-### 6. Postiz (publishing) — needs setup if you want auto-publish
+### 6. Postiz (publishing) — optional, human-triggered only
 
-`/api/socials/posts` returns posts for review. To actually publish to IG/Facebook:
+`/api/socials/posts` returns posts for review. **Do not enable auto-publish.**
+Standing rule (`AGENTS.md` §8): **No Postiz publish from an agent.** Wire the
+API key only if a human will click publish from the Review / Publish surfaces:
 
 1. Get a Postiz API key from https://postiz.com
-2. `cat ~/.openclaw-instance2/workspace/clients/swing-shack/credentials/postiz-api-key.json | pbcopy`
-3. Sync via `/secrets-sync` → **📮 Postiz**
+2. Sync via `/secrets-sync` → **📮 Postiz** (paste the key yourself; never commit it)
+3. Keep schedules / publish actions manual in the UI
+
+If Postiz is unset, Campaign OS still plans and reviews — it just will not push live.
 
 ### 7. GBP (Google Business Profile) — needs setup for weekly report GBP section
 

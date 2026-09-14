@@ -198,24 +198,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         "error_class": error_class if not result_ok else None,
         "error_fingerprint": fp,
     }
-    ledger.append_row(
-        {
-            "job": name,
-            "run_id": run_id,
-            "phase": "finished",
-            "started": started,
-            "finished": finished,
-            "status": status,
-            "triggered_by": triggered_by,
-            "rows": rows,
-            "writes": list(spec.writes),
-            "error": error,
-            "attempt": attempt,
-            "attempts": attempt,
-            "error_class": error_class if not result_ok else None,
-            "error_fingerprint": fp,
-        }
-    )
+    ledger.append_row(exit_row)
 
     if not result_ok:
         try:
@@ -358,6 +341,13 @@ def build_status() -> dict:
                 "last_success_age_h": last_success_age_h,
                 "last_status": (last or {}).get("status"),
                 "last_error": (last or {}).get("error"),
+                "last_duration_s": (last or {}).get("duration_s"),
+                "last_run_id": (last or {}).get("run_id"),
+                "last_error_class": (last or {}).get("error_class"),
+                "best_effort": bool(getattr(spec, "best_effort", False)),
+                "every_seconds": getattr(spec, "every_seconds", None),
+                "timeout_seconds": getattr(spec, "timeout_seconds", None),
+                "retries": getattr(spec, "retries", 0),
             }
         )
     return {"jobs": jobs_out}
