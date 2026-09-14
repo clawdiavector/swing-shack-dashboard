@@ -11,7 +11,8 @@
 | | |
 |---|---|
 | **Branch** | `feat/campaign-os-p1e-ops` |
-| **Tip** | `c27ed64` (`c27ed643c61c49c6ec2aca559a64c8d35212ee4e`) |
+| **Tip (product)** | `c27ed64` (`c27ed643c61c49c6ec2aca559a64c8d35212ee4e`) — verify PASS tip |
+| **Tip (with handoff)** | see latest `docs(p1e):` commit on branch after push |
 | **Parent / planned base** | `f183d3c` (`f183d3cf9d5e5aaec79d4996e28d1b663f107197`) |
 | **Merge target** | `integrate/campaign-os-option-c` (do **not** push `main` / `master` / `develop`) |
 | **Worktree** | `/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/campaign-os-p1e-ops` |
@@ -23,8 +24,9 @@
 |---|---|
 | `b2a09f2` | `feat(campaign-os-p1e): /ops/jobs UI, runbook, LLM spend cap` |
 | `c27ed64` | `fix(campaign-os-p1e): pass human_approved in meme auto-compose tests` |
+| `58d682a+` | RFT handoff docs commits (this file) |
 
-**Push:** `origin/feat/campaign-os-p1e-ops` @ `c27ed64` (fresh `git ls-remote` 2026-09-14). No `.github/workflows/**` in tip range — workflow-scope refresh not required for this push.
+**Push:** `origin/feat/campaign-os-p1e-ops` tracks product + handoff. Fresh `git ls-remote` after push. No `.github/workflows/**` in tip range — workflow-scope refresh not required.
 
 **Note for land:** `origin/integrate/campaign-os-option-c` has moved to `c568898` (p1d RFT docs merge). Feat is based on `f183d3c`, which is still an ancestor of that tip; land should merge cleanly with integrate ahead by docs-only commits.
 
@@ -127,8 +129,8 @@ PORT=3870 python3 app.py
 
 ## Suggested board / comment draft
 
-Campaign OS P1e ready for testing on `feat/campaign-os-p1e-ops` (`c27ed64`). Verify **PASS** t42–t44,t47–t50; t45/t46 not attempted. Allowlist **952 passed**. Target merge: `integrate/campaign-os-option-c`. No deploy. Suggested column: **Ready for testing**.
+Campaign OS P1e ready for testing on `feat/campaign-os-p1e-ops` (product tip `c27ed64` + RFT handoff docs). Verify **PASS** t42–t44,t47–t50; t45/t46 not attempted. Allowlist **952 passed**. Target merge: `integrate/campaign-os-option-c`. No deploy. Suggested column: **Ready for testing**.
 
 ## Land (next job)
 
-`job-20260911-campaign-os-p1e-ops-land` merges `feat/campaign-os-p1e-ops` → `integrate/campaign-os-option-c` and may push **integrate** (not `main`). Feature branch already on origin @ `c27ed64`.
+`job-20260911-campaign-os-p1e-ops-land` merges `feat/campaign-os-p1e-ops` → `integrate/campaign-os-option-c` and may push **integrate** (not `main`). Feature branch already on origin.
