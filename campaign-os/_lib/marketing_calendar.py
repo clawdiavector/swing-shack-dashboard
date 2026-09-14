@@ -1197,19 +1197,29 @@ def upsert_event(
       - updated — material change detected (revision=N+1)
       - noop — nothing material changed (last_checked_at refreshed)
     """
+    # Capture the caller's supplied event_key BEFORE we auto-generate
+    # one. The brand-safety check requires us to validate the SUPPLIED
+    # key (per brief §9 "event_key brand prefix == brand_id on real
+    # writes") rather than silently overwriting with a new one.
+    supplied_event_key = record.get("event_key")
     record = _ensure_event_key(record)
     # Ensure brand_id is set on the record (used by event_key building)
     # AND for the brand-prefix validation below — must happen before
     # guards that reference event_key.
     record.setdefault("brand_id", brand_id)
-    # Regenerate event_key now that brand_id is known (in case title
-    # built a wrong-prefix slug on first pass)
-    record["event_key"] = build_event_key(
-        brand_id,
-        record.get("title", ""),
-        calendar_year=record.get("calendar_year"),
-        kind=record.get("type") or "moment",
-    )
+
+    if supplied_event_key:
+        # Caller supplied an explicit event_key — use it. The brand-
+        # safety guard below validates the prefix.
+        record["event_key"] = supplied_event_key
+    else:
+        # No event_key supplied — generate one with brand_id in scope
+        record["event_key"] = build_event_key(
+            brand_id,
+            record.get("title", ""),
+            calendar_year=record.get("calendar_year"),
+            kind=record.get("type") or "moment",
+        )
     event_key = record["event_key"]
 
     if not skip_guards:
@@ -1237,16 +1247,7 @@ def upsert_event(
             )
             supplied_year = record.get("calendar_year")
             derived_year = guard.get("calendar_year")
-            # Normalise: if supplied_year disagrees with derived_year,
-            # accept derived_year and log a warning. The actual rejection
-            # only happens if the supplied calendar_year is non-None AND
-            # explicitly contradicts the dates (use the season_year_guard
-            # test contract: derived_year must equal supplied_year when
-            # the title has the year in it).
             if supplied_year and derived_year and supplied_year != derived_year:
-                # Carry the supplied_year but add a warning so the
-                # caller knows there's a discrepancy. This is the
-                # production-path equivalent of the regression test.
                 warnings = record.setdefault("production_path_warnings", [])
                 warnings.append(
                     f"calendar_year mismatch: supplied={supplied_year} derived={derived_year} "
@@ -1255,6 +1256,14 @@ def upsert_event(
                 )
                 # Normalise to derived_year
                 record["calendar_year"] = derived_year
+                # Regenerate event_key now that calendar_year is correct
+                record["event_key"] = build_event_key(
+                    brand_id,
+                    record.get("title", ""),
+                    calendar_year=derived_year,
+                    kind=record.get("type") or "moment",
+                )
+                event_key = record["event_key"]
 
     # Default schema v2 fields
     record.setdefault("schema_version", SCHEMA_VERSION)

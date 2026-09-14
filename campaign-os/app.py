@@ -4269,10 +4269,15 @@ def calendar_v2_integrity_audit(brand_id: str):
 def calendar_v2_concurrency_test():
     """Slice 0.2 close-out §3: prove concurrent Firecrawl-heavy lanes ≤ 2.
 
-    Launches the supplied lane specs in TRUE parallel (threading) to
-    simulate the Slice 0.1 v1 problem where 5 subagents simultaneously
-    hammered the Firecrawl provider. Records the observed max active
-    Firecrawl-heavy lanes.
+    Phase A — bare threads (demonstrates the Slice 0.1 v1 bug):
+      Launches N lanes in TRUE parallel. Observed max concurrency is
+      expected to exceed MAX_FIRECRAWL_HEAVY_LANES — this is the
+      baseline showing the fix is NEEDED.
+
+    Phase B — via batch_research_calls() (demonstrates the fix):
+      Same lane specs routed through Campaign OS's concurrency cap.
+      Heavy lanes are serialised so observed max concurrency is
+      capped at MAX_FIRECRAWL_HEAVY_LANES.
     """
     import time as _t
     import threading as _thr
@@ -4285,25 +4290,6 @@ def calendar_v2_concurrency_test():
     firecrawl_heavy_count = body.get("firecrawl_heavy_count", 5)
     lane_duration_ms = body.get("lane_duration_ms", 200)
 
-    # Shared counter — protected by a lock (CPython list.append is atomic
-    # under the GIL but we still use a lock for clarity)
-    state = {"active_heavy": 0, "max_active_heavy": 0, "lock": _thr.Lock()}
-
-    def lane_run(spec):
-        is_heavy = spec.get("firecrawl_heavy", False)
-        if is_heavy:
-            with state["lock"]:
-                state["active_heavy"] += 1
-                state["max_active_heavy"] = max(state["max_active_heavy"], state["active_heavy"])
-        try:
-            _t.sleep(lane_duration_ms / 1000.0)
-            return {"lane": spec.get("name"), "result": "ok"}
-        finally:
-            if is_heavy:
-                with state["lock"]:
-                    state["active_heavy"] -= 1
-
-    # Build lane specs
     lane_specs = [
         {"name": f"lane_{i}",
          "firecrawl_heavy": i < firecrawl_heavy_count,
@@ -4311,21 +4297,56 @@ def calendar_v2_concurrency_test():
         for i in range(n_lanes)
     ]
 
-    # Launch all lanes in TRUE parallel (mimicking the bug scenario)
-    threads = []
-    results = [None] * len(lane_specs)
-    barrier = _thr.Barrier(n_lanes)
+    # ─── Phase A — bare threads (bug scenario) ─────────────────────────
+    state_a = {"active_heavy": 0, "max_active_heavy": 0, "lock": _thr.Lock()}
 
-    def runner(idx, spec):
-        barrier.wait()  # release all at once
-        results[idx] = lane_run(spec)
+    def lane_a(spec):
+        is_heavy = spec.get("firecrawl_heavy", False)
+        if is_heavy:
+            with state_a["lock"]:
+                state_a["active_heavy"] += 1
+                state_a["max_active_heavy"] = max(state_a["max_active_heavy"], state_a["active_heavy"])
+        try:
+            _t.sleep(lane_duration_ms / 1000.0)
+            return {"lane": spec.get("name"), "result": "ok"}
+        finally:
+            if is_heavy:
+                with state_a["lock"]:
+                    state_a["active_heavy"] -= 1
+
+    threads = []
+    barrier_a = _thr.Barrier(n_lanes)
+    results_a = [None] * len(lane_specs)
+
+    def runner_a(idx, spec):
+        barrier_a.wait()
+        results_a[idx] = lane_a(spec)
 
     for i, spec in enumerate(lane_specs):
-        t = _thr.Thread(target=runner, args=(i, spec))
+        t = _thr.Thread(target=runner_a, args=(i, spec))
         t.start()
         threads.append(t)
     for t in threads:
         t.join()
+
+    # ─── Phase B — via batch_research_calls (fix) ──────────────────────
+    state_b = {"active_heavy": 0, "max_active_heavy": 0, "lock": _thr.Lock()}
+
+    def lane_b(spec):
+        is_heavy = spec.get("firecrawl_heavy", False)
+        if is_heavy:
+            with state_b["lock"]:
+                state_b["active_heavy"] += 1
+                state_b["max_active_heavy"] = max(state_b["max_active_heavy"], state_b["active_heavy"])
+        try:
+            _t.sleep(lane_duration_ms / 1000.0)
+            return {"lane": spec.get("name"), "result": "ok"}
+        finally:
+            if is_heavy:
+                with state_b["lock"]:
+                    state_b["active_heavy"] -= 1
+
+    results_b = batch_research_calls(lane_b, lane_specs)
 
     return jsonify({
         "ok": True,
@@ -4334,13 +4355,20 @@ def calendar_v2_concurrency_test():
             "n_lanes": n_lanes,
             "firecrawl_heavy_count": firecrawl_heavy_count,
             "lane_duration_ms": lane_duration_ms,
-            "observed_max_concurrency_heavy_lanes": state["max_active_heavy"],
-            "pass": state["max_active_heavy"] <= MAX_FIRECRAWL_HEAVY_LANES,
+            "phase_a_bare_threads": {
+                "observed_max_concurrency_heavy_lanes": state_a["max_active_heavy"],
+                "would_trip_rate_limit": state_a["max_active_heavy"] > MAX_FIRECRAWL_HEAVY_LANES,
+            },
+            "phase_b_via_batch_research_calls": {
+                "observed_max_concurrency_heavy_lanes": state_b["max_active_heavy"],
+                "passes_cap": state_b["max_active_heavy"] <= MAX_FIRECRAWL_HEAVY_LANES,
+            },
+            "pass": state_b["max_active_heavy"] <= MAX_FIRECRAWL_HEAVY_LANES,
             "note": (
-                "This test simulates the SLICE 0.1 v1 bug scenario: all "
-                "lanes launch in TRUE parallel. The fix is the "
-                "batch_research_calls() helper which serialises the "
-                "heavy queue. Prove the cap by checking observed_max_heavy ≤ 2."
+                "Phase A confirms the Slice 0.1 v1 bug (parallel lanes "
+                "trip the cap). Phase B confirms the fix: "
+                "batch_research_calls() routes heavy lanes through a "
+                "sequential queue, keeping observed max ≤ MAX."
             ),
         },
     }), 200
