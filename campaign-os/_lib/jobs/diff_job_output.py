@@ -21,6 +21,8 @@ VOLATILE_KEYS = frozenset(
         "timestamp",
         "run_id",
         "duration_s",
+        "created_at",
+        "posted_at",
     }
 )
 
@@ -39,6 +41,12 @@ def strip_volatile(obj: Any) -> Any:
 
 def deep_diff(a: Any, b: Any, path: str = "") -> list[str]:
     diffs: list[str] = []
+    # JSON number parity: Node emits ints for whole floats; treat equal values equal.
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) and not isinstance(b, bool):
+        if float(a) == float(b):
+            return diffs
+        diffs.append(f"{path}: {a!r} != {b!r}")
+        return diffs
     if type(a) is not type(b):
         diffs.append(f"{path}: type {type(a).__name__} != {type(b).__name__}")
         return diffs

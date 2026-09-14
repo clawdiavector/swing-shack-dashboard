@@ -326,12 +326,12 @@ def _youtube_alignment_score(hook_text: str, yt_signals: dict | None) -> dict[st
     }
 
 
-def _reddit_score(hook_text: str, reddit: dict | None) -> float:
+def _reddit_score(hook_text: str, reddit: dict | None) -> int:
     if not reddit or not hook_text:
-        return 0.0
+        return 0
     trends = reddit.get("trends") or reddit.get("hot_pain_points") or []
     if not isinstance(trends, list) or not trends:
-        return 0.0
+        return 0
 
     text = hook_text.lower()
     hits = 0
@@ -346,15 +346,16 @@ def _reddit_score(hook_text: str, reddit: dict | None) -> float:
         match_count = sum(1 for w in words if w in text)
         if match_count >= 2:
             hits += 1
-    return min(5.0, hits * 2)
+    return min(5, hits * 2)
 
 
-def _cross_signal_score(ig: float, reddit: float, yt: float) -> float:
+def _cross_signal_score(ig: float, reddit: float, yt: float) -> float | int:
+    """Match JS Math.round(raw*100)/10 — whole numbers become ints via js_number()."""
     ig_norm = ig / 10
     yt_norm = yt / 10
     rd_norm = min(reddit / 5, 1)
     raw = (ig_norm * 0.6) + (rd_norm * 0.2) + (yt_norm * 0.2)
-    return min(10.0, round(raw * 10 * 10) / 10)
+    return min(10, round(raw * 10 * 10) / 10)
 
 
 def _classify_bucket(ig: float, yt_score: float, _cross: float) -> str:
@@ -474,7 +475,6 @@ def _analyse_hooks(
     ab_data = as_dict(ab)
     ab_winners = [
         {
-            "name": t.get("name"),
             "winner": t.get("winner"),
             "eng": t.get("engagement") or t.get("engagementRate") or "?",
             "next_action": t.get("next_action") or "reuse formula",
@@ -515,10 +515,27 @@ def _analyse_hooks(
 
 
 def run() -> dict:
-    """Extract YouTube hook signals, then rebuild hook-bank.json."""
+    """Match legacy insight_analyst order: analyse_hooks then extract_youtube_signals.
+
+    analyse_hooks.js reads the *prior* youtube-hook-signals.json; extract then
+    refreshes that file from youtube-trends.json. Extract-first would change
+    hook-bank cross-signal scores vs the JS baseline (Class A fail).
+    """
     try:
         read_json("golf-news.json")
         read_json("hook-bank.json")
+
+        # Prior signals (may be missing on first run) — same as analyse_hooks.js
+        prior_signals = read_json("youtube-hook-signals.json")
+        if not isinstance(prior_signals, dict):
+            prior_signals = None
+
+        hook_bank = _analyse_hooks(
+            read_json("ig-analytics.json"),
+            read_json("ab-tests.json"),
+            prior_signals,
+            read_json("reddit-trends.json"),
+        )
 
         yt_trends = as_dict(read_json("youtube-trends.json"))
         videos = yt_trends.get("top_videos") or []
@@ -528,21 +545,16 @@ def run() -> dict:
         if videos:
             yt_signals = extract_youtube_signals(videos) or empty_youtube_hook_signals()
         else:
+            # JS extract_youtube_signals exits 1 with no write; we still emit a
+            # schema-valid empty file so the job contract stays stable.
             yt_signals = empty_youtube_hook_signals()
 
-        atomic_write("youtube-hook-signals.json", yt_signals)
-
-        hook_bank = _analyse_hooks(
-            read_json("ig-analytics.json"),
-            read_json("ab-tests.json"),
-            yt_signals,
-            read_json("reddit-trends.json"),
-        )
-        if hook_bank["total_hooks"] == 0 and not videos:
+        if hook_bank["total_hooks"] == 0 and not videos and not prior_signals:
             hook_bank = empty_hook_bank()
             hook_bank["updated"] = utc_now_iso()
 
         atomic_write("hook-bank.json", hook_bank)
+        atomic_write("youtube-hook-signals.json", yt_signals)
 
         signal_rows = len((yt_signals.get("signals") or {}).get("recurring_phrases") or [])
         rows = hook_bank["total_hooks"] + signal_rows

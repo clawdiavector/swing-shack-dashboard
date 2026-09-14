@@ -39,6 +39,52 @@ def utc_date() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
+def js_number(value: Any) -> Any:
+    """Match Node JSON.stringify numeric encoding (whole floats → int)."""
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, float):
+        if value.is_integer():
+            return int(value)
+        return value
+    if isinstance(value, dict):
+        return {k: js_number(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [js_number(v) for v in value]
+    return value
+
+
+def fmt_num(value: Any) -> str:
+    """Format numbers like JS template literals (`10` not `10.0`)."""
+    if isinstance(value, bool) or value is None:
+        return str(value)
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    if isinstance(value, (int, float)):
+        return str(value)
+    try:
+        f = float(value)
+        if f.is_integer():
+            return str(int(f))
+        return str(f)
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def js_substring(text: str | None, length: int) -> str:
+    """Match JS String.prototype.substring — length is UTF-16 code units."""
+    if not text or length <= 0:
+        return ""
+    units = 0
+    out: list[str] = []
+    for ch in text:
+        units += 2 if ord(ch) > 0xFFFF else 1
+        if units > length:
+            break
+        out.append(ch)
+    return "".join(out)
+
+
 def atomic_write(name: str, obj: Any) -> bool:
     """Write JSON atomically; skip when COS_JOB_CANCEL=1."""
     if os.environ.get("COS_JOB_CANCEL") == "1":
@@ -53,7 +99,8 @@ def atomic_write(name: str, obj: Any) -> bool:
     )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(obj, fh, indent=2)
+            # Node JSON.stringify emits `0` not `0.0` — keep Class A diffs clean.
+            json.dump(js_number(obj), fh, indent=2)
             fh.write("\n")
         os.replace(tmp_path, path)
         return True

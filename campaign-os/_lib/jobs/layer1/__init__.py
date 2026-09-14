@@ -117,6 +117,7 @@ def layer1_specs() -> list[JobSpec]:
             reads=(
                 "ig-analytics.json",
                 "youtube-trends.json",
+                "youtube-hook-signals.json",
                 "golf-news.json",
                 "reddit-trends.json",
                 "hook-bank.json",

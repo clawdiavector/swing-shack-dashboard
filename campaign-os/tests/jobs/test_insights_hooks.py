@@ -18,6 +18,7 @@ def seed_data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     for name in (
         "ig-analytics.json",
         "youtube-trends.json",
+        "youtube-hook-signals.json",
         "reddit-trends.json",
         "golf-news.json",
         "hook-bank.json",

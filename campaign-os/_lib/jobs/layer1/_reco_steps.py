@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from ._io import as_dict, parse_float, parse_int, read_json, utc_now_iso
+from ._io import as_dict, parse_float, parse_int, read_json, utc_now_iso, fmt_num, js_substring
 
 # ── empty schemas ──────────────────────────────────────────────────────────
 
@@ -147,8 +147,6 @@ def empty_recommendation_outcomes() -> dict:
         "ignored": [],
         "underperformed": [],
         "all_evaluated": [],
-        "outcomes": [],
-        "schema": "https://clawdia.io/recommendations/outcomes/v1",
     }
 
 
@@ -470,7 +468,7 @@ def step_missed_opportunities() -> dict:
                         f'IG proof {w.get("ig_proof_score")}.'
                     ),
                     "suggestion": (
-                        f'Hook scored {w.get("ig_proof_score")} on IG. No follow-up posts found for "{topic}". '
+                        f'Hook scored {fmt_num(w.get("ig_proof_score"))} on IG. No follow-up posts found for "{topic}". '
                         "Push this angle."
                     ),
                     "why": f'IG proof: {w.get("ig_proof_score")} · strong performer with no refresh',
@@ -777,7 +775,7 @@ def step_funnel_leaks() -> dict:
             "type": "hook_winner_no_follow_up",
             "topic": o.get("topic"),
             "ig_score": o.get("ig_score"),
-            "hook": (o.get("hook") or "")[:60],
+            "hook": js_substring(o.get("hook") or "", 60),
             "severity": o.get("severity"),
             "revenue_impact": f'Strong IG hook ({o.get("ig_score")}) with no booking funnel follow-up',
             "easy_fix": o.get("suggested_fix")
@@ -836,7 +834,7 @@ def step_funnel_leaks() -> dict:
             "medium": sum(1 for l in all_leaks if l.get("severity") == "medium"),
             "low": sum(1 for l in all_leaks if l.get("severity") == "low"),
             "most_urgent": (
-                f'({most_urgent["severity"]}) {(most_urgent.get("easy_fix") or "")[:60]}'
+                f'({most_urgent["severity"]}) {js_substring(most_urgent.get("easy_fix") or "", 60)}'
                 if most_urgent
                 else "none"
             ),
@@ -1232,10 +1230,10 @@ def step_retargeting_recommendations() -> dict:
                 "channel": channel,
                 "expected_outcome": {"type": "bookings", "delta": "+15-25%", "label": "+15-25% bookings vs. no CTA"},
                 "expiration_window": "today" if score >= 9 else "48h" if score >= 8 else "this_week",
-                "source_evidence": f"Hook scored {score} on IG but no booking follow-up exists",
+                "source_evidence": f"Hook scored {fmt_num(score)} on IG but no booking follow-up exists",
                 "urgency": "today" if score >= 9 else "this_week",
                 "owner": o.get("owner") or "Coach Cat",
-                "why": f"IG score {score} with no conversion CTA in follow-up",
+                "why": f"IG score {fmt_num(score)} with no conversion CTA in follow-up",
                 "already_planned": already,
             }
         )
@@ -1334,10 +1332,10 @@ def step_retargeting_recommendations() -> dict:
             "channel": "IG Static",
             "expected_outcome": {"type": "bookings", "delta": "+8-15%", "label": "+8-15% bookings from stronger hook"},
             "expiration_window": "this_week",
-            "source_evidence": f'Hook scored {o.get("ig_score")} — moderate, needs booking intent upgrade',
+            "source_evidence": f'Hook scored {fmt_num(o.get("ig_score"))} — moderate, needs booking intent upgrade',
             "urgency": "this_week",
             "owner": o.get("owner") or "Swing Shack page",
-            "why": f'Score {o.get("ig_score")} — reword with direct booking urgency',
+            "why": f'Score {fmt_num(o.get("ig_score"))} — reword with direct booking urgency',
         }
         for o in (missed.get("opportunities") or [])
         if isinstance(o, dict)
@@ -1557,7 +1555,7 @@ def step_recommendation_scores() -> dict:
                 "label": "Retarget this first",
                 "emoji": "🔁",
                 "item": best_retarget,
-                "score_note": f'score {best_retarget["score"]}' if best_retarget else None,
+                "score_note": f'score {fmt_num(best_retarget["score"])}' if best_retarget else None,
             },
             {
                 "slot": "leak",
@@ -1646,24 +1644,27 @@ def step_recommendation_outcomes() -> dict:
     for r in retarget.get("recommendations") or []:
         if not isinstance(r, dict):
             continue
-        all_recommendations.append(
-            {
-                "recommendation_id": _make_rec_id(r.get("type"), r.get("topic") or r.get("service"), r.get("suggested_hook")),
-                "source": "retarget",
-                "type": r.get("type"),
-                "topic": r.get("topic") or r.get("service"),
-                "hook": r.get("suggested_hook") or r.get("hook"),
-                "cta": r.get("suggested_cta"),
-                "channel": r.get("channel"),
-                "urgency": r.get("urgency"),
-                "score": r.get("score"),
-                "expiration_window": r.get("expiration_window"),
-                "expected_outcome": r.get("expected_outcome"),
-                "source_evidence": r.get("source_evidence"),
-                "created_at": r.get("updated") or utc_now_iso(),
-                "status": "recommended",
-            }
-        )
+        rec = {
+            "recommendation_id": _make_rec_id(r.get("type"), r.get("topic") or r.get("service"), r.get("suggested_hook")),
+            "source": "retarget",
+            "type": r.get("type"),
+            "hook": r.get("suggested_hook") or r.get("hook"),
+            "cta": r.get("suggested_cta"),
+            "channel": r.get("channel"),
+            "urgency": r.get("urgency"),
+            "expiration_window": r.get("expiration_window"),
+            "expected_outcome": r.get("expected_outcome"),
+            "source_evidence": r.get("source_evidence"),
+            "created_at": r.get("updated") or utc_now_iso(),
+            "status": "recommended",
+        }
+        # JS JSON.stringify drops undefined — omit missing score/topic keys.
+        topic = r.get("topic") or r.get("service")
+        if topic is not None:
+            rec["topic"] = topic
+        if r.get("score") is not None:
+            rec["score"] = r.get("score")
+        all_recommendations.append(rec)
 
     for i, s in enumerate((sales.get("priorities") or [])[:3]):
         if not isinstance(s, dict):
@@ -1690,8 +1691,9 @@ def step_recommendation_outcomes() -> dict:
     ig_caps = [
         {
             **p,
-            "captionLower": (p.get("caption") or p.get("captionPreview") or "").lower(),
-            "hook": (p.get("caption") or p.get("captionPreview") or "")[:80],
+            # Match JS: only `caption` (seed uses captionPreview — JS leaves caption empty).
+            "captionLower": (p.get("caption") or "").lower(),
+            "hook": js_substring(p.get("caption") or "", 80),
         }
         for p in ig_posts
     ]
@@ -1763,8 +1765,10 @@ def step_recommendation_outcomes() -> dict:
         best_match = None
         best_score = 0.0
         for post in recent:
-            h_sim = hook_similarity(rec.get("hook"), post.get("caption") or post.get("captionPreview"))
-            c_match = cta_match(rec.get("cta"), post.get("caption") or post.get("captionPreview"))
+            # Faithful to JS: match against post.caption only (not captionPreview).
+            caption = post.get("caption")
+            h_sim = hook_similarity(rec.get("hook"), caption)
+            c_match = cta_match(rec.get("cta"), caption)
             type_bonus = 0.2 if rec.get("type") == "post_plan" and rec.get("topic") and rec["topic"].lower() in post["captionLower"] else 0.0
             score = h_sim * 0.6 + c_match * 0.3 + type_bonus
             if score > best_score and score > 0.2:
@@ -1933,8 +1937,6 @@ def step_recommendation_outcomes() -> dict:
             for r in underperformed
         ],
         "all_evaluated": evaluated,
-        "outcomes": evaluated,
-        "schema": "https://clawdia.io/recommendations/outcomes/v1",
     }
 
 
@@ -2194,7 +2196,6 @@ def count_reco_rows(outputs: dict[str, dict]) -> int:
     total += len(outcomes.get("type_win_rates") or [])
     total += len(outcomes.get("ignored") or [])
     total += len(outcomes.get("underperformed") or [])
-    total += len(outcomes.get("outcomes") or [])
     wi = outputs["website-insights.json"]
     total += len(wi.get("weak_ctas") or [])
     total += len(wi.get("top_pages") or [])
