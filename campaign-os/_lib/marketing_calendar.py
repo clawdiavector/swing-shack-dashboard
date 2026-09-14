@@ -2064,32 +2064,50 @@ VALID_ALERT_PRIORITIES = ["low", "normal", "high", "urgent"]
 
 
 def _alerts_path(brand_id: str) -> "Path":
-    """Where alerts are persisted for a brand."""
-    base = None
-    for candidate in (_REPO_DATA_DIR, _BUNDLED_DATA_DIR, _DEFAULT_LOCAL_DIR):
+    """Where alerts are persisted for a brand.
+
+    Uses the same precedence as the rest of marketing_calendar:
+      1. DATA_DIR (volume-mounted /data/campaign-os/brand-directory)
+      2. BUNDLED_DATA_DIR (/app/data/brand-directory)
+      3. REPO_DATA_DIR + default local fallback
+    """
+    for candidate in (_DATA_DIR / "brand-directory", _BUNDLED_DATA_DIR, _REPO_DATA_DIR):
+        if candidate and candidate.exists() and (candidate / brand_id).exists():
+            return candidate / brand_id / "calendar_alerts.jsonl"
+    # If brand dir doesn't exist yet anywhere, fall back to BUNDLED_DATA_DIR (which
+    # is always writable on Railway as /app/data) and create on first write
+    for candidate in (_DATA_DIR / "brand-directory", _BUNDLED_DATA_DIR, _REPO_DATA_DIR):
         if candidate and candidate.exists():
-            base = candidate
-            break
-    if base is None:
-        base = _REPO_DATA_DIR
-    return base / brand_id / "calendar_alerts.jsonl"
+            return candidate / brand_id / "calendar_alerts.jsonl"
+    # Final fallback (e.g. local dev)
+    return _DEFAULT_LOCAL_DIR / brand_id / "calendar_alerts.jsonl"
 
 
 def _ensure_runs_dir() -> "Path":
-    """Where Scout/Watch run logs are persisted."""
-    base = None
-    for candidate in (_REPO_DATA_DIR, _BUNDLED_DATA_DIR, _DEFAULT_LOCAL_DIR):
-        if candidate and candidate.exists():
-            base = candidate
-            break
-    parent = base.parent if str(base).endswith("brand-directory") else base
-    runs_dir = parent / "_system" / "calendar_runs"
-    try:
-        runs_dir.mkdir(parents=True, exist_ok=True)
-    except Exception:
-        runs_dir = Path("/tmp/calendar_runs")
-        runs_dir.mkdir(parents=True, exist_ok=True)
-    return runs_dir
+    """Where Scout/Watch run logs are persisted.
+
+    Uses BUNDLED_DATA_DIR (always writable on Railway) when available,
+    with DATA_DIR/_system as the production preferred location.
+    """
+    for candidate in (
+        _DATA_DIR / "_system" / "calendar_runs",
+        _BUNDLED_DATA_DIR.parent / "_system" / "calendar_runs",
+        _REPO_DATA_DIR.parent / "_system" / "calendar_runs",
+        Path("/tmp/calendar_runs"),
+    ):
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            # Test writable
+            test = candidate / ".write_test"
+            test.touch()
+            test.unlink()
+            return candidate
+        except Exception:
+            continue
+    # Last resort
+    fallback = Path("/tmp/calendar_runs")
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
 
 
 def _is_writable_fs(path) -> bool:
