@@ -1087,11 +1087,14 @@ def _material_change_detected(
     # Decide change_type based on which fields moved
     # Order matters — promotion check must come BEFORE verification_change
     # because a watchlist→candidate transition also changes verification_status.
-    if "event_lifecycle" in changed_fields and prev.get("event_lifecycle") == "watchlist":
+    # Promotion = previous status was "watchlist" (regardless of event_lifecycle value).
+    if prev.get("status") == "watchlist" and (
+        "event_lifecycle" in changed_fields
+        or "status" in changed_fields
+        or "date_confidence" in changed_fields
+    ):
         return True, "promotion", changed_fields
     if any(f.startswith("event_") or f.startswith("competition_") or f == "event_end" for f in changed_fields):
-        if "event_lifecycle" in changed_fields and prev.get("event_lifecycle") == "watchlist":
-            return True, "promotion", changed_fields
         return True, "date_change", changed_fields
     if "verification_status" in changed_fields or "source_class" in changed_fields:
         return True, "verification_change", changed_fields
@@ -1313,7 +1316,9 @@ def can_fire_planning_reminder(record: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "verification_status=conflicting"
     if record.get("event_lifecycle") in ("postponed", "cancelled", "expired"):
         return False, f"event_lifecycle={record.get('event_lifecycle')}"
-    # Stale check — if last_verified_at is older than reverify_after, it's stale
+    # Stale check (brief §12) — a record is stale when its
+    # last_verified_at is older than its reverify_after, i.e. the
+    # reverify window has passed without re-verification.
     lv = record.get("last_verified_at")
     ra = record.get("reverify_after")
     if lv and ra:
@@ -1321,8 +1326,8 @@ def can_fire_planning_reminder(record: Dict[str, Any]) -> Tuple[bool, str]:
             from datetime import datetime
             lv_dt = datetime.fromisoformat(lv.replace("Z", "+00:00"))
             ra_dt = datetime.fromisoformat(ra.replace("Z", "+00:00"))
-            if lv_dt > ra_dt:
-                return False, f"stale: last_verified_at={lv} > reverify_after={ra}"
+            if lv_dt < ra_dt:
+                return False, f"stale: last_verified_at={lv} < reverify_after={ra}"
         except Exception:
             pass
     return True, "ok"
