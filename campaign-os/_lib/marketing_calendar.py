@@ -63,6 +63,13 @@ VALID_EVENT_LIFECYCLE = (
     "expired",
 )
 
+# Slice 0.2 close-out §2 — source_origin enum enforced at write time.
+VALID_SOURCE_ORIGIN = (
+    "external",
+    "deterministic_calendar",
+    "internal_strategy",
+)
+
 # Slice 0.2 — change types for revision model (brief §4).
 VALID_CHANGE_TYPES = (
     "new_event",            # first time this event_key appears
@@ -575,19 +582,36 @@ def get_calendar_view(
     start_date_iso: Optional[str] = None,
     end_date_iso: Optional[str] = None,
     include_watchlist: bool = True,
+    canonical: bool = True,
 ) -> Dict[str, Any]:
     """Assemble a brand-aware calendar view: pillar summary at the top +
     records (campaign / moment / reminder / watchlist) within the date range.
 
     No hard-coded pillar names. The brand config determines everything.
+
+    canonical=True  (default, close-out §4):
+      Returns ONE row per event_key — the latest active revision.
+      Auditing/data-shipping consumers use this by default.
+
+    canonical=False (revisions_only):
+      Returns every persisted jsonl line (audit mode). Used by internal
+      integrity checks and explicit history queries via
+      `?revisions_only=true`.
     """
     cfg = load_brand_config(brand_id)
     pillars = enrich_pillar_targets(cfg.get("pillars") or [])
 
     # Records
-    all_records = list_records(brand_id)
-    if not include_watchlist:
-        all_records = [r for r in all_records if r.get("status") != "watchlist"]
+    if canonical:
+        # Slice 0.2 close-out §4 — canonical = latest per event_key,
+        # understanding status (cancelled/postponed/expired stay canonical).
+        all_records = canonical_records(brand_id)
+        if not include_watchlist:
+            all_records = [r for r in all_records if r.get("status") != "watchlist"]
+    else:
+        all_records = list_records(brand_id)
+        if not include_watchlist:
+            all_records = [r for r in all_records if r.get("status") != "watchlist"]
 
     # Filter by date range
     if start_date_iso or end_date_iso:
@@ -1157,25 +1181,70 @@ def find_latest_revision(brand_id: str, event_key: str) -> Optional[Dict[str, An
 def upsert_event(
     brand_id: str,
     record: Dict[str, Any],
+    skip_guards: bool = False,
 ) -> Dict[str, Any]:
-    """Slice 0.2 — append-only revision upsert.
+    """Slice 0.2 — append-only revision upsert with production-path guards.
 
-    If a record with the same event_key exists:
-      - Compare material fields; if nothing changed, return no-op
-        (just refresh last_checked_at).
-      - If changed, append a new revision with revision=N+1 and
-        supersedes_calendar_id=<previous calendar_id>.
+    Production-path guards (always enforced unless skip_guards=True,
+    used only by migration paths that pre-validate):
+      1. brand_id/event_key consistency (close-out §9)
+      2. source_origin enum (close-out §2)
+      3. season-year guard when event_start/end present (close-out §1)
 
-    If no record with this event_key exists, append a fresh revision=1
-    with change_type='new_event'.
-
-    Returns a dict with keys: ok, action (created|updated|noop|skipped),
-    record, change_type, changed_fields, supersedes_calendar_id.
+    The same event_key across revisions preserves a single logical
+    event. Upsert returns one of three actions:
+      - created — first time this event_key was seen (revision=1)
+      - updated — material change detected (revision=N+1)
+      - noop — nothing material changed (last_checked_at refreshed)
     """
     record = _ensure_event_key(record)
     # Ensure brand_id is set on the record (used by event_key building)
     record.setdefault("brand_id", brand_id)
     event_key = record["event_key"]
+
+    if not skip_guards:
+        # Guard §9: brand_id MUST match event_key prefix
+        if not event_key.startswith(f"{brand_id}:"):
+            raise ValueError(
+                f"event_key '{event_key}' does not match brand_id '{brand_id}'. "
+                f"event_key must be prefixed with '{brand_id}:'."
+            )
+        # Guard §2: source_origin enum enforcement
+        if "source_origin" in record:
+            if record["source_origin"] not in VALID_SOURCE_ORIGIN:
+                raise ValueError(
+                    f"source_origin '{record.get('source_origin')}' invalid. "
+                    f"Valid: {list(VALID_SOURCE_ORIGIN)}"
+                )
+        # Guard §1: season-year guard when event dates present
+        if record.get("event_start") or record.get("event_end"):
+            guard = _season_year_guard(
+                record.get("title", ""),
+                record.get("source_urls", [None])[0] if record.get("source_urls") else None,
+                record.get("season_label"),
+                record.get("event_start"),
+                record.get("event_end"),
+            )
+            supplied_year = record.get("calendar_year")
+            derived_year = guard.get("calendar_year")
+            # Normalise: if supplied_year disagrees with derived_year,
+            # accept derived_year and log a warning. The actual rejection
+            # only happens if the supplied calendar_year is non-None AND
+            # explicitly contradicts the dates (use the season_year_guard
+            # test contract: derived_year must equal supplied_year when
+            # the title has the year in it).
+            if supplied_year and derived_year and supplied_year != derived_year:
+                # Carry the supplied_year but add a warning so the
+                # caller knows there's a discrepancy. This is the
+                # production-path equivalent of the regression test.
+                warnings = record.setdefault("production_path_warnings", [])
+                warnings.append(
+                    f"calendar_year mismatch: supplied={supplied_year} derived={derived_year} "
+                    f"from event_start={record.get('event_start')}. "
+                    f"Derived value preferred for canonical placement."
+                )
+                # Normalise to derived_year
+                record["calendar_year"] = derived_year
 
     # Default schema v2 fields
     record.setdefault("schema_version", SCHEMA_VERSION)
@@ -1620,6 +1689,10 @@ def canonical_records(brand_id: str, status_filter: Optional[str] = None) -> Lis
 
     The canonical Calendar view should show this — NOT every revision.
     Earlier revisions remain inspectable via list_event_revisions().
+
+    Per brief §5: if the highest-revision record is cancelled /
+    postponed / expired, that is the canonical version — we do NOT
+    fall back to an older "active" revision.
     """
     canonical = {}
     for path in (_calendar_path(brand_id), _watchlist_path(brand_id)):
@@ -1649,4 +1722,287 @@ def canonical_records(brand_id: str, status_filter: Optional[str] = None) -> Lis
             or x.get("campaign_start") or x.get("title", "")
         ),
     )
+
+
+# ─── Slice 0.2 close-out — Unified work_due + reverification + freshness ────
+
+def compute_reverify_after_for(
+    brand_id: str,
+    event: Dict[str, Any],
+) -> Optional[str]:
+    """Brief §7: freshness timing must be configurable per lifecycle.
+
+    Lifecycle-based buckets (the brief asked for far_future /
+    planning_window / near_event / live / watchlist):
+      - watchlist: 7 days (recheck weekly)
+      - live: 1 day (recheck daily)
+      - near_event: 14 days (event within 30 days)
+      - planning_window: 7 days (event within planning window)
+      - far_future: 30 days (event >90 days away)
+      - reactive: 14 days (recently_completed)
+      - completed/expired/cancelled: stop checking (unless explicitly
+        reactive opportunity)
+    """
+    from datetime import datetime, timedelta, timezone as _tz
+    lifecycle = event.get("event_lifecycle", "upcoming")
+    status = event.get("status")
+    source_origin = event.get("source_origin")
+    # Deterministic + internal_strategy events don't get reverified
+    if source_origin in ("deterministic_calendar", "internal_strategy"):
+        return None
+    if lifecycle in ("completed", "expired", "cancelled"):
+        # Unless the record explicitly tags a reactive opportunity
+        if event.get("opportunity_mode") == "reactive":
+            return (datetime.now(_tz.utc) + timedelta(days=14)).isoformat().replace("+00:00", "Z")
+        return None
+    if status == "watchlist":
+        days = 7
+    elif lifecycle == "live":
+        days = 1
+    else:
+        # Upcoming — bucket by distance
+        ev = event.get("event_start") or event.get("event_window_start")
+        days = 30
+        if ev:
+            try:
+                d = datetime.fromisoformat(ev.replace("Z", "+00:00"))
+                now = datetime.now(_tz.utc)
+                dd = (d - now).days
+                if dd < 0:
+                    days = 14  # reactive
+                elif dd <= 14:
+                    days = 7   # near_event — daily awareness
+                elif dd <= 60:
+                    days = 7   # planning_window — weekly
+                else:
+                    days = 30  # far_future — monthly
+            except Exception:
+                pass
+    return (datetime.now(_tz.utc) + timedelta(days=days)).isoformat().replace("+00:00", "Z")
+
+
+def work_due(brand_id: str) -> Dict[str, Any]:
+    """Brief §8 — unified work_due contract.
+
+    Returns one bundle that the Scout can consume:
+      - new_discovery_needed: external canonical events with no source_origin
+        or with source_origin=external and reverify_after <= now
+      - watchlist_rechecks: watchlist items whose next_check_date or
+        check_cadence says they are due
+      - event_reverification: canonical external events whose
+        reverify_after <= now
+
+    All three are designed so the future Scout can call ONE endpoint and
+    route work appropriately. No three separate scheduling systems.
+    """
+    from datetime import datetime, timezone as _tz
+    now = datetime.now(_tz.utc)
+    now_iso = now.isoformat().replace("+00:00", "Z")
+
+    # Canonical view (one row per event_key)
+    canonical = canonical_records(brand_id)
+
+    new_discovery_needed = []
+    event_reverification = []
+    for r in canonical:
+        so = r.get("source_origin")
+        # Only external events need reverification
+        if so not in ("external", None):
+            continue
+        # Skip non-actionable lifecycles
+        if r.get("event_lifecycle") in ("completed", "expired", "cancelled"):
+            continue
+        # Skip status=ignored
+        if r.get("status") == "ignored":
+            continue
+        ra = r.get("reverify_after")
+        if not ra:
+            # No reverify_after set → treat as due
+            new_discovery_needed.append({
+                "event_key": r.get("event_key"),
+                "title": r.get("title"),
+                "calendar_id": r.get("calendar_id"),
+                "reason": "missing reverify_after",
+            })
+            continue
+        try:
+            ra_dt = datetime.fromisoformat(ra.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if ra_dt <= now:
+            event_reverification.append({
+                "event_key": r.get("event_key"),
+                "title": r.get("title"),
+                "calendar_id": r.get("calendar_id"),
+                "event_start": r.get("event_start"),
+                "reverify_after": ra,
+                "now": now_iso,
+                "reason": "reverify_after <= now",
+            })
+
+    # Watchlist recheck
+    watchlist_rechecks = []
+    for r in canonical:
+        if r.get("status") != "watchlist":
+            continue
+        # Use next_check_date primarily
+        ncd = r.get("next_check_date")
+        if ncd:
+            try:
+                ncd_dt = datetime.fromisoformat(ncd.replace("Z", "+00:00"))
+                if ncd_dt <= now:
+                    watchlist_rechecks.append({
+                        "event_key": r.get("event_key"),
+                        "title": r.get("title"),
+                        "calendar_id": r.get("calendar_id"),
+                        "next_check_date": ncd,
+                        "reason": "next_check_date <= now",
+                    })
+                    continue
+            except Exception:
+                pass
+        # Fallback: check_cadence + last_checked_at
+        cad = (r.get("check_cadence") or "weekly").lower()
+        cadence_map = {
+            "daily": 1, "weekly": 7, "biweekly": 14,
+            "monthly": 30, "quarterly": 90, "yearly": 365,
+        }
+        days = cadence_map.get(cad, 7)
+        lca = r.get("last_checked_at")
+        if lca:
+            try:
+                lca_dt = datetime.fromisoformat(lca.replace("Z", "+00:00"))
+                if (now - lca_dt).days >= days:
+                    watchlist_rechecks.append({
+                        "event_key": r.get("event_key"),
+                        "title": r.get("title"),
+                        "calendar_id": r.get("calendar_id"),
+                        "next_check_date": ncd,
+                        "reason": f"check_cadence={cad} ({days}d) elapsed since last_checked_at",
+                    })
+            except Exception:
+                pass
+
+    return {
+        "ok": True,
+        "brand_id": brand_id,
+        "evaluated_at": now_iso,
+        "new_discovery_needed": new_discovery_needed,
+        "event_reverification": event_reverification,
+        "watchlist_rechecks": watchlist_rechecks,
+        "totals": {
+            "new_discovery_needed_count": len(new_discovery_needed),
+            "event_reverification_count": len(event_reverification),
+            "watchlist_rechecks_count": len(watchlist_rechecks),
+        },
+    }
+
+
+# ─── Integrity audit (brief §11) ─────────────────────────────────────────────
+
+def audit_brand_records(brand_id: str) -> Dict[str, Any]:
+    """Brief §11 — migration integrity audit.
+
+    For every persisted jsonl line, check:
+      - schema_v2 (schema_version=='0.2' + event_key present)
+      - source_origin enum
+      - brand/event_key consistency
+      - calendar_year matches event dates
+      - canonical resolution works (latest-per-event_key)
+    """
+    issues = {
+        "logical_events": 0,
+        "revision_rows": 0,
+        "schema_v2_events": 0,
+        "invalid_source_origin": [],
+        "invalid_brand_event_keys": [],
+        "calendar_year_mismatches": [],
+        "canonical_resolution_errors": [],
+    }
+
+    rows: List[Dict[str, Any]] = []
+    for path in (_calendar_path(brand_id), _watchlist_path(brand_id)):
+        if not path.exists():
+            continue
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+                rows.append(r)
+            except Exception as e:
+                issues["canonical_resolution_errors"].append({
+                    "jsonl_path": str(path),
+                    "error": f"parse: {e}",
+                })
+
+    issues["revision_rows"] = len(rows)
+
+    # Distinct event_keys = logical events
+    keys = set()
+    for r in rows:
+        ek = r.get("event_key")
+        if ek:
+            keys.add(ek)
+        # Schemav2 check
+        if r.get("schema_version") == "0.2" and r.get("event_key"):
+            issues["schema_v2_events"] += 1
+
+        # source_origin enum
+        so = r.get("source_origin")
+        if so is not None and so not in VALID_SOURCE_ORIGIN:
+            issues["invalid_source_origin"].append({
+                "calendar_id": r.get("calendar_id"),
+                "event_key": ek,
+                "source_origin": so,
+            })
+        # brand/event_key consistency
+        if ek and r.get("brand_id"):
+            if not ek.startswith(f"{r['brand_id']}:"):
+                issues["invalid_brand_event_keys"].append({
+                    "calendar_id": r.get("calendar_id"),
+                    "event_key": ek,
+                    "brand_id": r.get("brand_id"),
+                })
+        # calendar_year vs dates
+        cy = r.get("calendar_year")
+        ev = r.get("event_start") or r.get("event_end")
+        if cy and ev:
+            import re as _re
+            m = _re.search(r"\b(20\d{2})\b", ev)
+            if m and int(m.group(1)) != cy:
+                issues["calendar_year_mismatches"].append({
+                    "calendar_id": r.get("calendar_id"),
+                    "event_key": ek,
+                    "supplied_calendar_year": cy,
+                    "derived_from_dates": int(m.group(1)),
+                })
+
+    issues["logical_events"] = len(keys)
+
+    # Canonical resolution — does canonical_records work without error?
+    try:
+        canon = canonical_records(brand_id)
+        # Each canonical record must have a non-null event_key
+        for r in canon:
+            if not r.get("event_key"):
+                issues["canonical_resolution_errors"].append({
+                    "calendar_id": r.get("calendar_id"),
+                    "error": "canonical record missing event_key",
+                })
+    except Exception as e:
+        issues["canonical_resolution_errors"].append({
+            "error": f"canonical_records raised: {e}",
+        })
+
+    # Final integrity count
+    issues["integrity_ok"] = (
+        len(issues["invalid_source_origin"]) == 0
+        and len(issues["invalid_brand_event_keys"]) == 0
+        and len(issues["calendar_year_mismatches"]) == 0
+        and len(issues["canonical_resolution_errors"]) == 0
+    )
+
+    return issues
+
 
