@@ -718,8 +718,18 @@ def get_brand_calendar_context(brand_id: str, horizon_days: int = 120) -> Dict[s
     pillars = enrich_pillar_targets(cfg.get("pillars") or [])
     all_records = list_records(brand_id)
     # Canonical view: one row per event_key (highest revision wins)
-    canonical_calendar = canonical_records(brand_id, status_filter="candidate,approved,active,completed")
+    # Slice 0.3 production close-out §4: include records with NO status
+    # set (legacy data) and any of the canonical statuses.
+    canonical_statuses = {"candidate", "approved", "active", "completed", "watchlist", None, ""}
+    def _is_canonical(r):
+        # True for non-watchlist records that are meant for planning
+        if r.get("status") == "watchlist":
+            return False
+        return True  # All non-watchlist records (including legacy null status)
+    canonical_calendar = [r for r in canonical_records(brand_id) if _is_canonical(r)]
     canonical_watchlist = canonical_records(brand_id, status_filter="watchlist")
+    # Also include legacy records with status=None via canonical_records without filter
+    # (the canonical_records function already does the latest-per-event_key dedup)
     # Historical audit trail (all revisions)
     event_revisions_by_key = {}
     for r in all_records:
