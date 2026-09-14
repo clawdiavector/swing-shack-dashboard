@@ -2290,9 +2290,15 @@ def lead_time_watcher(brand_id: str, *, now: Optional[str] = None) -> Dict[str, 
         if not ev:
             continue
         try:
-            ev_dt = datetime.fromisoformat(ev.replace("Z", "+00:00"))
+            ev_str = ev.replace("Z", "+00:00")
+            ev_dt = datetime.fromisoformat(ev_str)
+            if ev_dt.tzinfo is None:
+                ev_dt = ev_dt.replace(tzinfo=timezone.utc)
         except Exception:
             continue
+        # Ensure both are tz-aware
+        if anchor_dt.tzinfo is None:
+            anchor_dt = anchor_dt.replace(tzinfo=timezone.utc)
         days_to_event = (ev_dt - anchor_dt).days
         lifecycle = r.get("event_lifecycle")
         if lifecycle in ("cancelled", "expired", "completed"):
@@ -2313,7 +2319,7 @@ def lead_time_watcher(brand_id: str, *, now: Optional[str] = None) -> Dict[str, 
                 "message": (
                     f"{r.get('title','')} enters its {threshold_days}-day "
                     f"{alert_type.replace('_',' ')} window (event on "
-                    f"{datetime.fromisoformat(ev.replace('Z','+00:00')).date().isoformat()}, "
+                    f"{ev_dt.date().isoformat()}, "
                     f"evaluated at {anchor_dt.date().isoformat()})."
                 ),
                 "priority": (
