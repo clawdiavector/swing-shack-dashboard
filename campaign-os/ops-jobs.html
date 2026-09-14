@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jobs · Campaign OS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%226%22%20fill%3D%22%230a0f1a%22%2F%3E%3Cpath%20d%3D%22M10%2026V6%22%20stroke%3D%22%23fbbf24%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M10%208%20L22%2011%20L10%2014%20Z%22%20fill%3D%22%23fbbf24%22%2F%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2227%22%20r%3D%221.5%22%20fill%3D%22%2334d399%22%2F%3E%3C%2Fsvg%3E">
+<style>
+:root {
+  --bg: #0c0d10;
+  --panel: #16181c;
+  --panel-2: #1d2025;
+  --line: #2a2d33;
+  --text: #e8eaed;
+  --muted: #9aa0a6;
+  --accent: #c2f64f;
+  --ok: #42b883;
+  --warn: #f59e0b;
+  --bad: #ff6b6b;
+  --info: #4f8eff;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+a { color: var(--accent); }
+header {
+  position: sticky; top: 0; z-index: 5;
+  background: rgba(12,13,16,.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 16px;
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+}
+header h1 { margin: 0; font-size: 17px; font-weight: 700; }
+header .sub { color: var(--muted); font-size: 12px; flex: 1 1 100%; }
+.spend {
+  font-size: 12px; padding: 6px 10px; border-radius: 999px;
+  background: var(--panel-2); border: 1px solid var(--line); white-space: nowrap;
+}
+.spend.near { border-color: var(--warn); color: var(--warn); }
+.spend.cap { border-color: var(--bad); color: var(--bad); }
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 13px;
+  font-weight: 600; cursor: pointer;
+}
+.btn.primary { background: var(--accent); color: #0c0d10; border-color: transparent; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+main { padding: 12px 16px 96px; max-width: 880px; margin: 0 auto; }
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px; margin-bottom: 10px;
+}
+.row {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start;
+}
+.name { font-weight: 700; font-size: 14px; }
+.meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.chip {
+  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  padding: 3px 8px; border-radius: 999px; text-transform: uppercase;
+}
+.chip.OK { background: rgba(66,184,131,.15); color: var(--ok); }
+.chip.LATE { background: rgba(245,158,11,.15); color: var(--warn); }
+.chip.FAILED, .chip.STUCK { background: rgba(255,107,107,.15); color: var(--bad); }
+.chip.NEVER { background: rgba(154,160,166,.15); color: var(--muted); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.empty, .err { color: var(--muted); padding: 24px 8px; text-align: center; }
+.drawer-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 20;
+  display: none; align-items: flex-end; justify-content: center;
+}
+.drawer-bg.open { display: flex; }
+.drawer {
+  width: min(100%, 560px); max-height: 85vh; overflow: auto;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 16px 16px 0 0; padding: 16px;
+}
+.drawer h2 { margin: 0 0 4px; font-size: 16px; }
+.drawer .close { float: right; }
+.check { display: block; margin: 6px 0; font-size: 13px; }
+table.fresh { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+table.fresh th, table.fresh td {
+  border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px;
+}
+.tech { display: none; margin-top: 10px; white-space: pre-wrap; font-family: ui-monospace, monospace;
+  font-size: 11px; background: var(--panel-2); padding: 10px; border-radius: 8px; color: var(--muted); }
+.tech.open { display: block; }
+.toast {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; z-index: 30; display: none; max-width: 90vw;
+}
+.toast.show { display: block; }
+.toast.bad { border-color: var(--bad); color: var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Jobs</h1>
+  <button class="btn" id="refresh" type="button">Refresh</button>
+  <a class="btn" href="/?page=ops">Ops runbook</a>
+  <span class="spend" id="spend">LLM spend —</span>
+  <div class="sub">Session-gated · from /api/jobs/status · deep-link from Telegram alerts</div>
+</header>
+<main>
+  <div id="list" class="empty">Loading…</div>
+</main>
+<div class="drawer-bg" id="drawer-bg" role="dialog" aria-modal="true">
+  <div class="drawer">
+    <button class="btn close" id="drawer-close" type="button">Close</button>
+    <h2 id="d-title">Failure</h2>
+    <div class="meta" id="d-sub"></div>
+    <p id="d-msg" style="margin:12px 0;font-size:14px"></p>
+    <div id="d-checks"></div>
+    <div id="d-io"></div>
+    <label class="check" style="margin-top:12px"><input type="checkbox" id="d-tech-tog"> Show technical detail</label>
+    <div class="tech" id="d-tech"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toast(msg, bad) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = 'toast'; }, 3200);
+}
+function ageLabel(h) {
+  if (h == null || h === '') return 'never';
+  const n = Number(h);
+  if (Number.isNaN(n)) return '—';
+  if (n < 1) return Math.round(n * 60) + 'm ago';
+  if (n < 48) return n.toFixed(1) + 'h ago';
+  return (n / 24).toFixed(1) + 'd ago';
+}
+async function api(path, opts) {
+  const r = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
+  if (r.status === 401) {
+    location.href = '/login?next=' + encodeURIComponent(location.pathname);
+    throw new Error('auth');
+  }
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
+}
+
+async function loadSpend() {
+  const r = await api('/api/ops/llm-spend');
+  const el = $('spend');
+  if (!r.ok || !r.data || r.data.spent_usd == null) {
+    el.textContent = 'LLM spend n/a';
+    return;
+  }
+  const s = r.data;
+  el.textContent = `LLM $${Number(s.spent_usd).toFixed(2)} / $${Number(s.cap_usd).toFixed(0)} today`;
+  el.className = 'spend' + (s.at_cap ? ' cap' : (s.near_cap ? ' near' : ''));
+}
+
+function jobCard(j) {
+  const age = ageLabel(j.last_success_age_h);
+  const dur = j.last_duration_s != null ? `${j.last_duration_s}s` : '—';
+  const v = j.verdict || 'NEVER';
+  const retries = Number(j.retries || 0);
+  const timeout = Number(j.timeout_seconds || 60);
+  const worst = Math.ceil((retries + 1) * timeout + 10);
+  const worstLabel = worst >= 60 ? `up to ${Math.floor(worst/60)}m${worst%60?worst%60+'s':''}` : `up to ${worst}s`;
+  const showDetail = j.last_run_id && (v === 'FAILED' || v === 'STUCK' || (v === 'LATE' && j.last_status && j.last_status !== 'OK'));
+  return `<article class="card" data-job="${esc(j.name)}" data-run="${esc(j.last_run_id || '')}" data-verdict="${esc(v)}">
+    <div class="row">
+      <div>
+        <div class="name">${esc(j.name)}</div>
+        <div class="meta">${esc(j.criticality || '')}${j.best_effort ? ' · best_effort' : ''} · last OK ${esc(age)} · ${esc(dur)}</div>
+        ${j.last_error ? `<div class="meta" style="color:var(--bad)">${esc(String(j.last_error).slice(0,120))}</div>` : ''}
+        ${j.last_error_class ? `<div class="meta">class: ${esc(j.last_error_class)}</div>` : ''}
+      </div>
+      <span class="chip ${esc(v)}">${esc(v)}</span>
+    </div>
+    <div class="actions">
+      <button class="btn primary" data-run-now="${esc(j.name)}" data-worst="${worst}" title="Manual run (${worstLabel})">Run now</button>
+      ${showDetail
+        ? `<button class="btn" data-open="${esc(j.name)}" data-run-id="${esc(j.last_run_id)}">Failure detail</button>`
+        : ''}
+    </div>
+  </article>`;
+}
+
+async function loadJobs() {
+  const list = $('list');
+  list.innerHTML = '<div class="empty">Loading…</div>';
+  const r = await api('/api/jobs/status');
+  if (!r.ok) {
+    list.innerHTML = `<div class="err">Could not load status (${r.status}). ${esc(r.data && r.data.error)}</div>`;
+    return;
+  }
+  const jobs = (r.data && r.data.jobs) || [];
+  if (!jobs.length) {
+    list.innerHTML = '<div class="empty">No jobs registered.</div>';
+    return;
+  }
+  list.innerHTML = jobs.map(jobCard).join('');
+}
+
+async function runNow(name, btn) {
+  const worst = Number(btn.getAttribute('data-worst') || 60);
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = worst >= 120 ? `Running (may take ~${Math.ceil(worst/60)}m)…` : 'Running…';
+  try {
+    const r = await api('/api/jobs/run/' + encodeURIComponent(name) + '?reason=manual', { method: 'POST' });
+    if (r.status === 429) {
+      toast(`Rate limited for ${name} — try again in ${(r.data && r.data.retry_after_s) || '?'}s`, true);
+    } else if (!r.ok) {
+      toast((r.data && r.data.error) || 'Run failed', true);
+      await loadJobs();
+    } else {
+      toast(`${name}: ${r.data.status || 'done'}`);
+      await loadJobs();
+    }
+  } catch (e) {
+    // Proxy may cut a long run; re-poll status rather than claiming failure.
+    if (String(e.message) !== 'auth') {
+      toast('Network blip — refreshing status…');
+      await loadJobs();
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prev;
+  }
+}
+
+function fileRows(rows, title) {
+  if (!rows || !rows.length) return '';
+  const body = rows.map(f => {
+    const age = f.age_h != null ? ageLabel(f.age_h) : (f.exists ? '—' : 'missing');
+    return `<tr><td>${esc(f.path || f.name || '')}</td><td>${f.exists ? 'yes' : 'no'}</td><td>${esc(age)}</td></tr>`;
+  }).join('');
+  return `<h3 style="font-size:13px;margin:14px 0 4px">${esc(title)}</h3>
+    <table class="fresh"><thead><tr><th>Path</th><th>Exists</th><th>Age</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+async function openDrawer(job, runId) {
+  $('d-title').textContent = job;
+  $('d-sub').textContent = 'Loading diagnostics…';
+  $('d-msg').textContent = '';
+  $('d-checks').innerHTML = '';
+  $('d-io').innerHTML = '';
+  $('d-tech').textContent = '';
+  $('d-tech').className = 'tech';
+  $('d-tech-tog').checked = false;
+  $('d-tech-tog').dataset.runId = runId || '';
+  $('drawer-bg').classList.add('open');
+
+  let bundle = null;
+  if (runId) {
+    const r = await api('/api/jobs/diagnostics/' + encodeURIComponent(runId));
+    if (r.ok) bundle = r.data;
+  }
+  if (!bundle) {
+    const f = await api('/api/jobs/failures');
+    const rows = (f.data && f.data.failures) || [];
+    const hit = rows.find(x => x.job === job);
+    if (hit && hit.bundle_ref) {
+      const r2 = await api(hit.bundle_ref);
+      if (r2.ok) bundle = r2.data;
+      else {
+        $('d-sub').textContent = hit.error_class || hit.verdict || '';
+        $('d-msg').textContent = hit.top_suggested_check || 'Bundle missing (retention 30d / 200 per job).';
+        if (hit.top_suggested_check) {
+          $('d-checks').innerHTML = `<label class="check"><input type="checkbox"> ${esc(hit.top_suggested_check)}</label>`;
+        }
+        return;
+      }
+    }
+  }
+  if (!bundle) {
+    // Ledger-level degrade (t43-D) — also covers best_effort LATE with a run_id 404.
+    const st = await api('/api/jobs/status');
+    const row = ((st.data && st.data.jobs) || []).find(x => x.name === job) || {};
+    $('d-sub').textContent = `${row.last_error_class || row.verdict || ''} · no bundle on disk`;
+    $('d-msg').textContent = row.last_error || 'Diagnostic bundle gone or never written. Retention is 30 days or 200 bundles per job.';
+    return;
+  }
+  const exc = bundle.exception || {};
+  $('d-sub').textContent = `${bundle.error_class || ''} · ${bundle.verdict || ''} · ${bundle.run_id || ''}`;
+  $('d-msg').textContent = exc.message || bundle.error_class || 'Failed';
+  const checks = bundle.suggested_checks || [];
+  $('d-checks').innerHTML = checks.length
+    ? '<h3 style="font-size:13px;margin:10px 0 4px">Suggested checks</h3>' +
+      checks.map(c => `<label class="check"><input type="checkbox"> ${esc(c)}</label>`).join('')
+    : '';
+  $('d-io').innerHTML = fileRows(bundle.inputs, 'Inputs') + fileRows(bundle.outputs, 'Outputs');
+  // Technical detail fetched only on toggle (t43-B) — stash run id, do not put traceback in DOM yet.
+  $('d-tech').dataset.loaded = '';
+  $('d-tech').dataset.runId = bundle.run_id || runId || '';
+}
+
+$('drawer-close').onclick = () => $('drawer-bg').classList.remove('open');
+$('drawer-bg').addEventListener('click', (e) => {
+  if (e.target === $('drawer-bg')) $('drawer-bg').classList.remove('open');
+});
+$('d-tech-tog').onchange = async (e) => {
+  const el = $('d-tech');
+  if (!e.target.checked) {
+    el.className = 'tech';
+    return;
+  }
+  if (!el.dataset.loaded) {
+    const rid = el.dataset.runId || '';
+    el.textContent = 'Loading…';
+    if (rid) {
+      const r = await api('/api/jobs/diagnostics/' + encodeURIComponent(rid));
+      if (r.ok) {
+        const exc = (r.data && r.data.exception) || {};
+        const tb = (exc.traceback_tail || '').trim();
+        const err = ((r.data && r.data.stderr_tail) || '').trim();
+        const typ = (exc.type || '').trim();
+        const fp = (r.data && r.data.error_fingerprint) || '';
+        el.textContent = [
+          typ && ('type: ' + typ),
+          fp && ('fingerprint: ' + fp),
+          tb && ('traceback:\n' + tb),
+          err && ('stderr:\n' + err),
+        ].filter(Boolean).join('\n\n') || '(no technical detail)';
+      } else {
+        el.textContent = 'Could not load technical detail.';
+      }
+    } else {
+      el.textContent = '(no run_id — nothing to fetch)';
+    }
+    el.dataset.loaded = '1';
+  }
+  el.className = 'tech open';
+};
+$('list').addEventListener('click', (e) => {
+  const runBtn = e.target.closest('[data-run-now]');
+  if (runBtn) {
+    runNow(runBtn.getAttribute('data-run-now'), runBtn);
+    return;
+  }
+  const openBtn = e.target.closest('[data-open]');
+  if (openBtn) {
+    openDrawer(openBtn.getAttribute('data-open'), openBtn.getAttribute('data-run-id'));
+  }
+});
+$('refresh').onclick = async () => {
+  await Promise.all([loadJobs(), loadSpend()]);
+};
+
+(async function boot() {
+  await Promise.all([loadJobs(), loadSpend()]);
+  const params = new URLSearchParams(location.search);
+  const job = params.get('job');
+  const run = params.get('run');
+  if (job && (run || true)) {
+    // Deep link from Telegram: /ops/jobs?job=meta_refresh
+    if (run) openDrawer(job, run);
+    else {
+      const card = document.querySelector(`[data-job="${CSS.escape(job)}"]`);
+      const rid = card && card.getAttribute('data-run');
+      if (rid && (card.getAttribute('data-verdict') === 'FAILED' || card.getAttribute('data-verdict') === 'STUCK')) {
+        openDrawer(job, rid);
+      }
+    }
+  }
+})();
+</script>
+</body>
+</html>

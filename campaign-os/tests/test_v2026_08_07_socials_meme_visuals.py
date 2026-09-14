@@ -267,7 +267,7 @@ class ImageFromAssetAutoComposeTests(SocialsMemeVisualsApiTests):
     def test_auto_composes_layers_by_default(self):
         """Without override_prompt, from-asset loads all 4 layers."""
         r = self.client.post("/api/image/from-asset/takomo-101t-hero-c",
-                             json={"campaignId": "swing-shack"})
+                             json={"campaignId": "swing-shack", "human_approved": True})
         # Capture object should have been touched (composition attempted)
         self.assertIn("reference_dnas", self._captured)
         self.assertIn("product_service_items", self._captured)
@@ -275,7 +275,7 @@ class ImageFromAssetAutoComposeTests(SocialsMemeVisualsApiTests):
 
     def test_respects_override_prompt(self):
         r = self.client.post("/api/image/from-asset/takomo-101t-hero-c",
-                             json={"override_prompt": "CUSTOM PROMPT ONLY"})
+                             json={"override_prompt": "CUSTOM PROMPT ONLY", "human_approved": True})
         # When override_prompt set, layer compose is skipped
         self.assertIsNone(self._captured.get("reference_dnas"))
         self.assertIsNone(self._captured.get("product_service_items"))
@@ -283,7 +283,7 @@ class ImageFromAssetAutoComposeTests(SocialsMemeVisualsApiTests):
 
     def test_respects_compose_layers_false(self):
         r = self.client.post("/api/image/from-asset/takomo-101t-hero-c",
-                             json={"compose_layers": False})
+                             json={"compose_layers": False, "human_approved": True})
         self.assertIsNone(self._captured.get("reference_dnas"))
 
 

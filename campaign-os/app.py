@@ -19,6 +19,7 @@ import uuid
 import logging
 import hashlib
 import time
+import threading
 import base64
 import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
@@ -565,15 +566,33 @@ def init_repo():
     except Exception as e:
         print(f"Git clone failed (non-fatal): {e}")
 
-# ─── BOOTSTRAP ──────────────────────────────────────────────────────────
+# ─── BOOTSTRAP (t47) ────────────────────────────────────────────────────
+# Process-level once. Must NOT live on an HTTP request path.
+# Option A from plan: lock + module flag, invoked at import and from __main__.
 
-@app.before_request
-def bootstrap():
-    """Run once at startup."""
-    if hasattr(g, '_booted'):
-        return
-    g._booted = True
-    init_repo()
+_GIT_SYNC_LOCK = threading.Lock()
+_GIT_SYNC_DONE = False
+
+
+def _boot_git_sync():
+    """Clone/pull DATA_DIR repo at most once per process (t47)."""
+    global _GIT_SYNC_DONE
+    with _GIT_SYNC_LOCK:
+        if _GIT_SYNC_DONE:
+            return
+        _GIT_SYNC_DONE = True
+        try:
+            init_repo()
+        except Exception as e:
+            print(f"Git sync failed (non-fatal): {e}")
+
+
+# Alias kept for tests / callers that used the earlier name.
+ensure_repo_initialized = _boot_git_sync
+
+# Import-time boot (WSGI / test client / python app.py). Idempotent under lock.
+_boot_git_sync()
+
 
 # ─── API ROUTES ─────────────────────────────────────────────────────────
 
@@ -2737,6 +2756,10 @@ def visual_library_generate(brand_id):
         prompt = (body.get("prompt") or "").strip()
         if not prompt:
             return jsonify({"ok": False, "error": "prompt required"}), 400
+
+        gate = _llm_spend_gate(f"/api/visual-library/{brand_id}/generate", 0.08)
+        if gate is not None:
+            return gate
 
         # Load brand recipe
         recipe_resp = visual_library_recipe(brand_id)
@@ -7175,6 +7198,7 @@ def image_generate():
       provider        (optional: "openai" or "openrouter", default = env or openrouter)
       save            (default true; requires brand_id)
       max_cost_usd    (default 0.50)
+      human_approved  (required true — t50 approval gate)
       reference_color / reference_brand / reference_mood (optional overrides)
 
       // 4-layer compose context (added 2026-08-07)
@@ -7198,6 +7222,13 @@ def image_generate():
         if not prompt:
             return jsonify({"ok": False, "error": "prompt is required"}), 400
         brand_id = (body.get("brand_id") or "").strip() or None
+        try:
+            est = float(body.get("max_cost_usd") or 0.50)
+        except (TypeError, ValueError):
+            est = 0.50
+        gate = _llm_spend_gate("/api/image/generate", est)
+        if gate is not None:
+            return gate
 
         # Build brand_recipe from existing /recipe endpoint when brand_id given
         brand_recipe = None
@@ -7258,6 +7289,12 @@ def image_generate():
             from pathlib import Path as _P
             sp = _P(result.saved_path)
             preview_url = f"/brand-images/{brand_id}/{sp.name}" if brand_id else None
+        _spend_snap = None
+        try:
+            from _lib import llm_spend as _ls
+            _spend_snap = _ls.status()
+        except Exception:
+            pass
         return jsonify({
             "ok": True,
             "bytes_b64": _b64.b64encode(result.bytes).decode("ascii"),
@@ -7279,6 +7316,7 @@ def image_generate():
                 "products_or_services": len(items),
                 "recipe": brand_recipe is not None,
             },
+            "spend": _spend_snap,
         })
     except ImageGenBadRequest as e:
         return jsonify({"ok": False, "error": str(e), "code": "bad_request"}), 400
@@ -7325,6 +7363,13 @@ def image_edit():
         instruction = (body.get("instruction") or "").strip()
         if not instruction:
             return jsonify({"ok": False, "error": "instruction is required"}), 400
+        try:
+            _est = float(body.get("max_cost_usd") or 0.50)
+        except (TypeError, ValueError):
+            _est = 0.50
+        gate = _llm_spend_gate("/api/image/edit", _est)
+        if gate is not None:
+            return gate
 
         # Resolve source bytes
         source_bytes: Optional[bytes] = None
@@ -7425,6 +7470,14 @@ def image_from_asset(asset_id):
         import base64 as _b64
         body = request.get_json(silent=True) or {}
         brand_id = (body.get("brand_id") or get_brand_id()).strip() or "swing-shack"
+
+        try:
+            _est = float(body.get("max_cost_usd") or 0.50)
+        except (TypeError, ValueError):
+            _est = 0.50
+        gate = _llm_spend_gate(f"/api/image/from-asset/{asset_id}", _est)
+        if gate is not None:
+            return gate
 
         # Pull the asset's text + intent by id across data/
         prompt, kind = _extract_asset_context(asset_id, brand_id)
@@ -7769,6 +7822,10 @@ def image_from_reference(brand_id, ref_id):
         if not prompt:
             prompt = ref.get('label', 'reference-inspired image')
 
+        gate = _llm_spend_gate(f"/api/image/from-reference/{brand_id}/{ref_id}", 0.50)
+        if gate is not None:
+            return gate
+
         size = body.get('size', '1024x1024')
         model = body.get('model') or None
 
@@ -7995,6 +8052,10 @@ def image_from_product(brand_id, item_id):
         if not prompt:
             # Auto-build a prompt from the item
             prompt = f"{item.get('name', '')} — {item.get('headline', '')}"
+
+        gate = _llm_spend_gate(f"/api/image/from-product/{brand_id}/{item_id}", 0.50)
+        if gate is not None:
+            return gate
 
         size = body.get('size', '1024x1024')
         model = body.get('model') or None
@@ -14427,11 +14488,31 @@ def jobs_run(name):
         return jsonify({"ok": False, "error": "authentication required"}), 401
     if not _JOBS_AVAILABLE or name not in _JOBS_REGISTRY:
         return jsonify({"ok": False, "error": "unknown job", "job": name}), 404
-    # reason / heal_of accepted-but-ignored in P0 (t58 wires them later)
-    _ = request.args.get('reason')
+    # Query param is `reason` (ledger field is triggered_by). heal_of ignored until t58.
+    reason = (request.args.get('reason') or '').strip()
+    triggered_by = reason or 'schedule'
     _ = request.args.get('heal_of')
+    if triggered_by == 'manual':
+        try:
+            from _lib.jobs.cooldown import check as _cd_check, mark as _cd_mark
+            spec = _JOBS_REGISTRY.get(name)
+            every = getattr(spec, 'every_seconds', None) if spec else None
+            allowed, retry_after = _cd_check(name, every)
+            if not allowed:
+                resp = jsonify({
+                    "ok": False,
+                    "error": "rate limited",
+                    "job": name,
+                    "retry_after_s": int(max(1, retry_after)),
+                })
+                resp.status_code = 429
+                resp.headers["Retry-After"] = str(int(max(1, retry_after)))
+                return resp
+            _cd_mark(name)
+        except Exception:
+            _app_log.exception("manual cooldown check failed name=%s", name)
     try:
-        row = _run_named_job(name, triggered_by=request.args.get('reason') or 'schedule')
+        row = _run_named_job(name, triggered_by=triggered_by)
         return jsonify(row), 200
     except Exception as e:
         _app_log.exception("jobs_run failed name=%s", name)
@@ -14492,6 +14573,85 @@ def jobs_diagnostics(run_id):
     except Exception as e:
         _app_log.exception("jobs_diagnostics failed run_id=%s", run_id)
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _human_approved_in_request() -> bool:
+    body = request.get_json(silent=True) or {}
+    raw = body.get("human_approved")
+    if raw is None:
+        raw = request.args.get("human_approved")
+    if isinstance(raw, bool):
+        return raw
+    if raw is None:
+        return False
+    return str(raw).strip().lower() in ("1", "true", "yes", "y", "on")
+
+
+def _llm_spend_gate(route: str, estimate_usd: float = 0.05):
+    """t50 — refuse generate past daily budget; require human_approved.
+
+    Returns a Flask (response, status) tuple to short-circuit, or None.
+    """
+    if not _human_approved_in_request():
+        return jsonify({
+            "ok": False,
+            "error": "human approval required",
+            "code": "approval_required",
+            "hint": "Confirm cost in the UI, then re-submit with human_approved=true.",
+        }), 403
+    try:
+        from _lib import llm_spend
+    except Exception as e:
+        _app_log.exception("llm_spend import failed")
+        return jsonify({"ok": False, "error": "spend counter unavailable", "detail": str(e)[:120]}), 503
+    try:
+        est = float(estimate_usd or 0.0)
+    except (TypeError, ValueError):
+        est = 0.05
+    ok, reason = llm_spend.check("image", est)
+    snap = llm_spend.status()
+    if not ok:
+        return jsonify({
+            "ok": False,
+            "error": "daily LLM spend cap reached",
+            "code": "spend_cap",
+            "reason": reason,
+            "spend": snap,
+            "estimate_usd": est,
+        }), 402
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("brand") or "").strip() or None
+    llm_spend.write_approval_receipt(route=route, estimate_usd=est, brand_id=brand_id)
+    return None
+
+
+def _llm_spend_record(route: str, usd: float, model: Optional[str] = None):
+    try:
+        from _lib import llm_spend
+        return llm_spend.record(usd, route=route, model=model)
+    except Exception:
+        _app_log.exception("llm_spend.record failed route=%s", route)
+        return None
+
+
+@app.route('/api/ops/llm-spend', methods=['GET'])
+def ops_llm_spend():
+    """GET /api/ops/llm-spend — today's LLM spend vs hard cap (t50)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import llm_spend
+        return jsonify(llm_spend.status()), 200
+    except Exception as e:
+        _app_log.exception("ops_llm_spend failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/ops/jobs', methods=['GET'])
+def ops_jobs_page():
+    """GET /ops/jobs — session-gated job dashboard (t42). Not a public ops page."""
+    # Auth via _gate before_request — must NOT be added to PUBLIC_ROUTE_PREFIXES.
+    return send_from_directory(os.path.dirname(__file__), 'ops-jobs.html')
 
 
 @app.route('/api/freshness', methods=['GET'])
@@ -33123,13 +33283,16 @@ RATE_LIMIT_CONFIG = {
     "auth": {"limit": 10, "window_seconds": 60},         # 10 login attempts/min/IP
     "write": {"limit": 60, "window_seconds": 60},        # 60 writes/min/IP
     "expensive": {"limit": 10, "window_seconds": 60},    # 10/min for image gen, Shopify sync
+    "jobs_manual": {"limit": 6, "window_seconds": 60},   # t44 Run now
 }
 
 
-def _rate_limit_check(bucket_name="default"):
+def _rate_limit_check(bucket_name="default", *, force=False):
     """Check rate limit for the current request IP + bucket.
-    Returns (allowed: bool, remaining: int, reset_in: float)."""
-    if not _production_mode_enabled():
+    Returns (allowed: bool, remaining: int, reset_in: float).
+    force=True applies even when CAMPAIGN_OS_PRODUCTION is off (manual job runs).
+    """
+    if not force and not _production_mode_enabled():
         return True, 999, 0
     cfg = RATE_LIMIT_CONFIG.get(bucket_name, RATE_LIMIT_CONFIG["default"])
     limit = cfg["limit"]
@@ -33460,6 +33623,18 @@ def ops_runbook():
             cron_last_run = d.get("last_run")
     except Exception:
         pass
+    llm_spend_snap = None
+    try:
+        from _lib import llm_spend as _llm_spend_mod
+        llm_spend_snap = _llm_spend_mod.status()
+    except Exception:
+        llm_spend_snap = {"ok": False, "error": "unavailable"}
+    jobs_snap = None
+    try:
+        if _JOBS_AVAILABLE:
+            jobs_snap = _jobs_build_status()
+    except Exception:
+        jobs_snap = None
     return jsonify({
         "ok": True,
         "production_mode": prod_mode,
@@ -33470,6 +33645,9 @@ def ops_runbook():
         "cron_last_run": cron_last_run,
         "data_dir": DATA_DIR,
         "generated_at": _now_iso(),
+        "llm_spend": llm_spend_snap,
+        "jobs": jobs_snap,
+        "ops_jobs_url": "/ops/jobs",
     }), 200
 
 
@@ -35537,6 +35715,13 @@ def build_post_draft():
         return jsonify({"ok": False, "error": "auth required"}), 401
 
     body = request.get_json(silent=True) or {}
+    try:
+        _est = float(body.get("max_cost_usd") or 0.50)
+    except (TypeError, ValueError):
+        _est = 0.50
+    gate = _llm_spend_gate("/api/build-post/draft", _est)
+    if gate is not None:
+        return gate
 
     # ── 1. SCHEMA (per #2: store_brand vs product_brand separation) ──
     store_brand = (body.get("brand_id") or "stick").strip()
@@ -38071,6 +38256,11 @@ def shopping_moments():
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
+    try:
+        ensure_repo_initialized()
+        print(f'[boot] repo init done', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] repo init failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     try:
         _boot_load_persisted_secrets()
         print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)

@@ -1,6 +1,6 @@
 # How to connect Meta + GA4 — so Heidi can see posts, stats, feed and interactions
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-09-14
 **Owner:** Christelle
 **Backend author:** Heidi (Hermes)
 
@@ -23,37 +23,33 @@ GA4 adds the **website** story: which pages of swingshack.co.za people land on, 
 
 ---
 
-## The data model (honest version)
+## The data model (current — 2026-09)
 
-The Performance tab is fed by three cron-pulled sources:
+Live Meta ingestion is **not** `truth_collector.py` (retired). The path in production is:
 
 ```
-data/truth.json  ←  written by  ←  campaign-os/truth_collector.py
-                  ←              ←  (runs hourly via nightshift cron)
-                  │
-                  ├── source: "meta"     (Instagram + Facebook posts)
-                  │   fields per record:
-                  │     impressions, reach, likes, comments, shares, saved,
-                  │     engagementRate, _request_id, raw.asset_id, raw.channel
-                  │
-                  └── source: "ga4"     (swingshack.co.za web traffic)
-                      fields per record:
-                        sessions, engagement_rate, path, etc.
+POST /api/meta/fetch
+        │
+        ▼
+campaign-os/_lib/meta_live_fetch.py   (also the meta_refresh job)
+        │
+        ├── $DATA_DIR/ig-analytics.json
+        ├── $DATA_DIR/ig-business-analytics.json
+        ├── $DATA_DIR/facebook-analytics.json
+        └── $DATA_DIR/facebook-business-analytics.json
+
+Supporting surfaces:
+  GET  /api/admin/meta-index                  — post index
+  GET  /api/integrations/<brand>/instagram/probe-media?id=<media_id>
 ```
 
-`truth_collector.py` reads env-vars for credentials, calls Meta Graph API v18
-and Google Analytics Data API v1, and writes engagement records into `data/truth.json`.
-The SPA's Performance tab reads from `truth.json` summary.
+Credentials land via `/secrets-sync` / `/meta-portal` (session). The SPA Performance tab and weekly report read the analytics JSON under `$DATA_DIR` (seed copies may exist under repo `data/` — seed only; runtime truth is the volume).
 
-**The single hardest problem:** `truth_collector.fetch_meta_engagement()` needs a
-**per-post `platform_media_id`** — the numeric Instagram media ID (e.g.
-`17990000000000001`). Without this, the function returns all-`null` fields.
-Postiz **already writes this ID** back into the publishing artifact as
-`platformMediaId`. So the **back-mapping problem** is mostly already solved
-for any post that went through Postiz.
+`truth_collector.py` / `truth.json` remain for **publish-event + engagement-history** ingest (still imported by `app.py`) — they are **not** the live Meta fetcher.
 
-For posts that didn't go through Postiz (manual IG uploads), the back-map will
-stay blank until we add a "force resolve by hashtag/date" pass.
+**Standing rule:** agents and docs must **not** enable Postiz auto-publish. Publishing stays human-triggered.
+
+**The single hardest problem:** Graph calls need a **per-post Instagram media ID**. Where Postiz (or manual publish) recorded `platformMediaId`, the index can resolve it. Manual uploads without an ID stay blank until probed via `/api/integrations/<brand>/instagram/probe-media`.
 
 ---
 
@@ -156,7 +152,8 @@ Just like the Drive portal we already did:
 3. You visit the URL on your phone
 4. Drag-drop the four values (App ID + App Secret + Token + IG business ID + Page ID) into the form, or paste as JSON
 5. Server stores them at `~/.openclaw/workspace/credentials/meta-app.json` and `meta-token.json` (chmod 600)
-6. Heidi confirms by calling `meta_credentials_present()` from truth_collector
+6. Heidi confirms Meta credentials are present (env / secrets-sync), then
+   triggers `POST /api/meta/fetch` (or the `meta_refresh` job).
 
 What the form looks like:
 
@@ -175,82 +172,68 @@ Long-lived token: EAAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...
 
 ---
 
-## STEP 3 — Verifying auth locally (Heidi does this, 1 min)
-
-Heidi runs:
+## STEP 3 — Verifying auth (Heidi, 1 min)
 
 ```bash
-.venv/bin/python -c "
-from campaign-os.truth_collector import meta_credentials_present, fetch_meta_engagement
-print('present:', meta_credentials_present())
-print('probe:', fetch_meta_engagement('__probe__', 'instagram', '2026-07-29T00:00:00Z', platform_media_id='17841401234567890'))
-"
+# Session or bearer — trigger a live pull (writes under $DATA_DIR)
+curl -sS -X POST -H "Authorization: Bearer $COS_JOB_TOKEN" \
+  "$COS_URL/api/meta/fetch" | python3 -m json.tool
+
+# Or run the registered job
+curl -sS -X POST -H "Authorization: Bearer $COS_JOB_TOKEN" \
+  "$COS_URL/api/jobs/run/meta_refresh?reason=manual"
 ```
 
-Expect:
-```
-present: True
-probe: {'impressions': ..., 'reach': ..., 'likes': ..., ...}
-```
-
-If `present: False`, check:
-- `meta-token.json` has `"access_token"` field, not just `"token"`
-- All 5 env vars resolve
-- Token wasn't pasted twice
-
-If `400 Invalid OAuth access token` — token expired or wrong scopes. Re-do
-step 1.4.
-
-If `100 missing permissions` — request the missing scope in App Review.
+Expect analytics JSON files under `$DATA_DIR` (`ig-analytics.json`, etc.).
+If auth fails, re-check Meta token scopes via `/meta-portal` / `/secrets-sync`.
+Do not print token values — presence only.
 
 ---
 
-## STEP 4 — Back-mapping Postiz posts → IG media IDs (Heidi does this, 30 min)
+## STEP 4 — Media IDs / post index
 
-For any post that was published through Postiz, the `references.platformMediaId`
-field is already populated. So the truth_collector should be able to read it.
-
-I'll write a one-shot script:
+Prefer the live index:
 
 ```bash
-.venv/bin/python scripts/back_map_postiz_to_ig.py
+curl -sS -b /tmp/cos-jar "$COS_URL/api/admin/meta-index" | python3 -m json.tool | head
 ```
 
-It walks every published post artifact in `data/postiz-published/`, extracts
-the `platformMediaId`, and writes a `data/meta-post-index.json` keyed by
-`asset_id → media_id`. Then `truth_collector.py` can resolve any post without
-guessing.
+Probe a single media id:
 
-For posts that **didn't** go through Postiz (rare, manual IG uploads), we add a
-"fallback by date window" pass that lists IG media from the last 90 days and
-matches by approximate publish date in `data/campaign-data.json`. This is
-best-effort.
+```bash
+curl -sS -b /tmp/cos-jar \
+  "$COS_URL/api/integrations/swing-shack/instagram/probe-media?id=<media_id>"
+```
+
+Postiz may still populate `platformMediaId` on publish artifacts for human-triggered
+publishes. That does **not** authorize auto-publish (standing rule).
 
 ---
 
-## STEP 5 — First real stats run (Heidi does this, 5 min)
-
-Heidi triggers a one-shot `truth_collector.py` run with all assets:
+## STEP 5 — First real stats run
 
 ```bash
-DATA_DIR=./data .venv/bin/python -m campaign-os.truth_collector --once
+curl -sS -X POST -H "Authorization: Bearer $COS_JOB_TOKEN" \
+  "$COS_URL/api/jobs/run/meta_refresh?reason=manual"
 ```
 
-Result lands in `data/truth.json`. Open the dashboard → Performance tab →
-wait, the empty-state CTA will be **gone** and you'll see:
-
-- IG posts counter (real number)
-- Top Instagram posts card (real posts, real ER)
-- SEO rising/falling (this was already populated)
-- Insights strip (real patterns)
+Open the dashboard → Performance / weekly report. Numbers come from the
+`$DATA_DIR/*analytics*.json` files written by `meta_live_fetch`, not from
+`truth_collector.py`.
 
 ---
 
-## STEP 6 — Hourly cron (already done, no action)
+## STEP 6 — Cadence (`meta-live-fetch.yml`, not nightshift)
 
-The nightshift cron (`d8ff00190932`) already runs every 60 min. It calls
-`truth_collector.py` with the cron-budget cap. So once Step 5 succeeds,
-**stats stay fresh automatically**. No new cron needed.
+GitHub Actions `.github/workflows/meta-live-fetch.yml` runs:
+
+```
+30 4,16 * * *   # 06:30 SAST + 18:30 SAST
+```
+
+That workflow hits the live Meta path (`POST /api/meta/fetch` / `meta_refresh` job).
+Hermes `campaign-os-watch` / `campaign-os-digest` monitor job verdicts.
+`truth_collector.py` remains for **publish-event / engagement-history** ingest only — not the Meta fetcher.
 
 The weekly Drive scrape cron (`20fddcd1b508`) is separate and unrelated.
 

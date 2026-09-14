@@ -1658,7 +1658,8 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       <div class="nav" data-go="insights" data-help-title="Insights" data-help="Performance + learning signals: GA4, Meta, SEO, Trends. What worked, what didn't."><span class="nav-icon">📈</span> Insights</div>
       <div class="nav" data-go="performance" data-help-title="Performance" data-help="Per-asset, per-platform lift over time."><span class="nav-icon">📊</span> Performance</div>
       <div class="nav" data-go="learning" data-help-title="Learning" data-help="Auto-captured learnings from past campaigns."><span class="nav-icon">🧠</span> Learning</div>
-      <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
+        <div class="nav" data-go="ops" data-help-title="Ops Runbook" data-help="Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive."><span class="nav-icon">🛠️</span> Ops Runbook</div>
+        <a class="nav nav-link" href="/ops/jobs" data-help-title="Jobs" data-help="Session-gated job verdict table, failure drawer, Run now, and LLM spend counter. Deep-linked from Telegram alerts."><span class="nav-icon">⏱️</span> Jobs</a>
       <div class="nav" data-go="fleet" data-help-title="Fleet Status" data-help="Aggregated fleet state — Heidi + all specialists. Cron freshness, error counts, fleet-level alerts."><span class="nav-icon">📡</span> Fleet Status</div>
       <div class="nav" data-go="herman" data-help-title="Herman Demo" data-help="Polished Stick October 2026 demo month. Built from the brand bibles. Real stock, real voice, real parallel lanes. Click any lane to filter."><span class="nav-icon">📅</span> Stick Herman Demo</div>
       <div class="nav" data-go="planning" data-help-title="Strategic Calendar" data-help="Big Idea + Monthly Theme + Parallel Lanes. The planning hierarchy (YEAR > QUARTER > MONTH > WEEK > DAY). Each lane remains active; the theme gives them a shared idea."><span class="nav-icon">📅</span> Strategic Calendar</div>
@@ -18096,6 +18097,25 @@ async function renderOps() {
     prodEl.textContent = r.production_mode ? '✓ ON' : '✕ OFF';
     prodEl.className = r.production_mode ? 'pill on' : 'pill muted';
   }
+  // t50 — LLM spend counter
+  let spendEl = document.getElementById('ops-llm-spend');
+  if (!spendEl) {
+    const host = document.getElementById('ops-prod-details');
+    if (host && host.parentElement) {
+      const wrap = document.createElement('div');
+      wrap.className = 'card col-4';
+      wrap.innerHTML = '<div class="card-h"><h3>💸 LLM spend</h3><span class="pill" id="ops-llm-spend">—</span></div><div id="ops-llm-spend-details" style="font-size:11px;color:var(--tx-3)"></div>';
+      host.parentElement.parentElement.insertBefore(wrap, host.parentElement.nextSibling);
+      spendEl = document.getElementById('ops-llm-spend');
+    }
+  }
+  const spend = r.llm_spend || {};
+  if (spendEl && spend.spent_usd != null) {
+    spendEl.textContent = `$${Number(spend.spent_usd).toFixed(2)} / $${Number(spend.cap_usd).toFixed(0)}`;
+    spendEl.className = 'pill ' + (spend.at_cap ? 'blocked' : (spend.near_cap ? 'live' : 'on'));
+    const det = document.getElementById('ops-llm-spend-details');
+    if (det) det.textContent = `UTC day ${spend.day || ''} · remaining $${Number(spend.remaining_usd || 0).toFixed(2)} · hard cap on generate routes`;
+  }
   // Error stats
   const statsR = await API.get('/api/ops/errors/stats');
   if (statsR.ok) {
@@ -20010,7 +20030,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="section-h">
         <h2>🛠️ Ops Runbook</h2>
         <span class="sub">Production health: liveness/readiness probes, error log, rate-limit buckets. The boring stuff that keeps the system alive.</span>
-        <button class="btn ghost" id="ops-refresh" style="margin-left:auto">🔄 Refresh</button>
+        <a class="btn ghost" href="/ops/jobs" style="margin-left:auto;text-decoration:none">⏱️ Jobs dashboard</a>
+        <button class="btn ghost" id="ops-refresh">🔄 Refresh</button>
       </div>
 
       <div class="grid">

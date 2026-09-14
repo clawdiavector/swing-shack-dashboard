@@ -702,6 +702,20 @@ def generate_image(
     size = size if size in _VALID_SIZES else "1024x1024"
     n = max(1, min(4, int(n)))
 
+    # t50 — hard daily cap at the egress chokepoint (before any upstream HTTP).
+    try:
+        from _lib import llm_spend as _llm_spend
+        _est = _llm_spend.modelled_image_cost(size=size, n=n)
+        if max_cost_usd and _est > float(max_cost_usd):
+            _est = float(max_cost_usd)
+        _ok, _reason = _llm_spend.check("image", _est)
+        if not _ok:
+            raise ImageGenBadRequest(f"spend_cap: {_reason}")
+    except ImageGenBadRequest:
+        raise
+    except Exception:
+        pass  # if counter import fails mid-boot, route-level gate still holds
+
     provider = (
         provider
         or os.environ.get("CAMPAIGN_OS_IMAGE_PROVIDER")
@@ -767,7 +781,13 @@ def generate_image(
         revised = item.get("revised_prompt", "")
         cost = 0.0
         usage = {}
-        return GenResult(
+        # t50-I: OpenAI does not return usage.cost — charge a modelled estimate.
+        try:
+            from _lib.llm_spend import modelled_image_cost
+            cost = modelled_image_cost(size=size, n=n)
+        except Exception:
+            cost = 0.04
+        result = GenResult(
             bytes=raw,
             mime=mime,
             model=model,
@@ -775,10 +795,16 @@ def generate_image(
             cost_estimate_usd=cost,
             prompt_used=enhanced,
             revised_prompt=revised,
-            warning=None,
+            warning="cost_estimate_usd modelled (OpenAI path; not billed usage)",
             usage=usage,
             brand_recipe=recipe_summary or None,
         )
+        try:
+            from _lib import llm_spend as _ls
+            _ls.record(result.cost_estimate_usd, route="image_gen_router.generate", model=model)
+        except Exception:
+            pass
+        return result
     elif provider == "krea":
         # Live Krea path: async job submission. Caller polls
         # /api/krea/job-status?id=<provider_job_id>.
@@ -949,12 +975,18 @@ def generate_image(
         raw, mime = _extract_image_from_openrouter_response(api_resp)
         usage = api_resp.get("usage") or {}
         cost = _cost_from_usage(usage)
+        if not cost or cost <= 0:
+            try:
+                from _lib.llm_spend import modelled_image_cost
+                cost = modelled_image_cost(size=size, n=n)
+            except Exception:
+                cost = 0.04
         if cost > max_cost_usd:
             _LOG.warning(
                 "openrouter generate cost $%.4f exceeded max_cost_usd $%.4f for %s",
                 cost, max_cost_usd, model,
             )
-        return GenResult(
+        result = GenResult(
             bytes=raw,
             mime=mime,
             model=model,
@@ -970,6 +1002,12 @@ def generate_image(
             usage=usage,
             brand_recipe=recipe_summary or None,
         )
+        try:
+            from _lib import llm_spend as _ls
+            _ls.record(result.cost_estimate_usd, route="image_gen_router.generate", model=model)
+        except Exception:
+            pass
+        return result
 
     else:
         raise ImageGenBadRequest(
@@ -1090,6 +1128,17 @@ def edit_image(
     if not instruction or not instruction.strip():
         raise ImageGenBadRequest("instruction is empty")
 
+    try:
+        from _lib import llm_spend as _llm_spend
+        _est = _llm_spend.modelled_image_cost(size="1024x1024", n=1)
+        _ok, _reason = _llm_spend.check("image", _est)
+        if not _ok:
+            raise ImageGenBadRequest(f"spend_cap: {_reason}")
+    except ImageGenBadRequest:
+        raise
+    except Exception:
+        pass
+
     provider = (
         provider
         or os.environ.get("CAMPAIGN_OS_IMAGE_PROVIDER")
@@ -1134,6 +1183,12 @@ def edit_image(
     raw, mime = _extract_image_from_openrouter_response(api_resp)
     usage = api_resp.get("usage") or {}
     cost = _cost_from_usage(usage)
+    if not cost or cost <= 0:
+        try:
+            from _lib.llm_spend import modelled_image_cost
+            cost = modelled_image_cost(size="1024x1024", n=1)
+        except Exception:
+            cost = 0.04
     if cost > max_cost_usd:
         _LOG.warning(
             "openrouter edit cost $%.4f exceeded max_cost_usd $%.4f for %s",
@@ -1154,6 +1209,11 @@ def edit_image(
         ),
         usage=usage,
     )
+    try:
+        from _lib import llm_spend as _ls
+        _ls.record(result.cost_estimate_usd, route="image_gen_router.edit", model=model)
+    except Exception:
+        pass
     if save and brand_id:
         sidecar = {
             "operation": "edit",

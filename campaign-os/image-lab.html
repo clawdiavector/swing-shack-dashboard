@@ -1383,19 +1383,21 @@ $('generate-btn').addEventListener('click', async () => {
     } else if (STATE.selectedRefs.size === 0 && items.length === 0) {
       // Plain generate
       endpoint = `/api/image/generate`;
-      body = { prompt, brand: STATE.brand, size, model: model || null };
+      body = { prompt, brand_id: STATE.brand, brand: STATE.brand, size, model: model || null, human_approved: true };
       if (provider) body.provider = provider;
     } else {
       // Multi-source compose — /api/image/generate now accepts all 4 layers
       endpoint = `/api/image/generate`;
       body = {
         prompt,
+        brand_id: STATE.brand,
         brand: STATE.brand,
         size,
         model: model || null,
         reference_ids: Array.from(STATE.selectedRefs),
         product_ids: Array.from(STATE.selectedItems),
         service_ids: [],
+        human_approved: true,
       };
       if (provider) body.provider = provider;
     }

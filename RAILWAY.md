@@ -10,94 +10,159 @@ Python is **3.12**, declared once, in `Dockerfile` line 1 (`python:3.12-slim-boo
 
 ## 2 — Which branch the service points at
 
-Set the Railway service's deploy branch to **`fix/asset-state-engine-deploy`** while this work is in flight, and move it back to `feat/asset-state-engine` (or `main`) once the fix branch merges.
-
-Dashboard path: *Service → Settings → Source → Branch*.
-
-The fix branch is **local-only until someone with push rights pushes it**.
+Set the Railway service deploy branch to **`integrate/campaign-os-option-c`** while Option C work is in flight (confirm in Railway: *Service → Settings → Source → Branch*). Do **not** point at retired branches (`feat/asset-state-engine`, `fix/asset-state-engine-deploy`).
 
 ## 3 — Environment variables
 
-These live on the **Railway service**, not in `railway.json`. `railway.json` cannot set environment variables or volumes; the old `deploy.env` / `deploy.volumes` blocks were silently ignored.
+These live on the **Railway service**, not in `railway.json`.
 
 | Variable | Value | Required | Set where |
 |---|---|---|---|
-| `PORT` | injected by Railway | auto | Railway sets it; app reads it at `app.py` boot, default `8000` |
-| `DATA_DIR` | `/data/campaign-os` | **yes** | **Railway service variables — NOT `railway.json`** |
+| `PORT` | injected by Railway | auto | Railway sets it; app reads it at boot, default `8000` |
+| `DATA_DIR` | `/data/campaign-os` | **yes** | Railway service variables |
+| `COS_JOB_TOKEN` | long random string | **yes** for jobs / Hermes | Railway service variables — never print the value |
+| `CAMPAIGN_OS_DAILY_LLM_CAP_USD` | e.g. `5` (default) | no | Hard daily cap for image generate routes |
+| `COS_LLM_DAILY_CAP_USD` | alias for the above | no | Accepted if the longer name unset |
+| `CAMPAIGN_OS_PASSWORD` | shared login | yes in prod | Railway service variables |
 
-If `DATA_DIR` is not set in the service variables, the app falls back to `/data` on ephemeral storage and editorial state is lost on every redeploy.
-
-No secrets are required to boot. Postiz / GA4 credentials are only needed for optional integrations.
+If `DATA_DIR` is not set, the app falls back to ephemeral storage and editorial state is lost on every redeploy.
 
 ## 4 — Volume
 
-A volume must be attached at mount path `/data/campaign-os` via *Service → Settings → Volumes*.
-
-**Action: verify this exists on the live service.** If it does not, `scheduled-items.json` and review state have been evaporating on each deploy. Check that before concluding data was "lost".
+Attach a volume at mount path `/data/campaign-os` (*Service → Settings → Volumes*).
 
 ## 5 — Verifying a deploy
 
 ```bash
-# Full local proof — build, boot, probe, report module gap
 bash tests/smoke_boot.sh
-
-# Against the live service
 SMOKE_URL=https://<service>.up.railway.app bash tests/smoke_boot.sh
-
-# Just the module gap, no Docker
 python3 scripts/check_lib_modules.py
-python3 scripts/check_lib_modules.py --json | python3 -m json.tool
-
-# After Track A lands (36 modules pushed): must exit 0
-STRICT=1 bash tests/smoke_boot.sh
 ```
 
-**A 200 from `/api/health` does not mean the app works.** `app.py` wraps most `_lib` imports in `try/except`, so the process boots and health passes while hundreds of routes 500 on first request. The real readiness signal is `lib_modules_missing` in `/api/ready`.
+A 200 from `/api/health` does not mean the app works. Prefer `/api/ready` module-gap fields.
 
-Expected-good payload (after Track A):
+---
 
-```
-"lib_modules_missing": [], "lib_modules_present": 44, "strategy_page_present": true
-```
+## 6 — Monitoring runbook (phone-first)
 
-`/api/ready` may return 503 when a *data/volume* check fails (empty first mount). That is not a boot failure. Module-gap fields are siblings of `checks` and never flip the status code.
+You got paged at 07:00 or Telegram shouted. Act from this page alone — no laptop required.
 
-## 6 — Developer checklist: push the 36 `_lib` modules
+### 6.0 Ops API cheat-sheet
 
-**These files exist only on the developer's machine.** They are not in git — on any branch, in any of ~1,400 commits — and they are **not** gitignored (`git check-ignore` finds no match; they were simply never `git add`ed). No one else can recreate them: they are ~40% of the application. Nothing in this repo, and no agent, will stub or fake them.
+| Endpoint | Auth | Use on phone |
+|---|---|---|
+| `GET /api/jobs/status` | bearer **or** session | Full verdict table (timestamps) |
+| `GET /api/jobs/failures` | bearer **or** session | Open incidents — **excludes `best_effort`** |
+| `GET /api/jobs/diagnostics/<run_id>` | bearer **or** session | Redacted bundle (30d / 200 per job retention) |
+| `GET /api/ops/runbook` | **session only** | Snapshot: checks, errors, `llm_spend`, jobs snippet. Bearer alone → **401** here (auth asymmetry vs `/api/jobs/*`) |
+| `GET /api/ops/errors` / `…/stats` | session | In-memory ring (~200). **Per process** — empties on every deploy / replica |
+| `GET /api/ops/llm-spend` | session | Today’s generate spend vs hard cap |
+| `GET /ops/jobs` | **session only** (bearer does **not** open HTML) | Human dashboard — verdicts, drawer, Run now |
 
-From the machine that has them:
+### 6.0b Eleven registered jobs
+
+| job | every_s | timeout_s | criticality | best_effort |
+|---|---:|---:|---|---|
+| `meta_refresh` | 43200 | 60 | HIGH | no |
+| `gbp_tick` | 86400 | 60 | MEDIUM | no |
+| `freshness_scan` | 86400 | 60 | LOW | yes |
+| `golf_news` | 86400 | 60 | LOW | yes |
+| `reddit_trends` | 86400 | 60 | LOW | yes |
+| `youtube_trends` | 86400 | 90 | LOW | yes |
+| `seo_rankings` | 86400 | 120 | MEDIUM | yes |
+| `ga4_report` | 86400 | 90 | MEDIUM | no |
+| `site_audit` | 86400 | 90 | MEDIUM | yes |
+| `insights_hooks` | 86400 | 120 | HIGH | no |
+| `insights_reco` | 86400 | 180 | MEDIUM | no |
+
+`meta_refresh` goes LATE at **18h** (`43200×1.5`); 24h jobs go LATE at **36h**. `site_audit` STUCK at **180s** (`90×2`).
+
+### 6.1 What the alerts mean
+
+| Signal | Meaning | First action on phone |
+|---|---|---|
+| Silence from `campaign-os-watch` (15m) | Healthy — every job verdict is `OK` | Nothing |
+| One or more Telegram lines from the watch | At least one job is not `OK` | Open `/ops/jobs` (login), tap the red/amber row |
+| **Missing** 07:00 `campaign-os-digest` | Watchdog host / cron is down — **not** "all clear" | Check Hermes cron host; then curl status below |
+| `🟢 … recovered` | Prior bad set cleared | Optional glance at `/ops/jobs` |
+
+### 6.2 Verdicts (stand-in SLOs)
+
+From `GET /api/jobs/status` / the Jobs page chips. Numbers from `runner.verdict_for`:
+
+| Verdict | Rule |
+|---|---|
+| `OK` | Last finished status is `OK` **and** age since last success `< every_seconds × 1.5` |
+| `LATE` | Success is older than `every_seconds × 1.5`, **or** a `best_effort` job's last finish was not OK |
+| `FAILED` | Last finished status ≠ OK on a non–`best_effort` job |
+| `STUCK` | A `started` row with no matching `finished`, older than `timeout_seconds × 2` |
+| `NEVER` | No ledger rows (fresh volume / never scheduled) |
+
+Severity sort for phone reading: `FAILED` → `STUCK` → `NEVER` → `LATE`.
+
+### 6.3 Phone checklist (copy/paste)
+
+1. Open **`https://<service>.up.railway.app/ops/jobs`** (session login — this page is **not** public).
+2. Read the verdict chips. Tap **Failure detail** on `FAILED` / `STUCK`.
+3. Work the **Suggested checks** checklist in the drawer (technical traceback stays collapsed).
+4. If the check says credentials / env — open Railway variables (presence only; do not paste secrets into Telegram).
+5. Optional: **Run now** (rate-limited, `triggered_by=manual`).
+6. Confirm recovery: watch goes silent, or next digest shows `OK`.
+
+Deep link from alerts: `/ops/jobs?job=<name>` (and `&run=<run_id>` when present).
+
+### 6.4 API endpoints (curl from phone Termux / Shortcuts)
+
+Never print token values — only whether the header is set.
 
 ```bash
-cd <repo>
-git checkout feat/asset-state-engine     # or the current fix branch
-git status --short campaign-os/_lib/     # expect ~36 untracked .py files
-python3 scripts/check_lib_modules.py     # expect: 0 missing, exit 0
-git add campaign-os/_lib/*.py campaign-os/_lib/strategy_page.html
-git commit -m "feat(_lib): commit the 36 modules app.py imports"
-git push origin feat/asset-state-engine
+# Verdict table (timestamps) — what the digest uses
+curl -sS -H "Authorization: Bearer $COS_JOB_TOKEN" \
+  "https://<service>.up.railway.app/api/jobs/status" | python3 -m json.tool
+
+# Open incidents + bundle refs (excludes best_effort)
+curl -sS -H "Authorization: Bearer $COS_JOB_TOKEN" \
+  "https://<service>.up.railway.app/api/jobs/failures"
+
+# One redacted diagnostic bundle
+curl -sS -H "Authorization: Bearer $COS_JOB_TOKEN" \
+  "https://<service>.up.railway.app/api/jobs/diagnostics/<run_id>"
+
+# Ops snapshot (session cookie OR use browser on /ops)
+# /api/ops/runbook  — health + readiness + llm_spend + jobs snippet
+# /api/ops/errors   — recent error ring buffer
+# /api/ops/llm-spend — today's generate spend vs hard cap
 ```
 
-Required files (36 `.py` + `strategy_page.html`):
+If Hermes is down and you only have Railway: *Service → Deployments → View Logs*, then the curls above from any machine that has `COS_JOB_TOKEN` in the environment.
 
-```
-audit brand_bible brand_brief_intel brand_dna brand_overlay campaign_brief
-connection_status creative_director decision gbp_daily_poster gbp_insights
-gbp_oauth governance image_gen_router insights_correlator integrity krea_mcp
-marketing_lanes meme_templates meta_live_fetch portfolio postiz_client
-product_service_library reference_dna report_html seo_insights social_history
-spend stock_importer strategy_evidence strategy_store ubersuggest_mcp
-weekly_brief weighted_sort windsor_client windsor_fetcher
-```
+### 6.5 Telegram routing
 
-plus `campaign-os/_lib/strategy_page.html`.
+| Cron | Cadence | Mode | Behaviour |
+|---|---|---|---|
+| `campaign-os-watch` | 15m | `--no-agent` | Prints **nothing** when all OK; change-detect + 4h re-assert on bad sets |
+| `campaign-os-digest` | 07:00 daily | `--no-agent` | **Always** prints the full table (dead-man switch) |
 
-**Before pushing, check for secrets.** These modules include OAuth and API clients (`gbp_oauth`, `postiz_client`, `windsor_client`, `krea_mcp`, `ubersuggest_mcp`). Grep for hardcoded tokens/keys first — this is a public repo.
+Both belong on **exactly one** cron host (Linux desk box default). Do not also run them on the Mac.
 
-**After pushing:** `git pull && STRICT=1 bash tests/smoke_boot.sh` → must exit 0. Then drop `--warn-only` from the Dockerfile check layer so the gap can never silently return.
+**Status at plan time:** scripts live in agent-control; Hermes cron registration may still be blocked on `COS_JOB_TOKEN` in the cron host env. **Do not assume silence means healthy until `hermes cron list` shows both jobs active.** A missing 07:00 digest is the dead-man signal either way.
+
+### 6.6 LLM spend (t50)
+
+Generate routes (`/api/image/generate`, `/edit`, `/from-asset`, `/from-reference`,
+`/from-product`, `/api/build-post/draft`, `/api/visual-library/<brand>/generate`)
+refuse with `402` when today's spend would exceed
+`CAMPAIGN_OS_DAILY_LLM_CAP_USD` (default **$5**; alias `COS_LLM_DAILY_CAP_USD`).
+They also require `human_approved=true` (writes a receipt under `$DATA_DIR/receipts/`).
+Counter: `$DATA_DIR/llm-spend/<YYYY-MM-DD>.json`, visible on `/ops/jobs` and
+`/api/ops/runbook` → `llm_spend`. OpenAI path uses a **modelled** per-size price (upstream reports $0).
+
+**Blueprint scope:** no HTTP blueprint route in the live app.
+`scripts/generate-blueprint.py` is a standalone MiniMax CLI — out of scope for
+the in-app counter until a route exists (plan §8.4: document, don't invent).
+
+---
 
 ## 7 — Fly.io
 
-`fly.toml` is a maintained backup target sharing the same `Dockerfile`. It is not what's live. Fly's HTTP check probes `/api/health` (not `/`, which 302s to `/login`). `PORT=8080` matches `internal_port` — do not change it.
-
-Railway CLI is not required for this deploy path. GitHub integration + the Dockerfile is enough.
+`fly.toml` is a maintained backup target sharing the same `Dockerfile`. It is not what's live. Fly's HTTP check probes `/api/health` (not `/`, which 302s to `/login`).
