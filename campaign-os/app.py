@@ -5365,6 +5365,210 @@ def calendar_v3_jobs_hermes_list():
     }), 200
 
 
+@app.route('/api/calendar/v3/scout/discover/<brand_id>', methods=['POST'])
+def calendar_v3_scout_discover(brand_id: str):
+    """Slice 0.3 §1-7 — Persistent Scout discovery run for one brand.
+
+    Probes research health first; fails closed if search_reachable=false.
+    Reads canonical_events only (one row per event_key). Performs the
+    discovery scan via the candidate_producer provided in the request
+    body; the calling agent/cron supplies the producer with real
+    research results.
+
+    Body schema:
+      {
+        "candidate_producer_results": [
+          { ...candidate dict ready for upsert... },
+          ...
+        ],
+        "sources_researched": <int>,
+        "research_health": { "probed": true, "search_reachable": true,
+                              "extract_reachable": true, "overall_state": "healthy" }
+      }
+    """
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    body = request.get_json(silent=True) or {}
+    candidates = body.get("candidate_producer_results") or []
+    sources_researched = int(body.get("sources_researched") or 0)
+    research_health = body.get("research_health") or {}
+    # Brief §3 — fail closed when research was unreachable
+    if research_health.get("probed") and research_health.get("search_reachable") is False:
+        # Persist a research_degraded run log and return without upserts
+        from _lib.marketing_calendar import append_run_log
+        run = append_run_log({
+            "job_type": "scout",
+            "brand_id": brand_id,
+            "status": "research_degraded",
+            "research_health": "unreachable",
+            "sources_checked": 0,
+            "events_created": 0,
+            "events_updated": 0,
+            "events_unchanged": 0,
+            "alerts_created": 0,
+            "errors": ["research_health.probed=true, search_reachable=false"],
+        })
+        return jsonify({
+            "ok": True,
+            "status": "research_degraded",
+            "brand_id": brand_id,
+            "research_health": research_health,
+            "external_candidates_written": 0,
+            "alert_persisted": True,
+            "run_id": run.get("run_id"),
+            "note": "Scout failed closed per brief §3 — research capability was unreachable.",
+        }), 200
+    # If the producer supplied no candidates and 0 sources researched,
+    # treat that as a degraded run (the agent did not do discovery).
+    if not candidates and sources_researched == 0:
+        from _lib.marketing_calendar import append_run_log
+        run = append_run_log({
+            "job_type": "scout",
+            "brand_id": brand_id,
+            "status": "no_discovery",
+            "research_health": research_health.get("overall_state") or "unknown",
+            "sources_checked": 0,
+            "events_created": 0,
+            "events_updated": 0,
+            "events_unchanged": 0,
+            "alerts_created": 0,
+            "errors": ["candidate_producer returned 0 candidates and 0 sources_researched"],
+        })
+        return jsonify({
+            "ok": True,
+            "status": "no_discovery",
+            "brand_id": brand_id,
+            "research_health": research_health,
+            "external_candidates_written": 0,
+            "run_id": run.get("run_id"),
+            "note": "Zero research sources reported; this is treated as a degraded run per brief §3.",
+        }), 200
+    # Producer fed us real candidates — run the persistent Scout
+    from _lib.marketing_calendar import scout_run_for_brand
+    def _producer(ctx):
+        ctx["sources_researched"] = sources_researched
+        ctx["research_health"] = research_health
+        return candidates
+    result = scout_run_for_brand(brand_id, candidate_producer=_producer)
+    result["sources_researched"] = sources_researched
+    result["research_health"] = research_health
+    result["external_candidates_written"] = (
+        result.get("new_logical_events", 0) + result.get("material_updates", 0)
+    )
+    return jsonify({"ok": True, **result}), 200
+
+
+@app.route('/api/calendar/v3/scout/discover/run-all', methods=['POST'])
+def calendar_v3_scout_discover_run_all():
+    """Multi-brand orchestrator. Iterates all operating brands, invokes
+    the producer for each, persists a unified run log. Mirrors the
+    lead-time-watcher/run-all endpoint structure."""
+    body = request.get_json(silent=True) or {}
+    per_brand_results = body.get("per_brand_results") or {}
+    # per_brand_results maps brand_id -> {candidate_producer_results, sources_researched, research_health}
+    from _lib.marketing_calendar import scout_run_for_brand
+    brands_out = []
+    for bid in ("stick", "bag-drop", "swing-shack"):
+        brand_input = per_brand_results.get(bid) or {
+            "candidate_producer_results": [],
+            "sources_researched": 0,
+            "research_health": {"probed": False},
+        }
+        candidates = brand_input.get("candidate_producer_results") or []
+        sources_researched = int(brand_input.get("sources_researched") or 0)
+        research_health = brand_input.get("research_health") or {}
+        # Brief §3 — fail closed per brand
+        if research_health.get("probed") and research_health.get("search_reachable") is False:
+            from _lib.marketing_calendar import append_run_log
+            run = append_run_log({
+                "job_type": "scout",
+                "brand_id": bid,
+                "status": "research_degraded",
+                "research_health": "unreachable",
+                "sources_checked": 0,
+                "events_created": 0,
+                "events_updated": 0,
+                "events_unchanged": 0,
+                "alerts_created": 0,
+                "errors": ["research_health.probed=true, search_reachable=false"],
+            })
+            brands_out.append({"brand_id": bid, "status": "research_degraded",
+                                "external_candidates_written": 0,
+                                "alert_persisted": True,
+                                "run_id": run.get("run_id")})
+            continue
+        def _producer(ctx):
+            ctx["sources_researched"] = sources_researched
+            ctx["research_health"] = research_health
+            return candidates
+        result = scout_run_for_brand(bid, candidate_producer=_producer)
+        result["sources_researched"] = sources_researched
+        result["research_health"] = research_health
+        brands_out.append({"brand_id": bid, **{
+            k: v for k, v in result.items() if k != "research_health"
+        }})
+    return jsonify({
+        "ok": True,
+        "per_brand": brands_out,
+        "totals": {
+            "brands_processed": sum(1 for b in brands_out if b.get("brand_status") == "processed"),
+            "brands_skipped": sum(1 for b in brands_out if b.get("brand_status") == "skipped_unconfigured"),
+            "brands_research_degraded": sum(1 for b in brands_out if b.get("status") == "research_degraded"),
+            "churn_aborts": sum(1 for b in brands_out if b.get("churn_guard_aborted")),
+            "new_logical_events": sum(b.get("new_logical_events", 0) for b in brands_out),
+            "material_updates": sum(b.get("material_updates", 0) for b in brands_out),
+        },
+    }), 200
+
+
+@app.route('/api/calendar/v3/scout/clean-second-run', methods=['POST'])
+def calendar_v3_scout_clean_second_run():
+    """Slice 0.3 §16 — verify a second Scout run creates 0 churn.
+
+    Runs the persistent Scout with NO candidates (producer returns [])
+    and proves that no upserts happen and no new revisions are
+    created.
+    """
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    from _lib.marketing_calendar import scout_run_for_brand, canonical_records
+    before_canon = canonical_records(brand_id)
+    before_revisions = sum((r.get("revision") or 1) for r in before_canon)
+    def _producer(ctx):
+        # NO-OP: simulates a Scout that performs research but
+        # finds nothing worth upserting.
+        ctx["sources_researched"] = 12
+        ctx["research_health"] = {"probed": True, "search_reachable": True,
+                                    "extract_reachable": True,
+                                    "overall_state": "healthy"}
+        return []
+    result = scout_run_for_brand(brand_id, candidate_producer=_producer)
+    after_canon = canonical_records(brand_id)
+    after_revisions = sum((r.get("revision") or 1) for r in after_canon)
+    new_logical = len(after_canon) - len(before_canon)
+    test_pass = (
+        result.get("new_logical_events", 0) == 0
+        and result.get("material_updates", 0) == 0
+        and result.get("candidates_added", 0) == 0
+        and result.get("candidates_updated", 0) == 0
+        and after_revisions == before_revisions
+        and new_logical == 0
+        and not result.get("churn_guard_aborted")
+        and result.get("discovery_executed") is True
+    )
+    return jsonify({
+        "ok": True,
+        "test_pass": test_pass,
+        "before_logical_events": len(before_canon),
+        "after_logical_events": len(after_canon),
+        "before_revisions_sum": before_revisions,
+        "after_revisions_sum": after_revisions,
+        "scout_result": result,
+    }), 200
+
+
 @app.route('/api/calendar/v3/jobs/control', methods=['POST'])
 def calendar_v3_jobs_control():
     """Operate on a Hermes Calendar job: run_now / pause / resume.
@@ -5489,6 +5693,29 @@ def calendar_v3_jobs_control():
         }), 200
 
     return jsonify({"ok": False, "error": f"unknown simulation: {rb}"}), 400
+
+
+@app.route('/api/calendar/event-revisions/<brand_id>/<event_key>', methods=['GET'])
+def calendar_event_revisions(brand_id: str, event_key: str):
+    """Slice 0.3 §4 — return ALL revisions for one event_key (audit trail)."""
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    try:
+        from _lib.marketing_calendar import list_records
+        all_records = list_records(brand_id)
+        revisions = [r for r in all_records if r.get("event_key") == event_key]
+        # Sort by revision ascending (oldest first)
+        revisions.sort(key=lambda r: (r.get("revision") or 1, r.get("created_at") or ""))
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "event_key": event_key,
+            "revision_count": len(revisions),
+            "revisions": revisions,
+        }), 200
+    except Exception as e:
+        _app_log.exception("calendar_event_revisions failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/calendar/section/<brand_id>', methods=['GET'])

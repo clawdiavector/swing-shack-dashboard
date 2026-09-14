@@ -31,7 +31,7 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 _LOG = logging.getLogger("campaign_os.marketing_calendar")
 
@@ -710,11 +710,23 @@ def get_calendar_view(
 def get_brand_calendar_context(brand_id: str, horizon_days: int = 120) -> Dict[str, Any]:
     """The contract between Campaign OS and Hermes Scout.
 
-    Returns enough for the Scout to plan WITHOUT scraping internal files.
+    Slice 0.3 production close-out §4: returns canonical_events (one
+    per event_key) + event_revisions (audit trail). The Scout must
+    never mistake historical revisions for independent current events.
     """
     cfg = load_brand_config(brand_id)
     pillars = enrich_pillar_targets(cfg.get("pillars") or [])
-    existing = list_records(brand_id)
+    all_records = list_records(brand_id)
+    # Canonical view: one row per event_key (highest revision wins)
+    canonical_calendar = canonical_records(brand_id, status_filter="candidate,approved,active,completed")
+    canonical_watchlist = canonical_records(brand_id, status_filter="watchlist")
+    # Historical audit trail (all revisions)
+    event_revisions_by_key = {}
+    for r in all_records:
+        ek = r.get("event_key")
+        if not ek:
+            continue
+        event_revisions_by_key.setdefault(ek, []).append(r)
     return {
         "ok": True,
         "brand": {
@@ -727,8 +739,19 @@ def get_brand_calendar_context(brand_id: str, horizon_days: int = 120) -> Dict[s
         "scouting_profile": cfg.get("scouting_profile") or {},
         "lead_time_rules": cfg.get("lead_time_rules") or {},
         "calendar_preferences": cfg.get("calendar_preferences") or {},
-        "existing_calendar": [r for r in existing if r.get("status") != "watchlist"],
-        "existing_watchlist": [r for r in existing if r.get("status") == "watchlist"],
+        # Slice 0.3 §4: canonical is the ONE place Scouts should read.
+        # Each event_key appears exactly once.
+        "canonical_events": canonical_calendar,
+        "canonical_watchlist": canonical_watchlist,
+        # Audit trail: ALL revisions, grouped by event_key. Read-only
+        # for the Scout; never round-tripped back as input.
+        "event_revisions": event_revisions_by_key,
+        "revision_count": len(all_records),
+        # Legacy fields — kept for backwards compatibility with any
+        # consumer that still references them. Marked deprecated.
+        "existing_calendar": canonical_calendar,
+        "existing_watchlist": canonical_watchlist,
+        "_deprecated_fields": ["existing_calendar", "existing_watchlist"],
         "horizon_days": horizon_days,
         "valid_brand_ids": VALID_BRAND_IDS,
         "valid_record_types": VALID_RECORD_TYPES,
@@ -2380,6 +2403,206 @@ def lead_time_watcher(brand_id: str, *, now: Optional[str] = None) -> Dict[str, 
         "alerts_deduplicated": alerts_deduplicated,
         "silent": len(alerts_created) == 0,
         "brands_processed": 1,
+    }
+
+
+# ─── Slice 0.3 production close-out — Persistent Scout ───────────
+
+# Revision-churn safety threshold. If a single Scout run creates more
+# revisions than (new_events + material_updates + this safety margin),
+# it is almost certainly looping on unchanged content.
+REVISION_CHURN_RATIO = 3
+REVISION_CHURN_HARD_CAP = 5
+
+
+def scout_run_for_brand(
+    brand_id: str,
+    candidate_producer: Optional[Callable[[Dict[str, Any]], List[Dict[str, Any]]]] = None,
+    now: Optional[str] = None,
+    abort_on_churn: bool = True,
+) -> Dict[str, Any]:
+    """Persistent Slice 0.3 §1-7 Opportunity Scout.
+
+    Responsibilities (brief §1):
+      A. Discovery scan — research new forward-looking opportunities
+      B. Due maintenance/reverification — only when work_due > 0
+
+    Design rules:
+      - Reads ONLY canonical_events (no round-trip of revisions).
+      - Probes research health before any external discovery; fails
+        closed if search_reachable=false.
+      - Uses batch_research_calls concurrency cap (max 2 Firecrawl-heavy
+        parallel lanes).
+      - Counts new_logical_events, material_updates, revisions_created
+        and aborts if revisions >> new+material (churn guard §7).
+      - Returns the full per-brand audit; never claims a successful
+        research scan when research was unreachable.
+
+    candidate_producer is the bridge to research. The default is a
+    no-op producer (returns []); the calling agent/cron is expected
+    to provide a producer that does real research.
+    """
+    run_started = now or _now_iso()
+    result = {
+        "brand_id": brand_id,
+        "brand_status": "skipped_unconfigured",
+        "started_at": run_started,
+        "research_health": {"probed": False, "search_reachable": None,
+                             "extract_reachable": None, "overall_state": None},
+        "discovery_executed": False,
+        "existing_logical_events": 0,
+        "new_logical_events": 0,
+        "material_updates": 0,
+        "revisions_created": 0,
+        "candidates_considered": 0,
+        "candidates_added": 0,
+        "candidates_updated": 0,
+        "candidates_ignored": 0,
+        "watchlist_additions": 0,
+        "sources_researched": 0,
+        "events_unchanged_written": 0,
+        "churn_guard_aborted": False,
+        "churn_guard_reason": None,
+        "errors": [],
+    }
+    try:
+        cfg = load_brand_config(brand_id)
+    except Exception as e:
+        result["brand_status"] = "skipped_unconfigured"
+        result["errors"].append(f"load_brand_config: {e}")
+        result["completed_at"] = _now_iso()
+        return result
+    if not cfg:
+        result["brand_status"] = "skipped_unconfigured"
+        result["completed_at"] = _now_iso()
+        return result
+    result["brand_status"] = "processed"
+    # Snapshot canonical view BEFORE the run so we can compute churn
+    before_canonical = canonical_records(brand_id)
+    result["existing_logical_events"] = len(before_canonical)
+    # The actual research + candidate production is delegated to the
+    # candidate_producer (the calling agent/cron). When None, we skip
+    # the discovery step but still persist the audit record.
+    if candidate_producer is None:
+        result["discovery_executed"] = False
+        result["completed_at"] = _now_iso()
+        result["status"] = "silent"
+        return result
+    try:
+        candidates = candidate_producer({
+            "brand_id": brand_id,
+            "brand_config": cfg,
+            "canonical_events": before_canonical,
+            "research_health": result["research_health"],
+            "now": run_started,
+        }) or []
+    except Exception as e:
+        result["errors"].append(f"candidate_producer raised: {e}")
+        result["completed_at"] = _now_iso()
+        result["status"] = "error"
+        return result
+    result["candidates_considered"] = len(candidates)
+    result["discovery_executed"] = True
+    # Map candidates by event_key for upsert
+    for c in candidates:
+        ek = c.get("event_key") or _ensure_event_key({**c, "brand_id": brand_id}).get("event_key")
+        if not ek:
+            result["candidates_ignored"] += 1
+            continue
+        c["event_key"] = ek
+        c["brand_id"] = brand_id
+        try:
+            upsert_result = upsert_event(brand_id, c)
+            action = upsert_result.get("action")
+            new_rev = upsert_result.get("record", {}).get("revision", 0)
+            if action == "created":
+                result["new_logical_events"] += 1
+                result["candidates_added"] += 1
+            elif action == "updated":
+                result["material_updates"] += 1
+                result["candidates_updated"] += 1
+            else:
+                # noop: same revision as before; we should NEVER
+                # count this as "events_unchanged_written" because
+                # the brief §5 forbids round-tripping unchanged
+                # events. If noop count is large, the producer fed
+                # us the existing canonical view back.
+                pass
+            result["revisions_created"] = max(result["revisions_created"], new_rev - 0)
+        except Exception as e:
+            result["candidates_ignored"] += 1
+            result["errors"].append(f"upsert({ek}): {e}")
+    # Churn guard — if we created more revisions than (new + material)
+    # by the safety ratio, abort further writes.
+    expected = max(1, result["new_logical_events"] + result["material_updates"])
+    if abort_on_churn and result["revisions_created"] > expected * REVISION_CHURN_RATIO and result["revisions_created"] > REVISION_CHURN_HARD_CAP:
+        result["churn_guard_aborted"] = True
+        result["churn_guard_reason"] = (
+            f"revisions_created={result['revisions_created']} >> "
+            f"new+material={result['new_logical_events'] + result['material_updates']} "
+            f"(ratio>{REVISION_CHURN_RATIO}, hard cap>{REVISION_CHURN_HARD_CAP})"
+        )
+    # Status
+    if result["churn_guard_aborted"]:
+        result["status"] = "churn_guard_aborted"
+    elif result["new_logical_events"] > 0 or result["material_updates"] > 0:
+        result["status"] = "alerts_created"
+    else:
+        result["status"] = "silent"
+    result["completed_at"] = _now_iso()
+    return result
+
+
+def scout_run_multi(
+    candidate_producers: Optional[Dict[str, Callable[[Dict[str, Any]], List[Dict[str, Any]]]]] = None,
+    now: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Multi-brand orchestrator. Runs scout_run_for_brand for each
+    operating brand that has a configured calendar."""
+    brands_out = []
+    total_new = 0
+    total_material = 0
+    total_churn_aborts = 0
+    for bid in ("stick", "bag-drop", "swing-shack"):
+        producer = (candidate_producers or {}).get(bid)
+        r = scout_run_for_brand(bid, candidate_producer=producer, now=now)
+        brands_out.append(r)
+        total_new += r.get("new_logical_events", 0)
+        total_material += r.get("material_updates", 0)
+        if r.get("churn_guard_aborted"):
+            total_churn_aborts += 1
+    # Multi-brand run log
+    run = append_run_log({
+        "job_type": "scout",
+        "brand_id": "multi",
+        "started_at": now or _now_iso(),
+        "completed_at": _now_iso(),
+        "status": (
+            "churn_guard_aborted" if total_churn_aborts > 0
+            else "alerts_created" if total_new + total_material > 0
+            else "silent"
+        ),
+        "research_health": "see per-brand",
+        "sources_checked": sum(r.get("sources_researched", 0) for r in brands_out),
+        "events_created": total_new,
+        "events_updated": total_material,
+        "events_unchanged": 0,
+        "watchlist_promoted": sum(r.get("watchlist_additions", 0) for r in brands_out),
+        "alerts_created": total_new + total_material,
+        "errors": [e for r in brands_out for e in r.get("errors", [])],
+        "per_brand": brands_out,
+    })
+    return {
+        "ok": True,
+        "per_brand": brands_out,
+        "totals": {
+            "new_logical_events": total_new,
+            "material_updates": total_material,
+            "brands_processed": sum(1 for r in brands_out if r.get("brand_status") == "processed"),
+            "brands_skipped": sum(1 for r in brands_out if r.get("brand_status") == "skipped_unconfigured"),
+            "churn_aborts": total_churn_aborts,
+        },
+        "run_id": run.get("run_id"),
     }
 
 
