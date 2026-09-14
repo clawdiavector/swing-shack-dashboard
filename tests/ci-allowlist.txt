@@ -109,3 +109,4 @@ campaign-os/tests/jobs/test_jobs_bearer_auth.py
 campaign-os/tests/jobs/test_layer1_io.py
 campaign-os/tests/jobs/test_insights_hooks.py
 campaign-os/tests/jobs/test_insights_reco.py
+campaign-os/tests/jobs/test_redaction.py
