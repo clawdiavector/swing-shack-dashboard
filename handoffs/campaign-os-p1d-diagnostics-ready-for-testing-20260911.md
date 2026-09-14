@@ -18,7 +18,7 @@ Tier-0 retry + 10-class classifier + suggested_checks + diagnostic bundles (sche
 | Item | Value |
 |---|---|
 | Code-complete SHA | `931244bc2392e7a8abade0825261f0eeb993ee7a` |
-| Origin tip (incl. this handoff) | `origin/feat/campaign-os-p1d-diagnostics` @ `560a81fe7bcd5d6be0586cda8bfbd27bbe284744` |
+| Origin tip | `origin/feat/campaign-os-p1d-diagnostics` — run `git rev-parse origin/feat/campaign-os-p1d-diagnostics` (RFT handoff commit lands after code-complete) |
 | Base (feat branched from) | `9683b16ca1d90dfe1d33d16afb2781ea0094e1ef` (`merge(p1c-legacy)`) |
 | Integrate tip at RFT | `origin/integrate/campaign-os-option-c` @ `f183d3cf9d5e5aaec79d4996e28d1b663f107197` |
 | On origin? | **YES** — `git push -u origin feat/campaign-os-p1d-diagnostics` |
@@ -80,7 +80,7 @@ Plus handoff docs on feat: `handoffs/campaign-os-p1d-diagnostics-t41-notes.md`, 
 
 ## Suggested board / comment draft
 
-Campaign OS P1d ready for testing. `feat/campaign-os-p1d-diagnostics` @ `931244b` on origin. Verify PASS t35–t40 (70 jobs tests); t41 PARTIAL (watch patch unmerged). Target merge: `integrate/campaign-os-option-c` (already contains land + allowlist/cos_anon follow-ups). No deploy. Suggested column: **Ready for testing**.
+Campaign OS P1d ready for testing. `feat/campaign-os-p1d-diagnostics` on origin (code-complete `931244b`; tip `a0c670b`). Verify PASS t35–t40 (70 jobs tests); t41 PARTIAL (watch patch unmerged). Target merge: `integrate/campaign-os-option-c` (already contains land + allowlist/cos_anon follow-ups). No deploy. Suggested column: **Ready for testing**.
 
 ## Land (next job)
 
