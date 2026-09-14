@@ -5280,6 +5280,131 @@ def _do_lead_time_run_all():
         "totals": {"alerts_created": total_alerts, "alerts_deduplicated": total_deduped},
     })
 
+
+# ─── Slice 0.3 final close-out: Hermes job introspection + controls ───────
+
+# Hard-coded mapping from logical job_key → real Hermes cron job ID.
+# These are the production IDs created during Slice 0.3 build.
+HERMES_CALENDAR_JOB_IDS = {
+    "lead_time_watcher": "9da954e1db25",
+    "opportunity_scout": "473abd04e621",
+    "reactive_watch": "8270bde0913a",
+}
+HERMES_CALENDAR_JOB_SCHEDULES = {
+    "lead_time_watcher": "30 6 * * *",
+    "opportunity_scout": "0 7 * * 1",
+    "reactive_watch": "30 7 * * *",
+}
+
+
+def _list_hermes_calendar_jobs():
+    """Read the live Hermes job state for the three Slice 0.3 jobs.
+
+    Falls back gracefully if Hermes cron CLI is unavailable in the
+    container (the Campaign OS container may not have hermes on PATH).
+    Returns a list of dicts shaped for the UI.
+    """
+    import shutil, subprocess
+    hermes_bin = shutil.which("hermes")
+    out = []
+    for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
+        job = {
+            "job_key": job_key,
+            "job_id": jid,
+            "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+            "hermes_status": "unknown",
+            "last_run": None,
+            "next_run": None,
+            "mode": (
+                "no-agent + script" if job_key == "lead_time_watcher"
+                else "agent + skill" if job_key == "opportunity_scout"
+                else "agent"
+            ),
+            "control_supported": hermes_bin is not None,
+        }
+        if not hermes_bin:
+            out.append(job)
+            continue
+        try:
+            r = subprocess.run(
+                ["hermes", "cron", "list"], capture_output=True, text=True, timeout=10,
+            )
+            # Parse for the job ID + state
+            in_job = False
+            for line in r.stdout.splitlines():
+                line = line.rstrip()
+                if jid in line and "[" in line:
+                    # e.g. "9da954e1db25 [active]"
+                    state = line.split("[", 1)[1].split("]", 1)[0]
+                    job["hermes_status"] = state
+                if "Schedule:" in line and in_job:
+                    job["schedule"] = line.split(":", 1)[1].strip()
+                if "Next run:" in line and in_job:
+                    job["next_run"] = line.split(":", 1)[1].strip()
+                if "Last run:" in line and in_job:
+                    job["last_run"] = line.split(":", 1)[1].strip()
+                if jid in line:
+                    in_job = True
+                elif line.startswith("  ") and in_job and (line.strip() == "" or line.strip().startswith("Repeat:")):
+                    pass
+                elif line.startswith("  ") is False and in_job and jid not in line:
+                    in_job = False
+        except Exception as e:
+            job["hermes_status"] = f"error: {str(e)[:60]}"
+        out.append(job)
+    return out
+
+
+@app.route('/api/calendar/v3/jobs/hermes-list', methods=['GET'])
+def calendar_v3_jobs_hermes_list():
+    """Returns the live Hermes cron state for the three Slice 0.3 jobs."""
+    return jsonify({
+        "ok": True,
+        "jobs": _list_hermes_calendar_jobs(),
+        "evaluated_at": _now_iso_for_run_log(),
+    }), 200
+
+
+@app.route('/api/calendar/v3/jobs/control', methods=['POST'])
+def calendar_v3_jobs_control():
+    """Operate on a Hermes Calendar job: run_now / pause / resume.
+
+    Body: {job_key: 'lead_time_watcher', action: 'pause'}
+    """
+    import shutil, subprocess
+    hermes_bin = shutil.which("hermes")
+    body = request.get_json(silent=True) or {}
+    job_key = body.get("job_key")
+    action = body.get("action")
+    if job_key not in HERMES_CALENDAR_JOB_IDS:
+        return jsonify({"ok": False, "error": f"unknown job_key '{job_key}'"}), 400
+    if action not in ("run_now", "pause", "resume"):
+        return jsonify({"ok": False, "error": f"unknown action '{action}'"}), 400
+    if not hermes_bin:
+        return jsonify({
+            "ok": False,
+            "error": "hermes CLI not available on this container's PATH; cannot operate",
+        }), 501
+    jid = HERMES_CALENDAR_JOB_IDS[job_key]
+    argv_map = {
+        "run_now": ["hermes", "cron", "run", jid],
+        "pause":   ["hermes", "cron", "pause", jid],
+        "resume":  ["hermes", "cron", "resume", jid],
+    }
+    try:
+        r = subprocess.run(argv_map[action], capture_output=True, text=True, timeout=15)
+        ok = r.returncode == 0
+        return jsonify({
+            "ok": ok,
+            "job_key": job_key,
+            "job_id": jid,
+            "action": action,
+            "stdout": (r.stdout or "")[:500],
+            "stderr": (r.stderr or "")[:500],
+        }), (200 if ok else 500)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
     # 1. Snapshot existing trusted_for_planning=true record count
     with urllib.request.urlopen(urllib.request.Request(
             f"{request.host_url.rstrip('/')}/api/calendar/calendar/{brand_id}",
