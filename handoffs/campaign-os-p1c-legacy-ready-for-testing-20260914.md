@@ -4,7 +4,7 @@
 **Job:** `job-20260911-campaign-os-p1c-legacy-implement` (Cursor, implement)  
 **Plan:** `handoffs/campaign-os-p1c-legacy-plan-20260911.md` @ `7b2c0c6` / brought onto feat as `ddf53fe`  
 **Worktree:** `/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/campaign-os-p1c-legacy`  
-**Branch:** `feat/campaign-os-p1c-legacy` @ `f9dac891a07419bcdbebded97f6a4b7c4c58e337` (plus pending docs commit for RFT + AGENTS Appendix A)  
+**Branch:** `feat/campaign-os-p1c-legacy` @ `f9dac891a07419bcdbebded97f6a4b7c4c58e337` (36b12fcaeae44cc8287992b950298f139b09c204)  
 **Merge target:** `integrate/campaign-os-option-c` (`69b64e2`) — **do not** push `main` / `master` / `develop`.
 
 ## One-line summary
