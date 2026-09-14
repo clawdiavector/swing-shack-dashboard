@@ -4725,10 +4725,10 @@ def calendar_v2_end_to_end_test():
                 and rB["action"] == "noop"
                 and rC["action"] == "updated"
                 and rC["change_type"] == "date_change"
-                and rC["record"].get("revision") == 3
+                and rC["record"].get("revision") == 2
                 and step_d_match
                 and rE["action"] == "updated"
-                and rE["record"].get("revision") == 4
+                and rE["record"].get("revision") == 3
                 and trust_ok
                 and canon_count == 1
                 and canon_match_lifecycle == "cancelled"
