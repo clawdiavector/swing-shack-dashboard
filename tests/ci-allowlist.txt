@@ -104,3 +104,8 @@ campaign-os/tests/test_v2026_08_13_weekly_report_share.py
 tests/test_parity.py
 scripts/tests/test_refit_format_model_v2026_08_14.py
 scripts/tests/test_v2026_08_13_validate_railway_deploy_wiring.py
+campaign-os/tests/jobs/test_layer1_contracts.py
+campaign-os/tests/jobs/test_jobs_bearer_auth.py
+campaign-os/tests/jobs/test_layer1_io.py
+campaign-os/tests/jobs/test_insights_hooks.py
+campaign-os/tests/jobs/test_insights_reco.py
