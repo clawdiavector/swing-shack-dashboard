@@ -970,8 +970,9 @@ def resolve_source_precedence(
     For a list of competing source records (each with at least
     source_url + source_class + retrieved_at), pick the winner based on:
       1. source_class precedence (organiser > governing tour > venue > brand > secondary)
-      2. recency (newer retrieved_at wins)
-      3. date specificity (page whose URL says /schedule/ or /2026/ beats a /news/ article)
+      2. event-organiser self-page: same-domain as event name beats generic tour
+      3. recency (newer retrieved_at wins)
+      4. date specificity (page whose URL says /schedule/ or /2026/ beats a /news/ article)
     """
     if not sources:
         return {"winner": None, "loser": None, "rationale": "no sources"}
@@ -993,11 +994,32 @@ def resolve_source_precedence(
         # Date-specificity bonus: schedule URL beats news article
         url = (s.get("source_url") or "").lower()
         spec_bonus = 0
-        if any(seg in url for seg in ("/schedule", "/fixtures", "/tournaments", "/events", "/calendar")):
+        if any(seg in url for seg in ("/schedule", "/fixtures", "/tournaments", "/events", "/calendar", "/information")):
             spec_bonus = 5
         if any(seg in url for seg in ("/news/", "/article/", "/blog/", "/press-releases/")):
             spec_bonus = max(spec_bonus, 0)  # no penalty, just no bonus
-        scored.append((base + rec_bonus + spec_bonus, s))
+        # Event-organiser domain bonus: a domain that matches the event
+        # name (e.g. nedbankgolfchallenge.com for "Nedbank Golf Challenge")
+        # beats a generic tour domain (e.g. europeantour.com).
+        # Heuristic: if domain is *not* one of the big tour domains
+        # (europeantour.com, pgatour.com, lpga.com, tglgolf.com,
+        # solheimcup.com, presidentscup.com, rydercup.com), and it's an
+        # event-specific page, treat it as the organiser's site.
+        TOUR_DOMAINS = {
+            "europeantour.com", "pgatour.com", "lpga.com", "tglgolf.com",
+            "solheimcup.com", "presidentscup.com", "rydercup.com",
+            "sunshinetour.com", "ladieseuropeantour.com",
+        }
+        try:
+            from urllib.parse import urlparse as _up
+            domain = _up(s.get("source_url") or "").netloc.lower()
+        except Exception:
+            domain = ""
+        organiser_bonus = 0
+        if domain and not any(domain.endswith(td) for td in TOUR_DOMAINS):
+            # Likely the event organiser's own site
+            organiser_bonus = 15
+        scored.append((base + rec_bonus + spec_bonus + organiser_bonus, s))
     scored.sort(key=lambda x: x[0], reverse=True)
     winner = scored[0][1]
     loser = scored[-1][1] if len(scored) > 1 else None
