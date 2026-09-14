@@ -2044,3 +2044,318 @@ def audit_brand_records(brand_id: str) -> Dict[str, Any]:
     return issues
 
 
+# ─── Slice 0.3 — Calendar Alert model + Scout run-log + Lead-Time Watcher ─
+
+VALID_ALERT_TYPES = [
+    "planning_window_open",
+    "production_deadline",
+    "campaign_live_window",
+    "event_imminent",
+    "new_opportunity",
+    "watchlist_promoted",
+    "event_changed",
+    "event_postponed",
+    "event_cancelled",
+    "verification_problem",
+    "research_degraded",
+]
+VALID_ALERT_STATUSES = ["new", "seen", "dismissed", "acted_on"]
+VALID_ALERT_PRIORITIES = ["low", "normal", "high", "urgent"]
+
+
+def _alerts_path(brand_id: str) -> "Path":
+    """Where alerts are persisted for a brand."""
+    base = None
+    for candidate in (_REPO_DATA_DIR, _BUNDLED_DATA_DIR, _DEFAULT_LOCAL_DIR):
+        if candidate and candidate.exists():
+            base = candidate
+            break
+    if base is None:
+        base = _REPO_DATA_DIR
+    return base / brand_id / "calendar_alerts.jsonl"
+
+
+def _ensure_runs_dir() -> "Path":
+    """Where Scout/Watch run logs are persisted."""
+    base = None
+    for candidate in (_REPO_DATA_DIR, _BUNDLED_DATA_DIR, _DEFAULT_LOCAL_DIR):
+        if candidate and candidate.exists():
+            base = candidate
+            break
+    parent = base.parent if str(base).endswith("brand-directory") else base
+    runs_dir = parent / "_system" / "calendar_runs"
+    try:
+        runs_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        runs_dir = Path("/tmp/calendar_runs")
+        runs_dir.mkdir(parents=True, exist_ok=True)
+    return runs_dir
+
+
+def _is_writable_fs(path) -> bool:
+    if not path.exists():
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            return True
+        except Exception:
+            return False
+    return True
+
+
+def list_alerts(
+    brand_id: str,
+    *,
+    status: Optional[str] = None,
+    alert_type: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Read all alerts for a brand. Optional filters by status + alert_type."""
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand.")
+    path = _alerts_path(brand_id)
+    if not path.exists():
+        return []
+    out = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            a = json.loads(line)
+        except Exception:
+            continue
+        if status and a.get("status") != status:
+            continue
+        if alert_type and a.get("alert_type") != alert_type:
+            continue
+        out.append(a)
+    return out
+
+
+def _alert_dedupe_key(alert: Dict[str, Any]) -> str:
+    """Close-out §6 — alert identity for dedupe.
+
+    Per brief: same (brand_id, event_key, event_revision, alert_type, threshold)
+    => noop.
+    """
+    parts = [
+        str(alert.get("brand_id", "")),
+        str(alert.get("event_key", "")),
+        str(alert.get("event_revision", "")),
+        str(alert.get("alert_type", "")),
+        str(alert.get("threshold", "")),
+    ]
+    return "|".join(parts)
+
+
+def create_alert_if_new(alert: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Append an alert ONLY if no existing alert has the same dedupe key.
+
+    Returns the persisted alert dict, or None if deduped (noop).
+    """
+    brand_id = alert.get("brand_id")
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand.")
+    alert.setdefault("status", "new")
+    alert.setdefault("created_at", _now_iso())
+    if alert.get("alert_type") not in VALID_ALERT_TYPES:
+        raise ValueError(
+            f"alert_type '{alert.get('alert_type')}' invalid. "
+            f"Valid: {VALID_ALERT_TYPES}"
+        )
+    if alert.get("priority") not in VALID_ALERT_PRIORITIES:
+        alert.setdefault("priority", "normal")
+
+    dedupe = _alert_dedupe_key(alert)
+    alert["alert_dedupe_key"] = dedupe
+
+    # Check existing
+    existing = list_alerts(brand_id)
+    for a in existing:
+        if a.get("alert_dedupe_key") == dedupe and a.get("status") not in ("dismissed", "acted_on"):
+            return None  # deduped
+
+    path = _alerts_path(brand_id)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a") as f:
+            f.write(json.dumps(alert, ensure_ascii=False) + "\n")
+    except Exception:
+        # Railway may have read-only /data; fallback
+        alt = Path("/tmp/calendar_alerts") / brand_id
+        alt.mkdir(parents=True, exist_ok=True)
+        with (alt / "calendar_alerts.jsonl").open("a") as f:
+            f.write(json.dumps(alert, ensure_ascii=False) + "\n")
+    return alert
+
+
+def transition_alert(
+    brand_id: str,
+    alert_id: str,
+    new_status: str,
+) -> Optional[Dict[str, Any]]:
+    """Update an alert's status. Returns the updated alert or None."""
+    if new_status not in VALID_ALERT_STATUSES:
+        raise ValueError(f"status '{new_status}' invalid.")
+    alerts = list_alerts(brand_id)
+    target = next((a for a in alerts if a.get("alert_id") == alert_id), None)
+    if not target:
+        return None
+    target["status"] = new_status
+    target["status_updated_at"] = _now_iso()
+    # Rewrite jsonl (last-wins)
+    path = _alerts_path(brand_id)
+    if not path.exists():
+        return None
+    seen = set()
+    kept = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            a = json.loads(line)
+        except Exception:
+            kept.append(line)
+            continue
+        if a.get("alert_id") == alert_id:
+            if alert_id not in seen:
+                kept.append(json.dumps(target, ensure_ascii=False))
+                seen.add(alert_id)
+            else:
+                continue
+        else:
+            kept.append(line)
+    path.write_text("\n".join(kept) + "\n")
+    return target
+
+
+def append_run_log(run: Dict[str, Any]) -> Dict[str, Any]:
+    """Slice 0.3 §9 — append Scout/Watch run log.
+
+    Persists to `<DATA_DIR>/_system/calendar_runs/<job_type>.jsonl`.
+    Returns the run record (with run_id + persisted_at).
+    """
+    run.setdefault("started_at", _now_iso())
+    run.setdefault("run_id", f"run-{run.get('job_type','unknown')}-{int(datetime.now().timestamp())}")
+    run.setdefault("errors", [])
+    runs_dir = _ensure_runs_dir()
+    path = runs_dir / f"{run.get('job_type','unknown')}.jsonl"
+    with path.open("a") as f:
+        f.write(json.dumps(run, ensure_ascii=False) + "\n")
+    return run
+
+
+def lead_time_watcher(brand_id: str, *, now: Optional[str] = None) -> Dict[str, Any]:
+    """Slice 0.3 §3C — script-only lead-time watcher.
+
+    Reads canonical Calendar events + deterministic/internal campaigns
+    and checks each lead-time threshold. Returns:
+
+      {
+        "brand_id": ...,
+        "evaluated_at": ...,
+        "alerts_created": [...],
+        "alerts_deduplicated": N,
+        "silent": True/False,
+      }
+
+    No LLM. Threshold math only.
+    """
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand.")
+    from datetime import datetime, timezone, timedelta
+    cfg = load_brand_config(brand_id)
+    if not cfg:
+        return {"brand_id": brand_id, "evaluated_at": _now_iso(),
+                "alerts_created": [], "alerts_deduplicated": 0,
+                "silent": True, "skipped_reason": "brand not configured"}
+    anchor = now or _now_iso()
+    try:
+        anchor_dt = datetime.fromisoformat(anchor.replace("Z", "+00:00"))
+    except Exception:
+        anchor_dt = datetime.now(timezone.utc)
+    canonical = canonical_records(brand_id)
+    alerts_created = []
+    alerts_deduplicated = 0
+
+    # Thresholds: (days, alert_type, derived from brief §22 examples)
+    threshold_buckets = [
+        (90, "planning_window_open"),
+        (60, "planning_window_open"),
+        (21, "production_deadline"),
+        (7, "campaign_live_window"),
+        (1, "event_imminent"),
+    ]
+
+    for r in canonical:
+        ev = r.get("event_start") or r.get("event_window_start")
+        if not ev:
+            continue
+        try:
+            ev_dt = datetime.fromisoformat(ev.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        days_to_event = (ev_dt - anchor_dt).days
+        lifecycle = r.get("event_lifecycle")
+        if lifecycle in ("cancelled", "expired", "completed"):
+            continue
+
+        for threshold_days, alert_type in threshold_buckets:
+            # Trigger when days_to_event ≈ threshold (±3 day tolerance)
+            if abs(days_to_event - threshold_days) > 3:
+                continue
+            alert = {
+                "alert_id": f"alert-{brand_id}-{r.get('event_key')}-{alert_type}-{threshold_days}",
+                "brand_id": brand_id,
+                "event_key": r.get("event_key"),
+                "event_revision": r.get("revision"),
+                "alert_type": alert_type,
+                "threshold": threshold_days,
+                "title": f"{r.get('title','')} — {alert_type.replace('_',' ')}",
+                "message": (
+                    f"{r.get('title','')} enters its {threshold_days}-day "
+                    f"{alert_type.replace('_',' ')} window (event on "
+                    f"{datetime.fromisoformat(ev.replace('Z','+00:00')).date().isoformat()}, "
+                    f"evaluated at {anchor_dt.date().isoformat()})."
+                ),
+                "priority": (
+                    "urgent" if threshold_days <= 7
+                    else "high" if threshold_days <= 21
+                    else "normal"
+                ),
+                "due_at": ev,
+                "source_event_revision": r.get("revision"),
+                "source_job": "lead_time_watcher",
+                "calendar_year": r.get("calendar_year"),
+            }
+            # Pillar + north star context (brief §8)
+            pillars = r.get("pillars") or []
+            if pillars:
+                alert["pillar_ids"] = pillars
+            # Map lead-time class to north_star via cfg
+            lts = cfg.get("lead_time_rules") or {}
+            lt_class = r.get("lead_time_class") or "normal_campaign"
+            class_cfg = (lts.get("by_class") or {}).get(lt_class) or {}
+            if class_cfg.get("north_star_metric"):
+                alert["north_star_ids"] = [class_cfg["north_star_metric"]]
+            elif pillars:
+                p_cfg = next(
+                    (p for p in cfg.get("pillars", []) if p.get("pillar_id") == pillars[0]),
+                    None,
+                )
+                if p_cfg and p_cfg.get("north_star_metric"):
+                    alert["north_star_ids"] = [p_cfg["north_star_metric"]]
+            persisted = create_alert_if_new(alert)
+            if persisted:
+                alerts_created.append(persisted)
+            else:
+                alerts_deduplicated += 1
+
+    return {
+        "brand_id": brand_id,
+        "evaluated_at": _now_iso(),
+        "alerts_created": alerts_created,
+        "alerts_deduplicated": alerts_deduplicated,
+        "silent": len(alerts_created) == 0,
+        "brands_processed": 1,
+    }
+
+

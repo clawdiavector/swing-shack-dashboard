@@ -4799,6 +4799,483 @@ def calendar_scout_simulate_unavailable():
     body = request.get_json(silent=True) or {}
     brand_id = body.get("brand_id", "stick")
     rb = body.get("simulate", "unavailable")
+    if rb != "unavailable":
+        return jsonify({"ok": False, "error": "simulate must be 'unavailable'"}), 400
+    from _lib.marketing_calendar import canonical_records, upsert_event
+    # Existing trusted records snapshot
+    before_canon = canonical_records(brand_id)
+    before_trusted = sum(1 for r in before_canon if r.get("trusted_for_planning"))
+    # Write a single record as if Scout had attempted and failed
+    write = upsert_event(
+        brand_id,
+        {
+            "title": "Slice 0.1 scout-simulate-unavailable — unverified record",
+            "type": "moment",
+            "status": "candidate",
+            "verification_status": "unverified_agent_memory",
+            "source_origin": "external",
+            "source_urls": ["https://internal/scout-simulate"],
+            "event_start": "2027-01-01",
+            "calendar_year": 2027,
+            "do_trust_check": True,  # consumed by upsert_event
+        },
+    )
+    after_canon = canonical_records(brand_id)
+    after_trusted = sum(1 for r in after_canon if r.get("trusted_for_planning"))
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "data_layer_fails_closed": (
+            write["record"].get("trusted_for_planning") is False
+        ),
+        "trusted_for_planning_delta": after_trusted - before_trusted,
+        "existing_verified_calendar_unchanged": (before_trusted == after_trusted),
+        "before_trusted_count": before_trusted,
+        "after_trusted_count": after_trusted,
+    }), 200
+
+
+# ─── Slice 0.3 — Calendar Alert endpoints + Scout run-log + Lead-Time Watcher ─
+
+@app.route('/api/calendar/v3/alerts/<brand_id>', methods=['GET'])
+def calendar_v3_alerts(brand_id: str):
+    """Slice 0.3 §4 — List Calendar alerts for a brand."""
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import list_alerts
+    status = request.args.get("status")
+    alert_type = request.args.get("alert_type")
+    alerts = list_alerts(brand_id, status=status, alert_type=alert_type)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "count": len(alerts),
+        "alerts": alerts,
+    }), 200
+
+
+@app.route('/api/calendar/v3/alerts/<brand_id>/transition', methods=['POST'])
+def calendar_v3_alerts_transition(brand_id: str):
+    """Mark an alert as seen/dismissed/acted_on."""
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    body = request.get_json(silent=True) or {}
+    alert_id = body.get("alert_id")
+    new_status = body.get("status")
+    if not alert_id or not new_status:
+        return jsonify({"ok": False, "error": "alert_id and status required"}), 400
+    from _lib.marketing_calendar import transition_alert
+    result = transition_alert(brand_id, alert_id, new_status)
+    if not result:
+        return jsonify({"ok": False, "error": "alert not found"}), 404
+    return jsonify({"ok": True, "alert": result}), 200
+
+
+@app.route('/api/calendar/v3/runs', methods=['GET', 'POST'])
+def calendar_v3_runs():
+    """Slice 0.3 §9 — automation audit log.
+
+    GET: list runs for a job_type (filter by ?job_type=scout|watch|lead_time_watcher).
+    POST: append a new run log entry. Used by the cron jobs themselves;
+          the API is the persistence surface, not the calculation surface.
+    """
+    from _lib.marketing_calendar import append_run_log
+    if request.method == "POST":
+        body = request.get_json(silent=True) or {}
+        if not body.get("job_type"):
+            return jsonify({"ok": False, "error": "job_type required"}), 400
+        run = append_run_log(body)
+        return jsonify({"ok": True, "run": run}), 200
+    # GET
+    job_type = request.args.get("job_type", "")
+    if not job_type:
+        return jsonify({"ok": False, "error": "job_type query param required"}), 400
+    from _lib.marketing_calendar import _ensure_runs_dir
+    runs_dir = _ensure_runs_dir()
+    path = runs_dir / f"{job_type}.jsonl"
+    if not path.exists():
+        return jsonify({"ok": True, "job_type": job_type, "count": 0, "runs": []}), 200
+    runs = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            runs.append(json.loads(line))
+        except Exception:
+            continue
+    return jsonify({"ok": True, "job_type": job_type, "count": len(runs), "runs": runs}), 200
+
+
+@app.route('/api/calendar/v3/lead-time-watcher/<brand_id>', methods=['POST'])
+def calendar_v3_lead_time_watcher(brand_id: str):
+    """Slice 0.3 §3C — manual trigger for the script-only Lead-Time Watcher.
+
+    Runs lead_time_watcher(brand_id) and persists a run log entry.
+    Returns the alerts created + dedupe count.
+    """
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import lead_time_watcher, append_run_log
+    body = request.get_json(silent=True) or {}
+    now = body.get("now")  # ISO string for testability
+    try:
+        result = lead_time_watcher(brand_id, now=now)
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    # Persist run log
+    append_run_log({
+        "job_type": "lead_time_watcher",
+        "brand_id": brand_id,
+        "completed_at": result.get("evaluated_at"),
+        "status": "silent" if result.get("silent") else "alerts_created",
+        "alerts_created_count": len(result.get("alerts_created", [])),
+        "alerts_deduplicated": result.get("alerts_deduplicated", 0),
+        "brands_processed": result.get("brands_processed", 1),
+    })
+    return jsonify({"ok": True, **result}), 200
+
+
+@app.route('/api/calendar/v3/lead-time-watcher/run-all', methods=['POST'])
+def calendar_v3_lead_time_watcher_run_all():
+    """Slice 0.3 §13 — multi-brand Lead-Time Watcher orchestrator.
+
+    Runs lead_time_watcher() for each operating brand that has a
+    configured calendar. Brands without calendar_config are recorded
+    as brand_status=skipped_unconfigured.
+    """
+    from _lib.marketing_calendar import (
+        lead_time_watcher, append_run_log, load_brand_config
+    )
+    body = request.get_json(silent=True) or {}
+    now = body.get("now")
+    brands_out = []
+    total_alerts = 0
+    total_deduped = 0
+    for bid in ("stick", "bag-drop", "swing-shack"):
+        try:
+            cfg = load_brand_config(bid)
+        except Exception:
+            cfg = None
+        if not cfg:
+            brands_out.append({
+                "brand_id": bid, "brand_status": "skipped_unconfigured",
+            })
+            continue
+        result = lead_time_watcher(bid, now=now)
+        brands_out.append({
+            "brand_id": bid,
+            "brand_status": "processed",
+            "alerts_created_count": len(result.get("alerts_created", [])),
+            "alerts_deduplicated": result.get("alerts_deduplicated", 0),
+            "silent": result.get("silent"),
+        })
+        total_alerts += len(result.get("alerts_created", []))
+        total_deduped += result.get("alerts_deduplicated", 0)
+    append_run_log({
+        "job_type": "lead_time_watcher",
+        "brand_id": "multi",
+        "completed_at": _now_iso_for_run_log(),
+        "status": "alerts_created" if total_alerts else "silent",
+        "alerts_created_count": total_alerts,
+        "alerts_deduplicated": total_deduped,
+        "brands_processed": sum(1 for b in brands_out if b.get("brand_status") == "processed"),
+        "brands_skipped": sum(1 for b in brands_out if b.get("brand_status") == "skipped_unconfigured"),
+        "per_brand": brands_out,
+    })
+    return jsonify({
+        "ok": True,
+        "per_brand": brands_out,
+        "totals": {
+            "alerts_created": total_alerts,
+            "alerts_deduplicated": total_deduped,
+        },
+    }), 200
+
+
+def _now_iso_for_run_log():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+@app.route('/api/calendar/v3/alerts/dedupe-test', methods=['POST'])
+def calendar_v3_alerts_dedupe_test():
+    """Slice 0.3 §6 — prove alert dedupe.
+
+    Inserts the same alert 3 times. The first insert succeeds, the
+    second and third are noops (deduped).
+    """
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    from _lib.marketing_calendar import create_alert_if_new, list_alerts
+    base_alert = {
+        "brand_id": brand_id,
+        "event_key": "stick:dedupe-test-event:2027",
+        "event_revision": 1,
+        "alert_type": "planning_window_open",
+        "threshold": 60,
+        "title": "Dedupe test event — planning window open",
+        "message": "Test alert for dedupe verification.",
+        "priority": "normal",
+    }
+    results = []
+    for i in range(3):
+        a = dict(base_alert)
+        a["alert_id"] = f"alert-dedupe-test-{brand_id}-{i}"
+        persisted = create_alert_if_new(a)
+        results.append({
+            "attempt": i + 1,
+            "created": persisted is not None,
+            "alert_id": a["alert_id"],
+        })
+    # Count alerts with this dedupe key in the file
+    existing = list_alerts(brand_id)
+    same_dedupe = [a for a in existing if a.get("alert_dedupe_key") == base_alert.get("event_key") + "|1|planning_window_open|60"]
+    test_pass = (
+        results[0]["created"] and not results[1]["created"] and not results[2]["created"]
+    )
+    # Cleanup
+    from _lib.marketing_calendar import _alerts_path
+    path = _alerts_path(brand_id)
+    if path.exists():
+        kept = []
+        for line in path.read_text().splitlines():
+            try:
+                a = json.loads(line)
+            except Exception:
+                kept.append(line)
+                continue
+            if "Dedupe test event" in (a.get("title") or ""):
+                continue
+            kept.append(line)
+        path.write_text("\n".join(kept) + "\n")
+    return jsonify({
+        "ok": True,
+        "test_pass": test_pass,
+        "results": results,
+        "existing_count_with_same_dedupe": len(same_dedupe),
+    }), 200
+
+
+@app.route('/api/calendar/v3/today-section', methods=['GET'])
+def calendar_v3_today_section():
+    """Slice 0.3 §7 — Today / Morning Brief Calendar Intelligence section.
+
+    Reads alerts + canonical events and assembles a structured
+    'Calendar Intelligence' payload that the existing Today surface
+    can render without performing its own web research.
+
+    Does NOT perform any web research (per brief §16).
+    """
+    from _lib.marketing_calendar import list_alerts, canonical_records
+    brand_id = request.args.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    cfg = None
+    try:
+        from _lib.marketing_calendar import load_brand_config
+        cfg = load_brand_config(brand_id)
+    except Exception:
+        cfg = None
+    if not cfg:
+        return jsonify({"ok": False, "error": "brand not configured"}), 400
+    alerts = list_alerts(brand_id, status="new")
+    canonical = canonical_records(brand_id)
+
+    # Bucket alerts into the four brief §7 priority groups
+    now_alerts = [a for a in alerts if a.get("alert_type") in (
+        "planning_window_open", "production_deadline", "campaign_live_window",
+        "event_imminent", "verification_problem", "research_degraded")]
+    new_opps = [a for a in alerts if a.get("alert_type") in ("new_opportunity", "watchlist_promoted")]
+    changed = [a for a in alerts if a.get("alert_type") in ("event_changed", "event_postponed", "event_cancelled")]
+    coming_up = []  # events in the next 30 days with no alert yet
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    horizon = now + timedelta(days=30)
+    seen_event_keys = {a.get("event_key") for a in alerts}
+    pillar_north_star_lookup = {}
+    for p in cfg.get("pillars") or []:
+        pillar_north_star_lookup[p.get("pillar_id")] = {
+            "name": p.get("name"),
+            "north_star_metric": p.get("north_star_metric"),
+            "north_star_target": p.get("north_star_target"),
+            "colour": p.get("colour") or p.get("color"),
+        }
+
+    def attach_pillar(alert):
+        pids = alert.get("pillar_ids") or []
+        if not pids:
+            return alert
+        ps = []
+        for pid in pids:
+            if pid in pillar_north_star_lookup:
+                ps.append({
+                    "pillar_id": pid,
+                    **pillar_north_star_lookup[pid],
+                })
+        out = dict(alert)
+        out["pillar_context"] = ps
+        return out
+
+    for ev in canonical:
+        ev_date = ev.get("event_start")
+        if not ev_date:
+            continue
+        try:
+            ev_dt = datetime.fromisoformat(ev_date.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if ev_dt < now or ev_dt > horizon:
+            continue
+        if ev.get("event_key") in seen_event_keys:
+            continue
+        days_to_event = (ev_dt - now).days
+        ev_copy = dict(ev)
+        ev_copy["days_to_event"] = days_to_event
+        pids = ev.get("pillars") or []
+        if pids:
+            ps = []
+            for pid in pids:
+                if pid in pillar_north_star_lookup:
+                    ps.append({"pillar_id": pid, **pillar_north_star_lookup[pid]})
+            ev_copy["pillar_context"] = ps
+        coming_up.append(ev_copy)
+
+    def rank(a):
+        order = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
+        return order.get(a.get("priority"), 2)
+
+    now_alerts = sorted(now_alerts, key=rank)
+    new_opps = sorted(new_opps, key=rank, reverse=True)
+    changed = sorted(changed, key=lambda a: a.get("created_at", ""), reverse=True)
+    coming_up = sorted(coming_up, key=lambda a: a.get("days_to_event", 999))
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "evaluated_at": _now_iso_for_run_log(),
+        "needs_attention": [attach_pillar(a) for a in now_alerts],
+        "new_opportunities": [attach_pillar(a) for a in new_opps],
+        "changed": [attach_pillar(a) for a in changed],
+        "coming_up": coming_up,
+        "totals": {
+            "needs_attention_count": len(now_alerts),
+            "new_opportunities_count": len(new_opps),
+            "changed_count": len(changed),
+            "coming_up_count": len(coming_up),
+        },
+        "note": "this section reads Campaign OS state; no web research performed.",
+    }), 200
+
+
+@app.route('/api/calendar/v3/job-health', methods=['GET'])
+def calendar_v3_job_health():
+    """Slice 0.3 §18 — Job health panel (reads Hermes cron state via direct list).
+
+    Returns the live status of the three Slice 0.3 jobs as known to
+    Hermes cron (sources: this dashboard's API; Hermes gateway state
+    is reflected in the run logs).
+    """
+    from _lib.marketing_calendar import _ensure_runs_dir
+    runs_dir = _ensure_runs_dir()
+    result = {"ok": True, "jobs": {}}
+    for job_type, key in [
+        ("scout", "opportunity_scout"),
+        ("watch", "reactive_watch"),
+        ("lead_time_watcher", "lead_time_watcher"),
+    ]:
+        path = runs_dir / f"{job_type}.jsonl"
+        runs = []
+        if path.exists():
+            for line in path.read_text().splitlines():
+                try:
+                    runs.append(json.loads(line))
+                except Exception:
+                    continue
+        last = runs[-1] if runs else None
+        result["jobs"][key] = {
+            "key": key,
+            "cron_id": key,
+            "last_run": last.get("started_at") if last else None,
+            "last_completed_at": last.get("completed_at") if last else None,
+            "last_status": last.get("status") if last else None,
+            "total_runs_logged": len(runs),
+            "manual_run_endpoint": f"/api/calendar/v3/job-manual-run/{key}",
+        }
+    result["evaluated_at"] = _now_iso_for_run_log()
+    return jsonify(result), 200
+
+
+@app.route('/api/calendar/v3/job-manual-run/<job_key>', methods=['POST'])
+def calendar_v3_job_manual_run(job_key: str):
+    """Slice 0.3 §12 — manual trigger for one of the three jobs.
+
+    job_key: 'lead_time_watcher' (works) | 'opportunity_scout' |
+             'reactive_watch' (these last two require agent context
+             which is available in this controller session via the
+             Skill orchestrator)
+    """
+    from _lib.marketing_calendar import lead_time_watcher, append_run_log
+    if job_key == "lead_time_watcher":
+        # Multi-brand run
+        return calendar_v3_lead_time_watcher_run_all.__wrapped__() if hasattr(calendar_v3_lead_time_watcher_run_all, '__wrapped__') else _do_lead_time_run_all()
+    if job_key == "opportunity_scout":
+        return jsonify({
+            "ok": True,
+            "job_key": job_key,
+            "note": "Opportunity Scout runs in agent context. The Skill is loaded; a real Scout run requires the orchestrator's Skill/agent pipeline (current session). For the cron invocation, the cron job's prompt file instructs the agent to load campaign-calendar-scout.",
+        }), 200
+    if job_key == "reactive_watch":
+        return jsonify({
+            "ok": True,
+            "job_key": job_key,
+            "note": "Reactive Watch runs in agent context. The cron prompt file instructs the agent to perform recent-only research and upsert only material changes.",
+        }), 200
+    return jsonify({"ok": False, "error": f"unknown job_key '{job_key}'"}), 400
+
+
+def _do_lead_time_run_all():
+    from _lib.marketing_calendar import lead_time_watcher, append_run_log, _load_brand_config
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    brands_out = []
+    total_alerts = 0
+    total_deduped = 0
+    for bid in ("stick", "bag-drop", "swing-shack"):
+        try:
+            cfg = load_brand_config(bid)
+        except Exception:
+            cfg = None
+        if not cfg:
+            brands_out.append({"brand_id": bid, "brand_status": "skipped_unconfigured"})
+            continue
+        result = lead_time_watcher(bid)
+        brands_out.append({
+            "brand_id": bid,
+            "brand_status": "processed",
+            "alerts_created_count": len(result.get("alerts_created", [])),
+            "alerts_deduplicated": result.get("alerts_deduplicated", 0),
+            "silent": result.get("silent"),
+        })
+        total_alerts += len(result.get("alerts_created", []))
+        total_deduped += result.get("alerts_deduplicated", 0)
+    append_run_log({
+        "job_type": "lead_time_watcher",
+        "brand_id": "multi",
+        "completed_at": now_iso,
+        "status": "alerts_created" if total_alerts else "silent",
+        "alerts_created_count": total_alerts,
+        "alerts_deduplicated": total_deduped,
+        "brands_processed": sum(1 for b in brands_out if b.get("brand_status") == "processed"),
+        "brands_skipped": sum(1 for b in brands_out if b.get("brand_status") == "skipped_unconfigured"),
+        "per_brand": brands_out,
+    })
+    return jsonify({
+        "ok": True,
+        "per_brand": brands_out,
+        "totals": {"alerts_created": total_alerts, "alerts_deduplicated": total_deduped},
+    })
 
     # 1. Snapshot existing trusted_for_planning=true record count
     with urllib.request.urlopen(urllib.request.Request(
