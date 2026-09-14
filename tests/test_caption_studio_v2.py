@@ -280,16 +280,21 @@ def test_spa_has_voice_picker():
 
 def test_api_captions_route_returns_ok_envelope():
     """GET /api/intel/generate/captions/<id>?voice=&tone= returns {ok, variants, ...}."""
-    script = f"""
+    # Scratch DATA_DIR — never point subprocess at tracked repo data/ (t27 V18).
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script = f"""
 import sys, os, json
 sys.path.insert(0, '{REPO}/campaign-os')
 sys.path.insert(0, '{REPO}/campaign-os/_lib')
-os.environ['DATA_DIR'] = '{REPO}/data'
+os.environ['DATA_DIR'] = '{tmpdir}'
 os.environ['FLASK_ENV'] = 'testing'
 
-from app import app
+from app import app, SHARED_PASSWORD
 
+# Subprocess has no pytest conftest patch — login explicitly (t25 follow-up).
 client = app.test_client()
+login = client.post('/login', data={{'password': SHARED_PASSWORD}})
+assert login.status_code == 200, f'login failed: {{login.status_code}} {{login.data[:80]}}'
 
 # GET with voice/tone query params — correct route is /api/intel/generate/captions/<id>
 rv = client.get('/api/intel/generate/captions/test-asset-404?voice=swing-shack&tone=funny&n=3')
@@ -308,12 +313,12 @@ assert body2.get('ok') == True or body2.get('status') == 'ok', 'Health check fai
 
 print('PASS: test_api_captions_route_returns_ok_envelope')
 """
-    env = {**os.environ}
-    r = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, cwd=str(REPO / 'campaign-os'), env=env)
-    print(f"STDOUT: {r.stdout}")
-    print(f"STDERR: {r.stderr}")
-    assert r.returncode == 0, f"FAILED: {r.stderr}"
-    assert 'PASS' in r.stdout
+        env = {**os.environ, 'DATA_DIR': tmpdir}
+        r = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, cwd=str(REPO / 'campaign-os'), env=env)
+        print(f"STDOUT: {r.stdout}")
+        print(f"STDERR: {r.stderr}")
+        assert r.returncode == 0, f"FAILED: {r.stderr}"
+        assert 'PASS' in r.stdout
 
 
 # ─── Test 7: Voice bible path resolves per-call via _data_paths ─────────────
@@ -353,16 +358,21 @@ print('PASS: test_voice_bible_resolves_via_data_paths')
 
 def test_api_generate_captions_post_with_voice():
     """POST /api/captions/generate with {voice, tone} body returns {ok,...}."""
-    script = f"""
+    # Scratch DATA_DIR — never point subprocess at tracked repo data/ (t27 V18).
+    with tempfile.TemporaryDirectory() as tmpdir:
+        script = f"""
 import sys, os, json
 sys.path.insert(0, '{REPO}/campaign-os')
 sys.path.insert(0, '{REPO}/campaign-os/_lib')
-os.environ['DATA_DIR'] = '{REPO}/data'
+os.environ['DATA_DIR'] = '{tmpdir}'
 os.environ['FLASK_ENV'] = 'testing'
 
-from app import app
+from app import app, SHARED_PASSWORD
 
+# Subprocess has no pytest conftest patch — login explicitly (t25 follow-up).
 client = app.test_client()
+login = client.post('/login', data={{'password': SHARED_PASSWORD}})
+assert login.status_code == 200, f'login failed: {{login.status_code}} {{login.data[:80]}}'
 
 # POST to new /api/captions/generate route with voice/tone
 rv = client.post('/api/captions/generate',
@@ -379,12 +389,12 @@ assert body.get('_tone') == 'sarcastic', f"Wrong tone: {{body.get('_tone')}}"
 
 print('PASS: test_api_generate_captions_post_with_voice')
 """
-    env = {**os.environ}
-    r = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, cwd=str(REPO / 'campaign-os'), env=env)
-    print(f"STDOUT: {r.stdout}")
-    print(f"STDERR: {r.stderr}")
-    assert r.returncode == 0, f"FAILED: {r.stderr}"
-    assert 'PASS' in r.stdout
+        env = {**os.environ, 'DATA_DIR': tmpdir}
+        r = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True, cwd=str(REPO / 'campaign-os'), env=env)
+        print(f"STDOUT: {r.stdout}")
+        print(f"STDERR: {r.stderr}")
+        assert r.returncode == 0, f"FAILED: {r.stderr}"
+        assert 'PASS' in r.stdout
 
 
 # ─── Run all ─────────────────────────────────────────────────────────────────

@@ -26,7 +26,9 @@ def job_app(monkeypatch, tmp_path):
     import app as app_module
 
     app_module.COS_JOB_TOKEN = "test-job-token-not-a-secret"
-    client = app_module.app.test_client()
+    # cos_anon: P1a conftest auto-logs in test_client(); dual-auth job
+    # endpoints accept session OR bearer, so rejection cases need anon.
+    client = app_module.app.test_client(cos_anon=True)
     return client, app_module
 
 

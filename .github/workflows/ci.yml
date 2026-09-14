@@ -1,0 +1,106 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'integrate/**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check_lib_modules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # No pip install: check_lib_modules.py is stdlib-only (ast + json + pathlib).
+      # No --warn-only. Exit 1 on a missing imported _lib module fails the build.
+      - run: python3 scripts/check_lib_modules.py
+
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt -r campaign-os/requirements.txt pytest pytest-subtests
+      - name: pytest (CI allowlist)
+        env:
+          DATA_DIR: ${{ runner.temp }}/cos-ci-data
+          OPENCLAW_CREDENTIALS_DIR: ${{ runner.temp }}/cos-ci-creds
+        run: |
+          mkdir -p "$DATA_DIR" "$OPENCLAW_CREDENTIALS_DIR"
+          # Empty/garbage allowlist must fail, not pass silently (t26-E).
+          test -s tests/ci-allowlist.txt || { echo "ci-allowlist.txt is empty"; exit 1; }
+          xargs -a tests/ci-allowlist.txt python3 -m pytest -q --tb=short
+      - name: tests must not write into tracked data/
+        run: |
+          # Gate P0 criterion 3: no automation writes to data/.
+          if ! git diff --quiet -- data/; then
+            echo "The test run modified tracked files under data/:"
+            git diff --stat -- data/
+            exit 1
+          fi
+
+  allowlist_ratchet:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: allowlist may only grow
+        run: |
+          git show origin/${{ github.base_ref }}:tests/ci-allowlist.txt 2>/dev/null | sort > /tmp/base.txt || : > /tmp/base.txt
+          sort tests/ci-allowlist.txt > /tmp/head.txt
+          removed="$(comm -23 /tmp/base.txt /tmp/head.txt)"
+          if [ -n "$removed" ]; then
+            echo "Files removed from the CI allowlist:"
+            echo "$removed"
+            echo "Removing a file from the allowlist needs a written reason in the PR body."
+            exit 1
+          fi
+
+  pytest_full:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt -r campaign-os/requirements.txt pytest pytest-subtests
+      - name: pytest (full suite, informational)
+        env:
+          DATA_DIR: ${{ runner.temp }}/cos-ci-data
+          OPENCLAW_CREDENTIALS_DIR: ${{ runner.temp }}/cos-ci-creds
+        run: |
+          mkdir -p "$DATA_DIR" "$OPENCLAW_CREDENTIALS_DIR"
+          python3 -m pytest campaign-os/tests tests scripts/tests -q --tb=line \
+            --ignore=campaign-os/tests/test_v2026_08_08_orphan_dna_placeholder.py \
+            | tee /tmp/full.txt || true
+          tail -1 /tmp/full.txt >> "$GITHUB_STEP_SUMMARY"
+
+  smoke_boot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: smoke boot (STRICT)
+        run: STRICT=1 bash tests/smoke_boot.sh

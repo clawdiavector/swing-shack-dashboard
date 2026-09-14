@@ -22,8 +22,26 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[2]
 FRESHNESS = REPO / "data" / "freshness.json"
+FRESHNESS_DETAIL = REPO / "data" / "freshness-detail.json"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _restore_tracked_freshness_json():
+    """Regenerate into place for assertions, then restore seed files (t27 data gate)."""
+    backups = {}
+    for path in (FRESHNESS, FRESHNESS_DETAIL):
+        if path.exists():
+            backups[path] = path.read_bytes()
+    yield
+    for path, data in backups.items():
+        path.write_bytes(data)
+    for path in (FRESHNESS, FRESHNESS_DETAIL):
+        if path not in backups and path.exists():
+            path.unlink()
 
 
 def test_freshness_regenerates(tmp_path, monkeypatch):
