@@ -37,14 +37,14 @@ t25: `cos_session` / `cos_anon` fixtures in `campaign-os/tests/conftest.py`.
 
 | Item | Value |
 |---|---|
-| Origin tip (RFT) | `889ad637e228750772a5a876c43cc92c3fa31c13` (`docs(p1a-land): ready-for-testing handoff…`) |
+| Origin tip (RFT) | `origin/feat/campaign-os-p1a-land` — run `git rev-parse origin/feat/campaign-os-p1a-land` (first push `13c4730`; finalize may add +1) |
 | Code-complete SHA | `736473b2a73445246efab602a6914a35a22a0e1c` |
 | Branch | `feat/campaign-os-p1a-land` |
 | Base | `origin/integrate/campaign-os-option-c` @ `9683b16ca1d90dfe1d33d16afb2781ea0094e1ef` |
-| Commits ahead of integrate | 9 (7 cherry-picked P1a + 1 land fix + RFT handoff) |
-| On origin? | **YES** after this job’s `git push -u origin feat/campaign-os-p1a-land` |
+| On origin? | **YES** — `git push -u origin feat/campaign-os-p1a-land` exit 0 (2026-09-14); no workflow-scope 403 |
 
 ```
+13c4730 docs(p1a-land): pin RFT handoff tip SHA
 889ad63 docs(p1a-land): ready-for-testing handoff after verify PASS
 736473b fix(p1a-land): Layer1 allowlist + bearer tests under cos_anon
 fa8d4e5 docs(p1a): finalize BASELINE.md SHA line
@@ -96,8 +96,8 @@ If push hits **workflow-scope 403** (PAT missing `workflow`): Kyle runs `gh auth
 
 ## Suggested board / comment draft
 
-Campaign OS P1a land ready for testing. `feat/campaign-os-p1a-land` on origin @ `889ad63` (code-complete `736473b`; RFT re-verify PASS: 935P/16S/0F, check_lib + smoke + data clean). Pi verify job failed only because `review/` was stale at integrate tip. Target merge: `integrate/campaign-os-option-c`. No deploy. Suggested column: **Ready for testing**.
+Campaign OS P1a land ready for testing. `feat/campaign-os-p1a-land` on origin (code-complete `736473b`; RFT re-verify PASS: 935P/16S/0F, check_lib + smoke + data clean). Pi verify job failed only because `review/` was stale at integrate tip. Target merge: `integrate/campaign-os-option-c`. No deploy. Suggested column: **Ready for testing**.
 
 ## Land (next job)
 
-Land merges `feat/campaign-os-p1a-land` → `integrate/campaign-os-option-c` and may push **integrate** (not `main`). Feature branch on origin @ `889ad63`. After integrate tip moves, P1d should rebase onto it so t39 CI “required check” can go PASS.
+Land merges `feat/campaign-os-p1a-land` → `integrate/campaign-os-option-c` and may push **integrate** (not `main`). Feat already on origin — use `git rev-parse origin/feat/campaign-os-p1a-land`. After integrate tip moves, P1d should rebase onto it so t39 CI “required check” can go PASS.
