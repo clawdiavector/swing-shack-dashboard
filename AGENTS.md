@@ -7,7 +7,8 @@ Standing instructions for any agent (human or automated) touching this repo.
 Flask cockpit (`campaign-os/app.py`, count with `wc -l` / `@app.route` — do not freeze numbers) serving one SPA
 (`campaign-os/campaign-os.html`, **44 sections / 45 nav keys**). The Flask app **is** production.
 
-`legacy/agents/` is a retired Node tree — dead, kept for evidence. See `legacy/README.md`.
+The Node fleet (`legacy/agents/` + most of `scripts/*.js`) was deleted in t33 (2026-09-14);
+`docs/layer1-salvage-20260911.yaml` is the surviving machine-readable record; git history holds the rest.
 
 ## 2. Branches — READ BEFORE YOU COMMIT
 
@@ -89,8 +90,7 @@ curl -H "Authorization: Bearer $COS_JOB_TOKEN" <prod>/api/jobs/status
 |---|---|
 | `docs/nightshift-prompt.md` | Wrong branch, wrong path, wrong port — quarantined |
 | `docs/archive/CAMPAIGN_OS_STATUS*.md` | Archived 2026-09-11; superseded by this file + `RAILWAY.md` |
-| `legacy/agents/{registry.json,README.md}` | Three inventories, all wrong |
-| Anything citing port 8765, a trycloudflare URL, "23 intel endpoints", or "5 agents" | Drift |
+| Anything citing port 8765, a trycloudflare URL, "23 intel endpoints", "5 agents", or `legacy/agents/` | Drift — the Node tree was deleted in t33 |
 
 ## 10. Agent-control binding
 
