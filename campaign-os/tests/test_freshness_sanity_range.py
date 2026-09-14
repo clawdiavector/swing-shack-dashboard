@@ -1,5 +1,5 @@
 """
-Regression test: data_freshness_check.js parseTs sanity range.
+Regression test: freshness parseTs sanity range + freshness_scan job.
 
 Bug shipped 2026-08-07: the freshness detector was scanning deep into
 content fields like `"date": "Apr 22"` (human-readable label, no year).
@@ -9,8 +9,10 @@ age_days=9238 and a spurious "🚨 102 files > 42 days old" banner on Home.
 Fix: parseTs() now applies a sanity range (year 2010 → current_year+1)
 and rejects bare strings like "Apr 22" without an explicit year.
 
-This test shells out to node and verifies the bug entries no longer
-appear in the generated data/freshness.json.
+As of t33, scripts/data_freshness_check.js is deleted. Regeneration is
+asserted against _run_freshness_scan_job() (writes $DATA_DIR/freshness.json).
+The parseTs cases below keep an inline copy of the retired JS pair so the
+sanity-range contract stays covered without the file.
 """
 import json
 import os
@@ -21,35 +23,29 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "scripts" / "data_freshness_check.js"
 FRESHNESS = REPO / "data" / "freshness.json"
 
 
-def test_node_available():
-    """Node must be on PATH for the freshness detector."""
-    try:
-        subprocess.run(["node", "--version"], capture_output=True, check=True, timeout=10)
-    except (FileNotFoundError, subprocess.CalledProcessError) as e:
-        raise unittest.SkipTest(f"node not available: {e}")
+def test_freshness_regenerates(tmp_path, monkeypatch):
+    """freshness_scan job writes $DATA_DIR/freshness.json (no node shell-out)."""
+    seed = {"generated": "2026-09-14T00:00:00Z", "items": []}
+    (tmp_path / "probe.json").write_text(json.dumps(seed), encoding="utf-8")
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    sys.path.insert(0, str(REPO / "campaign-os"))
+    import app as app_module  # noqa: E402
 
-
-def test_freshness_regenerates(tmp_path):
-    """The detector writes to data/freshness.json (or fails loudly)."""
-    test_node_available()
-    if not SCRIPT.exists():
-        raise unittest.SkipTest(f"freshness script missing at {SCRIPT}")
-    r = subprocess.run(
-        ["node", str(SCRIPT)],
-        cwd=REPO, capture_output=True, text=True, timeout=120,
-    )
-    assert r.returncode == 0, f"freshness scan failed:\n{r.stderr}"
-    assert FRESHNESS.exists(), "freshness.json was not written"
+    result = app_module._run_freshness_scan_job()
+    assert result.get("ok") is True, f"freshness_scan failed: {result}"
+    out = tmp_path / "freshness.json"
+    assert out.exists(), "freshness.json was not written under DATA_DIR"
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload.get("total_files", 0) >= 1
 
 
 def test_no_year_2001_artifacts():
     """No rotten/stale entry should report a year-2001 timestamp."""
     if not FRESHNESS.exists():
-        sys.skipTest("freshness.json missing — run test_freshness_regenerates first")
+        raise unittest.SkipTest("freshness.json missing — seed not present")
     j = json.loads(FRESHNESS.read_text(encoding="utf-8"))
     bad_paths = []
     for bucket in ("stale_files", "rotten_files"):
@@ -66,7 +62,7 @@ def test_no_year_2001_artifacts():
 def test_no_thousand_day_ages():
     """No entry should report an age_days >= 1000 (the pre-fix symptom was 9238)."""
     if not FRESHNESS.exists():
-        sys.skipTest("freshness.json missing — run test_freshness_regenerates first")
+        raise unittest.SkipTest("freshness.json missing — seed not present")
     j = json.loads(FRESHNESS.read_text(encoding="utf-8"))
     for bucket in ("stale_files", "rotten_files"):
         for entry in j.get(bucket, []):
@@ -78,12 +74,20 @@ def test_no_thousand_day_ages():
 
 
 def test_parseTs_rejects_bare_month_day():
-    """Unit-level: parseTs('Apr 22') must return null (not year 2001)."""
-    test_node_available()
+    """Unit-level: parseTs('Apr 22') must return null (not year 2001).
+
+    Inline copy of the parseTs + _inSaneRange pair from the deleted
+    scripts/data_freshness_check.js (t33). The original file is gone; this
+    fixture is the surviving contract for the sanity range.
+    """
+    try:
+        subprocess.run(["node", "--version"], capture_output=True, check=True, timeout=10)
+    except (FileNotFoundError, subprocess.CalledProcessError) as e:
+        raise unittest.SkipTest(f"node not available: {e}")
     node_src = """
-    // Inline copy of the parseTs + _inSaneRange pair from
-    // scripts/data_freshness_check.js. If the real script changes, update
-    // this fixture to match — that's the point of the test.
+    // Inline copy of parseTs + _inSaneRange from deleted
+    // scripts/data_freshness_check.js (t33). Original gone; keep in sync
+    // with campaign-os/_lib freshness walk if the Python side ever diverges.
     function _inSaneRange(dt) {
       if (!dt || Number.isNaN(dt.getTime())) return false;
       const yr = dt.getUTCFullYear();
@@ -159,7 +163,7 @@ def test_real_data_files_no_longer_rotten_with_9000_days():
     """The three files that surfaced year-2001 entries must NOT appear
     in the rotten bucket with crazy ages."""
     if not FRESHNESS.exists():
-        sys.skipTest("freshness.json missing — run test_freshness_regenerates first")
+        raise unittest.SkipTest("freshness.json missing — seed not present")
     j = json.loads(FRESHNESS.read_text(encoding="utf-8"))
     targets = [
         "data/recommendation-scores.json",
@@ -177,8 +181,13 @@ def test_real_data_files_no_longer_rotten_with_9000_days():
 
 
 if __name__ == "__main__":
-    test_node_available()
-    test_freshness_regenerates(Path(tempfile.gettempdir()))
+    # Minimal manual runner (pytest is the normal path).
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["DATA_DIR"] = td
+        Path(td, "probe.json").write_text("{}", encoding="utf-8")
+        sys.path.insert(0, str(REPO / "campaign-os"))
+        import app as _app  # noqa: E402
+        assert _app._run_freshness_scan_job().get("ok")
     test_no_year_2001_artifacts()
     test_no_thousand_day_ages()
     test_parseTs_rejects_bare_month_day()

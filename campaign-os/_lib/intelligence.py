@@ -3255,7 +3255,7 @@ def _interpret_weekly_report(
         elif n_posts > 0 and n_reach == 0:
             look_at.append({
                 "claim": f"IG has {n_posts} posts tracked but zero reach recorded.",
-                "evidence": "Reach counter is 0 across all posts. Either engagement metrics haven't synced, or the sync ran before the IG API returned metrics. Re-run sync_ig_analytics.js to verify.",
+                "evidence": "Reach counter is 0 across all posts. Either engagement metrics haven't synced, or the sync ran before the IG API returned metrics. Re-run the meta_refresh job (POST /api/jobs/run/meta_refresh) to verify.",
                 "source": "ig-analytics.json",
                 "category": "ig_engagement",
             })
