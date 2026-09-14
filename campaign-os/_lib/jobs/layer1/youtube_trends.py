@@ -11,6 +11,7 @@ from urllib.parse import urlencode
 
 import requests
 
+from ..errors import describe_exception
 from ._io import as_dict, atomic_write, read_json, utc_now_iso
 
 OUTPUT = "youtube-trends.json"
@@ -183,7 +184,7 @@ def run() -> dict:
                     }
                 )
         except Exception as exc:  # noqa: BLE001 — network stubs may raise any type
-            network_errors.append(type(exc).__name__)
+            network_errors.append(describe_exception(exc))
 
     seen_ids: set[str] = set()
     deduped: list[dict[str, Any]] = []

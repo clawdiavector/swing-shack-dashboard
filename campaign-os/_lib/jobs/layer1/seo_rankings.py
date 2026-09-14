@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from ..errors import describe_exception
 from ._io import data_dir, repo_root
 
 WRITES = (
@@ -91,7 +92,7 @@ def run() -> dict:
             return {"ok": False, "error": "no ubersuggest token"}
         return {"ok": False, "error": f"ubersuggest exited with code {code}"}
     except Exception as exc:
-        return {"ok": False, "error": f"ubersuggest failed: {type(exc).__name__}"}
+        return {"ok": False, "error": f"ubersuggest failed: {describe_exception(exc)}"}
 
     rows = _count_keywords()
 
