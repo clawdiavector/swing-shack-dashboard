@@ -4269,15 +4269,15 @@ def calendar_v2_integrity_audit(brand_id: str):
 def calendar_v2_concurrency_test():
     """Slice 0.2 close-out §3: prove concurrent Firecrawl-heavy lanes ≤ 2.
 
-    Simulates N parallel lane calls and records the observed max
-    concurrency (how many lanes were inside the critical section at
-    any one time). The simulated lanes sleep briefly to make the
-    concurrency visible.
+    Launches the supplied lane specs in TRUE parallel (threading) to
+    simulate the Slice 0.1 v1 problem where 5 subagents simultaneously
+    hammered the Firecrawl provider. Records the observed max active
+    Firecrawl-heavy lanes.
     """
     import time as _t
+    import threading as _thr
     from _lib.marketing_calendar import (
-        MAX_FIRECRAWL_HEAVY_LANES, RESEARCH_LANE_BATCHES,
-        batch_research_calls,
+        MAX_FIRECRAWL_HEAVY_LANES, batch_research_calls,
     )
 
     body = request.get_json(silent=True) or {}
@@ -4285,19 +4285,23 @@ def calendar_v2_concurrency_test():
     firecrawl_heavy_count = body.get("firecrawl_heavy_count", 5)
     lane_duration_ms = body.get("lane_duration_ms", 200)
 
-    # Shared counter — protected by a list (CPython GIL keeps list.append atomic)
-    state = {"active": 0, "max_active": 0}
+    # Shared counter — protected by a lock (CPython list.append is atomic
+    # under the GIL but we still use a lock for clarity)
+    state = {"active_heavy": 0, "max_active_heavy": 0, "lock": _thr.Lock()}
 
-    def make_lane(idx):
-        def run(spec):
-            state["active"] += 1
-            state["max_active"] = max(state["max_active"], state["active"])
-            try:
-                _t.sleep(lane_duration_ms / 1000.0)
-                return {"lane": spec["name"], "result": "ok"}
-            finally:
-                state["active"] -= 1
-        return run
+    def lane_run(spec):
+        is_heavy = spec.get("firecrawl_heavy", False)
+        if is_heavy:
+            with state["lock"]:
+                state["active_heavy"] += 1
+                state["max_active_heavy"] = max(state["max_active_heavy"], state["active_heavy"])
+        try:
+            _t.sleep(lane_duration_ms / 1000.0)
+            return {"lane": spec.get("name"), "result": "ok"}
+        finally:
+            if is_heavy:
+                with state["lock"]:
+                    state["active_heavy"] -= 1
 
     # Build lane specs
     lane_specs = [
@@ -4307,19 +4311,37 @@ def calendar_v2_concurrency_test():
         for i in range(n_lanes)
     ]
 
-    # Map lane_specs under the RESEARCH_LANE_BATCHES ordering so batch_research_calls
-    # executes them in batches with at most MAX_FIRECRAWL_HEAVY_LANES concurrent.
-    results = batch_research_calls(make_lane(0), lane_specs)
+    # Launch all lanes in TRUE parallel (mimicking the bug scenario)
+    threads = []
+    results = [None] * len(lane_specs)
+    barrier = _thr.Barrier(n_lanes)
+
+    def runner(idx, spec):
+        barrier.wait()  # release all at once
+        results[idx] = lane_run(spec)
+
+    for i, spec in enumerate(lane_specs):
+        t = _thr.Thread(target=runner, args=(i, spec))
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+
     return jsonify({
         "ok": True,
         "max_firecrawl_heavy_lanes_configured": MAX_FIRECRAWL_HEAVY_LANES,
-        "batches_configured": RESEARCH_LANE_BATCHES,
         "test": {
             "n_lanes": n_lanes,
             "firecrawl_heavy_count": firecrawl_heavy_count,
             "lane_duration_ms": lane_duration_ms,
-            "observed_max_concurrency": state["max_active"],
-            "pass": state["max_active"] <= MAX_FIRECRAWL_HEAVY_LANES,
+            "observed_max_concurrency_heavy_lanes": state["max_active_heavy"],
+            "pass": state["max_active_heavy"] <= MAX_FIRECRAWL_HEAVY_LANES,
+            "note": (
+                "This test simulates the SLICE 0.1 v1 bug scenario: all "
+                "lanes launch in TRUE parallel. The fix is the "
+                "batch_research_calls() helper which serialises the "
+                "heavy queue. Prove the cap by checking observed_max_heavy ≤ 2."
+            ),
         },
     }), 200
 

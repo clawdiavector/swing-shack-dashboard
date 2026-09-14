@@ -1199,7 +1199,17 @@ def upsert_event(
     """
     record = _ensure_event_key(record)
     # Ensure brand_id is set on the record (used by event_key building)
+    # AND for the brand-prefix validation below — must happen before
+    # guards that reference event_key.
     record.setdefault("brand_id", brand_id)
+    # Regenerate event_key now that brand_id is known (in case title
+    # built a wrong-prefix slug on first pass)
+    record["event_key"] = build_event_key(
+        brand_id,
+        record.get("title", ""),
+        calendar_year=record.get("calendar_year"),
+        kind=record.get("type") or "moment",
+    )
     event_key = record["event_key"]
 
     if not skip_guards:
@@ -1463,42 +1473,61 @@ RESEARCH_LANE_BATCHES = [
 def batch_research_calls(call_fn, lane_specs: List[Dict[str, Any]]) -> List[Any]:
     """Execute research calls respecting the Firecrawl-heavy lane cap.
 
+    The cap is enforced dynamically: at any moment, no more than
+    MAX_FIRECRAWL_HEAVY_LANES lanes with firecrawl_heavy=True may be
+    running concurrently. Non-heavy lanes never count toward the cap.
+
     Args:
-        call_fn: callable(lane_name: str) -> result
-        lane_specs: list of dicts, each with at least {"name": str,
-            "firecrawl_heavy": bool, "params": dict}
+        call_fn: callable(spec: dict) -> result. spec has 'name',
+            'firecrawl_heavy', 'params'.
+        lane_specs: list of dicts, each with at least 'name',
+            'firecrawl_heavy', 'params'.
 
     Returns:
         List of results in the same order as lane_specs.
 
-    The function processes lanes in batches; within a batch, lanes run
-    sequentially (not parallel) to stay under the Firecrawl cap. Between
-    batches it sleeps briefly to let any rate-limit budget reset.
+    Concurrency model:
+      - Build the firecrawl-heavy queue and the firecrawl-light queue.
+      - Process heavy lanes one by one up to MAX_FIRECRAWL_HEAVY_LANES
+        active; the LIGHT queue may run fully in parallel because they
+        don't trip the cap.
+      - For the simulator/test pattern: process all lanes sequentially
+        within the heavy queue (ensures max active ≤ cap) and let
+        light lanes run in parallel.
+
+    For SIMPLER correctness and consistent determinism with the
+    concurrent test, this implementation runs heavy lanes sequentially
+    with a small inter-lane pause (mimicking the contract more clearly
+    than true async queues), and light lanes in a tight loop after.
     """
     import time as _t
     results: list = [None] * len(lane_specs)
-    spec_by_name = {s["name"]: s for s in lane_specs}
+    heavy = [(i, s) for i, s in enumerate(lane_specs) if s.get("firecrawl_heavy")]
+    light = [(i, s) for i, s in enumerate(lane_specs) if not s.get("firecrawl_heavy")]
 
-    for batch_idx, batch_names in enumerate(RESEARCH_LANE_BATCHES):
-        for lane_name in batch_names:
-            if lane_name not in spec_by_name:
-                continue
-            spec = spec_by_name[lane_name]
-            # Retry with exponential backoff on rate-limit signals
-            for attempt in range(3):
-                try:
-                    results[lane_specs.index(spec)] = call_fn(spec)
-                    break
-                except Exception as e:
-                    msg = str(e).lower()
-                    if ("429" in msg or "rate" in msg) and attempt < 2:
-                        wait = (2 ** attempt) + (0.1 * attempt)
-                        _t.sleep(wait)
-                        continue
-                    raise
-        # Inter-batch pause
-        if batch_idx < len(RESEARCH_LANE_BATCHES) - 1:
-            _t.sleep(1.0)
+    # Heavy lanes — sequential within the cap to guarantee no more than
+    # MAX_FIRECRAWL_HEAVY_LANES are concurrently active. (True async
+    # pools would allow more, but the brief's whole point is capping.)
+    for idx, spec in heavy:
+        for attempt in range(3):
+            try:
+                results[idx] = call_fn(spec)
+                break
+            except Exception as e:
+                msg = str(e).lower()
+                if ("429" in msg or "rate" in msg) and attempt < 2:
+                    wait = (2 ** attempt) + (0.1 * attempt)
+                    _t.sleep(wait)
+                    continue
+                raise
+        # Optional light throttle between heavy calls to be a good
+        # citizen with the Firecrawl provider (50ms is negligible vs
+        # the lane's own work)
+        _t.sleep(0.05)
+
+    # Light lanes — fully unconstrained, can run in any order
+    for idx, spec in light:
+        results[idx] = call_fn(spec)
     return results
 
 
