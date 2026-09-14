@@ -4,7 +4,7 @@
 **Job:** `job-20260911-campaign-os-p1c-legacy-implement` (Cursor, implement)  
 **Plan:** `handoffs/campaign-os-p1c-legacy-plan-20260911.md` @ `7b2c0c6` / brought onto feat as `ddf53fe`  
 **Worktree:** `/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/campaign-os-p1c-legacy`  
-**Branch:** `feat/campaign-os-p1c-legacy` @ `f9dac891a07419bcdbebded97f6a4b7c4c58e337` (36b12fcaeae44cc8287992b950298f139b09c204)  
+**Branch:** `feat/campaign-os-p1c-legacy` — code-complete `f9dac89`; tip includes RFT docs (run `git rev-parse HEAD`)  
 **Merge target:** `integrate/campaign-os-option-c` (`69b64e2`) — **do not** push `main` / `master` / `develop`.
 
 ## One-line summary
@@ -15,7 +15,8 @@
 
 | Item | Value |
 |---|---|
-| Feature SHA (code complete) | `f9dac891a07419bcdbebded97f6a4b7c4c58e337` |
+| Feature tip SHA | `339272fb6941e39b49658c6b9d5e0d157c0ad58b` |
+| Code-complete SHA (pre-RFT docs) | `f9dac891a07419bcdbebded97f6a4b7c4c58e337` |
 | Base | `origin/integrate/campaign-os-option-c` @ `69b64e2ad185e4ffd75f4a97d20e39a82ed32180` |
 | On origin? | **NO** — `git ls-remote origin feat/campaign-os-p1c-legacy` empty at implement time |
 | Push | Not attempted (implement job). Allowed: `git push -u origin feat/campaign-os-p1c-legacy` after Kyle/RFT asks |
