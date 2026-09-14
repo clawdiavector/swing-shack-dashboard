@@ -4109,7 +4109,7 @@ def calendar_v2_reminder_trust_test():
         ("stale",
          {"trusted_for_planning": True, "verification_status": "verified_primary",
           "event_lifecycle": "upcoming", "last_verified_at": "2020-01-01T00:00:00Z",
-          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+          "reverify_after": "2020-01-02T00:00:00Z"}, False),
         ("expired",
          {"trusted_for_planning": True, "verification_status": "verified_primary",
           "event_lifecycle": "expired", "last_verified_at": "2026-09-14T00:00:00Z",

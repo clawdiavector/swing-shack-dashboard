@@ -1316,18 +1316,16 @@ def can_fire_planning_reminder(record: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "verification_status=conflicting"
     if record.get("event_lifecycle") in ("postponed", "cancelled", "expired"):
         return False, f"event_lifecycle={record.get('event_lifecycle')}"
-    # Stale check (brief §12) — a record is stale when its
-    # last_verified_at is older than its reverify_after, i.e. the
-    # reverify window has passed without re-verification.
+    # Stale check (brief §12) — a record is stale when the reverify
+    # window has passed without re-verification, i.e. now > reverify_after.
     lv = record.get("last_verified_at")
     ra = record.get("reverify_after")
-    if lv and ra:
+    if ra:
         try:
-            from datetime import datetime
-            lv_dt = datetime.fromisoformat(lv.replace("Z", "+00:00"))
+            from datetime import datetime, timezone as _tz
             ra_dt = datetime.fromisoformat(ra.replace("Z", "+00:00"))
-            if lv_dt < ra_dt:
-                return False, f"stale: last_verified_at={lv} < reverify_after={ra}"
+            if datetime.now(_tz.utc) > ra_dt:
+                return False, f"stale: now > reverify_after={ra} (last_verified_at={lv})"
         except Exception:
             pass
     return True, "ok"
