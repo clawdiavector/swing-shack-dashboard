@@ -114,3 +114,26 @@ agents:
       memory/daily/YYYY-MM-DD.json: "Daily learning log"
     proposed_jobs: []
     superseded_by: job_ledger
+
+
+# --- t29 dispositions (2026-09-14, consumed by t30) ---
+# See handoffs/campaign-os-p1b-port-plan-20260911.md
+t29_dispositions:
+  job_count: 8  # not ~7; +1 site_audit for unaccounted SPA-visible audits
+  jobs:
+    - golf_news
+    - reddit_trends
+    - youtube_trends
+    - seo_rankings   # wrap scripts/fetch_ubersuggest.py; NOT fetch_seo_rankings.js
+    - ga4_report     # writes ga4-metrics.json (manifest name ga4-report.json was wrong)
+    - site_audit     # seo-audit.json + geo-audit.json
+    - insights_hooks
+    - insights_reco  # includes website-insights.json
+  dropped:
+    taskmaster: consciously dropped — only approval-queue.json + asset-needs.json have readers
+    memory_keeper: superseded_by job_ledger
+    pulse_keeper: superseded_by job_ledger
+  unaccounted_outputs_resolution:
+    website-insights.json: folded into insights_reco
+    seo-audit.json: site_audit
+    geo-audit.json: site_audit

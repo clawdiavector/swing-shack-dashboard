@@ -1,4 +1,4 @@
-"""Job registry. meta_refresh is registered here; gbp/freshness via register() from app.py."""
+"""Job registry. meta_refresh + Layer 1 bootstrap here; gbp/freshness via app.py."""
 
 from __future__ import annotations
 
@@ -35,4 +35,12 @@ def _bootstrap_meta() -> None:
     )
 
 
+def _bootstrap_layer1() -> None:
+    """Register eight Layer 1 ports (t30). Idempotent via register().replace."""
+    from .layer1 import bootstrap_layer1
+
+    bootstrap_layer1(register)
+
+
 _bootstrap_meta()
+_bootstrap_layer1()

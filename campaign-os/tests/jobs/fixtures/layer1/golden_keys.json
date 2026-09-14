@@ -1,0 +1,435 @@
+{
+  "golf-news.json": {
+    "top_level": [
+      "news",
+      "post_ideas",
+      "reel_today",
+      "source",
+      "story_today",
+      "updated"
+    ],
+    "array": "news",
+    "elem_keys": [
+      "content_angle_score",
+      "local_relevance_score",
+      "published_date",
+      "source",
+      "summary",
+      "title",
+      "topic_cluster",
+      "url"
+    ]
+  },
+  "reddit-trends.json": {
+    "top_level": [
+      "hot_pain_points",
+      "top_posts",
+      "total_trends",
+      "trend_clusters",
+      "trends",
+      "updated"
+    ],
+    "array": "trends",
+    "elem_keys": [
+      "comments_count",
+      "created_utc",
+      "intent",
+      "is_self",
+      "key_terms",
+      "permalink",
+      "score",
+      "selftext_snippet",
+      "subreddit",
+      "title",
+      "url"
+    ]
+  },
+  "youtube-trends.json": {
+    "top_level": [
+      "articles_sourced",
+      "data_source",
+      "hooks",
+      "summary",
+      "top_videos",
+      "trending_themes",
+      "updated",
+      "videos_found"
+    ],
+    "array": "top_videos",
+    "elem_keys": [
+      "channelTitle",
+      "description",
+      "publishedAt",
+      "query",
+      "source",
+      "title",
+      "videoId"
+    ]
+  },
+  "seo-rankings.json": {
+    "top_level": [
+      "average_position_trend",
+      "binned",
+      "falling",
+      "keywords",
+      "metadata",
+      "quick_wins",
+      "rising",
+      "summary"
+    ],
+    "array": "keywords",
+    "elem_keys": [
+      "_has_change",
+      "competition",
+      "current_date",
+      "current_rank",
+      "current_url",
+      "keyword",
+      "language",
+      "loc_id",
+      "marked_unstable",
+      "previous_date",
+      "previous_rank",
+      "previous_url",
+      "search_volume",
+      "seo_difficulty",
+      "status"
+    ]
+  },
+  "ga4-metrics.json": {
+    "top_level": [
+      "_auth_worked",
+      "_stale",
+      "data_window",
+      "fetched_at",
+      "insights",
+      "insights_count",
+      "pages",
+      "property_id",
+      "sources",
+      "top_pages_count",
+      "total_sessions",
+      "updated"
+    ],
+    "array": "pages",
+    "elem_keys": [
+      "engRate",
+      "path",
+      "sessions"
+    ]
+  },
+  "seo-audit.json": {
+    "top_level": [
+      "high_severity",
+      "low_severity",
+      "medium_severity",
+      "pages",
+      "recommendations",
+      "site",
+      "total_findings",
+      "updated"
+    ],
+    "array": "pages",
+    "elem_keys": [
+      "findings",
+      "name",
+      "status",
+      "url"
+    ]
+  },
+  "geo-audit.json": {
+    "top_level": [
+      "geo_score",
+      "high_priority",
+      "low_priority",
+      "medium_priority",
+      "positive_signals",
+      "recommendations",
+      "site",
+      "summary",
+      "updated"
+    ],
+    "array": "recommendations",
+    "elem_keys": [
+      "fix",
+      "message",
+      "page",
+      "severity",
+      "type"
+    ]
+  },
+  "hook-bank.json": {
+    "top_level": [
+      "ab_winners",
+      "cross_signal_sources",
+      "hook_formulas",
+      "output_buckets",
+      "total_hooks",
+      "updated",
+      "watched_and_worked",
+      "youtube_signals_summary"
+    ],
+    "array": "hook_formulas",
+    "elem_keys": [
+      "avg_cross_score",
+      "best_example",
+      "count",
+      "formula"
+    ]
+  },
+  "youtube-hook-signals.json": {
+    "top_level": [
+      "fetched_at",
+      "signals",
+      "source_file",
+      "summary",
+      "top_videos",
+      "videos_analyzed"
+    ],
+    "array": "top_videos",
+    "elem_keys": [
+      "channelTitle",
+      "description",
+      "publishedAt",
+      "query",
+      "source",
+      "title",
+      "videoId"
+    ]
+  },
+  "anomaly-alerts.json": {
+    "top_level": [
+      "alerts",
+      "generated",
+      "summary",
+      "updated"
+    ],
+    "array": "alerts",
+    "elem_keys": [
+      "action",
+      "alert",
+      "confidence",
+      "evidence",
+      "likely_cause",
+      "owner",
+      "rank",
+      "severity",
+      "type",
+      "urgency"
+    ]
+  },
+  "missed-opportunities.json": {
+    "top_level": [
+      "by_category",
+      "by_owner",
+      "by_severity",
+      "count",
+      "generated",
+      "opportunities",
+      "updated"
+    ],
+    "array": "opportunities",
+    "elem_keys": [
+      "category",
+      "owner",
+      "page",
+      "sessions",
+      "severity",
+      "suggested_fix",
+      "suggestion",
+      "type",
+      "why"
+    ]
+  },
+  "funnel-leaks.json": {
+    "top_level": [
+      "generated",
+      "leaks",
+      "summary",
+      "updated"
+    ],
+    "array": "leaks",
+    "elem_keys": [
+      "easy_fix",
+      "owner",
+      "page",
+      "rank",
+      "revenue_impact",
+      "sessions",
+      "severity",
+      "type"
+    ]
+  },
+  "conversion-attribution.json": {
+    "top_level": [
+      "cta_performance",
+      "generated",
+      "hook_themes",
+      "quick_wins",
+      "service_correlation",
+      "service_coverage",
+      "summary",
+      "top_booking_pages",
+      "updated"
+    ],
+    "array": "cta_performance",
+    "elem_keys": [
+      "avg_eng_rate",
+      "avg_save_rate",
+      "conversion_rank",
+      "conversion_signal",
+      "cta_type",
+      "post_count"
+    ]
+  },
+  "retargeting-recommendations.json": {
+    "top_level": [
+      "generated",
+      "recommendations",
+      "summary",
+      "updated"
+    ],
+    "array": "recommendations",
+    "elem_keys": [
+      "action",
+      "channel",
+      "expected_outcome",
+      "expiration_window",
+      "format",
+      "owner",
+      "rank",
+      "sessions",
+      "source_evidence",
+      "suggested_cta",
+      "suggested_hook",
+      "type",
+      "urgency",
+      "why"
+    ]
+  },
+  "recommendation-scores.json": {
+    "top_level": [
+      "all_items",
+      "do_first",
+      "generated",
+      "ranked_items",
+      "summary",
+      "updated"
+    ],
+    "array": "ranked_items",
+    "elem_keys": [
+      "action",
+      "breakdown",
+      "channel",
+      "expected_outcome",
+      "expiration_window",
+      "format",
+      "owner",
+      "rank",
+      "score",
+      "sessions",
+      "source_evidence",
+      "suggested_cta",
+      "suggested_hook",
+      "type",
+      "urgency",
+      "why"
+    ]
+  },
+  "recommendation-outcomes.json": {
+    "top_level": [
+      "all_evaluated",
+      "best_recommendation",
+      "generated",
+      "ignored",
+      "learned_signals",
+      "summary",
+      "type_win_rates",
+      "underperformed",
+      "updated",
+      "worst_recommendation"
+    ],
+    "array": "all_evaluated",
+    "elem_keys": [
+      "channel",
+      "created_at",
+      "cta",
+      "date",
+      "day",
+      "executed",
+      "expected_outcome",
+      "expiration_window",
+      "hook",
+      "match_confidence",
+      "matched_post_id",
+      "objective",
+      "outcome_status",
+      "owner",
+      "recommendation_id",
+      "score",
+      "source",
+      "source_evidence",
+      "status",
+      "topic",
+      "type",
+      "urgency"
+    ]
+  },
+  "website-insights.json": {
+    "top_level": [
+      "data_window",
+      "funnel",
+      "insights",
+      "recommendations",
+      "source_share",
+      "summary",
+      "top_pages",
+      "total_sessions",
+      "updated",
+      "weak_ctas"
+    ],
+    "array": "insights",
+    "elem_keys": null
+  },
+  "ubersuggest-domain.json": {
+    "top_level": [
+      "_meta",
+      "backlinks",
+      "domain",
+      "domainAuthority",
+      "domainTraffic",
+      "follow",
+      "noFollow",
+      "organic",
+      "organicKeywords",
+      "paidKeywords",
+      "paidTraffic",
+      "refDomains",
+      "serviceInfo",
+      "traffic"
+    ],
+    "array": null,
+    "elem_keys": null
+  },
+  "ubersuggest-competitors.json": {
+    "top_level": [
+      "_meta",
+      "competitors"
+    ],
+    "array": null,
+    "elem_keys": null
+  },
+  "ubersuggest-backlinks.json": {
+    "top_level": [
+      "_meta",
+      "backlinks",
+      "domainAuthority",
+      "follow",
+      "noFollow",
+      "refDomains",
+      "refDomainsGovEdu"
+    ],
+    "array": null,
+    "elem_keys": null
+  }
+}
