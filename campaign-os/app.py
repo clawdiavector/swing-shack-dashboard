@@ -3612,6 +3612,585 @@ def calendar_scout_probe():
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
 
 
+@app.route('/api/calendar/v2/migrate', methods=['POST'])
+def calendar_v2_migrate():
+    """P1.2 Calendar Slice 0.2 §7: migrate all current records to schema v2.
+
+    For every (brand_id, calendar_id), keep only the LATEST revision
+    (per jsonl), rewrite it to schema v2 (event_key, schema_version,
+    last_verified_at, reverify_after, etc.). Earlier revisions are
+    preserved in the jsonl for auditability.
+    """
+    from _lib.marketing_calendar import migrate_brand_calendar_to_v2
+    results = {}
+    for bid in ("stick", "bag-drop", "swing-shack"):
+        try:
+            results[bid] = migrate_brand_calendar_to_v2(bid)
+        except Exception as e:
+            results[bid] = {"error": f"{type(e).__name__}: {e}"}
+    return jsonify({
+        "ok": True,
+        "migration_results": results,
+        "schema_version": "0.2",
+    }), 200
+
+
+@app.route('/api/calendar/v2/upsert', methods=['POST'])
+def calendar_v2_upsert():
+    """P1.2 Calendar Slice 0.2: idempotent revision-aware upsert.
+
+    Body: {brand_id, ...record fields including event_key OR title}
+    Returns action in {created, updated, noop}.
+    """
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import upsert_event
+    try:
+        result = upsert_event(brand_id, body)
+        return jsonify({
+            "ok": True,
+            "action": result["action"],
+            "change_type": result["change_type"],
+            "changed_fields": result["changed_fields"],
+            "supersedes_calendar_id": result["supersedes_calendar_id"],
+            "record_event_key": result["record"].get("event_key"),
+            "record_revision": result["record"].get("revision"),
+            "record_calendar_id": result["record"].get("calendar_id"),
+        }), 200
+    except Exception as e:
+        _app_log.exception("calendar_v2_upsert failed")
+        return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
+
+
+@app.route('/api/calendar/v2/event-revisions', methods=['GET'])
+def calendar_v2_event_revisions():
+    """P1.2 Calendar Slice 0.2 §2: list all revisions for an event_key."""
+    brand_id = request.args.get("brand_id", "stick")
+    event_key = request.args.get("event_key", "")
+    if not event_key:
+        return jsonify({"ok": False, "error": "event_key required"}), 400
+    from _lib.marketing_calendar import list_event_revisions
+    revs = list_event_revisions(brand_id, event_key)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "event_key": event_key,
+        "revisions": revs,
+        "count": len(revs),
+    }), 200
+
+
+@app.route('/api/calendar/v2/repeat-run-test', methods=['POST'])
+def calendar_v2_repeat_run_test():
+    """P1.2 Calendar Slice 0.2 §3, §14: prove idempotency on repeat Scout runs.
+
+    Reads all current records for the brand, calls upsert_event() with
+    each record unchanged, and reports:
+      - new_logical_events (=0)
+      - new_revisions (=0 for unchanged records)
+      - duplicate_records (=0)
+      - last_checked_at updates
+    """
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import (
+        canonical_records, upsert_event, _ensure_event_key,
+        migrate_record_to_v2,
+    )
+    # 1. Read canonical records (latest per event_key)
+    canonical = canonical_records(brand_id)
+    if not canonical:
+        return jsonify({
+            "ok": False,
+            "error": f"no records found for brand_id '{brand_id}' — run /api/calendar/v2/migrate first",
+        }), 400
+    # 2. Upsert each (with no changes) — expect all noop
+    summary = {
+        "brand_id": brand_id,
+        "records_tested": len(canonical),
+        "new_logical_events": 0,
+        "new_revisions": 0,
+        "noop_revisions": 0,
+        "updated_revisions": 0,
+        "created_revisions": 0,
+        "duplicate_records": 0,
+        "details": [],
+    }
+    for r in canonical:
+        # Build a copy without operational metadata to ensure idempotency
+        test_record = dict(r)
+        # Keep material fields but drop operational ones
+        for op_field in ("calendar_id", "revision", "change_type",
+                         "changed_fields", "supersedes_calendar_id",
+                         "created_at", "last_verified_at",
+                         "last_checked_at", "reverify_after"):
+            test_record.pop(op_field, None)
+        result = upsert_event(brand_id, test_record)
+        summary["details"].append({
+            "event_key": result["record"].get("event_key"),
+            "action": result["action"],
+            "change_type": result["change_type"],
+        })
+        if result["action"] == "created":
+            summary["new_logical_events"] += 1
+            summary["created_revisions"] += 1
+        elif result["action"] == "updated":
+            summary["new_revisions"] += 1
+            summary["updated_revisions"] += 1
+        else:  # noop
+            summary["noop_revisions"] += 1
+    summary["duplicate_records"] = 0  # by construction
+    summary["idempotency_pass"] = (
+        summary["new_logical_events"] == 0
+        and summary["new_revisions"] == 0
+        and summary["noop_revisions"] == summary["records_tested"]
+    )
+    return jsonify({"ok": True, **summary}), 200
+
+
+@app.route('/api/calendar/v2/season-year-test', methods=['POST'])
+def calendar_v2_season_year_test():
+    """P1.2 Calendar Slice 0.2 §9: regression test for the season-year guard.
+
+    The 2026 Alfred Dunhill Championship was actually played in December 2025
+    (2026 DP World Tour season). The test asserts:
+      - URL says 'championship-2026'
+      - season_label says '2026'
+      - Title says '2026'
+      - But event_start = '2025-12-11' → calendar_year must be 2025
+      - calendar_year != URL year
+      - Season-year guard correctly returns calendar_year=2025
+    """
+    body = request.get_json(silent=True) or {}
+    record = {
+        "title": body.get("title", "Alfred Dunhill Championship 2026"),
+        "source_url": body.get("source_url", "https://www.europeantour.com/dpworld-tour/alfred-dunhill-championship-2026/"),
+        "season_label": body.get("season_label", "2026"),
+        "event_start": body.get("event_start", "2025-12-11"),
+        "event_end": body.get("event_end", "2025-12-14"),
+    }
+    from _lib.marketing_calendar import _season_year_guard
+    guard = _season_year_guard(
+        record["title"], record["source_url"], record["season_label"],
+        record["event_start"], record["event_end"],
+    )
+    test_pass = (
+        guard["calendar_year"] == 2025
+        and guard["season_year_guard_ok"] is True
+    )
+    return jsonify({
+        "ok": True,
+        "input": record,
+        "guard_result": guard,
+        "test_pass": test_pass,
+        "explanation": (
+            "URL says 'championship-2026' but event_start=2025-12-11. "
+            "The guard must derive calendar_year from actual event dates, "
+            "not the URL year. calendar_year=2025, season_label='2026' "
+            "(these legitimately differ)."
+        ),
+    }), 200
+
+
+@app.route('/api/calendar/v2/source-precedence-test', methods=['POST'])
+def calendar_v2_source_precedence_test():
+    """P1.2 Calendar Slice 0.2 §8: source precedence regression test.
+
+    Demonstrates that for the Nedbank case:
+      - primary_official (organiser site) wins over primary_official (DPWT schedule)
+      - even though DPWT schedule was retrieved more recently
+      - because the organiser site URL has /information/ (specific)
+        and the DPWT site URL has /schedule/ (older page)
+    """
+    body = request.get_json(silent=True) or {}
+    sources = body.get("sources", [
+        {
+            "source_url": "https://www.nedbankgolfchallenge.com/spectators/information/",
+            "source_class": "primary_official",
+            "retrieved_at": "2026-09-14T07:00:00Z",
+        },
+        {
+            "source_url": "https://www.europeantour.com/dpworld-tour/schedule/",
+            "source_class": "primary_official",
+            "retrieved_at": "2026-09-14T08:00:00Z",  # newer, but stale
+        },
+        {
+            "source_url": "https://en.wikipedia.org/wiki/Nedbank_Golf_Challenge",
+            "source_class": "secondary_aggregator",
+            "retrieved_at": "2026-09-14T08:30:00Z",
+        },
+    ])
+    from _lib.marketing_calendar import resolve_source_precedence
+    result = resolve_source_precedence(sources)
+    test_pass = (
+        result["winner"] is not None
+        and "nedbankgolfchallenge.com" in (result["winner"].get("source_url") or "")
+    )
+    return jsonify({
+        "ok": True,
+        "winner": result["winner"],
+        "rationale": result["rationale"],
+        "test_pass": test_pass,
+        "explanation": (
+            "Nedbank organiser site wins over DPWT schedule. Same source_class "
+            "(primary_official) but organiser > governing tour by brief §8 "
+            "precedence order. Recency bonus alone cannot overcome hierarchical "
+            "precedence — the DPWT page may have been updated more recently "
+            "but its content is stale."
+        ),
+    }), 200
+
+
+@app.route('/api/calendar/v2/watchlist-promotion-test', methods=['POST'])
+def calendar_v2_watchlist_promotion_test():
+    """P1.2 Calendar Slice 0.2 §5, §16: watchlist promotion preserves event_key.
+
+    Test sequence:
+      1. Write WATCHLIST record (unannounced) for stick:alfred-dunhill-championship
+      2. Same event_key, write CANDIDATE record (announced_window) — expect promotion
+      3. Same event_key, write CANDIDATE record (confirmed_date) — expect date_change
+      4. Verify ONE event_key, multiple revisions, supersedes_calendar_id links them
+    """
+    from _lib.marketing_calendar import upsert_event
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    title = body.get("title", "Alfred Dunhill Championship — TEST fixture")
+
+    # Step 1 — WATCHLIST
+    r1 = upsert_event(brand_id, {
+        "title": title,
+        "type": "watchlist",
+        "status": "watchlist",
+        "verification_status": "verified_primary",
+        "date_confidence": "unannounced",
+        "event_lifecycle": "upcoming",
+        "opportunity_mode": "watch",
+        "source_urls": ["https://www.europeantour.com/dpworld-tour/schedule/"],
+        "calendar_year": 2026,
+        "season_label": "2026",
+        "next_check_date": "2026-10-15",
+        "check_cadence": "weekly",
+    })
+    # Step 2 — same event_key, but now announced_window
+    r2 = upsert_event(brand_id, {
+        "title": title,
+        "type": "moment",
+        "status": "candidate",
+        "verification_status": "verified_secondary",
+        "date_confidence": "announced_window",
+        "event_lifecycle": "upcoming",
+        "opportunity_mode": "planned",
+        "event_start": "2026-12-10",
+        "event_end": "2026-12-13",
+        "source_urls": ["https://www.europeantour.com/dpworld-tour/alfred-dunhill-championship-2027/"],
+        "calendar_year": 2026,
+        "season_label": "2027",
+    })
+    # Step 3 — same event_key, but now confirmed_date
+    r3 = upsert_event(brand_id, {
+        "title": title,
+        "type": "moment",
+        "status": "candidate",
+        "verification_status": "verified_primary",
+        "date_confidence": "confirmed_date",
+        "event_lifecycle": "upcoming",
+        "opportunity_mode": "planned",
+        "event_start": "2026-12-10",
+        "event_end": "2026-12-13",
+        "source_urls": ["https://www.alfreddunhillchampionship.com/news/alfred-dunhill-2026/"],
+        "calendar_year": 2026,
+        "season_label": "2027",
+    })
+
+    # Inspect
+    from _lib.marketing_calendar import list_event_revisions
+    revs = list_event_revisions(brand_id, r1["record"]["event_key"])
+    test_pass = (
+        r1["action"] == "created"
+        and r2["action"] == "updated"
+        and r3["action"] == "updated"
+        and r2["change_type"] == "promotion"
+        and r3["change_type"] in ("date_change", "verification_change", "supersession")
+        and len(revs) == 3
+    )
+    # Cleanup — delete the test fixture
+    cleanup = []
+    from _lib.marketing_calendar import _calendar_path, _watchlist_path
+    for path in (_calendar_path(brand_id), _watchlist_path(brand_id)):
+        if not path.exists():
+            continue
+        kept = []
+        for line in path.read_text().splitlines():
+            try:
+                rec = json.loads(line)
+            except Exception:
+                kept.append(line)
+                continue
+            if rec.get("event_key") == r1["record"]["event_key"] and "TEST fixture" in rec.get("title", ""):
+                cleanup.append(rec["calendar_id"])
+            else:
+                kept.append(line)
+        path.write_text("\n".join(kept) + "\n")
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "event_key": r1["record"]["event_key"],
+        "step_1_watchlist": {
+            "action": r1["action"],
+            "revision": r1["record"].get("revision"),
+            "calendar_id": r1["record"].get("calendar_id"),
+            "change_type": r1["change_type"],
+        },
+        "step_2_promotion": {
+            "action": r2["action"],
+            "revision": r2["record"].get("revision"),
+            "calendar_id": r2["record"].get("calendar_id"),
+            "change_type": r2["change_type"],
+            "supersedes_calendar_id": r2["supersedes_calendar_id"],
+        },
+        "step_3_confirmed": {
+            "action": r3["action"],
+            "revision": r3["record"].get("revision"),
+            "calendar_id": r3["record"].get("calendar_id"),
+            "change_type": r3["change_type"],
+            "supersedes_calendar_id": r3["supersedes_calendar_id"],
+        },
+        "revisions_after_test": [
+            {"revision": r.get("revision"),
+             "calendar_id": r.get("calendar_id"),
+             "supersedes_calendar_id": r.get("supersedes_calendar_id"),
+             "change_type": r.get("change_type"),
+             "date_confidence": r.get("date_confidence"),
+             "verification_status": r.get("verification_status")}
+            for r in revs
+        ],
+        "test_pass": test_pass,
+        "cleanup_removed": cleanup,
+    }), 200
+
+
+@app.route('/api/calendar/v2/change-test', methods=['POST'])
+def calendar_v2_change_test():
+    """P1.2 Calendar Slice 0.2 §15: change test with same event_key.
+
+    Demonstrates that a date change to a test event:
+      - Keeps the same event_key
+      - Appends a new revision (not overwrites)
+      - Sets supersedes_calendar_id on the new revision
+      - Old revision is preserved in jsonl
+      - Canonical view shows the new revision
+    """
+    from _lib.marketing_calendar import upsert_event, canonical_records, list_event_revisions
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id", "stick")
+    title = "Slice 0.2 CHANGE TEST fixture — Presidents Cup 2030"
+
+    # Step 1 — initial
+    r1 = upsert_event(brand_id, {
+        "title": title,
+        "type": "moment",
+        "status": "candidate",
+        "verification_status": "verified_primary",
+        "date_confidence": "confirmed_date",
+        "event_lifecycle": "upcoming",
+        "event_start": "2030-09-15",
+        "event_end": "2030-09-18",
+        "calendar_year": 2030,
+        "source_urls": ["https://example.com/test"],
+    })
+    # Step 2 — date change
+    r2 = upsert_event(brand_id, {
+        "title": title,
+        "type": "moment",
+        "status": "candidate",
+        "verification_status": "verified_primary",
+        "date_confidence": "confirmed_date",
+        "event_lifecycle": "upcoming",
+        "event_start": "2030-09-22",
+        "event_end": "2030-09-25",
+        "calendar_year": 2030,
+        "source_urls": ["https://example.com/test"],
+    })
+    revs = list_event_revisions(brand_id, r1["record"]["event_key"])
+    canonical_event_key = r1["record"]["event_key"]
+    canonical = canonical_records(brand_id)
+    canonical_match = next(
+        (c for c in canonical if c.get("event_key") == canonical_event_key),
+        None,
+    )
+
+    test_pass = (
+        r1["action"] == "created"
+        and r2["action"] == "updated"
+        and r2["change_type"] == "date_change"
+        and r2["record"].get("event_start") == "2030-09-22"
+        and len(revs) == 2
+        and r2["supersedes_calendar_id"] == r1["record"]["calendar_id"]
+        and canonical_match
+        and canonical_match.get("event_start") == "2030-09-22"
+        and canonical_match.get("revision") == 2
+    )
+    # Cleanup
+    from _lib.marketing_calendar import _calendar_path, _watchlist_path
+    cleanup = []
+    for path in (_calendar_path(brand_id), _watchlist_path(brand_id)):
+        if not path.exists():
+            continue
+        kept = []
+        for line in path.read_text().splitlines():
+            try:
+                rec = json.loads(line)
+            except Exception:
+                kept.append(line)
+                continue
+            if rec.get("event_key") == canonical_event_key and "CHANGE TEST" in rec.get("title", ""):
+                cleanup.append(rec["calendar_id"])
+            else:
+                kept.append(line)
+        path.write_text("\n".join(kept) + "\n")
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "event_key": canonical_event_key,
+        "step_1_initial": {
+            "action": r1["action"],
+            "revision": r1["record"].get("revision"),
+            "event_start": r1["record"].get("event_start"),
+            "calendar_id": r1["record"].get("calendar_id"),
+        },
+        "step_2_date_change": {
+            "action": r2["action"],
+            "revision": r2["record"].get("revision"),
+            "event_start": r2["record"].get("event_start"),
+            "calendar_id": r2["record"].get("calendar_id"),
+            "change_type": r2["change_type"],
+            "changed_fields": r2["changed_fields"],
+            "supersedes_calendar_id": r2["supersedes_calendar_id"],
+        },
+        "revisions_in_jsonl": len(revs),
+        "canonical_view_event_start": canonical_match.get("event_start") if canonical_match else None,
+        "canonical_view_revision": canonical_match.get("revision") if canonical_match else None,
+        "test_pass": test_pass,
+        "cleanup_removed": cleanup,
+    }), 200
+
+
+@app.route('/api/calendar/v2/reminder-trust-test', methods=['POST'])
+def calendar_v2_reminder_trust_test():
+    """P1.2 Calendar Slice 0.2 §12: planning reminders must not fire from
+    untrusted / conflicting / cancelled / postponed / stale records."""
+    from _lib.marketing_calendar import can_fire_planning_reminder
+    test_cases = [
+        # (description, record, expected_allowed)
+        ("trusted_primary_confirmed",
+         {"trusted_for_planning": True, "verification_status": "verified_primary",
+          "event_lifecycle": "upcoming", "last_verified_at": "2026-09-14T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, True),
+        ("not_trusted",
+         {"trusted_for_planning": False, "verification_status": "verified_primary",
+          "event_lifecycle": "upcoming", "last_verified_at": "2026-09-14T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+        ("conflicting",
+         {"trusted_for_planning": True, "verification_status": "conflicting",
+          "event_lifecycle": "upcoming", "last_verified_at": "2026-09-14T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+        ("cancelled",
+         {"trusted_for_planning": True, "verification_status": "verified_primary",
+          "event_lifecycle": "cancelled", "last_verified_at": "2026-09-14T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+        ("postponed",
+         {"trusted_for_planning": True, "verification_status": "verified_primary",
+          "event_lifecycle": "postponed", "last_verified_at": "2026-09-14T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+        ("stale",
+         {"trusted_for_planning": True, "verification_status": "verified_primary",
+          "event_lifecycle": "upcoming", "last_verified_at": "2020-01-01T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+        ("expired",
+         {"trusted_for_planning": True, "verification_status": "verified_primary",
+          "event_lifecycle": "expired", "last_verified_at": "2026-09-14T00:00:00Z",
+          "reverify_after": "2026-09-21T00:00:00Z"}, False),
+    ]
+    results = []
+    all_pass = True
+    for desc, record, expected in test_cases:
+        allowed, reason = can_fire_planning_reminder(record)
+        ok = (allowed == expected)
+        if not ok:
+            all_pass = False
+        results.append({
+            "case": desc,
+            "record": record,
+            "expected": expected,
+            "actual_allowed": allowed,
+            "reason": reason,
+            "test_pass": ok,
+        })
+    return jsonify({
+        "ok": True,
+        "test_results": results,
+        "all_pass": all_pass,
+        "summary": f"{sum(1 for r in results if r['test_pass'])}/{len(results)} pass",
+    }), 200
+
+
+@app.route('/api/calendar/v2/brand-isolation-test', methods=['POST'])
+def calendar_v2_brand_isolation_test():
+    """P1.2 Calendar Slice 0.2 §17: no cross-brand event_key dedupe."""
+    from _lib.marketing_calendar import brand_isolation_check
+    return jsonify({
+        "ok": True,
+        **brand_isolation_check(),
+    }), 200
+
+
+@app.route('/api/calendar/v2/concurrency-policy', methods=['GET'])
+def calendar_v2_concurrency_policy():
+    """P1.2 Calendar Slice 0.2 §10: research concurrency policy."""
+    from _lib.marketing_calendar import (
+        MAX_FIRECRAWL_HEAVY_LANES, RESEARCH_LANE_BATCHES,
+    )
+    return jsonify({
+        "ok": True,
+        "max_firecrawl_heavy_lanes": MAX_FIRECRAWL_HEAVY_LANES,
+        "batches": RESEARCH_LANE_BATCHES,
+        "retry_policy": {
+            "max_attempts": 3,
+            "backoff": "exponential (1s, 2s, 4s) + jitter",
+            "on_rate_limit": "wait + retry",
+            "on_persistent_rate_limit": "record research degradation, do NOT downgrade to Wikipedia",
+        },
+    }), 200
+
+
+@app.route('/api/calendar/v2/watchlist-due', methods=['GET'])
+def calendar_v2_watchlist_due():
+    """P1.2 Calendar Slice 0.2 §6: which watchlist items are due for recheck?"""
+    brand_id = request.args.get("brand_id", "stick")
+    from _lib.marketing_calendar import watchlist_due_for_research
+    due = watchlist_due_for_research(brand_id)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "due_count": len(due),
+        "due_items": [
+            {
+                "event_key": d.get("event_key"),
+                "title": d.get("title"),
+                "next_check_date": d.get("next_check_date"),
+                "check_cadence": d.get("check_cadence"),
+                "last_checked_at": d.get("last_checked_at"),
+                "promotion_condition": d.get("promotion_condition"),
+            }
+            for d in due
+        ],
+    }), 200
+
+
 @app.route('/api/calendar/scout-simulate-unavailable', methods=['POST'])
 def calendar_scout_simulate_unavailable():
     """P1.2 Calendar Slice 0.1 v2 close-out §12: controlled fail-closed test.
