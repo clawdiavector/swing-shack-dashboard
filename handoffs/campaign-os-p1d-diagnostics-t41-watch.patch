@@ -1,0 +1,97 @@
+diff --git i/bin/campaign_os_jobs_lib.py w/bin/campaign_os_jobs_lib.py
+index 336d226..cde02d4 100644
+--- i/bin/campaign_os_jobs_lib.py
++++ w/bin/campaign_os_jobs_lib.py
+@@ -52,17 +52,76 @@ def sort_jobs(jobs: list[dict[str, Any]], *, bad_first: bool = True) -> list[dic
+ def format_job_line(job: dict[str, Any]) -> str:
+     verdict = str(job.get("verdict") or "?")
+     name = str(job.get("name") or "?")
++    error_class = job.get("error_class")
++    if error_class:
++        return (
++            f"  {verdict:<7} {name:<16} {error_class} · last ok "
++            f"{age_phrase(job.get('last_success_age_h'))}"
++        )
+     return f"  {verdict:<7} {name:<16} last ok {age_phrase(job.get('last_success_age_h'))}"
+ 
+ 
+-def format_bad_alert(jobs: list[dict[str, Any]]) -> str:
++def format_bad_alert(
++    jobs: list[dict[str, Any]],
++    *,
++    failures: list[dict[str, Any]] | None = None,
++) -> str:
++    """Alert lines for non-OK jobs.
++
++    When `failures` is provided (from GET /api/jobs/failures), each bad row
++    gains error_class and a top suggested_check. If failures is missing/empty,
++    fall back to the P0c line shape unchanged.
++    """
++    by_name: dict[str, dict[str, Any]] = {}
++    if failures:
++        for row in failures:
++            name = str(row.get("job") or "")
++            if name:
++                by_name[name] = row
++
+     bad = [j for j in jobs if j.get("verdict") != "OK"]
+     bad = sort_jobs(bad, bad_first=True)
+     lines = ["🟠 Campaign OS jobs not OK:"]
+-    lines.extend(format_job_line(j) for j in bad)
++    for job in bad:
++        name = str(job.get("name") or "")
++        enriched = dict(job)
++        detail = by_name.get(name)
++        if detail:
++            if detail.get("error_class"):
++                enriched["error_class"] = detail["error_class"]
++            # Prefer age from status payload; failures may omit it.
++        lines.append(format_job_line(enriched))
++        if detail and detail.get("top_suggested_check"):
++            lines.append(f"          ↳ {truncate_reason(detail['top_suggested_check'], 240)}")
+     return "\n".join(lines)
+ 
+ 
++def failures_url() -> str:
++    return f"{campaign_os_url()}/api/jobs/failures"
++
++
++def fetch_jobs_failures() -> list[dict[str, Any]] | None:
++    """Best-effort enrichment. Returns None on any failure (caller keeps P0c line)."""
++    token = os.environ.get("COS_JOB_TOKEN")
++    if not token:
++        return None
++    req = urllib.request.Request(
++        failures_url(),
++        headers={"Authorization": f"Bearer {token}"},
++        method="GET",
++    )
++    try:
++        with urllib.request.urlopen(req, timeout=TIMEOUT_SEC) as resp:
++            raw = resp.read()
++        data = json.loads(raw.decode("utf-8"))
++        failures = data.get("failures") if isinstance(data, dict) else data
++        if not isinstance(failures, list):
++            return None
++        return failures
++    except Exception:  # noqa: BLE001 — watchdog must never fail on enrichment
++        return None
++
++
+ def format_full_table(jobs: list[dict[str, Any]], *, bad_first: bool = True) -> str:
+     ordered = sort_jobs(jobs, bad_first=bad_first)
+     return "\n".join(format_job_line(j) for j in ordered)
+diff --git i/bin/watch_campaign_os.py w/bin/watch_campaign_os.py
+index 7e96dba..6b291ad 100755
+--- i/bin/watch_campaign_os.py
++++ w/bin/watch_campaign_os.py
+@@ -161,7 +161,8 @@ def main(argv: list[str] | None = None) -> int:
+     if not (hash_changed or reassert_due):
+         return 0
+ 
+-    print(lib.format_bad_alert(jobs))
++    failures = lib.fetch_jobs_failures()
++    print(lib.format_bad_alert(jobs, failures=failures))
+     if not _save_state(
+         path,
+         {"hash": digest_hash, "last_alert_epoch": now, "all_ok": False},
