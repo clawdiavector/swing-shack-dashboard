@@ -124,6 +124,7 @@ Canonical machine-readable salvage of Layer 1 `inputs{}` / `outputs{}` / `critic
 
 **`docs/layer1-salvage-20260911.yaml`**
 
-Captured from the five Layer 1 manifests before `agents/` moved to `legacy/agents/`.
-Survives t33 deletion of `legacy/agents/`. Consumer: t29 (map → ~7 Python JobSpecs).
-Do not re-derive from `legacy/agents/` — that tree is frozen evidence only.
+Captured from the five Layer 1 manifests before `agents/` moved to `legacy/agents/`
+and before t33 deleted that tree. Consumer: t29 (map → ~7 Python JobSpecs, landed as
+eight Layer 1 jobs under `campaign-os/_lib/jobs/layer1/`). Do not re-derive from git
+history of the deleted Node tree unless auditing.
