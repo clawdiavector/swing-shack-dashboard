@@ -33,7 +33,9 @@ def _auth():
 
 
 def test_failures_and_diagnostics_require_auth(job_app):
-    client, _, _ = job_app
+    _, app_module, _ = job_app
+    # cos_anon: P1a conftest auto-logs in test_client(); dual-auth accepts session.
+    client = app_module.app.test_client(cos_anon=True)
     assert client.get("/api/jobs/failures").status_code == 401
     assert client.get("/api/jobs/diagnostics/abc").status_code == 401
 
