@@ -424,10 +424,10 @@ def add_candidate(
     # Trusted-for-planning flag — True only when source verified primary.
     # Downstream consumers (planning reminders, Morning Brief, automatic
     # content planning) must filter on this.
-    enriched["trusted_for_planning"] = (
+    enriched["trusted_for_planning"] = bool(
         enriched.get("verification_status") == "verified_primary"
         and enriched.get("date_confidence") in ("confirmed_date", "announced_window")
-        and src  # at least one source URL
+        and bool(src)
     )
 
     # Auto-compute lead_time_days + schedule if event_date + lead_time_class given
