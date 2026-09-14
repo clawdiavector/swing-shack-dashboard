@@ -2514,6 +2514,7 @@ def scout_run_for_brand(
     result["candidates_considered"] = len(candidates)
     result["discovery_executed"] = True
     # Map candidates by event_key for upsert
+    new_revisions_this_run = 0
     for c in candidates:
         ek = c.get("event_key") or _ensure_event_key({**c, "brand_id": brand_id}).get("event_key")
         if not ek:
@@ -2528,9 +2529,11 @@ def scout_run_for_brand(
             if action == "created":
                 result["new_logical_events"] += 1
                 result["candidates_added"] += 1
+                new_revisions_this_run += 1
             elif action == "updated":
                 result["material_updates"] += 1
                 result["candidates_updated"] += 1
+                new_revisions_this_run += 1
             else:
                 # noop: same revision as before; we should NEVER
                 # count this as "events_unchanged_written" because
@@ -2538,14 +2541,17 @@ def scout_run_for_brand(
                 # events. If noop count is large, the producer fed
                 # us the existing canonical view back.
                 pass
-            result["revisions_created"] = max(result["revisions_created"], new_rev - 0)
+            result["revisions_created"] = max(result["revisions_created"], new_rev)
         except Exception as e:
             result["candidates_ignored"] += 1
             result["errors"].append(f"upsert({ek}): {e}")
-    # Churn guard — if we created more revisions than (new + material)
-    # by the safety ratio, abort further writes.
+    # Use the per-RUN revision count for the churn guard, not the
+    # cumulative revision numbers (which include legacy history).
+    result["revisions_created_this_run"] = new_revisions_this_run
+    # Churn guard — if THIS run created more revisions than
+    # (new + material) by the safety ratio, abort further writes.
     expected = max(1, result["new_logical_events"] + result["material_updates"])
-    if abort_on_churn and result["revisions_created"] > expected * REVISION_CHURN_RATIO and result["revisions_created"] > REVISION_CHURN_HARD_CAP:
+    if abort_on_churn and new_revisions_this_run > expected * REVISION_CHURN_RATIO and new_revisions_this_run > REVISION_CHURN_HARD_CAP:
         result["churn_guard_aborted"] = True
         result["churn_guard_reason"] = (
             f"revisions_created={result['revisions_created']} >> "
