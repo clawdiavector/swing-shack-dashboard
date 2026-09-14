@@ -1546,6 +1546,12 @@ def migrate_brand_calendar_to_v2(brand_id: str) -> Dict[str, Any]:
         # Rewrite lines: keep non-target lines as-is, replace target lines
         # with migrated versions
         target_cids = set(latest_per_cid.keys())
+        # Build a map from cid+ts to migrated version
+        migrated_by_cid_ts: Dict[tuple, Dict[str, Any]] = {}
+        for cid, r in latest_per_cid.items():
+            ts = r.get("created_at") or r.get("last_verified_at") or ""
+            migrated = migrate_record_to_v2(r)
+            migrated_by_cid_ts[(cid, ts)] = migrated
         new_lines = []
         for line in lines:
             try:
@@ -1554,13 +1560,15 @@ def migrate_brand_calendar_to_v2(brand_id: str) -> Dict[str, Any]:
                 new_lines.append(line)
                 continue
             cid = r.get("calendar_id")
-            if cid in target_cids and r is latest_per_cid[cid]:
-                # Migrate this latest revision
+            ts = r.get("created_at") or r.get("last_verified_at") or ""
+            key = (cid, ts)
+            if cid in target_cids and key in migrated_by_cid_ts:
+                # This is a latest-revision line — replace with migrated
                 if r.get("schema_version") == SCHEMA_VERSION and r.get("event_key"):
                     summary["already_v2"] += 1
                     new_lines.append(line)
                 else:
-                    migrated = migrate_record_to_v2(r)
+                    migrated = migrated_by_cid_ts[key]
                     summary["migrated"] += 1
                     if migrated.get("event_key"):
                         summary["event_keys_assigned"].append(migrated["event_key"])
