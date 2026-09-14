@@ -15,11 +15,8 @@
  * This file deliberately contains NO fallback key, NO default value,
  * and does not auto-discover credentials by globbing the filesystem.
  *
- * Canonical credential file (configured by env var, NOT hardcoded here):
- *   /Users/fivefriday/.openclaw-instance2/workspace/clients/swing-shack/credentials/postiz-api-key.json
- *
- * The path is supplied by the caller (script-level constant or env var)
- * so this helper stays reusable across worktrees and alternative deployments.
+ * Canonical credential file is configured by env var (POSTIZ_API_KEY_FILE),
+ * never hardcoded here. Do not embed machine-local absolute paths.
  */
 
 'use strict';
