@@ -19,7 +19,7 @@ Operational marketing application for Swing Shack's indoor golf content pipeline
 
 Deploys to **Railway** via the **repo-root** `Dockerfile` + `railway.json` (`python app.py`, healthcheck `/api/health`). Details: `../RAILWAY.md`.
 
-GitHub Pages (if still wired) is legacy static output — Railway is the product.
+GitHub Pages lane retired in t51 (2026-09-14): media-only mirror remains; Railway is the only product surface. See root `AGENTS.md` §11.
 
 ## Development
 
