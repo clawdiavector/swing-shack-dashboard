@@ -9939,40 +9939,143 @@ def meta_connect_test(brand_id):
                 out["surfaces"]["instagram_media_insights"] = {"state": _classify_facebook_error(e),
                                                                "error": str(e)[:200]}
 
-        # ===== Ad accounts (via /me/adaccounts) =====
+        # ===== Ad accounts (via /me/adaccounts) + per-account classification =====
         try:
             r = _meta._graph_get("/me/adaccounts",
                                  {"fields": "id,name,currency,timezone_name,account_status,disable_reason"})
             accounts = r.get("data", [])
+            enriched_accounts = []  # initialise before try/except
+            for a in accounts:
+                acct_id = a.get("id")
+                entry = {"id": acct_id, "name": a.get("name"),
+                         "currency": a.get("currency"), "timezone": a.get("timezone_name"),
+                         "status": a.get("account_status"), "disable_reason": a.get("disable_reason")}
+                # Per-account associated Pages (read-only)
+                try:
+                    pages_resp = _meta._graph_get(
+                        f"/{acct_id}/promote_pages" if False else f"/{acct_id}/assigned_pages",
+                        {"fields": "id,name,instagram_business_account",
+                         "limit": 50},
+                    )
+                    ps = pages_resp.get("data", [])
+                    entry["associated_pages"] = [
+                        {"page_id": p.get("id"), "page_name": p.get("name"),
+                         "linked_ig_id": (p.get("instagram_business_account") or {}).get("id")}
+                        for p in ps
+                    ]
+                except Exception as e:
+                    entry["associated_pages_error"] = _classify_facebook_error(e)
+                    entry["associated_pages_error_msg"] = str(e)[:200]
+
+                # Per-account recent campaigns (read-only; metadata only)
+                try:
+                    camps_resp = _meta._graph_get(
+                        f"/{acct_id}/campaigns",
+                        {"fields": "id,name,objective,status,effective_status,start_time,stop_time,buying_type,daily_budget,lifetime_budget",
+                         "limit": 25},
+                    )
+                    cs = camps_resp.get("data", [])
+                    entry["recent_campaigns_count"] = len(cs)
+                    entry["recent_campaigns"] = [
+                        {"id": c.get("id"), "name": c.get("name"),
+                         "objective": c.get("objective"),
+                         "effective_status": c.get("effective_status"),
+                         "start_time": c.get("start_time"),
+                         "stop_time": c.get("stop_time"),
+                         "buying_type": c.get("buying_type")}
+                        for c in cs[:10]
+                    ]
+                except Exception as e:
+                    entry["campaigns_error"] = _classify_facebook_error(e)
+                    entry["campaigns_error_msg"] = str(e)[:200]
+
+                # Per-account adspixels (read-only)
+                try:
+                    pix_resp = _meta._graph_get(
+                        f"/{acct_id}/adspixels",
+                        {"fields": "id,name,last_fired_time"},
+                    )
+                    px = pix_resp.get("data", [])
+                    entry["adspixels_count"] = len(px)
+                    entry["adspixels"] = [
+                        {"id": p.get("id"), "name": p.get("name"),
+                         "last_fired_time": p.get("last_fired_time")}
+                        for p in px
+                    ]
+                except Exception as e:
+                    entry["adspixels_error"] = _classify_facebook_error(e)
+                    entry["adspixels_error_msg"] = str(e)[:200]
+
+                # Brand classification per brief (Step 4A operator note)
+                # Heuristics: associated page_ids; recent campaign names; page name patterns
+                associated_page_ids = {p.get("page_id") for p in entry.get("associated_pages", [])}
+                associated_ig_ids = {p.get("linked_ig_id") for p in entry.get("associated_pages", [])}
+                stick_page_id = "1051565264705239"
+                stick_ig_id = "17841469555624210"
+                ss_page_id = "198859063301219"
+                ss_ig_id = "17841456713897671"
+
+                touches_stick_page = stick_page_id in associated_page_ids
+                touches_stick_ig = stick_ig_id in associated_ig_ids
+                touches_ss_page = ss_page_id in associated_page_ids
+                touches_ss_ig = ss_ig_id in associated_ig_ids
+                campaign_names = " ".join(
+                    (c.get("name") or "").lower() for c in entry.get("recent_campaigns", [])
+                ).strip()
+                name_lower = (a.get("name") or "").lower()
+                classification = "AMBIGUOUS"
+                reasons = []
+                if touches_stick_page or touches_stick_ig:
+                    if not touches_ss_page and not touches_ss_ig:
+                        classification = "STICK_USED"
+                        reasons.append("associated only with Stick Page/IG")
+                    else:
+                        classification = "SHARED"
+                        reasons.append("associated with both Stick AND Swing Shack")
+                elif touches_ss_page or touches_ss_ig:
+                    classification = "SWING_SHACK_ONLY"
+                    reasons.append("associated only with Swing Shack Page/IG")
+                elif "stick" in name_lower:
+                    classification = "STICK_USED"
+                    reasons.append("name contains 'stick'")
+                elif "swing" in name_lower or "swing shack" in name_lower:
+                    classification = "SWING_SHACK_ONLY"
+                    reasons.append("name contains 'swing'")
+                else:
+                    reasons.append("no associated Page/IG found via token")
+                if "stick" in campaign_names:
+                    reasons.append("campaign names contain 'stick'")
+                if "swing" in campaign_names or "swing shack" in campaign_names:
+                    reasons.append("campaign names contain 'swing'")
+                entry["brand_classification"] = classification
+                entry["classification_reasons"] = reasons
+                enriched_accounts.append(entry)
+
             out["surfaces"]["ad_accounts"] = {
                 "state": "LIVE" if accounts else "NO_DATA",
                 "count": len(accounts),
-                "accounts": [
-                    {"id": a.get("id"), "name": a.get("name"),
-                     "currency": a.get("currency"), "timezone": a.get("timezone_name"),
-                     "status": a.get("account_status"), "disable_reason": a.get("disable_reason")}
-                    for a in accounts
-                ],
+                "accounts": enriched_accounts,
             }
         except Exception as e:
             out["surfaces"]["ad_accounts"] = {"state": _classify_facebook_error(e),
                                               "error": str(e)[:200]}
 
-        # ===== Datasets / pixels =====
-        try:
-            # Pixel endpoint is at /<ad_account_id>/adspixels; but per-pixel-list at /me/adspixels
-            r = _meta._graph_get("/me/adspixels",
-                                 {"fields": "id,name,owner_ad_account"})
-            pixels = r.get("data", [])
-            out["surfaces"]["pixels"] = {
-                "state": "LIVE" if pixels else "NO_DATA",
-                "count": len(pixels),
-                "pixels": [{"id": p.get("id"), "name": p.get("name"),
-                            "owner_ad_account": p.get("owner_ad_account")} for p in pixels],
-            }
-        except Exception as e:
-            out["surfaces"]["pixels"] = {"state": _classify_facebook_error(e),
-                                         "error": str(e)[:200]}
+        # ===== Datasets / pixels (per-account fallback) =====
+        # /me/adspixels was removed in v22; surface what we found per ad account above
+        pixel_data = []
+        if 'enriched_accounts' in locals():
+            for acct in enriched_accounts:
+                for px in acct.get("adspixels", []):
+                    pixel_data.append({"account_id": acct["id"],
+                                       "pixel_id": px["id"],
+                                       "pixel_name": px["name"],
+                                       "last_fired_time": px["last_fired_time"]})
+        out["surfaces"]["pixels"] = {
+            "state": "LIVE" if pixel_data else "NO_DATA",
+            "count": len(pixel_data),
+            "pixels": pixel_data,
+            "note": "/me/adspixels deprecated in v22; pixels read per-ad-account",
+        }
 
         # ===== WhatsApp inventory only (NO message read/send) =====
         if waba_id:
