@@ -74,6 +74,9 @@ def present_modules(lib_dir: Path) -> set[str]:
         if py.name == "__init__.py":
             continue
         found.add(py.stem)
+    for sub in lib_dir.iterdir():
+        if sub.is_dir() and (sub / "__init__.py").is_file():
+            found.add(sub.name)
     return found
 
 
