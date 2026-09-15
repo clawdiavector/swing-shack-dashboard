@@ -9704,6 +9704,210 @@ def meta_status_for_brand(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/meta/<brand_id>/token-diagnostic', methods=['GET'])
+def meta_token_diagnostic(brand_id):
+    """GET /api/meta/<brand_id>/token-diagnostic — Step 4A diagnostic.
+
+    Safe introspection of the token Campaign OS is currently using
+    for this brand. NEVER prints the token. Returns:
+      - token source (which env var was resolved)
+      - /me identity (id, name, app_id)
+      - /debug_token introspection (scopes, granular_scopes,
+        system_user_id, app_id, expires_at, valid, error if any)
+      - /me/adaccounts (full list, with id + name)
+      - /me/accounts (assigned Pages, with linked IG IDs)
+
+    Used to diagnose the difference between
+    "token genuinely lacks scopes" vs "wrong app" vs
+    "token resolved wrong env var" vs "asset-binding missing".
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    try:
+        from _lib import meta_api as _meta
+        safe = _meta._tenant_safe(brand_id).upper()
+        cfg = _meta.meta_config_for_brand(brand_id)
+        token = cfg.get("access_token")
+        # Detect token source (which env var resolved)
+        token_source = "(unset)"
+        if os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}"):
+            token_source = f"META_SYSTEM_USER_TOKEN_{safe}"
+        elif os.environ.get("META_SYSTEM_USER_TOKEN"):
+            token_source = "META_SYSTEM_USER_TOKEN (global; legacy Swing Shack)"
+        elif os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}"):
+            token_source = f"META_ACCESS_TOKEN_FILE_{safe}"
+        elif os.environ.get("META_ACCESS_TOKEN_FILE"):
+            token_source = "META_ACCESS_TOKEN_FILE (global; legacy)"
+        elif os.environ.get("META_ACCESS_TOKEN"):
+            token_source = "META_ACCESS_TOKEN (global; legacy)"
+
+        # Fingerprint: last 6 chars of token (not the token itself)
+        fp = "n/a"
+        if token:
+            fp = token[-6:]
+
+        out = {
+            "ok": True,
+            "brand_id": brand_id,
+            "token_resolved": bool(token),
+            "token_source": token_source,
+            "token_fingerprint_last6": fp,
+            "token_length": len(token) if token else 0,
+            "app_id_env": os.environ.get("META_APP_ID"),
+            "app_id_env_per_brand": os.environ.get(f"META_APP_ID_{safe}"),
+            "scopes": {},
+            "diagnostics": {},
+        }
+
+        if not token:
+            return jsonify(out), 200
+
+        # /me — identity (does NOT leak token; returns id/name only)
+        try:
+            me = _meta._graph_get("/me", {"fields": "id,name"})
+            out["me_identity"] = {"id": me.get("id"), "name": me.get("name")}
+        except Exception as e:
+            out["me_identity_error"] = str(e)[:300]
+
+        # /debug_token — Meta token introspection endpoint
+        # Requires app_id + app_secret (or app access token)
+        # We use the token's app_id from /debug_token metadata
+        app_id = out.get("app_id_env_per_brand") or out.get("app_id_env")
+        debug_token_used = None
+        # Try with the token's own self-introspection first
+        try:
+            # /debug_token input_token + access_token (call needs admin token
+            # with same app context; usually a user/admin token works)
+            debug_resp = _meta._graph_get(
+                "/debug_token",
+                {"input_token": token, "access_token": token},
+            )
+            debug_token_used = "self"
+            data = debug_resp.get("data", {})
+            out["debug_token"] = {
+                "valid": data.get("is_valid"),
+                "app_id": data.get("app_id"),
+                "application": data.get("application"),
+                "user_id": data.get("user_id"),
+                "type": data.get("type"),
+                "scopes": data.get("scopes", []),
+                "granular_scopes": data.get("granular_scopes", []),
+                "expires_at": data.get("expires_at"),
+                "issued_at": data.get("issued_at"),
+                "data_access_expires_at": data.get("data_access_expires_at"),
+                "error": data.get("error"),
+            }
+        except Exception as e:
+            out["debug_token_error"] = str(e)[:300]
+
+        # /me/adaccounts — full reachable ad account list
+        try:
+            ads = _meta._graph_get("/me/adaccounts",
+                                    {"fields": "id,name,currency,timezone_name,account_status,disable_reason"})
+            out["ad_accounts_visible"] = [
+                {"id": a.get("id"), "name": a.get("name"),
+                 "currency": a.get("currency"),
+                 "timezone": a.get("timezone_name"),
+                 "status": a.get("account_status"),
+                 "disable_reason": a.get("disable_reason")}
+                for a in ads.get("data", [])
+            ]
+        except Exception as e:
+            out["ad_accounts_error"] = str(e)[:300]
+
+        # /me/accounts — assigned Pages
+        try:
+            accts = _meta._graph_get("/me/accounts",
+                                    {"fields": "id,name,tasks,instagram_business_account{id,username,name}"})
+            out["accounts_visible"] = [
+                {
+                    "page_id": a.get("id"),
+                    "page_name": a.get("name"),
+                    "tasks": a.get("tasks"),
+                    "linked_ig": (a.get("instagram_business_account") or {}).get("id")
+                    if a.get("instagram_business_account") else None,
+                    "linked_ig_username": (a.get("instagram_business_account") or {}).get("username")
+                    if a.get("instagram_business_account") else None,
+                }
+                for a in accts.get("data", [])
+            ]
+        except Exception as e:
+            out["accounts_error"] = str(e)[:300]
+
+        # /me/businesses — assigned businesses
+        try:
+            bizs = _meta._graph_get("/me/businesses",
+                                    {"fields": "id,name"})
+            out["businesses_visible"] = [
+                {"id": b.get("id"), "name": b.get("name")}
+                for b in bizs.get("data", [])
+            ]
+        except Exception as e:
+            out["businesses_error"] = str(e)[:300]
+
+        # Try the explicit Stick ad account + Page + IG + WABA probes
+        explicit_probes = {}
+        for label, asset_id, path in [
+            ("stick_page", "1051565264705239", "/1051565264705239"),
+            ("stick_ig",   "17841469555624210", "/17841469555624210"),
+            ("stick_waba", "1207430961556134", "/1207430961556134"),
+            ("stick_ad_account", "2101557317059886", "/act_2101557317059886"),
+            ("swing_shack_page", "198859063301219", "/198859063301219"),
+        ]:
+            try:
+                r = _meta._graph_get(path, {"fields": "id,name"})
+                explicit_probes[label] = {"state": "REACHABLE",
+                                          "id": r.get("id"), "name": r.get("name")}
+            except Exception as e:
+                err = str(e)
+                if "(#100)" in err and "does not exist" in err:
+                    state = "NOT_FOUND_OR_PERMISSION"
+                elif "(#190)" in err:
+                    state = "TOKEN_INVALID"
+                elif "(#200)" in err or "permission" in err.lower():
+                    state = "PERMISSION_BLOCKED"
+                else:
+                    state = "ERROR"
+                explicit_probes[label] = {"state": state, "error": err[:200]}
+        out["explicit_probes"] = explicit_probes
+
+        # Per-scope diagnosis table
+        expected_scopes = {
+            "pages_show_list":               "read Pages this user/admin can see",
+            "pages_read_engagement":         "read Page posts, likes, comments",
+            "pages_read_user_content":       "read user-generated Page content",
+            "read_insights":                 "read Page/IG/ad insights",
+            "instagram_basic":               "read IG account identity",
+            "instagram_manage_insights":     "read IG insights (deprecated; use app ANALYZE)",
+            "business_management":           "access BM assets assigned to this user",
+            "ads_read":                      "read ad account data",
+            "whatsapp_business_management":  "access WABA inventory",
+        }
+        granted = set()
+        if "debug_token" in out and isinstance(out["debug_token"].get("scopes"), list):
+            granted = set(out["debug_token"]["scopes"])
+        per_scope_diagnosis = {}
+        for scope, descr in expected_scopes.items():
+            present = scope in granted
+            per_scope_diagnosis[scope] = {
+                "requested": True,
+                "present_on_token": present,
+                "app_supports_permission": None,  # we don't have app-level introspect
+                "asset_assigned": None,           # requires BM-side query
+                "description": descr,
+                "diagnosis": ("present" if present else "MISSING_ON_TOKEN"),
+            }
+        out["per_scope_diagnosis"] = per_scope_diagnosis
+        out["granular_scopes_count"] = len(out.get("debug_token", {}).get("granular_scopes", []))
+
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_token_diagnostic failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/meta/<brand_id>/connect-test', methods=['GET'])
 def meta_connect_test(brand_id):
     """GET /api/meta/<brand_id>/connect-test — Step 4A live read verification.
