@@ -10387,11 +10387,18 @@ def admin_meta_tree():
     page_insights_probe = {}
     for p in out["pages"][:5]:
         pid = p["page_id"]
+        # Try each candidate metric individually; capture which work
         try:
-            _meta._graph_get(f"/{pid}/insights", {"metric": "page_impressions,page_views_total", "period": "day", "limit": 1})
-            page_insights_probe[pid] = {"status": 200, "ok": True}
+            metric_results = {}
+            for metric in ("page_impressions", "page_fan_adds", "page_post_engagements"):
+                try:
+                    r = _meta._graph_get(f"/{pid}/insights", {"metric": metric, "period": "day", "limit": 1})
+                    metric_results[metric] = {"ok": True}
+                except Exception as e:
+                    metric_results[metric] = {"ok": False, "error": str(e)[:200]}
+            page_insights_probe[pid] = metric_results
         except Exception as e:
-            page_insights_probe[pid] = {"status": "error", "error": str(e)[:200]}
+            page_insights_probe[pid] = {"error": str(e)[:200]}
     out["page_insights_probe"] = page_insights_probe
 
     out["summaries"]["pages_total"] = len(out["pages"])
