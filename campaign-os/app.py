@@ -1101,6 +1101,13 @@ def env_debug():
         # OAuth tokens we mint from the in-app social login flow (Section E
         # of the 2026-08-18 roadmap).
         "META_SYSTEM_USER_TOKEN",
+        "META_SYSTEM_USER_TOKEN_STICK",
+        "META_SYSTEM_USER_TOKEN_STICK_PAARL",
+        "META_SYSTEM_USER_TOKEN_STICK_PAARL_PAGES",
+        "META_PAGE_ID_STICK",
+        "META_INSTAGRAM_BUSINESS_ACCOUNT_ID_STICK",
+        "META_BUSINESS_ID_STICK",
+        "META_WABA_ID_STICK",
         "X_ACCESS_TOKEN",
         "X_BEARER_TOKEN",
         "TIKTOK_ACCESS_TOKEN",
