@@ -32963,23 +32963,68 @@ GA4_CACHE_FILE = os.path.join(DATA_DIR, "ga4-cache.json")
 
 
 def _ga4_credentials(brand_id):
-    """Resolve GA4 credentials for a tenant."""
+    """Resolve GA4 credentials for a tenant.
+
+    Resolution order:
+    1. env GA4_CREDENTIALS_JSON_<BRAND> — inline JSON string (preferred
+       for production deployments where a file cannot be written to
+       disk; the JSON is parsed once per process and written to a
+       secure temp file)
+    2. env GA4_CREDENTIALS_<BRAND>       — filesystem path to JSON
+    3. env GOOGLE_APPLICATION_CREDENTIALS — shared filesystem path
+    Fallback for property_id uses the same brand-id-uppercased prefix
+    before the global GA4_PROPERTY_ID.
+    """
     safe = _tenant_safe(brand_id).upper().replace('-', '_')
-    return {
-        "property_id": (
-            os.environ.get(f"GA4_PROPERTY_{safe}")
-            or os.environ.get(f"GA4_PROPERTY_{brand_id}")
-            or os.environ.get("GA4_PROPERTY_ID", "")
-        ).strip(),
-        "credentials_path": (
+    property_id = (
+        os.environ.get(f"GA4_PROPERTY_{safe}")
+        or os.environ.get(f"GA4_PROPERTY_{brand_id}")
+        or os.environ.get("GA4_PROPERTY_ID", "")
+    ).strip()
+
+    inline_json_env = os.environ.get(f"GA4_CREDENTIALS_JSON_{safe}")
+    inline_json = ""
+    credentials_path = ""
+    if inline_json_env:
+        # The env value is base64-encoded JSON (Railway variable
+        # length limits + safety). Decode + validate, then write to
+        # a per-brand marker file the GA4 library can read.
+        import base64 as _b64
+        try:
+            decoded = _b64.b64decode(inline_json_env.strip()).decode("utf-8")
+            parsed = json.loads(decoded)
+            # Validate minimum shape
+            if not parsed.get("type") or not parsed.get("client_email"):
+                raise ValueError("missing required fields")
+            inline_json = decoded
+        except Exception:
+            inline_json = ""
+        if inline_json:
+            marker = f"/tmp/campaign-os-ga4-{safe}.json"
+            try:
+                with open(marker, "w") as fp:
+                    fp.write(inline_json)
+                os.chmod(marker, 0o600)
+                credentials_path = marker
+            except Exception:
+                credentials_path = ""
+        scope = "tenant-specific" if inline_json else "shared"
+    else:
+        credentials_path = (
             os.environ.get(f"GA4_CREDENTIALS_{safe}")
             or os.environ.get(f"GA4_CREDENTIALS_{brand_id}")
             or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
-        ).strip(),
-        "scope": "tenant-specific" if (
+        ).strip()
+        scope = "tenant-specific" if (
             os.environ.get(f"GA4_PROPERTY_{safe}") or
             os.environ.get(f"GA4_CREDENTIALS_{safe}")
-        ) else "shared",
+        ) else "shared"
+
+    return {
+        "property_id": property_id,
+        "credentials_path": credentials_path,
+        "credentials_inline_json": inline_json,
+        "scope": scope,
     }
 
 
