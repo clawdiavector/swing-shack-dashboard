@@ -35,10 +35,39 @@ _app_log = logging.getLogger("campaign-os")
 
 # ─── AUTH ────────────────────────────────────────────────────────────────
 # Single shared password gate. Password is read from CAMPAIGN_OS_PASSWORD env var.
-# On Railway, set this in the dashboard; locally it falls back to a dev password.
-# Sessions are signed cookies (itsdangerous) — no DB needed.
-SHARED_PASSWORD = os.environ.get('CAMPAIGN_OS_PASSWORD') or 'swing-shack-dev-2026'
-SESSION_SECRET = os.environ.get('CAMPAIGN_OS_SECRET') or 'campaign-os-dev-secret-change-me'
+#
+# Slice 0.3 security close-out §A.2:
+#   * In production (RAILWAY_ENVIRONMENT or RAILWAY_PROJECT_ID set, or
+#     FLASK_ENV=production), CAMPAIGN_OS_PASSWORD is REQUIRED. If
+#     missing, the application fails to boot.
+#   * In local dev, the dev fallback password remains active so the
+#     developer can still iterate without env files.
+#   * SESSION_SECRET is similarly enforced in production.
+import os as _os
+PRODUCTION_ENV_HINT = bool(
+    _os.environ.get("RAILWAY_ENVIRONMENT")
+    or _os.environ.get("RAILWAY_PROJECT_ID")
+    or _os.environ.get("FLASK_ENV") == "production"
+    or _os.environ.get("CAMPAIGN_OS_ENV") == "production"
+)
+SHARED_PASSWORD = _os.environ.get('CAMPAIGN_OS_PASSWORD', '').strip() or (
+    'swing-shack-dev-2026' if not PRODUCTION_ENV_HINT else ''
+)
+SESSION_SECRET = _os.environ.get('CAMPAIGN_OS_SECRET', '').strip() or (
+    'campaign-os-dev-secret-change-me' if not PRODUCTION_ENV_HINT else ''
+)
+
+if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_PASSWORD', '').strip():
+    raise RuntimeError(
+        "FATAL: CAMPAIGN_OS_PASSWORD must be set in production. "
+        "The application refuses to boot with a development password fallback."
+    )
+if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_SECRET', '').strip():
+    raise RuntimeError(
+        "FATAL: CAMPAIGN_OS_SECRET must be set in production. "
+        "The application refuses to boot with the default session secret."
+    )
+
 SESSION_COOKIE = 'cos_session'
 SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 # v2026-08-13: signed share-token TTL for the auth-optional markdown export.
@@ -5316,15 +5345,21 @@ HERMES_BRIDGE_TIMEOUT = float(os.environ.get("HERMES_BRIDGE_TIMEOUT", "10"))
 def _sign_bridge_request(body: bytes) -> dict:
     """Build HMAC auth headers for the Hermes Calendar Control Bridge.
 
-    Signs (timestamp + "|" + body) with the shared secret using
-    SHA-256. The bridge verifies the same signature server-side.
+    Signs (timestamp + "|" + nonce + "|" + body) with the shared
+    secret using SHA-256. The bridge verifies the same signature
+    server-side.
+
+    Includes a unique nonce per request to enable replay protection
+    (Slice 0.3 security close-out §A.4).
     """
-    import hashlib, hmac, time
+    import hashlib, hmac, secrets, time
     ts = str(int(time.time()))
-    msg = (ts + "|").encode() + (body or b"")
+    nonce = secrets.token_urlsafe(16)
+    msg = (ts + "|" + nonce + "|").encode() + (body or b"")
     sig = hmac.new(HERMES_BRIDGE_SECRET.encode(), msg, hashlib.sha256).hexdigest()
     return {
         "X-Bridge-Timestamp": ts,
+        "X-Bridge-Nonce": nonce,
         "X-Bridge-Signature": sig,
     }
 
