@@ -3668,16 +3668,23 @@ def calendar_v2_migrate():
 def calendar_v2_upsert():
     """P1.2 Calendar Slice 0.2: idempotent revision-aware upsert.
 
-    Body: {brand_id, ...record fields including event_key OR title}
+    Body: {brand_id, record: {event_key, ...other fields}}
+
+    Accepts BOTH:
+      * {brand_id, record: {...}}  — preferred
+      * {brand_id, ...record_fields} — legacy (record fields at top level)
+
     Returns action in {created, updated, noop}.
     """
     body = request.get_json(silent=True) or {}
     brand_id = body.get("brand_id", "stick")
     if brand_id not in ("stick", "bag-drop", "swing-shack"):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    # Allow both {brand_id, record} and {brand_id, ...record_fields}
+    record = body.get("record") if isinstance(body.get("record"), dict) else {k: v for k, v in body.items() if k != "brand_id"}
     from _lib.marketing_calendar import upsert_event
     try:
-        result = upsert_event(brand_id, body)
+        result = upsert_event(brand_id, record)
         return jsonify({
             "ok": True,
             "action": result["action"],
