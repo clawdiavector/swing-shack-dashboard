@@ -5538,15 +5538,24 @@ def calendar_v3_scout_discover(brand_id: str):
     body; the calling agent/cron supplies the producer with real
     research results.
 
-    Body schema:
+    Body schema (extended for §8 — per-lane research proof):
       {
-        "candidate_producer_results": [
-          { ...candidate dict ready for upsert... },
-          ...
-        ],
+        "candidate_producer_results": [...],
         "sources_researched": <int>,
-        "research_health": { "probed": true, "search_reachable": true,
-                              "extract_reachable": true, "overall_state": "healthy" }
+        "research_health": { ... },
+
+        # Per-lane breakdown (per Slice 0.3 final close-out §8):
+        "lane_results": {
+          "local_sa_lane":          {"sources_researched": 12, "considered": 8, "added": 0, "ignored": 0, "watchlisted": 0},
+          "womens_golf_lane":       {...},
+          "global_golf_lane":       {...},
+          "creator_culture_lane":   {...},
+          "retail_commercial_lane": {...}
+        },
+
+        # For §9 — work_due isolation:
+        "work_due_at_run": <int>,
+        "maintenance_work_done": <int>
       }
     """
     if brand_id not in ("stick", "bag-drop", "swing-shack"):
@@ -5555,6 +5564,9 @@ def calendar_v3_scout_discover(brand_id: str):
     candidates = body.get("candidate_producer_results") or []
     sources_researched = int(body.get("sources_researched") or 0)
     research_health = body.get("research_health") or {}
+    lane_results = body.get("lane_results") or {}
+    work_due_at_run = int(body.get("work_due_at_run") or 0)
+    maintenance_work_done = int(body.get("maintenance_work_done") or 0)
     # Brief §3 — fail closed when research was unreachable
     if research_health.get("probed") and research_health.get("search_reachable") is False:
         # Persist a research_degraded run log and return without upserts
@@ -5583,7 +5595,7 @@ def calendar_v3_scout_discover(brand_id: str):
         }), 200
     # If the producer supplied no candidates and 0 sources researched,
     # treat that as a degraded run (the agent did not do discovery).
-    if not candidates and sources_researched == 0:
+    if not candidates and sources_researched == 0 and not lane_results:
         from _lib.marketing_calendar import append_run_log
         run = append_run_log({
             "job_type": "scout",
@@ -5611,10 +5623,16 @@ def calendar_v3_scout_discover(brand_id: str):
     def _producer(ctx):
         ctx["sources_researched"] = sources_researched
         ctx["research_health"] = research_health
+        ctx["lane_results"] = lane_results
+        ctx["work_due_at_run"] = work_due_at_run
+        ctx["maintenance_work_done"] = maintenance_work_done
         return candidates
     result = scout_run_for_brand(brand_id, candidate_producer=_producer)
     result["sources_researched"] = sources_researched
     result["research_health"] = research_health
+    result["lane_results"] = lane_results
+    result["work_due_at_run"] = work_due_at_run
+    result["maintenance_work_done"] = maintenance_work_done
     result["external_candidates_written"] = (
         result.get("new_logical_events", 0) + result.get("material_updates", 0)
     )
