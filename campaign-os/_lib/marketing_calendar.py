@@ -2622,3 +2622,300 @@ def scout_run_multi(
     }
 
 
+
+
+
+# ─── Slice 0.3 marketing-judgment close-out — Scout Hard Gates ───────────
+
+# Per brief §B.5 — three-way disposition routing.
+DISPOSITION_CALENDAR  = "calendar"
+DISPOSITION_WATCHLIST = "watchlist"
+DISPOSITION_IGNORE    = "ignore"
+
+# Per brief §B.6 — score dimensions and weights.
+# These are the component scores that survive after hard gates.
+SCORE_WEIGHTS = {
+    "pillar_fit":           0.18,
+    "north_star_fit":       0.15,
+    "audience_fit":         0.15,
+    "commercial_potential": 0.12,
+    "content_potential":    0.10,
+    "local_relevance":      0.12,
+    "timing_value":         0.08,
+    "distinctiveness":      0.06,
+    "evidence_confidence":  0.04,
+}
+
+
+def _gate_pass_pillar(candidate, brand_config):
+    """§B.5 Gate A — pillar connection.
+
+    For Stick: pillar_ids must include at least one of the brand's
+    configured active pillars. Reject if no credible pillar connection.
+    """
+    brand_pillars = (brand_config or {}).get("pillars") or []
+    brand_pillar_ids = set()
+    for p in brand_pillars:
+        if p.get("pillar_id"):
+            brand_pillar_ids.add(p["pillar_id"])
+        if p.get("id"):
+            brand_pillar_ids.add(p["id"])
+        if p.get("name"):
+            brand_pillar_ids.add(p["name"].lower().replace(" ", "-"))
+    candidate_pillar_ids = set()
+    for p in (candidate.get("pillar_ids") or []):
+        candidate_pillar_ids.add(p)
+    for p in (candidate.get("pillars") or []):
+        if isinstance(p, str):
+            candidate_pillar_ids.add(p)
+            candidate_pillar_ids.add(p.lower().replace(" ", "-"))
+        elif isinstance(p, dict):
+            candidate_pillar_ids.add(p.get("pillar_id") or p.get("id") or p.get("name"))
+    if not brand_pillar_ids:
+        # Brand has no configured pillars yet — fail closed
+        return False, "no_pillars_configured_for_brand"
+    if not candidate_pillar_ids:
+        return False, "no_pillar_ids_supplied_by_scout"
+    overlap = candidate_pillar_ids & brand_pillar_ids
+    if not overlap:
+        return False, f"pillars {sorted(candidate_pillar_ids)} do not match any brand pillar {sorted(brand_pillar_ids)}"
+    return True, f"pillar_match={sorted(overlap)[0]}"
+
+
+def _gate_pass_north_star(candidate, brand_config):
+    """§B.5 Gate B — North Star connection.
+
+    The candidate must explain how it could plausibly contribute to
+    the matched pillar's North Star. "We are a golf company and this
+    is golf" is NOT sufficient.
+    """
+    ns = (candidate.get("north_star_hypothesis") or "").strip()
+    if len(ns) < 20:
+        return False, "north_star_hypothesis_missing_or_too_short"
+    return True, "north_star_hypothesis_supplied"
+
+
+def _gate_pass_actionability(candidate):
+    """§B.5 Gate C — actionability.
+
+    There must be an actual marketing action available. Scout must
+    enumerate an action_type + action_description.
+    """
+    action_type = (candidate.get("action_type") or "").strip()
+    action_desc = (candidate.get("action_description") or "").strip()
+    if not action_type or len(action_desc) < 10:
+        return False, "action_type_or_description_missing"
+    valid_action_types = {
+        "campaign_opportunity",
+        "education_angle",
+        "fitting_conversation",
+        "retail_hook",
+        "relevant_reaction",
+        "audience_or_community_angle",
+        "watchlist_monitor",
+    }
+    if action_type not in valid_action_types:
+        return False, f"action_type \'{action_type}\' not in allowed set {sorted(valid_action_types)}"
+    return True, f"action={action_type}"
+
+
+def _gate_pass_timing(candidate):
+    """§B.5 Gate D — timing.
+
+    Classify as planned / reactive / too_late. Use existing event_start
+    and the current time to compute the lead time.
+    """
+    es = candidate.get("event_start")
+    if not es:
+        return False, "no_event_start"
+    from datetime import datetime, timezone
+    try:
+        ev_dt = datetime.fromisoformat(str(es).replace("Z", "+00:00"))
+        if ev_dt.tzinfo is None:
+            ev_dt = ev_dt.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        lead_days = (ev_dt - now).total_seconds() / 86400
+    except Exception:
+        return False, "invalid_event_start"
+    if lead_days < 0:
+        # Event is in the past — only allow for "recently_completed" lifecycle
+        return True, "too_late_event_in_past"
+    if lead_days < 3:
+        timing = "reactive"
+    elif lead_days < 14:
+        timing = "reactive"  # still close enough to be reactive-first
+    else:
+        timing = "planned"
+    return True, f"timing={timing} (lead={lead_days:.0f}d)"
+
+
+def _gate_pass_audience_fit(candidate, brand_config):
+    """§B.5 Gate E — audience / market fit.
+
+    Evaluate SA relevance, local golfer relevance, target audience,
+    product relevance, brand territory relevance.
+    """
+    sa = bool(candidate.get("sa_relevance"))
+    local = bool(candidate.get("local_relevance"))
+    audience = bool(candidate.get("target_audience"))
+    product = bool(candidate.get("product_relevance"))
+    territory = bool(candidate.get("brand_territory"))
+    flags = {"sa": sa, "local": local, "audience": audience,
+              "product": product, "territory": territory}
+    if not any(flags.values()):
+        return False, "no_audience_market_fit_signals"
+    return True, f"audience_signals={[k for k,v in flags.items() if v]}"
+
+
+def _score_components(candidate, gate_results):
+    """§B.6 — score each dimension on a 0.0-1.0 scale.
+
+    Returns a dict of {dimension: 0-1}. All dimensions present even if 0.
+    """
+    out = {}
+    out["pillar_fit"] = 1.0 if gate_results.get("pillar", {}).get("ok") else 0.0
+    out["north_star_fit"] = min(1.0, len((candidate.get("north_star_hypothesis") or "")) / 200)
+    out["audience_fit"] = sum(1 for k in ["sa_relevance", "local_relevance", "target_audience", "product_relevance", "brand_territory"] if candidate.get(k)) / 5
+    out["commercial_potential"] = 0.0 if candidate.get("action_type") in ("audience_or_community_angle", "watchlist_monitor") else 0.7
+    out["content_potential"] = 1.0 if candidate.get("action_type") in ("education_angle", "campaign_opportunity", "relevant_reaction") else 0.3
+    out["local_relevance"] = (0.8 if candidate.get("sa_relevance") else 0.0) + (0.2 if candidate.get("local_relevance") else 0.0)
+    out["local_relevance"] = min(1.0, out["local_relevance"])
+    es = candidate.get("event_start")
+    try:
+        from datetime import datetime, timezone
+        ev_dt = datetime.fromisoformat(str(es).replace("Z", "+00:00"))
+        if ev_dt.tzinfo is None:
+            ev_dt = ev_dt.replace(tzinfo=timezone.utc)
+        lead_days = (ev_dt - datetime.now(timezone.utc)).total_seconds() / 86400
+        if lead_days < 0:
+            out["timing_value"] = 0.0
+        elif lead_days < 7:
+            out["timing_value"] = 0.7
+        elif lead_days < 30:
+            out["timing_value"] = 1.0
+        elif lead_days < 90:
+            out["timing_value"] = 0.6
+        else:
+            out["timing_value"] = 0.3
+    except Exception:
+        out["timing_value"] = 0.0
+    out["distinctiveness"] = 1.0 if candidate.get("distinctive") else 0.4
+    out["evidence_confidence"] = {
+        "verified_primary": 1.0,
+        "verified_secondary": 0.7,
+        "trusted_secondary": 0.5,
+        "unverified_agent_memory": 0.1,
+    }.get(candidate.get("verification_status") or "", 0.3)
+    return out
+
+
+def _route_disposition(scores, gate_results, candidate):
+    """§B.6 — three-way routing.
+
+    Strong strategic case → CALENDAR
+    Interesting but uncertain/developing → WATCHLIST
+    Weak/non-actionable → IGNORE
+
+    This is rule-based (not a fixed threshold) so evidence can override.
+    """
+    failed_gates = [g for g, r in gate_results.items() if not r.get("ok")]
+    if failed_gates:
+        return DISPOSITION_IGNORE, f"failed_gates={[g for g in failed_gates]}"
+    weighted = sum(scores.get(k, 0.0) * w for k, w in SCORE_WEIGHTS.items())
+    if weighted >= 0.55 and scores.get("evidence_confidence", 0) >= 0.5:
+        return DISPOSITION_CALENDAR, f"strong_strategic_case (weighted={weighted:.2f})"
+    if weighted >= 0.30 and scores.get("evidence_confidence", 0) >= 0.3:
+        return DISPOSITION_WATCHLIST, f"interesting_developing (weighted={weighted:.2f})"
+    return DISPOSITION_IGNORE, f"weak_or_non_actionable (weighted={weighted:.2f})"
+
+
+def evaluate_candidate(candidate, brand_config):
+    """§B.5-§B.6 — full marketing-judgment pipeline.
+
+    Hard gates A-E → multi-dimensional score → 3-way disposition.
+
+    Returns:
+      {
+        "disposition": "calendar" | "watchlist" | "ignore",
+        "reason": "<human explanation>",
+        "gate_results": {gate_name: {ok, reason}},
+        "scores": {dim: 0-1},
+        "weighted_score": float,
+      }
+    """
+    gates = {
+        "pillar":      _gate_pass_pillar(candidate, brand_config),
+        "north_star":  _gate_pass_north_star(candidate, brand_config),
+        "action":      _gate_pass_actionability(candidate),
+        "timing":      _gate_pass_timing(candidate),
+        "audience":    _gate_pass_audience_fit(candidate, brand_config),
+    }
+    gate_results = {name: {"ok": ok, "reason": reason} for name, (ok, reason) in gates.items()}
+    scores = _score_components(candidate, gate_results)
+    weighted = sum(scores.get(k, 0.0) * w for k, w in SCORE_WEIGHTS.items())
+    disposition, reason = _route_disposition(scores, gate_results, candidate)
+    return {
+        "disposition": disposition,
+        "reason": reason,
+        "gate_results": gate_results,
+        "scores": scores,
+        "weighted_score": round(weighted, 3),
+    }
+
+
+# Lane templates (Slice 0.3 close-out §C.12-§C.14)
+# Each lane lists minimum research queries a Scout should hit before
+# declaring the lane "researched".
+LANE_TEMPLATES = {
+    "stick": {
+        "local_sa_lane": {
+            "minimum_sources": 5,
+            "queries": [
+                "Sunshine Tour 2026 schedule",
+                "GolfRSA amateur events",
+                "Western Cape golf clubs events",
+                "Paarl golf events",
+                "South African golf news this week",
+            ],
+        },
+        "womens_golf_lane": {
+            "minimum_sources": 5,
+            "queries": [
+                "LPGA tour latest news",
+                "LET Ladies European Tour schedule",
+                "Solheim Cup 2026",
+                "Sunshine Ladies Tour",
+                "South African women golfers",
+            ],
+        },
+        "global_golf_lane": {
+            "minimum_sources": 5,
+            "queries": [
+                "DP World Tour schedule",
+                "PGA Tour latest",
+                "LIV Golf events",
+                "The Open qualifying",
+                "Presidents Cup / Ryder Cup",
+            ],
+        },
+        "creator_culture_lane": {
+            "minimum_sources": 5,
+            "queries": [
+                "YGT Your Golf Tour",
+                "Takomo Golf ambassador activity",
+                "Internet Invitational",
+                "Good Good golf YouTube",
+                "golf TikTok creators",
+            ],
+        },
+        "retail_commercial_lane": {
+            "minimum_sources": 3,
+            "queries": [
+                "Black Friday South Africa 2026",
+                "Cyber Monday SA",
+                "SA public holidays 2026",
+                "festive season golf retail",
+            ],
+        },
+    },
+}

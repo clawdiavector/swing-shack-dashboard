@@ -5893,6 +5893,117 @@ def calendar_v3_scout_simulate_unavailable():
     return jsonify({"ok": False, "error": f"unknown simulation: {rb}"}), 400
 
 
+@app.route('/api/calendar/v3/scout/evaluate', methods=['POST'])
+def calendar_v3_scout_evaluate():
+    """Slice 0.3 close-out §B.5-§B.6 — evaluate one candidate through
+    the hard-gate + score + disposition pipeline.
+
+    Body: {candidate: {...}, brand_id: "stick" | "bag-drop" | "swing-shack"}
+
+    Returns:
+      {
+        disposition: "calendar" | "watchlist" | "ignore",
+        reason: "<human-readable>",
+        gate_results: {gate: {ok, reason}},
+        scores: {dim: 0-1},
+        weighted_score: float,
+      }
+    """
+    body = request.get_json(silent=True) or {}
+    candidate = body.get("candidate") or {}
+    brand_id = body.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import evaluate_candidate, load_brand_config
+    cfg = load_brand_config(brand_id) or {}
+    result = evaluate_candidate(candidate, cfg)
+    return jsonify({"ok": True, "brand_id": brand_id, **result}), 200
+
+
+@app.route('/api/calendar/v3/scout/batch-evaluate', methods=['POST'])
+def calendar_v3_scout_batch_evaluate():
+    """Slice 0.3 close-out §B.7 + §D.16 — evaluate many candidates and
+    return per-candidate disposition + summary tally.
+
+    Body: {
+      candidates: [{...}, ...],
+      brand_id: "stick",
+      lane_by_index: {0: "local_sa_lane", 1: "womens_golf_lane", ...}
+    }
+
+    Returns:
+      {
+        per_candidate: [{candidate_title, lane, evaluation: {...}}, ...],
+        summary: {considered, calendar, watchlist, ignored, by_lane: {...}}
+      }
+    """
+    body = request.get_json(silent=True) or {}
+    candidates = body.get("candidates") or []
+    brand_id = body.get("brand_id", "stick")
+    lane_by_index = body.get("lane_by_index") or {}
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import evaluate_candidate, load_brand_config, append_run_log
+    cfg = load_brand_config(brand_id) or {}
+    per_candidate = []
+    summary = {
+        "considered": len(candidates),
+        "calendar": 0,
+        "watchlist": 0,
+        "ignored": 0,
+        "by_lane": {},
+        "ignored_reasons": [],
+    }
+    for i, c in enumerate(candidates):
+        ev = evaluate_candidate(c, cfg)
+        lane = lane_by_index.get(str(i)) or lane_by_index.get(i) or "unspecified"
+        per_candidate.append({
+            "title": c.get("title", "(unnamed)"),
+            "event_key": c.get("event_key"),
+            "lane": lane,
+            "evaluation": ev,
+        })
+        d = ev.get("disposition")
+        if d == "calendar":
+            summary["calendar"] += 1
+        elif d == "watchlist":
+            summary["watchlist"] += 1
+        else:
+            summary["ignored"] += 1
+            summary["ignored_reasons"].append({
+                "title": c.get("title", "(unnamed)"),
+                "reason": ev.get("reason", "unknown"),
+                "failed_gates": [k for k, v in (ev.get("gate_results") or {}).items() if not v.get("ok")],
+            })
+        bl = summary["by_lane"].setdefault(lane, {"calendar": 0, "watchlist": 0, "ignored": 0})
+        if d == "calendar":
+            bl["calendar"] += 1
+        elif d == "watchlist":
+            bl["watchlist"] += 1
+        else:
+            bl["ignored"] += 1
+    run = append_run_log({
+        "job_type": "scout_evaluate",
+        "brand_id": brand_id,
+        "status": "alerts_created" if summary["calendar"] > 0 else "silent",
+        "research_health": "n/a",
+        "sources_checked": sum(c.get("sources_researched") or 0 for c in candidates),
+        "events_created": summary["calendar"],
+        "events_updated": 0,
+        "events_unchanged": 0,
+        "alerts_created": summary["calendar"] + summary["watchlist"],
+        "errors": [],
+        "summary": summary,
+    })
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "per_candidate": per_candidate,
+        "summary": summary,
+        "run_id": run.get("run_id"),
+    }), 200
+
+
 @app.route('/api/calendar/event-revisions/<brand_id>/<event_key>', methods=['GET'])
 def calendar_event_revisions(brand_id: str, event_key: str):
     """Slice 0.3 §4 — return ALL revisions for one event_key (audit trail)."""
