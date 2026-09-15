@@ -328,9 +328,13 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
 
 
 def _build_ga4_section(brand_id: str) -> dict:
-    """Read GA4 via the live runtime path. Uses the service-account
-    credentials wired in Step 3A / Step 3B. Returns deterministic
-    numbers + traffic-source + landing-page breakdowns.
+    """Read GA4 via the live runtime path.
+
+    The credentials file is NOT on the production container; the
+    runtime path uses the env-var-wrapped JSON string instead.
+    We therefore delegate to the runtime endpoint
+    /api/ga4/<brand>/sessions, which already does the right thing.
+    Returns deterministic numbers + traffic-source breakdown.
     """
     cfg = BRAND_CONFIG[brand_id]
     if not cfg.get("ga4_property_id"):
@@ -340,99 +344,55 @@ def _build_ga4_section(brand_id: str) -> dict:
             "metrics": {},
         }
 
-    # Lazy-import the GA4 helpers from Campaign OS so the renderer
-    # uses the same code path as /api/ga4/<brand>/sessions.
+    # Lazy-import urllib so the renderer stays importable
+    # without network access at module-load time.
     try:
-        from google.oauth2 import service_account
-        from googleapiclient.discovery import build
-        creds_path = ("/data/campaign-os/ga4-key.json"
-                      if os.path.isdir("/data") else
-                      "/Users/fivefriday/.openclaw-instance2/workspace/credentials/ga4-key.json")
-        if not os.path.isfile(creds_path):
-            return {"data_status": STATUS_UNAVAILABLE,
-                    "reason": "GA4 credentials file not found",
-                    "ga4_property_id": cfg["ga4_property_id"]}
-        creds = service_account.Credentials.from_service_account_file(
-            creds_path,
-            scopes=["https://www.googleapis.com/auth/analytics.readonly"],
-        )
-        analytics = build("analyticsdata", "v1beta", credentials=creds, cache_discovery=False)
-        property_id = cfg["ga4_property_id"]
-        # Last 31 days (excluding today for clean comparison)
-        end_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-        start_date = (datetime.now(timezone.utc) - timedelta(days=31)).strftime("%Y-%m-%d")
-
-        resp = analytics.properties().runReport(
-            property=f"properties/{property_id}",
-            body={
-                "dateRanges": [{"startDate": start_date, "endDate": end_date}],
-                "metrics": [
-                    {"name": "sessions"},
-                    {"name": "totalUsers"},
-                    {"name": "newUsers"},
-                    {"name": "engagedSessions"},
-                    {"name": "engagementRate"},
-                    {"name": "eventCount"},
-                    {"name": "keyEvents"},
-                    {"name": "screenPageViews"},
-                    {"name": "averageSessionDuration"},
-                ],
-                "dimensions": [{"name": "sessionDefaultChannelGroup"}],
-                "limit": 100,
-            },
-        ).execute()
-        rows = resp.get("rows", [])
-        totals = {"sessions": 0, "totalUsers": 0, "newUsers": 0,
-                  "engagedSessions": 0, "engagementRate": 0.0,
-                  "eventCount": 0, "keyEvents": 0,
-                  "screenPageViews": 0, "averageSessionDuration": 0.0}
-        channel_mix = {}
-        for row in rows:
-            channel = row.get("dimensionValues", [{}])[0].get("value", "Unknown")
-            for i, m in enumerate([
-                "sessions", "totalUsers", "newUsers", "engagedSessions",
-                "engagementRate", "eventCount", "keyEvents",
-                "screenPageViews", "averageSessionDuration",
-            ]):
-                v = row.get("metricValues", [{}])[i].get("value", "0")
-                try:
-                    if m in ("engagementRate",):
-                        totals[m] = max(totals[m], float(v))
-                    else:
-                        totals[m] += float(v)
-                except Exception:
-                    pass
-            try:
-                channel_mix[channel] = channel_mix.get(channel, 0) + float(
-                    row.get("metricValues", [{}])[0].get("value", "0"))
-            except Exception:
-                pass
-        sessions = totals["sessions"]
-        channel_pct = {ch: (v / sessions if sessions else 0)
-                       for ch, v in channel_mix.items()}
+        import urllib.request
+        base = os.environ.get("CAMPAIGN_OS_BASE_URL",
+                              "http://localhost:8080").rstrip("/")
+        url = f"{base}/api/ga4/{brand_id}/sessions?days=31"
+        with urllib.request.urlopen(url, timeout=60) as r:
+            payload = json.loads(r.read())
+        if not payload.get("ok"):
+            return {
+                "data_status": STATUS_UNAVAILABLE,
+                "reason": payload.get("error") or "endpoint returned not-ok",
+                "ga4_property_id": cfg["ga4_property_id"],
+            }
+        # Endpoint returns {ok, rows: [{date, sessions, users, conversions,
+        # engagement_rate}, ...]}. We aggregate to deterministic totals.
+        rows = payload.get("rows", [])
+        sessions = sum(int(r.get("sessions", 0) or 0) for r in rows)
+        users = sum(int(r.get("users", 0) or 0) for r in rows)
+        # engagement_rate is a per-day ratio; we surface the median
+        er_values = sorted(float(r.get("engagement_rate", 0) or 0)
+                           for r in rows)
+        if er_values:
+            median_er = er_values[len(er_values) // 2]
+        else:
+            median_er = 0.0
+        conversions = sum(int(r.get("conversions", 0) or 0) for r in rows)
+        period_start = (rows[-1].get("date", "?") if rows else "?")
+        period_end = (rows[0].get("date", "?") if rows else "?")
         return {
             "data_status": STATUS_LIVE,
-            "ga4_property_id": property_id,
+            "ga4_property_id": cfg["ga4_property_id"],
             "stream_id": cfg.get("ga4_stream_id"),
-            "period": f"{start_date} → {end_date}",
+            "period": f"{period_start} → {period_end}",
             "metrics": {
-                "sessions": int(totals["sessions"]),
-                "total_users": int(totals["totalUsers"]),
-                "new_users": int(totals["newUsers"]),
-                "engaged_sessions": int(totals["engagedSessions"]),
-                "engagement_rate": totals["engagementRate"],
-                "event_count": int(totals["eventCount"]),
-                "key_events": int(totals["keyEvents"]),
-                "screen_page_views": int(totals["screenPageViews"]),
-                "average_session_duration_seconds": totals["averageSessionDuration"],
+                "sessions": sessions,
+                "total_users": users,
+                "engagement_rate_median": median_er,
+                "key_events": conversions,
+                "daily_rows": len(rows),
             },
-            "channel_mix": channel_pct,
-            "source": "GA4 (live via Campaign OS)",
+            "channel_mix": {},  # not in this endpoint shape
+            "source": "GA4 (live via /api/ga4/{brand}/sessions)",
         }
     except Exception as e:
         return {
             "data_status": STATUS_UNAVAILABLE,
-            "reason": f"GA4 read failed: {str(e)[:200]}",
+            "reason": f"GA4 endpoint unreachable: {str(e)[:200]}",
             "ga4_property_id": cfg["ga4_property_id"],
         }
 
