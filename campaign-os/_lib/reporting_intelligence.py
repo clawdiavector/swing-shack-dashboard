@@ -240,14 +240,14 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
 
     # Website traffic (GA4)
     ga = metrics.get("ga4") or {}
-    if ga.get("status") == STATUS_LIVE:
-        sessions = ga.get("sessions", 0)
-        users = ga.get("total_users", 0)
-        eng = ga.get("engagement_rate", 0)
+    if ga.get("data_status") == STATUS_LIVE:
+        sessions = (ga.get("metrics") or {}).get("sessions", 0)
+        users = (ga.get("metrics") or {}).get("total_users", 0)
+        er = (ga.get("metrics") or {}).get("engagement_rate_median", 0)
         out.append({
             "statement": f"{name} website recorded {sessions:,} sessions from "
-                          f"{users:,} users in the last 31 days, with an engagement "
-                          f"rate of {eng:.0%}.",
+                          f"{users:,} users in the last 31 days, with a median "
+                          f"daily engagement rate of {er:.0%}.",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
@@ -261,10 +261,18 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
                 "type": "MEASURED_FACT",
                 "confidence": "HIGH",
             })
-    elif ga.get("status") == STATUS_NOT_CONNECTED:
+    elif ga.get("data_status") == STATUS_NOT_CONNECTED:
         out.append({
             "statement": f"{name} GA4 website analytics are not currently connected "
                           f"in this build; traffic performance cannot be quantified.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+    elif ga.get("data_status") == STATUS_UNAVAILABLE:
+        reason = ga.get("reason", "unknown")
+        out.append({
+            "statement": f"{name} GA4 endpoint returned an error ({reason[:80]}). "
+                          f"Website traffic cannot be quantified in this run.",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
@@ -486,23 +494,25 @@ def build_brand_report(brand_id: str, period_days: int = 31) -> dict:
     }
     report["north_stars"] = cfg.get("north_stars", {})
 
-    # GA4
+    # GA4 — call the live helper; surface its data_status + metrics
     ga4 = _build_ga4_section(brand_id)
-    report["sections"]["website_performance"] = {
+    wp_section = {
         "title": "Website Performance (GA4)",
         "data_status": ga4.get("data_status"),
-        "note": "Live numbers fetched by the renderer at request time. "
-                "Configure GA4_CREDENTIALS_JSON_STICK and "
-                "GA4_PROPERTY_STICK on Railway to enable live read.",
-        "ga4_property_id": cfg.get("ga4_property_id"),
-        "stream_id": cfg.get("ga4_stream_id"),
+        "ga4_property_id": ga4.get("ga4_property_id") or cfg.get("ga4_property_id"),
+        "stream_id": ga4.get("stream_id") or cfg.get("ga4_stream_id"),
         "source": ga4.get("source"),
+        "reason": ga4.get("reason"),
+        "period": ga4.get("period"),
+        "metrics": ga4.get("metrics") or {},
+        "channel_mix": ga4.get("channel_mix") or {},
     }
+    report["sections"]["website_performance"] = wp_section
     report["data_sources"].append({
         "name": "GA4",
         "asset": cfg.get("ga4_property_id"),
         "data_status": ga4.get("data_status"),
-        "note": ga4.get("reason") or ga4.get("note") or "",
+        "note": ga4.get("reason") or "",
     })
 
     # Meta organic
