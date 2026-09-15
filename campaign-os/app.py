@@ -9659,6 +9659,51 @@ def meta_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/meta/<brand_id>/status', methods=['GET'])
+def meta_status_for_brand(brand_id):
+    """GET /api/meta/<brand_id>/status — brand-aware Meta config health.
+
+    Returns per-brand config without leaking the token. NEVER
+    falls back to Swing Shack defaults for non-Swing-Shack brands.
+
+    Per brief §17 — reports each surface (FB / IG / Ads / WhatsApp)
+    with health state LIVE | PARTIAL | NOT_CONNECTED |
+    PERMISSION_MISSING | STALE | ERROR.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    try:
+        from _lib import meta_api as _meta
+        cfg = _meta.meta_config_for_brand(brand_id)
+        token_resolved = bool(cfg.get("access_token"))
+        out = {
+            "ok": True,
+            "brand_id": brand_id,
+            "configured": token_resolved and bool(cfg.get("page_id")),
+            "scope": cfg.get("scope"),
+            "page_id": cfg.get("page_id"),
+            "instagram_account_id": cfg.get("instagram_account_id"),
+            "app_id_present": bool(cfg.get("app_id")),
+            "token_resolved": token_resolved,
+            "surfaces": {
+                "facebook_identity": "LIVE" if (cfg.get("page_id") and token_resolved) else "NOT_CONNECTED",
+                "facebook_content":  "UNKNOWN",
+                "facebook_insights": "UNKNOWN",
+                "instagram_identity": "LIVE" if (cfg.get("instagram_account_id") and token_resolved) else "NOT_CONNECTED",
+                "instagram_content":  "UNKNOWN",
+                "instagram_insights": "UNKNOWN",
+                "meta_ads":  "NOT_CONNECTED",
+                "whatsapp":  "NOT_CONNECTED",
+            },
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_status_for_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ─── META LIVE FETCH (2026-08-20) ───────────────────────────────────
 # POST /api/meta/fetch — pull IG + FB live analytics, write the JSONs.
 # The OS connected-accounts page surfaces a "Refresh from Meta" button
