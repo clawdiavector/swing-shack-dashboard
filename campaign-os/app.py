@@ -20901,6 +20901,67 @@ def esc_html(s):
              .replace('"', '&quot;'))
 
 
+# ── Reporting Intelligence V1 — dual-brand report engine ──────────────
+# See campaign-os/_lib/reporting_intelligence.py
+
+try:
+    from _lib import reporting_intelligence as _ri
+except Exception as _e:
+    _app_log.warning("reporting_intelligence import failed: %s", _e)
+    _ri = None
+
+
+@app.route('/api/reports/v1/<brand_id>', methods=['GET'])
+def report_v1_brand(brand_id):
+    """GET /api/reports/v1/<brand_id>?format=html|json&days=31
+
+    Returns the Reporting Intelligence V1 report for one brand.
+    Default format = html (print-ready). JSON returns the
+    structured report dict.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    try:
+        if fmt == "json":
+            r = _ri.build_brand_report(brand_id, days)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_brand_report_html(brand_id, days)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v1_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/v1/portfolio', methods=['GET'])
+def report_v1_portfolio():
+    """GET /api/reports/v1/portfolio?format=html|json&days=31
+
+    Cross-brand portfolio management summary. Per brief §5,
+    contextual not league-table.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    try:
+        reports = {bid: _ri.build_brand_report(bid, days) for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        html = _ri.render_portfolio_summary_html(reports)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v1_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/weekly-report', methods=['GET'])
 def weekly_report_api():
     """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
