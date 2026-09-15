@@ -9732,15 +9732,23 @@ def meta_token_diagnostic(brand_id):
         token = cfg.get("access_token")
         # Detect token source (which env var resolved)
         token_source = "(unset)"
-        if os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}"):
+        # Brand-specific overrides win first (e.g. STICK_PAARL for the
+        # Stick business portfolio as it appears in Meta Business Settings)
+        if brand_id == "stick":
+            for override in ("META_SYSTEM_USER_TOKEN_STICK_PAARL",
+                             "META_SYSTEM_USER_TOKEN_STICK_PAARL_PAGES"):
+                if os.environ.get(override):
+                    token_source = override
+                    break
+        if token_source == "(unset)" and os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}"):
             token_source = f"META_SYSTEM_USER_TOKEN_{safe}"
-        elif os.environ.get("META_SYSTEM_USER_TOKEN"):
+        elif token_source == "(unset)" and os.environ.get("META_SYSTEM_USER_TOKEN"):
             token_source = "META_SYSTEM_USER_TOKEN (global; legacy Swing Shack)"
-        elif os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}"):
+        elif token_source == "(unset)" and os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}"):
             token_source = f"META_ACCESS_TOKEN_FILE_{safe}"
-        elif os.environ.get("META_ACCESS_TOKEN_FILE"):
+        elif token_source == "(unset)" and os.environ.get("META_ACCESS_TOKEN_FILE"):
             token_source = "META_ACCESS_TOKEN_FILE (global; legacy)"
-        elif os.environ.get("META_ACCESS_TOKEN"):
+        elif token_source == "(unset)" and os.environ.get("META_ACCESS_TOKEN"):
             token_source = "META_ACCESS_TOKEN (global; legacy)"
 
         # Fingerprint: last 6 chars of token (not the token itself)
