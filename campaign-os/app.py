@@ -10248,11 +10248,10 @@ def admin_meta_tree():
 
     # --- 1. /me - token identity (safe metadata only) ---
     try:
-        me = _meta._graph_get("/me", {"fields": "id,name,app_id"})
+        me = _meta._graph_get("/me", {"fields": "id,name"})
         out["token_identity"] = {
             "id": me.get("id"),
             "name": me.get("name"),
-            "app_id": me.get("app_id"),
             "kind_hint": "system_user_or_page_admin",
         }
     except Exception as e:
@@ -10260,7 +10259,7 @@ def admin_meta_tree():
 
     # --- 2. /me/accounts - direct Page discovery (second route) ---
     try:
-        direct = _meta._graph_get("/me/accounts", {"fields": "id,name,perms,tasks,instagram_business_account{id,username,name,profile_picture_url}", "limit": 200})
+        direct = _meta._graph_get("/me/accounts", {"fields": "id,name,tasks,instagram_business_account{id,username,name,profile_picture_url}", "limit": 200})
         direct_data = direct.get("data") or []
         out["summaries"]["direct_pages"] = len(direct_data)
         for p in direct_data:
@@ -10311,7 +10310,7 @@ def admin_meta_tree():
         # --- 4. Pages per business ---
         for edge in ("owned_pages", "client_pages", "shared_pages"):
             try:
-                resp = _meta._graph_get(f"/{bid}/{edge}", {"fields": "id,name,perms,instagram_business_account{id,username,name},tasks", "limit": 200})
+                resp = _meta._graph_get(f"/{bid}/{edge}", {"fields": "id,name,instagram_business_account{id,username,name},tasks", "limit": 200})
             except Exception:
                 continue
             for p in (resp.get("data") or []):
@@ -10409,7 +10408,7 @@ def _coerce_direct_page(p: dict) -> dict:
         "business_id": None,
         "business_name": None,
         "relationship": "direct_account",
-        "tasks_or_perms": _summarise_perms(p.get("tasks"), p.get("perms")),
+        "tasks_or_perms": _summarise_perms(p.get("tasks"), []),
         "linked_ig_id": (p.get("instagram_business_account") or {}).get("id"),
         "source": "/me/accounts",
     }
@@ -10422,7 +10421,7 @@ def _coerce_page_in_business(p: dict, bid: str, bname: str, edge: str) -> dict:
         "business_id": bid,
         "business_name": bname,
         "relationship": edge,
-        "tasks_or_perms": _summarise_perms(p.get("tasks"), p.get("perms")),
+        "tasks_or_perms": _summarise_perms(p.get("tasks"), []),
         "linked_ig_id": (p.get("instagram_business_account") or {}).get("id"),
         "source": f"/{bid}/{edge}",
     }
@@ -10431,16 +10430,23 @@ def _coerce_page_in_business(p: dict, bid: str, bname: str, edge: str) -> dict:
 def _summarise_perms(tasks, perms) -> dict:
     tasks = tasks or []
     perms = perms or []
+    perms_normalised = []
+    for p in perms:
+        if isinstance(p, dict):
+            perm_name = p.get("permission") or p.get("name") or "?"
+            perms_normalised.append(perm_name)
+        else:
+            perms_normalised.append(str(p))
     return {
         "tasks_count": len(tasks),
-        "perms_count": len(perms),
+        "perms_count": len(perms_normalised),
+        "tasks": list(tasks),
+        "perms": perms_normalised,
         "has_ANALYZE_task": any("ANALYZE" in (t or "") for t in tasks),
         "has_ADVERTISE_task": any(t == "ADVERTISE" for t in tasks),
         "has_MODERATE_task": any("MODERATE" in (t or "") for t in tasks),
-        "has_PAGE_READ_ENGAGEMENT": any("engagement" in (p or "") for p in perms),
+        "has_PAGE_READ_ENGAGEMENT": any("engagement" in str(p) for p in perms_normalised),
         "has_READ_INSIGHTS": any(t == "READ_INSIGHTS" for t in tasks),
-        "first_5_perms": [p for p in perms[:5]],
-        "first_5_tasks": [t for t in tasks[:5]],
     }
 
 
