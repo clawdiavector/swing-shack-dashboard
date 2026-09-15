@@ -9704,6 +9704,332 @@ def meta_status_for_brand(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/meta/<brand_id>/connect-test', methods=['GET'])
+def meta_connect_test(brand_id):
+    """GET /api/meta/<brand_id>/connect-test — Step 4A live read verification.
+
+    Performs read-only probes across every surface the brand has
+    configured (FB Page identity / content / insights, IG identity /
+    media / account + media insights, Ad accounts, Datasets, WABA
+    inventory). Returns a structured per-surface report with state
+    LIVE | PARTIAL | PERMISSION_MISSING | metric_unsupported |
+    error_code / no_data. NEVER mutates anything.
+
+    Per brief §10 — no silent fallback: a metric that Graph rejects
+    comes back as the literal Graph error message, not a 0.
+
+    Per brief §12 — brand isolation: Stick uses META_*_STICK env vars
+    and its own token; Swing Shack uses the legacy global env vars.
+    No cross-brand bleed.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    try:
+        from _lib import meta_api as _meta
+        cfg = _meta.meta_config_for_brand(brand_id)
+        page_id = cfg.get("page_id")
+        ig_id = cfg.get("instagram_account_id")
+        token = cfg.get("access_token")
+        business_id = os.environ.get(f"META_BUSINESS_ID_{_meta._tenant_safe(brand_id).upper()}")
+        waba_id = os.environ.get(f"META_WABA_ID_{_meta._tenant_safe(brand_id).upper()}")
+
+        out = {
+            "ok": True,
+            "brand_id": brand_id,
+            "scope": cfg.get("scope"),
+            "config": {
+                "page_id": page_id,
+                "instagram_account_id": ig_id,
+                "business_id": business_id,
+                "waba_id": waba_id,
+                "token_resolved": bool(token),
+                "app_id_present": bool(cfg.get("app_id")),
+            },
+            "surfaces": {},
+            "errors": [],
+        }
+
+        if not token:
+            out["surfaces"]["facebook_identity"] = {"state": "NOT_CONNECTED",
+                                                    "reason": "no token for brand"}
+            return jsonify(out), 200
+
+        # ===== Facebook identity (always start with this) =====
+        if page_id:
+            try:
+                r = _meta._graph_get(f"/{page_id}",
+                                     {"fields": "id,name,fan_count,followers_count,category,link,verification_status"})
+                out["surfaces"]["facebook_identity"] = {
+                    "state": "LIVE",
+                    "page_id": r.get("id"),
+                    "name": r.get("name"),
+                    "fan_count": r.get("fan_count"),
+                    "followers_count": r.get("followers_count"),
+                    "category": r.get("category"),
+                    "link": r.get("link"),
+                    "verification_status": r.get("verification_status"),
+                }
+            except Exception as e:
+                out["surfaces"]["facebook_identity"] = {"state": _classify_facebook_error(e),
+                                                        "error": str(e)[:200]}
+
+        # ===== Facebook content — recent posts =====
+        if page_id:
+            try:
+                r = _meta._graph_get(f"/{page_id}/posts",
+                                     {"fields": "id,message,created_time,permalink_url,shares,reactions.summary(true),comments.summary(true)",
+                                      "limit": 10})
+                posts = r.get("data", [])
+                latest_ts = max((p.get("created_time", "") for p in posts), default=None)
+                out["surfaces"]["facebook_content"] = {
+                    "state": "LIVE" if posts else "NO_DATA",
+                    "recent_post_count": len(posts),
+                    "latest_post_timestamp": latest_ts,
+                    "earliest_post_timestamp_in_sample": min((p.get("created_time", "") for p in posts), default=None),
+                    "sample_posts": [
+                        {"id": p.get("id"), "created_time": p.get("created_time"),
+                         "permalink": p.get("permalink_url")}
+                        for p in posts[:3]
+                    ],
+                }
+            except Exception as e:
+                out["surfaces"]["facebook_content"] = {"state": _classify_facebook_error(e),
+                                                        "error": str(e)[:200]}
+
+        # ===== Facebook page insights (multi-metric probe) =====
+        if page_id:
+            metrics_to_probe = [
+                "page_impressions", "page_impressions_unique",
+                "page_post_engagements", "page_fans",
+                "page_fan_adds", "page_views",
+                "page_impressions_organic", "page_impressions_paid",
+            ]
+            out["surfaces"]["facebook_insights"] = {"state": "UNKNOWN",
+                                                   "metrics": {}}
+            for m in metrics_to_probe:
+                try:
+                    r = _meta._graph_get(f"/{page_id}/insights",
+                                         {"metric": m, "period": "day"})
+                    data = r.get("data", [])
+                    if data:
+                        out["surfaces"]["facebook_insights"]["metrics"][m] = {
+                            "state": "LIVE",
+                            "values_count": len(data[0].get("values", [])),
+                            "latest_value": data[0]["values"][-1]["value"] if data[0].get("values") else None,
+                            "latest_date": data[0]["values"][-1]["end_time"] if data[0].get("values") else None,
+                        }
+                    else:
+                        out["surfaces"]["facebook_insights"]["metrics"][m] = {"state": "no_data"}
+                except Exception as e:
+                    out["surfaces"]["facebook_insights"]["metrics"][m] = {
+                        "state": _classify_facebook_error(e),
+                        "error": str(e)[:200],
+                    }
+            # Aggregate
+            states = [v["state"] for v in out["surfaces"]["facebook_insights"]["metrics"].values()]
+            live = sum(1 for s in states if s == "LIVE")
+            if live == len(states) and live > 0:
+                out["surfaces"]["facebook_insights"]["state"] = "LIVE"
+            elif live > 0:
+                out["surfaces"]["facebook_insights"]["state"] = "PARTIAL"
+            elif "permission_blocked" in [s for s in states]:
+                out["surfaces"]["facebook_insights"]["state"] = "PERMISSION_MISSING"
+            elif "metric_unsupported" in [s for s in states]:
+                out["surfaces"]["facebook_insights"]["state"] = "PARTIAL"
+            elif "page_token_required" in [s for s in states]:
+                out["surfaces"]["facebook_insights"]["state"] = "PERMISSION_MISSING"
+            else:
+                out["surfaces"]["facebook_insights"]["state"] = "PARTIAL"
+
+        # ===== Instagram identity =====
+        if ig_id:
+            try:
+                r = _meta._graph_get(f"/{ig_id}",
+                                     {"fields": "id,username,name,biography,followers_count,follows_count,media_count,profile_picture_url,website,verification_status"})
+                out["surfaces"]["instagram_identity"] = {
+                    "state": "LIVE",
+                    "ig_id": r.get("id"),
+                    "username": r.get("username"),
+                    "name": r.get("name"),
+                    "followers_count": r.get("followers_count"),
+                    "follows_count": r.get("follows_count"),
+                    "media_count": r.get("media_count"),
+                    "biography": r.get("biography"),
+                    "website": r.get("website"),
+                    "verification_status": r.get("verification_status"),
+                }
+            except Exception as e:
+                out["surfaces"]["instagram_identity"] = {"state": _classify_facebook_error(e),
+                                                          "error": str(e)[:200]}
+
+        # ===== Instagram media =====
+        if ig_id:
+            try:
+                r = _meta._graph_get(f"/{ig_id}/media",
+                                     {"fields": "id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count",
+                                      "limit": 10})
+                items = r.get("data", [])
+                latest_ts = max((p.get("timestamp", "") for p in items), default=None)
+                out["surfaces"]["instagram_content"] = {
+                    "state": "LIVE" if items else "NO_DATA",
+                    "recent_media_count": len(items),
+                    "latest_media_timestamp": latest_ts,
+                    "earliest_media_timestamp_in_sample": min((p.get("timestamp", "") for p in items), default=None),
+                    "sample_media": [
+                        {"id": m.get("id"), "media_type": m.get("media_type"),
+                         "timestamp": m.get("timestamp"), "permalink": m.get("permalink")}
+                        for m in items[:3]
+                    ],
+                }
+            except Exception as e:
+                out["surfaces"]["instagram_content"] = {"state": _classify_facebook_error(e),
+                                                        "error": str(e)[:200]}
+
+        # ===== Instagram account insights =====
+        if ig_id:
+            try:
+                r = _meta._graph_get(f"/{ig_id}/insights",
+                                     {"metric": "impressions,reach,profile_views,follower_count",
+                                      "period": "day",
+                                      "metric_type": "total_value"})
+                data = r.get("data", [])
+                if data:
+                    latest_date = None
+                    metric_values = {}
+                    for m in data:
+                        title = m.get("name")
+                        values = m.get("values", [])
+                        if values:
+                            metric_values[title] = values[-1].get("value")
+                            latest_date = latest_date or values[-1].get("end_time")
+                    out["surfaces"]["instagram_account_insights"] = {
+                        "state": "LIVE" if metric_values else "NO_DATA",
+                        "latest_date": latest_date,
+                        "metric_values": metric_values,
+                    }
+                else:
+                    out["surfaces"]["instagram_account_insights"] = {"state": "no_data"}
+            except Exception as e:
+                out["surfaces"]["instagram_account_insights"] = {"state": _classify_facebook_error(e),
+                                                                  "error": str(e)[:200]}
+
+        # ===== Instagram media insights (one example media) =====
+        if ig_id:
+            try:
+                # find one recent media
+                r0 = _meta._graph_get(f"/{ig_id}/media", {"fields": "id", "limit": 1})
+                items = r0.get("data", [])
+                if items:
+                    media_id = items[0]["id"]
+                    r1 = _meta._graph_get(f"/{media_id}/insights",
+                                          {"metric": "impressions,reach,engagement,saved",
+                                           "period": "lifetime"})
+                    data = r1.get("data", [])
+                    metric_values = {m.get("name"): m.get("values", [{}])[0].get("value") for m in data}
+                    out["surfaces"]["instagram_media_insights"] = {
+                        "state": "LIVE" if data else "no_data",
+                        "sample_media_id": media_id,
+                        "metric_values": metric_values,
+                    }
+                else:
+                    out["surfaces"]["instagram_media_insights"] = {"state": "no_data"}
+            except Exception as e:
+                out["surfaces"]["instagram_media_insights"] = {"state": _classify_facebook_error(e),
+                                                               "error": str(e)[:200]}
+
+        # ===== Ad accounts (via /me/adaccounts) =====
+        try:
+            r = _meta._graph_get("/me/adaccounts",
+                                 {"fields": "id,name,currency,timezone_name,account_status,disable_reason"})
+            accounts = r.get("data", [])
+            out["surfaces"]["ad_accounts"] = {
+                "state": "LIVE" if accounts else "NO_DATA",
+                "count": len(accounts),
+                "accounts": [
+                    {"id": a.get("id"), "name": a.get("name"),
+                     "currency": a.get("currency"), "timezone": a.get("timezone_name"),
+                     "status": a.get("account_status"), "disable_reason": a.get("disable_reason")}
+                    for a in accounts
+                ],
+            }
+        except Exception as e:
+            out["surfaces"]["ad_accounts"] = {"state": _classify_facebook_error(e),
+                                              "error": str(e)[:200]}
+
+        # ===== Datasets / pixels =====
+        try:
+            # Pixel endpoint is at /<ad_account_id>/adspixels; but per-pixel-list at /me/adspixels
+            r = _meta._graph_get("/me/adspixels",
+                                 {"fields": "id,name,owner_ad_account"})
+            pixels = r.get("data", [])
+            out["surfaces"]["pixels"] = {
+                "state": "LIVE" if pixels else "NO_DATA",
+                "count": len(pixels),
+                "pixels": [{"id": p.get("id"), "name": p.get("name"),
+                            "owner_ad_account": p.get("owner_ad_account")} for p in pixels],
+            }
+        except Exception as e:
+            out["surfaces"]["pixels"] = {"state": _classify_facebook_error(e),
+                                         "error": str(e)[:200]}
+
+        # ===== WhatsApp inventory only (NO message read/send) =====
+        if waba_id:
+            try:
+                r = _meta._graph_get(f"/{waba_id}",
+                                     {"fields": "id,name,account_review_status,quality_rating,message_template_namespace"})
+                out["surfaces"]["whatsapp"] = {
+                    "state": "LIVE",
+                    "waba_id": r.get("id"),
+                    "name": r.get("name"),
+                    "review_status": r.get("account_review_status"),
+                    "quality_rating": r.get("quality_rating"),
+                    "namespace": r.get("message_template_namespace"),
+                }
+                # Phone numbers (inventory only — no reading messages)
+                try:
+                    pn = _meta._graph_get(f"/{waba_id}/phone_numbers",
+                                          {"fields": "id,display_phone_number,verified_name,quality_rating,status,code_verification_status"})
+                    pns = pn.get("data", [])
+                    out["surfaces"]["whatsapp"]["phone_numbers_count"] = len(pns)
+                    out["surfaces"]["whatsapp"]["phone_numbers"] = [
+                        {"id": p.get("id"), "display": p.get("display_phone_number"),
+                         "verified_name": p.get("verified_name"),
+                         "quality": p.get("quality_rating"), "status": p.get("status")}
+                        for p in pns
+                    ]
+                except Exception as e:
+                    out["surfaces"]["whatsapp"]["phone_numbers_error"] = str(e)[:200]
+            except Exception as e:
+                out["surfaces"]["whatsapp"] = {"state": _classify_facebook_error(e),
+                                                "error": str(e)[:200]}
+
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_connect_test failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _classify_facebook_error(e: Exception) -> str:
+    """Return one of:
+      permission_blocked | metric_unsupported | page_token_required |
+      not_connected | error_code | no_data | unknown
+    Per brief §10: distinct states, no 0-substitution."""
+    msg = str(e) if e else ""
+    if "Graph API error (100)" in msg or "valid insights metric" in msg:
+        return "metric_unsupported"
+    if "Graph API error (190)" in msg or "Page Access Token" in msg:
+        return "page_token_required"
+    if "Graph API error (200)" in msg or "permission" in msg.lower() or "Error (10)" in msg or "Error (200)" in msg:
+        return "permission_blocked"
+    if "Error (4)" in msg or "too many" in msg.lower():
+        return "rate_limited"
+    if "Error (803)" in msg or "not found" in msg.lower():
+        return "not_found"
+    return "error"
+
+
 # ─── META LIVE FETCH (2026-08-20) ───────────────────────────────────
 # POST /api/meta/fetch — pull IG + FB live analytics, write the JSONs.
 # The OS connected-accounts page surfaces a "Refresh from Meta" button
