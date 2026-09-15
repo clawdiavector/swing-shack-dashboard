@@ -199,16 +199,47 @@ Expected:
     NO generate_lead event in DebugView
 ```
 
-### Test 5 — NEGATIVE (incomplete submission)
+### Test 5 — NEGATIVE (incomplete / invalid submission — strict)
 
 ```text
-[ ] Open /bookings/
-[ ] Fill name + email but NOT phone
+[ ] Open /bookings/ in a fresh incognito tab
+[ ] Fill ONLY some of the fields (e.g. name + email but NOT
+    phone, OR fill with non-PII content like
+    "CAMPAIGN OS TRACKING TEST" that a server-side filter
+    would treat as invalid, OR clear one required field that
+    the CF7 form config marks as required)
 [ ] Click Submit
-Expected (CF7 may or may not validate phone; depends on form config):
-    If validation fails: NO generate_lead event
-    If validation passes: 1 generate_lead event (this is correct;
-    incomplete != invalid)
+
+    Note: CF7 marks required fields with `aria-required="true"`
+    and the browser should block the submit. If the browser
+    blocks submission (HTML5 client-side required), no event
+    will fire — PASS.
+    If the browser does NOT block (CF7 is also doing server-side
+    validation), then the validation error is shown by CF7 and
+    `wpcf7invalid` fires (NOT `wpcf7mailsent`).
+    In either case, NO `generate_lead` event is acceptable.
+
+PASS criterion: 0 generate_lead events.
+FAIL signal: any generate_lead event on incomplete / invalid
+input must be investigated before declaring success.
+```
+
+**Snippet contract reminder:**
+
+```text
+The implementation listens ONLY on wpcf7mailsent.
+
+wpcf7mailsent fires in CF7's Ajax flow only after the email
+has been confirmed sent.
+
+If CF7 invalidates the submission for any reason (validation
+failure, spam filter, server-side rejection), the
+`wpcf7mailsent` event will NOT fire.
+
+Therefore: incomplete / invalid submissions produce exactly
+0 generate_lead events. There is no acceptable
+"0 or 1 depending on CF7 validation" outcome —
+the outcome is always 0.
 ```
 
 ### Test 6 — DEDUPE (back-button resubmit)

@@ -64,23 +64,50 @@
     );
   }
 
-  function fireGenerateLead(form) {
+  function fireGenerateLead(form, detail) {
     if (!window.gtag || typeof window.gtag !== 'function') {
       console.warn('[stick-generate-lead] gtag not available; skipping event');
       return;
     }
+
+    // --- form_id guarantee (brief §III-Stage-3C operator note) ---
+    // Only fire on the canonical Stick CF7 unit ID (3039).
+    // Any other CF7 form on the site cannot accidentally fire
+    // generate_lead even if the snippet loads there (e.g. a generic
+    // contact form).
+    var formId = form.getAttribute('data-wpcf7-id') || '';
+    if (formId !== '3039') {
+      console.info(
+        '[stick-generate-lead] ignored — form is not CF7 unit 3039 (got: ' +
+        (formId || 'unknown') + ')'
+      );
+      return;
+    }
+
+    // --- detail.contactFormId safety net ---
+    // The wpcf7mailsent CustomEvent includes an event.detail object
+    // with contactFormId. If the event fires on a different form
+    // (eg. CF7 unit 3077 because someone left the data-wpcf7-id
+    // attribute off), we want to refuse to fire.
+    if (detail && typeof detail === 'object') {
+      var detailId = String(detail.contactFormId || '');
+      if (detailId && detailId !== '3039') {
+        console.info(
+          '[stick-generate-lead] ignored — event.detail.contactFormId=' +
+          detailId + ' (not 3039)'
+        );
+        return;
+      }
+    }
+
     var lead_type = pickLeadType(form);
     var cta_location = pickCtaLocation(form);
     var service = pickService(form);
-    var form_id =
-      form.getAttribute('data-wpcf7-id') ||
-      form.getAttribute('id') ||
-      'unknown';
 
     var params = {
       lead_type: lead_type,
       cta_location: cta_location,
-      form_id: form_id
+      form_id: '3039'
     };
     if (service) {
       params.service = service;
@@ -102,13 +129,32 @@
       form.__stickGenerateLeadBound = true;
 
       // POSITIVE — fire ONLY on the canonical CF7 success event.
-      form.addEventListener('wpcf7mailsent', function () {
-        fireGenerateLead(form);
+      // wpcf7mailsent is dispatched by CF7's Ajax submission flow
+      // *only after the email is confirmed sent*. It does NOT fire
+      // on validation failure (wpcf7invalid), spam detection
+      // (wpcf7:spam), send failure (wpcf7:mailfailed), or
+      // abandonment. We do NOT register listeners for those events.
+      //
+      // IMPORTANT: CF7 confirms wpcf7mailsent fires specifically in
+      // its Ajax submission flow. If Stick's forms run in
+      // non-Ajax (page-reload) mode, this event will not fire and
+      // generate_lead will never be sent — that is exactly the
+      // operator's intent: no false positives.
+      //
+      // The event handler receives a CustomEvent whose
+      // event.detail has shape:
+      //   { contactFormId: "...", inputs: [...], ... }
+      // We pass it through to fireGenerateLead so the
+      // detail.contactFormId safety-net check is enforced.
+      form.addEventListener('wpcf7mailsent', function (ev) {
+        fireGenerateLead(form, ev ? ev.detail : null);
       });
 
       // NEGATIVE — we DO NOT listen on submit-button click,
-      // wpcf7:submit, wpcf7:invalid, wpcf7:mailfailed. CF7 only
-      // dispatches wpcf7mailsent on confirmed success.
+      // wpcf7:submit, wpcf7:invalid, wpcf7:spam, or
+      // wpcf7:mailfailed. CF7 only dispatches wpcf7mailsent on
+      // confirmed success (in its Ajax flow). Listening on any
+      // other event would be a false-positive risk.
     });
   }
 
