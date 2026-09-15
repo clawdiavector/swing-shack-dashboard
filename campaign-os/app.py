@@ -20927,11 +20927,12 @@ def report_v1_brand(brand_id):
         return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
     fmt = (request.args.get("format", "html") or "html").lower()
     days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
     try:
         if fmt == "json":
-            r = _ri.build_brand_report(brand_id, days)
+            r = _ri.build_brand_report(brand_id, days, cookie=cookie)
             return jsonify({"ok": True, "report": r}), 200
-        html = _ri.render_brand_report_html(brand_id, days)
+        html = _ri.render_brand_report_html(brand_id, days, cookie=cookie)
         return html, 200, {"Content-Type": "text/html; charset=utf-8"}
     except Exception as e:
         _app_log.exception("report_v1_brand failed")
@@ -20951,8 +20952,10 @@ def report_v1_portfolio():
         return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
     fmt = (request.args.get("format", "html") or "html").lower()
     days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
     try:
-        reports = {bid: _ri.build_brand_report(bid, days) for bid in ("stick", "swing-shack")}
+        reports = {bid: _ri.build_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
         if fmt == "json":
             return jsonify({"ok": True, "reports": reports}), 200
         html = _ri.render_portfolio_summary_html(reports)

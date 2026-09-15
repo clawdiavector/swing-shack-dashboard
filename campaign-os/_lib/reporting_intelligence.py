@@ -335,7 +335,7 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
     return out
 
 
-def _build_ga4_section(brand_id: str) -> dict:
+def _build_ga4_section(brand_id: str, cookie: Optional[str] = None) -> dict:
     """Read GA4 via the live runtime path.
 
     The credentials file is NOT on the production container; the
@@ -359,7 +359,15 @@ def _build_ga4_section(brand_id: str) -> dict:
         base = os.environ.get("CAMPAIGN_OS_BASE_URL",
                               "http://localhost:8080").rstrip("/")
         url = f"{base}/api/ga4/{brand_id}/sessions?days=31"
-        with urllib.request.urlopen(url, timeout=60) as r:
+        # Forward the inbound session cookie so the GA4 endpoint's
+        # auth gate lets us through. (When the renderer is called
+        # via /api/reports/v1/<brand>, _is_authed() has already
+        # verified the caller's cookie; passing it through here
+        # avoids re-prompting.)
+        req = urllib.request.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with urllib.request.urlopen(req, timeout=60) as r:
             payload = json.loads(r.read())
         if not payload.get("ok"):
             return {
@@ -447,7 +455,8 @@ def _build_paid_section(brand_id: str) -> dict:
 
 # ── public surface ──────────────────────────────────────────────────
 
-def build_brand_report(brand_id: str, period_days: int = 31) -> dict:
+def build_brand_report(brand_id: str, period_days: int = 31,
+                       cookie: Optional[str] = None) -> dict:
     """Build the full JSON report for one brand. NEVER touches
     data/meta-ads.json (synthetic, quarantined)."""
 
@@ -495,7 +504,7 @@ def build_brand_report(brand_id: str, period_days: int = 31) -> dict:
     report["north_stars"] = cfg.get("north_stars", {})
 
     # GA4 — call the live helper; surface its data_status + metrics
-    ga4 = _build_ga4_section(brand_id)
+    ga4 = _build_ga4_section(brand_id, cookie=cookie)
     wp_section = {
         "title": "Website Performance (GA4)",
         "data_status": ga4.get("data_status"),
@@ -879,8 +888,9 @@ def _pill(status: str) -> str:
     return f'<span class="pill {cls}">{status}</span>'
 
 
-def render_brand_report_html(brand_id: str, period_days: int = 31) -> str:
-    r = build_brand_report(brand_id, period_days)
+def render_brand_report_html(brand_id: str, period_days: int = 31,
+                             cookie: Optional[str] = None) -> str:
+    r = build_brand_report(brand_id, period_days, cookie=cookie)
     if r.get("error"):
         return f"<h1>Error</h1><p>{r['error']}</p>"
     parts = [f"<!DOCTYPE html><html><head><meta charset='utf-8'>",
