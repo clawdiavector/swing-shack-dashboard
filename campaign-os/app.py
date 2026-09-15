@@ -10390,7 +10390,9 @@ def admin_meta_tree():
         # Try each candidate metric individually; capture which work
         try:
             metric_results = {}
-            for metric in ("page_impressions", "page_fan_adds", "page_post_engagements"):
+            for metric in ("page_impressions", "page_fan_adds", "page_post_engagements",
+                           "page_fans", "page_views_total", "page_fan_removes",
+                           "page_views", "page_engaged_users"):
                 try:
                     r = _meta._graph_get(f"/{pid}/insights", {"metric": metric, "period": "day", "limit": 1})
                     metric_results[metric] = {"ok": True}
