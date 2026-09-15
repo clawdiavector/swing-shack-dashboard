@@ -289,8 +289,19 @@ def meta_config_for_brand(brand_id: str) -> dict:
       - page_id, instagram_account_id, app_id (str|None each)
       - scope: 'tenant-specific' or 'shared'
 
-    NEVER falls back to Swing Shack values. If a brand's config
-    is missing, returns None for that field and scope='shared'.
+    Brand-isolation rule (brief §12):
+      - When brand_id is provided, per-brand env vars and per-brand
+        bundled files are used.
+      - For non-swing-shack brands, the global fallback path
+        (legacy META_PAGE_ID / META_INSTAGRAM_BUSINESS_ACCOUNT_ID
+        env vars) is NOT used. If the brand has no per-brand config,
+        the relevant fields are None.
+      - For swing-shack (the legacy / shared tenant) the global
+        fallback is still honoured, since the original Campaign OS
+        deployment is swing-shack-first.
+
+    Returns None for fields that lack tenant-specific configuration
+    on non-swing-shack brands. This guarantees brand isolation.
     """
     if not brand_id:
         return {
@@ -301,12 +312,42 @@ def meta_config_for_brand(brand_id: str) -> dict:
             "scope": "shared",
             "brand_id": "",
         }
+
     tok = _read_meta_access_token(brand_id=brand_id)
     page_id = _read_meta_id("META_PAGE_ID", "page_id", brand_id=brand_id)
     ig_id = _read_meta_id("META_INSTAGRAM_BUSINESS_ACCOUNT_ID",
                           "instagram_account_id", brand_id=brand_id)
     app_id = _read_meta_id("META_APP_ID", "app_id", brand_id=brand_id)
+
     safe = _tenant_safe(brand_id).upper()
+
+    # Brand-isolation override: for non-swing-shack brands, never
+    # silently fall through to the global / swing-shack fallback.
+    if brand_id != "swing-shack":
+        # If per-brand env is missing for any of these, the field
+        # is intentionally None — NEVER read the global env.
+        global_page = os.environ.get("META_PAGE_ID", "").strip()
+        global_ig = os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
+        global_app = os.environ.get("META_APP_ID", "").strip()
+        # Only fall through to global if no per-brand env exists
+        # AND the bundled fallback is missing too.
+        per_brand_page_env = os.environ.get(f"META_PAGE_ID_{safe}", "").strip()
+        per_brand_ig_env = os.environ.get(f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID_{safe}", "").strip()
+        per_brand_app_env = os.environ.get(f"META_APP_ID_{safe}", "").strip()
+        if not per_brand_page_env and not _bundled_has_key(f"data/meta-tokens.{safe}.json", "page_id"):
+            page_id = None  # never leak Swing Shack page_id
+        if not per_brand_ig_env and not _bundled_has_key(f"data/meta-tokens.{safe}.json", "instagram_account_id"):
+            ig_id = None
+        if not per_brand_app_env and not _bundled_has_key(f"data/meta-tokens.{safe}.json", "app_id"):
+            app_id = None
+        # Token: if no per-brand token exists, we still want to fall
+        # back to the GLOBAL CAPI System User (which is the existing
+        # shared token). But only if it has been assigned the brand's
+        # asset in Meta. We DON'T pre-check Meta assignment here
+        # (would be a network call); we report token_resolved based on
+        # env presence and let the actual Graph API call surface
+        # permission errors as live data.
+
     is_tenant_specific = bool(
         os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}") or
         os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}") or
@@ -321,6 +362,19 @@ def meta_config_for_brand(brand_id: str) -> dict:
         "scope": "tenant-specific" if is_tenant_specific else "shared",
         "brand_id": brand_id,
     }
+
+
+def _bundled_has_key(path: str, key: str) -> bool:
+    """Quick check: does the bundled meta-tokens file exist and contain a value for this key?"""
+    import json as _json
+    if not path:
+        return False
+    try:
+        with open(path) as f:
+            data = _json.load(f)
+        return bool(data.get(key))
+    except (FileNotFoundError, Exception):
+        return False
 
 
 # ── Low-level Graph API caller ────────────────────────────────────────────────
