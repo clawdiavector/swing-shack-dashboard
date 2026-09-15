@@ -2,5 +2,9 @@ flask==3.1.0
 flask-cors==5.0.0
 # Stage 4 Truth Collector — added in Step 76 for GA4 service-account auth.
 google-auth>=2.0
+# Step 3A — GA4 Data API client (already used by /api/ga4/<brand>/sessions
+# and /api/ga4/stick/sessions; pulled in lazily at runtime so this
+# declaration prevents ModuleNotFoundError on the production image).
+google-api-python-client>=2.100.0
 requests>=2.28
 Pillow>=10.0  # brand overlay (deterministic post-composition)
