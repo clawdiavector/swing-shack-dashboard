@@ -18332,19 +18332,32 @@ async function renderCalJobs() {
       body.innerHTML = '<div class="muted">Job health unavailable.</div>';
       return;
     }
+    // Slice 0.3 final close-out §6 — show operational warning when
+    // the bridge is unavailable; never pretend controls are functional.
+    if (r.control_available === false) {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'margin-bottom:.6rem;padding:.5rem .75rem;border-left:3px solid #f59e0b;background:rgba(245,158,11,.08);border-radius:0 6px 6px 0;font-size:11.5px';
+      warn.innerHTML = `<b>⚠️ Hermes control bridge unavailable</b> — reason: <code>${esc(r.control_reason || 'unknown')}</code>. Job controls are disabled until the bridge reconnects.`;
+      body.parentElement.insertBefore(warn, body);
+      setTimeout(() => warn.remove(), 8000);
+    }
     body.innerHTML = r.jobs.map(j => calJobCardHtml(j)).join('');
     // Wire controls
     body.querySelectorAll('[data-cal-job-control]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const jobKey = btn.getAttribute('data-cal-job-key');
         const action = btn.getAttribute('data-cal-job-control');
+        if (!r.control_available) {
+          toast(`✗ Control unavailable: ${r.control_reason || 'bridge offline'}`, 'err');
+          return;
+        }
         btn.disabled = true;
         const original = btn.textContent;
         btn.textContent = '…';
         try {
           const r2 = await API.post('/api/calendar/v3/jobs/control', { job_key: jobKey, action });
           if (r2.ok) {
-            toast(`✓ ${action} → ${jobKey}`);
+            toast(`✓ ${action} → ${jobKey}${r2.state ? ` (${r2.state})` : ''}`);
             // Refresh the panel after a short delay so Hermes has time to commit
             setTimeout(() => renderCalJobs(), 1500);
           } else {
@@ -18367,15 +18380,19 @@ async function renderCalJobs() {
 function calJobCardHtml(j) {
   const stateColour = j.hermes_status === 'active' ? '#22c55e'
                     : j.hermes_status === 'paused' ? '#f59e0b'
-                    : j.hermes_status === 'unknown' ? '#6b7280'
-                    : '#ef4444';
+                    : j.hermes_status === 'bridge_unreachable' ? '#6b7280'
+                    : '#888';
   const lastRun = j.last_run || 'never';
   const nextRun = j.next_run || '—';
-  const ctrlSupported = j.control_supported !== false;
+  // Slice 0.3 final close-out §6 — buttons reflect real control_available
+  const ctrlAvailable = j.control_available !== false;
+  const ctrlTitle = ctrlAvailable ? '' : `disabled title="${esc(j.control_reason || 'bridge_unreachable')}"`;
+  const stateBadge = ctrlAvailable ? '' :
+    `<span class="pill muted" style="font-size:10px;margin-left:.4rem" title="${esc(j.control_reason || 'bridge_unreachable')}">ctrl offline</span>`;
   return `
     <div class="cal-job-card" style="padding:.6rem .75rem;border:1px solid var(--bd);border-radius:8px;background:var(--bg-2)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
-        <div style="font-weight:600;font-size:13px">${esc(labelForJobKey(j.job_key))}</div>
+        <div style="font-weight:600;font-size:13px">${esc(labelForJobKey(j.job_key))}${stateBadge}</div>
         <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:11px">
           <span style="width:8px;height:8px;border-radius:50%;background:${stateColour};display:inline-block"></span>
           <span style="color:var(--tx-2)">${esc(j.hermes_status)}</span>
@@ -18389,9 +18406,9 @@ function calJobCardHtml(j) {
         <div style="font-size:10px;margin-top:.3rem;opacity:.6">id: ${esc(j.job_id || '—')}</div>
       </div>
       <div style="display:flex;gap:.3rem;margin-top:.5rem;flex-wrap:wrap">
-        <button class="btn-mini primary" data-cal-job-control="run_now" data-cal-job-key="${esc(j.job_key)}" ${ctrlSupported?'':'disabled title="Hermes CLI not on container PATH"'}>▶ Run now</button>
-        <button class="btn-mini" data-cal-job-control="pause" data-cal-job-key="${esc(j.job_key)}" ${ctrlSupported?'':'disabled'}>⏸ Pause</button>
-        <button class="btn-mini" data-cal-job-control="resume" data-cal-job-key="${esc(j.job_key)}" ${ctrlSupported?'':'disabled'}>▶ Resume</button>
+        <button class="btn-mini primary" data-cal-job-control="run_now" data-cal-job-key="${esc(j.job_key)}" ${ctrlAvailable?'':'disabled'} ${ctrlTitle}>▶ Run now</button>
+        <button class="btn-mini" data-cal-job-control="pause" data-cal-job-key="${esc(j.job_key)}" ${ctrlAvailable?'':'disabled'} ${ctrlTitle}>⏸ Pause</button>
+        <button class="btn-mini" data-cal-job-control="resume" data-cal-job-key="${esc(j.job_key)}" ${ctrlAvailable?'':'disabled'} ${ctrlTitle}>▶ Resume</button>
       </div>
     </div>
   `;

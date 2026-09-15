@@ -36,10 +36,39 @@ _app_log = logging.getLogger("campaign-os")
 
 # ─── AUTH ────────────────────────────────────────────────────────────────
 # Single shared password gate. Password is read from CAMPAIGN_OS_PASSWORD env var.
-# On Railway, set this in the dashboard; locally it falls back to a dev password.
-# Sessions are signed cookies (itsdangerous) — no DB needed.
-SHARED_PASSWORD = os.environ.get('CAMPAIGN_OS_PASSWORD') or 'swing-shack-dev-2026'
-SESSION_SECRET = os.environ.get('CAMPAIGN_OS_SECRET') or 'campaign-os-dev-secret-change-me'
+#
+# Slice 0.3 security close-out §A.2:
+#   * In production (RAILWAY_ENVIRONMENT or RAILWAY_PROJECT_ID set, or
+#     FLASK_ENV=production), CAMPAIGN_OS_PASSWORD is REQUIRED. If
+#     missing, the application fails to boot.
+#   * In local dev, the dev fallback password remains active so the
+#     developer can still iterate without env files.
+#   * SESSION_SECRET is similarly enforced in production.
+import os as _os
+PRODUCTION_ENV_HINT = bool(
+    _os.environ.get("RAILWAY_ENVIRONMENT")
+    or _os.environ.get("RAILWAY_PROJECT_ID")
+    or _os.environ.get("FLASK_ENV") == "production"
+    or _os.environ.get("CAMPAIGN_OS_ENV") == "production"
+)
+SHARED_PASSWORD = _os.environ.get('CAMPAIGN_OS_PASSWORD', '').strip() or (
+    'swing-shack-dev-2026' if not PRODUCTION_ENV_HINT else ''
+)
+SESSION_SECRET = _os.environ.get('CAMPAIGN_OS_SECRET', '').strip() or (
+    'campaign-os-dev-secret-change-me' if not PRODUCTION_ENV_HINT else ''
+)
+
+if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_PASSWORD', '').strip():
+    raise RuntimeError(
+        "FATAL: CAMPAIGN_OS_PASSWORD must be set in production. "
+        "The application refuses to boot with a development password fallback."
+    )
+if PRODUCTION_ENV_HINT and not _os.environ.get('CAMPAIGN_OS_SECRET', '').strip():
+    raise RuntimeError(
+        "FATAL: CAMPAIGN_OS_SECRET must be set in production. "
+        "The application refuses to boot with the default session secret."
+    )
+
 SESSION_COOKIE = 'cos_session'
 SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 # v2026-08-13: signed share-token TTL for the auth-optional markdown export.
@@ -3680,16 +3709,23 @@ def calendar_v2_migrate():
 def calendar_v2_upsert():
     """P1.2 Calendar Slice 0.2: idempotent revision-aware upsert.
 
-    Body: {brand_id, ...record fields including event_key OR title}
+    Body: {brand_id, record: {event_key, ...other fields}}
+
+    Accepts BOTH:
+      * {brand_id, record: {...}}  — preferred
+      * {brand_id, ...record_fields} — legacy (record fields at top level)
+
     Returns action in {created, updated, noop}.
     """
     body = request.get_json(silent=True) or {}
     brand_id = body.get("brand_id", "stick")
     if brand_id not in ("stick", "bag-drop", "swing-shack"):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    # Allow both {brand_id, record} and {brand_id, ...record_fields}
+    record = body.get("record") if isinstance(body.get("record"), dict) else {k: v for k, v in body.items() if k != "brand_id"}
     from _lib.marketing_calendar import upsert_event
     try:
-        result = upsert_event(brand_id, body)
+        result = upsert_event(brand_id, record)
         return jsonify({
             "ok": True,
             "action": result["action"],
@@ -5322,86 +5358,255 @@ def _do_lead_time_run_all():
     })
 
 
-# ─── Slice 0.3 final close-out: Hermes job introspection + controls ───────
+# ─── Slice 0.3 final gateway control close-out ───────────────────────────
 
 # Hard-coded mapping from logical job_key → real Hermes cron job ID.
 # These are the production IDs created during Slice 0.3 build.
 HERMES_CALENDAR_JOB_IDS = {
     "lead_time_watcher": "9da954e1db25",
     "opportunity_scout": "473abd04e621",
-    "reactive_watch": "8270bde0913a",
+    "reactive_watch":    "8270bde0913a",
 }
 HERMES_CALENDAR_JOB_SCHEDULES = {
     "lead_time_watcher": "30 6 * * *",
     "opportunity_scout": "0 7 * * 1",
-    "reactive_watch": "30 7 * * *",
+    "reactive_watch":    "30 7 * * *",
 }
 
+# The Hermes Calendar Control Bridge — a small authenticated HTTP
+# service running on the gateway host. Campaign OS NEVER calls hermes
+# CLI directly. The bridge enforces:
+#   * allowlist of 3 job_ids + 3 actions
+#   * HMAC-SHA256 auth via X-Bridge-Timestamp + X-Bridge-Signature
+#   * 5-minute clock-skew tolerance
+HERMES_BRIDGE_URL = os.environ.get(
+    "HERMES_BRIDGE_URL",
+    "https://optics-headlines-guestbook-institutions.trycloudflare.com",
+)
+HERMES_BRIDGE_SECRET = os.environ.get(
+    "HERMES_BRIDGE_SECRET",
+    "",
+).strip()
+HERMES_BRIDGE_TIMEOUT = float(os.environ.get("HERMES_BRIDGE_TIMEOUT", "10"))
 
-def _list_hermes_calendar_jobs():
-    """Read the live Hermes job state for the three Slice 0.3 jobs.
 
-    Falls back gracefully if Hermes cron CLI is unavailable in the
-    container (the Campaign OS container may not have hermes on PATH).
-    Returns a list of dicts shaped for the UI.
+def _sign_bridge_request(body: bytes) -> dict:
+    """Build HMAC auth headers for the Hermes Calendar Control Bridge.
+
+    Signs (timestamp + "|" + nonce + "|" + body) with the shared
+    secret using SHA-256. The bridge verifies the same signature
+    server-side.
+
+    Includes a unique nonce per request to enable replay protection
+    (Slice 0.3 security close-out §A.4).
     """
-    import shutil, subprocess
-    hermes_bin = shutil.which("hermes")
+    import hashlib, hmac, secrets, time
+    ts = str(int(time.time()))
+    nonce = secrets.token_urlsafe(16)
+    msg = (ts + "|" + nonce + "|").encode() + (body or b"")
+    sig = hmac.new(HERMES_BRIDGE_SECRET.encode(), msg, hashlib.sha256).hexdigest()
+    return {
+        "X-Bridge-Timestamp": ts,
+        "X-Bridge-Nonce": nonce,
+        "X-Bridge-Signature": sig,
+    }
+
+
+def _bridge_call(method: str, path: str, payload: Optional[dict] = None, timeout: Optional[float] = None) -> dict:
+    """Make an authenticated HTTP call to the Hermes bridge.
+
+    Returns a dict. On success: {"ok": True, "data": <bridge response>}.
+    On failure: {"ok": False, "error": ..., "control_available": False,
+                  "reason": "..."}.
+    """
+    import urllib.request, urllib.error, json as _json
+    url = HERMES_BRIDGE_URL.rstrip("/") + path
+    body = _json.dumps(payload or {}).encode() if payload is not None or method == "POST" else b""
+    headers = {"Content-Type": "application/json"}
+    if method == "POST":
+        headers.update(_sign_bridge_request(body))
+    req = urllib.request.Request(url, data=body if method == "POST" else None,
+                                  method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout or HERMES_BRIDGE_TIMEOUT) as r:
+            raw = r.read()
+            return {"ok": True, "data": _json.loads(raw), "http": r.status}
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = _json.loads(e.read())
+        except Exception:
+            err_body = {"error": f"HTTP {e.code}"}
+        return {"ok": False, "http": e.code, "data": err_body,
+                "control_available": False,
+                "reason": err_body.get("error", f"bridge returned HTTP {e.code}")}
+    except urllib.error.URLError as e:
+        return {"ok": False, "error": f"bridge unreachable: {e.reason}",
+                "control_available": False, "reason": "bridge_unreachable"}
+    except Exception as e:
+        return {"ok": False, "error": f"{type(e).__name__}: {e}",
+                "control_available": False, "reason": "bridge_error"}
+
+
+def _bridge_available() -> tuple[bool, str]:
+    """Is the bridge configured and reachable? Does NOT consume the
+    allowlist or perform any control action."""
+    if not HERMES_BRIDGE_SECRET:
+        return False, "bridge_secret_not_configured"
+    if not HERMES_BRIDGE_URL:
+        return False, "bridge_url_not_configured"
+    res = _bridge_call("GET", "/health", timeout=5)
+    if not res.get("ok"):
+        return False, res.get("reason", "bridge_unreachable")
+    return True, "ok"
+
+
+def _list_hermes_calendar_jobs() -> list:
+    """Read the live Hermes job state for the three Slice 0.3 jobs
+    via the authenticated control bridge. Falls back gracefully if
+    the bridge is unreachable so the UI can show a clean operational
+    warning instead of a 500."""
     out = []
+    avail, reason = _bridge_available()
+    if not avail:
+        for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
+            out.append({
+                "job_key": job_key,
+                "job_id": jid,
+                "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+                "hermes_status": "bridge_unreachable",
+                "last_run": None,
+                "next_run": None,
+                "mode": (
+                    "no-agent + script" if job_key == "lead_time_watcher"
+                    else "agent + skill" if job_key == "opportunity_scout"
+                    else "agent"
+                ),
+                "control_supported": False,
+                "control_available": False,
+                "control_reason": reason,
+            })
+        return out
+    res = _bridge_call("GET", "/list", timeout=8)
+    if not res.get("ok"):
+        for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
+            out.append({
+                "job_key": job_key,
+                "job_id": jid,
+                "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+                "hermes_status": "unknown",
+                "last_run": None,
+                "next_run": None,
+                "mode": (
+                    "no-agent + script" if job_key == "lead_time_watcher"
+                    else "agent + skill" if job_key == "opportunity_scout"
+                    else "agent"
+                ),
+                "control_supported": False,
+                "control_available": False,
+                "control_reason": res.get("reason", "bridge_error"),
+            })
+        return out
+    bridge_jobs = {j.get("job_id"): j for j in res["data"].get("jobs", [])}
     for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
-        job = {
+        bj = bridge_jobs.get(jid, {})
+        out.append({
             "job_key": job_key,
             "job_id": jid,
-            "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
-            "hermes_status": "unknown",
-            "last_run": None,
-            "next_run": None,
+            "schedule": bj.get("schedule") or HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+            "hermes_status": bj.get("state", "unknown"),
+            "last_run": bj.get("last_run"),
+            "next_run": bj.get("next_run"),
             "mode": (
                 "no-agent + script" if job_key == "lead_time_watcher"
                 else "agent + skill" if job_key == "opportunity_scout"
                 else "agent"
             ),
-            "control_supported": hermes_bin is not None,
-        }
-        if not hermes_bin:
-            out.append(job)
-            continue
-        try:
-            r = subprocess.run(
-                ["hermes", "cron", "list"], capture_output=True, text=True, timeout=10,
-            )
-            # Parse for the job ID + state
-            in_job = False
-            for line in r.stdout.splitlines():
-                line = line.rstrip()
-                if jid in line and "[" in line:
-                    # e.g. "9da954e1db25 [active]"
-                    state = line.split("[", 1)[1].split("]", 1)[0]
-                    job["hermes_status"] = state
-                if "Schedule:" in line and in_job:
-                    job["schedule"] = line.split(":", 1)[1].strip()
-                if "Next run:" in line and in_job:
-                    job["next_run"] = line.split(":", 1)[1].strip()
-                if "Last run:" in line and in_job:
-                    job["last_run"] = line.split(":", 1)[1].strip()
-                if jid in line:
-                    in_job = True
-                elif line.startswith("  ") and in_job and (line.strip() == "" or line.strip().startswith("Repeat:")):
-                    pass
-                elif line.startswith("  ") is False and in_job and jid not in line:
-                    in_job = False
-        except Exception as e:
-            job["hermes_status"] = f"error: {str(e)[:60]}"
-        out.append(job)
+            "control_supported": True,
+            "control_available": True,
+            "control_reason": "ok",
+            "bridge_evaluated_at": res["data"].get("evaluated_at"),
+        })
     return out
 
 
 @app.route('/api/calendar/v3/jobs/hermes-list', methods=['GET'])
 def calendar_v3_jobs_hermes_list():
-    """Returns the live Hermes cron state for the three Slice 0.3 jobs."""
+    """Returns the live Hermes cron state for the three Slice 0.3
+    jobs, sourced from the authenticated Hermes Control Bridge.
+    Per Slice 0.3 final close-out §7: real scheduler state, not
+    inferred from Campaign OS run logs."""
+    avail, reason = _bridge_available()
+    jobs = _list_hermes_calendar_jobs()
     return jsonify({
         "ok": True,
-        "jobs": _list_hermes_calendar_jobs(),
+        "jobs": jobs,
+        "control_available": avail,
+        "control_reason": reason,
+        "bridge_url": HERMES_BRIDGE_URL if avail else None,
+        "evaluated_at": _now_iso_for_run_log(),
+    }), 200
+
+
+@app.route('/api/calendar/v3/jobs/control', methods=['POST'])
+def calendar_v3_jobs_control():
+    """Slice 0.3 final gateway control — operate on a Hermes Calendar
+    job via the authenticated bridge.
+
+    Per close-out §3: allowlist only (3 jobs + 3 actions).
+    Per close-out §4: server-to-server auth via shared HMAC secret.
+    Per close-out §6: structured failure UX, never raw 501.
+    """
+    body = request.get_json(silent=True) or {}
+    job_key = body.get("job_key")
+    action = body.get("action")
+    if job_key not in HERMES_CALENDAR_JOB_IDS:
+        return jsonify({
+            "ok": False,
+            "error": f"unknown job_key '{job_key}'",
+            "control_available": False,
+            "reason": "job_key_not_in_allowlist",
+        }), 400
+    if action not in ("run_now", "run", "pause", "resume"):
+        return jsonify({
+            "ok": False,
+            "error": f"unknown action '{action}'",
+            "control_available": False,
+            "reason": "action_not_in_allowlist",
+        }), 400
+    if not HERMES_BRIDGE_SECRET:
+        return jsonify({
+            "ok": False,
+            "error": "Hermes bridge secret not configured on the server",
+            "control_available": False,
+            "reason": "bridge_secret_not_configured",
+        }), 503
+    if not HERMES_BRIDGE_URL:
+        return jsonify({
+            "ok": False,
+            "error": "Hermes bridge URL not configured on the server",
+            "control_available": False,
+            "reason": "bridge_url_not_configured",
+        }), 503
+    bridge_action = "run" if action == "run_now" else action
+    res = _bridge_call("POST", "/control",
+                        payload={"job_key": job_key, "action": bridge_action})
+    if not res.get("ok"):
+        return jsonify({
+            "ok": False,
+            "error": res.get("error", "bridge call failed"),
+            "control_available": False,
+            "reason": res.get("reason", "bridge_error"),
+        }), 503
+    bridge_data = res["data"]
+    return jsonify({
+        "ok": True,
+        "job_key": job_key,
+        "job_id": HERMES_CALENDAR_JOB_IDS[job_key],
+        "action": action,
+        "bridge_response": bridge_data,
+        "state": bridge_data.get("state"),
+        "next_run": bridge_data.get("next_run"),
+        "last_run": bridge_data.get("last_run"),
         "evaluated_at": _now_iso_for_run_log(),
     }), 200
 
@@ -5416,15 +5621,24 @@ def calendar_v3_scout_discover(brand_id: str):
     body; the calling agent/cron supplies the producer with real
     research results.
 
-    Body schema:
+    Body schema (extended for §8 — per-lane research proof):
       {
-        "candidate_producer_results": [
-          { ...candidate dict ready for upsert... },
-          ...
-        ],
+        "candidate_producer_results": [...],
         "sources_researched": <int>,
-        "research_health": { "probed": true, "search_reachable": true,
-                              "extract_reachable": true, "overall_state": "healthy" }
+        "research_health": { ... },
+
+        # Per-lane breakdown (per Slice 0.3 final close-out §8):
+        "lane_results": {
+          "local_sa_lane":          {"sources_researched": 12, "considered": 8, "added": 0, "ignored": 0, "watchlisted": 0},
+          "womens_golf_lane":       {...},
+          "global_golf_lane":       {...},
+          "creator_culture_lane":   {...},
+          "retail_commercial_lane": {...}
+        },
+
+        # For §9 — work_due isolation:
+        "work_due_at_run": <int>,
+        "maintenance_work_done": <int>
       }
     """
     if brand_id not in ("stick", "bag-drop", "swing-shack"):
@@ -5433,6 +5647,9 @@ def calendar_v3_scout_discover(brand_id: str):
     candidates = body.get("candidate_producer_results") or []
     sources_researched = int(body.get("sources_researched") or 0)
     research_health = body.get("research_health") or {}
+    lane_results = body.get("lane_results") or {}
+    work_due_at_run = int(body.get("work_due_at_run") or 0)
+    maintenance_work_done = int(body.get("maintenance_work_done") or 0)
     # Brief §3 — fail closed when research was unreachable
     if research_health.get("probed") and research_health.get("search_reachable") is False:
         # Persist a research_degraded run log and return without upserts
@@ -5461,7 +5678,7 @@ def calendar_v3_scout_discover(brand_id: str):
         }), 200
     # If the producer supplied no candidates and 0 sources researched,
     # treat that as a degraded run (the agent did not do discovery).
-    if not candidates and sources_researched == 0:
+    if not candidates and sources_researched == 0 and not lane_results:
         from _lib.marketing_calendar import append_run_log
         run = append_run_log({
             "job_type": "scout",
@@ -5489,10 +5706,16 @@ def calendar_v3_scout_discover(brand_id: str):
     def _producer(ctx):
         ctx["sources_researched"] = sources_researched
         ctx["research_health"] = research_health
+        ctx["lane_results"] = lane_results
+        ctx["work_due_at_run"] = work_due_at_run
+        ctx["maintenance_work_done"] = maintenance_work_done
         return candidates
     result = scout_run_for_brand(brand_id, candidate_producer=_producer)
     result["sources_researched"] = sources_researched
     result["research_health"] = research_health
+    result["lane_results"] = lane_results
+    result["work_due_at_run"] = work_due_at_run
+    result["maintenance_work_done"] = maintenance_work_done
     result["external_candidates_written"] = (
         result.get("new_logical_events", 0) + result.get("material_updates", 0)
     )
@@ -5610,45 +5833,27 @@ def calendar_v3_scout_clean_second_run():
     }), 200
 
 
-@app.route('/api/calendar/v3/jobs/control', methods=['POST'])
-def calendar_v3_jobs_control():
-    """Operate on a Hermes Calendar job: run_now / pause / resume.
+# ─── Slice 0.3 candidate-truth audit — Scout failure simulation ──────
 
-    Body: {job_key: 'lead_time_watcher', action: 'pause'}
+@app.route('/api/calendar/v3/scout-simulate-unavailable', methods=['POST'])
+def calendar_v3_scout_simulate_unavailable():
+    """P1.2 Calendar Slice 0.1 v2 close-out §12: controlled fail-closed test.
+
+    Mocks the research capability as 'unavailable' by writing a single
+    record with verification_status='unverified_agent_memory' (the
+    quarantine marker, semantically equivalent to "research failed,
+    here's what we guessed but don't trust it").
+
+    Verifies:
+      1. Data-layer refuses to mark the simulated record as
+         trusted_for_planning.
+      2. Pre-existing verified calendar is unchanged.
     """
-    import shutil, subprocess
-    hermes_bin = shutil.which("hermes")
     body = request.get_json(silent=True) or {}
-    job_key = body.get("job_key")
-    action = body.get("action")
-    if job_key not in HERMES_CALENDAR_JOB_IDS:
-        return jsonify({"ok": False, "error": f"unknown job_key '{job_key}'"}), 400
-    if action not in ("run_now", "pause", "resume"):
-        return jsonify({"ok": False, "error": f"unknown action '{action}'"}), 400
-    if not hermes_bin:
-        return jsonify({
-            "ok": False,
-            "error": "hermes CLI not available on this container's PATH; cannot operate",
-        }), 501
-    jid = HERMES_CALENDAR_JOB_IDS[job_key]
-    argv_map = {
-        "run_now": ["hermes", "cron", "run", jid],
-        "pause":   ["hermes", "cron", "pause", jid],
-        "resume":  ["hermes", "cron", "resume", jid],
-    }
-    try:
-        r = subprocess.run(argv_map[action], capture_output=True, text=True, timeout=15)
-        ok = r.returncode == 0
-        return jsonify({
-            "ok": ok,
-            "job_key": job_key,
-            "job_id": jid,
-            "action": action,
-            "stdout": (r.stdout or "")[:500],
-            "stderr": (r.stderr or "")[:500],
-        }), (200 if ok else 500)
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+    brand_id = body.get("brand_id", "stick")
+    rb = body.get("simulate", "unavailable")
+    if rb != "unavailable":
+        return jsonify({"ok": False, "error": f"unknown simulation: {rb}"}), 400
 
     # 1. Snapshot existing trusted_for_planning=true record count
     with urllib.request.urlopen(urllib.request.Request(
@@ -5734,6 +5939,117 @@ def calendar_v3_jobs_control():
         }), 200
 
     return jsonify({"ok": False, "error": f"unknown simulation: {rb}"}), 400
+
+
+@app.route('/api/calendar/v3/scout/evaluate', methods=['POST'])
+def calendar_v3_scout_evaluate():
+    """Slice 0.3 close-out §B.5-§B.6 — evaluate one candidate through
+    the hard-gate + score + disposition pipeline.
+
+    Body: {candidate: {...}, brand_id: "stick" | "bag-drop" | "swing-shack"}
+
+    Returns:
+      {
+        disposition: "calendar" | "watchlist" | "ignore",
+        reason: "<human-readable>",
+        gate_results: {gate: {ok, reason}},
+        scores: {dim: 0-1},
+        weighted_score: float,
+      }
+    """
+    body = request.get_json(silent=True) or {}
+    candidate = body.get("candidate") or {}
+    brand_id = body.get("brand_id", "stick")
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import evaluate_candidate, load_brand_config
+    cfg = load_brand_config(brand_id) or {}
+    result = evaluate_candidate(candidate, cfg)
+    return jsonify({"ok": True, "brand_id": brand_id, **result}), 200
+
+
+@app.route('/api/calendar/v3/scout/batch-evaluate', methods=['POST'])
+def calendar_v3_scout_batch_evaluate():
+    """Slice 0.3 close-out §B.7 + §D.16 — evaluate many candidates and
+    return per-candidate disposition + summary tally.
+
+    Body: {
+      candidates: [{...}, ...],
+      brand_id: "stick",
+      lane_by_index: {0: "local_sa_lane", 1: "womens_golf_lane", ...}
+    }
+
+    Returns:
+      {
+        per_candidate: [{candidate_title, lane, evaluation: {...}}, ...],
+        summary: {considered, calendar, watchlist, ignored, by_lane: {...}}
+      }
+    """
+    body = request.get_json(silent=True) or {}
+    candidates = body.get("candidates") or []
+    brand_id = body.get("brand_id", "stick")
+    lane_by_index = body.get("lane_by_index") or {}
+    if brand_id not in ("stick", "bag-drop", "swing-shack"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
+    from _lib.marketing_calendar import evaluate_candidate, load_brand_config, append_run_log
+    cfg = load_brand_config(brand_id) or {}
+    per_candidate = []
+    summary = {
+        "considered": len(candidates),
+        "calendar": 0,
+        "watchlist": 0,
+        "ignored": 0,
+        "by_lane": {},
+        "ignored_reasons": [],
+    }
+    for i, c in enumerate(candidates):
+        ev = evaluate_candidate(c, cfg)
+        lane = lane_by_index.get(str(i)) or lane_by_index.get(i) or "unspecified"
+        per_candidate.append({
+            "title": c.get("title", "(unnamed)"),
+            "event_key": c.get("event_key"),
+            "lane": lane,
+            "evaluation": ev,
+        })
+        d = ev.get("disposition")
+        if d == "calendar":
+            summary["calendar"] += 1
+        elif d == "watchlist":
+            summary["watchlist"] += 1
+        else:
+            summary["ignored"] += 1
+            summary["ignored_reasons"].append({
+                "title": c.get("title", "(unnamed)"),
+                "reason": ev.get("reason", "unknown"),
+                "failed_gates": [k for k, v in (ev.get("gate_results") or {}).items() if not v.get("ok")],
+            })
+        bl = summary["by_lane"].setdefault(lane, {"calendar": 0, "watchlist": 0, "ignored": 0})
+        if d == "calendar":
+            bl["calendar"] += 1
+        elif d == "watchlist":
+            bl["watchlist"] += 1
+        else:
+            bl["ignored"] += 1
+    run = append_run_log({
+        "job_type": "scout_evaluate",
+        "brand_id": brand_id,
+        "status": "alerts_created" if summary["calendar"] > 0 else "silent",
+        "research_health": "n/a",
+        "sources_checked": sum(c.get("sources_researched") or 0 for c in candidates),
+        "events_created": summary["calendar"],
+        "events_updated": 0,
+        "events_unchanged": 0,
+        "alerts_created": summary["calendar"] + summary["watchlist"],
+        "errors": [],
+        "summary": summary,
+    })
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "per_candidate": per_candidate,
+        "summary": summary,
+        "run_id": run.get("run_id"),
+    }), 200
 
 
 @app.route('/api/calendar/event-revisions/<brand_id>/<event_key>', methods=['GET'])
@@ -9422,6 +9738,51 @@ def meta_status():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/meta/<brand_id>/status', methods=['GET'])
+def meta_status_for_brand(brand_id):
+    """GET /api/meta/<brand_id>/status — brand-aware Meta config health.
+
+    Returns per-brand config without leaking the token. NEVER
+    falls back to Swing Shack defaults for non-Swing-Shack brands.
+
+    Per brief §17 — reports each surface (FB / IG / Ads / WhatsApp)
+    with health state LIVE | PARTIAL | NOT_CONNECTED |
+    PERMISSION_MISSING | STALE | ERROR.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    try:
+        from _lib import meta_api as _meta
+        cfg = _meta.meta_config_for_brand(brand_id)
+        token_resolved = bool(cfg.get("access_token"))
+        out = {
+            "ok": True,
+            "brand_id": brand_id,
+            "configured": token_resolved and bool(cfg.get("page_id")),
+            "scope": cfg.get("scope"),
+            "page_id": cfg.get("page_id"),
+            "instagram_account_id": cfg.get("instagram_account_id"),
+            "app_id_present": bool(cfg.get("app_id")),
+            "token_resolved": token_resolved,
+            "surfaces": {
+                "facebook_identity": "LIVE" if (cfg.get("page_id") and token_resolved) else "NOT_CONNECTED",
+                "facebook_content":  "UNKNOWN",
+                "facebook_insights": "UNKNOWN",
+                "instagram_identity": "LIVE" if (cfg.get("instagram_account_id") and token_resolved) else "NOT_CONNECTED",
+                "instagram_content":  "UNKNOWN",
+                "instagram_insights": "UNKNOWN",
+                "meta_ads":  "NOT_CONNECTED",
+                "whatsapp":  "NOT_CONNECTED",
+            },
+        }
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_status_for_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ─── META LIVE FETCH (2026-08-20) ───────────────────────────────────
 # POST /api/meta/fetch — pull IG + FB live analytics, write the JSONs.
 # The OS connected-accounts page surfaces a "Refresh from Meta" button
@@ -9975,6 +10336,251 @@ def meta_fb_page_overview():
         }), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── META READ-ONLY INTROSPECTION (Step 2 — TEMP) ──────────────────────
+# Single-purpose endpoint for the Slice 0.3 reporting-data-foundation
+# audit. Performs read-only discovery of Business portfolios, Pages,
+# Instagram accounts, Ad accounts, Pixels/Datasets, and System-User
+# assignments using the existing Meta auth.
+#
+# DOES NOT:
+#   * modify any Meta asset (no mutations)
+#   * expose tokens, client secrets, or refresh tokens
+#   * change permissions, scopes, assignments
+#
+# DOES:
+#   * call /me, /me/accounts, /me/businesses (and per-business edges)
+#   * return only id + name + safe metadata
+#   * surface per-asset permission state
+
+@app.route("/api/admin/meta-tree", methods=["GET"])
+def admin_meta_tree():
+    """Step 2 audit — read-only Business / Page / IG / Ad / Pixel / assignment tree."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import meta_api as _meta
+    except ImportError:
+        return jsonify({"ok": False, "error": "meta_api not loadable"}), 500
+
+    token = _meta._read_meta_access_token()
+    if not token:
+        return jsonify({"ok": False, "error": "no_meta_token"}), 503
+
+    out = {"ok": True, "token_present": True, "summaries": {}, "businesses": [], "pages": [], "instagram": [], "ad_accounts": [], "pixels": [], "warnings": []}
+
+    # --- 1. /me - token identity (safe metadata only) ---
+    try:
+        me = _meta._graph_get("/me", {"fields": "id,name"})
+        out["token_identity"] = {
+            "id": me.get("id"),
+            "name": me.get("name"),
+            "kind_hint": "system_user_or_page_admin",
+        }
+    except Exception as e:
+        out["warnings"].append(f"/me failed: {e}")
+
+    # --- 2. /me/accounts - direct Page discovery (second route) ---
+    try:
+        direct = _meta._graph_get("/me/accounts", {"fields": "id,name,tasks,instagram_business_account{id,username,name,profile_picture_url}", "limit": 200})
+        direct_data = direct.get("data") or []
+        out["summaries"]["direct_pages"] = len(direct_data)
+        for p in direct_data:
+            ent = _coerce_direct_page(p)
+            if not any(existing["page_id"] == ent["page_id"] for existing in out["pages"]):
+                out["pages"].append(ent)
+            ig = (p.get("instagram_business_account") or {})
+            if ig:
+                ig_id = ig.get("id")
+                if not any(x.get("ig_account_id") == ig_id for x in out["instagram"]):
+                    out["instagram"].append({
+                        "ig_account_id": ig_id,
+                        "username": ig.get("username"),
+                        "name": ig.get("name"),
+                        "linked_page_id": p.get("id"),
+                        "business_id": None,
+                        "business_name": None,
+                        "relationship": "page_linked",
+                        "insights_permission_available": "ANALYZE" in (p.get("tasks") or []),
+                        "source": "/me/accounts",
+                    })
+    except Exception as e:
+        out["warnings"].append(f"/me/accounts failed: {e}")
+
+    # --- 3. /me/businesses - business portfolio enumeration ---
+    businesses = []
+    try:
+        biz_resp = _meta._graph_get("/me/businesses", {"fields": "id,name,primary_page{id,name},timezone_id,currency,verification_status", "limit": 200})
+        businesses = biz_resp.get("data") or []
+        out["summaries"]["businesses"] = len(businesses)
+    except Exception as e:
+        out["warnings"].append(f"/me/businesses failed: {e}")
+
+    for biz in businesses:
+        bid = biz.get("id")
+        bname = biz.get("name")
+        out["businesses"].append({
+            "business_id": bid,
+            "business_name": bname,
+            "timezone_id": biz.get("timezone_id"),
+            "currency": biz.get("currency"),
+            "verification_status": biz.get("verification_status"),
+            "primary_page_id": (biz.get("primary_page") or {}).get("id"),
+            "primary_page_name": (biz.get("primary_page") or {}).get("name"),
+            "relationship": "owned",
+        })
+
+        # --- 4. Pages per business ---
+        for edge in ("owned_pages", "client_pages", "shared_pages"):
+            try:
+                resp = _meta._graph_get(f"/{bid}/{edge}", {"fields": "id,name,instagram_business_account{id,username,name},tasks", "limit": 200})
+            except Exception:
+                continue
+            for p in (resp.get("data") or []):
+                ent = _coerce_page_in_business(p, bid, bname, edge)
+                if not any(existing["page_id"] == ent["page_id"] and existing.get("business_id") == bid for existing in out["pages"]):
+                    out["pages"].append(ent)
+                ig = (p.get("instagram_business_account") or {})
+                if ig:
+                    ig_id = ig.get("id")
+                    if not any(x.get("ig_account_id") == ig_id and x.get("business_id") == bid for x in out["instagram"]):
+                        out["instagram"].append({
+                            "ig_account_id": ig_id,
+                            "username": ig.get("username"),
+                            "name": ig.get("name"),
+                            "linked_page_id": p.get("id"),
+                            "business_id": bid,
+                            "business_name": bname,
+                            "relationship": f"business_{edge}_linked",
+                            "insights_permission_available": "ANALYZE" in (p.get("tasks") or []),
+                            "source": f"/{bid}/{edge}",
+                        })
+
+        # --- 5. Ad accounts per business ---
+        for edge in ("owned_ad_accounts", "client_ad_accounts"):
+            try:
+                resp = _meta._graph_get(f"/{bid}/{edge}", {"fields": "id,name,account_status,currency,timezone_name,business_name,partner_label,created_time", "limit": 200})
+            except Exception as e:
+                out["warnings"].append(f"/{bid}/{edge} failed: {e}")
+                continue
+            for ad in (resp.get("data") or []):
+                out["ad_accounts"].append({
+                    "ad_account_id": ad.get("id"),
+                    "name": ad.get("name"),
+                    "account_status": ad.get("account_status"),
+                    "currency": ad.get("currency"),
+                    "timezone_name": ad.get("timezone_name"),
+                    "business_id": bid,
+                    "business_name": bname,
+                    "relationship": edge,
+                })
+
+    # --- 6. Pixels/Datasets — per business ---
+    for biz in businesses:
+        bid = biz.get("id")
+        try:
+            resp = _meta._graph_get(f"/{bid}/pixels", {"fields": "id,name,is_unavailable,last_fired_time", "limit": 200})
+            for px in (resp.get("data") or []):
+                out["pixels"].append({
+                    "asset_type": "pixel",
+                    "asset_id": px.get("id"),
+                    "asset_name": px.get("name"),
+                    "business_id": bid,
+                    "is_unavailable": px.get("is_unavailable"),
+                    "last_fired_time": px.get("last_fired_time"),
+                    "source": "business_pixels",
+                })
+        except Exception as e:
+            out["warnings"].append(f"/{bid}/pixels failed: {e}")
+        try:
+            resp = _meta._graph_get(f"/{bid}/owned_datasets", {"fields": "id,name,last_refresh_time", "limit": 200})
+            for ds in (resp.get("data") or []):
+                out["pixels"].append({
+                    "asset_type": "dataset",
+                    "asset_id": ds.get("id"),
+                    "asset_name": ds.get("name"),
+                    "business_id": bid,
+                    "last_refresh_time": ds.get("last_refresh_time"),
+                    "source": "business_owned_datasets",
+                })
+        except Exception:
+            pass
+
+    # --- 7. Per-direct-page diagnostics (page-level Insights probe) ---
+    page_insights_probe = {}
+    for p in out["pages"][:5]:
+        pid = p["page_id"]
+        # Try each candidate metric individually; capture which work
+        try:
+            metric_results = {}
+            for metric in ("page_impressions", "page_fan_adds", "page_post_engagements",
+                           "page_fans", "page_views_total", "page_fan_removes",
+                           "page_views", "page_engaged_users"):
+                try:
+                    r = _meta._graph_get(f"/{pid}/insights", {"metric": metric, "period": "day", "limit": 1})
+                    metric_results[metric] = {"ok": True}
+                except Exception as e:
+                    metric_results[metric] = {"ok": False, "error": str(e)[:200]}
+            page_insights_probe[pid] = metric_results
+        except Exception as e:
+            page_insights_probe[pid] = {"error": str(e)[:200]}
+    out["page_insights_probe"] = page_insights_probe
+
+    out["summaries"]["pages_total"] = len(out["pages"])
+    out["summaries"]["instagram_total"] = len(out["instagram"])
+    out["summaries"]["ad_accounts_total"] = len(out["ad_accounts"])
+    out["summaries"]["pixels_total"] = len(out["pixels"])
+    return jsonify(out), 200
+
+
+def _coerce_direct_page(p: dict) -> dict:
+    return {
+        "page_id": p.get("id"),
+        "page_name": p.get("name"),
+        "business_id": None,
+        "business_name": None,
+        "relationship": "direct_account",
+        "tasks_or_perms": _summarise_perms(p.get("tasks"), []),
+        "linked_ig_id": (p.get("instagram_business_account") or {}).get("id"),
+        "source": "/me/accounts",
+    }
+
+
+def _coerce_page_in_business(p: dict, bid: str, bname: str, edge: str) -> dict:
+    return {
+        "page_id": p.get("id"),
+        "page_name": p.get("name"),
+        "business_id": bid,
+        "business_name": bname,
+        "relationship": edge,
+        "tasks_or_perms": _summarise_perms(p.get("tasks"), []),
+        "linked_ig_id": (p.get("instagram_business_account") or {}).get("id"),
+        "source": f"/{bid}/{edge}",
+    }
+
+
+def _summarise_perms(tasks, perms) -> dict:
+    tasks = tasks or []
+    perms = perms or []
+    perms_normalised = []
+    for p in perms:
+        if isinstance(p, dict):
+            perm_name = p.get("permission") or p.get("name") or "?"
+            perms_normalised.append(perm_name)
+        else:
+            perms_normalised.append(str(p))
+    return {
+        "tasks_count": len(tasks),
+        "perms_count": len(perms_normalised),
+        "tasks": list(tasks),
+        "perms": perms_normalised,
+        "has_ANALYZE_task": any("ANALYZE" in (t or "") for t in tasks),
+        "has_ADVERTISE_task": any(t == "ADVERTISE" for t in tasks),
+        "has_MODERATE_task": any("MODERATE" in (t or "") for t in tasks),
+        "has_PAGE_READ_ENGAGEMENT": any("engagement" in str(p) for p in perms_normalised),
+        "has_READ_INSIGHTS": any(t == "READ_INSIGHTS" for t in tasks),
+    }
 
 
 @app.route('/api/meta/daily-bundle', methods=['GET'])
@@ -32795,23 +33401,68 @@ GA4_CACHE_FILE = os.path.join(DATA_DIR, "ga4-cache.json")
 
 
 def _ga4_credentials(brand_id):
-    """Resolve GA4 credentials for a tenant."""
+    """Resolve GA4 credentials for a tenant.
+
+    Resolution order:
+    1. env GA4_CREDENTIALS_JSON_<BRAND> — inline JSON string (preferred
+       for production deployments where a file cannot be written to
+       disk; the JSON is parsed once per process and written to a
+       secure temp file)
+    2. env GA4_CREDENTIALS_<BRAND>       — filesystem path to JSON
+    3. env GOOGLE_APPLICATION_CREDENTIALS — shared filesystem path
+    Fallback for property_id uses the same brand-id-uppercased prefix
+    before the global GA4_PROPERTY_ID.
+    """
     safe = _tenant_safe(brand_id).upper().replace('-', '_')
-    return {
-        "property_id": (
-            os.environ.get(f"GA4_PROPERTY_{safe}")
-            or os.environ.get(f"GA4_PROPERTY_{brand_id}")
-            or os.environ.get("GA4_PROPERTY_ID", "")
-        ).strip(),
-        "credentials_path": (
+    property_id = (
+        os.environ.get(f"GA4_PROPERTY_{safe}")
+        or os.environ.get(f"GA4_PROPERTY_{brand_id}")
+        or os.environ.get("GA4_PROPERTY_ID", "")
+    ).strip()
+
+    inline_json_env = os.environ.get(f"GA4_CREDENTIALS_JSON_{safe}")
+    inline_json = ""
+    credentials_path = ""
+    if inline_json_env:
+        # The env value is base64-encoded JSON (Railway variable
+        # length limits + safety). Decode + validate, then write to
+        # a per-brand marker file the GA4 library can read.
+        import base64 as _b64
+        try:
+            decoded = _b64.b64decode(inline_json_env.strip()).decode("utf-8")
+            parsed = json.loads(decoded)
+            # Validate minimum shape
+            if not parsed.get("type") or not parsed.get("client_email"):
+                raise ValueError("missing required fields")
+            inline_json = decoded
+        except Exception:
+            inline_json = ""
+        if inline_json:
+            marker = f"/tmp/campaign-os-ga4-{safe}.json"
+            try:
+                with open(marker, "w") as fp:
+                    fp.write(inline_json)
+                os.chmod(marker, 0o600)
+                credentials_path = marker
+            except Exception:
+                credentials_path = ""
+        scope = "tenant-specific" if inline_json else "shared"
+    else:
+        credentials_path = (
             os.environ.get(f"GA4_CREDENTIALS_{safe}")
             or os.environ.get(f"GA4_CREDENTIALS_{brand_id}")
             or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
-        ).strip(),
-        "scope": "tenant-specific" if (
+        ).strip()
+        scope = "tenant-specific" if (
             os.environ.get(f"GA4_PROPERTY_{safe}") or
             os.environ.get(f"GA4_CREDENTIALS_{safe}")
-        ) else "shared",
+        ) else "shared"
+
+    return {
+        "property_id": property_id,
+        "credentials_path": credentials_path,
+        "credentials_inline_json": inline_json,
+        "scope": scope,
     }
 
 

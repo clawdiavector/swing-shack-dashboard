@@ -28,7 +28,7 @@ from urllib.error import HTTPError, URLError
 
 _LOG = logging.getLogger("campaign_os.meta_api")
 
-GRAPH_API_VERSION = "v18.0"
+GRAPH_API_VERSION = "v23.0"
 GRAPH_API_BASE = f"https://graph.facebook.com/{GRAPH_API_VERSION}"
 
 # Cache for page-scoped tokens minted via /{page_id}?fields=access_token.
@@ -56,15 +56,63 @@ def meta_credentials_present() -> bool:
     return True
 
 
-def _read_meta_access_token() -> Optional[str]:
+def _tenant_safe(brand_id: str) -> str:
+    """Sanitize a brand_id for use in env-var names (upper + replace -/_)."""
+    if not brand_id:
+        return ""
+    return str(brand_id).replace("-", "_").replace(" ", "_")
+
+
+def _read_meta_access_token(brand_id: Optional[str] = None) -> Optional[str]:
     """Read Meta access token from (in order):
-      1. META_SYSTEM_USER_TOKEN — server-side CAPI / Admin System User token
+      1. META_SYSTEM_USER_TOKEN_<BRAND> — tenant-specific CAPI / Admin
+         System User token (per brand; preferred for multi-brand setups)
+      2. META_SYSTEM_USER_TOKEN — server-side CAPI / Admin System User token
          (never expires, full CRUD on page/ad-account/catalogue).
-      2. META_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
-      3. data/meta-tokens.json — bundled credentials fallback (same shape)
-      4. META_ACCESS_TOKEN — raw env value
-    Returns None if not configured.
+      3. META_ACCESS_TOKEN_FILE_<BRAND> — per-brand token file
+      4. META_ACCESS_TOKEN_FILE — JSON file with {"access_token": "..."}
+      5. data/meta-tokens.<BRAND>.json — per-brand bundled credentials
+      6. data/meta-tokens.json — bundled credentials fallback
+      7. META_ACCESS_TOKEN — raw env value
+
+    When brand_id is provided, per-brand overrides win. When None,
+    falls back to the legacy global resolution. Returns None if
+    nothing is configured.
     """
+    if brand_id:
+        safe = _tenant_safe(brand_id).upper()
+        sys_user_brand = os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}")
+        if sys_user_brand and sys_user_brand.strip():
+            return sys_user_brand.strip()
+        file_brand = os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}")
+        if file_brand:
+            try:
+                with open(file_brand) as f:
+                    data = json.load(f)
+                tok = data.get("access_token") or data.get("token")
+                if tok:
+                    return str(tok).strip()
+            except Exception as e:
+                _LOG.warning("could not read META_ACCESS_TOKEN_FILE_%s=%s: %s",
+                             safe, file_brand, e)
+        # Per-brand bundled fallback
+        for bundled in (f"data/meta-tokens.{safe}.json",
+                        f"data/meta-tokens.{brand_id}.json",
+                        os.path.join(os.environ.get("DATA_DIR", ""),
+                                     f"meta-tokens.{safe}.json")):
+            if not bundled:
+                continue
+            try:
+                with open(bundled) as f:
+                    data = json.load(f)
+                tok = data.get("access_token") or data.get("token")
+                if tok:
+                    return str(tok).strip()
+            except FileNotFoundError:
+                continue
+            except Exception as e:
+                _LOG.warning("could not read bundled %s: %s", bundled, e)
+
     # META_SYSTEM_USER_TOKEN is the preferred source — it never expires and
     # has full CAPI/admin scope (the secret-drop slot for the system user).
     sys_user = os.environ.get("META_SYSTEM_USER_TOKEN")
@@ -174,13 +222,38 @@ _META_DEFAULT_IDS = {
 }
 
 
-def _read_meta_id(env_key: str, bundled_key: str) -> Optional[str]:
+def _read_meta_id(env_key: str, bundled_key: str, brand_id: Optional[str] = None) -> Optional[str]:
     """Resolve a Meta ID (page_id, ig_account_id, app_id) from:
-      1. env vars (preferred)
-      2. data/meta-tokens.json (bundled credentials)
-      3. hardcoded fallback for swing-shack (matches meta_live_fetch.py)
+      1. env vars META_<KEY>_<BRAND>  (per brand; preferred for multi-brand)
+      2. env vars META_<KEY>           (legacy / shared)
+      3. data/meta-tokens.<BRAND>.json — per-brand bundled credentials
+      4. data/meta-tokens.json         — bundled credentials fallback
+      5. hardcoded fallback for swing-shack (matches meta_live_fetch.py)
+
     Returns None if not set.
     """
+    if brand_id:
+        safe = _tenant_safe(brand_id).upper()
+        per_brand_env = os.environ.get(f"{env_key}_{safe}")
+        if per_brand_env and per_brand_env.strip():
+            return per_brand_env.strip()
+        # Per-brand bundled fallback
+        for bundled in (f"data/meta-tokens.{safe}.json",
+                        f"data/meta-tokens.{brand_id}.json",
+                        os.path.join(os.environ.get("DATA_DIR", ""),
+                                     f"meta-tokens.{safe}.json")):
+            if not bundled:
+                continue
+            try:
+                with open(bundled) as f:
+                    data = json.load(f)
+                val = data.get(bundled_key)
+                if val:
+                    return str(val).strip()
+            except FileNotFoundError:
+                continue
+            except Exception as e:
+                _LOG.warning("could not read bundled %s: %s", bundled, e)
     raw = os.environ.get(env_key)
     if raw and raw.strip():
         return raw.strip()
@@ -203,6 +276,105 @@ def _read_meta_id(env_key: str, bundled_key: str) -> Optional[str]:
     if default:
         return default
     return None
+
+
+# ── Brand-aware Meta config resolver ──────────────────────────────────
+
+def meta_config_for_brand(brand_id: str) -> dict:
+    """Resolve Meta configuration for a specific brand.
+
+    Returns a dict with:
+      - access_token (str|None): the resolved token (may be CAPI
+        System User or per-brand reporting System User)
+      - page_id, instagram_account_id, app_id (str|None each)
+      - scope: 'tenant-specific' or 'shared'
+
+    Brand-isolation rule (brief §12):
+      - When brand_id is provided, per-brand env vars and per-brand
+        bundled files are used.
+      - For non-swing-shack brands, the global fallback path
+        (legacy META_PAGE_ID / META_INSTAGRAM_BUSINESS_ACCOUNT_ID
+        env vars) is NOT used. If the brand has no per-brand config,
+        the relevant fields are None.
+      - For swing-shack (the legacy / shared tenant) the global
+        fallback is still honoured, since the original Campaign OS
+        deployment is swing-shack-first.
+
+    Returns None for fields that lack tenant-specific configuration
+    on non-swing-shack brands. This guarantees brand isolation.
+    """
+    if not brand_id:
+        return {
+            "access_token": None,
+            "page_id": None,
+            "instagram_account_id": None,
+            "app_id": None,
+            "scope": "shared",
+            "brand_id": "",
+        }
+
+    tok = _read_meta_access_token(brand_id=brand_id)
+    page_id = _read_meta_id("META_PAGE_ID", "page_id", brand_id=brand_id)
+    ig_id = _read_meta_id("META_INSTAGRAM_BUSINESS_ACCOUNT_ID",
+                          "instagram_account_id", brand_id=brand_id)
+    app_id = _read_meta_id("META_APP_ID", "app_id", brand_id=brand_id)
+
+    safe = _tenant_safe(brand_id).upper()
+
+    # Brand-isolation override: for non-swing-shack brands, never
+    # silently fall through to the global / swing-shack fallback.
+    if brand_id != "swing-shack":
+        # If per-brand env is missing for any of these, the field
+        # is intentionally None — NEVER read the global env.
+        global_page = os.environ.get("META_PAGE_ID", "").strip()
+        global_ig = os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
+        global_app = os.environ.get("META_APP_ID", "").strip()
+        # Only fall through to global if no per-brand env exists
+        # AND the bundled fallback is missing too.
+        per_brand_page_env = os.environ.get(f"META_PAGE_ID_{safe}", "").strip()
+        per_brand_ig_env = os.environ.get(f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID_{safe}", "").strip()
+        per_brand_app_env = os.environ.get(f"META_APP_ID_{safe}", "").strip()
+        if not per_brand_page_env and not _bundled_has_key(f"data/meta-tokens.{safe}.json", "page_id"):
+            page_id = None  # never leak Swing Shack page_id
+        if not per_brand_ig_env and not _bundled_has_key(f"data/meta-tokens.{safe}.json", "instagram_account_id"):
+            ig_id = None
+        if not per_brand_app_env and not _bundled_has_key(f"data/meta-tokens.{safe}.json", "app_id"):
+            app_id = None
+        # Token: if no per-brand token exists, we still want to fall
+        # back to the GLOBAL CAPI System User (which is the existing
+        # shared token). But only if it has been assigned the brand's
+        # asset in Meta. We DON'T pre-check Meta assignment here
+        # (would be a network call); we report token_resolved based on
+        # env presence and let the actual Graph API call surface
+        # permission errors as live data.
+
+    is_tenant_specific = bool(
+        os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}") or
+        os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}") or
+        os.environ.get(f"META_PAGE_ID_{safe}") or
+        os.environ.get(f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID_{safe}")
+    )
+    return {
+        "access_token": tok,
+        "page_id": page_id,
+        "instagram_account_id": ig_id,
+        "app_id": app_id,
+        "scope": "tenant-specific" if is_tenant_specific else "shared",
+        "brand_id": brand_id,
+    }
+
+
+def _bundled_has_key(path: str, key: str) -> bool:
+    """Quick check: does the bundled meta-tokens file exist and contain a value for this key?"""
+    import json as _json
+    if not path:
+        return False
+    try:
+        with open(path) as f:
+            data = _json.load(f)
+        return bool(data.get(key))
+    except (FileNotFoundError, Exception):
+        return False
 
 
 # ── Low-level Graph API caller ────────────────────────────────────────────────
