@@ -5281,86 +5281,249 @@ def _do_lead_time_run_all():
     })
 
 
-# ─── Slice 0.3 final close-out: Hermes job introspection + controls ───────
+# ─── Slice 0.3 final gateway control close-out ───────────────────────────
 
 # Hard-coded mapping from logical job_key → real Hermes cron job ID.
 # These are the production IDs created during Slice 0.3 build.
 HERMES_CALENDAR_JOB_IDS = {
     "lead_time_watcher": "9da954e1db25",
     "opportunity_scout": "473abd04e621",
-    "reactive_watch": "8270bde0913a",
+    "reactive_watch":    "8270bde0913a",
 }
 HERMES_CALENDAR_JOB_SCHEDULES = {
     "lead_time_watcher": "30 6 * * *",
     "opportunity_scout": "0 7 * * 1",
-    "reactive_watch": "30 7 * * *",
+    "reactive_watch":    "30 7 * * *",
 }
 
+# The Hermes Calendar Control Bridge — a small authenticated HTTP
+# service running on the gateway host. Campaign OS NEVER calls hermes
+# CLI directly. The bridge enforces:
+#   * allowlist of 3 job_ids + 3 actions
+#   * HMAC-SHA256 auth via X-Bridge-Timestamp + X-Bridge-Signature
+#   * 5-minute clock-skew tolerance
+HERMES_BRIDGE_URL = os.environ.get(
+    "HERMES_BRIDGE_URL",
+    "https://optics-headlines-guestbook-institutions.trycloudflare.com",
+)
+HERMES_BRIDGE_SECRET = os.environ.get(
+    "HERMES_BRIDGE_SECRET",
+    "",
+).strip()
+HERMES_BRIDGE_TIMEOUT = float(os.environ.get("HERMES_BRIDGE_TIMEOUT", "10"))
 
-def _list_hermes_calendar_jobs():
-    """Read the live Hermes job state for the three Slice 0.3 jobs.
 
-    Falls back gracefully if Hermes cron CLI is unavailable in the
-    container (the Campaign OS container may not have hermes on PATH).
-    Returns a list of dicts shaped for the UI.
+def _sign_bridge_request(body: bytes) -> dict:
+    """Build HMAC auth headers for the Hermes Calendar Control Bridge.
+
+    Signs (timestamp + "|" + body) with the shared secret using
+    SHA-256. The bridge verifies the same signature server-side.
     """
-    import shutil, subprocess
-    hermes_bin = shutil.which("hermes")
+    import hashlib, hmac, time
+    ts = str(int(time.time()))
+    msg = (ts + "|").encode() + (body or b"")
+    sig = hmac.new(HERMES_BRIDGE_SECRET.encode(), msg, hashlib.sha256).hexdigest()
+    return {
+        "X-Bridge-Timestamp": ts,
+        "X-Bridge-Signature": sig,
+    }
+
+
+def _bridge_call(method: str, path: str, payload: Optional[dict] = None, timeout: Optional[float] = None) -> dict:
+    """Make an authenticated HTTP call to the Hermes bridge.
+
+    Returns a dict. On success: {"ok": True, "data": <bridge response>}.
+    On failure: {"ok": False, "error": ..., "control_available": False,
+                  "reason": "..."}.
+    """
+    import urllib.request, urllib.error, json as _json
+    url = HERMES_BRIDGE_URL.rstrip("/") + path
+    body = _json.dumps(payload or {}).encode() if payload is not None or method == "POST" else b""
+    headers = {"Content-Type": "application/json"}
+    if method == "POST":
+        headers.update(_sign_bridge_request(body))
+    req = urllib.request.Request(url, data=body if method == "POST" else None,
+                                  method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout or HERMES_BRIDGE_TIMEOUT) as r:
+            raw = r.read()
+            return {"ok": True, "data": _json.loads(raw), "http": r.status}
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = _json.loads(e.read())
+        except Exception:
+            err_body = {"error": f"HTTP {e.code}"}
+        return {"ok": False, "http": e.code, "data": err_body,
+                "control_available": False,
+                "reason": err_body.get("error", f"bridge returned HTTP {e.code}")}
+    except urllib.error.URLError as e:
+        return {"ok": False, "error": f"bridge unreachable: {e.reason}",
+                "control_available": False, "reason": "bridge_unreachable"}
+    except Exception as e:
+        return {"ok": False, "error": f"{type(e).__name__}: {e}",
+                "control_available": False, "reason": "bridge_error"}
+
+
+def _bridge_available() -> tuple[bool, str]:
+    """Is the bridge configured and reachable? Does NOT consume the
+    allowlist or perform any control action."""
+    if not HERMES_BRIDGE_SECRET:
+        return False, "bridge_secret_not_configured"
+    if not HERMES_BRIDGE_URL:
+        return False, "bridge_url_not_configured"
+    res = _bridge_call("GET", "/health", timeout=5)
+    if not res.get("ok"):
+        return False, res.get("reason", "bridge_unreachable")
+    return True, "ok"
+
+
+def _list_hermes_calendar_jobs() -> list:
+    """Read the live Hermes job state for the three Slice 0.3 jobs
+    via the authenticated control bridge. Falls back gracefully if
+    the bridge is unreachable so the UI can show a clean operational
+    warning instead of a 500."""
     out = []
+    avail, reason = _bridge_available()
+    if not avail:
+        for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
+            out.append({
+                "job_key": job_key,
+                "job_id": jid,
+                "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+                "hermes_status": "bridge_unreachable",
+                "last_run": None,
+                "next_run": None,
+                "mode": (
+                    "no-agent + script" if job_key == "lead_time_watcher"
+                    else "agent + skill" if job_key == "opportunity_scout"
+                    else "agent"
+                ),
+                "control_supported": False,
+                "control_available": False,
+                "control_reason": reason,
+            })
+        return out
+    res = _bridge_call("GET", "/list", timeout=8)
+    if not res.get("ok"):
+        for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
+            out.append({
+                "job_key": job_key,
+                "job_id": jid,
+                "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+                "hermes_status": "unknown",
+                "last_run": None,
+                "next_run": None,
+                "mode": (
+                    "no-agent + script" if job_key == "lead_time_watcher"
+                    else "agent + skill" if job_key == "opportunity_scout"
+                    else "agent"
+                ),
+                "control_supported": False,
+                "control_available": False,
+                "control_reason": res.get("reason", "bridge_error"),
+            })
+        return out
+    bridge_jobs = {j.get("job_id"): j for j in res["data"].get("jobs", [])}
     for job_key, jid in HERMES_CALENDAR_JOB_IDS.items():
-        job = {
+        bj = bridge_jobs.get(jid, {})
+        out.append({
             "job_key": job_key,
             "job_id": jid,
-            "schedule": HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
-            "hermes_status": "unknown",
-            "last_run": None,
-            "next_run": None,
+            "schedule": bj.get("schedule") or HERMES_CALENDAR_JOB_SCHEDULES.get(job_key, ""),
+            "hermes_status": bj.get("state", "unknown"),
+            "last_run": bj.get("last_run"),
+            "next_run": bj.get("next_run"),
             "mode": (
                 "no-agent + script" if job_key == "lead_time_watcher"
                 else "agent + skill" if job_key == "opportunity_scout"
                 else "agent"
             ),
-            "control_supported": hermes_bin is not None,
-        }
-        if not hermes_bin:
-            out.append(job)
-            continue
-        try:
-            r = subprocess.run(
-                ["hermes", "cron", "list"], capture_output=True, text=True, timeout=10,
-            )
-            # Parse for the job ID + state
-            in_job = False
-            for line in r.stdout.splitlines():
-                line = line.rstrip()
-                if jid in line and "[" in line:
-                    # e.g. "9da954e1db25 [active]"
-                    state = line.split("[", 1)[1].split("]", 1)[0]
-                    job["hermes_status"] = state
-                if "Schedule:" in line and in_job:
-                    job["schedule"] = line.split(":", 1)[1].strip()
-                if "Next run:" in line and in_job:
-                    job["next_run"] = line.split(":", 1)[1].strip()
-                if "Last run:" in line and in_job:
-                    job["last_run"] = line.split(":", 1)[1].strip()
-                if jid in line:
-                    in_job = True
-                elif line.startswith("  ") and in_job and (line.strip() == "" or line.strip().startswith("Repeat:")):
-                    pass
-                elif line.startswith("  ") is False and in_job and jid not in line:
-                    in_job = False
-        except Exception as e:
-            job["hermes_status"] = f"error: {str(e)[:60]}"
-        out.append(job)
+            "control_supported": True,
+            "control_available": True,
+            "control_reason": "ok",
+            "bridge_evaluated_at": res["data"].get("evaluated_at"),
+        })
     return out
 
 
 @app.route('/api/calendar/v3/jobs/hermes-list', methods=['GET'])
 def calendar_v3_jobs_hermes_list():
-    """Returns the live Hermes cron state for the three Slice 0.3 jobs."""
+    """Returns the live Hermes cron state for the three Slice 0.3
+    jobs, sourced from the authenticated Hermes Control Bridge.
+    Per Slice 0.3 final close-out §7: real scheduler state, not
+    inferred from Campaign OS run logs."""
+    avail, reason = _bridge_available()
+    jobs = _list_hermes_calendar_jobs()
     return jsonify({
         "ok": True,
-        "jobs": _list_hermes_calendar_jobs(),
+        "jobs": jobs,
+        "control_available": avail,
+        "control_reason": reason,
+        "bridge_url": HERMES_BRIDGE_URL if avail else None,
+        "evaluated_at": _now_iso_for_run_log(),
+    }), 200
+
+
+@app.route('/api/calendar/v3/jobs/control', methods=['POST'])
+def calendar_v3_jobs_control():
+    """Slice 0.3 final gateway control — operate on a Hermes Calendar
+    job via the authenticated bridge.
+
+    Per close-out §3: allowlist only (3 jobs + 3 actions).
+    Per close-out §4: server-to-server auth via shared HMAC secret.
+    Per close-out §6: structured failure UX, never raw 501.
+    """
+    body = request.get_json(silent=True) or {}
+    job_key = body.get("job_key")
+    action = body.get("action")
+    if job_key not in HERMES_CALENDAR_JOB_IDS:
+        return jsonify({
+            "ok": False,
+            "error": f"unknown job_key '{job_key}'",
+            "control_available": False,
+            "reason": "job_key_not_in_allowlist",
+        }), 400
+    if action not in ("run_now", "run", "pause", "resume"):
+        return jsonify({
+            "ok": False,
+            "error": f"unknown action '{action}'",
+            "control_available": False,
+            "reason": "action_not_in_allowlist",
+        }), 400
+    if not HERMES_BRIDGE_SECRET:
+        return jsonify({
+            "ok": False,
+            "error": "Hermes bridge secret not configured on the server",
+            "control_available": False,
+            "reason": "bridge_secret_not_configured",
+        }), 503
+    if not HERMES_BRIDGE_URL:
+        return jsonify({
+            "ok": False,
+            "error": "Hermes bridge URL not configured on the server",
+            "control_available": False,
+            "reason": "bridge_url_not_configured",
+        }), 503
+    bridge_action = "run" if action == "run_now" else action
+    res = _bridge_call("POST", "/control",
+                        payload={"job_key": job_key, "action": bridge_action})
+    if not res.get("ok"):
+        return jsonify({
+            "ok": False,
+            "error": res.get("error", "bridge call failed"),
+            "control_available": False,
+            "reason": res.get("reason", "bridge_error"),
+        }), 503
+    bridge_data = res["data"]
+    return jsonify({
+        "ok": True,
+        "job_key": job_key,
+        "job_id": HERMES_CALENDAR_JOB_IDS[job_key],
+        "action": action,
+        "bridge_response": bridge_data,
+        "state": bridge_data.get("state"),
+        "next_run": bridge_data.get("next_run"),
+        "last_run": bridge_data.get("last_run"),
         "evaluated_at": _now_iso_for_run_log(),
     }), 200
 
@@ -5569,45 +5732,27 @@ def calendar_v3_scout_clean_second_run():
     }), 200
 
 
-@app.route('/api/calendar/v3/jobs/control', methods=['POST'])
-def calendar_v3_jobs_control():
-    """Operate on a Hermes Calendar job: run_now / pause / resume.
+# ─── Slice 0.3 candidate-truth audit — Scout failure simulation ──────
 
-    Body: {job_key: 'lead_time_watcher', action: 'pause'}
+@app.route('/api/calendar/v3/scout-simulate-unavailable', methods=['POST'])
+def calendar_v3_scout_simulate_unavailable():
+    """P1.2 Calendar Slice 0.1 v2 close-out §12: controlled fail-closed test.
+
+    Mocks the research capability as 'unavailable' by writing a single
+    record with verification_status='unverified_agent_memory' (the
+    quarantine marker, semantically equivalent to "research failed,
+    here's what we guessed but don't trust it").
+
+    Verifies:
+      1. Data-layer refuses to mark the simulated record as
+         trusted_for_planning.
+      2. Pre-existing verified calendar is unchanged.
     """
-    import shutil, subprocess
-    hermes_bin = shutil.which("hermes")
     body = request.get_json(silent=True) or {}
-    job_key = body.get("job_key")
-    action = body.get("action")
-    if job_key not in HERMES_CALENDAR_JOB_IDS:
-        return jsonify({"ok": False, "error": f"unknown job_key '{job_key}'"}), 400
-    if action not in ("run_now", "pause", "resume"):
-        return jsonify({"ok": False, "error": f"unknown action '{action}'"}), 400
-    if not hermes_bin:
-        return jsonify({
-            "ok": False,
-            "error": "hermes CLI not available on this container's PATH; cannot operate",
-        }), 501
-    jid = HERMES_CALENDAR_JOB_IDS[job_key]
-    argv_map = {
-        "run_now": ["hermes", "cron", "run", jid],
-        "pause":   ["hermes", "cron", "pause", jid],
-        "resume":  ["hermes", "cron", "resume", jid],
-    }
-    try:
-        r = subprocess.run(argv_map[action], capture_output=True, text=True, timeout=15)
-        ok = r.returncode == 0
-        return jsonify({
-            "ok": ok,
-            "job_key": job_key,
-            "job_id": jid,
-            "action": action,
-            "stdout": (r.stdout or "")[:500],
-            "stderr": (r.stderr or "")[:500],
-        }), (200 if ok else 500)
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+    brand_id = body.get("brand_id", "stick")
+    rb = body.get("simulate", "unavailable")
+    if rb != "unavailable":
+        return jsonify({"ok": False, "error": f"unknown simulation: {rb}"}), 400
 
     # 1. Snapshot existing trusted_for_planning=true record count
     with urllib.request.urlopen(urllib.request.Request(
