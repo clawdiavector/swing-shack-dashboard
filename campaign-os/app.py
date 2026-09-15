@@ -10214,6 +10214,236 @@ def meta_fb_page_overview():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+# ─── META READ-ONLY INTROSPECTION (Step 2 — TEMP) ──────────────────────
+# Single-purpose endpoint for the Slice 0.3 reporting-data-foundation
+# audit. Performs read-only discovery of Business portfolios, Pages,
+# Instagram accounts, Ad accounts, Pixels/Datasets, and System-User
+# assignments using the existing Meta auth.
+#
+# DOES NOT:
+#   * modify any Meta asset (no mutations)
+#   * expose tokens, client secrets, or refresh tokens
+#   * change permissions, scopes, assignments
+#
+# DOES:
+#   * call /me, /me/accounts, /me/businesses (and per-business edges)
+#   * return only id + name + safe metadata
+#   * surface per-asset permission state
+
+@app.route("/api/admin/meta-tree", methods=["GET"])
+def admin_meta_tree():
+    """Step 2 audit — read-only Business / Page / IG / Ad / Pixel / assignment tree."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        from _lib import meta_api as _meta
+    except ImportError:
+        return jsonify({"ok": False, "error": "meta_api not loadable"}), 500
+
+    token = _meta._read_meta_access_token()
+    if not token:
+        return jsonify({"ok": False, "error": "no_meta_token"}), 503
+
+    out = {"ok": True, "token_present": True, "summaries": {}, "businesses": [], "pages": [], "instagram": [], "ad_accounts": [], "pixels": [], "warnings": []}
+
+    # --- 1. /me - token identity (safe metadata only) ---
+    try:
+        me = _meta._graph_get("/me", {"fields": "id,name,app_id"})
+        out["token_identity"] = {
+            "id": me.get("id"),
+            "name": me.get("name"),
+            "app_id": me.get("app_id"),
+            "kind_hint": "system_user_or_page_admin",
+        }
+    except Exception as e:
+        out["warnings"].append(f"/me failed: {e}")
+
+    # --- 2. /me/accounts - direct Page discovery (second route) ---
+    try:
+        direct = _meta._graph_get("/me/accounts", {"fields": "id,name,perms,tasks,instagram_business_account{id,username,name,profile_picture_url}", "limit": 200})
+        direct_data = direct.get("data") or []
+        out["summaries"]["direct_pages"] = len(direct_data)
+        for p in direct_data:
+            ent = _coerce_direct_page(p)
+            if not any(existing["page_id"] == ent["page_id"] for existing in out["pages"]):
+                out["pages"].append(ent)
+            ig = (p.get("instagram_business_account") or {})
+            if ig:
+                ig_id = ig.get("id")
+                if not any(x.get("ig_account_id") == ig_id for x in out["instagram"]):
+                    out["instagram"].append({
+                        "ig_account_id": ig_id,
+                        "username": ig.get("username"),
+                        "name": ig.get("name"),
+                        "linked_page_id": p.get("id"),
+                        "business_id": None,
+                        "business_name": None,
+                        "relationship": "page_linked",
+                        "insights_permission_available": "ANALYZE" in (p.get("tasks") or []),
+                        "source": "/me/accounts",
+                    })
+    except Exception as e:
+        out["warnings"].append(f"/me/accounts failed: {e}")
+
+    # --- 3. /me/businesses - business portfolio enumeration ---
+    businesses = []
+    try:
+        biz_resp = _meta._graph_get("/me/businesses", {"fields": "id,name,primary_page{id,name},timezone_id,currency,verification_status", "limit": 200})
+        businesses = biz_resp.get("data") or []
+        out["summaries"]["businesses"] = len(businesses)
+    except Exception as e:
+        out["warnings"].append(f"/me/businesses failed: {e}")
+
+    for biz in businesses:
+        bid = biz.get("id")
+        bname = biz.get("name")
+        out["businesses"].append({
+            "business_id": bid,
+            "business_name": bname,
+            "timezone_id": biz.get("timezone_id"),
+            "currency": biz.get("currency"),
+            "verification_status": biz.get("verification_status"),
+            "primary_page_id": (biz.get("primary_page") or {}).get("id"),
+            "primary_page_name": (biz.get("primary_page") or {}).get("name"),
+            "relationship": "owned",
+        })
+
+        # --- 4. Pages per business ---
+        for edge in ("owned_pages", "client_pages", "shared_pages"):
+            try:
+                resp = _meta._graph_get(f"/{bid}/{edge}", {"fields": "id,name,perms,instagram_business_account{id,username,name},tasks", "limit": 200})
+            except Exception:
+                continue
+            for p in (resp.get("data") or []):
+                ent = _coerce_page_in_business(p, bid, bname, edge)
+                if not any(existing["page_id"] == ent["page_id"] and existing.get("business_id") == bid for existing in out["pages"]):
+                    out["pages"].append(ent)
+                ig = (p.get("instagram_business_account") or {})
+                if ig:
+                    ig_id = ig.get("id")
+                    if not any(x.get("ig_account_id") == ig_id and x.get("business_id") == bid for x in out["instagram"]):
+                        out["instagram"].append({
+                            "ig_account_id": ig_id,
+                            "username": ig.get("username"),
+                            "name": ig.get("name"),
+                            "linked_page_id": p.get("id"),
+                            "business_id": bid,
+                            "business_name": bname,
+                            "relationship": f"business_{edge}_linked",
+                            "insights_permission_available": "ANALYZE" in (p.get("tasks") or []),
+                            "source": f"/{bid}/{edge}",
+                        })
+
+        # --- 5. Ad accounts per business ---
+        for edge in ("owned_ad_accounts", "client_ad_accounts"):
+            try:
+                resp = _meta._graph_get(f"/{bid}/{edge}", {"fields": "id,name,account_status,currency,timezone_name,business_name,partner_label,created_time", "limit": 200})
+            except Exception as e:
+                out["warnings"].append(f"/{bid}/{edge} failed: {e}")
+                continue
+            for ad in (resp.get("data") or []):
+                out["ad_accounts"].append({
+                    "ad_account_id": ad.get("id"),
+                    "name": ad.get("name"),
+                    "account_status": ad.get("account_status"),
+                    "currency": ad.get("currency"),
+                    "timezone_name": ad.get("timezone_name"),
+                    "business_id": bid,
+                    "business_name": bname,
+                    "relationship": edge,
+                })
+
+    # --- 6. Pixels/Datasets — per business ---
+    for biz in businesses:
+        bid = biz.get("id")
+        try:
+            resp = _meta._graph_get(f"/{bid}/pixels", {"fields": "id,name,is_unavailable,last_fired_time", "limit": 200})
+            for px in (resp.get("data") or []):
+                out["pixels"].append({
+                    "asset_type": "pixel",
+                    "asset_id": px.get("id"),
+                    "asset_name": px.get("name"),
+                    "business_id": bid,
+                    "is_unavailable": px.get("is_unavailable"),
+                    "last_fired_time": px.get("last_fired_time"),
+                    "source": "business_pixels",
+                })
+        except Exception as e:
+            out["warnings"].append(f"/{bid}/pixels failed: {e}")
+        try:
+            resp = _meta._graph_get(f"/{bid}/owned_datasets", {"fields": "id,name,last_refresh_time", "limit": 200})
+            for ds in (resp.get("data") or []):
+                out["pixels"].append({
+                    "asset_type": "dataset",
+                    "asset_id": ds.get("id"),
+                    "asset_name": ds.get("name"),
+                    "business_id": bid,
+                    "last_refresh_time": ds.get("last_refresh_time"),
+                    "source": "business_owned_datasets",
+                })
+        except Exception:
+            pass
+
+    # --- 7. Per-direct-page diagnostics (page-level Insights probe) ---
+    page_insights_probe = {}
+    for p in out["pages"][:5]:
+        pid = p["page_id"]
+        try:
+            _meta._graph_get(f"/{pid}/insights", {"metric": "page_impressions,page_views_total", "period": "day", "limit": 1})
+            page_insights_probe[pid] = {"status": 200, "ok": True}
+        except Exception as e:
+            page_insights_probe[pid] = {"status": "error", "error": str(e)[:200]}
+    out["page_insights_probe"] = page_insights_probe
+
+    out["summaries"]["pages_total"] = len(out["pages"])
+    out["summaries"]["instagram_total"] = len(out["instagram"])
+    out["summaries"]["ad_accounts_total"] = len(out["ad_accounts"])
+    out["summaries"]["pixels_total"] = len(out["pixels"])
+    return jsonify(out), 200
+
+
+def _coerce_direct_page(p: dict) -> dict:
+    return {
+        "page_id": p.get("id"),
+        "page_name": p.get("name"),
+        "business_id": None,
+        "business_name": None,
+        "relationship": "direct_account",
+        "tasks_or_perms": _summarise_perms(p.get("tasks"), p.get("perms")),
+        "linked_ig_id": (p.get("instagram_business_account") or {}).get("id"),
+        "source": "/me/accounts",
+    }
+
+
+def _coerce_page_in_business(p: dict, bid: str, bname: str, edge: str) -> dict:
+    return {
+        "page_id": p.get("id"),
+        "page_name": p.get("name"),
+        "business_id": bid,
+        "business_name": bname,
+        "relationship": edge,
+        "tasks_or_perms": _summarise_perms(p.get("tasks"), p.get("perms")),
+        "linked_ig_id": (p.get("instagram_business_account") or {}).get("id"),
+        "source": f"/{bid}/{edge}",
+    }
+
+
+def _summarise_perms(tasks, perms) -> dict:
+    tasks = tasks or []
+    perms = perms or []
+    return {
+        "tasks_count": len(tasks),
+        "perms_count": len(perms),
+        "has_ANALYZE_task": any("ANALYZE" in (t or "") for t in tasks),
+        "has_ADVERTISE_task": any(t == "ADVERTISE" for t in tasks),
+        "has_MODERATE_task": any("MODERATE" in (t or "") for t in tasks),
+        "has_PAGE_READ_ENGAGEMENT": any("engagement" in (p or "") for p in perms),
+        "has_READ_INSIGHTS": any(t == "READ_INSIGHTS" for t in tasks),
+        "first_5_perms": [p for p in perms[:5]],
+        "first_5_tasks": [t for t in tasks[:5]],
+    }
+
+
 @app.route('/api/meta/daily-bundle', methods=['GET'])
 def meta_daily_bundle():
     """GET /api/meta/daily-bundle — combined IG + FB summary for the Morning Brief.
