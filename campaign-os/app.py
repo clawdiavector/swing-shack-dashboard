@@ -21453,7 +21453,7 @@ def report_v1_upload_report(brand_id):
         "observations": observations,
         "source_url": body.get("source_url"),
         "uploaded_by": body.get("uploaded_by"),
-        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_at": _dt_cls.now(_tz.utc).isoformat(),
         "data_status": "HISTORICAL_REAL",
     }
     out_dir = os.path.join(DATA_DIR, "historical-reports", brand_id)
