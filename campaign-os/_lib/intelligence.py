@@ -50,6 +50,28 @@ def _read_json(path: str) -> Optional[Any]:
         return None
 
 
+def _json_as_of(filename: str, data: Optional[Any] = None) -> Optional[str]:
+    """Best-effort timestamp for when a Layer 1 data file was last fetched."""
+    if data is None:
+        data = _read_json(_runtime_data_file(filename))
+    if isinstance(data, dict):
+        for key in ("fetched_at", "updated", "generated", "last_updated", "run_at", "ts"):
+            val = data.get(key)
+            if val:
+                return str(val)
+        meta = data.get("metadata")
+        if isinstance(meta, dict):
+            for key in ("fetched_at", "updated", "generated"):
+                val = meta.get(key)
+                if val:
+                    return str(val)
+    path = _runtime_data_file(filename)
+    if os.path.isfile(path):
+        mtime = os.path.getmtime(path)
+        return datetime.datetime.utcfromtimestamp(mtime).isoformat() + "Z"
+    return None
+
+
 def _all_data_files() -> List[str]:
     if not os.path.isdir(DATA_DIR):
         return []
@@ -721,7 +743,7 @@ def review_inbox() -> Dict[str, Any]:
 
 def hooks_view() -> Dict[str, Any]:
     """Hook bank — watched and worked + formulas + recent + by kind."""
-    hb = _read_json(os.path.join(DATA_DIR, "hook-bank.json")) or {}
+    hb = _read_json(_runtime_data_file("hook-bank.json")) or {}
     if not isinstance(hb, dict):
         return {"ok": False, "error": "hook-bank.json unreadable"}
     ob = hb.get("output_buckets", {}) if isinstance(hb.get("output_buckets"), dict) else {}
@@ -741,6 +763,9 @@ def hooks_view() -> Dict[str, Any]:
         "output_buckets": ob,
         "all_hooks": all_hooks[:50],
         "cross_signal_sources": hb.get("cross_signal_sources", []),
+        "data_as_of": {
+            "hook_bank": _json_as_of("hook-bank.json", hb),
+        },
     }
 
 
@@ -849,13 +874,13 @@ def _load_meme_knowledge_voices() -> Dict[str, List[str]]:
 
 def performance_view() -> Dict[str, Any]:
     """Instagram + GA4 + GBP + SEO performance with explanatory insights."""
-    ig = _read_json(os.path.join(DATA_DIR, "ig-analytics.json")) or {}
-    ga4 = _read_json(os.path.join(DATA_DIR, "ga4-metrics.json")) or {}
-    seo = _read_json(os.path.join(DATA_DIR, "seo-audit.json")) or {}
-    seo_rank = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
-    website = _read_json(os.path.join(DATA_DIR, "website-insights.json")) or {}
-    ab = _read_json(os.path.join(DATA_DIR, "ab-tests.json")) or {}
-    gmb = _read_json(os.path.join(DATA_DIR, "gbp-input.json")) or {}
+    ig = _read_json(_runtime_data_file("ig-analytics.json")) or {}
+    ga4 = _read_json(_runtime_data_file("ga4-metrics.json")) or {}
+    seo = _read_json(_runtime_data_file("seo-audit.json")) or {}
+    seo_rank = _read_json(_runtime_data_file("seo-rankings.json")) or {}
+    website = _read_json(_runtime_data_file("website-insights.json")) or {}
+    ab = _read_json(_runtime_data_file("ab-tests.json")) or {}
+    gmb = _read_json(_runtime_data_file("gbp-input.json")) or {}
 
     ig_posts = ig.get("posts", []) if isinstance(ig, dict) else []
 
@@ -964,6 +989,12 @@ def performance_view() -> Dict[str, Any]:
         "website": website if isinstance(website, dict) else {},
         "ab_tests": (ab.get("tests", []) if isinstance(ab, dict) else []),
         "gbp": gmb if isinstance(gmb, dict) else {},
+        "data_as_of": {
+            "instagram": _json_as_of("ig-analytics.json", ig),
+            "ga4": _json_as_of("ga4-metrics.json", ga4),
+            "seo_audit": _json_as_of("seo-audit.json", seo),
+            "seo_rankings": _json_as_of("seo-rankings.json", seo_rank),
+        },
     }
 
 
@@ -983,12 +1014,12 @@ def learning_view() -> Dict[str, Any]:
     drift as the failure_patterns fix on 2026-08-11, but applied at the
     endpoint so the client renderers stay unchanged.
     """
-    rep = _read_json(os.path.join(DATA_DIR, "weekly-learnings.json")) or {}
-    rec = _read_json(os.path.join(DATA_DIR, "recommendation-outcomes.json")) or {}
-    trend = _read_json(os.path.join(DATA_DIR, "trend-delta.json")) or {}
-    cta = _read_json(os.path.join(DATA_DIR, "cta-performance.json")) or {}
-    fail = _read_json(os.path.join(DATA_DIR, "failure-patterns.json")) or {}
-    conf = _read_json(os.path.join(DATA_DIR, "confidence-calibration.json")) or {}
+    rep = _read_json(_runtime_data_file("weekly-learnings.json")) or {}
+    rec = _read_json(_runtime_data_file("recommendation-outcomes.json")) or {}
+    trend = _read_json(_runtime_data_file("trend-delta.json")) or {}
+    cta = _read_json(_runtime_data_file("cta-performance.json")) or {}
+    fail = _read_json(_runtime_data_file("failure-patterns.json")) or {}
+    conf = _read_json(_runtime_data_file("confidence-calibration.json")) or {}
     return {
         "ok": True,
         "ts": _now_iso(),
@@ -1003,6 +1034,11 @@ def learning_view() -> Dict[str, Any]:
         "cta_rankings": (cta.get("cta_rankings", []) if isinstance(cta, dict) else []),
         "failure_patterns": (fail.get("patterns", []) if isinstance(fail, dict) else []),
         "confidence_bands": (conf.get("honest_confidence_bands", {}) if isinstance(conf, dict) else {}),
+        "data_as_of": {
+            "weekly_learnings": _json_as_of("weekly-learnings.json", rep),
+            "recommendation_outcomes": _json_as_of("recommendation-outcomes.json", rec),
+            "trend_delta": _json_as_of("trend-delta.json", trend),
+        },
     }
 
 
@@ -1885,10 +1921,10 @@ def gbp_suggestions() -> Dict[str, Any]:
 
 
 def seo_assistant() -> Dict[str, Any]:
-    audit = _read_json(os.path.join(DATA_DIR, "seo-audit.json")) or {}
-    rank = _read_json(os.path.join(DATA_DIR, "seo-rankings.json")) or {}
-    geo = _read_json(os.path.join(DATA_DIR, "geo-audit.json")) or {}
-    fixes = _read_json(os.path.join(DATA_DIR, "landing-page-fixes.json")) or {}
+    audit = _read_json(_runtime_data_file("seo-audit.json")) or {}
+    rank = _read_json(_runtime_data_file("seo-rankings.json")) or {}
+    geo = _read_json(_runtime_data_file("geo-audit.json")) or {}
+    fixes = _read_json(_runtime_data_file("landing-page-fixes.json")) or {}
     return {
         "ok": True,
         "ts": _now_iso(),
@@ -1896,6 +1932,11 @@ def seo_assistant() -> Dict[str, Any]:
         "rankings": rank if isinstance(rank, dict) else {},
         "geo": geo if isinstance(geo, dict) else {},
         "fixes": fixes.get("fixes", []) if isinstance(fixes, dict) else [],
+        "data_as_of": {
+            "seo_audit": _json_as_of("seo-audit.json", audit),
+            "seo_rankings": _json_as_of("seo-rankings.json", rank),
+            "geo_audit": _json_as_of("geo-audit.json", geo),
+        },
     }
 
 
@@ -1908,7 +1949,7 @@ def faq_generator(n: int = 10) -> Dict[str, Any]:
 def trend_catcher() -> Dict[str, Any]:
     pool = _signal_pool()
     # Golf news: also pull post_ideas + story_today + reel_today
-    gn = _read_json(os.path.join(DATA_DIR, "golf-news.json")) or {}
+    gn = _read_json(_runtime_data_file("golf-news.json")) or {}
     golf_news_combined = []
     if isinstance(gn, dict):
         for key in ("news", "post_ideas", "story_today", "reel_today"):
@@ -1917,7 +1958,8 @@ def trend_catcher() -> Dict[str, Any]:
                 golf_news_combined.extend([{**x, "_src": key} for x in v if isinstance(x, dict)])
 
     # Reddit trends: also pull hot_pain_points + top_posts
-    rt = _read_json(os.path.join(DATA_DIR, "reddit-trends.json")) or {}
+    rt = _read_json(_runtime_data_file("reddit-trends.json")) or {}
+    yt = _read_json(_runtime_data_file("youtube-trends.json")) or {}
     reddit_combined = []
     if isinstance(rt, dict):
         for key in ("trends", "trend_clusters", "hot_pain_points", "top_posts"):
@@ -1925,22 +1967,32 @@ def trend_catcher() -> Dict[str, Any]:
             if isinstance(v, list):
                 reddit_combined.extend([{**x, "_src": key} for x in v if isinstance(x, dict)])
 
+    gn_updated = (gn.get("updated") if isinstance(gn, dict) else None) or _json_as_of("golf-news.json", gn)
+    rt_updated = (rt.get("updated") if isinstance(rt, dict) else None) or _json_as_of("reddit-trends.json", rt)
+    yt_updated = (yt.get("updated") if isinstance(yt, dict) else None) or _json_as_of("youtube-trends.json", yt)
     return {
         "ok": True,
         "ts": _now_iso(),
+        "updated": gn_updated or rt_updated or yt_updated,
+        "fetched_at": gn_updated or rt_updated or yt_updated,
         "reddit": reddit_combined[:20] or pool["reddit_trends"][:20],
         "youtube": pool["youtube_trends"][:20],
         "golf_news": golf_news_combined[:20] or pool["golf_news"][:20],
         "competitor_changes": pool["competitor_changes"][:20],
         "summary": f"{len(reddit_combined)} reddit · {len(pool['youtube_trends'])} youtube · {len(golf_news_combined)} news · {len(pool['competitor_changes'])} competitor",
+        "data_as_of": {
+            "golf_news": gn_updated,
+            "reddit": rt_updated,
+            "youtube": yt_updated,
+        },
     }
 
 
 # ─── OPPORTUNITIES / IDEAS ─────────────────────────────────────────────
 
 def opportunities_view() -> Dict[str, Any]:
-    ideas = _read_json(os.path.join(DATA_DIR, "content-ideas.json")) or {}
-    missed = _read_json(os.path.join(DATA_DIR, "missed-opportunities.json")) or {}
+    ideas = _read_json(_runtime_data_file("content-ideas.json")) or {}
+    missed = _read_json(_runtime_data_file("missed-opportunities.json")) or {}
     upsell = _read_json(os.path.join(DATA_DIR, "upsell-opportunities.json")) or {}
     bundle = _read_json(os.path.join(DATA_DIR, "bundle-opportunities.json")) or {}
     land = _read_json(os.path.join(DATA_DIR, "landing-page-fixes.json")) or {}
@@ -1959,6 +2011,10 @@ def opportunities_view() -> Dict[str, Any]:
         "landing_fixes": (land.get("fixes", []) if isinstance(land, dict) else [])[:10],
         "lead_capture_fixes": (cap.get("fixes", []) if isinstance(cap, dict) else [])[:10],
         "funnel_leaks": (funnel.get("leaks", []) if isinstance(funnel, dict) else [])[:10],
+        "data_as_of": {
+            "content_ideas": _json_as_of("content-ideas.json", ideas),
+            "missed_opportunities": _json_as_of("missed-opportunities.json", missed),
+        },
     }
 
 

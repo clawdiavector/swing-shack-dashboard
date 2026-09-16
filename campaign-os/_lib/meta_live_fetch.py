@@ -26,13 +26,20 @@ from pathlib import Path
 
 
 def _resolve_data_dir() -> Path:
+    """Always write to DATA_DIR when set (Railway volume).
+
+    The old post-conversion-score.json probe sent meta_refresh output to
+    BUNDLED_DATA_DIR even though job outcomes read from $DATA_DIR.
+    """
     env = os.environ.get("DATA_DIR")
-    if env and Path(env).exists() and (Path(env) / "post-conversion-score.json").exists():
-        return Path(env)
+    if env:
+        p = Path(env)
+        p.mkdir(parents=True, exist_ok=True)
+        return p
     bundled = os.environ.get("BUNDLED_DATA_DIR")
     if bundled:
         return Path(bundled)
-    return Path(os.environ.get("DATA_DIR") or "data")
+    return Path("data")
 
 
 # DATA_DIR / DATA_DIR_RESOLVED — the second is the resolved-at-runtime

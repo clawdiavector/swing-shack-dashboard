@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Any
 
@@ -11,7 +12,7 @@ import requests
 from ._io import atomic_write, utc_now_iso
 
 OUTPUT = "reddit-trends.json"
-USER_AGENT = "SwingShackCampaignOS/1.0 (golf trends; contact ops)"
+USER_AGENT = "linux:SwingShackCampaignOS:v1.0.0 (by /u/swing-shack)"
 SUBREDDITS = ("golf", "golftips")
 FETCH_TIMEOUT = 15
 
@@ -28,6 +29,24 @@ def _fetch_json(url: str) -> dict:
     resp.raise_for_status()
     data = resp.json()
     return data if isinstance(data, dict) else {}
+
+
+def _fetch_bytes(url: str) -> bytes:
+    resp = requests.get(
+        url,
+        headers={"User-Agent": USER_AGENT},
+        timeout=FETCH_TIMEOUT,
+    )
+    if resp.status_code == 429:
+        raise requests.HTTPError("rate limited", response=resp)
+    resp.raise_for_status()
+    return resp.content
+
+
+def _local_tag(tag: str) -> str:
+    if "}" in tag:
+        return tag.rsplit("}", 1)[-1]
+    return tag
 
 
 def _classify_intent(title: str) -> list[str]:
@@ -54,9 +73,7 @@ def _classify_intent(title: str) -> list[str]:
     return intent
 
 
-def _parse_subreddit(sub: str) -> list[dict[str, Any]]:
-    url = f"https://www.reddit.com/r/{sub}/hot.json?limit=20"
-    data = _fetch_json(url)
+def _parse_reddit_json(data: dict, sub: str) -> list[dict[str, Any]]:
     posts = (data.get("data") or {}).get("children") or []
     trends: list[dict[str, Any]] = []
     for post in posts:
@@ -84,6 +101,65 @@ def _parse_subreddit(sub: str) -> list[dict[str, Any]]:
             }
         )
     return trends
+
+
+def _parse_subreddit_rss(sub: str) -> list[dict[str, Any]]:
+    """Reddit blocks anonymous JSON from many hosts; Atom RSS still works."""
+    url = f"https://www.reddit.com/r/{sub}/.rss"
+    xml_bytes = _fetch_bytes(url)
+    root = ET.fromstring(xml_bytes)
+    trends: list[dict[str, Any]] = []
+    for entry in root.iter():
+        if _local_tag(entry.tag) != "entry":
+            continue
+        fields: dict[str, str] = {}
+        link = ""
+        for child in entry:
+            tag = _local_tag(child.tag)
+            if tag == "link" and child.get("href"):
+                link = child.get("href") or ""
+            elif tag in ("title", "updated", "published", "content"):
+                fields[tag] = (child.text or "").strip()
+        title = fields.get("title", "")
+        if len(title) < 5:
+            continue
+        title_l = title.lower()
+        words = [w for w in title_l.split() if len(w) > 5]
+        raw_ts = fields.get("updated") or fields.get("published") or ""
+        created = raw_ts
+        try:
+            if raw_ts:
+                created = datetime.fromisoformat(raw_ts.replace("Z", "+00:00")).isoformat()
+        except ValueError:
+            created = datetime.now(timezone.utc).isoformat()
+        trends.append(
+            {
+                "subreddit": sub,
+                "title": title,
+                "score": 0,
+                "comments_count": 0,
+                "url": link,
+                "permalink": link,
+                "created_utc": created,
+                "intent": _classify_intent(title),
+                "key_terms": " ".join(words[:5]),
+                "is_self": True,
+                "selftext_snippet": (fields.get("content") or "")[:200],
+                "source_format": "rss",
+            }
+        )
+    return trends
+
+
+def _parse_subreddit(sub: str) -> list[dict[str, Any]]:
+    json_url = f"https://www.reddit.com/r/{sub}/hot.json?limit=20"
+    try:
+        data = _fetch_json(json_url)
+        return _parse_reddit_json(data, sub)
+    except requests.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code in (403, 429):
+            return _parse_subreddit_rss(sub)
+        raise
 
 
 def _build_clusters(trends: list[dict[str, Any]]) -> list[dict[str, Any]]:
