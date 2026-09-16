@@ -96,15 +96,30 @@ BRAND_CONFIG = {
 # ── helpers ───────────────────────────────────────────────────────────
 
 def _read_json(path) -> Optional[Any]:
+    """Read a JSON file. Tries the path as-given first, then
+    resolves relative paths against the repo root
+    (sibling of `campaign-os/`) so production containers
+    that mount /app as the working dir can still find
+    bundled data/ files."""
     if not path:
         return None
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return None
-    except Exception:
-        return None
+    candidates = [path]
+    if not os.path.isabs(path):
+        # repo root = parent of the campaign-os/ dir
+        repo_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        candidates.append(os.path.join(repo_root, path))
+        candidates.append(os.path.join("/app", path))
+    for c in candidates:
+        try:
+            with open(c) as f:
+                return json.load(f)
+        except FileNotFoundError:
+            continue
+        except Exception:
+            return None
+    return None
 
 
 def _ga4_property_data(brand_id: str, days: int = 31) -> Optional[dict]:
@@ -307,11 +322,17 @@ def _visual_dna_signals(brand_id: str) -> dict:
     captured by the visual-dna engine."""
     if brand_id != "stick":
         return {"data_status": STATUS_NOT_APPLICABLE}
-    base = os.path.join(DATA_ROOT_DEFAULT, "brand-directory",
-                        "stick", "images")
-    if not os.path.isdir(base):
+    # Resolve base path across cwd / repo root / /app
+    rel = os.path.join("brand-directory", "stick", "images")
+    candidates = [os.path.join(DATA_ROOT_DEFAULT, rel),
+                  os.path.join("/app", "data", rel),
+                  os.path.join(os.path.dirname(os.path.dirname(
+                      os.path.dirname(os.path.abspath(__file__)))),
+                      "data", rel)]
+    base = next((c for c in candidates if os.path.isdir(c)), None)
+    if not base:
         return {"data_status": STATUS_NOT_CONNECTED,
-                "reason": f"no visual-dna dir at {base}"}
+                "reason": f"no visual-dna dir at {candidates[0]}"}
     files = [f for f in os.listdir(base) if f.endswith(".visual-dna.json")]
     if not files:
         return {"data_status": STATUS_NOT_CONNECTED,
@@ -366,10 +387,16 @@ def _historical_reports(brand_id: str) -> dict:
     a historical_report source per brief §29. Used as
     contextual comparison only — never overwrites raw API
     data per §30."""
-    base = os.path.join(DATA_ROOT_DEFAULT, "historical-reports", brand_id)
-    if not os.path.isdir(base):
+    rel = os.path.join("historical-reports", brand_id)
+    candidates = [os.path.join(DATA_ROOT_DEFAULT, rel),
+                  os.path.join("/app", "data", rel),
+                  os.path.join(os.path.dirname(os.path.dirname(
+                      os.path.dirname(os.path.abspath(__file__)))),
+                      "data", rel)]
+    base = next((c for c in candidates if os.path.isdir(c)), None)
+    if not base:
         return {"data_status": STATUS_NOT_CONNECTED,
-                "reason": f"no historical reports dir at {base}",
+                "reason": f"no historical reports dir at {candidates[0]}",
                 "files": []}
     files = sorted(os.listdir(base))
     parsed = []
