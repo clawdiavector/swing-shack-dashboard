@@ -94,6 +94,52 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "missed-opportunities, funnel-leaks, website-insights, etc. Last step in daily batch."
         ),
     },
+    "competitor_tracker": {
+        "title": "Competitor social tracker",
+        "summary": "Refreshes competitor IG cadence + diffs into competitor-tracker.json.",
+        "detail": (
+            "Uses Meta Graph business_discovery for configured competitor handles. "
+            "Writes posting frequency, last_post, recent_posts, and summary.changes for Trend Catcher."
+        ),
+    },
+    "windsor_refresh": {
+        "title": "Paid ads refresh (Windsor)",
+        "summary": "Pulls Meta + Google Ads via Windsor.ai into meta-ads.json / google-ads.json.",
+        "detail": (
+            "Needs WINDSOR_API_KEY. Powers Insights ad-correlation and paid performance cards."
+        ),
+    },
+    "post_conversion_score": {
+        "title": "Post → booking score",
+        "summary": "Scores IG posts by GA4 /bookings/ attribution.",
+        "detail": (
+            "Joins ig-business-analytics.json with GA4 hook_id + time-window attribution. "
+            "Writes post-conversion-score.json for winning-theme recommendations."
+        ),
+    },
+    "gsc_report": {
+        "title": "Google Search Console report",
+        "summary": "Pulls query/page stats into search-console.json.",
+        "detail": (
+            "Uses the GA4 service account + webmasters.readonly scope against GSC_SITE_URL. "
+            "Surfaces rising/falling queries and quick wins for SEO Assistant."
+        ),
+    },
+    "booking_truth": {
+        "title": "Booking + lead truth refresh",
+        "summary": "Probes GA4 for funnel events; refreshes leads from Reddit trends.",
+        "detail": (
+            "Updates booking-events.json measurability flags, writes leads.json + lead-quality.json. "
+            "Closes the commercial attribution inventory gap until site webhooks land."
+        ),
+    },
+    "content_ideas_refresh": {
+        "title": "Content ideas refresh",
+        "summary": "Mines hooks, missed opps, Reddit, competitor moves into content-ideas.json.",
+        "detail": (
+            "Daily auto-populate for the Ideas board. Preserves used ideas and billboards."
+        ),
+    },
 }
 
 
