@@ -254,37 +254,58 @@ def _pillar_mix(brand_id: str, planning: dict) -> dict:
     """Compute content-saturation / pillar mix per brief §12.
 
     Stick has three always-on pillars: RETAIL, FITTING, COACHING.
-    We classify each event in events-2026 by which pillar(s) it
-    supports, then compute the share of planning effort per
-    pillar. Cadences (per-lane weekday counts) feed into the
-    mix. Output is deterministic — counts, not AI commentary.
-
-    Pure heuristic: an event supports a pillar if its name or
-    lanes contain the pillar keyword (case-insensitive)."""
+    We classify each event in events-2026 + events-2027 by which
+    pillar(s) it supports via the structured `pillars` field
+    (e.g. {"retail":"...","fitting":"..."}), falling back to
+    keyword scan in event name + lane text. Cadences (per-lane
+    weekday counts) feed into the mix. Output is deterministic —
+    counts, not AI commentary.
+    """
     if brand_id != "stick":
         return {"data_status": STATUS_NOT_APPLICABLE,
                 "reason": "pillar mix only meaningful for Stick"}
-    events_2026 = planning.get("events_2026", {})
-    events = events_2026.get("events", []) or []
-    if not events:
-        return {"data_status": STATUS_UNAVAILABLE,
-                "reason": "no events-2026.json data"}
-
     pillars = ["retail", "fitting", "coaching"]
     pillar_counts = {p: 0 for p in pillars}
     pillar_event_ids = {p: [] for p in pillars}
     unclassified = []
-    for ev in events:
-        text = (ev.get("name", "") + " " +
-                " ".join(str(v) for v in (ev.get("lanes") or {}).values())).lower()
-        matched = False
-        for p in pillars:
-            if p in text:
-                pillar_counts[p] += 1
-                pillar_event_ids[p].append(ev.get("id"))
-                matched = True
-        if not matched:
-            unclassified.append(ev.get("id"))
+
+    all_events = []
+    for year_key in ("events_2026", "events_2027"):
+        ed = planning.get(year_key, {})
+        all_events.extend(ed.get("events", []) or [])
+    if not all_events:
+        return {"data_status": STATUS_UNAVAILABLE,
+                "reason": "no events-2026.json or events-2027.json data"}
+
+    for ev in all_events:
+        ev_pillars = ev.get("pillars") or {}
+        ev_id = ev.get("id")
+        if isinstance(ev_pillars, dict) and any(
+                isinstance(v, str) and p in v.lower()
+                for p in pillars for v in ev_pillars.values()):
+            # Use structured pillars field
+            matched_any = False
+            for p in pillars:
+                if any(isinstance(v, str) and p in v.lower()
+                       for v in ev_pillars.values()):
+                    pillar_counts[p] += 1
+                    pillar_event_ids[p].append(ev_id)
+                    matched_any = True
+            if not matched_any:
+                unclassified.append(ev_id)
+        else:
+            # Fallback: keyword scan in name + lane text
+            text = (ev.get("name", "") + " " +
+                    " ".join(str(v) for v in
+                            (ev.get("lanes") or {}).values())).lower()
+            matched_any = False
+            for p in pillars:
+                if p in text:
+                    pillar_counts[p] += 1
+                    pillar_event_ids[p].append(ev_id)
+                    matched_any = True
+            if not matched_any:
+                unclassified.append(ev_id)
 
     total_classified = sum(pillar_counts.values())
     pillar_pct = {p: round(c / total_classified * 100, 1)
@@ -303,14 +324,17 @@ def _pillar_mix(brand_id: str, planning: dict) -> dict:
 
     return {
         "data_status": STATUS_HISTORICAL_REAL,
-        "pillars_always_on": events_2026.get("always_on_pillars", []),
+        "pillars_always_on": (
+            planning.get("events_2026", {}).get("always_on_pillars", []) +
+            planning.get("events_2027", {}).get("always_on_pillars", [])
+        ),
         "pillar_event_counts": pillar_counts,
         "pillar_event_pct": pillar_pct,
         "events_per_pillar": pillar_event_ids,
         "unclassified_event_ids": unclassified,
         "total_events_classified": total_classified,
         "cadences_by_lane": cadence_by_lane,
-        "source": "data/brand-planning/stick-events-2026.json + stick-cadences.json",
+        "source": "data/brand-planning/stick-events-{2026,2027}.json + stick-cadences.json",
     }
 
 
