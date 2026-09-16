@@ -671,6 +671,100 @@ def _what_worked_and_needs_attention(brand_id: str,
     return worked, needs_attention
 
 
+def _cross_channel_observations(brand_id: str, report: dict) -> list:
+    """Brief §6: cross-channel observations where evidence exists.
+
+    Use 'consistent with', 'associated with', 'aligns with'
+    unless direct attribution exists. NEVER claim causation
+    from timing alone.
+
+    Returns list of dicts with observation + type + confidence.
+    """
+    obs = []
+    cfg = BRAND_CONFIG.get(brand_id, {})
+    name = cfg.get("name", brand_id)
+    ga = report.get("sections", {}).get("website_performance", {})
+    mo = report.get("sections", {}).get("audience_awareness", {})
+
+    ga_metrics = ga.get("metrics") or {}
+    ga_sessions = ga_metrics.get("sessions", 0)
+    ga_users = ga_metrics.get("total_users", 0)
+    ig = ((mo.get("metrics") or {}).get("instagram") or {}) \
+         if mo.get("data_status") == "LIVE" else {}
+    ig_reach_30d = ig.get("reach_30d", 0)
+
+    # 1. IG reach vs GA4 sessions — different scales, but if
+    # IG reach is much larger than GA4 sessions, that suggests
+    # IG drives awareness; GA4 captures only the click-through.
+    if ig_reach_30d and ga_sessions:
+        ratio = round(ig_reach_30d / max(1, ga_sessions))
+        obs.append({
+            "observation": f"{name} IG reach_30d ({ig_reach_30d:,}) is "
+                            f"~{ratio}x GA4 sessions ({ga_sessions:,}); "
+                            f"this is consistent with IG primarily "
+                            f"driving awareness + light click-through, "
+                            f"with on-site traffic concentrated in a "
+                            f"smaller intent-driven subset.",
+            "type": "SUPPORTED_INFERENCE",
+            "confidence": "MEDIUM",
+            "evidence_basis": [
+                f"IG reach_30d = {ig_reach_30d:,}",
+                f"GA4 sessions = {ga_sessions:,}",
+                f"ratio = {ratio}x",
+            ],
+        })
+
+    # 2. Accounts-engaged vs total_users
+    ae = ig.get("accounts_engaged_30d", 0)
+    if ae and ga_users:
+        rate = round(ae / max(1, ga_users) * 100, 1)
+        obs.append({
+            "observation": f"{name} IG accounts-engaged in last 30 days "
+                            f"({ae:,}) is ~{rate}% of GA4 total users "
+                            f"({ga_users:,}); this aligns with a small "
+                            f"but high-intent click-through cohort rather "
+                            f"than broad funnel conversion.",
+            "type": "SUPPORTED_INFERENCE",
+            "confidence": "MEDIUM",
+            "evidence_basis": [
+                f"IG accounts_engaged_30d = {ae:,}",
+                f"GA4 total_users = {ga_users:,}",
+                f"conversion proxy = {rate}%",
+            ],
+        })
+
+    # 3. Top post → landing page alignment (if top post has
+    # explicit CTA → bookings/fitting/coaching we surface it)
+    tp = mo.get("top_post") or {}
+    if tp.get("caption_preview"):
+        cap = (tp.get("caption_preview") or "").lower()
+        cta_words = []
+        if "fitting" in cap:
+            cta_words.append("fitting")
+        if "coaching" in cap or "lesson" in cap or "coach" in cap:
+            cta_words.append("coaching")
+        if "book" in cap:
+            cta_words.append("booking")
+        if cta_words:
+            obs.append({
+                "observation": f"{name}'s top IG post mentions "
+                                f"{'/'.join(cta_words)} (caption: "
+                                f"\"{tp.get('caption_preview','')[:80]}\"); "
+                                f"this is consistent with intentional "
+                                f"traffic routing to "
+                                f"corresponding landing pages once the "
+                                f"GA4 page_interest endpoint is wired.",
+                "type": "SUPPORTED_INFERENCE",
+                "confidence": "LOW",
+                "evidence_basis": [
+                    f"top_post.caption_preview = {tp.get('caption_preview','')[:100]}",
+                    f"detected CTA keywords = {cta_words}",
+                ],
+            })
+
+    return obs
+
+
 def _safe_pct(numerator, denominator):
     if not denominator or denominator == 0:
         return None
@@ -815,26 +909,47 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
 
     # Meta organic (if available)
     meta = metrics.get("meta_organic") or {}
-    if meta.get("status") == STATUS_LIVE and meta.get("name"):
-        out.append({
-            "statement": f"{name} Facebook page identity reachable "
-                          f"({meta.get('name')!r}). Recent posts and post insights "
-                          f"access is currently limited; see data coverage.",
-            "type": "MEASURED_FACT",
-            "confidence": "HIGH",
-        })
-    elif meta.get("status") == STATUS_PARTIAL:
+    if meta.get("data_status") == STATUS_LIVE:
+        ig = ((meta.get("metrics") or {}).get("instagram") or {})
+        if ig.get("followers_count") or ig.get("reach_30d"):
+            out.append({
+                "statement": f"{name} Instagram recorded "
+                              f"{ig.get('reach_30d', 0):,} reach across "
+                              f"{ig.get('media_with_insights', 0)} media "
+                              f"over the last 30 days "
+                              f"({ig.get('reach_daily_avg', 0):,} daily avg); "
+                              f"audience stands at "
+                              f"{ig.get('followers_count', 0):,} followers "
+                              f"with {ig.get('accounts_engaged_30d', 0)} "
+                              f"engaged accounts.",
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+            })
+        # IG top post
+        tp = meta.get("top_post") or {}
+        if tp.get("id"):
+            out.append({
+                "statement": f"{name}'s top IG post (last 30 days): "
+                              f"\"{(tp.get('caption_preview') or '')[:80]}\" "
+                              f"— {tp.get('reach', 0):,} reach, "
+                              f"{tp.get('engagement_rate_pct', 0):.1f}% ER, "
+                              f"{tp.get('total_interactions', tp.get('interactions', 0))} "
+                              f"interactions.",
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+            })
+    elif meta.get("data_status") == STATUS_PARTIAL:
         out.append({
             "statement": f"{name} Meta organic: identity visible, recent content and "
-                          f"insights surfaces still limited (Step 4A in progress).",
+                          "insights surfaces still limited (Step 4A in progress).",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
-    elif meta.get("status") == STATUS_NOT_CONNECTED:
+    elif meta.get("data_status") == STATUS_NOT_CONNECTED:
         out.append({
             "statement": f"{name} Meta reporting is not currently connected; "
-                          f"organic social performance is reportable only via "
-                          f"Campaign OS historical archives (where present).",
+                          "organic social performance is reportable only via "
+                          "Campaign OS historical archives (where present).",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
@@ -940,30 +1055,130 @@ def _build_ga4_section(brand_id: str, cookie: Optional[str] = None) -> dict:
 
 
 def _build_meta_organic_section(brand_id: str) -> dict:
+    """Per brief §5: surface actual Meta organic numbers wherever
+    the live/historical connection is trustworthy. Don't merely
+    show 'Meta = LIVE' — actually include reach, followers,
+    post count, top content, engagement rate.
+    """
     cfg = BRAND_CONFIG[brand_id]
     if not cfg.get("facebook_page_id"):
         return {"data_status": STATUS_NOT_CONNECTED,
                 "reason": "no Facebook page configured"}
 
+    out = {"data_status": STATUS_NOT_CONNECTED,
+           "page_id": cfg.get("facebook_page_id"),
+           "source": None, "reason": None,
+           "historical_archive": None,
+           "metrics": {}, "top_post": None,
+           "account": {}, "daily_reach_30d": []}
+
     if brand_id == "stick":
-        # The Stick System User token is still pending in Railway
-        # per Step 4A diagnostic v5; surface honestly.
-        return {
-            "data_status": STATUS_PARTIAL,
-            "page_id": cfg["facebook_page_id"],
-            "source": "Meta Graph API v23.0 (Step 4A)",
-            "reason": "Stick Reporting System User token pending persistence in Railway",
+        # EAAR token is now REACHABLE for Stick but IG + WABA +
+        # content surfaces still PARTIAL. FB page is reachable.
+        # No historical archive exists for Stick yet.
+        out["data_status"] = STATUS_PARTIAL
+        out["source"] = "Meta Graph API v23.0 (Step 4A — page reachable)"
+        out["reason"] = ("Stick FB page is reachable; IG / WABA / "
+                          "content surfaces still PARTIAL pending "
+                          "full scope wiring.")
+        out["metrics"] = {
+            "facebook_page_reachable": True,
+            "instagram_surface": "PARTIAL (token reachable, scope pending)",
+            "whatsapp_surface": "PARTIAL (token reachable, scope pending)",
+            "ads_surface": "REACHABLE (ad account visible via EAAR)",
         }
+        return out
 
     if brand_id == "swing-shack":
         archives = _historical_archives(brand_id)
         fb = archives.get("facebook_page", {})
-        return {
-            "data_status": fb.get("data_status", STATUS_LIVE),
-            "page_id": cfg["facebook_page_id"],
-            "source": "Meta Graph API v18.0 (Campaign OS legacy)",
-            "historical_archive": fb.get("source"),
+        igb = archives.get("ig_business", {})
+        # Facebook historical archive
+        fb_data = fb.get("data") or {}
+        out["historical_archive"] = fb.get("source")
+        out["source"] = ("Meta Graph API v18.0 (live) + "
+                          "data/facebook-analytics.json (historical)")
+        # IG business historical archive
+        ig_data = igb.get("data") or {}
+        ig_account = ig_data.get("account") or {}
+        ig_window = ig_data.get("window_totals") or {}
+        ig_top = ig_data.get("top_post") or {}
+        ig_media = ig_data.get("media", []) or []
+        ig_daily_reach = ig_data.get("daily_reach", []) or []
+
+        # Compute IG metrics
+        ig_reach_30d = sum(int(r.get("value", 0) or 0)
+                           for r in ig_daily_reach)
+        ig_top_reach_post = ig_top.get("reach") or 0
+
+        # FB: count posts with non-null engagement
+        fb_posts = fb_data.get("posts", []) or []
+        fb_posts_with_reach = [p for p in fb_posts
+                                if p.get("reach") is not None]
+        fb_total_posts = fb_data.get("total_posts", len(fb_posts))
+
+        out["data_status"] = STATUS_LIVE
+        out["metrics"] = {
+            "facebook": {
+                "total_posts_archived": fb_total_posts,
+                "posts_with_reach_data": len(fb_posts_with_reach),
+                "archive_last_updated": fb_data.get("updated"),
+                "data_pending": fb_data.get("data_pending"),
+            },
+            "instagram": {
+                "followers_count": ig_account.get("followers_count"),
+                "follows_count": ig_account.get("follows_count"),
+                "media_count": ig_account.get("media_count"),
+                "reach_30d": ig_reach_30d,
+                "reach_daily_avg": (
+                    round(ig_reach_30d / max(1, len(ig_daily_reach)))
+                    if ig_daily_reach else 0),
+                "profile_views_30d": ig_window.get("profile_views"),
+                "accounts_engaged_30d": ig_window.get("accounts_engaged"),
+                "total_interactions_30d": ig_window.get("total_interactions"),
+                "profile_links_taps_30d": ig_window.get("profile_links_taps"),
+                "media_with_insights": len(ig_media),
+                "archive_last_updated": igb.get("last_updated"),
+            },
         }
+        if ig_top.get("id"):
+            out["top_post"] = {
+                "id": ig_top.get("id"),
+                "caption_preview": (ig_top.get("caption_preview") or "")[:180],
+                "permalink": ig_top.get("permalink"),
+                "media_type": ig_top.get("media_type"),
+                "engagement_rate_pct": ig_top.get("engagement_rate_pct"),
+                "likes": ig_top.get("likes"),
+                "comments": ig_top.get("comments"),
+                "interactions": ig_top.get("interactions"),
+                "reach": ig_top_reach_post,
+            }
+        out["daily_reach_30d"] = ig_daily_reach
+        out["account"] = {
+            "ig_username": ig_account.get("username"),
+            "ig_id": ig_account.get("id"),
+        }
+        # Top 3 IG media by reach
+        media_with_reach = [m for m in ig_media
+                            if (m.get("metrics") or {}).get("reach")]
+        media_with_reach.sort(
+            key=lambda m: (m.get("metrics") or {}).get("reach", 0),
+            reverse=True)
+        out["top_media_by_reach"] = [
+            {
+                "id": m.get("id"),
+                "permalink": m.get("permalink"),
+                "media_type": m.get("media_type"),
+                "engagement_rate_pct": m.get("engagement_rate_pct"),
+                "reach": (m.get("metrics") or {}).get("reach"),
+                "likes": (m.get("metrics") or {}).get("likes"),
+                "total_interactions": (m.get("metrics") or {}).get("total_interactions"),
+                "caption_preview": (m.get("caption_preview") or "")[:120],
+            } for m in media_with_reach[:5]
+        ]
+        return out
+
+    return out
 
 
 def _build_paid_section(brand_id: str) -> dict:
@@ -1059,6 +1274,12 @@ def build_brand_report(brand_id: str, period_days: int = 31,
         "source": mo.get("source"),
         "historical_archive": mo.get("historical_archive"),
         "reason": mo.get("reason"),
+        # Brief §5: surface actual Meta organic numbers
+        "metrics": mo.get("metrics") or {},
+        "top_post": mo.get("top_post"),
+        "top_media_by_reach": mo.get("top_media_by_reach"),
+        "daily_reach_30d": mo.get("daily_reach_30d"),
+        "account": mo.get("account"),
     }
     report["data_sources"].append({
         "name": "Meta Organic",
@@ -1160,7 +1381,8 @@ def build_brand_report(brand_id: str, period_days: int = 31,
     report["data_coverage"] = {
         "ga4": ga4.get("data_status"),
         "facebook": mo.get("data_status"),
-        "instagram": (STATUS_NOT_CONNECTED if brand_id == "stick" else STATUS_STALE),
+        "instagram": (mo.get("data_status") if brand_id == "swing-shack"
+                      else STATUS_NOT_CONNECTED),
         "meta_ads": pm.get("data_status"),
         "lead_tracking": cfg.get("lead_tracking_status", STATUS_NOT_CONNECTED),
         "strategy": strat.get("data_status"),
@@ -1183,6 +1405,11 @@ def build_brand_report(brand_id: str, period_days: int = 31,
     worked, needs_attention = _what_worked_and_needs_attention(brand_id, report)
     report["what_worked"] = worked
     report["what_needs_attention"] = needs_attention
+
+    # Cross-channel observations (brief §6) — evidence-backed
+    # only; no causation claims.
+    report["cross_channel_observations"] = _cross_channel_observations(
+        brand_id, report)
 
     # Source lineage — every metric the renderer pulls carries
     # brand_id+source+asset+period
@@ -1653,6 +1880,30 @@ def render_brand_report_html(brand_id: str, period_days: int = 31,
                 continue
             if isinstance(v, (str, int)) and v:
                 parts.append(f"<div><strong>{k}</strong>: {v}</div>")
+            elif isinstance(v, dict) and v:
+                # Print nested dict as sub-table (e.g. audience metrics)
+                parts.append(f"<div><strong>{k}</strong>:</div>")
+                parts.append("<table class='coverage-table'>")
+                for nk, nv in v.items():
+                    if nv is None:
+                        continue
+                    parts.append(f"<tr><td>{nk}</td><td>{nv}</td></tr>")
+                parts.append("</table>")
+            elif isinstance(v, list) and v and isinstance(v[0], dict):
+                # Print list of dicts as sub-table (e.g. top_media_by_reach)
+                parts.append(f"<div><strong>{k}</strong> "
+                             f"({len(v)} entries):</div>")
+                keys = list(v[0].keys())
+                parts.append("<table class='coverage-table'>")
+                parts.append("<tr>" +
+                             "".join(f"<th>{kk}</th>" for kk in keys) +
+                             "</tr>")
+                for item in v:
+                    parts.append("<tr>" +
+                                 "".join(f"<td>{item.get(kk, '')}</td>"
+                                         for kk in keys) +
+                                 "</tr>")
+                parts.append("</table>")
         parts.append("</div>")
 
     # What worked
@@ -1684,6 +1935,26 @@ def render_brand_report_html(brand_id: str, period_days: int = 31,
             if n.get("business_relevance"):
                 parts.append(f"<em>Business relevance:</em> {n['business_relevance']}")
             parts.append("</div>")
+
+    # Cross-channel observations (brief §6)
+    cross = r.get("cross_channel_observations", [])
+    if cross:
+        parts.append("<h2>Cross-Channel Observations</h2>")
+        parts.append("<div class='section'>")
+        parts.append("<em>Wording is evidence-based ('consistent with', "
+                     "'aligns with'); not causal.</em>")
+        for c in cross:
+            parts.append("<div class='rec medium'>")
+            parts.append(f"<strong>{c.get('type', '')} "
+                         f"({c.get('confidence', '')})</strong><br>")
+            parts.append(f"{c.get('observation', '')}<br>")
+            if c.get("evidence_basis"):
+                parts.append("<em>Evidence basis:</em><ul>")
+                for ev in c["evidence_basis"]:
+                    parts.append(f"<li>{ev}</li>")
+                parts.append("</ul>")
+            parts.append("</div>")
+        parts.append("</div>")
 
     # Recommendations
     parts.append("<h2>Recommendations</h2>")
