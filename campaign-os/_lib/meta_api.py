@@ -81,6 +81,17 @@ def _read_meta_access_token(brand_id: Optional[str] = None) -> Optional[str]:
     """
     if brand_id:
         safe = _tenant_safe(brand_id).upper()
+        # Brand-specific override: some tenants use a longer env-var
+        # name (e.g. META_SYSTEM_USER_TOKEN_STICK_PAARL) because the
+        # Stick business is named "Stick Paarl" in Meta Business
+        # Settings. Check this BEFORE the generic _STICK lookup so
+        # operator-pasted tokens land at the right resolution.
+        if brand_id == "stick":
+            for override in ("META_SYSTEM_USER_TOKEN_STICK_PAARL",
+                             "META_SYSTEM_USER_TOKEN_STICK_PAARL_PAGES"):
+                override_val = os.environ.get(override)
+                if override_val and override_val.strip():
+                    return override_val.strip()
         sys_user_brand = os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}")
         if sys_user_brand and sys_user_brand.strip():
             return sys_user_brand.strip()

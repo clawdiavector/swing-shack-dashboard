@@ -1138,6 +1138,13 @@ def env_debug():
         # OAuth tokens we mint from the in-app social login flow (Section E
         # of the 2026-08-18 roadmap).
         "META_SYSTEM_USER_TOKEN",
+        "META_SYSTEM_USER_TOKEN_STICK",
+        "META_SYSTEM_USER_TOKEN_STICK_PAARL",
+        "META_SYSTEM_USER_TOKEN_STICK_PAARL_PAGES",
+        "META_PAGE_ID_STICK",
+        "META_INSTAGRAM_BUSINESS_ACCOUNT_ID_STICK",
+        "META_BUSINESS_ID_STICK",
+        "META_WABA_ID_STICK",
         "X_ACCESS_TOKEN",
         "X_BEARER_TOKEN",
         "TIKTOK_ACCESS_TOKEN",
@@ -9781,6 +9788,647 @@ def meta_status_for_brand(brand_id):
     except Exception as e:
         _app_log.exception("meta_status_for_brand failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/<brand_id>/token-diagnostic', methods=['GET'])
+def meta_token_diagnostic(brand_id):
+    """GET /api/meta/<brand_id>/token-diagnostic — Step 4A diagnostic.
+
+    Safe introspection of the token Campaign OS is currently using
+    for this brand. NEVER prints the token. Returns:
+      - token source (which env var was resolved)
+      - /me identity (id, name, app_id)
+      - /debug_token introspection (scopes, granular_scopes,
+        system_user_id, app_id, expires_at, valid, error if any)
+      - /me/adaccounts (full list, with id + name)
+      - /me/accounts (assigned Pages, with linked IG IDs)
+
+    Used to diagnose the difference between
+    "token genuinely lacks scopes" vs "wrong app" vs
+    "token resolved wrong env var" vs "asset-binding missing".
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    try:
+        from _lib import meta_api as _meta
+        safe = _meta._tenant_safe(brand_id).upper()
+        cfg = _meta.meta_config_for_brand(brand_id)
+        token = cfg.get("access_token")
+        # Detect token source (which env var resolved)
+        token_source = "(unset)"
+        # Brand-specific overrides win first (e.g. STICK_PAARL for the
+        # Stick business portfolio as it appears in Meta Business Settings)
+        if brand_id == "stick":
+            for override in ("META_SYSTEM_USER_TOKEN_STICK_PAARL",
+                             "META_SYSTEM_USER_TOKEN_STICK_PAARL_PAGES"):
+                if os.environ.get(override):
+                    token_source = override
+                    break
+        if token_source == "(unset)" and os.environ.get(f"META_SYSTEM_USER_TOKEN_{safe}"):
+            token_source = f"META_SYSTEM_USER_TOKEN_{safe}"
+        elif token_source == "(unset)" and os.environ.get("META_SYSTEM_USER_TOKEN"):
+            token_source = "META_SYSTEM_USER_TOKEN (global; legacy Swing Shack)"
+        elif token_source == "(unset)" and os.environ.get(f"META_ACCESS_TOKEN_FILE_{safe}"):
+            token_source = f"META_ACCESS_TOKEN_FILE_{safe}"
+        elif token_source == "(unset)" and os.environ.get("META_ACCESS_TOKEN_FILE"):
+            token_source = "META_ACCESS_TOKEN_FILE (global; legacy)"
+        elif token_source == "(unset)" and os.environ.get("META_ACCESS_TOKEN"):
+            token_source = "META_ACCESS_TOKEN (global; legacy)"
+
+        # Fingerprint: last 6 chars of token (not the token itself)
+        fp = "n/a"
+        if token:
+            fp = token[-6:]
+
+        out = {
+            "ok": True,
+            "brand_id": brand_id,
+            "token_resolved": bool(token),
+            "token_source": token_source,
+            "token_fingerprint_last6": fp,
+            "token_length": len(token) if token else 0,
+            "app_id_env": os.environ.get("META_APP_ID"),
+            "app_id_env_per_brand": os.environ.get(f"META_APP_ID_{safe}"),
+            "scopes": {},
+            "diagnostics": {},
+        }
+
+        if not token:
+            return jsonify(out), 200
+
+        # /me — identity (does NOT leak token; returns id/name only)
+        try:
+            me = _meta._graph_get("/me", {"fields": "id,name"})
+            out["me_identity"] = {"id": me.get("id"), "name": me.get("name")}
+        except Exception as e:
+            out["me_identity_error"] = str(e)[:300]
+
+        # /debug_token — Meta token introspection endpoint
+        # Requires app_id + app_secret (or app access token)
+        # We use the token's app_id from /debug_token metadata
+        app_id = out.get("app_id_env_per_brand") or out.get("app_id_env")
+        debug_token_used = None
+        # Try with the token's own self-introspection first
+        try:
+            # /debug_token input_token + access_token (call needs admin token
+            # with same app context; usually a user/admin token works)
+            debug_resp = _meta._graph_get(
+                "/debug_token",
+                {"input_token": token, "access_token": token},
+            )
+            debug_token_used = "self"
+            data = debug_resp.get("data", {})
+            out["debug_token"] = {
+                "valid": data.get("is_valid"),
+                "app_id": data.get("app_id"),
+                "application": data.get("application"),
+                "user_id": data.get("user_id"),
+                "type": data.get("type"),
+                "scopes": data.get("scopes", []),
+                "granular_scopes": data.get("granular_scopes", []),
+                "expires_at": data.get("expires_at"),
+                "issued_at": data.get("issued_at"),
+                "data_access_expires_at": data.get("data_access_expires_at"),
+                "error": data.get("error"),
+            }
+        except Exception as e:
+            out["debug_token_error"] = str(e)[:300]
+
+        # /me/adaccounts — full reachable ad account list
+        try:
+            ads = _meta._graph_get("/me/adaccounts",
+                                    {"fields": "id,name,currency,timezone_name,account_status,disable_reason"})
+            out["ad_accounts_visible"] = [
+                {"id": a.get("id"), "name": a.get("name"),
+                 "currency": a.get("currency"),
+                 "timezone": a.get("timezone_name"),
+                 "status": a.get("account_status"),
+                 "disable_reason": a.get("disable_reason")}
+                for a in ads.get("data", [])
+            ]
+        except Exception as e:
+            out["ad_accounts_error"] = str(e)[:300]
+
+        # /me/accounts — assigned Pages
+        try:
+            accts = _meta._graph_get("/me/accounts",
+                                    {"fields": "id,name,tasks,instagram_business_account{id,username,name}"})
+            out["accounts_visible"] = [
+                {
+                    "page_id": a.get("id"),
+                    "page_name": a.get("name"),
+                    "tasks": a.get("tasks"),
+                    "linked_ig": (a.get("instagram_business_account") or {}).get("id")
+                    if a.get("instagram_business_account") else None,
+                    "linked_ig_username": (a.get("instagram_business_account") or {}).get("username")
+                    if a.get("instagram_business_account") else None,
+                }
+                for a in accts.get("data", [])
+            ]
+        except Exception as e:
+            out["accounts_error"] = str(e)[:300]
+
+        # /me/businesses — assigned businesses
+        try:
+            bizs = _meta._graph_get("/me/businesses",
+                                    {"fields": "id,name"})
+            out["businesses_visible"] = [
+                {"id": b.get("id"), "name": b.get("name")}
+                for b in bizs.get("data", [])
+            ]
+        except Exception as e:
+            out["businesses_error"] = str(e)[:300]
+
+        # Try the explicit Stick ad account + Page + IG + WABA probes
+        explicit_probes = {}
+        for label, asset_id, path in [
+            ("stick_page", "1051565264705239", "/1051565264705239"),
+            ("stick_ig",   "17841469555624210", "/17841469555624210"),
+            ("stick_waba", "1207430961556134", "/1207430961556134"),
+            ("stick_ad_account", "2101557317059886", "/act_2101557317059886"),
+            ("swing_shack_page", "198859063301219", "/198859063301219"),
+        ]:
+            try:
+                r = _meta._graph_get(path, {"fields": "id,name"})
+                explicit_probes[label] = {"state": "REACHABLE",
+                                          "id": r.get("id"), "name": r.get("name")}
+            except Exception as e:
+                err = str(e)
+                if "(#100)" in err and "does not exist" in err:
+                    state = "NOT_FOUND_OR_PERMISSION"
+                elif "(#190)" in err:
+                    state = "TOKEN_INVALID"
+                elif "(#200)" in err or "permission" in err.lower():
+                    state = "PERMISSION_BLOCKED"
+                else:
+                    state = "ERROR"
+                explicit_probes[label] = {"state": state, "error": err[:200]}
+        out["explicit_probes"] = explicit_probes
+
+        # Per-scope diagnosis table
+        expected_scopes = {
+            "pages_show_list":               "read Pages this user/admin can see",
+            "pages_read_engagement":         "read Page posts, likes, comments",
+            "pages_read_user_content":       "read user-generated Page content",
+            "read_insights":                 "read Page/IG/ad insights",
+            "instagram_basic":               "read IG account identity",
+            "instagram_manage_insights":     "read IG insights (deprecated; use app ANALYZE)",
+            "business_management":           "access BM assets assigned to this user",
+            "ads_read":                      "read ad account data",
+            "whatsapp_business_management":  "access WABA inventory",
+        }
+        granted = set()
+        if "debug_token" in out and isinstance(out["debug_token"].get("scopes"), list):
+            granted = set(out["debug_token"]["scopes"])
+        per_scope_diagnosis = {}
+        for scope, descr in expected_scopes.items():
+            present = scope in granted
+            per_scope_diagnosis[scope] = {
+                "requested": True,
+                "present_on_token": present,
+                "app_supports_permission": None,  # we don't have app-level introspect
+                "asset_assigned": None,           # requires BM-side query
+                "description": descr,
+                "diagnosis": ("present" if present else "MISSING_ON_TOKEN"),
+            }
+        out["per_scope_diagnosis"] = per_scope_diagnosis
+        out["granular_scopes_count"] = len(out.get("debug_token", {}).get("granular_scopes", []))
+
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_token_diagnostic failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/meta/<brand_id>/connect-test', methods=['GET'])
+def meta_connect_test(brand_id):
+    """GET /api/meta/<brand_id>/connect-test — Step 4A live read verification.
+
+    Performs read-only probes across every surface the brand has
+    configured (FB Page identity / content / insights, IG identity /
+    media / account + media insights, Ad accounts, Datasets, WABA
+    inventory). Returns a structured per-surface report with state
+    LIVE | PARTIAL | PERMISSION_MISSING | metric_unsupported |
+    error_code / no_data. NEVER mutates anything.
+
+    Per brief §10 — no silent fallback: a metric that Graph rejects
+    comes back as the literal Graph error message, not a 0.
+
+    Per brief §12 — brand isolation: Stick uses META_*_STICK env vars
+    and its own token; Swing Shack uses the legacy global env vars.
+    No cross-brand bleed.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    try:
+        from _lib import meta_api as _meta
+        cfg = _meta.meta_config_for_brand(brand_id)
+        page_id = cfg.get("page_id")
+        ig_id = cfg.get("instagram_account_id")
+        token = cfg.get("access_token")
+        business_id = os.environ.get(f"META_BUSINESS_ID_{_meta._tenant_safe(brand_id).upper()}")
+        waba_id = os.environ.get(f"META_WABA_ID_{_meta._tenant_safe(brand_id).upper()}")
+
+        out = {
+            "ok": True,
+            "brand_id": brand_id,
+            "scope": cfg.get("scope"),
+            "config": {
+                "page_id": page_id,
+                "instagram_account_id": ig_id,
+                "business_id": business_id,
+                "waba_id": waba_id,
+                "token_resolved": bool(token),
+                "app_id_present": bool(cfg.get("app_id")),
+            },
+            "surfaces": {},
+            "errors": [],
+        }
+
+        if not token:
+            out["surfaces"]["facebook_identity"] = {"state": "NOT_CONNECTED",
+                                                    "reason": "no token for brand"}
+            return jsonify(out), 200
+
+        # ===== Facebook identity (always start with this) =====
+        if page_id:
+            try:
+                r = _meta._graph_get(f"/{page_id}",
+                                     {"fields": "id,name,fan_count,followers_count,category,link,verification_status"})
+                out["surfaces"]["facebook_identity"] = {
+                    "state": "LIVE",
+                    "page_id": r.get("id"),
+                    "name": r.get("name"),
+                    "fan_count": r.get("fan_count"),
+                    "followers_count": r.get("followers_count"),
+                    "category": r.get("category"),
+                    "link": r.get("link"),
+                    "verification_status": r.get("verification_status"),
+                }
+            except Exception as e:
+                out["surfaces"]["facebook_identity"] = {"state": _classify_facebook_error(e),
+                                                        "error": str(e)[:200]}
+
+        # ===== Facebook content — recent posts =====
+        if page_id:
+            try:
+                r = _meta._graph_get(f"/{page_id}/posts",
+                                     {"fields": "id,message,created_time,permalink_url,shares,reactions.summary(true),comments.summary(true)",
+                                      "limit": 10})
+                posts = r.get("data", [])
+                latest_ts = max((p.get("created_time", "") for p in posts), default=None)
+                out["surfaces"]["facebook_content"] = {
+                    "state": "LIVE" if posts else "NO_DATA",
+                    "recent_post_count": len(posts),
+                    "latest_post_timestamp": latest_ts,
+                    "earliest_post_timestamp_in_sample": min((p.get("created_time", "") for p in posts), default=None),
+                    "sample_posts": [
+                        {"id": p.get("id"), "created_time": p.get("created_time"),
+                         "permalink": p.get("permalink_url")}
+                        for p in posts[:3]
+                    ],
+                }
+            except Exception as e:
+                out["surfaces"]["facebook_content"] = {"state": _classify_facebook_error(e),
+                                                        "error": str(e)[:200]}
+
+        # ===== Facebook page insights (multi-metric probe) =====
+        if page_id:
+            metrics_to_probe = [
+                "page_impressions", "page_impressions_unique",
+                "page_post_engagements", "page_fans",
+                "page_fan_adds", "page_views",
+                "page_impressions_organic", "page_impressions_paid",
+            ]
+            out["surfaces"]["facebook_insights"] = {"state": "UNKNOWN",
+                                                   "metrics": {}}
+            for m in metrics_to_probe:
+                try:
+                    r = _meta._graph_get(f"/{page_id}/insights",
+                                         {"metric": m, "period": "day"})
+                    data = r.get("data", [])
+                    if data:
+                        out["surfaces"]["facebook_insights"]["metrics"][m] = {
+                            "state": "LIVE",
+                            "values_count": len(data[0].get("values", [])),
+                            "latest_value": data[0]["values"][-1]["value"] if data[0].get("values") else None,
+                            "latest_date": data[0]["values"][-1]["end_time"] if data[0].get("values") else None,
+                        }
+                    else:
+                        out["surfaces"]["facebook_insights"]["metrics"][m] = {"state": "no_data"}
+                except Exception as e:
+                    out["surfaces"]["facebook_insights"]["metrics"][m] = {
+                        "state": _classify_facebook_error(e),
+                        "error": str(e)[:200],
+                    }
+            # Aggregate
+            states = [v["state"] for v in out["surfaces"]["facebook_insights"]["metrics"].values()]
+            live = sum(1 for s in states if s == "LIVE")
+            if live == len(states) and live > 0:
+                out["surfaces"]["facebook_insights"]["state"] = "LIVE"
+            elif live > 0:
+                out["surfaces"]["facebook_insights"]["state"] = "PARTIAL"
+            elif "permission_blocked" in [s for s in states]:
+                out["surfaces"]["facebook_insights"]["state"] = "PERMISSION_MISSING"
+            elif "metric_unsupported" in [s for s in states]:
+                out["surfaces"]["facebook_insights"]["state"] = "PARTIAL"
+            elif "page_token_required" in [s for s in states]:
+                out["surfaces"]["facebook_insights"]["state"] = "PERMISSION_MISSING"
+            else:
+                out["surfaces"]["facebook_insights"]["state"] = "PARTIAL"
+
+        # ===== Instagram identity =====
+        if ig_id:
+            try:
+                r = _meta._graph_get(f"/{ig_id}",
+                                     {"fields": "id,username,name,biography,followers_count,follows_count,media_count,profile_picture_url,website,verification_status"})
+                out["surfaces"]["instagram_identity"] = {
+                    "state": "LIVE",
+                    "ig_id": r.get("id"),
+                    "username": r.get("username"),
+                    "name": r.get("name"),
+                    "followers_count": r.get("followers_count"),
+                    "follows_count": r.get("follows_count"),
+                    "media_count": r.get("media_count"),
+                    "biography": r.get("biography"),
+                    "website": r.get("website"),
+                    "verification_status": r.get("verification_status"),
+                }
+            except Exception as e:
+                out["surfaces"]["instagram_identity"] = {"state": _classify_facebook_error(e),
+                                                          "error": str(e)[:200]}
+
+        # ===== Instagram media =====
+        if ig_id:
+            try:
+                r = _meta._graph_get(f"/{ig_id}/media",
+                                     {"fields": "id,caption,media_type,media_url,permalink,timestamp,like_count,comments_count",
+                                      "limit": 10})
+                items = r.get("data", [])
+                latest_ts = max((p.get("timestamp", "") for p in items), default=None)
+                out["surfaces"]["instagram_content"] = {
+                    "state": "LIVE" if items else "NO_DATA",
+                    "recent_media_count": len(items),
+                    "latest_media_timestamp": latest_ts,
+                    "earliest_media_timestamp_in_sample": min((p.get("timestamp", "") for p in items), default=None),
+                    "sample_media": [
+                        {"id": m.get("id"), "media_type": m.get("media_type"),
+                         "timestamp": m.get("timestamp"), "permalink": m.get("permalink")}
+                        for m in items[:3]
+                    ],
+                }
+            except Exception as e:
+                out["surfaces"]["instagram_content"] = {"state": _classify_facebook_error(e),
+                                                        "error": str(e)[:200]}
+
+        # ===== Instagram account insights =====
+        if ig_id:
+            try:
+                r = _meta._graph_get(f"/{ig_id}/insights",
+                                     {"metric": "impressions,reach,profile_views,follower_count",
+                                      "period": "day",
+                                      "metric_type": "total_value"})
+                data = r.get("data", [])
+                if data:
+                    latest_date = None
+                    metric_values = {}
+                    for m in data:
+                        title = m.get("name")
+                        values = m.get("values", [])
+                        if values:
+                            metric_values[title] = values[-1].get("value")
+                            latest_date = latest_date or values[-1].get("end_time")
+                    out["surfaces"]["instagram_account_insights"] = {
+                        "state": "LIVE" if metric_values else "NO_DATA",
+                        "latest_date": latest_date,
+                        "metric_values": metric_values,
+                    }
+                else:
+                    out["surfaces"]["instagram_account_insights"] = {"state": "no_data"}
+            except Exception as e:
+                out["surfaces"]["instagram_account_insights"] = {"state": _classify_facebook_error(e),
+                                                                  "error": str(e)[:200]}
+
+        # ===== Instagram media insights (one example media) =====
+        if ig_id:
+            try:
+                # find one recent media
+                r0 = _meta._graph_get(f"/{ig_id}/media", {"fields": "id", "limit": 1})
+                items = r0.get("data", [])
+                if items:
+                    media_id = items[0]["id"]
+                    r1 = _meta._graph_get(f"/{media_id}/insights",
+                                          {"metric": "impressions,reach,engagement,saved",
+                                           "period": "lifetime"})
+                    data = r1.get("data", [])
+                    metric_values = {m.get("name"): m.get("values", [{}])[0].get("value") for m in data}
+                    out["surfaces"]["instagram_media_insights"] = {
+                        "state": "LIVE" if data else "no_data",
+                        "sample_media_id": media_id,
+                        "metric_values": metric_values,
+                    }
+                else:
+                    out["surfaces"]["instagram_media_insights"] = {"state": "no_data"}
+            except Exception as e:
+                out["surfaces"]["instagram_media_insights"] = {"state": _classify_facebook_error(e),
+                                                               "error": str(e)[:200]}
+
+        # ===== Ad accounts (via /me/adaccounts) + per-account classification =====
+        try:
+            r = _meta._graph_get("/me/adaccounts",
+                                 {"fields": "id,name,currency,timezone_name,account_status,disable_reason"})
+            accounts = r.get("data", [])
+            enriched_accounts = []  # initialise before try/except
+            for a in accounts:
+                acct_id = a.get("id")
+                entry = {"id": acct_id, "name": a.get("name"),
+                         "currency": a.get("currency"), "timezone": a.get("timezone_name"),
+                         "status": a.get("account_status"), "disable_reason": a.get("disable_reason")}
+                # Per-account associated Pages (read-only)
+                try:
+                    pages_resp = _meta._graph_get(
+                        f"/{acct_id}/promote_pages" if False else f"/{acct_id}/assigned_pages",
+                        {"fields": "id,name,instagram_business_account",
+                         "limit": 50},
+                    )
+                    ps = pages_resp.get("data", [])
+                    entry["associated_pages"] = [
+                        {"page_id": p.get("id"), "page_name": p.get("name"),
+                         "linked_ig_id": (p.get("instagram_business_account") or {}).get("id")}
+                        for p in ps
+                    ]
+                except Exception as e:
+                    entry["associated_pages_error"] = _classify_facebook_error(e)
+                    entry["associated_pages_error_msg"] = str(e)[:200]
+
+                # Per-account recent campaigns (read-only; metadata only)
+                try:
+                    camps_resp = _meta._graph_get(
+                        f"/{acct_id}/campaigns",
+                        {"fields": "id,name,objective,status,effective_status,start_time,stop_time,buying_type,daily_budget,lifetime_budget",
+                         "limit": 25},
+                    )
+                    cs = camps_resp.get("data", [])
+                    entry["recent_campaigns_count"] = len(cs)
+                    entry["recent_campaigns"] = [
+                        {"id": c.get("id"), "name": c.get("name"),
+                         "objective": c.get("objective"),
+                         "effective_status": c.get("effective_status"),
+                         "start_time": c.get("start_time"),
+                         "stop_time": c.get("stop_time"),
+                         "buying_type": c.get("buying_type")}
+                        for c in cs[:10]
+                    ]
+                except Exception as e:
+                    entry["campaigns_error"] = _classify_facebook_error(e)
+                    entry["campaigns_error_msg"] = str(e)[:200]
+
+                # Per-account adspixels (read-only)
+                try:
+                    pix_resp = _meta._graph_get(
+                        f"/{acct_id}/adspixels",
+                        {"fields": "id,name,last_fired_time"},
+                    )
+                    px = pix_resp.get("data", [])
+                    entry["adspixels_count"] = len(px)
+                    entry["adspixels"] = [
+                        {"id": p.get("id"), "name": p.get("name"),
+                         "last_fired_time": p.get("last_fired_time")}
+                        for p in px
+                    ]
+                except Exception as e:
+                    entry["adspixels_error"] = _classify_facebook_error(e)
+                    entry["adspixels_error_msg"] = str(e)[:200]
+
+                # Brand classification per brief (Step 4A operator note)
+                # Heuristics: associated page_ids; recent campaign names; page name patterns
+                associated_page_ids = {p.get("page_id") for p in entry.get("associated_pages", [])}
+                associated_ig_ids = {p.get("linked_ig_id") for p in entry.get("associated_pages", [])}
+                stick_page_id = "1051565264705239"
+                stick_ig_id = "17841469555624210"
+                ss_page_id = "198859063301219"
+                ss_ig_id = "17841456713897671"
+
+                touches_stick_page = stick_page_id in associated_page_ids
+                touches_stick_ig = stick_ig_id in associated_ig_ids
+                touches_ss_page = ss_page_id in associated_page_ids
+                touches_ss_ig = ss_ig_id in associated_ig_ids
+                campaign_names = " ".join(
+                    (c.get("name") or "").lower() for c in entry.get("recent_campaigns", [])
+                ).strip()
+                name_lower = (a.get("name") or "").lower()
+                classification = "AMBIGUOUS"
+                reasons = []
+                if touches_stick_page or touches_stick_ig:
+                    if not touches_ss_page and not touches_ss_ig:
+                        classification = "STICK_USED"
+                        reasons.append("associated only with Stick Page/IG")
+                    else:
+                        classification = "SHARED"
+                        reasons.append("associated with both Stick AND Swing Shack")
+                elif touches_ss_page or touches_ss_ig:
+                    classification = "SWING_SHACK_ONLY"
+                    reasons.append("associated only with Swing Shack Page/IG")
+                elif "stick" in name_lower:
+                    classification = "STICK_USED"
+                    reasons.append("name contains 'stick'")
+                elif "swing" in name_lower or "swing shack" in name_lower:
+                    classification = "SWING_SHACK_ONLY"
+                    reasons.append("name contains 'swing'")
+                else:
+                    reasons.append("no associated Page/IG found via token")
+                if "stick" in campaign_names:
+                    reasons.append("campaign names contain 'stick'")
+                if "swing" in campaign_names or "swing shack" in campaign_names:
+                    reasons.append("campaign names contain 'swing'")
+                entry["brand_classification"] = classification
+                entry["classification_reasons"] = reasons
+                enriched_accounts.append(entry)
+
+            out["surfaces"]["ad_accounts"] = {
+                "state": "LIVE" if accounts else "NO_DATA",
+                "count": len(accounts),
+                "accounts": enriched_accounts,
+            }
+        except Exception as e:
+            out["surfaces"]["ad_accounts"] = {"state": _classify_facebook_error(e),
+                                              "error": str(e)[:200]}
+
+        # ===== Datasets / pixels (per-account fallback) =====
+        # /me/adspixels was removed in v22; surface what we found per ad account above
+        pixel_data = []
+        if 'enriched_accounts' in locals():
+            for acct in enriched_accounts:
+                for px in acct.get("adspixels", []):
+                    pixel_data.append({"account_id": acct["id"],
+                                       "pixel_id": px["id"],
+                                       "pixel_name": px["name"],
+                                       "last_fired_time": px["last_fired_time"]})
+        out["surfaces"]["pixels"] = {
+            "state": "LIVE" if pixel_data else "NO_DATA",
+            "count": len(pixel_data),
+            "pixels": pixel_data,
+            "note": "/me/adspixels deprecated in v22; pixels read per-ad-account",
+        }
+
+        # ===== WhatsApp inventory only (NO message read/send) =====
+        if waba_id:
+            try:
+                r = _meta._graph_get(f"/{waba_id}",
+                                     {"fields": "id,name,account_review_status,quality_rating,message_template_namespace"})
+                out["surfaces"]["whatsapp"] = {
+                    "state": "LIVE",
+                    "waba_id": r.get("id"),
+                    "name": r.get("name"),
+                    "review_status": r.get("account_review_status"),
+                    "quality_rating": r.get("quality_rating"),
+                    "namespace": r.get("message_template_namespace"),
+                }
+                # Phone numbers (inventory only — no reading messages)
+                try:
+                    pn = _meta._graph_get(f"/{waba_id}/phone_numbers",
+                                          {"fields": "id,display_phone_number,verified_name,quality_rating,status,code_verification_status"})
+                    pns = pn.get("data", [])
+                    out["surfaces"]["whatsapp"]["phone_numbers_count"] = len(pns)
+                    out["surfaces"]["whatsapp"]["phone_numbers"] = [
+                        {"id": p.get("id"), "display": p.get("display_phone_number"),
+                         "verified_name": p.get("verified_name"),
+                         "quality": p.get("quality_rating"), "status": p.get("status")}
+                        for p in pns
+                    ]
+                except Exception as e:
+                    out["surfaces"]["whatsapp"]["phone_numbers_error"] = str(e)[:200]
+            except Exception as e:
+                out["surfaces"]["whatsapp"] = {"state": _classify_facebook_error(e),
+                                                "error": str(e)[:200]}
+
+        return jsonify(out), 200
+    except Exception as e:
+        _app_log.exception("meta_connect_test failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _classify_facebook_error(e: Exception) -> str:
+    """Return one of:
+      permission_blocked | metric_unsupported | page_token_required |
+      not_connected | error_code | no_data | unknown
+    Per brief §10: distinct states, no 0-substitution."""
+    msg = str(e) if e else ""
+    if "Graph API error (100)" in msg or "valid insights metric" in msg:
+        return "metric_unsupported"
+    if "Graph API error (190)" in msg or "Page Access Token" in msg:
+        return "page_token_required"
+    if "Graph API error (200)" in msg or "permission" in msg.lower() or "Error (10)" in msg or "Error (200)" in msg:
+        return "permission_blocked"
+    if "Error (4)" in msg or "too many" in msg.lower():
+        return "rate_limited"
+    if "Error (803)" in msg or "not found" in msg.lower():
+        return "not_found"
+    return "error"
 
 
 # ─── META LIVE FETCH (2026-08-20) ───────────────────────────────────
@@ -20653,6 +21301,70 @@ def esc_html(s):
              .replace('<', '&lt;')
              .replace('>', '&gt;')
              .replace('"', '&quot;'))
+
+
+# ── Reporting Intelligence V1 — dual-brand report engine ──────────────
+# See campaign-os/_lib/reporting_intelligence.py
+
+try:
+    from _lib import reporting_intelligence as _ri
+except Exception as _e:
+    _app_log.warning("reporting_intelligence import failed: %s", _e)
+    _ri = None
+
+
+@app.route('/api/reports/v1/<brand_id>', methods=['GET'])
+def report_v1_brand(brand_id):
+    """GET /api/reports/v1/<brand_id>?format=html|json&days=31
+
+    Returns the Reporting Intelligence V1 report for one brand.
+    Default format = html (print-ready). JSON returns the
+    structured report dict.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v1_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/v1/portfolio', methods=['GET'])
+def report_v1_portfolio():
+    """GET /api/reports/v1/portfolio?format=html|json&days=31
+
+    Cross-brand portfolio management summary. Per brief §5,
+    contextual not league-table.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        html = _ri.render_portfolio_summary_html(reports)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v1_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/weekly-report', methods=['GET'])
