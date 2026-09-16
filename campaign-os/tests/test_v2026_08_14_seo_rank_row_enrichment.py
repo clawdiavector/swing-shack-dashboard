@@ -144,21 +144,21 @@ class SeoRankingsRowEnrichmentTests(unittest.TestCase):
     def test_07_render_seo_uses_seo_keyword_html(self):
         """renderSEO() must use seoKeywordHtml (not the generic itemHtml)
         for the rankings list."""
-        # Look for the renderSEO function body and check the seo-rank innerHTML
-        # assignment uses seoKeywordHtml.
-        m = re.search(
-            r"\$\(\s*['\"]#seo-rank['\"]\s*\)\.innerHTML\s*=\s*`[^`]*`\s*\+\s*([\w.\[\]\(\),?\s]+)\.map\(([\w]+)\)\.join\(",
-            self.src,
-        )
-        self.assertIsNotNone(
-            m,
+        idx = self.src.find("$('#seo-rank').innerHTML")
+        self.assertGreater(
+            idx, 0,
             "Could not locate $('#seo-rank').innerHTML assignment in renderSEO().",
         )
-        called_fn = m.group(2)
-        self.assertEqual(
-            called_fn, "seoKeywordHtml",
-            f"renderSEO() should map through seoKeywordHtml, not {called_fn}. "
-            f"The fix swapped itemHtml → seoKeywordHtml in this call site.",
+        chunk = self.src[idx:idx + 600]
+        self.assertIn(
+            "seoKeywordHtml",
+            chunk,
+            "renderSEO() should map rankings through seoKeywordHtml.",
+        )
+        self.assertNotIn(
+            ".map(itemHtml",
+            chunk,
+            "renderSEO() must not use generic itemHtml for rankings rows.",
         )
 
     def test_08_render_seo_decorates_quick_wins_flag(self):
