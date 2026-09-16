@@ -206,6 +206,410 @@ def _historical_archives(brand_id: str) -> dict:
     return archives
 
 
+# ── Per-brand enrichment for the brief ──────────────────────────────
+
+def _brand_planning(brand_id: str) -> dict:
+    """Pull brand-planning files: brand.json, events-2026.json,
+    events-2027.json, cadences.json. Per-brand scoped. Returns
+    structured bundle with always_on_pillars, events summary,
+    cadences, big-brand-idea. Brand isolation enforced — files
+    are loaded only if their `brand_id` field matches."""
+    if brand_id != "stick":
+        return {}  # only Stick has this bundle; SS uses different files
+    out = {}
+    for fname, key in [
+        ("data/brand-planning/stick.json", "brand"),
+        ("data/brand-planning/stick-events-2026.json", "events_2026"),
+        ("data/brand-planning/stick-events-2027.json", "events_2027"),
+        ("data/brand-planning/stick-cadences.json", "cadences"),
+        ("data/products/stick.json", "products"),
+        ("data/strategy/stick.json", "strategy_file"),
+    ]:
+        d = _read_json(fname)
+        if not d:
+            continue
+        bid = d.get("brand_id")
+        if bid and bid != "stick":
+            continue  # refuse cross-brand bleed
+        out[key] = d
+    return out
+
+
+def _pillar_mix(brand_id: str, planning: dict) -> dict:
+    """Compute content-saturation / pillar mix per brief §12.
+
+    Stick has three always-on pillars: RETAIL, FITTING, COACHING.
+    We classify each event in events-2026 by which pillar(s) it
+    supports, then compute the share of planning effort per
+    pillar. Cadences (per-lane weekday counts) feed into the
+    mix. Output is deterministic — counts, not AI commentary.
+
+    Pure heuristic: an event supports a pillar if its name or
+    lanes contain the pillar keyword (case-insensitive)."""
+    if brand_id != "stick":
+        return {"data_status": STATUS_NOT_APPLICABLE,
+                "reason": "pillar mix only meaningful for Stick"}
+    events_2026 = planning.get("events_2026", {})
+    events = events_2026.get("events", []) or []
+    if not events:
+        return {"data_status": STATUS_UNAVAILABLE,
+                "reason": "no events-2026.json data"}
+
+    pillars = ["retail", "fitting", "coaching"]
+    pillar_counts = {p: 0 for p in pillars}
+    pillar_event_ids = {p: [] for p in pillars}
+    unclassified = []
+    for ev in events:
+        text = (ev.get("name", "") + " " +
+                " ".join(str(v) for v in (ev.get("lanes") or {}).values())).lower()
+        matched = False
+        for p in pillars:
+            if p in text:
+                pillar_counts[p] += 1
+                pillar_event_ids[p].append(ev.get("id"))
+                matched = True
+        if not matched:
+            unclassified.append(ev.get("id"))
+
+    total_classified = sum(pillar_counts.values())
+    pillar_pct = {p: round(c / total_classified * 100, 1)
+                  if total_classified else 0.0
+                  for p, c in pillar_counts.items()}
+
+    # Cadences: weekday_post_count per lane
+    cadences = planning.get("cadences", {}).get("cadences", []) or []
+    cadence_by_lane = {}
+    for c in cadences:
+        lane = c.get("lane", "unknown")
+        cadence_by_lane[lane] = {
+            "weekday_post_count": c.get("weekday_post_count"),
+            "cadence_text": c.get("cadence_text"),
+        }
+
+    return {
+        "data_status": STATUS_HISTORICAL_REAL,
+        "pillars_always_on": events_2026.get("always_on_pillars", []),
+        "pillar_event_counts": pillar_counts,
+        "pillar_event_pct": pillar_pct,
+        "events_per_pillar": pillar_event_ids,
+        "unclassified_event_ids": unclassified,
+        "total_events_classified": total_classified,
+        "cadences_by_lane": cadence_by_lane,
+        "source": "data/brand-planning/stick-events-2026.json + stick-cadences.json",
+    }
+
+
+def _visual_dna_signals(brand_id: str) -> dict:
+    """Aggregate Visual DNA metadata from per-image JSON files
+    under data/brand-directory/<brand>/images/. We do NOT do
+    image vision here — we summarise the structured fields
+    (subject, human_presence, text_density, etc.) already
+    captured by the visual-dna engine."""
+    if brand_id != "stick":
+        return {"data_status": STATUS_NOT_APPLICABLE}
+    base = os.path.join(DATA_ROOT_DEFAULT, "brand-directory",
+                        "stick", "images")
+    if not os.path.isdir(base):
+        return {"data_status": STATUS_NOT_CONNECTED,
+                "reason": f"no visual-dna dir at {base}"}
+    files = [f for f in os.listdir(base) if f.endswith(".visual-dna.json")]
+    if not files:
+        return {"data_status": STATUS_NOT_CONNECTED,
+                "reason": "no .visual-dna.json files"}
+
+    # Aggregate structured fields
+    human_counts = {"yes": 0, "no": 0, "unknown": 0}
+    product_counts = {"yes": 0, "no": 0, "unknown": 0}
+    text_density = []
+    subjects = {}
+    environments = {}
+    n = 0
+    for fname in files:
+        try:
+            d = json.loads(open(os.path.join(base, fname)).read())
+        except Exception:
+            continue
+        n += 1
+        # subject
+        subj = d.get("subject") or "unknown"
+        subjects[subj] = subjects.get(subj, 0) + 1
+        # human presence
+        hp = (d.get("human_presence") or "unknown").lower()
+        human_counts[hp if hp in ("yes", "no") else "unknown"] += 1
+        # product prominence
+        pp = (d.get("product_prominence") or "unknown").lower()
+        product_counts[pp if pp in ("yes", "no") else "unknown"] += 1
+        # text density (numeric)
+        td = d.get("text_density_score")
+        if isinstance(td, (int, float)):
+            text_density.append(float(td))
+        # environment
+        env = d.get("environment") or "unknown"
+        environments[env] = environments.get(env, 0) + 1
+    median_td = sorted(text_density)[len(text_density) // 2] if text_density else None
+    return {
+        "data_status": STATUS_HISTORICAL_REAL,
+        "samples": n,
+        "source_dir": base,
+        "human_presence": human_counts,
+        "product_prominence": product_counts,
+        "text_density_median": median_td,
+        "subject_distribution": subjects,
+        "environment_distribution": environments,
+        "source": f"{base}/*.visual-dna.json",
+    }
+
+
+def _historical_reports(brand_id: str) -> dict:
+    """Pull operator-uploaded historical reports from
+    data/historical-reports/<brand>/. Each file is parsed as
+    a historical_report source per brief §29. Used as
+    contextual comparison only — never overwrites raw API
+    data per §30."""
+    base = os.path.join(DATA_ROOT_DEFAULT, "historical-reports", brand_id)
+    if not os.path.isdir(base):
+        return {"data_status": STATUS_NOT_CONNECTED,
+                "reason": f"no historical reports dir at {base}",
+                "files": []}
+    files = sorted(os.listdir(base))
+    parsed = []
+    for fname in files:
+        p = os.path.join(base, fname)
+        try:
+            d = json.loads(open(p).read())
+            parsed.append({
+                "filename": fname,
+                "path": p,
+                "period": d.get("period") or d.get("reporting_period"),
+                "metrics_keys": sorted((d.get("metrics") or {}).keys()) if isinstance(d.get("metrics"), dict) else [],
+                "observations_count": len(d.get("observations", []) or []),
+                "size_bytes": os.path.getsize(p),
+                "uploaded_at": d.get("uploaded_at"),
+                "source": p,
+            })
+        except Exception as e:
+            parsed.append({
+                "filename": fname, "path": p, "parse_error": str(e)[:120],
+                "source": p,
+            })
+    return {
+        "data_status": STATUS_HISTORICAL_REAL if parsed
+                       else STATUS_NOT_CONNECTED,
+        "count": len(parsed),
+        "files": parsed,
+        "source": f"{base}/*",
+    }
+
+
+def _ga4_page_interest(brand_id: str, cookie: Optional[str] = None) -> dict:
+    """Pull per-page interest signals from GA4. Tries
+    /api/ga4/<brand>/pages (per-page sessions). Falls back to
+    a list of known service pages if endpoint missing.
+
+    Per brief §15: surface visits to /bookings/,
+    /club-fitting-at-stick/, /coaching-at-stick/, etc."""
+    cfg = BRAND_CONFIG.get(brand_id, {})
+    if not cfg.get("ga4_property_id"):
+        return {"data_status": STATUS_NOT_CONNECTED,
+                "reason": "no GA4 property configured"}
+    service_pages = [
+        ("bookings",                "/bookings/"),
+        ("club-fitting",            "/club-fitting-at-stick/"),
+        ("coaching",                "/coaching-at-stick/"),
+        ("takomo",                  "/takomo-at-stick/"),
+        ("psycho-bunny",            "/psycho-bunny-at-stick/"),
+        ("vice-golf",               "/vice-golf-at-stick/"),
+        ("avoda",                   "/avoda-at-stick/"),
+        ("lab-golf",                "/l-a-b-golf-at-stick/"),
+    ]
+    try:
+        import urllib.request
+        base = os.environ.get("CAMPAIGN_OS_BASE_URL",
+                              "http://localhost:8080").rstrip("/")
+        url = f"{base}/api/ga4/{brand_id}/pages?days=31"
+        req = urllib.request.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            payload = json.loads(r.read())
+        if payload.get("ok") and payload.get("rows"):
+            rows = payload.get("rows", [])
+            page_by_path = {r.get("path"): r for r in rows}
+            service_signals = []
+            for label, path in service_pages:
+                row = page_by_path.get(path) or {}
+                service_signals.append({
+                    "label": label,
+                    "path": path,
+                    "sessions": int(row.get("sessions", 0) or 0),
+                    "users": int(row.get("users", 0) or 0),
+                    "engaged_sessions": int(row.get("engaged_sessions", 0) or 0),
+                })
+            return {
+                "data_status": STATUS_LIVE,
+                "service_pages": service_signals,
+                "source": f"GA4 (live via /api/ga4/{brand_id}/pages)",
+            }
+    except Exception:
+        pass
+    return {
+        "data_status": STATUS_NOT_CONNECTED,
+        "reason": "/api/ga4/<brand>/pages endpoint not yet returning per-page data",
+        "service_pages": [
+            {"label": l, "path": p, "sessions": 0,
+             "users": 0, "engaged_sessions": 0}
+            for l, p in service_pages
+        ],
+    }
+
+
+def _what_worked_and_needs_attention(brand_id: str,
+                                      report: dict) -> tuple:
+    """Deterministic rule-based generation of what-worked and
+    what-needs-attention findings (brief §21, §22). Each
+    finding has evidence + interpretation + business relevance.
+    AI does NOT generate these from scratch — they are produced
+    from explicit data signals in the report."""
+    worked = []
+    needs_attention = []
+
+    # 1. GA4 traffic
+    ga4 = report.get("sections", {}).get("website_performance", {})
+    metrics = ga4.get("metrics") or {}
+    sessions = metrics.get("sessions", 0)
+    users = metrics.get("total_users", 0)
+    er = metrics.get("engagement_rate_median", 0)
+    if ga4.get("data_status") == STATUS_LIVE and sessions > 0:
+        worked.append({
+            "title": "Stick website recorded real traffic in the period",
+            "evidence": f"{sessions:,} sessions from {users:,} users over "
+                        f"{ga4.get('period','?')}; median engagement rate "
+                        f"{er:.0%}.",
+            "interpretation": "Traffic and engagement are measurable now "
+                              "via GA4. This is the strongest verified "
+                              "signal Stick has today.",
+            "business_relevance": "Until lead tracking is live, traffic "
+                                   "is the most reliable proxy for "
+                                   "marketing reach.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    # 2. North Stars acknowledged (not yet measured)
+    stars = report.get("north_stars", {})
+    if stars:
+        needs_attention.append({
+            "title": "North Star progress not yet quantifiable",
+            "evidence": "Campaign OS does not currently receive sales, "
+                         "fitting-booking or coaching-booking data from "
+                         "the Stick operational stack.",
+            "interpretation": "North Stars (R350k Psycho Bunny sales/month, "
+                              "24 fittings/week, 24 coaching sessions/week) "
+                              "are configured but their progress cannot be "
+                              "verified in this report cycle.",
+            "business_relevance": "Once generate_lead + fitting/coaching "
+                                   "event-tracking go live, the report will "
+                                   "begin to score North Star progress.",
+            "type": "SUPPORTED_INFERENCE",
+            "confidence": "HIGH",
+        })
+
+    # 3. Pillar mix imbalance (only if pillar_mix present)
+    pillar = report.get("sections", {}).get("pillar_mix", {})
+    counts = pillar.get("pillar_event_counts") or {}
+    if counts and any(counts.values()):
+        # All counts are ints here; safe to use max/min directly
+        max_p = max(counts, key=lambda k: counts[k])
+        min_p = min(counts, key=lambda k: counts[k])
+        if counts[max_p] >= 2 * counts[min_p] and counts[min_p] > 0:
+            worked.append({
+                "title": f"{max_p.capitalize()} content is currently "
+                          f"the most-planned pillar",
+                "evidence": f"Of {sum(counts.values())} classified 2026 "
+                             f"events, {max_p}={counts[max_p]} "
+                             f"({pillar['pillar_event_pct'][max_p]}%), "
+                             f"{min_p}={counts[min_p]} "
+                             f"({pillar['pillar_event_pct'][min_p]}%).",
+                "interpretation": f"Stick's planning is currently "
+                                   f"{max_p}-weighted. {min_p.capitalize()} "
+                                   f"is comparatively under-planned at "
+                                   f"{pillar['pillar_event_pct'][min_p]}%.",
+                "business_relevance": "A 2x imbalance between max and min "
+                                       "pillars suggests marketing effort "
+                                       "may not match the equal weight "
+                                       "North Stars imply.",
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+            })
+            needs_attention.append({
+                "title": f"{min_p.capitalize()} pillar is "
+                          f"under-supported in 2026 planning",
+                "evidence": f"Only {counts[min_p]} of "
+                             f"{sum(counts.values())} classified events "
+                             f"support {min_p}.",
+                "interpretation": "The North Star for this pillar is 24 "
+                                   "sessions/week. Without marketing "
+                                   "support, hitting it is harder.",
+                "business_relevance": "Consider increasing "
+                                       f"{min_p} content in the next "
+                                       "planning cycle to rebalance.",
+                "type": "SUPPORTED_INFERENCE",
+                "confidence": "MEDIUM",
+            })
+
+    # 4. Lead tracking gap
+    lts = report.get("sections", {}).get("lead_tracking", {})
+    if lts.get("data_status") == STATUS_PENDING:
+        needs_attention.append({
+            "title": "Verified website lead tracking is not yet live",
+            "evidence": "Stick generate_lead (CF7 wpcf7mailsent) "
+                         "snippet not yet installed; not yet sending to "
+                         "GA4 as a key event.",
+            "interpretation": "Traffic and engagement are measurable but "
+                              "conversion-to-enquiry cannot be quantified.",
+            "business_relevance": "Without lead data, North Star progress "
+                                   "(R350k sales, 24 fittings, 24 "
+                                   "coaching) cannot be reported against.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    # 5. Meta surfaces (Step 4A in progress)
+    audience = report.get("sections", {}).get("audience_awareness", {})
+    if audience.get("data_status") in (STATUS_PARTIAL, STATUS_NOT_CONNECTED):
+        needs_attention.append({
+            "title": "Stick Meta organic surfaces still pending",
+            "evidence": "Stick EAAR token is now REACHABLE for page + "
+                         "ad account, but IG + WABA + content surfaces "
+                         "are PARTIAL/NOT_CONNECTED.",
+            "interpretation": "Audience + awareness metrics for Stick "
+                              "are unavailable in this cycle.",
+            "business_relevance": "Once full Meta scopes are wired, the "
+                                   "next cycle will surface real "
+                                   "reach/impressions/engagement.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    # 6. Meta Ads synthetic
+    if report.get("data_coverage", {}).get("meta_ads") == STATUS_NOT_CONNECTED:
+        needs_attention.append({
+            "title": "Meta Ads real history not yet ingested",
+            "evidence": "data/meta-ads.json is synthetic and "
+                         "QUARANTINED; real Meta Ads history requires "
+                         "Step 4B ingestion.",
+            "interpretation": "Paid performance is intentionally NOT "
+                              "reported in this cycle.",
+            "business_relevance": "Once Step 4B ships, the report will "
+                                   "auto-enrich with spend, CTR, CPC, CPM, "
+                                   "and platform-reported leads.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    return worked, needs_attention
+
+
 def _safe_pct(numerator, denominator):
     if not denominator or denominator == 0:
         return None
@@ -233,6 +637,10 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
     'analyst layer' here is template composition, not free-form
     generation — this keeps the report auditable and avoids
     invented numbers.
+
+    Now also pulls pillar_mix, page_interest, visual_dna,
+    historical_reports signals if they exist on the metrics
+    dict (caller passes the partial dict).
     """
     out = []
     cfg = BRAND_CONFIG[brand_id]
@@ -264,7 +672,7 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
     elif ga.get("data_status") == STATUS_NOT_CONNECTED:
         out.append({
             "statement": f"{name} GA4 website analytics are not currently connected "
-                          f"in this build; traffic performance cannot be quantified.",
+                          "in this build; traffic performance cannot be quantified.",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
@@ -272,7 +680,65 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
         reason = ga.get("reason", "unknown")
         out.append({
             "statement": f"{name} GA4 endpoint returned an error ({reason[:80]}). "
-                          f"Website traffic cannot be quantified in this run.",
+                          "Website traffic cannot be quantified in this run.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    # Pillar mix
+    pmx = metrics.get("pillar_mix") or {}
+    pct = pmx.get("pillar_event_pct") or {}
+    counts = pmx.get("pillar_event_counts") or {}
+    if pct and any(pct.values()):
+        ranked = sorted(pct.items(), key=lambda kv: kv[1], reverse=True)
+        top_p, top_v = ranked[0]
+        low_p, low_v = ranked[-1]
+        out.append({
+            "statement": f"2026 planning is pillar-weighted: {top_p} "
+                          f"{top_v:.0f}% vs {low_p} {low_v:.0f}% "
+                          f"({counts[top_p]} events vs {counts[low_p]}).",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    # Page / service interest
+    pi = metrics.get("page_interest") or {}
+    sp = pi.get("service_pages") or []
+    live_pages = [p for p in sp if (p.get("sessions") or 0) > 0]
+    if live_pages:
+        ranked = sorted(live_pages, key=lambda p: p.get("sessions", 0),
+                       reverse=True)
+        leader = ranked[0]
+        out.append({
+            "statement": f"Strongest measured website service-interest is "
+                          f"{leader['label']} ({leader['path']}) at "
+                          f"{leader['sessions']} sessions over the period.",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+
+    # Visual DNA
+    vdna = metrics.get("visual_dna") or {}
+    samples = vdna.get("samples")
+    if samples and samples >= 3:
+        hp = vdna.get("human_presence") or {}
+        pp = vdna.get("product_prominence") or {}
+        out.append({
+            "statement": f"Visual DNA across {samples} indexed assets: "
+                          f"human-presence yes={hp.get('yes', 0)}, "
+                          f"no={hp.get('no', 0)}; "
+                          f"product-prominence yes={pp.get('yes', 0)}, "
+                          f"no={pp.get('no', 0)}.",
+            "type": "MEASURED_FACT",
+            "confidence": "MEDIUM",
+        })
+
+    # Historical reports
+    hr = metrics.get("historical_reports") or {}
+    if hr.get("data_status") == STATUS_HISTORICAL_REAL and hr.get("count"):
+        out.append({
+            "statement": f"{hr['count']} operator-uploaded historical report(s) "
+                          "available as contextual comparison sources.",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
@@ -281,8 +747,8 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
     if cfg.get("lead_tracking_status") == STATUS_PENDING:
         out.append({
             "statement": f"Verified website lead tracking is not yet live for {name}; "
-                          f"traffic can be assessed but commercial enquiry conversion "
-                          f"cannot yet be quantified.",
+                          "traffic can be assessed but commercial enquiry conversion "
+                          "cannot yet be quantified.",
             "type": "MEASURED_FACT",
             "confidence": "HIGH",
         })
@@ -569,10 +1035,63 @@ def build_brand_report(brand_id: str, period_days: int = 31,
         ) if brand_id == "stick" else "N/A",
     }
 
+    # Brand planning (per-brand scoped; brand-isolation enforced)
+    planning = _brand_planning(brand_id)
+
+    # Pillar / content mix (brief §12)
+    pmx = _pillar_mix(brand_id, planning)
+    report["sections"]["pillar_mix"] = {
+        "title": "Content Pillar Mix (2026 planning)",
+        "data_status": pmx.get("data_status"),
+        "pillars_always_on": pmx.get("pillars_always_on"),
+        "pillar_event_counts": pmx.get("pillar_event_counts"),
+        "pillar_event_pct": pmx.get("pillar_event_pct"),
+        "events_per_pillar": pmx.get("events_per_pillar"),
+        "unclassified_event_ids": pmx.get("unclassified_event_ids"),
+        "cadences_by_lane": pmx.get("cadences_by_lane"),
+        "total_events_classified": pmx.get("total_events_classified"),
+        "source": pmx.get("source"),
+        "reason": pmx.get("reason"),
+    }
+    if pmx.get("data_status") == STATUS_HISTORICAL_REAL:
+        report["data_sources"].append({
+            "name": "Brand Planning (Stick 2026)",
+            "asset": "data/brand-planning/stick-events-2026.json",
+            "data_status": STATUS_HISTORICAL_REAL,
+            "note": "per-brand scoped; pillar classification is keyword-based heuristic",
+        })
+
+    # Visual DNA / Creative Genome (brief §20)
+    vdna = _visual_dna_signals(brand_id)
+    report["sections"]["visual_dna"] = {
+        "title": "Creative Genome (Visual DNA)",
+        "data_status": vdna.get("data_status"),
+        "samples": vdna.get("samples"),
+        "human_presence": vdna.get("human_presence"),
+        "product_prominence": vdna.get("product_prominence"),
+        "text_density_median": vdna.get("text_density_median"),
+        "subject_distribution": vdna.get("subject_distribution"),
+        "environment_distribution": vdna.get("environment_distribution"),
+        "source": vdna.get("source"),
+        "reason": vdna.get("reason"),
+    }
+
+    # Page / service interest (brief §15)
+    pi = _ga4_page_interest(brand_id, cookie=cookie)
+    report["sections"]["page_interest"] = pi
+
+    # Historical reports (brief §29)
+    hr = _historical_reports(brand_id)
+    report["sections"]["historical_reports"] = hr
+
     # Executive summary (template-based, deterministic)
     metrics_for_summary = {
         "ga4": ga4,
         "meta_organic": mo,
+        "pillar_mix": pmx,
+        "page_interest": pi,
+        "visual_dna": vdna,
+        "historical_reports": hr,
     }
     report["executive_summary"] = _executive_summary(brand_id, metrics_for_summary, {})
 
@@ -584,6 +1103,10 @@ def build_brand_report(brand_id: str, period_days: int = 31,
         "meta_ads": pm.get("data_status"),
         "lead_tracking": cfg.get("lead_tracking_status", STATUS_NOT_CONNECTED),
         "strategy": strat.get("data_status"),
+        "page_interest": pi.get("data_status"),
+        "pillar_mix": pmx.get("data_status"),
+        "visual_dna": vdna.get("data_status"),
+        "historical_reports": hr.get("data_status"),
     }
 
     # Data limitations
@@ -595,12 +1118,22 @@ def build_brand_report(brand_id: str, period_days: int = 31,
     # Next-period test plan
     report["next_period_tests"] = _test_plan_for(brand_id)
 
+    # What worked + what needs attention (brief §21, §22)
+    worked, needs_attention = _what_worked_and_needs_attention(brand_id, report)
+    report["what_worked"] = worked
+    report["what_needs_attention"] = needs_attention
+
     # Source lineage — every metric the renderer pulls carries
     # brand_id+source+asset+period
     report["source_lineage"] = [
         {"name": "GA4", "asset": cfg.get("ga4_property_id"), "brand_id": brand_id,
          "period": f"{period_start} → {period_end}",
          "source": ga4.get("source")},
+        {"name": "GA4 page interest", "asset": cfg.get("ga4_property_id"),
+         "brand_id": brand_id,
+         "period": f"{period_start} → {period_end}",
+         "source": pi.get("source") or pi.get("reason"),
+         "data_status": pi.get("data_status")},
         {"name": "Meta organic", "asset": cfg.get("facebook_page_id"), "brand_id": brand_id,
          "period": f"{period_start} → {period_end}",
          "source": mo.get("source")},
@@ -611,6 +1144,20 @@ def build_brand_report(brand_id: str, period_days: int = 31,
         {"name": "Strategy", "asset": cfg.get("strategy_path"), "brand_id": brand_id,
          "period": "static",
          "source": strat.get("source")},
+        {"name": "Brand Planning", "asset": "data/brand-planning/stick-*",
+         "brand_id": brand_id, "period": "2026 calendar year",
+         "source": pmx.get("source"),
+         "data_status": pmx.get("data_status")},
+        {"name": "Visual DNA / Creative Genome",
+         "asset": "data/brand-directory/stick/images/*.visual-dna.json",
+         "brand_id": brand_id, "period": "static",
+         "source": vdna.get("source"),
+         "data_status": vdna.get("data_status")},
+        {"name": "Historical Reports (operator-uploaded)",
+         "asset": f"data/historical-reports/{brand_id}/*",
+         "brand_id": brand_id, "period": "uploaded",
+         "source": hr.get("source"),
+         "data_status": hr.get("data_status")},
     ]
 
     return report

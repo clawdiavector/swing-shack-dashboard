@@ -21407,6 +21407,110 @@ def report_v1_portfolio():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/reports/v1/<brand_id>/upload-report', methods=['POST'])
+def report_v1_upload_report(brand_id):
+    """POST /api/reports/v1/<brand_id>/upload-report — operator uploads a
+    historical Stick/Swing Shack marketing report.
+
+    Brief §29: workflow is upload → parse historical metrics/observations
+    → store as historical_report source → make available for future
+    comparison. We do NOT overwrite historical Campaign OS data with
+    report-derived numbers (brief §30).
+
+    Body: JSON {
+      filename: str (required),
+      period: str (e.g. "2026-07"),
+      metrics: dict,           // free-form, preserved verbatim
+      observations: [str],     // narrative bullets
+      source_url: str?,        // where the operator got it from
+      uploaded_by: str?,       // operator name
+    }
+
+    Stored at: data/historical-reports/<brand_id>/<filename.json>
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    body = request.get_json(silent=True) or {}
+    fname = (body.get("filename") or "").strip()
+    if not fname:
+        return jsonify({"ok": False, "error": "filename is required"}), 400
+    # Sanitise filename — no path traversal
+    if "/" in fname or "\\" in fname or fname.startswith(".."):
+        return jsonify({"ok": False, "error": "invalid filename"}), 400
+    if not fname.endswith(".json"):
+        fname = fname + ".json"
+    period = body.get("period", "unknown")
+    metrics = body.get("metrics") or {}
+    observations = body.get("observations") or []
+    record = {
+        "schema": "https://campaign-os/historical-report/v1",
+        "brand_id": brand_id,
+        "filename": fname,
+        "period": period,
+        "metrics": metrics,
+        "observations": observations,
+        "source_url": body.get("source_url"),
+        "uploaded_by": body.get("uploaded_by"),
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "data_status": "HISTORICAL_REAL",
+    }
+    out_dir = os.path.join(DATA_DIR, "historical-reports", brand_id)
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, fname)
+    if os.path.exists(out_path):
+        return jsonify({"ok": False, "error": f"file already exists: {fname}",
+                        "path": out_path}), 409
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(record, f, indent=2, ensure_ascii=False)
+    _app_log.info("historical report uploaded: brand=%s file=%s", brand_id, fname)
+    return jsonify({
+        "ok": True,
+        "stored_path": out_path,
+        "brand_id": brand_id,
+        "filename": fname,
+        "period": period,
+        "metrics_count": len(metrics) if isinstance(metrics, dict) else 0,
+        "observations_count": len(observations) if isinstance(observations, list) else 0,
+    }), 201
+
+
+@app.route('/api/reports/v1/<brand_id>/list-uploads', methods=['GET'])
+def report_v1_list_uploads(brand_id):
+    """GET /api/reports/v1/<brand_id>/list-uploads — list operator-uploaded
+    historical reports for a brand."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
+    out_dir = os.path.join(DATA_DIR, "historical-reports", brand_id)
+    if not os.path.isdir(out_dir):
+        return jsonify({"ok": True, "brand_id": brand_id, "files": []}), 200
+    files = []
+    for fname in sorted(os.listdir(out_dir)):
+        if not fname.endswith(".json"):
+            continue
+        p = os.path.join(out_dir, fname)
+        try:
+            d = json.load(open(p))
+            files.append({
+                "filename": fname,
+                "period": d.get("period"),
+                "uploaded_at": d.get("uploaded_at"),
+                "uploaded_by": d.get("uploaded_by"),
+                "metrics_keys": sorted((d.get("metrics") or {}).keys())
+                                if isinstance(d.get("metrics"), dict) else [],
+                "observations_count": len(d.get("observations", []) or []),
+                "size_bytes": os.path.getsize(p),
+            })
+        except Exception as e:
+            files.append({"filename": fname, "parse_error": str(e)[:120]})
+    return jsonify({"ok": True, "brand_id": brand_id,
+                    "count": len(files), "files": files}), 200
+
+
+
 @app.route('/api/weekly-report', methods=['GET'])
 def weekly_report_api():
     """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
@@ -34352,6 +34456,57 @@ def ga4_sessions(brand_id):
         "total_conversions": total_conversions,
         "checked_at": _now_iso(),
     }), 200
+
+
+@app.route("/api/ga4/<brand_id>/pages", methods=["GET"])
+def ga4_pages(brand_id):
+    """GET /api/ga4/<brand>/pages — per-page sessions + engagement (last 30 days).
+
+    Returns rows with `path` + `sessions` + `users` + `engaged_sessions`.
+    Used by the reporting engine's page_interest section. Falls back
+    gracefully to empty rows if the page-level API is not yet wired.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    if not creds["property_id"] or not creds["credentials_path"] or not os.path.exists(creds["credentials_path"]):
+        return jsonify({"ok": False, "error": "GA4 not configured",
+                        "brand_id": bid, "rows": []}), 200
+    try:
+        from google.analytics.data_v1beta import BetaAnalyticsDataClient
+        from google.analytics.data_v1beta.types import (
+            DateRange, Dimension, Metric, RunReportRequest,
+        )
+        client = BetaAnalyticsDataClient.from_service_account_file(creds["credentials_path"])
+        request = RunReportRequest(
+            property=f"properties/{creds['property_id']}",
+            dimensions=[Dimension(name="pagePath")],
+            metrics=[
+                Metric(name="sessions"),
+                Metric(name="totalUsers"),
+                Metric(name="engagedSessions"),
+            ],
+            date_ranges=[DateRange(start_date="30daysAgo",
+                                    end_date="today")],
+            limit=200,
+        )
+        response = client.run_report(request)
+        rows = []
+        for row in (response.rows or []):
+            path = ((row.dimension_values or [None])[0]).value if row.dimension_values else ""
+            mv = row.metric_values or []
+            rows.append({
+                "path": path,
+                "sessions": int(mv[0].value) if len(mv) > 0 else 0,
+                "users": int(mv[1].value) if len(mv) > 1 else 0,
+                "engaged_sessions": int(mv[2].value) if len(mv) > 2 else 0,
+            })
+        return jsonify({"ok": True, "brand_id": bid,
+                        "rows": rows, "checked_at": _now_iso()}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:300],
+                        "brand_id": bid, "rows": []}), 200
 
 
 # ─── A/B TESTING (Tier 3.7 — Audit V2 + production, 2026-09-04) ─────────────
