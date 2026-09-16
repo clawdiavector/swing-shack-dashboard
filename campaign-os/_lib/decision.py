@@ -724,6 +724,35 @@ def clear_my_desk_sequence(brand_id: str) -> Dict[str, Any]:
             "since_last_review": card.get("since_last_review"),
         })
 
+    blocked_remain = [
+        c for c in candidates
+        if c.get("blocked_by") or c.get("status") == "blocked"
+    ]
+    automated_count = 0
+    try:
+        from governance import check_authority
+        for c in candidates:
+            if c.get("blocked_by") or c.get("status") == "blocked":
+                continue
+            action = None
+            for a in c.get("actions", []):
+                act = a.get("action")
+                if act and act not in (
+                    ACTION_OPEN_STRATEGY,
+                    ACTION_OPEN_ADVERTISING,
+                    ACTION_OPEN_PORTFOLIO,
+                    ACTION_OPEN_DATA_HEALTH,
+                ):
+                    action = act
+                    break
+            if not action:
+                continue
+            auth = check_authority(brand_id, action, human_approved=False)
+            if auth.get("can_execute"):
+                automated_count += 1
+    except Exception:
+        automated_count = 0
+
     summary = {
         "decisions_to_review": len(steps),
         "blocked_remaining": len(blocked_remain),
