@@ -1,6 +1,6 @@
 """Layer 1 jobs — network scrapers and deterministic insight ports.
 
-bootstrap_layer1() registers eight JobSpecs. Called from registry.py next to
+bootstrap_layer1() registers Layer 1 JobSpecs. Called from registry.py next to
 _bootstrap_meta() so app.py stays untouched (check_lib_modules package blindness).
 """
 
@@ -10,13 +10,19 @@ from typing import Callable
 
 from ..spec import JobSpec
 from . import (
+    booking_truth,
+    competitor_tracker,
+    content_ideas_refresh,
     ga4_report,
     golf_news,
+    gsc_report,
     insights_hooks,
     insights_reco,
+    post_conversion_score,
     reddit_trends,
     seo_rankings,
     site_audit,
+    windsor_refresh,
     youtube_trends,
 )
 
@@ -27,13 +33,19 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "seo_rankings",
     "ga4_report",
     "site_audit",
+    "competitor_tracker",
+    "windsor_refresh",
+    "gsc_report",
+    "booking_truth",
     "insights_hooks",
+    "post_conversion_score",
+    "content_ideas_refresh",
     "insights_reco",
 )
 
 
 def layer1_specs() -> list[JobSpec]:
-    """Return the eight Layer 1 JobSpecs (t29 table / t30 port)."""
+    """Return all Layer 1 JobSpecs."""
     return [
         JobSpec(
             name="golf_news",
@@ -106,6 +118,56 @@ def layer1_specs() -> list[JobSpec]:
             writes=("seo-audit.json", "geo-audit.json"),
         ),
         JobSpec(
+            name="competitor_tracker",
+            fn=competitor_tracker.run,
+            every_seconds=604800,
+            timeout_seconds=120,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=1,
+            credentials=("META_SYSTEM_USER_TOKEN",),
+            writes=("competitor-tracker.json",),
+            reads=("competitor-tracker.json",),
+        ),
+        JobSpec(
+            name="windsor_refresh",
+            fn=windsor_refresh.run,
+            every_seconds=86400,
+            timeout_seconds=90,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=1,
+            credentials=("WINDSOR_API_KEY",),
+            writes=("meta-ads.json", "google-ads.json"),
+            reads=("ga4-metrics.json",),
+            upstream=("ga4_report",),
+        ),
+        JobSpec(
+            name="gsc_report",
+            fn=gsc_report.run,
+            every_seconds=86400,
+            timeout_seconds=90,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=1,
+            credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
+            writes=("search-console.json",),
+            upstream=("ga4_report",),
+        ),
+        JobSpec(
+            name="booking_truth",
+            fn=booking_truth.run,
+            every_seconds=86400,
+            timeout_seconds=90,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=1,
+            credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
+            writes=("booking-events.json", "leads.json", "lead-quality.json"),
+            reads=("reddit-trends.json", "booking-events.json"),
+            upstream=("ga4_report", "reddit_trends"),
+        ),
+        JobSpec(
             name="insights_hooks",
             fn=insights_hooks.run,
             every_seconds=86400,
@@ -123,6 +185,37 @@ def layer1_specs() -> list[JobSpec]:
                 "hook-bank.json",
             ),
             upstream=("meta_refresh", "youtube_trends"),
+        ),
+        JobSpec(
+            name="post_conversion_score",
+            fn=post_conversion_score.run,
+            every_seconds=86400,
+            timeout_seconds=120,
+            best_effort=True,
+            criticality="HIGH",
+            retries=0,
+            credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
+            writes=("post-conversion-score.json",),
+            reads=("ig-business-analytics.json", "ga4-metrics.json"),
+            upstream=("meta_refresh", "ga4_report"),
+        ),
+        JobSpec(
+            name="content_ideas_refresh",
+            fn=content_ideas_refresh.run,
+            every_seconds=86400,
+            timeout_seconds=60,
+            best_effort=True,
+            criticality="LOW",
+            retries=1,
+            writes=("content-ideas.json",),
+            reads=(
+                "missed-opportunities.json",
+                "reddit-trends.json",
+                "hook-bank.json",
+                "competitor-tracker.json",
+                "content-ideas.json",
+            ),
+            upstream=("insights_hooks", "insights_reco", "competitor_tracker"),
         ),
         JobSpec(
             name="insights_reco",
@@ -149,8 +242,20 @@ def layer1_specs() -> list[JobSpec]:
                 "hook-bank.json",
                 "geo-audit.json",
                 "recommendation-scores.json",
+                "meta-ads.json",
+                "google-ads.json",
+                "search-console.json",
+                "booking-events.json",
             ),
-            upstream=("insights_hooks", "ga4_report", "seo_rankings", "site_audit"),
+            upstream=(
+                "insights_hooks",
+                "ga4_report",
+                "seo_rankings",
+                "site_audit",
+                "windsor_refresh",
+                "gsc_report",
+                "booking_truth",
+            ),
         ),
     ]
 

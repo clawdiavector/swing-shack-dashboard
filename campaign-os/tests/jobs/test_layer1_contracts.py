@@ -424,3 +424,91 @@ def test_jobspec_reads_upstream_defaulted_on_meta():
     meta = JOBS["meta_refresh"]
     assert meta.reads == ()
     assert meta.upstream == ()
+
+
+# ── data-gap jobs (2026-09) ─────────────────────────────────────────────────
+
+
+def test_windsor_refresh_missing_key(data_dir):
+    from _lib.jobs.layer1 import windsor_refresh
+
+    result = windsor_refresh.run()
+    _assert_fail_no_raise(result)
+    assert "WINDSOR" in result["error"]
+
+
+def test_windsor_refresh_success(data_dir, monkeypatch):
+    from _lib.jobs.layer1 import windsor_refresh
+
+    monkeypatch.setenv("WINDSOR_API_KEY", "test-key")
+    meta_payload = {"live": True, "_meta": {"campaigns_count": 2}, "campaigns": []}
+    ga_payload = {"live": True, "_meta": {"campaigns_count": 1}, "campaigns": []}
+    with patch("_lib.windsor_fetcher.build_meta_ads", return_value=meta_payload), patch(
+        "_lib.windsor_fetcher.build_google_ads", return_value=ga_payload
+    ), patch("_lib.windsor_client.read_api_key", return_value="test-key"):
+        result = windsor_refresh.run()
+    _assert_ok_rows(result)
+    assert (data_dir / "meta-ads.json").is_file()
+    assert (data_dir / "google-ads.json").is_file()
+
+
+def test_content_ideas_refresh_writes(data_dir):
+    from _lib.jobs.layer1 import content_ideas_refresh
+
+    (data_dir / "hook-bank.json").write_text(
+        json.dumps(
+            {
+                "output_buckets": {
+                    "proven_and_trending": [
+                        {"hook": "Stop slicing your driver today", "pillar": "technique"}
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = content_ideas_refresh.run()
+    _assert_ok_rows(result)
+    assert (data_dir / "content-ideas.json").is_file()
+
+
+def test_booking_truth_seed_write(data_dir):
+    from _lib.jobs.layer1 import booking_truth
+
+    seed = REPO_ROOT / "data" / "booking-events.json"
+    if seed.is_file():
+        (data_dir / "booking-events.json").write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
+    (data_dir / "reddit-trends.json").write_text(
+        json.dumps({"hot_pain_points": [{"title": "Need fitting advice", "score": 50}]}),
+        encoding="utf-8",
+    )
+    result = booking_truth.run()
+    assert result.get("ok") is True
+    assert (data_dir / "leads.json").is_file()
+    assert (data_dir / "lead-quality.json").is_file()
+
+
+def test_competitor_tracker_seed_no_token(data_dir):
+    from _lib.jobs.layer1 import competitor_tracker
+
+    seed = REPO_ROOT / "data" / "competitor-tracker.json"
+    if not seed.is_file():
+        pytest.skip("competitor-tracker seed missing")
+    (data_dir / "competitor-tracker.json").write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
+    result = competitor_tracker.run()
+    assert result.get("ok") is True
+    assert (data_dir / "competitor-tracker.json").is_file()
+
+
+def test_post_conversion_score_missing_inputs(data_dir):
+    from _lib.jobs.layer1 import post_conversion_score
+
+    result = post_conversion_score.run()
+    _assert_fail_no_raise(result)
+
+
+def test_gsc_report_missing_cred(data_dir):
+    from _lib.jobs.layer1 import gsc_report
+
+    result = gsc_report.run()
+    _assert_fail_no_raise(result)

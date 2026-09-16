@@ -1925,18 +1925,48 @@ def gbp_suggestions() -> Dict[str, Any]:
 def seo_assistant() -> Dict[str, Any]:
     audit = _read_json(_runtime_data_file("seo-audit.json")) or {}
     rank = _read_json(_runtime_data_file("seo-rankings.json")) or {}
+    gsc = _read_json(_runtime_data_file("search-console.json")) or {}
     geo = _read_json(_runtime_data_file("geo-audit.json")) or {}
     fixes = _read_json(_runtime_data_file("landing-page-fixes.json")) or {}
+
+    if isinstance(gsc, dict) and gsc.get("queries"):
+        rank = dict(rank) if isinstance(rank, dict) else {}
+        rank.setdefault("metadata", {})
+        rank["metadata"]["primary_source"] = "search-console.json"
+        rank["rising"] = [
+            q.get("query") or q.get("key")
+            for q in (gsc.get("rising") or [])
+            if isinstance(q, dict) and (q.get("query") or q.get("key"))
+        ]
+        rank["falling"] = [
+            q.get("query") or q.get("key")
+            for q in (gsc.get("falling") or [])
+            if isinstance(q, dict) and (q.get("query") or q.get("key"))
+        ]
+        rank["quick_wins"] = [
+            {
+                "keyword": q.get("query") or q.get("key"),
+                "impressions": q.get("impressions"),
+                "ctr": q.get("ctr"),
+                "position": q.get("position"),
+            }
+            for q in (gsc.get("quick_wins") or [])
+            if isinstance(q, dict) and (q.get("query") or q.get("key"))
+        ]
+        rank["gsc_queries"] = (gsc.get("queries") or [])[:25]
+
     return {
         "ok": True,
         "ts": _now_iso(),
         "audit": audit if isinstance(audit, dict) else {},
         "rankings": rank if isinstance(rank, dict) else {},
+        "search_console": gsc if isinstance(gsc, dict) else {},
         "geo": geo if isinstance(geo, dict) else {},
         "fixes": fixes.get("fixes", []) if isinstance(fixes, dict) else [],
         "data_as_of": {
             "seo_audit": _json_as_of("seo-audit.json", audit),
             "seo_rankings": _json_as_of("seo-rankings.json", rank),
+            "search_console": _json_as_of("search-console.json", gsc),
             "geo_audit": _json_as_of("geo-audit.json", geo),
             "landing_page_fixes": _json_as_of("landing-page-fixes.json", fixes),
         },

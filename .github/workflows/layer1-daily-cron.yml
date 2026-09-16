@@ -70,6 +70,54 @@ jobs:
             -o /tmp/ga4_report.json
           python3 -c "import json; d=json.load(open('/tmp/ga4_report.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
 
+      - name: Wave 1 — windsor_refresh
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/windsor_refresh ==="
+          curl -sf -X POST "$BASE/api/jobs/run/windsor_refresh" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/windsor_refresh.json
+          python3 -c "import json; d=json.load(open('/tmp/windsor_refresh.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — gsc_report
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/gsc_report ==="
+          curl -sf -X POST "$BASE/api/jobs/run/gsc_report" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/gsc_report.json
+          python3 -c "import json; d=json.load(open('/tmp/gsc_report.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — booking_truth
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/booking_truth ==="
+          curl -sf -X POST "$BASE/api/jobs/run/booking_truth" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/booking_truth.json
+          python3 -c "import json; d=json.load(open('/tmp/booking_truth.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — competitor_tracker (Mondays only)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ "$(date -u +%u)" != "1" ]; then
+            echo "Skip competitor_tracker — weekly job (runs Mondays UTC)"
+            exit 0
+          fi
+          echo "=== POST /api/jobs/run/competitor_tracker ==="
+          curl -sf -X POST "$BASE/api/jobs/run/competitor_tracker" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/competitor_tracker.json
+          python3 -c "import json; d=json.load(open('/tmp/competitor_tracker.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
       - name: Wave 1 — site_audit
         continue-on-error: true
         run: |
@@ -113,6 +161,17 @@ jobs:
             -o /tmp/insights_hooks.json
           python3 -c "import json,sys; d=json.load(open('/tmp/insights_hooks.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}'); sys.exit(0 if d.get('ok') else 1)"
 
+      - name: Wave 3b — post_conversion_score
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/post_conversion_score ==="
+          curl -sf -X POST "$BASE/api/jobs/run/post_conversion_score" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/post_conversion_score.json
+          python3 -c "import json; d=json.load(open('/tmp/post_conversion_score.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
       - name: Wave 4 — insights_reco
         run: |
           set -euo pipefail
@@ -122,6 +181,17 @@ jobs:
             -H "Content-Type: application/json" \
             -o /tmp/insights_reco.json
           python3 -c "import json,sys; d=json.load(open('/tmp/insights_reco.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}'); sys.exit(0 if d.get('ok') else 1)"
+
+      - name: Wave 5 — content_ideas_refresh
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/content_ideas_refresh ==="
+          curl -sf -X POST "$BASE/api/jobs/run/content_ideas_refresh" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/content_ideas_refresh.json
+          python3 -c "import json; d=json.load(open('/tmp/content_ideas_refresh.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
 
       - name: Summary — GET /api/jobs/digest
         run: |
