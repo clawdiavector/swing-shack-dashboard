@@ -77,6 +77,12 @@ DEFAULT_SCOPES = (
 )
 DEFAULT_PORT = 9999
 DEFAULT_TIMEOUT = 300  # 5 minutes to log in
+SESSION_FILE = Path(
+    os.environ.get(
+        "UBERSUGGEST_OAUTH_SESSION_FILE",
+        str(Path.home() / ".local/state/campaign-os/ubersuggest-oauth-session.json"),
+    )
+)
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────
@@ -161,6 +167,95 @@ def start_cloudflared_tunnel(local_port: int, log_path: str = "/tmp/cf-ubersugge
     return proc, url
 
 
+def probe_tunnel(public_url: str, *, attempts: int = 20, pause_s: float = 0.5) -> bool:
+    """Return True when trycloudflare forwards to our loopback listener."""
+    from urllib.error import HTTPError, URLError
+    from urllib.request import urlopen
+
+    health = public_url.rstrip("/") + "/health"
+    for _ in range(attempts):
+        try:
+            with urlopen(health, timeout=5) as resp:
+                if resp.status == 200:
+                    return True
+        except HTTPError as exc:
+            if exc.code in (200, 400):
+                return True
+        except URLError:
+            pass
+        time.sleep(pause_s)
+    return False
+
+
+def save_oauth_session(payload: dict) -> None:
+    SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+    body = dict(payload)
+    body["saved_at"] = int(time.time())
+    tmp = SESSION_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(body, indent=2), encoding="utf-8")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, SESSION_FILE)
+
+
+def load_oauth_session() -> Optional[dict]:
+    if not SESSION_FILE.is_file():
+        return None
+    try:
+        data = json.loads(SESSION_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def complete_oauth_from_callback(callback_url: str) -> int:
+    """Finish token exchange using code+state from a pasted redirect URL."""
+    parsed = urllib.parse.urlparse(callback_url.strip())
+    qs = urllib.parse.parse_qs(parsed.query)
+    code = (qs.get("code") or [None])[0]
+    state = (qs.get("state") or [None])[0]
+    err = (qs.get("error") or [None])[0]
+    if err:
+        print(f"[ERROR] OAuth error in callback URL: {err}")
+        return 3
+    if not code:
+        print("[ERROR] callback URL missing ?code=…")
+        return 3
+
+    session = load_oauth_session()
+    if not session:
+        print(f"[ERROR] no saved session at {SESSION_FILE} — re-run full OAuth first")
+        return 2
+    if state != session.get("state"):
+        print("[ERROR] state mismatch — wrong callback URL or stale session")
+        return 3
+
+    verifier = session.get("verifier") or ""
+    redirect_uri = session.get("redirect_uri") or ""
+    if not verifier or not redirect_uri:
+        print("[ERROR] saved session missing verifier or redirect_uri")
+        return 2
+
+    print(f"[complete] exchanging code ({str(code)[:12]}…) …")
+    try:
+        token_resp = exchange_code(code, verifier, redirect_uri)
+    except Exception as exc:
+        print(f"[ERROR] token exchange failed: {exc}")
+        return 4
+    if "access_token" not in token_resp:
+        print(f"[ERROR] token response missing access_token: {token_resp}")
+        return 5
+
+    saved = write_token_file(token_resp)
+    print(f"[complete] token saved to {saved} (chmod 600)")
+    try:
+        SESSION_FILE.unlink(missing_ok=True)
+    except OSError:
+        pass
+    msg = verify_token_via_auth_status()
+    print(f"[verify] {msg}")
+    return 0 if "OK" in msg else 1
+
+
 # ─── Loopback callback server ───────────────────────────────────────────
 
 class _CallbackHandler(http.server.BaseHTTPRequestHandler):
@@ -172,11 +267,28 @@ class _CallbackHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):  # noqa: N802 (BaseHTTPRequestHandler contract)
         parsed = urllib.parse.urlparse(self.path)
+        if parsed.path.rstrip("/") == "/health":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"ok\n")
+            return
+
         qs = urllib.parse.parse_qs(parsed.query)
         code = qs.get("code", [None])[0]
         state = qs.get("state", [None])[0]
         err = qs.get("error", [None])[0]
         err_desc = qs.get("error_description", [None])[0]
+
+        if not code and not err:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(
+                b"Campaign OS Ubersuggest OAuth listener is up.\n"
+                b"Complete login in the authorize tab; this tab will update on redirect.\n"
+            )
+            return
 
         if err:
             self.send_response(400)
@@ -432,6 +544,11 @@ def main() -> int:
                    help="print credential status + tier check + exit")
     p.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
                    help=f"seconds to wait for OAuth callback (default {DEFAULT_TIMEOUT})")
+    p.add_argument(
+        "--complete-callback",
+        metavar="URL",
+        help="finish OAuth using ?code= from a redirect URL (502 recovery — needs saved session)",
+    )
     args = p.parse_args()
 
     print(f"Ubersuggest MCP OAuth dance")
@@ -450,6 +567,9 @@ def main() -> int:
         msg = verify_token_via_auth_status()
         print(f"  {msg}")
         return 0 if "OK" in msg else 1
+
+    if args.complete_callback:
+        return complete_oauth_from_callback(args.complete_callback)
 
     # 1. Pick a free port
     port = free_port_hint(args.port)
@@ -473,11 +593,25 @@ def main() -> int:
             cf_proc, public_url = start_cloudflared_tunnel(port)
             print(f"[4/8] Cloudflare quick tunnel: {public_url}/")
             redirect_uri = f"{public_url}/"
+            if not probe_tunnel(public_url):
+                print("[WARN] tunnel health probe failed — callback may 502")
+                print("       If you see 502 after Authorize, copy the browser URL and run:")
+                print("       python3 scripts/ubersuggest_oauth.py --complete-callback '<url>'")
         except (FileNotFoundError, RuntimeError) as e:
             print(f"[4/8] cloudflared unavailable ({e}). Falling back to loopback.")
             print(f"      NOTE: URL only works if you can reach this Mac's 127.0.0.1:{port}.")
             redirect_uri = loopback + "/"
-    finally:
+
+        save_oauth_session(
+            {
+                "verifier": verifier,
+                "state": state,
+                "redirect_uri": redirect_uri,
+                "port": port,
+            }
+        )
+        print(f"[4b/8] session saved → {SESSION_FILE}")
+
         # 5. Build /authorize URL
         authorize_url = (
             f"{AUTHORIZE_URL}"
@@ -496,6 +630,14 @@ def main() -> int:
         if not args.no_browser:
             print("[6/8] opening browser…")
             open_browser(authorize_url)
+    except Exception:
+        server.shutdown()
+        if cf_proc:
+            try:
+                cf_proc.terminate()
+            except Exception:
+                pass
+        raise
 
     # 7. Wait for callback
     print(f"[6/8] waiting up to {args.timeout}s for the /callback (browser will hit it after login)...")
@@ -508,6 +650,8 @@ def main() -> int:
     code = _OAUTH_RESULT.get("code")
     if not code:
         print("[ERROR] timed out waiting for /callback")
+        print(f"        If browser shows 502 but URL has ?code=, run:")
+        print(f"        python3 scripts/ubersuggest_oauth.py --complete-callback '<paste full url>'")
         return 2
     if code.startswith("ERROR:"):
         print(f"[ERROR] OAuth callback returned an error: {code}")
