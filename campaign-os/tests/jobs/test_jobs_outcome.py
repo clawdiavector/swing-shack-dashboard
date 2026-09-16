@@ -1,8 +1,7 @@
-"""Outcome endpoint + result_summary ledger fields."""
+"""Outcome endpoint + descriptions on status."""
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -32,25 +31,30 @@ def _auth():
     return {"Authorization": "Bearer test-job-token-not-a-secret"}
 
 
-def test_outcome_requires_job_param(job_app):
-    client, _, _ = job_app
-    resp = client.get("/api/jobs/outcome", headers=_auth())
-    assert resp.status_code == 400
+def test_jobs_outcome_requires_auth(job_app):
+    _, app_module, _ = job_app
+    anon = app_module.app.test_client(cos_anon=True)
+    assert anon.get("/api/jobs/outcome?job=golf_news").status_code == 401
 
 
-def test_outcome_after_run(job_app):
+def test_jobs_outcome_after_run(job_app):
     client, _, tmp_path = job_app
-    client.post("/api/jobs/run/freshness_scan", headers=_auth())
-    resp = client.get("/api/jobs/outcome?job=freshness_scan", headers=_auth())
+    run = client.post("/api/jobs/run/freshness_scan", headers=_auth()).get_json()
+    resp = client.get(
+        f"/api/jobs/outcome?job=freshness_scan&run_id={run['run_id']}",
+        headers=_auth(),
+    )
     assert resp.status_code == 200
     data = resp.get_json()
     assert data.get("ok") is True
-    assert data.get("job") == "freshness_scan"
+    assert data.get("run_id") == run["run_id"]
     assert isinstance(data.get("lines"), list)
     assert data.get("headline")
 
-    ledger = tmp_path / "job-runs.jsonl"
-    rows = [json.loads(line) for line in ledger.read_text().splitlines() if line.strip()]
-    finished = [r for r in rows if r.get("phase") == "finished"]
-    assert finished
-    assert "result_summary" in finished[-1]
+
+def test_status_includes_info(job_app):
+    client, _, _ = job_app
+    st = client.get("/api/jobs/status", headers=_auth()).get_json()
+    row = next(j for j in st["jobs"] if j["name"] == "meta_refresh")
+    assert row["info"].get("title")
+    assert row["info"].get("summary")

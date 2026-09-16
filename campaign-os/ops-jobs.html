@@ -338,10 +338,11 @@ function renderOutcomeHtml(data) {
   const lines = (data.lines || []).map(l => `<li>${esc(l)}</li>`).join('');
   const files = (data.files || []).map(f => {
     const hl = (f.highlights || []).join('; ');
-    return `<div class="outcome-file"><strong>${esc(f.path)}</strong>${hl ? ' — ' + esc(hl) : ''}</div>`;
+    const miss = f.exists ? '' : ' (missing on disk)';
+    return `<div class="outcome-file"><strong>${esc(f.path)}</strong>${miss}${hl ? ' — ' + esc(hl) : ''}</div>`;
   }).join('');
   return `<div class="outcome-box">
-    <div class="outcome-head">${esc(data.headline || data.status || 'Run')}</div>
+    <div class="outcome-head">${esc(data.headline || data.status || 'Run')}${meta ? ' · ' + esc(meta) : ''}</div>
     ${lines ? `<ul class="outcome-lines">${lines}</ul>` : ''}
     ${files ? `<div class="outcome-files">${files}</div>` : ''}
   </div>`;
@@ -552,6 +553,20 @@ $('list').addEventListener('click', (e) => {
     const name = histBtn.getAttribute('data-toggle-hist');
     const wrap = document.getElementById('hist-' + name);
     if (wrap) wrap.classList.toggle('open');
+    return;
+  }
+  const histRow = e.target.closest('[data-hist-outcome]');
+  if (histRow) {
+    const name = histRow.getAttribute('data-hist-outcome');
+    const runId = histRow.getAttribute('data-hist-run');
+    const wrap = document.getElementById('outcome-' + name);
+    const histWrap = document.getElementById('hist-' + name);
+    if (histWrap) histWrap.classList.add('open');
+    if (wrap) {
+      wrap.classList.add('open');
+      wrap.dataset.loaded = '1';
+      loadOutcome(name, runId, wrap);
+    }
     return;
   }
   const openBtn = e.target.closest('[data-open]');
