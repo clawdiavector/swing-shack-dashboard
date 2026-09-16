@@ -4845,6 +4845,26 @@ function dataAsOfBadge(iso, title) {
   if (!t) return '';
   return ` <span class="muted data-asof-badge" style="font-size:11px;font-weight:500" title="${esc(title || t)}">· ${esc(t)}</span>`;
 }
+/** Compact timestamp for per-row meta (Layer 1 job fetch time). */
+function formatDataAsOfShort(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('en-ZA', {
+      timeZone: 'Africa/Johannesburg',
+      month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return ''; }
+}
+function rowFetchedAtHtml(iso, label) {
+  const short = formatDataAsOfShort(iso);
+  if (!short) return '';
+  const tip = formatDataAsOf(iso) || short;
+  const lbl = label || 'Updated';
+  return `<span class="muted data-asof-row" style="font-size:10px;white-space:nowrap" title="${esc(tip)}"> · ${esc(lbl)} ${esc(short)}</span>`;
+}
 function attachCardDataAsOf(containerEl, iso) {
   if (!containerEl || !iso) return;
   const h3 = containerEl.closest('.card')?.querySelector('.card-h h3');
@@ -6219,7 +6239,7 @@ async function renderInsightsV2(){
               ${isTop && er > 0 ? `<span style="font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:${borderColor}22;color:${borderColor};flex-shrink:0" title="Top engagementRate in this list">★ Top</span>` : ''}
             </div>
             <div style="font-size:10px;color:var(--tx-3);display:flex;justify-content:space-between;margin-top:.15rem;gap:.5rem">
-              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ts}${p.like_count != null ? ' · ❤️ '+p.like_count : ''}${p.comments_count != null ? ' · 💬 '+p.comments_count : ''}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${ts}${p.like_count != null ? ' · ❤️ '+p.like_count : ''}${p.comments_count != null ? ' · 💬 '+p.comments_count : ''}${rowFetchedAtHtml(igAsOf)}</span>
               <span style="font-weight:600;color:${borderColor};flex-shrink:0" title="${verdictLabel} (your avg: ${igAvgEr.toFixed(2)}%)">${toneEmoji} ${er.toFixed(2)}%</span>
             </div>
           </div>`;
@@ -6278,6 +6298,7 @@ async function renderInsightsV2(){
           <div style="font-size:11px;color:var(--tx-3);text-align:right;flex-shrink:0">
             <div style="font-weight:600;color:var(--tx-1)">${(it.sessions||0).toLocaleString()}</div>
             <div style="color:${borderColor};font-weight:600" title="${esc(erTitle)}">${toneEmoji} ${erText}</div>
+            <div>${rowFetchedAtHtml(perf.data_as_of && perf.data_as_of.ga4)}</div>
           </div>
         </a>`;
     }).join('') : `<div class="muted" style="padding:1rem">No GA4 data yet. Add the service account JSON in <code>/ga4</code>.</div>`;
@@ -7452,7 +7473,7 @@ function safeList(arr, cap=10){ return Array.isArray(arr) ? arr.slice(0, cap) : 
 // Cheap regex over the short URL keeps the markup thin (no external link
 // component) and the rank pill uses the existing `.pill` classes so it
 // themes automatically.
-function seoKeywordHtml(k){
+function seoKeywordHtml(k, fetchedAt){
   if(!k || typeof k !== 'object') return '';
   const kw = k.keyword || k.query || k.title || '';
   const rank = (k.current_rank === null || k.current_rank === undefined) ? null : Number(k.current_rank);
@@ -7488,7 +7509,7 @@ function seoKeywordHtml(k){
   return `<li class="li" onclick="this.classList.toggle('open')">
     <div class="li-body">
       <div class="li-title">${esc(kw)}</div>
-      <div class="li-meta">${rankPill}${intentPill}${qwPill}</div>
+      <div class="li-meta">${rankPill}${intentPill}${qwPill}${rowFetchedAtHtml(fetchedAt)}</div>
       ${detail}
     </div>
     <span class="li-chevron">▶</span>
@@ -7498,8 +7519,9 @@ function pretty(obj){
   const s = JSON.stringify(obj || {}, null, 2);
   return `<pre style="white-space:pre-wrap;font-size:11px;background:var(--bg-3);padding:.5rem;border-radius:6px;margin-top:.5rem;max-height:200px;overflow:auto">${esc(s)}</pre>`;
 }
-function itemHtml(it, fmt){
-  if(typeof it === 'string') return `<li class="li"><div class="li-body"><div class="li-title">${esc(it)}</div></div><span class="li-chevron">▶</span></li>`;
+function itemHtml(it, fmt, fetchedAt){
+  if(typeof it === 'string') return `<li class="li"><div class="li-body"><div class="li-title">${esc(it)}</div>${fetchedAt ? `<div class="li-meta">${rowFetchedAtHtml(fetchedAt)}</div>` : ''}</div><span class="li-chevron">▶</span></li>`;
+  if (fmt && typeof fmt === 'object' && fmt.fetchedAt && !fetchedAt) fetchedAt = fmt.fetchedAt;
   // Look for title in item OR in nested item field
   const inner = (it.item && typeof it.item === 'object') ? it.item : it;
   // Try common title fields first
@@ -7612,6 +7634,7 @@ function itemHtml(it, fmt){
   if(whereLabel && !action){
     meta.push(`<span class="pill live">${esc(whereLabel.replace(/^[^ ]+ /, ''))}</span>`);
   }
+  if (fetchedAt) meta.push(rowFetchedAtHtml(fetchedAt));
 
   // Fallback title when nothing useful found
   const finalTitle = title || (it.why_chosen ? it.why_chosen.slice(0,80) : (it.summary ? it.summary.slice(0,80) : JSON.stringify(it).slice(0,80).replace(/\\"/g,'"')));
@@ -10206,7 +10229,8 @@ async function renderTrends(){
       </div>`;
   }
   $('#tr-v2-count').textContent = `${v2.count || 0} ranked signals`;
-  $('#tr-v2').innerHTML = (v2.signals||[]).map(s => `<div class="card col-4"><div class="li-title">${esc(s.title)}</div><div class="li-meta"><span class="pill on">${esc(s.source.replace(/-/g,' '))}</span> <b>${s.relevance}/100</b></div><p class="muted" style="font-size:12px">${esc(s.detail)}</p><div style="font-size:12px;color:var(--ac)">→ ${esc(s.suggested_response)}</div></div>`).join('');
+  const v2AsOf = v2.ts || v2.updated || updated;
+  $('#tr-v2').innerHTML = (v2.signals||[]).map(s => `<div class="card col-4"><div class="li-title">${esc(s.title)}</div><div class="li-meta"><span class="pill on">${esc(s.source.replace(/-/g,' '))}</span> <b>${s.relevance}/100</b>${rowFetchedAtHtml(v2AsOf)}</div><p class="muted" style="font-size:12px">${esc(s.detail)}</p><div style="font-size:12px;color:var(--ac)">→ ${esc(s.suggested_response)}</div></div>`).join('');
   // Source-specific empty message: tells the user WHICH source is empty and
   // (for the ones that are "source fetched but returned nothing") whether
   // the fetch ran successfully or not. The bare "No signals" copy used to
@@ -10216,9 +10240,10 @@ async function renderTrends(){
   // YouTube top_videos fix above, the YouTube panel should rarely be empty
   // — the label only surfaces when it is.
   const emptyMsg = (src) => `<li class="empty" data-help="Source-scoped empty. The ${src} fetch ran successfully but returned no matching items this cycle. This is a SOURCE state, not a renderer bug. Re-run the fetcher (Refresh trends) to retry." data-help-title="${esc(src)} empty">No ${esc(src)} signals right now · <span style="color:var(--tx-3);font-size:11px">try Refresh trends</span></li>`;
-  const renderYT = (arr, src) => safeList(arr, 12).map((it, idx) => {
+  const renderYT = (arr, asOfKey) => safeList(arr, 12).map((it, idx) => {
+    const rowAsOf = asOfKey ? srcAsOf[asOfKey] : null;
     if(it.key !== undefined){
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(it.key).replace(/_/g,' '))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(String(it.key).replace(/_/g,' '))}</div><div class="li-meta">${pill(it.value==true||it.value==='true'?'on':'muted', it.value==true||it.value==='true'?'trending':'cooling')} · youtube${rowFetchedAtHtml(rowAsOf)}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(it.key).replace(/_/g,' '))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(it.key).replace(/_/g,' '))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
     }
     // Competitor-style items: extract competitor name + readable text.
     // Surface row-level staleness as an "X days old" pill so a 4-month-old
@@ -10240,7 +10265,7 @@ async function renderTrends(){
           }
         }
       }
-      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''} ${agePill}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
+      return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.competitor)}: ${esc((txt || it.what_changed || '').slice(0,90))}</div><div class="li-meta">${it.opportunity_level?pill(it.opportunity_level==='high'?'on':it.opportunity_level==='medium'?'review':'muted', it.opportunity_level):''} ${it.threat_level?pill(it.threat_level==='high'?'blocked':'muted', 'threat '+it.threat_level):''} ${it.date?`<span class="muted">${esc(it.date)}</span>`:''} ${agePill}${rowFetchedAtHtml(rowAsOf)}</div></div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(it.competitor + ': ' + (txt||'').slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
     }
     // decodeHtml first - YouTube / Reddit / some news feeds arrive with
     // already-encoded entities (e.g. "DO&#39;S &amp; DON&#39;TS") and we
@@ -10248,12 +10273,17 @@ async function renderTrends(){
     const rawTitle = it.title || it.headline || it.name || it.theme || it.angle || it.change || it.summary || it.suggested_angle || it.trend_pain_point || it.thread_topic || it.body || it.text || JSON.stringify(it).slice(0,80);
     const title = decodeHtml(rawTitle);
     const src = it._src ? it._src.replace(/_/g,' ') : (it.kind || it.source || '');
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${src?`<div class="li-meta"><span class="muted">${esc(src)}</span></div>`:''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(title).slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
+    const itemDate = it.published_date || it.created_utc || it.date || '';
+    const metaParts = [];
+    if (src) metaParts.push(`<span class="muted">${esc(src)}</span>`);
+    if (itemDate) metaParts.push(`<span class="muted">${esc(String(itemDate).slice(0, 16))}</span>`);
+    metaParts.push(rowFetchedAtHtml(rowAsOf));
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${metaParts.length ? `<div class="li-meta">${metaParts.join(' ')}</div>` : ''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(title).slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
   }).join('') || '<li class="empty">No signals</li>';
-  $('#tr-reddit').innerHTML = renderYT(t.reddit);
-  $('#tr-yt').innerHTML = renderYT(t.youtube);
-  $('#tr-news').innerHTML = renderYT(t.golf_news);
-  $('#tr-comp').innerHTML = renderYT(t.competitor_changes);
+  $('#tr-reddit').innerHTML = renderYT(t.reddit, 'reddit');
+  $('#tr-yt').innerHTML = renderYT(t.youtube, 'youtube');
+  $('#tr-news').innerHTML = renderYT(t.golf_news, 'golf_news');
+  $('#tr-comp').innerHTML = renderYT(t.competitor_changes, null);
   // bind "Use" buttons (delegated)
   ['#tr-reddit','#tr-yt','#tr-news','#tr-comp'].forEach(sel => {
     const el = $(sel);
@@ -10393,7 +10423,7 @@ async function renderIdeas(){
     const items = safeList(arr, 8);
     if (!items.length) return '<div class="empty">Nothing here</div>';
     return '<ul class="list">' + items.map((it, idx) => {
-      const base = itemHtml(it);
+      const base = itemHtml(it, null, ideasAsOf);
       // Only append our buttons if this looks like an idea (has title/hook + idea_id)
       if (it && (it.idea_id || (it.title && it.hook))) {
         return '<li>' + base + ideaDraftButton(it, idx) + '</li>';
@@ -10405,11 +10435,12 @@ async function renderIdeas(){
   $('#ideas-list').innerHTML = renderIdeasList(d.ideas);
   $('#ideas-today').innerHTML = renderIdeasList(d.post_today);
   $('#ideas-week').innerHTML = renderIdeasList(d.this_week);
-  $('#ideas-missed').innerHTML = safeList(d.missed, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
-  $('#ideas-upsell').innerHTML = safeList(d.upsells, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
-  $('#ideas-bundles').innerHTML = safeList(d.bundles, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
-  $('#ideas-funnel').innerHTML = safeList(d.funnel_leaks, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
-  $('#ideas-landing').innerHTML = safeList(d.landing_fixes, 8).map(itemHtml).join('') || '<div class="empty">Nothing here</div>';
+  const missedAsOf = (d.data_as_of && d.data_as_of.missed_opportunities) || ideasAsOf;
+  $('#ideas-missed').innerHTML = safeList(d.missed, 8).map(it => itemHtml(it, null, missedAsOf)).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-upsell').innerHTML = safeList(d.upsells, 8).map(it => itemHtml(it, null, ideasAsOf)).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-bundles').innerHTML = safeList(d.bundles, 8).map(it => itemHtml(it, null, ideasAsOf)).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-funnel').innerHTML = safeList(d.funnel_leaks, 8).map(it => itemHtml(it, null, ideasAsOf)).join('') || '<div class="empty">Nothing here</div>';
+  $('#ideas-landing').innerHTML = safeList(d.landing_fixes, 8).map(it => itemHtml(it, null, ideasAsOf)).join('') || '<div class="empty">Nothing here</div>';
 
   // Wire the new draft + caption buttons (delegated on the Ideas section)
   ['ideas-list', 'ideas-today', 'ideas-week', 'ideas-fresh'].forEach(id => {
@@ -10554,6 +10585,7 @@ async function renderPerformance(){
           ${likes ? `<span class="muted" style="font-size:11px">likes ${likes}</span>` : ''}
           ${comments ? `<span class="muted" style="font-size:11px">comments ${comments}</span>` : ''}
           ${saves ? `<span class="muted" style="font-size:11px">saves ${saves}</span>` : ''}
+          ${rowFetchedAtHtml(perfAsOf.instagram)}
         </div>
       </div>
       <div class="li-act" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">
@@ -10573,15 +10605,15 @@ async function renderPerformance(){
   // rising/falling paths match the same shape.
   (seo.rising||[]).slice(0,5).forEach(k => {
     const label = (typeof k === 'string') ? k : (k?.keyword || k?.query || k?.title || JSON.stringify(k).slice(0,60));
-    seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(label)}</div><div class="li-meta">${pill('on','rising')}${k && typeof k==='object' && k.current_rank?` · #${k.current_rank} (was #${k.previous_rank||'?'})`:''}</div></div></li>`);
+    seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(label)}</div><div class="li-meta">${pill('on','rising')}${k && typeof k==='object' && k.current_rank?` · #${k.current_rank} (was #${k.previous_rank||'?'})`:''}${rowFetchedAtHtml(perfAsOf.seo_rankings)}</div></div></li>`);
   });
   (seo.falling||[]).slice(0,5).forEach(k => {
     const label = (typeof k === 'string') ? k : (k?.keyword || k?.query || k?.title || JSON.stringify(k).slice(0,60));
-    seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(label)}</div><div class="li-meta">${pill('blocked','falling')}${k && typeof k==='object' && k.current_rank?` · #${k.current_rank} (was #${k.previous_rank||'?'})`:''}</div></div></li>`);
+    seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(label)}</div><div class="li-meta">${pill('blocked','falling')}${k && typeof k==='object' && k.current_rank?` · #${k.current_rank} (was #${k.previous_rank||'?'})`:''}${rowFetchedAtHtml(perfAsOf.seo_rankings)}</div></div></li>`);
   });
-  (seo.quick_wins||[]).slice(0,3).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div><div class="li-meta">${pill('live','quick win')}${k.position?` · pos ${k.position}`:''}</div></div></li>`));
+  (seo.quick_wins||[]).slice(0,3).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div><div class="li-meta">${pill('live','quick win')}${k.position?` · pos ${k.position}`:''}${rowFetchedAtHtml(perfAsOf.seo_rankings)}</div></div></li>`));
   if(!seoRows.length && (seo.keywords||[]).length){
-    (seo.keywords||[]).slice(0,8).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div>${k.position?`<div class="li-meta">pos ${k.position}${k.volume?' · '+k.volume+' vol':''}</div>`:''}</div></li>`));
+    (seo.keywords||[]).slice(0,8).forEach(k => seoRows.push(`<li class="li"><div class="li-body"><div class="li-title">${esc(k.keyword||k.query||k.title||JSON.stringify(k).slice(0,60))}</div>${k.position?`<div class="li-meta">pos ${k.position}${k.volume?' · '+k.volume+' vol':''}${rowFetchedAtHtml(perfAsOf.seo_rankings)}</div>`:`<div class="li-meta">${rowFetchedAtHtml(perfAsOf.seo_rankings)}</div>`}</div></li>`));
   }
   $('#perf-seo').innerHTML = seoRows.join('') || '<div class="empty">No keyword data</div>';
 
@@ -10597,7 +10629,7 @@ async function renderPerformance(){
     const erPct = rawEr === undefined || rawEr === null ? null
       : (typeof rawEr === 'string' ? parseFloat(rawEr.replace('%','')) : Number(rawEr));
     const erText = (erPct === null || isNaN(erPct)) ? 'ER —' : `${erPct.toFixed(1)}% ER`;
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.path||it.page||it.url||'')}</div><div class="li-meta">${(it.sessions||0).toLocaleString()} sessions · ${erText}</div></div></li>`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(it.path||it.page||it.url||'')}</div><div class="li-meta">${(it.sessions||0).toLocaleString()} sessions · ${erText}${rowFetchedAtHtml(perfAsOf.ga4)}</div></div></li>`;
   }).join('') || (gaEmpty ? '<div class="empty" style="padding:1.25rem">🔍 GA4 not connected yet. Once you drop a service-account JSON into setup-portal <code>/ga4</code>, this card shows top pages by sessions and engagement-rate for swingshack.co.za.</div>' : '<div class="empty">No GA4 data</div>');
 
   $('#perf-insights').innerHTML = safeList(e.insights, 12).map(i => `
@@ -10768,8 +10800,15 @@ async function renderLearning(){
   }
 
   // Build a per-item payload for the Promote-to-Strategy button
+  const learnAsOf = {
+    worked: (l.data_as_of && l.data_as_of.weekly_learnings) || l.ts,
+    failed: (l.data_as_of && l.data_as_of.weekly_learnings) || l.ts,
+    trend: (l.data_as_of && l.data_as_of.trend_delta) || l.ts,
+    cta: (l.data_as_of && l.data_as_of.cta_performance) || l.ts,
+    fail_pat: (l.data_as_of && l.data_as_of.failure_patterns) || l.ts,
+  };
   function learnItemHtml(item, kind) {
-    const base = itemHtml(item);
+    const base = itemHtml(item, null, learnAsOf[kind] || l.ts);
     if (!item || !item.title) return base;
     const payload = encodeURIComponent(JSON.stringify({
       title: item.title || '',
@@ -10866,7 +10905,7 @@ async function renderLearning(){
     if (perfLabel) parts.push(pill('live', perfLabel));
     if (it.intent) parts.push(pill('', 'intent ' + it.intent));
     const _ctaPayload = encodeURIComponent(JSON.stringify({ title: txt, kind: 'cta', evidence: it.evidence || it.note || '', pillar: '' }));
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt)}</div>${parts.length ? `<div class="li-meta">${parts.join(' ')}</div>` : ''}</div><div class="li-act" style="margin-top:6px"><button class="btn-mini primary" data-learn-promote="${_ctaPayload}">📌 Promote</button></div></li>`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt)}</div>${parts.length ? `<div class="li-meta">${parts.join(' ')}${rowFetchedAtHtml(learnAsOf.cta)}</div>` : `<div class="li-meta">${rowFetchedAtHtml(learnAsOf.cta)}</div>`}</div><div class="li-act" style="margin-top:6px"><button class="btn-mini primary" data-learn-promote="${_ctaPayload}">📌 Promote</button></div></li>`;
   }).join('') || learnEmpty('cta');
   $('#learn-trend').innerHTML = safeList(l.trend_delta, 10).map(it => learnItemHtml(it, 'trend')).join('') || learnEmpty('trend');
   // failure_patterns is a nested object, not an array: flatten it.
@@ -10880,7 +10919,7 @@ async function renderLearning(){
             : `<span class="pill" style="font-size:10px;background:var(--bg-4);color:var(--tx-2)">partial</span>`;
         // data-no-image-link opts out of the wireImageLinksForSurface auto-wire
         // (those rows are agent-run stats, not prompt → image candidates).
-        return `<li class="li" data-no-image-link><div class="li-body"><div class="li-title">${kindPill} ${esc(r.label)} <span class="muted" style="font-weight:400;font-size:12px">· ${esc(r.value)}</span></div></div></li>`;
+        return `<li class="li" data-no-image-link><div class="li-body"><div class="li-title">${kindPill} ${esc(r.label)} <span class="muted" style="font-weight:400;font-size:12px">· ${esc(r.value)}</span></div><div class="li-meta">${rowFetchedAtHtml(learnAsOf.fail_pat)}</div></div></li>`;
       }).join('')
     : learnEmpty('fail_pat');
 
@@ -10929,7 +10968,7 @@ async function renderHooks(){
     const txt = it.hook_text || it.hook || it.text || it.title || '';
     const sc = it.cross_signal_score || it.ig_proof_score || it.perf || it.score;
     const txtB64 = encodeURIComponent(txt);
-    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,120))}</div>${sc?`<div class="li-meta">${pill('on','score '+sc)} ${it._bucket?pill('live', it._bucket.replace(/_/g,' ')):''}</div>`:''}</div>` +
+    return `<li class="li"><div class="li-body"><div class="li-title">${esc(txt.slice(0,120))}</div>${sc?`<div class="li-meta">${pill('on','score '+sc)} ${it._bucket?pill('live', it._bucket.replace(/_/g,' ')):''}${rowFetchedAtHtml(hookAsOf)}</div>`:`${hookAsOf ? `<div class="li-meta">${rowFetchedAtHtml(hookAsOf)}</div>` : ''}`}</div>` +
       '<div class="li-act" style="display:flex;gap:4px;flex-wrap:wrap">' +
         '<button class="btn-mini" data-hook-copy="' + txtB64 + '">📋 Copy</button>' +
         '<button class="btn-mini primary" data-hook-caption="' + txtB64 + '">Use → Caption</button>' +
@@ -10961,7 +11000,7 @@ async function renderHooks(){
       ? `<span class="muted" style="font-style:italic;font-weight:400">${esc(ex.slice(0, 120))}</span>`
         + ` <span class="pill" style="font-size:10px;background:var(--bg-4);color:var(--tx-2)" title="Already shown in Watched + worked above">↗ same as WW #${_wwByKey.get(exKey)}</span>`
       : esc(ex.slice(0, 120));
-    return `<li class="li"><div class="li-body"><div class="li-title">${title}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}</div></div></li>`;
+    return `<li class="li"><div class="li-body"><div class="li-title">${title}</div><div class="li-meta">${pill('live', it.formula || '')} ${it.count?` · ${it.count} uses`:''} ${it.avg_cross_score?` · avg score ${it.avg_cross_score}`:''}${rowFetchedAtHtml(hookAsOf)}</div></div></li>`;
   };
   $('#hooks-formulas').innerHTML = safeList(h.hook_formulas, 20).map(renderFormula).join('') || '<div class="empty">No formulas</div>';
   // Before this fix the empty state was a single line of grey text buried
@@ -12477,7 +12516,6 @@ async function renderSEO(){
   const hi  = auditSum.high_severity  ?? '—';
   const mid = auditSum.medium_severity ?? '—';
   const lo  = auditSum.low_severity   ?? '—';
-  $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${tot}</dd><dt>High</dt><dd>${hi}</dd><dt>Medium</dt><dd>${mid}</dd><dt>Low</dt><dd>${lo}</dd></dl>` + safeList(highPrio, 8).map(itemHtml).join('');
   const rank = s.rankings;
   // Decorate every keyword with its quick-wins flag so the per-row pill can
   // surface it. The keyword objects don't carry this flag from the backend
@@ -12488,7 +12526,10 @@ async function renderSEO(){
     ...k,
     in_quick_wins: qwSet.has(k.keyword),
   }));
-  $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + kwArr.map(seoKeywordHtml).join('');
+  const seoRankAsOf = (s.data_as_of && s.data_as_of.seo_rankings) || s.ts;
+  const seoAuditAsOf = (s.data_as_of && s.data_as_of.seo_audit) || s.ts;
+  $('#seo-rank').innerHTML = `<div class="row gap-1" style="margin-bottom:.75rem">${pill('on',(rank?.rising||[]).length+' rising')} ${pill('blocked',(rank?.falling||[]).length+' falling')} ${pill('live',(rank?.quick_wins||[]).length+' quick wins')}</div>` + kwArr.map(k => seoKeywordHtml(k, seoRankAsOf)).join('');
+  $('#seo-audit').innerHTML = `<dl class="kvs"><dt>Findings</dt><dd>${tot}</dd><dt>High</dt><dd>${hi}</dd><dt>Medium</dt><dd>${mid}</dd><dt>Low</dt><dd>${lo}</dd></dl>` + safeList(highPrio, 8).map(it => itemHtml(it, null, seoAuditAsOf)).join('');
   // GEO high_priority is often empty on a healthy site; fall back to recommendations
   // (medium/low) so the card isn't mostly blank. Show positive_signals as a footer
   // when we have no items at all.
@@ -12499,8 +12540,10 @@ async function renderSEO(){
   const _geoFooter = (!_geoItems.length && _geoPositives.length)
     ? `<div class="empty" style="margin-top:.5rem">No fixes needed · ${_geoPositives.length} positive signal${_geoPositives.length===1?'':'s'}</div>`
     : '';
-  $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(_geoItems, 6).map(itemHtml).join('') + _geoFooter;
-  $('#seo-fixes').innerHTML = safeList(s.fixes, 10).map(itemHtml).join('') || '<div class="empty">No fixes suggested</div>';
+  const seoGeoAsOf = (s.data_as_of && s.data_as_of.geo_audit) || s.ts;
+  const seoFixesAsOf = (s.data_as_of && s.data_as_of.landing_page_fixes) || s.ts;
+  $('#seo-geo').innerHTML = `<dl class="kvs"><dt>GEO score</dt><dd>${s.geo?.geo_score||'—'}</dd></dl>` + safeList(_geoItems, 6).map(it => itemHtml(it, null, seoGeoAsOf)).join('') + _geoFooter;
+  $('#seo-fixes').innerHTML = safeList(s.fixes, 10).map(it => itemHtml(it, null, seoFixesAsOf)).join('') || '<div class="empty">No fixes suggested</div>';
 }
 
 // ─── SEO AUDIT DETAIL ────────────────────────────────────────────────

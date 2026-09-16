@@ -1038,6 +1038,8 @@ def learning_view() -> Dict[str, Any]:
             "weekly_learnings": _json_as_of("weekly-learnings.json", rep),
             "recommendation_outcomes": _json_as_of("recommendation-outcomes.json", rec),
             "trend_delta": _json_as_of("trend-delta.json", trend),
+            "cta_performance": _json_as_of("cta-performance.json", cta),
+            "failure_patterns": _json_as_of("failure-patterns.json", fail),
         },
     }
 
@@ -1936,6 +1938,7 @@ def seo_assistant() -> Dict[str, Any]:
             "seo_audit": _json_as_of("seo-audit.json", audit),
             "seo_rankings": _json_as_of("seo-rankings.json", rank),
             "geo_audit": _json_as_of("geo-audit.json", geo),
+            "landing_page_fixes": _json_as_of("landing-page-fixes.json", fixes),
         },
     }
 
