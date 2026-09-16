@@ -155,14 +155,25 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
   border-top: 1px solid var(--line); padding: 6px 0; color: var(--muted);
 }
 .outcome-file strong { color: var(--text); }
+.view-bar {
+  display: flex; gap: 6px; width: 100%; flex: 1 1 100%;
+  margin-top: 2px;
+}
+.view-tab { flex: 0 1 auto; min-width: 120px; }
+#summary[hidden], #list[hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <header>
   <h1>Jobs</h1>
   <button class="btn" id="refresh" type="button">Refresh</button>
+  <a class="btn" href="/">Campaign OS</a>
   <a class="btn" href="/?page=ops">Ops runbook</a>
   <span class="spend" id="spend">LLM spend —</span>
+  <div class="view-bar" role="tablist" aria-label="Jobs view">
+    <button class="btn view-tab" type="button" data-jobs-view="schedule" role="tab" aria-selected="false">Schedule at a glance</button>
+    <button class="btn view-tab primary" type="button" data-jobs-view="cards" role="tab" aria-selected="true">Job cards</button>
+  </div>
   <div class="sub">Session-gated · schedules + history · times shown in SAST · deep-link from Telegram</div>
 </header>
 <main>
@@ -355,11 +366,23 @@ async function loadOutcome(name, runId, container) {
   container.innerHTML = renderOutcomeHtml(r.data);
 }
 
+let activeJobsView = 'cards';
+
+function setJobsView(view) {
+  activeJobsView = view;
+  try { localStorage.setItem('cos-jobs-view', view); } catch (_) {}
+  $('summary').hidden = view !== 'schedule';
+  $('list').hidden = view !== 'cards';
+  document.querySelectorAll('[data-jobs-view]').forEach((btn) => {
+    const on = btn.getAttribute('data-jobs-view') === view;
+    btn.classList.toggle('primary', on);
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+
 function renderSummary(jobs) {
   const tbody = $('summary-body');
-  const sec = $('summary');
-  if (!jobs.length) { sec.hidden = true; return; }
-  sec.hidden = false;
+  if (!jobs.length) { tbody.innerHTML = ''; return; }
   tbody.innerHTML = jobs.map(j => `<tr>
     <td>${esc(j.name)}</td>
     <td>${esc(scheduleTimes(j.schedule))}</td>
@@ -578,9 +601,21 @@ $('refresh').onclick = async () => {
   await Promise.all([loadJobs(), loadSpend()]);
 };
 
+document.querySelectorAll('[data-jobs-view]').forEach((btn) => {
+  btn.addEventListener('click', () => setJobsView(btn.getAttribute('data-jobs-view')));
+});
+
 (async function boot() {
-  await Promise.all([loadJobs(), loadSpend()]);
   const params = new URLSearchParams(location.search);
+  let view = params.get('view');
+  if (view !== 'schedule' && view !== 'cards') {
+    try { view = localStorage.getItem('cos-jobs-view'); } catch (_) {}
+  }
+  if (view !== 'schedule' && view !== 'cards') view = 'cards';
+  if (params.get('job')) view = 'cards';
+  setJobsView(view);
+
+  await Promise.all([loadJobs(), loadSpend()]);
   const job = params.get('job');
   const run = params.get('run');
   if (job && (run || true)) {
