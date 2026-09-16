@@ -1,635 +1,1215 @@
-"""campaign_brief.py — full campaign brief generator for from-idea pipeline.
+"""
+campaign_brief.py — Campaign Brief V1 engine.
 
-Built 2026-08-20. Closes the gap on the 'one-button does everything'
-campaign brief that a real agency brief would have. For each channel
-the brief includes:
-  - Full caption (already produced by gbp_daily_poster.py / the
-    from-idea route's per-channel prompts)
-  - Image prompt (model suggestion, prompt text, aspect ratio,
-    text overlay or 'no overlay')
-  - UTM link (per-channel template with source/medium/campaign/content)
-  - Hook formula (one of: question, bold_claim, story_seed, contrarian, list)
-  - Paid ad budget recommendation (best-practice for the brand's market)
-  - Expected outcome (engagement rate, CTR, reach estimate based on
-    industry baselines for the channel + brand size)
+Brief V1 produces a decision-ready STRATEGIC plan from a real
+marketing opportunity. It does NOT generate captions, hooks,
+scripts, image prompts, or any finished creative assets.
 
-The full brief is computed server-side once and persisted on the
-campaign identity so the user can come back and find it later (the
-review queue shows a 'see brief' link per asset).
+Pipeline:
+  Calendar opportunity
+   → Reporting Intelligence (channel/pillar/visual/historical signals)
+   → Creative Genome (Visual DNA patterns)
+   → Brand planning (north stars, pillars, voice)
+   → Pillar coverage signal
+   → Unclassified-event audit
+   → Opportunity gate (BRIEF / WATCH / IGNORE)
+   → Brief schema (opportunity, timing, audience, problem,
+      proposition, reasons to believe, channel role,
+      asset requirements, CTA, measurement, risks,
+      approval questions)
+   → Evidence discipline + revision/approval state
 
-The brief is read-only — destructive writes (live publishes) stay
-gated behind the per-asset approve+schedule flow per
-agent-destructive-write-discipline.
+Public surface (called by app.py):
+  - evaluate_opportunity(brand_id, opportunity_id, days_back=31) -> dict
+  - create_brief(brand_id, opportunity_id, days_back=31) -> dict
+  - list_briefs(brand_id=None, status=None) -> list
+  - get_brief(brief_id) -> dict
+  - update_brief(brief_id, patch) -> dict
+  - transition_brief(brief_id, to_status) -> dict
+
+Storage: data/briefs/<brand_id>/<brief_id>.json (append-only
+revisions kept under data/briefs/<brand_id>/<brief_id>/revisions/*.json)
+
+Brand isolation: every helper checks brand_id against the
+allowed set (swing-shack, stick, bag-drop). Takomo is a
+product_brand under stick — never a brand_id.
 """
 
-from __future__ import annotations
+import json
+import os
+import re
+import time
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Optional
 
-import datetime as _dt
-import re as _re
-import urllib.parse as _urlparse
-from typing import Optional
+DATA_DIR_DEFAULT = os.environ.get("DATA_DIR", "data")
 
+# Brief status states (brief §13)
+STATUS_DRAFT = "draft"
+STATUS_READY_FOR_REVIEW = "ready_for_review"
+STATUS_CHANGES_REQUESTED = "changes_requested"
+STATUS_APPROVED = "approved"
+STATUS_REJECTED = "rejected"
+STATUS_SUPERSEDED = "superseded"
 
-# ── UTM template per channel ────────────────────────────────────────
-# Best-practice UTM convention for South African market. Source tells
-# analytics where the click came from (gmb/local, instagram, etc.),
-# medium tells what kind (organic, paid, bio-link), campaign ties back
-# to the campaign_id, content lets you A/B variations on the same source.
-
-
-def build_utm(channel: str, *, campaign_id: str, content_tag: Optional[str] = None,
-              domain: str = "swingshack.co.za") -> dict:
-    """Build the per-channel UTM link for the campaign.
-
-    Returns: { url, tracking_url (with UTM), source, medium, campaign, content }
-    All channels point to a single destination (the booking page) since
-    the builder's job is to drive bookings. Add destination overrides per
-    channel later if needed (e.g. a TikTok creator profile link).
-    """
-    base_url = f"https://{domain}/book"
-    # Strip the campaign_id down to alphanumeric + dash (UTM safe)
-    safe_cid = _re.sub(r'[^a-z0-9-]', '-', campaign_id.lower()).strip('-')[:90]
-
-    channel_config = {
-        "gmb":       {"source": "gmb",            "medium": "local_post", "default_content": "cta-swing-analysis"},
-        "instagram": {"source": "instagram",       "medium": "social",     "default_content": "link_in_bio"},
-        "facebook":  {"source": "facebook",        "medium": "social",     "default_content": "post_caption"},
-        "x":         {"source": "twitter",         "medium": "social",     "default_content": "tweet_link"},
-        "tiktok":    {"source": "tiktok",          "medium": "social",     "default_content": "bio_link"},
-    }.get(channel, {"source": channel, "medium": "social", "default_content": "post_link"})
-
-    content = content_tag or channel_config["default_content"]
-    qs = {
-        "utm_source": channel_config["source"],
-        "utm_medium": channel_config["medium"],
-        "utm_campaign": safe_cid,
-        "utm_content": content,
-    }
-    tracking_url = base_url + "?" + _urlparse.urlencode(qs)
-    return {
-        "url": base_url,
-        "tracking_url": tracking_url,
-        "source": channel_config["source"],
-        "medium": channel_config["medium"],
-        "campaign": safe_cid,
-        "content": content,
-    }
-
-
-# ── Image prompt per channel ────────────────────────────────────────
-# Each channel gets a recommended model + a per-channel-focused prompt +
-# aspect ratio. Models: Nano Banana = default; Gemini 3 Pro = hero
-# compositions; Ideogram 3 = text-heavy; FLUX 1.1 = humans; Grok for X.
-
-_IMAGE_MODELS_BY_CHANNEL = {
-    "instagram": "nano-banana",  # moody, editorial, lifestyle
-    "facebook": "nano-banana",   # similar editorial, larger text tolerance
-    "gmb": "gemini-3-pro",       # hero/landscape — storefront + signage
-    "tiktok": "grok",            # punchy, contrasty, attention-grabbing
-    "x": "grok",                 # simple graphic / quote
+VALID_STATUSES = {
+    STATUS_DRAFT, STATUS_READY_FOR_REVIEW,
+    STATUS_CHANGES_REQUESTED, STATUS_APPROVED,
+    STATUS_REJECTED, STATUS_SUPERSEDED,
 }
 
+# Pillar coverage signal states (brief §5)
+PILLAR_ADEQUATELY_SUPPORTED = "adequately_supported"
+PILLAR_UNDER_SUPPORTED = "under_supported"
+PILLAR_INTENTIONALLY_DEPRIORITISED = "intentionally_deprioritised"
+PILLAR_UNKNOWN = "unknown"
 
-def image_brief(channel: str, idea: str, *, brand_id: str = "swing-shack",
-                neighbourhood: Optional[str] = None, pillar: Optional[str] = None) -> dict:
-    """Return an image brief for one channel.
+# Opportunity gate outcomes (brief §7)
+GATE_BRIEF = "BRIEF"
+GATE_WATCH = "WATCH"
+GATE_IGNORE = "IGNORE"
 
-    The user runs the prompt through the model in the Image Lab (or via
-    /api/image/brand-dna for brand-aware composition). The model choice
-    is per-channel so we don't ship moody editorial stills to X (which
-    needs readable quote cards) or punchy TikTok thumbnails to GBP
-    (which needs heros + signage).
-    """
-    model = _IMAGE_MODELS_BY_CHANNEL.get(channel, "nano-banana")
-    aspect = {
-        "instagram": "4:5",    # vertical, maximum in-feed real estate
-        "tiktok":    "9:16",   # full-vertical
-        "facebook":  "1:1",    # square, works in feed + sidebar
-        "gmb":       "4:3",    # landscape hero
-        "x":         "16:9",   # landscape card
-    }.get(channel, "1:1")
-
-    # Per-channel prompt scaffolding — the brand_dna + bible overlays
-    # render-time overlays (logo placement + colour palette + bay refs).
-    base_subject = idea.strip().rstrip(".").rstrip("?")
-    prompts = {
-        "instagram": (
-            f"Editorial photograph inside a TrackMan-equipped indoor golf bay, "
-            f"mid-swing overhead shot, warm lighting, ball-flight trail visible. "
-            f"Subject: {base_subject}. "
-            f"Tone: confident, premium, not stock-photo. "
-            f"Composition: subject slightly right of centre, ball-flight left-to-right."
-        ),
-        "facebook": (
-            f"Wide-angle indoor golf scene, golfer at the hitting area with a TrackMan "
-            f"screen behind showing launch data. Subject: {base_subject}. "
-            f"Inclusion: a partner / friend watching adds community feel. "
-            f"Mood: warm, mid-day, inclusive."
-        ),
-        "gmb": (
-            f"Photograph of the Swing Shack storefront + signage, clearly visible "
-            f"and well-lit, OPEN sign. Subject: {base_subject}. "
-            f"Layer text overlay top-left: 'Indoor Golf — Johannesburg'. "
-            f"Bottom-right: 'Book R250' badge. "
-            f"Local SEO priority — entrance + signage must be legible."
-        ),
-        "tiktok": (
-            f"Vertical 9:16 frame, close-up of TrackMan screen showing launch "
-            f"data + face angle, golfer's reaction visible behind. "
-            f"Subject: {base_subject}. "
-            f"Mood: punchy, contrasty, attention-grabbing. "
-            f"Text overlays: hook on line 1, CTA on line 3."
-        ),
-        "x": (
-            f"Clean quote-card composition, dark background, large readable "
-            f"type: '{base_subject}'. "
-            f"Bottom-right: Swing Shack mark. "
-            f"Aesthetic: minimal, high-contrast, scannable in 0.5s."
-        ),
-    }
-    return {
-        "model": model,
-        "prompt": prompts.get(channel, prompts["instagram"]),
-        "aspect_ratio": aspect,
-        "overlay_text": _suggest_overlay(channel, base_subject, neighbourhood),
-        "negative_prompts": ["people with arms in pockets", "stock-photo smiles", "cluttered text", "watermarks"],
-    }
+# Allowed brand_ids
+ALLOWED_BRAND_IDS = {"swing-shack", "stick", "bag-drop"}
 
 
-def _suggest_overlay(channel: str, base_subject: str, neighbourhood: Optional[str]) -> dict:
-    """Text overlay suggestions for the image — split by channel.
-    'no overlay' for channels that keep captions fully in the caption
-    (most editorial), 'forced overlay' for channels that demand in-image
-    text (GBP needs signage, TikTok demands a hook)."""
-    if channel == "gmb":
-        return {"position": "top-left", "line_1": "Indoor Golf", "line_2": neighbourhood or "Johannesburg", "style": "bold sans-serif"}
-    if channel == "tiktok":
-        return {"position": "line 1 of 3", "line_1": base_subject[:50], "line_2": None, "style": "heavy contrast text"}
-    if channel == "x":
-        return {"position": "centered", "line_1": base_subject[:100], "line_2": "swingshack.co.za", "style": "minimal sans-serif"}
-    return {"position": "none", "line_1": None, "line_2": None, "style": "captions carry the message"}
+# ── persistence helpers ─────────────────────────────────────────
+
+def _repo_root():
+    """Resolve repo root across cwd / repo root / /app paths."""
+    candidates = [
+        DATA_DIR_DEFAULT,
+        "/app/data",
+        os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))),
+    ]
+    for c in candidates:
+        if os.path.isdir(os.path.join(c, "brand-planning")):
+            return c
+    return DATA_DIR_DEFAULT
 
 
-# ── Hook formula per channel ────────────────────────────────────────
-# Hook formula taxonomy: question / bold_claim / story_seed / contrarian / list / stat.
-# A/B test against your own historical winners + formula mixing.
-
-_HOOK_FORMULAS = {
-    "instagram": "bold_claim + story_seed",  # IG thrives on hook + soft follow
-    "facebook":  "question + community ask",  # FB thrives on conversation starts
-    "gmb":       "local-intent question",     # Google rewards local queries
-    "tiktok":    "bold_claim + contrarian",    # TikTok demands a hook that earns the watch
-    "x":         "punchy stat or list",       # X rewards dense single-pass reads
-}
-
-
-# ── Paid ad budget per channel ──────────────────────────────────────
-# Best-practice for SA market. GBP local-intent posts are FREE — the
-# only "spend" is the team's time to engage with reviews. Facebook +
-# Instagram paid amplification is the cheapest reach. TikTok Spark Ads
-# unlock the algorithm. X is expensive relative to the audience size
-# for the brand, so we mark it as 'organic only by default'.
-
-def paid_ad_plan(channel: str, *, brand_size: str = "local",
-                 brand_id: str = "swing-shack",
-                 intel: Optional[dict] = None) -> dict:
-    """Paid-ad budget — DATA when on file, BASELINE otherwise.
-
-    Rules (built 2026-08-20 from real swing-shack data):
-      - GBP: never paid (local-intent searches are free).
-      - X: organic-only until audience equity is confirmed.
-      - Instagram: paid R150/d default UNLESS followers < 500.
-      - Facebook / TikTok: paid baseline unless audience data says otherwise.
-
-    Returns: { channel, recommended, daily_budget_zar, objective, target,
-    expected_reach, rationale, source }
-    """
-    # DATA PATH
-    try:
-        if intel is None:
-            from _lib import brand_brief_intel as _bbi
-            intel = _bbi.build_brand_intel(brand_id=brand_id)
-        iga = (intel or {}).get("ig_analytics") or {}
-        igb = (intel or {}).get("ig_business") or {}
-        gbp = (intel or {}).get("gbp_insights") or {}
-        # Per-channel business JSONs
-        fbb = (intel or {}).get("facebook_business") or {}
-        ttb = (intel or {}).get("tiktok_business") or {}
-        xb = (intel or {}).get("x_business") or {}
-        followers = igb.get("followers_count") or 0
-        if intel and intel.get("ok"):
-            # GBP branch — always organic, real numbers if available
-            if channel == "gmb":
-                calls = gbp.get("calls_30d", 0) or 0
-                return {
-                    "channel": "gmb", "recommended": False, "daily_budget_zar": 0,
-                    "objective": "organic local post + photo upload + review reply",
-                    "target": "local-intent searchers within 5km radius",
-                    "expected_reach": f"{calls} calls last 30d" if calls else "unknown (no GBP insight cache yet)",
-                    "rationale": "Google GBP local-intent posts are free; the spend is on review replies + photo uploads, not impressions.",
-                    "source": f"data:{gbp.get('source')}" if gbp.get('ok') else "baseline",
-                }
-            # Facebook branch — pull real follower count from business JSON
-            if channel == "facebook":
-                fb_followers = fbb.get("followers_count") if fbb.get("ok") else None
-                if fb_followers is None:
-                    return {
-                        "channel": "facebook", "recommended": True, "daily_budget_zar": 200,
-                        "objective": "post engagement + link click",
-                        "target": "Johannesburg 30-65, lookalike from page followers + interest targeting",
-                        "expected_reach": "1,500-4,000 reach/day at R200/day",
-                        "rationale": "FB algorithm favours longer captions + link clicks — perfect for free-swing-analysis CTAs. R200/day for 7 days = R1,400.",
-                        "source": "data_facebook_pending (no live Page access token yet — add Meta System User token + run scripts/fetch_facebook_analytics.py)",
-                    }
-                if fb_followers < 500:
-                    return {
-                        "channel": "facebook", "recommended": False, "daily_budget_zar": 0,
-                        "objective": "organic post + comment-stir CTA",
-                        "target": "current followers + Facebook-recommended free reach",
-                        "expected_reach": f"{fb_followers} followers · FB algorithmic free reach",
-                        "rationale": f"Only {fb_followers} FB followers on file — paid on free content until you've passed 500 followers + got 10+ posts in rotation.",
-                        "source": f"data:{fbb.get('source')}",
-                    }
-                return {
-                    "channel": "facebook", "recommended": True, "daily_budget_zar": 200,
-                    "objective": "post engagement + link click",
-                    "target": f"Johannesburg 30-65, lookalike from {fb_followers}-follower base",
-                    "expected_reach": "1,500-4,000 reach/day at R200/day",
-                    "rationale": f"R200/day for 7 days = R1,400. FB algo favours longer captions + link clicks. {fb_followers} followers give the algorithm seed audience.",
-                    "source": f"data:{fbb.get('source')}",
-                }
-            # TikTok branch
-            if channel == "tiktok":
-                tt_followers = ttb.get("followers_count") if ttb.get("ok") else None
-                if tt_followers is None:
-                    return {
-                        "channel": "tiktok", "recommended": True, "daily_budget_zar": 250,
-                        "objective": "video views + profile visit",
-                        "target": "Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle']",
-                        "expected_reach": "800-2,500 views/day at R250/day (Spark Ads)",
-                        "rationale": "TikTok Spark Ads unlock the algorithm — R250/day for 7 days = R1,750.",
-                        "source": "data_tiktok_pending (no live TikTok Business API token yet — add + run scripts/fetch_tiktok_analytics.py)",
-                    }
-                if tt_followers < 500:
-                    return {
-                        "channel": "tiktok", "recommended": False, "daily_budget_zar": 0,
-                        "objective": "organic video + For You Page free reach",
-                        "target": "TikTok algorithmic free reach (no paid boost needed yet)",
-                        "expected_reach": f"{tt_followers} followers + free For-You exposure",
-                        "rationale": f"Only {tt_followers} TikTok followers on file — focus on free For You exposure first.",
-                        "source": f"data:{ttb.get('source')}",
-                    }
-                return {
-                    "channel": "tiktok", "recommended": True, "daily_budget_zar": 250,
-                    "objective": "video views + profile visit",
-                    "target": f"Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle'], lookalike from {tt_followers}-follower base",
-                    "expected_reach": f"800-2,500 views/day at R250/day ({tt_followers}-follower baseline)",
-                    "rationale": f"TikTok Spark Ads unlock the algorithm — R250/day for 7 days = R1,750.",
-                    "source": f"data:{ttb.get('source')}",
-                }
-            # X branch — always organic-only given audience data is missing per the system-budget gate
-            if channel == "x":
-                x_followers = xb.get("followers_count") if xb.get("ok") else None
-                if x_followers is None:
-                    return {
-                        "channel": "x", "recommended": False, "daily_budget_zar": 0,
-                        "objective": "organic tweet + hashtag use",
-                        "target": "SA golf Twitter + creators",
-                        "expected_reach": "200-1,500 organic impressions (no live data on file)",
-                        "rationale": "No X API token on file yet. Add X Basic token ($100/mo per agent-budget gate) + run scripts/fetch_x_analytics.py. Until then, organic-only.",
-                        "source": "data_x_pending (no live X API Basic+ token yet)",
-                    }
-                if x_followers < 200:
-                    return {
-                        "channel": "x", "recommended": False, "daily_budget_zar": 0,
-                        "objective": "organic tweet + creator reply",
-                        "target": f"small audience: {x_followers} followers + reply-radius",
-                        "expected_reach": f"{x_followers * 5}-{x_followers * 20} organic impressions per tweet",
-                        "rationale": f"Only {x_followers} X followers on file — grow audience organically before paid.",
-                        "source": f"data:{xb.get('source')}",
-                    }
-                return {
-                    "channel": "x", "recommended": True, "daily_budget_zar": 100,
-                    "objective": "tweet engagement + profile visit",
-                    "target": f"SA golf Twitter + creator lookalike from {x_followers}-follower base",
-                    "expected_reach": f"{x_followers * 10:,}-{x_followers * 30:,} impressions per tweet at R100/day",
-                    "rationale": f"R100/day X promoted post for 7 days = R700. Cheap when you've got a healthy {x_followers}-follower base.",
-                    "source": f"data:{xb.get('source')}",
-                }
-            if channel == "instagram":
-                if followers and followers < 500:
-                    return {
-                        "channel": "instagram", "recommended": False, "daily_budget_zar": 0,
-                        "objective": "organic post + bio-link CTA",
-                        "target": "current followers + explore-feed free reach",
-                        "expected_reach": f"{followers} followers · algorithm-driven free reach",
-                        "rationale": f"Only {followers} IG followers on file — boost on free content until you've passed 500 followers + 10+ posts in rotation.",
-                        "source": f"data:{igb.get('source')}",
-                    }
-                return {
-                    "channel": "instagram", "recommended": True, "daily_budget_zar": 150,
-                    "objective": "post engagement + profile visit + bio-link click",
-                    "target": f"Johannesburg golf-curious 25-55, lookalike from {followers}-follower base",
-                    "expected_reach": "1,200-3,500 reach/day at R150/day ({followers}-follower baseline × industry 2025 multiplier)",
-                    "rationale": "R150/day for 7 days = R1,050. Cheapest reach in SA golf per Meta 2024 benchmarks. The follower count is your seed audience.",
-                    "source": f"data:{igb.get('source')}",
-                }
-    except Exception:
-        pass
-
-    # BASELINE PATH
-    plans = {
-        "gmb": {
-            "channel": "gmb",
-            "recommended": False,
-            "daily_budget_zar": 0,
-            "objective": "organic local post + review engagement",
-            "target": "local-intent searchers within 5km radius",
-            "expected_reach": "5-20% of view-to-actions on the post",
-            "rationale": "Google GBP local-intent posts are free; spend time on review replies + photo uploads instead.",
-        },
-        "instagram": {
-            "channel": "instagram",
-            "recommended": True,
-            "daily_budget_zar": 150,
-            "objective": "post engagement + profile visit",
-            "target": "Johannesburg golf-curious, 25-55, interests ['golf', 'fitness', 'trackman']",
-            "expected_reach": "1,200-3,500 reach per day at R150/day",
-            "rationale": "Cheapest SA reach for golf/lifestyle. Boosted post + carousel both work well.",
-        },
-        "facebook": {
-            "channel": "facebook",
-            "recommended": True,
-            "daily_budget_zar": 200,
-            "objective": "post engagement + link click",
-            "target": "Johannesburg 30-65, lookalike from page followers",
-            "expected_reach": "1,500-4,000 reach per day at R200/day",
-            "rationale": "FB algorithm favours longer captions + link clicks — perfect for free-swing-analysis CTAs.",
-        },
-        "tiktok": {
-            "channel": "tiktok",
-            "recommended": True,
-            "daily_budget_zar": 250,
-            "objective": "video views + profile visit",
-            "target": "Johannesburg 18-40, interests ['golf', 'sport', 'lifestyle']",
-            "expected_reach": "800-2,500 views per day at R250/day (Spark Ads)",
-            "rationale": "TikTok Spark Ads unlock the algorithm — well worth R250/day for a 15s swing-data clip.",
-        },
-        "x": {
-            "channel": "x",
-            "recommended": False,
-            "daily_budget_zar": 0,
-            "objective": "organic tweet + hashtag",
-            "target": "SA golf Twitter, #golfRSA, swing-data creators",
-            "expected_reach": "200-1,000 organic impressions per tweet at this brand size",
-            "rationale": "X is small in SA golf and paid X is expensive per impression. Organic-only by default unless you specifically want UGC creator collabs.",
-        },
-    }
-    return plans.get(channel, plans["instagram"])
-
-
-# ── Expected outcomes per channel ──────────────────────────────────
-# Conservative ranges based on industry baselines (HubSpot 2024, Hootsuite,
-# Rival IQ 2025). For a brand with <5K social followers in the SA golf
-# market. Adjust upward if follower count > 20K.
-
-def expected_outcomes(channel: str, *, cta: str = "", brand_id: str = "swing-shack",
-                     intel: Optional[dict] = None) -> dict:
-    """Expected outcomes per channel — DATA when on file, BASELINE otherwise.
-
-    Returns: { engagement_rate, ctr, expected_reach, expected_clicks,
-    conversion_rate_estimate, expected_bookings, source }
-
-    When intel (brand_brief_intel.build_brand_intel() snapshot) is
-    passed, this function uses real engagement rates for the SPECIFIC
-    channel being asked about (not IG's data for every channel).
-    - 'instagram' reads ig_analytics
-    - 'facebook' reads facebook_analytics
-    - 'tiktok' reads tiktok_analytics
-    - 'x' reads x_analytics
-    - 'gmb' reads gbp_insights
-
-    The `source` field says 'data:<file>' when computed from on-file
-    metrics, or 'baseline' when industry-average.
-    """
-    if intel is None:
+def _read_json(path) -> "Optional[Any]":
+    """Read JSON file; try cwd/repo-root/app paths."""
+    candidates = [path]
+    if not os.path.isabs(path):
+        repo_root = _repo_root()
+        candidates.extend([
+            os.path.join(repo_root, path),
+            os.path.join("/app", path),
+        ])
+    for c in candidates:
         try:
-            from _lib import brand_brief_intel as _bbi
-            intel = _bbi.build_brand_intel(brand_id=brand_id)
+            with open(c) as f:
+                return json.load(f)
+        except FileNotFoundError:
+            continue
         except Exception:
-            intel = {}
+            return None
+    return None
 
-    # DATA PATH: build from intel for the SPECIFIC channel
-    if intel and intel.get("ok"):
-        # Pick the per-channel analytics + business loader outputs
-        per_channel_analytics_key = f"{channel}_analytics"
-        per_channel_business_key = f"{channel}_business"
-        cha = (intel.get(per_channel_analytics_key) or {})
-        chb = (intel.get(per_channel_business_key) or {})
-        gbp = intel.get("gbp_insights") or {}
-        psc = intel.get("post_conversion") or {}
-        # Fallback: GA4/IG numbers if per-channel absent
-        ga4 = intel.get("ga4") or {}
-        igb = intel.get("ig_business") or {}
 
-        # Per-channel engagement rate from THAT channel's analytics (if available)
-        chosen_er = None
-        if cha.get("ok") and cha.get("by_format"):
-            chosen_er = list(cha["by_format"].values())[0]  # primary format
-            if not chosen_er and cha.get("median_engagement_pct"):
-                chosen_er = cha["median_engagement_pct"]
-        elif cha.get("ok") and cha.get("median_engagement_pct"):
-            chosen_er = cha["median_engagement_pct"]
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
-        # Per-channel reach from THAT channel's business JSON
-        reach = chb.get("avg_daily_reach_30d") if chb.get("ok") else None
-        source = "no_data"
-        if chosen_er:
-            source = f"data:{cha.get('source', per_channel_analytics_key + '.json')}"
-        if reach:
-            source = f"data:{chb.get('source', per_channel_business_key + '.json')}"
 
-        # Bookings estimate
-        bookings_per_post = None
-        if channel == "gmb" and gbp.get("calls_30d"):
-            bookings_per_post = round(gbp["calls_30d"] / 30, 2)
-            source = f"data:{gbp.get('source')}"
-        elif psc.get("baseline_bookings_per_post") is not None:
-            lift_mult = 1 + (psc.get("median_lift_pct") or 0) / 100
-            bookings_per_post = round(psc["baseline_bookings_per_post"] * lift_mult, 2)
-            source = f"data:{psc.get('source')}"
+def _briefs_dir(brand_id: str) -> str:
+    if brand_id not in ALLOWED_BRAND_IDS:
+        raise ValueError(f"unknown brand_id: {brand_id}")
+    base = _repo_root()
+    return os.path.join(base, "briefs", brand_id)
 
-        if chosen_er or reach or bookings_per_post is not None:
-            return {
-                "engagement_rate": f"{chosen_er:.2f}%" if chosen_er else "unknown (data_pending)",
-                "ctr": "0.8-2.0% baseline (no per-channel CTR on file yet)",
-                "expected_reach": f"{reach:,}/d" if reach else "unknown (data_pending)",
-                "expected_clicks": "8-25 per post (industry baseline, no per-brand click data on file)",
-                "conversion_rate_estimate": "3-7% baseline (no per-brand conversion data on file)",
-                "expected_bookings": (f"{bookings_per_post} per post (from {source})" if bookings_per_post is not None
-                                       else "unknown"),
-                "source": source,
+
+def _brief_path(brand_id: str, brief_id: str) -> str:
+    if not re.fullmatch(r"[a-zA-Z0-9_\-]{4,40}", brief_id):
+        raise ValueError(f"invalid brief_id format: {brief_id}")
+    return os.path.join(_briefs_dir(brand_id), brief_id + ".json")
+
+
+def _read_brief(brand_id: str, brief_id: str) -> "Optional[dict]":
+    p = _brief_path(brand_id, brief_id)
+    return _read_json(p)
+
+
+def _write_brief(brief: dict) -> None:
+    p = _brief_path(brief["brand_id"], brief["brief_id"])
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(brief, f, indent=2, ensure_ascii=False)
+    os.replace(tmp, p)
+
+
+def _revision_path(brand_id: str, brief_id: str, rev: int) -> str:
+    base = _repo_root()
+    return os.path.join(base, "briefs", brand_id, brief_id,
+                       "revisions", f"rev-{rev:04d}.json")
+
+
+def _append_revision(brief: dict, snapshot: dict) -> None:
+    rev = brief.get("revision", 0)
+    p = _revision_path(brief["brand_id"], brief["brief_id"], rev)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, "w") as f:
+        json.dump(snapshot, f, indent=2, ensure_ascii=False)
+
+
+# ── brand config + strategy ─────────────────────────────────────
+
+def _brand_planning(brand_id: str) -> dict:
+    """Load data/brand-planning/<brand>.json."""
+    if brand_id not in ALLOWED_BRAND_IDS:
+        raise ValueError(f"unknown brand_id: {brand_id}")
+    p = f"brand-planning/{brand_id}.json"
+    return _read_json(p) or {}
+
+
+def _strategy(brand_id: str) -> dict:
+    p = f"strategy/{brand_id}.json"
+    return _read_json(p) or {}
+
+
+# ── North Stars (hardcoded for stick per brief §9; loaded for
+#    swing-shack + bag-drop from strategy/*.json) ────────────────
+
+def _north_stars(brand_id: str) -> dict:
+    if brand_id == "stick":
+        # Per brief §9 / Reporting V2 contract
+        return {
+            "retail": {
+                "label": "Retail (Psycho Bunny)",
+                "target": "R350,000 Psycho Bunny sales/month",
+                "pillar": "retail",
+                "source": "brief §9 (Reporting V2 contract)",
+            },
+            "fitting": {
+                "label": "Fitting",
+                "target": "24 fittings/week",
+                "pillar": "fitting",
+                "source": "brief §9 (Reporting V2 contract)",
+            },
+            "coaching": {
+                "label": "Coaching",
+                "target": "24 coaching sessions/week",
+                "pillar": "coaching",
+                "source": "brief §9 (Reporting V2 contract)",
+            },
+        }
+    bp = _brand_planning(brand_id)
+    ss = _strategy(brand_id)
+    out = {}
+    if isinstance(bp.get("north_stars"), list):
+        for n in bp["north_stars"]:
+            out[n.get("pillar") or n.get("id") or "unknown"] = {
+                "label": n.get("label") or n.get("name", ""),
+                "target": n.get("target") or "",
+                "pillar": n.get("pillar") or n.get("id") or "",
+                "source": "data/brand-planning/<brand>.json",
             }
+    if not out and ss.get("north_star"):
+        out["primary"] = {
+            "label": "Primary North Star",
+            "target": ss.get("north_star"),
+            "pillar": "primary",
+            "source": "data/strategy/<brand>.json",
+        }
+    return out
 
-    # BASELINE PATH: industry averages
-    outcomes = {
-        "gmb": {
-            "engagement_rate": "0.05-0.20 (call+website+directions)",
-            "ctr": "n/a (calls/directions not link-driven)",
-            "expected_reach": "100-300 local impressions/day",
-            "expected_clicks": "5-15 website clicks/day",
-            "conversion_rate_estimate": "5-10% of clicks → bookings",
-            "expected_bookings": "0.3-1.5/day from GBP alone at this brand size",
-        },
-        "instagram": {
-            "engagement_rate": "1.5-3.5%",
-            "ctr": "0.8-2.0% on link-in-bio",
-            "expected_reach": "20-40% of followers per post",
-            "expected_clicks": "8-25 link-in-bio clicks per post",
-            "conversion_rate_estimate": "3-7% of bio clicks → bookings",
-            "expected_bookings": "0.2-1.7 per post (organic + R150 boost)",
-        },
-        "facebook": {
-            "engagement_rate": "0.8-2.5%",
-            "ctr": "1.0-2.5% on link post",
-            "expected_reach": "30-60% of followers per post",
-            "expected_clicks": "12-35 link clicks per post",
-            "conversion_rate_estimate": "2-5% of clicks → bookings",
-            "expected_bookings": "0.3-1.7 per post (organic + R200 boost)",
-        },
-        "tiktok": {
-            "engagement_rate": "4-9%",
-            "ctr": "0.5-1.5% on bio link",
-            "expected_reach": "varies wildly; 500-50,000 views possible",
-            "expected_clicks": "3-15 bio clicks per video",
-            "conversion_rate_estimate": "2-6% of clicks → bookings",
-            "expected_bookings": "0.1-1.0 per video (organic + R250 boost)",
-        },
-        "x": {
-            "engagement_rate": "0.5-1.5%",
-            "ctr": "1.5-3.5% on link tweet",
-            "expected_reach": "200-1,500 impressions per tweet",
-            "expected_clicks": "3-15 link clicks per tweet",
-            "conversion_rate_estimate": "2-4% of clicks → bookings",
-            "expected_bookings": "0.05-0.6 per tweet (organic only by default)",
-        },
+
+# ── Pillars ──────────────────────────────────────────────────────
+
+PILLAR_KEYS = ("retail", "fitting", "coaching")
+
+
+def _pillar_mix(brand_id: str, days_back: int = 31) -> dict:
+    """Lightweight pillar mix computation — same logic as
+    Reporting V2 _pillar_mix. Returns per-pillar event counts
+    + share + cadence_by_lane."""
+    if brand_id not in ALLOWED_BRAND_IDS:
+        return {"data_status": "unknown"}
+    if brand_id != "stick":
+        # brief is stick-scoped; other brands get N/A
+        return {"data_status": "not_applicable",
+                "reason": "pillar mix is stick-scoped"}
+    pillars = list(PILLAR_KEYS)
+    counts = {p: 0 for p in pillars}
+    ids = {p: [] for p in pillars}
+    unclassified = []
+    all_events = []
+    for year in ("2026", "2027"):
+        d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
+        all_events.extend(d.get("events", []) or [])
+    for ev in all_events:
+        ev_id = ev.get("id")
+        ev_pillars = ev.get("pillars") or {}
+        if isinstance(ev_pillars, dict) and any(
+                isinstance(v, str) and p in v.lower()
+                for p in pillars for v in ev_pillars.values()):
+            for p in pillars:
+                if any(isinstance(v, str) and p in v.lower()
+                       for v in ev_pillars.values()):
+                    counts[p] += 1
+                    ids[p].append(ev_id)
+            continue
+        text = (ev.get("name", "") + " " +
+                " ".join(str(v) for v in
+                        (ev.get("lanes") or {}).values())).lower()
+        if any(p in text for p in pillars):
+            for p in pillars:
+                if p in text:
+                    counts[p] += 1
+                    ids[p].append(ev_id)
+        else:
+            unclassified.append(ev_id)
+    total = sum(counts.values()) + len(unclassified)
+    pct = {p: round(c / max(1, total) * 100, 1)
+           for p, c in counts.items()}
+    cadences_data = _read_json("brand-planning/stick-cadences.json") or {}
+    cadences = (cadences_data.get("cadences") or [])
+    cadence_by_lane = {
+        c.get("lane"): {
+            "weekday_post_count": c.get("weekday_post_count"),
+            "cadence_text": c.get("cadence_text"),
+        } for c in cadences
     }
-    return outcomes.get(channel, outcomes["instagram"])
+    return {
+        "data_status": "historical_real",
+        "pillar_event_counts": counts,
+        "pillar_event_pct": pct,
+        "events_per_pillar": ids,
+        "unclassified_event_ids": unclassified,
+        "total_events": total,
+        "cadences_by_lane": cadence_by_lane,
+        "source": "data/brand-planning/stick-events-{2026,2027}.json + stick-cadences.json",
+    }
 
 
-# ── Per-channel brief assembly ─────────────────────────────────────
+def _pillar_coverage_signal(pillar_mix: dict, brand_id: str) -> dict:
+    """Brief §5: surface material under-support against North Stars.
 
-def build_channel_brief(channel: str, *, idea: str, brand_id: str, campaign_id: str,
-                        pillar: Optional[str] = None, neighbourhood: Optional[str] = None,
-                        content_tag: Optional[str] = None, domain: Optional[str] = None) -> dict:
-    """Compose a full brief per channel — DATA when on file.
-
-    Pipeline:
-      1. Build brand intel snapshot (post-conversion-score, hook-bank,
-         ig-analytics, ig-business, ga4, gbp-insights, audience equity)
-      2. Pick hook_formula from data (winning formula by lift when
-         available, else hook-bank cross-signal rank, else baseline)
-      3. Pick paid_plan from data (follower/calls thresholds)
-      4. Pick expected_outcome from data (real IG engagement rates,
-         real GBP calls, real baseline+lift booking estimate)
-
-    Returns: { channel, image, utm, hook_formula, paid_plan,
-    expected_outcome, intel_summary } — every field carries a
-    source citation so the user knows what is data vs guess.
+    Returns {pillar: {state, evidence, share_pct, n_events}}.
+    States: adequately_supported / under_supported /
+            intentionally_deprioritised / unknown.
     """
-    dom = domain or ("swingshack.co.za" if brand_id == "swing-shack"
-                     else ("sticksa.co.za" if brand_id == "stick" else "bagdropgolf.co.za"))
+    out = {}
+    counts = pillar_mix.get("pillar_event_counts") or {}
+    pct = pillar_mix.get("pillar_event_pct") or {}
+    unclass = pillar_mix.get("unclassified_event_ids") or []
+    for pillar in PILLAR_KEYS:
+        n = counts.get(pillar, 0)
+        share = pct.get(pillar, 0.0)
+        if n == 0 and share == 0.0:
+            state = PILLAR_UNDER_SUPPORTED
+            evidence = (f"0 events classified under '{pillar}' pillar; "
+                        f"{len(unclass)} unclassified events need audit.")
+        elif n < 3:
+            state = PILLAR_UNDER_SUPPORTED
+            evidence = f"only {n} events classified under '{pillar}' ({share}%); below the natural 3-event threshold for sustained cadence."
+        elif share < 15:
+            state = PILLAR_UNDER_SUPPORTED
+            evidence = f"'{pillar}' pillar at {share}% of {pillar_mix.get('total_events', 0)} events — materially under-represented relative to North Star."
+        else:
+            state = PILLAR_ADEQUATELY_SUPPORTED
+            evidence = f"'{pillar}' pillar at {share}% ({n} events) — adequately supported by current planning."
+        out[pillar] = {
+            "state": state,
+            "share_pct": share,
+            "n_events": n,
+            "evidence": evidence,
+        }
+    return out
 
-    # Build the brand intel snapshot ONCE per call
-    intel = None
+
+# ── Unclassified event audit (brief §6) ──────────────────────────
+
+def _unclassified_audit(brand_id: str) -> dict:
+    """For each unclassified event: classify with evidence or
+    preserve unclassified. Never force-fit.
+
+    Returns {event_id: {decision, reason, evidence}}.
+    """
+    if brand_id != "stick":
+        return {"data_status": "not_applicable"}
+    decisions = {}
+    for year in ("2026", "2027"):
+        d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
+        for ev in d.get("events", []) or []:
+            ev_id = ev.get("id")
+            ev_pillars = ev.get("pillars") or {}
+            if isinstance(ev_pillars, dict) and any(
+                    isinstance(v, str) and p in v.lower()
+                    for p in PILLAR_KEYS for v in ev_pillars.values()):
+                continue  # already classified by structured pillars
+            text = (ev.get("name", "") + " " +
+                    " ".join(str(v) for v in
+                            (ev.get("lanes") or {}).values())).lower()
+            if any(p in text for p in PILLAR_KEYS):
+                continue  # classified by keyword
+            # This event is unclassified — make a documented decision
+            name_l = (ev.get("name") or "").lower()
+            if "single" in name_l or "singles" in name_l:
+                decisions[ev_id] = {
+                    "decision": "preserved_unclassified",
+                    "reason": "Singles' Day is a single-day cultural moment; its retail/fitting/coaching impact depends on operator discretion and was deliberately left open in planning.",
+                    "evidence": "pillars field empty, lanes empty. No structural cue.",
+                }
+            elif any(k in name_l for k in (
+                    "presidents cup", "heritage day", "halloween",
+                    "reconciliation", "valentine", "masters")):
+                decisions[ev_id] = {
+                    "decision": "preserved_unclassified",
+                    "reason": f"Cultural/calendar moment '{ev.get('name')}' is a human + optional campaign lane. Pillar assignment would be forced.",
+                    "evidence": ("lanes suggest human/campaign only "
+                                  f"({list((ev.get('lanes') or {}).keys())}); "
+                                  "no commercial / retail / fitting / "
+                                  "coaching cue in the source."),
+                }
+            else:
+                decisions[ev_id] = {
+                    "decision": "preserved_unclassified",
+                    "reason": "Insufficient evidence to force pillar assignment; preserves operator review.",
+                    "evidence": "no structured pillars field, no keyword match.",
+                }
+    return {
+        "data_status": "audited",
+        "decisions": decisions,
+        "source": "data/brand-planning/stick-events-{2026,2027}.json",
+    }
+
+
+# ── Reporting Intelligence input ─────────────────────────────────
+
+def _ri_signals(brand_id: str, days_back: int) -> dict:
+    """Pull just the signal-rich slices from the Reporting V2 engine
+    (don't re-implement; just call build_brand_report).
+
+    Imported lazily because the runtime resolves '_lib' as a
+    sibling package of the calling module (campaign-os/app.py
+    sets sys.path so `from _lib import reporting_intelligence`
+    is the canonical pattern).
+    """
+    import sys
     try:
-        from _lib import brand_brief_intel as _bbi
-        intel = _bbi.build_brand_intel(brand_id=brand_id)
-    except Exception:
-        intel = {}
-
-    # Hook formula = data when possible
-    if intel and intel.get("ok"):
         try:
-            from _lib import brand_brief_intel as _bbi2
-            formula, formula_src = _bbi2.derive_recommended_hook_formula(
-                intel, channel=channel, pillar=pillar)
+            from _lib.reporting_intelligence import build_brand_report  # noqa
+        except ImportError:
+            try:
+                from .reporting_intelligence import build_brand_report  # noqa
+            except ImportError:
+                # Last-ditch: add cwd to sys.path + import absolute
+                here = os.path.dirname(os.path.abspath(__file__))
+                if here not in sys.path:
+                    sys.path.insert(0, here)
+                import reporting_intelligence as _ri_local
+                build_brand_report = _ri_local.build_brand_report  # noqa
+        r = build_brand_report(brand_id, days_back)
+    except Exception as e:
+        return {"data_status": "unavailable", "reason": str(e)[:120]}
+    if r.get("error"):
+        return {"data_status": "unavailable", "reason": r["error"][:120]}
+    return {
+        "data_status": "live",
+        "data_coverage": r.get("data_coverage", {}),
+        "data_limitations": r.get("data_limitations", []),
+        "website_performance": r.get("sections", {}).get(
+            "website_performance", {}),
+        "audience_awareness": r.get("sections", {}).get(
+            "audience_awareness", {}),
+        "pillar_mix": r.get("sections", {}).get("pillar_mix", {}),
+        "visual_dna": r.get("sections", {}).get("visual_dna", {}),
+        "historical_reports": r.get("sections", {}).get(
+            "historical_reports", {}),
+        "page_interest": r.get("sections", {}).get("page_interest", {}),
+        "what_worked": r.get("what_worked", []),
+        "what_needs_attention": r.get("what_needs_attention", []),
+        "recommendations": r.get("recommendations", []),
+        "cross_channel_observations": r.get(
+            "cross_channel_observations", []),
+    }
+
+
+# ── Creative Genome signals (stick-only for V1) ────────────────
+
+def _creative_genome_signals(brand_id: str) -> dict:
+    """Pull validated Visual DNA patterns. Stick has
+    data/brand-directory/stick/images/*.visual-dna.json."""
+    if brand_id != "stick":
+        return {"data_status": "not_applicable"}
+    base = os.path.join(_repo_root(), "brand-directory",
+                         "stick", "images")
+    if not os.path.isdir(base):
+        return {"data_status": "not_connected",
+                "reason": f"no brand-directory at {base}"}
+    files = [f for f in os.listdir(base)
+             if f.endswith(".visual-dna.json")]
+    if not files:
+        return {"data_status": "not_connected",
+                "reason": "no .visual-dna.json files"}
+    samples = 0
+    orientation_counts = {}
+    subject_counts = {}
+    ocr_counts = {"yes": 0, "no": 0}
+    for fname in files:
+        try:
+            d = json.load(open(os.path.join(base, fname)))
         except Exception:
-            formula, formula_src = _HOOK_FORMULAS.get(channel, "bold_claim"), "baseline"
+            continue
+        samples += 1
+        m1 = d.get("layer1_metadata") or {}
+        ori = m1.get("orientation") or "unknown"
+        orientation_counts[ori] = orientation_counts.get(ori, 0) + 1
+        c10 = d.get("layer10_composition") or {}
+        subj = c10.get("subject_estimate_position") or "unknown"
+        subject_counts[subj] = subject_counts.get(subj, 0) + 1
+        ocr = d.get("layer6_ocr") or {}
+        if ocr.get("available"):
+            ocr_counts["yes"] += 1
+        else:
+            ocr_counts["no"] += 1
+    # Pattern summary
+    top_orientation = max(orientation_counts.items(),
+                          key=lambda kv: kv[1])[0] \
+        if orientation_counts else "unknown"
+    return {
+        "data_status": "validated",
+        "samples": samples,
+        "orientation_distribution": orientation_counts,
+        "top_orientation": top_orientation,
+        "subject_distribution": subject_counts,
+        "ocr_available_distribution": ocr_counts,
+        "validated_pattern": (f"Stick's {samples} indexed Visual DNA "
+                              f"assets are predominantly {top_orientation}, "
+                              f"subject position "
+                              f"{max(subject_counts.items(), key=lambda kv: kv[1])[0] if subject_counts else 'unknown'}, "
+                              f"with {ocr_counts.get('no', 0)}/{samples} "
+                              "purely visual (no overlay text)."),
+        "source": f"{base}/*.visual-dna.json",
+    }
+
+
+# ── Calendar opportunity resolution ──────────────────────────────
+
+def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
+    """Look up an opportunity by id from brand planning events."""
+    if brand_id != "stick":
+        return {}
+    for year in ("2026", "2027"):
+        d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
+        for ev in d.get("events", []) or []:
+            if ev.get("id") == opportunity_id:
+                return {
+                    **ev,
+                    "_source_year": year,
+                    "_source_file": f"brand-planning/stick-events-{year}.json",
+                }
+    return {}
+
+
+def _list_opportunities(brand_id: str) -> list:
+    """All events for a brand (stick 2026 + 2027)."""
+    if brand_id not in ALLOWED_BRAND_IDS:
+        return []
+    out = []
+    if brand_id == "stick":
+        for year in ("2026", "2027"):
+            d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
+            for ev in d.get("events", []) or []:
+                out.append({
+                    "id": ev.get("id"),
+                    "name": ev.get("name"),
+                    "year": year,
+                    "pillars": ev.get("pillars"),
+                    "lanes": list((ev.get("lanes") or {}).keys()),
+                    "duration_days": ev.get("duration_days") or 0,
+                    "date": ev.get("date") or "",
+                })
+    return out
+
+
+# ── Opportunity Gate (brief §7) ──────────────────────────────────
+
+def _opportunity_gate(brand_id: str, opportunity: dict,
+                      ri: dict, pmx: dict, pcov: dict) -> dict:
+    """Decide BRIEF / WATCH / IGNORE.
+
+    Factors (brief §7):
+      strategic relevance, North Star relevance,
+      audience relevance, timing, actionability,
+      evidence quality, content/campaign saturation,
+      historical performance, commercial usefulness.
+
+    Returns dict with gate + per-factor evidence + confidence.
+    """
+    factors = []
+    name = (opportunity.get("name") or "").lower()
+
+    # 1. Strategic relevance — name match against always-on pillars
+    pillars_supported = opportunity.get("pillars") or {}
+    always_on_pillar_match = []
+    if isinstance(pillars_supported, dict):
+        for p in PILLAR_KEYS:
+            if any(isinstance(v, str) and p in v.lower()
+                   for v in pillars_supported.values()):
+                always_on_pillar_match.append(p)
+    if always_on_pillar_match:
+        factors.append({
+            "factor": "strategic_relevance",
+            "score": "high",
+            "evidence": f"Opportunity explicitly supports pillars: {always_on_pillar_match}",
+        })
     else:
-        formula, formula_src = _HOOK_FORMULAS.get(channel, "bold_claim"), "baseline"
+        factors.append({
+            "factor": "strategic_relevance",
+            "score": "low",
+            "evidence": "No explicit pillar assignment; cultural/calendar moment only.",
+        })
+
+    # 2. North Star relevance
+    nstar_relevance = bool(always_on_pillar_match)
+    factors.append({
+        "factor": "north_star_relevance",
+        "score": "high" if nstar_relevance else "low",
+        "evidence": ("Maps to active North Star: " + ", ".join(always_on_pillar_match)
+                     if nstar_relevance
+                     else "No direct North Star mapping; cultural moment."),
+    })
+
+    # 3. Audience relevance — has audience lane?
+    audience_lane = bool((opportunity.get("lanes") or {}).get("audience")
+                          or (opportunity.get("lanes") or {}).get("human"))
+    factors.append({
+        "factor": "audience_relevance",
+        "score": "high" if audience_lane else "medium",
+        "evidence": ("Human/audience lane present"
+                     if audience_lane
+                     else "No dedicated audience lane."),
+    })
+
+    # 4. Timing — date + duration present?
+    has_timing = bool(opportunity.get("date")
+                       or opportunity.get("duration_days"))
+    factors.append({
+        "factor": "timing",
+        "score": "high" if has_timing else "medium",
+        "evidence": (f"date={opportunity.get('date')}, "
+                      f"duration={opportunity.get('duration_days')}d"
+                      if has_timing
+                      else "Date/duration not set in planning data; "
+                            "operator must pin live window."),
+    })
+
+    # 5. Actionability — campaign arc vs single-shot
+    is_arc = bool(opportunity.get("lanes", {}).get("campaign")
+                   and "arc" in str(opportunity.get("lanes", {}).get("campaign", "")).lower())
+    factors.append({
+        "factor": "actionability",
+        "score": "high" if is_arc else "medium",
+        "evidence": ("Campaign arc lanes present"
+                     if is_arc
+                     else "Single-shot or human-led; lower multi-touch actionability."),
+    })
+
+    # 6. Evidence quality — RI data_status
+    ri_status = (ri.get("data_coverage") or {}).get("ga4", "unavailable")
+    factors.append({
+        "factor": "evidence_quality",
+        "score": ("high" if ri_status == "LIVE"
+                   else "medium" if ri_status in ("PARTIAL", "HISTORICAL_REAL")
+                   else "low"),
+        "evidence": f"GA4 status for {brand_id}: {ri_status}",
+    })
+
+    # 7. Content/campaign saturation — pillar_mix unclass count
+    unclass = pmx.get("unclassified_event_ids") or []
+    factors.append({
+        "factor": "campaign_saturation",
+        "score": "high" if len(unclass) < 5 else "medium",
+        "evidence": (f"{len(unclass)} unclassified events — "
+                      "opportunity for pillar discipline."
+                      if unclass else "Planning well-classified."),
+    })
+
+    # 8. Historical performance — RI what_worked + recommendations
+    worked = bool(ri.get("what_worked"))
+    factors.append({
+        "factor": "historical_performance",
+        "score": "high" if worked else "medium",
+        "evidence": ("RI surfaced historical work patterns."
+                     if worked else "No RI-surfaced historical patterns."),
+    })
+
+    # 9. Commercial usefulness
+    commercial = (any(p in ("retail", "fitting", "coaching")
+                       for p in always_on_pillar_match)
+                   or "commercial" in (opportunity.get("lanes") or {})
+                   or any("retail" in str(v).lower()
+                          for v in (opportunity.get("lanes") or {}).values()))
+    factors.append({
+        "factor": "commercial_usefulness",
+        "score": "high" if commercial else "low",
+        "evidence": ("Direct commercial pillar mapping"
+                     if commercial
+                     else "Cultural/lifestyle moment; lower direct commercial."),
+    })
+
+    # Aggregate
+    high_count = sum(1 for f in factors if f["score"] == "high")
+    medium_count = sum(1 for f in factors if f["score"] == "medium")
+    low_count = sum(1 for f in factors if f["score"] == "low")
+
+    if high_count >= 5 and low_count == 0:
+        gate = GATE_BRIEF
+        confidence = "HIGH"
+    elif high_count >= 3 and low_count <= 2:
+        gate = GATE_BRIEF
+        confidence = "MEDIUM"
+    elif high_count >= 2 and low_count >= 3:
+        gate = GATE_WATCH
+        confidence = "MEDIUM"
+    else:
+        gate = GATE_IGNORE if high_count <= 1 else GATE_WATCH
+        confidence = "LOW"
 
     return {
-        "channel": channel,
-        "image": image_brief(channel, idea, brand_id=brand_id,
-                              neighbourhood=neighbourhood, pillar=pillar),
-        "utm": build_utm(channel, campaign_id=campaign_id, content_tag=content_tag, domain=dom),
-        "hook_formula": formula,
-        "hook_formula_source": formula_src,
-        "paid_plan": paid_ad_plan(channel, brand_id=brand_id, intel=intel),
-        "expected_outcome": expected_outcomes(channel, brand_id=brand_id, intel=intel),
-        "intel_summary": {
-            "followers_count": (intel or {}).get("ig_business", {}).get("followers_count"),
-            "posts_scored": (intel or {}).get("post_conversion", {}).get("posts_scored"),
-            "winning_themes": (intel or {}).get("post_conversion", {}).get("winning_themes", [])[:3],
-            "winning_format": (intel or {}).get("post_conversion", {}).get("winning_format"),
-            "median_lift_pct": (intel or {}).get("post_conversion", {}).get("median_lift_pct"),
-            "hook_proven_count": (intel or {}).get("hook_bank", {}).get("proven_count"),
-            "gbp_calls_30d": (intel or {}).get("gbp_insights", {}).get("calls_30d"),
-        } if intel else {},
+        "gate": gate,
+        "confidence": confidence,
+        "factors": factors,
+        "aggregate": {
+            "high_count": high_count,
+            "medium_count": medium_count,
+            "low_count": low_count,
+        },
     }
 
 
-# ── Tracking sheet (Google Sheet-compatible) ────────────────────────
+# ── Brief builder ────────────────────────────────────────────────
 
-def tracking_sheet_rows(campaign_id: str, channels: list[str], *,
-                         pillar: Optional[str] = None,
-                         neighbourhood: Optional[str] = None) -> list[dict]:
-    """Generate a tracking-sheet row per channel for the campaign.
+def _derive_audience(brand_id: str, bp: dict) -> dict:
+    """Pull audience definition from brand-planning if present."""
+    audience = bp.get("audience") or {}
+    return {
+        "primary": audience.get("primary") or audience.get("core") or "",
+        "secondary": audience.get("secondary") or "",
+        "specific_useful_definition": (
+            "Use the brand's audience definition from data/brand-planning/"
+            "<brand>.json (audience.primary + audience.secondary). Avoid "
+            "generic labels like 'golfers' unless that is genuinely the "
+            "intended definition."
+        ),
+        "source": "data/brand-planning/<brand>.json#audience",
+    }
 
-    Returns: list of dicts whose keys are column headers you can paste
-    straight into a Google Sheet / Excel. Columns:
-      campaign_id, channel, asset_id, planned_date, utm_tracking_url,
-      image_model, expected_ctr, expected_bookings, paid_recommended,
-      paid_daily_zar, hook_formula
-    """
-    base_date = _dt.date.today()
-    rows = []
-    for i, ch in enumerate(channels):
-        brief = build_channel_brief(ch, idea=campaign_id, brand_id="swing-shack",
-                                     campaign_id=campaign_id, pillar=pillar,
-                                     neighbourhood=neighbourhood)
-        schedule_offset = {"gmb": 1, "instagram": 1, "facebook": 3, "tiktok": 2, "x": 4}.get(ch, 1)
-        planned = base_date + _dt.timedelta(days=schedule_offset)
-        rows.append({
-            "campaign_id": campaign_id,
-            "channel": ch,
-            "asset_id": f"{campaign_id}-{ch}",
-            "planned_date": planned.isoformat(),
-            "utm_tracking_url": brief["utm"]["tracking_url"],
-            "image_model": brief["image"]["model"],
-            "image_aspect_ratio": brief["image"]["aspect_ratio"],
-            "expected_ctr": brief["expected_outcome"]["ctr"],
-            "expected_bookings": brief["expected_outcome"]["expected_bookings"],
-            "paid_recommended": brief["paid_plan"]["recommended"],
-            "paid_daily_zar": brief["paid_plan"]["daily_budget_zar"],
-            "hook_formula": brief["hook_formula"],
-            "overlay_required": "no" if brief["image"]["overlay_text"]["position"] == "none" else "yes",
+
+def _derive_voice_and_belief(bp: dict) -> dict:
+    return {
+        "voice_should_feel": (bp.get("voice") or {}).get("should_feel")
+        or ["knowledgeable", "warm", "useful"],
+        "voice_should_never_feel": (bp.get("voice") or {})
+        .get("should_never_feel", []),
+        "big_brand_idea": (bp.get("big_brand_idea") or {}).get("name", ""),
+        "brand_essence": bp.get("brand_essence", ""),
+        "brand_purpose": bp.get("brand_purpose", ""),
+        "source": "data/brand-planning/<brand>.json",
+    }
+
+
+def _derive_channel_role(brand_id: str, ri: dict) -> list:
+    """Suggest channels supported by the situation, with role."""
+    roles = []
+    ri_aa = ri.get("audience_awareness") or {}
+    ri_aa_metrics = ((ri_aa.get("metrics") or {}).get("instagram") or {})
+    ri_ga = ri.get("website_performance") or {}
+    has_ig = ri_aa.get("data_status") == "LIVE" \
+        and ri_aa_metrics.get("reach_30d", 0) > 0
+    has_fb = ri_aa.get("data_status") in ("LIVE", "PARTIAL")
+    has_ga4 = ri_ga.get("data_status") == "LIVE"
+    has_paid = False  # paid not yet connected
+
+    if has_ig:
+        roles.append({
+            "channel": "Instagram",
+            "role": "Discovery + attention (per brief §8 example). "
+                     "Use IG reach_30d as reach proxy.",
+            "evidence_basis": [
+                f"IG reach_30d = {ri_aa_metrics.get('reach_30d', 0):,}",
+                f"IG followers = {ri_aa_metrics.get('followers_count', 0):,}",
+            ],
         })
-    return rows
+    if has_fb:
+        roles.append({
+            "channel": "Facebook",
+            "role": "Reach + existing community.",
+            "evidence_basis": [
+                f"FB page reachable; FB archived posts = "
+                f"{((ri_aa.get('metrics') or {}).get('facebook') or {}).get('total_posts_archived', 0)}",
+            ],
+        })
+    if has_ga4:
+        roles.append({
+            "channel": "Website",
+            "role": "Detailed service/product intent + booking/contact "
+                     "conversion surface.",
+            "evidence_basis": [
+                f"GA4 sessions_31d = {((ri_ga.get('metrics') or {}).get('sessions', 0)):,}",
+            ],
+        })
+    if has_paid:
+        roles.append({
+            "channel": "Meta Ads",
+            "role": "Targeted paid acquisition (per brief §4). "
+                     "Real Meta Ads data not yet ingested.",
+            "evidence_basis": [
+                "Meta Ads surface NOT_CONNECTED — paid role is "
+                "reserved, not active.",
+            ],
+        })
+    return roles
 
 
-def tracking_sheet_csv(campaign_id: str, channels: list[str], *,
-                         pillar: Optional[str] = None,
-                         neighbourhood: Optional[str] = None) -> str:
-    """Generate a CSV string for the tracking sheet (paste-ready)."""
-    import io, csv
-    rows = tracking_sheet_rows(campaign_id, channels, pillar=pillar, neighbourhood=neighbourhood)
-    if not rows:
-        return ""
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
-    writer.writeheader()
-    for r in rows:
-        writer.writerow(r)
-    return buf.getvalue()
+def _derive_measurement_plan(brand_id: str, ri: dict) -> dict:
+    """Per brief §8: use metrics that actually exist."""
+    ri_ga = ri.get("website_performance") or {}
+    ri_aa = ri.get("audience_awareness") or {}
+    plan = {
+        "primary_metrics": [],
+        "secondary_metrics": [],
+        "pending_metrics": [],
+    }
+    ga = ri_ga.get("metrics") or {}
+    if ga.get("sessions") is not None:
+        plan["primary_metrics"].append({
+            "metric": "GA4 sessions",
+            "definition": "Sessions on the brand website during the live window",
+            "source": "/api/ga4/<brand>/sessions",
+            "status": "LIVE" if ri_ga.get("data_status") == "LIVE" else "PENDING",
+        })
+    if ga.get("engagement_rate_median") is not None:
+        plan["primary_metrics"].append({
+            "metric": "GA4 engagement rate (median)",
+            "definition": "Median daily engagement rate over the campaign window",
+            "source": "/api/ga4/<brand>/sessions",
+            "status": "LIVE" if ri_ga.get("data_status") == "LIVE" else "PENDING",
+        })
+    ig = ((ri_aa.get("metrics") or {}).get("instagram") or {})
+    if ig.get("reach_30d"):
+        plan["secondary_metrics"].append({
+            "metric": "Instagram reach_30d",
+            "definition": "Total reach across the 30-day window (or campaign-windowed)",
+            "source": "data/ig-business-analytics.json (historical) "
+                       "/ Meta Graph API v18.0 (live)",
+            "status": ri_aa.get("data_status"),
+        })
+    # Pending — lead tracking
+    if brand_id == "stick":
+        plan["pending_metrics"].append({
+            "metric": "Verified website leads (generate_lead)",
+            "definition": "Stick generate_lead CF7 listener; "
+                           "stick-generate-lead.js not yet production-validated",
+            "source": "PENDING — install + runtime validate before reporting.",
+            "status": "PENDING",
+        })
+    plan["pending_metrics"].append({
+        "metric": "Real Meta Ads (spend, CTR, CPC, CPM, leads)",
+        "definition": "Real ads ingestion pending Step 4B; "
+                       "synthetic data quarantined.",
+        "source": "PENDING — Step 4B.",
+        "status": "PENDING",
+    })
+    return plan
+
+
+def _brief_id() -> str:
+    return "brf-" + uuid.uuid4().hex[:10]
+
+
+def create_brief(brand_id: str, opportunity_id: str,
+                 days_back: int = 31) -> dict:
+    """Create a decision-ready strategic Brief.
+
+    Pipeline (brief §1):
+      opportunity → reporting intelligence → pillar coverage →
+      unclassified audit → gate → BRIEF schema
+
+    Returns the full brief dict (and persists to disk).
+    """
+    if brand_id not in ALLOWED_BRAND_IDS:
+        return {"ok": False, "error": f"unknown brand_id: {brand_id}"}
+
+    bp = _brand_planning(brand_id)
+    strat = _strategy(brand_id)
+    north_stars = _north_stars(brand_id)
+    pmx = _pillar_mix(brand_id, days_back)
+    pcov = _pillar_coverage_signal(pmx, brand_id)
+    unaud = _unclassified_audit(brand_id)
+    ri = _ri_signals(brand_id, days_back)
+    cg = _creative_genome_signals(brand_id)
+    opp = _resolve_opportunity(brand_id, opportunity_id)
+    if not opp:
+        return {"ok": False,
+                "error": f"opportunity {opportunity_id!r} not found for {brand_id}"}
+
+    gate = _opportunity_gate(brand_id, opp, ri, pmx, pcov)
+    if gate["gate"] != GATE_BRIEF:
+        # WATCH or IGNORE — still record the evaluation but
+        # do NOT generate a full Brief.
+        return {
+            "ok": True,
+            "gate": gate,
+            "decision": gate["gate"],
+            "opportunity": {"id": opp.get("id"),
+                             "name": opp.get("name")},
+            "note": ("Per brief §7, calendar inclusion alone is not "
+                     "sufficient to produce a campaign; this opportunity "
+                     "does not clear the gate."),
+        }
+
+    # Determine the always-on pillar match for this opportunity
+    # (also used inside the gate but not returned to the caller).
+    always_on_pillar_match = []
+    opp_pillars = opp.get("pillars") or {}
+    if isinstance(opp_pillars, dict):
+        for p in PILLAR_KEYS:
+            if any(isinstance(v, str) and p in v.lower()
+                   for v in opp_pillars.values()):
+                always_on_pillar_match.append(p)
+
+    # Build BRIEF schema (brief §8)
+    audience = _derive_audience(brand_id, bp)
+    voice = _derive_voice_and_belief(bp)
+    channel_roles = _derive_channel_role(brand_id, ri)
+    measurement = _derive_measurement_plan(brand_id, ri)
+    nstars = north_stars
+
+    evidence_pack = []
+    evidence_pack.append({
+        "claim": "Stick 2026 planning is pillar-weighted: Fitting 64% vs Retail 0%",
+        "source": "data/brand-planning/stick-events-{2026,2027}.json (audited via brief §6)",
+        "type": "MEASURED_FACT",
+        "confidence": "HIGH",
+    })
+    evidence_pack.append({
+        "claim": ("Stick North Stars: Retail R350k/month, 24 fittings/week, "
+                  "24 coaching/week"),
+        "source": "Brief §9 (Reporting V2 contract)",
+        "type": "MEASURED_FACT",
+        "confidence": "HIGH",
+    })
+    if ri.get("data_coverage", {}).get("ga4") == "LIVE":
+        ga = ri.get("website_performance", {}).get("metrics", {})
+        evidence_pack.append({
+            "claim": (f"{brand_id} GA4 last 31 days: "
+                      f"{ga.get('sessions', 0):,} sessions, "
+                      f"{ga.get('total_users', 0):,} users, "
+                      f"{ga.get('engagement_rate_median', 0)*100:.0f}% engagement median"),
+            "source": "/api/ga4/<brand>/sessions",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+    if ri.get("data_coverage", {}).get("instagram") == "LIVE":
+        ig = ((ri.get("audience_awareness", {}).get("metrics") or {})
+              .get("instagram") or {})
+        evidence_pack.append({
+            "claim": (f"{brand_id} Instagram reach_30d = "
+                      f"{ig.get('reach_30d', 0):,}; followers = "
+                      f"{ig.get('followers_count', 0):,}"),
+            "source": "data/ig-business-analytics.json + Meta Graph API v18.0",
+            "type": "MEASURED_FACT",
+            "confidence": "HIGH",
+        })
+    if cg.get("data_status") == "validated":
+        evidence_pack.append({
+            "claim": f"Stick Visual DNA: {cg['validated_pattern']}",
+            "source": cg.get("source"),
+            "type": "SUPPORTED_INFERENCE",
+            "confidence": "MEDIUM",
+        })
+    for obs in ri.get("cross_channel_observations", []):
+        evidence_pack.append({
+            "claim": obs.get("observation"),
+            "source": "Reporting Intelligence cross-channel observations",
+            "type": obs.get("type", "SUPPORTED_INFERENCE"),
+            "confidence": obs.get("confidence", "MEDIUM"),
+        })
+
+    now = _now_iso()
+    brief = {
+        "schema": "https://campaign-os/campaign-brief/v1",
+        "brief_id": _brief_id(),
+        "brand_id": brand_id,
+        "brand_name": (bp.get("brand_essence", "")[:80]
+                       or brand_id),
+        "source_opportunity": {
+            "id": opp.get("id"),
+            "name": opp.get("name"),
+            "pillars": opp.get("pillars"),
+            "lanes": opp.get("lanes"),
+            "duration_days": opp.get("duration_days"),
+            "date": opp.get("date"),
+            "year": opp.get("_source_year"),
+            "source_file": opp.get("_source_file"),
+        },
+        "status": STATUS_DRAFT,
+        "revision": 1,
+        "created_at": now,
+        "updated_at": now,
+        "approved_at": None,
+        "approved_by": None,
+        "evidence_snapshot": {
+            "ri_data_status": ri.get("data_status"),
+            "data_coverage": ri.get("data_coverage"),
+            "data_limitations": ri.get("data_limitations", []),
+            "pillar_mix": pmx,
+            "pillar_coverage_signal": pcov,
+            "unclassified_audit": unaud,
+            "creative_genome": cg,
+        },
+        "opportunity_gate": gate,
+        # Brief §8 sections
+        "opportunity": {
+            "what": opp.get("name"),
+            "why_it_may_matter": (f"Calendar/cultural event '{opp.get('name')}' "
+                                  f"aligned with active North Stars and "
+                                  f"existing brand pillars."),
+            "evidence": [e for e in evidence_pack
+                         if e.get("source", "").startswith("data/")
+                         or "North" in e.get("claim", "")],
+        },
+        "timing": {
+            "event_date": opp.get("date") or "",
+            "event_live_window": (f"{opp.get('duration_days')} days"
+                                  if opp.get("duration_days")
+                                  else "operator to pin live window"),
+            "research_start": "T-21 days (recommended)",
+            "planning_start": "T-14 days (recommended)",
+            "production_deadline": "T-7 days (recommended)",
+            "campaign_live_window": "operator to pin live window",
+            "note": ("Suggested lead-times follow brief §8; actual dates "
+                     "depend on operator approval + production pipeline."),
+        },
+        "business_objective": {
+            "north_stars_supported": [
+                v for k, v in nstars.items()
+                if (any(p in (opp.get("pillars") or {})
+                       for p in [k])
+                    or k in always_on_pillar_match)
+            ] or list(nstars.values()),
+            "pillar_supported": always_on_pillar_match[0]
+            if always_on_pillar_match else "primary",
+            "evidence_basis": (["Stick 3 North Stars: Retail, Fitting, "
+                                "Coaching"] if brand_id == "stick"
+                               else [strat.get("north_star")]),
+        },
+        "audience": audience,
+        "problem_insight": {
+            "problem": (f"{bp.get('brand_essence', brand_id)} — "
+                        f"how does this opportunity address an audience "
+                        f"or business problem?"),
+            "insight": ("Strategic insight to be drafted by marketer "
+                        "during review (brief §8 explicitly reserves "
+                        "this for human authoring)."),
+            "type": "HYPOTHESIS",
+            "confidence": "LOW",
+        },
+        "strategic_proposition": {
+            "proposition": ("Strategic proposition to be drafted by "
+                            "marketer during review (brief §8: strategy, "
+                            "not final copy)."),
+            "type": "STRATEGIC_RECOMMENDATION",
+            "confidence": "MEDIUM",
+        },
+        "reasons_to_believe": {
+            "items": [
+                ("Stick brand essence: "
+                 f"{bp.get('brand_essence', 'see data/brand-planning/stick.json')}"),
+                ("Stick mission: "
+                 f"{bp.get('brand_mission', 'see data/brand-planning/stick.json')[:240]}"),
+                ("Brand promise: "
+                 f"{bp.get('brand_promise', 'see data/brand-planning/stick.json')}"),
+            ],
+            "evidence_source": "data/brand-planning/<brand>.json",
+        },
+        "historical_evidence": {
+            "ri_what_worked": ri.get("what_worked", []),
+            "ri_recommendations": ri.get("recommendations", []),
+            "historical_reports_count": (
+                (ri.get("historical_reports") or {}).get("count", 0)),
+            "note": ("Per brief §10: historical evidence improves the "
+                     "strategy, does not mechanically dictate it."),
+        },
+        "creative_evidence": {
+            "creative_genome_pattern": (
+                cg.get("validated_pattern")
+                if cg.get("data_status") == "validated"
+                else "Creative Genome not validated for this brand."),
+            "samples": cg.get("samples"),
+            "source": cg.get("source"),
+            "note": ("Per brief §11: validated patterns only. This "
+                     "section supports 'recommended creative direction' "
+                     "at the strategy level — it must NOT produce the "
+                     "finished Reel script/caption in this slice."),
+        },
+        "channel_role": channel_roles,
+        "content_asset_requirements": {
+            "examples": [
+                "short-form video (Reels, TikTok)",
+                "stills (Feed, Stories)",
+                "carousel (educational)",
+                "landing-page update",
+                "email (CRM)",
+                "paid media asset (when paid is LIVE)",
+            ],
+            "note": ("Asset requirements listed per brief §8. "
+                     "NO creative generated in this slice."),
+        },
+        "cta_strategy": {
+            "desired_action": "operator to define during review",
+            "evidence_basis": (
+                ["If campaign targets Fitting: desired action = book "
+                 "fitting (per Stick North Star 24 fittings/week).",
+                 "If campaign targets Coaching: desired action = book "
+                 "coaching (per Stick North Star 24 coaching/week).",
+                 "If campaign targets Retail: desired action = shop / "
+                 "visit-store (per Retail R350k/month North Star)."]
+                if brand_id == "stick"
+                else ["Operator to define per brand North Star."]),
+            "note": ("Per brief §8: CTA strategy defines desired action; "
+                     "no copy generated in this slice."),
+        },
+        "measurement_plan": measurement,
+        "risks_unknowns": {
+            "items": (ri.get("data_limitations") or []) + [
+                ("Stick lead tracking PENDING — fitting/coaching "
+                 "conversion cannot yet be attributed from this Brief."),
+                ("Stick Meta IG + WABA surfaces PARTIAL — full Meta "
+                 "creative insight scope pending Use Cases configuration."),
+            ],
+            "type": "MEASURED_FACT",
+        },
+        "approval_questions": {
+            "items": [
+                "Does this opportunity support an active North Star?",
+                "Is the audience definition specific enough?",
+                "Are channel roles matched to evidence?",
+                ("Does the measurement plan use metrics that "
+                 "actually exist (not synthetic / pending)?"),
+                ("Stick only: does this Brief worsen or fix the "
+                 "Retail 0% pillar coverage?"),
+            ],
+        },
+        "evidence_pack": evidence_pack,
+    }
+
+    # Persist
+    _write_brief(brief)
+    _append_revision(brief, {
+        "revision": brief["revision"],
+        "saved_at": now,
+        "snapshot": brief,
+        "note": "initial creation",
+    })
+    return {"ok": True, "brief": brief}
+
+
+# ── listing / reading / update / transition ─────────────────────
+
+def list_briefs(brand_id: str = None, status: str = None) -> list:
+    out = []
+    brands = [brand_id] if brand_id and brand_id in ALLOWED_BRAND_IDS \
+        else sorted(ALLOWED_BRAND_IDS)
+    for bid in brands:
+        d = _briefs_dir(bid)
+        if not os.path.isdir(d):
+            continue
+        for fname in sorted(os.listdir(d)):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                b = json.load(open(os.path.join(d, fname)))
+            except Exception:
+                continue
+            if status and b.get("status") != status:
+                continue
+            out.append({
+                "brief_id": b.get("brief_id"),
+                "brand_id": b.get("brand_id"),
+                "source_opportunity_id": (b.get("source_opportunity") or {})
+                .get("id"),
+                "source_opportunity_name": (b.get("source_opportunity") or {})
+                .get("name"),
+                "status": b.get("status"),
+                "revision": b.get("revision"),
+                "created_at": b.get("created_at"),
+                "updated_at": b.get("updated_at"),
+            })
+    return out
+
+
+def get_brief(brand_id: str, brief_id: str) -> "Optional[dict]":
+    return _read_brief(brand_id, brief_id)
+
+
+def update_brief(brand_id: str, brief_id: str, patch: dict) -> dict:
+    b = _read_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    if b.get("status") == STATUS_SUPERSEDED:
+        return {"ok": False, "error": "brief is superseded"}
+    # Apply patch to top-level scalar fields + known nested dicts
+    for k, v in (patch or {}).items():
+        if k == "evidence_pack" or k == "approval_questions":
+            # Operator-replaceable structured fields
+            b[k] = v
+        else:
+            b[k] = v
+    b["revision"] = int(b.get("revision", 1)) + 1
+    b["updated_at"] = _now_iso()
+    _write_brief(b)
+    _append_revision(b, {
+        "revision": b["revision"],
+        "saved_at": b["updated_at"],
+        "snapshot": b,
+        "note": "operator edit",
+    })
+    return {"ok": True, "brief": b}
+
+
+def transition_brief(brand_id: str, brief_id: str, to_status: str,
+                     actor: str = None) -> dict:
+    """Status model transitions (brief §13).
+
+    Validates:
+      approved requires actor
+      creative generation must require approved (enforced at the
+      generation endpoint, not here)
+    """
+    if to_status not in VALID_STATUSES:
+        return {"ok": False, "error": f"invalid status: {to_status}"}
+    if to_status == STATUS_APPROVED and not actor:
+        return {"ok": False, "error": "approved requires actor (operator)"}
+    b = _read_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    # Append-only on status transitions
+    transitions = b.get("status_transitions") or []
+    transitions.append({
+        "from": b.get("status"),
+        "to": to_status,
+        "actor": actor or "system",
+        "at": _now_iso(),
+    })
+    b["status_transitions"] = transitions
+    b["status"] = to_status
+    b["updated_at"] = _now_iso()
+    if to_status == STATUS_APPROVED:
+        b["approved_at"] = b["updated_at"]
+        b["approved_by"] = actor
+    b["revision"] = int(b.get("revision", 1)) + 1
+    _write_brief(b)
+    _append_revision(b, {
+        "revision": b["revision"],
+        "saved_at": b["updated_at"],
+        "snapshot": b,
+        "note": f"status transition → {to_status}",
+    })
+    return {"ok": True, "brief": b}

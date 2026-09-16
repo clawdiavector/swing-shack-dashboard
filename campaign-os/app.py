@@ -21518,6 +21518,367 @@ def report_v1_upload_report(brand_id):
     }), 201
 
 
+# ─── CAMPAIGN BRIEF V1 (Strategic Brief engine, 2026-09-16) ─────
+
+BRIEF_V1_BRAND_ALLOWED = ("swing-shack", "stick", "bag-drop")
+
+
+def _cb_import():
+    """Lazy-import the strategic brief engine."""
+    try:
+        from _lib import campaign_brief as cb
+        return cb
+    except ImportError:
+        try:
+            from . import campaign_brief as cb
+            return cb
+        except ImportError:
+            import sys
+            here = os.path.dirname(os.path.abspath(__file__))
+            lib_dir = os.path.join(here, "_lib")
+            if lib_dir not in sys.path:
+                sys.path.insert(0, lib_dir)
+            import campaign_brief as cb
+            return cb
+
+
+@app.route('/api/brief/v1/evaluate', methods=['GET'])
+def brief_v1_evaluate():
+    """GET /api/brief/v1/evaluate?brand=stick&opportunity=pre-season-2027
+
+    Runs the opportunity gate (brief §7) WITHOUT creating a brief.
+    Returns {gate, confidence, factors, aggregate}.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand") or "").strip()
+    opp = (request.args.get("opportunity") or "").strip()
+    days = int(request.args.get("days") or 31)
+    if bid not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    if not opp:
+        return jsonify({"ok": False, "error": "opportunity id required"}), 400
+    cb = _cb_import()
+    # Resolve opportunity
+    resolved = cb._resolve_opportunity(bid, opp)
+    if not resolved:
+        return jsonify({"ok": False, "error": f"opportunity {opp!r} not found for {bid}"}), 404
+    pmx = cb._pillar_mix(bid, days)
+    pcov = cb._pillar_coverage_signal(pmx, bid)
+    ri = cb._ri_signals(bid, days)
+    gate = cb._opportunity_gate(bid, resolved, ri, pmx, pcov)
+    return jsonify({"ok": True, "brand_id": bid,
+                    "opportunity": {"id": resolved.get("id"),
+                                     "name": resolved.get("name")},
+                    "gate": gate}), 200
+
+
+@app.route('/api/brief/v1/list-opportunities', methods=['GET'])
+def brief_v1_list_opportunities():
+    """GET /api/brief/v1/list-opportunities?brand=stick
+
+    Returns all opportunities the engine knows about for the
+    brand (brief §7 opportunity gate upstream)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand") or "").strip()
+    if bid not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    return jsonify({"ok": True, "brand_id": bid,
+                    "opportunities": cb._list_opportunities(bid)}), 200
+
+
+@app.route('/api/brief/v1/pillar-coverage', methods=['GET'])
+def brief_v1_pillar_coverage():
+    """GET /api/brief/v1/pillar-coverage?brand=stick&days=31
+
+    Returns pillar mix + per-pillar coverage signal
+    (brief §5) — the strategic under-support view."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (request.args.get("brand") or "").strip()
+    days = int(request.args.get("days") or 31)
+    if bid not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    pmx = cb._pillar_mix(bid, days)
+    pcov = cb._pillar_coverage_signal(pmx, bid)
+    unaud = cb._unclassified_audit(bid)
+    return jsonify({"ok": True, "brand_id": bid,
+                    "pillar_mix": pmx,
+                    "pillar_coverage_signal": pcov,
+                    "unclassified_audit": unaud}), 200
+
+
+@app.route('/api/brief/v1/create', methods=['POST'])
+def brief_v1_create():
+    """POST /api/brief/v1/create — body: {brand_id, opportunity_id, days?}
+
+    Per brief §1: Calendar opportunity → Reporting Intelligence →
+    pillar coverage → unclassified audit → gate → BRIEF schema.
+
+    Returns either a full Brief (status=draft) or a gate
+    decision (status=watch | ignore) for opportunities that
+    do not clear the opportunity gate."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    body = request.get_json(silent=True) or {}
+    bid = (body.get("brand_id") or "").strip()
+    opp = (body.get("opportunity_id") or "").strip()
+    days = int(body.get("days") or 31)
+    if bid not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    if not opp:
+        return jsonify({"ok": False, "error": "opportunity_id required"}), 400
+    cb = _cb_import()
+    r = cb.create_brief(bid, opp, days)
+    status = 200 if r.get("ok") else 400
+    return jsonify(r), status
+
+
+@app.route('/api/brief/v1/<brand_id>/list', methods=['GET'])
+def brief_v1_list(brand_id):
+    """GET /api/brief/v1/<brand_id>/list?status=draft|approved|...
+
+    Lists all briefs for a brand, optionally filtered by status
+    (brief §13)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    status = (request.args.get("status") or "").strip()
+    cb = _cb_import()
+    items = cb.list_briefs(brand_id, status if status else None)
+    return jsonify({"ok": True, "brand_id": brand_id,
+                    "count": len(items), "briefs": items}), 200
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['GET'])
+def brief_v1_get(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id> — full Brief JSON."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    return jsonify({"ok": True, "brief": b}), 200
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>', methods=['PATCH'])
+def brief_v1_patch(brand_id, brief_id):
+    """PATCH /api/brief/v1/<brand_id>/<brief_id> — append-only revision.
+
+    Body: any subset of brief schema fields. revision counter
+    increments; previous revisions persisted under
+    data/briefs/<brand_id>/<brief_id>/revisions/rev-NNNN.json.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    body = request.get_json(silent=True) or {}
+    cb = _cb_import()
+    r = cb.update_brief(brand_id, brief_id, body)
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/transition', methods=['POST'])
+def brief_v1_transition(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/transition
+
+    Body: {to_status: draft|ready_for_review|changes_requested|
+                    approved|rejected|superseded,
+           actor: str (required when to_status=approved)}
+
+    Per brief §13: creative generation must require 'approved'.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    body = request.get_json(silent=True) or {}
+    to_status = (body.get("to_status") or "").strip()
+    actor = (body.get("actor") or "").strip()
+    cb = _cb_import()
+    r = cb.transition_brief(brand_id, brief_id, to_status, actor or None)
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/render', methods=['GET'])
+def brief_v1_render(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id>/render
+
+    Renders the brief as printable HTML for review/approval
+    (brief §14: Today → Opportunity → Brief flow)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    html = _render_brief_html(b)
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+def _render_brief_html(b: dict) -> str:
+    """Render a strategic brief as printable HTML.
+
+    Per brief §16: do NOT generate captions / hooks / scripts /
+    ad copy / final campaign names / image prompts / finished
+    creative. The rendered brief is strategy only."""
+    def esc(s):
+        return (str(s or "")
+                .replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;"))
+    parts = [("<!DOCTYPE html><html><head><meta charset='utf-8'>"
+              "<title>Brief — " + esc(b.get("source_opportunity", {}).get("name")) +
+              "</title>"
+              "<style>"
+              "body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;"
+              "max-width:920px;margin:1.5em auto;padding:0 1em;color:#1a1a1a;}"
+              "h1{margin:0 0 .2em;font-size:1.7em;}"
+              "h2{margin:1.4em 0 .4em;font-size:1.25em;border-bottom:1px solid #eee;padding-bottom:.3em;}"
+              "h3{margin:1em 0 .3em;font-size:1.05em;}"
+              ".meta{color:#666;font-size:.9em;}"
+              ".pill{display:inline-block;padding:.15em .6em;border-radius:999px;font-size:.78em;"
+              "background:#eee;margin-right:.3em;}"
+              ".ok{background:#d4f8d4;}"
+              ".pending{background:#fff3c4;}"
+              ".not{background:#fcd7d7;}"
+              ".partial{background:#ffeac4;}"
+              ".rec{padding:.7em .9em;border-left:3px solid #999;background:#fafafa;margin:.5em 0;}"
+              ".high{border-color:#c0392b;}"
+              ".medium{border-color:#d4a017;}"
+              ".low{border-color:#2c7a4b;}"
+              ".evidence{font-size:.85em;color:#555;padding:.2em 0 .2em 1em;border-left:2px solid #ddd;margin:.3em 0;}"
+              "@media print{body{max-width:none;margin:0;padding:.5em;font-size:11pt;}"
+              ".rec{page-break-inside:avoid;}}"
+              "</style></head><body>")]
+
+    src_opp = b.get("source_opportunity", {}) or {}
+    parts.append(f"<h1>Brief — {esc(src_opp.get('name'))}</h1>")
+    parts.append(f"<div class='meta'>"
+                 f"Brand: <code>{esc(b.get('brand_id'))}</code> · "
+                 f"Status: <span class='pill ok'>{esc(b.get('status'))}</span> · "
+                 f"Revision: {b.get('revision', 1)} · "
+                 f"Created: {esc(b.get('created_at', ''))[:19]} · "
+                 f"Updated: {esc(b.get('updated_at', ''))[:19]}"
+                 f"</div>")
+
+    # Opportunity gate
+    gate = b.get("opportunity_gate") or {}
+    if gate:
+        agg = gate.get("aggregate") or {}
+        parts.append(f"<h2>Opportunity Gate</h2>")
+        parts.append(f"<div>Decision: <span class='pill ok'>{esc(gate.get('gate'))}</span> · "
+                     f"confidence: {esc(gate.get('confidence'))} · "
+                     f"high={agg.get('high_count', 0)} "
+                     f"medium={agg.get('medium_count', 0)} "
+                     f"low={agg.get('low_count', 0)}</div>")
+        for f in gate.get("factors", []) or []:
+            cls = ("ok" if f.get("score") == "high"
+                   else "pending" if f.get("score") == "medium"
+                   else "not")
+            parts.append(f"<div class='evidence'>"
+                         f"<span class='pill {cls}'>{esc(f.get('score'))}</span> "
+                         f"<strong>{esc(f.get('factor'))}</strong>: "
+                         f"{esc(f.get('evidence'))}</div>")
+
+    # Evidence snapshot
+    snap = b.get("evidence_snapshot") or {}
+    dc = snap.get("data_coverage") or {}
+    if dc:
+        parts.append("<h2>Data Coverage at Brief Time</h2>")
+        parts.append("<table style='width:100%;border-collapse:collapse;font-size:.9em;'>")
+        for k, v in dc.items():
+            cls = ("ok" if v == "LIVE" else "pending" if v in ("PARTIAL","HISTORICAL_REAL")
+                   else "not" if v in ("NOT_CONNECTED","ERROR") else "partial")
+            parts.append(f"<tr><td>{esc(k)}</td><td><span class='pill {cls}'>{esc(v)}</span></td></tr>")
+        parts.append("</table>")
+
+    # Pillar coverage signal
+    pcov = snap.get("pillar_coverage_signal") or {}
+    if pcov:
+        parts.append("<h2>Pillar Coverage Signal</h2>")
+        for pillar, sig in pcov.items():
+            cls = ("ok" if sig.get("state") == "adequately_supported"
+                   else "pending" if sig.get("state") == "intentionally_deprioritised"
+                   else "not")
+            parts.append(f"<div class='rec {cls}'>")
+            parts.append(f"<strong>{esc(pillar)}</strong> "
+                         f"<span class='pill {cls}'>{esc(sig.get('state'))}</span> "
+                         f"({sig.get('n_events')} events, {sig.get('share_pct')}%)<br>")
+            parts.append(f"{esc(sig.get('evidence'))}</div>")
+
+    # Brief sections
+    for sec_key in ["opportunity", "timing", "business_objective", "audience",
+                    "problem_insight", "strategic_proposition", "reasons_to_believe",
+                    "historical_evidence", "creative_evidence",
+                    "channel_role", "content_asset_requirements",
+                    "cta_strategy", "measurement_plan", "risks_unknowns",
+                    "approval_questions"]:
+        sec = b.get(sec_key)
+        if not sec:
+            continue
+        title = sec_key.replace("_", " ").title()
+        parts.append(f"<h2>{esc(title)}</h2>")
+        parts.append("<div class='rec medium'>")
+        if isinstance(sec, dict):
+            for k, v in sec.items():
+                if k in ("title", "evidence_source"):
+                    continue
+                if isinstance(v, (str, int, float)):
+                    parts.append(f"<div><strong>{esc(k)}</strong>: {esc(v)}</div>")
+                elif isinstance(v, list):
+                    parts.append(f"<div><strong>{esc(k)}</strong>:</div><ul>")
+                    for item in v[:8]:
+                        if isinstance(item, dict):
+                            parts.append(f"<li>"
+                                         + "<br>".join(f"<strong>{esc(kk)}</strong>: {esc(vv)}"
+                                                       for kk, vv in item.items()
+                                                       if isinstance(vv, (str, int, float)))
+                                         + "</li>")
+                        else:
+                            parts.append(f"<li>{esc(item)}</li>")
+                    parts.append("</ul>")
+        parts.append("</div>")
+
+    # Evidence pack
+    ep = b.get("evidence_pack") or []
+    if ep:
+        parts.append("<h2>Evidence Pack</h2>")
+        for e in ep:
+            parts.append("<div class='evidence'>"
+                         f"<strong>{esc(e.get('claim', ''))}</strong><br>"
+                         f"<em>source</em>: {esc(e.get('source', ''))}<br>"
+                         f"<em>type/confidence</em>: "
+                         f"{esc(e.get('type', ''))} / {esc(e.get('confidence', ''))}"
+                         "</div>")
+
+    parts.append("<hr><div class='meta'>"
+                 "Generated by Campaign Brief V1 — strategic brief only. "
+                 "No creative content generated per brief §16."
+                 "</div></body></html>")
+    return "".join(parts)
+
+
+
+
 @app.route('/api/reports/v1/<brand_id>/list-uploads', methods=['GET'])
 def report_v1_list_uploads(brand_id):
     """GET /api/reports/v1/<brand_id>/list-uploads — list operator-uploaded
