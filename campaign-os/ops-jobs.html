@@ -161,6 +161,27 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
 }
 .view-tab { flex: 0 1 auto; min-width: 120px; }
 #summary[hidden], #list[hidden] { display: none !important; }
+.summary tbody tr { transition: background .12s ease; }
+.summary tbody tr.row-ok { background: rgba(62, 207, 142, .07); border-left: 3px solid var(--ok); }
+.summary tbody tr.row-late { background: rgba(227, 160, 8, .08); border-left: 3px solid var(--warn); }
+.summary tbody tr.row-fail { background: rgba(255, 107, 107, .08); border-left: 3px solid var(--bad); }
+.summary tbody tr.row-never { background: rgba(139, 151, 173, .06); border-left: 3px solid var(--muted); }
+.summary tbody tr:hover { background: rgba(110, 168, 255, .08); }
+.summary .job-name { font-weight: 700; color: var(--text); }
+.summary .job-id { color: var(--muted); font-size: 11px; font-family: ui-monospace, monospace; }
+.summary .st-ok { color: var(--ok); font-weight: 600; }
+.summary .st-fail { color: var(--bad); font-weight: 600; }
+.summary .st-late { color: var(--warn); font-weight: 600; }
+.summary td.has-tip { cursor: help; }
+.tip-float {
+  position: fixed; z-index: 40; max-width: min(360px, 92vw);
+  padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.45;
+  background: var(--panel-2); border: 1px solid var(--line);
+  box-shadow: 0 8px 28px rgba(0,0,0,.45); pointer-events: none;
+  color: var(--text); display: none;
+}
+.tip-float .tip-title { font-weight: 700; color: var(--accent-2); margin-bottom: 4px; }
+.tip-float .tip-body { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -171,17 +192,17 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
   <a class="btn" href="/?page=ops">Ops runbook</a>
   <span class="spend" id="spend">LLM spend —</span>
   <div class="view-bar" role="tablist" aria-label="Jobs view">
-    <button class="btn view-tab" type="button" data-jobs-view="schedule" role="tab" aria-selected="false">Schedule at a glance</button>
-    <button class="btn view-tab primary" type="button" data-jobs-view="cards" role="tab" aria-selected="true">Job cards</button>
+    <button class="btn view-tab primary" type="button" data-jobs-view="schedule" role="tab" aria-selected="true">Schedule at a glance</button>
+    <button class="btn view-tab" type="button" data-jobs-view="cards" role="tab" aria-selected="false">Job cards</button>
   </div>
   <div class="sub">Session-gated · schedules + history · times shown in SAST · deep-link from Telegram</div>
 </header>
 <main>
-  <section class="summary" id="summary" hidden>
+  <section class="summary" id="summary">
     <h2>Schedule at a glance (SAST)</h2>
-    <table><thead><tr><th>Job</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
+    <table><thead><tr><th>Job</th><th>Verdict</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
   </section>
-  <div id="list" class="empty">Loading…</div>
+  <div id="list" class="empty" hidden>Loading…</div>
 </main>
 <div class="drawer-bg" id="drawer-bg" role="dialog" aria-modal="true">
   <div class="drawer">
@@ -196,6 +217,7 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="tip-float" id="tip-float" role="tooltip" aria-hidden="true"></div>
 <script>
 const $ = (id) => document.getElementById(id);
 function esc(s) {
@@ -366,7 +388,52 @@ async function loadOutcome(name, runId, container) {
   container.innerHTML = renderOutcomeHtml(r.data);
 }
 
-let activeJobsView = 'cards';
+let activeJobsView = 'schedule';
+
+function verdictRowClass(v) {
+  if (v === 'OK') return 'row-ok';
+  if (v === 'LATE') return 'row-late';
+  if (v === 'FAILED' || v === 'STUCK') return 'row-fail';
+  return 'row-never';
+}
+
+function statusTextClass(st, verdict) {
+  if (st === 'OK') return 'st-ok';
+  if (st === 'FAILED' || st === 'TIMEOUT') return 'st-fail';
+  if (verdict === 'LATE') return 'st-late';
+  return '';
+}
+
+function jobTipParts(j) {
+  const info = j.info || {};
+  const parts = [];
+  if (info.summary) parts.push(info.summary);
+  if (info.detail) parts.push(info.detail);
+  if (j.last_error) parts.push('Last error: ' + String(j.last_error).slice(0, 200));
+  if (j.criticality) parts.push('Criticality: ' + j.criticality + (j.best_effort ? ' (best effort)' : ''));
+  return parts;
+}
+
+function showTip(el, j) {
+  const tip = $('tip-float');
+  const info = j.info || {};
+  const title = info.title || j.name;
+  const parts = jobTipParts(j);
+  if (!parts.length) return;
+  tip.innerHTML = `<div class="tip-title">${esc(title)}</div><div class="tip-body">${parts.map(p => esc(p)).join('<br><br>')}</div>`;
+  tip.style.display = 'block';
+  tip.setAttribute('aria-hidden', 'false');
+  const r = el.getBoundingClientRect();
+  const left = Math.min(Math.max(12, r.left), window.innerWidth - 380);
+  tip.style.left = left + 'px';
+  tip.style.top = Math.min(r.bottom + 8, window.innerHeight - tip.offsetHeight - 12) + 'px';
+}
+
+function hideTip() {
+  const tip = $('tip-float');
+  tip.style.display = 'none';
+  tip.setAttribute('aria-hidden', 'true');
+}
 
 function setJobsView(view) {
   activeJobsView = view;
@@ -383,12 +450,27 @@ function setJobsView(view) {
 function renderSummary(jobs) {
   const tbody = $('summary-body');
   if (!jobs.length) { tbody.innerHTML = ''; return; }
-  tbody.innerHTML = jobs.map(j => `<tr>
-    <td>${esc(j.name)}</td>
-    <td>${esc(scheduleTimes(j.schedule))}</td>
-    <td>${esc((j.schedule && j.schedule.scheduler) || '—')}</td>
-    <td>${esc(fmtSast(j.last_run_at))}<br><span style="color:var(--muted)">${esc(j.last_status || '')} · ${esc(j.last_triggered_by || '')}</span></td>
-  </tr>`).join('');
+  tbody.innerHTML = jobs.map((j, idx) => {
+    const v = j.verdict || 'NEVER';
+    const info = j.info || {};
+    const title = info.title || j.name;
+    const st = j.last_status || '—';
+    const stCls = statusTextClass(st, v);
+    return `<tr class="${verdictRowClass(v)}" data-tip-job="${idx}">
+      <td class="has-tip"><span class="job-name">${esc(title)}</span><br><span class="job-id">${esc(j.name)}</span></td>
+      <td><span class="chip ${esc(v)}">${esc(v)}</span></td>
+      <td>${esc(scheduleTimes(j.schedule))}</td>
+      <td>${esc((j.schedule && j.schedule.scheduler) || '—')}</td>
+      <td>${esc(fmtSast(j.last_run_at))}<br><span class="${stCls}">${esc(st)}</span> · <span style="color:var(--muted)">${esc(j.last_triggered_by || '—')}</span></td>
+    </tr>`;
+  }).join('');
+  tbody._tipJobs = jobs;
+  tbody.querySelectorAll('[data-tip-job]').forEach((row) => {
+    row.addEventListener('mouseenter', () => showTip(row, jobs[Number(row.getAttribute('data-tip-job'))]));
+    row.addEventListener('mouseleave', hideTip);
+    row.addEventListener('focus', () => showTip(row, jobs[Number(row.getAttribute('data-tip-job'))]));
+    row.addEventListener('blur', hideTip);
+  });
 }
 
 async function loadHistory() {
@@ -611,7 +693,7 @@ document.querySelectorAll('[data-jobs-view]').forEach((btn) => {
   if (view !== 'schedule' && view !== 'cards') {
     try { view = localStorage.getItem('cos-jobs-view'); } catch (_) {}
   }
-  if (view !== 'schedule' && view !== 'cards') view = 'cards';
+  if (view !== 'schedule' && view !== 'cards') view = 'schedule';
   if (params.get('job')) view = 'cards';
   setJobsView(view);
 
