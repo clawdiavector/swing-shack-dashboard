@@ -1,5 +1,71 @@
 {
   "brand_id": "swing-shack",
-  "snapshots": [],
+  "snapshots": [
+    {
+      "date": "2026-09-14",
+      "iso_week": [
+        2026,
+        38
+      ],
+      "moves": {
+        "move-1": {
+          "evidence_for": 0,
+          "evidence_against": 0,
+          "title": "Own 'measurement-led serious golf' as a category",
+          "status": ""
+        },
+        "move-2": {
+          "evidence_for": 0,
+          "evidence_against": 0,
+          "title": "Build properties, not random posts (Red Bull move)",
+          "status": ""
+        },
+        "move-3": {
+          "evidence_for": 0,
+          "evidence_against": 0,
+          "title": "Commercial flywheel \u2014 Indoor golf \u2192 Insight \u2192 Habit \u2192 Expansion",
+          "status": ""
+        }
+      },
+      "bets": {
+        "bet-indoor-golf-defend": {
+          "evidence_for": 0,
+          "title": "Reclaim the leaked `indoor golf` term",
+          "status": ""
+        },
+        "bet-simulated-golf-moat": {
+          "evidence_for": 0,
+          "title": "Build the `simulated golf` moat",
+          "status": ""
+        },
+        "bet-club-fitting-defend": {
+          "evidence_for": 0,
+          "title": "Launch the `club fitting near me` defence",
+          "status": ""
+        },
+        "bet-10ball-truth": {
+          "evidence_for": 0,
+          "title": "Launch The 10-Ball Truth flagship",
+          "status": ""
+        },
+        "bet-shack-sessions": {
+          "evidence_for": 0,
+          "title": "Launch Shack Sessions",
+          "status": ""
+        },
+        "bet-membership-as-relational": {
+          "evidence_for": 0,
+          "title": "Make membership a relationship engine, not a promo",
+          "status": ""
+        }
+      },
+      "aggregate": {
+        "evidence_for_total": 0,
+        "evidence_against_total": 0,
+        "lessons_total": 0,
+        "lessons_invalid": 0
+      }
+    }
+  ],
   "cleared_at": "2026-08-25"
 }

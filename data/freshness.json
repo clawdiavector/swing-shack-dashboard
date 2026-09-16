@@ -1,96 +1,686 @@
 {
-  "generated": "2026-08-20T05:30:04.873Z",
+  "generated": "2026-09-16T05:30:02.435Z",
   "stale_days_threshold": 14,
-  "total_files": 338,
+  "total_files": 392,
   "by_staleness": {
-    "fresh": 114,
-    "stale": 4,
-    "rotten": 12,
+    "fresh": 9,
+    "stale": 118,
+    "rotten": 16,
     "unknown": 24,
-    "static": 183
+    "static": 224
   },
   "stale_files": [
     {
-      "path": "data/publishing-references.json",
-      "age_days": 26.8,
-      "newest_ts": "2026-07-24T10:14:07.017Z"
+      "path": "data/google-ads.json",
+      "age_days": 36,
+      "newest_ts": "2026-08-11T06:34:40.452Z"
     },
     {
-      "path": "data/brand-directory/stick/source.json",
+      "path": "data/meta-ads.json",
+      "age_days": 36,
+      "newest_ts": "2026-08-11T06:34:40.452Z"
+    },
+    {
+      "path": "data/delivery-audit.json",
+      "age_days": 34.2,
+      "newest_ts": "2026-08-13T00:00:00.000Z"
+    },
+    {
+      "path": "data/agent-scorecards.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.033Z"
+    },
+    {
+      "path": "data/api-connections.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.007Z"
+    },
+    {
+      "path": "data/api-gap-priority.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.178Z"
+    },
+    {
+      "path": "data/approval-actions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.006Z"
+    },
+    {
+      "path": "data/approval-expiry.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.006Z"
+    },
+    {
+      "path": "data/approval-queue.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.564Z"
+    },
+    {
+      "path": "data/approval-summary.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.564Z"
+    },
+    {
+      "path": "data/auto-approval-actions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.401Z"
+    },
+    {
+      "path": "data/auto-swaps.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.357Z"
+    },
+    {
+      "path": "data/autonomy-decisions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.269Z"
+    },
+    {
+      "path": "data/autonomy-rules.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.269Z"
+    },
+    {
+      "path": "data/autopublished-items.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.445Z"
+    },
+    {
+      "path": "data/blog-briefs.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.305Z"
+    },
+    {
+      "path": "data/blog-drafts.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.305Z"
+    },
+    {
+      "path": "data/booking-closure.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.263Z"
+    },
+    {
+      "path": "data/booking-events.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:18:54.029Z"
+    },
+    {
+      "path": "data/booking-flow-improvements.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.814Z"
+    },
+    {
+      "path": "data/booking-value-model.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.562Z"
+    },
+    {
+      "path": "data/brand-guard-report.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.651Z"
+    },
+    {
+      "path": "data/budget-actions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.580Z"
+    },
+    {
+      "path": "data/build-meta.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.872Z"
+    },
+    {
+      "path": "data/bundle-opportunities.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.874Z"
+    },
+    {
+      "path": "data/capability-unlocks.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.093Z"
+    },
+    {
+      "path": "data/caption-variants.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.131Z"
+    },
+    {
+      "path": "data/captions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.131Z"
+    },
+    {
+      "path": "data/confidence-calibration.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.794Z"
+    },
+    {
+      "path": "data/content-blueprints.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:39.946Z"
+    },
+    {
+      "path": "data/conversion-truth.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:18:54.111Z"
+    },
+    {
+      "path": "data/counter-moves.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.154Z"
+    },
+    {
+      "path": "data/decision-confidence.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.605Z"
+    },
+    {
+      "path": "data/email-nurtures.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.618Z"
+    },
+    {
+      "path": "data/event-validation.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.733Z"
+    },
+    {
+      "path": "data/executive-brief.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.138Z"
+    },
+    {
+      "path": "data/failure-patterns.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.923Z"
+    },
+    {
+      "path": "data/faq-opportunities.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.305Z"
+    },
+    {
+      "path": "data/forum-opportunities.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.390Z"
+    },
+    {
+      "path": "data/ga4-metrics.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:18:53.950Z"
+    },
+    {
+      "path": "data/image-prompts.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.218Z"
+    },
+    {
+      "path": "data/integration-health.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.050Z"
+    },
+    {
+      "path": "data/inventory-signals.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.367Z"
+    },
+    {
+      "path": "data/landing-page-fixes.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.533Z"
+    },
+    {
+      "path": "data/lead-capture-fixes.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.742Z"
+    },
+    {
+      "path": "data/lead-quality.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.938Z"
+    },
+    {
+      "path": "data/lead-recovery.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.490Z"
+    },
+    {
+      "path": "data/lead-routing-log.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.622Z"
+    },
+    {
+      "path": "data/live-mode.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.452Z"
+    },
+    {
+      "path": "data/live-nudge-log.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.312Z"
+    },
+    {
+      "path": "data/live-publish-log.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.538Z"
+    },
+    {
+      "path": "data/market-gaps.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.070Z"
+    },
+    {
+      "path": "data/merchandising-board.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.325Z"
+    },
+    {
+      "path": "data/meta-auth-health.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.348Z"
+    },
+    {
+      "path": "data/mode-eligibility.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.836Z"
+    },
+    {
+      "path": "data/offer-margin-checks.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.410Z"
+    },
+    {
+      "path": "data/offer-opportunities.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.661Z"
+    },
+    {
+      "path": "data/owner-performance.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.183Z"
+    },
+    {
+      "path": "data/post-attribution.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:18:54.194Z"
+    },
+    {
+      "path": "data/postback-log.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.832Z"
+    },
+    {
+      "path": "data/product-priority.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.239Z"
+    },
+    {
+      "path": "data/publish-failures.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.750Z"
+    },
+    {
+      "path": "data/published-items.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.749Z"
+    },
+    {
+      "path": "data/published-posts.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.832Z"
+    },
+    {
+      "path": "data/qa-failures.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.478Z"
+    },
+    {
+      "path": "data/qa-report.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.477Z"
+    },
+    {
+      "path": "data/ready-for-approval.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.478Z"
+    },
+    {
+      "path": "data/recommendation-outcomes.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.832Z"
+    },
+    {
+      "path": "data/reddit-opportunities.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.390Z"
+    },
+    {
+      "path": "data/reddit-replies.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.390Z"
+    },
+    {
+      "path": "data/reschedule-log.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.920Z"
+    },
+    {
+      "path": "data/retargeting-campaigns.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.576Z"
+    },
+    {
+      "path": "data/review-actions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.665Z"
+    },
+    {
+      "path": "data/review-domination.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.196Z"
+    },
+    {
+      "path": "data/roi-coverage.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.136Z"
+    },
+    {
+      "path": "data/roi-truth.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:18:54.072Z"
+    },
+    {
+      "path": "data/rollback-tests.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.879Z"
+    },
+    {
+      "path": "data/schedule-board.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.920Z"
+    },
+    {
+      "path": "data/scheduled-items.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.749Z"
+    },
+    {
+      "path": "data/self-heal-actions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.964Z"
+    },
+    {
+      "path": "data/share-of-voice.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.111Z"
+    },
+    {
+      "path": "data/stability-report.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.751Z"
+    },
+    {
+      "path": "data/system-health.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:39.902Z"
+    },
+    {
+      "path": "data/thumbnail-briefs.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.218Z"
+    },
+    {
+      "path": "data/tone-violations.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.652Z"
+    },
+    {
+      "path": "data/tracking-breaks.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.776Z"
+    },
+    {
+      "path": "data/tracking-implementation-checklist.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.647Z"
+    },
+    {
+      "path": "data/trend-delta.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.227Z"
+    },
+    {
+      "path": "data/trust-gaps.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.708Z"
+    },
+    {
+      "path": "data/upsell-opportunities.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:42.283Z"
+    },
+    {
+      "path": "data/utm-backfill.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.690Z"
+    },
+    {
+      "path": "data/utm-governance.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.479Z"
+    },
+    {
+      "path": "data/utm-map.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:18:54.194Z"
+    },
+    {
+      "path": "data/verification-promotions.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.819Z"
+    },
+    {
+      "path": "data/visual-briefs.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:40.218Z"
+    },
+    {
+      "path": "data/weekly-learnings.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.096Z"
+    },
+    {
+      "path": "data/weekly-report.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.051Z"
+    },
+    {
+      "path": "data/what-to-repeat.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.096Z"
+    },
+    {
+      "path": "data/what-to-stop.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.096Z"
+    },
+    {
+      "path": "data/whatsapp-flows.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:41.982Z"
+    },
+    {
+      "path": "data/whatsapp-routing-ready.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.307Z"
+    },
+    {
+      "path": "data/whatsapp-template-pack.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:43.307Z"
+    },
+    {
+      "path": "data/youtube-hook-signals.json",
+      "age_days": 33.8,
+      "newest_ts": "2026-08-13T11:14:13.372Z"
+    },
+    {
+      "path": "data/publish-queue.json",
+      "age_days": 33.6,
+      "newest_ts": "2026-08-13T14:50:00.000Z"
+    },
+    {
+      "path": "data/next-day-queue.json",
+      "age_days": 33.2,
+      "newest_ts": "2026-08-14T00:00:00.000Z"
+    },
+    {
+      "path": "data/tomorrow-slots.json",
+      "age_days": 33.2,
+      "newest_ts": "2026-08-14T00:00:00.000Z"
+    },
+    {
+      "path": "data/dashboard-live.json",
+      "age_days": 27.8,
+      "newest_ts": "2026-08-19T10:00:06.375Z"
+    },
+    {
+      "path": "data/ig-business-analytics.json",
+      "age_days": 26.1,
+      "newest_ts": "2026-08-21T02:00:04.488Z"
+    },
+    {
+      "path": "data/seo-rankings.json",
       "age_days": 22.2,
-      "newest_ts": "2026-07-29T00:00:00.000Z"
+      "newest_ts": "2026-08-25T00:00:00.000Z"
     },
     {
-      "path": "data/brand-directory/swing-shack/source.json",
+      "path": "data/ubersuggest-backlinks.json",
       "age_days": 22.2,
-      "newest_ts": "2026-07-29T00:00:00.000Z"
+      "newest_ts": "2026-08-25T00:00:00.000Z"
     },
     {
-      "path": "data/brand-directory/swing-shack/images/gen-swing-shack-1785493816-1.png.meta.json",
-      "age_days": 19.8,
-      "newest_ts": "2026-07-31T10:30:16.000Z"
+      "path": "data/ubersuggest-competitors.json",
+      "age_days": 22.2,
+      "newest_ts": "2026-08-25T00:00:00.000Z"
+    },
+    {
+      "path": "data/ubersuggest-domain.json",
+      "age_days": 22.2,
+      "newest_ts": "2026-08-25T00:00:00.000Z"
+    },
+    {
+      "path": "data/brand/swing-shack-bible.json",
+      "age_days": 21.2,
+      "newest_ts": "2026-08-26T00:00:00.000Z"
+    },
+    {
+      "path": "data/strategy/swing-shack.json",
+      "age_days": 21.2,
+      "newest_ts": "2026-08-26T00:00:00.000Z"
+    },
+    {
+      "path": "data/fb-page-analytics.json",
+      "age_days": 20.8,
+      "newest_ts": "2026-08-26T09:48:06.000Z"
+    },
+    {
+      "path": "data/audits/creative-audit-2026-08-31.json",
+      "age_days": 16.2,
+      "newest_ts": "2026-08-31T00:00:00.000Z"
+    },
+    {
+      "path": "data/audits/creative-tests-2026-08-31.json",
+      "age_days": 16.2,
+      "newest_ts": "2026-08-31T00:00:00.000Z"
+    },
+    {
+      "path": "data/_snapshot_weekly.json",
+      "age_days": 14.7,
+      "newest_ts": "2026-09-01T12:17:03.748Z"
     }
   ],
   "rotten_files": [
     {
       "path": "data/leads.json",
-      "age_days": 154.2,
+      "age_days": 181.2,
       "newest_ts": "2026-03-19T00:00:00.000Z"
     },
     {
       "path": "data/analytics/instagram-analytics.json",
-      "age_days": 132,
+      "age_days": 159,
       "newest_ts": "2026-04-10T05:04:06.680Z"
     },
     {
       "path": "data/route-log.json",
-      "age_days": 120.6,
+      "age_days": 147.6,
       "newest_ts": "2026-04-21T14:01:37.858Z"
     },
     {
       "path": "data/autonomy-performance.json",
-      "age_days": 118.8,
+      "age_days": 145.8,
       "newest_ts": "2026-04-23T10:05:09.142Z"
     },
     {
       "path": "data/live-action-audit.json",
-      "age_days": 118.8,
+      "age_days": 145.8,
       "newest_ts": "2026-04-23T10:28:04.691Z"
     },
     {
       "path": "data/live-mode-scorecard.json",
-      "age_days": 118.8,
+      "age_days": 145.8,
       "newest_ts": "2026-04-23T10:05:09.329Z"
     },
     {
       "path": "data/mode-guardian.json",
-      "age_days": 118.8,
+      "age_days": 145.8,
       "newest_ts": "2026-04-23T10:05:09.204Z"
     },
     {
       "path": "data/rollback-log.json",
-      "age_days": 118.8,
+      "age_days": 145.8,
       "newest_ts": "2026-04-23T09:20:46.849Z"
     },
     {
       "path": "data/rollback-rehearsals.json",
-      "age_days": 118.8,
+      "age_days": 145.8,
       "newest_ts": "2026-04-23T10:05:09.267Z"
     },
     {
       "path": "data/tracking-launch-checklist.json",
-      "age_days": 118.7,
+      "age_days": 145.7,
       "newest_ts": "2026-04-23T12:15:00.000Z"
     },
     {
       "path": "data/utm-enforcement-live.json",
-      "age_days": 118.7,
+      "age_days": 145.7,
       "newest_ts": "2026-04-23T12:15:00.000Z"
     },
     {
       "path": "data/campaign-data.json",
-      "age_days": 43.2,
+      "age_days": 70.2,
       "newest_ts": "2026-07-08T00:00:00.000Z"
+    },
+    {
+      "path": "data/publishing-references.json",
+      "age_days": 53.8,
+      "newest_ts": "2026-07-24T10:14:07.017Z"
+    },
+    {
+      "path": "data/brand-directory/stick/source.json",
+      "age_days": 49.2,
+      "newest_ts": "2026-07-29T00:00:00.000Z"
+    },
+    {
+      "path": "data/brand-directory/swing-shack/source.json",
+      "age_days": 49.2,
+      "newest_ts": "2026-07-29T00:00:00.000Z"
+    },
+    {
+      "path": "data/brand-directory/swing-shack/images/gen-swing-shack-1785493816-1.png.meta.json",
+      "age_days": 46.8,
+      "newest_ts": "2026-07-31T10:30:16.000Z"
     }
   ]
 }
