@@ -16050,6 +16050,48 @@ def jobs_outcome():
     return jsonify(_jobs_build_outcome(job=job, run_id=run_id)), 200
 
 
+@app.route('/api/jobs/output', methods=['GET'])
+def jobs_output():
+    """GET /api/jobs/output?job=&path= — read a job's output JSON from $DATA_DIR."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    job = (request.args.get('job') or '').strip()
+    rel = (request.args.get('path') or '').strip()
+    if not job or not rel:
+        return jsonify({"ok": False, "error": "job and path query params required"}), 400
+    try:
+        from _lib.jobs.output_file import read_output_file
+        return jsonify(read_output_file(job=job, rel=rel)), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    except Exception as exc:
+        _app_log.exception("jobs_output failed job=%s path=%s", job, rel)
+        return jsonify({"ok": False, "error": str(exc)[:200]}), 500
+
+
+@app.route('/api/jobs/outputs', methods=['GET'])
+def jobs_outputs_list():
+    """GET /api/jobs/outputs?job= — list declared output paths for a job."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    job = (request.args.get('job') or '').strip()
+    if not job:
+        return jsonify({"ok": False, "error": "job query param required"}), 400
+    try:
+        from _lib.jobs.output_file import list_output_files
+        if job not in _JOBS_REGISTRY:
+            return jsonify({"ok": False, "error": "unknown job"}), 404
+        files = list_output_files(job)
+        return jsonify({"ok": True, "job": job, "files": files}), 200
+    except Exception as exc:
+        _app_log.exception("jobs_outputs_list failed job=%s", job)
+        return jsonify({"ok": False, "error": str(exc)[:200]}), 500
+
+
 @app.route('/api/jobs/digest', methods=['GET'])
 def jobs_digest():
     """GET /api/jobs/digest — timestamp-free stable bytes for hermes monitor."""

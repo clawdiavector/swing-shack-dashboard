@@ -182,6 +182,35 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
 }
 .tip-float .tip-title { font-weight: 700; color: var(--accent-2); margin-bottom: 4px; }
 .tip-float .tip-body { color: var(--muted); }
+.json-drawer-bg {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 25;
+  display: none; align-items: center; justify-content: center; padding: 16px;
+}
+.json-drawer-bg.open { display: flex; }
+.json-drawer {
+  width: min(100%, 920px); max-height: 90vh; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden;
+}
+.json-drawer-head {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+}
+.json-drawer-head h2 { margin: 0; font-size: 15px; flex: 1 1 auto; }
+.json-drawer-meta { font-size: 12px; color: var(--muted); width: 100%; }
+.json-drawer-body {
+  overflow: auto; padding: 12px 14px; margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+  line-height: 1.45; white-space: pre-wrap; word-break: break-word;
+  color: var(--text); background: var(--panel-2);
+}
+.outcome-file { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.outcome-file .file-meta { flex: 1 1 200px; }
+.btn.json-btn { font-size: 11px; padding: 4px 8px; }
+.summary .link-btn {
+  appearance: none; border: none; background: none; color: var(--accent);
+  font-size: 12px; cursor: pointer; padding: 0; text-decoration: underline;
+}
 </style>
 </head>
 <body>
@@ -218,6 +247,17 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
 </div>
 <div class="toast" id="toast"></div>
 <div class="tip-float" id="tip-float" role="tooltip" aria-hidden="true"></div>
+<div class="json-drawer-bg" id="json-drawer-bg" role="dialog" aria-modal="true" aria-labelledby="json-title">
+  <div class="json-drawer">
+    <div class="json-drawer-head">
+      <h2 id="json-title">Output JSON</h2>
+      <button class="btn" id="json-copy" type="button">Copy</button>
+      <button class="btn close" id="json-close" type="button">Close</button>
+      <div class="json-drawer-meta" id="json-meta"></div>
+    </div>
+    <pre class="json-drawer-body" id="json-body"></pre>
+  </div>
+</div>
 <script>
 const $ = (id) => document.getElementById(id);
 function esc(s) {
@@ -367,18 +407,84 @@ function renderOutcomeHtml(data) {
   if (!data || !data.ok) {
     return `<div class="outcome-box"><div class="meta">${esc((data && data.error) || 'No outcome available')}</div></div>`;
   }
+  const job = data.job || '';
   const meta = [data.finished ? fmtSast(data.finished) : '', data.triggered_by || ''].filter(Boolean).join(' · ');
   const lines = (data.lines || []).map(l => `<li>${esc(l)}</li>`).join('');
   const files = (data.files || []).map(f => {
     const hl = (f.highlights || []).join('; ');
     const miss = f.exists ? '' : ' (missing on disk)';
-    return `<div class="outcome-file"><strong>${esc(f.path)}</strong>${miss}${hl ? ' — ' + esc(hl) : ''}</div>`;
+    const viewBtn = (f.exists && f.path && f.path.endsWith('.json'))
+      ? `<button type="button" class="btn ghost json-btn" data-view-json="${esc(job)}" data-json-path="${esc(f.path)}">View JSON</button>`
+      : '';
+    return `<div class="outcome-file"><span class="file-meta"><strong>${esc(f.path)}</strong>${miss}${hl ? ' — ' + esc(hl) : ''}</span>${viewBtn}</div>`;
   }).join('');
+  const outputsBtn = job
+    ? `<button type="button" class="btn ghost json-btn" data-list-outputs="${esc(job)}">All output files</button>`
+    : '';
   return `<div class="outcome-box">
     <div class="outcome-head">${esc(data.headline || data.status || 'Run')}${meta ? ' · ' + esc(meta) : ''}</div>
     ${lines ? `<ul class="outcome-lines">${lines}</ul>` : ''}
     ${files ? `<div class="outcome-files">${files}</div>` : ''}
+    ${outputsBtn}
   </div>`;
+}
+
+let jsonDrawerText = '';
+
+async function openJsonViewer(job, path) {
+  $('json-title').textContent = path || 'Output JSON';
+  $('json-meta').textContent = `Loading ${job}…`;
+  $('json-body').textContent = '';
+  jsonDrawerText = '';
+  $('json-drawer-bg').classList.add('open');
+  const r = await api('/api/jobs/output?job=' + encodeURIComponent(job) + '&path=' + encodeURIComponent(path));
+  if (!r.ok || !r.data || !r.data.ok) {
+    $('json-meta').textContent = (r.data && r.data.error) || 'Could not load file';
+    $('json-body').textContent = '';
+    return;
+  }
+  const d = r.data;
+  if (d.kind === 'directory') {
+    const entries = (d.entries || []).map(p =>
+      `<button type="button" class="link-btn" data-view-json="${esc(job)}" data-json-path="${esc(p)}">${esc(p)}</button>`
+    ).join('<br>');
+    $('json-meta').textContent = `${job} · directory · ${(d.entries || []).length} JSON file(s)`;
+    $('json-body').innerHTML = entries || '(no JSON files in folder)';
+    jsonDrawerText = '';
+    return;
+  }
+  const bytes = d.bytes != null ? `${d.bytes} bytes` : '';
+  $('json-meta').textContent = `${job} · ${d.path}${bytes ? ' · ' + bytes : ''}${d.truncated ? ' · truncated' : ''}`;
+  jsonDrawerText = JSON.stringify(d.data, null, 2);
+  $('json-body').textContent = jsonDrawerText;
+}
+
+async function openOutputsList(job) {
+  $('json-title').textContent = 'Output files';
+  $('json-meta').textContent = `Loading ${job}…`;
+  $('json-body').textContent = '';
+  jsonDrawerText = '';
+  $('json-drawer-bg').classList.add('open');
+  const r = await api('/api/jobs/outputs?job=' + encodeURIComponent(job));
+  if (!r.ok || !r.data || !r.data.ok) {
+    $('json-meta').textContent = (r.data && r.data.error) || 'Could not list outputs';
+    return;
+  }
+  const lines = [];
+  for (const f of (r.data.files || [])) {
+    if (f.kind === 'directory') {
+      lines.push(`📁 ${f.path}`);
+      for (const ent of (f.entries || [])) {
+        lines.push(`  <button type="button" class="link-btn" data-view-json="${esc(job)}" data-json-path="${esc(ent)}">${esc(ent)}</button>`);
+      }
+    } else if (f.viewable) {
+      lines.push(`<button type="button" class="link-btn" data-view-json="${esc(job)}" data-json-path="${esc(f.path)}">${esc(f.path)}</button> (${f.bytes || '?'} bytes)`);
+    } else {
+      lines.push(`${esc(f.path)}${f.exists ? '' : ' (missing)'}`);
+    }
+  }
+  $('json-meta').textContent = `${job} · declared writes`;
+  $('json-body').innerHTML = lines.join('<br>') || '(none)';
 }
 
 async function loadOutcome(name, runId, container) {
@@ -457,7 +563,7 @@ function renderSummary(jobs) {
     const st = j.last_status || '—';
     const stCls = statusTextClass(st, v);
     return `<tr class="${verdictRowClass(v)}" data-tip-job="${idx}">
-      <td class="has-tip"><span class="job-name">${esc(title)}</span><br><span class="job-id">${esc(j.name)}</span></td>
+      <td class="has-tip"><span class="job-name">${esc(title)}</span><br><span class="job-id">${esc(j.name)}</span><br><button type="button" class="link-btn" data-open-outputs="${esc(j.name)}">View outputs</button></td>
       <td><span class="chip ${esc(v)}">${esc(v)}</span></td>
       <td>${esc(scheduleTimes(j.schedule))}</td>
       <td>${esc((j.schedule && j.schedule.scheduler) || '—')}</td>
@@ -470,6 +576,10 @@ function renderSummary(jobs) {
     row.addEventListener('mouseleave', hideTip);
     row.addEventListener('focus', () => showTip(row, jobs[Number(row.getAttribute('data-tip-job'))]));
     row.addEventListener('blur', hideTip);
+  });
+  tbody.addEventListener('click', (e) => {
+    if (e.target.closest('[data-open-outputs]')) e.stopPropagation();
+    handleJsonClick(e);
   });
 }
 
@@ -627,7 +737,38 @@ $('d-tech-tog').onchange = async (e) => {
   }
   el.className = 'tech open';
 };
+function handleJsonClick(e) {
+  const viewBtn = e.target.closest('[data-view-json]');
+  if (viewBtn) {
+    openJsonViewer(viewBtn.getAttribute('data-view-json'), viewBtn.getAttribute('data-json-path'));
+    return true;
+  }
+  const listBtn = e.target.closest('[data-list-outputs], [data-open-outputs]');
+  if (listBtn) {
+    const job = listBtn.getAttribute('data-list-outputs') || listBtn.getAttribute('data-open-outputs');
+    if (job) openOutputsList(job);
+    return true;
+  }
+  return false;
+}
+
+$('json-close').onclick = () => $('json-drawer-bg').classList.remove('open');
+$('json-drawer-bg').addEventListener('click', (e) => {
+  if (e.target === $('json-drawer-bg')) $('json-drawer-bg').classList.remove('open');
+});
+$('json-copy').onclick = async () => {
+  if (!jsonDrawerText) { toast('Nothing to copy', true); return; }
+  try {
+    await navigator.clipboard.writeText(jsonDrawerText);
+    toast('Copied JSON');
+  } catch (_) {
+    toast('Copy failed', true);
+  }
+};
+$('json-body').addEventListener('click', handleJsonClick);
+
 $('list').addEventListener('click', (e) => {
+  if (handleJsonClick(e)) return;
   const runBtn = e.target.closest('[data-run-now]');
   if (runBtn) {
     runNow(runBtn.getAttribute('data-run-now'), runBtn);
