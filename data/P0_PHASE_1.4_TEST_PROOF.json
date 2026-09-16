@@ -1,0 +1,136 @@
+{
+  "phase": "P0 Phase 1.4 \u2014 Meta / Instagram Integration Repair + IG Feedback Ingestion",
+  "completed": "2026-09-09",
+  "tests": {
+    "A_swing_shack_post": {
+      "request": {
+        "brand": "swing-shack",
+        "records": [
+          {
+            "image_id": "swing-shack-test-asset-002",
+            "post_id": "17944293486325011",
+            "captured_signal": {
+              "impressions": 2500,
+              "reach": 1900,
+              "likes": 95,
+              "comments": 12,
+              "saves": 24,
+              "shares": 8,
+              "total_interactions": 139,
+              "engagement_rate": 7.315
+            }
+          }
+        ]
+      },
+      "response": {
+        "imported": 1,
+        "skipped_duplicate": 0,
+        "win_profile": {
+          "ready": false,
+          "samples": 1
+        }
+      },
+      "verified_storage": {
+        "image_id": "swing-shack-test-asset-002",
+        "platform_post_id": "17944293486325011",
+        "captured_signal": {
+          "comments": 12,
+          "engagement_rate": 7.315,
+          "impressions": 2500,
+          "likes": 95,
+          "reach": 1900,
+          "saves": 24,
+          "shares": 8,
+          "total_interactions": 139
+        },
+        "score": 0.4516,
+        "source": "ig",
+        "kind": "reference"
+      }
+    },
+    "B_swing_shack_full_flow": {
+      "status_endpoint": {
+        "status": "healthy",
+        "configured": true,
+        "page_id": "198859063301219",
+        "ig_account_id": "17841456713897671",
+        "ig_username": "swingshack",
+        "page_name": "Swing Shack",
+        "health_checks": [
+          "token",
+          "page",
+          "ig_account",
+          "media_endpoint"
+        ],
+        "credential_mode": "system_user_token",
+        "credential_source": "env:META_SYSTEM_USER_TOKEN"
+      },
+      "sync_now": {
+        "media_discovered": 4,
+        "insights_fetched": 4,
+        "mapped": 0,
+        "unmatched": 4,
+        "feedback_imported": 0,
+        "duplicates_skipped": 0,
+        "errors": [],
+        "status": "success"
+      },
+      "reason_for_zero_mapping": "No Postiz\u2192IG back-mapping exists for the 4 historical @swingshack posts. Per heidi.txt we mark unmatched, never fuzzy attribute."
+    },
+    "C_bag_drop": {
+      "status": "not_configured",
+      "configured": false,
+      "issues": [
+        "brand_marked_not_configured"
+      ],
+      "behavior": "honest no-fake-green. Returns 200 with status=not_configured. Script returns not_configured, exits cleanly without failing the whole job."
+    },
+    "D_repeat_run_idempotency": {
+      "first_run_imported": 1,
+      "second_run_imported": 0,
+      "second_run_skipped_duplicate": 1,
+      "verdict": "PASS \u2014 re-running does NOT create duplicates"
+    },
+    "E_cross_brand_contamination": {
+      "request": {
+        "brand": "swing-shack",
+        "records": [
+          {
+            "image_id": "stick-test-asset-E",
+            "post_id": "9999999999",
+            "brand_id": "stick",
+            "captured_signal": {
+              "impressions": 100,
+              "likes": 5
+            }
+          }
+        ]
+      },
+      "response": {
+        "imported": 0,
+        "errors": [
+          "brand_mismatch:stick-test-asset-E claimed=stick route=swing-shack"
+        ]
+      },
+      "verification": {
+        "swing_shack_records": 1,
+        "swing_shack_record_ids": [
+          "swing-shack-test-asset-002"
+        ],
+        "stick_records": 0,
+        "verdict": "PASS \u2014 record rejected, no cross-brand contamination"
+      }
+    },
+    "takomo_rejection": {
+      "ig_status_endpoint": "HTTP 400: takomo is not an operating brand",
+      "feedback_import": "HTTP 400: brand 'takomo' is not an operating brand",
+      "verdict": "PASS \u2014 Takomo infrastructure does not exist anywhere"
+    }
+  },
+  "credential_safety": {
+    "credentials_in_logs": false,
+    "credentials_in_committed_files": false,
+    "credentials_in_api_responses": false,
+    "raw_token_ever_returned": false
+  }
+}
