@@ -235,9 +235,11 @@ def _candidate_strategy(s, brand_id: str) -> List[Dict[str, Any]]:
 
 def _candidate_advertising(spend_doc, brand_id: str) -> List[Dict[str, Any]]:
     """Orphan spend, concentration, burn-vs-maturity."""
+    from spend import _float_or
+
     out: List[Dict[str, Any]] = []
     campaigns = spend_doc.get("campaigns", []) or []
-    total = sum(c.get("spend_rands", 0) for c in campaigns)
+    total = sum(_float_or(c.get("spend_rands")) for c in campaigns if isinstance(c, dict))
     if total == 0:
         return out
 
@@ -245,7 +247,7 @@ def _candidate_advertising(spend_doc, brand_id: str) -> List[Dict[str, Any]]:
     for c in campaigns:
         bet_id = c.get("strategy_link", {}).get("bet_id") or c.get("bet_id")
         if not bet_id and c.get("status") in ("active", "running"):
-            spend = c.get("spend_rands", 0)
+            spend = _float_or(c.get("spend_rands"))
             out.append(new_decision(
                 source="advertising",
                 priority=PRIORITY_DECIDE_NOW if spend > 1000 else PRIORITY_THIS_WEEK,
@@ -276,7 +278,7 @@ def _candidate_advertising(spend_doc, brand_id: str) -> List[Dict[str, Any]]:
         if c.get("status") not in ("active", "running"):
             continue
         bid = c.get("strategy_link", {}).get("bet_id") or c.get("bet_id") or "unallocated"
-        by_bet[bid] = by_bet.get(bid, 0) + c.get("spend_rands", 0)
+        by_bet[bid] = by_bet.get(bid, 0) + _float_or(c.get("spend_rands"))
     for bet_id, amt in by_bet.items():
         if bet_id == "unallocated":
             continue
