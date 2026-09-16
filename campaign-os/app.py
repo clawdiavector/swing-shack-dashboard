@@ -15942,6 +15942,7 @@ try:
     _run_named_job = _job_runner_mod.run_job
     _jobs_build_status = _job_runner_mod.build_status
     _jobs_build_history = _job_runner_mod.build_history
+    _jobs_build_outcome = _importlib.import_module('_lib.jobs.outcome').build_outcome
     _jobs_build_digest = _job_runner_mod.build_digest
 
     _register_job(_JobSpec(
@@ -16033,6 +16034,20 @@ def jobs_history():
     except (TypeError, ValueError):
         limit = 12
     return jsonify(_jobs_build_history(job=job, limit_per_job=limit)), 200
+
+
+@app.route('/api/jobs/outcome', methods=['GET'])
+def jobs_outcome():
+    """GET /api/jobs/outcome — human-readable last-run summary for monitoring."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    job = (request.args.get('job') or '').strip()
+    run_id = (request.args.get('run_id') or '').strip() or None
+    if not job:
+        return jsonify({"ok": False, "error": "job query param required"}), 400
+    return jsonify(_jobs_build_outcome(job=job, run_id=run_id)), 200
 
 
 @app.route('/api/jobs/digest', methods=['GET'])

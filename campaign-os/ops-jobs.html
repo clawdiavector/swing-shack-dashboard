@@ -7,25 +7,29 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%226%22%20fill%3D%22%230a0f1a%22%2F%3E%3Cpath%20d%3D%22M10%2026V6%22%20stroke%3D%22%23fbbf24%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M10%208%20L22%2011%20L10%2014%20Z%22%20fill%3D%22%23fbbf24%22%2F%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2227%22%20r%3D%221.5%22%20fill%3D%22%2334d399%22%2F%3E%3C%2Fsvg%3E">
 <style>
 :root {
-  --bg: #0c0d10;
-  --panel: #16181c;
-  --panel-2: #1d2025;
-  --line: #2a2d33;
-  --text: #e8eaed;
-  --muted: #9aa0a6;
-  --accent: #c2f64f;
-  --ok: #42b883;
-  --warn: #f59e0b;
+  /* Aligned with agent-control dashboard tokens (inline — no Vite build on Railway) */
+  --bg: #0a0c10;
+  --panel: #12151c;
+  --panel-2: #171b24;
+  --line: #2a3140;
+  --text: #e8ecf4;
+  --muted: #8b97ad;
+  --accent: #6ea8ff;
+  --accent-2: #9ec1ff;
+  --ok: #3ecf8e;
+  --warn: #e3a008;
   --bad: #ff6b6b;
-  --info: #4f8eff;
+  --info: #6ea8ff;
 }
 * { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0;
   min-height: 100%;
   background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 50% -20%, rgba(110, 168, 255, 0.1), transparent 55%);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.45;
 }
@@ -51,7 +55,7 @@ header .sub { color: var(--muted); font-size: 12px; flex: 1 1 100%; }
   color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 13px;
   font-weight: 600; cursor: pointer;
 }
-.btn.primary { background: var(--accent); color: #0c0d10; border-color: transparent; }
+.btn.primary { background: var(--accent); color: #0a0c10; border-color: transparent; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 main { padding: 12px 16px 96px; max-width: 880px; margin: 0 auto; }
 .card {
@@ -119,7 +123,38 @@ table.hist th, table.hist td {
 }
 table.hist .st-OK { color: var(--ok); }
 table.hist .st-FAILED, table.hist .st-TIMEOUT { color: var(--bad); }
+table.hist tbody tr { cursor: pointer; }
+table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
 .btn.ghost { background: transparent; font-weight: 500; }
+.title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.info-btn {
+  width: 22px; height: 22px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--muted); font-size: 12px; font-weight: 700;
+  cursor: help; line-height: 1; padding: 0;
+}
+.info-btn:focus { outline: 2px solid var(--accent); color: var(--accent); }
+.info-pop {
+  display: none; margin-top: 8px; padding: 10px 12px; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid var(--line); font-size: 12px;
+}
+.info-pop.open { display: block; }
+.info-pop .info-title { font-weight: 700; color: var(--accent-2); margin-bottom: 4px; }
+.info-pop .info-summary { color: var(--text); margin-bottom: 6px; }
+.info-pop .info-detail { color: var(--muted); line-height: 1.5; }
+.outcome-wrap { margin-top: 10px; display: none; }
+.outcome-wrap.open { display: block; }
+.outcome-box {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; font-size: 12px;
+}
+.outcome-head { font-weight: 700; color: var(--accent-2); margin-bottom: 6px; }
+.outcome-lines { margin: 0; padding-left: 18px; color: var(--text); }
+.outcome-lines li { margin: 4px 0; }
+.outcome-files { margin-top: 8px; }
+.outcome-file {
+  border-top: 1px solid var(--line); padding: 6px 0; color: var(--muted);
+}
+.outcome-file strong { color: var(--text); }
 </style>
 </head>
 <body>
@@ -203,16 +238,17 @@ function histRows(name) {
     const st = r.status || '?';
     const trig = r.triggered_by || '—';
     const dur = r.duration_s != null ? r.duration_s + 's' : '—';
-    const err = r.error ? `<div class="meta" style="color:var(--bad)">${esc(String(r.error).slice(0,80))}</div>` : '';
-    return `<tr>
+    const rid = r.run_id || '';
+    return `<tr data-hist-outcome="${esc(name)}" data-hist-run="${esc(rid)}" title="Click to see what this run produced">
       <td class="st-${esc(st)}">${esc(st)}</td>
       <td>${esc(fmtSast(r.finished || r.started))}</td>
       <td>${esc(trig)}</td>
       <td>${esc(dur)}</td>
-      <td>${esc(r.run_id || '').slice(-12)}</td>
-    </tr>${err ? '' : ''}`;
+      <td>${esc(rid.slice(-12))}</td>
+    </tr>`;
   }).join('');
-  return `<table class="hist"><thead><tr><th>Status</th><th>Finished</th><th>Trigger</th><th>Dur</th><th>Run</th></tr></thead><tbody>${body}</tbody></table>`;
+  return `<p class="meta" style="margin:0 0 4px">Click a row to load that run&apos;s output below.</p>
+    <table class="hist"><thead><tr><th>Status</th><th>Finished</th><th>Trigger</th><th>Dur</th><th>Run</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 async function api(path, opts) {
   const r = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
@@ -236,6 +272,23 @@ async function loadSpend() {
   el.className = 'spend' + (s.at_cap ? ' cap' : (s.near_cap ? ' near' : ''));
 }
 
+function infoBlock(j) {
+  const info = j.info || {};
+  const title = info.title || j.name;
+  const summary = info.summary || '';
+  const detail = info.detail || '';
+  if (!summary && !detail) return '';
+  return `<div class="title-row">
+      <div class="name">${esc(title)}</div>
+      <button type="button" class="info-btn" data-toggle-info="${esc(j.name)}" title="What does this job do?">?</button>
+    </div>
+    <div class="info-pop" id="info-${esc(j.name)}">
+      <div class="info-title">${esc(title)}</div>
+      ${summary ? `<div class="info-summary">${esc(summary)}</div>` : ''}
+      ${detail ? `<div class="info-detail">${esc(detail)}</div>` : ''}
+    </div>`;
+}
+
 function jobCard(j) {
   const age = ageLabel(j.last_success_age_h);
   const dur = j.last_duration_s != null ? `${j.last_duration_s}s` : '—';
@@ -250,10 +303,11 @@ function jobCard(j) {
   const trig = j.last_triggered_by || '—';
   const lastSt = j.last_status || '—';
   const histCount = (historyByJob[j.name] || []).length;
+  const hasRun = Boolean(j.last_run_id);
   return `<article class="card" data-job="${esc(j.name)}" data-run="${esc(j.last_run_id || '')}" data-verdict="${esc(v)}">
     <div class="row">
       <div>
-        <div class="name">${esc(j.name)}</div>
+        ${infoBlock(j) || `<div class="name">${esc(j.name)}</div>`}
         ${scheduleLine(j.schedule)}
         <div class="meta">${esc(j.criticality || '')}${j.best_effort ? ' · best_effort' : ''} · cadence ${esc(j.every_seconds ? Math.round(j.every_seconds/3600)+'h' : '—')}</div>
         <div class="meta">Last run ${esc(lastRun)} · ${esc(lastSt)} · ${esc(trig)} · ${esc(dur)}</div>
@@ -265,13 +319,40 @@ function jobCard(j) {
     </div>
     <div class="actions">
       <button class="btn primary" data-run-now="${esc(j.name)}" data-worst="${worst}" title="Manual run (${worstLabel})">Run now</button>
+      ${hasRun ? `<button class="btn ghost" data-toggle-outcome="${esc(j.name)}" data-run-id="${esc(j.last_run_id)}" type="button">Last output</button>` : ''}
       <button class="btn ghost" data-toggle-hist="${esc(j.name)}" type="button">History (${histCount})</button>
       ${showDetail
         ? `<button class="btn" data-open="${esc(j.name)}" data-run-id="${esc(j.last_run_id)}">Failure detail</button>`
         : ''}
     </div>
+    <div class="outcome-wrap" id="outcome-${esc(j.name)}"></div>
     <div class="hist-wrap" id="hist-${esc(j.name)}">${histRows(j.name)}</div>
   </article>`;
+}
+
+function renderOutcomeHtml(data) {
+  if (!data || !data.ok) {
+    return `<div class="outcome-box"><div class="meta">${esc((data && data.error) || 'No outcome available')}</div></div>`;
+  }
+  const meta = [data.finished ? fmtSast(data.finished) : '', data.triggered_by || ''].filter(Boolean).join(' · ');
+  const lines = (data.lines || []).map(l => `<li>${esc(l)}</li>`).join('');
+  const files = (data.files || []).map(f => {
+    const hl = (f.highlights || []).join('; ');
+    const miss = f.exists ? '' : ' (missing on disk)';
+    return `<div class="outcome-file"><strong>${esc(f.path)}</strong>${miss}${hl ? ' — ' + esc(hl) : ''}</div>`;
+  }).join('');
+  return `<div class="outcome-box">
+    <div class="outcome-head">${esc(data.headline || data.status || 'Run')}${meta ? ' · ' + esc(meta) : ''}</div>
+    ${lines ? `<ul class="outcome-lines">${lines}</ul>` : ''}
+    ${files ? `<div class="outcome-files">${files}</div>` : ''}
+  </div>`;
+}
+
+async function loadOutcome(name, runId, container) {
+  container.innerHTML = '<div class="outcome-box"><div class="meta">Loading last output…</div></div>';
+  const q = runId ? ('&run_id=' + encodeURIComponent(runId)) : '';
+  const r = await api('/api/jobs/outcome?job=' + encodeURIComponent(name) + q);
+  container.innerHTML = renderOutcomeHtml(r.data);
 }
 
 function renderSummary(jobs) {
@@ -447,11 +528,45 @@ $('list').addEventListener('click', (e) => {
     runNow(runBtn.getAttribute('data-run-now'), runBtn);
     return;
   }
+  const infoBtn = e.target.closest('[data-toggle-info]');
+  if (infoBtn) {
+    const name = infoBtn.getAttribute('data-toggle-info');
+    const pop = document.getElementById('info-' + name);
+    if (pop) pop.classList.toggle('open');
+    return;
+  }
+  const outBtn = e.target.closest('[data-toggle-outcome]');
+  if (outBtn) {
+    const name = outBtn.getAttribute('data-toggle-outcome');
+    const wrap = document.getElementById('outcome-' + name);
+    if (!wrap) return;
+    const opening = !wrap.classList.contains('open');
+    wrap.classList.toggle('open');
+    if (opening && !wrap.dataset.loaded) {
+      wrap.dataset.loaded = '1';
+      loadOutcome(name, outBtn.getAttribute('data-run-id'), wrap);
+    }
+    return;
+  }
   const histBtn = e.target.closest('[data-toggle-hist]');
   if (histBtn) {
     const name = histBtn.getAttribute('data-toggle-hist');
     const wrap = document.getElementById('hist-' + name);
     if (wrap) wrap.classList.toggle('open');
+    return;
+  }
+  const histRow = e.target.closest('[data-hist-outcome]');
+  if (histRow) {
+    const name = histRow.getAttribute('data-hist-outcome');
+    const runId = histRow.getAttribute('data-hist-run');
+    const wrap = document.getElementById('outcome-' + name);
+    const histWrap = document.getElementById('hist-' + name);
+    if (histWrap) histWrap.classList.add('open');
+    if (wrap) {
+      wrap.classList.add('open');
+      wrap.dataset.loaded = '1';
+      loadOutcome(name, runId, wrap);
+    }
     return;
   }
   const openBtn = e.target.closest('[data-open]');
