@@ -21,10 +21,9 @@ FETCH_TIMEOUT = 15
 MAX_BYTES = 300_000
 
 RSS_FEEDS = (
-    {"name": "News24 Golf", "url": "https://www.news24.com/Sport/Golf/rss"},
-    {"name": "GolfDigest", "url": "https://www.golfdigest.com/rss/news"},
-    {"name": "Golfweek", "url": "https://golfweek.com/index.xml"},
-    {"name": "GolfMagic", "url": "https://www.golfmagic.com/rss/news.xml"},
+    {"name": "BBC Sport Golf", "url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"},
+    {"name": "Golf.com", "url": "https://www.golf.com/feed/"},
+    {"name": "ESPN Golf", "url": "https://www.espn.com/espn/rss/golf/news"},
 )
 
 

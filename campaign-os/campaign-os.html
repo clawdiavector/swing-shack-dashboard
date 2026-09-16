@@ -4826,6 +4826,40 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+/** Layer 1 job fetch time — shown on cards fed by JSON job outputs. */
+function formatDataAsOf(iso, opts = {}) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const fmt = d.toLocaleString('en-ZA', {
+      timeZone: 'Africa/Johannesburg',
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+    return `${opts.label || 'Data as of'} ${fmt} SAST`;
+  } catch { return ''; }
+}
+function dataAsOfBadge(iso, title) {
+  const t = formatDataAsOf(iso);
+  if (!t) return '';
+  return ` <span class="muted data-asof-badge" style="font-size:11px;font-weight:500" title="${esc(title || t)}">· ${esc(t)}</span>`;
+}
+function attachCardDataAsOf(containerEl, iso) {
+  if (!containerEl || !iso) return;
+  const h3 = containerEl.closest('.card')?.querySelector('.card-h h3');
+  if (!h3 || h3.querySelector('.data-asof-badge')) return;
+  h3.insertAdjacentHTML('beforeend', dataAsOfBadge(iso));
+}
+function attachStatDataAsOf(valEl, iso) {
+  if (!valEl || !iso) return;
+  const stat = valEl.closest('.stat');
+  if (!stat || stat.querySelector('.data-asof-stat')) return;
+  const t = formatDataAsOf(iso);
+  if (!t) return;
+  stat.insertAdjacentHTML('beforeend', `<div class="data-asof-stat muted" style="font-size:10px;margin-top:.25rem;line-height:1.3">${esc(t)}</div>`);
+}
+
 // Decode common HTML entities that arrive already-encoded in upstream
 // feeds (YouTube titles, Reddit flair, some news scrapers). Without this,
 // strings like "DO&#39;S &amp; DON&#39;TS" render literally instead of as
@@ -6106,14 +6140,14 @@ async function renderInsightsV2(){
       </div>
       <div class="card col-7">
         <div class="card-h">
-          <h3 data-help="Your best Instagram posts, ranked by engagement. Green = top performer, yellow = average, red = below average. Click any post to open it on Instagram." data-help-title="Top Instagram Posts">🏆 Top Instagram Posts <span style="font-size:11px;color:var(--tx-3);font-weight:500">· color-coded, click to open</span></h3>
+          <h3 data-help="Your best Instagram posts, ranked by engagement. Green = top performer, yellow = average, red = below average. Click any post to open it on Instagram." data-help-title="Top Instagram Posts">🏆 Top Instagram Posts <span style="font-size:11px;color:var(--tx-3);font-weight:500">· color-coded, click to open</span><span id="ins-ig-asof"></span></h3>
           <span class="muted" id="ins-ig-count">—</span>
         </div>
         <div id="ins-ig-top-list"></div>
       </div>
       <div class="card col-5">
         <div class="card-h">
-          <h3 data-help="Your most-visited pages, ranked. Click any row to open the actual page in a new tab." data-help-title="Top pages by sessions">🌐 Top pages by sessions <span style="font-size:11px;color:var(--tx-3);font-weight:500">· click to visit</span></h3>
+          <h3 data-help="Your most-visited pages, ranked. Click any row to open the actual page in a new tab." data-help-title="Top pages by sessions">🌐 Top pages by sessions <span style="font-size:11px;color:var(--tx-3);font-weight:500">· click to visit</span><span id="ins-pages-asof"></span></h3>
         </div>
         <div id="ins-pages-list"></div>
       </div>
@@ -6144,6 +6178,12 @@ async function renderInsightsV2(){
       format_type: p.format_type, topic_cluster: p.topic_cluster, likes: p.likes,
     }));
     $('#ins-ig-count').textContent = `${igPostsFinal.length} posts`;
+    const igAsOf = (topPosts._meta && (topPosts._meta.fetched_at || topPosts._meta.window))
+      || (perf.data_as_of && perf.data_as_of.instagram);
+    const igAsofEl = $('#ins-ig-asof');
+    if (igAsofEl) igAsofEl.innerHTML = dataAsOfBadge(igAsOf);
+    const pagesAsofEl = $('#ins-pages-asof');
+    if (pagesAsofEl) pagesAsofEl.innerHTML = dataAsOfBadge(perf.data_as_of && perf.data_as_of.ga4);
     // Tone posts relative to the local average so the top performer gets a clear
     // "above your average" signal even when the whole deck is low (e.g. ER < 1.5%).
     // If the average is essentially zero, fall back to absolute thresholds so we still
@@ -10137,7 +10177,13 @@ async function renderTrends(){
     // Older keys (updated/fetched_at) were never wired by the backend; falling back to `ts` closes the
     // "Data last updated unknown" + `—` placeholder gap.
     const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
-    const updStr = updated ? new Date(updated).toLocaleString() : 'unknown';
+    const updStr = updated ? (formatDataAsOf(updated) || new Date(updated).toLocaleString()) : 'unknown';
+    const srcAsOf = t.data_as_of || {};
+    const srcLines = [
+      srcAsOf.golf_news && `golf news: ${formatDataAsOf(srcAsOf.golf_news)}`,
+      srcAsOf.reddit && `reddit: ${formatDataAsOf(srcAsOf.reddit)}`,
+      srcAsOf.youtube && `youtube: ${formatDataAsOf(srcAsOf.youtube)}`,
+    ].filter(Boolean).join(' · ');
     const ageMs = updated ? Date.now() - new Date(updated).getTime() : Infinity;
     const ageDays = Math.round(ageMs / (1000*60*60*24));
     const tone = ageDays <= 1 ? 'good' : ageDays <= 7 ? 'watch' : 'bad';
@@ -10153,6 +10199,7 @@ async function renderTrends(){
           <div>
             <b>${toneEmoji} Data last updated ${updStr}</b> · ${ageDays === Infinity ? 'never (click Refresh trends)' : ageDays + ' day' + (ageDays === 1 ? '' : 's') + ' old'}
             ${sources.length ? ` · ${sources.length} source${sources.length === 1 ? '' : 's'} live: ${srcBadges}` : ' · <span style="color:var(--red)">no sources returning data</span>'}
+            ${srcLines ? `<div style="margin-top:.35rem;font-size:11px;color:var(--tx-3)">${esc(srcLines)}</div>` : ''}
           </div>
           <div class="muted" style="font-size:11px">Click "Refresh trends" to re-fetch the latest signals</div>
         </div>
@@ -10336,7 +10383,8 @@ function ideaToCaption(btn) {
 async function renderIdeas(){
   if(!S.ideas) S.ideas = await API.get('/api/intel/opportunities');
   const d = S.ideas;
-  $('#ideas-total').textContent = (d.ideas||[]).length + ' ideas';
+  const ideasAsOf = (d.data_as_of && d.data_as_of.content_ideas) || d.ts;
+  $('#ideas-total').innerHTML = esc((d.ideas||[]).length + ' ideas') + dataAsOfBadge(ideasAsOf);
 
   // Render the main Ideas list with our draft buttons appended per-item.
   // The list comes from itemHtml (generic) but ideas have a stable shape
@@ -10438,6 +10486,14 @@ async function renderPerformance(){
   $('#perf-ga-sessions').textContent = (p.ga4?.total_sessions || '—').toLocaleString();
   $('#perf-rising').textContent = (p.seo?.rising||[]).length;
   $('#perf-falling').textContent = (p.seo?.falling||[]).length;
+  const perfAsOf = p.data_as_of || {};
+  attachStatDataAsOf($('#perf-ig-posts'), perfAsOf.instagram);
+  attachStatDataAsOf($('#perf-ga-sessions'), perfAsOf.ga4);
+  attachStatDataAsOf($('#perf-rising'), perfAsOf.seo_rankings);
+  attachStatDataAsOf($('#perf-falling'), perfAsOf.seo_rankings);
+  attachCardDataAsOf($('#perf-ig-top'), perfAsOf.instagram);
+  attachCardDataAsOf($('#perf-seo'), perfAsOf.seo_rankings);
+  attachCardDataAsOf($('#perf-pages'), perfAsOf.ga4);
 
   // ── "Connect analytics" CTA when both Meta + GA4 are empty ──
   const igEmpty = !(p.instagram?.total_posts);
@@ -10700,6 +10756,16 @@ function _flattenFailurePatterns(fp){
 async function renderLearning(){
   if(!S.learn) S.learn = await API.get('/api/intel/learning');
   const l = S.learn;
+  const learnHdr = $('#sec-learning .section-h .sub');
+  if (learnHdr && l.data_as_of) {
+    const parts = [
+      l.data_as_of.weekly_learnings && formatDataAsOf(l.data_as_of.weekly_learnings),
+      l.data_as_of.recommendation_outcomes && formatDataAsOf(l.data_as_of.recommendation_outcomes),
+    ].filter(Boolean);
+    if (parts.length && !learnHdr.querySelector('.data-asof-badge')) {
+      learnHdr.insertAdjacentHTML('beforeend', ` · ${parts.map(p => esc(p)).join(' · ')}`);
+    }
+  }
 
   // Build a per-item payload for the Promote-to-Strategy button
   function learnItemHtml(item, kind) {
@@ -10857,7 +10923,8 @@ async function renderLearning(){
 async function renderHooks(){
   if(!S.hooks) S.hooks = await API.get('/api/intel/hooks');
   const h = S.hooks;
-  $('#hooks-total').textContent = (h.total||0) + ' hooks · ' + (h.all_hooks?.length||0) + ' in active buckets';
+  const hookAsOf = (h.data_as_of && h.data_as_of.hook_bank) || h.ts;
+  $('#hooks-total').innerHTML = esc((h.total||0) + ' hooks · ' + (h.all_hooks?.length||0) + ' in active buckets') + dataAsOfBadge(hookAsOf);
   const renderHook = it => {
     const txt = it.hook_text || it.hook || it.text || it.title || '';
     const sc = it.cross_signal_score || it.ig_proof_score || it.perf || it.score;
@@ -12378,6 +12445,14 @@ $('#ig-recipe-brand-select').addEventListener('change', (e) => {
 async function renderSEO(){
   if(!S.seo) S.seo = await API.get('/api/intel/seo_assistant');
   const s = S.seo;
+  const seoHdr = $('#sec-seo .section-h .sub');
+  if (seoHdr && s.data_as_of && !seoHdr.querySelector('.data-asof-badge')) {
+    const parts = [
+      s.data_as_of.seo_rankings && formatDataAsOf(s.data_as_of.seo_rankings),
+      s.data_as_of.seo_audit && formatDataAsOf(s.data_as_of.seo_audit),
+    ].filter(Boolean);
+    if (parts.length) seoHdr.insertAdjacentHTML('beforeend', ` · ${parts.map(p => esc(p)).join(' · ')}`);
+  }
   const a = s.audit || {};
   // Backend stores audit stats at top level (total_findings / high_severity / etc.)
   // and emits high-priority items in `recommendations[]`. The SPA used to look

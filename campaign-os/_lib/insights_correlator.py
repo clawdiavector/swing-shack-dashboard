@@ -34,30 +34,25 @@ from pathlib import Path
 from typing import Any
 
 
-def _data_dir() -> Path:
-    """Resolve DATA_DIR at call time so tests can change it without re-import.
+def _data_roots() -> list[Path]:
+    """Search order for Layer 1 job outputs: runtime volume first, then bundled."""
+    roots: list[Path] = []
+    runtime = os.environ.get("DATA_DIR")
+    if runtime:
+        roots.append(Path(runtime))
+    bundled = os.environ.get("BUNDLED_DATA_DIR")
+    if bundled:
+        b = Path(bundled)
+        if b not in roots:
+            roots.append(b)
+    if not roots:
+        roots.append(Path("data"))
+    return roots
 
-    On Railway, DATA_DIR defaults to /data (an empty volume) — the real
-    data lives in the bundled repo copy at REPO_ROOT/data. We probe both
-    and pick whichever has the most JSON data, so a fresh deploy with an
-    empty volume still reads the bundled repo.
-    """
-    runtime = Path(os.environ.get("DATA_DIR", "/data"))
-    # BUNDLED_DATA_DIR = REPO_ROOT/data — set by app.py before this is imported.
-    bundled = Path(os.environ.get("BUNDLED_DATA_DIR", str(runtime)))
-    if runtime == bundled:
-        return runtime
-    # Score each root by JSON count so the populated one wins.
-    def _score(root: Path) -> int:
-        if not root.is_dir():
-            return 0
-        total = 0
-        for _dir, _dirs, files in os.walk(root):
-            total += sum(1 for f in files if f.endswith(".json"))
-        return total
-    r_score = _score(runtime)
-    b_score = _score(bundled)
-    return runtime if r_score >= b_score else bundled
+
+def _data_dir() -> Path:
+    """Primary data root — runtime DATA_DIR when configured."""
+    return _data_roots()[0]
 
 
 def _read_json(path: Path) -> Any:
@@ -80,61 +75,56 @@ def _load_ig_posts() -> tuple[list[dict[str, Any]], str | None]:
     We try them in priority order and normalise the post shape so callers
     can treat them uniformly. Returns (posts, source_label).
     """
-    base = _data_dir()
-    candidates = [
-        base / "instagram.json",
-        base / "analytics" / "instagram-analytics.json",
-        base / "ig-analytics.json",
-    ]
-    for path in candidates:
-        data = _read_json(path)
-        if not data or not isinstance(data, dict):
-            continue
-        posts = data.get("posts")
-        if not isinstance(posts, list) or not posts:
-            continue
-        # Normalise each post into the shape insights v2 expects.
-        normalised: list[dict[str, Any]] = []
-        for p in posts:
-            if not isinstance(p, dict):
+    rel_candidates = (
+        "ig-analytics.json",
+        "instagram.json",
+        "analytics/instagram-analytics.json",
+    )
+    for base in _data_roots():
+        for rel in rel_candidates:
+            path = base / rel
+            data = _read_json(path)
+            if not data or not isinstance(data, dict):
                 continue
-            # Field aliases across stores.
-            er = p.get("engagementRate")
-            if er is None:
-                er = p.get("engagement_rate", 0)
-            try:
-                er_val = float(er or 0)
-            except (TypeError, ValueError):
-                er_val = 0.0
-            normalised.append({
-                "id": p.get("id") or p.get("postId"),
-                "timestamp": p.get("timestamp"),
-                "engagementRate": er_val,
-                "permalink": p.get("permalink") or p.get("postUrl") or "",
-                "thumbnail_url": p.get("thumbnail_url") or p.get("thumbnailUrl")
-                    or p.get("media_url") or p.get("mediaUrl") or "",
-                "media_type": p.get("media_type") or p.get("mediaType") or "IMAGE",
-                "caption_excerpt": (
-                    p.get("caption_excerpt") or p.get("captionPreview")
-                    or p.get("hook_text") or p.get("caption") or ""
-                )[:140],
-                # camelCase aliases: instagram-analytics.json (the largest IG
-                # archive) uses Meta's Graph API field names — likeCount /
-                # commentsCount — not the snake_case the snake_case-first
-                # alias list expected. Without these the Insights Top Posts
-                # card silently shows "0 likes" and "(no caption)" for posts
-                # that actually have 16 likes and a real caption.
-                "like_count": int(p.get("like_count") or p.get("likeCount")
-                                   or p.get("likes") or 0),
-                "comments_count": int(p.get("comments_count") or p.get("commentsCount")
-                                      or p.get("comments") or 0),
-                "reach": int(p.get("reach") or p.get("views") or 0),
-                "saves": int(p.get("saves") or p.get("saved") or 0),
-                "shares": int(p.get("shares") or 0),
-            })
-        if normalised:
-            label = str(path.relative_to(base)) if path.is_relative_to(base) else str(path)
-            return normalised, label
+            posts = data.get("posts")
+            if not isinstance(posts, list) or not posts:
+                continue
+            # Normalise each post into the shape insights v2 expects.
+            normalised: list[dict[str, Any]] = []
+            for p in posts:
+                if not isinstance(p, dict):
+                    continue
+                # Field aliases across stores.
+                er = p.get("engagementRate")
+                if er is None:
+                    er = p.get("engagement_rate", 0)
+                try:
+                    er_val = float(er or 0)
+                except (TypeError, ValueError):
+                    er_val = 0.0
+                normalised.append({
+                    "id": p.get("id") or p.get("postId"),
+                    "timestamp": p.get("timestamp"),
+                    "engagementRate": er_val,
+                    "permalink": p.get("permalink") or p.get("postUrl") or "",
+                    "thumbnail_url": p.get("thumbnail_url") or p.get("thumbnailUrl")
+                        or p.get("media_url") or p.get("mediaUrl") or "",
+                    "media_type": p.get("media_type") or p.get("mediaType") or "IMAGE",
+                    "caption_excerpt": (
+                        p.get("caption_excerpt") or p.get("captionPreview")
+                        or p.get("hook_text") or p.get("caption") or ""
+                    )[:140],
+                    "like_count": int(p.get("like_count") or p.get("likeCount")
+                                       or p.get("likes") or 0),
+                    "comments_count": int(p.get("comments_count") or p.get("commentsCount")
+                                          or p.get("comments") or 0),
+                    "reach": int(p.get("reach") or p.get("views") or 0),
+                    "saves": int(p.get("saves") or p.get("saved") or 0),
+                    "shares": int(p.get("shares") or 0),
+                })
+            if normalised:
+                label = str(path.relative_to(base)) if path.is_relative_to(base) else str(path)
+                return normalised, label
     return [], None
 
 
@@ -643,5 +633,6 @@ def get_top_instagram_posts(limit: int = 8) -> dict[str, Any]:
             "average_engagement": round(avg_er, 2),
             "source": actual_source,
             "window": ig_data.get("data_window") or ig_data.get("fetched_at"),
+            "fetched_at": ig_data.get("updated") or ig_data.get("fetched_at"),
         },
     }
