@@ -1,0 +1,144 @@
+name: Layer 1 daily cron (07:00 SAST)
+
+# Fires the nine Layer 1 jobs not covered by meta-live-fetch.yml or gbp-daily-cron.yml.
+# meta_refresh (12h) and gbp_tick (06:00 SAST) have their own workflows.
+#
+# Schedule: 05:00 UTC = 07:00 SAST — after gbp_tick, before morning brief digest.
+# Auth: COS_JOB_TOKEN bearer (same secret as other job workflows).
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  layer1-daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+    steps:
+      - name: Preflight — COS_JOB_TOKEN required
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
+            exit 1
+          fi
+
+      - name: Wave 1 — golf_news
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/golf_news ==="
+          curl -sf -X POST "$BASE/api/jobs/run/golf_news" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/golf_news.json
+          python3 -c "import json; d=json.load(open('/tmp/golf_news.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — reddit_trends
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/reddit_trends ==="
+          curl -sf -X POST "$BASE/api/jobs/run/reddit_trends" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/reddit_trends.json
+          python3 -c "import json; d=json.load(open('/tmp/reddit_trends.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — seo_rankings
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/seo_rankings ==="
+          curl -sf -X POST "$BASE/api/jobs/run/seo_rankings" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/seo_rankings.json
+          python3 -c "import json; d=json.load(open('/tmp/seo_rankings.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — ga4_report
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/ga4_report ==="
+          curl -sf -X POST "$BASE/api/jobs/run/ga4_report" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/ga4_report.json
+          python3 -c "import json; d=json.load(open('/tmp/ga4_report.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — site_audit
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/site_audit ==="
+          curl -sf -X POST "$BASE/api/jobs/run/site_audit" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/site_audit.json
+          python3 -c "import json; d=json.load(open('/tmp/site_audit.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 1 — freshness_scan
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/freshness_scan ==="
+          curl -sf -X POST "$BASE/api/jobs/run/freshness_scan" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/freshness_scan.json
+          python3 -c "import json; d=json.load(open('/tmp/freshness_scan.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 2 — youtube_trends
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/youtube_trends ==="
+          curl -sf -X POST "$BASE/api/jobs/run/youtube_trends" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/youtube_trends.json
+          python3 -c "import json; d=json.load(open('/tmp/youtube_trends.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+
+      - name: Wave 3 — insights_hooks
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/insights_hooks ==="
+          curl -sf -X POST "$BASE/api/jobs/run/insights_hooks" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/insights_hooks.json
+          python3 -c "import json,sys; d=json.load(open('/tmp/insights_hooks.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}'); sys.exit(0 if d.get('ok') else 1)"
+
+      - name: Wave 4 — insights_reco
+        run: |
+          set -euo pipefail
+          echo "=== POST /api/jobs/run/insights_reco ==="
+          curl -sf -X POST "$BASE/api/jobs/run/insights_reco" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/insights_reco.json
+          python3 -c "import json,sys; d=json.load(open('/tmp/insights_reco.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}'); sys.exit(0 if d.get('ok') else 1)"
+
+      - name: Summary — GET /api/jobs/digest
+        run: |
+          set -euo pipefail
+          echo "=== GET /api/jobs/digest ==="
+          curl -sf "$BASE/api/jobs/digest" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -o /tmp/digest.json
+          python3 -c "
+          import json
+          d = json.load(open('/tmp/digest.json'))
+          jobs = d.get('jobs', [])
+          counts = {}
+          for j in jobs:
+              v = j.get('verdict', '?')
+              counts[v] = counts.get(v, 0) + 1
+          print('Verdicts:', counts)
+          for j in sorted(jobs, key=lambda x: x.get('name', '')):
+              print(f\"  {j.get('verdict','?'):<7} {j.get('name','?')}\")
+          "
