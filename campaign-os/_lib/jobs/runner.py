@@ -12,6 +12,8 @@ from typing import Any, Optional
 from . import ledger
 from .errors import RETRYABLE, classify, fingerprint
 from .registry import JOBS
+from .descriptions import description_for
+from .outcome import summarize_result
 from .schedules import schedule_for
 from .spec import JobSpec
 
@@ -198,6 +200,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         "attempts": attempt,
         "error_class": error_class if not result_ok else None,
         "error_fingerprint": fp,
+        "result_summary": summarize_result(result),
     }
     ledger.append_row(exit_row)
 
@@ -353,6 +356,7 @@ def build_status() -> dict:
                 "timeout_seconds": getattr(spec, "timeout_seconds", None),
                 "retries": getattr(spec, "retries", 0),
                 "schedule": schedule_for(name),
+                "info": description_for(name),
             }
         )
     return {"jobs": jobs_out}
@@ -388,6 +392,7 @@ def build_history(*, job: Optional[str] = None, limit_per_job: int = 12) -> dict
                     "error": (row.get("error") or "")[:200] or None,
                     "error_class": row.get("error_class"),
                     "rows": row.get("rows"),
+                    "result_summary": row.get("result_summary"),
                 }
             )
         jobs_out[name] = runs
