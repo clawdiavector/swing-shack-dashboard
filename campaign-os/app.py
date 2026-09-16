@@ -9858,9 +9858,12 @@ def meta_token_diagnostic(brand_id):
         if not token:
             return jsonify(out), 200
 
-        # /me — identity (does NOT leak token; returns id/name only)
+        # /me — identity (does NOT leak token; returns id/name only).
+        # We pass token_override so _graph_get uses the per-brand
+        # token (Heidi Stick EAAR), not the legacy CAPI global.
         try:
-            me = _meta._graph_get("/me", {"fields": "id,name"})
+            me = _meta._graph_get("/me", {"fields": "id,name"},
+                                  token_override=token)
             out["me_identity"] = {"id": me.get("id"), "name": me.get("name")}
         except Exception as e:
             out["me_identity_error"] = str(e)[:300]
@@ -9873,10 +9876,12 @@ def meta_token_diagnostic(brand_id):
         # Try with the token's own self-introspection first
         try:
             # /debug_token input_token + access_token (call needs admin token
-            # with same app context; usually a user/admin token works)
+            # with same app context; usually a user/admin token works).
+            # Use token_override so we use the EAAR (Heidi Stick app).
             debug_resp = _meta._graph_get(
                 "/debug_token",
                 {"input_token": token, "access_token": token},
+                token_override=token,
             )
             debug_token_used = "self"
             data = debug_resp.get("data", {})
@@ -9899,7 +9904,8 @@ def meta_token_diagnostic(brand_id):
         # /me/adaccounts — full reachable ad account list
         try:
             ads = _meta._graph_get("/me/adaccounts",
-                                    {"fields": "id,name,currency,timezone_name,account_status,disable_reason"})
+                                   {"fields": "id,name,currency,timezone_name,account_status,disable_reason"},
+                                   token_override=token)
             out["ad_accounts_visible"] = [
                 {"id": a.get("id"), "name": a.get("name"),
                  "currency": a.get("currency"),
@@ -9914,7 +9920,8 @@ def meta_token_diagnostic(brand_id):
         # /me/accounts — assigned Pages
         try:
             accts = _meta._graph_get("/me/accounts",
-                                    {"fields": "id,name,tasks,instagram_business_account{id,username,name}"})
+                                    {"fields": "id,name,tasks,instagram_business_account{id,username},access_token"},
+                                    token_override=token)
             out["accounts_visible"] = [
                 {
                     "page_id": a.get("id"),
@@ -9933,7 +9940,8 @@ def meta_token_diagnostic(brand_id):
         # /me/businesses — assigned businesses
         try:
             bizs = _meta._graph_get("/me/businesses",
-                                    {"fields": "id,name"})
+                                    {"fields": "id,name"},
+                                    token_override=token)
             out["businesses_visible"] = [
                 {"id": b.get("id"), "name": b.get("name")}
                 for b in bizs.get("data", [])
@@ -9951,7 +9959,8 @@ def meta_token_diagnostic(brand_id):
             ("swing_shack_page", "198859063301219", "/198859063301219"),
         ]:
             try:
-                r = _meta._graph_get(path, {"fields": "id,name"})
+                r = _meta._graph_get(path, {"fields": "id,name"},
+                                     token_override=token)
                 explicit_probes[label] = {"state": "REACHABLE",
                                           "id": r.get("id"), "name": r.get("name")}
             except Exception as e:
