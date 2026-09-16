@@ -1562,8 +1562,88 @@ def render_brand_report_html(brand_id: str, period_days: int = 31,
         parts.append(f"<tr><td>{name}</td><td>{_pill(status)}</td></tr>")
     parts.append("</table>")
 
+    # Pillar mix — dedicated structured table
+    pmx = r.get("sections", {}).get("pillar_mix", {})
+    if pmx.get("data_status") == "HISTORICAL_REAL":
+        parts.append("<h2>Business Pillar Mix</h2>")
+        parts.append("<div class='section'>")
+        counts = pmx.get("pillar_event_counts", {})
+        pct = pmx.get("pillar_event_pct", {})
+        total = pmx.get("total_events_classified", 0)
+        parts.append(f"<div>Total events classified: <strong>{total}</strong></div>")
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Pillar</th><th>Events</th><th>Share</th></tr>")
+        for p in ("retail", "fitting", "coaching"):
+            c = counts.get(p, 0)
+            parts.append(f"<tr><td>{p.capitalize()}</td>"
+                         f"<td>{c}</td><td>{pct.get(p, 0):.1f}%</td></tr>")
+        parts.append("</table>")
+        # Cadences
+        cadences = pmx.get("cadences_by_lane") or {}
+        if cadences:
+            parts.append("<div><strong>Cadences by lane:</strong></div>")
+            parts.append("<table class='coverage-table'>")
+            parts.append("<tr><th>Lane</th><th>Cadence</th></tr>")
+            for lane, c in cadences.items():
+                txt = c.get("cadence_text") or ""
+                parts.append(f"<tr><td>{lane}</td><td>{txt}</td></tr>")
+            parts.append("</table>")
+        parts.append("</div>")
+
+    # Visual DNA — compact stats grid
+    vdna = r.get("sections", {}).get("visual_dna", {})
+    if vdna.get("data_status") == "HISTORICAL_REAL":
+        parts.append("<h2>Creative Genome (Visual DNA)</h2>")
+        parts.append("<div class='section'>")
+        parts.append(f"<div><strong>Samples indexed:</strong> {vdna.get('samples', 0)}</div>")
+        ori = vdna.get("orientation_distribution") or {}
+        if ori:
+            parts.append(f"<div><strong>Orientation:</strong> " +
+                         ", ".join(f"{k}={v}" for k, v in ori.items()) + "</div>")
+        lum = vdna.get("luminance_distribution") or {}
+        if lum:
+            parts.append(f"<div><strong>Luminance:</strong> " +
+                         ", ".join(f"{k}={v}" for k, v in lum.items()) + "</div>")
+        ocr = vdna.get("ocr_available_distribution") or {}
+        if ocr:
+            parts.append(f"<div><strong>OCR available:</strong> " +
+                         ", ".join(f"{k}={v}" for k, v in ocr.items()) + "</div>")
+        ocr_med = vdna.get("ocr_word_count_median")
+        if ocr_med is not None:
+            parts.append(f"<div><strong>Median OCR word count:</strong> {ocr_med}</div>")
+        parts.append("</div>")
+
+    # Page / service interest
+    pi = r.get("sections", {}).get("page_interest", {})
+    if pi.get("data_status") == "LIVE":
+        parts.append("<h2>Page / Service Interest</h2>")
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Page</th><th>Sessions</th><th>Users</th><th>Engaged</th></tr>")
+        for p in (pi.get("service_pages") or []):
+            parts.append(f"<tr><td>{p.get('label')} ({p.get('path')})</td>"
+                         f"<td>{p.get('sessions', 0)}</td>"
+                         f"<td>{p.get('users', 0)}</td>"
+                         f"<td>{p.get('engaged_sessions', 0)}</td></tr>")
+        parts.append("</table>")
+
+    # Historical reports
+    hr = r.get("sections", {}).get("historical_reports", {})
+    if hr.get("data_status") == "HISTORICAL_REAL" and hr.get("count"):
+        parts.append("<h2>Historical Reports (operator-uploaded)</h2>")
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Filename</th><th>Period</th><th>Uploaded</th></tr>")
+        for f in (hr.get("files") or []):
+            parts.append(f"<tr><td>{f.get('filename')}</td>"
+                         f"<td>{f.get('period') or '?'}</td>"
+                         f"<td>{(f.get('uploaded_at') or '?')[:10]}</td></tr>")
+        parts.append("</table>")
+
     # Per-section data
     for key, section in r.get("sections", {}).items():
+        # Skip sections we already rendered above
+        if key in ("pillar_mix", "visual_dna", "page_interest",
+                   "historical_reports"):
+            continue
         title = section.get("title", key)
         status = section.get("data_status", "UNKNOWN")
         parts.append(f"<h2>{title} {_pill(status)}</h2>")
@@ -1574,6 +1654,36 @@ def render_brand_report_html(brand_id: str, period_days: int = 31,
             if isinstance(v, (str, int)) and v:
                 parts.append(f"<div><strong>{k}</strong>: {v}</div>")
         parts.append("</div>")
+
+    # What worked
+    worked = r.get("what_worked", [])
+    if worked:
+        parts.append("<h2>What Worked</h2>")
+        for w in worked:
+            parts.append("<div class='rec low'>")
+            parts.append(f"<strong>★ {w['title']}</strong><br>")
+            if w.get("evidence"):
+                parts.append(f"<em>Evidence:</em> {w['evidence']}<br>")
+            if w.get("interpretation"):
+                parts.append(f"<em>Interpretation:</em> {w['interpretation']}<br>")
+            if w.get("business_relevance"):
+                parts.append(f"<em>Business relevance:</em> {w['business_relevance']}")
+            parts.append("</div>")
+
+    # What needs attention
+    needs = r.get("what_needs_attention", [])
+    if needs:
+        parts.append("<h2>What Needs Attention</h2>")
+        for n in needs:
+            parts.append("<div class='rec high'>")
+            parts.append(f"<strong>⚠ {n['title']}</strong><br>")
+            if n.get("evidence"):
+                parts.append(f"<em>Evidence:</em> {n['evidence']}<br>")
+            if n.get("interpretation"):
+                parts.append(f"<em>Interpretation:</em> {n['interpretation']}<br>")
+            if n.get("business_relevance"):
+                parts.append(f"<em>Business relevance:</em> {n['business_relevance']}")
+            parts.append("</div>")
 
     # Recommendations
     parts.append("<h2>Recommendations</h2>")
