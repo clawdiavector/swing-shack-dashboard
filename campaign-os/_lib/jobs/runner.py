@@ -12,6 +12,7 @@ from typing import Any, Optional
 from . import ledger
 from .errors import RETRYABLE, classify, fingerprint
 from .registry import JOBS
+from .schedules import schedule_for
 from .spec import JobSpec
 
 log = logging.getLogger("campaign-os.jobs.runner")
@@ -339,6 +340,9 @@ def build_status() -> dict:
                 "criticality": spec.criticality,
                 "last_success_at": last_success_at,
                 "last_success_age_h": last_success_age_h,
+                "last_run_at": (last or {}).get("finished"),
+                "last_started_at": (last or {}).get("started"),
+                "last_triggered_by": (last or {}).get("triggered_by"),
                 "last_status": (last or {}).get("status"),
                 "last_error": (last or {}).get("error"),
                 "last_duration_s": (last or {}).get("duration_s"),
@@ -348,9 +352,46 @@ def build_status() -> dict:
                 "every_seconds": getattr(spec, "every_seconds", None),
                 "timeout_seconds": getattr(spec, "timeout_seconds", None),
                 "retries": getattr(spec, "retries", 0),
+                "schedule": schedule_for(name),
             }
         )
     return {"jobs": jobs_out}
+
+
+def build_history(*, job: Optional[str] = None, limit_per_job: int = 12) -> dict:
+    """Recent finished runs from job-runs.jsonl for /ops/jobs history panel."""
+    limit = max(1, min(int(limit_per_job), 50))
+    if job is not None:
+        if job not in JOBS:
+            return {"ok": False, "error": "unknown job", "jobs": {}}
+        names = [job]
+    else:
+        names = sorted(JOBS.keys())
+
+    grouped = ledger.last_rows_per_job(names)
+    jobs_out: dict[str, list[dict]] = {}
+    for name in names:
+        finished = [
+            r for r in grouped.get(name) or [] if r.get("phase") == "finished" and r.get("run_id")
+        ]
+        finished.sort(key=lambda r: r.get("finished") or r.get("started") or "", reverse=True)
+        runs = []
+        for row in finished[:limit]:
+            runs.append(
+                {
+                    "run_id": row.get("run_id"),
+                    "started": row.get("started"),
+                    "finished": row.get("finished"),
+                    "status": row.get("status"),
+                    "duration_s": row.get("duration_s"),
+                    "triggered_by": row.get("triggered_by"),
+                    "error": (row.get("error") or "")[:200] or None,
+                    "error_class": row.get("error_class"),
+                    "rows": row.get("rows"),
+                }
+            )
+        jobs_out[name] = runs
+    return {"ok": True, "limit_per_job": limit, "jobs": jobs_out}
 
 
 def build_digest() -> bytes:

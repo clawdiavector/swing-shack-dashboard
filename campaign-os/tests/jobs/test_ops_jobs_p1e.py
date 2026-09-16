@@ -65,6 +65,8 @@ def test_ops_jobs_page_ok_with_session(job_app):
     body = resp.get_data(as_text=True)
     assert "Jobs" in body
     assert "/api/jobs/status" in body
+    assert "/api/jobs/history" in body
+    assert "Schedule at a glance" in body
     assert "script src=" not in body.lower()
     assert "<link rel=\"stylesheet\"" not in body.lower()
 

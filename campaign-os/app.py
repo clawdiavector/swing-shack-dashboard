@@ -15941,6 +15941,7 @@ try:
     _JobSpec = _job_spec_mod.JobSpec
     _run_named_job = _job_runner_mod.run_job
     _jobs_build_status = _job_runner_mod.build_status
+    _jobs_build_history = _job_runner_mod.build_history
     _jobs_build_digest = _job_runner_mod.build_digest
 
     _register_job(_JobSpec(
@@ -16017,6 +16018,21 @@ def jobs_status():
     if not _JOBS_AVAILABLE:
         return jsonify({"ok": False, "error": "job registry unavailable"}), 503
     return jsonify(_jobs_build_status()), 200
+
+
+@app.route('/api/jobs/history', methods=['GET'])
+def jobs_history():
+    """GET /api/jobs/history — recent finished runs per job (ledger)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    job = (request.args.get('job') or '').strip() or None
+    try:
+        limit = int(request.args.get('limit', 12))
+    except (TypeError, ValueError):
+        limit = 12
+    return jsonify(_jobs_build_history(job=job, limit_per_job=limit)), 200
 
 
 @app.route('/api/jobs/digest', methods=['GET'])

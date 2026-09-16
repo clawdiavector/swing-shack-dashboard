@@ -100,6 +100,26 @@ table.fresh th, table.fresh td {
 }
 .toast.show { display: block; }
 .toast.bad { border-color: var(--bad); color: var(--bad); }
+.summary {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 14px; font-size: 13px;
+}
+.summary h2 { margin: 0 0 8px; font-size: 14px; }
+.summary table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.summary th, .summary td {
+  border-bottom: 1px solid var(--line); text-align: left; padding: 5px 4px; vertical-align: top;
+}
+.summary th { color: var(--muted); font-weight: 600; }
+.sched { color: var(--info); font-size: 12px; margin-top: 6px; }
+.hist-wrap { margin-top: 10px; display: none; }
+.hist-wrap.open { display: block; }
+table.hist { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+table.hist th, table.hist td {
+  border-bottom: 1px solid var(--line); text-align: left; padding: 5px 3px;
+}
+table.hist .st-OK { color: var(--ok); }
+table.hist .st-FAILED, table.hist .st-TIMEOUT { color: var(--bad); }
+.btn.ghost { background: transparent; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -108,9 +128,13 @@ table.fresh th, table.fresh td {
   <button class="btn" id="refresh" type="button">Refresh</button>
   <a class="btn" href="/?page=ops">Ops runbook</a>
   <span class="spend" id="spend">LLM spend —</span>
-  <div class="sub">Session-gated · from /api/jobs/status · deep-link from Telegram alerts</div>
+  <div class="sub">Session-gated · schedules + history · times shown in SAST · deep-link from Telegram</div>
 </header>
 <main>
+  <section class="summary" id="summary" hidden>
+    <h2>Schedule at a glance (SAST)</h2>
+    <table><thead><tr><th>Job</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
+  </section>
   <div id="list" class="empty">Loading…</div>
 </main>
 <div class="drawer-bg" id="drawer-bg" role="dialog" aria-modal="true">
@@ -139,6 +163,9 @@ function toast(msg, bad) {
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { t.className = 'toast'; }, 3200);
 }
+const TZ = 'Africa/Johannesburg';
+let historyByJob = {};
+
 function ageLabel(h) {
   if (h == null || h === '') return 'never';
   const n = Number(h);
@@ -146,6 +173,46 @@ function ageLabel(h) {
   if (n < 1) return Math.round(n * 60) + 'm ago';
   if (n < 48) return n.toFixed(1) + 'h ago';
   return (n / 24).toFixed(1) + 'd ago';
+}
+function fmtSast(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-ZA', {
+      timeZone: TZ, month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }) + ' SAST';
+  } catch (_) { return '—'; }
+}
+function scheduleTimes(sched) {
+  if (!sched || !sched.cron_sast || !sched.cron_sast.length) return '—';
+  return sched.cron_sast.map(t => t + ' SAST').join(', ');
+}
+function scheduleLine(sched) {
+  if (!sched || !sched.cron_sast) return '';
+  const times = scheduleTimes(sched);
+  const who = sched.scheduler ? ' · ' + sched.scheduler : '';
+  const cad = sched.cadence ? ' · ' + sched.cadence : '';
+  return `<div class="sched">Runs ${esc(times)}${esc(cad)}${esc(who)}</div>`;
+}
+function histRows(name) {
+  const rows = historyByJob[name] || [];
+  if (!rows.length) return '<div class="meta">No runs logged yet.</div>';
+  const body = rows.map(r => {
+    const st = r.status || '?';
+    const trig = r.triggered_by || '—';
+    const dur = r.duration_s != null ? r.duration_s + 's' : '—';
+    const err = r.error ? `<div class="meta" style="color:var(--bad)">${esc(String(r.error).slice(0,80))}</div>` : '';
+    return `<tr>
+      <td class="st-${esc(st)}">${esc(st)}</td>
+      <td>${esc(fmtSast(r.finished || r.started))}</td>
+      <td>${esc(trig)}</td>
+      <td>${esc(dur)}</td>
+      <td>${esc(r.run_id || '').slice(-12)}</td>
+    </tr>${err ? '' : ''}`;
+  }).join('');
+  return `<table class="hist"><thead><tr><th>Status</th><th>Finished</th><th>Trigger</th><th>Dur</th><th>Run</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 async function api(path, opts) {
   const r = await fetch(path, Object.assign({ credentials: 'same-origin' }, opts || {}));
@@ -178,11 +245,19 @@ function jobCard(j) {
   const worst = Math.ceil((retries + 1) * timeout + 10);
   const worstLabel = worst >= 60 ? `up to ${Math.floor(worst/60)}m${worst%60?worst%60+'s':''}` : `up to ${worst}s`;
   const showDetail = j.last_run_id && (v === 'FAILED' || v === 'STUCK' || (v === 'LATE' && j.last_status && j.last_status !== 'OK'));
+  const lastRun = fmtSast(j.last_run_at);
+  const lastOk = fmtSast(j.last_success_at);
+  const trig = j.last_triggered_by || '—';
+  const lastSt = j.last_status || '—';
+  const histCount = (historyByJob[j.name] || []).length;
   return `<article class="card" data-job="${esc(j.name)}" data-run="${esc(j.last_run_id || '')}" data-verdict="${esc(v)}">
     <div class="row">
       <div>
         <div class="name">${esc(j.name)}</div>
-        <div class="meta">${esc(j.criticality || '')}${j.best_effort ? ' · best_effort' : ''} · last OK ${esc(age)} · ${esc(dur)}</div>
+        ${scheduleLine(j.schedule)}
+        <div class="meta">${esc(j.criticality || '')}${j.best_effort ? ' · best_effort' : ''} · cadence ${esc(j.every_seconds ? Math.round(j.every_seconds/3600)+'h' : '—')}</div>
+        <div class="meta">Last run ${esc(lastRun)} · ${esc(lastSt)} · ${esc(trig)} · ${esc(dur)}</div>
+        <div class="meta">Last OK ${esc(lastOk)} (${esc(age)})</div>
         ${j.last_error ? `<div class="meta" style="color:var(--bad)">${esc(String(j.last_error).slice(0,120))}</div>` : ''}
         ${j.last_error_class ? `<div class="meta">class: ${esc(j.last_error_class)}</div>` : ''}
       </div>
@@ -190,16 +265,37 @@ function jobCard(j) {
     </div>
     <div class="actions">
       <button class="btn primary" data-run-now="${esc(j.name)}" data-worst="${worst}" title="Manual run (${worstLabel})">Run now</button>
+      <button class="btn ghost" data-toggle-hist="${esc(j.name)}" type="button">History (${histCount})</button>
       ${showDetail
         ? `<button class="btn" data-open="${esc(j.name)}" data-run-id="${esc(j.last_run_id)}">Failure detail</button>`
         : ''}
     </div>
+    <div class="hist-wrap" id="hist-${esc(j.name)}">${histRows(j.name)}</div>
   </article>`;
+}
+
+function renderSummary(jobs) {
+  const tbody = $('summary-body');
+  const sec = $('summary');
+  if (!jobs.length) { sec.hidden = true; return; }
+  sec.hidden = false;
+  tbody.innerHTML = jobs.map(j => `<tr>
+    <td>${esc(j.name)}</td>
+    <td>${esc(scheduleTimes(j.schedule))}</td>
+    <td>${esc((j.schedule && j.schedule.scheduler) || '—')}</td>
+    <td>${esc(fmtSast(j.last_run_at))}<br><span style="color:var(--muted)">${esc(j.last_status || '')} · ${esc(j.last_triggered_by || '')}</span></td>
+  </tr>`).join('');
+}
+
+async function loadHistory() {
+  const r = await api('/api/jobs/history?limit=10');
+  historyByJob = (r.ok && r.data && r.data.jobs) ? r.data.jobs : {};
 }
 
 async function loadJobs() {
   const list = $('list');
   list.innerHTML = '<div class="empty">Loading…</div>';
+  await loadHistory();
   const r = await api('/api/jobs/status');
   if (!r.ok) {
     list.innerHTML = `<div class="err">Could not load status (${r.status}). ${esc(r.data && r.data.error)}</div>`;
@@ -210,6 +306,7 @@ async function loadJobs() {
     list.innerHTML = '<div class="empty">No jobs registered.</div>';
     return;
   }
+  renderSummary(jobs);
   list.innerHTML = jobs.map(jobCard).join('');
 }
 
@@ -348,6 +445,13 @@ $('list').addEventListener('click', (e) => {
   const runBtn = e.target.closest('[data-run-now]');
   if (runBtn) {
     runNow(runBtn.getAttribute('data-run-now'), runBtn);
+    return;
+  }
+  const histBtn = e.target.closest('[data-toggle-hist]');
+  if (histBtn) {
+    const name = histBtn.getAttribute('data-toggle-hist');
+    const wrap = document.getElementById('hist-' + name);
+    if (wrap) wrap.classList.toggle('open');
     return;
   }
   const openBtn = e.target.closest('[data-open]');

@@ -3,7 +3,7 @@
 from .diagnostics import read_bundle, write_bundle
 from .errors import classify, fingerprint
 from .registry import JOBS, register
-from .runner import build_digest, build_status, run_job, verdict_for
+from .runner import build_digest, build_history, build_status, run_job, verdict_for
 from .spec import JobSpec
 from .suggested_checks import checks_for
 
@@ -14,6 +14,7 @@ __all__ = [
     "run_job",
     "verdict_for",
     "build_status",
+    "build_history",
     "build_digest",
     "classify",
     "fingerprint",
