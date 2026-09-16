@@ -67,6 +67,7 @@ def collect_lib_imports(tree: ast.AST) -> set[str]:
 
 
 def present_modules(lib_dir: Path) -> set[str]:
+    """Top-level _lib modules: ``foo.py`` and packages ``foo/__init__.py``."""
     found: set[str] = set()
     if not lib_dir.is_dir():
         return found
@@ -74,6 +75,9 @@ def present_modules(lib_dir: Path) -> set[str]:
         if py.name == "__init__.py":
             continue
         found.add(py.stem)
+    for child in lib_dir.iterdir():
+        if child.is_dir() and (child / "__init__.py").is_file():
+            found.add(child.name)
     return found
 
 
@@ -211,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--lib-dir",
         default="campaign-os/_lib",
-        help="Directory of _lib/*.py files. Default: campaign-os/_lib",
+        help="Directory of _lib modules (top-level *.py and packages). Default: campaign-os/_lib",
     )
     parser.add_argument(
         "--quiet",
