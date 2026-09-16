@@ -338,12 +338,15 @@ def _visual_dna_signals(brand_id: str) -> dict:
         return {"data_status": STATUS_NOT_CONNECTED,
                 "reason": "no .visual-dna.json files"}
 
-    # Aggregate structured fields
-    human_counts = {"yes": 0, "no": 0, "unknown": 0}
-    product_counts = {"yes": 0, "no": 0, "unknown": 0}
-    text_density = []
+    # Aggregate structured fields. visual-dna files use a
+    # layered schema: layer1_metadata, layer10_composition,
+    # layer6_ocr, etc. We pull subject estimate + text word
+    # count for the report-friendly signals.
     subjects = {}
-    environments = {}
+    word_counts = []
+    ocr_available_counts = {"yes": 0, "no": 0}
+    orientations = {}
+    luminance = {}
     n = 0
     for fname in files:
         try:
@@ -351,32 +354,39 @@ def _visual_dna_signals(brand_id: str) -> dict:
         except Exception:
             continue
         n += 1
-        # subject
-        subj = d.get("subject") or "unknown"
+        # layer1_metadata
+        m1 = d.get("layer1_metadata") or {}
+        orientation = m1.get("orientation") or "unknown"
+        orientations[orientation] = orientations.get(orientation, 0) + 1
+        # layer10_composition.subject_estimate_position
+        c10 = d.get("layer10_composition") or {}
+        subj = c10.get("subject_estimate_position") or "unknown"
         subjects[subj] = subjects.get(subj, 0) + 1
-        # human presence
-        hp = (d.get("human_presence") or "unknown").lower()
-        human_counts[hp if hp in ("yes", "no") else "unknown"] += 1
-        # product prominence
-        pp = (d.get("product_prominence") or "unknown").lower()
-        product_counts[pp if pp in ("yes", "no") else "unknown"] += 1
-        # text density (numeric)
-        td = d.get("text_density_score")
-        if isinstance(td, (int, float)):
-            text_density.append(float(td))
-        # environment
-        env = d.get("environment") or "unknown"
-        environments[env] = environments.get(env, 0) + 1
-    median_td = sorted(text_density)[len(text_density) // 2] if text_density else None
+        # layer6_ocr.word_count
+        ocr = d.get("layer6_ocr") or {}
+        wc = ocr.get("word_count")
+        if isinstance(wc, (int, float)):
+            word_counts.append(int(wc))
+        if ocr.get("available"):
+            ocr_available_counts["yes"] += 1
+        else:
+            ocr_available_counts["no"] += 1
+        # layer9_palette.luminance_category
+        p9 = d.get("layer9_palette") or {}
+        lum = p9.get("luminance_category") or "unknown"
+        luminance[lum] = luminance.get(lum, 0) + 1
     return {
         "data_status": STATUS_HISTORICAL_REAL,
         "samples": n,
         "source_dir": base,
-        "human_presence": human_counts,
-        "product_prominence": product_counts,
-        "text_density_median": median_td,
         "subject_distribution": subjects,
-        "environment_distribution": environments,
+        "orientation_distribution": orientations,
+        "ocr_word_count_median": (
+            sorted(word_counts)[len(word_counts) // 2]
+            if word_counts else None),
+        "ocr_word_count_samples": len(word_counts),
+        "ocr_available_distribution": ocr_available_counts,
+        "luminance_distribution": luminance,
         "source": f"{base}/*.visual-dna.json",
     }
 
@@ -748,14 +758,13 @@ def _executive_summary(brand_id: str, metrics: dict, data_status: dict) -> list:
     vdna = metrics.get("visual_dna") or {}
     samples = vdna.get("samples")
     if samples and samples >= 3:
-        hp = vdna.get("human_presence") or {}
-        pp = vdna.get("product_prominence") or {}
+        ocr_med = vdna.get("ocr_word_count_median")
+        ori = vdna.get("orientation_distribution") or {}
+        top_ori = max(ori.items(), key=lambda kv: kv[1])[0] if ori else "unknown"
         out.append({
-            "statement": f"Visual DNA across {samples} indexed assets: "
-                          f"human-presence yes={hp.get('yes', 0)}, "
-                          f"no={hp.get('no', 0)}; "
-                          f"product-prominence yes={pp.get('yes', 0)}, "
-                          f"no={pp.get('no', 0)}.",
+            "statement": f"Visual DNA indexed across {samples} assets "
+                          f"(most are {top_ori}); median OCR word-count "
+                          f"{ocr_med if ocr_med is not None else 'n/a'}.",
             "type": "MEASURED_FACT",
             "confidence": "MEDIUM",
         })
@@ -1094,11 +1103,12 @@ def build_brand_report(brand_id: str, period_days: int = 31,
         "title": "Creative Genome (Visual DNA)",
         "data_status": vdna.get("data_status"),
         "samples": vdna.get("samples"),
-        "human_presence": vdna.get("human_presence"),
-        "product_prominence": vdna.get("product_prominence"),
-        "text_density_median": vdna.get("text_density_median"),
         "subject_distribution": vdna.get("subject_distribution"),
-        "environment_distribution": vdna.get("environment_distribution"),
+        "orientation_distribution": vdna.get("orientation_distribution"),
+        "ocr_word_count_median": vdna.get("ocr_word_count_median"),
+        "ocr_word_count_samples": vdna.get("ocr_word_count_samples"),
+        "ocr_available_distribution": vdna.get("ocr_available_distribution"),
+        "luminance_distribution": vdna.get("luminance_distribution"),
         "source": vdna.get("source"),
         "reason": vdna.get("reason"),
     }
