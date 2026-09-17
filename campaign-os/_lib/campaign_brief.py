@@ -187,46 +187,106 @@ def _strategy(brand_id: str) -> dict:
 #    swing-shack + bag-drop from strategy/*.json) ────────────────
 
 def _north_stars(brand_id: str) -> dict:
-    if brand_id == "stick":
-        # Per brief §9 / Reporting V2 contract
-        return {
-            "retail": {
-                "label": "Retail (Psycho Bunny)",
-                "target": "R350,000 Psycho Bunny sales/month",
-                "pillar": "retail",
-                "source": "brief §9 (Reporting V2 contract)",
-            },
-            "fitting": {
-                "label": "Fitting",
-                "target": "24 fittings/week",
-                "pillar": "fitting",
-                "source": "brief §9 (Reporting V2 contract)",
-            },
-            "coaching": {
-                "label": "Coaching",
-                "target": "24 coaching sessions/week",
-                "pillar": "coaching",
-                "source": "brief §9 (Reporting V2 contract)",
-            },
-        }
-    bp = _brand_planning(brand_id)
-    ss = _strategy(brand_id)
+    """Load North Stars from the canonical brand strategy /
+    calendar_config.json source (V1.2 §5).
+
+    Source of truth: data/brand-directory/<brand_id>/
+    calendar_config.json → pillars[].north_star_metric +
+    pillars[].north_star_target.
+
+    If a pillar has no North Star target (source=null or
+    source_provenance=placeholder, canonical=false), return
+    status=unknown / operator_input_required rather than
+    silently fall back to stale constants.
+
+    Returns dict keyed by bare pillar name (retail / fitting /
+    coaching). Each value carries:
+      label, target, pillar, source,
+      source_provenance, canonical (bool),
+      monthly_target_zar (if applicable),
+      status ("configured" | "operator_input_required" | "unknown")
+    """
+    if brand_id not in ALLOWED_BRAND_IDS:
+        return {}
     out = {}
-    if isinstance(bp.get("north_stars"), list):
-        for n in bp["north_stars"]:
-            out[n.get("pillar") or n.get("id") or "unknown"] = {
-                "label": n.get("label") or n.get("name", ""),
-                "target": n.get("target") or "",
-                "pillar": n.get("pillar") or n.get("id") or "",
-                "source": "data/brand-planning/<brand>.json",
+    try:
+        mc = _marketing_calendar_import()
+        cfg = mc.load_brand_config(brand_id) or {}
+    except Exception:
+        cfg = {}
+    pillars = cfg.get("pillars") or []
+    if not pillars:
+        # No strategy config — return operator_input_required for
+        # each well-known pillar name so the brief engine doesn't
+        # silently substitute stale constants.
+        for p in PILLAR_KEYS:
+            out[p] = {
+                "label": p.title(),
+                "target": "",
+                "pillar": p,
+                "source": "data/brand-directory/<brand>/calendar_config.json (NOT FOUND)",
+                "source_provenance": "absent",
+                "canonical": False,
+                "monthly_target_zar": None,
+                "status": "operator_input_required",
             }
-    if not out and ss.get("north_star"):
-        out["primary"] = {
-            "label": "Primary North Star",
-            "target": ss.get("north_star"),
-            "pillar": "primary",
-            "source": "data/strategy/<brand>.json",
+        return out
+    for p_cfg in pillars:
+        # Match by canonical pillar ID
+        canonical_id = p_cfg.get("pillar_id") or ""
+        bare = (canonical_id.split("-")[-1] if "-" in canonical_id
+                else canonical_id).lower()
+        if bare not in PILLAR_KEYS:
+            continue
+        nst = p_cfg.get("north_star_target") or {}
+        nsm = p_cfg.get("north_star_metric") or ""
+        monthly_target_zar = nst.get("monthly_target_zar")
+        # Status: configured vs operator_input_required
+        if (nst.get("source_provenance", "").startswith("placeholder")
+                or "PENDING" in str(nst.get("source", "")).upper()):
+            status = "operator_input_required"
+        elif nst.get("source"):
+            status = "configured"
+        else:
+            status = "unknown"
+        # Format target string
+        if monthly_target_zar:
+            target = (f"R{monthly_target_zar:,} "
+                      f"{p_cfg.get('name', bare)} sales/month")
+        elif nst.get("daily_volume") and nst.get("operating_days_per_week"):
+            wk = (nst["daily_volume"]
+                  * nst["operating_days_per_week"])
+            target = f"{wk} {bare}/week"
+        elif nsm:
+            target = nsm
+        else:
+            target = ""
+        out[bare] = {
+            "label": p_cfg.get("name") or bare.title(),
+            "target": target,
+            "pillar": bare,
+            "metric": nsm,
+            "monthly_target_zar": monthly_target_zar,
+            "source": ("data/brand-directory/<brand>/"
+                       "calendar_config.json (pillars[].north_star_target)"),
+            "source_provenance": nst.get("source_provenance") or "",
+            "canonical": nst.get("canonical", False),
+            "status": status,
         }
+    # Always include bare-name keys for the well-known pillars even
+    # if they don't appear in the config — mark as unknown.
+    for p in PILLAR_KEYS:
+        if p not in out:
+            out[p] = {
+                "label": p.title(),
+                "target": "",
+                "pillar": p,
+                "source": ("data/brand-directory/<brand>/"
+                           "calendar_config.json"),
+                "source_provenance": "absent",
+                "canonical": False,
+                "status": "operator_input_required",
+            }
     return out
 
 
@@ -686,23 +746,82 @@ def get_brief_opportunities(brand_id: str) -> list:
 def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
     """Map a marketing_calendar record into the Brief engine's
     canonical opportunity shape. event_key is the primary key
-    (brief V1.1 §9: dedup protection)."""
+    (brief V1.1 §9: dedup protection).
+
+    Per V1.2 §3: read ALL canonical Calendar timing fields
+    correctly:
+      - date = event_start (canonical Calendar uses event_start
+        / event_end, NOT event_date which is the legacy
+        planning-file convention)
+      - duration_days derived from event_start / event_end
+      - year from event_start
+      - lead_time + planning_start + production_deadline +
+        live_window computed via marketing_calendar's
+        compute_lead_time_schedule
+      - date_confidence = HIGH (canonical record) | MEDIUM
+        (researched but not verified) | LOW (operator pin)
+      - source_origin preserved (external / scout / operator)
+    """
     event_key = r.get("event_key") or r.get("id") or ""
+    event_start = r.get("event_start") or r.get("event_date") or ""
+    event_end = r.get("event_end") or ""
+    # Derive duration_days
+    duration_days = r.get("duration_days") or 0
+    if not duration_days and event_start and event_end:
+        try:
+            ds = datetime.fromisoformat(event_start[:10])
+            de = datetime.fromisoformat(event_end[:10])
+            duration_days = max(1, (de - ds).days + 1)
+        except Exception:
+            duration_days = 0
+    # Compute lead-time schedule
+    lead_time_schedule = None
+    lead_time_class = r.get("lead_time_class") or "normal_campaign"
+    if event_start:
+        try:
+            mc = _marketing_calendar_import()
+            cfg = mc.load_brand_config(r.get("brand_id") or "")
+            lead_time_schedule = mc.compute_lead_time_schedule(
+                event_start[:10], lead_time_class, cfg)
+        except Exception:
+            lead_time_schedule = None
+    # Date confidence
+    if event_start and event_end and r.get("source_origin") in (
+            "external", "scout"):
+        date_confidence = "HIGH"
+    elif event_start and not event_end:
+        date_confidence = "MEDIUM"
+    else:
+        date_confidence = "LOW"
     return {
         "id": event_key,
         "event_key": event_key,
         "name": r.get("title") or r.get("name") or "",
-        "year": str(r.get("event_date") or "")[:4] or "unknown",
+        "year": (event_start or "")[:4] or "unknown",
         "pillars": r.get("pillars") or {},
         "lanes": list((r.get("lanes") or {}).keys())
         + (["watchlist"] if source == "watchlist" else []),
-        "duration_days": r.get("duration_days") or 0,
-        "date": r.get("event_date") or "",
+        "duration_days": duration_days,
+        "date": event_start,
+        "event_start": event_start,
+        "event_end": event_end,
+        "live_window": (f"{event_start} → {event_end}"
+                        if event_start and event_end
+                        else event_start or ""),
+        "lead_time_class": lead_time_class,
+        "lead_time_schedule": lead_time_schedule,
+        "date_confidence": date_confidence,
+        "source_origin": r.get("source_origin") or "unknown",
         "source": source,  # "calendar" | "watchlist"
         "disposition": r.get("disposition") or "",
         "status": r.get("status") or "",
         "score": r.get("weighted_score"),
+        "calendar_relevance_score": r.get("relevance_score"),
+        "calendar_audience_relevance": r.get("audience_relevance"),
+        "calendar_commercial_relevance": r.get("commercial_relevance"),
+        "calendar_confidence": r.get("confidence"),
     }
+
 
 
 def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
@@ -1647,28 +1766,106 @@ def update_brief(brand_id: str, brief_id: str, patch: dict,
     return {"ok": True, "brief": b}
 
 
+def _operator_token_store() -> dict:
+    """V1.2 §1: per-operator approval token registry.
+
+    Reads OPERATOR_APPROVAL_TOKENS env var — JSON dict of
+    operator_id → plaintext token (admin-installed in Railway
+    Variables).
+
+    Returns dict {operator_id: plaintext_token} or {} if
+    not configured. Missing or invalid config = no operator
+    can approve (fail-closed per V1.2 §1).
+    """
+    raw = os.environ.get("OPERATOR_APPROVAL_TOKENS", "")
+    if not raw or not raw.strip():
+        return {}
+    try:
+        d = json.loads(raw)
+        return {str(k): str(v) for k, v in d.items()
+                if k and v}
+    except Exception:
+        return {}
+
+
+def _verify_operator_auth() -> "Optional[str]":
+    """V1.2 §1: verify that the incoming request carries a
+    valid operator approval token.
+
+    Headers expected:
+      X-Operator-Id: <operator_id>
+      X-Operator-Token: <plaintext token>
+
+    Returns the authenticated operator_id (str) if valid,
+    None otherwise. The session cookie is also required
+    (caller checks _is_authed() first) — this function
+    only verifies the operator identity on top of that.
+    """
+    op_id = (request.headers.get("X-Operator-Id") or "").strip()
+    op_token = (request.headers.get("X-Operator-Token") or "").strip()
+    if not op_id or not op_token:
+        return None
+    store = _operator_token_store()
+    expected = store.get(op_id)
+    if not expected:
+        return None
+    import hmac as _hmac
+    return op_id if _hmac.compare_digest(op_token, expected) else None
+
+
 def transition_brief(brand_id: str, brief_id: str, to_status: str,
                      actor: str = None) -> dict:
     """Status model transitions (brief §13).
 
-    Validates:
-      approved requires actor
-      creative generation must require approved (enforced at the
-      generation endpoint, not here)
+    V1.2 §1 trust fix:
+      - approved / rejected / superseded require operator
+        authentication via _verify_operator_auth()
+      - actor body param is IGNORED for status transitions
+        that affect creative_allowed (the authenticated
+        operator identity is the authoritative actor)
+      - draft / ready_for_review / changes_requested can
+        be performed by any authed session (system or
+        operator)
+      - previous_status + approval_method +
+        originating_ui_action are persisted to the brief's
+        status_transitions log
     """
     if to_status not in VALID_STATUSES:
         return {"ok": False, "error": f"invalid status: {to_status}"}
-    if to_status == STATUS_APPROVED and not actor:
-        return {"ok": False, "error": "approved requires actor (operator)"}
     b = _read_brief(brand_id, brief_id)
     if not b:
         return {"ok": False, "error": "brief not found"}
+    previous_status = b.get("status")
+    # V1.2 §1: protected transitions require operator auth
+    PROTECTED = (STATUS_APPROVED, STATUS_REJECTED, STATUS_SUPERSEDED)
+    authenticated_operator = None
+    if to_status in PROTECTED:
+        authenticated_operator = _verify_operator_auth()
+        if not authenticated_operator:
+            return {"ok": False,
+                    "error": (f"transition to '{to_status}' requires "
+                              "operator authentication (V1.2 §1). "
+                              "Provide X-Operator-Id + X-Operator-Token "
+                              "headers. Arbitrary body `actor` strings "
+                              "are not accepted as proof of human "
+                              "approval.")}
+        # The operator identity IS the actor — ignore body.
+        actor = authenticated_operator
+        approval_method = "operator_token_v1"
+    else:
+        # Non-protected transitions: accept body actor
+        actor = actor or "system"
+        approval_method = ("operator_token_v1" if _verify_operator_auth()
+                           else "system")
     # Append-only on status transitions
     transitions = b.get("status_transitions") or []
     transitions.append({
-        "from": b.get("status"),
+        "from": previous_status,
         "to": to_status,
-        "actor": actor or "system",
+        "actor": actor,
+        "approval_method": approval_method,
+        "authenticated_operator": authenticated_operator,
+        "originating_ui_action": "brief_status_transition",
         "at": _now_iso(),
     })
     b["status_transitions"] = transitions
@@ -1677,6 +1874,8 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
     if to_status == STATUS_APPROVED:
         b["approved_at"] = b["updated_at"]
         b["approved_by"] = actor
+        b["approval_method"] = approval_method
+        b["authenticated_operator"] = authenticated_operator
         b["creative_allowed"] = True  # V1.1 §11
     elif to_status in (STATUS_REJECTED, STATUS_SUPERSEDED):
         b["creative_allowed"] = False
@@ -1686,6 +1885,97 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
         "revision": b["revision"],
         "saved_at": b["updated_at"],
         "snapshot": b,
-        "note": f"status transition → {to_status}",
+        "note": (f"transition {previous_status}→{to_status} by "
+                  f"{actor} ({approval_method})"),
+        "drafted_by": "operator" if authenticated_operator else "system",
     })
-    return {"ok": True, "brief": b}
+    return {"ok": True, "brief": b, "approval_method": approval_method,
+            "authenticated_operator": authenticated_operator}
+
+
+LOG_OPERATOR_ACTIONS = True  # V1.2 §1 — audit log
+
+
+def revert_test_approval(brand_id: str, brief_id: str,
+                           target_status: str = None,
+                           reason: str = None) -> dict:
+    """V1.2 §2: revert a Brief that was approved without genuine
+    operator approval (e.g. agent-driven test approval).
+
+    Preserves the existing audit history as
+    test_provenance but moves the current Brief to a
+    non-approved state (ready_for_review or draft).
+
+    Records the revert reason + a transition note in
+    status_transitions so the audit trail is complete.
+
+    This function is INTERNAL — only callable via the
+    /api/brief/v1/_internal/revert-test-approval endpoint
+    which itself requires an operator token (V1.2 §2)."""
+    b = _read_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    if b.get("status") not in (STATUS_APPROVED,):
+        return {"ok": False, "error":
+                f"revert requires current status=approved, "
+                f"got {b.get('status')}"}
+    authenticated_operator = _verify_operator_auth()
+    if not authenticated_operator:
+        return {"ok": False,
+                "error": "revert requires operator authentication "
+                         "(V1.2 §2). Provide X-Operator-Id + "
+                         "X-Operator-Token."}
+    previous_status = b.get("status")
+    target = target_status or STATUS_READY_FOR_REVIEW
+    if target not in VALID_STATUSES:
+        return {"ok": False,
+                "error": f"invalid target status: {target}"}
+    # Append to transitions (preserves previous test_provenance
+    # transition which stays in the log)
+    transitions = b.get("status_transitions") or []
+    transitions.append({
+        "from": previous_status,
+        "to": target,
+        "actor": authenticated_operator,
+        "approval_method": "operator_token_v1",
+        "authenticated_operator": authenticated_operator,
+        "originating_ui_action": "brief_test_approval_revert",
+        "reason": (reason or
+                   "test approval did not represent explicit "
+                   "operator approval"),
+        "at": _now_iso(),
+    })
+    b["status_transitions"] = transitions
+    b["status"] = target
+    b["updated_at"] = _now_iso()
+    # Mark the original approval as test_provenance
+    if b.get("approved_at"):
+        b["test_provenance"] = {
+            "reverted_at": b["updated_at"],
+            "reverted_by": authenticated_operator,
+            "reason": (reason or
+                       "test approval did not represent "
+                       "explicit operator approval"),
+            "previous_status": previous_status,
+            "new_status": target,
+        }
+    b["approved_at"] = None
+    b["approved_by"] = None
+    b["approval_method"] = None
+    b["authenticated_operator"] = None
+    b["creative_allowed"] = False  # V1.2 §2
+    b["revision"] = int(b.get("revision", 1)) + 1
+    _write_brief(b)
+    _append_revision(b, {
+        "revision": b["revision"],
+        "saved_at": b["updated_at"],
+        "snapshot": b,
+        "note": (f"REVERTED test approval {previous_status}→{target} "
+                  f"by {authenticated_operator}; reason: "
+                  f"{reason}"),
+        "drafted_by": "operator",
+    })
+    return {"ok": True, "brief": b,
+            "test_provenance_preserved": True,
+            "creative_allowed": False}
+

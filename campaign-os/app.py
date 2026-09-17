@@ -15813,12 +15813,12 @@ def today_panel():
     # Frontend reads panel.counts.review + panel.counts.draft (matches the
     # Today page's reviewTotal computation) so the numbers agree across
     # surfaces.
+    # V1.2 §6: surface active brand context in Today panel
+    # so the operator can confirm which brand is active
+    # without editing a URL.
     panel_counts = brief.get('counts') or {}
-    # V1.1 §8: Brief actions surfaced alongside Today cards.
-    # Lists canonical Calendar opportunities with Create Brief /
-    # View Brief / Review Brief affordances based on existing-brief
-    # state. Brand scoped via `get_brand_id()` (current session brand).
     brief_actions = _today_brief_actions()
+    active_brand_id = brief_actions.get("brand_id") or "swing-shack"
     return jsonify({
         'ok': True,
         'ts': _now_iso(),
@@ -15826,6 +15826,9 @@ def today_panel():
         'cards': cards,
         'dismissed': sorted(hidden),
         'count': len(cards),
+        # V1.2 §6: explicit brand context
+        'active_brand_id': active_brand_id,
+        'active_brand_label': active_brand_id.title(),
         'counts': {
             'review': int(panel_counts.get('review') or 0),
             'draft': int(panel_counts.get('draft') or 0),
@@ -22316,10 +22319,19 @@ def brief_v1_transition(brand_id, brief_id):
     """POST /api/brief/v1/<brand_id>/<brief_id>/transition
 
     Body: {to_status: draft|ready_for_review|changes_requested|
-                    approved|rejected|superseded,
-           actor: str (required when to_status=approved)}
+                    approved|rejected|superseded}
 
-    Per brief §13: creative generation must require 'approved'.
+    V1.2 §1 trust fix:
+      - approved / rejected / superseded require operator
+        authentication headers (X-Operator-Id +
+        X-Operator-Token). Body `actor` is IGNORED for
+        these transitions — the authenticated operator
+        identity is authoritative.
+      - draft / ready_for_review / changes_requested can
+        be performed by any authed session.
+
+    Per brief §13: creative generation must require
+    status=approved (enforced at the generation endpoint).
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -22328,10 +22340,51 @@ def brief_v1_transition(brand_id, brief_id):
                         "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
     body = request.get_json(silent=True) or {}
     to_status = (body.get("to_status") or "").strip()
-    actor = (body.get("actor") or "").strip()
     cb = _cb_import()
-    r = cb.transition_brief(brand_id, brief_id, to_status, actor or None)
+    r = cb.transition_brief(brand_id, brief_id, to_status, None)
     return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/brief/v1/_internal/revert-test-approval/<brand_id>/<brief_id>',
+           methods=['POST'])
+def brief_v1_revert_test_approval(brand_id, brief_id):
+    """POST /api/brief/v1/_internal/revert-test-approval/<brand_id>/<brief_id>
+
+    V1.2 §2: revert a Brief that was approved without genuine
+    operator approval. Requires operator authentication
+    (X-Operator-Id + X-Operator-Token). Preserves
+    test_provenance in the audit trail.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    body = request.get_json(silent=True) or {}
+    cb = _cb_import()
+    r = cb.revert_test_approval(brand_id, brief_id,
+                                  target_status=body.get("target_status"),
+                                  reason=body.get("reason"))
+    return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/brief/v1/_internal/operator-token-status', methods=['GET'])
+def brief_v1_operator_token_status():
+    """GET /api/brief/v1/_internal/operator-token-status
+
+    V1.2 §1: diagnostic — checks whether operator tokens are
+    configured without exposing the token values. Returns
+    {configured: bool, operators: [op_id, ...]}."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    store = cb._operator_token_store()
+    return jsonify({
+        "ok": True,
+        "configured": len(store) > 0,
+        "operator_count": len(store),
+        "operators": sorted(store.keys()),
+    })
 
 
 @app.route('/api/brief/v1/<brand_id>/<brief_id>/render', methods=['GET'])
