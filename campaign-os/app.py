@@ -13941,7 +13941,7 @@ def publish_sandbox_summary_route():
 @app.route('/api/publish/sandbox/enqueue', methods=['POST'])
 def publish_sandbox_enqueue_route():
     """POST body: brand_id, platform?, caption_preview?, human_approved?, idempotency_key?"""
-    if not _is_authed():
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     body = request.get_json(silent=True) or {}
     brand_id = (body.get("brand_id") or "").strip()
@@ -13967,7 +13967,7 @@ def publish_sandbox_enqueue_route():
 
 @app.route('/api/publish/sandbox/approve', methods=['POST'])
 def publish_sandbox_approve_route():
-    if not _is_authed():
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     body = request.get_json(silent=True) or {}
     key = (body.get("idempotency_key") or "").strip()
