@@ -77,8 +77,12 @@ def _load_north_stars_from_calendar_config(brand_id: str) -> dict:
                 product_hint = nsm.split("/")[0].strip()
             elif p_cfg.get("objective"):
                 import re as _re
-                m = _re.search(r"\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\s+(?:sales|revenue|sales/month)",
-                               p_cfg["objective"] or "")
+                obj_clean = _re.sub(
+                    r"^(?:Drive|Sell|Promote|Move|Build|Launch|Grow|Boost)\s+",
+                    "", p_cfg["objective"] or "")
+                m = _re.search(
+                    r"\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\b",
+                    obj_clean)
                 if m:
                     product_hint = m.group(1)
             if monthly:

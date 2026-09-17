@@ -260,9 +260,15 @@ def _north_stars(brand_id: str) -> dict:
             obj = p_cfg["objective"]
             # Try to extract a brand-specific product hint
             # from phrases like "Drive Psycho Bunny sales"
+            # Skip leading verbs so the label stays clean
+            # (Psycho Bunny, not "Drive Psycho Bunny").
             import re as _re
-            m = _re.search(r"\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\s+(?:sales|revenue|sales/month)",
-                           obj or "")
+            obj_clean = _re.sub(
+                r"^(?:Drive|Sell|Promote|Move|Build|Launch|Grow|Boost)\s+",
+                "", obj or "")
+            m = _re.search(
+                r"\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\b",
+                obj_clean)
             if m:
                 product_hint = m.group(1)
         if monthly_target_zar:
