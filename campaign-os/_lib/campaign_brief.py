@@ -276,7 +276,7 @@ def _pillar_mix(brand_id: str, days_back: int = 31) -> dict:
         classification_status = "preserved_unclassified"
         classification_reason = "no pillar key in structured pillars or lane text"
 
-        # 1. Structured pillars: key match
+        # 1. Structured pillars: key match (dict)
         if isinstance(ep, dict):
             for p in pillars:
                 if p in ep:
@@ -293,6 +293,20 @@ def _pillar_mix(brand_id: str, days_back: int = 31) -> dict:
                         classification_status = "classified_by_structured_pillars_value"
                         classification_reason = f"event pillars value contains '{p}'"
                         break
+        # 2b. Structured pillars: list (canonical Calendar schema)
+        elif isinstance(ep, list):
+            for p in pillars:
+                if any(isinstance(v, str) and
+                       (p == v or p in v.lower() or
+                        v.lower().endswith("-" + p) or
+                        v.lower().endswith("-" + p.title()))
+                       for v in ep):
+                    classified_pillar = p
+                    classification_status = "classified_by_structured_pillars_list"
+                    classification_reason = (
+                        f"event pillars list contains '{p}' "
+                        f"(canonical pillar ID match)")
+                    break
         # 3. Lane keyword fallback
         if not classified_pillar:
             for p in pillars:
@@ -731,9 +745,18 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                      for v in pillars_supported.values()):
                 always_on_pillar_match.append(p)
     elif isinstance(pillars_supported, list):
+        # Match against canonical pillar IDs like 'stick-retail',
+        # 'stick-fitting', 'stick-coaching' (Calendar schema) as
+        # well as the bare names.
         for p in PILLAR_KEYS:
-            if p in [str(x).lower() for x in pillars_supported]:
-                always_on_pillar_match.append(p)
+            pl = p.lower()
+            for v in pillars_supported:
+                vs = str(v).lower()
+                if (pl == vs or pl in vs
+                        or vs.endswith("-" + pl)
+                        or vs.endswith("-" + pl.title())):
+                    always_on_pillar_match.append(p)
+                    break
     if always_on_pillar_match:
         factors.append({
             "factor": "strategic_relevance",
@@ -1111,9 +1134,16 @@ def create_brief(brand_id: str, opportunity_id: str,
                      for v in opp_pillars.values()):
                 always_on_pillar_match.append(p)
     elif isinstance(opp_pillars, list):
+        # Match against canonical pillar IDs (e.g. 'stick-retail')
         for p in PILLAR_KEYS:
-            if p in [str(x).lower() for x in opp_pillars]:
-                always_on_pillar_match.append(p)
+            pl = p.lower()
+            for v in opp_pillars:
+                vs = str(v).lower()
+                if (pl == vs or pl in vs
+                        or vs.endswith("-" + pl)
+                        or vs.endswith("-" + pl.title())):
+                    always_on_pillar_match.append(p)
+                    break
 
     # Build BRIEF schema
     audience = _derive_audience(brand_id, bp)
