@@ -853,7 +853,15 @@ def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
         "calendar_relevance_score": r.get("relevance_score"),
         "calendar_audience_relevance": r.get("audience_relevance"),
         "calendar_commercial_relevance": r.get("commercial_relevance"),
+        "calendar_brand_relevance": r.get("brand_relevance"),
         "calendar_confidence": r.get("confidence"),
+        # V1.3 §5: surface source_urls + source_authority for
+        # gate evidence verification.
+        "source_urls": list(r.get("source_urls") or []),
+        "source_authority": (r.get("verification_status")
+                             or r.get("source_class")
+                             or r.get("source_origin")
+                             or "unknown"),
     }
 
 
