@@ -160,7 +160,12 @@ def _gate():
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
     # Dual-auth paths: bearer OR session (t15); session-only elsewhere
-    if path.startswith('/api/jobs') or path.startswith('/api/freshness') or path == '/api/ops/layers':
+    if (
+        path.startswith('/api/jobs')
+        or path.startswith('/api/freshness')
+        or path.startswith('/api/publish')
+        or path == '/api/ops/layers'
+    ):
         if _is_job_authed():
             return None
     elif _is_authed():
