@@ -251,9 +251,20 @@ def _finished_by_run_id(rows: list[dict]) -> dict[str, dict]:
     }
 
 
+def _latest_finished_at(rows: list[dict]) -> Optional[datetime]:
+    for row in reversed(rows):
+        if row.get("phase") != "finished":
+            continue
+        ts = _parse_iso(row.get("finished") or row.get("started"))
+        if ts is not None:
+            return ts
+    return None
+
+
 def _stuck_started(rows: list[dict], spec: JobSpec, now: datetime) -> Optional[dict]:
     finished = _finished_by_run_id(rows)
     threshold = spec.timeout_seconds * 2
+    latest_finished_at = _latest_finished_at(rows)
     for row in reversed(rows):
         if row.get("phase") != "started":
             continue
@@ -262,6 +273,8 @@ def _stuck_started(rows: list[dict], spec: JobSpec, now: datetime) -> Optional[d
             continue
         started = _parse_iso(row.get("started"))
         if started is None:
+            continue
+        if latest_finished_at is not None and started < latest_finished_at:
             continue
         age = (now - started).total_seconds()
         if age > threshold:

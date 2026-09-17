@@ -248,3 +248,76 @@ def test_legacy_ledger_verdicts_unchanged(data_dir):
     assert isinstance(digest, (bytes, bytearray))
     job_row = next(j for j in status["jobs"] if j["name"] == name)
     assert job_row["verdict"] in ("OK", "LATE")
+
+
+def test_stuck_ignores_orphan_started_superseded_by_later_finished(data_dir):
+    """Orphan started before a later finished OK must not yield STUCK (site_audit case)."""
+    from datetime import datetime, timezone
+
+    name = "stuck_superseded"
+    register(
+        JobSpec(
+            name=name,
+            fn=lambda: {"ok": True},
+            every_seconds=86400,
+            timeout_seconds=300,
+            writes=("stuck_superseded.json",),
+        )
+    )
+    now = datetime(2026, 9, 17, 10, 0, 0, tzinfo=timezone.utc)
+    rows = [
+        {
+            "job": name,
+            "run_id": "old-run",
+            "phase": "started",
+            "started": "2026-09-15T07:00:00Z",
+            "triggered_by": "schedule",
+        },
+        {
+            "job": name,
+            "run_id": "new-run",
+            "phase": "started",
+            "started": "2026-09-17T07:11:00Z",
+            "triggered_by": "schedule",
+        },
+        {
+            "job": name,
+            "run_id": "new-run",
+            "phase": "finished",
+            "started": "2026-09-17T07:11:00Z",
+            "finished": "2026-09-17T07:11:35Z",
+            "status": "OK",
+            "triggered_by": "schedule",
+            "rows": 14,
+            "writes": ["stuck_superseded.json"],
+            "error": None,
+        },
+    ]
+    assert verdict_for(name, rows, now=now) == "OK"
+
+
+def test_stuck_detects_orphan_started_without_later_finished(data_dir):
+    """Orphan started with no later finished row must yield STUCK."""
+    from datetime import datetime, timezone
+
+    name = "stuck_real"
+    register(
+        JobSpec(
+            name=name,
+            fn=lambda: {"ok": True},
+            every_seconds=86400,
+            timeout_seconds=300,
+            writes=("stuck_real.json",),
+        )
+    )
+    now = datetime(2026, 9, 17, 10, 0, 0, tzinfo=timezone.utc)
+    rows = [
+        {
+            "job": name,
+            "run_id": "orphan-run",
+            "phase": "started",
+            "started": "2026-09-15T07:00:00Z",
+            "triggered_by": "schedule",
+        },
+    ]
+    assert verdict_for(name, rows, now=now) == "STUCK"
