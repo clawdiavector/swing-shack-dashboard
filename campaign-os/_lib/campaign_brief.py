@@ -1890,6 +1890,16 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
         b["creative_allowed"] = True  # V1.1 §11
     elif to_status in (STATUS_REJECTED, STATUS_SUPERSEDED):
         b["creative_allowed"] = False
+    elif previous_status == STATUS_APPROVED:
+        # Moving AWAY from approved (e.g. approved → ready_for_review,
+        # approved → draft) clears creative_allowed regardless of
+        # the destination. This is the safety guarantee that
+        # creative generation only fires for currently-approved briefs.
+        b["creative_allowed"] = False
+        b["approved_at"] = None
+        b["approved_by"] = None
+        b["approval_method"] = None
+        b["authenticated_operator"] = None
     b["revision"] = int(b.get("revision", 1)) + 1
     _write_brief(b)
     _append_revision(b, {
