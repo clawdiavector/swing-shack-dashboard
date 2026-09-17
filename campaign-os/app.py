@@ -90,7 +90,19 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/ops/agents',
     '/api/ops/agents/heartbeat',
     '/api/ops/agents/enqueue',
+    '/api/ops/agent-queue',
+    '/api/ops/agent-queue/mark-done',
+    # L3 calendar scout (cos-scout runs from Mac with bearer only)
+    '/api/calendar/scout-health',
+    '/api/calendar/v2/upsert',
+    '/api/calendar/v2/watchlist-due',
 })
+
+# Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
+DUAL_AUTH_PREFIXES = (
+    '/api/calendar/context/',
+    '/api/calendar/v3/scout/',
+)
 
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
@@ -169,12 +181,15 @@ def _gate():
     # Allow static asset extensions (CSS, JS, images, fonts) needed to render login page.
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
-    # Dual-auth paths: bearer OR session (t15); session-only elsewhere
+    # Dual-auth paths: bearer OR session (t15); session-only elsewhere.
+    # DUAL_AUTH_PREFIXES entries must end in '/' so e.g. /api/calendar/v3/scout/
+    # does not match /api/calendar/v3/scout-simulate-unavailable.
     if (
         path.startswith('/api/jobs')
         or path.startswith('/api/freshness')
         or path.startswith('/api/publish')
         or path in DUAL_AUTH_PATHS
+        or path.startswith(DUAL_AUTH_PREFIXES)
     ):
         if _is_job_authed():
             return None
@@ -16784,6 +16799,73 @@ def ops_agents_enqueue():
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("ops_agents_enqueue failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agent-queue', methods=['GET'])
+def ops_agent_queue_get():
+    """GET /api/ops/agent-queue — filtered agent-queue rows. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        agent = (request.args.get("agent") or "").strip() or None
+        brand = (request.args.get("brand") or "").strip() or None
+        status = (request.args.get("status") or "").strip() or None
+        limit_raw = request.args.get("limit", "200")
+        try:
+            limit = int(limit_raw)
+        except (TypeError, ValueError):
+            limit = 200
+        limit = max(0, min(limit, 500))
+        data_dir = Path(_data_paths()['data_dir'])
+        payload = _ops_agents_mod.list_queue_rows(
+            data_dir,
+            agent=agent,
+            brand=brand,
+            status=status,
+            limit=limit,
+        )
+        return jsonify({"ok": True, **payload}), 200
+    except Exception as e:
+        _app_log.exception("ops_agent_queue_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agent-queue/mark-done', methods=['POST'])
+def ops_agent_queue_mark_done():
+    """POST /api/ops/agent-queue/mark-done — mark one queue row done. Session or bearer.
+
+    Retention: after mark-done, prune done rows beyond the newest 200 by id sort,
+    and drop manual done rows once the doc exceeds 500 rows total.
+    """
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        body = request.get_json(silent=True) or {}
+        row_id = str(body.get("id") or "").strip()
+        if not row_id:
+            return jsonify({"ok": False, "error": "id is required"}), 400
+        agent = str(body.get("agent") or "").strip() or None
+        data_dir = Path(_data_paths()['data_dir'])
+        result = _ops_agents_mod.mark_row_done(data_dir, row_id, agent=agent)
+        _app_log.info("ops_agent_queue mark-done id=%s pending=%s", row_id, result.get("pending"))
+        return jsonify({"ok": True, **result}), 200
+    except LookupError:
+        return jsonify({"ok": False, "error": "queue row not found"}), 404
+    except PermissionError as e:
+        return jsonify({"ok": False, "error": str(e)}), 403
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_agent_queue_mark_done failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

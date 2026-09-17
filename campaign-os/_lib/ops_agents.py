@@ -376,3 +376,117 @@ def append_enqueue_row(data_dir: Path, row: dict[str, str]) -> tuple[str, int]:
     _atomic_write_json(queue_path, doc)
     pending = sum(1 for r in rows if r.get("status") == "pending")
     return row["id"], pending
+
+
+DONE_RETENTION_MAX = 200
+QUEUE_DOC_SOFT_CAP = 500
+
+
+def _queue_counts(rows: list[dict[str, str]]) -> dict[str, int]:
+    pending = sum(1 for r in rows if r.get("status") == "pending")
+    done = sum(1 for r in rows if r.get("status") == "done")
+    return {"pending": pending, "done": done, "total": len(rows)}
+
+
+def _prune_done_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Keep newest DONE_RETENTION_MAX done rows; drop manual done rows when over soft cap."""
+    pending = [r for r in rows if r.get("status") == "pending"]
+    other = [r for r in rows if r.get("status") not in {"pending", "done"}]
+    done = sorted(
+        [r for r in rows if r.get("status") == "done"],
+        key=lambda item: item["id"],
+    )
+    if len(done) > DONE_RETENTION_MAX:
+        done = done[-DONE_RETENTION_MAX:]
+    kept = sorted(pending + other + done, key=lambda item: item["id"])
+    while len(kept) > QUEUE_DOC_SOFT_CAP:
+        manual_done_idx = next(
+            (
+                idx
+                for idx, row in enumerate(kept)
+                if row.get("status") == "done" and str(row.get("id", "")).startswith("manual-")
+            ),
+            None,
+        )
+        if manual_done_idx is None:
+            break
+        kept.pop(manual_done_idx)
+    return kept
+
+
+def list_queue_rows(
+    data_dir: Path,
+    *,
+    agent: Optional[str] = None,
+    brand: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 200,
+) -> dict[str, Any]:
+    """Return filtered agent-queue rows for GET /api/ops/agent-queue."""
+    queue_path = data_dir / "agent-queue.json"
+    doc = _read_queue_doc(queue_path)
+    rows = doc.get("rows") or []
+    if not isinstance(rows, list):
+        rows = []
+    clean: list[dict[str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            clean.append(_validate_queue_row(row))
+        except ValueError:
+            continue
+    if agent:
+        clean = [r for r in clean if r.get("agent") == agent]
+    if brand:
+        clean = [r for r in clean if r.get("brand") == brand]
+    if status:
+        clean = [r for r in clean if r.get("status") == status]
+    clean = sorted(clean, key=lambda item: item["id"])
+    if limit > 0:
+        clean = clean[:limit]
+    all_rows = sorted(
+        [_validate_queue_row(r) for r in rows if isinstance(r, dict)],
+        key=lambda item: item["id"],
+    )
+    return {
+        "schema": str(doc.get("schema") or QUEUE_SCHEMA),
+        "generated_at": str(doc.get("generated_at") or _utc_now_iso()),
+        "rows": clean,
+        "counts": _queue_counts(all_rows),
+    }
+
+
+def mark_row_done(
+    data_dir: Path,
+    row_id: str,
+    *,
+    agent: Optional[str] = None,
+) -> dict[str, Any]:
+    """Mark one queue row done; returns {id, status, pending}. Raises LookupError if missing."""
+    queue_path = data_dir / "agent-queue.json"
+    doc = _read_queue_doc(queue_path)
+    rows = doc.get("rows") or []
+    if not isinstance(rows, list):
+        rows = []
+    clean = sorted(
+        [_validate_queue_row(r) for r in rows if isinstance(r, dict)],
+        key=lambda item: item["id"],
+    )
+    target: Optional[dict[str, str]] = None
+    for row in clean:
+        if row.get("id") == row_id:
+            target = row
+            break
+    if target is None:
+        raise LookupError(row_id)
+    if agent and target.get("agent") != agent:
+        raise PermissionError("agent does not own this queue row")
+    target["status"] = "done"
+    pruned = _prune_done_rows(clean)
+    doc["rows"] = pruned
+    doc["generated_at"] = _utc_now_iso()
+    doc["schema"] = QUEUE_SCHEMA
+    _atomic_write_json(queue_path, doc)
+    pending = sum(1 for r in pruned if r.get("status") == "pending")
+    return {"id": row_id, "status": "done", "pending": pending}
