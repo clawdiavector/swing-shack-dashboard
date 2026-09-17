@@ -15843,10 +15843,12 @@ def _today_brief_actions() -> dict:
     """V1.1 §8: build Brief action cards for the Today panel.
 
     For each canonical Calendar opportunity in the current
-    brand, surface either:
-      - 'Create Brief' (no existing Brief)
-      - 'View Brief' (existing Brief, any status)
+    brand (or query-param ?brand=... override), surface
+    either:
+      - 'Create Brief' (no existing Brief + gate=BRIEF)
+      - 'View Brief' (existing Brief, non-draft status)
       - 'Review Brief' (existing Brief, status=draft)
+      - 'watch_or_ignore:<gate>' (gate cleared as WATCH/IGNORE)
 
     Capped at 6 per brand to keep the panel scannable.
     """
@@ -15854,7 +15856,8 @@ def _today_brief_actions() -> dict:
         from _lib import campaign_brief as cb
     except Exception:
         return {"actions": [], "note": "campaign_brief unavailable"}
-    bid = get_brand_id()
+    # Allow ?brand=... override for multi-brand Today sessions
+    bid = (request.args.get("brand") or "").strip() or get_brand_id()
     if bid not in cb.ALLOWED_BRAND_IDS:
         return {"actions": []}
     actions = []
