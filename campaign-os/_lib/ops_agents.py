@@ -333,14 +333,20 @@ def normalise_enqueue(body: dict[str, Any]) -> dict[str, str]:
     brand = _clamp_text(body.get("brand") or "stick", 64)
     reason = _clamp_text(body.get("reason") or "manual", 64)
     row_id = f"manual-{brand}-{agent}-{reason}"[:80]
+    payload_ref = body.get("payload_ref")
+    if payload_ref is not None:
+        payload_ref = _clamp_text(payload_ref, 120)
+    else:
+        payload_ref = f"ops-agents/enqueue#{reason}"
+    action = _clamp_text(body.get("action") or "enqueue", 64)
     return _validate_queue_row(
         {
             "id": row_id,
             "layer": "L3",
             "agent": agent,
             "brand": brand,
-            "action": "enqueue",
-            "payload_ref": f"ops-agents/enqueue#{reason}",
+            "action": action,
+            "payload_ref": payload_ref,
             "status": "pending",
         }
     )

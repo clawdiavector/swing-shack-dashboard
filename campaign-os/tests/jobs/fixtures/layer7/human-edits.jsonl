@@ -1,0 +1,6 @@
+{"schema":"campaign-os/human-edit-signal/v1","ts":"2026-09-17T08:00:00Z","editor":"christelle","inbox_item_id":"draft_asset:camp-test:asset-1","item_type":"draft_asset","brand_id":"stick","fields":{"caption":"Edited caption"},"note":""}
+{"schema":"campaign-os/human-edit-signal/v1","ts":"2026-09-17T08:05:00Z","action":"approve","editor":"christelle","inbox_item_id":"draft_asset:camp-test:asset-1","item_type":"draft_asset","brand_id":"stick"}
+{"schema":"campaign-os/human-edit-signal/v1","ts":"2026-09-17T08:10:00Z","editor":"kyle","inbox_item_id":"proposal:stick:p1","item_type":"proposal","brand_id":"stick","fields":{"title":"Tweaked title"},"note":"minor"}
+{"schema":"campaign-os/human-edit-signal/v1","ts":"2026-09-17T08:15:00Z","action":"approve","editor":"kyle","inbox_item_id":"proposal:stick:p1","item_type":"proposal","brand_id":"stick"}
+{"schema":"campaign-os/human-edit-signal/v1","ts":"2026-09-17T08:20:00Z","action":"reject","editor":"christelle","inbox_item_id":"draft_asset:camp-test:asset-2","item_type":"draft_asset","brand_id":"stick"}
+{"schema":"campaign-os/human-edit-signal/v1","ts":"2026-09-17T08:25:00Z","action":"approve","editor":"christelle","inbox_item_id":"calendar_candidate:stick:cal-1","item_type":"calendar_candidate","brand_id":"stick"}

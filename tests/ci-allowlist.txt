@@ -6,6 +6,7 @@ campaign-os/tests/jobs/test_layer1_io.py
 campaign-os/tests/jobs/test_ops_jobs_p1e.py
 campaign-os/tests/jobs/test_ops_agents.py
 campaign-os/tests/jobs/test_ops_layers_ribbon.py
+campaign-os/tests/jobs/test_layer7_learn.py
 campaign-os/tests/jobs/test_unified_inbox_l4.py
 campaign-os/tests/jobs/test_redaction.py
 campaign-os/tests/test_clear_history_button_location.py
@@ -115,3 +116,4 @@ tests/test_v2026_08_13_recipe_subtitle_no_double_badge.py
 tests/test_v2026_08_14_headlines_ctas_empty_state.py
 tests/test_v2026_08_18_review_inbox_brand_scoped.py
 campaign-os/tests/jobs/test_layer2_jobs.py
+campaign-os/tests/jobs/test_layer5_create.py

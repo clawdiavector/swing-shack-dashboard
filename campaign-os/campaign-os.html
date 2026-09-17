@@ -712,6 +712,11 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 .pill.draft{background:var(--bg-4);color:var(--tx-3)}
 .pill.live{background:var(--pill-blu);color:var(--blu)}
 .pill.warn{background:var(--pill-org);color:var(--org)}
+/* Campaign OS fleet status pills — colours aligned with ops-jobs.html loadAgents() */
+.pill.fleet-OK{background:rgba(66,184,131,.15);color:#3ecf8e}
+.pill.fleet-LATE{background:rgba(245,158,11,.15);color:#e3a008}
+.pill.fleet-FAILED,.pill.fleet-STUCK{background:rgba(255,107,107,.15);color:#ff6b6b}
+.pill.fleet-NEVER{background:rgba(154,160,166,.15);color:var(--tx-3)}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--ac)}
 /* What's New card on Brief surface — rows of nightshift improvements. */
 .whats-new-list{display:flex;flex-direction:column;gap:.5rem;padding:0;margin:0}
@@ -1557,10 +1562,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <div class="nav" data-go="publish" data-help-title="Publish" data-help="Approved assets queued for publishing. Routes through Postiz for cross-posting."><span class="nav-icon">🚀</span> Publish</div>
         <div class="nav" data-go="postiz" data-help-title="Postiz" data-help="Postiz OAuth + scheduled-posts queue."><span class="nav-icon">📮</span> Postiz</div>
         <div class="nav" data-go="gbp" data-help-title="GBP Daily" data-help="Daily auto-post generator for GBP · SEO-keyword-driven · one-click plan + publish."><span class="nav-icon">🚀</span> GBP Daily</div>
-        <!-- AGENTS nav hidden by default (v2026-08-13): the page monitors a
-             fleet that no longer runs on this guild and its data is 80+ days
-             stale. Page remains reachable at /?section=agents for diagnostics. -->
-        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness." hidden><span class="nav-icon">🤖</span> Agents</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Campaign OS cos-* fleet: heartbeat, schedule, and ops drill-down."><span class="nav-icon">🤖</span> Agents</div>
       </div>
     </div>
 
@@ -1584,7 +1586,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <span class="nav-group-tag">34 · flat list</span>
       </div>
       <div class="nav-group" id="nav-group-all" hidden>
-        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness." hidden><span class="nav-icon">🤖</span> Agents</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Campaign OS cos-* fleet: heartbeat, schedule, and ops drill-down."><span class="nav-icon">🤖</span> Agents</div>
         <div class="nav" data-go="headlines" data-help-title="Headlines" data-help="Bold, provocative headlines per pillar."><span class="nav-icon">📰</span> Headlines</div>
         <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
         <div class="nav" data-go="ideas" data-help-title="Ideas" data-help="Raw content backlog for the active brand."><span class="nav-icon">💡</span> Ideas</div>
@@ -1680,7 +1682,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
         <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
         <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
-        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness." hidden><span class="nav-icon">🤖</span> Agents</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Campaign OS cos-* fleet: heartbeat, schedule, and ops drill-down."><span class="nav-icon">🤖</span> Agents</div>
       </div>
     </div>
   </aside>
@@ -2850,9 +2852,9 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 
     <!-- ── AGENTS ────────────────────────────────────────── -->
     <section class="section" id="sec-agents" hidden aria-hidden="true">
-      <div class="section-h"><h2 data-help="The agent + integration health panel. Three live blocks: System (in-process helper functions, all heartbeat statuses), Integrations (every external service we talk to: Postiz, Meta Graph, GBP, GA4, etc. last-seen, last-error), and Runs (the last 20 agent invocations, ranked by duration and success). Use this to answer the question 'why is nothing posting right now?' without guessing. Click any agent row to see the per-script results (PASS/FAIL/duration) from the last run, plus the file paths that failed validation and the reason each one failed." data-help-title="Agents + health">Agents &amp; health</h2><span class="sub">Agent runs, integrations + system health: this is where to look when nothing is posting right now. <a href="/connected-accounts" style="color:var(--ac);font-weight:600">Connected Accounts ↗</a> for OAuth connect + setup steps.</span></div>
+      <div class="section-h"><h2 data-help="The agent + integration health panel. Three live blocks: Campaign OS fleet (cos-* roster from /api/ops/agents with heartbeat + schedule), System (in-process helper functions, data freshness), and Integrations (every external service we talk to: Postiz, Meta Graph, GBP, GA4, etc. last-seen, last-error). Use this to answer 'why is nothing posting right now?' without guessing. Click any fleet row to expand detail and jump to ops." data-help-title="Agents + health">Agents &amp; health</h2><span class="sub">Campaign OS fleet, integrations + system health: this is where to look when nothing is posting right now. <a href="/connected-accounts" style="color:var(--ac);font-weight:600">Connected Accounts ↗</a> for OAuth connect + setup steps.</span></div>
       <div class="grid">
-        <div class="card col-7"><div class="card-h"><h3 data-help="Live roster of every agent lane that ran in the last refresh cycle: copy agent, trend catcher, reddit scraper, gbp scraper, audit agent. Each row shows the lane name, last run time, status (ok / failed / queued), and a 1-line why-now. Click a row to open the lane detail page with full output and retry controls." data-help-title="Agent runs">🤖 Agent runs</h3></div><div id="agents-list"></div></div>
+        <div class="card col-7"><div class="card-h"><h3 data-help="Live cos-* roster from the ops agent registry: cos-foreman, cos-scout, cos-reactive, cos-interpreter, cos-triage, pi-score. Each row shows id, kind, layer, schedule, enabled state, last_status (OK/LATE/FAILED/NEVER), heartbeat age, last action, last writes, and skill. Click a row to expand detail and open the agent in ops." data-help-title="Campaign OS fleet">🤖 Campaign OS fleet</h3></div><div id="agents-list"></div></div>
         <div class="card col-5"><div class="card-h"><h3 data-help="Site-wide health snapshot: overall status (green / amber / red), confidence score (how fresh the data is), and the per-integration row beneath. Generated timestamp tells you when the snapshot was taken. If the status is amber or red, scan the Integrations card below for the failing connector." data-help-title="System health">🩺 System health</h3></div><div id="agents-health"></div></div>
         <div class="card col-12"><div class="card-h"><h3 data-help="Status of every external integration: Postiz for publishing, GA4 for traffic, Meta for social, YouTube for trends, Reddit for outreach, GBP for local. Each row shows last successful call, latency, and any auth or quota warning. A red row here means downstream features on that integration will silently fail." data-help-title="Integrations">🔌 Integrations</h3></div><div id="agents-int"></div></div>
         <div class="card col-12"><div class="card-h"><h3 data-help="Per-file age check of every JSON in the workspace's data/ directory. Files older than 14 days show in 'stale'. Files 3x older (42d+) show in 'rotten'. Catches the silent-decay pattern (e.g. competitor tracker going 20d stale without anyone noticing). If a feed shows up as rotten here, treat any recommendation built on it as unreliable until it refreshes. It sits on this page with the other fleet and ops checks so the home brief stays focused on the marketing recommendation." data-help-title="Data freshness">🧊 Data freshness</h3><span class="muted" id="freshness-summary-agents" style="font-size:12px">—</span></div><div id="freshness-body-agents"></div></div>
@@ -14863,16 +14865,17 @@ document.addEventListener('click', e => {
 
 // ─── AGENTS ─────────────────────────────────────────────────────
 async function renderAgents(){
-  if(!S.agents) S.agents = await API.get('/api/intel/agents');
+  if(!S.agents || !S.cosFleet){
+    const [intel, ops] = await Promise.all([
+      S.agents ? Promise.resolve(S.agents) : API.get('/api/intel/agents'),
+      S.cosFleet ? Promise.resolve(S.cosFleet) : API.get('/api/ops/agents'),
+    ]);
+    if(!S.agents) S.agents = intel;
+    if(!S.cosFleet) S.cosFleet = ops;
+  }
   const a = S.agents;
-  // Render the agent lane roster as readable cards. Each row carries agent_id,
-  // last_run (ISO or null), last_status (PASS|PARTIAL|FAIL), and runs count.
-  // The generic itemHtml() can't title these: agent_id is a short slug, the
-  // other fields are timestamps or short status strings, so it falls back to
-  // JSON.stringify(it).slice(0,80), dumping the raw object as a "title".
-  // agentRunHtml() knows the shape and paints it as: name · status pill ·
-  // last-run age · total runs.
-  $('#agents-list').innerHTML = safeList(a.agents, 24).map(agentRunHtml).join('') || '<div class="empty">No agent runs</div>';
+  const fleet = safeList(S.cosFleet?.agents, 24);
+  $('#agents-list').innerHTML = fleet.map(cosAgentHtml).join('') || '<div class="empty">No agents in roster</div>';
   const h = a.system_health || {};
   // System health used to dump h.data_status (a plain string like "STALE")
   // via pretty() into a <pre> JSON block — wrong format, wrong affordance.
@@ -14881,6 +14884,63 @@ async function renderAgents(){
   // matching the Status / Confidence / Generated KV rows above.
   $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + systemHealthHtml(h);
   $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(integrationHealthHtml).filter(Boolean).join('') || '<div class="empty">No integration data</div>';
+}
+
+// Human-readable heartbeat age for the Campaign OS fleet card. Mirrors
+// ops-jobs.html ageLabel() so SPA and ops surfaces stay consistent.
+function cosFleetAgeLabel(hours){
+  if(hours == null || hours === '') return 'never';
+  const n = Number(hours);
+  if(Number.isNaN(n)) return '—';
+  if(n < 1) return Math.round(n * 60) + 'm ago';
+  if(n < 48) return n.toFixed(1) + 'h ago';
+  return (n / 24).toFixed(1) + 'd ago';
+}
+
+// Status pill class for cos-* fleet rows. Colours aligned with ops-jobs.html
+// loadAgents() (.chip.OK / .LATE / .FAILED / .NEVER).
+function cosFleetStatusPillClass(status){
+  const s = (status || 'NEVER').toUpperCase();
+  if(s === 'OK') return 'fleet-OK';
+  if(s === 'LATE') return 'fleet-LATE';
+  if(s === 'FAILED' || s === 'STUCK') return 'fleet-FAILED';
+  return 'fleet-NEVER';
+}
+
+// Pretty-print a single cos-* fleet row for the Campaign OS fleet card.
+function cosAgentHtml(a){
+  const id = esc(a.id || 'unknown');
+  const status = (a.last_status || 'NEVER').toUpperCase();
+  const pillCls = cosFleetStatusPillClass(status);
+  const hb = a.last_heartbeat_at;
+  const ageH = hb ? (Date.now() - new Date(hb).getTime()) / 3600000 : null;
+  const hbAge = cosFleetAgeLabel(ageH);
+  const enabled = a.enabled ? 'yes' : 'no';
+  const writes = Array.isArray(a.last_writes) && a.last_writes.length
+    ? a.last_writes.map(w => esc(w)).join(', ')
+    : '—';
+  const opsLink = '/ops?layer=agents&agent=' + encodeURIComponent(a.id || '');
+  const preview = `${esc(a.kind || '—')} · ${esc(a.layer || '—')} · ${esc(a.schedule || '—')} · enabled ${enabled} · heartbeat ${esc(hbAge)} · action ${esc(a.last_action || '—')} · writes ${writes} · skill ${esc(a.skill || '—')}`;
+  const detailInner = [
+    `<div class="li-detail-row"><strong>Kind</strong><span>${esc(a.kind || '—')}</span></div>`,
+    `<div class="li-detail-row"><strong>Layer</strong><span>${esc(a.layer || '—')}</span></div>`,
+    `<div class="li-detail-row"><strong>Schedule</strong><span>${esc(a.schedule || '—')}</span></div>`,
+    `<div class="li-detail-row"><strong>Enabled</strong><span>${enabled}</span></div>`,
+    `<div class="li-detail-row"><strong>Profile</strong><span>${esc(a.profile || '—')}</span></div>`,
+    `<div class="li-detail-row"><strong>Last heartbeat</strong><span>${esc(fmtSast(hb))} (${esc(hbAge)})</span></div>`,
+    `<div class="li-detail-row"><strong>Last action</strong><span>${esc(a.last_action || '—')}</span></div>`,
+    `<div class="li-detail-row"><strong>Last writes</strong><span>${writes}</span></div>`,
+    `<div class="li-detail-row"><strong>Skill</strong><span>${esc(a.skill || '—')}</span></div>`,
+    `<div class="li-detail-row"><strong>Ops</strong><span><a href="${esc(opsLink)}" target="_blank" rel="noopener">Open in ops ↗</a></span></div>`,
+  ].join('');
+  return `<li class="li" onclick="this.classList.toggle('open')">
+    <div class="li-body">
+      <div class="li-title"><span style="font-family:var(--mono);font-size:13px">${id}</span></div>
+      <div class="li-preview">${preview}</div>
+      <div class="li-meta"><span class="pill ${pillCls}">${esc(status)}</span></div>
+    </div>
+    <div class="li-detail">${detailInner}</div>
+  </li>`;
 }
 
 // Pretty-print a single agent run row. Used by the Agent runs card on the

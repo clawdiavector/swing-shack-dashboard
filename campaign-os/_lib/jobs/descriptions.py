@@ -164,6 +164,47 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Writes review-sla.json with breached and unknown_age buckets."
         ),
     },
+    "post_outcomes": {
+        "title": "Post outcomes join",
+        "summary": "Joins IG posts, GA4-derived scores, and publish receipts.",
+        "detail": (
+            "Reads ig-business-analytics.json, post-conversion-score.json, and sandbox receipts. "
+            "Writes post-outcomes.json with relative scores and join_basis. No live API calls."
+        ),
+    },
+    "winner_promotion": {
+        "title": "Winner promotion",
+        "summary": "Promotes top-percentile posts into winning-recipes.json.",
+        "detail": (
+            "Relative ranking — not the absolute 0.65 image-gen threshold. "
+            "Consumes post-outcomes.json; writes winning-recipes.json for L3/L5 bias."
+        ),
+    },
+    "proposal_outcome": {
+        "title": "Proposal outcome gate",
+        "summary": "Tracks L3 proposal approve/reject rate for interpreter quality.",
+        "detail": (
+            "Reads proposals/pending.jsonl. Writes proposal-outcomes.json with a tri-state gate "
+            "(pass / fail / insufficient_data). Never auto-publishes."
+        ),
+    },
+    "human_edit_signal": {
+        "title": "Human edit signal",
+        "summary": "Aggregates L4 human-edits.jsonl into human-edit-summary.json.",
+        "detail": (
+            "Normalises edit vs approve vs reject rows from the unified inbox. "
+            "Feeds winner_promotion and the Learn ops tab."
+        ),
+    },
+    "holiday_inject": {
+        "title": "SA public holiday inject",
+        "summary": "Upserts deterministic SA public holidays into each brand calendar.",
+        "detail": (
+            "Computes fixed and Easter-derived SA public holidays for the current and next "
+            "calendar year, then idempotently upserts moment records with "
+            "source_origin=deterministic_calendar via marketing_calendar. No Firecrawl, no keys."
+        ),
+    },
 }
 
 

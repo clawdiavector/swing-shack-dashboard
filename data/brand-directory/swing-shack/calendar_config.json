@@ -1,0 +1,128 @@
+{
+  "brand_id": "swing-shack",
+  "timezone": "Africa/Johannesburg",
+  "pillars": [
+    {
+      "pillar_id": "ss-fitting",
+      "name": "Fitting",
+      "always_active": true,
+      "colour": "#0F766E",
+      "objective": "PENDING CHRISTELLE (K10)",
+      "north_star_metric": "fittings_per_week",
+      "north_star_target": {
+        "daily_volume": null,
+        "operating_days_per_week": null,
+        "monthly_target_zar": null,
+        "currency": "ZAR",
+        "source": "PENDING — Christelle K10",
+        "source_provenance": "placeholder, scope=operating_target, canonical=false"
+      },
+      "cadence": "daily",
+      "priority": "high"
+    },
+    {
+      "pillar_id": "ss-coaching",
+      "name": "Coaching",
+      "always_active": true,
+      "colour": "#F59E0B",
+      "objective": "PENDING CHRISTELLE (K10)",
+      "north_star_metric": "coaching_sessions_per_week",
+      "north_star_target": {
+        "daily_volume": null,
+        "operating_days_per_week": null,
+        "monthly_target_zar": null,
+        "currency": "ZAR",
+        "source": "PENDING — Christelle K10",
+        "source_provenance": "placeholder, scope=operating_target, canonical=false"
+      },
+      "cadence": "daily",
+      "priority": "high"
+    },
+    {
+      "pillar_id": "ss-membership",
+      "name": "Membership",
+      "always_active": true,
+      "colour": "#6366F1",
+      "objective": "PENDING CHRISTELLE (K10)",
+      "north_star_metric": "active_memberships",
+      "north_star_target": {
+        "daily_volume": null,
+        "operating_days_per_week": null,
+        "monthly_target_zar": null,
+        "currency": "ZAR",
+        "source": "PENDING — Christelle K10",
+        "source_provenance": "placeholder, scope=operating_target, canonical=false"
+      },
+      "cadence": "continuous",
+      "priority": "high"
+    }
+  ],
+  "scouting_profile": {
+    "interest_areas": {
+      "trackman_intelligence": [
+        "TrackMan data stories",
+        "indoor golf performance",
+        "launch monitor trends",
+        "Johannesburg indoor golf"
+      ],
+      "fitting_education": [
+        "club fitting",
+        "shaft selection",
+        "grip fitting",
+        "driver fitting"
+      ],
+      "membership_commercial": [
+        "membership offers",
+        "bay packages",
+        "corporate golf events",
+        "gifting periods"
+      ],
+      "retail_commercial": [
+        "Christmas",
+        "Black Friday",
+        "Father's Day",
+        "Mother's Day",
+        "Valentine's Day",
+        "South African public holidays",
+        "school holidays",
+        "payday periods"
+      ]
+    },
+    "weighted_preferences": {
+      "performance_proof": "high relevance — data-driven facility positioning",
+      "south_african_golf": "high relevance for the Swing Shack operating context"
+    }
+  },
+  "lead_time_rules": {
+    "default": {
+      "research_start": 30,
+      "planning_start": 14,
+      "production_deadline": 7,
+      "campaign_live_start": 3
+    },
+    "major_retail": {
+      "research_start": 90,
+      "planning_start": 60,
+      "production_deadline": 21,
+      "campaign_live_start": 14
+    },
+    "major_sporting_event": {
+      "research_start": 60,
+      "planning_start": 30,
+      "production_deadline": 14,
+      "campaign_live_start": 7
+    },
+    "reactive_opportunity": {
+      "research_start": 7,
+      "planning_start": 3,
+      "production_deadline": 1,
+      "campaign_live_start": 0
+    }
+  },
+  "calendar_preferences": {
+    "month_view": true,
+    "default_horizon_days": 120,
+    "show_north_star_top_of_calendar": true,
+    "watchlist_visible_by_default": true
+  }
+}

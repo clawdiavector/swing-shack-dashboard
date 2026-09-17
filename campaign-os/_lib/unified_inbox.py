@@ -135,6 +135,7 @@ def record_human_edit(
     editor: str,
     fields: dict[str, Any],
     note: str = "",
+    previous: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Append a human_edit_signal row for L7."""
     row = {
@@ -147,8 +148,37 @@ def record_human_edit(
         "fields": fields,
         "note": note,
     }
+    if previous:
+        row["previous"] = previous
     _append_jsonl(_human_edits_path(), row)
     return row
+
+
+def _current_field_values(
+    item_type: str,
+    key: str,
+    field_names: list[str] | Any,
+) -> dict[str, Any]:
+    """Capture current field values before an edit overwrites them."""
+    names = list(field_names)
+    previous: dict[str, Any] = {}
+    if item_type == "draft_asset" and names:
+        try:
+            campaign_id, asset_id = key.split(":", 1)
+        except ValueError:
+            return previous
+        data = _load_campaign_data()
+        asset = ((data.get("campaigns") or {}).get(campaign_id) or {}).get("assets", {}).get(asset_id)
+        if not isinstance(asset, dict):
+            return previous
+        for name in names:
+            if name == "caption" and "caption" in asset:
+                previous["caption"] = asset.get("caption")
+            elif name == "title" and "name" in asset:
+                previous["title"] = asset.get("name")
+            elif name in asset:
+                previous[name] = asset.get(name)
+    return previous
 
 
 def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
@@ -390,6 +420,35 @@ def inbox_counts(*, review_sla: dict[str, Any] | None = None) -> dict[str, Any]:
     }
 
 
+def _l5_enqueue_enabled() -> bool:
+    raw = (os.environ.get("CAMPAIGN_OS_L5_ENQUEUE") or "").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> None:
+    """Enqueue a draft_caption row after L4 approve (flag-gated; never fails approve)."""
+    if not _l5_enqueue_enabled():
+        return
+    if item_type not in ("proposal", "calendar_candidate"):
+        return
+    try:
+        from _lib import ops_agents  # noqa: PLC0415
+
+        reason = item_type.replace("_", "-")[:32]
+        row = ops_agents.normalise_enqueue(
+            {
+                "agent": "cos-caption",
+                "brand": brand_id,
+                "reason": reason,
+                "action": "draft_caption",
+                "payload_ref": f"inbox/{item_id}",
+            }
+        )
+        ops_agents.append_enqueue_row(_data_dir(), row)
+    except Exception:
+        pass
+
+
 def find_item(item_id: str) -> Optional[dict[str, Any]]:
     item_type, _key = _parse_item_id(item_id)
     payload = list_items(status="all", item_type=item_type)
@@ -429,6 +488,7 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             "item_type": item_type,
             "brand_id": brand_id,
         })
+        _maybe_enqueue_l5_create(item_id, brand_id, item_type)
         return {"ok": True, "item_id": item_id, "record": updated}
 
     if item_type == "proposal":
@@ -457,6 +517,7 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             "item_type": item_type,
             "brand_id": brand_id,
         })
+        _maybe_enqueue_l5_create(item_id, brand_id, item_type)
         return {"ok": True, "item_id": item_id}
 
     if item_type == "draft_asset":
@@ -527,6 +588,15 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
             fields={"new_status": "ignored", "calendar_id": cal_id},
             note=reason,
         )
+        _append_jsonl(_human_edits_path(), {
+            "schema": HUMAN_EDIT_SCHEMA,
+            "ts": _utc_now_iso(),
+            "action": "reject",
+            "editor": editor,
+            "inbox_item_id": item_id,
+            "item_type": item_type,
+            "brand_id": brand_id,
+        })
         return {"ok": True, "item_id": item_id, "record": updated}
 
     if item_type == "proposal":
@@ -548,6 +618,15 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
             "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
             encoding="utf-8",
         )
+        _append_jsonl(_human_edits_path(), {
+            "schema": HUMAN_EDIT_SCHEMA,
+            "ts": _utc_now_iso(),
+            "action": "reject",
+            "editor": editor,
+            "inbox_item_id": item_id,
+            "item_type": item_type,
+            "brand_id": brand_id,
+        })
         return {"ok": True, "item_id": item_id}
 
     if item_type == "draft_asset":
@@ -566,6 +645,16 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
         asset["reviewTs"] = now
         campaign["updatedAt"] = now
         _write_campaign_data(data)
+        brand_id = str(item.get("brand_id") or "")
+        _append_jsonl(_human_edits_path(), {
+            "schema": HUMAN_EDIT_SCHEMA,
+            "ts": now,
+            "action": "reject",
+            "editor": editor,
+            "inbox_item_id": item_id,
+            "item_type": item_type,
+            "brand_id": brand_id,
+        })
         return {"ok": True, "item_id": item_id, "asset_id": asset_id}
 
     if item_type == "publish_request":
@@ -584,6 +673,15 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
         if not found:
             return {"ok": False, "error": "publish request not found"}
         publish_sandbox._rewrite_jsonl(queue_path, rows)  # noqa: SLF001
+        _append_jsonl(_human_edits_path(), {
+            "schema": HUMAN_EDIT_SCHEMA,
+            "ts": _utc_now_iso(),
+            "action": "reject",
+            "editor": editor,
+            "inbox_item_id": item_id,
+            "item_type": item_type,
+            "brand_id": str(item.get("brand_id") or ""),
+        })
         return {"ok": True, "item_id": item_id}
 
     return {"ok": False, "error": "unsupported item type"}
@@ -601,6 +699,7 @@ def edit_item(
     item_type, key = _parse_item_id(item_id)
     fields = dict(fields or {})
     brand_id = str(item.get("brand_id") or fields.get("brand_id") or "")
+    previous = _current_field_values(item_type, key, list(fields.keys()))
 
     record_human_edit(
         inbox_item_id=item_id,
@@ -608,6 +707,7 @@ def edit_item(
         brand_id=brand_id,
         editor=editor,
         fields=fields,
+        previous=previous or None,
     )
 
     if item_type == "draft_asset" and ("caption" in fields or "title" in fields):
