@@ -82,6 +82,15 @@ PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', 
 # Public route prefixes — anyone can hit these
 PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report')
 
+# Dual-auth (bearer COS_JOB_TOKEN OR session). Exact paths only — widening this
+# to a prefix would silently open sibling /api/ops/* routes to bearer callers.
+DUAL_AUTH_PATHS = frozenset({
+    '/api/ops/layers',
+    '/api/ops/agents',
+    '/api/ops/agents/heartbeat',
+    '/api/ops/agents/enqueue',
+})
+
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
 # means the route itself enforces the share-token gate (which is
@@ -160,7 +169,7 @@ def _gate():
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
     # Dual-auth paths: bearer OR session (t15); session-only elsewhere
-    if path.startswith('/api/jobs') or path.startswith('/api/freshness') or path == '/api/ops/layers':
+    if path.startswith('/api/jobs') or path.startswith('/api/freshness') or path in DUAL_AUTH_PATHS:
         if _is_job_authed():
             return None
     elif _is_authed():
@@ -16363,13 +16372,91 @@ def ops_layers():
         queue_path = os.path.join(_data_paths()['data_dir'], 'agent-queue.json')
         if os.path.exists(queue_path):
             queue_payload = _read_json_file(queue_path)
+        agents_roster = None
+        try:
+            from pathlib import Path
+
+            from _lib import ops_agents as _ops_agents_mod
+
+            roster_dir = Path(_data_paths()['data_dir']) / _ops_agents_mod.ROSTER_SUBDIR
+            agents_roster = _ops_agents_mod.read_roster(roster_dir)
+        except Exception:
+            _app_log.exception("ops_layers roster read failed; L3 stub fallback")
         return jsonify(_ops_layers_mod.build_layers(
             jobs_status,
             freshness=freshness_payload,
             queue=queue_payload,
+            agents=agents_roster,
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agents', methods=['GET'])
+def ops_agents_list():
+    """GET /api/ops/agents — L3 Mac fleet roster. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        roster_dir = Path(_data_paths()['data_dir']) / _ops_agents_mod.ROSTER_SUBDIR
+        return jsonify(_ops_agents_mod.build_agents_payload(roster_dir)), 200
+    except Exception as e:
+        _app_log.exception("ops_agents_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agents/heartbeat', methods=['POST'])
+def ops_agents_heartbeat():
+    """POST /api/ops/agents/heartbeat — Mac agent heartbeat. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        body = request.get_json(silent=True) or {}
+        hb = _ops_agents_mod.normalise_heartbeat(body)
+        roster_dir = Path(_data_paths()['data_dir']) / _ops_agents_mod.ROSTER_SUBDIR
+        _ops_agents_mod.write_heartbeat(roster_dir, hb)
+        _app_log.info("ops_agents heartbeat id=%s", hb.get("id"))
+        return jsonify({
+            "ok": True,
+            "id": hb.get("id"),
+            "received_at": hb.get("received_at"),
+        }), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_agents_heartbeat failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agents/enqueue', methods=['POST'])
+def ops_agents_enqueue():
+    """POST /api/ops/agents/enqueue — append manual row to agent-queue.json."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        body = request.get_json(silent=True) or {}
+        row = _ops_agents_mod.normalise_enqueue(body)
+        data_dir = Path(_data_paths()['data_dir'])
+        row_id, pending = _ops_agents_mod.append_enqueue_row(data_dir, row)
+        _app_log.info("ops_agents enqueue id=%s agent=%s", row_id, row.get("agent"))
+        return jsonify({"ok": True, "id": row_id, "rows": pending}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_agents_enqueue failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

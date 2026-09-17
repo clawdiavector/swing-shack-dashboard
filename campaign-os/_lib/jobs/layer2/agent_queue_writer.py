@@ -112,7 +112,11 @@ def _merge_rows(
     preserved = [
         _validate_row(row)
         for row in existing
-        if isinstance(row, dict) and row.get("status") != "pending"
+        if isinstance(row, dict)
+        and (
+            row.get("status") != "pending"
+            or str(row.get("id", "")).startswith("manual-")
+        )
     ]
     preserved_ids = {row["id"] for row in preserved}
     merged = list(preserved)
