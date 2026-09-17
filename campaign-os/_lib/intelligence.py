@@ -126,9 +126,9 @@ def get_request_brand():
 # we want STRICT brand ownership — if the active brand is takomo, only
 # campaigns in brands.takomo.campaign_ids should appear.
 def _load_brands_registry() -> Dict[str, Any]:
-    """Read data/brands.json and return the parsed dict, or empty on error."""
+    """Read brands.json (runtime DATA_DIR first, then bundled data/)."""
     try:
-        path = os.path.join(DATA_DIR, "brands.json")
+        path = _runtime_data_file("brands.json")
         if os.path.isfile(path):
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f) or {}

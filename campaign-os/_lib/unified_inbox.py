@@ -390,6 +390,35 @@ def inbox_counts(*, review_sla: dict[str, Any] | None = None) -> dict[str, Any]:
     }
 
 
+def _l5_enqueue_enabled() -> bool:
+    raw = (os.environ.get("CAMPAIGN_OS_L5_ENQUEUE") or "").strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
+def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> None:
+    """Enqueue a draft_caption row after L4 approve (flag-gated; never fails approve)."""
+    if not _l5_enqueue_enabled():
+        return
+    if item_type not in ("proposal", "calendar_candidate"):
+        return
+    try:
+        from _lib import ops_agents  # noqa: PLC0415
+
+        reason = item_type.replace("_", "-")[:32]
+        row = ops_agents.normalise_enqueue(
+            {
+                "agent": "cos-caption",
+                "brand": brand_id,
+                "reason": reason,
+                "action": "draft_caption",
+                "payload_ref": f"inbox/{item_id}",
+            }
+        )
+        ops_agents.append_enqueue_row(_data_dir(), row)
+    except Exception:
+        pass
+
+
 def find_item(item_id: str) -> Optional[dict[str, Any]]:
     item_type, _key = _parse_item_id(item_id)
     payload = list_items(status="all", item_type=item_type)
@@ -429,6 +458,7 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             "item_type": item_type,
             "brand_id": brand_id,
         })
+        _maybe_enqueue_l5_create(item_id, brand_id, item_type)
         return {"ok": True, "item_id": item_id, "record": updated}
 
     if item_type == "proposal":
@@ -457,6 +487,7 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             "item_type": item_type,
             "brand_id": brand_id,
         })
+        _maybe_enqueue_l5_create(item_id, brand_id, item_type)
         return {"ok": True, "item_id": item_id}
 
     if item_type == "draft_asset":

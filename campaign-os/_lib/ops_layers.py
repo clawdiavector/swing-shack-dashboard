@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 VERDICT_RANK = {"OK": 0, "LATE": 1, "STUCK": 2, "FAILED": 3, "NEVER": 4}
@@ -36,6 +39,92 @@ def count_verdicts(jobs: list[dict]) -> dict[str, int]:
         else:
             counts["never"] += 1
     return counts
+
+
+def _data_dir() -> Path:
+    return Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
+
+
+def _parse_iso(value: str | None) -> datetime | None:
+    if not value or not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def load_create_stats() -> dict[str, Any]:
+    """Roll up L5 Create tab metrics from $DATA_DIR draft sidecars."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    drafts_today = 0
+    last_draft_at: str | None = None
+    qc_failed = 0
+
+    draft_dir = _data_dir() / "draft-assets"
+    if draft_dir.is_dir():
+        for path in draft_dir.glob("*.json"):
+            try:
+                sidecar = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(sidecar, dict):
+                continue
+            created = str(sidecar.get("created_at") or "")
+            if created.startswith(today):
+                drafts_today += 1
+            if created and (last_draft_at is None or created > last_draft_at):
+                last_draft_at = created
+
+    qc_path = _data_dir() / "asset-qc.json"
+    if qc_path.is_file():
+        try:
+            qc_doc = json.loads(qc_path.read_text(encoding="utf-8"))
+            if isinstance(qc_doc, dict):
+                qc_failed = int(qc_doc.get("failed") or 0)
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    spent_usd = 0.0
+    cap_usd = 5.0
+    at_cap = False
+    near_cap = False
+    try:
+        from _lib import llm_spend  # noqa: PLC0415
+
+        spend = llm_spend.status()
+        spent_usd = float(spend.get("spent_usd") or 0)
+        cap_usd = float(spend.get("cap_usd") or 5)
+        at_cap = bool(spend.get("at_cap"))
+        near_cap = bool(spend.get("near_cap"))
+    except Exception:
+        pass
+
+    verdict = "NEVER"
+    if at_cap or qc_failed > 0:
+        verdict = "LATE"
+    elif drafts_today > 0:
+        verdict = "OK"
+
+    return {
+        "drafts_today": drafts_today,
+        "last_draft_at": last_draft_at,
+        "qc_failed": qc_failed,
+        "spent_usd": spent_usd,
+        "cap_usd": cap_usd,
+        "at_cap": at_cap,
+        "near_cap": near_cap,
+        "verdict": verdict,
+        "inbox_href": "/?page=review",
+    }
 
 
 def queue_depth(queue: Optional[dict | list]) -> int:
@@ -95,8 +184,10 @@ def build_layers(
     l4_approved_today = int(l4_counts.get("approved_today") or 0)
     l4_verdict = str(l4_counts.get("verdict") or "NEVER")
 
+    create_stats = load_create_stats()
+    l5_verdict = str(create_stats.get("verdict") or "NEVER")
+
     stub_layers = [
-        ("L5", "Create", "create", "L5 not built — caption/image/GBP drafts after approve."),
         ("L6", "Publish", "publish", "L6 sandbox — publish_dispatch writes receipts; PUBLISH_MODE=live is Kyle gate."),
         ("L7", "Learn", "learn", "L7 not built — outcomes feed recipes for L3/L5."),
     ]
@@ -184,6 +275,20 @@ def build_layers(
         "stale": l4_stale,
         "approved_today": l4_approved_today,
         "inbox_href": "/?page=review",
+    }
+
+    layers["L5"] = {
+        "label": "Create",
+        "verdict": l5_verdict,
+        "href": "/ops?layer=create",
+        "drafts_today": create_stats.get("drafts_today", 0),
+        "last_draft_at": create_stats.get("last_draft_at"),
+        "qc_failed": create_stats.get("qc_failed", 0),
+        "spent_usd": create_stats.get("spent_usd", 0),
+        "cap_usd": create_stats.get("cap_usd", 5),
+        "at_cap": create_stats.get("at_cap", False),
+        "near_cap": create_stats.get("near_cap", False),
+        "inbox_href": create_stats.get("inbox_href", "/?page=review"),
     }
 
     for key, label, slug, note in stub_layers:

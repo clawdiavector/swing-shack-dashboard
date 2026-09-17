@@ -140,8 +140,11 @@ def test_layers_api_schema(job_app):
         assert "verdict" in layer
         assert "href" in layer
         assert layer["verdict"] in valid
-        if key in ("L5", "L7"):
+        if key == "L7":
             assert layer["verdict"] == "NEVER"
+        if key == "L5":
+            assert "drafts_today" in layer
+            assert "spent_usd" in layer
         if key == "L4":
             assert "pending" in layer
             assert "stale" in layer

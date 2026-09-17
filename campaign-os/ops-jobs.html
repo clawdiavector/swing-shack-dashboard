@@ -312,8 +312,19 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     </div>
   </section>
   <section class="summary" id="layer-create" hidden>
-    <h2>Create <span class="chip NEVER">NEVER</span></h2>
-    <p class="stub-note">L5 not built — caption, image, and GBP drafts after approve.</p>
+    <h2>Create <span class="chip" id="create-verdict">—</span></h2>
+    <div class="sub">L5 draft jobs · drafts land in Review inbox · no Postiz or GBP publish</div>
+    <div class="card health-chip" id="create-spend-pill" style="margin-bottom:12px">
+      <span class="chip-title">LLM spend today</span>
+      <span class="chip" id="create-spend-chip">—</span>
+      <span class="chip-detail" id="create-spend-detail">Loading…</span>
+    </div>
+    <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="create-body"></tbody></table>
+    <div class="actions">
+      <a class="btn" href="/?page=review" id="create-open-inbox">Open Review inbox</a>
+      <button class="btn primary" type="button" id="create-run-draft-assets">Run draft_assets</button>
+    </div>
+    <p class="stub-note" id="create-empty-note" hidden>No drafts yet. Approve an item in Review to queue one.</p>
   </section>
   <section class="summary" id="layer-publish" hidden>
     <h2>Publish <span class="chip SANDBOX" id="publish-mode-chip">SANDBOX</span></h2>
@@ -407,6 +418,7 @@ function readLayer() {
   if (layer === 'health') loadHealth();
   if (layer === 'agents') loadAgents();
   if (layer === 'approve') loadApprove();
+  if (layer === 'create') loadCreate();
   if (layer === 'publish') loadPublish();
   return layer;
 }
@@ -498,6 +510,66 @@ async function enqueueAgent(agent, brand) {
   }
   toast('Enqueued ' + agent + ' · ' + (r.data.rows ?? 0) + ' pending');
   await loadAgents();
+}
+
+async function loadCreate() {
+  const verdictChip = $('create-verdict');
+  const body = $('create-body');
+  const emptyNote = $('create-empty-note');
+  const spendChip = $('create-spend-chip');
+  const spendDetail = $('create-spend-detail');
+  if (body) body.innerHTML = '<tr><td colspan="2">Loading…</td></tr>';
+
+  const spendR = await api('/api/ops/llm-spend');
+  if (spendR.ok && spendR.data && spendR.data.spent_usd != null) {
+    const s = spendR.data;
+    if (spendChip) {
+      spendChip.textContent = '$' + Number(s.spent_usd).toFixed(2) + ' / $' + Number(s.cap_usd).toFixed(0);
+      spendChip.className = 'chip' + (s.at_cap ? ' cap' : (s.near_cap ? ' near' : ''));
+    }
+    if (spendDetail) {
+      spendDetail.textContent = s.at_cap ? 'Daily cap reached. Create jobs skip until tomorrow.'
+        : (s.near_cap ? 'Approaching daily cap.' : 'Remaining $' + Number(s.remaining_usd).toFixed(2));
+    }
+  } else if (spendDetail) {
+    spendDetail.textContent = 'Spend data unavailable.';
+  }
+
+  const layersR = await api('/api/ops/layers');
+  if (!layersR.ok || !layersR.data || !layersR.data.layers) {
+    if (body) body.innerHTML = '<tr><td colspan="2">Could not load create counts.</td></tr>';
+    setChip(verdictChip, 'NEVER');
+    return;
+  }
+  const l5 = layersR.data.layers.L5 || {};
+  setChip(verdictChip, l5.verdict || 'NEVER');
+  const rows = [
+    ['Drafts today', l5.drafts_today ?? '—'],
+    ['Last draft at', l5.last_draft_at || '—'],
+    ['QC failed', l5.qc_failed ?? '—'],
+  ];
+  if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
+  if (emptyNote) {
+    emptyNote.hidden = (Number(l5.drafts_today) || 0) > 0;
+  }
+}
+
+async function runDraftAssets() {
+  const btn = $('create-run-draft-assets');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/jobs/run/draft_assets?reason=manual', { method: 'POST', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'run failed');
+    const n = (j.result && j.result.drafted) != null ? j.result.drafted : j.drafted;
+    toast('draft_assets: drafted ' + (n ?? 0));
+    await loadCreate();
+    await loadSpend();
+  } catch (e) {
+    toast(String(e.message || e), true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function loadPublish() {
@@ -1202,10 +1274,13 @@ document.querySelectorAll('[data-ops-layer]').forEach((link) => {
 
   const pubBtn = $('publish-run-dispatch');
   if (pubBtn) pubBtn.addEventListener('click', runPublishDispatch);
+  const createBtn = $('create-run-draft-assets');
+  if (createBtn) createBtn.addEventListener('click', runDraftAssets);
 
   const loads = [loadSpend()];
   if (layer === 'jobs') loads.push(loadJobs());
   if (layer === 'approve') loads.push(loadApprove());
+  if (layer === 'create') loads.push(loadCreate());
   if (layer === 'publish') loads.push(loadPublish());
   await Promise.all(loads);
   const job = params.get('job');
