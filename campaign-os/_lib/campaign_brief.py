@@ -114,11 +114,25 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _briefs_data_dir() -> str:
+    """V1.1 §8: durable Brief storage path.
+
+    Per brief §8: durable source = Campaign OS state, NOT /tmp.
+    We write to <DATA_DIR>/briefs/ which is volume-mounted
+    + persistent across deploys.
+
+    In production, DATA_DIR=/data/campaign-os so briefs
+    land at /data/campaign-os/briefs/<brand>/<brief_id>.json
+    """
+    base = DATA_DIR_DEFAULT
+    out = os.path.join(base, "briefs")
+    return out
+
+
 def _briefs_dir(brand_id: str) -> str:
     if brand_id not in ALLOWED_BRAND_IDS:
         raise ValueError(f"unknown brand_id: {brand_id}")
-    base = _repo_root()
-    return os.path.join(base, "briefs", brand_id)
+    return os.path.join(_briefs_data_dir(), brand_id)
 
 
 def _brief_path(brand_id: str, brief_id: str) -> str:
@@ -142,8 +156,7 @@ def _write_brief(brief: dict) -> None:
 
 
 def _revision_path(brand_id: str, brief_id: str, rev: int) -> str:
-    base = _repo_root()
-    return os.path.join(base, "briefs", brand_id, brief_id,
+    return os.path.join(_briefs_dir(brand_id), brief_id,
                        "revisions", f"rev-{rev:04d}.json")
 
 
