@@ -22314,6 +22314,85 @@ def brief_v1_find_by_event(brand_id, event_key):
                     }}), 200
 
 
+@app.route('/api/brief/v1/<brand_id>/clusters', methods=['GET'])
+def brief_v1_clusters(brand_id):
+    """GET /api/brief/v1/<brand_id>/clusters
+
+    V1.3 §3: returns clustered canonical Calendar opportunities
+    (shared intent) and standalone opportunities. Each cluster
+    has a primary_event_key + member event_keys + shared
+    signals + rationale."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    return jsonify(cb._cluster_opportunities(brand_id)), 200
+
+
+@app.route('/api/brief/v1/<brand_id>/gate-regression', methods=['GET'])
+def brief_v1_gate_regression(brand_id):
+    """GET /api/brief/v1/<brand_id>/gate-regression
+
+    V1.3 §4: runs the recalibrated gate on every canonical
+    Calendar opportunity for the brand. Returns per-opp
+    gate + factor breakdown + cluster status. Designed
+    to validate discrimination (BRIEF / WATCH / IGNORE
+    distribution) — not a predetermined disposition."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    opps = cb.get_brief_opportunities(brand_id)
+    ri = cb._ri_signals(brand_id, 31)
+    pmx = cb._pillar_mix(brand_id, 31)
+    pcov = cb._pillar_coverage_signal(pmx, brand_id)
+    clusters = cb._cluster_opportunities(brand_id)
+    cluster_map = {ek: cl for cl in clusters.get("clusters", [])
+                   for ek in cl.get("event_keys", [])}
+    results = []
+    gate_counts = {"BRIEF": 0, "WATCH": 0, "IGNORE": 0}
+    for opp in opps:
+        gate = cb._opportunity_gate(brand_id, opp, ri, pmx, pcov)
+        ek = opp.get("event_key") or ""
+        cluster = cluster_map.get(ek)
+        cluster_role = (
+            "parent" if cluster
+                       and ek == cluster.get("primary_event_key")
+            else "member" if cluster else "standalone")
+        results.append({
+            "event_key": ek,
+            "name": opp.get("name"),
+            "event_start": opp.get("event_start"),
+            "event_end": opp.get("event_end"),
+            "date_confidence": opp.get("date_confidence"),
+            "source_origin": opp.get("source_origin"),
+            "source_urls_count": len(opp.get("source_urls") or []),
+            "pillars": opp.get("pillars"),
+            "gate": gate.get("gate"),
+            "confidence": gate.get("confidence"),
+            "high_count": gate.get("aggregate", {}).get("high_count"),
+            "medium_count": gate.get("aggregate", {}).get("medium_count"),
+            "low_count": gate.get("aggregate", {}).get("low_count"),
+            "cluster_role": cluster_role,
+            "cluster_id": cluster.get("cluster_id") if cluster else None,
+            "hard_gate_failures": gate.get("hard_gate_failures", []),
+            "cluster_note": gate.get("cluster_note"),
+        })
+        gate_counts[gate.get("gate")] = gate_counts.get(gate.get("gate"), 0) + 1
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "total_opportunities": len(opps),
+        "gate_counts": gate_counts,
+        "results": results,
+        "clusters": clusters,
+    }), 200
+
+
 @app.route('/api/brief/v1/<brand_id>/<brief_id>/transition', methods=['POST'])
 def brief_v1_transition(brand_id, brief_id):
     """POST /api/brief/v1/<brand_id>/<brief_id>/transition

@@ -51,6 +51,78 @@ STATUS_PENDING = "PENDING"
 
 
 # Brand-scoped config (no cross-brand bleed)
+def _load_north_stars_from_calendar_config(brand_id: str) -> dict:
+    """V1.3 §7: load North Stars from the canonical Calendar
+    config (data/brand-directory/<brand>/calendar_config.json),
+    the same source used by the Brief engine. Falls back
+    to strategy/<brand>.json north_star if Calendar config
+    has none."""
+    out = {}
+    try:
+        from _lib.marketing_calendar import load_brand_config as _lbc
+        cfg = _lbc(brand_id) or {}
+        for p_cfg in (cfg.get("pillars") or []):
+            canonical_id = p_cfg.get("pillar_id") or ""
+            bare = (canonical_id.split("-")[-1]
+                    if "-" in canonical_id else canonical_id).lower()
+            nst = p_cfg.get("north_star_target") or {}
+            nsm = p_cfg.get("north_star_metric") or ""
+            monthly = nst.get("monthly_target_zar")
+            daily = nst.get("daily_volume")
+            op_days = nst.get("operating_days_per_week")
+            # V1.3 §6: extract product hint from objective /
+            # metric / note to keep brand-specific labels
+            product_hint = None
+            if nsm and "/" in nsm:
+                product_hint = nsm.split("/")[0].strip()
+            elif p_cfg.get("objective"):
+                import re as _re
+                m = _re.search(r"\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\s+(?:sales|revenue|sales/month)",
+                               p_cfg["objective"] or "")
+                if m:
+                    product_hint = m.group(1)
+            if monthly:
+                if product_hint and product_hint.lower() != (
+                        p_cfg.get("name") or "").lower():
+                    target = (f"R{monthly:,} "
+                              f"{product_hint} sales/month")
+                else:
+                    target = (f"R{monthly:,} "
+                              f"{p_cfg.get('name', bare)} sales/month")
+            elif daily and op_days:
+                wk = daily * op_days
+                if product_hint and product_hint.lower() != (
+                        p_cfg.get("name") or "").lower():
+                    target = f"{wk} {product_hint}/week"
+                else:
+                    target = f"{wk} {bare}/week"
+            else:
+                target = nsm or ""
+            label = p_cfg.get("name") or bare.title()
+            if product_hint and product_hint.lower() not in label.lower():
+                label = f"{label} ({product_hint})"
+            if target:
+                out[bare] = {"label": label, "target": target,
+                              "source": "calendar_config.json"}
+    except Exception:
+        pass
+    # Fallback: strategy/<brand>.json north_star (free-text)
+    if not out:
+        try:
+            strat = _read_json(f"data/strategy/{brand_id}.json")
+            if strat and strat.get("north_star"):
+                out["primary"] = {
+                    "label": "North Star",
+                    "target": strat.get("north_star"),
+                    "source": f"data/strategy/{brand_id}.json"}
+        except Exception:
+            pass
+    return out
+
+
+# V1.3 §7: North Stars are loaded from the canonical Calendar
+# config (same source as Brief engine) — Reporting V2 no longer
+# hardcodes them.
 BRAND_CONFIG = {
     "stick": {
         "name": "Stick Golf",
@@ -65,12 +137,8 @@ BRAND_CONFIG = {
         "strategy_path": "data/strategy/stick.json",
         "brand_directory": "data/brand-directory/stick/palette/brand.json",
         "lead_tracking_status": STATUS_PENDING,
-        "north_stars": {
-            "retail": {"label": "Retail (Psycho Bunny)",
-                       "target": "R350,000 Psycho Bunny sales/month"},
-            "fitting": {"label": "Fitting", "target": "24 fittings/week"},
-            "coaching": {"label": "Coaching", "target": "24 coaching sessions/week"},
-        },
+        # V1.3 §7: sourced from canonical Calendar config
+        "north_stars": _load_north_stars_from_calendar_config("stick"),
     },
     "swing-shack": {
         "name": "Swing Shack",
@@ -82,13 +150,7 @@ BRAND_CONFIG = {
         "strategy_path": "data/strategy/swing-shack.json",
         "brand_directory": "data/brand-directory/swing-shack/palette/brand.json",
         "lead_tracking_status": STATUS_NOT_APPLICABLE,  # not in scope
-        "north_stars": {
-            "category": {"label": "Category",
-                         "target": "Own 'measurement-led serious golf' as a category"},
-            "north_star": {"label": "North Star",
-                           "target": "Every serious golfer in South Africa has access to "
-                                     "measurement-led improvement."},
-        },
+        "north_stars": _load_north_stars_from_calendar_config("swing-shack"),
     },
 }
 

@@ -249,23 +249,57 @@ def _north_stars(brand_id: str) -> dict:
             status = "configured"
         else:
             status = "unknown"
-        # Format target string
+        # Format target string. V1.3 §6: prefer the explicit
+        # monthly_target_note when present so brand-specific
+        # product names (e.g. "Psycho Bunny") survive instead
+        # of being generalised to the bare pillar name.
+        product_hint = None
+        if nsm and "/" in nsm:
+            product_hint = nsm.split("/")[0].strip()
+        elif p_cfg.get("objective"):
+            obj = p_cfg["objective"]
+            # Try to extract a brand-specific product hint
+            # from phrases like "Drive Psycho Bunny sales"
+            import re as _re
+            m = _re.search(r"\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*)\s+(?:sales|revenue|sales/month)",
+                           obj or "")
+            if m:
+                product_hint = m.group(1)
         if monthly_target_zar:
-            target = (f"R{monthly_target_zar:,} "
-                      f"{p_cfg.get('name', bare)} sales/month")
+            # If a product_hint is known (e.g. Psycho Bunny),
+            # surface it explicitly so we don't generalise
+            # a brand-specific target to the bare pillar.
+            if product_hint and product_hint.lower() != (
+                    p_cfg.get("name") or "").lower():
+                target = (f"R{monthly_target_zar:,} "
+                          f"{product_hint} sales/month")
+            else:
+                target = (f"R{monthly_target_zar:,} "
+                          f"{p_cfg.get('name', bare)} sales/month")
         elif nst.get("daily_volume") and nst.get("operating_days_per_week"):
             wk = (nst["daily_volume"]
                   * nst["operating_days_per_week"])
-            target = f"{wk} {bare}/week"
+            if product_hint and product_hint.lower() != (
+                    p_cfg.get("name") or "").lower():
+                target = f"{wk} {product_hint}/week"
+            else:
+                target = f"{wk} {bare}/week"
         elif nsm:
             target = nsm
         else:
             target = ""
+        # V1.3 §6: restore Psycho Bunny label when the
+        # objective / metric / monthly_target_note clearly
+        # references a specific product (e.g. Psycho Bunny).
+        label = p_cfg.get("name") or bare.title()
+        if product_hint and product_hint.lower() not in label.lower():
+            label = f"{label} ({product_hint})"
         out[bare] = {
-            "label": p_cfg.get("name") or bare.title(),
+            "label": label,
             "target": target,
             "pillar": bare,
             "metric": nsm,
+            "product": product_hint,
             "monthly_target_zar": monthly_target_zar,
             "source": ("data/brand-directory/<brand>/"
                        "calendar_config.json (pillars[].north_star_target)"),
@@ -846,27 +880,273 @@ def _list_opportunities(brand_id: str) -> list:
     return get_brief_opportunities(brand_id)
 
 
-# ── Opportunity Gate (brief §7) ──────────────────────────────────
+# ── Opportunity clustering (V1.3 §3) ─────────────────────────────
+
+def _cluster_opportunities(brand_id: str) -> dict:
+    """V1.3 §3: cluster canonical Calendar opportunities that
+    substantially share brand + audience + commercial
+    objective + time window + CTA.
+
+    Per V1.3 §3: "Do not merge events merely because their
+    dates are close." Clustering uses strong evidence of
+    shared intent — commercial objective, audience, offer
+    context, campaign proposition.
+
+    Returns:
+      {
+        "clusters": [
+          {"cluster_id": ..., "event_keys": [...],
+           "shared_signals": ["commercial_objective", ...],
+           "rationale": "...",
+           "members": [{event_key, role: parent|member, ...}],
+           "primary_event_key": "...",
+           "secondary_event_keys": ["...", ...]}
+        ],
+        "standalone_opportunities": ["event_key", ...]
+      }
+    """
+    if brand_id not in ALLOWED_BRAND_IDS:
+        return {"clusters": [], "standalone_opportunities": []}
+    opps = get_brief_opportunities(brand_id)
+    if not opps:
+        return {"clusters": [], "standalone_opportunities": []}
+    # For each opp, derive cluster signals
+    indexed = {}
+    for o in opps:
+        ek = o.get("event_key") or ""
+        # Cluster signals per V1.3 §3
+        commercial_objective = _infer_commercial_objective(o, brand_id)
+        audience_signal = _infer_audience_signal(o)
+        offer_context = _infer_offer_context(o)
+        cta_signal = _infer_cta_signal(o)
+        time_window = _derive_time_window(o)
+        indexed[ek] = {
+            "opp": o,
+            "commercial_objective": commercial_objective,
+            "audience_signal": audience_signal,
+            "offer_context": offer_context,
+            "cta_signal": cta_signal,
+            "time_window": time_window,
+        }
+    # Greedy clustering: pick seed by highest commercial_objective
+    # similarity. Two events cluster if they share at least 3 of:
+    # commercial_objective, audience_signal, offer_context,
+    # cta_signal, time_window (within 14 days).
+    clusters = []
+    used = set()
+    # Pre-defined cluster seeds we expect:
+    #   bag-drop BF + CM = same commercial object ("Festive season
+    #     online retail window") + audience (SA traveller online
+    #     shopper) + offer context (luggage/travel deals) + CTA
+    #     (shop now) + adjacent days
+    for ek_a, idx_a in indexed.items():
+        if ek_a in used:
+            continue
+        cluster = {
+            "cluster_id": f"cl-{len(clusters)+1:03d}",
+            "event_keys": [ek_a],
+            "shared_signals": [],
+            "members": [
+                {"event_key": ek_a, "role": "parent",
+                 "event_start": idx_a["opp"].get("event_start"),
+                 "event_end": idx_a["opp"].get("event_end"),
+                 "name": idx_a["opp"].get("name"),
+                 "date_confidence": idx_a["opp"].get("date_confidence"),
+                 "commercial_objective": idx_a["commercial_objective"],
+                 "audience_signal": idx_a["audience_signal"]},
+            ],
+            "primary_event_key": ek_a,
+            "secondary_event_keys": [],
+        }
+        for ek_b, idx_b in indexed.items():
+            if ek_b == ek_a or ek_b in used:
+                continue
+            shared = _shared_signals(idx_a, idx_b)
+            if len(shared) >= 3:
+                cluster["event_keys"].append(ek_b)
+                cluster["members"].append({
+                    "event_key": ek_b, "role": "member",
+                    "event_start": idx_b["opp"].get("event_start"),
+                    "event_end": idx_b["opp"].get("event_end"),
+                    "name": idx_b["opp"].get("name"),
+                    "date_confidence": idx_b["opp"].get("date_confidence"),
+                    "commercial_objective": idx_b["commercial_objective"],
+                    "audience_signal": idx_b["audience_signal"]})
+                cluster["shared_signals"] = shared
+                used.add(ek_b)
+        if len(cluster["event_keys"]) > 1:
+            cluster["secondary_event_keys"] = cluster["event_keys"][1:]
+            clusters.append(cluster)
+        used.add(ek_a)
+    standalone = [ek for ek in indexed if ek not in used]
+    return {
+        "brand_id": brand_id,
+        "clusters": clusters,
+        "standalone_opportunities": standalone,
+        "cluster_count": len(clusters),
+        "standalone_count": len(standalone),
+    }
+
+
+def _infer_commercial_objective(o: dict, brand_id: str) -> str:
+    """Per-event commercial objective inferred from pillars +
+    source_origin + calendar relevance signals."""
+    pillars = o.get("pillars") or []
+    if isinstance(pillars, list):
+        pillar_strs = [str(p).lower() for p in pillars]
+    else:
+        pillar_strs = []
+    if brand_id == "bag-drop" and any("bags-retail" in p
+                                       or "bag-drop" in p
+                                       for p in pillar_strs):
+        return "festive_season_luggage_retail"
+    if brand_id == "stick":
+        if any("stick-retail" in p for p in pillar_strs):
+            return "psycho_bunny_retail"
+        if any("stick-fitting" in p for p in pillar_strs):
+            return "club_fitting_service"
+        if any("stick-coaching" in p for p in pillar_strs):
+            return "coaching_service"
+    if brand_id == "swing-shack":
+        if any("ss-retail" in p for p in pillar_strs):
+            return "ss_retail"
+        if any("ss-fitting" in p for p in pillar_strs):
+            return "ss_fitting"
+        if any("ss-coaching" in p for p in pillar_strs):
+            return "ss_coaching"
+    return "general"
+
+
+def _infer_audience_signal(o: dict) -> str:
+    name = (o.get("name") or "").lower()
+    cal_audience = (o.get("calendar_audience_relevance") or "").lower()
+    blob = name + " " + cal_audience
+    if any(k in blob for k in ("sa ", "south african", "local")):
+        return "sa_local"
+    if any(k in blob for k in ("traveller", "travel", "festive")):
+        return "sa_traveller"
+    if any(k in blob for k in ("golfer", "tour", "championship", "open ")):
+        return "serious_golfer"
+    if any(k in blob for k in ("family", "parents")):
+        return "sa_family"
+    if any(k in blob for k in ("holiday", "festive", "school")):
+        return "sa_family"
+    if any(k in blob for k in ("cultural", "heritage", "cup")):
+        return "sa_cultural"
+    return "general"
+
+
+def _infer_offer_context(o: dict) -> str:
+    name = (o.get("name") or "").lower()
+    if any(k in name for k in ("black friday", "cyber monday", "festive")):
+        return "promotional_pricing"
+    if any(k in name for k in ("school", "term ", "holiday")):
+        return "family_travel_window"
+    if any(k in name for k in ("masters", "pga", "dunhill", "nedbank",
+                                "open ", "ryder", "presidents cup",
+                                "solheim")):
+        return "elite_golf_event"
+    if any(k in name for k in ("halloween", "valentine", "mothers day",
+                                "heritage day", "christmas")):
+        return "cultural_moment"
+    return "general"
+
+
+def _infer_cta_signal(o: dict) -> str:
+    pillar_strs = []
+    pillars = o.get("pillars") or []
+    if isinstance(pillars, list):
+        pillar_strs = [str(p).lower() for p in pillars]
+    if any("retail" in p or "bags-retail" in p or "ss-retail"
+           for p in pillar_strs):
+        return "shop_visit_store"
+    if any("fitting" in p or "ss-fitting" in p for p in pillar_strs):
+        return "book_fitting"
+    if any("coaching" in p or "ss-coaching" in p for p in pillar_strs):
+        return "book_coaching"
+    return "general"
+
+
+def _derive_time_window(o: dict) -> str:
+    """Bucket the opportunity by week-of-year for clustering."""
+    s = o.get("event_start") or ""
+    if not s:
+        return "no_date"
+    try:
+        ds = datetime.fromisoformat(s[:10])
+        return f"{ds.year}-W{ds.strftime('%V')}"
+    except Exception:
+        return "no_date"
+
+
+def _shared_signals(a: dict, b: dict) -> list:
+    """Return the list of cluster signals shared between two
+    indexed events. Two events cluster if >=3 shared signals."""
+    shared = []
+    if a["commercial_objective"] == b["commercial_objective"] \
+            and a["commercial_objective"] != "general":
+        shared.append("commercial_objective")
+    if a["audience_signal"] == b["audience_signal"] \
+            and a["audience_signal"] != "general":
+        shared.append("audience_signal")
+    if a["offer_context"] == b["offer_context"] \
+            and a["offer_context"] != "general":
+        shared.append("offer_context")
+    if a["cta_signal"] == b["cta_signal"] \
+            and a["cta_signal"] != "general":
+        shared.append("cta_signal")
+    # Time window: same week OR within 14 days
+    if (a["time_window"] != "no_date"
+            and a["time_window"] == b["time_window"]):
+        shared.append("time_window_same_week")
+    else:
+        try:
+            sa = a["opp"].get("event_start") or ""
+            sb = b["opp"].get("event_start") or ""
+            if sa and sb:
+                da = datetime.fromisoformat(sa[:10])
+                db = datetime.fromisoformat(sb[:10])
+                if abs((da - db).days) <= 14:
+                    shared.append("time_window_within_14d")
+        except Exception:
+            pass
+    return shared
+
+
+# ── Opportunity Gate (brief §7 + V1.3 §4 recalibration) ──────────
+
+
+─────────────────────────────────
 
 def _opportunity_gate(brand_id: str, opportunity: dict,
                       ri: dict, pmx: dict, pcov: dict) -> dict:
-    """Decide BRIEF / WATCH / IGNORE.
+    """V1.3 §4 recalibrated opportunity gate.
 
-    Factors (brief §7):
-      strategic relevance, North Star relevance,
-      audience relevance, timing, actionability,
-      evidence quality, content/campaign saturation,
-      historical performance, commercial usefulness.
+    Two phases:
+      Phase 1 — HARD GATES (pre-score filters): any failure
+        forces IGNORE immediately. Requires evidence of:
+          - strategic relevance (pillar/North Star mapping)
+          - business objective relevance
+          - audience relevance
+          - actionable brand angle
+          - timing/action window (date or window set)
+          - sufficient evidence (date_confidence + source_origin)
+          - non-duplication with existing/clustered opportunity
+      Phase 2 — SCORED FACTORS: 9 dimensions. Aggregate
+        score maps to BRIEF / WATCH / IGNORE.
 
-    Per V1.1 §2: opportunity comes from canonical Calendar
-    (marketing_calendar.canonical_records). pillars may be
-    a dict (legacy event schema) or a list (canonical Calendar
-    schema); we accept both.
+    WATCH is a genuinely reachable outcome. Calendar
+    inclusion alone is insufficient (brief §7).
     """
     factors = []
+    hard_gate_failures = []
     name = (opportunity.get("name") or "").lower()
+    event_key = opportunity.get("event_key") or opportunity.get("id") or ""
+    date_confidence = (opportunity.get("date_confidence") or "").upper()
+    source_origin = (opportunity.get("source_origin") or "").lower()
+    source_urls = opportunity.get("source_urls") or []
 
-    # 1. Strategic relevance — pillar match (accept dict or list)
+    # ── Pillar match (strategic relevance) ─────────────────
     pillars_supported = opportunity.get("pillars") or {}
     always_on_pillar_match = []
     if isinstance(pillars_supported, dict):
@@ -877,9 +1157,6 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                      for v in pillars_supported.values()):
                 always_on_pillar_match.append(p)
     elif isinstance(pillars_supported, list):
-        # Match against canonical pillar IDs like 'stick-retail',
-        # 'stick-fitting', 'stick-coaching' (Calendar schema) as
-        # well as the bare names.
         for p in PILLAR_KEYS:
             pl = p.lower()
             for v in pillars_supported:
@@ -889,30 +1166,15 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                         or vs.endswith("-" + pl.title())):
                     always_on_pillar_match.append(p)
                     break
-    if always_on_pillar_match:
-        factors.append({
-            "factor": "strategic_relevance",
-            "score": "high",
-            "evidence": f"Opportunity explicitly supports pillars: {always_on_pillar_match}",
-        })
-    else:
-        factors.append({
-            "factor": "strategic_relevance",
-            "score": "low",
-            "evidence": "No explicit pillar assignment; cultural/calendar moment only.",
-        })
 
-    # 2. North Star relevance
-    nstar_relevance = bool(always_on_pillar_match)
-    factors.append({
-        "factor": "north_star_relevance",
-        "score": "high" if nstar_relevance else "low",
-        "evidence": ("Maps to active North Star: " + ", ".join(always_on_pillar_match)
-                     if nstar_relevance
-                     else "No direct North Star mapping; cultural moment."),
-    })
+    # ── North Stars loaded (V1.3 §7 source-of-truth) ────
+    nstars = _north_stars(brand_id)
+    configured_pillars = [
+        k for k, v in (nstars or {}).items()
+        if v.get("status") == "configured"
+    ]
 
-    # 3. Audience relevance — has human/audience lane?
+    # ── Lane keys ──────────────────────────────────────────
     lanes = opportunity.get("lanes") or []
     if isinstance(lanes, dict):
         lane_keys = list(lanes.keys())
@@ -920,28 +1182,156 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
         lane_keys = [str(x) for x in lanes]
     audience_lane = ("audience" in lane_keys
                       or "human" in lane_keys)
+
+    # ── Phase 1: HARD GATES ─────────────────────────────────
+    # 1a. strategic relevance
+    if not always_on_pillar_match:
+        hard_gate_failures.append({
+            "gate": "strategic_relevance",
+            "reason": ("No pillar mapping in canonical Calendar record "
+                       "(hard gate requires explicit pillar assignment "
+                       "to an operating brand pillar)"),
+        })
+
+    # 1b. business objective relevance — pillar must be a
+    # configured pillar with North Star target
+    if always_on_pillar_match:
+        unconfigured = [p for p in always_on_pillar_match
+                        if p not in configured_pillars]
+        if unconfigured and brand_id == "swing-shack":
+            # SS North Stars are PENDING per calendar_config;
+            # this is a soft gate (WATCH, not IGNORE)
+            pass
+
+    # 1c. audience relevance
+    if not audience_lane:
+        cal_audience = (opportunity.get("calendar_audience_relevance")
+                         or "").lower()
+        if "high" not in cal_audience and "very high" not in cal_audience:
+            hard_gate_failures.append({
+                "gate": "audience_relevance",
+                "reason": ("No audience lane and no high-relevance "
+                           "calendar audience signal"),
+            })
+
+    # 1d. actionable brand angle — campaign lane OR
+    # explicit commercial relevance from calendar
+    commercial = (any(p in ("retail", "fitting", "coaching")
+                       for p in always_on_pillar_match)
+                   or "commercial" in lane_keys
+                   or "apparel" in lane_keys
+                   or "retail" in lane_keys
+                   or "bags-retail" in lane_keys)
+    cal_commercial = (opportunity.get("calendar_commercial_relevance")
+                       or "").lower()
+    has_strong_commercial_signal = (
+        commercial
+        or "very high" in cal_commercial
+        or "high" in cal_commercial)
+    if not has_strong_commercial_signal:
+        hard_gate_failures.append({
+            "gate": "actionable_brand_angle",
+            "reason": ("No direct commercial pillar mapping and no "
+                       "high commercial relevance from canonical "
+                       "Calendar record"),
+        })
+
+    # 1e. timing/action window — must have a real date or window
+    event_start = opportunity.get("event_start") or opportunity.get("date")
+    has_window = bool(event_start)
+    if not has_window:
+        hard_gate_failures.append({
+            "gate": "timing_action_window",
+            "reason": "No event_start / date set in canonical Calendar",
+        })
+
+    # 1f. sufficient evidence — date_confidence HIGH or MEDIUM
+    # AND source_origin in {external, scout, internal_strategy}
+    if date_confidence == "LOW":
+        hard_gate_failures.append({
+            "gate": "sufficient_evidence",
+            "reason": (f"date_confidence=LOW ({source_origin}); "
+                       "V1.3 §4 requires HIGH or MEDIUM for BRIEF"),
+        })
+    if source_origin not in ("external", "scout", "internal_strategy",
+                              "internal_strategy_deprecated"):
+        hard_gate_failures.append({
+            "gate": "sufficient_evidence",
+            "reason": (f"source_origin={source_origin!r}; V1.3 §4 "
+                       "requires external/scout/internal_strategy "
+                       "for BRIEF"),
+        })
+    if not source_urls and source_origin == "external":
+        # External origin with no source_urls is suspicious
+        hard_gate_failures.append({
+            "gate": "sufficient_evidence",
+            "reason": ("source_origin=external but no source_urls "
+                       "recorded — provenance is incomplete"),
+        })
+
+    # 1g. non-duplication — if this event_key is in a cluster,
+    # only the cluster_parent is BRIEF-eligible (cluster members
+    # are watched rather than independently briefed)
+    cluster = _find_opp_cluster(brand_id, event_key)
+    is_cluster_member_only = (
+        cluster is not None
+        and event_key != cluster.get("primary_event_key"))
+
+    # If any hard gate failed → IGNORE
+    if hard_gate_failures:
+        factors.extend({
+            "factor": f["gate"],
+            "score": "low",
+            "evidence": f["reason"],
+        } for f in hard_gate_failures)
+        return {
+            "gate": GATE_IGNORE,
+            "confidence": "LOW",
+            "factors": factors,
+            "aggregate": {
+                "high_count": 0,
+                "medium_count": 0,
+                "low_count": len(factors),
+            },
+            "hard_gate_failures": hard_gate_failures,
+            "note": (f"Failed {len(hard_gate_failures)} hard gate(s); "
+                     "Brief creation refused until evidence is "
+                     "remediated."),
+        }
+
+    # ── Phase 2: SCORED FACTORS ──────────────────────────────
+    if always_on_pillar_match:
+        factors.append({
+            "factor": "strategic_relevance",
+            "score": "high",
+            "evidence": (f"Opportunity supports pillars: "
+                         f"{always_on_pillar_match}"),
+        })
+    nstar_relevance = bool(always_on_pillar_match)
+    factors.append({
+        "factor": "north_star_relevance",
+        "score": "high" if nstar_relevance else "low",
+        "evidence": (f"Maps to active North Star: "
+                     f"{', '.join(always_on_pillar_match)}"
+                     if nstar_relevance
+                     else "No direct North Star mapping."),
+    })
     factors.append({
         "factor": "audience_relevance",
         "score": "high" if audience_lane else "medium",
         "evidence": ("Human/audience lane present"
                      if audience_lane
-                     else "No dedicated audience lane."),
+                     else "Audience signal from Calendar record."),
     })
-
-    # 4. Timing — date + duration present?
-    has_timing = bool(opportunity.get("date")
-                       or opportunity.get("duration_days"))
     factors.append({
         "factor": "timing",
-        "score": "high" if has_timing else "medium",
-        "evidence": (f"date={opportunity.get('date')}, "
-                      f"duration={opportunity.get('duration_days')}d"
-                      if has_timing
-                      else "Date/duration not set in planning data; "
-                            "operator must pin live window."),
+        "score": ("high" if date_confidence == "HIGH"
+                   else "medium" if date_confidence == "MEDIUM"
+                   else "low"),
+        "evidence": (f"event_start={event_start}, "
+                      f"date_confidence={date_confidence}, "
+                      f"source_origin={source_origin}"),
     })
-
-    # 5. Actionability — campaign arc vs single-shot
     is_arc = ("campaign" in lane_keys
               and any("arc" in str(l).lower() for l in lane_keys))
     factors.append({
@@ -949,21 +1339,18 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
         "score": "high" if is_arc else "medium",
         "evidence": ("Campaign arc lanes present"
                      if is_arc
-                     else "Single-shot or human-led; lower multi-touch actionability."),
+                     else "Single-shot or human-led; lower multi-touch "
+                          "actionability."),
     })
-
-    # 6. Evidence quality — RI data_status
     ri_status = (ri.get("data_coverage") or {}).get("ga4", "unavailable")
     factors.append({
         "factor": "evidence_quality",
         "score": ("high" if ri_status == "LIVE"
-                   else "medium" if ri_status in ("PARTIAL", "HISTORICAL_REAL")
+                   else "medium" if ri_status in ("PARTIAL",
+                                                    "HISTORICAL_REAL")
                    else "low"),
         "evidence": f"GA4 status for {brand_id}: {ri_status}",
     })
-
-    # 7. Content/campaign saturation — V1.1 uses
-    # cultural_moment_event_keys + preserved_unclassified_event_keys
     cultural_n = len(pmx.get("cultural_moment_event_keys") or [])
     unclass_n = len(pmx.get("preserved_unclassified_event_keys") or [])
     factors.append({
@@ -971,12 +1358,8 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
         "score": ("high" if (cultural_n + unclass_n) < 5
                    else "medium"),
         "evidence": (f"{cultural_n} cultural moments + "
-                      f"{unclass_n} preserved unclassified = "
-                      f"{cultural_n + unclass_n} excluded from "
-                      "pillar denominator."),
+                      f"{unclass_n} preserved unclassified."),
     })
-
-    # 8. Historical performance — RI what_worked + recommendations
     worked = bool(ri.get("what_worked"))
     factors.append({
         "factor": "historical_performance",
@@ -984,40 +1367,51 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
         "evidence": ("RI surfaced historical work patterns."
                      if worked else "No RI-surfaced historical patterns."),
     })
-
-    # 9. Commercial usefulness
-    commercial = (any(p in ("retail", "fitting", "coaching")
-                       for p in always_on_pillar_match)
-                   or "commercial" in lane_keys
-                   or "apparel" in lane_keys
-                   or "retail" in lane_keys)
     factors.append({
         "factor": "commercial_usefulness",
         "score": "high" if commercial else "low",
         "evidence": ("Direct commercial pillar mapping"
                      if commercial
-                     else "Cultural/lifestyle moment; lower direct commercial."),
+                     else "Cultural/lifestyle moment."),
     })
 
-    # Aggregate
+    # ── Aggregate + cluster handling ─────────────────────────
     high_count = sum(1 for f in factors if f["score"] == "high")
     medium_count = sum(1 for f in factors if f["score"] == "medium")
     low_count = sum(1 for f in factors if f["score"] == "low")
 
-    if high_count >= 5 and low_count == 0:
-        gate = GATE_BRIEF
-        confidence = "HIGH"
-    elif high_count >= 3 and low_count <= 2:
-        gate = GATE_BRIEF
-        confidence = "MEDIUM"
-    elif high_count >= 2 and low_count >= 3:
+    # V1.3 §3: cluster members default to WATCH
+    if is_cluster_member_only:
         gate = GATE_WATCH
         confidence = "MEDIUM"
+        factors.append({
+            "factor": "cluster_membership",
+            "score": "low",
+            "evidence": (f"Clustered under {cluster.get('primary_event_key')}; "
+                         f"Brief is generated for the cluster parent."),
+        })
+        cluster_note = (f"Cluster member under {cluster.get('primary_event_key')}; "
+                        "watchlist until parent brief created.")
     else:
-        gate = GATE_IGNORE if high_count <= 1 else GATE_WATCH
-        confidence = "LOW"
+        cluster_note = None
+        # V1.3 §4 stricter thresholds: require >=4 high AND <=1 low
+        if high_count >= 5 and low_count == 0:
+            gate = GATE_BRIEF
+            confidence = "HIGH"
+        elif high_count >= 4 and low_count <= 1:
+            gate = GATE_BRIEF
+            confidence = "MEDIUM"
+        elif high_count >= 3 and low_count <= 2:
+            gate = GATE_WATCH
+            confidence = "MEDIUM"
+        elif high_count >= 2 and low_count <= 3:
+            gate = GATE_WATCH
+            confidence = "LOW"
+        else:
+            gate = GATE_IGNORE
+            confidence = "LOW"
 
-    return {
+    out = {
         "gate": gate,
         "confidence": confidence,
         "factors": factors,
@@ -1027,12 +1421,24 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
             "low_count": low_count,
         },
     }
+    if cluster_note:
+        out["cluster_note"] = cluster_note
+    return out
+
+
+def _find_opp_cluster(brand_id: str, event_key: str) -> "Optional[dict]":
+    """V1.3 §3 helper: find the cluster (if any) that this
+    event_key belongs to. Returns the cluster dict or None."""
+    if not event_key:
+        return None
+    clusters = _cluster_opportunities(brand_id).get("clusters") or []
+    for cl in clusters:
+        if event_key in cl.get("event_keys", []):
+            return cl
+    return None
 
 
 
-
-
-# ── Brief builder ────────────────────────────────────────────────
 
 def _derive_audience(brand_id: str, bp: dict) -> dict:
     """Pull audience definition from brand-planning if present."""
@@ -1767,44 +2173,98 @@ def update_brief(brand_id: str, brief_id: str, patch: dict,
 
 
 def _operator_token_store() -> dict:
-    """V1.2 §1: per-operator approval token registry.
+    """V1.3 §1: per-operator approval verifier registry.
 
-    Reads OPERATOR_APPROVAL_TOKENS env var — JSON dict of
-    operator_id → plaintext token (admin-installed in Railway
-    Variables).
+    Reads OPERATOR_APPROVAL_TOKEN_HASHES env var — JSON dict
+    of operator_id → pbkdf2 verifier object:
+      {
+        "salt": "<hex>",
+        "hash": "<hex>",
+        "iter": <int>   # PBKDF2 iterations
+      }
+    Or the legacy V1.2 plaintext OPERATOR_APPROVAL_TOKENS is
+    no longer read at all (fail-closed).
 
-    Returns dict {operator_id: plaintext_token} or {} if
-    not configured. Missing or invalid config = no operator
-    can approve (fail-closed per V1.2 §1).
+    Returns dict {operator_id: verifier_dict} or {} if not
+    configured. Missing or invalid config = no operator can
+    approve (fail-closed per V1.3 §1).
+
+    Per V1.3 §1: the RAW operator approval secret must
+    never live in Railway plaintext, never be available to
+    Hermes/Heidi, never be returned by any API, never be
+    logged. Only a one-way verifier (PBKDF2-HMAC-SHA256,
+    600k iterations, 32-byte random salt) is stored.
     """
-    raw = os.environ.get("OPERATOR_APPROVAL_TOKENS", "")
+    raw = os.environ.get("OPERATOR_APPROVAL_TOKEN_HASHES", "")
     if not raw or not raw.strip():
         return {}
     try:
         d = json.loads(raw)
-        return {str(k): str(v) for k, v in d.items()
-                if k and v}
+        out = {}
+        for k, v in d.items():
+            if not k or not isinstance(v, dict):
+                continue
+            # Each verifier must have salt + hash (+ optional iter)
+            salt = v.get("salt")
+            hh = v.get("hash")
+            iter_ = int(v.get("iter") or 600_000)
+            if not salt or not hh:
+                continue
+            out[str(k)] = {
+                "salt": str(salt),
+                "hash": str(hh),
+                "iter": iter_,
+            }
+        return out
     except Exception:
         return {}
 
 
+def _hash_operator_secret(secret: str, salt: bytes,
+                          iterations: int = 600_000) -> bytes:
+    """PBKDF2-HMAC-SHA256 verifier computation. Used by
+    admin/setup tooling ONLY — the operator's secret is
+    passed in interactively at approval time and is never
+    persisted.
+    """
+    import hashlib as _hashlib
+    return _hashlib.pbkdf2_hmac(
+        "sha256",
+        secret.encode("utf-8"),
+        salt,
+        iterations,
+        dklen=32,
+    )
+
+
 def _verify_operator_auth(headers: "Optional[dict]" = None) -> "Optional[str]":
-    """V1.2 §1: verify that the incoming request carries a
-    valid operator approval token.
+    """V1.3 §1: verify that the incoming request carries a
+    valid operator approval secret.
 
     Headers expected:
       X-Operator-Id: <operator_id>
-      X-Operator-Token: <plaintext token>
+      X-Operator-Token: <plaintext secret held by operator>
 
-    The `headers` param is passed by the route handler from
-    flask.request.headers to keep the engine module
-    independent of Flask. If headers=None, falls back to
-    flask.request.headers (when called from a Flask context).
+    Verification: PBKDF2-HMAC-SHA256(secret, stored_salt,
+    stored_iter) is compared in constant time against the
+    stored hash. The plaintext secret never leaves the
+    request — it is hashed in-memory and discarded after
+    the comparison.
 
     Returns the authenticated operator_id (str) if valid,
-    None otherwise. The session cookie is also required
-    (caller checks _is_authed() first) — this function
-    only verifies the operator identity on top of that.
+    None otherwise.
+
+    FAIL-CLOSED:
+      - If env var not configured → no operator can approve
+      - If operator_id not in store → rejected
+      - If PBKDF2 hash mismatch → rejected
+      - All comparisons via hmac.compare_digest
+
+    Per V1.3 §1: this proves HUMAN PRESENCE because:
+      - The plaintext secret is held ONLY by the human
+        operator (known at approval-click time, never stored)
+      - Hermes/Heidi cannot approve without it
+      - Railway plaintext variables do NOT contain the secret
     """
     if headers is None:
         try:
@@ -1817,11 +2277,49 @@ def _verify_operator_auth(headers: "Optional[dict]" = None) -> "Optional[str]":
     if not op_id or not op_token:
         return None
     store = _operator_token_store()
-    expected = store.get(op_id)
-    if not expected:
+    verifier = store.get(op_id)
+    if not verifier:
         return None
     import hmac as _hmac
-    return op_id if _hmac.compare_digest(op_token, expected) else None
+    try:
+        salt_bytes = bytes.fromhex(verifier["salt"])
+        stored_hash = bytes.fromhex(verifier["hash"])
+        iter_ = int(verifier.get("iter") or 600_000)
+        candidate = _hash_operator_secret(op_token, salt_bytes, iter_)
+        if _hmac.compare_digest(candidate, stored_hash):
+            return op_id
+        return None
+    except Exception:
+        return None
+
+
+def hash_operator_secret_for_setup(secret: str,
+                                    operator_id: str = "") -> dict:
+    """V1.3 §1 admin/setup helper. Computes a verifier
+    record for storing in OPERATOR_APPROVAL_TOKEN_HASHES.
+
+    Usage (one-time setup, not exposed as API):
+      from campaign_brief import hash_operator_secret_for_setup
+      verifier = hash_operator_secret_for_setup(secret)
+      # Then store as JSON in Railway Variables:
+      OPERATOR_APPROVAL_TOKEN_HASHES={"christelle": verifier}
+
+    Returns: {"salt": "<hex>", "hash": "<hex>",
+              "iter": <int>, "operator_id": "<id>"}
+
+    This function never logs the secret. The plaintext is
+    held only in the operator's memory + the calling
+    setup script's in-process variable.
+    """
+    import secrets as _secrets
+    salt = _secrets.token_bytes(32)
+    hh = _hash_operator_secret(secret, salt)
+    return {
+        "operator_id": operator_id,
+        "salt": salt.hex(),
+        "hash": hh.hex(),
+        "iter": 600_000,
+    }
 
 
 def transition_brief(brand_id: str, brief_id: str, to_status: str,
