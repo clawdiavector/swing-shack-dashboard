@@ -1208,16 +1208,23 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
             # this is a soft gate (WATCH, not IGNORE)
             pass
 
-    # 1c. audience relevance
-    if not audience_lane:
-        cal_audience = (opportunity.get("calendar_audience_relevance")
-                         or "").lower()
-        if "high" not in cal_audience and "very high" not in cal_audience:
-            hard_gate_failures.append({
-                "gate": "audience_relevance",
-                "reason": ("No audience lane and no high-relevance "
-                           "calendar audience signal"),
-            })
+    # 1c. audience relevance — soft gate by default; only
+    # hard-fail if NO audience signal at all (no lane, no
+    # calendar relevance, no inferred audience from pillar)
+    cal_audience = (opportunity.get("calendar_audience_relevance")
+                     or "").lower()
+    has_audience_signal = (
+        audience_lane
+        or "high" in cal_audience
+        or "very high" in cal_audience
+        or bool(always_on_pillar_match))  # pillar match implies audience
+    if not has_audience_signal:
+        hard_gate_failures.append({
+            "gate": "audience_relevance",
+            "reason": ("No audience lane, no high-relevance calendar "
+                       "audience signal, and no pillar mapping to "
+                       "infer audience"),
+        })
 
     # 1d. actionable brand angle — campaign lane OR
     # explicit commercial relevance from calendar
