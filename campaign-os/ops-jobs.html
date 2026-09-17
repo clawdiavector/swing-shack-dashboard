@@ -75,6 +75,8 @@ main { padding: 12px 16px 96px; max-width: 880px; margin: 0 auto; }
 .chip.LATE { background: rgba(245,158,11,.15); color: var(--warn); }
 .chip.FAILED, .chip.STUCK { background: rgba(255,107,107,.15); color: var(--bad); }
 .chip.NEVER { background: rgba(154,160,166,.15); color: var(--muted); }
+.chip.SANDBOX { background: rgba(110,168,255,.18); color: var(--accent-2); }
+.chip.LIVE { background: rgba(255,107,107,.12); color: var(--bad); }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .empty, .err { color: var(--muted); padding: 24px 8px; text-align: center; }
 .drawer-bg {
@@ -309,8 +311,12 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     <p class="stub-note">L5 not built — caption, image, and GBP drafts after approve.</p>
   </section>
   <section class="summary" id="layer-publish" hidden>
-    <h2>Publish <span class="chip NEVER">NEVER</span></h2>
-    <p class="stub-note">L6 not built — Postiz dispatch after human_approved only.</p>
+    <h2>Publish <span class="chip SANDBOX" id="publish-mode-chip">SANDBOX</span></h2>
+    <p class="stub-note" id="publish-hint">Sandbox mode — publish_dispatch writes receipts only. No Postiz/GBP HTTP.</p>
+    <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="publish-body"></tbody></table>
+    <div class="actions">
+      <button class="btn primary" type="button" id="publish-run-dispatch">Run publish_dispatch</button>
+    </div>
   </section>
   <section class="summary" id="layer-learn" hidden>
     <h2>Learn <span class="chip NEVER">NEVER</span></h2>
@@ -394,7 +400,56 @@ function readLayer() {
   };
   $('ops-title').textContent = titles[layer] || 'Ops';
   if (layer === 'health') loadHealth();
+  if (layer === 'publish') loadPublish();
   return layer;
+}
+
+async function loadPublish() {
+  const chip = $('publish-mode-chip');
+  const body = $('publish-body');
+  const hint = $('publish-hint');
+  if (body) body.innerHTML = '<tr><td colspan="2">Loading…</td></tr>';
+  const modeR = await api('/api/publish/mode');
+  if (modeR.ok && modeR.data && modeR.data.ok) {
+    const mode = modeR.data.mode || 'sandbox';
+    if (chip) {
+      chip.textContent = mode.toUpperCase();
+      chip.className = 'chip ' + (mode === 'live' ? 'LIVE' : 'SANDBOX');
+    }
+    if (hint && modeR.data.hint) hint.textContent = modeR.data.hint;
+  }
+  const sumR = await api('/api/publish/sandbox/summary');
+  if (!sumR.ok || !sumR.data) {
+    if (body) body.innerHTML = '<tr><td colspan="2">Could not load sandbox summary.</td></tr>';
+    return;
+  }
+  const j = sumR.data;
+  const rows = [
+    ['Mode', j.mode || 'sandbox'],
+    ['Queue depth', j.queue_depth ?? '—'],
+    ['Approved ready', j.queue_approved_ready ?? '—'],
+    ['Receipts', j.receipt_count ?? '—'],
+    ['Last receipt', j.last_receipt_at || '—'],
+    ['Last sandbox post', j.last_sandbox_post_id || '—'],
+  ];
+  if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
+}
+
+async function runPublishDispatch() {
+  const btn = $('publish-run-dispatch');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/jobs/run/publish_dispatch?reason=manual', { method: 'POST', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'run failed');
+    const n = (j.result && j.result.dispatched) != null ? j.result.dispatched : j.dispatched;
+    toast('publish_dispatch: dispatched ' + (n ?? 0));
+    await loadPublish();
+  } catch (e) {
+    toast(String(e.message || e), true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function showRibbonTip(el) {
@@ -1038,8 +1093,12 @@ document.querySelectorAll('[data-ops-layer]').forEach((link) => {
   if (params.get('job')) view = 'cards';
   setJobsView(view);
 
+  const pubBtn = $('publish-run-dispatch');
+  if (pubBtn) pubBtn.addEventListener('click', runPublishDispatch);
+
   const loads = [loadSpend()];
   if (layer === 'jobs') loads.push(loadJobs());
+  if (layer === 'publish') loads.push(loadPublish());
   await Promise.all(loads);
   const job = params.get('job');
   const run = params.get('run');

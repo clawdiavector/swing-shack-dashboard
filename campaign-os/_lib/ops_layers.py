@@ -91,7 +91,7 @@ def build_layers(
         ("L3", "Agents", "agents", "L3 not built — Mac cos-* fleet and heartbeat API."),
         ("L4", "Approve", "approve", "L4 not built — unified inbox for Christelle."),
         ("L5", "Create", "create", "L5 not built — caption/image/GBP drafts after approve."),
-        ("L6", "Publish", "publish", "L6 not built — Postiz dispatch after human_approved."),
+        ("L6", "Publish", "publish", "L6 sandbox — publish_dispatch writes receipts; PUBLISH_MODE=live is Kyle gate."),
         ("L7", "Learn", "learn", "L7 not built — outcomes feed recipes for L3/L5."),
     ]
 
@@ -124,13 +124,37 @@ def build_layers(
         },
     }
 
+    l6_verdict = "NEVER"
+    l6_extra: dict[str, Any] = {}
+    try:
+        from _lib.publish_mode import get_publish_mode
+        from _lib.publish_sandbox import summary as sandbox_summary
+
+        if get_publish_mode() == "sandbox":
+            sb = sandbox_summary()
+            ready = int(sb.get("queue_approved_ready") or 0)
+            receipts = int(sb.get("receipt_count") or 0)
+            l6_verdict = "OK" if receipts > 0 else ("LATE" if ready > 0 else "NEVER")
+            l6_extra = {
+                "mode": "sandbox",
+                "queue_approved_ready": ready,
+                "receipt_count": receipts,
+                "last_receipt_at": sb.get("last_receipt_at"),
+            }
+    except Exception:
+        pass
+
     for key, label, slug, note in stub_layers:
-        layers[key] = {
+        entry: dict[str, Any] = {
             "label": label,
             "verdict": "NEVER",
             "href": f"/ops?layer={slug}",
             "note": note,
         }
+        if key == "L6":
+            entry["verdict"] = l6_verdict
+            entry.update(l6_extra)
+        layers[key] = entry
 
     return {
         "schema": "campaign-os/ops-layers/v1",

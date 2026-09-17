@@ -13900,6 +13900,85 @@ def postiz_channels_route():
         })
     return jsonify({"ok": True, "channels": channels, "count": len(channels)}), 200
 
+
+# ── Publish sandbox (L6 — no outbound Postiz/GBP when PUBLISH_MODE=sandbox) ──
+
+@app.route('/api/publish/mode', methods=['GET'])
+def publish_mode_route():
+    """GET /api/publish/mode — sandbox vs live (session or job bearer)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.publish_mode import get_publish_mode
+        mode = get_publish_mode()
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify({
+        "ok": True,
+        "mode": mode,
+        "label": "SANDBOX" if mode == "sandbox" else "LIVE",
+        "hint": "sandbox writes receipts only — no Postiz/GBP HTTP",
+    }), 200
+
+
+@app.route('/api/publish/sandbox/summary', methods=['GET'])
+def publish_sandbox_summary_route():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.publish_sandbox import summary as sandbox_summary
+        return jsonify(sandbox_summary()), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox summary failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/publish/sandbox/enqueue', methods=['POST'])
+def publish_sandbox_enqueue_route():
+    """POST body: brand_id, platform?, caption_preview?, human_approved?, idempotency_key?"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "").strip()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    try:
+        from _lib.publish_sandbox import enqueue_item
+        item = enqueue_item(
+            brand_id=brand_id,
+            platform=(body.get("platform") or "instagram").strip(),
+            channel=(body.get("channel") or "postiz").strip(),
+            caption_preview=(body.get("caption_preview") or "").strip(),
+            inbox_item_id=body.get("inbox_item_id"),
+            human_approved=bool(body.get("human_approved")),
+            would_publish_at=body.get("would_publish_at"),
+            idempotency_key=body.get("idempotency_key"),
+        )
+        return jsonify({"ok": True, "item": item}), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox enqueue failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/publish/sandbox/approve', methods=['POST'])
+def publish_sandbox_approve_route():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    key = (body.get("idempotency_key") or "").strip()
+    if not key:
+        return jsonify({"ok": False, "error": "idempotency_key required"}), 400
+    try:
+        from _lib.publish_sandbox import approve_item
+        item, err = approve_item(key)
+        if err:
+            return jsonify({"ok": False, "error": err}), 404
+        return jsonify({"ok": True, "item": item}), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox approve failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 def _safe_read_json(path: Path) -> Optional[dict]:
     try:
         return json.loads(path.read_text())
@@ -15988,6 +16067,20 @@ try:
         criticality="LOW",
         best_effort=True,
         writes=("freshness.json",),
+    ))
+
+    def _run_publish_dispatch_job():
+        from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
+        return _publish_dispatch_run()
+
+    _register_job(_JobSpec(
+        name="publish_dispatch",
+        fn=_run_publish_dispatch_job,
+        every_seconds=86400,
+        timeout_seconds=120,
+        criticality="MEDIUM",
+        best_effort=False,
+        writes=("publish-sandbox/",),
     ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001
