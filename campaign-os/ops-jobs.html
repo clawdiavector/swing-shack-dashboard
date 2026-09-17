@@ -246,7 +246,7 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     <a class="btn view-tab" href="/ops?layer=health" data-ops-layer="health" role="tab" aria-current="false"
        data-tip-title="Health (L2)" data-tip-body="Factory health: digest rollup, freshness, calendar job-health, agent queue depth. Healthy = no FAILED jobs, low stale/rotten counts, watchdog running on Linux (not reported inbound yet).">Health</a>
     <a class="btn view-tab" href="/ops?layer=agents" data-ops-layer="agents" role="tab" aria-current="false"
-       data-tip-title="Agents (L3)" data-tip-body="Mac cos-* fleet, scout, heartbeat. Not built yet — L3 will expose agent status and enqueue API.">Agents</a>
+       data-tip-title="Agents (L3)" data-tip-body="Mac cos-* fleet: scout, interpreter, triage, foreman. Healthy = every expected agent heartbeat OK or LATE only, crons disabled until verified. Manual enqueue appends agent-queue.json without SSH.">Agents</a>
     <a class="btn view-tab" href="/ops?layer=approve" data-ops-layer="approve" role="tab" aria-current="false"
        data-tip-title="Approve (L4)" data-tip-body="Unified inbox for Christelle's 15 min/day review. Not built yet — L4 ships inbox cards and SLA counts.">Approve</a>
     <a class="btn view-tab" href="/ops?layer=create" data-ops-layer="create" role="tab" aria-current="false"
@@ -299,8 +299,9 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     </div>
   </section>
   <section class="summary" id="layer-agents" hidden>
-    <h2>Agents <span class="chip NEVER">NEVER</span></h2>
-    <p class="stub-note">L3 not built — Mac cos-* fleet, scout, and heartbeat API will live here.</p>
+    <h2>Agents <span class="chip" id="agents-verdict">—</span></h2>
+    <div class="sub" id="agents-sub">L3 Mac fleet · heartbeat-reported · the dashboard never SSHs to the Mac.</div>
+    <div id="agents-list" class="empty">Loading…</div>
   </section>
   <section class="summary" id="layer-approve" hidden>
     <h2>Approve <span class="chip NEVER">NEVER</span></h2>
@@ -400,8 +401,78 @@ function readLayer() {
   };
   $('ops-title').textContent = titles[layer] || 'Ops';
   if (layer === 'health') loadHealth();
+  if (layer === 'agents') loadAgents();
   if (layer === 'publish') loadPublish();
   return layer;
+}
+
+async function loadAgents() {
+  const list = $('agents-list');
+  const verdictChip = $('agents-verdict');
+  const sub = $('agents-sub');
+  if (list) list.textContent = 'Loading…';
+  const r = await api('/api/ops/agents');
+  if (!r.ok || !r.data || !Array.isArray(r.data.agents)) {
+    if (list) list.textContent = 'Could not load agent roster.';
+    setChip(verdictChip, 'NEVER');
+    return;
+  }
+  const agents = r.data.agents;
+  const statuses = agents.map((a) => a.last_status || 'NEVER');
+  let worst = 'NEVER';
+  const rank = { OK: 0, LATE: 1, STUCK: 2, FAILED: 3, NEVER: 4 };
+  agents.forEach((a) => {
+    const v = a.last_status || 'NEVER';
+    if ((rank[v] ?? 4) >= (rank[worst] ?? 4)) worst = v;
+  });
+  setChip(verdictChip, worst);
+  const reporting = agents.filter((a) => a.last_heartbeat_at).length;
+  if (sub) sub.textContent = `${agents.length} expected · ${reporting} reporting · enqueue appends agent-queue.json (no SSH)`;
+  if (!agents.length) {
+    if (list) list.textContent = 'No agents in roster.';
+    return;
+  }
+  if (list) {
+    list.className = 'health-grid';
+    list.innerHTML = agents.map((a) => {
+      const hb = a.last_heartbeat_at;
+      const ageH = hb ? (Date.now() - new Date(hb).getTime()) / 3600000 : null;
+      const writes = Array.isArray(a.last_writes) && a.last_writes.length
+        ? a.last_writes.map((w) => esc(w)).join(', ')
+        : '—';
+      return `<div class="card health-chip" data-agent="${esc(a.id)}" id="agent-${esc(a.id)}">
+        <span class="chip-title">${esc(a.id)} <span class="chip ${esc(a.last_status || 'NEVER')}">${esc(a.last_status || 'NEVER')}</span></span>
+        <span class="chip-detail">${esc(a.kind || '—')} · ${esc(a.layer || '—')} · ${esc(a.schedule || '—')} · enabled ${a.enabled ? 'yes' : 'no'}</span>
+        <span class="chip-detail">Profile ${esc(a.profile || '—')} · skill ${esc(a.skill || '—')}</span>
+        <span class="chip-detail">Last heartbeat ${esc(fmtSast(hb))} (${esc(ageLabel(ageH))})</span>
+        <span class="chip-detail">Last action ${esc(a.last_action || '—')}</span>
+        <span class="chip-detail">Last writes ${writes}</span>
+        <div class="actions"><button class="btn" type="button" data-enqueue-agent="${esc(a.id)}" data-enqueue-brand="stick">Enqueue stick</button></div>
+      </div>`;
+    }).join('');
+  }
+  const focus = new URLSearchParams(location.search).get('agent');
+  if (focus) {
+    const card = document.getElementById('agent-' + CSS.escape(focus));
+    if (card) {
+      card.classList.add('primary');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+}
+
+async function enqueueAgent(agent, brand) {
+  const r = await api('/api/ops/agents/enqueue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent, brand, reason: 'manual' }),
+  });
+  if (!r.ok || !r.data || !r.data.ok) {
+    toast((r.data && r.data.error) || 'Enqueue failed', true);
+    return;
+  }
+  toast('Enqueued ' + agent + ' · ' + (r.data.rows ?? 0) + ' pending');
+  await loadAgents();
 }
 
 async function loadPublish() {
@@ -1068,8 +1139,18 @@ $('refresh').onclick = async () => {
   const tasks = [loadSpend()];
   if (activeOpsLayer === 'jobs') tasks.push(loadJobs());
   else if (activeOpsLayer === 'health') tasks.push(loadHealth());
+  else if (activeOpsLayer === 'agents') tasks.push(loadAgents());
   await Promise.all(tasks);
 };
+
+const agentsList = $('agents-list');
+if (agentsList) {
+  agentsList.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-enqueue-agent]');
+    if (!btn) return;
+    enqueueAgent(btn.getAttribute('data-enqueue-agent'), btn.getAttribute('data-enqueue-brand') || 'stick');
+  });
+}
 
 document.querySelectorAll('[data-jobs-view]').forEach((btn) => {
   btn.addEventListener('click', () => setJobsView(btn.getAttribute('data-jobs-view')));
