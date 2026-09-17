@@ -254,7 +254,7 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     <a class="btn view-tab" href="/ops?layer=publish" data-ops-layer="publish" role="tab" aria-current="false"
        data-tip-title="Publish (L6)" data-tip-body="Postiz dispatch after human_approved only. Not built yet — requires channel OAuth keys.">Publish</a>
     <a class="btn view-tab" href="/ops?layer=learn" data-ops-layer="learn" role="tab" aria-current="false"
-       data-tip-title="Learn (L7)" data-tip-body="Outcomes feed recipes that bias L3/L5. Not built yet — core join needs no new keys.">Learn</a>
+       data-tip-title="Learn (L7)" data-tip-body="Post outcomes and winning recipes bias L3/L5. Relative ranking — never auto-publishes.">Learn</a>
   </nav>
   <div class="view-bar" id="jobs-view-bar" role="tablist" aria-label="Jobs view">
     <button class="btn view-tab primary" type="button" data-jobs-view="schedule" role="tab" aria-selected="true">Schedule at a glance</button>
@@ -335,8 +335,14 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     </div>
   </section>
   <section class="summary" id="layer-learn" hidden>
-    <h2>Learn <span class="chip NEVER">NEVER</span></h2>
-    <p class="stub-note">L7 not built — outcomes feed recipes for L3/L5.</p>
+    <h2>Learn <span class="chip" id="learn-verdict">—</span></h2>
+    <div class="sub">L7 outcomes → recipes · relative ranking · drafts only, never publish</div>
+    <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="learn-body"></tbody></table>
+    <div class="actions">
+      <button class="btn primary" type="button" id="learn-run-winner-promotion">Run winner_promotion</button>
+      <button class="btn" type="button" id="learn-run-post-outcomes">Run post_outcomes</button>
+    </div>
+    <p class="stub-note" id="learn-recipes-note" hidden>No winning recipes yet. Run post_outcomes then winner_promotion.</p>
   </section>
 </main>
 <div class="drawer-bg" id="drawer-bg" role="dialog" aria-modal="true">
@@ -420,6 +426,7 @@ function readLayer() {
   if (layer === 'approve') loadApprove();
   if (layer === 'create') loadCreate();
   if (layer === 'publish') loadPublish();
+  if (layer === 'learn') loadLearn();
   return layer;
 }
 
@@ -510,6 +517,50 @@ async function enqueueAgent(agent, brand) {
   }
   toast('Enqueued ' + agent + ' · ' + (r.data.rows ?? 0) + ' pending');
   await loadAgents();
+}
+
+async function loadLearn() {
+  const verdictChip = $('learn-verdict');
+  const body = $('learn-body');
+  const note = $('learn-recipes-note');
+  if (body) body.innerHTML = '<tr><td colspan="2">Loading…</td></tr>';
+  const r = await api('/api/ops/learn/summary');
+  if (!r.ok || !r.data) {
+    if (body) body.innerHTML = '<tr><td colspan="2">Could not load learn summary.</td></tr>';
+    setChip(verdictChip, 'NEVER');
+    return;
+  }
+  const h = r.data.headline || {};
+  setChip(verdictChip, h.verdict || 'NEVER');
+  const gate = r.data.proposal_gate || {};
+  const rows = [
+    ['Winning recipes', h.recipes ?? '—'],
+    ['Samples scored', h.samples ?? '—'],
+    ['Score basis', h.score_basis ?? '—'],
+    ['Confidence', h.confidence ?? '—'],
+    ['Human edit rows', h.edit_rows ?? '—'],
+    ['Edit rate', h.edit_rate != null ? String(h.edit_rate) : '—'],
+    ['Proposal gate', gate.verdict ?? h.proposal_gate ?? '—'],
+    ['Gate measured %', gate.measured_pct != null ? String(gate.measured_pct) + '%' : '—'],
+    ['Last recipe run', h.last_recipe_at ?? '—'],
+  ];
+  if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
+  if (note) note.hidden = !!(h.ready && (h.recipes || 0) > 0);
+}
+
+async function runLearnJob(name, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api('/api/jobs/run/' + encodeURIComponent(name) + '?reason=manual', { method: 'POST' });
+    if (!r.ok) throw new Error((r.data && r.data.error) || 'Job run failed');
+    toast(name + ' finished');
+    await loadLearn();
+    if (activeOpsLayer === 'jobs') await loadJobs();
+  } catch (e) {
+    toast(String(e.message || e), true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function loadCreate() {
@@ -1238,6 +1289,7 @@ $('refresh').onclick = async () => {
   else if (activeOpsLayer === 'health') tasks.push(loadHealth());
   else if (activeOpsLayer === 'agents') tasks.push(loadAgents());
   else if (activeOpsLayer === 'approve') tasks.push(loadApprove());
+  else if (activeOpsLayer === 'learn') tasks.push(loadLearn());
   await Promise.all(tasks);
 };
 
@@ -1276,12 +1328,17 @@ document.querySelectorAll('[data-ops-layer]').forEach((link) => {
   if (pubBtn) pubBtn.addEventListener('click', runPublishDispatch);
   const createBtn = $('create-run-draft-assets');
   if (createBtn) createBtn.addEventListener('click', runDraftAssets);
+  const learnPromoBtn = $('learn-run-winner-promotion');
+  if (learnPromoBtn) learnPromoBtn.addEventListener('click', () => runLearnJob('winner_promotion', learnPromoBtn));
+  const learnOutcomesBtn = $('learn-run-post-outcomes');
+  if (learnOutcomesBtn) learnOutcomesBtn.addEventListener('click', () => runLearnJob('post_outcomes', learnOutcomesBtn));
 
   const loads = [loadSpend()];
   if (layer === 'jobs') loads.push(loadJobs());
   if (layer === 'approve') loads.push(loadApprove());
   if (layer === 'create') loads.push(loadCreate());
   if (layer === 'publish') loads.push(loadPublish());
+  if (layer === 'learn') loads.push(loadLearn());
   await Promise.all(loads);
   const job = params.get('job');
   const run = params.get('run');

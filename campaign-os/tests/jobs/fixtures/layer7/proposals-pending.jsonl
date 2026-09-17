@@ -1,0 +1,10 @@
+{"id":"p1","status":"approved","brand_id":"stick","title":"Proposal 1"}
+{"id":"p2","status":"approved","brand_id":"stick","title":"Proposal 2"}
+{"id":"p3","status":"approved","brand_id":"stick","title":"Proposal 3"}
+{"id":"p4","status":"approved","brand_id":"stick","title":"Proposal 4"}
+{"id":"p5","status":"approved","brand_id":"stick","title":"Proposal 5"}
+{"id":"p6","status":"approved","brand_id":"stick","title":"Proposal 6"}
+{"id":"p7","status":"approved","brand_id":"stick","title":"Proposal 7"}
+{"id":"p8","status":"rejected","brand_id":"stick","title":"Proposal 8"}
+{"id":"p9","status":"rejected","brand_id":"stick","title":"Proposal 9"}
+{"id":"p10","status":"rejected","brand_id":"stick","title":"Proposal 10"}

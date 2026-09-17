@@ -86,6 +86,7 @@ PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/
 # to a prefix would silently open sibling /api/ops/* routes to bearer callers.
 DUAL_AUTH_PATHS = frozenset({
     '/api/ops/layers',
+    '/api/ops/learn/summary',
     '/api/ops/agents',
     '/api/ops/agents/heartbeat',
     '/api/ops/agents/enqueue',
@@ -16454,6 +16455,22 @@ def ops_jobs_page():
     """GET /ops and /ops/jobs — session-gated ops shell (t42, L2 ribbon). Not public."""
     # Auth via _gate before_request — must NOT be added to PUBLIC_ROUTE_PREFIXES.
     return send_from_directory(os.path.dirname(__file__), 'ops-jobs.html')
+
+
+@app.route('/api/ops/learn/summary', methods=['GET'])
+def ops_learn_summary():
+    """GET /api/ops/learn/summary — L7 learn rollup for ops tab. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import ops_layers as _ops_layers_mod
+
+        payload = _ops_layers_mod.build_learn_summary()
+        payload["ok"] = True
+        return jsonify(payload), 200
+    except Exception as e:
+        _app_log.exception("ops_learn_summary failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/ops/layers', methods=['GET'])

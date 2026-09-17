@@ -56,7 +56,15 @@ def _bootstrap_layer5() -> None:
     bootstrap_layer5(register)
 
 
+def _bootstrap_layer7() -> None:
+    """Register L7 Learn jobs. Idempotent via register()."""
+    from .layer7 import bootstrap_layer7
+
+    bootstrap_layer7(register)
+
+
 _bootstrap_meta()
 _bootstrap_layer1()
 _bootstrap_layer2()
 _bootstrap_layer5()
+_bootstrap_layer7()

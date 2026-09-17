@@ -62,6 +62,93 @@ def _parse_iso(value: str | None) -> datetime | None:
     return parsed
 
 
+def _read_json_file(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        return doc if isinstance(doc, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def load_learn_stats() -> dict[str, Any]:
+    """Roll up L7 Learn tab metrics from flat $DATA_DIR JSON outputs."""
+    root = _data_dir()
+    recipes_doc = _read_json_file(root / "winning-recipes.json")
+    outcomes_doc = _read_json_file(root / "post-outcomes.json")
+    edits_doc = _read_json_file(root / "human-edit-summary.json")
+    proposals_doc = _read_json_file(root / "proposal-outcomes.json")
+
+    recipes = int(recipes_doc.get("winners") or len(recipes_doc.get("recipes") or []))
+    samples = int(recipes_doc.get("samples") or outcomes_doc.get("posts_total") or 0)
+    ready = bool(recipes_doc.get("ready"))
+    last_recipe_at = str(recipes_doc.get("generated_at") or "")
+    score_basis = str(recipes_doc.get("score_basis") or outcomes_doc.get("score_basis") or "engagement_only")
+    confidence = str(recipes_doc.get("confidence") or "weak_prior")
+
+    gate = proposals_doc.get("gate") if isinstance(proposals_doc.get("gate"), dict) else {}
+    gate_verdict = str(gate.get("verdict") or "insufficient_data")
+
+    verdict = "NEVER"
+    if gate_verdict == "fail":
+        verdict = "FAILED"
+    elif ready and recipes > 0:
+        verdict = "OK"
+    elif samples > 0 or int(edits_doc.get("rows") or 0) > 0:
+        verdict = "LATE"
+
+    return {
+        "recipes": recipes,
+        "winners": recipes,
+        "samples": samples,
+        "ready": ready,
+        "last_recipe_at": last_recipe_at or None,
+        "score_basis": score_basis,
+        "confidence": confidence,
+        "edit_rows": int(edits_doc.get("rows") or 0),
+        "edit_rate": edits_doc.get("edit_rate"),
+        "proposal_gate": gate_verdict,
+        "verdict": verdict,
+        "href": "/ops?layer=learn",
+    }
+
+
+def build_learn_summary() -> dict[str, Any]:
+    """Full Learn summary payload for GET /api/ops/learn/summary."""
+    stats = load_learn_stats()
+    root = _data_dir()
+    recipes_doc = _read_json_file(root / "winning-recipes.json")
+    outcomes_doc = _read_json_file(root / "post-outcomes.json")
+    edits_doc = _read_json_file(root / "human-edit-summary.json")
+    proposals_doc = _read_json_file(root / "proposal-outcomes.json")
+
+    top_movers = []
+    for row in (outcomes_doc.get("outcomes") or [])[:5]:
+        if isinstance(row, dict):
+            top_movers.append({
+                "post_id": row.get("post_id"),
+                "hook_id": row.get("hook_id"),
+                "score": row.get("score"),
+                "rank": row.get("rank"),
+                "join_basis": row.get("join_basis"),
+            })
+
+    return {
+        "schema": "campaign-os/ops-learn-summary/v1",
+        "generated_at": _utc_now_iso(),
+        "headline": stats,
+        "winning_recipes": recipes_doc,
+        "post_outcomes": {
+            "posts_total": outcomes_doc.get("posts_total"),
+            "score_basis": outcomes_doc.get("score_basis"),
+            "top_movers": top_movers,
+        },
+        "human_edits": edits_doc,
+        "proposal_gate": proposals_doc.get("gate"),
+    }
+
+
 def load_create_stats() -> dict[str, Any]:
     """Roll up L5 Create tab metrics from $DATA_DIR draft sidecars."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -186,10 +273,11 @@ def build_layers(
 
     create_stats = load_create_stats()
     l5_verdict = str(create_stats.get("verdict") or "NEVER")
+    learn_stats = load_learn_stats()
+    l7_verdict = str(learn_stats.get("verdict") or "NEVER")
 
     stub_layers = [
         ("L6", "Publish", "publish", "L6 sandbox — publish_dispatch writes receipts; PUBLISH_MODE=live is Kyle gate."),
-        ("L7", "Learn", "learn", "L7 not built — outcomes feed recipes for L3/L5."),
     ]
 
     layers: dict[str, dict] = {
@@ -289,6 +377,21 @@ def build_layers(
         "at_cap": create_stats.get("at_cap", False),
         "near_cap": create_stats.get("near_cap", False),
         "inbox_href": create_stats.get("inbox_href", "/?page=review"),
+    }
+
+    layers["L7"] = {
+        "label": "Learn",
+        "verdict": l7_verdict,
+        "href": "/ops?layer=learn",
+        "recipes": learn_stats.get("recipes", 0),
+        "winners": learn_stats.get("winners", 0),
+        "samples": learn_stats.get("samples", 0),
+        "ready": learn_stats.get("ready", False),
+        "last_recipe_at": learn_stats.get("last_recipe_at"),
+        "score_basis": learn_stats.get("score_basis"),
+        "confidence": learn_stats.get("confidence"),
+        "edit_rows": learn_stats.get("edit_rows", 0),
+        "proposal_gate": learn_stats.get("proposal_gate"),
     }
 
     for key, label, slug, note in stub_layers:

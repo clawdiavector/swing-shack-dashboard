@@ -626,3 +626,128 @@ def snapshot_from_generated(
         "_provenance": "prompt-derived",
         "_prompt": prompt[:500],
     }
+
+
+# ---------------------------------------------------------------------------
+# L7 — relative outcome ranking (additive; does not change compute_score)
+# ---------------------------------------------------------------------------
+
+
+def rank_outcomes(
+    records: list[dict[str, Any]],
+    *,
+    window_days: int = 30,
+) -> list[dict[str, Any]]:
+    """Rank outcome rows by score with relative percentile within the window."""
+    if not records:
+        return []
+
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for row in records:
+        if not isinstance(row, dict):
+            continue
+        score = float(row.get("score") or 0)
+        scored.append((score, dict(row)))
+
+    if not scored:
+        return []
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    n = len(scored)
+    ranked: list[dict[str, Any]] = []
+    for idx, (score, row) in enumerate(scored):
+        percentile = round(1.0 - (idx / max(n - 1, 1)), 4) if n > 1 else 1.0
+        ranked.append({
+            **row,
+            "score": round(score, 4),
+            "rank": idx + 1,
+            "percentile": percentile,
+        })
+    return ranked
+
+
+def _confidence_label(*, samples: int, score_basis: str) -> str:
+    if samples >= 20 and score_basis == "conversion_backed":
+        return "well_supported"
+    if samples >= 12 and score_basis == "conversion_backed":
+        return "strong_prior"
+    if samples >= 8:
+        return "moderate_prior"
+    return "weak_prior"
+
+
+def promote_winners(
+    ranked: list[dict[str, Any]],
+    *,
+    top_pct: float = 0.25,
+    min_samples: int = 8,
+    win_threshold: float = 0.65,
+) -> dict[str, Any]:
+    """Promote top-percentile outcomes into winning-recipes payload."""
+    samples = len(ranked)
+    if samples < min_samples:
+        return {
+            "ready": False,
+            "samples": samples,
+            "winners": 0,
+            "top_pct": top_pct,
+            "win_threshold": win_threshold,
+            "score_basis": "engagement_only",
+            "confidence": "weak_prior",
+            "recipes": [],
+            "anti_recipes": [],
+            "_note": f"need at least {min_samples} samples; have {samples}",
+        }
+
+    has_conversion = any(
+        str(row.get("score_basis") or "") == "conversion_backed"
+        or int(row.get("direct_attributed_sessions") or 0) > 0
+        or int(row.get("ga_sessions") or 0) > 0
+        for row in ranked
+    )
+    score_basis = "conversion_backed" if has_conversion else "engagement_only"
+
+    winner_count = max(1, int(round(samples * top_pct)))
+    winners = ranked[:winner_count]
+    anti = ranked[-max(1, winner_count):] if samples > winner_count else []
+
+    recipes: list[dict[str, Any]] = []
+    for row in winners:
+        recipe_id = str(row.get("recipe_id") or row.get("post_id") or row.get("hook_id") or f"rank-{row.get('rank')}")
+        recipes.append({
+            "recipe_id": recipe_id,
+            "brand_id": str(row.get("brand_id") or "stick"),
+            "rank": int(row.get("rank") or 0),
+            "percentile": float(row.get("percentile") or 0),
+            "score": float(row.get("score") or 0),
+            "format": str(row.get("format_type") or row.get("format") or "image"),
+            "themes": list(row.get("themes") or []),
+            "hook_id": str(row.get("hook_id") or ""),
+            "hook_pattern": str(row.get("hook_pattern") or row.get("caption_preview") or "")[:80],
+            "join_basis": str(row.get("join_basis") or "ig_only"),
+            "evidence": list(row.get("evidence") or []),
+        })
+
+    anti_recipes: list[dict[str, Any]] = []
+    for row in anti:
+        anti_recipes.append({
+            "recipe_id": str(row.get("recipe_id") or row.get("post_id") or row.get("hook_id") or ""),
+            "brand_id": str(row.get("brand_id") or "stick"),
+            "rank": int(row.get("rank") or 0),
+            "score": float(row.get("score") or 0),
+            "hook_id": str(row.get("hook_id") or ""),
+            "join_basis": str(row.get("join_basis") or "ig_only"),
+            "evidence": list(row.get("evidence") or []),
+        })
+
+    return {
+        "ready": True,
+        "samples": samples,
+        "winners": len(recipes),
+        "top_pct": top_pct,
+        "win_threshold": win_threshold,
+        "score_basis": score_basis,
+        "confidence": _confidence_label(samples=samples, score_basis=score_basis),
+        "recipes": recipes,
+        "anti_recipes": anti_recipes,
+    }
