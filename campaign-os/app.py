@@ -14937,55 +14937,81 @@ def unschedule_asset(asset_id):
 def connected_accounts_status_route():
     """GET /api/connected-accounts/status — per-platform connection snapshot.
 
-    Returns: { ok, postiz: {...}, gbp: {...}, meta: {...}, last_check }
+    Returns: { ok, postiz, gbp, meta, categories, integrations, summary, last_check }
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.connected_accounts_catalog import build_catalog_extras, infer_postiz_provider
+
     out = {"ok": True, "last_check": _dt_cls.now(_tz.utc).isoformat()}
     if _POSTIZ_CLIENT_AVAILABLE:
         try:
             status = _postiz_lib.postiz_status()
             ch_data, ch_err = _postiz_lib.list_integrations()
             channels = []
+            api_live_ok = ch_err is None and ch_data is not None
+            api_error = None
+            if ch_err:
+                api_error = ch_err[1] if isinstance(ch_err, tuple) else str(ch_err)
             if not ch_err and ch_data:
                 items = ch_data if isinstance(ch_data, list) else (ch_data.get("integrations") or ch_data.get("identities") or [])
                 for it in items:
-                    if not isinstance(it, dict): continue
-                    # Postiz reports the provider under multiple keys depending on
-                    # workspace version (providerIdentifier is the canonical one,
-                    # but older workspaces use provider / type / name).
-                    pid = it.get("providerIdentifier") or it.get("provider") or it.get("type") or ""
-                    # The name field sometimes IS the provider (e.g. "gmb", "instagram")
-                    # when no providerIdentifier is set. Detect that pattern.
-                    if not pid and (it.get("name") or "").lower() in {"gmb", "instagram", "facebook", "tiktok", "twitter", "x", "linkedin", "youtube", "pinterest", "threads", "reddit", "youtube"}:
-                        pid = it["name"].lower()
+                    if not isinstance(it, dict):
+                        continue
+                    pid = infer_postiz_provider(it)
                     channels.append({
                         "id": it.get("id") or it.get("_id"),
-                        "provider": (pid or "").lower() or None,
+                        "provider": pid,
                         "name": it.get("name"),
                         "picture": it.get("picture"),
                         "disabled": it.get("disabled", False),
                     })
             out["postiz"] = {
                 "credentials_ok": status.get("ok"),
+                "api_live_ok": api_live_ok,
+                "api_key_prefix": status.get("api_key_prefix"),
+                "api_error": api_error,
+                "last_used_at": out["last_check"] if api_live_ok else None,
                 "channels": channels,
                 "channel_count": len(channels),
                 "connect_url": "/api/postiz/oauth/login?brand=swing-shack",
+                "setup": {
+                    "auth_type": "API key + OAuth client",
+                    "env_vars": ["POSTIZ_API_KEY", "POSTIZ_OAUTH_CLIENT_ID", "POSTIZ_OAUTH_CLIENT_SECRET"],
+                    "steps": [
+                        "Postiz dashboard → Settings → API → copy API key to Railway POSTIZ_API_KEY.",
+                        "OAuth client id/secret already on Railway for channel connect.",
+                        "Connect button runs Postiz OAuth; channels list refreshes on this page.",
+                        "Auth header is bare key (no Bearer prefix).",
+                    ],
+                },
             }
         except Exception as exc:
-            out["postiz"] = {"credentials_ok": False, "error": str(exc), "channels": []}
+            out["postiz"] = {"credentials_ok": False, "error": str(exc), "channels": [], "api_live_ok": False}
     else:
-        out["postiz"] = {"credentials_ok": False, "error": "postiz client unavailable", "channels": []}
+        out["postiz"] = {"credentials_ok": False, "error": "postiz client unavailable", "channels": [], "api_live_ok": False}
     if _GBP_OAUTH_AVAILABLE:
         try:
             gbp_creds = _gbp_lib.gbp_oauth_credentials_present()
             token = _gbp_lib.load_token("swing-shack")
+            gbp_last = (token or {}).get("rotated_at") or (token or {}).get("connected_at")
             out["gbp"] = {
                 "credentials_ok": gbp_creds,
                 "token_present": bool(token),
                 "google_account": (token or {}).get("google_account_email"),
                 "rotated_at": (token or {}).get("rotated_at"),
+                "last_used_at": gbp_last,
                 "connect_url": "/api/gbp/oauth/login?brand=swing-shack",
+                "setup": {
+                    "auth_type": "Google OAuth (business.manage scope)",
+                    "env_vars": ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+                    "steps": [
+                        "GCP OAuth client needs business.manage scope + callback /api/gbp/oauth/callback.",
+                        "Click Connect → sign in as GBP owner → token stored on DATA_DIR volume.",
+                        "Publish to GBP listing still routes through Postiz when live publish enabled.",
+                        "Generate 7-day plan works with OAuth alone (dry-run).",
+                    ],
+                },
             }
         except Exception as exc:
             out["gbp"] = {"credentials_ok": False, "error": str(exc)}
@@ -15136,7 +15162,89 @@ def connected_accounts_status_route():
             meta_out["connect_url"] = "/meta-portal"
     except Exception as exc:
         meta_out["error"] = str(exc)
+    meta_out["last_used_at"] = meta_out.get("last_fetch")
+    meta_out["setup"] = {
+        "auth_type": "System user token (Railway env)",
+        "env_vars": ["META_SYSTEM_USER_TOKEN", "META_PAGE_ID", "META_INSTAGRAM_BUSINESS_ACCOUNT_ID"],
+        "steps": [
+            "Token set on Railway as META_SYSTEM_USER_TOKEN (read + publish scopes).",
+            "Use Refresh from Meta on this page to pull latest IG/FB analytics.",
+            "Publishing to IG/FB goes through Postiz, not direct Meta Graph.",
+        ],
+    }
     out["meta"] = meta_out
+
+    catalog = build_catalog_extras()
+    out["categories"] = catalog.get("categories", [])
+    out["integrations"] = catalog.get("integrations", [])
+    out["summary"] = catalog.get("summary", {})
+
+    # Primary cards for publish row (prepend to publish category in UI)
+    primary_publish = []
+    if out.get("postiz"):
+        p = out["postiz"]
+        st = "connected" if p.get("api_live_ok") and p.get("channel_count") else (
+            "degraded" if p.get("credentials_ok") and not p.get("api_live_ok") else (
+                "partial" if p.get("credentials_ok") else "missing"
+            )
+        )
+        primary_publish.append({
+            "id": "postiz",
+            "icon": "📮",
+            "name": "Postiz (publish hub)",
+            "category": "publish",
+            "state": st,
+            "purpose": "Cross-post to Instagram, Facebook, TikTok, X, GBP, YouTube, LinkedIn.",
+            "last_used_at": p.get("last_used_at"),
+            "connect": {"type": "oauth", "url": p.get("connect_url"), "label": "Connect Postiz"},
+            "setup": p.get("setup"),
+            "details": {"channels": p.get("channels", []), "channel_count": p.get("channel_count", 0), "api_key_prefix": p.get("api_key_prefix"), "api_error": p.get("api_error")},
+        })
+    if out.get("gbp"):
+        g = out["gbp"]
+        st = "connected" if g.get("credentials_ok") and g.get("token_present") else (
+            "partial" if g.get("credentials_ok") else "missing"
+        )
+        primary_publish.append({
+            "id": "gbp",
+            "icon": "📍",
+            "name": "Google Business Profile",
+            "category": "publish",
+            "state": st,
+            "purpose": "GBP daily plans, location insights, local SEO posts.",
+            "last_used_at": g.get("last_used_at"),
+            "connect": {"type": "oauth", "url": g.get("connect_url"), "label": "Connect GBP"},
+            "setup": g.get("setup"),
+            "details": {"google_account": g.get("google_account"), "rotated_at": g.get("rotated_at")},
+        })
+    if out.get("meta"):
+        m = out["meta"]
+        primary_publish.append({
+            "id": "meta",
+            "icon": "📊",
+            "name": "Meta Graph (IG + FB read)",
+            "category": "publish",
+            "state": "connected" if m.get("credentials_ok") else "missing",
+            "purpose": "IG + Facebook analytics and insights (read-only via system token).",
+            "last_used_at": m.get("last_used_at"),
+            "connect": {"type": "action", "url": "/api/meta/fetch", "label": "Refresh from Meta", "method": "POST"},
+            "setup": m.get("setup"),
+            "details": {
+                "fan_count": m.get("fan_count"),
+                "ig_followers": m.get("ig_followers"),
+                "page_name": m.get("page_name"),
+                "ig_handle": m.get("ig_handle"),
+                "blockers": m.get("blockers", []),
+            },
+        })
+    for cat in out.get("categories") or []:
+        if cat.get("id") == "publish":
+            existing_ids = {x.get("id") for x in cat.get("items") or []}
+            cat["items"] = primary_publish + [x for x in (cat.get("items") or []) if x.get("id") not in existing_ids]
+            break
+    else:
+        out["categories"] = [{"id": "publish", "label": "Publish", "items": primary_publish}] + (out.get("categories") or [])
+
     return jsonify(out), 200
 
 

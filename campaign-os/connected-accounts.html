@@ -5,191 +5,184 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <title>Connected Accounts — Campaign OS</title>
 <style>
-  :root { color-scheme: dark; }
-  html, body { margin: 0; padding: 0; background: #0a0f1a; color: #e5e7eb;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
-  h1 { font-size: 26px; color: #fbbf24; margin: 0 0 6px; }
-  p.sub { color: #94a3b8; font-size: 14px; margin: 0 0 28px; line-height: 1.6; }
-  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-  .card { background: #1a1f2c; border: 1px solid #2a3142; border-radius: 10px;
-    padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
-  .head { display: flex; align-items: center; gap: 12px; }
-  .icon { font-size: 28px; line-height: 1; }
-  .name { font-size: 17px; font-weight: 700; color: #f3f4f6; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
-    border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  .pill-ok { background: #064e3b; color: #6ee7b7; }
+  :root { color-scheme: dark; --bg: #0a0f1a; --card: #1a1f2c; --border: #2a3142; --tx: #e5e7eb; --muted: #94a3b8; --dim: #64748b; --ac: #fbbf24; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--tx); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 28px 18px 80px; }
+  h1 { font-size: 24px; color: var(--ac); margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin: 0 0 20px; line-height: 1.55; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .toolbar .meta { flex: 1; color: var(--dim); font-size: 12px; min-width: 140px; }
+  a.back { color: var(--muted); font-size: 12px; text-decoration: none; }
+  a.back:hover { color: var(--ac); }
+  .btn { background: var(--ac); color: var(--bg); font-weight: 700; border: 0; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--tx); border-color: #475569; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .sum-pill { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); }
+  .sum-connected { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
+  .sum-partial { background: #78350f; color: #fcd34d; border-color: #92400e; }
+  .sum-degraded { background: #7c2d12; color: #fdba74; border-color: #9a3412; }
+  .sum-missing { background: #1f2937; color: #94a3b8; }
+  .cat { margin-bottom: 28px; }
+  .cat-h { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .acc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .acc summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; user-select: none; }
+  .acc summary::-webkit-details-marker { display: none; }
+  .acc[open] summary { border-bottom: 1px solid var(--border); }
+  .acc-icon { font-size: 26px; line-height: 1; flex-shrink: 0; }
+  .acc-main { flex: 1; min-width: 0; }
+  .acc-title { font-size: 16px; font-weight: 700; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .acc-purpose { font-size: 12px; color: var(--muted); line-height: 1.45; margin: 0; }
+  .acc-meta { font-size: 11px; color: var(--dim); margin-top: 6px; }
+  .acc-meta b { color: var(--muted); font-weight: 600; }
+  .chev { color: var(--dim); font-size: 12px; margin-top: 4px; transition: transform 0.15s; }
+  .acc[open] .chev { transform: rotate(90deg); }
+  .acc-body { padding: 14px 16px 16px; font-size: 13px; color: var(--muted); line-height: 1.55; }
+  .pill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pill-connected { background: #064e3b; color: #6ee7b7; }
+  .pill-partial { background: #78350f; color: #fcd34d; }
+  .pill-degraded { background: #7c2d12; color: #fdba74; }
+  .pill-missing { background: #374151; color: #9ca3af; }
   .pill-err { background: #7f1d1d; color: #fecaca; }
-  .pill-warn { background: #78350f; color: #fcd34d; }
-  .pill-none { background: #1f2937; color: #94a3b8; }
-  .desc { color: #94a3b8; font-size: 13px; line-height: 1.5; }
-  .meta { color: #64748b; font-size: 11px; line-height: 1.5; }
-  .meta b { color: #94a3b8; }
-  .btn-row { display: flex; gap: 8px; margin-top: 4px; }
-  .btn { background: #fbbf24; color: #0a0f1a; font-weight: 700; border: 0;
-    padding: 9px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;
-    text-decoration: none; display: inline-block; }
-  .btn:hover { background: #fcd34d; }
-  .btn-secondary { background: transparent; color: #94a3b8; border: 1px solid #2a3142; }
-  .btn-secondary:hover { background: #1a1f2c; color: #e5e7eb; }
-  .btn:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
-  .channels { display: flex; flex-wrap: wrap; gap: 4px; }
-  .channel-chip { background: #0a0f1a; color: #94a3b8; border: 1px solid #2a3142;
-    border-radius: 4px; padding: 2px 8px; font-size: 10px; }
-  .channel-chip.ok { color: #6ee7b7; border-color: #064e3b; }
-  .refresh-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  .refresh-row .meta { flex: 1; }
-  a.back { color: #94a3b8; font-size: 12px; text-decoration: none; }
-  a.back:hover { color: #fbbf24; }
-  .step-list { color: #94a3b8; font-size: 13px; line-height: 1.7; margin-top: 24px;
-    background: #1a1f2c; border: 1px solid #2a3142; border-radius: 8px; padding: 18px 22px; }
-  .step-list h3 { color: #fbbf24; font-size: 14px; margin: 0 0 8px; }
-  .step-list ol { margin: 0; padding-left: 22px; }
-  .step-list li { margin-bottom: 4px; }
-  code { background: #0a0f1a; padding: 2px 6px; border-radius: 3px; color: #fbbf24;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .channels { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
+  .chip { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; font-size: 10px; color: var(--muted); }
+  .chip.ok { border-color: #065f46; color: #6ee7b7; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .setup h4 { margin: 0 0 6px; font-size: 12px; color: var(--ac); }
+  .setup ol { margin: 0 0 12px; padding-left: 20px; }
+  .setup li { margin-bottom: 4px; }
+  .env-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .env-tag { font-family: ui-monospace, monospace; font-size: 10px; background: var(--bg); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; color: var(--ac); }
+  .err { color: #f87171; font-size: 12px; margin-top: 6px; }
+  code { background: var(--bg); padding: 1px 5px; border-radius: 3px; color: var(--ac); font-size: 11px; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #1e293b; border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; font-size: 13px; z-index: 99; max-width: 360px; display: none; }
+  .toast.ok { border-color: #065f46; }
+  .toast.err { border-color: #991b1b; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="refresh-row">
-    <a class="back" href="/">← back to home</a>
-    <div class="meta" id="last-check"></div>
-    <button class="btn btn-secondary" onclick="loadStatus()">Refresh</button>
+  <div class="toolbar">
+    <a class="back" href="/">← Campaign OS</a>
+    <div class="meta" id="last-check">Checking…</div>
+    <button class="btn btn-ghost" type="button" onclick="loadStatus()">↻ Refresh</button>
   </div>
-  <h1>Connected Accounts</h1>
+  <h1>🔌 Connected Accounts</h1>
   <p class="sub">
-    One click to wire each social / GBP / analytics platform. We never see your password;
-    each Connect button sends you to the platform's own OAuth consent screen. Tokens are
-    stored Fernet-encrypted at rest.
+    Every integration in one place: live status, last successful use, connect actions, and setup steps.
+    Status is refreshed on each load (not cached stale pills).
   </p>
-
-  <div class="grid" id="cards">
-    <div class="card"><div class="meta">Loading…</div></div>
-  </div>
-
-  <div class="step-list">
-    <h3>Why each platform</h3>
-    <ol>
-      <li><b>Postiz</b> — the publish hub. Connected channels appear below with their integration IDs.</li>
-      <li><b>Google Business Profile</b> — required for daily GBP posts (your local SEO + GEO surface).</li>
-      <li><b>Meta Graph (IG + FB)</b> — already wired read-only for analytics; we don't publish through it.</li>
-      <li><b>GA4 + Ubersuggest + YouTube</b> — already wired. Listed below for completeness.</li>
-    </ol>
-  </div>
+  <div class="summary" id="summary"></div>
+  <div id="catalog"><div class="acc"><div class="acc-body">Loading…</div></div></div>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
-const PROVIDERS = {
-  postiz: {
-    icon: "📮",
-    name: "Postiz (publish hub)",
-    desc: "The publish pipe for Instagram, Facebook, TikTok, X, GBP, YouTube, LinkedIn. We post via Postiz so we never trigger Meta's app-review process.",
-  },
-  gbp: {
-    icon: "📍",
-    name: "Google Business Profile",
-    desc: "Direct access to read your locations + write daily posts. Needed for the daily post generator.",
-  },
-  meta: {
-    icon: "📊",
-    name: "Meta Graph (read-only)",
-    desc: "IG + Facebook insights. Wired system-wide via META_SYSTEM_USER_TOKEN. No user action needed.",
-  },
-};
+function toast(msg, kind) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + (kind || '');
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
 
 function pillClass(state) {
-  if (state === "ok") return "pill pill-ok";
-  if (state === "warn") return "pill pill-warn";
-  if (state === "err") return "pill pill-err";
-  return "pill pill-none";
+  return 'pill pill-' + (state || 'missing');
 }
 function pillLabel(state) {
-  if (state === "ok") return "Connected";
-  if (state === "warn") return "Partial";
-  if (state === "err") return "Error";
-  return "Not connected";
+  const m = { connected: 'Connected', partial: 'Partial', degraded: 'Degraded', missing: 'Not set up', err: 'Error' };
+  return m[state] || state || 'Unknown';
 }
 
-function renderPostiz(postiz) {
-  const ok = postiz.credentials_ok;
-  const channels = postiz.channels || [];
-  const channelChips = channels.map(c => {
-    const label = c.provider || "unknown";
-    const cls = c.disabled ? "channel-chip" : "channel-chip ok";
-    return `<span class="${cls}">${label}${c.name ? " · " + c.name : ""}</span>`;
-  }).join("");
-  const state = ok && channels.length > 0 ? "ok" : (ok ? "warn" : "err");
-  return `
-    <div class="card">
-      <div class="head">
-        <span class="icon">${PROVIDERS.postiz.icon}</span>
-        <span class="name">${PROVIDERS.postiz.name}</span>
-        <span class="${pillClass(state)}">${pillLabel(state)}</span>
-      </div>
-      <p class="desc">${PROVIDERS.postiz.desc}</p>
-      <div class="meta">
-        <b>${postiz.channel_count || 0}</b> channel${(postiz.channel_count || 0) === 1 ? "" : "s"} connected
-        ${postiz.error ? " · <b style='color:#f87171'>" + postiz.error + "</b>" : ""}
-      </div>
-      <div class="channels">${channelChips || '<span class="meta">No channels yet</span>'}</div>
-      <div class="btn-row">
-        <a class="btn" href="${postiz.connect_url || '/api/postiz/oauth/login?brand=swing-shack'}">Connect</a>
-      </div>
-    </div>
-  `;
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-function renderGBP(gbp) {
-  const ok = gbp.credentials_ok && gbp.token_present;
-  const state = ok ? "ok" : (gbp.credentials_ok ? "warn" : "err");
-  const account = gbp.google_account ? `<div class="meta">Account: <b>${gbp.google_account}</b></div>` : "";
-  const rotated = gbp.rotated_at ? `<div class="meta">Last connected: <b>${gbp.rotated_at}</b></div>` : "";
-  return `
-    <div class="card">
-      <div class="head">
-        <span class="icon">${PROVIDERS.gbp.icon}</span>
-        <span class="name">${PROVIDERS.gbp.name}</span>
-        <span class="${pillClass(state)}">${pillLabel(state)}</span>
-      </div>
-      <p class="desc">${PROVIDERS.gbp.desc}</p>
-      ${account}${rotated}
-      <div class="meta">${gbp.error ? "<b style='color:#f87171'>" + gbp.error + "</b>" : ""}</div>
-      <div class="btn-row">
-        <a class="btn" href="${gbp.connect_url || '/api/gbp/oauth/login?brand=swing-shack'}">Connect</a>
-      </div>
-    </div>
-  `;
+function renderSetup(setup) {
+  if (!setup) return '';
+  const steps = (setup.steps || []).map(s => '<li>' + esc(s) + '</li>').join('');
+  const envs = (setup.env_vars || []).map(e => '<span class="env-tag">' + esc(e) + '</span>').join('');
+  return '<div class="setup">'
+    + (setup.auth_type ? '<h4>Auth: ' + esc(setup.auth_type) + '</h4>' : '')
+    + (envs ? '<div class="env-tags">' + envs + '</div>' : '')
+    + (steps ? '<ol>' + steps + '</ol>' : '')
+    + '</div>';
 }
 
-function renderMeta(meta) {
-  const state = meta.credentials_ok ? "ok" : "none";
-  // Surface live state — built 2026-08-20.
-  const fan = meta.fan_count != null ? `<div class="meta">FB page fans: <b>${meta.fan_count.toLocaleString()}</b>${meta.page_name ? ' (' + meta.page_name + ')' : ''}</div>` : '';
-  const ig = meta.ig_followers != null ? `<div class="meta">IG followers: <b>${meta.ig_followers.toLocaleString()}</b>${meta.ig_handle ? ' (@' + meta.ig_handle + ')' : ''}</div>` : '';
-  const exp = meta.expires_at ? `<div class="meta">Token expires: <b>${meta.expires_at}</b></div>` : '';
-  const last = meta.last_fetch ? `<div class="meta">Last analytics refresh: <b>${meta.last_fetch}</b></div>` : '';
-  const block = (meta.blockers || []).length
-    ? `<div class="meta" style="margin-top:6px;color:#fcd34d">${meta.blockers.map(b => '⚠ ' + b).join('<br>')}</div>` : '';
-  const cap = (meta.capabilities || []).length
-    ? `<div class="meta" style="margin-top:4px;font-size:10px">${meta.capabilities.join(' · ')}</div>` : '';
-  return `
-    <div class="card">
-      <div class="head">
-        <span class="icon">${PROVIDERS.meta.icon}</span>
-        <span class="name">${PROVIDERS.meta.name}</span>
-        <span class="${pillClass(state)}">${meta.credentials_ok ? 'connected' : 'not connected'}</span>
-      </div>
-      <p class="desc">${PROVIDERS.meta.desc}</p>
-      ${fan}${ig}${exp}${last}
-      ${block}
-      ${cap}
-      <div class="btn-row">
-        <button class="btn" id="meta-refresh-btn" onclick="refreshMeta()">${meta.credentials_ok ? '🔄 Refresh from Meta' : 'Connect Meta'}</button>
-      </div>
-    </div>
-  `;
+function renderChannels(details) {
+  if (!details || !details.channels || !details.channels.length) return '';
+  const chips = details.channels.map(c => {
+    const label = c.provider === 'channel' ? ('channel · ' + (c.name || 'unnamed')) : ((c.provider || 'channel') + (c.name ? ' · ' + c.name : ''));
+    const cls = c.disabled ? 'chip' : 'chip ok';
+    return '<span class="' + cls + '">' + esc(label) + '</span>';
+  }).join('');
+  return '<div class="channels">' + chips + '</div>'
+    + '<div class="acc-meta"><b>' + details.channel_count + '</b> Postiz channel(s)'
+    + (details.api_key_prefix ? ' · key <code>' + esc(details.api_key_prefix) + '</code>' : '')
+    + (details.api_error ? ' · <span class="err">' + esc(String(details.api_error).slice(0, 120)) + '</span>' : '')
+    + '</div>';
+}
+
+function renderDetails(item) {
+  const d = item.details || {};
+  let html = '';
+  if (item.id === 'postiz') html += renderChannels(d);
+  if (item.id === 'gbp' && d.google_account) html += '<div class="acc-meta">Google account: <b>' + esc(d.google_account) + '</b></div>';
+  if (item.id === 'meta') {
+    if (d.fan_count != null) html += '<div class="acc-meta">FB fans: <b>' + Number(d.fan_count).toLocaleString() + '</b>' + (d.page_name ? ' (' + esc(d.page_name) + ')' : '') + '</div>';
+    if (d.ig_followers != null) html += '<div class="acc-meta">IG followers: <b>' + Number(d.ig_followers).toLocaleString() + '</b>' + (d.ig_handle ? ' (@' + esc(d.ig_handle) + ')' : '') + '</div>';
+    if ((d.blockers || []).length) html += '<div class="err">' + d.blockers.map(b => '⚠ ' + esc(b)).join('<br>') + '</div>';
+  }
+  if (item.error) html += '<div class="err">' + esc(item.error) + '</div>';
+  if (item.job_verdict) html += '<div class="acc-meta">Job verdict: <b>' + esc(item.job_verdict) + '</b></div>';
+  if (item.summary) html += '<div class="acc-meta">Mode: <b>' + esc(item.summary) + '</b></div>';
+  return html;
+}
+
+function renderConnect(item) {
+  const c = item.connect || {};
+  if (!c || c.type === 'none') return c.label ? '<span class="acc-meta">' + esc(c.label) + '</span>' : '';
+  if (c.type === 'action' && item.id === 'meta') {
+    return '<div class="btn-row"><button class="btn" type="button" id="meta-refresh-btn" onclick="refreshMeta()">🔄 Refresh from Meta</button></div>';
+  }
+  if (c.url && c.type !== 'action') {
+    return '<div class="btn-row"><a class="btn" href="' + esc(c.url) + '">' + esc(c.label || 'Connect') + '</a></div>';
+  }
+  return '';
+}
+
+function renderAccordion(item) {
+  const last = item.last_used_label || (item.last_used_at ? item.last_used_at : 'never');
+  const open = item.state === 'missing' || item.state === 'degraded' ? ' open' : '';
+  return '<details class="acc"' + open + '>'
+    + '<summary>'
+    + '<span class="acc-icon">' + esc(item.icon || '🔌') + '</span>'
+    + '<span class="acc-main">'
+    + '<div class="acc-title">' + esc(item.name) + ' <span class="' + pillClass(item.state) + '">' + pillLabel(item.state) + '</span></div>'
+    + '<p class="acc-purpose">' + esc(item.purpose || '') + '</p>'
+    + '<div class="acc-meta">Last use: <b>' + esc(last) + '</b></div>'
+    + '</span>'
+    + '<span class="chev">▸</span>'
+    + '</summary>'
+    + '<div class="acc-body">'
+    + renderDetails(item)
+    + renderConnect(item)
+    + renderSetup(item.setup)
+    + '</div>'
+    + '</details>';
+}
+
+function renderSummary(sum) {
+  if (!sum) return '';
+  const parts = [];
+  if (sum.connected) parts.push('<span class="sum-pill sum-connected">' + sum.connected + ' connected</span>');
+  if (sum.partial) parts.push('<span class="sum-pill sum-partial">' + sum.partial + ' partial</span>');
+  if (sum.degraded) parts.push('<span class="sum-pill sum-degraded">' + sum.degraded + ' degraded</span>');
+  if (sum.missing) parts.push('<span class="sum-pill sum-missing">' + sum.missing + ' not set up</span>');
+  return parts.join('');
 }
 
 async function refreshMeta() {
@@ -199,46 +192,45 @@ async function refreshMeta() {
   btn.disabled = true;
   btn.textContent = '⏳ Fetching…';
   try {
-    const r = await fetch('/api/meta/fetch', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({brand_id: 'swing-shack'}),
-    });
+    const r = await fetch('/api/meta/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brand_id: 'swing-shack' }) });
     const d = await r.json();
     if (d.ok) {
-      btn.textContent = `✓ ${d.ig_posts} IG posts · ${d.fb_fan_count || 0} FB fans`;
-      toast('Meta refreshed: ' + (d.ig_posts || 0) + ' IG posts, ' + (d.fb_posts || 0) + ' FB posts, ' + (d.fb_fan_count || 0) + ' FB fans', 'ok');
-      setTimeout(() => loadStatus(), 1500);
+      toast('Meta refreshed: ' + (d.ig_posts || 0) + ' IG posts', 'ok');
+      setTimeout(loadStatus, 1200);
     } else {
-      btn.textContent = orig;
       toast('Meta refresh failed: ' + (d.error || 'unknown'), 'err');
     }
   } catch (e) {
-    btn.textContent = orig;
     toast('Meta refresh failed: ' + e.message, 'err');
   } finally {
     btn.disabled = false;
-    setTimeout(() => { if (btn) btn.textContent = orig; }, 5000);
+    btn.textContent = orig;
   }
 }
 
 async function loadStatus() {
-  document.getElementById("cards").innerHTML = '<div class="card"><div class="meta">Loading…</div></div>';
+  document.getElementById('catalog').innerHTML = '<div class="acc"><div class="acc-body">Loading…</div></div>';
   try {
-    const r = await fetch("/api/connected-accounts/status");
+    const r = await fetch('/api/connected-accounts/status');
     const d = await r.json();
     if (!d.ok) {
-      document.getElementById("cards").innerHTML = '<div class="card"><div class="meta">Failed to load: ' + (d.error || "unknown") + '</div></div>';
+      document.getElementById('catalog').innerHTML = '<div class="err">Failed: ' + esc(d.error || 'unknown') + '</div>';
       return;
     }
-    document.getElementById("last-check").innerHTML = "Last checked: <b>" + (d.last_check || "—") + "</b>";
-    const cards = [];
-    if (d.postiz) cards.push(renderPostiz(d.postiz));
-    if (d.gbp) cards.push(renderGBP(d.gbp));
-    if (d.meta) cards.push(renderMeta(d.meta));
-    document.getElementById("cards").innerHTML = cards.join("");
+    document.getElementById('last-check').innerHTML = 'Last checked: <b>' + esc(d.last_check || '—') + '</b>';
+    document.getElementById('summary').innerHTML = renderSummary(d.summary);
+    const cats = d.categories || [];
+    if (!cats.length) {
+      document.getElementById('catalog').innerHTML = '<div class="acc-body">No integrations configured.</div>';
+      return;
+    }
+    document.getElementById('catalog').innerHTML = cats.map(cat =>
+      '<section class="cat"><h2 class="cat-h">' + esc(cat.label || cat.id) + '</h2>'
+      + (cat.items || []).map(renderAccordion).join('')
+      + '</section>'
+    ).join('');
   } catch (e) {
-    document.getElementById("cards").innerHTML = '<div class="card"><div class="meta">Fetch failed: ' + e.message + '</div></div>';
+    document.getElementById('catalog').innerHTML = '<div class="err">Fetch failed: ' + esc(e.message) + '</div>';
   }
 }
 
