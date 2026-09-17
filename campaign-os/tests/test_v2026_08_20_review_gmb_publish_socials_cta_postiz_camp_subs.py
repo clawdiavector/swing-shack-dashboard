@@ -173,7 +173,7 @@ class SevenPlaceholderDashesGone(unittest.TestCase):
         # The test patterns must include the optional leading quote so the
         # regex actually matches the line that overwrites the sub.
         contract = [
-            ("review-summary",  r"\$\(['\"]\#review-summary['\"]\)\.textContent\s*=\s*r\.summary"),
+            ("review-summary",  r"summaryEl\.textContent\s*=\s*`\$\{s\.pending"),
             ("gmb-summary",     r"const\s+summary\s*=\s*\$\(['\"]\#gmb-summary['\"]\)"),
             ("publish-summary", r"\$\(['\"]\#publish-summary['\"]\)\.textContent\s*=\s*p\.summary"),
             # socials uses a local `summary` var instead of a chained selector.

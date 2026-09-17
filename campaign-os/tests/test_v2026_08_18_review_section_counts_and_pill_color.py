@@ -87,7 +87,7 @@ class ReviewSectionCountsAndPillColorTest(unittest.TestCase):
         ]:
             # Use re.search (not assertRegex) + a small window so we can
             # give a clearer error message when the test fails.
-            pattern = rf"_countEls\.{label}\s*[\)&]?[\s\S]{{0,40}}?_countEls\.{label}\.textContent\s*=\s*\(\s*r\.{key}\s*\|\|\s*\[\]\s*\)\.length"
+            pattern = rf"_countEls\.{label}\s*[\)&]?[\s\S]{{0,120}}?_countEls\.{label}\.textContent\s*=\s*{key}Items\.length"
             with self.subTest(badge=label):
                 self.assertRegex(
                     self.html, pattern,

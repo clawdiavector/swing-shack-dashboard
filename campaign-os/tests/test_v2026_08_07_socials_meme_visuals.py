@@ -37,9 +37,14 @@ class SocialsMemeVisualsApiTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmpdir = Path(tempfile.mkdtemp(prefix="campaign-os-socials-"))
         os.environ["DATA_DIR"] = str(cls.tmpdir)
+        bundled = str(REPO_ROOT / "data")
+        os.environ["BUNDLED_DATA_DIR"] = bundled
         sys.path.insert(0, str(CAMPAIGN_OS))
         import app as campaign_app
 
+        # app.DATA_DIR is bound at import time — re-sync when env changes
+        # (full CI allowlist sets DATA_DIR before this class loads).
+        campaign_app.DATA_DIR = str(cls.tmpdir)
         cls.module = campaign_app
         cls.flask_app = campaign_app.app
         cls.client = cls.flask_app.test_client()
@@ -238,7 +243,8 @@ class MemeTemplatesTests(SocialsMemeVisualsApiTests):
 class ImageFromAssetAutoComposeTests(SocialsMemeVisualsApiTests):
     def setUp(self):
         super().setUp() if hasattr(super(), 'setUp') else None  # unittest auto
-        from _lib import image_gen_router as _igr
+        self.module.DATA_DIR = str(self.tmpdir)
+        os.environ["DATA_DIR"] = str(self.tmpdir)
 
         captured_holder = {}
 
@@ -252,22 +258,29 @@ class ImageFromAssetAutoComposeTests(SocialsMemeVisualsApiTests):
             )
 
         self._captured = captured_holder
-        self._fake_gen = fake_gen
-        # Save original
-        self._orig_gen = _igr.generate_image
-        _igr.generate_image = fake_gen
-        self._orig_eac = self.module._extract_asset_context
-        self.module._extract_asset_context = lambda aid, brand: ("TrackMan hero shot", "visual")
+        # patch() survives _lib.* reloads from job/inbox fixtures in CI allowlist
+        self._extract_patcher = patch.object(
+            self.module,
+            "_extract_asset_context",
+            return_value=("TrackMan hero shot", "visual"),
+        )
+        self._gate_patcher = patch.object(self.module, "_llm_spend_gate", return_value=None)
+        self._gen_patcher = patch("_lib.image_gen_router.generate_image", side_effect=fake_gen)
+        self._extract_patcher.start()
+        self._gate_patcher.start()
+        self._gen_patcher.start()
 
     def tearDown(self):
-        from _lib import image_gen_router as _igr
-        _igr.generate_image = self._orig_gen
-        self.module._extract_asset_context = self._orig_eac
+        for name in ("_gen_patcher", "_gate_patcher", "_extract_patcher"):
+            patcher = getattr(self, name, None)
+            if patcher is not None:
+                patcher.stop()
 
     def test_auto_composes_layers_by_default(self):
         """Without override_prompt, from-asset loads all 4 layers."""
         r = self.client.post("/api/image/from-asset/takomo-101t-hero-c",
                              json={"campaignId": "swing-shack", "human_approved": True})
+        self.assertEqual(r.status_code, 200, r.get_json())
         # Capture object should have been touched (composition attempted)
         self.assertIn("reference_dnas", self._captured)
         self.assertIn("product_service_items", self._captured)
