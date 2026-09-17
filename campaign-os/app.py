@@ -15814,6 +15814,11 @@ def today_panel():
     # Today page's reviewTotal computation) so the numbers agree across
     # surfaces.
     panel_counts = brief.get('counts') or {}
+    # V1.1 §8: Brief actions surfaced alongside Today cards.
+    # Lists canonical Calendar opportunities with Create Brief /
+    # View Brief / Review Brief affordances based on existing-brief
+    # state. Brand scoped via `get_brand_id()` (current session brand).
+    brief_actions = _today_brief_actions()
     return jsonify({
         'ok': True,
         'ts': _now_iso(),
@@ -15829,7 +15834,73 @@ def today_panel():
             'scheduled': int(panel_counts.get('scheduled') or 0),
             'total': int(panel_counts.get('total') or 0),
         },
+        # V1.1 §8: Brief opportunities + actions
+        'brief_actions': brief_actions,
     })
+
+
+def _today_brief_actions() -> dict:
+    """V1.1 §8: build Brief action cards for the Today panel.
+
+    For each canonical Calendar opportunity in the current
+    brand, surface either:
+      - 'Create Brief' (no existing Brief)
+      - 'View Brief' (existing Brief, any status)
+      - 'Review Brief' (existing Brief, status=draft)
+
+    Capped at 6 per brand to keep the panel scannable.
+    """
+    try:
+        from _lib import campaign_brief as cb
+    except Exception:
+        return {"actions": [], "note": "campaign_brief unavailable"}
+    bid = get_brand_id()
+    if bid not in cb.ALLOWED_BRAND_IDS:
+        return {"actions": []}
+    actions = []
+    opps = cb.get_brief_opportunities(bid)
+    # Run gate for each so we know if it would BRIEF / WATCH / IGNORE
+    for opp in opps[:6]:
+        event_key = opp.get("event_key") or opp.get("id") or ""
+        existing = cb._find_active_brief(bid, event_key)
+        if existing:
+            actions.append({
+                "event_key": event_key,
+                "name": opp.get("name"),
+                "action": ("review_brief"
+                            if existing.get("status") == cb.STATUS_DRAFT
+                            else "view_brief"),
+                "brief_id": existing.get("brief_id"),
+                "brief_status": existing.get("status"),
+                "creative_allowed": existing.get("creative_allowed"),
+                "brief_revision": existing.get("revision"),
+            })
+        else:
+            # No existing brief — surface "Create Brief" if gate
+            # would clear.
+            try:
+                pmx = cb._pillar_mix(bid)
+                pcov = cb._pillar_coverage_signal(pmx, bid)
+                ri = cb._ri_signals(bid, 31)
+                gate = cb._opportunity_gate(bid, opp, ri, pmx, pcov)
+                actions.append({
+                    "event_key": event_key,
+                    "name": opp.get("name"),
+                    "action": "create_brief"
+                              if gate.get("gate") == cb.GATE_BRIEF
+                              else f"watch_or_ignore:{gate.get('gate')}",
+                    "gate": gate.get("gate"),
+                    "gate_confidence": gate.get("confidence"),
+                })
+            except Exception:
+                actions.append({
+                    "event_key": event_key,
+                    "name": opp.get("name"),
+                    "action": "create_brief",
+                    "gate": "unverified",
+                })
+    return {"brand_id": bid, "count": len(actions),
+            "actions": actions}
 
 
 @app.route('/api/intel/post_conversion_score', methods=['GET'])
@@ -22124,27 +22195,31 @@ def brief_v1_pillar_coverage():
 
 @app.route('/api/brief/v1/create', methods=['POST'])
 def brief_v1_create():
-    """POST /api/brief/v1/create — body: {brand_id, opportunity_id, days?}
+    """POST /api/brief/v1/create — body: {brand_id, opportunity_id, days?, force?}
 
     Per brief §1: Calendar opportunity → Reporting Intelligence →
     pillar coverage → unclassified audit → gate → BRIEF schema.
 
-    Returns either a full Brief (status=draft) or a gate
-    decision (status=watch | ignore) for opportunities that
-    do not clear the opportunity gate."""
+    V1.1 §9: refuses creation for IGNORE gate, leaves WATCH
+    watchlisted, surfaces duplicates, supports force=True.
+
+    Returns either a full Brief (status=draft), a gate
+    decision (WATCH / IGNORE), or a duplicate error.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     body = request.get_json(silent=True) or {}
     bid = (body.get("brand_id") or "").strip()
     opp = (body.get("opportunity_id") or "").strip()
     days = int(body.get("days") or 31)
+    force = bool(body.get("force") or False)
     if bid not in BRIEF_V1_BRAND_ALLOWED:
         return jsonify({"ok": False,
                         "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
     if not opp:
         return jsonify({"ok": False, "error": "opportunity_id required"}), 400
     cb = _cb_import()
-    r = cb.create_brief(bid, opp, days)
+    r = cb.create_brief(bid, opp, days, force=force)
     status = 200 if r.get("ok") else 400
     return jsonify(r), status
 
@@ -22186,9 +22261,11 @@ def brief_v1_get(brand_id, brief_id):
 def brief_v1_patch(brand_id, brief_id):
     """PATCH /api/brief/v1/<brand_id>/<brief_id> — append-only revision.
 
-    Body: any subset of brief schema fields. revision counter
-    increments; previous revisions persisted under
-    data/briefs/<brand_id>/<brief_id>/revisions/rev-NNNN.json.
+    Body: any subset of brief schema fields + optional `actor`.
+    Revision counter increments; previous revisions persisted
+    under data/briefs/<brand_id>/<brief_id>/revisions/rev-NNNN.json.
+
+    V1.1 §10: tracks operator_edit provenance per editable field.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -22196,9 +22273,39 @@ def brief_v1_patch(brand_id, brief_id):
         return jsonify({"ok": False,
                         "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
     body = request.get_json(silent=True) or {}
+    actor = body.pop("actor", "operator") or "operator"
     cb = _cb_import()
-    r = cb.update_brief(brand_id, brief_id, body)
+    r = cb.update_brief(brand_id, brief_id, body, actor=actor)
     return jsonify(r), (200 if r.get("ok") else 400)
+
+
+@app.route('/api/brief/v1/<brand_id>/find-by-event/<event_key>',
+           methods=['GET'])
+def brief_v1_find_by_event(brand_id, event_key):
+    """GET /api/brief/v1/<brand_id>/find-by-event/<event_key>
+
+    V1.1 §9: helper to check for an existing Brief for a given
+    canonical event_key. Returns existing brief + status, or
+    404 if none exists. Used by Today UI to surface 'Create
+    Brief' vs 'View Brief' without listing all briefs."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    b = cb._find_active_brief(brand_id, event_key)
+    if not b:
+        return jsonify({"ok": True, "brand_id": brand_id,
+                        "event_key": event_key, "exists": False}), 200
+    return jsonify({"ok": True, "brand_id": brand_id,
+                    "event_key": event_key, "exists": True,
+                    "brief": {
+                        "brief_id": b.get("brief_id"),
+                        "status": b.get("status"),
+                        "revision": b.get("revision"),
+                        "creative_allowed": b.get("creative_allowed"),
+                    }}), 200
 
 
 @app.route('/api/brief/v1/<brand_id>/<brief_id>/transition', methods=['POST'])

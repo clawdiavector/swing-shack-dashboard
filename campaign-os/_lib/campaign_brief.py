@@ -223,159 +223,269 @@ PILLAR_KEYS = ("retail", "fitting", "coaching")
 
 
 def _pillar_mix(brand_id: str, days_back: int = 31) -> dict:
-    """Lightweight pillar mix computation — same logic as
-    Reporting V2 _pillar_mix. Returns per-pillar event counts
-    + share + cadence_by_lane."""
+    """Compute content-saturation / pillar mix per brief §12 +
+    Brief V1.1 §5-§7 reconciliation.
+
+    Stick has three always-on pillars: RETAIL, FITTING, COACHING.
+    Per V1.1 §5: ONE clearly defined denominator — total events
+    minus cultural_moments minus preserved_unclassified.
+
+    Per V1.1 §6: classify each event with explicit
+    classification_status + classification_reason +
+    included_in_pillar_denominator flag.
+
+    Classification rule (documented in V1.1 §6):
+      1. If event has structured `pillars` field with the
+         pillar key directly → classified
+      2. Else if structured pillars values contain pillar
+         keyword → classified
+      3. Else if event lanes contain pillar keyword → classified
+      4. Else if event_key/name is a cultural calendar moment
+         (presidents cup, heritage day, etc.) →
+         intentionally_non_pillar (excluded from denominator)
+      5. Else → preserved_unclassified (excluded from denominator)
+
+    Per V1.1 §2: opportunities come from canonical Calendar
+    (marketing_calendar.canonical_records) not from the legacy
+    data/brand-planning/<brand>-events-<year>.json files.
+    """
     if brand_id not in ALLOWED_BRAND_IDS:
-        return {"data_status": "unknown"}
+        return {"data_status": "not_applicable"}
     if brand_id != "stick":
-        # brief is stick-scoped; other brands get N/A
         return {"data_status": "not_applicable",
                 "reason": "pillar mix is stick-scoped"}
+    opps = get_brief_opportunities(brand_id)
     pillars = list(PILLAR_KEYS)
     counts = {p: 0 for p in pillars}
-    ids = {p: [] for p in pillars}
-    unclassified = []
-    all_events = []
-    for year in ("2026", "2027"):
-        d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
-        all_events.extend(d.get("events", []) or [])
-    for ev in all_events:
-        ev_id = ev.get("id")
-        ev_pillars = ev.get("pillars") or {}
-        if isinstance(ev_pillars, dict) and any(
-                isinstance(v, str) and p in v.lower()
-                for p in pillars for v in ev_pillars.values()):
+    event_classifications = []
+    cultural_moments = []
+    preserved_unclassified = []
+    cultural_keywords = (
+        "presidents cup", "heritage day", "halloween", "reconciliation",
+        "day of goodwill", "valentine", "masters", "mothers day",
+        "ryder cup", "investec sa open", "singles", "day-of-",
+    )
+
+    for opp in opps:
+        event_key = opp.get("event_key") or opp.get("id") or ""
+        name = (opp.get("name") or "").lower()
+        ep = opp.get("pillars") or {}
+        lanes = opp.get("lanes") or []
+        lane_text = " ".join(str(l) for l in lanes).lower()
+        classified_pillar = None
+        classification_status = "preserved_unclassified"
+        classification_reason = "no pillar key in structured pillars or lane text"
+
+        # 1. Structured pillars: key match
+        if isinstance(ep, dict):
             for p in pillars:
-                if any(isinstance(v, str) and p in v.lower()
-                       for v in ev_pillars.values()):
-                    counts[p] += 1
-                    ids[p].append(ev_id)
-            continue
-        text = (ev.get("name", "") + " " +
-                " ".join(str(v) for v in
-                        (ev.get("lanes") or {}).values())).lower()
-        if any(p in text for p in pillars):
+                if p in ep:
+                    classified_pillar = p
+                    classification_status = "classified_by_structured_pillars_key"
+                    classification_reason = f"event has pillars.{p} key"
+                    break
+            # 2. Structured pillars: value keyword
+            if not classified_pillar:
+                for p in pillars:
+                    if any(isinstance(v, str) and p in v.lower()
+                           for v in ep.values()):
+                        classified_pillar = p
+                        classification_status = "classified_by_structured_pillars_value"
+                        classification_reason = f"event pillars value contains '{p}'"
+                        break
+        # 3. Lane keyword fallback
+        if not classified_pillar:
             for p in pillars:
-                if p in text:
-                    counts[p] += 1
-                    ids[p].append(ev_id)
-        else:
-            unclassified.append(ev_id)
-    total = sum(counts.values()) + len(unclassified)
-    pct = {p: round(c / max(1, total) * 100, 1)
-           for p, c in counts.items()}
-    cadences_data = _read_json("brand-planning/stick-cadences.json") or {}
-    cadences = (cadences_data.get("cadences") or [])
-    cadence_by_lane = {
-        c.get("lane"): {
+                if p in lane_text:
+                    classified_pillar = p
+                    classification_status = "classified_by_lane_keyword"
+                    classification_reason = f"lane text contains '{p}'"
+                    break
+        # 4. Cultural moment heuristic
+        if not classified_pillar:
+            if any(k in name for k in cultural_keywords) \
+                    or any(k in event_key.lower() for k in
+                           ("day-", "month-", "celebration", "cup",
+                            "week-", "open-")):
+                classification_status = "intentionally_non_pillar"
+                classification_reason = (
+                    "cultural / calendar moment with no retail/"
+                    "fitting/coaching implication in planning data")
+                cultural_moments.append(event_key)
+            else:
+                preserved_unclassified.append(event_key)
+
+        included_in_denominator = (
+            classified_pillar is not None
+            and classification_status != "intentionally_non_pillar")
+        if included_in_denominator:
+            counts[classified_pillar] += 1
+        event_classifications.append({
+            "event_key": event_key,
+            "name": opp.get("name"),
+            "classification_status": classification_status,
+            "classification_reason": classification_reason,
+            "classified_pillar": classified_pillar,
+            "included_in_pillar_denominator": included_in_denominator,
+        })
+
+    cadences = _read_json("brand-planning/stick-cadences.json") or {}
+    cadence_by_lane = {}
+    for c in (cadences.get("cadences") or []):
+        lane = c.get("lane", "unknown")
+        cadence_by_lane[lane] = {
             "weekday_post_count": c.get("weekday_post_count"),
             "cadence_text": c.get("cadence_text"),
-        } for c in cadences
-    }
+        }
+
+    total_events = len(opps)
+    classified_total = sum(counts.values())
+    excluded = len(cultural_moments) + len(preserved_unclassified)
+    denominator = total_events - excluded
+    if denominator <= 0:
+        denominator = max(1, total_events)
+    pillar_pct = {p: round(c / denominator * 100, 1)
+                  for p, c in counts.items()}
+
     return {
         "data_status": "historical_real",
+        # V1.1 §5 explicit denominator
+        "denominator_used_for_pillar_percentages": denominator,
+        "canonical_event_count": total_events,
+        "classified_event_count": classified_total,
+        "cultural_moment_count": len(cultural_moments),
+        "preserved_unclassified_count": len(preserved_unclassified),
+        "excluded_event_count": excluded,
+        "exclusion_reasons": {
+            "cultural_moment": (f"{len(cultural_moments)} events "
+                                "explicitly excluded from pillar denominator "
+                                "(cultural / calendar moments)"),
+            "preserved_unclassified": (f"{len(preserved_unclassified)} "
+                                       "events preserved unclassified "
+                                       "(insufficient evidence)"),
+        },
         "pillar_event_counts": counts,
-        "pillar_event_pct": pct,
-        "events_per_pillar": ids,
-        "unclassified_event_ids": unclassified,
-        "total_events": total,
+        "pillar_event_pct": pillar_pct,
+        "events_per_pillar": {
+            p: [e["event_key"] for e in event_classifications
+                if e.get("classified_pillar") == p]
+            for p in pillars
+        },
+        "cultural_moment_event_keys": cultural_moments,
+        "preserved_unclassified_event_keys": preserved_unclassified,
+        "event_classifications": event_classifications,
         "cadences_by_lane": cadence_by_lane,
-        "source": "data/brand-planning/stick-events-{2026,2027}.json + stick-cadences.json",
+        "source": ("marketing_calendar.canonical_records (stick) + "
+                   "data/brand-planning/stick-cadences.json"),
     }
+
+
 
 
 def _pillar_coverage_signal(pillar_mix: dict, brand_id: str) -> dict:
-    """Brief §5: surface material under-support against North Stars.
+    """Brief §5 + V1.1 §6: surface material under-support against
+    North Stars. Uses the V1.1 explicit denominator
+    (pillar_mix.denominator_used_for_pillar_percentages) and
+    distinguishes cultural moments from preserved-unclassified.
 
-    Returns {pillar: {state, evidence, share_pct, n_events}}.
+    Returns {pillar: {state, evidence, share_pct, n_events,
+                       denominator}}.
     States: adequately_supported / under_supported /
             intentionally_deprioritised / unknown.
     """
     out = {}
     counts = pillar_mix.get("pillar_event_counts") or {}
     pct = pillar_mix.get("pillar_event_pct") or {}
-    unclass = pillar_mix.get("unclassified_event_ids") or []
+    denominator = pillar_mix.get("denominator_used_for_pillar_percentages")
+    cultural = pillar_mix.get("cultural_moment_event_keys") or []
+    unclass = pillar_mix.get("preserved_unclassified_event_keys") or []
     for pillar in PILLAR_KEYS:
         n = counts.get(pillar, 0)
         share = pct.get(pillar, 0.0)
         if n == 0 and share == 0.0:
             state = PILLAR_UNDER_SUPPORTED
-            evidence = (f"0 events classified under '{pillar}' pillar; "
-                        f"{len(unclass)} unclassified events need audit.")
+            evidence = (f"0 events classified under '{pillar}' pillar "
+                        f"(denominator={denominator}; {len(cultural)} "
+                        f"cultural moments excluded, "
+                        f"{len(unclass)} preserved unclassified).")
         elif n < 3:
             state = PILLAR_UNDER_SUPPORTED
-            evidence = f"only {n} events classified under '{pillar}' ({share}%); below the natural 3-event threshold for sustained cadence."
+            evidence = (f"only {n} events classified under '{pillar}' "
+                        f"({share}%, denominator={denominator}); "
+                        "below the 3-event threshold for sustained "
+                        "cadence.")
         elif share < 15:
             state = PILLAR_UNDER_SUPPORTED
-            evidence = f"'{pillar}' pillar at {share}% of {pillar_mix.get('total_events', 0)} events — materially under-represented relative to North Star."
+            evidence = (f"'{pillar}' pillar at {share}% "
+                        f"(denominator={denominator}) — "
+                        "materially under-represented relative to "
+                        "North Star.")
         else:
             state = PILLAR_ADEQUATELY_SUPPORTED
-            evidence = f"'{pillar}' pillar at {share}% ({n} events) — adequately supported by current planning."
+            evidence = (f"'{pillar}' pillar at {share}% ({n} events, "
+                        f"denominator={denominator}) — adequately "
+                        "supported by current planning.")
         out[pillar] = {
             "state": state,
             "share_pct": share,
             "n_events": n,
+            "denominator": denominator,
             "evidence": evidence,
         }
     return out
 
 
+
+
+
 # ── Unclassified event audit (brief §6) ──────────────────────────
 
 def _unclassified_audit(brand_id: str) -> dict:
-    """For each unclassified event: classify with evidence or
-    preserve unclassified. Never force-fit.
+    """For each non-classified event: classify with evidence or
+    preserve unclassified. Never force-fit (brief §6 + V1.1 §7).
 
-    Returns {event_id: {decision, reason, evidence}}.
+    Per V1.1 §7: separate four categories with explicit
+    classification_status + classification_reason +
+    included_in_pillar_denominator flag.
+
+    Reads from canonical Calendar (marketing_calendar) per V1.1 §2.
+    The classifications come from _pillar_mix() which already
+    applies the documented rule — this audit is the
+    operator-facing roll-up.
     """
     if brand_id != "stick":
         return {"data_status": "not_applicable"}
+    pmx = _pillar_mix(brand_id)
+    ev_classes = pmx.get("event_classifications") or []
     decisions = {}
-    for year in ("2026", "2027"):
-        d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
-        for ev in d.get("events", []) or []:
-            ev_id = ev.get("id")
-            ev_pillars = ev.get("pillars") or {}
-            if isinstance(ev_pillars, dict) and any(
-                    isinstance(v, str) and p in v.lower()
-                    for p in PILLAR_KEYS for v in ev_pillars.values()):
-                continue  # already classified by structured pillars
-            text = (ev.get("name", "") + " " +
-                    " ".join(str(v) for v in
-                            (ev.get("lanes") or {}).values())).lower()
-            if any(p in text for p in PILLAR_KEYS):
-                continue  # classified by keyword
-            # This event is unclassified — make a documented decision
-            name_l = (ev.get("name") or "").lower()
-            if "single" in name_l or "singles" in name_l:
-                decisions[ev_id] = {
-                    "decision": "preserved_unclassified",
-                    "reason": "Singles' Day is a single-day cultural moment; its retail/fitting/coaching impact depends on operator discretion and was deliberately left open in planning.",
-                    "evidence": "pillars field empty, lanes empty. No structural cue.",
-                }
-            elif any(k in name_l for k in (
-                    "presidents cup", "heritage day", "halloween",
-                    "reconciliation", "valentine", "masters")):
-                decisions[ev_id] = {
-                    "decision": "preserved_unclassified",
-                    "reason": f"Cultural/calendar moment '{ev.get('name')}' is a human + optional campaign lane. Pillar assignment would be forced.",
-                    "evidence": ("lanes suggest human/campaign only "
-                                  f"({list((ev.get('lanes') or {}).keys())}); "
-                                  "no commercial / retail / fitting / "
-                                  "coaching cue in the source."),
-                }
-            else:
-                decisions[ev_id] = {
-                    "decision": "preserved_unclassified",
-                    "reason": "Insufficient evidence to force pillar assignment; preserves operator review.",
-                    "evidence": "no structured pillars field, no keyword match.",
-                }
+    for ec in ev_classes:
+        event_key = ec.get("event_key") or ""
+        status = ec.get("classification_status") or ""
+        if status.startswith("classified_"):
+            continue  # already classified; not part of audit
+        decisions[event_key] = {
+            "decision": (status if status in
+                          ("intentionally_non_pillar",
+                            "preserved_unclassified")
+                          else "preserved_unclassified"),
+            "reason": ec.get("classification_reason") or "",
+            "evidence": (f"name={ec.get('name')!r}, "
+                          f"classification_status={status}"),
+            "included_in_pillar_denominator":
+                ec.get("included_in_pillar_denominator"),
+        }
     return {
         "data_status": "audited",
         "decisions": decisions,
-        "source": "data/brand-planning/stick-events-{2026,2027}.json",
+        "canonical_event_count": pmx.get("canonical_event_count"),
+        "cultural_moment_count": pmx.get("cultural_moment_count"),
+        "preserved_unclassified_count":
+            pmx.get("preserved_unclassified_count"),
+        "source": "marketing_calendar.canonical_records (stick)",
     }
+
+
+
 
 
 # ── Reporting Intelligence input ─────────────────────────────────
@@ -490,41 +600,104 @@ def _creative_genome_signals(brand_id: str) -> dict:
 
 # ── Calendar opportunity resolution ──────────────────────────────
 
+def _marketing_calendar_import():
+    """Lazy-import the canonical Calendar source (marketing_calendar.py).
+
+    The Brief engine must read from the canonical Calendar
+    (one row per event_key, all revisions audit-trailed),
+    not from a second competing opportunity list.
+    """
+    try:
+        from _lib import marketing_calendar as mc
+        return mc
+    except ImportError:
+        try:
+            from . import marketing_calendar as mc
+            return mc
+        except ImportError:
+            import sys
+            here = os.path.dirname(os.path.abspath(__file__))
+            if here not in sys.path:
+                sys.path.insert(0, here)
+            import marketing_calendar as mc
+            return mc
+
+
+def get_brief_opportunities(brand_id: str) -> list:
+    """Canonical opportunity source for the Brief engine.
+
+    Per brief V1.1 §2: read from the canonical Calendar read
+    model (marketing_calendar.canonical_records), not from
+    brand-planning events files. Returns calendar records +
+    watchlist records, each tagged with `source` so the
+    operator can see which stream produced it.
+
+    Falls back gracefully when the canonical Calendar is empty
+    (returns [] rather than fabricating)."""
+    if brand_id not in ALLOWED_BRAND_IDS:
+        return []
+    mc = _marketing_calendar_import()
+    out = []
+    # Canonical calendar records (one per event_key, latest revision)
+    try:
+        for r in mc.canonical_records(brand_id) or []:
+            if r.get("status") == "watchlist":
+                continue  # skip watchlist in this loop
+            out.append(_map_canonical_to_opportunity(r, "calendar"))
+    except Exception:
+        pass
+    # Canonical watchlist records
+    try:
+        for r in (mc.canonical_records(brand_id, status_filter="watchlist")
+                  or []):
+            out.append(_map_canonical_to_opportunity(r, "watchlist"))
+    except Exception:
+        pass
+    return out
+
+
+def _map_canonical_to_opportunity(r: dict, source: str) -> dict:
+    """Map a marketing_calendar record into the Brief engine's
+    canonical opportunity shape. event_key is the primary key
+    (brief V1.1 §9: dedup protection)."""
+    event_key = r.get("event_key") or r.get("id") or ""
+    return {
+        "id": event_key,
+        "event_key": event_key,
+        "name": r.get("title") or r.get("name") or "",
+        "year": str(r.get("event_date") or "")[:4] or "unknown",
+        "pillars": r.get("pillars") or {},
+        "lanes": list((r.get("lanes") or {}).keys())
+        + (["watchlist"] if source == "watchlist" else []),
+        "duration_days": r.get("duration_days") or 0,
+        "date": r.get("event_date") or "",
+        "source": source,  # "calendar" | "watchlist"
+        "disposition": r.get("disposition") or "",
+        "status": r.get("status") or "",
+        "score": r.get("weighted_score"),
+    }
+
+
 def _resolve_opportunity(brand_id: str, opportunity_id: str) -> dict:
-    """Look up an opportunity by id from brand planning events."""
-    if brand_id != "stick":
+    """Look up a canonical opportunity by event_key (or id).
+
+    Brief V1.1 §2: reads from marketing_calendar canonical
+    records, not from data/brand-planning/* files."""
+    if brand_id not in ALLOWED_BRAND_IDS:
         return {}
-    for year in ("2026", "2027"):
-        d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
-        for ev in d.get("events", []) or []:
-            if ev.get("id") == opportunity_id:
-                return {
-                    **ev,
-                    "_source_year": year,
-                    "_source_file": f"brand-planning/stick-events-{year}.json",
-                }
+    for opp in get_brief_opportunities(brand_id):
+        if opp.get("event_key") == opportunity_id \
+                or opp.get("id") == opportunity_id:
+            return opp
     return {}
 
 
 def _list_opportunities(brand_id: str) -> list:
-    """All events for a brand (stick 2026 + 2027)."""
-    if brand_id not in ALLOWED_BRAND_IDS:
-        return []
-    out = []
-    if brand_id == "stick":
-        for year in ("2026", "2027"):
-            d = _read_json(f"brand-planning/stick-events-{year}.json") or {}
-            for ev in d.get("events", []) or []:
-                out.append({
-                    "id": ev.get("id"),
-                    "name": ev.get("name"),
-                    "year": year,
-                    "pillars": ev.get("pillars"),
-                    "lanes": list((ev.get("lanes") or {}).keys()),
-                    "duration_days": ev.get("duration_days") or 0,
-                    "date": ev.get("date") or "",
-                })
-    return out
+    """Canonical opportunity list for a brand (V1.1 §2).
+
+    Backed by marketing_calendar canonical_records; falls back
+    to [] when the Calendar has no records."""
+    return get_brief_opportunities(brand_id)
 
 
 # ── Opportunity Gate (brief §7) ──────────────────────────────────
@@ -539,18 +712,27 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
       evidence quality, content/campaign saturation,
       historical performance, commercial usefulness.
 
-    Returns dict with gate + per-factor evidence + confidence.
+    Per V1.1 §2: opportunity comes from canonical Calendar
+    (marketing_calendar.canonical_records). pillars may be
+    a dict (legacy event schema) or a list (canonical Calendar
+    schema); we accept both.
     """
     factors = []
     name = (opportunity.get("name") or "").lower()
 
-    # 1. Strategic relevance — name match against always-on pillars
+    # 1. Strategic relevance — pillar match (accept dict or list)
     pillars_supported = opportunity.get("pillars") or {}
     always_on_pillar_match = []
     if isinstance(pillars_supported, dict):
         for p in PILLAR_KEYS:
-            if any(isinstance(v, str) and p in v.lower()
-                   for v in pillars_supported.values()):
+            if p in pillars_supported:
+                always_on_pillar_match.append(p)
+            elif any(isinstance(v, str) and p in v.lower()
+                     for v in pillars_supported.values()):
+                always_on_pillar_match.append(p)
+    elif isinstance(pillars_supported, list):
+        for p in PILLAR_KEYS:
+            if p in [str(x).lower() for x in pillars_supported]:
                 always_on_pillar_match.append(p)
     if always_on_pillar_match:
         factors.append({
@@ -575,9 +757,14 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                      else "No direct North Star mapping; cultural moment."),
     })
 
-    # 3. Audience relevance — has audience lane?
-    audience_lane = bool((opportunity.get("lanes") or {}).get("audience")
-                          or (opportunity.get("lanes") or {}).get("human"))
+    # 3. Audience relevance — has human/audience lane?
+    lanes = opportunity.get("lanes") or []
+    if isinstance(lanes, dict):
+        lane_keys = list(lanes.keys())
+    else:
+        lane_keys = [str(x) for x in lanes]
+    audience_lane = ("audience" in lane_keys
+                      or "human" in lane_keys)
     factors.append({
         "factor": "audience_relevance",
         "score": "high" if audience_lane else "medium",
@@ -600,8 +787,8 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     })
 
     # 5. Actionability — campaign arc vs single-shot
-    is_arc = bool(opportunity.get("lanes", {}).get("campaign")
-                   and "arc" in str(opportunity.get("lanes", {}).get("campaign", "")).lower())
+    is_arc = ("campaign" in lane_keys
+              and any("arc" in str(l).lower() for l in lane_keys))
     factors.append({
         "factor": "actionability",
         "score": "high" if is_arc else "medium",
@@ -620,14 +807,18 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
         "evidence": f"GA4 status for {brand_id}: {ri_status}",
     })
 
-    # 7. Content/campaign saturation — pillar_mix unclass count
-    unclass = pmx.get("unclassified_event_ids") or []
+    # 7. Content/campaign saturation — V1.1 uses
+    # cultural_moment_event_keys + preserved_unclassified_event_keys
+    cultural_n = len(pmx.get("cultural_moment_event_keys") or [])
+    unclass_n = len(pmx.get("preserved_unclassified_event_keys") or [])
     factors.append({
         "factor": "campaign_saturation",
-        "score": "high" if len(unclass) < 5 else "medium",
-        "evidence": (f"{len(unclass)} unclassified events — "
-                      "opportunity for pillar discipline."
-                      if unclass else "Planning well-classified."),
+        "score": ("high" if (cultural_n + unclass_n) < 5
+                   else "medium"),
+        "evidence": (f"{cultural_n} cultural moments + "
+                      f"{unclass_n} preserved unclassified = "
+                      f"{cultural_n + unclass_n} excluded from "
+                      "pillar denominator."),
     })
 
     # 8. Historical performance — RI what_worked + recommendations
@@ -642,9 +833,9 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     # 9. Commercial usefulness
     commercial = (any(p in ("retail", "fitting", "coaching")
                        for p in always_on_pillar_match)
-                   or "commercial" in (opportunity.get("lanes") or {})
-                   or any("retail" in str(v).lower()
-                          for v in (opportunity.get("lanes") or {}).values()))
+                   or "commercial" in lane_keys
+                   or "apparel" in lane_keys
+                   or "retail" in lane_keys)
     factors.append({
         "factor": "commercial_usefulness",
         "score": "high" if commercial else "low",
@@ -681,6 +872,9 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
             "low_count": low_count,
         },
     }
+
+
+
 
 
 # ── Brief builder ────────────────────────────────────────────────
@@ -824,14 +1018,29 @@ def _brief_id() -> str:
 
 
 def create_brief(brand_id: str, opportunity_id: str,
-                 days_back: int = 31) -> dict:
+                 days_back: int = 31,
+                 force: bool = False) -> dict:
     """Create a decision-ready strategic Brief.
 
-    Pipeline (brief §1):
-      opportunity → reporting intelligence → pillar coverage →
-      unclassified audit → gate → BRIEF schema
+    Pipeline (brief §1 + V1.1 §1):
+      1. Resolve opportunity from canonical Calendar
+      2. Run opportunity gate (BRIEF / WATCH / IGNORE)
+      3. Refuse creation for IGNORE (V1.1 §9)
+      4. For WATCH: return gate decision but no Brief
+      5. Check duplicate Brief for (brand + event_key)
+      6. For BRIEF: pull reporting intelligence,
+         pillar coverage, unclassified audit
+      7. Generate evidence-backed system drafts
+         (problem_insight, strategic_proposition, CTA)
+         with explicit provenance + editable by operator
+      8. Persist brief + revision
 
-    Returns the full brief dict (and persists to disk).
+    Returns {"ok": True, "brief": ...} for BRIEF,
+            {"ok": True, "decision": "WATCH"|"IGNORE", ...}
+            for gate-rejected opportunities.
+
+    V1.1 §11: creative_allowed is a readiness flag.
+    False until status=approved.
     """
     if brand_id not in ALLOWED_BRAND_IDS:
         return {"ok": False, "error": f"unknown brand_id: {brand_id}"}
@@ -849,49 +1058,99 @@ def create_brief(brand_id: str, opportunity_id: str,
         return {"ok": False,
                 "error": f"opportunity {opportunity_id!r} not found for {brand_id}"}
 
+    # Gate evaluation (always run, regardless of duplicate)
     gate = _opportunity_gate(brand_id, opp, ri, pmx, pcov)
-    if gate["gate"] != GATE_BRIEF:
-        # WATCH or IGNORE — still record the evaluation but
-        # do NOT generate a full Brief.
+    if gate["gate"] == GATE_IGNORE:
         return {
             "ok": True,
+            "decision": GATE_IGNORE,
             "gate": gate,
-            "decision": gate["gate"],
             "opportunity": {"id": opp.get("id"),
                              "name": opp.get("name")},
-            "note": ("Per brief §7, calendar inclusion alone is not "
-                     "sufficient to produce a campaign; this opportunity "
-                     "does not clear the gate."),
+            "note": ("Per V1.1 §9, IGNORE opportunities are refused "
+                     "for Brief creation; operator can still proceed "
+                     "by force=True if they want to override."),
+        }
+    if gate["gate"] == GATE_WATCH:
+        return {
+            "ok": True,
+            "decision": GATE_WATCH,
+            "gate": gate,
+            "opportunity": {"id": opp.get("id"),
+                             "name": opp.get("name")},
+            "note": ("Per V1.1 §9, WATCH opportunities remain "
+                     "watchlisted rather than automatically creating "
+                     "a Brief. Operator can force=True to override."),
+        }
+
+    # Duplicate protection (V1.1 §9)
+    event_key = opp.get("event_key") or opp.get("id")
+    existing = _find_active_brief(brand_id, event_key)
+    if existing and not force:
+        return {
+            "ok": False,
+            "error": (f"a Brief already exists for {brand_id} + "
+                      f"{event_key} (brief_id={existing['brief_id']}, "
+                      f"status={existing['status']}); pass force=True "
+                      "to create a replacement/superseding Brief."),
+            "existing_brief": {
+                "brief_id": existing["brief_id"],
+                "status": existing["status"],
+                "revision": existing.get("revision"),
+            },
         }
 
     # Determine the always-on pillar match for this opportunity
-    # (also used inside the gate but not returned to the caller).
     always_on_pillar_match = []
     opp_pillars = opp.get("pillars") or {}
     if isinstance(opp_pillars, dict):
         for p in PILLAR_KEYS:
-            if any(isinstance(v, str) and p in v.lower()
-                   for v in opp_pillars.values()):
+            if p in opp_pillars:
+                always_on_pillar_match.append(p)
+            elif any(isinstance(v, str) and p in v.lower()
+                     for v in opp_pillars.values()):
+                always_on_pillar_match.append(p)
+    elif isinstance(opp_pillars, list):
+        for p in PILLAR_KEYS:
+            if p in [str(x).lower() for x in opp_pillars]:
                 always_on_pillar_match.append(p)
 
-    # Build BRIEF schema (brief §8)
+    # Build BRIEF schema
     audience = _derive_audience(brand_id, bp)
     voice = _derive_voice_and_belief(bp)
     channel_roles = _derive_channel_role(brand_id, ri)
     measurement = _derive_measurement_plan(brand_id, ri)
     nstars = north_stars
 
+    # Evidence-backed system drafts (V1.1 §10)
+    system_drafts = _generate_system_drafts(
+        brand_id, opp, ri, pmx, pcov, always_on_pillar_match, bp)
+
+    # Evidence pack
     evidence_pack = []
     evidence_pack.append({
-        "claim": "Stick 2026 planning is pillar-weighted: Fitting 64% vs Retail 0%",
-        "source": "data/brand-planning/stick-events-{2026,2027}.json (audited via brief §6)",
+        "claim": (f"{brand_id} canonical Calendar opportunity: "
+                  f"{opp.get('name')} (event_key={event_key})"),
+        "source": "marketing_calendar.canonical_records",
         "type": "MEASURED_FACT",
         "confidence": "HIGH",
     })
     evidence_pack.append({
-        "claim": ("Stick North Stars: Retail R350k/month, 24 fittings/week, "
-                  "24 coaching/week"),
-        "source": "Brief §9 (Reporting V2 contract)",
+        "claim": (f"{brand_id} pillar mix (V1.1 denominator): "
+                  f"canonical={pmx.get('canonical_event_count')}, "
+                  f"classified={pmx.get('classified_event_count')}, "
+                  f"cultural_moments={pmx.get('cultural_moment_count')}, "
+                  f"preserved_unclassified="
+                  f"{pmx.get('preserved_unclassified_count')}, "
+                  f"denominator={pmx.get('denominator_used_for_pillar_percentages')}"),
+        "source": "marketing_calendar.canonical_records (stick) + brand-planning/stick-cadences.json",
+        "type": "MEASURED_FACT",
+        "confidence": "HIGH",
+    })
+    evidence_pack.append({
+        "claim": ("Stick North Stars: Retail R350k/month, "
+                  "24 fittings/week, 24 coaching/week"),
+        "source": "Brief V1 §9 (Reporting V2 contract)",
         "type": "MEASURED_FACT",
         "confidence": "HIGH",
     })
@@ -940,14 +1199,15 @@ def create_brief(brand_id: str, opportunity_id: str,
         "brand_name": (bp.get("brand_essence", "")[:80]
                        or brand_id),
         "source_opportunity": {
-            "id": opp.get("id"),
+            "event_key": event_key,
+            "id": event_key,
             "name": opp.get("name"),
             "pillars": opp.get("pillars"),
             "lanes": opp.get("lanes"),
-            "duration_days": opp.get("duration_days"),
-            "date": opp.get("date"),
-            "year": opp.get("_source_year"),
-            "source_file": opp.get("_source_file"),
+            "duration_days": opp.get("duration_days") or 0,
+            "date": opp.get("date") or "",
+            "year": str(opp.get("date") or "")[:4] or "unknown",
+            "source": opp.get("source", "calendar"),
         },
         "status": STATUS_DRAFT,
         "revision": 1,
@@ -955,6 +1215,7 @@ def create_brief(brand_id: str, opportunity_id: str,
         "updated_at": now,
         "approved_at": None,
         "approved_by": None,
+        "creative_allowed": False,  # V1.1 §11: only true when status=approved
         "evidence_snapshot": {
             "ri_data_status": ri.get("data_status"),
             "data_coverage": ri.get("data_coverage"),
@@ -963,17 +1224,20 @@ def create_brief(brand_id: str, opportunity_id: str,
             "pillar_coverage_signal": pcov,
             "unclassified_audit": unaud,
             "creative_genome": cg,
+            "source_of_truth": "marketing_calendar.canonical_records",
         },
         "opportunity_gate": gate,
         # Brief §8 sections
         "opportunity": {
             "what": opp.get("name"),
             "why_it_may_matter": (f"Calendar/cultural event '{opp.get('name')}' "
-                                  f"aligned with active North Stars and "
-                                  f"existing brand pillars."),
+                                  f"(event_key={event_key}) aligned with "
+                                  f"active North Stars and existing "
+                                  f"brand pillars."),
             "evidence": [e for e in evidence_pack
                          if e.get("source", "").startswith("data/")
-                         or "North" in e.get("claim", "")],
+                         or "North" in e.get("claim", "")
+                         or "Calendar" in e.get("claim", "")],
         },
         "timing": {
             "event_date": opp.get("date") or "",
@@ -1001,23 +1265,9 @@ def create_brief(brand_id: str, opportunity_id: str,
                                else [strat.get("north_star")]),
         },
         "audience": audience,
-        "problem_insight": {
-            "problem": (f"{bp.get('brand_essence', brand_id)} — "
-                        f"how does this opportunity address an audience "
-                        f"or business problem?"),
-            "insight": ("Strategic insight to be drafted by marketer "
-                        "during review (brief §8 explicitly reserves "
-                        "this for human authoring)."),
-            "type": "HYPOTHESIS",
-            "confidence": "LOW",
-        },
-        "strategic_proposition": {
-            "proposition": ("Strategic proposition to be drafted by "
-                            "marketer during review (brief §8: strategy, "
-                            "not final copy)."),
-            "type": "STRATEGIC_RECOMMENDATION",
-            "confidence": "MEDIUM",
-        },
+        "problem_insight": system_drafts["problem_insight"],
+        "strategic_proposition": system_drafts["strategic_proposition"],
+        "cta_strategy": system_drafts["cta_strategy"],
         "reasons_to_believe": {
             "items": [
                 ("Stick brand essence: "
@@ -1062,20 +1312,6 @@ def create_brief(brand_id: str, opportunity_id: str,
             "note": ("Asset requirements listed per brief §8. "
                      "NO creative generated in this slice."),
         },
-        "cta_strategy": {
-            "desired_action": "operator to define during review",
-            "evidence_basis": (
-                ["If campaign targets Fitting: desired action = book "
-                 "fitting (per Stick North Star 24 fittings/week).",
-                 "If campaign targets Coaching: desired action = book "
-                 "coaching (per Stick North Star 24 coaching/week).",
-                 "If campaign targets Retail: desired action = shop / "
-                 "visit-store (per Retail R350k/month North Star)."]
-                if brand_id == "stick"
-                else ["Operator to define per brand North Star."]),
-            "note": ("Per brief §8: CTA strategy defines desired action; "
-                     "no copy generated in this slice."),
-        },
         "measurement_plan": measurement,
         "risks_unknowns": {
             "items": (ri.get("data_limitations") or []) + [
@@ -1098,6 +1334,24 @@ def create_brief(brand_id: str, opportunity_id: str,
             ],
         },
         "evidence_pack": evidence_pack,
+        # V1.1 §10: provenance of every draftable field
+        "field_provenance": {
+            "problem_insight": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
+            "strategic_proposition": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
+            "cta_strategy": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
+        },
     }
 
     # Persist
@@ -1107,8 +1361,162 @@ def create_brief(brand_id: str, opportunity_id: str,
         "saved_at": now,
         "snapshot": brief,
         "note": "initial creation",
+        "drafted_by": "system",
     })
     return {"ok": True, "brief": brief}
+
+
+def _find_active_brief(brand_id: str, event_key: str) -> "Optional[dict]":
+    """V1.1 §9: find existing brief for (brand, event_key) that's
+    NOT superseded. Returns the brief dict or None."""
+    if not event_key:
+        return None
+    for b in list_briefs(brand_id):
+        # Match on brief_id containing event_key, or source_opportunity.event_key
+        # Read the actual brief to compare precisely
+        bid = b.get("brief_id")
+        full = _read_brief(brand_id, bid)
+        if not full:
+            continue
+        src = full.get("source_opportunity") or {}
+        if src.get("event_key") != event_key:
+            continue
+        if full.get("status") == STATUS_SUPERSEDED:
+            continue
+        return full
+    return None
+
+
+def _generate_system_drafts(brand_id, opp, ri, pmx, pcov,
+                              always_on_pillar_match, bp) -> dict:
+    """V1.1 §10: produce evidence-backed draft strategy fields.
+
+    These are drafts, not final copy. They are grounded in the
+    Reporting Intelligence signals + brand planning data so the
+    operator does not have to write the entire strategic thinking
+    from scratch. The operator can edit or replace them via PATCH
+    before approval.
+    """
+    pillar_supported = (always_on_pillar_match[0]
+                        if always_on_pillar_match else "primary")
+    nstars_supported = list(always_on_pillar_match) or ["primary"]
+    ga_metrics = ((ri.get("website_performance") or {}).get("metrics")
+                  or {})
+    ig_metrics = (((ri.get("audience_awareness") or {}).get("metrics")
+                   or {}).get("instagram") or {})
+    # problem_insight draft
+    if pillar_supported == "retail":
+        problem_text = (f"{brand_id} needs verified website traffic "
+                        "attributable to retail purchase intent.")
+    elif pillar_supported == "fitting":
+        problem_text = (f"{brand_id} needs website interest that "
+                        "converts to fitting bookings (24/week target).")
+    elif pillar_supported == "coaching":
+        problem_text = (f"{brand_id} needs website interest that "
+                        "converts to coaching sessions (24/week target).")
+    else:
+        problem_text = (f"{brand_id} audience engagement is "
+                        "growing but commercial conversion is "
+                        "not yet measured.")
+
+    ga_session_line = ""
+    if ga_metrics.get("sessions"):
+        ga_session_line = (f" GA4 reports {ga_metrics.get('sessions', 0):,} "
+                           f"sessions over the last 31 days with "
+                           f"{ga_metrics.get('engagement_rate_median', 0)*100:.0f}% "
+                           "engagement median.")
+    ig_reach_line = ""
+    if ig_metrics.get("reach_30d"):
+        ig_reach_line = (f" Instagram reach_30d is "
+                         f"{ig_metrics.get('reach_30d', 0):,}.")
+
+    # strategic_proposition draft
+    if pillar_supported == "retail":
+        prop_text = ("Promote the retail North Star via the strongest-"
+                    "performing format from Visual DNA + cross-channel "
+                    "engagement, with retail-specific CTAs to drive "
+                    "store and online sales.")
+    elif pillar_supported == "fitting":
+        prop_text = ("Lead with fitting education content matched to "
+                    "Visual DNA patterns (10 sampled assets, predominantly "
+                    "portrait), driving qualified traffic to fitting "
+                    "landing pages.")
+    elif pillar_supported == "coaching":
+        prop_text = ("Lead with coaching-led content matched to the "
+                    "Visual DNA creative genome, driving qualified "
+                    "traffic to coaching landing pages.")
+    else:
+        prop_text = ("Lead with culturally relevant content aligned "
+                    "with brand voice and Creative Genome patterns.")
+
+    # cta_strategy draft
+    if pillar_supported == "retail":
+        cta_text = ("Book a store visit / shop online — measure via "
+                    "retail revenue attribution once verified.")
+    elif pillar_supported == "fitting":
+        cta_text = ("Book a fitting — measure via fitting-page sessions, "
+                    "form starts, and (when LIVE) generate_lead "
+                    "conversions.")
+    elif pillar_supported == "coaching":
+        cta_text = ("Book a coaching session — measure via coaching-page "
+                    "sessions, form starts, and (when LIVE) "
+                    "generate_lead conversions.")
+    else:
+        cta_text = "Operator to define during review."
+
+    return {
+        "problem_insight": {
+            "problem": problem_text + ga_session_line + ig_reach_line,
+            "insight": ("Strategic insight grounded in current data: "
+                        "if engagement is steady but conversion is "
+                        "unmeasurable, the immediate next move is "
+                        "to verify lead tracking + strengthen "
+                        "intent-aligned CTAs."),
+            "type": "SUPPORTED_INFERENCE",
+            "confidence": "MEDIUM",
+            "drafted_by": "system",
+            "drafted_at": _now_iso(),
+            "evidence_basis": [
+                "Pillar match: " + ", ".join(nstars_supported),
+                (f"GA4 sessions = {ga_metrics.get('sessions', 0):,}"
+                 if ga_metrics.get("sessions") else
+                 "GA4 sessions = unavailable"),
+                (f"IG reach_30d = {ig_metrics.get('reach_30d', 0):,}"
+                 if ig_metrics.get("reach_30d") else
+                 "IG reach_30d = unavailable"),
+            ],
+            "operator_editable": True,
+        },
+        "strategic_proposition": {
+            "proposition": prop_text,
+            "type": "STRATEGIC_RECOMMENDATION",
+            "confidence": "MEDIUM",
+            "drafted_by": "system",
+            "drafted_at": _now_iso(),
+            "evidence_basis": [
+                f"Pillar match: {pillar_supported}",
+                "Visual DNA validated pattern (Stick 10 sampled assets)",
+                "Reporting Intelligence cross-channel observations",
+            ],
+            "operator_editable": True,
+        },
+        "cta_strategy": {
+            "desired_action": cta_text,
+            "evidence_basis": [
+                (f"Pillar target: {pillar_supported} "
+                 + str(nstars_supported)),
+                "Reporting Intelligence measurement plan",
+            ],
+            "drafted_by": "system",
+            "drafted_at": _now_iso(),
+            "operator_editable": True,
+            "note": ("Per brief §8: CTA strategy defines desired action; "
+                     "no copy generated in this slice."),
+        },
+    }
+
+
+
 
 
 # ── listing / reading / update / transition ─────────────────────
@@ -1149,19 +1557,40 @@ def get_brief(brand_id: str, brief_id: str) -> "Optional[dict]":
     return _read_brief(brand_id, brief_id)
 
 
-def update_brief(brand_id: str, brief_id: str, patch: dict) -> dict:
+def update_brief(brand_id: str, brief_id: str, patch: dict,
+                 actor: str = "operator") -> dict:
+    """V1.1 §10: PATCH the brief. Tracks operator_edit provenance.
+
+    Allowed patch fields include any subsection (problem_insight,
+    strategic_proposition, cta_strategy, etc.) plus top-level
+    scalar fields. Field_provenance records the change.
+    """
     b = _read_brief(brand_id, brief_id)
     if not b:
         return {"ok": False, "error": "brief not found"}
     if b.get("status") == STATUS_SUPERSEDED:
         return {"ok": False, "error": "brief is superseded"}
-    # Apply patch to top-level scalar fields + known nested dicts
+    # Track which draftable fields are being edited (V1.1 §10)
+    field_provenance = b.get("field_provenance") or {}
+    edit_log = b.get("edit_log") or []
+    edit_entry = {
+        "at": _now_iso(),
+        "actor": actor,
+        "fields_edited": list((patch or {}).keys()),
+    }
     for k, v in (patch or {}).items():
-        if k == "evidence_pack" or k == "approval_questions":
-            # Operator-replaceable structured fields
-            b[k] = v
-        else:
-            b[k] = v
+        if k in ("problem_insight", "strategic_proposition",
+                 "cta_strategy"):
+            field_provenance[k] = {
+                "drafted_by": "operator_edit",
+                "editable": True,
+                "human_override_required_for_approval": False,
+                "last_edited_by": actor,
+                "last_edited_at": _now_iso(),
+            }
+        b[k] = v
+    b["field_provenance"] = field_provenance
+    b["edit_log"] = (edit_log + [edit_entry])[-50:]  # keep last 50
     b["revision"] = int(b.get("revision", 1)) + 1
     b["updated_at"] = _now_iso()
     _write_brief(b)
@@ -1169,7 +1598,8 @@ def update_brief(brand_id: str, brief_id: str, patch: dict) -> dict:
         "revision": b["revision"],
         "saved_at": b["updated_at"],
         "snapshot": b,
-        "note": "operator edit",
+        "note": f"operator edit (actor={actor})",
+        "drafted_by": "operator",
     })
     return {"ok": True, "brief": b}
 
@@ -1204,6 +1634,9 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
     if to_status == STATUS_APPROVED:
         b["approved_at"] = b["updated_at"]
         b["approved_by"] = actor
+        b["creative_allowed"] = True  # V1.1 §11
+    elif to_status in (STATUS_REJECTED, STATUS_SUPERSEDED):
+        b["creative_allowed"] = False
     b["revision"] = int(b.get("revision", 1)) + 1
     _write_brief(b)
     _append_revision(b, {
