@@ -14998,7 +14998,7 @@ function integrationHealthHtml(h){
   kv.push(`<dt>Connected</dt><dd><span class="pill ${connectedKind}">${connected ? 'yes' : 'no'}</span></dd>`);
   if(h.auth_status) kv.push(`<dt>Auth</dt><dd><span class="pill ${authKind}">${esc(h.auth_status.replace(/_/g,' '))}</span></dd>`);
   if(ageLabel) kv.push(`<dt>Last seen</dt><dd>${esc(ageLabel)}</dd>`);
-  if(lastSuccess && lastSuccess !== '—') kv.push(`<dt>Last success</dt><dd><span class="muted">${esc(lastSuccess)}</span></dd>`);
+  if(lastSuccess && lastSuccess.endsWith(' SAST')) kv.push(`<dt>Last success</dt><dd><span class="muted">${esc(lastSuccess)}</span></dd>`);
   if(h.scope_level) kv.push(`<dt>Scope</dt><dd>${esc(h.scope_level)}</dd>`);
   if(h.api_key_prefix) kv.push(`<dt>Key</dt><dd><span class="muted">${esc(h.api_key_prefix)}</span></dd>`);
   // Detail rows: evidence (the human-readable why-this-status), blockers

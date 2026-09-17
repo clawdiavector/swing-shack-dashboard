@@ -51,8 +51,21 @@ def _data_roots() -> list[Path]:
 
 
 def _data_dir() -> Path:
-    """Primary data root — runtime DATA_DIR when configured."""
-    return _data_roots()[0]
+    """Primary data root — runtime when populated, else bundled fallback."""
+    roots = _data_roots()
+    for root in roots:
+        if root.is_dir() and any(root.iterdir()):
+            return root
+    return roots[-1] if len(roots) > 1 else roots[0]
+
+
+def _resolve_json(rel: str) -> Any:
+    """Read a JSON file from runtime DATA_DIR, falling back to bundled."""
+    for base in _data_roots():
+        path = base / rel
+        if path.exists():
+            return _read_json(path)
+    return None
 
 
 def _read_json(path: Path) -> Any:
@@ -169,7 +182,7 @@ def get_content_traffic_correlations(days: int = 30) -> dict[str, Any]:
         _meta: { posts_scanned, days_covered, ga4_window }
       }
     """
-    ga4 = _read_json(_data_dir() / "ga4-metrics.json") or {}
+    ga4 = _resolve_json("ga4-metrics.json") or {}
     if not isinstance(ga4, dict):
         ga4 = {}
     posts, ig_source = _load_ig_posts()
@@ -366,13 +379,13 @@ def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
         combined_summary: "..."  # 1-line layman explanation
       }
     """
-    gads_data = _read_json(_data_dir() / "google-ads.json") or {}
+    gads_data = _resolve_json("google-ads.json") or {}
     if not isinstance(gads_data, dict):
         gads_data = {}
-    mads_data = _read_json(_data_dir() / "meta-ads.json") or {}
+    mads_data = _resolve_json("meta-ads.json") or {}
     if not isinstance(mads_data, dict):
         mads_data = {}
-    ga4 = _read_json(_data_dir() / "ga4-metrics.json") or {}
+    ga4 = _resolve_json("ga4-metrics.json") or {}
     if not isinstance(ga4, dict):
         ga4 = {}
 
