@@ -10303,15 +10303,16 @@ async function renderTrends(){
   if(!S.trends) S.trends = await API.get('/api/intel/trend_catcher');
   const t = S.trends;
   const v2 = await API.get('/api/intel/trends_v2');
+  // Hoisted: renderYT + v2 rows use these outside the banner block (per-row data_as_of).
+  const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
+  const srcAsOf = t.data_as_of || {};
   // Freshness banner — show last-updated time + how many sources returned data
   const banner = $('#tr-freshness-banner');
   if(banner){
     // /api/intel/trend_catcher and /api/intel/trends_v2 both surface the fetch time as top-level `ts`.
     // Older keys (updated/fetched_at) were never wired by the backend; falling back to `ts` closes the
     // "Data last updated unknown" + `—` placeholder gap.
-    const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
     const updStr = updated ? (formatDataAsOf(updated) || new Date(updated).toLocaleString()) : 'unknown';
-    const srcAsOf = t.data_as_of || {};
     const srcLines = [
       srcAsOf.golf_news && `golf news: ${formatDataAsOf(srcAsOf.golf_news)}`,
       srcAsOf.reddit && `reddit: ${formatDataAsOf(srcAsOf.reddit)}`,
