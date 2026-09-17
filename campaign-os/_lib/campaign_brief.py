@@ -1115,9 +1115,6 @@ def _shared_signals(a: dict, b: dict) -> list:
 
 # ── Opportunity Gate (brief §7 + V1.3 §4 recalibration) ──────────
 
-
-─────────────────────────────────
-
 def _opportunity_gate(brand_id: str, opportunity: dict,
                       ri: dict, pmx: dict, pcov: dict) -> dict:
     """V1.3 §4 recalibrated opportunity gate.
