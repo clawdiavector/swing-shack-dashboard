@@ -1,17 +1,14 @@
 """
-Regression test for the Agents & health "Agent runs" card.
+Regression test for the Agents & health "Campaign OS fleet" card.
 
-Bug: before this fix, renderAgents() called safeList(a.agents, 20).map(itemHtml)
-and the generic itemHtml() couldn't find a title-worthy field in the agent
-object ({agent_id, last_run, last_status, runs}), so it fell back to
-JSON.stringify(it).slice(0,80). The Agents tab showed rows of raw JSON like
-{"agent_id":"pulse_keeper","last_run":null,...} instead of readable cards.
+Before this fix, renderAgents() called safeList(a.agents, 24).map(agentRunHtml)
+on the legacy /api/intel/agents lane roster (pulse_keeper, data_harvester, etc.).
 
-Fix: agentRunHtml(it) knows the agent shape and paints it as
-<agent_id> · <N runs total> · last <age> · <status pill>.
+Fix: renderAgents() fetches GET /api/ops/agents for the fleet list card and
+cosAgentHtml() paints each cos-* row with heartbeat, schedule, and ops link.
+/api/intel/agents is still fetched for system_health + integration_health only.
 
-This is a read-only regression test — it never imports flask, never hits a
-running server. It loads the HTML file as text and asserts structural markers.
+Read-only regression test — never imports flask, never hits a running server.
 """
 
 from __future__ import annotations
@@ -28,112 +25,126 @@ def _read() -> str:
     return HTML.read_text(encoding="utf-8")
 
 
-def test_agentRunHtml_function_defined():
-    """The fix introduces a new function agentRunHtml in campaign-os.html."""
-    src = _read()
-    assert "function agentRunHtml(" in src, (
-        "Expected agentRunHtml() function to exist in campaign-os.html — "
-        "this is the fix that turns raw JSON agent records into readable rows."
-    )
-
-
-def test_renderAgents_uses_agentRunHtml_not_itemHtml():
-    """renderAgents() must call agentRunHtml on a.agents, not itemHtml."""
-    src = _read()
-    # Find the body of renderAgents()
+def _render_agents_body(src: str) -> str:
     m = re.search(r"async function renderAgents\(\)\{(.+?)\n\}", src, re.DOTALL)
     assert m, "Could not locate renderAgents() body"
-    body = m.group(1)
-    assert "safeList(a.agents" in body, "renderAgents must slice a.agents via safeList"
-    assert ".map(agentRunHtml)" in body, (
-        "renderAgents must call agentRunHtml() to render each agent record — "
-        "falling back to itemHtml() dumps raw JSON for the agent shape."
-    )
-    assert ".map(itemHtml)" not in body.split("#agents-list")[1].split(";")[0], (
-        "agents-list row render path must NOT use itemHtml — that's the original bug."
-    )
+    return m.group(1)
 
 
-def test_agentRunHtml_renders_status_pill():
-    """The new renderer must emit a status pill with the agent's last_status."""
+def test_cosAgentHtml_function_defined():
+    """The fix introduces cosAgentHtml() for the ops fleet roster."""
     src = _read()
-    m = re.search(r"function agentRunHtml\((.+?)\n\}", src, re.DOTALL)
-    assert m, "agentRunHtml function not found"
-    body = m.group(1)
-    assert "pill" in body, "agentRunHtml must paint a status pill"
-    assert "last_status" in body, "agentRunHtml must read last_status from the agent record"
-
-
-def test_agentRunHtml_renders_runs_count():
-    """The new renderer must show the runs total in human-readable form."""
-    src = _read()
-    m = re.search(r"function agentRunHtml\((.+?)\n\}", src, re.DOTALL)
-    assert m, "agentRunHtml function not found"
-    body = m.group(1)
-    assert "runs" in body, "agentRunHtml must surface the runs count"
-    # Should pluralise: 1 run vs N runs
-    assert "run' : 'runs" in body or "'runs'" in body, (
-        "agentRunHtml must pluralise 'run'/'runs' so 1 vs 2+ reads naturally."
+    assert "function cosAgentHtml(" in src, (
+        "Expected cosAgentHtml() in campaign-os.html for the Campaign OS fleet card."
     )
 
 
-def test_agentRunHtml_renders_age_in_words():
-    """last_run (ISO or null) must be rendered as human-readable age."""
-    src = _read()
-    m = re.search(r"function agentRunHtml\((.+?)\n\}", src, re.DOTALL)
-    assert m, "agentRunHtml function not found"
-    body = m.group(1)
-    assert "ago" in body, "agentRunHtml must produce a human-readable age (Xm ago / Xh ago / Xd ago)"
-    assert "never" in body, "agentRunHtml must say 'never' when last_run is null"
+def test_renderAgents_fetches_ops_agents_for_fleet_list():
+    """renderAgents() must fetch /api/ops/agents for the fleet list card."""
+    body = _render_agents_body(_read())
+    assert "/api/ops/agents" in body, (
+        "renderAgents must fetch GET /api/ops/agents for the Campaign OS fleet roster."
+    )
+    assert "S.cosFleet" in body, "renderAgents must cache the ops fleet payload on S.cosFleet"
 
 
-def test_no_em_dash_added_in_new_agent_run_renderer():
-    """Standing rule: no em-dashes in published copy. Code comments can use → arrows
-    (which is a different unicode codepoint, U+2192) but em-dashes (U+2014) are banned."""
-    src = _read()
-    m = re.search(r"function agentRunHtml\((.+?)\n\}", src, re.DOTALL)
-    assert m, "agentRunHtml function not found"
-    body = m.group(1)
-    assert "—" not in body and "\u2014" not in body, (
-        "agentRunHtml must NOT use em-dashes (U+2014) — standing rule. Use pipes/commas/colons or → arrows."
+def test_renderAgents_uses_cosAgentHtml_not_intel_agents_list():
+    """renderAgents() must render S.cosFleet.agents via cosAgentHtml, not intel a.agents."""
+    body = _render_agents_body(_read())
+    assert ".map(cosAgentHtml)" in body, (
+        "renderAgents must call cosAgentHtml() on the ops fleet list."
+    )
+    assert "safeList(a.agents" not in body, (
+        "renderAgents must NOT render a.agents from /api/intel/agents for the fleet card."
+    )
+    assert ".map(agentRunHtml)" not in body.split("#agents-list")[0], (
+        "renderAgents must NOT call agentRunHtml on the fleet list."
     )
 
 
-def test_agentRunHtml_escapes_user_fields():
-    """agent_id and last_status flow from API → must be HTML-escaped."""
-    src = _read()
-    m = re.search(r"function agentRunHtml\((.+?)\n\}", src, re.DOTALL)
-    assert m, "agentRunHtml function not found"
-    body = m.group(1)
-    assert "esc(it.agent_id" in body, "agent_id must be escaped"
-    assert "esc(status" in body, "status must be escaped"
+def test_renderAgents_still_fetches_intel_for_health():
+    """renderAgents() must still fetch /api/intel/agents for system + integration health."""
+    body = _render_agents_body(_read())
+    assert "/api/intel/agents" in body, (
+        "renderAgents must still fetch /api/intel/agents for system_health + integration_health."
+    )
+    assert "systemHealthHtml(h)" in body, "system health card must still render via systemHealthHtml"
+    assert "integrationHealthHtml" in body, "integration health card must still render"
 
 
-def test_status_pill_color_mapping():
-    """PARTIAL → review (amber), FAIL → blocked (red), PASS → on (green)."""
+def test_cosAgentHtml_renders_status_pill():
+    """cosAgentHtml() must emit a fleet status pill from last_status."""
     src = _read()
-    m = re.search(r"function agentRunHtml\((.+?)\n\}", src, re.DOTALL)
-    assert m, "agentRunHtml function not found"
+    m = re.search(r"function cosAgentHtml\((.+?)\n\}", src, re.DOTALL)
+    assert m, "cosAgentHtml function not found"
     body = m.group(1)
-    # Three branches by status
-    assert "PARTIAL" in body and "review" in body, "PARTIAL must map to review pill"
-    assert ("FAIL" in body and "blocked" in body) or (
-        "FAILED" in body and "blocked" in body
-    ), "FAIL must map to blocked pill"
-    # Default on (green) for PASS — verify 'on' is the default pillKind
-    assert "let pillKind" in body and "'on'" in body, "PASS must default to on pill (green)"
+    assert "pill" in body, "cosAgentHtml must paint a status pill"
+    assert "last_status" in body, "cosAgentHtml must read last_status from the ops agent record"
+
+
+def test_cosAgentHtml_renders_fleet_fields():
+    """cosAgentHtml() must surface id, kind, layer, schedule, enabled, heartbeat, writes, skill."""
+    src = _read()
+    m = re.search(r"function cosAgentHtml\((.+?)\n\}", src, re.DOTALL)
+    assert m, "cosAgentHtml function not found"
+    body = m.group(1)
+    for field in ("a.id", "a.kind", "a.layer", "a.schedule", "a.enabled", "last_heartbeat_at", "last_writes", "a.skill", "last_action"):
+        assert field in body, f"cosAgentHtml must reference {field}"
+
+
+def test_cosAgentHtml_renders_ops_link():
+    """cosAgentHtml() must link rows to /ops?layer=agents&agent=<id>."""
+    src = _read()
+    m = re.search(r"function cosAgentHtml\((.+?)\n\}", src, re.DOTALL)
+    assert m, "cosAgentHtml function not found"
+    body = m.group(0)
+    assert "/ops?layer=agents&agent=" in body, (
+        "cosAgentHtml must emit a drill-down link to ops for each agent row."
+    )
+
+
+def test_cosAgentHtml_emits_li_detail_block():
+    """cosAgentHtml() must emit a li-detail block for click-to-expand."""
+    src = _read()
+    m = re.search(r"function cosAgentHtml\((.+?)\n\}", src, re.DOTALL)
+    assert m, "cosAgentHtml function not found"
+    body = m.group(0)
+    assert "li-detail" in body, "cosAgentHtml must render an expandable li-detail block"
+
+
+def test_fleet_card_header_renamed():
+    """The fleet card h3 must read Campaign OS fleet, not Agent runs."""
+    src = _read()
+    assert "Campaign OS fleet" in src, "Card header must be renamed to Campaign OS fleet"
+    assert 'data-help-title="Campaign OS fleet"' in src, (
+        "Fleet card h3 must carry data-help-title=\"Campaign OS fleet\""
+    )
+
+
+def test_status_pill_color_mapping_matches_ops_jobs():
+    """OK/LATE/FAILED/NEVER must map to fleet-* pill classes aligned with ops-jobs."""
+    src = _read()
+    m = re.search(r"function cosFleetStatusPillClass\((.+?)\n\}", src, re.DOTALL)
+    assert m, "cosFleetStatusPillClass function not found"
+    body = m.group(1)
+    assert "fleet-OK" in body and "OK" in body
+    assert "fleet-LATE" in body and "LATE" in body
+    assert "fleet-FAILED" in body and "FAILED" in body
+    assert "fleet-NEVER" in body
 
 
 if __name__ == "__main__":
     tests = [
-        test_agentRunHtml_function_defined,
-        test_renderAgents_uses_agentRunHtml_not_itemHtml,
-        test_agentRunHtml_renders_status_pill,
-        test_agentRunHtml_renders_runs_count,
-        test_agentRunHtml_renders_age_in_words,
-        test_no_em_dash_added_in_new_agent_run_renderer,
-        test_agentRunHtml_escapes_user_fields,
-        test_status_pill_color_mapping,
+        test_cosAgentHtml_function_defined,
+        test_renderAgents_fetches_ops_agents_for_fleet_list,
+        test_renderAgents_uses_cosAgentHtml_not_intel_agents_list,
+        test_renderAgents_still_fetches_intel_for_health,
+        test_cosAgentHtml_renders_status_pill,
+        test_cosAgentHtml_renders_fleet_fields,
+        test_cosAgentHtml_renders_ops_link,
+        test_cosAgentHtml_emits_li_detail_block,
+        test_fleet_card_header_renamed,
+        test_status_pill_color_mapping_matches_ops_jobs,
     ]
     failed = 0
     for t in tests:

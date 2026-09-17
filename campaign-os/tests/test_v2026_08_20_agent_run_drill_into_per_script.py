@@ -220,10 +220,15 @@ def test_agents_health_tooltip_no_false_red_only_promise():
         "stable red state and the click did not drill into anything anyway. "
         f"Current tooltip: {help_text!r}"
     )
-    # New promise must be present
-    assert "per-script" in help_text.lower() or "last run" in help_text.lower(), (
-        "Tooltip must describe what clicking actually does (per-script / last "
-        f"run results). Current: {help_text!r}"
+    # New promise must be present (fleet expand + ops drill-down)
+    assert (
+        "fleet" in help_text.lower()
+        or "ops" in help_text.lower()
+        or "per-script" in help_text.lower()
+        or "last run" in help_text.lower()
+    ), (
+        "Tooltip must describe what clicking actually does (fleet expand / ops "
+        f"drill-down). Current: {help_text!r}"
     )
 
 

@@ -244,10 +244,9 @@ def test_guard_against_non_object_input():
 # ─── non-regression on the prior-lane fix ─────────────────────────
 
 
-def test_agent_run_renderer_still_defined():
-    """Sanity: yesterday's agentRunHtml fix must not have been removed."""
+def test_cos_fleet_renderer_still_defined():
+    """Sanity: Campaign OS fleet renderer must be present on the Agents page."""
     src = _read()
-    assert "function agentRunHtml(" in src, (
-        "agentRunHtml() from the previous tick must still exist — "
-        "this fix must not regress the Agent runs card."
+    assert "function cosAgentHtml(" in src, (
+        "cosAgentHtml() must exist for the Campaign OS fleet card."
     )
