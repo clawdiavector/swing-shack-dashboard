@@ -82,6 +82,15 @@ PUBLIC_ROUTES = {'/login', '/logout', '/api/health', '/api/live', '/api/ready', 
 # Public route prefixes — anyone can hit these
 PUBLIC_ROUTE_PREFIXES = ('/welcome', '/privacy', '/terms', '/assets/', '/static/', '/_next/', '/visualizer', '/meme-lab', '/image-lab', '/image-portal', '/meta-portal', '/secrets-sync', '/connected-accounts', '/cockpit-operational', '/cockpit', '/home.html', '/meta-app-review', '/weekly-report')
 
+# Dual-auth (bearer COS_JOB_TOKEN OR session). Exact paths only — widening this
+# to a prefix would silently open sibling /api/ops/* routes to bearer callers.
+DUAL_AUTH_PATHS = frozenset({
+    '/api/ops/layers',
+    '/api/ops/agents',
+    '/api/ops/agents/heartbeat',
+    '/api/ops/agents/enqueue',
+})
+
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
 # means the route itself enforces the share-token gate (which is
@@ -164,7 +173,7 @@ def _gate():
         path.startswith('/api/jobs')
         or path.startswith('/api/freshness')
         or path.startswith('/api/publish')
-        or path == '/api/ops/layers'
+        or path in DUAL_AUTH_PATHS
     ):
         if _is_job_authed():
             return None
@@ -14933,55 +14942,81 @@ def unschedule_asset(asset_id):
 def connected_accounts_status_route():
     """GET /api/connected-accounts/status — per-platform connection snapshot.
 
-    Returns: { ok, postiz: {...}, gbp: {...}, meta: {...}, last_check }
+    Returns: { ok, postiz, gbp, meta, categories, integrations, summary, last_check }
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
+    from _lib.connected_accounts_catalog import build_catalog_extras, infer_postiz_provider
+
     out = {"ok": True, "last_check": _dt_cls.now(_tz.utc).isoformat()}
     if _POSTIZ_CLIENT_AVAILABLE:
         try:
             status = _postiz_lib.postiz_status()
             ch_data, ch_err = _postiz_lib.list_integrations()
             channels = []
+            api_live_ok = ch_err is None and ch_data is not None
+            api_error = None
+            if ch_err:
+                api_error = ch_err[1] if isinstance(ch_err, tuple) else str(ch_err)
             if not ch_err and ch_data:
                 items = ch_data if isinstance(ch_data, list) else (ch_data.get("integrations") or ch_data.get("identities") or [])
                 for it in items:
-                    if not isinstance(it, dict): continue
-                    # Postiz reports the provider under multiple keys depending on
-                    # workspace version (providerIdentifier is the canonical one,
-                    # but older workspaces use provider / type / name).
-                    pid = it.get("providerIdentifier") or it.get("provider") or it.get("type") or ""
-                    # The name field sometimes IS the provider (e.g. "gmb", "instagram")
-                    # when no providerIdentifier is set. Detect that pattern.
-                    if not pid and (it.get("name") or "").lower() in {"gmb", "instagram", "facebook", "tiktok", "twitter", "x", "linkedin", "youtube", "pinterest", "threads", "reddit", "youtube"}:
-                        pid = it["name"].lower()
+                    if not isinstance(it, dict):
+                        continue
+                    pid = infer_postiz_provider(it)
                     channels.append({
                         "id": it.get("id") or it.get("_id"),
-                        "provider": (pid or "").lower() or None,
+                        "provider": pid,
                         "name": it.get("name"),
                         "picture": it.get("picture"),
                         "disabled": it.get("disabled", False),
                     })
             out["postiz"] = {
                 "credentials_ok": status.get("ok"),
+                "api_live_ok": api_live_ok,
+                "api_key_prefix": status.get("api_key_prefix"),
+                "api_error": api_error,
+                "last_used_at": out["last_check"] if api_live_ok else None,
                 "channels": channels,
                 "channel_count": len(channels),
                 "connect_url": "/api/postiz/oauth/login?brand=swing-shack",
+                "setup": {
+                    "auth_type": "API key + OAuth client",
+                    "env_vars": ["POSTIZ_API_KEY", "POSTIZ_OAUTH_CLIENT_ID", "POSTIZ_OAUTH_CLIENT_SECRET"],
+                    "steps": [
+                        "Postiz dashboard → Settings → API → copy API key to Railway POSTIZ_API_KEY.",
+                        "OAuth client id/secret already on Railway for channel connect.",
+                        "Connect button runs Postiz OAuth; channels list refreshes on this page.",
+                        "Auth header is bare key (no Bearer prefix).",
+                    ],
+                },
             }
         except Exception as exc:
-            out["postiz"] = {"credentials_ok": False, "error": str(exc), "channels": []}
+            out["postiz"] = {"credentials_ok": False, "error": str(exc), "channels": [], "api_live_ok": False}
     else:
-        out["postiz"] = {"credentials_ok": False, "error": "postiz client unavailable", "channels": []}
+        out["postiz"] = {"credentials_ok": False, "error": "postiz client unavailable", "channels": [], "api_live_ok": False}
     if _GBP_OAUTH_AVAILABLE:
         try:
             gbp_creds = _gbp_lib.gbp_oauth_credentials_present()
             token = _gbp_lib.load_token("swing-shack")
+            gbp_last = (token or {}).get("rotated_at") or (token or {}).get("connected_at")
             out["gbp"] = {
                 "credentials_ok": gbp_creds,
                 "token_present": bool(token),
                 "google_account": (token or {}).get("google_account_email"),
                 "rotated_at": (token or {}).get("rotated_at"),
+                "last_used_at": gbp_last,
                 "connect_url": "/api/gbp/oauth/login?brand=swing-shack",
+                "setup": {
+                    "auth_type": "Google OAuth (business.manage scope)",
+                    "env_vars": ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
+                    "steps": [
+                        "GCP OAuth client needs business.manage scope + callback /api/gbp/oauth/callback.",
+                        "Click Connect → sign in as GBP owner → token stored on DATA_DIR volume.",
+                        "Publish to GBP listing still routes through Postiz when live publish enabled.",
+                        "Generate 7-day plan works with OAuth alone (dry-run).",
+                    ],
+                },
             }
         except Exception as exc:
             out["gbp"] = {"credentials_ok": False, "error": str(exc)}
@@ -15132,7 +15167,89 @@ def connected_accounts_status_route():
             meta_out["connect_url"] = "/meta-portal"
     except Exception as exc:
         meta_out["error"] = str(exc)
+    meta_out["last_used_at"] = meta_out.get("last_fetch")
+    meta_out["setup"] = {
+        "auth_type": "System user token (Railway env)",
+        "env_vars": ["META_SYSTEM_USER_TOKEN", "META_PAGE_ID", "META_INSTAGRAM_BUSINESS_ACCOUNT_ID"],
+        "steps": [
+            "Token set on Railway as META_SYSTEM_USER_TOKEN (read + publish scopes).",
+            "Use Refresh from Meta on this page to pull latest IG/FB analytics.",
+            "Publishing to IG/FB goes through Postiz, not direct Meta Graph.",
+        ],
+    }
     out["meta"] = meta_out
+
+    catalog = build_catalog_extras()
+    out["categories"] = catalog.get("categories", [])
+    out["integrations"] = catalog.get("integrations", [])
+    out["summary"] = catalog.get("summary", {})
+
+    # Primary cards for publish row (prepend to publish category in UI)
+    primary_publish = []
+    if out.get("postiz"):
+        p = out["postiz"]
+        st = "connected" if p.get("api_live_ok") and p.get("channel_count") else (
+            "degraded" if p.get("credentials_ok") and not p.get("api_live_ok") else (
+                "partial" if p.get("credentials_ok") else "missing"
+            )
+        )
+        primary_publish.append({
+            "id": "postiz",
+            "icon": "📮",
+            "name": "Postiz (publish hub)",
+            "category": "publish",
+            "state": st,
+            "purpose": "Cross-post to Instagram, Facebook, TikTok, X, GBP, YouTube, LinkedIn.",
+            "last_used_at": p.get("last_used_at"),
+            "connect": {"type": "oauth", "url": p.get("connect_url"), "label": "Connect Postiz"},
+            "setup": p.get("setup"),
+            "details": {"channels": p.get("channels", []), "channel_count": p.get("channel_count", 0), "api_key_prefix": p.get("api_key_prefix"), "api_error": p.get("api_error")},
+        })
+    if out.get("gbp"):
+        g = out["gbp"]
+        st = "connected" if g.get("credentials_ok") and g.get("token_present") else (
+            "partial" if g.get("credentials_ok") else "missing"
+        )
+        primary_publish.append({
+            "id": "gbp",
+            "icon": "📍",
+            "name": "Google Business Profile",
+            "category": "publish",
+            "state": st,
+            "purpose": "GBP daily plans, location insights, local SEO posts.",
+            "last_used_at": g.get("last_used_at"),
+            "connect": {"type": "oauth", "url": g.get("connect_url"), "label": "Connect GBP"},
+            "setup": g.get("setup"),
+            "details": {"google_account": g.get("google_account"), "rotated_at": g.get("rotated_at")},
+        })
+    if out.get("meta"):
+        m = out["meta"]
+        primary_publish.append({
+            "id": "meta",
+            "icon": "📊",
+            "name": "Meta Graph (IG + FB read)",
+            "category": "publish",
+            "state": "connected" if m.get("credentials_ok") else "missing",
+            "purpose": "IG + Facebook analytics and insights (read-only via system token).",
+            "last_used_at": m.get("last_used_at"),
+            "connect": {"type": "action", "url": "/api/meta/fetch", "label": "Refresh from Meta", "method": "POST"},
+            "setup": m.get("setup"),
+            "details": {
+                "fan_count": m.get("fan_count"),
+                "ig_followers": m.get("ig_followers"),
+                "page_name": m.get("page_name"),
+                "ig_handle": m.get("ig_handle"),
+                "blockers": m.get("blockers", []),
+            },
+        })
+    for cat in out.get("categories") or []:
+        if cat.get("id") == "publish":
+            existing_ids = {x.get("id") for x in cat.get("items") or []}
+            cat["items"] = primary_publish + [x for x in (cat.get("items") or []) if x.get("id") not in existing_ids]
+            break
+    else:
+        out["categories"] = [{"id": "publish", "label": "Publish", "items": primary_publish}] + (out.get("categories") or [])
+
     return jsonify(out), 200
 
 
@@ -16368,13 +16485,211 @@ def ops_layers():
         queue_path = os.path.join(_data_paths()['data_dir'], 'agent-queue.json')
         if os.path.exists(queue_path):
             queue_payload = _read_json_file(queue_path)
+        agents_roster = None
+        try:
+            from pathlib import Path
+
+            from _lib import ops_agents as _ops_agents_mod
+
+            roster_dir = Path(_data_paths()['data_dir']) / _ops_agents_mod.ROSTER_SUBDIR
+            agents_roster = _ops_agents_mod.read_roster(roster_dir)
+        except Exception:
+            _app_log.exception("ops_layers roster read failed; L3 stub fallback")
+        inbox_counts = None
+        try:
+            from _lib import unified_inbox as _unified_inbox_mod
+
+            review_sla = None
+            sla_path = os.path.join(_data_paths()['data_dir'], 'review-sla.json')
+            if os.path.exists(sla_path):
+                review_sla = _read_json_file(sla_path)
+            inbox_counts = _unified_inbox_mod.inbox_counts(review_sla=review_sla)
+        except Exception:
+            _app_log.exception("ops_layers inbox counts failed; L4 NEVER fallback")
         return jsonify(_ops_layers_mod.build_layers(
             jobs_status,
             freshness=freshness_payload,
             queue=queue_payload,
+            agents=agents_roster,
+            inbox=inbox_counts,
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified', methods=['GET'])
+def inbox_unified_list():
+    """GET /api/inbox/unified — L4 unified review inbox. Session-gated."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        brand = (request.args.get("brand") or request.args.get("brand_id") or "").strip() or None
+        status = (request.args.get("status") or "pending").strip().lower()
+        item_type = (request.args.get("type") or "").strip() or None
+        payload = _unified_inbox_mod.list_items(brand=brand, status=status, item_type=item_type)
+        payload["ok"] = True
+        return jsonify(payload), 200
+    except Exception as e:
+        _app_log.exception("inbox_unified_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>/approve', methods=['POST'])
+def inbox_unified_approve(item_id: str):
+    """POST /api/inbox/unified/<id>/approve — approve without publishing."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        editor = (body.get("editor") or "operator").strip()
+        reason = (body.get("reason") or "").strip()
+        result = _unified_inbox_mod.approve_item(item_id, editor=editor, reason=reason)
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_approve failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>/reject', methods=['POST'])
+def inbox_unified_reject(item_id: str):
+    """POST /api/inbox/unified/<id>/reject — reject an inbox item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        editor = (body.get("editor") or "operator").strip()
+        reason = (body.get("reason") or "").strip()
+        result = _unified_inbox_mod.reject_item(item_id, editor=editor, reason=reason)
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_reject failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>/edit', methods=['POST'])
+def inbox_unified_edit(item_id: str):
+    """POST /api/inbox/unified/<id>/edit — edit + human_edit_signal for L7."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        editor = (body.get("editor") or "christelle").strip()
+        fields = {k: v for k, v in body.items() if k not in ("editor",)}
+        result = _unified_inbox_mod.edit_item(item_id, editor=editor, fields=fields)
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_edit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/postiz-reschedule', methods=['POST'])
+def inbox_unified_postiz_reschedule_stub():
+    """Stub until L6 — Postiz reschedule from unified inbox."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    return jsonify({
+        "ok": False,
+        "stub": True,
+        "schema": "campaign-os/unified-inbox-stub/v1",
+        "error": "Postiz reschedule not wired until L6 publish layer",
+    }), 501
+
+
+@app.route('/api/inbox/unified/reorder', methods=['POST'])
+def inbox_unified_reorder_stub():
+    """Stub until L6 — drag-reorder queue items."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    return jsonify({
+        "ok": False,
+        "stub": True,
+        "schema": "campaign-os/unified-inbox-stub/v1",
+        "error": "Drag-reorder not wired until L6 publish layer",
+    }), 501
+
+
+@app.route('/api/ops/agents', methods=['GET'])
+def ops_agents_list():
+    """GET /api/ops/agents — L3 Mac fleet roster. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        roster_dir = Path(_data_paths()['data_dir']) / _ops_agents_mod.ROSTER_SUBDIR
+        return jsonify(_ops_agents_mod.build_agents_payload(roster_dir)), 200
+    except Exception as e:
+        _app_log.exception("ops_agents_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agents/heartbeat', methods=['POST'])
+def ops_agents_heartbeat():
+    """POST /api/ops/agents/heartbeat — Mac agent heartbeat. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        body = request.get_json(silent=True) or {}
+        hb = _ops_agents_mod.normalise_heartbeat(body)
+        roster_dir = Path(_data_paths()['data_dir']) / _ops_agents_mod.ROSTER_SUBDIR
+        _ops_agents_mod.write_heartbeat(roster_dir, hb)
+        _app_log.info("ops_agents heartbeat id=%s", hb.get("id"))
+        return jsonify({
+            "ok": True,
+            "id": hb.get("id"),
+            "received_at": hb.get("received_at"),
+        }), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_agents_heartbeat failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/agents/enqueue', methods=['POST'])
+def ops_agents_enqueue():
+    """POST /api/ops/agents/enqueue — append manual row to agent-queue.json."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+
+        body = request.get_json(silent=True) or {}
+        row = _ops_agents_mod.normalise_enqueue(body)
+        data_dir = Path(_data_paths()['data_dir'])
+        row_id, pending = _ops_agents_mod.append_enqueue_row(data_dir, row)
+        _app_log.info("ops_agents enqueue id=%s agent=%s", row_id, row.get("agent"))
+        return jsonify({"ok": True, "id": row_id, "rows": pending}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_agents_enqueue failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

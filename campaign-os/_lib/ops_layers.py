@@ -75,6 +75,8 @@ def build_layers(
     *,
     freshness: Optional[dict] = None,
     queue: Optional[dict | list] = None,
+    agents: Optional[list[dict]] = None,
+    inbox: Optional[dict] = None,
 ) -> dict[str, Any]:
     """Build campaign-os/ops-layers/v1 payload."""
     jobs = (jobs_status or {}).get("jobs") or []
@@ -87,9 +89,13 @@ def build_layers(
     depth = queue_depth(queue)
     l2_verdict = _health_verdict(l1_verdict, rotten=rotten, stale=stale)
 
+    l4_counts = inbox or {}
+    l4_pending = int(l4_counts.get("pending") or 0)
+    l4_stale = int(l4_counts.get("stale") or 0)
+    l4_approved_today = int(l4_counts.get("approved_today") or 0)
+    l4_verdict = str(l4_counts.get("verdict") or "NEVER")
+
     stub_layers = [
-        ("L3", "Agents", "agents", "L3 not built — Mac cos-* fleet and heartbeat API."),
-        ("L4", "Approve", "approve", "L4 not built — unified inbox for Christelle."),
         ("L5", "Create", "create", "L5 not built — caption/image/GBP drafts after approve."),
         ("L6", "Publish", "publish", "L6 sandbox — publish_dispatch writes receipts; PUBLISH_MODE=live is Kyle gate."),
         ("L7", "Learn", "learn", "L7 not built — outcomes feed recipes for L3/L5."),
@@ -143,6 +149,42 @@ def build_layers(
             }
     except Exception:
         pass
+
+    if agents is None:
+        layers["L3"] = {
+            "label": "Agents",
+            "verdict": "NEVER",
+            "href": "/ops?layer=agents",
+            "note": "L3 not built — Mac cos-* fleet and heartbeat API.",
+        }
+    else:
+        roster = agents or []
+        reporting = sum(1 for a in roster if a.get("last_heartbeat_at"))
+        never = sum(1 for a in roster if str(a.get("last_status") or "NEVER").upper() == "NEVER")
+        reporting_statuses = [
+            str(a.get("last_status") or "NEVER").upper()
+            for a in roster
+            if a.get("last_heartbeat_at")
+        ]
+        l3_verdict = worst_verdict(reporting_statuses) if reporting_statuses else "NEVER"
+        layers["L3"] = {
+            "label": "Agents",
+            "verdict": l3_verdict,
+            "href": "/ops?layer=agents",
+            "agents": len(roster),
+            "reporting": reporting,
+            "never": never,
+        }
+
+    layers["L4"] = {
+        "label": "Approve",
+        "verdict": l4_verdict,
+        "href": "/ops?layer=approve",
+        "pending": l4_pending,
+        "stale": l4_stale,
+        "approved_today": l4_approved_today,
+        "inbox_href": "/?page=review",
+    }
 
     for key, label, slug, note in stub_layers:
         entry: dict[str, Any] = {

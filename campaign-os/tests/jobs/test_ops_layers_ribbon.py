@@ -26,6 +26,7 @@ def job_app(monkeypatch, tmp_path):
             or mod == "_lib.llm_spend"
             or mod.startswith("_lib.llm_spend")
             or mod == "_lib.ops_layers"
+            or mod == "_lib.ops_agents"
         ):
             del sys.modules[mod]
     import app as app_module
@@ -139,8 +140,15 @@ def test_layers_api_schema(job_app):
         assert "verdict" in layer
         assert "href" in layer
         assert layer["verdict"] in valid
-        if key in ("L3", "L4", "L5", "L6", "L7"):
+        if key in ("L5", "L7"):
             assert layer["verdict"] == "NEVER"
+        if key == "L4":
+            assert "pending" in layer
+            assert "stale" in layer
+            assert "approved_today" in layer
+        if key == "L3":
+            assert layer["verdict"] == "NEVER"
+            assert layer.get("agents", 0) >= 1
 
 
 def test_layers_api_bearer_not_widened_to_other_ops(job_app):
