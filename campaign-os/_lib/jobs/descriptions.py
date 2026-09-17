@@ -164,6 +164,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Writes review-sla.json with breached and unknown_age buckets."
         ),
     },
+    "holiday_inject": {
+        "title": "SA public holiday inject",
+        "summary": "Upserts deterministic SA public holidays into each brand calendar.",
+        "detail": (
+            "Computes fixed and Easter-derived SA public holidays for the current and next "
+            "calendar year, then idempotently upserts moment records with "
+            "source_origin=deterministic_calendar via marketing_calendar. No Firecrawl, no keys."
+        ),
+    },
 }
 
 

@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import agent_queue_writer, review_sla, slot_planner
+from . import agent_queue_writer, holiday_inject, review_sla, slot_planner
 
 LAYER2_JOB_NAMES: tuple[str, ...] = (
     "slot_planner",
     "agent_queue_writer",
     "review_sla",
+    "holiday_inject",
 )
 
 LAYER2_DAILY = 86400
@@ -50,6 +51,20 @@ def layer2_specs() -> list[JobSpec]:
             criticality="LOW",
             credentials=(),
             writes=("review-sla.json",),
+        ),
+        JobSpec(
+            name="holiday_inject",
+            fn=holiday_inject.run,
+            every_seconds=LAYER2_DAILY,
+            timeout_seconds=60,
+            best_effort=False,
+            criticality="LOW",
+            credentials=(),
+            writes=(
+                "intelligence/marketing-calendar/stick.jsonl",
+                "intelligence/marketing-calendar/swing-shack.jsonl",
+                "intelligence/marketing-calendar/bag-drop.jsonl",
+            ),
         ),
     ]
 

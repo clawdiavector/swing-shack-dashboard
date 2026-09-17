@@ -99,7 +99,7 @@ def _seed_min_calendar(data_dir: Path, brand_id: str = "stick") -> None:
 def test_layer2_jobs_registered(data_dir):
     from _lib.jobs.registry import JOBS
 
-    for name in ("slot_planner", "agent_queue_writer", "review_sla"):
+    for name in ("slot_planner", "agent_queue_writer", "review_sla", "holiday_inject"):
         assert name in JOBS
         assert JOBS[name].credentials == ()
 
@@ -113,6 +113,9 @@ def test_schedules_and_descriptions(data_dir):
         desc = description_for(name)
         assert desc.get("title")
         assert desc.get("summary")
+    desc = description_for("holiday_inject")
+    assert desc.get("title")
+    assert desc.get("summary")
 
 
 def test_slot_planner_empty_world(data_dir):
@@ -124,8 +127,9 @@ def test_slot_planner_empty_world(data_dir):
     _assert_ok_rows(result)
     _assert_writes(data_dir, ("slot-planner.json",))
     doc = json.loads((data_dir / "slot-planner.json").read_text(encoding="utf-8"))
-    assert any(row.get("brand") == "swing-shack" for row in doc["skipped"])
-    assert doc["summary"]["brands_skipped"] >= 1
+    skipped_brands = {row.get("brand") for row in doc["skipped"]}
+    assert "swing-shack" not in skipped_brands
+    assert doc["summary"]["brands_planned"] == 3
 
 
 def test_slot_planner_with_calendar_record(data_dir):
