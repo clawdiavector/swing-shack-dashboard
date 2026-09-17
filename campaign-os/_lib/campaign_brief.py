@@ -1788,7 +1788,7 @@ def _operator_token_store() -> dict:
         return {}
 
 
-def _verify_operator_auth() -> "Optional[str]":
+def _verify_operator_auth(headers: "Optional[dict]" = None) -> "Optional[str]":
     """V1.2 §1: verify that the incoming request carries a
     valid operator approval token.
 
@@ -1796,13 +1796,24 @@ def _verify_operator_auth() -> "Optional[str]":
       X-Operator-Id: <operator_id>
       X-Operator-Token: <plaintext token>
 
+    The `headers` param is passed by the route handler from
+    flask.request.headers to keep the engine module
+    independent of Flask. If headers=None, falls back to
+    flask.request.headers (when called from a Flask context).
+
     Returns the authenticated operator_id (str) if valid,
     None otherwise. The session cookie is also required
     (caller checks _is_authed() first) — this function
     only verifies the operator identity on top of that.
     """
-    op_id = (request.headers.get("X-Operator-Id") or "").strip()
-    op_token = (request.headers.get("X-Operator-Token") or "").strip()
+    if headers is None:
+        try:
+            from flask import request as _flask_request
+            headers = _flask_request.headers
+        except Exception:
+            return None
+    op_id = (headers.get("X-Operator-Id") or "").strip()
+    op_token = (headers.get("X-Operator-Token") or "").strip()
     if not op_id or not op_token:
         return None
     store = _operator_token_store()
@@ -1814,7 +1825,7 @@ def _verify_operator_auth() -> "Optional[str]":
 
 
 def transition_brief(brand_id: str, brief_id: str, to_status: str,
-                     actor: str = None) -> dict:
+                     actor: str = None, headers: "Optional[dict]" = None) -> dict:
     """Status model transitions (brief §13).
 
     V1.2 §1 trust fix:
@@ -1840,7 +1851,7 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
     PROTECTED = (STATUS_APPROVED, STATUS_REJECTED, STATUS_SUPERSEDED)
     authenticated_operator = None
     if to_status in PROTECTED:
-        authenticated_operator = _verify_operator_auth()
+        authenticated_operator = _verify_operator_auth(headers)
         if not authenticated_operator:
             return {"ok": False,
                     "error": (f"transition to '{to_status}' requires "
@@ -1898,7 +1909,8 @@ LOG_OPERATOR_ACTIONS = True  # V1.2 §1 — audit log
 
 def revert_test_approval(brand_id: str, brief_id: str,
                            target_status: str = None,
-                           reason: str = None) -> dict:
+                           reason: str = None,
+                           headers: "Optional[dict]" = None) -> dict:
     """V1.2 §2: revert a Brief that was approved without genuine
     operator approval (e.g. agent-driven test approval).
 
@@ -1919,7 +1931,7 @@ def revert_test_approval(brand_id: str, brief_id: str,
         return {"ok": False, "error":
                 f"revert requires current status=approved, "
                 f"got {b.get('status')}"}
-    authenticated_operator = _verify_operator_auth()
+    authenticated_operator = _verify_operator_auth(headers)
     if not authenticated_operator:
         return {"ok": False,
                 "error": "revert requires operator authentication "

@@ -22341,7 +22341,8 @@ def brief_v1_transition(brand_id, brief_id):
     body = request.get_json(silent=True) or {}
     to_status = (body.get("to_status") or "").strip()
     cb = _cb_import()
-    r = cb.transition_brief(brand_id, brief_id, to_status, None)
+    r = cb.transition_brief(brand_id, brief_id, to_status, None,
+                              headers=dict(request.headers))
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
@@ -22364,7 +22365,8 @@ def brief_v1_revert_test_approval(brand_id, brief_id):
     cb = _cb_import()
     r = cb.revert_test_approval(brand_id, brief_id,
                                   target_status=body.get("target_status"),
-                                  reason=body.get("reason"))
+                                  reason=body.get("reason"),
+                                  headers=dict(request.headers))
     return jsonify(r), (200 if r.get("ok") else 400)
 
 
