@@ -111,3 +111,4 @@ tests/test_v2026_08_10_agents_run_at_field.py
 tests/test_v2026_08_13_recipe_subtitle_no_double_badge.py
 tests/test_v2026_08_14_headlines_ctas_empty_state.py
 tests/test_v2026_08_18_review_inbox_brand_scoped.py
+campaign-os/tests/jobs/test_layer2_jobs.py

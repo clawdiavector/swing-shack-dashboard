@@ -140,6 +140,30 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Daily auto-populate for the Ideas board. Preserves used ideas and billboards."
         ),
     },
+    "slot_planner": {
+        "title": "Calendar slot planner",
+        "summary": "Lists empty pillar slots for the next 14 days per configured brand.",
+        "detail": (
+            "Reads calendar v3 records and brand calendar_config.json pillars. Skips brands "
+            "without a config (e.g. swing-shack until K10). Writes slot-planner.json."
+        ),
+    },
+    "agent_queue_writer": {
+        "title": "Agent queue writer",
+        "summary": "Builds agent-queue.json rows for L3 agents from slots, freshness, and reco.",
+        "detail": (
+            "Deterministic read-modify-write on agent-queue.json. Preserves non-pending rows "
+            "appended by L3 enqueue. No keys required."
+        ),
+    },
+    "review_sla": {
+        "title": "Review SLA counter",
+        "summary": "Counts inbox and calendar items older than the 24h review SLA.",
+        "detail": (
+            "Sources review_inbox pending rows and calendar candidates awaiting review. "
+            "Writes review-sla.json with breached and unknown_age buckets."
+        ),
+    },
 }
 
 
