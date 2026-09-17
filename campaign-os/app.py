@@ -160,7 +160,7 @@ def _gate():
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
     # Dual-auth paths: bearer OR session (t15); session-only elsewhere
-    if path.startswith('/api/jobs') or path.startswith('/api/freshness'):
+    if path.startswith('/api/jobs') or path.startswith('/api/freshness') or path == '/api/ops/layers':
         if _is_job_authed():
             return None
     elif _is_authed():
@@ -16238,11 +16238,46 @@ def ops_llm_spend():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/ops', methods=['GET'])
 @app.route('/ops/jobs', methods=['GET'])
 def ops_jobs_page():
-    """GET /ops/jobs — session-gated job dashboard (t42). Not a public ops page."""
+    """GET /ops and /ops/jobs — session-gated ops shell (t42, L2 ribbon). Not public."""
     # Auth via _gate before_request — must NOT be added to PUBLIC_ROUTE_PREFIXES.
     return send_from_directory(os.path.dirname(__file__), 'ops-jobs.html')
+
+
+@app.route('/api/ops/layers', methods=['GET'])
+def ops_layers():
+    """GET /api/ops/layers — per-layer rollup for ops ribbon (L2). Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    try:
+        from _lib import ops_layers as _ops_layers_mod
+
+        jobs_status = _jobs_build_status()
+        freshness_payload = None
+        data, _, ok = _get_freshness()
+        if ok and data:
+            bs = data.get('by_staleness') or {}
+            freshness_payload = {
+                'rotten': bs.get('rotten', 0),
+                'stale': bs.get('stale', 0),
+                'fresh': bs.get('fresh', 0),
+            }
+        queue_payload = None
+        queue_path = os.path.join(_data_paths()['data_dir'], 'agent-queue.json')
+        if os.path.exists(queue_path):
+            queue_payload = _read_json_file(queue_path)
+        return jsonify(_ops_layers_mod.build_layers(
+            jobs_status,
+            freshness=freshness_payload,
+            queue=queue_payload,
+        )), 200
+    except Exception as e:
+        _app_log.exception("ops_layers failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/freshness', methods=['GET'])
