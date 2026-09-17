@@ -42,5 +42,13 @@ def _bootstrap_layer1() -> None:
     bootstrap_layer1(register)
 
 
+def _bootstrap_layer2() -> None:
+    """Register the three L2 health/planning jobs. Idempotent via register()."""
+    from .layer2 import bootstrap_layer2
+
+    bootstrap_layer2(register)
+
+
 _bootstrap_meta()
 _bootstrap_layer1()
+_bootstrap_layer2()

@@ -4826,6 +4826,18 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+const TZ = 'Africa/Johannesburg';
+function fmtSast(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-ZA', {
+      timeZone: TZ, month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }) + ' SAST';
+  } catch (_) { return '—'; }
+}
 /** Layer 1 job fetch time — shown on cards fed by JSON job outputs. */
 function formatDataAsOf(iso, opts = {}) {
   if (!iso) return '';
@@ -4833,7 +4845,7 @@ function formatDataAsOf(iso, opts = {}) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '';
     const fmt = d.toLocaleString('en-ZA', {
-      timeZone: 'Africa/Johannesburg',
+      timeZone: TZ,
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
@@ -4848,15 +4860,8 @@ function dataAsOfBadge(iso, title) {
 /** Compact timestamp for per-row meta (Layer 1 job fetch time). */
 function formatDataAsOfShort(iso) {
   if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleString('en-ZA', {
-      timeZone: 'Africa/Johannesburg',
-      month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  } catch { return ''; }
+  const s = fmtSast(iso);
+  return s === '—' ? '' : s;
 }
 function rowFetchedAtHtml(iso, label) {
   const short = formatDataAsOfShort(iso);
@@ -5030,7 +5035,7 @@ async function _briefRenderGbpToday(){
     const schedule = r.schedule || [];
     const next = posts[0];
     const sched = schedule[0] || {};
-    const when = sched.scheduled_for ? new Date(sched.scheduled_for).toLocaleString('en-ZA', {dateStyle:'medium', timeStyle:'short', timeZone:'UTC'}) + ' UTC' : '';
+    const when = sched.scheduled_for ? new Date(sched.scheduled_for).toLocaleString('en-ZA', {dateStyle:'medium', timeStyle:'short', timeZone:TZ}) + ' SAST' : '';
     if(meta) meta.textContent = `${posts.length} post${posts.length===1?'':'s'} queued`;
     body.innerHTML = `
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
@@ -7885,7 +7890,7 @@ async function renderTodayRail(){
       </div>`;
   }
   el.innerHTML = `
-      <div class="rail-meta">${r.count} live · updated ${esc(lastTs.slice(11,19))} UTC</div>
+      <div class="rail-meta">${r.count} live · updated ${esc(lastTs ? fmtSast(lastTs) : '—')}</div>
       ${recCardHtml}
     ${(r.cards||[]).map((c,i) => `
       <div class="rail-card ${c.kind}" data-id="${esc(c.id)}" style="animation-delay:${i*60}ms">
@@ -8314,7 +8319,7 @@ async function renderBrief(){
             <li class="whats-new-row">
               <span class="wn-tag wn-${esc(w.tag || 'misc')}">${esc(w.tag || 'misc')}</span>
               <div class="wn-body">
-                <div class="wn-title">${esc(w.title)} <span class="wn-ts muted">· ${esc((w.ts||'').slice(0,16).replace('T',' '))} UTC</span></div>
+                <div class="wn-title">${esc(w.title)} <span class="wn-ts muted">· ${esc(fmtSast(w.ts))}</span></div>
                 <div class="wn-x">${esc(w.body)}</div>
               </div>
             </li>`).join('')}
@@ -8334,7 +8339,7 @@ async function renderBrief(){
           <li class="whats-new-row">
             <span class="wn-tag wn-${esc(w.tag || 'misc')}">${esc(w.tag || 'misc')}</span>
             <div class="wn-body">
-              <div class="wn-title">${esc(w.title)} <span class="wn-ts muted">· ${esc((w.ts||'').slice(0,16).replace('T',' '))} UTC</span></div>
+              <div class="wn-title">${esc(w.title)} <span class="wn-ts muted">· ${esc(fmtSast(w.ts))}</span></div>
               <div class="wn-x">${esc(w.body)}</div>
             </div>
           </li>
@@ -13180,7 +13185,7 @@ function _gbpDailyRenderPlan(plan) {
   </div>`;
   const cards = posts.map((p, i) => {
     const sched = schedule[i] || {};
-    const when = sched.scheduled_for ? new Date(sched.scheduled_for).toLocaleString('en-ZA', {dateStyle:'medium', timeStyle:'short', timeZone:'UTC'}) + ' UTC' : '';
+    const when = sched.scheduled_for ? new Date(sched.scheduled_for).toLocaleString('en-ZA', {dateStyle:'medium', timeStyle:'short', timeZone:TZ}) + ' SAST' : '';
     return `<li class="li" style="margin-bottom:.75rem;padding:12px;border:1px solid var(--bd);border-radius:6px;background:var(--bg-2)">
       <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">
         <span class="pill on" style="font-size:10px">${esc(p.intent || 'informational')}</span>
@@ -14985,7 +14990,7 @@ function integrationHealthHtml(h){
   // last_success readable date.
   let lastSuccess = '';
   if(typeof h.last_success === 'string' && h.last_success.length > 10){
-    lastSuccess = h.last_success.slice(0, 19).replace('T', ' ');
+    lastSuccess = fmtSast(h.last_success);
   }
   // KV grid: status, connected, auth, age, last_success, scope_level
   const kv = [];
@@ -14993,7 +14998,7 @@ function integrationHealthHtml(h){
   kv.push(`<dt>Connected</dt><dd><span class="pill ${connectedKind}">${connected ? 'yes' : 'no'}</span></dd>`);
   if(h.auth_status) kv.push(`<dt>Auth</dt><dd><span class="pill ${authKind}">${esc(h.auth_status.replace(/_/g,' '))}</span></dd>`);
   if(ageLabel) kv.push(`<dt>Last seen</dt><dd>${esc(ageLabel)}</dd>`);
-  if(lastSuccess) kv.push(`<dt>Last success</dt><dd><span class="muted">${esc(lastSuccess)} UTC</span></dd>`);
+  if(lastSuccess && lastSuccess.endsWith(' SAST')) kv.push(`<dt>Last success</dt><dd><span class="muted">${esc(lastSuccess)}</span></dd>`);
   if(h.scope_level) kv.push(`<dt>Scope</dt><dd>${esc(h.scope_level)}</dd>`);
   if(h.api_key_prefix) kv.push(`<dt>Key</dt><dd><span class="muted">${esc(h.api_key_prefix)}</span></dd>`);
   // Detail rows: evidence (the human-readable why-this-status), blockers

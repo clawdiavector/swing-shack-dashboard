@@ -160,7 +160,7 @@ def _gate():
     if any(path.endswith(ext) for ext in ('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.map')):
         return None
     # Dual-auth paths: bearer OR session (t15); session-only elsewhere
-    if path.startswith('/api/jobs') or path.startswith('/api/freshness'):
+    if path.startswith('/api/jobs') or path.startswith('/api/freshness') or path == '/api/ops/layers':
         if _is_job_authed():
             return None
     elif _is_authed():
@@ -342,6 +342,13 @@ def admin_data_sync_bundled():
     try:
         os.makedirs(paths['data_dir'], exist_ok=True)
         from shutil import copy2
+        bundled_size = bundled_repo.stat().st_size
+        if bundled_size > 100 * 1024 * 1024:
+            return jsonify({
+                "ok": False,
+                "error": "bundled campaign-data.json too large for sync",
+                "size_bytes": bundled_size,
+            }), 413
         copy2(str(bundled_repo), runtime_file)
         size = os.path.getsize(runtime_file)
         return jsonify({"ok": True, "synced_from": str(bundled_repo),
@@ -6251,12 +6258,16 @@ def lanes_calendar():
         return jsonify({"ok": False, "error": "auth required"}), 401
     body = request.get_json(silent=True) or {}
     brand_id = (body.get("brand_id") or "swing-shack").strip()
+    start_date = body.get("start_date")
+    end_date = body.get("end_date")
+    if not start_date or not end_date:
+        return jsonify({"ok": False, "error": "start_date and end_date required (YYYY-MM-DD)"}), 400
     try:
         from _lib.marketing_lanes import get_calendar_view
         result = get_calendar_view(
             brand_id,
-            start_date=body.get("start_date"),
-            end_date=body.get("end_date"),
+            start_date=start_date,
+            end_date=end_date,
             lanes=body.get("lanes"),
             campaigns=body.get("campaigns"),
             platforms=body.get("platforms"),
@@ -6642,11 +6653,14 @@ def lanes_propose_product_calendar():
         return jsonify({"ok": False, "error": "auth required"}), 401
     body = request.get_json(silent=True) or {}
     brand_id = (body.get("brand_id") or "swing-shack").strip()
+    start_date = body.get("start_date")
+    if not start_date:
+        return jsonify({"ok": False, "error": "start_date required (YYYY-MM-DD)"}), 400
     try:
         from _lib.marketing_lanes import propose_product_calendar
         result = propose_product_calendar(
             brand_id,
-            start_date=body.get("start_date"),
+            start_date=start_date,
             days_count=int(body.get("days_count", 20)),
             frequency=body.get("frequency", "weekdays"),
             categories=body.get("categories"),
@@ -6688,12 +6702,16 @@ def lanes_conflicts():
         return jsonify({"ok": False, "error": "auth required"}), 401
     body = request.get_json(silent=True) or {}
     brand_id = (body.get("brand_id") or "swing-shack").strip()
+    start_date = body.get("start_date")
+    end_date = body.get("end_date")
+    if not start_date or not end_date:
+        return jsonify({"ok": False, "error": "start_date and end_date required (YYYY-MM-DD)"}), 400
     try:
         from _lib.marketing_lanes import get_calendar_view
         result = get_calendar_view(
             brand_id,
-            start_date=body.get("start_date"),
-            end_date=body.get("end_date"),
+            start_date=start_date,
+            end_date=end_date,
             lanes=body.get("lanes"),
         )
         return jsonify({"ok": True, "conflicts": result.get("conflicts", [])}), 200
@@ -7302,6 +7320,10 @@ def creative_from_reference_and_product():
     body = request.get_json(silent=True) or {}
     brand_id = (body.get("brand_id") or "swing-shack").strip()
     format_aspect = body.get("format_aspect", "1:1")
+    if not body.get("reference_dna") and not body.get("reference_id"):
+        return jsonify({"ok": False, "error": "reference_dna or reference_id required"}), 400
+    if not body.get("product_service_item") and not body.get("product_id"):
+        return jsonify({"ok": False, "error": "product_service_item or product_id required"}), 400
     try:
         reference_dna = body.get("reference_dna")
         if not reference_dna and body.get("reference_id"):
@@ -7315,6 +7337,10 @@ def creative_from_reference_and_product():
             product_service_item = get_item(
                 brand_id, body["product_id"]
             ) or {}
+        if not reference_dna:
+            return jsonify({"ok": False, "error": "reference not found"}), 404
+        if not product_service_item:
+            return jsonify({"ok": False, "error": "product not found"}), 404
         from _lib.creative_director import from_reference_and_product
         result = from_reference_and_product(
             brand_id=brand_id,
@@ -11382,9 +11408,11 @@ def instagram_analytics_refresh():
     try:
         import subprocess as _sp
         script_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_ig_business.py'),
+            '/app/scripts/fetch_ig_business.py',
+            os.path.join(os.getcwd(), 'scripts', 'fetch_ig_business.py'),
             os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts', 'fetch_instagram_analytics.py'),
             '/app/scripts/fetch_instagram_analytics.py',
-            os.path.join(os.getcwd(), 'scripts', 'fetch_instagram_analytics.py'),
         ]
         script_path = None
         for sp in script_paths:
@@ -11392,7 +11420,7 @@ def instagram_analytics_refresh():
                 script_path = sp
                 break
         if not script_path:
-            return jsonify({"ok": False, "error": "fetch_instagram_analytics.py not found", "checked": script_paths}), 500
+            return jsonify({"ok": False, "error": "fetch_ig_business.py not found", "checked": script_paths}), 500
         env = os.environ.copy()
         env.setdefault("BRAND_ID", "swing-shack")
         result = _sp.run(["python3", script_path], capture_output=True, text=True, env=env, timeout=120)
@@ -13872,6 +13900,85 @@ def postiz_channels_route():
         })
     return jsonify({"ok": True, "channels": channels, "count": len(channels)}), 200
 
+
+# ── Publish sandbox (L6 — no outbound Postiz/GBP when PUBLISH_MODE=sandbox) ──
+
+@app.route('/api/publish/mode', methods=['GET'])
+def publish_mode_route():
+    """GET /api/publish/mode — sandbox vs live (session or job bearer)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.publish_mode import get_publish_mode
+        mode = get_publish_mode()
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    return jsonify({
+        "ok": True,
+        "mode": mode,
+        "label": "SANDBOX" if mode == "sandbox" else "LIVE",
+        "hint": "sandbox writes receipts only — no Postiz/GBP HTTP",
+    }), 200
+
+
+@app.route('/api/publish/sandbox/summary', methods=['GET'])
+def publish_sandbox_summary_route():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.publish_sandbox import summary as sandbox_summary
+        return jsonify(sandbox_summary()), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox summary failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/publish/sandbox/enqueue', methods=['POST'])
+def publish_sandbox_enqueue_route():
+    """POST body: brand_id, platform?, caption_preview?, human_approved?, idempotency_key?"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or "").strip()
+    if not brand_id:
+        return jsonify({"ok": False, "error": "brand_id required"}), 400
+    try:
+        from _lib.publish_sandbox import enqueue_item
+        item = enqueue_item(
+            brand_id=brand_id,
+            platform=(body.get("platform") or "instagram").strip(),
+            channel=(body.get("channel") or "postiz").strip(),
+            caption_preview=(body.get("caption_preview") or "").strip(),
+            inbox_item_id=body.get("inbox_item_id"),
+            human_approved=bool(body.get("human_approved")),
+            would_publish_at=body.get("would_publish_at"),
+            idempotency_key=body.get("idempotency_key"),
+        )
+        return jsonify({"ok": True, "item": item}), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox enqueue failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/publish/sandbox/approve', methods=['POST'])
+def publish_sandbox_approve_route():
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    key = (body.get("idempotency_key") or "").strip()
+    if not key:
+        return jsonify({"ok": False, "error": "idempotency_key required"}), 400
+    try:
+        from _lib.publish_sandbox import approve_item
+        item, err = approve_item(key)
+        if err:
+            return jsonify({"ok": False, "error": err}), 404
+        return jsonify({"ok": True, "item": item}), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox approve failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 def _safe_read_json(path: Path) -> Optional[dict]:
     try:
         return json.loads(path.read_text())
@@ -15961,6 +16068,20 @@ try:
         best_effort=True,
         writes=("freshness.json",),
     ))
+
+    def _run_publish_dispatch_job():
+        from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
+        return _publish_dispatch_run()
+
+    _register_job(_JobSpec(
+        name="publish_dispatch",
+        fn=_run_publish_dispatch_job,
+        every_seconds=86400,
+        timeout_seconds=120,
+        criticality="MEDIUM",
+        best_effort=False,
+        writes=("publish-sandbox/",),
+    ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001
     _JOBS_AVAILABLE = False
@@ -16210,11 +16331,46 @@ def ops_llm_spend():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/ops', methods=['GET'])
 @app.route('/ops/jobs', methods=['GET'])
 def ops_jobs_page():
-    """GET /ops/jobs — session-gated job dashboard (t42). Not a public ops page."""
+    """GET /ops and /ops/jobs — session-gated ops shell (t42, L2 ribbon). Not public."""
     # Auth via _gate before_request — must NOT be added to PUBLIC_ROUTE_PREFIXES.
     return send_from_directory(os.path.dirname(__file__), 'ops-jobs.html')
+
+
+@app.route('/api/ops/layers', methods=['GET'])
+def ops_layers():
+    """GET /api/ops/layers — per-layer rollup for ops ribbon (L2). Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _JOBS_AVAILABLE:
+        return jsonify({"ok": False, "error": "job registry unavailable"}), 503
+    try:
+        from _lib import ops_layers as _ops_layers_mod
+
+        jobs_status = _jobs_build_status()
+        freshness_payload = None
+        data, _, ok = _get_freshness()
+        if ok and data:
+            bs = data.get('by_staleness') or {}
+            freshness_payload = {
+                'rotten': bs.get('rotten', 0),
+                'stale': bs.get('stale', 0),
+                'fresh': bs.get('fresh', 0),
+            }
+        queue_payload = None
+        queue_path = os.path.join(_data_paths()['data_dir'], 'agent-queue.json')
+        if os.path.exists(queue_path):
+            queue_payload = _read_json_file(queue_path)
+        return jsonify(_ops_layers_mod.build_layers(
+            jobs_status,
+            freshness=freshness_payload,
+            queue=queue_payload,
+        )), 200
+    except Exception as e:
+        _app_log.exception("ops_layers failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route('/api/freshness', methods=['GET'])
@@ -16705,6 +16861,17 @@ def intel_sa_context_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+def _run_intel_with_timeout(fn, timeout_sec=45):
+    """Bound slow intel generators so Railway does not 502 on long runs."""
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        fut = pool.submit(fn)
+        try:
+            return fut.result(timeout=timeout_sec)
+        except FuturesTimeout as exc:
+            raise TimeoutError(f"timed out after {timeout_sec}s") from exc
+
+
 @app.route('/api/intel/generate_hooks', methods=['POST', 'GET'])
 def intel_generate_hooks_route():
     """POST/GET /api/intel/generate_hooks — generate N fresh hooks from signals.
@@ -16718,7 +16885,7 @@ def intel_generate_hooks_route():
         body = request.get_json(silent=True) if request.method == 'POST' else {}
         body = body or {}
         n = min(int(body.get('n', request.args.get('n', 10)) or 10), 30)
-        result = generate_hooks(n)
+        result = _run_intel_with_timeout(lambda: generate_hooks(n))
         result['hooks'] = result.get('generated') or result.get('hooks') or []
         result['count'] = len(result['hooks'])
         # Expose signal pool size for the honest empty state ("no new hooks
@@ -16731,6 +16898,8 @@ def intel_generate_hooks_route():
             _pool_size = 0
         result['_pool_size'] = _pool_size
         return jsonify(result), 200
+    except TimeoutError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 504
     except Exception as exc:
         _app_log.exception("generate_hooks failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
@@ -16749,9 +16918,11 @@ def intel_generate_headlines_route():
         body = request.get_json(silent=True) if request.method == 'POST' else {}
         body = body or {}
         n = min(int(body.get('n', request.args.get('n', 5)) or 5), 12)
-        result = generate_headlines(n)
+        result = _run_intel_with_timeout(lambda: generate_headlines(n))
         result['count'] = len(result.get('headlines', []))
         return jsonify(result), 200
+    except TimeoutError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 504
     except Exception as exc:
         _app_log.exception("generate_headlines failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
@@ -22324,9 +22495,14 @@ def strategy_lesson():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = request.args.get('brand') or get_brand_id()
     body = request.get_json(silent=True) or {}
-    from _lib import strategy_store as ss
-    s = ss.upsert_lesson(bid, body)
-    return jsonify({"ok": True, "strategy": s}), 200
+    if not body.get("category"):
+        return jsonify({"ok": False, "error": "category required"}), 400
+    try:
+        from _lib import strategy_store as ss
+        s = ss.upsert_lesson(bid, body)
+        return jsonify({"ok": True, "strategy": s}), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
 
 
 @app.route('/api/strategy/lesson/<lesson_id>/invalidate', methods=['POST'])
@@ -23957,8 +24133,11 @@ def strategy_replay(record_type, record_id):
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     bid = request.args.get('brand') or get_brand_id()
-    from _lib import weekly_brief as wb
-    replay = wb.build_replay(bid, record_type, record_id)
+    try:
+        from _lib import weekly_brief as wb
+        replay = wb.build_replay(bid, record_type, record_id)
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
     if not replay:
         return jsonify({"ok": False, "error": "record not found"}), 404
     return jsonify({"ok": True, "replay": replay}), 200

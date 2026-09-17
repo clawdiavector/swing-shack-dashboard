@@ -108,6 +108,48 @@ def get_brand_oauth(brand_id: str) -> dict:
         return {"brand_id": brand_id, "channels": {}}
 
 
+def _sandbox_connection_status(brand_id: Optional[str] = None) -> dict:
+    """Sandbox mode — no live Postiz OAuth required for pipeline testing."""
+    brands = []
+    if brand_id:
+        brands = [brand_id]
+    else:
+        bd = _data_root() / "brand-directory"
+        if bd.exists():
+            brands = sorted([p.name for p in bd.iterdir() if p.is_dir() and not p.name.startswith("_")])
+
+    publishing: Dict[str, Dict[str, Any]] = {}
+    for b in brands:
+        per_channel: Dict[str, Any] = {}
+        for ch in PUBLISHING_CHANNELS:
+            per_channel[ch] = {
+                "state": "sandbox",
+                "account_label": "Sandbox — no live publish",
+            }
+        publishing[b] = per_channel
+
+    summary: Dict[str, Any] = {}
+    try:
+        from _lib.publish_sandbox import summary as sandbox_summary
+
+        summary = sandbox_summary()
+    except Exception:
+        summary = {}
+
+    return {
+        "postiz_api": {
+            "state": "sandbox",
+            "mode": "sandbox",
+            "label": "Sandbox — no live Postiz HTTP from publish_dispatch",
+        },
+        "publishing_overall": "sandbox",
+        "publishing": publishing,
+        "brands": brands,
+        "sandbox": summary,
+        "checked_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+
 def _postiz_api_state() -> str:
     """Check the Postiz API config state."""
     # Look at the env vars + credential files (mirrors postiz_client._read_*)
@@ -158,6 +200,14 @@ def get_connection_status(brand_id: Optional[str] = None) -> dict:
         brands: [brand_id, ...]
       }
     """
+    try:
+        from _lib.publish_mode import is_sandbox_mode
+
+        if is_sandbox_mode():
+            return _sandbox_connection_status(brand_id)
+    except Exception:
+        pass
+
     api_state = _postiz_api_state()
     # Per brand per channel
     brands = []

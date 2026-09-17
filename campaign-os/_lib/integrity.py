@@ -98,11 +98,16 @@ def reconcile(brand_id: str = "swing-shack") -> Dict[str, Any]:
     Low: clean-up issue
     """
     issues = []
+    from spend import _float_or, _iter_campaigns
+
     doc = load_spend(brand_id)
     s = load_strategy(brand_id)
-    campaigns = [c for c in doc.get("campaigns", []) if c.get("status") in ("active", "running")]
+    campaigns = [
+        c for c in _iter_campaigns(doc)
+        if c.get("status") in ("active", "running")
+    ]
 
-    valid_bet_ids = {b["id"] for b in s.get("bets", [])}
+    valid_bet_ids = {b["id"] for b in s.get("bets", []) if isinstance(b, dict) and b.get("id")}
 
     # Stale bet links (HIGH)
     for c in campaigns:
@@ -116,7 +121,7 @@ def reconcile(brand_id: str = "swing-shack") -> Dict[str, Any]:
                 "title": f"{c.get('name', c.get('campaign_id'))} links to retired bet ID",
                 "detail": f"Campaign '{c.get('campaign_id')}' links to bet '{bet_id}' which no longer exists.",
                 "impact": "Affected conclusions: " + ", ".join(_affected_conclusions(c, "stale_bet_link")),
-                "spend_at_risk": c.get("spend_rands", 0),
+                "spend_at_risk": _float_or(c.get("spend_rands")),
                 "recommended_action": "Relink campaign before using these figures for scale/hold decision.",
                 "actions": ["relink", "review", "ignore_temporarily"],
             })
@@ -126,14 +131,15 @@ def reconcile(brand_id: str = "swing-shack") -> Dict[str, Any]:
     for c in campaigns:
         cid = c.get("campaign_id")
         if cid in seen_ids:
+            dup_spend = _float_or(seen_ids[cid].get("spend_rands")) + _float_or(c.get("spend_rands"))
             issues.append({
                 "code": "duplicate_campaign",
                 "severity": "critical",
                 "campaign_id": cid,
                 "title": f"Campaign '{cid}' is counted twice",
-                "detail": f"Total duplicated spend: R{seen_ids[cid].get('spend_rands', 0) + c.get('spend_rands', 0):,.0f}.",
+                "detail": f"Total duplicated spend: R{dup_spend:,.0f}.",
                 "impact": "Spend totals inflated. Affected conclusions: portfolio balance, monthly spend, allocation %.",
-                "spend_at_risk": seen_ids[cid].get("spend_rands", 0) + c.get("spend_rands", 0),
+                "spend_at_risk": dup_spend,
                 "recommended_action": "Deduplicate before using for any commercial decision.",
             })
         seen_ids[cid] = c
@@ -156,14 +162,15 @@ def reconcile(brand_id: str = "swing-shack") -> Dict[str, Any]:
     # Orphaned spend (HIGH — paid money without strategy)
     orphans = detect_orphaned_spend(brand_id)
     for o in orphans:
+        orphan_spend = _float_or(o.get("spend_rands"))
         issues.append({
             "code": "orphaned_spend",
             "severity": "high",
             "campaign_id": o.get("campaign_id"),
             "title": f"Orphaned spend — {o.get('name', o.get('campaign_id'))}",
-            "detail": f"R{o.get('spend_rands', 0):,.0f} spent with no link to an active strategic bet.",
+            "detail": f"R{orphan_spend:,.0f} spent with no link to an active strategic bet.",
             "impact": "Affected conclusions: portfolio balance, strategic efficiency, monthly ROI summary.",
-            "spend_at_risk": o.get("spend_rands", 0),
+            "spend_at_risk": orphan_spend,
             "recommended_action": "Link to strategy, review, or pause.",
             "actions": ["link", "review", "pause"],
         })
@@ -472,47 +479,53 @@ def evidence_chain(brand_id: str, bet_id: str) -> Dict[str, Any]:
 def measurement_debt(brand_id: str = "swing-shack") -> Dict[str, Any]:
     """Per-layer status: Healthy / Partial / Broken / Unavailable.
     Plus the 'What would unlock the next claim?' action per layer."""
+    from spend import _float_or, _iter_campaigns
+
     state = _load_integrity_state()
 
     # Aggregate from spend + strategy data
     doc = load_spend(brand_id)
     s = load_strategy(brand_id)
 
+    def _perf(c: dict, key: str) -> float:
+        perf = c.get("performance") if isinstance(c.get("performance"), dict) else {}
+        return _float_or(perf.get(key))
+
     # Check each layer
     layer_status = {}
 
     # Attention: do campaigns have impressions?
-    active = [c for c in doc.get("campaigns", []) if c.get("status") in ("active", "running")]
-    attention_present = any(c.get("performance", {}).get("impressions", 0) > 0 for c in active)
+    active = [c for c in _iter_campaigns(doc) if c.get("status") in ("active", "running")]
+    attention_present = any(_perf(c, "impressions") > 0 for c in active)
     layer_status["attention"] = {"status": "Healthy" if attention_present else "Unavailable", "label": LAYER_LABELS["attention"]}
 
     # Traffic: clicks
-    traffic_present = any(c.get("performance", {}).get("clicks", 0) > 0 for c in active)
+    traffic_present = any(_perf(c, "clicks") > 0 for c in active)
     layer_status["traffic"] = {"status": "Healthy" if traffic_present else "Unavailable", "label": LAYER_LABELS["traffic"]}
 
     # Intent: visits / booking_visits / form_starts
-    intent_present = any(c.get("performance", {}).get("visits", 0) > 0 or c.get("performance", {}).get("booking_visits", 0) > 0 for c in active)
+    intent_present = any(_perf(c, "visits") > 0 or _perf(c, "booking_visits") > 0 for c in active)
     layer_status["intent"] = {"status": "Healthy" if intent_present else "Unavailable", "label": LAYER_LABELS["intent"]}
 
     # Leads: leads
-    leads_present = any(c.get("performance", {}).get("leads", 0) > 0 for c in active)
+    leads_present = any(_perf(c, "leads") > 0 for c in active)
     layer_status["lead"] = {"status": "Healthy" if leads_present else "Unavailable", "label": LAYER_LABELS["lead"]}
 
     # Bookings: bookings present? Tracking set up?
-    bookings_present = any(c.get("performance", {}).get("bookings", 0) > 0 for c in active)
+    bookings_present = any(_perf(c, "bookings") > 0 for c in active)
     bookings_tracked = any(c.get("attribution_source") in ("booking_system", "crm") for c in active)
     if bookings_present and bookings_tracked:
         layer_status["booking"] = {"status": "Healthy", "label": LAYER_LABELS["booking"]}
     elif bookings_present:
         layer_status["booking"] = {"status": "Partial", "label": LAYER_LABELS["booking"]}
-    elif any(c.get("spend_rands", 0) > 0 for c in active):
+    elif any(_float_or(c.get("spend_rands")) > 0 for c in active):
         # Money is being spent but no booking data — broken
         layer_status["booking"] = {"status": "Broken", "label": LAYER_LABELS["booking"]}
     else:
         layer_status["booking"] = {"status": "Unavailable", "label": LAYER_LABELS["booking"]}
 
     # Revenue: requires revenue data + CRM
-    revenue_present = any(c.get("performance", {}).get("revenue", 0) > 0 for c in active)
+    revenue_present = any(_perf(c, "revenue") > 0 for c in active)
     layer_status["revenue"] = {"status": "Healthy" if revenue_present else "Unavailable", "label": LAYER_LABELS["revenue"]}
 
     # Manager read

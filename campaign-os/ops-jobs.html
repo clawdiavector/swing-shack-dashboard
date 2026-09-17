@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Jobs · Campaign OS</title>
+<title>Ops · Campaign OS</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%226%22%20fill%3D%22%230a0f1a%22%2F%3E%3Cpath%20d%3D%22M10%2026V6%22%20stroke%3D%22%23fbbf24%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M10%208%20L22%2011%20L10%2014%20Z%22%20fill%3D%22%23fbbf24%22%2F%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2227%22%20r%3D%221.5%22%20fill%3D%22%2334d399%22%2F%3E%3C%2Fsvg%3E">
 <style>
 :root {
@@ -75,6 +75,8 @@ main { padding: 12px 16px 96px; max-width: 880px; margin: 0 auto; }
 .chip.LATE { background: rgba(245,158,11,.15); color: var(--warn); }
 .chip.FAILED, .chip.STUCK { background: rgba(255,107,107,.15); color: var(--bad); }
 .chip.NEVER { background: rgba(154,160,166,.15); color: var(--muted); }
+.chip.SANDBOX { background: rgba(110,168,255,.18); color: var(--accent-2); }
+.chip.LIVE { background: rgba(255,107,107,.12); color: var(--bad); }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .empty, .err { color: var(--muted); padding: 24px 8px; text-align: center; }
 .drawer-bg {
@@ -160,7 +162,25 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
   margin-top: 2px;
 }
 .view-tab { flex: 0 1 auto; min-width: 120px; }
-#summary[hidden], #list[hidden] { display: none !important; }
+.ribbon {
+  display: flex; flex-wrap: wrap; gap: 6px; width: 100%; flex: 1 1 100%;
+  margin-top: 4px;
+}
+.ribbon a {
+  text-decoration: none; flex: 0 1 auto;
+}
+.ribbon a.primary { background: var(--accent); color: #0a0c10; border-color: transparent; }
+.health-grid {
+  display: grid; gap: 10px;
+}
+.health-chip {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  justify-content: space-between;
+}
+.health-chip .chip-title { font-weight: 700; font-size: 14px; }
+.health-chip .chip-detail { color: var(--muted); font-size: 12px; flex: 1 1 100%; }
+.stub-note { color: var(--muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+#summary[hidden], #list[hidden], [id^="layer-"][hidden] { display: none !important; }
 .summary tbody tr { transition: background .12s ease; }
 .summary tbody tr.row-ok { background: rgba(62, 207, 142, .07); border-left: 3px solid var(--ok); }
 .summary tbody tr.row-late { background: rgba(227, 160, 8, .08); border-left: 3px solid var(--warn); }
@@ -215,23 +235,93 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
 </head>
 <body>
 <header>
-  <h1>Jobs</h1>
+  <h1 id="ops-title">Ops</h1>
   <button class="btn" id="refresh" type="button">Refresh</button>
   <a class="btn" href="/">Campaign OS</a>
   <a class="btn" href="/?page=ops">Ops runbook</a>
   <span class="spend" id="spend">LLM spend —</span>
-  <div class="view-bar" role="tablist" aria-label="Jobs view">
+  <nav class="ribbon" role="tablist" aria-label="Ops layers" id="ops-ribbon">
+    <a class="btn view-tab primary" href="/ops?layer=jobs" data-ops-layer="jobs" role="tab" aria-current="page"
+       data-tip-title="Jobs (L1)" data-tip-body="Layer 1 data jobs: schedules, verdicts, manual runs, and failure diagnostics. Healthy = all critical jobs OK or best-effort LATE only.">Jobs</a>
+    <a class="btn view-tab" href="/ops?layer=health" data-ops-layer="health" role="tab" aria-current="false"
+       data-tip-title="Health (L2)" data-tip-body="Factory health: digest rollup, freshness, calendar job-health, agent queue depth. Healthy = no FAILED jobs, low stale/rotten counts, watchdog running on Linux (not reported inbound yet).">Health</a>
+    <a class="btn view-tab" href="/ops?layer=agents" data-ops-layer="agents" role="tab" aria-current="false"
+       data-tip-title="Agents (L3)" data-tip-body="Mac cos-* fleet, scout, heartbeat. Not built yet — L3 will expose agent status and enqueue API.">Agents</a>
+    <a class="btn view-tab" href="/ops?layer=approve" data-ops-layer="approve" role="tab" aria-current="false"
+       data-tip-title="Approve (L4)" data-tip-body="Unified inbox for Christelle's 15 min/day review. Not built yet — L4 ships inbox cards and SLA counts.">Approve</a>
+    <a class="btn view-tab" href="/ops?layer=create" data-ops-layer="create" role="tab" aria-current="false"
+       data-tip-title="Create (L5)" data-tip-body="Caption, image, and GBP drafts after approve. Not built yet — L5 consumes agent-queue rows.">Create</a>
+    <a class="btn view-tab" href="/ops?layer=publish" data-ops-layer="publish" role="tab" aria-current="false"
+       data-tip-title="Publish (L6)" data-tip-body="Postiz dispatch after human_approved only. Not built yet — requires channel OAuth keys.">Publish</a>
+    <a class="btn view-tab" href="/ops?layer=learn" data-ops-layer="learn" role="tab" aria-current="false"
+       data-tip-title="Learn (L7)" data-tip-body="Outcomes feed recipes that bias L3/L5. Not built yet — core join needs no new keys.">Learn</a>
+  </nav>
+  <div class="view-bar" id="jobs-view-bar" role="tablist" aria-label="Jobs view">
     <button class="btn view-tab primary" type="button" data-jobs-view="schedule" role="tab" aria-selected="true">Schedule at a glance</button>
     <button class="btn view-tab" type="button" data-jobs-view="cards" role="tab" aria-selected="false">Job cards</button>
   </div>
-  <div class="sub">Session-gated · schedules + history · times shown in SAST · deep-link from Telegram</div>
+  <div class="sub" id="ops-sub">Session-gated · L1–L7 ops ribbon · times in SAST · deep-link from Telegram</div>
 </header>
 <main>
-  <section class="summary" id="summary">
-    <h2>Schedule at a glance (SAST)</h2>
-    <table><thead><tr><th>Job</th><th>Verdict</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
+  <div id="layer-jobs">
+    <section class="summary" id="summary">
+      <h2>Schedule at a glance (SAST)</h2>
+      <table><thead><tr><th>Job</th><th>Verdict</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
+    </section>
+    <div id="list" class="empty" hidden>Loading…</div>
+  </div>
+  <section class="summary health-grid" id="layer-health" hidden>
+    <h2>Health</h2>
+    <div class="card health-chip" id="health-watch">
+      <span class="chip-title">Linux watchdog</span>
+      <span class="chip NEVER" id="health-watch-chip">NEVER</span>
+      <span class="chip-detail" id="health-watch-detail">campaign-os-watch on Linux does not report inbound to the dashboard. Silence on Telegram means healthy; a missing 07:00 digest means the cron host is down.</span>
+    </div>
+    <div class="card health-chip" id="health-digest">
+      <span class="chip-title">Job digest (derived)</span>
+      <span class="chip" id="health-digest-chip">—</span>
+      <span class="chip-detail" id="health-digest-detail">Loading…</span>
+    </div>
+    <div class="card health-chip" id="health-fresh">
+      <span class="chip-title">Freshness</span>
+      <span class="chip" id="health-fresh-chip">—</span>
+      <span class="chip-detail" id="health-fresh-detail">Loading…</span>
+    </div>
+    <div class="card health-chip" id="health-calendar">
+      <span class="chip-title">Calendar jobs</span>
+      <span class="chip" id="health-calendar-chip">—</span>
+      <span class="chip-detail" id="health-calendar-detail">Loading…</span>
+    </div>
+    <div class="card health-chip" id="health-queue">
+      <span class="chip-title">Agent queue</span>
+      <span class="chip" id="health-queue-chip">—</span>
+      <span class="chip-detail" id="health-queue-detail">Pending rows for L3 agents.</span>
+    </div>
   </section>
-  <div id="list" class="empty" hidden>Loading…</div>
+  <section class="summary" id="layer-agents" hidden>
+    <h2>Agents <span class="chip NEVER">NEVER</span></h2>
+    <p class="stub-note">L3 not built — Mac cos-* fleet, scout, and heartbeat API will live here.</p>
+  </section>
+  <section class="summary" id="layer-approve" hidden>
+    <h2>Approve <span class="chip NEVER">NEVER</span></h2>
+    <p class="stub-note">L4 not built — unified inbox for Christelle's daily review.</p>
+  </section>
+  <section class="summary" id="layer-create" hidden>
+    <h2>Create <span class="chip NEVER">NEVER</span></h2>
+    <p class="stub-note">L5 not built — caption, image, and GBP drafts after approve.</p>
+  </section>
+  <section class="summary" id="layer-publish" hidden>
+    <h2>Publish <span class="chip SANDBOX" id="publish-mode-chip">SANDBOX</span></h2>
+    <p class="stub-note" id="publish-hint">Sandbox mode — publish_dispatch writes receipts only. No Postiz/GBP HTTP.</p>
+    <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="publish-body"></tbody></table>
+    <div class="actions">
+      <button class="btn primary" type="button" id="publish-run-dispatch">Run publish_dispatch</button>
+    </div>
+  </section>
+  <section class="summary" id="layer-learn" hidden>
+    <h2>Learn <span class="chip NEVER">NEVER</span></h2>
+    <p class="stub-note">L7 not built — outcomes feed recipes for L3/L5.</p>
+  </section>
 </main>
 <div class="drawer-bg" id="drawer-bg" role="dialog" aria-modal="true">
   <div class="drawer">
@@ -272,7 +362,161 @@ function toast(msg, bad) {
   toast._t = setTimeout(() => { t.className = 'toast'; }, 3200);
 }
 const TZ = 'Africa/Johannesburg';
+const OPS_LAYERS = ['jobs', 'health', 'agents', 'approve', 'create', 'publish', 'learn'];
 let historyByJob = {};
+let activeOpsLayer = 'jobs';
+
+function setChip(el, verdict) {
+  if (!el) return;
+  const v = verdict || 'NEVER';
+  el.textContent = v;
+  el.className = 'chip ' + v;
+}
+
+function readLayer() {
+  const params = new URLSearchParams(location.search);
+  let layer = (params.get('layer') || 'jobs').toLowerCase();
+  if (!OPS_LAYERS.includes(layer)) layer = 'jobs';
+  activeOpsLayer = layer;
+  OPS_LAYERS.forEach((id) => {
+    const el = document.getElementById('layer-' + id);
+    if (el) el.hidden = id !== layer;
+  });
+  const jobsBar = $('jobs-view-bar');
+  if (jobsBar) jobsBar.hidden = layer !== 'jobs';
+  document.querySelectorAll('[data-ops-layer]').forEach((link) => {
+    const on = link.getAttribute('data-ops-layer') === layer;
+    link.classList.toggle('primary', on);
+    link.setAttribute('aria-current', on ? 'page' : 'false');
+  });
+  const titles = {
+    jobs: 'Jobs',
+    health: 'Health',
+    agents: 'Agents',
+    approve: 'Approve',
+    create: 'Create',
+    publish: 'Publish',
+    learn: 'Learn',
+  };
+  $('ops-title').textContent = titles[layer] || 'Ops';
+  if (layer === 'health') loadHealth();
+  if (layer === 'publish') loadPublish();
+  return layer;
+}
+
+async function loadPublish() {
+  const chip = $('publish-mode-chip');
+  const body = $('publish-body');
+  const hint = $('publish-hint');
+  if (body) body.innerHTML = '<tr><td colspan="2">Loading…</td></tr>';
+  const modeR = await api('/api/publish/mode');
+  if (modeR.ok && modeR.data && modeR.data.ok) {
+    const mode = modeR.data.mode || 'sandbox';
+    if (chip) {
+      chip.textContent = mode.toUpperCase();
+      chip.className = 'chip ' + (mode === 'live' ? 'LIVE' : 'SANDBOX');
+    }
+    if (hint && modeR.data.hint) hint.textContent = modeR.data.hint;
+  }
+  const sumR = await api('/api/publish/sandbox/summary');
+  if (!sumR.ok || !sumR.data) {
+    if (body) body.innerHTML = '<tr><td colspan="2">Could not load sandbox summary.</td></tr>';
+    return;
+  }
+  const j = sumR.data;
+  const rows = [
+    ['Mode', j.mode || 'sandbox'],
+    ['Queue depth', j.queue_depth ?? '—'],
+    ['Approved ready', j.queue_approved_ready ?? '—'],
+    ['Receipts', j.receipt_count ?? '—'],
+    ['Last receipt', j.last_receipt_at || '—'],
+    ['Last sandbox post', j.last_sandbox_post_id || '—'],
+  ];
+  if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
+}
+
+async function runPublishDispatch() {
+  const btn = $('publish-run-dispatch');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/jobs/run/publish_dispatch?reason=manual', { method: 'POST', credentials: 'same-origin' });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'run failed');
+    const n = (j.result && j.result.dispatched) != null ? j.result.dispatched : j.dispatched;
+    toast('publish_dispatch: dispatched ' + (n ?? 0));
+    await loadPublish();
+  } catch (e) {
+    toast(String(e.message || e), true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function showRibbonTip(el) {
+  const tip = $('tip-float');
+  const title = el.getAttribute('data-tip-title') || '';
+  const body = el.getAttribute('data-tip-body') || '';
+  if (!title && !body) return;
+  tip.innerHTML = `<div class="tip-title">${esc(title)}</div><div class="tip-body">${esc(body)}</div>`;
+  tip.style.display = 'block';
+  tip.setAttribute('aria-hidden', 'false');
+  const r = el.getBoundingClientRect();
+  tip.style.left = Math.min(Math.max(12, r.left), window.innerWidth - 380) + 'px';
+  tip.style.top = Math.min(r.bottom + 8, window.innerHeight - tip.offsetHeight - 12) + 'px';
+}
+
+async function loadHealth() {
+  const digestChip = $('health-digest-chip');
+  const digestDetail = $('health-digest-detail');
+  const freshChip = $('health-fresh-chip');
+  const freshDetail = $('health-fresh-detail');
+  const calChip = $('health-calendar-chip');
+  const calDetail = $('health-calendar-detail');
+  const queueChip = $('health-queue-chip');
+  const queueDetail = $('health-queue-detail');
+  setChip($('health-watch-chip'), 'NEVER');
+  digestDetail.textContent = 'Loading…';
+  freshDetail.textContent = 'Loading…';
+  calDetail.textContent = 'Loading…';
+  queueDetail.textContent = 'Loading…';
+
+  const layersR = await api('/api/ops/layers');
+  if (!layersR.ok || !layersR.data || !layersR.data.layers) {
+    digestDetail.textContent = 'Could not load layer rollup.';
+    return;
+  }
+  const l2 = layersR.data.layers.L2 || {};
+  setChip(digestChip, l2.verdict || 'NEVER');
+  digestDetail.textContent = `OK ${l2.ok || 0} · LATE ${l2.late || 0} · STUCK ${l2.stuck || 0} · FAILED ${l2.failed || 0} · NEVER ${l2.never || 0} (derived from job ledger, same as 07:00 digest)`;
+  const rotten = Number(l2.rotten || 0);
+  const stale = Number(l2.stale || 0);
+  const freshVerdict = rotten > 0 ? 'FAILED' : (stale > 0 ? 'LATE' : 'OK');
+  setChip(freshChip, freshVerdict);
+  freshDetail.textContent = `Rotten ${rotten} · Stale ${stale} (from freshness.json / on-demand walk)`;
+  const depth = Number(l2.queue_depth || 0);
+  setChip(queueChip, depth > 0 ? 'LATE' : 'OK');
+  queueDetail.textContent = `${depth} pending row${depth === 1 ? '' : 's'} in agent-queue.json`;
+
+  const calR = await api('/api/calendar/v3/job-health');
+  if (!calR.ok || !calR.data || !calR.data.jobs) {
+    setChip(calChip, 'NEVER');
+    calDetail.textContent = 'Calendar job-health unavailable.';
+    return;
+  }
+  const jobs = calR.data.jobs;
+  const statuses = Object.values(jobs).map((j) => (j.last_status || 'never').toLowerCase());
+  let calVerdict = 'OK';
+  if (statuses.some((s) => s === 'failed' || s === 'error')) calVerdict = 'FAILED';
+  else if (statuses.every((s) => !s || s === 'never' || s === 'null')) calVerdict = 'NEVER';
+  else if (statuses.some((s) => s !== 'ok' && s !== 'success')) calVerdict = 'LATE';
+  setChip(calChip, calVerdict);
+  const bits = Object.entries(jobs).map(([k, j]) => {
+    const st = j.last_status || 'never';
+    const when = j.last_completed_at ? fmtSast(j.last_completed_at) : '—';
+    return `${k}: ${st} (${when})`;
+  });
+  calDetail.textContent = bits.join(' · ');
+}
 
 function ageLabel(h) {
   if (h == null || h === '') return 'never';
@@ -821,15 +1065,26 @@ $('list').addEventListener('click', (e) => {
   }
 });
 $('refresh').onclick = async () => {
-  await Promise.all([loadJobs(), loadSpend()]);
+  const tasks = [loadSpend()];
+  if (activeOpsLayer === 'jobs') tasks.push(loadJobs());
+  else if (activeOpsLayer === 'health') tasks.push(loadHealth());
+  await Promise.all(tasks);
 };
 
 document.querySelectorAll('[data-jobs-view]').forEach((btn) => {
   btn.addEventListener('click', () => setJobsView(btn.getAttribute('data-jobs-view')));
 });
 
+document.querySelectorAll('[data-ops-layer]').forEach((link) => {
+  link.addEventListener('mouseenter', () => showRibbonTip(link));
+  link.addEventListener('mouseleave', hideTip);
+  link.addEventListener('focus', () => showRibbonTip(link));
+  link.addEventListener('blur', hideTip);
+});
+
 (async function boot() {
   const params = new URLSearchParams(location.search);
+  const layer = readLayer();
   let view = params.get('view');
   if (view !== 'schedule' && view !== 'cards') {
     try { view = localStorage.getItem('cos-jobs-view'); } catch (_) {}
@@ -838,10 +1093,16 @@ document.querySelectorAll('[data-jobs-view]').forEach((btn) => {
   if (params.get('job')) view = 'cards';
   setJobsView(view);
 
-  await Promise.all([loadJobs(), loadSpend()]);
+  const pubBtn = $('publish-run-dispatch');
+  if (pubBtn) pubBtn.addEventListener('click', runPublishDispatch);
+
+  const loads = [loadSpend()];
+  if (layer === 'jobs') loads.push(loadJobs());
+  if (layer === 'publish') loads.push(loadPublish());
+  await Promise.all(loads);
   const job = params.get('job');
   const run = params.get('run');
-  if (job && (run || true)) {
+  if (layer === 'jobs' && job && (run || true)) {
     // Deep link from Telegram: /ops/jobs?job=meta_refresh
     if (run) openDrawer(job, run);
     else {

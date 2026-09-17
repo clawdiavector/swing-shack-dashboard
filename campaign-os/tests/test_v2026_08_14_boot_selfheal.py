@@ -30,9 +30,15 @@ class BootSelfhealTests(unittest.TestCase):
         self.data_dir = os.path.join(self.tmp, 'data')
         os.makedirs(self.data_dir, exist_ok=True)
         # Reset module so each test sees fresh DATA_DIR env.
-        if 'app' in sys.modules:
-            del sys.modules['app']
+        for mod in list(sys.modules):
+            if mod == 'app' or mod.startswith('app.'):
+                del sys.modules[mod]
         os.environ['DATA_DIR'] = self.data_dir
+
+    def _import_app(self):
+        app_module = importlib.import_module('app')
+        app_module.DATA_DIR = self.data_dir
+        return app_module
 
     def test_skips_when_data_is_fresh(self):
         """Live meta-ads.json with no synthesised note -> no refresh fired."""
@@ -43,8 +49,7 @@ class BootSelfhealTests(unittest.TestCase):
         with open(os.path.join(self.data_dir, 'meta-ads.json'), 'w') as f:
             json.dump(live_payload, f)
 
-        # Reload app so it picks up our DATA_DIR + file.
-        app_module = importlib.import_module('app')
+        app_module = self._import_app()
 
         with patch('app._app_log') as mock_log, \
              patch('threading.Thread') as mock_thread:
@@ -64,38 +69,30 @@ class BootSelfhealTests(unittest.TestCase):
         with open(os.path.join(self.data_dir, 'meta-ads.json'), 'w') as f:
             json.dump(synth_payload, f)
 
-        app_module = importlib.import_module('app')
+        app_module = self._import_app()
 
         fake_key = 'd09f901081a7f2422abff2286b151a346062a3b56df162d0a30bbde248d3925f'
         with patch('threading.Thread') as mock_thread, \
-             patch.dict(sys.modules, {
-                 '_lib.windsor_client': MagicMock(read_api_key=MagicMock(return_value=fake_key)),
-                 '_lib.windsor_fetcher': MagicMock(
-                     build_meta_ads=MagicMock(return_value={"_meta": {"note": "Live"}}),
-                     build_google_ads=MagicMock(return_value={"_meta": {"note": "Live"}}),
-                     _atomic_write=MagicMock(),
-                 ),
-             }), \
-             patch('app._app_log'):
+             patch('app._app_log'), \
+             patch('_lib.windsor_client.read_api_key', return_value=fake_key), \
+             patch('_lib.windsor_fetcher.build_meta_ads', return_value={"_meta": {"note": "Live"}}), \
+             patch('_lib.windsor_fetcher.build_google_ads', return_value={"_meta": {"note": "Live"}}), \
+             patch('_lib.windsor_fetcher._atomic_write'):
             app_module._boot_selfheal_windsor()
             mock_thread.assert_called_once()
 
     def test_fires_when_data_is_missing(self):
         """meta-ads.json absent + Windsor key present -> fires thread."""
         # Don't create meta-ads.json at all.
-        app_module = importlib.import_module('app')
+        app_module = self._import_app()
 
         fake_key = 'd09f901081a7f2422abff2286b151a346062a3b56df162d0a30bbde248d3925f'
         with patch('threading.Thread') as mock_thread, \
-             patch.dict(sys.modules, {
-                 '_lib.windsor_client': MagicMock(read_api_key=MagicMock(return_value=fake_key)),
-                 '_lib.windsor_fetcher': MagicMock(
-                     build_meta_ads=MagicMock(return_value={"_meta": {"note": "Live"}}),
-                     build_google_ads=MagicMock(return_value={"_meta": {"note": "Live"}}),
-                     _atomic_write=MagicMock(),
-                 ),
-             }), \
-             patch('app._app_log'):
+             patch('app._app_log'), \
+             patch('_lib.windsor_client.read_api_key', return_value=fake_key), \
+             patch('_lib.windsor_fetcher.build_meta_ads', return_value={"_meta": {"note": "Live"}}), \
+             patch('_lib.windsor_fetcher.build_google_ads', return_value={"_meta": {"note": "Live"}}), \
+             patch('_lib.windsor_fetcher._atomic_write'):
             app_module._boot_selfheal_windsor()
             mock_thread.assert_called_once()
 
@@ -108,12 +105,10 @@ class BootSelfhealTests(unittest.TestCase):
         with open(os.path.join(self.data_dir, 'meta-ads.json'), 'w') as f:
             json.dump(synth_payload, f)
 
-        app_module = importlib.import_module('app')
+        app_module = self._import_app()
 
         with patch('threading.Thread') as mock_thread, \
-             patch.dict(sys.modules, {
-                 '_lib.windsor_client': MagicMock(read_api_key=MagicMock(return_value="")),
-             }), \
+             patch('_lib.windsor_client.read_api_key', return_value=""), \
              patch('app._app_log'):
             app_module._boot_selfheal_windsor()
             mock_thread.assert_not_called()

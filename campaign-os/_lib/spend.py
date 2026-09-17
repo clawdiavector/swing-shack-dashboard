@@ -58,6 +58,34 @@ def _today() -> str:
     return datetime.datetime.now(datetime.timezone.utc).date().isoformat()
 
 
+def _float_or(value: Any, default: float = 0.0) -> float:
+    """Coerce nullable numeric fields (JSON null → 0)."""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _theme_text(bet: Dict[str, Any]) -> str:
+    themes = bet.get("content_themes") or []
+    if isinstance(themes, str):
+        themes = [themes]
+    elif not isinstance(themes, list):
+        themes = []
+    return " ".join(str(t) for t in themes)
+
+
+def _iter_campaigns(doc: dict) -> List[Dict[str, Any]]:
+    """Return campaign dicts only; skip corrupt rows."""
+    out: List[Dict[str, Any]] = []
+    for c in doc.get("campaigns") or []:
+        if isinstance(c, dict):
+            out.append(c)
+    return out
+
+
 def _data_dir() -> Path:
     runtime = Path(os.environ.get("DATA_DIR", str(Path(__file__).resolve().parents[2] / "data")))
     runtime.mkdir(parents=True, exist_ok=True)
@@ -198,19 +226,21 @@ def detect_orphaned_spend(brand_id: str = "swing-shack", period_start: str = Non
     Returns orphans with spend total + actions (Link / Review / Pause)."""
     doc = load_spend(brand_id)
     orphans = []
-    for c in doc.get("campaigns", []):
+    for c in _iter_campaigns(doc):
         if c.get("status") not in ("active", "running"):
             continue
         link = c.get("strategy_link") or {}
         if not (link.get("bet_id") or link.get("market_move")):
+            spend = _float_or(c.get("spend_rands"))
+            cid = c.get("campaign_id") or c.get("name") or "unknown"
             orphans.append({
-                "campaign_id": c["campaign_id"],
-                "name": c.get("name", c["campaign_id"]),
-                "platform": c["platform"],
-                "spend_rands": c.get("spend_rands", 0),
+                "campaign_id": cid,
+                "name": c.get("name") or cid,
+                "platform": c.get("platform"),
+                "spend_rands": spend,
                 "period_start": c.get("period_start"),
                 "period_end": c.get("period_end"),
-                "message": f"R{c.get('spend_rands', 0):.0f} spent with no link to an active strategic bet.",
+                "message": f"R{spend:.0f} spent with no link to an active strategic bet.",
                 "actions": ["link", "review", "pause"],
             })
     return orphans
@@ -763,7 +793,9 @@ def spend_vs_priority(brand_id: str, period_start: str = None, period_end: str =
     # Map each bet to its strategic area
     area_to_bets = defaultdict(list)
     for b in s.get("bets", []):
-        text_blob = (b.get("title", "") + " " + " ".join(b.get("content_themes", [])) + " " + (b.get("primary_kpi") or "")).lower()
+        if not isinstance(b, dict):
+            continue
+        text_blob = (b.get("title", "") + " " + _theme_text(b) + " " + (b.get("primary_kpi") or "")).lower()
         from portfolio import classify_strategic_areas
         for area in classify_strategic_areas(text_blob):
             area_to_bets[area].append(b)
@@ -782,17 +814,17 @@ def spend_vs_priority(brand_id: str, period_start: str = None, period_end: str =
     # Compute spend per area via strategy_link
     area_spend = defaultdict(float)
     total_spend = 0
-    for c in doc.get("campaigns", []):
+    for c in _iter_campaigns(doc):
         if c.get("status") not in ("active", "running"):
             continue
-        spend = c.get("spend_rands", 0)
+        spend = _float_or(c.get("spend_rands"))
         total_spend += spend
         link = c.get("strategy_link") or {}
         bet_id = link.get("bet_id")
         if bet_id:
-            bet = next((b for b in s.get("bets", []) if b["id"] == bet_id), None)
+            bet = next((b for b in s.get("bets", []) if isinstance(b, dict) and b.get("id") == bet_id), None)
             if bet:
-                text_blob = (bet.get("title", "") + " " + " ".join(bet.get("content_themes", []))).lower()
+                text_blob = (bet.get("title", "") + " " + _theme_text(bet)).lower()
                 from portfolio import classify_strategic_areas
                 for area in classify_strategic_areas(text_blob):
                     area_spend[area] += spend
