@@ -6,6 +6,7 @@ campaign-os/tests/jobs/test_layer1_io.py
 campaign-os/tests/jobs/test_ops_jobs_p1e.py
 campaign-os/tests/jobs/test_ops_agents.py
 campaign-os/tests/jobs/test_ops_layers_ribbon.py
+campaign-os/tests/jobs/test_unified_inbox_l4.py
 campaign-os/tests/jobs/test_redaction.py
 campaign-os/tests/test_clear_history_button_location.py
 campaign-os/tests/test_cta_studio_v2.py

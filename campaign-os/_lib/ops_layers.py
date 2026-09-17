@@ -76,6 +76,7 @@ def build_layers(
     freshness: Optional[dict] = None,
     queue: Optional[dict | list] = None,
     agents: Optional[list[dict]] = None,
+    inbox: Optional[dict] = None,
 ) -> dict[str, Any]:
     """Build campaign-os/ops-layers/v1 payload."""
     jobs = (jobs_status or {}).get("jobs") or []
@@ -88,8 +89,13 @@ def build_layers(
     depth = queue_depth(queue)
     l2_verdict = _health_verdict(l1_verdict, rotten=rotten, stale=stale)
 
+    l4_counts = inbox or {}
+    l4_pending = int(l4_counts.get("pending") or 0)
+    l4_stale = int(l4_counts.get("stale") or 0)
+    l4_approved_today = int(l4_counts.get("approved_today") or 0)
+    l4_verdict = str(l4_counts.get("verdict") or "NEVER")
+
     stub_layers = [
-        ("L4", "Approve", "approve", "L4 not built — unified inbox for Christelle."),
         ("L5", "Create", "create", "L5 not built — caption/image/GBP drafts after approve."),
         ("L6", "Publish", "publish", "L6 sandbox — publish_dispatch writes receipts; PUBLISH_MODE=live is Kyle gate."),
         ("L7", "Learn", "learn", "L7 not built — outcomes feed recipes for L3/L5."),
@@ -169,6 +175,16 @@ def build_layers(
             "reporting": reporting,
             "never": never,
         }
+
+    layers["L4"] = {
+        "label": "Approve",
+        "verdict": l4_verdict,
+        "href": "/ops?layer=approve",
+        "pending": l4_pending,
+        "stale": l4_stale,
+        "approved_today": l4_approved_today,
+        "inbox_href": "/?page=review",
+    }
 
     for key, label, slug, note in stub_layers:
         entry: dict[str, Any] = {

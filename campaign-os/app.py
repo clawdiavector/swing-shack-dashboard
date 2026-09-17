@@ -16382,15 +16382,135 @@ def ops_layers():
             agents_roster = _ops_agents_mod.read_roster(roster_dir)
         except Exception:
             _app_log.exception("ops_layers roster read failed; L3 stub fallback")
+        inbox_counts = None
+        try:
+            from _lib import unified_inbox as _unified_inbox_mod
+
+            review_sla = None
+            sla_path = os.path.join(_data_paths()['data_dir'], 'review-sla.json')
+            if os.path.exists(sla_path):
+                review_sla = _read_json_file(sla_path)
+            inbox_counts = _unified_inbox_mod.inbox_counts(review_sla=review_sla)
+        except Exception:
+            _app_log.exception("ops_layers inbox counts failed; L4 NEVER fallback")
         return jsonify(_ops_layers_mod.build_layers(
             jobs_status,
             freshness=freshness_payload,
             queue=queue_payload,
             agents=agents_roster,
+            inbox=inbox_counts,
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified', methods=['GET'])
+def inbox_unified_list():
+    """GET /api/inbox/unified — L4 unified review inbox. Session-gated."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        brand = (request.args.get("brand") or request.args.get("brand_id") or "").strip() or None
+        status = (request.args.get("status") or "pending").strip().lower()
+        item_type = (request.args.get("type") or "").strip() or None
+        payload = _unified_inbox_mod.list_items(brand=brand, status=status, item_type=item_type)
+        payload["ok"] = True
+        return jsonify(payload), 200
+    except Exception as e:
+        _app_log.exception("inbox_unified_list failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>/approve', methods=['POST'])
+def inbox_unified_approve(item_id: str):
+    """POST /api/inbox/unified/<id>/approve — approve without publishing."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        editor = (body.get("editor") or "operator").strip()
+        reason = (body.get("reason") or "").strip()
+        result = _unified_inbox_mod.approve_item(item_id, editor=editor, reason=reason)
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_approve failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>/reject', methods=['POST'])
+def inbox_unified_reject(item_id: str):
+    """POST /api/inbox/unified/<id>/reject — reject an inbox item."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        editor = (body.get("editor") or "operator").strip()
+        reason = (body.get("reason") or "").strip()
+        result = _unified_inbox_mod.reject_item(item_id, editor=editor, reason=reason)
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_reject failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/<path:item_id>/edit', methods=['POST'])
+def inbox_unified_edit(item_id: str):
+    """POST /api/inbox/unified/<id>/edit — edit + human_edit_signal for L7."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        editor = (body.get("editor") or "christelle").strip()
+        fields = {k: v for k, v in body.items() if k not in ("editor",)}
+        result = _unified_inbox_mod.edit_item(item_id, editor=editor, fields=fields)
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_unified_edit failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/unified/postiz-reschedule', methods=['POST'])
+def inbox_unified_postiz_reschedule_stub():
+    """Stub until L6 — Postiz reschedule from unified inbox."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    return jsonify({
+        "ok": False,
+        "stub": True,
+        "schema": "campaign-os/unified-inbox-stub/v1",
+        "error": "Postiz reschedule not wired until L6 publish layer",
+    }), 501
+
+
+@app.route('/api/inbox/unified/reorder', methods=['POST'])
+def inbox_unified_reorder_stub():
+    """Stub until L6 — drag-reorder queue items."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    return jsonify({
+        "ok": False,
+        "stub": True,
+        "schema": "campaign-os/unified-inbox-stub/v1",
+        "error": "Drag-reorder not wired until L6 publish layer",
+    }), 501
 
 
 @app.route('/api/ops/agents', methods=['GET'])

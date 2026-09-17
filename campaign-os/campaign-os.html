@@ -1679,7 +1679,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
         <div class="nav" data-go="billboards" data-help-title="Billboard Lab" data-help="Outdoor / billboard copy generator."><span class="nav-icon">🪧</span> Billboard Lab</div>
         <div class="nav" data-go="reddit" data-help-title="Reddit" data-help="Reddit-aware copy generator. Subreddit tone, no-link soft-sell."><span class="nav-icon">🗣️</span> Reddit</div>
         <div class="nav" data-go="faqs" data-help-title="FAQs" data-help="FAQ Opportunities for FAQPage schema."><span class="nav-icon">❓</span> FAQs</div>
-        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness."><span class="nav-icon">🤖</span> Agents</div>
+        <div class="nav" data-go="agents" data-help-title="Agents" data-help="Fleet status: each specialist + last-run freshness." hidden><span class="nav-icon">🤖</span> Agents</div>
       </div>
     </div>
   </aside>
@@ -1873,12 +1873,18 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       <div class="section-h">
         <h2 data-help="The inbox for every draft the agents produced. Click any row to open the review modal where you can approve, reject, or send back for revision. Approve sends it to the Publishing pipeline below; reject archives it. Filter pills (All, Pending, Approved, Rejected, Stale) keep the queue narrow when it grows past a few dozen rows. The Stale pill shows every draft older than 7 days so you can triage the rotting pile without scrolling. Empty state means the inbox is clean and every draft has been actioned." data-help-title="Review queue">Review queue</h2>
         <span class="sub" id="review-summary" data-help="The page sub used to be a literal dash until the API call finished. Updated to mirror the actual surface: Pending (the live triage card), Approved (ready-to-publish queue), Rejected (archived), plus the filter pills at the top right (All / Pending / Approved / Rejected / Stale) and the Stale filter which surfaces drafts older than 7 days. The Stale pill count rolls into the live summary once renderReview completes." data-help-title="What is in this section">Pending inbox · Approved (ready to publish) · Rejected (archived) · filter pills: All / Pending / Approved / Rejected / Stale (>7d)</span>
-        <div class="btn-row" style="margin-left:auto">
+        <div class="btn-row" style="margin-left:auto;flex-wrap:wrap;gap:.35rem">
           <button class="btn ghost" data-rfilter="all">All</button>
           <button class="btn ghost" data-rfilter="pending">Pending</button>
           <button class="btn ghost" data-rfilter="approved">Approved</button>
           <button class="btn ghost" data-rfilter="rejected">Rejected</button>
           <button class="btn ghost stale-filter" data-rfilter="stale" data-help="Show only drafts older than 7 days. Drafts rot quietly in this queue (no reminders), so this filter is the fastest way to triage the backlog. Pairs with the colour-coded age pill on every row (green fresh · yellow stale · red stale 30d+)." data-help-title="Stale only">🕰️ Stale <span id="review-stale-count" class="stale-count">0</span></button>
+          <span class="muted" style="font-size:11px;align-self:center">Type:</span>
+          <button class="btn ghost" data-rtype="">All types</button>
+          <button class="btn ghost" data-rtype="calendar_candidate">📅 Calendar</button>
+          <button class="btn ghost" data-rtype="proposal">💡 Proposals</button>
+          <button class="btn ghost" data-rtype="draft_asset">📝 Drafts</button>
+          <button class="btn ghost" data-rtype="publish_request">🚀 Publish</button>
         </div>
       </div>
       <div class="card">
@@ -2842,7 +2848,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
     </section>
 
     <!-- ── AGENTS ────────────────────────────────────────── -->
-    <section class="section" id="sec-agents">
+    <section class="section" id="sec-agents" hidden aria-hidden="true">
       <div class="section-h"><h2 data-help="The agent + integration health panel. Three live blocks: System (in-process helper functions, all heartbeat statuses), Integrations (every external service we talk to: Postiz, Meta Graph, GBP, GA4, etc. last-seen, last-error), and Runs (the last 20 agent invocations, ranked by duration and success). Use this to answer the question 'why is nothing posting right now?' without guessing. Click any agent row to see the per-script results (PASS/FAIL/duration) from the last run, plus the file paths that failed validation and the reason each one failed." data-help-title="Agents + health">Agents &amp; health</h2><span class="sub">Agent runs, integrations + system health: this is where to look when nothing is posting right now.</span></div>
       <div class="grid">
         <div class="card col-7"><div class="card-h"><h3 data-help="Live roster of every agent lane that ran in the last refresh cycle: copy agent, trend catcher, reddit scraper, gbp scraper, audit agent. Each row shows the lane name, last run time, status (ok / failed / queued), and a 1-line why-now. Click a row to open the lane detail page with full output and retry controls." data-help-title="Agent runs">🤖 Agent runs</h3></div><div id="agents-list"></div></div>
@@ -8476,10 +8482,29 @@ function reviewAgePill(updatedAt){
   return `<span class="pill blocked" title="Last updated ${age}d ago — past the 30d stale threshold. Likely needs a refresh or archive.">stale ${age}d</span>`;
 }
 
+let _reviewTypeFilter = '';
+
 async function renderReview(){
-  if(!S.review) S.review = await API.get('/api/intel/review_inbox');
+  const brandQS = S.brand ? ('?brand=' + encodeURIComponent(S.brand) + '&status=all') : '?status=all';
+  if(!S.unifiedInbox) {
+    try {
+      S.unifiedInbox = await API.get('/api/inbox/unified' + brandQS);
+    } catch (_) {
+      S.unifiedInbox = null;
+    }
+  }
+  if(!S.review) {
+    try { S.review = await API.get('/api/intel/review_inbox'); } catch (_) { S.review = { pending: [], approved: [], rejected: [], summary: '' }; }
+  }
+  const inbox = S.unifiedInbox && S.unifiedInbox.ok !== false ? S.unifiedInbox : null;
   const r = S.review;
-  $('#review-summary').textContent = r.summary;
+  const summaryEl = $('#review-summary');
+  if (inbox && summaryEl) {
+    const s = inbox.summary || {};
+    summaryEl.textContent = `${s.pending || 0} pending · ${s.stale || 0} stale · unified inbox (calendar, proposals, drafts, publish)`;
+  } else if (summaryEl) {
+    summaryEl.textContent = r.summary;
+  }
   // Build a brand_id -> display name lookup up front so every row can show the pretty name.
   // /api/brands returns {active_brand_id, brands: {id: {...full record...}}, count, default_brand_id}
   // (dict of brand records, NOT a flat array). The pre-fix code iterated the
@@ -8566,9 +8591,45 @@ async function renderReview(){
     'approved': $('#review-approved-count'),
     'rejected': $('#review-rejected-count'),
   };
-  if (_countEls.pending)  _countEls.pending.textContent  = (r.pending  || []).length;
-  if (_countEls.approved) _countEls.approved.textContent = (r.approved || []).length;
-  if (_countEls.rejected) _countEls.rejected.textContent = (r.rejected || []).length;
+  const unifiedItems = (inbox && inbox.items) ? inbox.items.filter(it => !_reviewTypeFilter || it.type === _reviewTypeFilter) : null;
+  const pendingItems = unifiedItems ? unifiedItems.filter(x => x.status === 'pending') : (r.pending || []);
+  const approvedItems = unifiedItems ? unifiedItems.filter(x => x.status === 'approved') : (r.approved || []);
+  const rejectedItems = unifiedItems ? unifiedItems.filter(x => x.status === 'rejected') : (r.rejected || []);
+  if (_countEls.pending)  _countEls.pending.textContent  = pendingItems.length;
+  if (_countEls.approved) _countEls.approved.textContent = approvedItems.length;
+  if (_countEls.rejected) _countEls.rejected.textContent = rejectedItems.length;
+
+  const renderUnifiedRow = (x) => {
+    const safeId = esc(x.id || '');
+    const typeLabel = esc((x.type || '').replace(/_/g, ' '));
+    const prettyBrand = esc(x.brand_id || '');
+    const stale = x.sla_state === 'stale';
+    const meta = x.meta || {};
+    const isDraft = x.type === 'draft_asset';
+    const cid = esc(meta.campaign_id || '');
+    const aid = esc(meta.asset_id || '');
+    const preview = esc(x.summary || x.title || '');
+    const evidence = (x.evidence || []).slice(0, 2).map(e => `<span class="pill muted" style="font-size:10px">${esc(e.source || '')}</span>`).join(' ');
+    return `
+    <div class="review unified-inbox-row" data-inbox-id="${safeId}" data-stale="${stale ? '1' : '0'}" data-type="${esc(x.type || '')}">
+      <div class="review-cap" ${isDraft && cid && aid ? `onclick="openReview('${cid}','${aid}')" style="cursor:pointer"` : ''}>
+        <div class="review-cap-t">${esc(x.title || 'Untitled')} <span class="pill muted" style="font-size:10px">${typeLabel}</span>${prettyBrand ? ` <span class="pill muted" style="font-size:10px">${prettyBrand}</span>` : ''}</div>
+        <div class="review-cap-x">${preview || '<span class="muted">No preview</span>'}</div>
+        ${evidence ? `<div style="margin-top:.25rem">${evidence}</div>` : ''}
+      </div>
+      <div class="review-meta">
+        ${pill(x.status || 'pending', x.status || 'pending')}
+        ${stale ? '<span class="pill review">stale</span>' : '<span class="pill on">fresh</span>'}
+        <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem;flex-wrap:wrap">
+          ${isDraft && cid && aid ? `<button class="btn-mini" onclick="openReview('${cid}','${aid}')">Open</button>` : ''}
+          ${x.status === 'pending' ? `<button class="btn-mini primary" onclick="window.unifiedInboxAction('${safeId}','approve')">Approve</button>
+               <button class="btn-mini" onclick="window.unifiedInboxAction('${safeId}','edit')">Edit</button>
+               <button class="btn-mini" style="color:var(--red)" onclick="window.unifiedInboxAction('${safeId}','reject')">Reject</button>` : ''}
+        </span>
+      </div>
+    </div>`;
+  };
+
   const renderRow = x => {
     const safeId = esc(x.assetId || '');
     const safeCid = esc(x.campaignId || '');
@@ -8624,10 +8685,53 @@ async function renderReview(){
       </div>
     </div>`;
   };
-  $('#review-pending').innerHTML = r.pending.length ? r.pending.map(renderRow).join('') : '<div class="empty">No assets pending review</div>';
-  $('#review-approved').innerHTML = r.approved.length ? r.approved.map(renderRow).join('') : '<div class="empty">No approved assets</div>';
-  $('#review-rejected').innerHTML = r.rejected.length ? r.rejected.map(renderRow).join('') : '<div class="empty">No rejected assets</div>';
+  if (unifiedItems) {
+    $('#review-pending').innerHTML = pendingItems.length ? pendingItems.map(renderUnifiedRow).join('') : '<div class="empty">No items pending review</div>';
+    $('#review-approved').innerHTML = approvedItems.length ? approvedItems.map(renderUnifiedRow).join('') : '<div class="empty">No approved items</div>';
+    $('#review-rejected').innerHTML = rejectedItems.length ? rejectedItems.map(renderUnifiedRow).join('') : '<div class="empty">No rejected items</div>';
+  } else {
+    $('#review-pending').innerHTML = r.pending.length ? r.pending.map(renderRow).join('') : '<div class="empty">No assets pending review</div>';
+    $('#review-approved').innerHTML = r.approved.length ? r.approved.map(renderRow).join('') : '<div class="empty">No approved assets</div>';
+    $('#review-rejected').innerHTML = r.rejected.length ? r.rejected.map(renderRow).join('') : '<div class="empty">No rejected assets</div>';
+  }
 }
+
+window.unifiedInboxAction = async (itemId, action) => {
+  try {
+    if (action === 'edit') {
+      const item = (S.unifiedInbox && S.unifiedInbox.items || []).find(x => x.id === itemId);
+      const current = (item && item.summary) || '';
+      const next = prompt('Edit summary / caption:', current);
+      if (next == null) return;
+      const r = await API.post('/api/inbox/unified/' + encodeURIComponent(itemId) + '/edit', { editor: 'christelle', caption: next, title: item && item.title });
+      if (!r.ok) { toast(r.error || 'Edit failed', 'err'); return; }
+      toast('Saved edit');
+    } else if (action === 'approve') {
+      const r = await API.post('/api/inbox/unified/' + encodeURIComponent(itemId) + '/approve', { editor: 'christelle' });
+      if (!r.ok) { toast(r.error || 'Approve failed', 'err'); return; }
+      toast('Approved (not published)');
+    } else if (action === 'reject') {
+      const reason = prompt('Rejection reason (optional):', '') || '';
+      const r = await API.post('/api/inbox/unified/' + encodeURIComponent(itemId) + '/reject', { editor: 'christelle', reason });
+      if (!r.ok) { toast(r.error || 'Reject failed', 'err'); return; }
+      toast('Rejected');
+    }
+    S.unifiedInbox = null;
+    S.review = null;
+    await renderReview();
+  } catch (e) {
+    toast(e.message || 'Action failed', 'err');
+  }
+};
+
+$$('[data-rtype]').forEach(b => b.addEventListener('click', () => {
+  _reviewTypeFilter = b.dataset.rtype || '';
+  $$('[data-rtype]').forEach(ob => {
+    ob.classList.toggle('active', ob.dataset.rtype === _reviewTypeFilter);
+    ob.classList.toggle('primary', ob.dataset.rtype === _reviewTypeFilter);
+  });
+  renderReview();
+}));
 
 // ─── GMB DRAFTS ──────────────────────────────────────────
 async function renderGmb() {
