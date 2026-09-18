@@ -12347,6 +12347,15 @@ def admin_secrets_sync():
             if os.path.exists(rt_path):
                 os.environ['OPENAI_API_KEY_FILE'] = rt_path
                 env_wired.append('OPENAI_API_KEY_FILE')
+    elif service == 'youtube-api':
+        yt_key = contents_obj.get('api_key') or contents_obj.get('key')
+        if yt_key:
+            os.environ['YOUTUBE_API_KEY'] = yt_key
+            env_wired.append('YOUTUBE_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['YOUTUBE_API_KEY_FILE'] = rt_path
+                env_wired.append('YOUTUBE_API_KEY_FILE')
     elif service == 'windsor-api':
         # Windsor.ai aggregator: single api_key unlocks all paid-media connectors
         # (facebook, google_ads, tiktok, linkedin, ...). _lib.windsor_client
@@ -23760,6 +23769,11 @@ def _boot_load_persisted_secrets():
         if key and not os.environ.get('WINDSOR_API_KEY'):
             os.environ['WINDSOR_API_KEY'] = key
             _app_log.info('Boot: re-hydrated WINDSOR_API_KEY from persistent volume')
+        from _lib.jobs.layer1 import youtube_trends as _yt
+        yt_key = _yt.read_api_key()
+        if yt_key and not os.environ.get('YOUTUBE_API_KEY'):
+            os.environ['YOUTUBE_API_KEY'] = yt_key
+            _app_log.info('Boot: re-hydrated YOUTUBE_API_KEY from persistent volume')
         # Also wire the *_FILE env var so the runtime creds path is known
         if key and not os.environ.get('WINDSOR_API_KEY_FILE'):
             # Prefer the volume-resident path

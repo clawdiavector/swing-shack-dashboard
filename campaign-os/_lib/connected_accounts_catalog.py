@@ -27,7 +27,6 @@ _KNOWN_PROVIDERS = frozenset(
 _JOB_BY_INTEGRATION: dict[str, tuple[str, ...]] = {
     "ga4": ("ga4_report",),
     "gsc": ("gsc_report",),
-    "windsor": ("windsor_refresh",),
     "youtube": ("youtube_trends",),
     "reddit": ("reddit_trends",),
     "golf_news": ("golf_news",),
@@ -40,7 +39,6 @@ _DATA_FILE_BY_INTEGRATION: dict[str, str] = {
     "ga4": "ga4-metrics.json",
     "gsc": "search-console.json",
     "meta": "ig-business-analytics.json",
-    "windsor": "meta-ads.json",
     "youtube": "youtube-trends.json",
     "reddit": "reddit-trends.json",
     "golf_news": "golf-news.json",
@@ -272,43 +270,6 @@ def build_catalog_extras() -> dict[str, Any]:
         }
     )
 
-    # Windsor
-    windsor_creds = _env_any("WINDSOR_API_KEY", "WINDSOR_API_KEY_FILE")
-    windsor_activity = _job_activity(_JOB_BY_INTEGRATION["windsor"])
-    windsor_file_at = _data_file_mtime(_DATA_FILE_BY_INTEGRATION["windsor"])
-    windsor_last = windsor_activity.get("last_success_at") or windsor_file_at
-    items.append(
-        {
-            "id": "windsor",
-            "icon": "💰",
-            "name": "Windsor.ai (Meta + Google Ads)",
-            "category": "analytics",
-            "category_label": "Analytics & data",
-            "purpose": "Live paid media spend and campaign metrics (meta-ads.json, google-ads.json).",
-            "state": _state_from_flags(
-                creds_ok=windsor_creds,
-                partial=windsor_creds and windsor_activity.get("job_verdict") == "LATE",
-            ),
-            "last_used_at": windsor_last,
-            "last_used_label": _age_label(windsor_last),
-            "job_verdict": windsor_activity.get("job_verdict"),
-            "credentials": {
-                "configured": windsor_creds,
-                "env_vars": ["WINDSOR_API_KEY", "WINDSOR_API_KEY_FILE"],
-                "key_prefix": _env_prefix("WINDSOR_API_KEY"),
-            },
-            "connect": {"type": "manual", "url": "https://windsor.ai", "label": "Windsor dashboard"},
-            "setup": {
-                "auth_type": "API key",
-                "steps": [
-                    "Copy API key from Windsor.ai account settings.",
-                    "Railway → swing-shack-dashboard → WINDSOR_API_KEY=<key>.",
-                    "windsor_refresh job pulls live Meta/Google ads on schedule.",
-                ],
-            },
-        }
-    )
-
     # YouTube trends
     yt_creds = _env_any("YOUTUBE_API_KEY")
     yt_activity = _job_activity(_JOB_BY_INTEGRATION["youtube"])
@@ -331,13 +292,13 @@ def build_catalog_extras() -> dict[str, Any]:
                 "env_vars": ["YOUTUBE_API_KEY"],
                 "key_prefix": _env_prefix("YOUTUBE_API_KEY"),
             },
-            "connect": {"type": "manual", "url": "https://console.cloud.google.com/apis/library/youtube.googleapis.com", "label": "Enable YouTube API"},
+            "connect": {"type": "portal", "url": "/secrets-sync", "label": "Secrets sync"},
             "setup": {
                 "auth_type": "API key",
                 "steps": [
                     "GCP → enable YouTube Data API v3 → create API key.",
-                    "Railway → YOUTUBE_API_KEY=<key>.",
-                    "Optional — skip if you do not want YouTube in Trend Catcher.",
+                    "Paste via /secrets-sync (service: youtube-api, shape: {\"api_key\": \"...\"}).",
+                    "Or set YOUTUBE_API_KEY on Railway.",
                 ],
             },
         }

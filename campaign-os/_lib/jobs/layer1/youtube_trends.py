@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
@@ -22,6 +24,38 @@ DEFAULT_QUERIES = (
     "golf simulator indoor",
     "golf practice drill",
 )
+
+
+def read_api_key() -> str:
+    """Resolve YouTube Data API key from env or credentials/youtube-api.json."""
+    key = (os.environ.get("YOUTUBE_API_KEY") or "").strip()
+    if key:
+        return key
+    roots: list[Path] = []
+    for env_key in ("DATA_DIR",):
+        val = os.environ.get(env_key)
+        if val:
+            roots.append(Path(val) / "credentials")
+    roots.extend(
+        [
+            Path(os.path.expanduser("~/.openclaw/workspace/credentials")),
+            Path(os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials")),
+        ]
+    )
+    seen: set[Path] = set()
+    for base in roots:
+        if base in seen:
+            continue
+        seen.add(base)
+        path = base / "youtube-api.json"
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            found = (data.get("api_key") or data.get("key") or "").strip()
+            if found:
+                return found
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+    return ""
 
 THEME_KEYWORDS = {
     "swing_speed": ["swing speed", "club head speed", "mph", "driver distance", "yards off tee"],
@@ -151,7 +185,7 @@ def _build_hooks(articles: list[dict[str, Any]], themes: dict[str, bool]) -> lis
 
 def run() -> dict:
     """Fetch YouTube trends and write youtube-trends.json."""
-    api_key = (os.environ.get("YOUTUBE_API_KEY") or "").strip()
+    api_key = read_api_key()
     if not api_key:
         return {"ok": False, "error": "missing YOUTUBE_API_KEY"}
 
