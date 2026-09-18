@@ -8,3 +8,12 @@ google-auth>=2.0
 google-api-python-client>=2.100.0
 requests>=2.28
 Pillow>=10.0  # brand overlay (deterministic post-composition)
+
+# V2.1 — GA4 Data API client (BetaAnalyticsDataClient).
+# Required by /api/ga4/<brand>/pages,
+# /api/ga4/<brand>/channel-mix,
+# /api/ga4/<brand>/pages-enriched,
+# /api/ga4/<brand>/event-audit.
+# google-api-python-client is the older 1.x library;
+# google-analytics-data is the modern typed client.
+google-analytics-data>=0.18.0
