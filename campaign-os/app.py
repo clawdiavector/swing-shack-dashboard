@@ -42846,35 +42846,36 @@ def ga4_pages_enriched(brand_id):
 
     matched = {}
     n_metrics = 5
-    for row in rows_in:
-        try:
-        if not row.get("dims"):
-            continue
-        path = (row["dims"][0] if row["dims"] else "") or ""
-        metrics_list = row.get("metrics") or []
-        while len(metrics_list) < n_metrics * 2:
-            metrics_list.append("0")
-        m_cur = metrics_list[:n_metrics]
-        m_prev = metrics_list[n_metrics:n_metrics * 2]
-        for pat, label in high_value_patterns:
-            if pat.lower() in path.lower():
-                if label not in matched:
-                    matched[label] = {"current": {}, "previous": {},
-                                      "paths_seen": set()}
-                matched[label]["current"][path] = {
-                    "sessions": _parse_ga4_int(m_cur[0]),
-                    "users": _parse_ga4_int(m_cur[1]),
-                    "engaged_sessions": _parse_ga4_int(m_cur[2]),
-                    "engagement_rate": _parse_ga4_float(m_cur[3]),
-                    "conversions": _parse_ga4_int(m_cur[4]),
-                }
-                matched[label]["previous"][path] = {
-                    "sessions": _parse_ga4_int(m_prev[0]),
-                    "engagement_rate": _parse_ga4_float(m_prev[3]),
-                }
-                matched[label]["paths_seen"].add(path)
-                except Exception:
-            pass
+    try:
+        for row in rows_in:
+            if not row.get("dims"):
+                continue
+            path = (row["dims"][0] if row["dims"] else "") or ""
+            metrics_list = row.get("metrics") or []
+            while len(metrics_list) < n_metrics * 2:
+                metrics_list.append("0")
+            m_cur = metrics_list[:n_metrics]
+            m_prev = metrics_list[n_metrics:n_metrics * 2]
+            for pat, label in high_value_patterns:
+                if pat.lower() in path.lower():
+                    if label not in matched:
+                        matched[label] = {"current": {}, "previous": {},
+                                          "paths_seen": set()}
+                    matched[label]["current"][path] = {
+                        "sessions": _parse_ga4_int(m_cur[0]),
+                        "users": _parse_ga4_int(m_cur[1]),
+                        "engaged_sessions": _parse_ga4_int(m_cur[2]),
+                        "engagement_rate": _parse_ga4_float(m_cur[3]),
+                        "conversions": _parse_ga4_int(m_cur[4]),
+                    }
+                    matched[label]["previous"][path] = {
+                        "sessions": _parse_ga4_int(m_prev[0]),
+                        "engagement_rate": _parse_ga4_float(m_prev[3]),
+                    }
+                    matched[label]["paths_seen"].add(path)
+                    break
+    except Exception:
+        pass
 
     # Aggregate per service page
     rows = []
@@ -43033,19 +43034,19 @@ def ga4_event_audit(brand_id):
             conv = _parse_ga4_int(metrics_list[1])
             if cnt == 0:
                 continue
-        known = brand_keys.get(nm)
-        rows.append({
-            "event_name": nm,
-            "count": cnt,
-            "key_event_conversions": conv,
-            "commercial_meaning": (
-                known["commercial_meaning"] if known else "unknown"),
-            "config_source": (
-                known["config_source"] if known else ""),
-            "note": known["note"] if known else (
-                "Event has no validated commercial meaning for "
-                f"{bid}."),
-        })
+            known = brand_keys.get(nm)
+            rows.append({
+                "event_name": nm,
+                "count": cnt,
+                "key_event_conversions": conv,
+                "commercial_meaning": (
+                    known["commercial_meaning"] if known else "unknown"),
+                "config_source": (
+                    known["config_source"] if known else ""),
+                "note": known["note"] if known else (
+                    "Event has no validated commercial meaning for "
+                    f"{bid}."),
+            })
     except Exception:
         pass
 
