@@ -50,6 +50,11 @@ STATUS_SYNTHETIC_QUARANTINED = "SYNTHETIC_QUARANTINED"
 STATUS_PENDING = "PENDING"
 
 
+def _now_iso() -> str:
+    """ISO-8601 UTC timestamp helper."""
+    return datetime.now(timezone.utc).isoformat()
+
+
 # ── V2.1 §4+§5+§12: COMPARISON ENGINE ────────────────────────────────
 # Per V2.1 §4: implement real period comparisons. For each
 # eligible deterministic KPI, return current_value +
