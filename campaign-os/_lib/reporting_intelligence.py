@@ -3924,8 +3924,8 @@ def render_v22_brand_report_html(brand_id: str, period_days: int = 31,
                  f"report_period feeds every subquery.</em>")
     parts.append("</div>")
     parts.append("</body></html>")
-    return "
-".join(parts)
+    return "\n".join(parts)
+
 
 
 def render_v22_portfolio_html(reports: dict) -> str:
