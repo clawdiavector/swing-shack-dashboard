@@ -22977,35 +22977,63 @@ def _render_brief_html(b: dict) -> str:
 @app.route('/api/reports/v1/<brand_id>/list-uploads', methods=['GET'])
 def report_v1_list_uploads(brand_id):
     """GET /api/reports/v1/<brand_id>/list-uploads — list operator-uploaded
-    historical reports for a brand."""
+    historical reports for a brand.
+
+    V2.1 §3: searches multiple candidate roots so list-uploads
+    matches the engine-side _historical_reports() lookup.
+    Without this, list-uploads and the report's Historical
+    Reports section disagree on which files exist.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
-    out_dir = os.path.join(DATA_DIR, "historical-reports", brand_id)
-    if not os.path.isdir(out_dir):
-        return jsonify({"ok": True, "brand_id": brand_id, "files": []}), 200
+    # V2.1 §3: scan multiple candidate roots. DATA_DIR is the
+    # canonical persistent root; the others are fallbacks for
+    # bundled / cache paths the engine reads.
+    candidate_roots = []
+    if DATA_DIR:
+        candidate_roots.append(
+            os.path.join(DATA_DIR, "historical-reports", brand_id))
+    candidate_roots.extend([
+        "/data/historical-reports/" + brand_id,
+        os.path.join("/app", "data", "historical-reports", brand_id),
+        os.path.join(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))),
+                     "data", "historical-reports", brand_id),
+    ])
+    seen = set()
     files = []
-    for fname in sorted(os.listdir(out_dir)):
-        if not fname.endswith(".json"):
+    for root in candidate_roots:
+        if not os.path.isdir(root):
             continue
-        p = os.path.join(out_dir, fname)
-        try:
-            d = json.load(open(p))
-            files.append({
-                "filename": fname,
-                "period": d.get("period"),
-                "uploaded_at": d.get("uploaded_at"),
-                "uploaded_by": d.get("uploaded_by"),
-                "metrics_keys": sorted((d.get("metrics") or {}).keys())
-                                if isinstance(d.get("metrics"), dict) else [],
-                "observations_count": len(d.get("observations", []) or []),
-                "size_bytes": os.path.getsize(p),
-            })
-        except Exception as e:
-            files.append({"filename": fname, "parse_error": str(e)[:120]})
+        for fname in sorted(os.listdir(root)):
+            if not fname.endswith(".json"):
+                continue
+            if fname in seen:
+                continue
+            seen.add(fname)
+            p = os.path.join(root, fname)
+            try:
+                d = json.load(open(p))
+                files.append({
+                    "filename": fname,
+                    "period": d.get("period"),
+                    "uploaded_at": d.get("uploaded_at"),
+                    "uploaded_by": d.get("uploaded_by"),
+                    "metrics_keys": sorted((d.get("metrics") or {}).keys())
+                                    if isinstance(d.get("metrics"), dict) else [],
+                    "observations_count": len(d.get("observations", []) or []),
+                    "size_bytes": os.path.getsize(p),
+                    "source_root": root,
+                })
+            except Exception as e:
+                files.append({"filename": fname,
+                              "source_root": root,
+                              "parse_error": str(e)[:120]})
     return jsonify({"ok": True, "brand_id": brand_id,
-                    "count": len(files), "files": files}), 200
+                    "count": len(files), "files": files,
+                    "roots_scanned": candidate_roots}), 200
 
 
 
@@ -43105,6 +43133,83 @@ def ga4_event_audit(brand_id):
         "headline": headline,
         "checked_at": _now_iso(),
     }), 200
+
+
+
+# ─── REPORTING V2.1: MANAGEMENT REPORT (V2.1 §10-§18) ──────────────────
+# Endpoints that present the V2.1 management-grade report:
+#   - Scorecard (KPI rollup with movement + 90-day baseline)
+#   - Channel mix (current + previous windows)
+#   - Landing pages (current + previous windows)
+#   - Key event audit (named events with commercial meaning)
+#   - Empty-section discipline (Not connected labels)
+#   - data_as_of per source
+#   - Movement-based executive summary
+# KEEP: report routes, brand isolation, HTML/JSON output,
+# source lineage, historical upload concept, analyst
+# commentary architecture, synthetic-data quarantine.
+
+
+@app.route('/api/reports/v2_1/<brand_id>', methods=['GET'])
+def report_v21_brand(brand_id):
+    """GET /api/reports/v2_1/<brand_id>?format=html|json&days=31
+
+    V2.1 management report. Composes:
+      - KPI scorecard (movement-tracked)
+      - Channel mix (GA4 sessionDefaultChannelGroup)
+      - Landing pages (GA4 pagePath + service-page filter)
+      - Key event audit (eventName breakdown)
+      - Executive summary (movement-based)
+      - Data coverage + data_as_of
+      - Empty-section discipline ("Not connected" placeholders)
+    Reads the brand V2.1 enrichment endpoints under
+    /api/ga4/<brand>/{channel-mix, pages-enriched, event-audit}.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_v21_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_v21_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v21_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/v2_1/portfolio', methods=['GET'])
+def report_v21_portfolio():
+    """GET /api/reports/v2_1/portfolio?format=html|json
+
+    V2.1 portfolio summary — same sources, contextual
+    presentation across Stick and Swing Shack.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_v21_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        html = _ri.render_v21_portfolio_html(reports)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v21_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     import sys as _sys
