@@ -143,6 +143,20 @@ const ACTION_AUTH = {
 };
 
 function escHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const TZ = 'Africa/Johannesburg';
+function fmtSast(iso) {
+  if (iso == null || iso === '') return '—';
+  const s = String(iso).trim();
+  if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
+  try {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleString('en-ZA', {
+      timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }) + ' SAST';
+  } catch (_) { return s; }
+}
 
 async function loadGov() {
   try {
@@ -196,7 +210,7 @@ async function loadReceipts() {
     el.innerHTML = d.receipts.slice().reverse().map(rc => `
       <div class="receipt ${rc.reversed ? 'reversed' : ''}">
         <div><strong>${escHtml(rc.action)}</strong> ${rc.reversed ? '(reversed)' : ''}</div>
-        <div class="when">${escHtml(rc.executed_at)} · authority: ${escHtml(rc.authority_source)}${rc.policy_id ? ` · policy ${escHtml(rc.policy_id)}` : ''} · ${rc.human_approved ? 'human-approved' : 'policy-only'}</div>
+        <div class="when">${escHtml(fmtSast(rc.executed_at))} · authority: ${escHtml(rc.authority_source)}${rc.policy_id ? ` · policy ${escHtml(rc.policy_id)}` : ''} · ${rc.human_approved ? 'human-approved' : 'policy-only'}</div>
         ${rc.reason ? `<div style="margin-top:0.3rem"><em>${escHtml(rc.reason)}</em></div>` : ''}
       </div>
     `).join('');

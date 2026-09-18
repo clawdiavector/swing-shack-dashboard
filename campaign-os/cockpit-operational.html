@@ -272,8 +272,8 @@
       healthCard.className = 'pill ok';
       document.getElementById('health-api').textContent = (h.status || '—');
       document.getElementById('health-auth').textContent = 'enforced';
-      document.getElementById('health-ts').textContent = (h.ts || '—').slice(0, 19).replace('T', ' ');
-      healthFooter.textContent = `last check: ${(h.ts || '').slice(0, 19).replace('T', ' ')} · git_synced: ${h.git_synced}`;
+      document.getElementById('health-ts').textContent = fmtSast(h.ts);
+      healthFooter.textContent = `last check: ${fmtSast(h.ts)} · git_synced: ${h.git_synced}`;
       healthFooter.className = 'health ok';
     } else {
       healthCard.textContent = 'ERR';
@@ -313,7 +313,7 @@
           const status = x.publishStatus ? `<span class="pill ${x.publishStatus === 'published' ? 'ok' : 'warn'}">${esc(x.publishStatus)}</span>` : '';
           return `<div class="row">
             <span class="row-l">${name} ${platform} ${status}</span>
-            <span class="row-r">${esc(String(when).slice(0, 16))}</span>
+            <span class="row-r">${esc(fmtSast(when))}</span>
           </div>`;
         }).join('');
       }
@@ -355,6 +355,21 @@
 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  const TZ = 'Africa/Johannesburg';
+  function fmtSast(iso) {
+    if (iso == null || iso === '') return '—';
+    const s = String(iso).trim();
+    if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
+    try {
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) return s;
+      return d.toLocaleString('en-ZA', {
+        timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }) + ' SAST';
+    } catch (_) { return s; }
   }
 
   load().catch(err => {

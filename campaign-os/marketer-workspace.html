@@ -2046,7 +2046,7 @@ async function loadBible() {
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div>
             <div style="font-size:11px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">BRAND BIBLE — ${escapeHtml(MW.brand)}</div>
-            <div style="font-size:13px;color:var(--grn);font-weight:700;margin-top:4px">Last updated: ${escapeHtml(String(meta.last_updated || '').slice(0, 10))}</div>
+            <div style="font-size:13px;color:var(--grn);font-weight:700;margin-top:4px">Last updated: ${escapeHtml(fmtSast(meta.last_updated))}</div>
           </div>
           <button onclick="openBibleUpload()">Re-upload</button>
         </div>
@@ -2292,6 +2292,20 @@ function isoDate(d) { return d.toISOString().slice(0, 10); }
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
 function escapeHtml(s) { if (s === null || s === undefined) return ''; return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const TZ = 'Africa/Johannesburg';
+function fmtSast(iso) {
+  if (iso == null || iso === '') return '—';
+  const s = String(iso).trim();
+  if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
+  try {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleString('en-ZA', {
+      timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }) + ' SAST';
+  } catch (_) { return s; }
+}
 
 function setupKeyboard() {
   document.addEventListener('keydown', e => {

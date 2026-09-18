@@ -1878,7 +1878,7 @@ function openBetModal(id, parentMoveId) {
     ${id && b.decision ? `<div class="modal-section" style="background:var(--bg-3);padding:1rem;border-radius:8px">
       <h4>Recorded decision</h4>
       <p><b>Outcome:</b> ${esc(b.decision.outcome)}<br>
-      <b>Decided at:</b> ${esc(b.decision.decided_at)}<br>
+      <b>Decided at:</b> ${esc(fmtSast(b.decision.decided_at))}<br>
       <b>Note:</b> ${esc(b.decision.note || '—')}</p>
     </div>` : ''}
     ${id ? `<div id="strat-eff-${id}" style="margin-top:1rem"><div class="empty-state" style="padding:1rem">Loading efficiency…</div></div>` : ''}
@@ -2423,6 +2423,21 @@ async function openReplay(type, id) {
 function esc(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+const TZ = 'Africa/Johannesburg';
+function fmtSast(iso) {
+  if (iso == null || iso === '') return '—';
+  const s = String(iso).trim();
+  if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
+  try {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleString('en-ZA', {
+      timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }) + ' SAST';
+  } catch (_) { return s; }
 }
 
 loadStrategy();
