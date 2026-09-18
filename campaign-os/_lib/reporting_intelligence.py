@@ -2952,8 +2952,12 @@ def build_v22_brand_report(brand_id: str, period_days: int = 31,
         "brand_isolation_enforced": True,
 
         # V2.2 §4: the scorecard IS the canonical session value
-        "sessions": scorecard["sessions"]["current"],
-        "users": scorecard["users"]["current"],
+        "sessions": next(
+            (r.get("current") for r in (scorecard.get("rows") or [])
+             if r.get("label") == "Sessions"), None),
+        "users": next(
+            (r.get("current") for r in (scorecard.get("rows") or [])
+             if r.get("label") == "Users"), None),
 
         # V2.2 §11: KPI scorecard with real current + previous + 90-day
         "kpi_scorecard": scorecard,
