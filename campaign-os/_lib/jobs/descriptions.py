@@ -121,8 +121,9 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
         "title": "Google Search Console report",
         "summary": "Pulls query/page stats into search-console.json.",
         "detail": (
-            "Uses the GA4 service account + webmasters.readonly scope against GSC_SITE_URL. "
-            "Surfaces rising/falling queries and quick wins for SEO Assistant."
+            "Uses Search Console OAuth when configured, else GA4 service account + "
+            "webmasters.readonly against GSC_SITE_URL. Surfaces rising/falling queries "
+            "and quick wins for SEO Assistant."
         ),
     },
     "booking_truth": {

@@ -14248,6 +14248,115 @@ def gbp_oauth_disconnect_route(brand_id):
     return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
 
 
+_GSC_OAUTH_AVAILABLE = True
+try:
+    from _lib import gsc_oauth as _gsc_lib
+except Exception as _gsc_exc:
+    _GSC_OAUTH_AVAILABLE = False
+    _gsc_lib = None
+    _app_log.warning("gsc_oauth import failed: %s", _gsc_exc)
+if _GSC_OAUTH_AVAILABLE:
+    assert _gsc_lib is not None
+
+
+@app.route('/api/gsc/oauth/login', methods=['GET'])
+def gsc_oauth_login_route():
+    """GET /api/gsc/oauth/login — start Search Console OAuth."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _gsc_lib.gsc_oauth_credentials_present():
+        return jsonify({
+            "ok": False,
+            "error": "GSC OAuth client not configured — sync google-search-console-oauth.json",
+            "status": _gsc_lib.gsc_status(),
+        }), 503
+    state = _gsc_lib.make_state(user_id="operator")
+    redirect_uri = "https://" + request.host + "/api/gsc/oauth/callback"
+    auth_url = _gsc_lib.build_authorize_url(redirect_uri, state)
+    return redirect(auth_url, code=302)
+
+
+@app.route('/api/gsc/oauth/callback', methods=['GET'])
+def gsc_oauth_callback_route():
+    """GET /api/gsc/oauth/callback — finish Search Console OAuth."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+    if error:
+        return jsonify({"ok": False, "error": f"google oauth returned error: {error}"}), 400
+    if not code or not state:
+        return jsonify({"ok": False, "error": "missing code or state"}), 400
+    ok, reason = _gsc_lib.verify_state(state)
+    if not ok:
+        return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
+    redirect_uri = "https://" + request.host + "/api/gsc/oauth/callback"
+    try:
+        data, err = _gsc_lib.exchange_code(code, redirect_uri)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"exchange failed: {exc}"}), 502
+    if err:
+        code_s, msg = err
+        return jsonify({"ok": False, "error": f"google token exchange {code_s}: {msg}"}), 502
+    if not data or "access_token" not in data:
+        return jsonify({"ok": False, "error": "no access_token in response"}), 502
+    email = None
+    try:
+        req = urllib.request.Request(
+            _gsc_lib.GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {data['access_token']}", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            info = json.loads(r.read().decode("utf-8"))
+            email = info.get("email")
+    except Exception:
+        pass
+    try:
+        _gsc_lib.save_token(data, google_account_email=email, note=f"via OAuth callback {request.url_root}")
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+    return Response(
+        """<!doctype html>
+<html><head><title>Search Console Connected</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#e5e7eb;text-align:center;padding:80px 20px}
+h1{color:#6ee7b7}p{color:#94a3b8}</style></head>
+<body>
+<h1>Google Search Console connected</h1>
+<p>You can close this tab and return to Campaign OS.</p>
+<p>Next: visit <a href="/connected-accounts" style="color:#fbbf24">Connected Accounts</a>.</p>
+</body></html>""",
+        mimetype="text/html",
+    ), 200
+
+
+@app.route('/api/gsc/status', methods=['GET'])
+def gsc_status_route():
+    """GET /api/gsc/status — Search Console OAuth diagnostic snapshot."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    out = _gsc_lib.gsc_status()
+    out["ok"] = out.get("oauth_client_id_present") and out.get("token_present")
+    return jsonify(out), 200
+
+
+@app.route('/api/gsc/oauth/disconnect', methods=['POST'])
+def gsc_oauth_disconnect_route():
+    """POST /api/gsc/oauth/disconnect — remove stored Search Console OAuth token."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    removed = _gsc_lib.delete_token()
+    return jsonify({"ok": True, "removed": removed}), 200
+
+
 # ── GBP Daily Poster (built 2026-08-20) ────────────────────────────────────────
 # Per Christelle's "Real world wind" brief: GBP posts should go out daily,
 # driven by SEO signals (Ubersuggest + GA4 queries) + improve GEO finds.

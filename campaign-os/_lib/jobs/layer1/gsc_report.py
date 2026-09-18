@@ -27,6 +27,15 @@ def _site_url() -> str:
 
 
 def _get_search_console_bearer() -> str:
+    try:
+        from _lib import gsc_oauth as _gsc_oauth  # noqa: PLC0415
+
+        oauth_token = _gsc_oauth.get_access_token()
+        if oauth_token:
+            return oauth_token
+    except Exception:
+        pass
+
     _, sa_path = ga4_report._resolve_ga4_creds()
     try:
         from google.oauth2 import service_account as _sa  # noqa: PLC0415
@@ -107,9 +116,16 @@ def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
 
 def run() -> dict:
     """Fetch Search Console stats and write search-console.json."""
-    missing = ga4_report._missing_env_error()
-    if missing:
-        return {"ok": False, "error": missing}
+    try:
+        from _lib import gsc_oauth as _gsc_oauth  # noqa: PLC0415
+
+        has_oauth = _gsc_oauth.gsc_oauth_credentials_present() and _gsc_oauth.load_token()
+    except Exception:
+        has_oauth = False
+    if not has_oauth:
+        missing = ga4_report._missing_env_error()
+        if missing:
+            return {"ok": False, "error": missing}
 
     site = _site_url()
     end = date.today() - timedelta(days=3)  # GSC data lag
