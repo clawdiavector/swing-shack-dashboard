@@ -187,6 +187,30 @@ def _v21_render_trend_arrow(delta_pct):
     return ("→", "flat")
 
 
+def _v22_report_period(days=31):
+    """V2.2 §1: canonical report-period object. Defined here
+    so build_v22_brand_report can use the same period as the
+    GA4 endpoints.
+    """
+    end_d = (_v21dt.date.today() - _v21dt.timedelta(days=1))
+    cur_start = end_d - _v21dt.timedelta(days=days - 1)
+    prev_end = cur_start - _v21dt.timedelta(days=1)
+    prev_start = prev_end - _v21dt.timedelta(days=days - 1)
+    n_end = end_d
+    n_start = end_d - _v21dt.timedelta(days=89)
+    return {
+        "current_start": cur_start.isoformat(),
+        "current_end": end_d.isoformat(),
+        "previous_start": prev_start.isoformat(),
+        "previous_end": prev_end.isoformat(),
+        "ninetieth_start": n_start.isoformat(),
+        "ninetieth_end": n_end.isoformat(),
+        "days_per_window": days,
+        "data_complete_through": end_d.isoformat(),
+        "timezone": "Africa/Johannesburg",
+    }
+
+
 # ── Brand-scoped config (no cross-brand bleed)
 def _load_north_stars_from_calendar_config(brand_id: str) -> dict:
     """V1.3 §7: load North Stars from the canonical Calendar
