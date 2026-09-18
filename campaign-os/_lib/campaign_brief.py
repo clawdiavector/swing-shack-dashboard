@@ -894,6 +894,190 @@ def _list_opportunities(brand_id: str) -> list:
     return get_brief_opportunities(brand_id)
 
 
+# ── V1.4 §4 Event Role + Standalone/Context semantics ─────────────
+
+# Event roles (V1.4 §4): a generic_context event must not
+# become cluster_parent over a primary_commercial_moment.
+EVENT_ROLE_RANK = {
+    "primary_commercial_moment": 5,  # Black Friday, Cyber Monday, PGA
+    "campaign_extension":         4,  # tie-in to a primary moment
+    "reactive_moment":            3,  # responsive to a moment
+    "supporting_context":         2,  # family/travel season,
+                                       # provides context not the
+                                       # campaign itself
+    "generic_context":            1,  # public holidays, school
+                                       # terms, cultural moments that
+                                       # are NEVER the campaign concept
+}
+
+
+def _infer_event_role(o: dict, brand_id: str) -> str:
+    """V1.4 §4: assign event_role per the new clustering model.
+
+    Primary commercial moments (Black Friday, Cyber Monday,
+    SA Masters, Nedbank GC, etc.) take precedence over
+    contextual events (school terms, public holidays, family
+    seasons). Generic context is never BRIEF-able on its own;
+    it can only support a primary campaign.
+    """
+    name = (o.get("name") or "").lower()
+    source_origin = (o.get("source_origin") or "").lower()
+    commercial_relevance = (o.get("calendar_commercial_relevance")
+                             or "").lower()
+    audience_relevance = (o.get("calendar_audience_relevance")
+                           or "").lower()
+    pillars = o.get("pillars") or []
+    pillar_strs = ([str(p).lower() for p in pillars]
+                    if isinstance(pillars, list) else [])
+
+    # Strong primary commercial moments — Black Friday,
+    # Cyber Monday, SA Masters, Nedbank GC, BMW PGA, Dunhill,
+    # Presidents Cup, Solheim Cup, Ryder Cup, Open Week, Open
+    # Championship, pga-golf-lifestyle-show — all named,
+    # externally verifiable commercial events.
+    primary_keywords = (
+        "black friday", "cyber monday",
+        "bmw pga", "pga golf lifestyle show",
+        "nedbank golf challenge",
+        "alfred dunhill", "sa masters week",
+        "sa open", "open championship",
+        "presidents cup", "solheim cup", "ryder cup",
+        "rwanda open", "dp world",
+    )
+    if any(k in name for k in primary_keywords):
+        return "primary_commercial_moment"
+
+    # Festive travel season — strong campaign extension window
+    if ("festive" in name and "travel" in name):
+        return "campaign_extension"
+
+    # Campaign extension — events that extend a primary moment
+    if any(k in name for k in ("pre-black friday teaser",
+                                 "post-bf", "festive")):
+        return "campaign_extension"
+
+    # Reactive moments — short-window opportunities
+    if any(k in name for k in ("valentine", "mothers day",
+                                 "fathers day")):
+        return "reactive_moment"
+
+    # Supporting context — family/travel season windows
+    # (NOT the campaign itself, but useful context)
+    if any(k in name for k in ("school term ", "school holiday",
+                                 "holiday season", "family travel",
+                                 "family day", "family prep")):
+        return "supporting_context"
+
+    # Generic context — public holidays + school terms + heritage
+    # days + Christmas + Easter etc. — never a campaign concept
+    # on their own. Includes SA public holidays.
+    if any(k in name for k in ("human rights day", "good friday",
+                                 "family day", "freedom day",
+                                 "workers day", "youth day",
+                                 "national women", "heritage day",
+                                 "day of reconciliation",
+                                 "day of goodwill", "christmas",
+                                 "new year", "halloween",
+                                 "valentine", "easter")):
+        return "generic_context"
+
+    # Calendar public holidays with deterministic_calendar origin
+    # are generic_context by definition
+    if source_origin == "deterministic_calendar":
+        return "generic_context"
+
+    # Cultural moments from external sources
+    if any(k in name for k in ("heritage day", "sa cup",
+                                 "cultural")):
+        return "generic_context"
+
+    # Strong commercial + audience signal + named event →
+    # default to primary_commercial_moment (e.g. unknown but
+    # commercially relevant event)
+    if (("very high" in commercial_relevance
+         or "high" in commercial_relevance)
+            and ("very high" in audience_relevance
+                 or "high" in audience_relevance)):
+        return "primary_commercial_moment"
+
+    return "supporting_context"
+
+
+def _event_role_priority(o: dict) -> int:
+    """Numeric priority — higher = stronger candidate for
+    cluster parent or standalone BRIEF."""
+    role = o.get("event_role") or "supporting_context"
+    return EVENT_ROLE_RANK.get(role, 0)
+
+
+def _standalone_candidate(o: dict) -> bool:
+    """V1.4 §6: standalone_candidate=True means this event
+    can stand on its own as a Brief.
+
+    Independent of the gate decision — a primary_commercial_moment
+    can be standalone_candidate=true while gate=WATCH.
+    """
+    role = o.get("event_role") or "supporting_context"
+    if role in ("primary_commercial_moment", "campaign_extension",
+                 "reactive_moment"):
+        return True
+    return False
+
+
+def _useful_context(o: dict) -> bool:
+    """V1.4 §6: useful_context=True means this event is worth
+    referencing as context, but shouldn't drive its own Brief.
+
+    Generic context events ARE useful as context for
+    primary_commercial_moments. SA public holidays provide
+    audience signal; school terms provide family-prep signal.
+    """
+    role = o.get("event_role") or "supporting_context"
+    if role in ("supporting_context", "generic_context"):
+        return True
+    return False
+
+
+def _select_cluster_parent(candidates: list) -> str:
+    """V1.4 §5: strategy-aware parent selection.
+
+    Parent must be the event with the strongest event_role
+    AND strategic relevance AND earliest timing importance.
+    A generic_context event cannot become parent over a
+    primary_commercial_moment even if it has more shared signals.
+    """
+    if not candidates:
+        return ""
+    if len(candidates) == 1:
+        return candidates[0]["event_key"]
+
+    def parent_score(c):
+        role_pri = c.get("role_priority") or 0
+        commercial_relevance = c.get("commercial_relevance") or ""
+        commercial_pri = (2 if "very high" in commercial_relevance
+                           else 1 if "high" in commercial_relevance
+                           else 0)
+        audience_relevance = c.get("audience_relevance") or ""
+        audience_pri = (2 if "very high" in audience_relevance
+                          else 1 if "high" in audience_relevance
+                          else 0)
+        source_pri = (2 if c.get("source_origin") == "external"
+                       else 1 if c.get("source_origin") in
+                            ("scout", "internal_strategy")
+                       else 0)
+        date_pri = (2 if c.get("date_confidence") == "HIGH"
+                     else 1 if c.get("date_confidence") == "MEDIUM"
+                     else 0)
+        # Higher score = better parent. Role dominates.
+        return (role_pri * 1000
+                + commercial_pri * 100
+                + audience_pri * 50
+                + source_pri * 10
+                + date_pri)
+
+    return max(candidates, key=parent_score)["event_key"]
+
+
 # ── Opportunity clustering (V1.3 §3) ─────────────────────────────
 
 def _cluster_opportunities(brand_id: str) -> dict:
@@ -1142,190 +1326,6 @@ def _cluster_opportunities(brand_id: str) -> dict:
     }
 
 
-
-
-# ── V1.4 §4 Event Role + Standalone/Context semantics ─────────────
-
-# Event roles (V1.4 §4): a generic_context event must not
-# become cluster_parent over a primary_commercial_moment.
-EVENT_ROLE_RANK = {
-    "primary_commercial_moment": 5,  # Black Friday, Cyber Monday, PGA
-    "campaign_extension":         4,  # tie-in to a primary moment
-    "reactive_moment":            3,  # responsive to a moment
-    "supporting_context":         2,  # family/travel season,
-                                       # provides context not the
-                                       # campaign itself
-    "generic_context":            1,  # public holidays, school
-                                       # terms, cultural moments that
-                                       # are NEVER the campaign concept
-}
-
-
-def _infer_event_role(o: dict, brand_id: str) -> str:
-    """V1.4 §4: assign event_role per the new clustering model.
-
-    Primary commercial moments (Black Friday, Cyber Monday,
-    SA Masters, Nedbank GC, etc.) take precedence over
-    contextual events (school terms, public holidays, family
-    seasons). Generic context is never BRIEF-able on its own;
-    it can only support a primary campaign.
-    """
-    name = (o.get("name") or "").lower()
-    source_origin = (o.get("source_origin") or "").lower()
-    commercial_relevance = (o.get("calendar_commercial_relevance")
-                             or "").lower()
-    audience_relevance = (o.get("calendar_audience_relevance")
-                           or "").lower()
-    pillars = o.get("pillars") or []
-    pillar_strs = ([str(p).lower() for p in pillars]
-                    if isinstance(pillars, list) else [])
-
-    # Strong primary commercial moments — Black Friday,
-    # Cyber Monday, SA Masters, Nedbank GC, BMW PGA, Dunhill,
-    # Presidents Cup, Solheim Cup, Ryder Cup, Open Week, Open
-    # Championship, pga-golf-lifestyle-show — all named,
-    # externally verifiable commercial events.
-    primary_keywords = (
-        "black friday", "cyber monday",
-        "bmw pga", "pga golf lifestyle show",
-        "nedbank golf challenge",
-        "alfred dunhill", "sa masters week",
-        "sa open", "open championship",
-        "presidents cup", "solheim cup", "ryder cup",
-        "rwanda open", "dp world",
-    )
-    if any(k in name for k in primary_keywords):
-        return "primary_commercial_moment"
-
-    # Festive travel season — strong campaign extension window
-    if ("festive" in name and "travel" in name):
-        return "campaign_extension"
-
-    # Campaign extension — events that extend a primary moment
-    if any(k in name for k in ("pre-black friday teaser",
-                                 "post-bf", "festive")):
-        return "campaign_extension"
-
-    # Reactive moments — short-window opportunities
-    if any(k in name for k in ("valentine", "mothers day",
-                                 "fathers day")):
-        return "reactive_moment"
-
-    # Supporting context — family/travel season windows
-    # (NOT the campaign itself, but useful context)
-    if any(k in name for k in ("school term ", "school holiday",
-                                 "holiday season", "family travel",
-                                 "family day", "family prep")):
-        return "supporting_context"
-
-    # Generic context — public holidays + school terms + heritage
-    # days + Christmas + Easter etc. — never a campaign concept
-    # on their own. Includes SA public holidays.
-    if any(k in name for k in ("human rights day", "good friday",
-                                 "family day", "freedom day",
-                                 "workers day", "youth day",
-                                 "national women", "heritage day",
-                                 "day of reconciliation",
-                                 "day of goodwill", "christmas",
-                                 "new year", "halloween",
-                                 "valentine", "easter")):
-        return "generic_context"
-
-    # Calendar public holidays with deterministic_calendar origin
-    # are generic_context by definition
-    if source_origin == "deterministic_calendar":
-        return "generic_context"
-
-    # Cultural moments from external sources
-    if any(k in name for k in ("heritage day", "sa cup",
-                                 "cultural")):
-        return "generic_context"
-
-    # Strong commercial + audience signal + named event →
-    # default to primary_commercial_moment (e.g. unknown but
-    # commercially relevant event)
-    if (("very high" in commercial_relevance
-         or "high" in commercial_relevance)
-            and ("very high" in audience_relevance
-                 or "high" in audience_relevance)):
-        return "primary_commercial_moment"
-
-    return "supporting_context"
-
-
-def _event_role_priority(o: dict) -> int:
-    """Numeric priority — higher = stronger candidate for
-    cluster parent or standalone BRIEF."""
-    role = o.get("event_role") or "supporting_context"
-    return EVENT_ROLE_RANK.get(role, 0)
-
-
-def _standalone_candidate(o: dict) -> bool:
-    """V1.4 §6: standalone_candidate=True means this event
-    can stand on its own as a Brief.
-
-    Independent of the gate decision — a primary_commercial_moment
-    can be standalone_candidate=true while gate=WATCH.
-    """
-    role = o.get("event_role") or "supporting_context"
-    if role in ("primary_commercial_moment", "campaign_extension",
-                 "reactive_moment"):
-        return True
-    return False
-
-
-def _useful_context(o: dict) -> bool:
-    """V1.4 §6: useful_context=True means this event is worth
-    referencing as context, but shouldn't drive its own Brief.
-
-    Generic context events ARE useful as context for
-    primary_commercial_moments. SA public holidays provide
-    audience signal; school terms provide family-prep signal.
-    """
-    role = o.get("event_role") or "supporting_context"
-    if role in ("supporting_context", "generic_context"):
-        return True
-    return False
-
-
-def _select_cluster_parent(candidates: list) -> str:
-    """V1.4 §5: strategy-aware parent selection.
-
-    Parent must be the event with the strongest event_role
-    AND strategic relevance AND earliest timing importance.
-    A generic_context event cannot become parent over a
-    primary_commercial_moment even if it has more shared signals.
-    """
-    if not candidates:
-        return ""
-    if len(candidates) == 1:
-        return candidates[0]["event_key"]
-
-    def parent_score(c):
-        role_pri = c.get("role_priority") or 0
-        commercial_relevance = c.get("commercial_relevance") or ""
-        commercial_pri = (2 if "very high" in commercial_relevance
-                           else 1 if "high" in commercial_relevance
-                           else 0)
-        audience_relevance = c.get("audience_relevance") or ""
-        audience_pri = (2 if "very high" in audience_relevance
-                          else 1 if "high" in audience_relevance
-                          else 0)
-        source_pri = (2 if c.get("source_origin") == "external"
-                       else 1 if c.get("source_origin") in
-                            ("scout", "internal_strategy")
-                       else 0)
-        date_pri = (2 if c.get("date_confidence") == "HIGH"
-                     else 1 if c.get("date_confidence") == "MEDIUM"
-                     else 0)
-        # Higher score = better parent. Role dominates.
-        return (role_pri * 1000
-                + commercial_pri * 100
-                + audience_pri * 50
-                + source_pri * 10
-                + date_pri)
-
-    return max(candidates, key=parent_score)["event_key"]
 
 
 # ── Opportunity Gate (brief §7 + V1.3 §4 recalibration) ──────────
