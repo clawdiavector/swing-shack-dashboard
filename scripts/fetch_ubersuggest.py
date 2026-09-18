@@ -31,7 +31,9 @@ Exit codes:
   3 — partial failure (some but not all writes succeeded)
 
 Environment:
-  SWING_SHACK_DOMAIN        (default: swingshack.co.za)
+  STRATEGY_BRAND            (default: swing-shack — non-default brands require BRAND_DOMAIN_<BRAND>)
+  BRAND_DOMAIN_<BRAND>      (e.g. BRAND_DOMAIN_STICK=stickgolf.co.za)
+  SWING_SHACK_DOMAIN        (default brand only; default: swingshack.co.za)
   UBERSUGGEST_WINDOW_DAYS   (default: 60 — covers ≥2 weekly snapshots)
   UBERSUGGEST_LANG          (default: en)
   UBERSUGGEST_DEVICE        (default: desktop)
@@ -106,10 +108,35 @@ def _atomic_write(path: Path, data: dict) -> None:
 # ── Step 1: resolve domain + window ────────────────────────────────────
 
 
-def _resolve_args(args: argparse.Namespace) -> tuple[str, int, str, str]:
-    domain = os.environ.get("SWING_SHACK_DOMAIN", DEFAULT_DOMAIN)
+def _brand_safe(brand_id: str) -> str:
+    return brand_id.upper().replace("-", "_")
+
+
+def _resolve_domain(args: argparse.Namespace) -> str:
+    """Resolve hostname: --domain > BRAND_DOMAIN_<BRAND> > SWING_SHACK_DOMAIN."""
     if args.domain:
-        domain = args.domain
+        return args.domain.removeprefix("https://").removeprefix("http://").rstrip("/")
+
+    brand = os.environ.get("STRATEGY_BRAND", "swing-shack").strip() or "swing-shack"
+    safe = _brand_safe(brand)
+    explicit = os.environ.get(f"BRAND_DOMAIN_{safe}", "").strip()
+    if explicit:
+        return explicit.removeprefix("https://").removeprefix("http://").rstrip("/")
+
+    if brand != "swing-shack":
+        raise SystemExit(
+            f"[fetch_ubersuggest] ERROR: STRATEGY_BRAND={brand!r} but "
+            f"BRAND_DOMAIN_{safe} not set; refusing to default to {DEFAULT_DOMAIN}"
+        )
+
+    legacy = os.environ.get("SWING_SHACK_DOMAIN", DEFAULT_DOMAIN).strip()
+    if not legacy:
+        raise SystemExit("[fetch_ubersuggest] ERROR: SWING_SHACK_DOMAIN not set")
+    return legacy.removeprefix("https://").removeprefix("http://").rstrip("/")
+
+
+def _resolve_args(args: argparse.Namespace) -> tuple[str, int, str, str]:
+    domain = _resolve_domain(args)
     window = int(os.environ.get("UBERSUGGEST_WINDOW_DAYS", DEFAULT_WINDOW_DAYS))
     if args.window:
         window = int(args.window)
