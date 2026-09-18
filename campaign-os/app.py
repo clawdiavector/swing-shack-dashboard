@@ -42182,3 +42182,4 @@ def brief_v1_required_questions(brand_id, brief_id):
         "creative_allowed": b.get("creative_allowed"),
     }), 200
 
+
