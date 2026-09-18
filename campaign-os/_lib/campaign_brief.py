@@ -908,6 +908,11 @@ EVENT_ROLE_RANK = {
     "generic_context":            1,  # public holidays, school
                                        # terms, cultural moments that
                                        # are NEVER the campaign concept
+    "unclassified":               0,  # V1.5 §7: when classifier
+                                       # cannot identify a role, the
+                                       # event is "unknown" — never
+                                       # implicitly clustered as
+                                       # supporting or generic
 }
 
 
@@ -1125,7 +1130,11 @@ def _infer_event_role(o: dict, brand_id: str) -> str:
                  or "high" in audience_relevance)):
         return "primary_commercial_moment"
 
-    return "supporting_context"
+    # V1.5 §7: when the classifier cannot identify a role,
+    # return "unclassified" rather than defaulting to
+    # supporting_context. Callers must reason from explicit
+    # evidence rather than implicitly treating null as false.
+    return "unclassified"
 
 
 def _event_role_priority(o: dict) -> int:
@@ -1135,29 +1144,39 @@ def _event_role_priority(o: dict) -> int:
     return EVENT_ROLE_RANK.get(role, 0)
 
 
-def _standalone_candidate(o: dict) -> bool:
-    """V1.4 §6: standalone_candidate=True means this event
-    can stand on its own as a Brief.
+def _standalone_candidate(o: dict):
+    """V1.4 §6 / V1.5 §7: returns True / False / "unknown".
 
-    Independent of the gate decision — a primary_commercial_moment
-    can be standalone_candidate=true while gate=WATCH.
+    V1.4 §6: True means this event can stand on its own
+    as a Brief. Independent of the gate decision — a
+    primary_commercial_moment can be standalone_candidate=true
+    while gate=WATCH.
+
+    V1.5 §7: returns "unknown" when event_role is
+    "unclassified" so callers don't treat null as false.
     """
-    role = o.get("event_role") or "supporting_context"
+    role = o.get("event_role") or "unclassified"
+    if role == "unclassified":
+        return "unknown"
     if role in ("primary_commercial_moment", "campaign_extension",
                  "reactive_moment"):
         return True
     return False
 
 
-def _useful_context(o: dict) -> bool:
-    """V1.4 §6: useful_context=True means this event is worth
-    referencing as context, but shouldn't drive its own Brief.
+def _useful_context(o: dict):
+    """V1.4 §6 / V1.5 §7: returns True / False / "unknown".
 
-    Generic context events ARE useful as context for
-    primary_commercial_moments. SA public holidays provide
-    audience signal; school terms provide family-prep signal.
+    V1.4 §6: True means this event is worth referencing as
+    context. Generic context events ARE useful as context
+    for primary_commercial_moments.
+
+    V1.5 §7: returns "unknown" when event_role is
+    "unclassified".
     """
-    role = o.get("event_role") or "supporting_context"
+    role = o.get("event_role") or "unclassified"
+    if role == "unclassified":
+        return "unknown"
     if role in ("supporting_context", "generic_context"):
         return True
     return False
@@ -1746,24 +1765,81 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     if useful_context is None:
         useful_context = _useful_context({**opportunity, "event_role": event_role})
 
+    # V1.5 §6: cluster membership is no longer an automatic
+    # WATCH force. A cluster member with strong own evidence
+    # can still reach BRIEF if it has a genuinely distinct
+    # audience / offer / objective / CTA / proposition vs the
+    # cluster parent.
     if is_cluster_member_only:
-        cluster_member_gate = GATE_WATCH
+        # Compute duplication penalty: how many cluster signals
+        # does the member share with the parent? Higher = more
+        # duplicative = more conservative.
+        try:
+            duplication_signals = len(
+                _shared_signals(
+                    {"commercial_objective": _infer_commercial_objective(opportunity, brand_id),
+                     "audience_signal": _infer_audience_signal(opportunity),
+                     "offer_context": _infer_offer_context(opportunity),
+                     "cta_signal": _infer_cta_signal(opportunity),
+                     "time_window": _derive_time_window(opportunity),
+                     "opp": opportunity},
+                    {"commercial_objective": _infer_commercial_objective(
+                        {"pillars": opportunity.get("pillars")} | {},
+                        brand_id) if False else  # dummy second arg
+                        _infer_commercial_objective(opportunity, brand_id),
+                     "audience_signal": _infer_audience_signal(opportunity),
+                     "offer_context": _infer_offer_context(opportunity),
+                     "cta_signal": _infer_cta_signal(opportunity),
+                     "time_window": _derive_time_window(opportunity),
+                     "opp": opportunity}))
+        except Exception:
+            duplication_signals = 0
         factors.append({
             "factor": "cluster_membership",
-            "score": "low",
+            "score": ("high" if duplication_signals < 3 else "medium"),
             "evidence": (f"Clustered under {cluster.get('parent_event_key')}; "
-                         f"Brief is generated for the cluster parent."),
+                         f"shares {duplication_signals} signals with parent. "
+                         + ("Distinct enough to brief independently."
+                            if duplication_signals < 3
+                            else "Substantially duplicative of parent; "
+                                 "watchlist.")),
         })
-        cluster_note = (f"Cluster member under {cluster.get('parent_event_key')}; "
-                        "watchlist until parent brief created.")
+        cluster_note = (f"Cluster member under {cluster.get('parent_event_key')} "
+                        f"(shared_signals={duplication_signals}).")
     else:
+        duplication_signals = 0
         cluster_note = None
 
-    # Apply gate thresholds (V1.3 §4) only when standalone_candidate
-    # OR when standalone is unknown (legacy data). For non-standalone
-    # events with no parent context (useful_context only), force
-    # IGNORE (they cannot be BRIEF on their own).
-    if not standalone_candidate and not is_cluster_member_only:
+    # Apply gate thresholds (V1.3 §4) — V1.5 §6 separates
+    # cluster role from gate outcome. Non-standalone events
+    # without cluster membership are still IGNORE.
+    if standalone_candidate == "unknown":
+        # V1.5 §7: unknown event_role — gate must reason from
+        # evidence alone, not from a forced role assignment.
+        # Apply thresholds neutrally.
+        factors.append({
+            "factor": "event_role_classifier",
+            "score": "low",
+            "evidence": ("event_role=unclassified; classifier could not "
+                         "identify role. Gate will reason from explicit "
+                         "evidence."),
+        })
+        if high_count >= 5 and low_count == 0:
+            gate = GATE_BRIEF
+            confidence = "HIGH"
+        elif high_count >= 4 and low_count <= 1:
+            gate = GATE_BRIEF
+            confidence = "MEDIUM"
+        elif high_count >= 3 and low_count <= 2:
+            gate = GATE_WATCH
+            confidence = "MEDIUM"
+        elif high_count >= 2 and low_count <= 3:
+            gate = GATE_WATCH
+            confidence = "LOW"
+        else:
+            gate = GATE_IGNORE
+            confidence = "LOW"
+    elif standalone_candidate is False and not is_cluster_member_only:
         # Standalone_candidate=false AND not cluster_member means
         # this is a pure supporting_context event. It can NEVER be
         # BRIEF on its own (V1.4 §6).
@@ -1777,8 +1853,30 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                          f"campaign candidate."),
         })
     elif is_cluster_member_only:
-        gate = cluster_member_gate
-        confidence = "MEDIUM"
+        # V1.5 §6: cluster member — apply duplication penalty.
+        # If substantially duplicative of parent (>=3 shared
+        # signals), force WATCH. If distinct (<3 shared
+        # signals), gate on own evidence.
+        if duplication_signals >= 3:
+            gate = GATE_WATCH
+            confidence = "MEDIUM"
+        else:
+            # Distinct enough — gate on own evidence.
+            if high_count >= 5 and low_count == 0:
+                gate = GATE_BRIEF
+                confidence = "HIGH"
+            elif high_count >= 4 and low_count <= 1:
+                gate = GATE_BRIEF
+                confidence = "MEDIUM"
+            elif high_count >= 3 and low_count <= 2:
+                gate = GATE_WATCH
+                confidence = "MEDIUM"
+            elif high_count >= 2 and low_count <= 3:
+                gate = GATE_WATCH
+                confidence = "LOW"
+            else:
+                gate = GATE_IGNORE
+                confidence = "LOW"
     else:
         # V1.3 §4 thresholds
         if high_count >= 5 and low_count == 0:
@@ -1789,13 +1887,10 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
             confidence = "MEDIUM"
         elif high_count >= 3 and low_count <= 1:
             # V1.4: primary_commercial_moments with strong
-            # evidence but date_confidence MEDIUM (commercial
-            # pillar present, audience implied via pillar) should
-            # still reach BRIEF — these are real commercial
-            # windows worth a Brief.
-            if (standalone_candidate
-                and event_role == "primary_commercial_moment"
-                and not is_cluster_member_only):
+            # evidence but date_confidence MEDIUM should still
+            # reach BRIEF — real commercial windows.
+            if (standalone_candidate is True
+                and event_role == "primary_commercial_moment"):
                 gate = GATE_BRIEF
                 confidence = "MEDIUM"
             else:
@@ -2295,18 +2390,65 @@ def create_brief(brand_id: str, opportunity_id: str,
         },
         "approval_questions": {
             "items": [
-                "Does this opportunity support an active North Star?",
-                "Is the audience definition specific enough?",
-                "Are channel roles matched to evidence?",
-                ("Does the measurement plan use metrics that "
-                 "actually exist (not synthetic / pending)?"),
-                ("Stick only: does this Brief worsen or fix the "
-                 "Retail 0% pillar coverage?"),
+                # V1.5 §4: approval_questions are now structured
+                # with `kind` (informational | decision_required)
+                # so the gate can enforce required answers before
+                # APPROVE succeeds.
+                {
+                    "question": "Does this opportunity support an active North Star?",
+                    "kind": "decision_required",
+                    "decision_required": True,
+                },
+                {
+                    "question": "Is the audience definition specific enough?",
+                    "kind": "decision_required",
+                    "decision_required": True,
+                },
+                {
+                    "question": "Are channel roles matched to evidence?",
+                    "kind": "informational",
+                    "decision_required": False,
+                },
+                {
+                    "question": ("Does the measurement plan use metrics that "
+                                 "actually exist (not synthetic / pending)?"),
+                    "kind": "decision_required",
+                    "decision_required": True,
+                },
+                {
+                    "question": ("Stick only: does this Brief worsen or fix the "
+                                 "Retail 0% pillar coverage?"),
+                    "kind": "informational",
+                    "decision_required": False,
+                },
             ],
         },
+        # V1.5 §4: operator answers to approval_questions. Populated
+        # by POST /api/brief/v1/<brand>/<brief_id>/answer-question.
+        "operator_answers": {},
+        # V1.5 §4: gate state — APPROVE refuses while any
+        # decision_required question is unanswered.
+        "unanswered_required_questions": [
+            "Does this opportunity support an active North Star?",
+            "Is the audience definition specific enough?",
+            ("Does the measurement plan use metrics that "
+             "actually exist (not synthetic / pending)?"),
+        ],
+        "approval_available": False,
         "evidence_pack": evidence_pack,
-        # V1.1 §10: provenance of every draftable field
+        # V1.1 §10 / V1.5 §3: provenance of every draftable
+        # field. Visible on the review page via provenance label.
         "field_provenance": {
+            "business_objective": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
+            "audience": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
             "problem_insight": {
                 "drafted_by": "system_draft",
                 "editable": True,
@@ -2764,6 +2906,21 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
         # The operator identity IS the actor — ignore body.
         actor = authenticated_operator
         approval_method = "operator_token_v1"
+        # V1.5 §4: enforce approval_available before approving.
+        # If any decision_required question is unanswered,
+        # refuse approval. The operator must answer the
+        # required questions first via
+        # /api/brief/v1/<brand>/<brief_id>/answer-question.
+        if to_status == STATUS_APPROVED:
+            unanswered = b.get("unanswered_required_questions") or []
+            if unanswered:
+                return {"ok": False,
+                        "error": ("approval refused: "
+                                  f"{len(unanswered)} decision_required "
+                                  "question(s) unanswered. Resolve via "
+                                  "/api/brief/v1/<brand>/<brief_id>/"
+                                  "answer-question first. Unanswered: "
+                                  + "; ".join(unanswered[:3]))}
     else:
         # Non-protected transitions: accept body actor
         actor = actor or "system"

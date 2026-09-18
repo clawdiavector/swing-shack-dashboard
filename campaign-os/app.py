@@ -23050,15 +23050,21 @@ def weekly_report_page():
 
 
 def _render_brief_review_html(b: dict) -> str:
-    """V1.4 §1: operator review page.
+    """V1.5: full operator review page.
 
-    Renders the brief content + status + (when status ==
-    ready_for_review) the human approval controls. The
-    page does NOT include any creative content. It does
-    NOT prefill the approval secret. The secret is
-    captured only when the operator clicks APPROVE and
-    is cleared from the input by the browser after the
-    POST is sent.
+    Renders the complete strategic Brief with:
+      - Full strategic sections (opportunity → measurement)
+      - Field provenance (system_draft vs operator_edit)
+      - Evidence Pack (readable cards)
+      - Material Limitations (data_coverage + data_limitations)
+      - Approval Questions (informational + decision_required,
+        with operator_answer form when present)
+      - Risks / Unknowns
+      - Status Transitions audit
+      - Operator Approval controls (when ready_for_review)
+        with required-questions gate enforcement
+
+    No creative content rendered (per V1.4 §16).
     """
     def esc(s):
         return (str(s or "")
@@ -23074,42 +23080,245 @@ def _render_brief_review_html(b: dict) -> str:
     created = esc(str(b.get("created_at", ""))[:19])
     updated = esc(str(b.get("updated_at", ""))[:19])
 
-    # Brief summary sections (compact for review)
-    sections_html = []
-    for sec_key in ["opportunity", "timing", "business_objective",
-                    "audience", "problem_insight",
-                    "strategic_proposition", "cta_strategy"]:
-        sec = b.get(sec_key)
-        if not sec:
-            continue
-        title = sec_key.replace("_", " ").title()
+    # --- Field provenance indicator ---
+    field_provenance = b.get("field_provenance") or {}
+
+    def prov_label(field_name):
+        fp = field_provenance.get(field_name) or {}
+        drafted_by = fp.get("drafted_by") or "unknown"
+        last_edited_by = fp.get("last_edited_by") or "system"
+        last_edited_at = fp.get("last_edited_at", "")
+        last_edited_at = esc(last_edited_at[:19]) if last_edited_at else ""
+        if drafted_by == "operator_edit":
+            return (f'<span class="prov operator_edit" '
+                    f'title="last edited by {esc(last_edited_by)} at '
+                    f'{last_edited_at}">operator_edit</span>')
+        return ('<span class="prov system_draft" '
+                'title="system_draft (operator-editable)">system_draft</span>')
+
+    # --- Render any brief section with provenance ---
+    def render_section(sec_key, sec, title, options=None):
+        options = options or {}
         body = ""
-        if isinstance(sec, dict):
+        if not sec:
+            body = "<em class=\"muted\">not populated</em>"
+        elif isinstance(sec, dict):
             for k, v in sec.items():
                 if k in ("title", "evidence_source", "evidence_basis"):
                     continue
                 if isinstance(v, (str, int, float)):
-                    body += f"<div><strong>{esc(k)}</strong>: {esc(v)}</div>"
+                    if v:
+                        body += f"<div><strong>{esc(k)}</strong>: {esc(v)}</div>"
                 elif isinstance(v, list):
                     body += f"<div><strong>{esc(k)}</strong>:</div><ul>"
-                    for item in v[:8]:
+                    for item in v[:10]:
                         if isinstance(item, dict):
                             body += "<li>" + "; ".join(
-                                f"{esc(kk)}={esc(str(vv))}"
+                                f"<strong>{esc(kk)}</strong>: "
+                                f"{esc(str(vv))}"
                                 for kk, vv in item.items()
                                 if isinstance(vv, (str, int, float))
                             ) + "</li>"
                         else:
                             body += f"<li>{esc(item)}</li>"
                     body += "</ul>"
-        sections_html.append(
-            f"<details open><summary><strong>{esc(title)}</strong></summary>"
-            f"<div class='sec-body'>{body}</div></details>")
+        prov = (prov_label(sec_key)
+                if sec_key in field_provenance else "")
+        return (
+            f"<details open><summary><strong>{esc(title)}</strong> "
+            f"{prov}</summary>"
+            f"<div class='sec-body'>{body}</div></details>"
+        )
 
-    sections_block = "".join(sections_html) if sections_html else (
-        "<em>No sections populated.</em>")
+    # --- All strategic sections (V1.5 §1) ---
+    sections_to_render = [
+        ("opportunity",            "Opportunity"),
+        ("timing",                 "Timing"),
+        ("business_objective",     "Business Objective"),
+        ("audience",               "Audience"),
+        ("problem_insight",        "Problem / Insight"),
+        ("strategic_proposition",  "Strategic Proposition"),
+        ("reasons_to_believe",     "Reasons to Believe"),
+        ("historical_evidence",    "Historical Evidence"),
+        ("creative_evidence",      "Creative Evidence"),
+        ("channel_role",           "Channel Role"),
+        ("content_asset_requirements", "Content / Asset Requirements"),
+        ("cta_strategy",           "CTA Strategy"),
+        ("measurement_plan",       "Measurement Plan"),
+    ]
+    sections_html = []
+    for sec_key, title in sections_to_render:
+        sec = b.get(sec_key)
+        sections_html.append(render_section(sec_key, sec, title))
 
-    # Status transitions
+    sections_block = "".join(sections_html)
+
+    # --- Evidence Pack (V1.5 §1) ---
+    ep = b.get("evidence_pack") or []
+    if ep:
+        ep_cards = []
+        for i, e in enumerate(ep, 1):
+            claim = esc(e.get("claim", ""))
+            source = esc(e.get("source", ""))
+            etype = esc(e.get("type", ""))
+            confidence = esc(e.get("confidence", ""))
+            conf_class = ("high" if confidence == "HIGH"
+                           else "medium" if confidence == "MEDIUM"
+                           else "low")
+            ep_cards.append(
+                f"<div class='ev-card'>"
+                f"<div class='ev-num'>#{i}</div>"
+                f"<div class='ev-body'>"
+                f"<div><strong>Finding</strong>: {claim}</div>"
+                f"<div class='meta'><strong>Evidence source</strong>: "
+                f"<code>{source}</code></div>"
+                f"<div class='meta'><strong>Type</strong>: {etype} "
+                f"· <strong>Confidence</strong>: "
+                f"<span class='conf {conf_class}'>{confidence}</span></div>"
+                f"</div></div>")
+        evidence_pack_block = (
+            "<h2>Evidence Pack</h2>"
+            f"<div class='ev-list'>{''.join(ep_cards)}</div>")
+    else:
+        evidence_pack_block = ""
+
+    # --- Material Limitations (V1.5 §2) ---
+    es = b.get("evidence_snapshot") or {}
+    dc = es.get("data_coverage") or {}
+    dl = list(es.get("data_limitations") or [])
+    # Also add risks_unknowns as a material limitation block
+    ru = b.get("risks_unknowns") or {}
+    ru_items = ru.get("items") or []
+    dl.extend(ru_items)
+
+    # Build the data_coverage table
+    coverage_rows = ""
+    for k, v in sorted(dc.items()):
+        v_lower = str(v).lower()
+        cls = ("ok" if v == "LIVE"
+                else "pending" if v in ("PARTIAL", "HISTORICAL_REAL")
+                else "not" if v in ("NOT_CONNECTED", "ERROR",
+                                     "UNAVAILABLE", "PENDING")
+                else "partial")
+        coverage_rows += (
+            f"<tr><td>{esc(k)}</td>"
+            f"<td><span class='pill {cls}'>{esc(v)}</span></td></tr>")
+
+    # Material limitations list
+    lim_items = ""
+    for li in dl:
+        lim_items += f"<li>{esc(li)}</li>"
+    if not lim_items:
+        lim_items = "<li class='muted'>No material limitations recorded.</li>"
+
+    limitations_block = (
+        "<h2>Material Limitations</h2>"
+        "<p class='meta'>These limitations must be visible during "
+        "approval. The operator should not need to inspect Reporting "
+        "separately to discover them.</p>"
+        + (f"<h3>Data Coverage</h3>"
+           f"<table class='tbl'>"
+           f"<tr><th>Surface</th><th>Status</th></tr>"
+           f"{coverage_rows}</table>" if coverage_rows else "")
+        + f"<h3>Limitations &amp; Unknowns</h3>"
+        f"<ul class='lim-list'>{lim_items}</ul>")
+
+    # --- Field provenance (V1.5 §3) ---
+    prov_sections = []
+    for fname, fp in field_provenance.items():
+        drafted_by = fp.get("drafted_by", "unknown")
+        last_edited_by = fp.get("last_edited_by", "")
+        last_edited_at = fp.get("last_edited_at", "")
+        editable = fp.get("editable", True)
+        prov_sections.append(
+            f"<tr><td>{esc(fname)}</td>"
+            f"<td><span class='prov {drafted_by}'>{drafted_by}</span></td>"
+            f"<td>{esc(last_edited_by) or '—'}</td>"
+            f"<td>{esc(last_edited_at[:19]) if last_edited_at else '—'}</td>"
+            f"<td>{'yes' if editable else 'no'}</td></tr>")
+    provenance_block = (
+        "<h2>Field Provenance</h2>"
+        "<p class='meta'>Tracks whether key strategy fields were "
+        "system-drafted or operator-edited.</p>"
+        f"<table class='tbl'>"
+        "<tr><th>Field</th><th>Drafted by</th><th>Last edited by</th>"
+        "<th>Last edited at</th><th>Editable</th></tr>"
+        f"{''.join(prov_sections)}</table>")
+
+    # --- Approval Questions (V1.5 §4) ---
+    aq_items = (b.get("approval_questions") or {}).get("items") or []
+    operator_answers = b.get("operator_answers") or {}
+    unanswered_required = b.get("unanswered_required_questions") or []
+
+    aq_rows = []
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            q_required = q.get("decision_required", False)
+            q_kind = q.get("kind") or (
+                "decision_required" if q_required else "informational")
+        else:
+            q_text = str(q)
+            q_required = False
+            q_kind = "informational"
+        ans = operator_answers.get(q_text) or {}
+        ans_text = ans.get("operator_answer") or ""
+        ans_at = ans.get("answered_at", "")[:19] if ans.get("answered_at") else ""
+        cls = ("required" if q_required
+                else "informational")
+        if q_required and not ans_text:
+            state_badge = '<span class="pill not">UNANSWERED</span>'
+        elif q_required and ans_text:
+            state_badge = '<span class="pill ok">ANSWERED</span>'
+        else:
+            state_badge = '<span class="pill informational">INFO</span>'
+        ans_block = ""
+        if ans_text:
+            ans_block = (
+                f"<div class='aq-answer'>"
+                f"<strong>Operator answer</strong>: {esc(ans_text)}"
+                f"<br><span class='meta'>answered_at: {esc(ans_at)}"
+                f"</span></div>")
+        else:
+            ans_block = (
+                f'<form class="aq-form" '
+                f'data-question="{esc(q_text)}" '
+                f'onsubmit="return submitAnswer(event, this)">'
+                f'<input type="text" name="operator_answer" '
+                f'placeholder="Your answer" required minlength="2" />'
+                f'<button type="submit">Save answer</button>'
+                f'</form>')
+        aq_rows.append(
+            f"<div class='aq-card {cls}'>"
+            f"<div class='aq-header'>"
+            f"<span class='pill {cls}'>{esc(q_kind)}</span> "
+            f"<strong>{esc(q_text)}</strong> "
+            f"{state_badge}"
+            f"</div>"
+            f"{ans_block}"
+            f"</div>")
+
+    approval_gate_block = ""
+    if status == "ready_for_review":
+        unanswered_n = len(unanswered_required)
+        approval_gate_block = (
+            f"<div class='gate-state'>"
+            f"<strong>approval_available</strong> = "
+            f"{'true' if unanswered_n == 0 else 'false'} "
+            f"({unanswered_n} decision_required question(s) "
+            f"unanswered)</div>")
+
+    approval_questions_block = (
+        "<h2>Approval Questions</h2>"
+        f"{approval_gate_block}"
+        "<p class='meta'>Required (<code>decision_required</code>) "
+        "questions must be answered before APPROVE succeeds. "
+        "Informational questions can be reviewed but do not block "
+        "approval.</p>"
+        f"{''.join(aq_rows)}"
+    )
+
+    # --- Status transitions (audit) ---
     transitions = b.get("status_transitions") or []
     transitions_html = ""
     if transitions:
@@ -23122,19 +23331,38 @@ def _render_brief_review_html(b: dict) -> str:
             f"<td>{esc(t.get('note', '')[:80])}</td></tr>"
             for t in transitions)
         transitions_html = (
-            "<h3>Status Transitions</h3>"
+            "<h2>Status Transitions (Audit)</h2>"
             "<table class='tbl'>"
             "<tr><th>From</th><th>To</th><th>Actor</th>"
             "<th>Method</th><th>At</th><th>Note</th></tr>"
             + rows + "</table>")
 
-    # Approval controls (only when ready_for_review)
+    # --- Operator Approval controls ---
+    # V1.5 §4: APPROVE button disabled while
+    # unanswered_required_questions > 0.
     approval_controls = ""
+    can_approve = (status == "ready_for_review"
+                    and len(unanswered_required) == 0)
+    disabled_msg = ""
+    if status == "ready_for_review" and unanswered_required:
+        disabled_msg = (
+            f"<div class='approval-block gate-blocked'>"
+            f"<h3>APPROVE Blocked</h3>"
+            f"<p>{len(unanswered_required)} decision_required "
+            f"question(s) must be answered first. Use the "
+            f"Approval Questions section above.</p>"
+            f"</div>")
     if status == "ready_for_review":
+        approve_disabled = "" if can_approve else "disabled"
+        approve_btn_label = ("Approve" if can_approve
+                              else "Approve (blocked — "
+                                   "answer required questions)")
         approval_controls = f"""
+{disabled_msg}
 <div class="approval-panel">
   <h2>Operator Approval</h2>
-  <div class="meta">approval_available = <strong>true</strong> ·
+  <div class="meta">approval_available = <strong>{
+        "true" if can_approve else "false"}</strong> ·
     current_status = <strong>{status}</strong> ·
     creative_allowed = <strong>{str(creative_allowed).lower()}</strong></div>
 
@@ -23147,8 +23375,9 @@ def _render_brief_review_html(b: dict) -> str:
       <label>Approval secret:</label>
       <input type="password" id="secret" name="secret"
              autocomplete="off" required minlength="6"
-             placeholder="Enter your approval secret" />
-      <button type="submit">Approve</button>
+             placeholder="Enter your approval secret"
+             {approve_disabled} />
+      <button type="submit" {approve_disabled}>{approve_btn_label}</button>
     </form>
     <pre id="approveResult" class="result"></pre>
   </div>
@@ -23189,7 +23418,7 @@ def _render_brief_review_html(b: dict) -> str:
 <div class="approval-panel">
   <h2>Operator Approval</h2>
   <div class="meta">approval_available = <strong>{
-            "true" if status == "ready_for_review" else "false"}</strong> ·
+        "true" if status == "ready_for_review" else "false"}</strong> ·
     current_status = <strong>{status}</strong> ·
     creative_allowed = <strong>{str(creative_allowed).lower()}</strong></div>
   <p class="meta">Approval controls only appear when status is
@@ -23223,8 +23452,6 @@ async function submitApprove(e) {{
   const r = await postJSON(url, {{ to_status: 'approved' }}, secret);
   document.getElementById('approveResult').textContent =
     `HTTP ${{r.status}}: ${{r.body}}`;
-  // Clear the secret immediately after submission so it does not
-  // remain in DOM memory.
   document.getElementById('secret').value = '';
   if (r.status === 200) {{
     setTimeout(() => location.reload(), 1500);
@@ -23260,6 +23487,24 @@ async function submitReject(e) {{
   document.getElementById('rejectSecret').value = '';
   return false;
 }}
+
+async function submitAnswer(e, form) {{
+  e.preventDefault();
+  const question = form.getAttribute('data-question');
+  const operator_answer = form.querySelector(
+    'input[name=operator_answer]').value;
+  if (!question || !operator_answer) return false;
+  const url = `/api/brief/v1/${{'{brand}'}}/${{'{bid}'}}/answer-question`;
+  const r = await postJSON(url, {{ question, operator_answer }}, null);
+  form.querySelector('input[name=operator_answer]').value = '';
+  if (r.status === 200) {{
+    // Reload the page to reflect new state
+    setTimeout(() => location.reload(), 800);
+  }} else {{
+    alert('Error: ' + r.body);
+  }}
+  return false;
+}}
 </script>
 """
 
@@ -23275,6 +23520,7 @@ async function submitReject(e) {{
         border-bottom:1px solid #eee; padding-bottom:.3em; }}
   h3 {{ margin:1em 0 .3em; font-size:1.05em; }}
   .meta {{ color:#666; font-size:.9em; }}
+  .muted {{ color:#999; font-style:italic; }}
   .pill {{ display:inline-block; padding:.15em .6em; border-radius:999px;
            font-size:.78em; background:#eee; margin-right:.3em; }}
   .status-draft {{ background:#fff3c4; }}
@@ -23282,17 +23528,53 @@ async function submitReject(e) {{
   .status-approved {{ background:#d4f8d4; }}
   .status-rejected {{ background:#fcd7d7; }}
   .status-changes {{ background:#ffeac4; }}
+  .pill.ok {{ background:#d4f8d4; }}
+  .pill.not {{ background:#fcd7d7; }}
+  .pill.pending {{ background:#ffeac4; }}
+  .pill.partial {{ background:#ffeac4; }}
+  .pill.informational {{ background:#e8e8e8; }}
+  .pill.required {{ background:#cfe4ff; }}
+  .pill.answered {{ background:#d4f8d4; }}
   .sec-body {{ padding:.4em .8em; border-left:3px solid #ddd;
                background:#fafafa; margin:.3em 0; }}
   details {{ margin:.4em 0; }}
-  summary {{ cursor:pointer; }}
+  summary {{ cursor:pointer; padding:.3em 0; }}
   .tbl {{ width:100%; border-collapse:collapse; font-size:.85em; }}
   .tbl th, .tbl td {{ padding:.3em .5em; border-bottom:1px solid #eee;
                       text-align:left; }}
+  .ev-list {{ display:flex; flex-direction:column; gap:.6em; }}
+  .ev-card {{ display:flex; gap:.8em; padding:.7em;
+               border:1px solid #ddd; border-left:4px solid #2a4a3a;
+               background:#fafafa; }}
+  .ev-num {{ font-weight:700; color:#666; min-width:30px; }}
+  .ev-body {{ flex:1; }}
+  .conf.high {{ background:#d4f8d4; padding:.1em .4em; border-radius:4px; }}
+  .conf.medium {{ background:#ffeac4; padding:.1em .4em; border-radius:4px; }}
+  .conf.low {{ background:#fcd7d7; padding:.1em .4em; border-radius:4px; }}
+  .lim-list {{ padding-left:1.5em; }}
+  .lim-list li {{ margin:.3em 0; }}
+  .prov {{ display:inline-block; padding:.1em .5em;
+            border-radius:4px; font-size:.78em; font-weight:600; }}
+  .prov.system_draft {{ background:#e8e8e8; color:#444; }}
+  .prov.operator_edit {{ background:#cfe4ff; color:#1a3a6a; }}
+  .aq-card {{ margin:.5em 0; padding:.7em;
+              border:1px solid #ddd; background:#fff; }}
+  .aq-card.required {{ border-left:4px solid #cfe4ff; }}
+  .aq-card.informational {{ border-left:4px solid #e8e8e8; }}
+  .aq-header {{ margin-bottom:.3em; }}
+  .aq-answer {{ padding:.5em; margin-top:.3em; background:#d4f8d4;
+                 border-radius:4px; }}
+  .aq-form {{ display:flex; gap:.5em; margin-top:.3em; }}
+  .aq-form input {{ flex:1; padding:.4em; font-size:.9em;
+                    font-family:inherit; }}
+  .aq-form button {{ padding:.4em 1em; background:#2a4a3a; color:#fff;
+                     border:none; border-radius:4px; cursor:pointer; }}
   .approval-panel {{ margin-top:2em; padding:1em;
                      border:2px solid #2a4a3a; background:#f8fbf8; }}
   .approval-block {{ margin:1em 0; padding:1em;
                      border:1px solid #ccc; background:#fff; }}
+  .approval-block.gate-blocked {{ background:#fff3c4;
+                                   border-color:#d4a017; }}
   .approval-block label {{ display:block; font-weight:600;
                            margin-top:.5em; }}
   .approval-block input,
@@ -23304,6 +23586,11 @@ async function submitReject(e) {{
                             color:#fff; border:none; border-radius:4px;
                             cursor:pointer; font-weight:600; }}
   .approval-block button:hover {{ background:#3a6a4a; }}
+  .approval-block button:disabled {{ background:#999;
+                                     cursor:not-allowed; }}
+  .gate-state {{ padding:.6em 1em; margin:1em 0;
+                 background:#cfe4ff; border:1px solid #2a4a3a;
+                 border-radius:4px; font-weight:600; }}
   .result {{ background:#f0f0f0; padding:.5em; font-size:.85em;
              margin-top:.5em; white-space:pre-wrap; }}
   code {{ background:#f0f0f0; padding:.1em .3em; border-radius:3px; }}
@@ -23318,16 +23605,26 @@ async function submitReject(e) {{
   Updated: {updated} ·
   creative_allowed: <strong>{str(creative_allowed).lower()}</strong>
 </div>
-<h2>Brief Sections</h2>
+
+<h2>Strategic Brief</h2>
 {sections_block}
+
+{limitations_block}
+
+{evidence_pack_block}
+
+{provenance_block}
+
+{approval_questions_block}
+
 {transitions_html}
+
 {approval_controls}
+
 {js}
 </body></html>
 """
     return html
-
-
 
 
 def _boot_load_persisted_secrets():
@@ -41722,4 +42019,165 @@ if __name__ == '__main__':
 
 
 
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/answer-question', methods=['POST'])
+def brief_v1_answer_question(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/answer-question
+
+    V1.5 §4: required approval question resolution.
+
+    Body: {question: "...", operator_answer: "..."}
+
+    Records the operator's answer in the brief's
+    operator_answers dict. Updates unanswered_required_questions
+    count.
+
+    The Approve flow is gated on
+    `unanswered_required_questions == 0`. The answer-question
+    endpoint does NOT require the approval secret — it is a
+    session-authenticated operator action.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    body = request.get_json(silent=True) or {}
+    question = (body.get("question") or "").strip()
+    operator_answer = (body.get("operator_answer") or "").strip()
+    if not question:
+        return jsonify({"ok": False,
+                        "error": "question is required"}), 400
+    if not operator_answer:
+        return jsonify({"ok": False,
+                        "error": "operator_answer is required"}), 400
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    # Validate the question exists in approval_questions
+    aq_items = (b.get("approval_questions") or {}).get("items") or []
+    matched_q = None
+    matched_meta = None
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            if q_text.strip() == question:
+                matched_q = q_text
+                matched_meta = q
+                break
+        elif isinstance(q, str):
+            if q.strip() == question:
+                matched_q = q
+                break
+    if not matched_q:
+        return jsonify({"ok": False,
+                        "error": ("question not found in approval_questions; "
+                                  "operator can only answer declared "
+                                  "questions")}), 400
+    # Record the answer
+    answers = b.get("operator_answers") or {}
+    answers[question] = {
+        "operator_answer": operator_answer,
+        "answered_at": _now_iso(),
+        "answered_by": "operator",
+    }
+    b["operator_answers"] = answers
+    # Recompute unanswered_required_questions
+    required_unanswered = []
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            q_required = q.get("decision_required", False)
+        else:
+            q_text = str(q)
+            q_required = False
+        if q_required and q_text not in answers:
+            required_unanswered.append(q_text)
+    b["unanswered_required_questions"] = required_unanswered
+    b["approval_available"] = len(required_unanswered) == 0
+    b["updated_at"] = _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    if hasattr(cb, "_write_brief"):
+        cb._write_brief(b)
+    if hasattr(cb, "_append_revision"):
+        cb._append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"OPERATOR ANSWER: {question[:60]} → "
+                      f"{operator_answer[:80]}"),
+            "drafted_by": "operator",
+        })
+    return jsonify({
+        "ok": True,
+        "brief_id": brief_id,
+        "brand_id": brand_id,
+        "question": question,
+        "operator_answer": operator_answer,
+        "answered_at": answers[question]["answered_at"],
+        "decision_required": matched_meta.get("decision_required", False)
+            if isinstance(matched_meta, dict) else False,
+        "unanswered_required_questions": required_unanswered,
+        "approval_available": b["approval_available"],
+    }), 200
+
+
+def brief_v1_required_questions(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id>/required-questions
+
+    V1.5 §4: returns the brief's current
+    unanswered_required_questions + approval_available flag.
+    Used by the review page to display the gate state.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    aq_items = (b.get("approval_questions") or {}).get("items") or []
+    answers = b.get("operator_answers") or {}
+    required = []
+    informational = []
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            q_required = q.get("decision_required", False)
+            q_kind = q.get("kind") or (
+                "decision_required" if q_required else "informational")
+        else:
+            q_text = str(q)
+            q_required = False
+            q_kind = "informational"
+        entry = {
+            "question": q_text,
+            "kind": q_kind,
+            "answered": q_text in answers,
+            "answer": (answers.get(q_text) or {}).get("operator_answer"),
+            "answered_at": (answers.get(q_text) or {}).get("answered_at"),
+        }
+        if q_required:
+            required.append(entry)
+        else:
+            informational.append(entry)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "brief_id": brief_id,
+        "required": required,
+        "informational": informational,
+        "unanswered_required_count": sum(
+            1 for q in required if not q["answered"]),
+        "approval_available": (
+            b.get("approval_available", False) or
+            (b.get("status") == "ready_for_review"
+             and sum(1 for q in required if not q["answered"]) == 0)),
+        "current_status": b.get("status"),
+        "creative_allowed": b.get("creative_allowed"),
+    }), 200
 
