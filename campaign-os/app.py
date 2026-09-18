@@ -42124,6 +42124,7 @@ def brief_v1_answer_question(brand_id, brief_id):
     }), 200
 
 
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/required-questions', methods=['GET'])
 def brief_v1_required_questions(brand_id, brief_id):
     """GET /api/brief/v1/<brand_id>/<brief_id>/required-questions
 
