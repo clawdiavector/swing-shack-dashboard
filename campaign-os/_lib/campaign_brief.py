@@ -1787,6 +1787,20 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
         elif high_count >= 4 and low_count <= 1:
             gate = GATE_BRIEF
             confidence = "MEDIUM"
+        elif high_count >= 3 and low_count <= 1:
+            # V1.4: primary_commercial_moments with strong
+            # evidence but date_confidence MEDIUM (commercial
+            # pillar present, audience implied via pillar) should
+            # still reach BRIEF — these are real commercial
+            # windows worth a Brief.
+            if (standalone_candidate
+                and event_role == "primary_commercial_moment"
+                and not is_cluster_member_only):
+                gate = GATE_BRIEF
+                confidence = "MEDIUM"
+            else:
+                gate = GATE_WATCH
+                confidence = "MEDIUM"
         elif high_count >= 3 and low_count <= 2:
             gate = GATE_WATCH
             confidence = "MEDIUM"
