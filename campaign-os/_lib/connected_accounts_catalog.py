@@ -217,10 +217,25 @@ def build_catalog_extras() -> dict[str, Any]:
     )
 
     # GSC
-    gsc_creds = _env_any("GSC_SITE_URL", "SEARCH_CONSOLE_SITE_URL") and ga4_creds
+    try:
+        from _lib import gsc_oauth as _gsc_oauth
+
+        gsc_oauth_client = _gsc_oauth.gsc_oauth_credentials_present()
+        gsc_oauth_token = bool(_gsc_oauth.load_token())
+    except Exception:
+        gsc_oauth_client = False
+        gsc_oauth_token = False
+    gsc_creds = (gsc_oauth_client and gsc_oauth_token) or (
+        _env_any("GSC_SITE_URL", "SEARCH_CONSOLE_SITE_URL") and ga4_creds
+    )
     gsc_activity = _job_activity(_JOB_BY_INTEGRATION["gsc"])
     gsc_file_at = _data_file_mtime(_DATA_FILE_BY_INTEGRATION["gsc"])
     gsc_last = gsc_activity.get("last_success_at") or gsc_file_at
+    gsc_connect = (
+        {"type": "oauth", "url": "/api/gsc/oauth/login", "label": "Connect Search Console"}
+        if gsc_oauth_client and not gsc_oauth_token
+        else {"type": "manual", "url": "https://search.google.com/search-console", "label": "Open Search Console"}
+    )
     items.append(
         {
             "id": "gsc",
@@ -239,16 +254,19 @@ def build_catalog_extras() -> dict[str, Any]:
             "job_verdict": gsc_activity.get("job_verdict"),
             "credentials": {
                 "configured": bool(gsc_creds),
-                "env_vars": ["GSC_SITE_URL", "GA4 service account (shared)"],
+                "oauth_client": gsc_oauth_client,
+                "oauth_token": gsc_oauth_token,
+                "env_vars": ["GSC_SITE_URL", "google-search-console-oauth.json"],
             },
-            "connect": {"type": "manual", "url": "https://search.google.com/search-console", "label": "Open Search Console"},
+            "connect": gsc_connect,
             "setup": {
-                "auth_type": "Service account (same as GA4) + Search Console user",
+                "auth_type": "OAuth (webmasters.readonly) or GA4 service account fallback",
                 "steps": [
-                    "Enable Search Console API in the same GCP project as GA4.",
-                    "In Search Console → Settings → Users → add the GA4 service account email as a user.",
-                    "Set GSC_SITE_URL=https://swingshack.co.za/ on Railway (default if unset).",
-                    "gsc_report job writes search-console.json on success.",
+                    "GCP → enable Search Console API → Web OAuth client.",
+                    "Sync client JSON via /secrets-sync (google-search-console-oauth).",
+                    "Add redirect: https://<prod-host>/api/gsc/oauth/callback",
+                    "Click Connect Search Console on Connected Accounts (signed in).",
+                    "Set GSC_SITE_URL=https://swingshack.co.za/ if needed (default).",
                 ],
             },
         }
@@ -353,43 +371,6 @@ def build_catalog_extras() -> dict[str, Any]:
                 "auth_type": "OAuth tokens on Railway",
                 "steps": ["Tokens already set if seo_rankings job is OK.", "Refresh via Ubersuggest account if job goes LATE."],
             },
-        }
-    )
-
-    # Google Drive
-    try:
-        from _lib import google_drive as _gd
-
-        drive = _gd.status()
-    except Exception as exc:
-        drive = {"connected": False, "has_oauth_client": False, "has_token": False, "auth_error": str(exc)}
-    items.append(
-        {
-            "id": "google_drive",
-            "icon": "📁",
-            "name": "Google Drive (brand assets)",
-            "category": "optional",
-            "category_label": "Optional scouts",
-            "purpose": "Ingest brand folders from Drive into brand-directory (images/docs).",
-            "state": "connected" if drive.get("connected") else ("partial" if drive.get("has_token") or drive.get("has_oauth_client") else "missing"),
-            "last_used_at": None,
-            "last_used_label": None,
-            "credentials": {
-                "oauth_client": bool(drive.get("has_oauth_client")),
-                "token_present": bool(drive.get("has_token")),
-                "env_vars": ["GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_DRIVE_TOKEN"],
-            },
-            "connect": {"type": "portal", "url": "/secrets-sync", "label": "Secrets sync"},
-            "setup": {
-                "auth_type": "OAuth (Drive readonly)",
-                "steps": [
-                    "GCP → enable Drive API → Desktop OAuth client JSON.",
-                    "Upload client JSON via /secrets-sync or set GOOGLE_OAUTH_CLIENT_SECRET path.",
-                    "Run one-time OAuth dance (Mac: google_drive.setup_interactive).",
-                    "Token stored at google-drive-token.json on credentials volume.",
-                ],
-            },
-            "error": drive.get("auth_error"),
         }
     )
 
