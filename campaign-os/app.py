@@ -42636,9 +42636,6 @@ def ga4_channel_mix(brand_id):
         ch = row["dims"][0] if row["dims"] else "Unknown"
         if ch not in by_channel:
             by_channel[ch] = {"current": {}, "previous": {}}
-        ch = row["dims"][0]
-        if ch not in by_channel:
-            by_channel[ch] = {"current": {}, "previous": {}}
         # metrics for first date range = current,
         # metrics for second = previous
         m_cur = row["metrics"][:n_metrics]
