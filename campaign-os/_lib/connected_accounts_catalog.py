@@ -28,7 +28,6 @@ _JOB_BY_INTEGRATION: dict[str, tuple[str, ...]] = {
     "ga4": ("ga4_report",),
     "gsc": ("gsc_report",),
     "youtube": ("youtube_trends",),
-    "reddit": ("reddit_trends",),
     "golf_news": ("golf_news",),
     "gbp": ("gbp_tick",),
     "ubersuggest": ("seo_rankings",),
@@ -40,7 +39,6 @@ _DATA_FILE_BY_INTEGRATION: dict[str, str] = {
     "gsc": "search-console.json",
     "meta": "ig-business-analytics.json",
     "youtube": "youtube-trends.json",
-    "reddit": "reddit-trends.json",
     "golf_news": "golf-news.json",
 }
 

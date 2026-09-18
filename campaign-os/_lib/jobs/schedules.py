@@ -29,7 +29,6 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     },
     "freshness_scan": _LAYER1_DAILY,
     "golf_news": _LAYER1_DAILY,
-    "reddit_trends": _LAYER1_DAILY,
     "youtube_trends": _LAYER1_DAILY,
     "seo_rankings": _LAYER1_DAILY,
     "ga4_report": _LAYER1_DAILY,

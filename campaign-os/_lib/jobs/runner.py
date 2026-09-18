@@ -118,6 +118,18 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
     if spec is None:
         return {"ok": False, "job": name, "status": "FAILED", "error": "unknown job"}
 
+    if not getattr(spec, "enabled", True):
+        finished = _iso(_utc_now())
+        return {
+            "ok": True,
+            "job": name,
+            "status": "SKIPPED",
+            "skipped": True,
+            "reason": "job disabled",
+            "finished": finished,
+            "triggered_by": triggered_by,
+        }
+
     started_dt = _utc_now()
     started = _iso(started_dt)
     run_id = _make_run_id(name, started_dt)
@@ -297,10 +309,12 @@ def _last_success(rows: list[dict]) -> Optional[dict]:
 
 
 def verdict_for(name: str, rows: list[dict], *, now: Optional[datetime] = None) -> str:
-    """OK | LATE | FAILED | STUCK | NEVER — see plan §3.4."""
+    """OK | LATE | FAILED | STUCK | NEVER | DISABLED — see plan §3.4."""
     spec = JOBS.get(name)
     if spec is None:
         return "NEVER"
+    if not getattr(spec, "enabled", True):
+        return "DISABLED"
     now = now or _utc_now()
 
     if not rows:
@@ -365,6 +379,7 @@ def build_status() -> dict:
                 "last_run_id": (last or {}).get("run_id"),
                 "last_error_class": (last or {}).get("error_class"),
                 "best_effort": bool(getattr(spec, "best_effort", False)),
+                "enabled": bool(getattr(spec, "enabled", True)),
                 "every_seconds": getattr(spec, "every_seconds", None),
                 "timeout_seconds": getattr(spec, "timeout_seconds", None),
                 "retries": getattr(spec, "retries", 0),

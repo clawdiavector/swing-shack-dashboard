@@ -13,6 +13,7 @@ class JobSpec:
     every_seconds: int  # expected cadence; drives LATE
     timeout_seconds: int = 60
     best_effort: bool = False  # scrapers: break → LATE, never FAILED
+    enabled: bool = True  # False → cron/manual skip; verdict DISABLED
 
     # t13: self-heal prerequisite fields (declared now, unused until P1.5)
     criticality: str = "MEDIUM"  # HIGH | MEDIUM | LOW

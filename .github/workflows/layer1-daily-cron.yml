@@ -1,6 +1,7 @@
 name: Layer 1 daily cron (07:00 SAST)
 
-# Fires the nine Layer 1 jobs not covered by meta-live-fetch.yml or gbp-daily-cron.yml.
+# Fires Layer 1 daily jobs not covered by meta-live-fetch.yml or gbp-daily-cron.yml.
+# reddit_trends disabled 2026-09-18 (Reddit 429 rate limits).
 # meta_refresh (12h) and gbp_tick (06:00 SAST) have their own workflows.
 #
 # Schedule: 05:00 UTC = 07:00 SAST — after gbp_tick, before morning brief digest.
@@ -37,17 +38,6 @@ jobs:
             -H "Content-Type: application/json" \
             -o /tmp/golf_news.json
           python3 -c "import json; d=json.load(open('/tmp/golf_news.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
-
-      - name: Wave 1 — reddit_trends
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          echo "=== POST /api/jobs/run/reddit_trends ==="
-          curl -sf -X POST "$BASE/api/jobs/run/reddit_trends" \
-            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -o /tmp/reddit_trends.json
-          python3 -c "import json; d=json.load(open('/tmp/reddit_trends.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
 
       - name: Wave 1 — seo_rankings
         continue-on-error: true
