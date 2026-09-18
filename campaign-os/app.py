@@ -41986,39 +41986,6 @@ def shopping_moments():
     }), 200
 
 
-if __name__ == '__main__':
-    import sys as _sys
-    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
-    try:
-        ensure_repo_initialized()
-        print(f'[boot] repo init done', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] repo init failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    try:
-        _boot_load_persisted_secrets()
-        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    try:
-        _boot_seed_persistent_data()
-        print(f'[boot] persistent-data seed complete', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] persistent-data seed failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    try:
-        _boot_selfheal_windsor()
-        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
-    except Exception as _e:
-        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
-    port = int(os.environ.get('PORT', 8000))
-    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
-    try:
-        app.run(host='0.0.0.0', port=port)
-    except Exception as _e:
-        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
-        raise
-
-
-
 
 
 @app.route('/api/brief/v1/<brand_id>/<brief_id>/answer-question', methods=['POST'])
@@ -42183,3 +42150,35 @@ def brief_v1_required_questions(brand_id, brief_id):
     }), 200
 
 
+
+
+if __name__ == '__main__':
+    import sys as _sys
+    print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
+    try:
+        ensure_repo_initialized()
+        print(f'[boot] repo init done', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] repo init failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_load_persisted_secrets()
+        print(f'[boot] secrets loaded', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] secrets load failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_seed_persistent_data()
+        print(f'[boot] persistent-data seed complete', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] persistent-data seed failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_selfheal_windsor()
+        print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    port = int(os.environ.get('PORT', 8000))
+    print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
+    try:
+        app.run(host='0.0.0.0', port=port)
+    except Exception as _e:
+        print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
+        raise
