@@ -3376,9 +3376,9 @@ def migrate_brief_to_v16_schema(brand_id: str, brief_id: str) -> dict:
         b["revalidation_reason"] = (
             "approval_method was not operator_token_v1; "
             "creative_allowed cleared during schema migration")
-    if hasattr(locals(), "_write_brief"):
+    if "_write_brief" in globals():
         _write_brief(b)
-    if hasattr(locals(), "_append_revision"):
+    if "_append_revision" in globals():
         _append_revision(b, {
             "revision": b["revision"],
             "saved_at": b["updated_at"],
@@ -3450,9 +3450,9 @@ def revalidate_legacy_approved_brief(brand_id: str,
     b["revalidation_reason"] = revalidation_reason
     b["updated_at"] = _now_iso()
     b["revision"] = int(b.get("revision", 1)) + 1
-    if hasattr(locals(), "_write_brief"):
+    if "_write_brief" in globals():
         _write_brief(b)
-    if hasattr(locals(), "_append_revision"):
+    if "_append_revision" in globals():
         _append_revision(b, {
             "revision": b["revision"],
             "saved_at": b["updated_at"],
