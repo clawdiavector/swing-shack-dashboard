@@ -10,6 +10,11 @@ _LAYER1_DAILY = {
     "cron_sast": ["07:00"],
     "cadence": "daily",
 }
+_LAYER2_7_DAILY = {
+    "scheduler": "GitHub Actions (layer2-7-daily-cron.yml)",
+    "cron_sast": ["07:15"],
+    "cadence": "daily",
+}
 
 JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "meta_refresh": {
@@ -31,13 +36,17 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "site_audit": _LAYER1_DAILY,
     "insights_hooks": _LAYER1_DAILY,
     "insights_reco": _LAYER1_DAILY,
-    "slot_planner": _LAYER1_DAILY,
-    "agent_queue_writer": _LAYER1_DAILY,
-    "review_sla": _LAYER1_DAILY,
-    "post_outcomes": _LAYER1_DAILY,
-    "winner_promotion": _LAYER1_DAILY,
-    "proposal_outcome": _LAYER1_DAILY,
-    "human_edit_signal": _LAYER1_DAILY,
+    "slot_planner": _LAYER2_7_DAILY,
+    "agent_queue_writer": _LAYER2_7_DAILY,
+    "review_sla": _LAYER2_7_DAILY,
+    "holiday_inject": _LAYER2_7_DAILY,
+    "draft_assets": _LAYER2_7_DAILY,
+    "asset_qc": _LAYER2_7_DAILY,
+    "publish_dispatch": _LAYER2_7_DAILY,
+    "post_outcomes": _LAYER2_7_DAILY,
+    "winner_promotion": _LAYER2_7_DAILY,
+    "proposal_outcome": _LAYER2_7_DAILY,
+    "human_edit_signal": _LAYER2_7_DAILY,
 }
 
 

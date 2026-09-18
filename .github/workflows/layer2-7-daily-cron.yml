@@ -1,0 +1,158 @@
+name: Layer 2–7 daily cron (07:15 SAST)
+
+# Fires L2 Health, L5 Create, L6 Publish (sandbox), and L7 Learn jobs on Railway.
+# Runs after layer1-daily-cron.yml (07:00 SAST) so insights/data are fresh first.
+#
+# Schedule: 05:15 UTC = 07:15 SAST
+# Auth: COS_JOB_TOKEN bearer (same secret as other job workflows).
+
+on:
+  schedule:
+    - cron: '15 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  layer2-7-daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+    steps:
+      - name: Preflight — COS_JOB_TOKEN required
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
+            exit 1
+          fi
+
+      - name: L2 — slot_planner
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/slot_planner" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/slot_planner.json
+          python3 -c "import json; d=json.load(open('/tmp/slot_planner.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L2 — agent_queue_writer
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/agent_queue_writer" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/agent_queue_writer.json
+          python3 -c "import json; d=json.load(open('/tmp/agent_queue_writer.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L2 — review_sla
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/review_sla" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/review_sla.json
+          python3 -c "import json; d=json.load(open('/tmp/review_sla.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L2 — holiday_inject
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/holiday_inject" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/holiday_inject.json
+          python3 -c "import json; d=json.load(open('/tmp/holiday_inject.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L5 — draft_assets
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/draft_assets" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/draft_assets.json
+          python3 -c "import json; d=json.load(open('/tmp/draft_assets.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L5 — asset_qc
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/asset_qc" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/asset_qc.json
+          python3 -c "import json; d=json.load(open('/tmp/asset_qc.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L6 — publish_dispatch
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/publish_dispatch" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/publish_dispatch.json
+          python3 -c "import json; d=json.load(open('/tmp/publish_dispatch.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L7 — post_outcomes
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/post_outcomes" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/post_outcomes.json
+          python3 -c "import json; d=json.load(open('/tmp/post_outcomes.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L7 — winner_promotion
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/winner_promotion" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/winner_promotion.json
+          python3 -c "import json; d=json.load(open('/tmp/winner_promotion.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L7 — proposal_outcome
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/proposal_outcome" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/proposal_outcome.json
+          python3 -c "import json; d=json.load(open('/tmp/proposal_outcome.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: L7 — human_edit_signal
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/human_edit_signal" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/human_edit_signal.json
+          python3 -c "import json; d=json.load(open('/tmp/human_edit_signal.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+
+      - name: Summary — L2–L7 job verdicts
+        run: |
+          set -euo pipefail
+          curl -sf "$BASE/api/jobs/digest" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -o /tmp/digest.json
+          python3 -c "
+          import json
+          names = [
+              'slot_planner','agent_queue_writer','review_sla','holiday_inject',
+              'draft_assets','asset_qc','publish_dispatch',
+              'post_outcomes','winner_promotion','proposal_outcome','human_edit_signal',
+          ]
+          d = json.load(open('/tmp/digest.json'))
+          by_name = {j.get('name'): j for j in d.get('jobs', [])}
+          for n in names:
+              j = by_name.get(n, {})
+              print(f\"  {j.get('verdict','?'):<7} {n}\")
+          "
