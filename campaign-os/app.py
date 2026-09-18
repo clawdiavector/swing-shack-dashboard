@@ -43211,6 +43211,453 @@ def report_v21_portfolio():
         _app_log.exception("report_v21_portfolio failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
+
+# ─── REPORTING V2.2: UNIFIED COMPARISON + REPORT-PERIOD CONTRACT ────────
+# V2.2 architecture: one report-period object, one metric
+# aggregation layer, all KPIs reconcile to the same numbers.
+#
+# Per V2.2 §1: real previous-period data via GA4 dateRanges with
+#   two complete windows.
+# Per V2.2 §2: real deltas (sessions / users / engagement /
+#   pageviews / channels / landing pages).
+# Per V2.2 §3: 90-day baseline (median for rates, mean for
+#   counts; explicit insufficient_history when not enough data).
+# Per V2.2 §4: KPI PERIOD CONSISTENCY — every section pulls
+#   from the same report_period object.
+# Per V2.2 §7: Users + Engagement Rate come from the same
+#   GA4 run as Sessions (no extra query).
+# Per V2.2 §5: pillar mix uses canonical records with an
+#   explicit reporting horizon filter.
+
+
+def _v22_report_period(days=31):
+    """V2.2 §1: canonical report-period object.
+
+    current_end = yesterday (latest COMPLETE day)
+    current_start = current_end - (days - 1)
+    previous_end = current_start - 1 day
+    previous_start = previous_end - (days - 1)
+    ninetieth_end = current_end
+    ninetieth_start = current_end - 89 days
+
+    Returns dict usable by every report subquery.
+    """
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    prev_end = cur_start - _td(days=1)
+    prev_start = prev_end - _td(days=days - 1)
+    n_end = end_d
+    n_start = end_d - _td(days=89)
+    return {
+        "current_start": cur_start.isoformat(),
+        "current_end": end_d.isoformat(),
+        "previous_start": prev_start.isoformat(),
+        "previous_end": prev_end.isoformat(),
+        "ninetieth_start": n_start.isoformat(),
+        "ninetieth_end": n_end.isoformat(),
+        "days_per_window": days,
+        "data_complete_through": end_d.isoformat(),
+        "timezone": "Africa/Johannesburg",
+    }
+
+
+def _v22_ga4_session_metrics(creds, dimensions, days_for_window=31,
+                              include_90d=False):
+    """V2.2 §1+§3 unified GA4 run.
+
+    For a given dimension (or [] for totals):
+      - current window (last `days` complete days)
+      - previous window (immediately preceding)
+      - 90-day window (if include_90d=True)
+
+    Returns the same metric set across all windows: sessions,
+    totalUsers, engagedSessions, engagementRate, conversions,
+    pageviews, screenPageViews.
+    """
+    rp = _v22_report_period(days_for_window)
+    date_ranges = [
+        {"start_date": rp["current_start"],
+         "end_date": rp["current_end"]},
+        {"start_date": rp["previous_start"],
+         "end_date": rp["previous_end"]},
+    ]
+    if include_90d:
+        date_ranges.append(
+            {"start_date": rp["ninetieth_start"],
+             "end_date": rp["ninetieth_end"]})
+    metrics = ["sessions", "totalUsers", "engagedSessions",
+               "engagementRate", "conversions",
+               "screenPageViews"]
+    if not creds["property_id"] or not creds["credentials_path"]             or not os.path.exists(creds["credentials_path"]):
+        return {
+            "ok": False,
+            "error": "GA4 not configured",
+            "report_period": rp,
+            "current": {}, "previous": {}, "ninety_day": {},
+        }
+    try:
+        from google.analytics.data_v1beta import BetaAnalyticsDataClient
+        from google.analytics.data_v1beta.types import (
+            DateRange, Dimension, Metric, RunReportRequest,
+        )
+        client = BetaAnalyticsDataClient.from_service_account_file(
+            creds["credentials_path"])
+        req = RunReportRequest(
+            property=f"properties/{creds['property_id']}",
+            dimensions=[Dimension(name=d) for d in dimensions],
+            metrics=[Metric(name=m) for m in metrics],
+            date_ranges=[DateRange(start_date=dr["start_date"],
+                                    end_date=dr["end_date"])
+                         for dr in date_ranges],
+            limit=200,
+        )
+        resp = client.run_report(req)
+        rows = []
+        for row in (resp.rows or []):
+            dvs = [dv.value for dv in (row.dimension_values or [])]
+            mvs = [mv.value for mv in (row.metric_values or [])]
+            rows.append({"dims": dvs, "metrics": mvs})
+        n_dr = len(date_ranges)
+        n_m = len(metrics)
+        # aggregate per dimension value across windows
+        agg = {}
+        for row in rows:
+            key = "|".join(row["dims"]) if row["dims"] else "_total"
+            metric_lists = list(row["metrics"] or [])
+            # Pad to expected length
+            while len(metric_lists) < n_m * n_dr:
+                metric_lists.append("0")
+            per_window = []
+            for i in range(n_dr):
+                per_window.append(metric_lists[i * n_m:(i + 1) * n_m])
+            agg[key] = per_window
+        def totals(per_window):
+            if not per_window:
+                return None
+            return {
+                "sessions": int(float(per_window[0])) if len(per_window) > 0 else 0,
+                "total_users": int(float(per_window[1])) if len(per_window) > 1 else 0,
+                "engaged_sessions": int(float(per_window[2])) if len(per_window) > 2 else 0,
+                "engagement_rate": float(per_window[3]) if len(per_window) > 3 else 0.0,
+                "conversions": int(float(per_window[4])) if len(per_window) > 4 else 0,
+                "pageviews": int(float(per_window[5])) if len(per_window) > 5 else 0,
+            }
+        current = {}
+        previous = {}
+        ninety = {}
+        for key, per_window in agg.items():
+            current[key] = totals(per_window[0]) if len(per_window) > 0 else None
+            previous[key] = totals(per_window[1]) if len(per_window) > 1 else None
+            if n_dr > 2 and len(per_window) > 2:
+                ninety[key] = totals(per_window[2])
+        return {
+            "ok": True,
+            "report_period": rp,
+            "current": current,
+            "previous": previous,
+            "ninety_day": ninety,
+            "checked_at": _now_iso(),
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "error": str(e)[:300],
+            "report_period": rp,
+            "current": {}, "previous": {}, "ninety_day": {},
+        }
+
+
+def _v22_safe_int(x, default=0):
+    if x is None:
+        return default
+    try:
+        return int(float(x))
+    except (TypeError, ValueError):
+        return default
+
+
+def _v22_safe_float(x, default=0.0):
+    if x is None:
+        return default
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return default
+
+
+def _v22_aggregate_metrics(current, previous, ninety=None):
+    """V2.2 §2+§3: real delta + 90-day baseline.
+
+    For a single window's metrics dict, return the comparison
+    object with delta_abs, delta_pct, comparison_status, plus
+    90-day baseline values where supplied.
+    """
+    cur_sessions = _v22_safe_int((current or {}).get("sessions"))
+    cur_users = _v22_safe_int((current or {}).get("total_users"))
+    cur_engaged = _v22_safe_int((current or {}).get("engaged_sessions"))
+    cur_er = _v22_safe_float((current or {}).get("engagement_rate"))
+    cur_conv = _v22_safe_int((current or {}).get("conversions"))
+    cur_pv = _v22_safe_int((current or {}).get("pageviews"))
+
+    prev_sessions = _v22_safe_int((previous or {}).get("sessions")) if previous else None
+    prev_users = _v22_safe_int((previous or {}).get("total_users")) if previous else None
+    prev_engaged = _v22_safe_int((previous or {}).get("engaged_sessions")) if previous else None
+    prev_er = _v22_safe_float((previous or {}).get("engagement_rate")) if previous else None
+    prev_conv = _v22_safe_int((previous or {}).get("conversions")) if previous else None
+    prev_pv = _v22_safe_int((previous or {}).get("pageviews")) if previous else None
+
+    def delta(cur, prev):
+        if prev is None:
+            return {"current": cur, "previous": None,
+                    "delta_abs": None, "delta_pct": None,
+                    "comparison_status": "no_previous"}
+        dab = cur - prev
+        dpct = round(dab / prev * 100, 1) if prev > 0 else None
+        if dpct is None:
+            status = "improving" if cur > 0 else "flat"
+        elif dpct > 0.5:
+            status = "improving"
+        elif dpct < -0.5:
+            status = "regressing"
+        else:
+            status = "flat"
+        return {"current": cur, "previous": prev,
+                "delta_abs": dab, "delta_pct": dpct,
+                "comparison_status": status}
+
+    sessions_cmp = delta(cur_sessions, prev_sessions)
+    users_cmp = delta(cur_users, prev_users)
+    engaged_cmp = delta(cur_engaged, prev_engaged)
+    conv_cmp = delta(cur_conv, prev_conv)
+    pv_cmp = delta(cur_pv, prev_pv)
+    er_cmp = delta(round(cur_er * 100, 2),
+                    round(prev_er * 100, 2) if prev_er is not None else None)
+
+    # 90-day baselines (mean for counts; median for rate when
+    # we have per-day values, but here we have the rolled-up
+    # 90-day total, so we use mean of the daily-equivalent
+    # value).
+    baselines = {}
+    baseline_status = "insufficient_history"
+    if ninety:
+        n_sessions = _v22_safe_int((ninety or {}).get("sessions"))
+        n_users = _v22_safe_int((ninety or {}).get("total_users"))
+        n_engaged = _v22_safe_int((ninety or {}).get("engaged_sessions"))
+        n_er = _v22_safe_float((ninety or {}).get("engagement_rate"))
+        n_conv = _v22_safe_int((ninety or {}).get("conversions"))
+        n_pv = _v22_safe_int((ninety or {}).get("pageviews"))
+        # Mean over 90 days
+        baselines = {
+            "sessions_mean_90d": round(n_sessions / 90, 2),
+            "users_mean_90d": round(n_users / 90, 2),
+            "engaged_sessions_mean_90d": round(n_engaged / 90, 2),
+            "pageviews_mean_90d": round(n_pv / 90, 2),
+            "conversions_mean_90d": round(n_conv / 90, 2),
+            # engagement rate is a rate — use the rolled-up value
+            # directly as a baseline indicator, document the choice
+            "engagement_rate_90d": round(n_er * 100, 2),
+            "baseline_method": (
+                "mean for additive/count metrics; rolled-up rate "
+                "for engagement (rate metric, daily-median not "
+                "available from rolled-up query)"),
+            "baseline_window_days": 90,
+            "baseline_status": "ok" if n_sessions > 0 else "insufficient_history",
+        }
+        baseline_status = baselines["baseline_status"]
+    else:
+        baselines = {
+            "baseline_method": "no 90-day window requested",
+            "baseline_status": "not_requested",
+            "baseline_window_days": 90,
+        }
+
+    return {
+        "sessions": sessions_cmp,
+        "users": users_cmp,
+        "engaged_sessions": engaged_cmp,
+        "engagement_rate": er_cmp,
+        "conversions": conv_cmp,
+        "pageviews": pv_cmp,
+        "ninety_day": baselines,
+        "baseline_status": baseline_status,
+    }
+
+
+@app.route("/api/ga4/<brand_id>/v22/sessions", methods=["GET"])
+def ga4_v22_sessions(brand_id):
+    """GET /api/ga4/<brand>/v22/sessions
+
+    V2.2 §1+§2+§3+§7: total-website metrics with real
+    current + previous + 90-day comparison.
+
+    Returns identical metric definitions across all three
+    windows: sessions, total_users, engaged_sessions,
+    engagement_rate, conversions, pageviews.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    data = _v22_ga4_session_metrics(creds, dimensions=[],
+                                       days_for_window=days,
+                                       include_90d=True)
+    if not data.get("ok"):
+        return jsonify(data), 200
+    cur_total = data["current"].get("_total") or {}
+    prev_total = data["previous"].get("_total") or {}
+    n_total = data["ninety_day"].get("_total") or {}
+    cmp = _v22_aggregate_metrics(cur_total, prev_total, n_total)
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "report_period": data["report_period"],
+        "current": cur_total,
+        "previous": prev_total,
+        "ninety_day": n_total,
+        "comparison": cmp,
+        "checked_at": data["checked_at"],
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/v22/channel-mix", methods=["GET"])
+def ga4_v22_channel_mix(brand_id):
+    """GET /api/ga4/<brand>/v22/channel-mix
+
+    V2.2 §1+§2: GA4 channel grouping with real previous-period
+    delta. Same metric definitions across current + previous.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    data = _v22_ga4_session_metrics(
+        creds, dimensions=["sessionDefaultChannelGroup"],
+        days_for_window=days, include_90d=False)
+    if not data.get("ok"):
+        return jsonify(data), 200
+    TAX = {
+        "Organic Search": "organic",
+        "Paid Social": "paid_social",
+        "Organic Social": "organic_social",
+        "Direct": "direct",
+        "Paid Search": "paid_search",
+        "Referral": "referral",
+        "Email": "email",
+        "Unassigned": "unassigned",
+    }
+    rows = []
+    total_cur = 0
+    total_prev = 0
+    for channel_key in sorted(set(list(data["current"].keys()) +
+                                  list(data["previous"].keys()))):
+        cur = data["current"].get(channel_key) or {}
+        prev = data["previous"].get(channel_key) or {}
+        cur_s = _v22_safe_int(cur.get("sessions"))
+        prev_s = _v22_safe_int(prev.get("sessions")) if prev else None
+        if channel_key in TAX:
+            label = channel_key
+        else:
+            label = f"Other ({channel_key})"
+        dab = (cur_s - prev_s) if prev_s is not None else None
+        dpct = round((cur_s - prev_s) / prev_s * 100, 1) if (prev_s and prev_s > 0) else None
+        rows.append({
+            "channel": label,
+            "current_sessions": cur_s,
+            "previous_sessions": prev_s,
+            "current_engagement_rate": round(_v22_safe_float(cur.get("engagement_rate")) * 100, 2),
+            "current_engaged_sessions": _v22_safe_int(cur.get("engaged_sessions")),
+            "current_conversions": _v22_safe_int(cur.get("conversions")),
+            "delta_abs": dab,
+            "delta_pct": dpct,
+            "comparison_status": ("no_previous" if prev_s is None
+                                  else ("improving" if dpct and dpct > 0.5
+                                        else ("regressing" if dpct and dpct < -0.5
+                                              else "flat"))),
+        })
+        total_cur += cur_s
+        if prev_s is not None:
+            total_prev += prev_s
+    for r in rows:
+        r["share_of_sessions"] = round((r["current_sessions"] / total_cur * 100)
+                                        if total_cur else 0.0, 1)
+    rows.sort(key=lambda r: -r["current_sessions"])
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "report_period": data["report_period"],
+        "rows": rows,
+        "total_current_sessions": total_cur,
+        "total_previous_sessions": total_prev,
+        "checked_at": data["checked_at"],
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/v22/pages", methods=["GET"])
+def ga4_v22_pages(brand_id):
+    """GET /api/ga4/<brand>/v22/pages?days=31
+
+    V2.2 §1+§2+§7: per-page metrics with real previous-period
+    comparison and 90-day baseline. Includes sessions, users,
+    engaged_sessions, engagement_rate, conversions, pageviews.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    data = _v22_ga4_session_metrics(creds, dimensions=["pagePath"],
+                                       days_for_window=days,
+                                       include_90d=True)
+    if not data.get("ok"):
+        return jsonify(data), 200
+    rows = []
+    for path in sorted(set(list(data["current"].keys()) +
+                           list(data["previous"].keys()))):
+        if path == "_total":
+            continue
+        cur = data["current"].get(path) or {}
+        prev = data["previous"].get(path) or {}
+        cur_s = _v22_safe_int(cur.get("sessions"))
+        prev_s = _v22_safe_int(prev.get("sessions")) if prev else None
+        cur_pv = _v22_safe_int(cur.get("pageviews"))
+        dab = (cur_s - prev_s) if prev_s is not None else None
+        dpct = round((cur_s - prev_s) / prev_s * 100, 1) if (prev_s and prev_s > 0) else None
+        rows.append({
+            "page_path": path,
+            "current_sessions": cur_s,
+            "previous_sessions": prev_s,
+            "current_users": _v22_safe_int(cur.get("total_users")),
+            "current_engaged_sessions": _v22_safe_int(cur.get("engaged_sessions")),
+            "current_engagement_rate": round(_v22_safe_float(cur.get("engagement_rate")) * 100, 2),
+            "current_pageviews": cur_pv,
+            "current_conversions": _v22_safe_int(cur.get("conversions")),
+            "delta_abs": dab,
+            "delta_pct": dpct,
+            "comparison_status": ("no_previous" if prev_s is None
+                                  else ("improving" if dpct and dpct > 0.5
+                                        else ("regressing" if dpct and dpct < -0.5
+                                              else "flat"))),
+        })
+    rows.sort(key=lambda r: -r["current_sessions"])
+    # 90-day baseline at aggregate level
+    agg_n = data["ninety_day"]
+    n_total_sessions = sum(_v22_safe_int(v.get("sessions"))
+                            for v in agg_n.values()
+                            if isinstance(v, dict))
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "report_period": data["report_period"],
+        "rows": rows[:50],
+        "total_rows": len(rows),
+        "ninety_day_sessions_total": n_total_sessions,
+        "ninety_day_sessions_mean_per_day": round(n_total_sessions / 90, 2),
+        "checked_at": data["checked_at"],
+    }), 200
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
