@@ -1625,7 +1625,7 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     cluster = _find_opp_cluster(brand_id, event_key)
     is_cluster_member_only = (
         cluster is not None
-        and event_key != cluster.get("primary_event_key"))
+        and event_key != cluster.get("parent_event_key"))
 
     # If any hard gate failed → IGNORE
     if hard_gate_failures:
