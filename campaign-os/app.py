@@ -42630,6 +42630,17 @@ def ga4_channel_mix(brand_id):
         }), 200
     by_channel = {}
     n_metrics = 4  # sessions, engagedSessions, engagementRate, conversions
+    # Two GA4 response shapes to support:
+    #   (a) Single date range (4 metrics): only current; previous=null
+    #   (b) Two date ranges (8 metrics): GA4 returned both;
+    #       if a channel has no data in the previous window
+    #       GA4 may omit the row entirely or pad with zeros.
+    have_two_ranges = False
+    for _r in rows_in:
+        if len(_r.get("metrics") or []) >= n_metrics * 2:
+            have_two_ranges = True
+            break
+
     try:
         for row in rows_in:
             if not row.get("dims"):
@@ -42637,27 +42648,29 @@ def ga4_channel_mix(brand_id):
             ch = row["dims"][0] if row["dims"] else "Unknown"
             if ch not in by_channel:
                 by_channel[ch] = {"current": {}, "previous": {}}
-            metrics_list = row.get("metrics") or []
-            # Pad to expected length so slice ops always work
-            while len(metrics_list) < n_metrics * 2:
+            metrics_list = list(row.get("metrics") or [])
+            if have_two_ranges and len(metrics_list) >= n_metrics * 2:
+                m_cur = metrics_list[:n_metrics]
+                m_prev = metrics_list[n_metrics:n_metrics * 2]
+                by_channel[ch]["previous"] = {
+                    "sessions": _parse_ga4_int(m_prev[0]),
+                    "engaged_sessions": _parse_ga4_int(m_prev[1]),
+                    "engagement_rate": _parse_ga4_float(m_prev[2]),
+                    "conversions": _parse_ga4_int(m_prev[3]),
+                }
+            else:
+                by_channel[ch]["previous"] = {}  # GA4 omitted prev window
+            while len(metrics_list) < n_metrics:
                 metrics_list.append("0")
             m_cur = metrics_list[:n_metrics]
-            m_prev = metrics_list[n_metrics:n_metrics * 2]
             by_channel[ch]["current"] = {
                 "sessions": _parse_ga4_int(m_cur[0]),
                 "engaged_sessions": _parse_ga4_int(m_cur[1]),
                 "engagement_rate": _parse_ga4_float(m_cur[2]),
                 "conversions": _parse_ga4_int(m_cur[3]),
             }
-            by_channel[ch]["previous"] = {
-                "sessions": _parse_ga4_int(m_prev[0]),
-                "engaged_sessions": _parse_ga4_int(m_prev[1]),
-                "engagement_rate": _parse_ga4_float(m_prev[2]),
-                "conversions": _parse_ga4_int(m_prev[3]),
-            }
     except Exception as e:
-        import traceback
-        _app_log.error("channel-mix row unpack failed: %s", traceback.format_exc())
+        _app_log.error("channel-mix row unpack failed: %s", e)
         return jsonify({
             "ok": False,
             "error": f"channel-mix row unpack failed: {type(e).__name__}: {str(e)[:200]}",
@@ -42678,7 +42691,7 @@ def ga4_channel_mix(brand_id):
     }
     out = []
     total_cur = sum(c["current"]["sessions"] for c in by_channel.values())
-    total_prev = sum(c["previous"]["sessions"] for c in by_channel.values())
+    total_prev = sum(c["previous"].get("sessions", 0) for c in by_channel.values())
     seen = set()
     for label, _ in TAX.items():
         # GA4 channel names use multiple variants
@@ -42702,13 +42715,13 @@ def ga4_channel_mix(brand_id):
             })
             continue
         cur_s = ch_data["current"]["sessions"]
-        prev_s = ch_data["previous"]["sessions"]
+        prev_s = ch_data["previous"].get("sessions")  # None if GA4 omitted
         share = (cur_s / total_cur * 100) if total_cur else 0.0
         delta = None
-        if prev_s and prev_s > 0:
+        if prev_s is not None and prev_s > 0:
             delta = round((cur_s - prev_s) / prev_s * 100, 1)
-        elif cur_s > 0:
-            delta = None  # avoid divide-by-zero / invented %
+        elif prev_s is None:
+            delta = None  # previous window not present in GA4 response
         out.append({
             "channel": label,
             "current_sessions": cur_s,
@@ -42725,11 +42738,13 @@ def ga4_channel_mix(brand_id):
         if ch in TAX or ch.lower() in [k.lower() for k in TAX]:
             continue
         cur_s = by_channel[ch]["current"]["sessions"]
-        prev_s = by_channel[ch]["previous"]["sessions"]
+        prev_s = by_channel[ch]["previous"].get("sessions")
         share = (cur_s / total_cur * 100) if total_cur else 0.0
         delta = None
-        if prev_s and prev_s > 0:
+        if prev_s is not None and prev_s > 0:
             delta = round((cur_s - prev_s) / prev_s * 100, 1)
+        elif prev_s is None:
+            delta = None
         out.append({
             "channel": f"Other ({ch})",
             "current_sessions": cur_s,
@@ -42846,16 +42861,25 @@ def ga4_pages_enriched(brand_id):
 
     matched = {}
     n_metrics = 5
+    have_two_ranges = False
+    for _r in rows_in:
+        if len(_r.get("metrics") or []) >= n_metrics * 2:
+            have_two_ranges = True
+            break
     try:
         for row in rows_in:
             if not row.get("dims"):
                 continue
             path = (row["dims"][0] if row["dims"] else "") or ""
-            metrics_list = row.get("metrics") or []
-            while len(metrics_list) < n_metrics * 2:
-                metrics_list.append("0")
-            m_cur = metrics_list[:n_metrics]
-            m_prev = metrics_list[n_metrics:n_metrics * 2]
+            metrics_list = list(row.get("metrics") or [])
+            if have_two_ranges and len(metrics_list) >= n_metrics * 2:
+                m_cur = metrics_list[:n_metrics]
+                m_prev = metrics_list[n_metrics:n_metrics * 2]
+            else:
+                m_cur = metrics_list[:]
+                while len(m_cur) < n_metrics:
+                    m_cur.append("0")
+                m_prev = []
             for pat, label in high_value_patterns:
                 if pat.lower() in path.lower():
                     if label not in matched:
@@ -42868,10 +42892,11 @@ def ga4_pages_enriched(brand_id):
                         "engagement_rate": _parse_ga4_float(m_cur[3]),
                         "conversions": _parse_ga4_int(m_cur[4]),
                     }
-                    matched[label]["previous"][path] = {
-                        "sessions": _parse_ga4_int(m_prev[0]),
-                        "engagement_rate": _parse_ga4_float(m_prev[3]),
-                    }
+                    if m_prev:
+                        matched[label]["previous"][path] = {
+                            "sessions": _parse_ga4_int(m_prev[0]),
+                            "engagement_rate": _parse_ga4_float(m_prev[3]),
+                        }
                     matched[label]["paths_seen"].add(path)
                     break
     except Exception:
@@ -42881,7 +42906,7 @@ def ga4_pages_enriched(brand_id):
     rows = []
     for label, m in matched.items():
         cur_sessions = sum(p["sessions"] for p in m["current"].values())
-        prev_sessions = sum(p["sessions"] for p in m["previous"].values())
+        prev_sessions = sum(p.get("sessions", 0) for p in m["previous"].values())
         cur_users = sum(p["users"] for p in m["current"].values())
         cur_engaged = sum(p["engaged_sessions"] for p in m["current"].values())
         # Weighted engagement rate by sessions
