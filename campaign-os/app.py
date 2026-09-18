@@ -96,6 +96,8 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/calendar/scout-health',
     '/api/calendar/v2/upsert',
     '/api/calendar/v2/watchlist-due',
+    # L4 unified inbox list (Mac/foreman bearer approve flow)
+    '/api/inbox/unified',
 })
 
 # Dynamic-segment dual-auth prefixes. Each MUST end in '/' — see _gate comment.
@@ -103,6 +105,9 @@ DUAL_AUTH_PREFIXES = (
     '/api/calendar/context/',
     '/api/calendar/v3/scout/',
 )
+
+# L4 inbox item actions — approve/reject/edit only (not stub siblings).
+_INBOX_DUAL_AUTH_SUFFIXES = ('/approve', '/reject', '/edit')
 
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
 # param is auth-optional. Letting the export route run without auth
@@ -169,6 +174,15 @@ def _is_job_authed():
     return _is_authed()
 
 
+def _is_inbox_dual_auth_path(path: str) -> bool:
+    """L4 unified inbox: list + per-item approve/reject/edit (not stub routes)."""
+    if path == '/api/inbox/unified':
+        return True
+    if path.startswith('/api/inbox/unified/') and path.endswith(_INBOX_DUAL_AUTH_SUFFIXES):
+        return True
+    return False
+
+
 @app.before_request
 def _gate():
     """Redirect unauthed requests to /login. Allow public routes + static asset paths."""
@@ -190,6 +204,7 @@ def _gate():
         or path.startswith('/api/publish')
         or path in DUAL_AUTH_PATHS
         or path.startswith(DUAL_AUTH_PREFIXES)
+        or _is_inbox_dual_auth_path(path)
     ):
         if _is_job_authed():
             return None
@@ -16747,8 +16762,8 @@ def ops_layers():
 
 @app.route('/api/inbox/unified', methods=['GET'])
 def inbox_unified_list():
-    """GET /api/inbox/unified — L4 unified review inbox. Session-gated."""
-    if not _is_authed():
+    """GET /api/inbox/unified — L4 unified review inbox. Session or bearer."""
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
         from _lib import unified_inbox as _unified_inbox_mod
@@ -16767,7 +16782,7 @@ def inbox_unified_list():
 @app.route('/api/inbox/unified/<path:item_id>/approve', methods=['POST'])
 def inbox_unified_approve(item_id: str):
     """POST /api/inbox/unified/<id>/approve — approve without publishing."""
-    if not _is_authed():
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
         from _lib import unified_inbox as _unified_inbox_mod
@@ -16788,7 +16803,7 @@ def inbox_unified_approve(item_id: str):
 @app.route('/api/inbox/unified/<path:item_id>/reject', methods=['POST'])
 def inbox_unified_reject(item_id: str):
     """POST /api/inbox/unified/<id>/reject — reject an inbox item."""
-    if not _is_authed():
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
         from _lib import unified_inbox as _unified_inbox_mod
@@ -16809,7 +16824,7 @@ def inbox_unified_reject(item_id: str):
 @app.route('/api/inbox/unified/<path:item_id>/edit', methods=['POST'])
 def inbox_unified_edit(item_id: str):
     """POST /api/inbox/unified/<id>/edit — edit + human_edit_signal for L7."""
-    if not _is_authed():
+    if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
         from _lib import unified_inbox as _unified_inbox_mod
