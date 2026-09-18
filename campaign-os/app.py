@@ -43318,20 +43318,65 @@ def _v22_ga4_session_metrics(creds, dimensions, days_for_window=31,
             dvs = [dv.value for dv in (row.dimension_values or [])]
             mvs = [mv.value for mv in (row.metric_values or [])]
             rows.append({"dims": dvs, "metrics": mvs})
+        # DEBUG: stash first row raw
+        if rows:
+            os.environ["_V22_FIRST_ROW"] = str(rows[0])
+            os.environ["_V22_ROW_COUNT"] = str(len(rows))
+            os.environ["_V22_METRICS_LEN"] = str(len(rows[0]["metrics"]))
         n_dr = len(date_ranges)
         n_m = len(metrics)
-        # aggregate per dimension value across windows
-        agg = {}
-        for row in rows:
-            key = "|".join(row["dims"]) if row["dims"] else "_total"
-            metric_lists = list(row["metrics"] or [])
-            # Pad to expected length
-            while len(metric_lists) < n_m * n_dr:
-                metric_lists.append("0")
-            per_window = []
-            for i in range(n_dr):
-                per_window.append(metric_lists[i * n_m:(i + 1) * n_m])
-            agg[key] = per_window
+        # GA4 may return:
+        #   (a) per dim-value, a row with len(date_ranges) sets of
+        #       metric values: dims=[channel], metrics=[m1_dr0, m2_dr0,
+        #       ..., m1_dr1, ...]
+        #   (b) per dim-value, ONE row per date_range — dims=[channel],
+        #       metrics=[m1, m2, ...] (single window); the same dim
+        #       value appears in n_dr rows.
+        # Determine which shape by looking at the metric count per row.
+        n_metrics_per_row = (rows[0]["__len_metrics"] if False else
+                              len(rows[0]["metrics"]) if rows else 0)
+        # Detect (a) vs (b) by comparing metric count to n_m * n_dr
+        is_multi_window_per_row = (
+            rows and len(rows[0]["metrics"]) >= n_m * n_dr)
+        if not is_multi_window_per_row and rows:
+            # shape (b): aggregate dim-value across rows
+            agg = {}  # key -> list of (date_range_index, metric_list)
+            for row in rows:
+                key = "|".join(row["dims"]) if row["dims"] else "_total"
+                metric_lists = list(row["metrics"] or [])
+                while len(metric_lists) < n_m:
+                    metric_lists.append("0")
+                # We don't know which date_range this row belongs to
+                # unless we add date_range as a hidden dimension. For
+                # now, GA4 always returns shape (a) when multiple
+                # date_ranges are passed; shape (b) is for single
+                # date_range queries.
+                agg.setdefault(key, []).append(metric_lists)
+            # If we have multiple rows per key, treat the FIRST as
+            # current and the SECOND as previous (the date_ranges
+            # param preserves order in the API).
+            return_dict = {}
+            for key, per_row_list in agg.items():
+                windows = []
+                for i in range(n_dr):
+                    if i < len(per_row_list):
+                        windows.append(per_row_list[i])
+                    else:
+                        windows.append(["0"] * n_m)
+                return_dict[key] = windows
+            agg = return_dict
+        else:
+            # shape (a): each row contains all date-range metrics
+            agg = {}
+            for row in rows:
+                key = "|".join(row["dims"]) if row["dims"] else "_total"
+                metric_lists = list(row["metrics"] or [])
+                while len(metric_lists) < n_m * n_dr:
+                    metric_lists.append("0")
+                per_window = []
+                for i in range(n_dr):
+                    per_window.append(metric_lists[i * n_m:(i + 1) * n_m])
+                agg[key] = per_window
         def totals(per_window):
             if not per_window:
                 return None
