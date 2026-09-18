@@ -43541,6 +43541,18 @@ def ga4_v22_sessions(brand_id):
                                        include_90d=True)
     if not data.get("ok"):
         return jsonify(data), 200
+    # DEBUG: stash response shape for inspection
+    import json as _jd
+    with open("/tmp/v22_debug.json", "w") as _f:
+        _jd.dump({
+            "keys": list(data.keys()),
+            "current_keys": list(data["current"].keys()),
+            "previous_keys": list(data["previous"].keys()),
+            "ninety_keys": list(data["ninety_day"].keys()),
+            "current_total": data["current"].get("_total"),
+            "previous_total": data["previous"].get("_total"),
+            "ninety_total": data["ninety_day"].get("_total"),
+        }, _f, indent=2, default=str)
     cur_total = data["current"].get("_total") or {}
     prev_total = data["previous"].get("_total") or {}
     n_total = data["ninety_day"].get("_total") or {}
@@ -43693,6 +43705,19 @@ def ga4_v22_pages(brand_id):
         "ninety_day_sessions_mean_per_day": round(n_total_sessions / 90, 2),
         "checked_at": data["checked_at"],
     }), 200
+
+
+
+@app.route("/api/admin/v22-debug-sessions/<brand_id>", methods=["GET"])
+def admin_v22_debug_sessions(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    import os
+    p = "/tmp/v22_debug.json"
+    if not os.path.exists(p):
+        return jsonify({"ok": False, "error": "no debug file"}), 200
+    with open(p) as f:
+        return jsonify({"ok": True, "debug": json.load(f)}), 200
 
 if __name__ == '__main__':
     import sys as _sys
