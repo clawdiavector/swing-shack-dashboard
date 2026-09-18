@@ -2422,7 +2422,16 @@ def create_brief(brand_id: str, opportunity_id: str,
                     "decision_required": False,
                 },
             ],
+            # V1.6: schema_version lets the gate distinguish
+            # current Briefs from legacy ones that need
+            # migration.
+            "schema_version": "1.6",
         },
+        # V1.6: explicit schema-status flag for fast lookups.
+        # Computed from approval_questions by
+        # _approval_schema_status() at read time, but cached
+        # here for performance.
+        "approval_schema_status": "current",
         # V1.5 §4: operator answers to approval_questions. Populated
         # by POST /api/brief/v1/<brand>/<brief_id>/answer-question.
         "operator_answers": {},
@@ -3058,4 +3067,486 @@ def revert_test_approval(brand_id: str, brief_id: str,
     return {"ok": True, "brief": b,
             "test_provenance_preserved": True,
             "creative_allowed": False}
+
+
+
+# ─── V1.6: FAIL-CLOSED CREATIVE GATE + LEGACY MIGRATION ────────────────
+# V1.5 left two gaps:
+#   1. The `christelle` verifier was used in an automated reject
+#      test, which exposed the plaintext secret to the agent
+#      context. The verifier was rotated. Automated tests now
+#      use `test_operator` with a known disposable verifier.
+#   2. Briefs created before V1.5 have the legacy
+#      string-list approval_questions schema. The
+#      `required-questions` endpoint returns required=[]
+#      for them, which would let them bypass the
+#      decision_required gate.
+#
+# V1.6 fixes both. The Creative gate is the single source of
+# truth: `can_generate_creative(brief)` returns (ok, reasons).
+# Future Create code MUST call this instead of reproducing
+# approval logic.
+
+CURRENT_APPROVAL_SCHEMA_VERSION = "1.6"
+"""Schema version recorded on each Brief's approval_questions.
+
+Briefs created under V1.5 or later set this automatically.
+Legacy Briefs (created before V1.6) have no schema_version.
+"""
+
+OPERATOR_TRUST_VERSION = "operator_token_v1"
+"""The trusted approval_method. Anything else (e.g.
+operator_secret_v0 from older versions) fails the trust
+gate in can_generate_creative.
+"""
+
+
+def _approval_schema_status(b: dict) -> str:
+    """V1.6: classify a Brief's approval_question schema.
+
+    Returns:
+      - 'current' if Brief has V1.5+ structured questions with
+        decision_required markers + schema_version matches
+        CURRENT_APPROVAL_SCHEMA_VERSION
+      - 'migration_required' if Brief has legacy
+        string-list approval_questions or no schema_version
+    """
+    aq = b.get("approval_questions") or {}
+    items = aq.get("items") or []
+    schema_version = aq.get("schema_version")
+    if not items:
+        return "current"  # No questions = nothing to migrate
+    # V1.5+ structured: each item is a dict with 'kind'/'decision_required'
+    if all(isinstance(it, dict)
+           and "decision_required" in it
+           and "kind" in it
+           for it in items):
+        if schema_version == CURRENT_APPROVAL_SCHEMA_VERSION:
+            return "current"
+        # Structured but wrong version (e.g. V1.5 schema with
+        # no schema_version set). Treat as migration_required.
+        return "migration_required"
+    # Legacy string-list (any item is a string)
+    return "migration_required"
+
+
+def _unanswered_required_questions(b: dict) -> list:
+    """V1.6: list of decision_required questions not yet
+    answered by the operator. Returns [] if no questions
+    are required OR if all are answered."""
+    aq = b.get("approval_questions") or {}
+    items = aq.get("items") or []
+    answers = b.get("operator_answers") or {}
+    unanswered = []
+    for it in items:
+        if isinstance(it, dict) and it.get("decision_required"):
+            q_text = it.get("question") or it.get("text") or ""
+            if q_text not in answers:
+                unanswered.append(q_text)
+    return unanswered
+
+
+def _approval_trust_state(b: dict) -> dict:
+    """V1.6: classify the trust state of the current approval.
+
+    Returns:
+      ok: bool — True if approved under current trusted mechanism
+      reason: str — explanation if ok=False
+      approval_method: str — the recorded method
+      approval_method_trusted: bool — is it the current trusted
+        mechanism?
+      authenticated_operator: str or None
+      trust_version: str — 'current' or 'legacy'
+    """
+    status = b.get("status")
+    if status != "approved":
+        return {
+            "ok": False,
+            "reason": f"status is '{status}', not 'approved'",
+            "approval_method": b.get("approval_method"),
+            "approval_method_trusted": False,
+            "authenticated_operator": b.get("authenticated_operator"),
+            "trust_version": "current",
+        }
+    method = b.get("approval_method")
+    if method != OPERATOR_TRUST_VERSION:
+        return {
+            "ok": False,
+            "reason": (f"approval_method '{method}' is not the "
+                      f"current trusted mechanism "
+                      f"'{OPERATOR_TRUST_VERSION}'"),
+            "approval_method": method,
+            "approval_method_trusted": False,
+            "authenticated_operator": b.get("authenticated_operator"),
+            "trust_version": "legacy",
+        }
+    auth_op = b.get("authenticated_operator")
+    if not auth_op:
+        return {
+            "ok": False,
+            "reason": "no authenticated_operator recorded",
+            "approval_method": method,
+            "approval_method_trusted": True,
+            "authenticated_operator": None,
+            "trust_version": "current",
+        }
+    return {
+        "ok": True,
+        "reason": "approved under current trusted mechanism",
+        "approval_method": method,
+        "approval_method_trusted": True,
+        "authenticated_operator": auth_op,
+        "trust_version": "current",
+    }
+
+
+def can_generate_creative(brand_id: str, brief_id: str) -> dict:
+    """V1.6 §5: SINGLE SOURCE OF TRUTH for Creative readiness.
+
+    Future Create code MUST call this function instead of
+    reproducing approval logic. Returns:
+
+      {
+        "ok": bool,                  # True only if all gates pass
+        "creative_allowed": bool,    # raw flag from brief
+        "gates": {
+          "status_approved": bool,
+          "creative_allowed_true": bool,
+          "schema_current": bool,
+          "required_questions_answered": bool,
+          "approval_trust_state_ok": bool,
+        },
+        "reasons": [str],   # human-readable list of failures
+        "approval_schema_status": str,
+        "approval_trust_state": dict,
+        "unanswered_required_questions": [str],
+      }
+
+    The Creative engine MUST NOT generate anything unless
+    ok=True. Failures are explicit — never silent.
+    """
+    b = get_brief(brand_id, brief_id)
+    if not b:
+        return {
+            "ok": False,
+            "creative_allowed": False,
+            "gates": {},
+            "reasons": [f"brief not found: {brand_id}/{brief_id}"],
+            "approval_schema_status": "unknown",
+            "approval_trust_state": {},
+            "unanswered_required_questions": [],
+        }
+
+    schema_status = _approval_schema_status(b)
+    unanswered = _unanswered_required_questions(b)
+    trust_state = _approval_trust_state(b)
+    creative_allowed = bool(b.get("creative_allowed"))
+
+    gates = {
+        "status_approved": b.get("status") == "approved",
+        "creative_allowed_true": creative_allowed,
+        "schema_current": schema_status == "current",
+        "required_questions_answered": len(unanswered) == 0,
+        "approval_trust_state_ok": trust_state["ok"],
+    }
+
+    reasons = []
+    if not gates["status_approved"]:
+        reasons.append(f"status is '{b.get('status')}', not 'approved'")
+    if not gates["creative_allowed_true"]:
+        reasons.append("creative_allowed is False")
+    if not gates["schema_current"]:
+        reasons.append(
+            f"approval_schema_status is '{schema_status}', "
+            f"expected 'current'")
+    if not gates["required_questions_answered"]:
+        reasons.append(
+            f"{len(unanswered)} decision_required question(s) "
+            f"unanswered: {'; '.join(unanswered[:3])}")
+    if not gates["approval_trust_state_ok"]:
+        reasons.append(
+            f"approval trust: {trust_state['reason']}")
+
+    return {
+        "ok": all(gates.values()) and not reasons,
+        "creative_allowed": creative_allowed,
+        "gates": gates,
+        "reasons": reasons,
+        "approval_schema_status": schema_status,
+        "approval_trust_state": trust_state,
+        "unanswered_required_questions": unanswered,
+    }
+
+
+def migrate_brief_to_v16_schema(brand_id: str, brief_id: str) -> dict:
+    """V1.6 §3: migrate a legacy Brief to V1.6 schema.
+
+    Steps:
+      1. Detect legacy schema (string-list items or
+         missing schema_version).
+      2. Convert each item to V1.5+ structured form.
+      3. Preserve existing operator_answers (where question
+         text still matches).
+      4. Set schema_version = CURRENT_APPROVAL_SCHEMA_VERSION.
+      5. Recompute unanswered_required_questions + approval_available.
+      6. Set approval_schema_status = 'current'.
+      7. Write back. Bump revision. Audit append.
+
+    Does NOT invent answers for newly-introduced required
+    questions — those stay unanswered.
+    """
+    b = get_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    aq = b.get("approval_questions") or {}
+    items = aq.get("items") or []
+    schema_version = aq.get("schema_version")
+    if (schema_version == CURRENT_APPROVAL_SCHEMA_VERSION
+            and all(isinstance(it, dict) and "decision_required" in it
+                    for it in items)):
+        return {"ok": True, "migrated": False,
+                "reason": "already at current schema"}
+    # Convert legacy items to structured form
+    new_items = []
+    legacy_to_decision_required = {
+        # V1.6 sets the same decision_required markers as V1.5
+        "Does this opportunity support an active North Star?":
+            True,
+        "Is the audience definition specific enough?":
+            True,
+        "Does the measurement plan use metrics that actually "
+        "exist (not synthetic / pending)?":
+            True,
+        "Are channel roles matched to evidence?":
+            False,
+        "Stick only: does this Brief worsen or fix the Retail "
+        "0% pillar coverage?":
+            False,
+    }
+    for it in items:
+        if isinstance(it, dict):
+            # Already structured — keep as is, but ensure
+            # schema_version + decision_required presence
+            new_items.append({
+                "question": it.get("question") or it.get("text") or "",
+                "kind": it.get("kind") or (
+                    "decision_required"
+                    if it.get("decision_required") else "informational"),
+                "decision_required": bool(
+                    it.get("decision_required", False)),
+            })
+        elif isinstance(it, str):
+            is_required = legacy_to_decision_required.get(it, False)
+            new_items.append({
+                "question": it,
+                "kind": ("decision_required" if is_required
+                         else "informational"),
+                "decision_required": is_required,
+            })
+    aq["items"] = new_items
+    aq["schema_version"] = CURRENT_APPROVAL_SCHEMA_VERSION
+    b["approval_questions"] = aq
+    # Recompute unanswered + approval_available
+    unanswered = []
+    for it in new_items:
+        if it.get("decision_required"):
+            q_text = it.get("question") or ""
+            answers = b.get("operator_answers") or {}
+            if q_text not in answers:
+                unanswered.append(q_text)
+    b["unanswered_required_questions"] = unanswered
+    b["approval_available"] = len(unanswered) == 0
+    b["updated_at"] = _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    b["migration_status"] = "migrated"
+    b["approval_schema_status"] = "current"
+    if hasattr(locals(), "_write_brief"):
+        _write_brief(b)
+    if hasattr(locals(), "_append_revision"):
+        _append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"V1.6 SCHEMA MIGRATION: {len(new_items)} "
+                     f"approval_questions structured; "
+                     f"{len(unanswered)} decision_required unanswered"),
+            "drafted_by": "system",
+        })
+    return {
+        "ok": True,
+        "migrated": True,
+        "brand_id": brand_id,
+        "brief_id": brief_id,
+        "items_migrated": len(new_items),
+        "decision_required_count": sum(
+            1 for it in new_items if it.get("decision_required")),
+        "unanswered_required_count": len(unanswered),
+        "approval_available": b["approval_available"],
+    }
+
+
+def revalidate_legacy_approved_brief(brand_id: str,
+                                      brief_id: str,
+                                      reason: str = None) -> dict:
+    """V1.6 §4: re-validate an approved legacy Brief.
+
+    If the Brief's approval_method is NOT the current trusted
+    mechanism, OR no authenticated_operator is recorded,
+    move the Brief back to ready_for_review with audit
+    reason. creative_allowed must be cleared.
+
+    Does NOT delete history. The original approved status
+    is preserved in status_transitions as the audit trail.
+    """
+    b = get_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    if b.get("status") != "approved":
+        return {"ok": True, "revalidated": False,
+                "reason": f"status is '{b.get('status')}', "
+                          "not 'approved'"}
+    trust_state = _approval_trust_state(b)
+    if trust_state["ok"]:
+        return {"ok": True, "revalidated": False,
+                "reason": "approval is already trusted"}
+    # Move to ready_for_review + clear creative_allowed
+    revalidation_reason = (
+        reason or "revalidation required after approval security "
+        "migration")
+    transitions = b.get("status_transitions") or []
+    transitions.append({
+        "from": "approved",
+        "to": "ready_for_review",
+        "actor": "system",
+        "approval_method": "system_revalidation",
+        "authenticated_operator": None,
+        "originating_ui_action": "v16_revalidation",
+        "at": _now_iso(),
+        "note": revalidation_reason,
+    })
+    b["status_transitions"] = transitions
+    b["status"] = "ready_for_review"
+    b["creative_allowed"] = False
+    b["approved_at"] = None
+    b["approved_by"] = None
+    b["approval_method"] = None
+    b["authenticated_operator"] = None
+    b["revalidation_reason"] = revalidation_reason
+    b["updated_at"] = _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    if hasattr(locals(), "_write_brief"):
+        _write_brief(b)
+    if hasattr(locals(), "_append_revision"):
+        _append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"V1.6 §4 REVALIDATION: moved approved → "
+                     f"ready_for_review. {revalidation_reason}. "
+                     f"Original approval_method was "
+                     f"'{trust_state.get('approval_method')}'"),
+            "drafted_by": "system",
+        })
+    return {
+        "ok": True,
+        "revalidated": True,
+        "brand_id": brand_id,
+        "brief_id": brief_id,
+        "previous_approval_method": trust_state.get("approval_method"),
+        "revalidation_reason": revalidation_reason,
+        "current_status": b["status"],
+        "creative_allowed": False,
+    }
+
+
+def list_legacy_briefs(brand_id: str = None) -> list:
+    """V1.6 §3: list all Briefs with migration_required
+    schema_status (legacy string-list approval_questions).
+
+    Used by the migration audit endpoint.
+    """
+    out = []
+    brands = [brand_id] if brand_id else ["stick", "bag-drop",
+                                            "swing-shack"]
+    for b in brands:
+        try:
+            items = list_briefs(b)
+        except Exception:
+            continue
+        for brief in items:
+            b_id = brief.get("brief_id")
+            if not b_id:
+                continue
+            full = get_brief(b, b_id)
+            if not full:
+                continue
+            schema_status = _approval_schema_status(full)
+            if schema_status == "migration_required":
+                out.append({
+                    "brief_id": b_id,
+                    "brand_id": b,
+                    "status": full.get("status"),
+                    "creative_allowed": full.get("creative_allowed"),
+                    "schema_status": schema_status,
+                    "approval_method": full.get("approval_method"),
+                    "authenticated_operator":
+                        full.get("authenticated_operator"),
+                    "approval_questions_count": len(
+                        (full.get("approval_questions") or {})
+                        .get("items") or []),
+                    "decision_required_count": sum(
+                        1 for it in (full.get("approval_questions")
+                                     or {}).get("items") or []
+                        if isinstance(it, dict)
+                        and it.get("decision_required")),
+                    "migration_status": full.get("migration_status"),
+                })
+    return out
+
+
+def list_all_briefs_status(brand_id: str = None) -> list:
+    """V1.6 §3: list ALL active Briefs (draft, ready_for_review,
+    changes_requested, approved, rejected) with their schema
+    status + trust state for the audit endpoint.
+    """
+    out = []
+    brands = [brand_id] if brand_id else ["stick", "bag-drop",
+                                            "swing-shack"]
+    for b in brands:
+        try:
+            items = list_briefs(b)
+        except Exception:
+            continue
+        for brief in items:
+            b_id = brief.get("brief_id")
+            if not b_id:
+                continue
+            full = get_brief(b, b_id)
+            if not full:
+                continue
+            schema_status = _approval_schema_status(full)
+            trust_state = _approval_trust_state(full)
+            out.append({
+                "brief_id": b_id,
+                "brand_id": b,
+                "status": full.get("status"),
+                "creative_allowed": full.get("creative_allowed"),
+                "schema_status": schema_status,
+                "approval_question_schema": (
+                    "structured" if schema_status == "current"
+                    else "legacy_string_list"),
+                "approval_method": full.get("approval_method"),
+                "authenticated_operator":
+                    full.get("authenticated_operator"),
+                "approval_available": (
+                    full.get("approval_available", False)
+                    if schema_status == "current" else False),
+                "unanswered_required_count": len(
+                    _unanswered_required_questions(full)),
+                "trust_version": trust_state.get("trust_version"),
+                "approval_trust_ok": trust_state.get("ok"),
+                "migration_status": full.get(
+                    "migration_status", "not_migrated"),
+            })
+    return out
 

@@ -42261,6 +42261,108 @@ def brief_v1_required_questions(brand_id, brief_id):
 
 
 
+
+
+# ─── V1.6: CREATIVE GATE + LEGACY MIGRATION ENDPOINTS ──────────────────
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/can-generate-creative', methods=['GET'])
+def brief_v1_can_generate_creative(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id>/can-generate-creative
+
+    V1.6 §5: SINGLE SOURCE OF TRUTH for Creative readiness.
+
+    Future Create code MUST call this endpoint instead of
+    reproducing approval logic. Returns ok=true only when
+    ALL gates pass:
+      - status == approved
+      - creative_allowed == true
+      - approval_schema_status == current
+      - required_questions_unanswered == 0
+      - approval_method is current trusted mechanism
+      - authenticated_operator exists
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    result = cb.can_generate_creative(brand_id, brief_id)
+    return jsonify(result), 200
+
+
+@app.route('/api/brief/v1/_internal/legacy-brief-audit', methods=['GET'])
+def brief_v1_legacy_audit():
+    """GET /api/brief/v1/_internal/legacy-brief-audit
+
+    V1.6 §3: lists all Briefs with their schema status +
+    approval trust state. Used for migration audit.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    items = cb.list_all_briefs_status()
+    legacy_only = [
+        it for it in items
+        if it["schema_status"] == "migration_required"
+    ]
+    approved_legacy = [
+        it for it in items
+        if it["status"] == "approved"
+        and not it["approval_trust_ok"]
+    ]
+    return jsonify({
+        "ok": True,
+        "total_briefs": len(items),
+        "legacy_count": len(legacy_only),
+        "approved_legacy_count": len(approved_legacy),
+        "legacy_briefs": legacy_only,
+        "approved_legacy_briefs": approved_legacy,
+        "all_briefs": items,
+    }), 200
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/migrate-to-v16', methods=['POST'])
+def brief_v1_migrate_to_v16(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/migrate-to-v16
+
+    V1.6 §3: migrate a legacy Brief to V1.6 schema.
+    Idempotent — running twice on the same Brief returns
+    migrated=False the second time.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    result = cb.migrate_brief_to_v16_schema(brand_id, brief_id)
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/revalidate-approved', methods=['POST'])
+def brief_v1_revalidate_approved(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/revalidate-approved
+
+    V1.6 §4: move an approved legacy Brief back to
+    ready_for_review if its approval_method is not the
+    current trusted mechanism.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    body = request.get_json(silent=True) or {}
+    reason = body.get("reason")
+    result = cb.revalidate_legacy_approved_brief(
+        brand_id, brief_id, reason=reason)
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
