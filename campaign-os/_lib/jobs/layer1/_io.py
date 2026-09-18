@@ -30,6 +30,26 @@ def _fallback_brand() -> str:
     return str(reg.get("default_brand_id") or "swing-shack")
 
 
+def resolve_brand_domain(brand: str | None) -> tuple[str | None, str | None]:
+    """Return (hostname, error). Non-default brands require BRAND_DOMAIN_<BRAND>."""
+    from ..brand_lanes import _brand_safe
+
+    bid = brand or _fallback_brand()
+    safe = _brand_safe(bid)
+    explicit = os.environ.get(f"BRAND_DOMAIN_{safe}", "").strip()
+    if explicit:
+        host = explicit.removeprefix("https://").removeprefix("http://").rstrip("/")
+        return host, None
+    default_bid = _fallback_brand()
+    if bid != default_bid:
+        return None, f"BRAND_DOMAIN_{safe} not set"
+    legacy = os.environ.get("SWING_SHACK_DOMAIN", "swingshack.co.za").strip()
+    if not legacy:
+        return None, "SWING_SHACK_DOMAIN not set"
+    host = legacy.removeprefix("https://").removeprefix("http://").rstrip("/")
+    return host, None
+
+
 def flat_fallback_counts() -> dict[str, int]:
     """Return flat-fallback hit counts keyed by job:brand:file."""
     return {f"{job or '?'}:{brand or '?'}:{name}": n for (job, brand, name), n in _flat_fallback_counts.items()}

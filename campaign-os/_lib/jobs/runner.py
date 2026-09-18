@@ -332,6 +332,18 @@ def run_job(
     if spec is None:
         return {"ok": False, "job": name, "status": "FAILED", "error": "unknown job"}
 
+    if not getattr(spec, "enabled", True):
+        finished = _iso(_utc_now())
+        return {
+            "ok": True,
+            "job": name,
+            "status": "SKIPPED",
+            "skipped": True,
+            "reason": "job disabled",
+            "finished": finished,
+            "triggered_by": triggered_by,
+        }
+
     if spec.brand_mode == "per_brand":
         if brand is not None:
             resolved = set(resolve_brands(spec)) | set(skipped_brands(spec)) | set(spec.brands)
@@ -461,10 +473,12 @@ def verdict_for(
     now: Optional[datetime] = None,
     brand: str | None = None,
 ) -> str:
-    """OK | LATE | FAILED | STUCK | NEVER | SKIPPED — see plan §3.4."""
+    """OK | LATE | FAILED | STUCK | NEVER | SKIPPED | DISABLED — see plan §3.4."""
     spec = JOBS.get(name)
     if spec is None:
         return "NEVER"
+    if not getattr(spec, "enabled", True):
+        return "DISABLED"
     now = now or _utc_now()
 
     if brand is not None:
@@ -583,6 +597,7 @@ def build_status() -> dict:
             "last_run_id": (last or {}).get("run_id"),
             "last_error_class": (last or {}).get("error_class"),
             "best_effort": bool(getattr(spec, "best_effort", False)),
+            "enabled": bool(getattr(spec, "enabled", True)),
             "every_seconds": getattr(spec, "every_seconds", None),
             "timeout_seconds": getattr(spec, "timeout_seconds", None),
             "retries": getattr(spec, "retries", 0),

@@ -30,8 +30,9 @@ on:
 jobs:
   refresh-meta:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
       - name: POST /api/jobs/run/meta_refresh on Railway
         env:
           COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
@@ -45,17 +46,12 @@ jobs:
           BASE="https://swing-shack-dashboard-production.up.railway.app"
 
           echo "=== POST /api/jobs/run/meta_refresh ==="
-          curl -sf -X POST "$BASE/api/jobs/run/meta_refresh" \
+          curl -sf -X POST "$BASE/api/jobs/run/meta_refresh?all=1" \
             -H "$AUTH_H" \
             -H "Content-Type: application/json" \
             -w "\nHTTP %{http_code} in %{time_total}s\n" \
             -o /tmp/meta-fetch.json
-          cat /tmp/meta-fetch.json | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          print(f'ok={d.get(\"ok\")} status={d.get(\"status\", \"?\")} run_id={d.get(\"run_id\", \"?\")}')
-          print(f'rows={d.get(\"rows\", \"?\")} duration_s={d.get(\"duration_s\", \"?\")}')
-          "
+          python3 scripts/cos_job_summary.py print /tmp/meta-fetch.json
 
           echo
           echo "=== POST /api/freshness/refresh ==="
@@ -77,4 +73,4 @@ jobs:
           print(f'rotten={d.get(\"rotten_count\", \"?\")}')
           "
 
-          python3 -c "import json,sys; d=json.load(open('/tmp/meta-fetch.json')); sys.exit(0 if d.get('ok') else 1)"
+          python3 scripts/cos_job_summary.py assert-ok /tmp/meta-fetch.json --hard-gate

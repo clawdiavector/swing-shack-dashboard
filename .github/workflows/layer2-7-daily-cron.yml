@@ -27,6 +27,8 @@ jobs:
             exit 1
           fi
 
+      - uses: actions/checkout@v4
+
       - name: L2 — slot_planner
         continue-on-error: true
         run: |
@@ -35,7 +37,7 @@ jobs:
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/slot_planner.json
-          python3 -c "import json; d=json.load(open('/tmp/slot_planner.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/slot_planner.json
 
       - name: L2 — agent_queue_writer
         continue-on-error: true
@@ -45,7 +47,7 @@ jobs:
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/agent_queue_writer.json
-          python3 -c "import json; d=json.load(open('/tmp/agent_queue_writer.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/agent_queue_writer.json
 
       - name: L2 — review_sla
         continue-on-error: true
@@ -55,87 +57,87 @@ jobs:
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/review_sla.json
-          python3 -c "import json; d=json.load(open('/tmp/review_sla.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/review_sla.json
 
       - name: L2 — holiday_inject
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/holiday_inject" \
+          curl -sf -X POST "$BASE/api/jobs/run/holiday_inject?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/holiday_inject.json
-          python3 -c "import json; d=json.load(open('/tmp/holiday_inject.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/holiday_inject.json
 
       - name: L5 — draft_assets
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/draft_assets" \
+          curl -sf -X POST "$BASE/api/jobs/run/draft_assets?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/draft_assets.json
-          python3 -c "import json; d=json.load(open('/tmp/draft_assets.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/draft_assets.json
 
       - name: L5 — asset_qc
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/asset_qc" \
+          curl -sf -X POST "$BASE/api/jobs/run/asset_qc?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/asset_qc.json
-          python3 -c "import json; d=json.load(open('/tmp/asset_qc.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/asset_qc.json
 
       - name: L6 — publish_dispatch
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/publish_dispatch" \
+          curl -sf -X POST "$BASE/api/jobs/run/publish_dispatch?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/publish_dispatch.json
-          python3 -c "import json; d=json.load(open('/tmp/publish_dispatch.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/publish_dispatch.json
 
       - name: L7 — post_outcomes
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/post_outcomes" \
+          curl -sf -X POST "$BASE/api/jobs/run/post_outcomes?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/post_outcomes.json
-          python3 -c "import json; d=json.load(open('/tmp/post_outcomes.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/post_outcomes.json
 
       - name: L7 — winner_promotion
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/winner_promotion" \
+          curl -sf -X POST "$BASE/api/jobs/run/winner_promotion?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/winner_promotion.json
-          python3 -c "import json; d=json.load(open('/tmp/winner_promotion.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/winner_promotion.json
 
       - name: L7 — proposal_outcome
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/proposal_outcome" \
+          curl -sf -X POST "$BASE/api/jobs/run/proposal_outcome?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/proposal_outcome.json
-          python3 -c "import json; d=json.load(open('/tmp/proposal_outcome.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/proposal_outcome.json
 
       - name: L7 — human_edit_signal
         continue-on-error: true
         run: |
           set -euo pipefail
-          curl -sf -X POST "$BASE/api/jobs/run/human_edit_signal" \
+          curl -sf -X POST "$BASE/api/jobs/run/human_edit_signal?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/human_edit_signal.json
-          python3 -c "import json; d=json.load(open('/tmp/human_edit_signal.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/human_edit_signal.json
 
       - name: Summary — L2–L7 job verdicts
         run: |

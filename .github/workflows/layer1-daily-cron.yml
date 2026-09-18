@@ -1,6 +1,7 @@
 name: Layer 1 daily cron (07:00 SAST)
 
-# Fires the nine Layer 1 jobs not covered by meta-live-fetch.yml or gbp-daily-cron.yml.
+# Fires Layer 1 daily jobs not covered by meta-live-fetch.yml or gbp-daily-cron.yml.
+# reddit_trends disabled 2026-09-18 (Reddit 429 rate limits).
 # meta_refresh (12h) and gbp_tick (06:00 SAST) have their own workflows.
 #
 # Schedule: 05:00 UTC = 07:00 SAST — after gbp_tick, before morning brief digest.
@@ -14,7 +15,7 @@ on:
 jobs:
   layer1-daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
       BASE: https://swing-shack-dashboard-production.up.railway.app
@@ -27,6 +28,8 @@ jobs:
             exit 1
           fi
 
+      - uses: actions/checkout@v4
+
       - name: Wave 1 — golf_news
         continue-on-error: true
         run: |
@@ -36,72 +39,62 @@ jobs:
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/golf_news.json
-          python3 -c "import json; d=json.load(open('/tmp/golf_news.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
-
-      - name: Wave 1 — reddit_trends
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          echo "=== POST /api/jobs/run/reddit_trends ==="
-          curl -sf -X POST "$BASE/api/jobs/run/reddit_trends" \
-            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -o /tmp/reddit_trends.json
-          python3 -c "import json; d=json.load(open('/tmp/reddit_trends.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/golf_news.json
 
       - name: Wave 1 — seo_rankings
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/seo_rankings ==="
-          curl -sf -X POST "$BASE/api/jobs/run/seo_rankings" \
+          curl -sf -X POST "$BASE/api/jobs/run/seo_rankings?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/seo_rankings.json
-          python3 -c "import json; d=json.load(open('/tmp/seo_rankings.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/seo_rankings.json
 
       - name: Wave 1 — ga4_report
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/ga4_report ==="
-          curl -sf -X POST "$BASE/api/jobs/run/ga4_report" \
+          curl -sf -X POST "$BASE/api/jobs/run/ga4_report?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/ga4_report.json
-          python3 -c "import json; d=json.load(open('/tmp/ga4_report.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/ga4_report.json
+          python3 scripts/cos_job_summary.py assert-ok /tmp/ga4_report.json --hard-gate
 
       - name: Wave 1 — windsor_refresh
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/windsor_refresh ==="
-          curl -sf -X POST "$BASE/api/jobs/run/windsor_refresh" \
+          curl -sf -X POST "$BASE/api/jobs/run/windsor_refresh?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/windsor_refresh.json
-          python3 -c "import json; d=json.load(open('/tmp/windsor_refresh.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/windsor_refresh.json
 
       - name: Wave 1 — gsc_report
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/gsc_report ==="
-          curl -sf -X POST "$BASE/api/jobs/run/gsc_report" \
+          curl -sf -X POST "$BASE/api/jobs/run/gsc_report?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/gsc_report.json
-          python3 -c "import json; d=json.load(open('/tmp/gsc_report.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/gsc_report.json
 
       - name: Wave 1 — booking_truth
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/booking_truth ==="
-          curl -sf -X POST "$BASE/api/jobs/run/booking_truth" \
+          curl -sf -X POST "$BASE/api/jobs/run/booking_truth?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/booking_truth.json
-          python3 -c "import json; d=json.load(open('/tmp/booking_truth.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/booking_truth.json
 
       - name: Wave 1 — competitor_tracker (Mondays only)
         continue-on-error: true
@@ -112,22 +105,22 @@ jobs:
             exit 0
           fi
           echo "=== POST /api/jobs/run/competitor_tracker ==="
-          curl -sf -X POST "$BASE/api/jobs/run/competitor_tracker" \
+          curl -sf -X POST "$BASE/api/jobs/run/competitor_tracker?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/competitor_tracker.json
-          python3 -c "import json; d=json.load(open('/tmp/competitor_tracker.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/competitor_tracker.json
 
       - name: Wave 1 — site_audit
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/site_audit ==="
-          curl -sf -X POST "$BASE/api/jobs/run/site_audit" \
+          curl -sf -X POST "$BASE/api/jobs/run/site_audit?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/site_audit.json
-          python3 -c "import json; d=json.load(open('/tmp/site_audit.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/site_audit.json
 
       - name: Wave 1 — freshness_scan
         continue-on-error: true
@@ -138,7 +131,7 @@ jobs:
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/freshness_scan.json
-          python3 -c "import json; d=json.load(open('/tmp/freshness_scan.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/freshness_scan.json
 
       - name: Wave 2 — youtube_trends
         continue-on-error: true
@@ -149,49 +142,51 @@ jobs:
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/youtube_trends.json
-          python3 -c "import json; d=json.load(open('/tmp/youtube_trends.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/youtube_trends.json
 
       - name: Wave 3 — insights_hooks
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/insights_hooks ==="
-          curl -sf -X POST "$BASE/api/jobs/run/insights_hooks" \
+          curl -sf -X POST "$BASE/api/jobs/run/insights_hooks?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/insights_hooks.json
-          python3 -c "import json,sys; d=json.load(open('/tmp/insights_hooks.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}'); sys.exit(0 if d.get('ok') else 1)"
+          python3 scripts/cos_job_summary.py print /tmp/insights_hooks.json
+          python3 scripts/cos_job_summary.py assert-ok /tmp/insights_hooks.json --hard-gate
 
       - name: Wave 3b — post_conversion_score
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/post_conversion_score ==="
-          curl -sf -X POST "$BASE/api/jobs/run/post_conversion_score" \
+          curl -sf -X POST "$BASE/api/jobs/run/post_conversion_score?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/post_conversion_score.json
-          python3 -c "import json; d=json.load(open('/tmp/post_conversion_score.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/post_conversion_score.json
 
       - name: Wave 4 — insights_reco
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/insights_reco ==="
-          curl -sf -X POST "$BASE/api/jobs/run/insights_reco" \
+          curl -sf -X POST "$BASE/api/jobs/run/insights_reco?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/insights_reco.json
-          python3 -c "import json,sys; d=json.load(open('/tmp/insights_reco.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}'); sys.exit(0 if d.get('ok') else 1)"
+          python3 scripts/cos_job_summary.py print /tmp/insights_reco.json
+          python3 scripts/cos_job_summary.py assert-ok /tmp/insights_reco.json --hard-gate
 
       - name: Wave 5 — content_ideas_refresh
         continue-on-error: true
         run: |
           set -euo pipefail
           echo "=== POST /api/jobs/run/content_ideas_refresh ==="
-          curl -sf -X POST "$BASE/api/jobs/run/content_ideas_refresh" \
+          curl -sf -X POST "$BASE/api/jobs/run/content_ideas_refresh?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             -o /tmp/content_ideas_refresh.json
-          python3 -c "import json; d=json.load(open('/tmp/content_ideas_refresh.json')); print(f'ok={d.get(\"ok\")} status={d.get(\"status\",\"?\")} run_id={d.get(\"run_id\",\"?\")}')"
+          python3 scripts/cos_job_summary.py print /tmp/content_ideas_refresh.json
 
       - name: Summary — GET /api/jobs/digest
         run: |

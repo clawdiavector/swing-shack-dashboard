@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import describe_exception
-from ._io import data_dir, repo_root, io_for_job
+from ._io import data_dir, io_for_job, repo_root, resolve_brand_domain
 
 JOB_NAME = "seo_rankings"
 
@@ -82,13 +82,18 @@ def run(*, brand: str | None = None) -> dict:
     if not _token_present():
         return {"ok": False, "error": "no ubersuggest token"}
 
-    domain = os.environ.get("SWING_SHACK_DOMAIN", "swingshack.co.za")
-    if not domain.strip():
-        return {"ok": False, "error": "SWING_SHACK_DOMAIN not set"}
+    domain, domain_err = resolve_brand_domain(brand)
+    if domain_err:
+        return {"ok": False, "error": domain_err}
 
     try:
         mod = _load_ubersuggest_module()
-        exit_code = mod.main()
+        argv_old = sys.argv[:]
+        try:
+            sys.argv = ["fetch_ubersuggest", "--domain", domain]
+            exit_code = mod.main()
+        finally:
+            sys.argv = argv_old
     except SystemExit as exc:
         code = exc.code if isinstance(exc.code, int) else 1
         if code == 2:

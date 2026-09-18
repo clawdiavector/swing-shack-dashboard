@@ -191,7 +191,7 @@ def _score_posts(
 def run(*, brand: str | None = None) -> dict:
     """Build post-conversion-score.json from GA4 + ig-business-analytics.json."""
     io = io_for_job(JOB_NAME, brand)
-    missing = ga4_report._missing_env_error()
+    missing = ga4_report._missing_env_error(brand)
     if missing:
         return {"ok": False, "error": missing}
 
@@ -205,8 +205,8 @@ def run(*, brand: str | None = None) -> dict:
     end_str = end.isoformat()
 
     try:
-        property_id, _ = ga4_report._resolve_ga4_creds()
-        bearer = ga4_report._get_ga4_bearer()
+        property_id, _ = ga4_report._resolve_ga4_creds(brand)
+        bearer = ga4_report._get_ga4_bearer(brand)
     except RuntimeError as exc:
         return {"ok": False, "error": str(exc)}
 

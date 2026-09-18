@@ -12341,6 +12341,15 @@ def admin_secrets_sync():
             if os.path.exists(rt_path):
                 os.environ['OPENAI_API_KEY_FILE'] = rt_path
                 env_wired.append('OPENAI_API_KEY_FILE')
+    elif service == 'youtube-api':
+        yt_key = contents_obj.get('api_key') or contents_obj.get('key')
+        if yt_key:
+            os.environ['YOUTUBE_API_KEY'] = yt_key
+            env_wired.append('YOUTUBE_API_KEY')
+            rt_path = os.path.join(runtime_creds_dir, file_name)
+            if os.path.exists(rt_path):
+                os.environ['YOUTUBE_API_KEY_FILE'] = rt_path
+                env_wired.append('YOUTUBE_API_KEY_FILE')
     elif service == 'windsor-api':
         # Windsor.ai aggregator: single api_key unlocks all paid-media connectors
         # (facebook, google_ads, tiktok, linkedin, ...). _lib.windsor_client
@@ -14242,6 +14251,124 @@ def gbp_oauth_disconnect_route(brand_id):
     return jsonify({"ok": True, "brand_id": brand_id, "removed": removed}), 200
 
 
+_GSC_OAUTH_AVAILABLE = True
+try:
+    from _lib import gsc_oauth as _gsc_lib
+except Exception as _gsc_exc:
+    _GSC_OAUTH_AVAILABLE = False
+    _gsc_lib = None
+    _app_log.warning("gsc_oauth import failed: %s", _gsc_exc)
+if _GSC_OAUTH_AVAILABLE:
+    assert _gsc_lib is not None
+
+
+@app.route('/api/gsc/oauth/login', methods=['GET'])
+def gsc_oauth_login_route():
+    """GET /api/gsc/oauth/login — start Search Console OAuth."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    if not _gsc_lib.gsc_oauth_credentials_present():
+        return jsonify({
+            "ok": False,
+            "error": "GSC OAuth client not configured — sync google-search-console-oauth.json",
+            "status": _gsc_lib.gsc_status(),
+        }), 503
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    state = _gsc_lib.make_state(brand_id=brand, user_id="operator")
+    redirect_uri = "https://" + request.host + "/api/gsc/oauth/callback"
+    auth_url = _gsc_lib.build_authorize_url(redirect_uri, state)
+    return redirect(auth_url, code=302)
+
+
+@app.route('/api/gsc/oauth/callback', methods=['GET'])
+def gsc_oauth_callback_route():
+    """GET /api/gsc/oauth/callback — finish Search Console OAuth."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    code = request.args.get("code")
+    state = request.args.get("state")
+    error = request.args.get("error")
+    if error:
+        return jsonify({"ok": False, "error": f"google oauth returned error: {error}"}), 400
+    if not code or not state:
+        return jsonify({"ok": False, "error": "missing code or state"}), 400
+    ok, reason, brand_id = _gsc_lib.verify_state(state)
+    if not ok:
+        return jsonify({"ok": False, "error": f"state invalid: {reason}"}), 400
+    redirect_uri = "https://" + request.host + "/api/gsc/oauth/callback"
+    try:
+        data, err = _gsc_lib.exchange_code(code, redirect_uri)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"exchange failed: {exc}"}), 502
+    if err:
+        code_s, msg = err
+        return jsonify({"ok": False, "error": f"google token exchange {code_s}: {msg}"}), 502
+    if not data or "access_token" not in data:
+        return jsonify({"ok": False, "error": "no access_token in response"}), 502
+    email = None
+    try:
+        req = urllib.request.Request(
+            _gsc_lib.GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {data['access_token']}", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            info = json.loads(r.read().decode("utf-8"))
+            email = info.get("email")
+    except Exception:
+        pass
+    try:
+        _gsc_lib.save_token(
+            data,
+            brand=brand_id,
+            google_account_email=email,
+            note=f"via OAuth callback {request.url_root}",
+        )
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"persist failed: {exc}"}), 500
+    return Response(
+        """<!doctype html>
+<html><head><title>Search Console Connected</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0a0f1a;color:#e5e7eb;text-align:center;padding:80px 20px}
+h1{color:#6ee7b7}p{color:#94a3b8}</style></head>
+<body>
+<h1>Google Search Console connected</h1>
+<p>You can close this tab and return to Campaign OS.</p>
+<p>Next: visit <a href="/connected-accounts" style="color:#fbbf24">Connected Accounts</a>.</p>
+</body></html>""",
+        mimetype="text/html",
+    ), 200
+
+
+@app.route('/api/gsc/status', methods=['GET'])
+def gsc_status_route():
+    """GET /api/gsc/status — Search Console OAuth diagnostic snapshot."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    out = _gsc_lib.gsc_status(brand=brand)
+    out["ok"] = out.get("oauth_client_id_present") and out.get("token_present")
+    return jsonify(out), 200
+
+
+@app.route('/api/gsc/oauth/disconnect', methods=['POST'])
+def gsc_oauth_disconnect_route():
+    """POST /api/gsc/oauth/disconnect — remove stored Search Console OAuth token."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand = str(request.args.get("brand") or body.get("brand") or "swing-shack").strip()
+    removed = _gsc_lib.delete_token(brand=brand)
+    return jsonify({"ok": True, "brand": brand, "removed": removed}), 200
+
+
 # ── GBP Daily Poster (built 2026-08-20) ────────────────────────────────────────
 # Per Christelle's "Real world wind" brief: GBP posts should go out daily,
 # driven by SEO signals (Ubersuggest + GA4 queries) + improve GEO finds.
@@ -14355,24 +14482,26 @@ def gbp_daily_poster_latest_route():
 # anchored on the latest insights data so the Morning Brief tiles can
 # surface them with one click. Does NOT publish (destructive write is
 # always explicit via the GBP Daily card's Publish button).
-def _gbp_daily_cron_tick():
+def _gbp_daily_cron_tick(*, brand: str | None = None):
     """06:00 SAST: rebuild tomorrow's plan from current insights."""
     if not _GBP_DAILY_AVAILABLE or not _GBP_INSIGHTS_AVAILABLE:
         return {"ok": False, "error": "modules unavailable"}
+    brand_id = (brand or "swing-shack").strip()
     # 1. Refresh insights first (so the boost applies to the new plan)
     insights = {}
     try:
-        insights = _gbi.sync_for_brand("swing-shack", days=30)
+        insights = _gbi.sync_for_brand(brand_id, days=30)
     except Exception as exc:
         _app_log.warning("cron: insights sync failed: %s", exc)
     # 2. Build plan (dry-run; never auto-publishes)
     plan = {}
     try:
-        plan = _gdp.build_daily_plan("swing-shack", days=7, posts_per_day=1, publish=False)
+        plan = _gdp.build_daily_plan(brand_id, days=7, posts_per_day=1, publish=False)
     except Exception as exc:
         _app_log.warning("cron: plan build failed: %s", exc)
     return {
         "ok": True,
+        "brand": brand_id,
         "ran_at": _dt_cls.now(_tz.utc).isoformat(),
         "insights_ok": insights.get("ok"),
         "insights_records": insights.get("insights_records", 0),
@@ -16309,9 +16438,7 @@ try:
         criticality="LOW",
         best_effort=True,
         writes=("freshness.json",),
-        brand_mode="per_brand",
-        brands=("swing-shack", "stick", "bag-drop"),
-        shared_writes=("freshness.json",),
+        brand_mode="global",
     ))
 
     def _run_publish_dispatch_job():
@@ -22593,18 +22720,36 @@ def brief_v1_revert_test_approval(brand_id, brief_id):
 def brief_v1_operator_token_status():
     """GET /api/brief/v1/_internal/operator-token-status
 
-    V1.2 §1: diagnostic — checks whether operator tokens are
-    configured without exposing the token values. Returns
-    {configured: bool, operators: [op_id, ...]}."""
+    V1.2 §1 + V1.7 §3: diagnostic — checks whether operator
+    tokens are configured without exposing the token values.
+
+    In production, masks operators in the forbidden list
+    (test_operator / automation / agents / service accounts)
+    from the operators[] response — they may still exist in
+    the env var but are not production-eligible identities.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     cb = _cb_import()
     store = cb._operator_token_store()
+    env = cb._resolve_environment()
+    forbidden = set(cb._production_forbidden_operators())
+    if env == "production":
+        operators = sorted(k for k in store.keys()
+                          if k.lower() not in forbidden)
+        eligible_count = len(operators)
+    else:
+        operators = sorted(store.keys())
+        eligible_count = len(operators)
     return jsonify({
         "ok": True,
+        "environment": env,
         "configured": len(store) > 0,
         "operator_count": len(store),
-        "operators": sorted(store.keys()),
+        "eligible_production_count": eligible_count,
+        "operators": operators,
+        "forbidden_in_production": (
+            sorted(forbidden) if env == "production" else []),
     })
 
 
@@ -22889,35 +23034,63 @@ def _render_brief_html(b: dict) -> str:
 @app.route('/api/reports/v1/<brand_id>/list-uploads', methods=['GET'])
 def report_v1_list_uploads(brand_id):
     """GET /api/reports/v1/<brand_id>/list-uploads — list operator-uploaded
-    historical reports for a brand."""
+    historical reports for a brand.
+
+    V2.1 §3: searches multiple candidate roots so list-uploads
+    matches the engine-side _historical_reports() lookup.
+    Without this, list-uploads and the report's Historical
+    Reports section disagree on which files exist.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": f"unknown brand_id: {brand_id}"}), 400
-    out_dir = os.path.join(DATA_DIR, "historical-reports", brand_id)
-    if not os.path.isdir(out_dir):
-        return jsonify({"ok": True, "brand_id": brand_id, "files": []}), 200
+    # V2.1 §3: scan multiple candidate roots. DATA_DIR is the
+    # canonical persistent root; the others are fallbacks for
+    # bundled / cache paths the engine reads.
+    candidate_roots = []
+    if DATA_DIR:
+        candidate_roots.append(
+            os.path.join(DATA_DIR, "historical-reports", brand_id))
+    candidate_roots.extend([
+        "/data/historical-reports/" + brand_id,
+        os.path.join("/app", "data", "historical-reports", brand_id),
+        os.path.join(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))),
+                     "data", "historical-reports", brand_id),
+    ])
+    seen = set()
     files = []
-    for fname in sorted(os.listdir(out_dir)):
-        if not fname.endswith(".json"):
+    for root in candidate_roots:
+        if not os.path.isdir(root):
             continue
-        p = os.path.join(out_dir, fname)
-        try:
-            d = json.load(open(p))
-            files.append({
-                "filename": fname,
-                "period": d.get("period"),
-                "uploaded_at": d.get("uploaded_at"),
-                "uploaded_by": d.get("uploaded_by"),
-                "metrics_keys": sorted((d.get("metrics") or {}).keys())
-                                if isinstance(d.get("metrics"), dict) else [],
-                "observations_count": len(d.get("observations", []) or []),
-                "size_bytes": os.path.getsize(p),
-            })
-        except Exception as e:
-            files.append({"filename": fname, "parse_error": str(e)[:120]})
+        for fname in sorted(os.listdir(root)):
+            if not fname.endswith(".json"):
+                continue
+            if fname in seen:
+                continue
+            seen.add(fname)
+            p = os.path.join(root, fname)
+            try:
+                d = json.load(open(p))
+                files.append({
+                    "filename": fname,
+                    "period": d.get("period"),
+                    "uploaded_at": d.get("uploaded_at"),
+                    "uploaded_by": d.get("uploaded_by"),
+                    "metrics_keys": sorted((d.get("metrics") or {}).keys())
+                                    if isinstance(d.get("metrics"), dict) else [],
+                    "observations_count": len(d.get("observations", []) or []),
+                    "size_bytes": os.path.getsize(p),
+                    "source_root": root,
+                })
+            except Exception as e:
+                files.append({"filename": fname,
+                              "source_root": root,
+                              "parse_error": str(e)[:120]})
     return jsonify({"ok": True, "brand_id": brand_id,
-                    "count": len(files), "files": files}), 200
+                    "count": len(files), "files": files,
+                    "roots_scanned": candidate_roots}), 200
 
 
 
@@ -23098,15 +23271,21 @@ def weekly_report_page():
 
 
 def _render_brief_review_html(b: dict) -> str:
-    """V1.4 §1: operator review page.
+    """V1.5: full operator review page.
 
-    Renders the brief content + status + (when status ==
-    ready_for_review) the human approval controls. The
-    page does NOT include any creative content. It does
-    NOT prefill the approval secret. The secret is
-    captured only when the operator clicks APPROVE and
-    is cleared from the input by the browser after the
-    POST is sent.
+    Renders the complete strategic Brief with:
+      - Full strategic sections (opportunity → measurement)
+      - Field provenance (system_draft vs operator_edit)
+      - Evidence Pack (readable cards)
+      - Material Limitations (data_coverage + data_limitations)
+      - Approval Questions (informational + decision_required,
+        with operator_answer form when present)
+      - Risks / Unknowns
+      - Status Transitions audit
+      - Operator Approval controls (when ready_for_review)
+        with required-questions gate enforcement
+
+    No creative content rendered (per V1.4 §16).
     """
     def esc(s):
         return (str(s or "")
@@ -23122,42 +23301,245 @@ def _render_brief_review_html(b: dict) -> str:
     created = esc(str(b.get("created_at", ""))[:19])
     updated = esc(str(b.get("updated_at", ""))[:19])
 
-    # Brief summary sections (compact for review)
-    sections_html = []
-    for sec_key in ["opportunity", "timing", "business_objective",
-                    "audience", "problem_insight",
-                    "strategic_proposition", "cta_strategy"]:
-        sec = b.get(sec_key)
-        if not sec:
-            continue
-        title = sec_key.replace("_", " ").title()
+    # --- Field provenance indicator ---
+    field_provenance = b.get("field_provenance") or {}
+
+    def prov_label(field_name):
+        fp = field_provenance.get(field_name) or {}
+        drafted_by = fp.get("drafted_by") or "unknown"
+        last_edited_by = fp.get("last_edited_by") or "system"
+        last_edited_at = fp.get("last_edited_at", "")
+        last_edited_at = esc(last_edited_at[:19]) if last_edited_at else ""
+        if drafted_by == "operator_edit":
+            return (f'<span class="prov operator_edit" '
+                    f'title="last edited by {esc(last_edited_by)} at '
+                    f'{last_edited_at}">operator_edit</span>')
+        return ('<span class="prov system_draft" '
+                'title="system_draft (operator-editable)">system_draft</span>')
+
+    # --- Render any brief section with provenance ---
+    def render_section(sec_key, sec, title, options=None):
+        options = options or {}
         body = ""
-        if isinstance(sec, dict):
+        if not sec:
+            body = "<em class=\"muted\">not populated</em>"
+        elif isinstance(sec, dict):
             for k, v in sec.items():
                 if k in ("title", "evidence_source", "evidence_basis"):
                     continue
                 if isinstance(v, (str, int, float)):
-                    body += f"<div><strong>{esc(k)}</strong>: {esc(v)}</div>"
+                    if v:
+                        body += f"<div><strong>{esc(k)}</strong>: {esc(v)}</div>"
                 elif isinstance(v, list):
                     body += f"<div><strong>{esc(k)}</strong>:</div><ul>"
-                    for item in v[:8]:
+                    for item in v[:10]:
                         if isinstance(item, dict):
                             body += "<li>" + "; ".join(
-                                f"{esc(kk)}={esc(str(vv))}"
+                                f"<strong>{esc(kk)}</strong>: "
+                                f"{esc(str(vv))}"
                                 for kk, vv in item.items()
                                 if isinstance(vv, (str, int, float))
                             ) + "</li>"
                         else:
                             body += f"<li>{esc(item)}</li>"
                     body += "</ul>"
-        sections_html.append(
-            f"<details open><summary><strong>{esc(title)}</strong></summary>"
-            f"<div class='sec-body'>{body}</div></details>")
+        prov = (prov_label(sec_key)
+                if sec_key in field_provenance else "")
+        return (
+            f"<details open><summary><strong>{esc(title)}</strong> "
+            f"{prov}</summary>"
+            f"<div class='sec-body'>{body}</div></details>"
+        )
 
-    sections_block = "".join(sections_html) if sections_html else (
-        "<em>No sections populated.</em>")
+    # --- All strategic sections (V1.5 §1) ---
+    sections_to_render = [
+        ("opportunity",            "Opportunity"),
+        ("timing",                 "Timing"),
+        ("business_objective",     "Business Objective"),
+        ("audience",               "Audience"),
+        ("problem_insight",        "Problem / Insight"),
+        ("strategic_proposition",  "Strategic Proposition"),
+        ("reasons_to_believe",     "Reasons to Believe"),
+        ("historical_evidence",    "Historical Evidence"),
+        ("creative_evidence",      "Creative Evidence"),
+        ("channel_role",           "Channel Role"),
+        ("content_asset_requirements", "Content / Asset Requirements"),
+        ("cta_strategy",           "CTA Strategy"),
+        ("measurement_plan",       "Measurement Plan"),
+    ]
+    sections_html = []
+    for sec_key, title in sections_to_render:
+        sec = b.get(sec_key)
+        sections_html.append(render_section(sec_key, sec, title))
 
-    # Status transitions
+    sections_block = "".join(sections_html)
+
+    # --- Evidence Pack (V1.5 §1) ---
+    ep = b.get("evidence_pack") or []
+    if ep:
+        ep_cards = []
+        for i, e in enumerate(ep, 1):
+            claim = esc(e.get("claim", ""))
+            source = esc(e.get("source", ""))
+            etype = esc(e.get("type", ""))
+            confidence = esc(e.get("confidence", ""))
+            conf_class = ("high" if confidence == "HIGH"
+                           else "medium" if confidence == "MEDIUM"
+                           else "low")
+            ep_cards.append(
+                f"<div class='ev-card'>"
+                f"<div class='ev-num'>#{i}</div>"
+                f"<div class='ev-body'>"
+                f"<div><strong>Finding</strong>: {claim}</div>"
+                f"<div class='meta'><strong>Evidence source</strong>: "
+                f"<code>{source}</code></div>"
+                f"<div class='meta'><strong>Type</strong>: {etype} "
+                f"· <strong>Confidence</strong>: "
+                f"<span class='conf {conf_class}'>{confidence}</span></div>"
+                f"</div></div>")
+        evidence_pack_block = (
+            "<h2>Evidence Pack</h2>"
+            f"<div class='ev-list'>{''.join(ep_cards)}</div>")
+    else:
+        evidence_pack_block = ""
+
+    # --- Material Limitations (V1.5 §2) ---
+    es = b.get("evidence_snapshot") or {}
+    dc = es.get("data_coverage") or {}
+    dl = list(es.get("data_limitations") or [])
+    # Also add risks_unknowns as a material limitation block
+    ru = b.get("risks_unknowns") or {}
+    ru_items = ru.get("items") or []
+    dl.extend(ru_items)
+
+    # Build the data_coverage table
+    coverage_rows = ""
+    for k, v in sorted(dc.items()):
+        v_lower = str(v).lower()
+        cls = ("ok" if v == "LIVE"
+                else "pending" if v in ("PARTIAL", "HISTORICAL_REAL")
+                else "not" if v in ("NOT_CONNECTED", "ERROR",
+                                     "UNAVAILABLE", "PENDING")
+                else "partial")
+        coverage_rows += (
+            f"<tr><td>{esc(k)}</td>"
+            f"<td><span class='pill {cls}'>{esc(v)}</span></td></tr>")
+
+    # Material limitations list
+    lim_items = ""
+    for li in dl:
+        lim_items += f"<li>{esc(li)}</li>"
+    if not lim_items:
+        lim_items = "<li class='muted'>No material limitations recorded.</li>"
+
+    limitations_block = (
+        "<h2>Material Limitations</h2>"
+        "<p class='meta'>These limitations must be visible during "
+        "approval. The operator should not need to inspect Reporting "
+        "separately to discover them.</p>"
+        + (f"<h3>Data Coverage</h3>"
+           f"<table class='tbl'>"
+           f"<tr><th>Surface</th><th>Status</th></tr>"
+           f"{coverage_rows}</table>" if coverage_rows else "")
+        + f"<h3>Limitations &amp; Unknowns</h3>"
+        f"<ul class='lim-list'>{lim_items}</ul>")
+
+    # --- Field provenance (V1.5 §3) ---
+    prov_sections = []
+    for fname, fp in field_provenance.items():
+        drafted_by = fp.get("drafted_by", "unknown")
+        last_edited_by = fp.get("last_edited_by", "")
+        last_edited_at = fp.get("last_edited_at", "")
+        editable = fp.get("editable", True)
+        prov_sections.append(
+            f"<tr><td>{esc(fname)}</td>"
+            f"<td><span class='prov {drafted_by}'>{drafted_by}</span></td>"
+            f"<td>{esc(last_edited_by) or '—'}</td>"
+            f"<td>{esc(last_edited_at[:19]) if last_edited_at else '—'}</td>"
+            f"<td>{'yes' if editable else 'no'}</td></tr>")
+    provenance_block = (
+        "<h2>Field Provenance</h2>"
+        "<p class='meta'>Tracks whether key strategy fields were "
+        "system-drafted or operator-edited.</p>"
+        f"<table class='tbl'>"
+        "<tr><th>Field</th><th>Drafted by</th><th>Last edited by</th>"
+        "<th>Last edited at</th><th>Editable</th></tr>"
+        f"{''.join(prov_sections)}</table>")
+
+    # --- Approval Questions (V1.5 §4) ---
+    aq_items = (b.get("approval_questions") or {}).get("items") or []
+    operator_answers = b.get("operator_answers") or {}
+    unanswered_required = b.get("unanswered_required_questions") or []
+
+    aq_rows = []
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            q_required = q.get("decision_required", False)
+            q_kind = q.get("kind") or (
+                "decision_required" if q_required else "informational")
+        else:
+            q_text = str(q)
+            q_required = False
+            q_kind = "informational"
+        ans = operator_answers.get(q_text) or {}
+        ans_text = ans.get("operator_answer") or ""
+        ans_at = ans.get("answered_at", "")[:19] if ans.get("answered_at") else ""
+        cls = ("required" if q_required
+                else "informational")
+        if q_required and not ans_text:
+            state_badge = '<span class="pill not">UNANSWERED</span>'
+        elif q_required and ans_text:
+            state_badge = '<span class="pill ok">ANSWERED</span>'
+        else:
+            state_badge = '<span class="pill informational">INFO</span>'
+        ans_block = ""
+        if ans_text:
+            ans_block = (
+                f"<div class='aq-answer'>"
+                f"<strong>Operator answer</strong>: {esc(ans_text)}"
+                f"<br><span class='meta'>answered_at: {esc(ans_at)}"
+                f"</span></div>")
+        else:
+            ans_block = (
+                f'<form class="aq-form" '
+                f'data-question="{esc(q_text)}" '
+                f'onsubmit="return submitAnswer(event, this)">'
+                f'<input type="text" name="operator_answer" '
+                f'placeholder="Your answer" required minlength="2" />'
+                f'<button type="submit">Save answer</button>'
+                f'</form>')
+        aq_rows.append(
+            f"<div class='aq-card {cls}'>"
+            f"<div class='aq-header'>"
+            f"<span class='pill {cls}'>{esc(q_kind)}</span> "
+            f"<strong>{esc(q_text)}</strong> "
+            f"{state_badge}"
+            f"</div>"
+            f"{ans_block}"
+            f"</div>")
+
+    approval_gate_block = ""
+    if status == "ready_for_review":
+        unanswered_n = len(unanswered_required)
+        approval_gate_block = (
+            f"<div class='gate-state'>"
+            f"<strong>approval_available</strong> = "
+            f"{'true' if unanswered_n == 0 else 'false'} "
+            f"({unanswered_n} decision_required question(s) "
+            f"unanswered)</div>")
+
+    approval_questions_block = (
+        "<h2>Approval Questions</h2>"
+        f"{approval_gate_block}"
+        "<p class='meta'>Required (<code>decision_required</code>) "
+        "questions must be answered before APPROVE succeeds. "
+        "Informational questions can be reviewed but do not block "
+        "approval.</p>"
+        f"{''.join(aq_rows)}"
+    )
+
+    # --- Status transitions (audit) ---
     transitions = b.get("status_transitions") or []
     transitions_html = ""
     if transitions:
@@ -23170,19 +23552,38 @@ def _render_brief_review_html(b: dict) -> str:
             f"<td>{esc(t.get('note', '')[:80])}</td></tr>"
             for t in transitions)
         transitions_html = (
-            "<h3>Status Transitions</h3>"
+            "<h2>Status Transitions (Audit)</h2>"
             "<table class='tbl'>"
             "<tr><th>From</th><th>To</th><th>Actor</th>"
             "<th>Method</th><th>At</th><th>Note</th></tr>"
             + rows + "</table>")
 
-    # Approval controls (only when ready_for_review)
+    # --- Operator Approval controls ---
+    # V1.5 §4: APPROVE button disabled while
+    # unanswered_required_questions > 0.
     approval_controls = ""
+    can_approve = (status == "ready_for_review"
+                    and len(unanswered_required) == 0)
+    disabled_msg = ""
+    if status == "ready_for_review" and unanswered_required:
+        disabled_msg = (
+            f"<div class='approval-block gate-blocked'>"
+            f"<h3>APPROVE Blocked</h3>"
+            f"<p>{len(unanswered_required)} decision_required "
+            f"question(s) must be answered first. Use the "
+            f"Approval Questions section above.</p>"
+            f"</div>")
     if status == "ready_for_review":
+        approve_disabled = "" if can_approve else "disabled"
+        approve_btn_label = ("Approve" if can_approve
+                              else "Approve (blocked — "
+                                   "answer required questions)")
         approval_controls = f"""
+{disabled_msg}
 <div class="approval-panel">
   <h2>Operator Approval</h2>
-  <div class="meta">approval_available = <strong>true</strong> ·
+  <div class="meta">approval_available = <strong>{
+        "true" if can_approve else "false"}</strong> ·
     current_status = <strong>{status}</strong> ·
     creative_allowed = <strong>{str(creative_allowed).lower()}</strong></div>
 
@@ -23195,8 +23596,9 @@ def _render_brief_review_html(b: dict) -> str:
       <label>Approval secret:</label>
       <input type="password" id="secret" name="secret"
              autocomplete="off" required minlength="6"
-             placeholder="Enter your approval secret" />
-      <button type="submit">Approve</button>
+             placeholder="Enter your approval secret"
+             {approve_disabled} />
+      <button type="submit" {approve_disabled}>{approve_btn_label}</button>
     </form>
     <pre id="approveResult" class="result"></pre>
   </div>
@@ -23237,7 +23639,7 @@ def _render_brief_review_html(b: dict) -> str:
 <div class="approval-panel">
   <h2>Operator Approval</h2>
   <div class="meta">approval_available = <strong>{
-            "true" if status == "ready_for_review" else "false"}</strong> ·
+        "true" if status == "ready_for_review" else "false"}</strong> ·
     current_status = <strong>{status}</strong> ·
     creative_allowed = <strong>{str(creative_allowed).lower()}</strong></div>
   <p class="meta">Approval controls only appear when status is
@@ -23271,8 +23673,6 @@ async function submitApprove(e) {{
   const r = await postJSON(url, {{ to_status: 'approved' }}, secret);
   document.getElementById('approveResult').textContent =
     `HTTP ${{r.status}}: ${{r.body}}`;
-  // Clear the secret immediately after submission so it does not
-  // remain in DOM memory.
   document.getElementById('secret').value = '';
   if (r.status === 200) {{
     setTimeout(() => location.reload(), 1500);
@@ -23308,6 +23708,24 @@ async function submitReject(e) {{
   document.getElementById('rejectSecret').value = '';
   return false;
 }}
+
+async function submitAnswer(e, form) {{
+  e.preventDefault();
+  const question = form.getAttribute('data-question');
+  const operator_answer = form.querySelector(
+    'input[name=operator_answer]').value;
+  if (!question || !operator_answer) return false;
+  const url = `/api/brief/v1/${{'{brand}'}}/${{'{bid}'}}/answer-question`;
+  const r = await postJSON(url, {{ question, operator_answer }}, null);
+  form.querySelector('input[name=operator_answer]').value = '';
+  if (r.status === 200) {{
+    // Reload the page to reflect new state
+    setTimeout(() => location.reload(), 800);
+  }} else {{
+    alert('Error: ' + r.body);
+  }}
+  return false;
+}}
 </script>
 """
 
@@ -23323,6 +23741,7 @@ async function submitReject(e) {{
         border-bottom:1px solid #eee; padding-bottom:.3em; }}
   h3 {{ margin:1em 0 .3em; font-size:1.05em; }}
   .meta {{ color:#666; font-size:.9em; }}
+  .muted {{ color:#999; font-style:italic; }}
   .pill {{ display:inline-block; padding:.15em .6em; border-radius:999px;
            font-size:.78em; background:#eee; margin-right:.3em; }}
   .status-draft {{ background:#fff3c4; }}
@@ -23330,17 +23749,53 @@ async function submitReject(e) {{
   .status-approved {{ background:#d4f8d4; }}
   .status-rejected {{ background:#fcd7d7; }}
   .status-changes {{ background:#ffeac4; }}
+  .pill.ok {{ background:#d4f8d4; }}
+  .pill.not {{ background:#fcd7d7; }}
+  .pill.pending {{ background:#ffeac4; }}
+  .pill.partial {{ background:#ffeac4; }}
+  .pill.informational {{ background:#e8e8e8; }}
+  .pill.required {{ background:#cfe4ff; }}
+  .pill.answered {{ background:#d4f8d4; }}
   .sec-body {{ padding:.4em .8em; border-left:3px solid #ddd;
                background:#fafafa; margin:.3em 0; }}
   details {{ margin:.4em 0; }}
-  summary {{ cursor:pointer; }}
+  summary {{ cursor:pointer; padding:.3em 0; }}
   .tbl {{ width:100%; border-collapse:collapse; font-size:.85em; }}
   .tbl th, .tbl td {{ padding:.3em .5em; border-bottom:1px solid #eee;
                       text-align:left; }}
+  .ev-list {{ display:flex; flex-direction:column; gap:.6em; }}
+  .ev-card {{ display:flex; gap:.8em; padding:.7em;
+               border:1px solid #ddd; border-left:4px solid #2a4a3a;
+               background:#fafafa; }}
+  .ev-num {{ font-weight:700; color:#666; min-width:30px; }}
+  .ev-body {{ flex:1; }}
+  .conf.high {{ background:#d4f8d4; padding:.1em .4em; border-radius:4px; }}
+  .conf.medium {{ background:#ffeac4; padding:.1em .4em; border-radius:4px; }}
+  .conf.low {{ background:#fcd7d7; padding:.1em .4em; border-radius:4px; }}
+  .lim-list {{ padding-left:1.5em; }}
+  .lim-list li {{ margin:.3em 0; }}
+  .prov {{ display:inline-block; padding:.1em .5em;
+            border-radius:4px; font-size:.78em; font-weight:600; }}
+  .prov.system_draft {{ background:#e8e8e8; color:#444; }}
+  .prov.operator_edit {{ background:#cfe4ff; color:#1a3a6a; }}
+  .aq-card {{ margin:.5em 0; padding:.7em;
+              border:1px solid #ddd; background:#fff; }}
+  .aq-card.required {{ border-left:4px solid #cfe4ff; }}
+  .aq-card.informational {{ border-left:4px solid #e8e8e8; }}
+  .aq-header {{ margin-bottom:.3em; }}
+  .aq-answer {{ padding:.5em; margin-top:.3em; background:#d4f8d4;
+                 border-radius:4px; }}
+  .aq-form {{ display:flex; gap:.5em; margin-top:.3em; }}
+  .aq-form input {{ flex:1; padding:.4em; font-size:.9em;
+                    font-family:inherit; }}
+  .aq-form button {{ padding:.4em 1em; background:#2a4a3a; color:#fff;
+                     border:none; border-radius:4px; cursor:pointer; }}
   .approval-panel {{ margin-top:2em; padding:1em;
                      border:2px solid #2a4a3a; background:#f8fbf8; }}
   .approval-block {{ margin:1em 0; padding:1em;
                      border:1px solid #ccc; background:#fff; }}
+  .approval-block.gate-blocked {{ background:#fff3c4;
+                                   border-color:#d4a017; }}
   .approval-block label {{ display:block; font-weight:600;
                            margin-top:.5em; }}
   .approval-block input,
@@ -23352,6 +23807,11 @@ async function submitReject(e) {{
                             color:#fff; border:none; border-radius:4px;
                             cursor:pointer; font-weight:600; }}
   .approval-block button:hover {{ background:#3a6a4a; }}
+  .approval-block button:disabled {{ background:#999;
+                                     cursor:not-allowed; }}
+  .gate-state {{ padding:.6em 1em; margin:1em 0;
+                 background:#cfe4ff; border:1px solid #2a4a3a;
+                 border-radius:4px; font-weight:600; }}
   .result {{ background:#f0f0f0; padding:.5em; font-size:.85em;
              margin-top:.5em; white-space:pre-wrap; }}
   code {{ background:#f0f0f0; padding:.1em .3em; border-radius:3px; }}
@@ -23366,16 +23826,26 @@ async function submitReject(e) {{
   Updated: {updated} ·
   creative_allowed: <strong>{str(creative_allowed).lower()}</strong>
 </div>
-<h2>Brief Sections</h2>
+
+<h2>Strategic Brief</h2>
 {sections_block}
+
+{limitations_block}
+
+{evidence_pack_block}
+
+{provenance_block}
+
+{approval_questions_block}
+
 {transitions_html}
+
 {approval_controls}
+
 {js}
 </body></html>
 """
     return html
-
-
 
 
 def _boot_load_persisted_secrets():
@@ -23402,6 +23872,11 @@ def _boot_load_persisted_secrets():
         if key and not os.environ.get('WINDSOR_API_KEY'):
             os.environ['WINDSOR_API_KEY'] = key
             _app_log.info('Boot: re-hydrated WINDSOR_API_KEY from persistent volume')
+        from _lib.jobs.layer1 import youtube_trends as _yt
+        yt_key = _yt.read_api_key()
+        if yt_key and not os.environ.get('YOUTUBE_API_KEY'):
+            os.environ['YOUTUBE_API_KEY'] = yt_key
+            _app_log.info('Boot: re-hydrated YOUTUBE_API_KEY from persistent volume')
         # Also wire the *_FILE env var so the runtime creds path is known
         if key and not os.environ.get('WINDSOR_API_KEY_FILE'):
             # Prefer the volume-resident path
@@ -41737,6 +42212,1062 @@ def shopping_moments():
     }), 200
 
 
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/answer-question', methods=['POST'])
+def brief_v1_answer_question(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/answer-question
+
+    V1.5 §4: required approval question resolution.
+
+    Body: {question: "...", operator_answer: "..."}
+
+    Records the operator's answer in the brief's
+    operator_answers dict. Updates unanswered_required_questions
+    count.
+
+    The Approve flow is gated on
+    `unanswered_required_questions == 0`. The answer-question
+    endpoint does NOT require the approval secret — it is a
+    session-authenticated operator action.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    body = request.get_json(silent=True) or {}
+    question = (body.get("question") or "").strip()
+    operator_answer = (body.get("operator_answer") or "").strip()
+    if not question:
+        return jsonify({"ok": False,
+                        "error": "question is required"}), 400
+    if not operator_answer:
+        return jsonify({"ok": False,
+                        "error": "operator_answer is required"}), 400
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    # Validate the question exists in approval_questions
+    aq_items = (b.get("approval_questions") or {}).get("items") or []
+    matched_q = None
+    matched_meta = None
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            if q_text.strip() == question:
+                matched_q = q_text
+                matched_meta = q
+                break
+        elif isinstance(q, str):
+            if q.strip() == question:
+                matched_q = q
+                break
+    if not matched_q:
+        return jsonify({"ok": False,
+                        "error": ("question not found in approval_questions; "
+                                  "operator can only answer declared "
+                                  "questions")}), 400
+    # Record the answer
+    answers = b.get("operator_answers") or {}
+    answers[question] = {
+        "operator_answer": operator_answer,
+        "answered_at": _now_iso(),
+        "answered_by": "operator",
+    }
+    b["operator_answers"] = answers
+    # Recompute unanswered_required_questions
+    required_unanswered = []
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            q_required = q.get("decision_required", False)
+        else:
+            q_text = str(q)
+            q_required = False
+        if q_required and q_text not in answers:
+            required_unanswered.append(q_text)
+    b["unanswered_required_questions"] = required_unanswered
+    b["approval_available"] = len(required_unanswered) == 0
+    b["updated_at"] = _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    if hasattr(cb, "_write_brief"):
+        cb._write_brief(b)
+    if hasattr(cb, "_append_revision"):
+        cb._append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"OPERATOR ANSWER: {question[:60]} → "
+                      f"{operator_answer[:80]}"),
+            "drafted_by": "operator",
+        })
+    return jsonify({
+        "ok": True,
+        "brief_id": brief_id,
+        "brand_id": brand_id,
+        "question": question,
+        "operator_answer": operator_answer,
+        "answered_at": answers[question]["answered_at"],
+        "decision_required": matched_meta.get("decision_required", False)
+            if isinstance(matched_meta, dict) else False,
+        "unanswered_required_questions": required_unanswered,
+        "approval_available": b["approval_available"],
+    }), 200
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/required-questions', methods=['GET'])
+def brief_v1_required_questions(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id>/required-questions
+
+    V1.5 §4: returns the brief's current
+    unanswered_required_questions + approval_available flag.
+    Used by the review page to display the gate state.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    aq_items = (b.get("approval_questions") or {}).get("items") or []
+    answers = b.get("operator_answers") or {}
+    required = []
+    informational = []
+    for q in aq_items:
+        if isinstance(q, dict):
+            q_text = q.get("question") or q.get("text") or ""
+            q_required = q.get("decision_required", False)
+            q_kind = q.get("kind") or (
+                "decision_required" if q_required else "informational")
+        else:
+            q_text = str(q)
+            q_required = False
+            q_kind = "informational"
+        entry = {
+            "question": q_text,
+            "kind": q_kind,
+            "answered": q_text in answers,
+            "answer": (answers.get(q_text) or {}).get("operator_answer"),
+            "answered_at": (answers.get(q_text) or {}).get("answered_at"),
+        }
+        if q_required:
+            required.append(entry)
+        else:
+            informational.append(entry)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "brief_id": brief_id,
+        "required": required,
+        "informational": informational,
+        "unanswered_required_count": sum(
+            1 for q in required if not q["answered"]),
+        "approval_available": (
+            b.get("approval_available", False) or
+            (b.get("status") == "ready_for_review"
+             and sum(1 for q in required if not q["answered"]) == 0)),
+        "current_status": b.get("status"),
+        "creative_allowed": b.get("creative_allowed"),
+    }), 200
+
+
+
+
+
+
+# ─── V1.6: CREATIVE GATE + LEGACY MIGRATION ENDPOINTS ──────────────────
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/can-generate-creative', methods=['GET'])
+def brief_v1_can_generate_creative(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id>/can-generate-creative
+
+    V1.7 §5+§8: SINGLE SOURCE OF TRUTH for Creative readiness.
+    Calls can_generate_creative_v17 which adds:
+      - identity_class_human_in_production: in production,
+        authenticated_operator MUST be a human production
+        operator. A Brief historically approved by
+        test_operator returns ok=false in production even
+        if all other V1.6 gates pass.
+
+    Future Create code MUST call this endpoint.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    result = cb.can_generate_creative_v17(brand_id, brief_id)
+    return jsonify(result), 200
+
+
+@app.route('/api/brief/v1/_internal/identity-policy-check', methods=['GET'])
+def brief_v1_identity_policy_check():
+    """GET /api/brief/v1/_internal/identity-policy-check
+
+    V1.7 §2: returns the canonical can_identity_approve
+    policy for the current environment. Used by tests +
+    dashboards to verify which identities are allowed.
+
+    Query params:
+      ?operator_id=<id>   — check this operator
+    Returns:
+      {
+        ok, environment, operator_id, allowed,
+        reason, identity_class,
+        human_production_operators: [...],
+        forbidden_operators: [...]
+      }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    env = cb._resolve_environment()
+    op_id = (request.args.get("operator_id") or "").strip()
+    if op_id:
+        policy = cb.can_identity_approve(env, op_id)
+        return jsonify({
+            "ok": True,
+            **policy,
+            "human_production_operators":
+                list(cb._human_production_operators()),
+            "forbidden_operators":
+                list(cb._production_forbidden_operators()),
+        }), 200
+    # No operator_id given — return the policy overview
+    return jsonify({
+        "ok": True,
+        "environment": env,
+        "human_production_operators":
+            list(cb._human_production_operators()),
+        "forbidden_operators":
+            list(cb._production_forbidden_operators()),
+    }), 200
+
+
+@app.route('/api/brief/v1/_internal/v17-brief-audit', methods=['GET'])
+def brief_v1_v17_audit():
+    """GET /api/brief/v1/_internal/v17-brief-audit
+
+    V1.7 §9: audit all Briefs for production-generatability.
+
+    Returns:
+      - production_generatable: Briefs that can be
+        Creative-generated in production right now
+      - blocked_by_identity: Briefs that pass V1.6 gates
+        but fail V1.7 production identity class check
+      - blocked_by_legacy_trust: Briefs approved under
+        non-current trust
+      - blocked_by_state: Briefs not in approved state
+      - all_briefs: full per-Brief audit
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    env = cb._resolve_environment()
+    human_ops = set(cb._human_production_operators())
+    forbidden_ops = set(cb._production_forbidden_operators())
+    items = cb.list_all_briefs_status()
+    production_generatable = []
+    blocked_by_identity = []
+    blocked_by_legacy_trust = []
+    blocked_by_state = []
+    all_with_v17 = []
+    for it in items:
+        brand = it["brand_id"]
+        bid = it["brief_id"]
+        gate = cb.can_generate_creative_v17(brand, bid)
+        auth_op = (it.get("authenticated_operator") or "").strip().lower()
+        v17_item = {
+            **it,
+            "v17_can_generate": gate["ok"],
+            "v17_gates": gate.get("gates"),
+            "v17_reasons": gate.get("reasons"),
+            "v17_environment": gate.get("environment"),
+        }
+        all_with_v17.append(v17_item)
+        if gate["ok"]:
+            production_generatable.append(v17_item)
+        elif (it.get("status") == "approved"
+              and it.get("approval_trust_ok")
+              and it.get("schema_status") == "current"
+              and it.get("unanswered_required_count") == 0):
+            # Brief passes all V1.6 gates but fails V1.7
+            blocked_by_identity.append(v17_item)
+        elif it.get("status") != "approved":
+            blocked_by_state.append(v17_item)
+        else:
+            blocked_by_legacy_trust.append(v17_item)
+    return jsonify({
+        "ok": True,
+        "environment": env,
+        "human_production_operators": sorted(human_ops),
+        "forbidden_operators": sorted(forbidden_ops),
+        "total_briefs": len(items),
+        "production_generatable_count": len(production_generatable),
+        "blocked_by_identity_count": len(blocked_by_identity),
+        "blocked_by_legacy_trust_count":
+            len(blocked_by_legacy_trust),
+        "blocked_by_state_count": len(blocked_by_state),
+        "production_generatable": production_generatable,
+        "blocked_by_identity": blocked_by_identity,
+        "blocked_by_legacy_trust": blocked_by_legacy_trust,
+        "blocked_by_state": blocked_by_state,
+        "all_briefs": all_with_v17,
+    }), 200
+
+
+@app.route('/api/brief/v1/_internal/legacy-brief-audit', methods=['GET'])
+def brief_v1_legacy_audit():
+    """GET /api/brief/v1/_internal/legacy-brief-audit
+
+    V1.6 §3: lists all Briefs with their schema status +
+    approval trust state. Used for migration audit.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    items = cb.list_all_briefs_status()
+    legacy_only = [
+        it for it in items
+        if it["schema_status"] == "migration_required"
+    ]
+    approved_legacy = [
+        it for it in items
+        if it["status"] == "approved"
+        and not it["approval_trust_ok"]
+    ]
+    return jsonify({
+        "ok": True,
+        "total_briefs": len(items),
+        "legacy_count": len(legacy_only),
+        "approved_legacy_count": len(approved_legacy),
+        "legacy_briefs": legacy_only,
+        "approved_legacy_briefs": approved_legacy,
+        "all_briefs": items,
+    }), 200
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/migrate-to-v16', methods=['POST'])
+def brief_v1_migrate_to_v16(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/migrate-to-v16
+
+    V1.6 §3: migrate a legacy Brief to V1.6 schema.
+    Idempotent — running twice on the same Brief returns
+    migrated=False the second time.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    result = cb.migrate_brief_to_v16_schema(brand_id, brief_id)
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/revalidate-approved', methods=['POST'])
+def brief_v1_revalidate_approved(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/revalidate-approved
+
+    V1.6 §4: move an approved legacy Brief back to
+    ready_for_review if its approval_method is not the
+    current trusted mechanism.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    body = request.get_json(silent=True) or {}
+    reason = body.get("reason")
+    result = cb.revalidate_legacy_approved_brief(
+        brand_id, brief_id, reason=reason)
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
+
+
+
+# ─── REPORTING V2.1: COMPARISON ENGINE + GA4 ENRICHMENT ───────────────
+# V2.1 §4 + §6 + §7: real period comparisons, channel mix,
+# landing-page performance, key-event breakdown.
+# These endpoints back the reporting engine — they do NOT
+# rewrite the report schema, only enrich the data feeding it.
+
+
+def _ga4_run_report(creds, dimensions, metrics, date_ranges,
+                    limit=200, debug=False):
+    """Single shared GA4 runner used by all V2.1 enrichment
+    endpoints. Returns (status_code, dict)."""
+    if not creds["property_id"] or not creds["credentials_path"]             or not os.path.exists(creds["credentials_path"]):
+        return 200, {"ok": False, "error": "GA4 not configured",
+                      "rows": [], "checked_at": _now_iso()}
+    try:
+        from google.analytics.data_v1beta import BetaAnalyticsDataClient
+        from google.analytics.data_v1beta.types import (
+            DateRange, Dimension, Metric, RunReportRequest,
+        )
+        client = BetaAnalyticsDataClient.from_service_account_file(
+            creds["credentials_path"])
+        req = RunReportRequest(
+            property=f"properties/{creds['property_id']}",
+            dimensions=[Dimension(name=d) for d in dimensions],
+            metrics=[Metric(name=m) for m in metrics],
+            date_ranges=[DateRange(start_date=dr["start_date"],
+                                    end_date=dr["end_date"])
+                         for dr in date_ranges],
+            limit=limit,
+        )
+        resp = client.run_report(req)
+        rows = []
+        for row in (resp.rows or []):
+            dvs = [dv.value for dv in (row.dimension_values or [])]
+            mvs = [mv.value for mv in (row.metric_values or [])]
+            rows.append({"dims": dvs, "metrics": mvs})
+        return 200, {"ok": True, "rows": rows,
+                     "row_count": len(rows),
+                     "checked_at": _now_iso()}
+    except Exception as e:
+        return 200, {"ok": False, "error": str(e)[:300],
+                      "rows": [], "checked_at": _now_iso()}
+
+
+def _parse_ga4_int(v):
+    try:
+        return int(float(v))
+    except Exception:
+        return 0
+
+
+def _parse_ga4_float(v):
+    try:
+        return float(v)
+    except Exception:
+        return 0.0
+
+
+@app.route("/api/ga4/<brand_id>/channel-mix", methods=["GET"])
+def ga4_channel_mix(brand_id):
+    """GET /api/ga4/<brand>/channel-mix?days=31
+
+    V2.1 §6: GA4 channel grouping (Organic Search, Paid Social,
+    Organic Social, Direct, Paid Search, Referral, Email,
+    Unassigned, Other) with sessions + engaged_sessions +
+    engagement_rate + conversions.
+
+    Returns current window + previous window with delta_pct
+    per channel. Uses GA4's sessionDefaultChannelGroup
+    dimension — the canonical channel classifier.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    # V2.1 §4: previous = immediately preceding window.
+    # current is the last `days` COMPLETE days (exclude today).
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    prev_end = cur_start - _td(days=1)
+    prev_start = prev_end - _td(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+    prev_dr = {"start_date": prev_start.isoformat(),
+                "end_date": prev_end.isoformat()}
+
+    cur_status, cur_data = _ga4_run_report(
+        creds,
+        dimensions=["sessionDefaultChannelGroup"],
+        metrics=["sessions", "engagedSessions",
+                 "engagementRate", "conversions"],
+        date_ranges=[cur_dr, prev_dr],
+        limit=20,
+    )
+    if not cur_data.get("ok"):
+        return jsonify(cur_data), 200
+
+    # Group rows by channel + date_range (rows are in
+    # row-major dimension order, with metrics repeating
+    # per date_range)
+    rows_in = cur_data.get("rows") or []
+    if not rows_in:
+        return jsonify({
+            "ok": True, "brand_id": bid,
+            "current_window": {"start": cur_start.isoformat(),
+                                "end": end_d.isoformat(),
+                                "days": days},
+            "previous_window": {"start": prev_start.isoformat(),
+                                 "end": prev_end.isoformat(),
+                                 "days": days},
+            "rows": [],
+            "total_current_sessions": 0,
+            "total_previous_sessions": 0,
+            "note": "GA4 returned no channel-mix rows for this window.",
+            "checked_at": _now_iso(),
+        }), 200
+    by_channel = {}
+    n_metrics = 4  # sessions, engagedSessions, engagementRate, conversions
+    # Two GA4 response shapes to support:
+    #   (a) Single date range (4 metrics): only current; previous=null
+    #   (b) Two date ranges (8 metrics): GA4 returned both;
+    #       if a channel has no data in the previous window
+    #       GA4 may omit the row entirely or pad with zeros.
+    have_two_ranges = False
+    for _r in rows_in:
+        if len(_r.get("metrics") or []) >= n_metrics * 2:
+            have_two_ranges = True
+            break
+
+    try:
+        for row in rows_in:
+            if not row.get("dims"):
+                continue
+            ch = row["dims"][0] if row["dims"] else "Unknown"
+            if ch not in by_channel:
+                by_channel[ch] = {"current": {}, "previous": {}}
+            metrics_list = list(row.get("metrics") or [])
+            if have_two_ranges and len(metrics_list) >= n_metrics * 2:
+                m_cur = metrics_list[:n_metrics]
+                m_prev = metrics_list[n_metrics:n_metrics * 2]
+                by_channel[ch]["previous"] = {
+                    "sessions": _parse_ga4_int(m_prev[0]),
+                    "engaged_sessions": _parse_ga4_int(m_prev[1]),
+                    "engagement_rate": _parse_ga4_float(m_prev[2]),
+                    "conversions": _parse_ga4_int(m_prev[3]),
+                }
+            else:
+                by_channel[ch]["previous"] = {}  # GA4 omitted prev window
+            while len(metrics_list) < n_metrics:
+                metrics_list.append("0")
+            m_cur = metrics_list[:n_metrics]
+            by_channel[ch]["current"] = {
+                "sessions": _parse_ga4_int(m_cur[0]),
+                "engaged_sessions": _parse_ga4_int(m_cur[1]),
+                "engagement_rate": _parse_ga4_float(m_cur[2]),
+                "conversions": _parse_ga4_int(m_cur[3]),
+            }
+    except Exception as e:
+        _app_log.error("channel-mix row unpack failed: %s", e)
+        return jsonify({
+            "ok": False,
+            "error": f"channel-mix row unpack failed: {type(e).__name__}: {str(e)[:200]}",
+            "row_count": len(rows_in),
+            "checked_at": _now_iso(),
+        }), 200
+
+    # Normalise channel names into the requested taxonomy
+    TAX = {
+        "Organic Search": ("organic", "Organic"),
+        "Paid Social": ("paid_social", "Paid Social"),
+        "Organic Social": ("organic_social", "Organic Social"),
+        "Direct": ("direct", "Direct"),
+        "Paid Search": ("paid_search", "Paid Search"),
+        "Referral": ("referral", "Referral"),
+        "Email": ("email", "Email"),
+        "Unassigned": ("unassigned", "Unassigned"),
+    }
+    out = []
+    total_cur = sum(c["current"]["sessions"] for c in by_channel.values())
+    total_prev = sum(c["previous"].get("sessions", 0) for c in by_channel.values())
+    seen = set()
+    for label, _ in TAX.items():
+        # GA4 channel names use multiple variants
+        ch_data = None
+        for variant in [label, label.lower(),
+                         label.replace(" ", ""), label.lower().replace(" ", "")]:
+            if variant in by_channel:
+                ch_data = by_channel[variant]
+                break
+        if ch_data is None:
+            seen.add(label)
+            out.append({
+                "channel": label,
+                "current_sessions": 0,
+                "previous_sessions": 0,
+                "share_of_sessions": 0.0,
+                "engagement_rate": 0.0,
+                "conversions": 0,
+                "delta_pct": None,
+                "data_status": "NOT_AVAILABLE",
+            })
+            continue
+        cur_s = ch_data["current"]["sessions"]
+        prev_s = ch_data["previous"].get("sessions")  # None if GA4 omitted
+        share = (cur_s / total_cur * 100) if total_cur else 0.0
+        delta = None
+        if prev_s is not None and prev_s > 0:
+            delta = round((cur_s - prev_s) / prev_s * 100, 1)
+        elif prev_s is None:
+            delta = None  # previous window not present in GA4 response
+        out.append({
+            "channel": label,
+            "current_sessions": cur_s,
+            "previous_sessions": prev_s,
+            "share_of_sessions": round(share, 1),
+            "engaged_sessions": ch_data["current"]["engaged_sessions"],
+            "engagement_rate": round(ch_data["current"]["engagement_rate"] * 100, 1),
+            "conversions": ch_data["current"]["conversions"],
+            "delta_pct": delta,
+            "data_status": "LIVE",
+        })
+    # Catch raw GA4 names not in our taxonomy
+    for ch in sorted(by_channel.keys()):
+        if ch in TAX or ch.lower() in [k.lower() for k in TAX]:
+            continue
+        cur_s = by_channel[ch]["current"]["sessions"]
+        prev_s = by_channel[ch]["previous"].get("sessions")
+        share = (cur_s / total_cur * 100) if total_cur else 0.0
+        delta = None
+        if prev_s is not None and prev_s > 0:
+            delta = round((cur_s - prev_s) / prev_s * 100, 1)
+        elif prev_s is None:
+            delta = None
+        out.append({
+            "channel": f"Other ({ch})",
+            "current_sessions": cur_s,
+            "previous_sessions": prev_s,
+            "share_of_sessions": round(share, 1),
+            "engagement_rate": round(by_channel[ch]["current"]["engagement_rate"] * 100, 1),
+            "conversions": by_channel[ch]["current"]["conversions"],
+            "delta_pct": delta,
+            "data_status": "LIVE",
+        })
+    out.sort(key=lambda x: -x["current_sessions"])
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "current_window": {
+            "start": cur_start.isoformat(),
+            "end": end_d.isoformat(),
+            "days": days,
+        },
+        "previous_window": {
+            "start": prev_start.isoformat(),
+            "end": prev_end.isoformat(),
+            "days": days,
+        },
+        "rows": out,
+        "total_current_sessions": total_cur,
+        "total_previous_sessions": total_prev,
+        "checked_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/pages-enriched", methods=["GET"])
+def ga4_pages_enriched(brand_id):
+    """GET /api/ga4/<brand>/pages-enriched?days=31
+
+    V2.1 §7: landing-page / page performance with sessions +
+    engagement + conversions. Adds comparison against the
+    previous equivalent window.
+
+    Filters the raw /pages endpoint to high-value service
+    pages per brand (Stick: /bookings/, club-fitting,
+    coaching, Psycho Bunny, Takomo, Vice, Avoda, LAB;
+    Swing Shack: discovered by usage).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    prev_end = cur_start - _td(days=1)
+    prev_start = prev_end - _td(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+    prev_dr = {"start_date": prev_start.isoformat(),
+                "end_date": prev_end.isoformat()}
+
+    status_d, data = _ga4_run_report(
+        creds,
+        dimensions=["pagePath"],
+        metrics=["sessions", "totalUsers", "engagedSessions",
+                 "engagementRate", "conversions"],
+        date_ranges=[cur_dr, prev_dr],
+        limit=500,
+    )
+    if not data.get("ok"):
+        return jsonify(data), 200
+
+    rows_in = data.get("rows") or []
+    if not rows_in:
+        return jsonify({
+            "ok": True, "brand_id": bid,
+            "current_window": {"start": cur_start.isoformat(),
+                                "end": end_d.isoformat(),
+                                "days": days},
+            "previous_window": {"start": prev_start.isoformat(),
+                                 "end": prev_end.isoformat(),
+                                 "days": days},
+            "service_pages": [],
+            "top_raw_paths": [],
+            "note": "GA4 returned no page rows for this window.",
+            "checked_at": _now_iso(),
+        }), 200
+    # Brand-specific high-value page patterns
+    if bid == "stick":
+        high_value_patterns = [
+            ("/bookings/", "Bookings"),
+            ("club-fitting", "Club Fitting"),
+            ("coaching", "Coaching"),
+            ("psycho-bunny", "Psycho Bunny"),
+            ("psycho_bunny", "Psycho Bunny"),
+            ("takomo", "Takomo"),
+            ("vice", "Vice"),
+            ("avoda", "Avoda"),
+            ("lab-putters", "L.A.B. Putters"),
+            ("lab_putters", "L.A.B. Putters"),
+        ]
+    elif bid == "swing-shack":
+        high_value_patterns = [
+            ("/membership", "Membership"),
+            ("/bookings/", "Bookings"),
+            ("/fitting", "Fitting"),
+            ("/lessons", "Lessons"),
+            ("/lesson", "Lessons"),
+            ("/coaching", "Coaching"),
+            ("/flagship", "Flagship Property"),
+            ("/10-ball", "10-Ball Truth"),
+            ("/shop", "Shop"),
+            ("store.", "Store"),
+        ]
+    else:
+        high_value_patterns = []
+
+    matched = {}
+    n_metrics = 5
+    have_two_ranges = False
+    for _r in rows_in:
+        if len(_r.get("metrics") or []) >= n_metrics * 2:
+            have_two_ranges = True
+            break
+    try:
+        for row in rows_in:
+            if not row.get("dims"):
+                continue
+            path = (row["dims"][0] if row["dims"] else "") or ""
+            metrics_list = list(row.get("metrics") or [])
+            if have_two_ranges and len(metrics_list) >= n_metrics * 2:
+                m_cur = metrics_list[:n_metrics]
+                m_prev = metrics_list[n_metrics:n_metrics * 2]
+            else:
+                m_cur = metrics_list[:]
+                while len(m_cur) < n_metrics:
+                    m_cur.append("0")
+                m_prev = []
+            for pat, label in high_value_patterns:
+                if pat.lower() in path.lower():
+                    if label not in matched:
+                        matched[label] = {"current": {}, "previous": {},
+                                          "paths_seen": set()}
+                    matched[label]["current"][path] = {
+                        "sessions": _parse_ga4_int(m_cur[0]),
+                        "users": _parse_ga4_int(m_cur[1]),
+                        "engaged_sessions": _parse_ga4_int(m_cur[2]),
+                        "engagement_rate": _parse_ga4_float(m_cur[3]),
+                        "conversions": _parse_ga4_int(m_cur[4]),
+                    }
+                    if m_prev:
+                        matched[label]["previous"][path] = {
+                            "sessions": _parse_ga4_int(m_prev[0]),
+                            "engagement_rate": _parse_ga4_float(m_prev[3]),
+                        }
+                    matched[label]["paths_seen"].add(path)
+                    break
+    except Exception:
+        pass
+
+    # Aggregate per service page
+    rows = []
+    for label, m in matched.items():
+        cur_sessions = sum(p["sessions"] for p in m["current"].values())
+        prev_sessions = sum(p.get("sessions", 0) for p in m["previous"].values())
+        cur_users = sum(p["users"] for p in m["current"].values())
+        cur_engaged = sum(p["engaged_sessions"] for p in m["current"].values())
+        # Weighted engagement rate by sessions
+        if cur_sessions > 0:
+            cur_er = sum(p["engagement_rate"] * p["sessions"]
+                         for p in m["current"].values()) / cur_sessions
+        else:
+            cur_er = 0.0
+        cur_conv = sum(p["conversions"] for p in m["current"].values())
+        delta = None
+        if prev_sessions > 0:
+            delta = round((cur_sessions - prev_sessions)
+                          / prev_sessions * 100, 1)
+        elif cur_sessions > 0:
+            delta = None
+        rows.append({
+            "service_page": label,
+            "paths": sorted(m["paths_seen"])[:3],
+            "current_sessions": cur_sessions,
+            "previous_sessions": prev_sessions,
+            "current_users": cur_users,
+            "current_engaged_sessions": cur_engaged,
+            "engagement_rate": round(cur_er * 100, 1),
+            "conversions": cur_conv,
+            "delta_pct": delta,
+            "data_status": "LIVE",
+        })
+    rows.sort(key=lambda r: -r["current_sessions"])
+    # Also include top 5 raw paths (regardless of filter) for
+    # discovery
+    raw_seen = sorted(set((r["dims"][0] if r.get("dims") else "") for r in rows_in),
+                      key=lambda p: -sum(p == rr["dims"][0]
+                                          for rr in data["rows"]))[:5]
+    top_raw = []
+    for p in raw_seen:
+        # aggregate across both windows
+        cs = sum(_parse_ga4_int(r["metrics"][0]) for r in rows_in
+                 if r.get("dims") and r["dims"][0] == p)
+        top_raw.append({"path": p, "current_sessions": cs})
+    top_raw.sort(key=lambda x: -x["current_sessions"])
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "current_window": {
+            "start": cur_start.isoformat(),
+            "end": end_d.isoformat(),
+            "days": days,
+        },
+        "previous_window": {
+            "start": prev_start.isoformat(),
+            "end": prev_end.isoformat(),
+            "days": days,
+        },
+        "service_pages": rows,
+        "top_raw_paths": top_raw[:5],
+        "checked_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/event-audit", methods=["GET"])
+def ga4_event_audit(brand_id):
+    """GET /api/ga4/<brand>/event-audit?days=31
+
+    V2.1 §8: GA4 event-name breakdown — identifies which
+    configured key event the report should reference.
+
+    Returns:
+      - top events with count + keyEvent flag
+      - per-event commercial-meaning classification
+        (verified | candidate | unknown)
+      - source attribution for each event name
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+
+    # Per-event counts
+    status_e, event_data = _ga4_run_report(
+        creds,
+        dimensions=["eventName"],
+        metrics=["eventCount", "conversions"],
+        date_ranges=[cur_dr],
+        limit=200,
+    )
+
+    # Per-key-event-name breakdown (the configured key events)
+    status_k, key_data = _ga4_run_report(
+        creds,
+        dimensions=["eventName"],
+        metrics=["eventCount", "conversions",
+                 "totalUsers"],
+        date_ranges=[cur_dr],
+        limit=200,
+    )
+
+    if not event_data.get("ok"):
+        return jsonify(event_data), 200
+
+    rows_in = event_data.get("rows") or []
+    if not rows_in:
+        return jsonify({
+            "ok": True, "brand_id": bid,
+            "window": {"start": cur_start.isoformat(),
+                        "end": end_d.isoformat(),
+                        "days": days},
+            "rows": [],
+            "headline": (f"No GA4 events recorded in the last "
+                         f"{days} days for {bid}."),
+            "checked_at": _now_iso(),
+        }), 200
+    # Per brand, classify known commercial-meaning events
+    KNOWN_KEY_EVENTS = {
+        "stick": {
+            "generate_lead": {
+                "commercial_meaning": "verified",
+                "config_source": "stickgolf.co.za CF7 wpcf7mailsent",
+                "note": ("Stick generate_lead event is "
+                         "configured in GA4 but the on-website "
+                         "listener is not yet production-validated. "
+                         "Do not report verified leads."),
+            },
+        },
+        "swing-shack": {
+            "generate_lead": {
+                "commercial_meaning": "candidate",
+                "config_source": "Contact / enquiry form",
+                "note": ("Verify eventName mapping against the "
+                         "configured GA4 key event registration."),
+            },
+        },
+    }
+    brand_keys = KNOWN_KEY_EVENTS.get(bid, {})
+
+    rows = []
+    try:
+        for row in rows_in:
+            if not row.get("dims"):
+                continue
+            nm = row["dims"][0]
+            metrics_list = row.get("metrics") or []
+            while len(metrics_list) < 2:
+                metrics_list.append("0")
+            cnt = _parse_ga4_int(metrics_list[0])
+            conv = _parse_ga4_int(metrics_list[1])
+            if cnt == 0:
+                continue
+            known = brand_keys.get(nm)
+            rows.append({
+                "event_name": nm,
+                "count": cnt,
+                "key_event_conversions": conv,
+                "commercial_meaning": (
+                    known["commercial_meaning"] if known else "unknown"),
+                "config_source": (
+                    known["config_source"] if known else ""),
+                "note": known["note"] if known else (
+                    "Event has no validated commercial meaning for "
+                    f"{bid}."),
+            })
+    except Exception:
+        pass
+
+    rows.sort(key=lambda r: -r["count"])
+
+    # Headline
+    headline = None
+    key_rows = [r for r in rows if r["key_event_conversions"] > 0]
+    if not key_rows:
+        headline = ("No GA4 key events recorded in the last "
+                    f"{days} days for {bid}.")
+    elif all(r["commercial_meaning"] in ("unknown", "candidate")
+             for r in key_rows):
+        headline = (f"GA4 recorded "
+                    f"{sum(r['key_event_conversions'] for r in key_rows)} "
+                    "configured key event(s); commercial meaning has "
+                    "not yet been validated.")
+    else:
+        headline = (f"GA4 recorded "
+                    f"{sum(r['key_event_conversions'] for r in key_rows)} "
+                    "validated conversion(s).")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "window": {
+            "start": cur_start.isoformat(),
+            "end": end_d.isoformat(),
+            "days": days,
+        },
+        "rows": rows,
+        "headline": headline,
+        "checked_at": _now_iso(),
+    }), 200
+
+
+
+# ─── REPORTING V2.1: MANAGEMENT REPORT (V2.1 §10-§18) ──────────────────
+# Endpoints that present the V2.1 management-grade report:
+#   - Scorecard (KPI rollup with movement + 90-day baseline)
+#   - Channel mix (current + previous windows)
+#   - Landing pages (current + previous windows)
+#   - Key event audit (named events with commercial meaning)
+#   - Empty-section discipline (Not connected labels)
+#   - data_as_of per source
+#   - Movement-based executive summary
+# KEEP: report routes, brand isolation, HTML/JSON output,
+# source lineage, historical upload concept, analyst
+# commentary architecture, synthetic-data quarantine.
+
+
+@app.route('/api/reports/v2_1/<brand_id>', methods=['GET'])
+def report_v21_brand(brand_id):
+    """GET /api/reports/v2_1/<brand_id>?format=html|json&days=31
+
+    V2.1 management report. Composes:
+      - KPI scorecard (movement-tracked)
+      - Channel mix (GA4 sessionDefaultChannelGroup)
+      - Landing pages (GA4 pagePath + service-page filter)
+      - Key event audit (eventName breakdown)
+      - Executive summary (movement-based)
+      - Data coverage + data_as_of
+      - Empty-section discipline ("Not connected" placeholders)
+    Reads the brand V2.1 enrichment endpoints under
+    /api/ga4/<brand>/{channel-mix, pages-enriched, event-audit}.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_v21_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_v21_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v21_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/v2_1/portfolio', methods=['GET'])
+def report_v21_portfolio():
+    """GET /api/reports/v2_1/portfolio?format=html|json
+
+    V2.1 portfolio summary — same sources, contextual
+    presentation across Stick and Swing Shack.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_v21_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        html = _ri.render_v21_portfolio_html(reports)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v21_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
@@ -41767,7 +43298,3 @@ if __name__ == '__main__':
     except Exception as _e:
         print(f'[boot] app.run crashed: {_e}', flush=True, file=_sys.stderr)
         raise
-
-
-
-

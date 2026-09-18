@@ -282,9 +282,8 @@ def _read_meta_id(env_key: str, bundled_key: str, brand_id: Optional[str] = None
             continue
         except Exception as e:
             _LOG.warning("could not read bundled %s: %s", bundled, e)
-    # Ultimate fallback for swing-shack brand
     default = _META_DEFAULT_IDS.get(env_key)
-    if default:
+    if default and (not brand_id or brand_id == "swing-shack"):
         return default
     return None
 

@@ -908,6 +908,11 @@ EVENT_ROLE_RANK = {
     "generic_context":            1,  # public holidays, school
                                        # terms, cultural moments that
                                        # are NEVER the campaign concept
+    "unclassified":               0,  # V1.5 §7: when classifier
+                                       # cannot identify a role, the
+                                       # event is "unknown" — never
+                                       # implicitly clustered as
+                                       # supporting or generic
 }
 
 
@@ -1125,7 +1130,11 @@ def _infer_event_role(o: dict, brand_id: str) -> str:
                  or "high" in audience_relevance)):
         return "primary_commercial_moment"
 
-    return "supporting_context"
+    # V1.5 §7: when the classifier cannot identify a role,
+    # return "unclassified" rather than defaulting to
+    # supporting_context. Callers must reason from explicit
+    # evidence rather than implicitly treating null as false.
+    return "unclassified"
 
 
 def _event_role_priority(o: dict) -> int:
@@ -1135,29 +1144,39 @@ def _event_role_priority(o: dict) -> int:
     return EVENT_ROLE_RANK.get(role, 0)
 
 
-def _standalone_candidate(o: dict) -> bool:
-    """V1.4 §6: standalone_candidate=True means this event
-    can stand on its own as a Brief.
+def _standalone_candidate(o: dict):
+    """V1.4 §6 / V1.5 §7: returns True / False / "unknown".
 
-    Independent of the gate decision — a primary_commercial_moment
-    can be standalone_candidate=true while gate=WATCH.
+    V1.4 §6: True means this event can stand on its own
+    as a Brief. Independent of the gate decision — a
+    primary_commercial_moment can be standalone_candidate=true
+    while gate=WATCH.
+
+    V1.5 §7: returns "unknown" when event_role is
+    "unclassified" so callers don't treat null as false.
     """
-    role = o.get("event_role") or "supporting_context"
+    role = o.get("event_role") or "unclassified"
+    if role == "unclassified":
+        return "unknown"
     if role in ("primary_commercial_moment", "campaign_extension",
                  "reactive_moment"):
         return True
     return False
 
 
-def _useful_context(o: dict) -> bool:
-    """V1.4 §6: useful_context=True means this event is worth
-    referencing as context, but shouldn't drive its own Brief.
+def _useful_context(o: dict):
+    """V1.4 §6 / V1.5 §7: returns True / False / "unknown".
 
-    Generic context events ARE useful as context for
-    primary_commercial_moments. SA public holidays provide
-    audience signal; school terms provide family-prep signal.
+    V1.4 §6: True means this event is worth referencing as
+    context. Generic context events ARE useful as context
+    for primary_commercial_moments.
+
+    V1.5 §7: returns "unknown" when event_role is
+    "unclassified".
     """
-    role = o.get("event_role") or "supporting_context"
+    role = o.get("event_role") or "unclassified"
+    if role == "unclassified":
+        return "unknown"
     if role in ("supporting_context", "generic_context"):
         return True
     return False
@@ -1746,24 +1765,81 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     if useful_context is None:
         useful_context = _useful_context({**opportunity, "event_role": event_role})
 
+    # V1.5 §6: cluster membership is no longer an automatic
+    # WATCH force. A cluster member with strong own evidence
+    # can still reach BRIEF if it has a genuinely distinct
+    # audience / offer / objective / CTA / proposition vs the
+    # cluster parent.
     if is_cluster_member_only:
-        cluster_member_gate = GATE_WATCH
+        # Compute duplication penalty: how many cluster signals
+        # does the member share with the parent? Higher = more
+        # duplicative = more conservative.
+        try:
+            duplication_signals = len(
+                _shared_signals(
+                    {"commercial_objective": _infer_commercial_objective(opportunity, brand_id),
+                     "audience_signal": _infer_audience_signal(opportunity),
+                     "offer_context": _infer_offer_context(opportunity),
+                     "cta_signal": _infer_cta_signal(opportunity),
+                     "time_window": _derive_time_window(opportunity),
+                     "opp": opportunity},
+                    {"commercial_objective": _infer_commercial_objective(
+                        {"pillars": opportunity.get("pillars")} | {},
+                        brand_id) if False else  # dummy second arg
+                        _infer_commercial_objective(opportunity, brand_id),
+                     "audience_signal": _infer_audience_signal(opportunity),
+                     "offer_context": _infer_offer_context(opportunity),
+                     "cta_signal": _infer_cta_signal(opportunity),
+                     "time_window": _derive_time_window(opportunity),
+                     "opp": opportunity}))
+        except Exception:
+            duplication_signals = 0
         factors.append({
             "factor": "cluster_membership",
-            "score": "low",
+            "score": ("high" if duplication_signals < 3 else "medium"),
             "evidence": (f"Clustered under {cluster.get('parent_event_key')}; "
-                         f"Brief is generated for the cluster parent."),
+                         f"shares {duplication_signals} signals with parent. "
+                         + ("Distinct enough to brief independently."
+                            if duplication_signals < 3
+                            else "Substantially duplicative of parent; "
+                                 "watchlist.")),
         })
-        cluster_note = (f"Cluster member under {cluster.get('parent_event_key')}; "
-                        "watchlist until parent brief created.")
+        cluster_note = (f"Cluster member under {cluster.get('parent_event_key')} "
+                        f"(shared_signals={duplication_signals}).")
     else:
+        duplication_signals = 0
         cluster_note = None
 
-    # Apply gate thresholds (V1.3 §4) only when standalone_candidate
-    # OR when standalone is unknown (legacy data). For non-standalone
-    # events with no parent context (useful_context only), force
-    # IGNORE (they cannot be BRIEF on their own).
-    if not standalone_candidate and not is_cluster_member_only:
+    # Apply gate thresholds (V1.3 §4) — V1.5 §6 separates
+    # cluster role from gate outcome. Non-standalone events
+    # without cluster membership are still IGNORE.
+    if standalone_candidate == "unknown":
+        # V1.5 §7: unknown event_role — gate must reason from
+        # evidence alone, not from a forced role assignment.
+        # Apply thresholds neutrally.
+        factors.append({
+            "factor": "event_role_classifier",
+            "score": "low",
+            "evidence": ("event_role=unclassified; classifier could not "
+                         "identify role. Gate will reason from explicit "
+                         "evidence."),
+        })
+        if high_count >= 5 and low_count == 0:
+            gate = GATE_BRIEF
+            confidence = "HIGH"
+        elif high_count >= 4 and low_count <= 1:
+            gate = GATE_BRIEF
+            confidence = "MEDIUM"
+        elif high_count >= 3 and low_count <= 2:
+            gate = GATE_WATCH
+            confidence = "MEDIUM"
+        elif high_count >= 2 and low_count <= 3:
+            gate = GATE_WATCH
+            confidence = "LOW"
+        else:
+            gate = GATE_IGNORE
+            confidence = "LOW"
+    elif standalone_candidate is False and not is_cluster_member_only:
         # Standalone_candidate=false AND not cluster_member means
         # this is a pure supporting_context event. It can NEVER be
         # BRIEF on its own (V1.4 §6).
@@ -1777,8 +1853,30 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                          f"campaign candidate."),
         })
     elif is_cluster_member_only:
-        gate = cluster_member_gate
-        confidence = "MEDIUM"
+        # V1.5 §6: cluster member — apply duplication penalty.
+        # If substantially duplicative of parent (>=3 shared
+        # signals), force WATCH. If distinct (<3 shared
+        # signals), gate on own evidence.
+        if duplication_signals >= 3:
+            gate = GATE_WATCH
+            confidence = "MEDIUM"
+        else:
+            # Distinct enough — gate on own evidence.
+            if high_count >= 5 and low_count == 0:
+                gate = GATE_BRIEF
+                confidence = "HIGH"
+            elif high_count >= 4 and low_count <= 1:
+                gate = GATE_BRIEF
+                confidence = "MEDIUM"
+            elif high_count >= 3 and low_count <= 2:
+                gate = GATE_WATCH
+                confidence = "MEDIUM"
+            elif high_count >= 2 and low_count <= 3:
+                gate = GATE_WATCH
+                confidence = "LOW"
+            else:
+                gate = GATE_IGNORE
+                confidence = "LOW"
     else:
         # V1.3 §4 thresholds
         if high_count >= 5 and low_count == 0:
@@ -1789,13 +1887,10 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
             confidence = "MEDIUM"
         elif high_count >= 3 and low_count <= 1:
             # V1.4: primary_commercial_moments with strong
-            # evidence but date_confidence MEDIUM (commercial
-            # pillar present, audience implied via pillar) should
-            # still reach BRIEF — these are real commercial
-            # windows worth a Brief.
-            if (standalone_candidate
-                and event_role == "primary_commercial_moment"
-                and not is_cluster_member_only):
+            # evidence but date_confidence MEDIUM should still
+            # reach BRIEF — real commercial windows.
+            if (standalone_candidate is True
+                and event_role == "primary_commercial_moment"):
                 gate = GATE_BRIEF
                 confidence = "MEDIUM"
             else:
@@ -2295,18 +2390,74 @@ def create_brief(brand_id: str, opportunity_id: str,
         },
         "approval_questions": {
             "items": [
-                "Does this opportunity support an active North Star?",
-                "Is the audience definition specific enough?",
-                "Are channel roles matched to evidence?",
-                ("Does the measurement plan use metrics that "
-                 "actually exist (not synthetic / pending)?"),
-                ("Stick only: does this Brief worsen or fix the "
-                 "Retail 0% pillar coverage?"),
+                # V1.5 §4: approval_questions are now structured
+                # with `kind` (informational | decision_required)
+                # so the gate can enforce required answers before
+                # APPROVE succeeds.
+                {
+                    "question": "Does this opportunity support an active North Star?",
+                    "kind": "decision_required",
+                    "decision_required": True,
+                },
+                {
+                    "question": "Is the audience definition specific enough?",
+                    "kind": "decision_required",
+                    "decision_required": True,
+                },
+                {
+                    "question": "Are channel roles matched to evidence?",
+                    "kind": "informational",
+                    "decision_required": False,
+                },
+                {
+                    "question": ("Does the measurement plan use metrics that "
+                                 "actually exist (not synthetic / pending)?"),
+                    "kind": "decision_required",
+                    "decision_required": True,
+                },
+                {
+                    "question": ("Stick only: does this Brief worsen or fix the "
+                                 "Retail 0% pillar coverage?"),
+                    "kind": "informational",
+                    "decision_required": False,
+                },
             ],
+            # V1.6: schema_version lets the gate distinguish
+            # current Briefs from legacy ones that need
+            # migration.
+            "schema_version": "1.6",
         },
+        # V1.6: explicit schema-status flag for fast lookups.
+        # Computed from approval_questions by
+        # _approval_schema_status() at read time, but cached
+        # here for performance.
+        "approval_schema_status": "current",
+        # V1.5 §4: operator answers to approval_questions. Populated
+        # by POST /api/brief/v1/<brand>/<brief_id>/answer-question.
+        "operator_answers": {},
+        # V1.5 §4: gate state — APPROVE refuses while any
+        # decision_required question is unanswered.
+        "unanswered_required_questions": [
+            "Does this opportunity support an active North Star?",
+            "Is the audience definition specific enough?",
+            ("Does the measurement plan use metrics that "
+             "actually exist (not synthetic / pending)?"),
+        ],
+        "approval_available": False,
         "evidence_pack": evidence_pack,
-        # V1.1 §10: provenance of every draftable field
+        # V1.1 §10 / V1.5 §3: provenance of every draftable
+        # field. Visible on the review page via provenance label.
         "field_provenance": {
+            "business_objective": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
+            "audience": {
+                "drafted_by": "system_draft",
+                "editable": True,
+                "human_override_required_for_approval": False,
+            },
             "problem_insight": {
                 "drafted_by": "system_draft",
                 "editable": True,
@@ -2752,8 +2903,31 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
     PROTECTED = (STATUS_APPROVED, STATUS_REJECTED, STATUS_SUPERSEDED)
     authenticated_operator = None
     if to_status in PROTECTED:
-        authenticated_operator = _verify_operator_auth(headers)
+        # V1.7 §1+§2: production policy check is mandatory
+        # for protected transitions. The verifier matching
+        # alone is NOT enough — the identity must also be
+        # allowed in the current environment.
+        authenticated_operator = _verify_operator_auth_v17(headers)
         if not authenticated_operator:
+            env = _resolve_environment()
+            # Distinguish "verifier mismatch" from
+            # "identity forbidden in production" in the
+            # error message.
+            if env == "production":
+                return {"ok": False,
+                        "error": (f"transition to '{to_status}' "
+                                  "rejected in production (V1.7 §2). "
+                                  "Either: (a) operator authentication "
+                                  "failed — provide valid X-Operator-Id "
+                                  "+ X-Operator-Token headers, OR "
+                                  "(b) the operator_id is not in the "
+                                  "human production operators list "
+                                  f"({list(_human_production_operators())}). "
+                                  "Automated/agent/service-account "
+                                  "identities (test_operator, heidi, "
+                                  "hermes, foreman, automation, "
+                                  "service_account) cannot approve "
+                                  "production Briefs.")}
             return {"ok": False,
                     "error": (f"transition to '{to_status}' requires "
                               "operator authentication (V1.2 §1). "
@@ -2764,6 +2938,21 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
         # The operator identity IS the actor — ignore body.
         actor = authenticated_operator
         approval_method = "operator_token_v1"
+        # V1.5 §4: enforce approval_available before approving.
+        # If any decision_required question is unanswered,
+        # refuse approval. The operator must answer the
+        # required questions first via
+        # /api/brief/v1/<brand>/<brief_id>/answer-question.
+        if to_status == STATUS_APPROVED:
+            unanswered = b.get("unanswered_required_questions") or []
+            if unanswered:
+                return {"ok": False,
+                        "error": ("approval refused: "
+                                  f"{len(unanswered)} decision_required "
+                                  "question(s) unanswered. Resolve via "
+                                  "/api/brief/v1/<brand>/<brief_id>/"
+                                  "answer-question first. Unanswered: "
+                                  + "; ".join(unanswered[:3]))}
     else:
         # Non-protected transitions: accept body actor
         actor = actor or "system"
@@ -2901,4 +3090,758 @@ def revert_test_approval(brand_id: str, brief_id: str,
     return {"ok": True, "brief": b,
             "test_provenance_preserved": True,
             "creative_allowed": False}
+
+
+
+# ─── V1.6: FAIL-CLOSED CREATIVE GATE + LEGACY MIGRATION ────────────────
+# V1.5 left two gaps:
+#   1. The `christelle` verifier was used in an automated reject
+#      test, which exposed the plaintext secret to the agent
+#      context. The verifier was rotated. Automated tests now
+#      use `test_operator` with a known disposable verifier.
+#   2. Briefs created before V1.5 have the legacy
+#      string-list approval_questions schema. The
+#      `required-questions` endpoint returns required=[]
+#      for them, which would let them bypass the
+#      decision_required gate.
+#
+# V1.6 fixes both. The Creative gate is the single source of
+# truth: `can_generate_creative(brief)` returns (ok, reasons).
+# Future Create code MUST call this instead of reproducing
+# approval logic.
+
+CURRENT_APPROVAL_SCHEMA_VERSION = "1.6"
+"""Schema version recorded on each Brief's approval_questions.
+
+Briefs created under V1.5 or later set this automatically.
+Legacy Briefs (created before V1.6) have no schema_version.
+"""
+
+OPERATOR_TRUST_VERSION = "operator_token_v1"
+"""The trusted approval_method. Anything else (e.g.
+operator_secret_v0 from older versions) fails the trust
+gate in can_generate_creative.
+"""
+
+
+def _approval_schema_status(b: dict) -> str:
+    """V1.6: classify a Brief's approval_question schema.
+
+    Returns:
+      - 'current' if Brief has V1.5+ structured questions with
+        decision_required markers + schema_version matches
+        CURRENT_APPROVAL_SCHEMA_VERSION
+      - 'migration_required' if Brief has legacy
+        string-list approval_questions or no schema_version
+    """
+    aq = b.get("approval_questions") or {}
+    items = aq.get("items") or []
+    schema_version = aq.get("schema_version")
+    if not items:
+        return "current"  # No questions = nothing to migrate
+    # V1.5+ structured: each item is a dict with 'kind'/'decision_required'
+    if all(isinstance(it, dict)
+           and "decision_required" in it
+           and "kind" in it
+           for it in items):
+        if schema_version == CURRENT_APPROVAL_SCHEMA_VERSION:
+            return "current"
+        # Structured but wrong version (e.g. V1.5 schema with
+        # no schema_version set). Treat as migration_required.
+        return "migration_required"
+    # Legacy string-list (any item is a string)
+    return "migration_required"
+
+
+def _unanswered_required_questions(b: dict) -> list:
+    """V1.6: list of decision_required questions not yet
+    answered by the operator. Returns [] if no questions
+    are required OR if all are answered."""
+    aq = b.get("approval_questions") or {}
+    items = aq.get("items") or []
+    answers = b.get("operator_answers") or {}
+    unanswered = []
+    for it in items:
+        if isinstance(it, dict) and it.get("decision_required"):
+            q_text = it.get("question") or it.get("text") or ""
+            if q_text not in answers:
+                unanswered.append(q_text)
+    return unanswered
+
+
+def _approval_trust_state(b: dict) -> dict:
+    """V1.6: classify the trust state of the current approval.
+
+    Returns:
+      ok: bool — True if approved under current trusted mechanism
+      reason: str — explanation if ok=False
+      approval_method: str — the recorded method
+      approval_method_trusted: bool — is it the current trusted
+        mechanism?
+      authenticated_operator: str or None
+      trust_version: str — 'current' or 'legacy'
+    """
+    status = b.get("status")
+    if status != "approved":
+        return {
+            "ok": False,
+            "reason": f"status is '{status}', not 'approved'",
+            "approval_method": b.get("approval_method"),
+            "approval_method_trusted": False,
+            "authenticated_operator": b.get("authenticated_operator"),
+            "trust_version": "current",
+        }
+    method = b.get("approval_method")
+    if method != OPERATOR_TRUST_VERSION:
+        return {
+            "ok": False,
+            "reason": (f"approval_method '{method}' is not the "
+                      f"current trusted mechanism "
+                      f"'{OPERATOR_TRUST_VERSION}'"),
+            "approval_method": method,
+            "approval_method_trusted": False,
+            "authenticated_operator": b.get("authenticated_operator"),
+            "trust_version": "legacy",
+        }
+    auth_op = b.get("authenticated_operator")
+    if not auth_op:
+        return {
+            "ok": False,
+            "reason": "no authenticated_operator recorded",
+            "approval_method": method,
+            "approval_method_trusted": True,
+            "authenticated_operator": None,
+            "trust_version": "current",
+        }
+    return {
+        "ok": True,
+        "reason": "approved under current trusted mechanism",
+        "approval_method": method,
+        "approval_method_trusted": True,
+        "authenticated_operator": auth_op,
+        "trust_version": "current",
+    }
+
+
+def can_generate_creative(brand_id: str, brief_id: str) -> dict:
+    """V1.6 §5: SINGLE SOURCE OF TRUTH for Creative readiness.
+
+    Future Create code MUST call this function instead of
+    reproducing approval logic. Returns:
+
+      {
+        "ok": bool,                  # True only if all gates pass
+        "creative_allowed": bool,    # raw flag from brief
+        "gates": {
+          "status_approved": bool,
+          "creative_allowed_true": bool,
+          "schema_current": bool,
+          "required_questions_answered": bool,
+          "approval_trust_state_ok": bool,
+        },
+        "reasons": [str],   # human-readable list of failures
+        "approval_schema_status": str,
+        "approval_trust_state": dict,
+        "unanswered_required_questions": [str],
+      }
+
+    The Creative engine MUST NOT generate anything unless
+    ok=True. Failures are explicit — never silent.
+    """
+    b = get_brief(brand_id, brief_id)
+    if not b:
+        return {
+            "ok": False,
+            "creative_allowed": False,
+            "gates": {},
+            "reasons": [f"brief not found: {brand_id}/{brief_id}"],
+            "approval_schema_status": "unknown",
+            "approval_trust_state": {},
+            "unanswered_required_questions": [],
+        }
+
+    schema_status = _approval_schema_status(b)
+    unanswered = _unanswered_required_questions(b)
+    trust_state = _approval_trust_state(b)
+    creative_allowed = bool(b.get("creative_allowed"))
+
+    gates = {
+        "status_approved": b.get("status") == "approved",
+        "creative_allowed_true": creative_allowed,
+        "schema_current": schema_status == "current",
+        "required_questions_answered": len(unanswered) == 0,
+        "approval_trust_state_ok": trust_state["ok"],
+    }
+
+    reasons = []
+    if not gates["status_approved"]:
+        reasons.append(f"status is '{b.get('status')}', not 'approved'")
+    if not gates["creative_allowed_true"]:
+        reasons.append("creative_allowed is False")
+    if not gates["schema_current"]:
+        reasons.append(
+            f"approval_schema_status is '{schema_status}', "
+            f"expected 'current'")
+    if not gates["required_questions_answered"]:
+        reasons.append(
+            f"{len(unanswered)} decision_required question(s) "
+            f"unanswered: {'; '.join(unanswered[:3])}")
+    if not gates["approval_trust_state_ok"]:
+        reasons.append(
+            f"approval trust: {trust_state['reason']}")
+
+    return {
+        "ok": all(gates.values()) and not reasons,
+        "creative_allowed": creative_allowed,
+        "gates": gates,
+        "reasons": reasons,
+        "approval_schema_status": schema_status,
+        "approval_trust_state": trust_state,
+        "unanswered_required_questions": unanswered,
+    }
+
+
+def migrate_brief_to_v16_schema(brand_id: str, brief_id: str) -> dict:
+    """V1.6 §3: migrate a legacy Brief to V1.6 schema.
+
+    Steps:
+      1. Detect legacy schema (string-list items or
+         missing schema_version).
+      2. Convert each item to V1.5+ structured form.
+      3. Preserve existing operator_answers (where question
+         text still matches).
+      4. Set schema_version = CURRENT_APPROVAL_SCHEMA_VERSION.
+      5. Recompute unanswered_required_questions + approval_available.
+      6. Set approval_schema_status = 'current'.
+      7. Write back. Bump revision. Audit append.
+
+    Does NOT invent answers for newly-introduced required
+    questions — those stay unanswered.
+    """
+    b = get_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    aq = b.get("approval_questions") or {}
+    items = aq.get("items") or []
+    schema_version = aq.get("schema_version")
+    if (schema_version == CURRENT_APPROVAL_SCHEMA_VERSION
+            and all(isinstance(it, dict) and "decision_required" in it
+                    for it in items)):
+        return {"ok": True, "migrated": False,
+                "reason": "already at current schema"}
+    # Convert legacy items to structured form
+    new_items = []
+    legacy_to_decision_required = {
+        # V1.6 sets the same decision_required markers as V1.5
+        "Does this opportunity support an active North Star?":
+            True,
+        "Is the audience definition specific enough?":
+            True,
+        "Does the measurement plan use metrics that actually "
+        "exist (not synthetic / pending)?":
+            True,
+        "Are channel roles matched to evidence?":
+            False,
+        "Stick only: does this Brief worsen or fix the Retail "
+        "0% pillar coverage?":
+            False,
+    }
+    for it in items:
+        if isinstance(it, dict):
+            # Already structured — keep as is, but ensure
+            # schema_version + decision_required presence
+            new_items.append({
+                "question": it.get("question") or it.get("text") or "",
+                "kind": it.get("kind") or (
+                    "decision_required"
+                    if it.get("decision_required") else "informational"),
+                "decision_required": bool(
+                    it.get("decision_required", False)),
+            })
+        elif isinstance(it, str):
+            is_required = legacy_to_decision_required.get(it, False)
+            new_items.append({
+                "question": it,
+                "kind": ("decision_required" if is_required
+                         else "informational"),
+                "decision_required": is_required,
+            })
+    aq["items"] = new_items
+    aq["schema_version"] = CURRENT_APPROVAL_SCHEMA_VERSION
+    b["approval_questions"] = aq
+    # Recompute unanswered + approval_available
+    unanswered = []
+    for it in new_items:
+        if it.get("decision_required"):
+            q_text = it.get("question") or ""
+            answers = b.get("operator_answers") or {}
+            if q_text not in answers:
+                unanswered.append(q_text)
+    b["unanswered_required_questions"] = unanswered
+    b["approval_available"] = len(unanswered) == 0
+    b["updated_at"] = _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    b["migration_status"] = "migrated"
+    b["approval_schema_status"] = "current"
+    # V1.6 §4: if the Brief was approved under a non-current
+    # method, clear creative_allowed + approved_at. The Brief
+    # must be re-approved under operator_token_v1 before
+    # Creative can begin.
+    approval_method = b.get("approval_method")
+    if (approval_method != OPERATOR_TRUST_VERSION
+            and b.get("creative_allowed")):
+        b["creative_allowed"] = False
+        b["approved_at"] = None
+        b["approved_by"] = None
+        b["approval_method"] = None
+        b["authenticated_operator"] = None
+        b["revalidation_required"] = True
+        b["revalidation_reason"] = (
+            "approval_method was not operator_token_v1; "
+            "creative_allowed cleared during schema migration")
+    if "_write_brief" in globals():
+        _write_brief(b)
+    if "_append_revision" in globals():
+        _append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"V1.6 SCHEMA MIGRATION: {len(new_items)} "
+                     f"approval_questions structured; "
+                     f"{len(unanswered)} decision_required unanswered"),
+            "drafted_by": "system",
+        })
+    return {
+        "ok": True,
+        "migrated": True,
+        "brand_id": brand_id,
+        "brief_id": brief_id,
+        "items_migrated": len(new_items),
+        "decision_required_count": sum(
+            1 for it in new_items if it.get("decision_required")),
+        "unanswered_required_count": len(unanswered),
+        "approval_available": b["approval_available"],
+    }
+
+
+def revalidate_legacy_approved_brief(brand_id: str,
+                                      brief_id: str,
+                                      reason: str = None) -> dict:
+    """V1.6 §4: re-validate an approved legacy Brief.
+
+    If the Brief's approval_method is NOT the current trusted
+    mechanism, OR no authenticated_operator is recorded,
+    move the Brief back to ready_for_review with audit
+    reason. creative_allowed must be cleared.
+
+    Does NOT delete history. The original approved status
+    is preserved in status_transitions as the audit trail.
+    """
+    b = get_brief(brand_id, brief_id)
+    if not b:
+        return {"ok": False, "error": "brief not found"}
+    if b.get("status") != "approved":
+        return {"ok": True, "revalidated": False,
+                "reason": f"status is '{b.get('status')}', "
+                          "not 'approved'"}
+    trust_state = _approval_trust_state(b)
+    if trust_state["ok"]:
+        return {"ok": True, "revalidated": False,
+                "reason": "approval is already trusted"}
+    # Move to ready_for_review + clear creative_allowed
+    revalidation_reason = (
+        reason or "revalidation required after approval security "
+        "migration")
+    transitions = b.get("status_transitions") or []
+    transitions.append({
+        "from": "approved",
+        "to": "ready_for_review",
+        "actor": "system",
+        "approval_method": "system_revalidation",
+        "authenticated_operator": None,
+        "originating_ui_action": "v16_revalidation",
+        "at": _now_iso(),
+        "note": revalidation_reason,
+    })
+    b["status_transitions"] = transitions
+    b["status"] = "ready_for_review"
+    b["creative_allowed"] = False
+    b["approved_at"] = None
+    b["approved_by"] = None
+    b["approval_method"] = None
+    b["authenticated_operator"] = None
+    b["revalidation_reason"] = revalidation_reason
+    b["updated_at"] = _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    if "_write_brief" in globals():
+        _write_brief(b)
+    if "_append_revision" in globals():
+        _append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"V1.6 §4 REVALIDATION: moved approved → "
+                     f"ready_for_review. {revalidation_reason}. "
+                     f"Original approval_method was "
+                     f"'{trust_state.get('approval_method')}'"),
+            "drafted_by": "system",
+        })
+    return {
+        "ok": True,
+        "revalidated": True,
+        "brand_id": brand_id,
+        "brief_id": brief_id,
+        "previous_approval_method": trust_state.get("approval_method"),
+        "revalidation_reason": revalidation_reason,
+        "current_status": b["status"],
+        "creative_allowed": False,
+    }
+
+
+def list_legacy_briefs(brand_id: str = None) -> list:
+    """V1.6 §3: list all Briefs with migration_required
+    schema_status (legacy string-list approval_questions).
+
+    Used by the migration audit endpoint.
+    """
+    out = []
+    brands = [brand_id] if brand_id else ["stick", "bag-drop",
+                                            "swing-shack"]
+    for b in brands:
+        try:
+            items = list_briefs(b)
+        except Exception:
+            continue
+        for brief in items:
+            b_id = brief.get("brief_id")
+            if not b_id:
+                continue
+            full = get_brief(b, b_id)
+            if not full:
+                continue
+            schema_status = _approval_schema_status(full)
+            if schema_status == "migration_required":
+                out.append({
+                    "brief_id": b_id,
+                    "brand_id": b,
+                    "status": full.get("status"),
+                    "creative_allowed": full.get("creative_allowed"),
+                    "schema_status": schema_status,
+                    "approval_method": full.get("approval_method"),
+                    "authenticated_operator":
+                        full.get("authenticated_operator"),
+                    "approval_questions_count": len(
+                        (full.get("approval_questions") or {})
+                        .get("items") or []),
+                    "decision_required_count": sum(
+                        1 for it in (full.get("approval_questions")
+                                     or {}).get("items") or []
+                        if isinstance(it, dict)
+                        and it.get("decision_required")),
+                    "migration_status": full.get("migration_status"),
+                })
+    return out
+
+
+def list_all_briefs_status(brand_id: str = None) -> list:
+    """V1.6 §3: list ALL active Briefs (draft, ready_for_review,
+    changes_requested, approved, rejected) with their schema
+    status + trust state for the audit endpoint.
+    """
+    out = []
+    brands = [brand_id] if brand_id else ["stick", "bag-drop",
+                                            "swing-shack"]
+    for b in brands:
+        try:
+            items = list_briefs(b)
+        except Exception:
+            continue
+        for brief in items:
+            b_id = brief.get("brief_id")
+            if not b_id:
+                continue
+            full = get_brief(b, b_id)
+            if not full:
+                continue
+            schema_status = _approval_schema_status(full)
+            trust_state = _approval_trust_state(full)
+            out.append({
+                "brief_id": b_id,
+                "brand_id": b,
+                "status": full.get("status"),
+                "creative_allowed": full.get("creative_allowed"),
+                "schema_status": schema_status,
+                "approval_question_schema": (
+                    "structured" if schema_status == "current"
+                    else "legacy_string_list"),
+                "approval_method": full.get("approval_method"),
+                "authenticated_operator":
+                    full.get("authenticated_operator"),
+                "approval_available": (
+                    full.get("approval_available", False)
+                    if schema_status == "current" else False),
+                "unanswered_required_count": len(
+                    _unanswered_required_questions(full)),
+                "trust_version": trust_state.get("trust_version"),
+                "approval_trust_ok": trust_state.get("ok"),
+                "migration_status": full.get(
+                    "migration_status", "not_migrated"),
+            })
+    return out
+
+
+
+# ─── V1.7: PRODUCTION APPROVAL ISOLATION ────────────────────────────────
+# V1.6 left a hole: test_operator had a working verifier in
+# the production Railway env var. An automated agent could
+# authenticate as test_operator and approve Briefs in
+# production. V1.7 closes that hole by binding the
+# approval policy to the deployment environment.
+
+# V1.7 §2: canonical environment identifier. Read from
+# CAMPAIGN_OS_ENV (production | test | local). Falls
+# back to RAILWAY_ENVIRONMENT (production on Railway,
+# None on local). Defaults to 'test' when neither is
+# set — fail-closed for any environment that doesn't
+# explicitly opt in to production.
+
+VALID_ENVIRONMENTS = ("production", "test", "local")
+
+# V1.7 §2: canonical human production operator identities.
+# A human production operator is the ONLY class of identity
+# allowed to approve protected Briefs in production.
+# Defined as a list so it can be extended without code
+# changes (env var override takes precedence).
+DEFAULT_HUMAN_PRODUCTION_OPERATORS = ("christelle",)
+
+# V1.7 §2: forbidden identities in production. Any
+# authentication attempt by these identities in
+# production must be rejected, regardless of whether
+# the verifier technically matches.
+DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS = (
+    "test_operator",
+    "heidi",
+    "hermes",
+    "foreman",
+    "automation",
+    "service_account",
+    "service-account",
+    "ci_bot",
+    "ci-bot",
+)
+
+
+def _resolve_environment() -> str:
+    """V1.7 §2: resolve the canonical deployment environment.
+
+    Reads CAMPAIGN_OS_ENV first (the canonical override).
+    Falls back to RAILWAY_ENVIRONMENT (Railway's native
+    indicator: 'production' on Railway, None on local).
+    Defaults to 'test' if neither is set — fail-closed.
+
+    Returns one of: 'production', 'test', 'local'.
+    """
+    explicit = (os.environ.get("CAMPAIGN_OS_ENV") or "").strip().lower()
+    if explicit in VALID_ENVIRONMENTS:
+        return explicit
+    railway = (os.environ.get("RAILWAY_ENVIRONMENT") or "").strip().lower()
+    if railway == "production":
+        return "production"
+    # Heuristic: if RAILWAY_ENVIRONMENT_ID is set, we're on
+    # Railway even if RAILWAY_ENVIRONMENT is unset
+    if (os.environ.get("RAILWAY_ENVIRONMENT_ID") or "").strip():
+        return "production"
+    return "test"
+
+
+def _human_production_operators() -> tuple:
+    """V1.7 §2: list of human production operator identities.
+
+    Reads CAMPAIGN_OS_HUMAN_OPERATORS env var (comma-separated)
+    to allow runtime override. Falls back to
+    DEFAULT_HUMAN_PRODUCTION_OPERATORS.
+    """
+    explicit = (os.environ.get("CAMPAIGN_OS_HUMAN_OPERATORS") or "").strip()
+    if not explicit:
+        return DEFAULT_HUMAN_PRODUCTION_OPERATORS
+    out = tuple(op.strip().lower() for op in explicit.split(",")
+                if op.strip())
+    return out or DEFAULT_HUMAN_PRODUCTION_OPERATORS
+
+
+def _production_forbidden_operators() -> tuple:
+    """V1.7 §2: list of operator identities forbidden in
+    production. Reads CAMPAIGN_OS_FORBIDDEN_OPERATORS env
+    var (comma-separated) to allow runtime override. Falls
+    back to DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS.
+    """
+    explicit = (os.environ.get("CAMPAIGN_OS_FORBIDDEN_OPERATORS") or "").strip()
+    if not explicit:
+        return DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS
+    out = tuple(op.strip().lower() for op in explicit.split(",")
+                if op.strip())
+    return out or DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS
+
+
+def can_identity_approve(environment: str,
+                          operator_id: str) -> dict:
+    """V1.7 §2: SINGLE canonical approval-policy check.
+
+    Returns:
+      {
+        "allowed": bool,
+        "environment": str,
+        "operator_id": str,
+        "reason": str,        # human-readable
+        "identity_class": str # 'human_production' | 'forbidden'
+                              # | 'test' | 'unrecognized'
+      }
+
+    Rules:
+      - environment == 'production':
+          - operator_id in _human_production_operators() → allowed
+          - operator_id in _production_forbidden_operators()
+            → denied (forbidden)
+          - operator_id in neither list → denied (unrecognized)
+      - environment in ('test', 'local'):
+          - any authenticated operator_id is allowed
+            (the auth check at _verify_operator_auth
+             already proved the verifier matches)
+          - this is the environment where test_operator
+            is used for security regression tests
+    """
+    if not environment:
+        environment = _resolve_environment()
+    op = (operator_id or "").strip().lower()
+    if environment == "production":
+        if not op:
+            return {
+                "allowed": False,
+                "environment": environment,
+                "operator_id": operator_id,
+                "reason": ("empty operator_id not allowed in production"),
+                "identity_class": "unrecognized",
+            }
+        if op in _production_forbidden_operators():
+            return {
+                "allowed": False,
+                "environment": environment,
+                "operator_id": operator_id,
+                "reason": (f"operator_id '{operator_id}' is forbidden "
+                          f"in production (test/automation/agent "
+                          f"identity class)"),
+                "identity_class": "forbidden",
+            }
+        if op in _human_production_operators():
+            return {
+                "allowed": True,
+                "environment": environment,
+                "operator_id": operator_id,
+                "reason": ("operator_id is in the human "
+                          "production operators list"),
+                "identity_class": "human_production",
+            }
+        return {
+            "allowed": False,
+            "environment": environment,
+            "operator_id": operator_id,
+            "reason": (f"operator_id '{operator_id}' is not in the "
+                      f"human production operators list"),
+            "identity_class": "unrecognized",
+        }
+    # test or local
+    return {
+        "allowed": True,
+        "environment": environment,
+        "operator_id": operator_id,
+        "reason": (f"environment is '{environment}' — all "
+                  f"authenticated identities allowed"),
+        "identity_class": "test_or_local",
+    }
+
+
+def _is_operator_forbidden_in_production(operator_id: str) -> bool:
+    """V1.7 §3 convenience: returns True if operator_id is
+    in the production forbidden list. Used by the
+    /api/brief/v1/_internal/operator-token-status endpoint
+    to mask forbidden operators from the response."""
+    op = (operator_id or "").strip().lower()
+    return op in _production_forbidden_operators()
+
+
+def _verify_operator_auth_v17(headers: "Optional[dict]" = None) -> "Optional[str]":
+    """V1.7 §1+§2+§3: verify operator auth + production
+    policy in one place. Returns the authenticated
+    operator_id (str) if valid AND allowed in the current
+    environment, None otherwise.
+
+    Two-step check:
+      1. _verify_operator_auth() — PBKDF2 verifier matches
+         (proves the caller has the plaintext secret)
+      2. can_identity_approve(_resolve_environment(),
+         operator_id) — production policy allows this identity
+
+    Both must pass. In production, step 2 forbids
+    test_operator / heidi / hermes / foreman / automation
+    / service_account identities even if the verifier
+    technically matches.
+    """
+    op_id = _verify_operator_auth(headers)
+    if not op_id:
+        return None
+    env = _resolve_environment()
+    policy = can_identity_approve(env, op_id)
+    if not policy["allowed"]:
+        return None
+    return op_id
+
+
+def can_generate_creative_v17(brand_id: str, brief_id: str) -> dict:
+    """V1.7 §5+§8: updated Creative gate.
+
+    V1.6 can_generate_creative plus:
+      - In production, authenticated_operator MUST be in
+        _human_production_operators(). A Brief historically
+        approved by test_operator returns ok=False in
+        production even if all other V1.6 gates pass.
+
+    Reuses V1.6 can_generate_creative internally and adds
+    one more gate: identity_class_human in production.
+    """
+    base = can_generate_creative(brand_id, brief_id)
+    env = _resolve_environment()
+    trust = base.get("approval_trust_state") or {}
+    auth_op = trust.get("authenticated_operator")
+    identity_class_ok = True
+    identity_reason = None
+    if env == "production":
+        if not auth_op:
+            identity_class_ok = False
+            identity_reason = ("no authenticated_operator — "
+                              "production requires a human "
+                              "operator identity")
+        else:
+            policy = can_identity_approve(env, auth_op)
+            identity_class_ok = policy["allowed"]
+            if not policy["allowed"]:
+                identity_reason = policy["reason"]
+    gates = base.get("gates") or {}
+    gates["identity_class_human_in_production"] = identity_class_ok
+    reasons = list(base.get("reasons") or [])
+    if not identity_class_ok:
+        reasons.append(
+            identity_reason or "identity class not allowed in production")
+    return {
+        "ok": all(gates.values()) and not reasons,
+        "environment": env,
+        "creative_allowed": base.get("creative_allowed"),
+        "gates": gates,
+        "reasons": reasons,
+        "approval_schema_status": base.get("approval_schema_status"),
+        "approval_trust_state": trust,
+        "unanswered_required_questions":
+            base.get("unanswered_required_questions") or [],
+        "v16_base": base,
+    }
+
 

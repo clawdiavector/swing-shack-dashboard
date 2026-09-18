@@ -119,3 +119,5 @@ tests/test_v2026_08_14_headlines_ctas_empty_state.py
 tests/test_v2026_08_18_review_inbox_brand_scoped.py
 campaign-os/tests/jobs/test_layer2_jobs.py
 campaign-os/tests/jobs/test_layer5_create.py
+campaign-os/tests/test_brand_lanes_p2b.py
+self-tests/test_cos_job_summary_self.py

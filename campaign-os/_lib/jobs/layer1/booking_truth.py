@@ -135,7 +135,7 @@ def run(*, brand: str | None = None) -> dict:
     if not events_in:
         return {"ok": False, "error": f"{BOOKING_OUT} has no events inventory"}
 
-    missing = ga4_report._missing_env_error()
+    missing = ga4_report._missing_env_error(brand)
     ga_counts: dict[str, int] = {}
     booking_sessions = 0
     ga_ok = False
@@ -143,8 +143,8 @@ def run(*, brand: str | None = None) -> dict:
         end = date.today()
         start = end - timedelta(days=28)
         try:
-            property_id, _ = ga4_report._resolve_ga4_creds()
-            bearer = ga4_report._get_ga4_bearer()
+            property_id, _ = ga4_report._resolve_ga4_creds(brand)
+            bearer = ga4_report._get_ga4_bearer(brand)
             ga_counts = _fetch_ga4_event_counts(property_id, bearer, start.isoformat(), end.isoformat())
             booking_sessions = _fetch_booking_page_sessions(
                 property_id, bearer, start.isoformat(), end.isoformat()

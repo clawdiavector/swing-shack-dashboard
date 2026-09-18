@@ -10,7 +10,8 @@ import urllib.request
 from datetime import date, timedelta
 from typing import Any, Optional
 
-from ._io import atomic_write, utc_now_iso, io_for_job
+from ._io import atomic_write, io_for_job, utc_now_iso, _fallback_brand
+from ..brand_lanes import _brand_safe
 
 JOB_NAME = "gsc_report"
 from . import ga4_report
@@ -20,16 +21,35 @@ SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"]
 API_BASE = "https://www.googleapis.com/webmasters/v3"
 
 
-def _site_url() -> str:
-    return (
+def _resolve_site_url(brand: str | None) -> tuple[str | None, str | None]:
+    """Return (site_url, error). Non-default brands require GSC_SITE_URL_<BRAND>."""
+    bid = brand or _fallback_brand()
+    safe = _brand_safe(bid)
+    per_brand = os.environ.get(f"GSC_SITE_URL_{safe}", "").strip()
+    if per_brand:
+        return per_brand, None
+    default_bid = _fallback_brand()
+    if bid != default_bid:
+        return None, f"GSC_SITE_URL_{safe} not set"
+    site = (
         os.environ.get("GSC_SITE_URL", "").strip()
         or os.environ.get("SEARCH_CONSOLE_SITE_URL", "").strip()
         or "https://swingshack.co.za/"
     )
+    return site, None
 
 
-def _get_search_console_bearer() -> str:
-    _, sa_path = ga4_report._resolve_ga4_creds()
+def _get_search_console_bearer(*, brand: str | None = None) -> str:
+    try:
+        from _lib import gsc_oauth as _gsc_oauth  # noqa: PLC0415
+
+        oauth_token = _gsc_oauth.get_access_token(brand=brand)
+        if oauth_token:
+            return oauth_token
+    except Exception:
+        pass
+
+    _, sa_path = ga4_report._resolve_ga4_creds(brand)
     try:
         from google.oauth2 import service_account as _sa  # noqa: PLC0415
         from google.auth.transport.requests import Request as _GRequest  # noqa: PLC0415
@@ -110,18 +130,28 @@ def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
 def run(*, brand: str | None = None) -> dict:
     """Fetch Search Console stats and write search-console.json."""
     io = io_for_job(JOB_NAME, brand)
-    missing = ga4_report._missing_env_error()
-    if missing:
-        return {"ok": False, "error": missing}
+    site, site_err = _resolve_site_url(brand)
+    if site_err:
+        return {"ok": False, "error": site_err}
 
-    site = _site_url()
+    try:
+        from _lib import gsc_oauth as _gsc_oauth  # noqa: PLC0415
+
+        has_oauth = _gsc_oauth.gsc_oauth_credentials_present() and _gsc_oauth.load_token(brand=brand)
+    except Exception:
+        has_oauth = False
+    if not has_oauth:
+        missing = ga4_report._missing_env_error(brand)
+        if missing:
+            return {"ok": False, "error": missing}
+
     end = date.today() - timedelta(days=3)  # GSC data lag
     start = end - timedelta(days=27)
     prev_end = start - timedelta(days=1)
     prev_start = prev_end - timedelta(days=27)
 
     try:
-        bearer = _get_search_console_bearer()
+        bearer = _get_search_console_bearer(brand=brand)
         queries = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["query"], 50)
         pages = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["page"], 25)
         prev_queries = _search_analytics(

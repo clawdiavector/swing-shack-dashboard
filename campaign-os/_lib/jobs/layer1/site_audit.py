@@ -9,7 +9,7 @@ from typing import Any
 import requests
 
 from ..errors import describe_exception
-from ._io import atomic_write, utc_now_iso, io_for_job
+from ._io import atomic_write, io_for_job, resolve_brand_domain, utc_now_iso
 
 JOB_NAME = "site_audit"
 
@@ -27,11 +27,13 @@ PAGES = (
 )
 
 
-def _site_base() -> str:
-    domain = os.environ.get("SWING_SHACK_DOMAIN", "swingshack.co.za").strip()
+def _site_base(brand: str | None = None) -> tuple[str | None, str | None]:
+    domain, err = resolve_brand_domain(brand)
+    if err:
+        return None, err
     if domain.startswith("http://") or domain.startswith("https://"):
-        return domain.rstrip("/")
-    return f"https://{domain.rstrip('/')}"
+        return domain.rstrip("/"), None
+    return f"https://{domain.rstrip('/')}", None
 
 
 def _fetch_page(url: str) -> str:
@@ -265,7 +267,9 @@ _GEO_FIXES = {
 def run(*, brand: str | None = None) -> dict:
     """Audit site pages for SEO and GEO signals."""
     io = io_for_job(JOB_NAME, brand)
-    site = _site_base()
+    site, site_err = _site_base(brand)
+    if site_err:
+        return {"ok": False, "error": site_err}
     seo_reports: list[dict[str, Any]] = []
     geo_reports: list[dict[str, Any]] = []
     all_seo_findings: list[dict[str, Any]] = []

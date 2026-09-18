@@ -10,6 +10,7 @@ jobs:
   tick:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: POST /api/jobs/run/gbp_tick on Railway
         env:
           COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
@@ -19,10 +20,11 @@ jobs:
             echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
             exit 1
           fi
-          curl -sf -X POST "https://swing-shack-dashboard-production.up.railway.app/api/jobs/run/gbp_tick" \
+          curl -sf -X POST "https://swing-shack-dashboard-production.up.railway.app/api/jobs/run/gbp_tick?all=1" \
             -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
             -H "Content-Type: application/json" \
             | tee /tmp/job-run.json
           echo
-          python3 -c "import json,sys; d=json.load(open('/tmp/job-run.json')); sys.exit(0 if d.get('ok') else 1)"
+          python3 scripts/cos_job_summary.py print /tmp/job-run.json
+          python3 scripts/cos_job_summary.py assert-ok /tmp/job-run.json --hard-gate
           echo "gbp_tick fired. Output above."

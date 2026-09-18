@@ -67,6 +67,7 @@ def layer1_specs() -> list[JobSpec]:
             every_seconds=86400,
             timeout_seconds=60,
             best_effort=True,
+            enabled=False,  # disabled 2026-09-18 — Reddit 429 rate limits
             criticality="LOW",
             retries=2,
             writes=("reddit-trends.json",),

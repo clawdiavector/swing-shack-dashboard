@@ -8,50 +8,48 @@ import os
 from datetime import date, timedelta
 from typing import Any, Optional
 
-from ._io import as_dict, atomic_write, read_json, utc_now_iso, io_for_job
+from ._io import as_dict, atomic_write, read_json, utc_now_iso, io_for_job, _fallback_brand
 
 JOB_NAME = "ga4_report"
 
 OUTPUT = "ga4-metrics.json"
 REPORT_TIMEOUT = 20
-_BRAND_SAFE = "SWING_SHACK"
 
 
-def _resolve_ga4_creds() -> tuple[str, str]:
-    """Resolve property id + service-account JSON path for the nightly job.
+def _brand_env_key(brand: str | None) -> str:
+    from ..brand_lanes import _brand_safe
 
-    Order matches app._ga4_credentials('swing-shack'):
-      1. GA4_PROPERTY_ID + GA4_SERVICE_ACCOUNT_JSON_PATH (explicit job vars)
-      2. GA4_PROPERTY_SWING_SHACK + GA4_CREDENTIALS_JSON_SWING_SHACK (Railway b64)
-      3. GA4_PROPERTY_SWING_SHACK + GA4_CREDENTIALS_SWING_SHACK / GOOGLE_APPLICATION_CREDENTIALS
-    """
+    bid = brand or _fallback_brand()
+    return _brand_safe(bid)
+
+
+def _resolve_ga4_creds(brand: str | None = None) -> tuple[str, str]:
+    """Resolve property id + service-account JSON path for the nightly job."""
+    brand_safe = _brand_env_key(brand)
     prop = os.environ.get("GA4_PROPERTY_ID", "").strip()
     path = os.environ.get("GA4_SERVICE_ACCOUNT_JSON_PATH", "").strip()
     if prop and path and os.path.isfile(path):
         return prop, path
 
-    prop = (
-        os.environ.get(f"GA4_PROPERTY_{_BRAND_SAFE}", "").strip()
-        or prop
-    )
-    inline_env = os.environ.get(f"GA4_CREDENTIALS_JSON_{_BRAND_SAFE}", "").strip()
+    prop = os.environ.get(f"GA4_PROPERTY_{brand_safe}", "").strip() or prop
+    inline_env = os.environ.get(f"GA4_CREDENTIALS_JSON_{brand_safe}", "").strip()
     if inline_env:
         try:
             decoded = base64.b64decode(inline_env).decode("utf-8")
             parsed = json.loads(decoded)
             if not parsed.get("type") or not parsed.get("client_email"):
                 raise ValueError("missing required service-account fields")
-            marker = f"/tmp/campaign-os-ga4-{_BRAND_SAFE}.json"
+            marker = f"/tmp/campaign-os-ga4-{brand_safe}.json"
             with open(marker, "w", encoding="utf-8") as fh:
                 fh.write(decoded)
             os.chmod(marker, 0o600)
             if prop:
                 return prop, marker
         except Exception as exc:
-            raise RuntimeError(f"GA4_CREDENTIALS_JSON_{_BRAND_SAFE} invalid: {exc}") from exc
+            raise RuntimeError(f"GA4_CREDENTIALS_JSON_{brand_safe} invalid: {exc}") from exc
 
     path = (
-        os.environ.get(f"GA4_CREDENTIALS_{_BRAND_SAFE}", "").strip()
+        os.environ.get(f"GA4_CREDENTIALS_{brand_safe}", "").strip()
         or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
         or path
     )
@@ -59,21 +57,21 @@ def _resolve_ga4_creds() -> tuple[str, str]:
         return prop, path
 
     if not prop:
-        raise RuntimeError("missing GA4_PROPERTY_ID")
-    raise RuntimeError("missing GA4 service account credentials")
+        raise RuntimeError(f"missing GA4_PROPERTY_{brand_safe}")
+    raise RuntimeError(f"missing GA4 service account credentials for {brand_safe}")
 
 
-def _missing_env_error() -> Optional[str]:
+def _missing_env_error(brand: str | None = None) -> Optional[str]:
     try:
-        _resolve_ga4_creds()
+        _resolve_ga4_creds(brand)
         return None
     except RuntimeError as exc:
         return str(exc)
 
 
-def _get_ga4_bearer() -> str:
+def _get_ga4_bearer(brand: str | None = None) -> str:
     """Obtain GA4 bearer token from service account; patch in tests."""
-    _, sa_path = _resolve_ga4_creds()
+    _, sa_path = _resolve_ga4_creds(brand)
     try:
         from google.oauth2 import service_account as _sa
         from google.auth.transport.requests import Request as _GRequest
@@ -224,11 +222,11 @@ def _apply_stale_fallback(existing: dict, reason: str) -> dict:
 def run(*, brand: str | None = None) -> dict:
     """Fetch GA4 metrics and write ga4-metrics.json."""
     io = io_for_job(JOB_NAME, brand)
-    missing = _missing_env_error()
+    missing = _missing_env_error(brand)
     if missing:
         return {"ok": False, "error": missing}
 
-    property_id, _ = _resolve_ga4_creds()
+    property_id, _ = _resolve_ga4_creds(brand)
     end = date.today()
     start = end - timedelta(days=7)
     start_str = start.isoformat()
@@ -249,7 +247,7 @@ def run(*, brand: str | None = None) -> dict:
     }
 
     try:
-        bearer = _get_ga4_bearer()
+        bearer = _get_ga4_bearer(brand)
         report = _run_ga4_report(property_id, bearer, body)
         if report.get("error"):
             raise RuntimeError(json.dumps(report["error"])[:200])

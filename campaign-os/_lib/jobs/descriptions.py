@@ -40,10 +40,10 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
     },
     "reddit_trends": {
         "title": "Reddit trend harvest",
-        "summary": "Pulls hot posts from golf subreddits into reddit-trends.json.",
+        "summary": "Disabled — Reddit JSON API rate limits (429).",
         "detail": (
-            "Best-effort Reddit JSON API fetch. Rate limits or blocks → LATE. "
-            "Upstream for youtube_trends and insights_hooks."
+            "Job disabled 2026-09-18. Stale reddit-trends.json may still feed "
+            "youtube_trends / insights_hooks until re-enabled."
         ),
     },
     "youtube_trends": {
@@ -121,8 +121,9 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
         "title": "Google Search Console report",
         "summary": "Pulls query/page stats into search-console.json.",
         "detail": (
-            "Uses the GA4 service account + webmasters.readonly scope against GSC_SITE_URL. "
-            "Surfaces rising/falling queries and quick wins for SEO Assistant."
+            "Uses Search Console OAuth when configured, else GA4 service account + "
+            "webmasters.readonly against GSC_SITE_URL. Surfaces rising/falling queries "
+            "and quick wins for SEO Assistant."
         ),
     },
     "booking_truth": {
