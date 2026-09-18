@@ -22663,18 +22663,36 @@ def brief_v1_revert_test_approval(brand_id, brief_id):
 def brief_v1_operator_token_status():
     """GET /api/brief/v1/_internal/operator-token-status
 
-    V1.2 §1: diagnostic — checks whether operator tokens are
-    configured without exposing the token values. Returns
-    {configured: bool, operators: [op_id, ...]}."""
+    V1.2 §1 + V1.7 §3: diagnostic — checks whether operator
+    tokens are configured without exposing the token values.
+
+    In production, masks operators in the forbidden list
+    (test_operator / automation / agents / service accounts)
+    from the operators[] response — they may still exist in
+    the env var but are not production-eligible identities.
+    """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     cb = _cb_import()
     store = cb._operator_token_store()
+    env = cb._resolve_environment()
+    forbidden = set(cb._production_forbidden_operators())
+    if env == "production":
+        operators = sorted(k for k in store.keys()
+                          if k.lower() not in forbidden)
+        eligible_count = len(operators)
+    else:
+        operators = sorted(store.keys())
+        eligible_count = len(operators)
     return jsonify({
         "ok": True,
+        "environment": env,
         "configured": len(store) > 0,
         "operator_count": len(store),
-        "operators": sorted(store.keys()),
+        "eligible_production_count": eligible_count,
+        "operators": operators,
+        "forbidden_in_production": (
+            sorted(forbidden) if env == "production" else []),
     })
 
 
@@ -42284,17 +42302,15 @@ def brief_v1_required_questions(brand_id, brief_id):
 def brief_v1_can_generate_creative(brand_id, brief_id):
     """GET /api/brief/v1/<brand_id>/<brief_id>/can-generate-creative
 
-    V1.6 §5: SINGLE SOURCE OF TRUTH for Creative readiness.
+    V1.7 §5+§8: SINGLE SOURCE OF TRUTH for Creative readiness.
+    Calls can_generate_creative_v17 which adds:
+      - identity_class_human_in_production: in production,
+        authenticated_operator MUST be a human production
+        operator. A Brief historically approved by
+        test_operator returns ok=false in production even
+        if all other V1.6 gates pass.
 
-    Future Create code MUST call this endpoint instead of
-    reproducing approval logic. Returns ok=true only when
-    ALL gates pass:
-      - status == approved
-      - creative_allowed == true
-      - approval_schema_status == current
-      - required_questions_unanswered == 0
-      - approval_method is current trusted mechanism
-      - authenticated_operator exists
+    Future Create code MUST call this endpoint.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -42302,8 +42318,124 @@ def brief_v1_can_generate_creative(brand_id, brief_id):
         return jsonify({"ok": False,
                         "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
     cb = _cb_import()
-    result = cb.can_generate_creative(brand_id, brief_id)
+    result = cb.can_generate_creative_v17(brand_id, brief_id)
     return jsonify(result), 200
+
+
+@app.route('/api/brief/v1/_internal/identity-policy-check', methods=['GET'])
+def brief_v1_identity_policy_check():
+    """GET /api/brief/v1/_internal/identity-policy-check
+
+    V1.7 §2: returns the canonical can_identity_approve
+    policy for the current environment. Used by tests +
+    dashboards to verify which identities are allowed.
+
+    Query params:
+      ?operator_id=<id>   — check this operator
+    Returns:
+      {
+        ok, environment, operator_id, allowed,
+        reason, identity_class,
+        human_production_operators: [...],
+        forbidden_operators: [...]
+      }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    env = cb._resolve_environment()
+    op_id = (request.args.get("operator_id") or "").strip()
+    if op_id:
+        policy = cb.can_identity_approve(env, op_id)
+        return jsonify({
+            "ok": True,
+            **policy,
+            "human_production_operators":
+                list(cb._human_production_operators()),
+            "forbidden_operators":
+                list(cb._production_forbidden_operators()),
+        }), 200
+    # No operator_id given — return the policy overview
+    return jsonify({
+        "ok": True,
+        "environment": env,
+        "human_production_operators":
+            list(cb._human_production_operators()),
+        "forbidden_operators":
+            list(cb._production_forbidden_operators()),
+    }), 200
+
+
+@app.route('/api/brief/v1/_internal/v17-brief-audit', methods=['GET'])
+def brief_v1_v17_audit():
+    """GET /api/brief/v1/_internal/v17-brief-audit
+
+    V1.7 §9: audit all Briefs for production-generatability.
+
+    Returns:
+      - production_generatable: Briefs that can be
+        Creative-generated in production right now
+      - blocked_by_identity: Briefs that pass V1.6 gates
+        but fail V1.7 production identity class check
+      - blocked_by_legacy_trust: Briefs approved under
+        non-current trust
+      - blocked_by_state: Briefs not in approved state
+      - all_briefs: full per-Brief audit
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    cb = _cb_import()
+    env = cb._resolve_environment()
+    human_ops = set(cb._human_production_operators())
+    forbidden_ops = set(cb._production_forbidden_operators())
+    items = cb.list_all_briefs_status()
+    production_generatable = []
+    blocked_by_identity = []
+    blocked_by_legacy_trust = []
+    blocked_by_state = []
+    all_with_v17 = []
+    for it in items:
+        brand = it["brand_id"]
+        bid = it["brief_id"]
+        gate = cb.can_generate_creative_v17(brand, bid)
+        auth_op = (it.get("authenticated_operator") or "").strip().lower()
+        v17_item = {
+            **it,
+            "v17_can_generate": gate["ok"],
+            "v17_gates": gate.get("gates"),
+            "v17_reasons": gate.get("reasons"),
+            "v17_environment": gate.get("environment"),
+        }
+        all_with_v17.append(v17_item)
+        if gate["ok"]:
+            production_generatable.append(v17_item)
+        elif (it.get("status") == "approved"
+              and it.get("approval_trust_ok")
+              and it.get("schema_status") == "current"
+              and it.get("unanswered_required_count") == 0):
+            # Brief passes all V1.6 gates but fails V1.7
+            blocked_by_identity.append(v17_item)
+        elif it.get("status") != "approved":
+            blocked_by_state.append(v17_item)
+        else:
+            blocked_by_legacy_trust.append(v17_item)
+    return jsonify({
+        "ok": True,
+        "environment": env,
+        "human_production_operators": sorted(human_ops),
+        "forbidden_operators": sorted(forbidden_ops),
+        "total_briefs": len(items),
+        "production_generatable_count": len(production_generatable),
+        "blocked_by_identity_count": len(blocked_by_identity),
+        "blocked_by_legacy_trust_count":
+            len(blocked_by_legacy_trust),
+        "blocked_by_state_count": len(blocked_by_state),
+        "production_generatable": production_generatable,
+        "blocked_by_identity": blocked_by_identity,
+        "blocked_by_legacy_trust": blocked_by_legacy_trust,
+        "blocked_by_state": blocked_by_state,
+        "all_briefs": all_with_v17,
+    }), 200
 
 
 @app.route('/api/brief/v1/_internal/legacy-brief-audit', methods=['GET'])

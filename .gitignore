@@ -43,3 +43,10 @@ data/freshness-detail.json
 # tick start so priority-1 product work doesn't get blocked by recurring
 # runtime writes.
 campaign-os/data/
+
+
+# V1.7 §4: approval verifiers are security-sensitive
+# configuration. They must never be version-controlled.
+# The setup script writes to this file in the operator's
+# working directory — the verifier JSON is the secret.
+.railway-operator-tokens.json

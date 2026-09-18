@@ -2903,8 +2903,31 @@ def transition_brief(brand_id: str, brief_id: str, to_status: str,
     PROTECTED = (STATUS_APPROVED, STATUS_REJECTED, STATUS_SUPERSEDED)
     authenticated_operator = None
     if to_status in PROTECTED:
-        authenticated_operator = _verify_operator_auth(headers)
+        # V1.7 §1+§2: production policy check is mandatory
+        # for protected transitions. The verifier matching
+        # alone is NOT enough — the identity must also be
+        # allowed in the current environment.
+        authenticated_operator = _verify_operator_auth_v17(headers)
         if not authenticated_operator:
+            env = _resolve_environment()
+            # Distinguish "verifier mismatch" from
+            # "identity forbidden in production" in the
+            # error message.
+            if env == "production":
+                return {"ok": False,
+                        "error": (f"transition to '{to_status}' "
+                                  "rejected in production (V1.7 §2). "
+                                  "Either: (a) operator authentication "
+                                  "failed — provide valid X-Operator-Id "
+                                  "+ X-Operator-Token headers, OR "
+                                  "(b) the operator_id is not in the "
+                                  "human production operators list "
+                                  f"({list(_human_production_operators())}). "
+                                  "Automated/agent/service-account "
+                                  "identities (test_operator, heidi, "
+                                  "hermes, foreman, automation, "
+                                  "service_account) cannot approve "
+                                  "production Briefs.")}
             return {"ok": False,
                     "error": (f"transition to '{to_status}' requires "
                               "operator authentication (V1.2 §1). "
@@ -3565,4 +3588,260 @@ def list_all_briefs_status(brand_id: str = None) -> list:
                     "migration_status", "not_migrated"),
             })
     return out
+
+
+
+# ─── V1.7: PRODUCTION APPROVAL ISOLATION ────────────────────────────────
+# V1.6 left a hole: test_operator had a working verifier in
+# the production Railway env var. An automated agent could
+# authenticate as test_operator and approve Briefs in
+# production. V1.7 closes that hole by binding the
+# approval policy to the deployment environment.
+
+# V1.7 §2: canonical environment identifier. Read from
+# CAMPAIGN_OS_ENV (production | test | local). Falls
+# back to RAILWAY_ENVIRONMENT (production on Railway,
+# None on local). Defaults to 'test' when neither is
+# set — fail-closed for any environment that doesn't
+# explicitly opt in to production.
+
+VALID_ENVIRONMENTS = ("production", "test", "local")
+
+# V1.7 §2: canonical human production operator identities.
+# A human production operator is the ONLY class of identity
+# allowed to approve protected Briefs in production.
+# Defined as a list so it can be extended without code
+# changes (env var override takes precedence).
+DEFAULT_HUMAN_PRODUCTION_OPERATORS = ("christelle",)
+
+# V1.7 §2: forbidden identities in production. Any
+# authentication attempt by these identities in
+# production must be rejected, regardless of whether
+# the verifier technically matches.
+DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS = (
+    "test_operator",
+    "heidi",
+    "hermes",
+    "foreman",
+    "automation",
+    "service_account",
+    "service-account",
+    "ci_bot",
+    "ci-bot",
+)
+
+
+def _resolve_environment() -> str:
+    """V1.7 §2: resolve the canonical deployment environment.
+
+    Reads CAMPAIGN_OS_ENV first (the canonical override).
+    Falls back to RAILWAY_ENVIRONMENT (Railway's native
+    indicator: 'production' on Railway, None on local).
+    Defaults to 'test' if neither is set — fail-closed.
+
+    Returns one of: 'production', 'test', 'local'.
+    """
+    explicit = (os.environ.get("CAMPAIGN_OS_ENV") or "").strip().lower()
+    if explicit in VALID_ENVIRONMENTS:
+        return explicit
+    railway = (os.environ.get("RAILWAY_ENVIRONMENT") or "").strip().lower()
+    if railway == "production":
+        return "production"
+    # Heuristic: if RAILWAY_ENVIRONMENT_ID is set, we're on
+    # Railway even if RAILWAY_ENVIRONMENT is unset
+    if (os.environ.get("RAILWAY_ENVIRONMENT_ID") or "").strip():
+        return "production"
+    return "test"
+
+
+def _human_production_operators() -> tuple:
+    """V1.7 §2: list of human production operator identities.
+
+    Reads CAMPAIGN_OS_HUMAN_OPERATORS env var (comma-separated)
+    to allow runtime override. Falls back to
+    DEFAULT_HUMAN_PRODUCTION_OPERATORS.
+    """
+    explicit = (os.environ.get("CAMPAIGN_OS_HUMAN_OPERATORS") or "").strip()
+    if not explicit:
+        return DEFAULT_HUMAN_PRODUCTION_OPERATORS
+    out = tuple(op.strip().lower() for op in explicit.split(",")
+                if op.strip())
+    return out or DEFAULT_HUMAN_PRODUCTION_OPERATORS
+
+
+def _production_forbidden_operators() -> tuple:
+    """V1.7 §2: list of operator identities forbidden in
+    production. Reads CAMPAIGN_OS_FORBIDDEN_OPERATORS env
+    var (comma-separated) to allow runtime override. Falls
+    back to DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS.
+    """
+    explicit = (os.environ.get("CAMPAIGN_OS_FORBIDDEN_OPERATORS") or "").strip()
+    if not explicit:
+        return DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS
+    out = tuple(op.strip().lower() for op in explicit.split(",")
+                if op.strip())
+    return out or DEFAULT_PRODUCTION_FORBIDDEN_OPERATORS
+
+
+def can_identity_approve(environment: str,
+                          operator_id: str) -> dict:
+    """V1.7 §2: SINGLE canonical approval-policy check.
+
+    Returns:
+      {
+        "allowed": bool,
+        "environment": str,
+        "operator_id": str,
+        "reason": str,        # human-readable
+        "identity_class": str # 'human_production' | 'forbidden'
+                              # | 'test' | 'unrecognized'
+      }
+
+    Rules:
+      - environment == 'production':
+          - operator_id in _human_production_operators() → allowed
+          - operator_id in _production_forbidden_operators()
+            → denied (forbidden)
+          - operator_id in neither list → denied (unrecognized)
+      - environment in ('test', 'local'):
+          - any authenticated operator_id is allowed
+            (the auth check at _verify_operator_auth
+             already proved the verifier matches)
+          - this is the environment where test_operator
+            is used for security regression tests
+    """
+    if not environment:
+        environment = _resolve_environment()
+    op = (operator_id or "").strip().lower()
+    if environment == "production":
+        if not op:
+            return {
+                "allowed": False,
+                "environment": environment,
+                "operator_id": operator_id,
+                "reason": ("empty operator_id not allowed in production"),
+                "identity_class": "unrecognized",
+            }
+        if op in _production_forbidden_operators():
+            return {
+                "allowed": False,
+                "environment": environment,
+                "operator_id": operator_id,
+                "reason": (f"operator_id '{operator_id}' is forbidden "
+                          f"in production (test/automation/agent "
+                          f"identity class)"),
+                "identity_class": "forbidden",
+            }
+        if op in _human_production_operators():
+            return {
+                "allowed": True,
+                "environment": environment,
+                "operator_id": operator_id,
+                "reason": ("operator_id is in the human "
+                          "production operators list"),
+                "identity_class": "human_production",
+            }
+        return {
+            "allowed": False,
+            "environment": environment,
+            "operator_id": operator_id,
+            "reason": (f"operator_id '{operator_id}' is not in the "
+                      f"human production operators list"),
+            "identity_class": "unrecognized",
+        }
+    # test or local
+    return {
+        "allowed": True,
+        "environment": environment,
+        "operator_id": operator_id,
+        "reason": (f"environment is '{environment}' — all "
+                  f"authenticated identities allowed"),
+        "identity_class": "test_or_local",
+    }
+
+
+def _is_operator_forbidden_in_production(operator_id: str) -> bool:
+    """V1.7 §3 convenience: returns True if operator_id is
+    in the production forbidden list. Used by the
+    /api/brief/v1/_internal/operator-token-status endpoint
+    to mask forbidden operators from the response."""
+    op = (operator_id or "").strip().lower()
+    return op in _production_forbidden_operators()
+
+
+def _verify_operator_auth_v17(headers: "Optional[dict]" = None) -> "Optional[str]":
+    """V1.7 §1+§2+§3: verify operator auth + production
+    policy in one place. Returns the authenticated
+    operator_id (str) if valid AND allowed in the current
+    environment, None otherwise.
+
+    Two-step check:
+      1. _verify_operator_auth() — PBKDF2 verifier matches
+         (proves the caller has the plaintext secret)
+      2. can_identity_approve(_resolve_environment(),
+         operator_id) — production policy allows this identity
+
+    Both must pass. In production, step 2 forbids
+    test_operator / heidi / hermes / foreman / automation
+    / service_account identities even if the verifier
+    technically matches.
+    """
+    op_id = _verify_operator_auth(headers)
+    if not op_id:
+        return None
+    env = _resolve_environment()
+    policy = can_identity_approve(env, op_id)
+    if not policy["allowed"]:
+        return None
+    return op_id
+
+
+def can_generate_creative_v17(brand_id: str, brief_id: str) -> dict:
+    """V1.7 §5+§8: updated Creative gate.
+
+    V1.6 can_generate_creative plus:
+      - In production, authenticated_operator MUST be in
+        _human_production_operators(). A Brief historically
+        approved by test_operator returns ok=False in
+        production even if all other V1.6 gates pass.
+
+    Reuses V1.6 can_generate_creative internally and adds
+    one more gate: identity_class_human in production.
+    """
+    base = can_generate_creative(brand_id, brief_id)
+    env = _resolve_environment()
+    trust = base.get("approval_trust_state") or {}
+    auth_op = trust.get("authenticated_operator")
+    identity_class_ok = True
+    identity_reason = None
+    if env == "production":
+        if not auth_op:
+            identity_class_ok = False
+            identity_reason = ("no authenticated_operator — "
+                              "production requires a human "
+                              "operator identity")
+        else:
+            policy = can_identity_approve(env, auth_op)
+            identity_class_ok = policy["allowed"]
+            if not policy["allowed"]:
+                identity_reason = policy["reason"]
+    gates = base.get("gates") or {}
+    gates["identity_class_human_in_production"] = identity_class_ok
+    reasons = list(base.get("reasons") or [])
+    if not identity_class_ok:
+        reasons.append(
+            identity_reason or "identity class not allowed in production")
+    return {
+        "ok": all(gates.values()) and not reasons,
+        "environment": env,
+        "creative_allowed": base.get("creative_allowed"),
+        "gates": gates,
+        "reasons": reasons,
+        "approval_schema_status": base.get("approval_schema_status"),
+        "approval_trust_state": trust,
+        "unanswered_required_questions":
+            base.get("unanswered_required_questions") or [],
+        "v16_base": base,
+    }
+
 
