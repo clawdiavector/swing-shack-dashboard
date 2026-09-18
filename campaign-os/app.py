@@ -42612,9 +42612,30 @@ def ga4_channel_mix(brand_id):
     # Group rows by channel + date_range (rows are in
     # row-major dimension order, with metrics repeating
     # per date_range)
+    rows_in = cur_data.get("rows") or []
+    if not rows_in:
+        return jsonify({
+            "ok": True, "brand_id": bid,
+            "current_window": {"start": cur_start.isoformat(),
+                                "end": end_d.isoformat(),
+                                "days": days},
+            "previous_window": {"start": prev_start.isoformat(),
+                                 "end": prev_end.isoformat(),
+                                 "days": days},
+            "rows": [],
+            "total_current_sessions": 0,
+            "total_previous_sessions": 0,
+            "note": "GA4 returned no channel-mix rows for this window.",
+            "checked_at": _now_iso(),
+        }), 200
     by_channel = {}
     n_metrics = 4  # sessions, engagedSessions, engagementRate, conversions
-    for row in cur_data["rows"]:
+    for row in rows_in:
+        if not row.get("dims"):
+            continue
+        ch = row["dims"][0] if row["dims"] else "Unknown"
+        if ch not in by_channel:
+            by_channel[ch] = {"current": {}, "previous": {}}
         ch = row["dims"][0]
         if ch not in by_channel:
             by_channel[ch] = {"current": {}, "previous": {}}
@@ -42769,6 +42790,21 @@ def ga4_pages_enriched(brand_id):
     if not data.get("ok"):
         return jsonify(data), 200
 
+    rows_in = data.get("rows") or []
+    if not rows_in:
+        return jsonify({
+            "ok": True, "brand_id": bid,
+            "current_window": {"start": cur_start.isoformat(),
+                                "end": end_d.isoformat(),
+                                "days": days},
+            "previous_window": {"start": prev_start.isoformat(),
+                                 "end": prev_end.isoformat(),
+                                 "days": days},
+            "service_pages": [],
+            "top_raw_paths": [],
+            "note": "GA4 returned no page rows for this window.",
+            "checked_at": _now_iso(),
+        }), 200
     # Brand-specific high-value page patterns
     if bid == "stick":
         high_value_patterns = [
@@ -42801,8 +42837,10 @@ def ga4_pages_enriched(brand_id):
 
     matched = {}
     n_metrics = 5
-    for row in data["rows"]:
-        path = row["dims"][0] or ""
+    for row in rows_in:
+        if not row.get("dims"):
+            continue
+        path = (row["dims"][0] if row["dims"] else "") or ""
         m_cur = row["metrics"][:n_metrics]
         m_prev = row["metrics"][n_metrics:n_metrics * 2]
         for pat, label in high_value_patterns:
@@ -42859,14 +42897,14 @@ def ga4_pages_enriched(brand_id):
     rows.sort(key=lambda r: -r["current_sessions"])
     # Also include top 5 raw paths (regardless of filter) for
     # discovery
-    raw_seen = sorted(set(r["dims"][0] for r in data["rows"]),
+    raw_seen = sorted(set((r["dims"][0] if r.get("dims") else "") for r in rows_in),
                       key=lambda p: -sum(p == rr["dims"][0]
                                           for rr in data["rows"]))[:5]
     top_raw = []
     for p in raw_seen:
         # aggregate across both windows
-        cs = sum(_parse_ga4_int(r["metrics"][0]) for r in data["rows"]
-                 if r["dims"][0] == p)
+        cs = sum(_parse_ga4_int(r["metrics"][0]) for r in rows_in
+                 if r.get("dims") and r["dims"][0] == p)
         top_raw.append({"path": p, "current_sessions": cs})
     top_raw.sort(key=lambda x: -x["current_sessions"])
     return jsonify({
@@ -42933,6 +42971,18 @@ def ga4_event_audit(brand_id):
     if not event_data.get("ok"):
         return jsonify(event_data), 200
 
+    rows_in = event_data.get("rows") or []
+    if not rows_in:
+        return jsonify({
+            "ok": True, "brand_id": bid,
+            "window": {"start": cur_start.isoformat(),
+                        "end": end_d.isoformat(),
+                        "days": days},
+            "rows": [],
+            "headline": (f"No GA4 events recorded in the last "
+                         f"{days} days for {bid}."),
+            "checked_at": _now_iso(),
+        }), 200
     # Per brand, classify known commercial-meaning events
     KNOWN_KEY_EVENTS = {
         "stick": {
@@ -42957,7 +43007,9 @@ def ga4_event_audit(brand_id):
     brand_keys = KNOWN_KEY_EVENTS.get(bid, {})
 
     rows = []
-    for row in event_data.get("rows") or []:
+    for row in rows_in:
+        if not row.get("dims"):
+            continue
         nm = row["dims"][0]
         cnt = _parse_ga4_int(row["metrics"][0])
         conv = _parse_ga4_int(row["metrics"][1])
