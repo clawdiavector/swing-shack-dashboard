@@ -42589,10 +42589,10 @@ def ga4_channel_mix(brand_id):
     days = int(request.args.get("days", 31))
     # V2.1 §4: previous = immediately preceding window.
     # current is the last `days` COMPLETE days (exclude today).
-    end_d = (date.today() - timedelta(days=1))
-    cur_start = end_d - timedelta(days=days - 1)
-    prev_end = cur_start - timedelta(days=1)
-    prev_start = prev_end - timedelta(days=days - 1)
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    prev_end = cur_start - _td(days=1)
+    prev_start = prev_end - _td(days=days - 1)
     cur_dr = {"start_date": cur_start.isoformat(),
               "end_date": end_d.isoformat()}
     prev_dr = {"start_date": prev_start.isoformat(),
@@ -42749,10 +42749,10 @@ def ga4_pages_enriched(brand_id):
     bid = (brand_id or "swing-shack").strip()
     creds = _ga4_credentials(bid)
     days = int(request.args.get("days", 31))
-    end_d = (date.today() - timedelta(days=1))
-    cur_start = end_d - timedelta(days=days - 1)
-    prev_end = cur_start - timedelta(days=1)
-    prev_start = prev_end - timedelta(days=days - 1)
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    prev_end = cur_start - _td(days=1)
+    prev_start = prev_end - _td(days=days - 1)
     cur_dr = {"start_date": cur_start.isoformat(),
               "end_date": end_d.isoformat()}
     prev_dr = {"start_date": prev_start.isoformat(),
@@ -42906,8 +42906,8 @@ def ga4_event_audit(brand_id):
     bid = (brand_id or "swing-shack").strip()
     creds = _ga4_credentials(bid)
     days = int(request.args.get("days", 31))
-    end_d = (date.today() - timedelta(days=1))
-    cur_start = end_d - timedelta(days=days - 1)
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
     cur_dr = {"start_date": cur_start.isoformat(),
               "end_date": end_d.isoformat()}
 
