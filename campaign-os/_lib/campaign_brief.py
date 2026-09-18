@@ -911,6 +911,131 @@ EVENT_ROLE_RANK = {
 }
 
 
+def _infer_commercial_objective(o: dict, brand_id: str) -> str:
+    """Per-event commercial objective inferred from pillars +
+    source_origin + calendar relevance signals."""
+    pillars = o.get("pillars") or []
+    if isinstance(pillars, list):
+        pillar_strs = [str(p).lower() for p in pillars]
+    else:
+        pillar_strs = []
+    if brand_id == "bag-drop" and any("bags-retail" in p
+                                       or "bag-drop" in p
+                                       for p in pillar_strs):
+        return "festive_season_luggage_retail"
+    if brand_id == "stick":
+        if any("stick-retail" in p for p in pillar_strs):
+            return "psycho_bunny_retail"
+        if any("stick-fitting" in p for p in pillar_strs):
+            return "club_fitting_service"
+        if any("stick-coaching" in p for p in pillar_strs):
+            return "coaching_service"
+    if brand_id == "swing-shack":
+        if any("ss-retail" in p for p in pillar_strs):
+            return "ss_retail"
+        if any("ss-fitting" in p for p in pillar_strs):
+            return "ss_fitting"
+        if any("ss-coaching" in p for p in pillar_strs):
+            return "ss_coaching"
+    return "general"
+
+
+def _infer_audience_signal(o: dict) -> str:
+    name = (o.get("name") or "").lower()
+    cal_audience = (o.get("calendar_audience_relevance") or "").lower()
+    blob = name + " " + cal_audience
+    if any(k in blob for k in ("sa ", "south african", "local")):
+        return "sa_local"
+    if any(k in blob for k in ("traveller", "travel", "festive")):
+        return "sa_traveller"
+    if any(k in blob for k in ("golfer", "tour", "championship", "open ")):
+        return "serious_golfer"
+    if any(k in blob for k in ("family", "parents")):
+        return "sa_family"
+    if any(k in blob for k in ("holiday", "festive", "school")):
+        return "sa_family"
+    if any(k in blob for k in ("cultural", "heritage", "cup")):
+        return "sa_cultural"
+    return "general"
+
+
+def _infer_offer_context(o: dict) -> str:
+    name = (o.get("name") or "").lower()
+    if any(k in name for k in ("black friday", "cyber monday", "festive")):
+        return "promotional_pricing"
+    if any(k in name for k in ("school", "term ", "holiday")):
+        return "family_travel_window"
+    if any(k in name for k in ("masters", "pga", "dunhill", "nedbank",
+                                "open ", "ryder", "presidents cup",
+                                "solheim")):
+        return "elite_golf_event"
+    if any(k in name for k in ("halloween", "valentine", "mothers day",
+                                "heritage day", "christmas")):
+        return "cultural_moment"
+    return "general"
+
+
+def _infer_cta_signal(o: dict) -> str:
+    pillar_strs = []
+    pillars = o.get("pillars") or []
+    if isinstance(pillars, list):
+        pillar_strs = [str(p).lower() for p in pillars]
+    if any("retail" in p or "bags-retail" in p or "ss-retail"
+           for p in pillar_strs):
+        return "shop_visit_store"
+    if any("fitting" in p or "ss-fitting" in p for p in pillar_strs):
+        return "book_fitting"
+    if any("coaching" in p or "ss-coaching" in p for p in pillar_strs):
+        return "book_coaching"
+    return "general"
+
+
+def _derive_time_window(o: dict) -> str:
+    """Bucket the opportunity by week-of-year for clustering."""
+    s = o.get("event_start") or ""
+    if not s:
+        return "no_date"
+    try:
+        ds = datetime.fromisoformat(s[:10])
+        return f"{ds.year}-W{ds.strftime('%V')}"
+    except Exception:
+        return "no_date"
+
+
+def _shared_signals(a: dict, b: dict) -> list:
+    """Return the list of cluster signals shared between two
+    indexed events. Two events cluster if >=3 shared signals."""
+    shared = []
+    if a["commercial_objective"] == b["commercial_objective"] \
+            and a["commercial_objective"] != "general":
+        shared.append("commercial_objective")
+    if a["audience_signal"] == b["audience_signal"] \
+            and a["audience_signal"] != "general":
+        shared.append("audience_signal")
+    if a["offer_context"] == b["offer_context"] \
+            and a["offer_context"] != "general":
+        shared.append("offer_context")
+    if a["cta_signal"] == b["cta_signal"] \
+            and a["cta_signal"] != "general":
+        shared.append("cta_signal")
+    # Time window: same week OR within 14 days
+    if (a["time_window"] != "no_date"
+            and a["time_window"] == b["time_window"]):
+        shared.append("time_window_same_week")
+    else:
+        try:
+            sa = a["opp"].get("event_start") or ""
+            sb = b["opp"].get("event_start") or ""
+            if sa and sb:
+                da = datetime.fromisoformat(sa[:10])
+                db = datetime.fromisoformat(sb[:10])
+                if abs((da - db).days) <= 14:
+                    shared.append("time_window_within_14d")
+        except Exception:
+            pass
+    return shared
+
+
 def _infer_event_role(o: dict, brand_id: str) -> str:
     """V1.4 §4: assign event_role per the new clustering model.
 
