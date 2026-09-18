@@ -3974,8 +3974,7 @@ def render_v22_portfolio_html(reports: dict) -> str:
             parts.append("</ul>")
     parts.append("<div class='footer'><em>V2.2 portfolio — contextual.</em></div>")
     parts.append("</body></html>")
-    return "
-".join(parts)
+    return "\n".join(parts)
 
 
 
