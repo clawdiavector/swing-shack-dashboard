@@ -317,68 +317,35 @@ def _brand_planning(brand_id: str) -> dict:
 
 
 def _pillar_mix(brand_id: str, planning: dict) -> dict:
-    """Compute content-saturation / pillar mix per brief §12.
+    """V2.1 §1: SINGLE SOURCE OF TRUTH.
 
-    Stick has three always-on pillars: RETAIL, FITTING, COACHING.
-    We classify each event in events-2026 + events-2027 by which
-    pillar(s) it supports via the structured `pillars` field
-    (e.g. {"retail":"...","fitting":"..."}), falling back to
-    keyword scan in event name + lane text. Cadences (per-lane
-    weekday counts) feed into the mix. Output is deterministic —
-    counts, not AI commentary.
+    Computing pillar mix from the legacy
+    `data/brand-planning/stick-events-{2026,2027}.json`
+    files produced results that disagreed with the
+    canonical Calendar/Brief reconciliation
+    (fitting 64% vs 55%, retail 0% vs 45%).
+
+    Reporting MUST now consume the SAME canonical
+    Calendar source used by Brief + Today via the
+    campaign_brief._pillar_mix function. The legacy
+    brand-planning files are retained for offline
+    reference only — they no longer feed Reporting.
+
+    Source: marketing_calendar.canonical_records (stick)
+            + data/brand-planning/stick-cadences.json
     """
     if brand_id != "stick":
         return {"data_status": STATUS_NOT_APPLICABLE,
                 "reason": "pillar mix only meaningful for Stick"}
-    pillars = ["retail", "fitting", "coaching"]
-    pillar_counts = {p: 0 for p in pillars}
-    pillar_event_ids = {p: [] for p in pillars}
-    unclassified = []
-
-    all_events = []
-    for year_key in ("events_2026", "events_2027"):
-        ed = planning.get(year_key, {})
-        all_events.extend(ed.get("events", []) or [])
-    if not all_events:
+    try:
+        from campaign_brief import _pillar_mix as _cb_pillar_mix
+        cb_result = _cb_pillar_mix("stick", days_back=31)
+    except Exception as e:
         return {"data_status": STATUS_UNAVAILABLE,
-                "reason": "no events-2026.json or events-2027.json data"}
+                "reason": f"canonical Calendar not available: {e}"}
 
-    for ev in all_events:
-        ev_pillars = ev.get("pillars") or {}
-        ev_id = ev.get("id")
-        if isinstance(ev_pillars, dict) and any(
-                isinstance(v, str) and p in v.lower()
-                for p in pillars for v in ev_pillars.values()):
-            # Use structured pillars field
-            matched_any = False
-            for p in pillars:
-                if any(isinstance(v, str) and p in v.lower()
-                       for v in ev_pillars.values()):
-                    pillar_counts[p] += 1
-                    pillar_event_ids[p].append(ev_id)
-                    matched_any = True
-            if not matched_any:
-                unclassified.append(ev_id)
-        else:
-            # Fallback: keyword scan in name + lane text
-            text = (ev.get("name", "") + " " +
-                    " ".join(str(v) for v in
-                            (ev.get("lanes") or {}).values())).lower()
-            matched_any = False
-            for p in pillars:
-                if p in text:
-                    pillar_counts[p] += 1
-                    pillar_event_ids[p].append(ev_id)
-                    matched_any = True
-            if not matched_any:
-                unclassified.append(ev_id)
-
-    total_classified = sum(pillar_counts.values())
-    pillar_pct = {p: round(c / total_classified * 100, 1)
-                  if total_classified else 0.0
-                  for p, c in pillar_counts.items()}
-
-    # Cadences: weekday_post_count per lane
+    # Cadences come from the legacy file but are
+    # informational only (not used for percentages)
     cadences = planning.get("cadences", {}).get("cadences", []) or []
     cadence_by_lane = {}
     for c in cadences:
@@ -388,19 +355,69 @@ def _pillar_mix(brand_id: str, planning: dict) -> dict:
             "cadence_text": c.get("cadence_text"),
         }
 
+    pillar_counts = cb_result.get("pillar_event_counts") or {}
+    # Map to plain ints (canonical pillar ids → legacy keys)
+    pillars = ["retail", "fitting", "coaching"]
+    out_counts = {}
+    events_per_pillar = cb_result.get("events_per_pillar") or {}
+    for p in pillars:
+        # canonical Calendar uses both formats; flatten
+        direct = pillar_counts.get(p) or 0
+        # some canonical implementations use stick-retail format
+        for k, v in pillar_counts.items():
+            if k.lower().endswith("-" + p):
+                direct = direct + v
+        out_counts[p] = direct
+
+    # If canonical returned zero across the board, fall back
+    # to inspecting events directly
+    if sum(out_counts.values()) == 0:
+        try:
+            from campaign_brief import get_brief_opportunities
+            opps = get_brief_opportunities("stick")
+            from collections import Counter
+            ctr = Counter()
+            for opp in opps:
+                ep = opp.get("pillars") or {}
+                if isinstance(ep, dict):
+                    for k in ep:
+                        ctr[k] += 1
+                elif isinstance(ep, list):
+                    for v in ep:
+                        ctr[v] += 1
+            for p in pillars:
+                out_counts[p] = ctr.get(p, 0)
+        except Exception:
+            pass
+
+    total_classified = sum(out_counts.values())
+    denominator = cb_result.get(
+        "denominator_used_for_pillar_percentages",
+        max(1, total_classified))
+    pillar_pct = {p: round(out_counts[p] / denominator * 100, 1)
+                  if denominator else 0.0
+                  for p in pillars}
+
     return {
         "data_status": STATUS_HISTORICAL_REAL,
-        "pillars_always_on": (
-            planning.get("events_2026", {}).get("always_on_pillars", []) +
-            planning.get("events_2027", {}).get("always_on_pillars", [])
-        ),
-        "pillar_event_counts": pillar_counts,
+        "pillars_always_on": ["retail", "fitting", "coaching"],
+        "pillar_event_counts": out_counts,
         "pillar_event_pct": pillar_pct,
-        "events_per_pillar": pillar_event_ids,
-        "unclassified_event_ids": unclassified,
+        "events_per_pillar": events_per_pillar,
+        "unclassified_event_ids": cb_result.get(
+            "preserved_unclassified_event_keys") or [],
         "total_events_classified": total_classified,
+        "canonical_event_count": cb_result.get("canonical_event_count"),
+        "classified_event_count": cb_result.get("classified_event_count"),
+        "cultural_moment_count": cb_result.get("cultural_moment_count"),
+        "preserved_unclassified_count": cb_result.get(
+            "preserved_unclassified_count"),
+        "denominator_used_for_pillar_percentages": denominator,
+        "excluded_event_count": cb_result.get("excluded_event_count"),
+        "exclusion_reasons": cb_result.get("exclusion_reasons"),
         "cadences_by_lane": cadence_by_lane,
-        "source": "data/brand-planning/stick-events-{2026,2027}.json + stick-cadences.json",
+        "source": ("marketing_calendar.canonical_records (stick) "
+                  "+ data/brand-planning/stick-cadences.json"),
     }
 
 

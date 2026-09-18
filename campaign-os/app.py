@@ -42509,6 +42509,504 @@ def brief_v1_revalidate_approved(brand_id, brief_id):
     status = 200 if result.get("ok") else 400
     return jsonify(result), status
 
+
+
+# ─── REPORTING V2.1: COMPARISON ENGINE + GA4 ENRICHMENT ───────────────
+# V2.1 §4 + §6 + §7: real period comparisons, channel mix,
+# landing-page performance, key-event breakdown.
+# These endpoints back the reporting engine — they do NOT
+# rewrite the report schema, only enrich the data feeding it.
+
+
+def _ga4_run_report(creds, dimensions, metrics, date_ranges,
+                    limit=200, debug=False):
+    """Single shared GA4 runner used by all V2.1 enrichment
+    endpoints. Returns (status_code, dict)."""
+    if not creds["property_id"] or not creds["credentials_path"]             or not os.path.exists(creds["credentials_path"]):
+        return 200, {"ok": False, "error": "GA4 not configured",
+                      "rows": [], "checked_at": _now_iso()}
+    try:
+        from google.analytics.data_v1beta import BetaAnalyticsDataClient
+        from google.analytics.data_v1beta.types import (
+            DateRange, Dimension, Metric, RunReportRequest,
+        )
+        client = BetaAnalyticsDataClient.from_service_account_file(
+            creds["credentials_path"])
+        req = RunReportRequest(
+            property=f"properties/{creds['property_id']}",
+            dimensions=[Dimension(name=d) for d in dimensions],
+            metrics=[Metric(name=m) for m in metrics],
+            date_ranges=[DateRange(start_date=dr["start_date"],
+                                    end_date=dr["end_date"])
+                         for dr in date_ranges],
+            limit=limit,
+        )
+        resp = client.run_report(req)
+        rows = []
+        for row in (resp.rows or []):
+            dvs = [dv.value for dv in (row.dimension_values or [])]
+            mvs = [mv.value for mv in (row.metric_values or [])]
+            rows.append({"dims": dvs, "metrics": mvs})
+        return 200, {"ok": True, "rows": rows,
+                     "row_count": len(rows),
+                     "checked_at": _now_iso()}
+    except Exception as e:
+        return 200, {"ok": False, "error": str(e)[:300],
+                      "rows": [], "checked_at": _now_iso()}
+
+
+def _parse_ga4_int(v):
+    try:
+        return int(float(v))
+    except Exception:
+        return 0
+
+
+def _parse_ga4_float(v):
+    try:
+        return float(v)
+    except Exception:
+        return 0.0
+
+
+@app.route("/api/ga4/<brand_id>/channel-mix", methods=["GET"])
+def ga4_channel_mix(brand_id):
+    """GET /api/ga4/<brand>/channel-mix?days=31
+
+    V2.1 §6: GA4 channel grouping (Organic Search, Paid Social,
+    Organic Social, Direct, Paid Search, Referral, Email,
+    Unassigned, Other) with sessions + engaged_sessions +
+    engagement_rate + conversions.
+
+    Returns current window + previous window with delta_pct
+    per channel. Uses GA4's sessionDefaultChannelGroup
+    dimension — the canonical channel classifier.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    # V2.1 §4: previous = immediately preceding window.
+    # current is the last `days` COMPLETE days (exclude today).
+    end_d = (date.today() - timedelta(days=1))
+    cur_start = end_d - timedelta(days=days - 1)
+    prev_end = cur_start - timedelta(days=1)
+    prev_start = prev_end - timedelta(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+    prev_dr = {"start_date": prev_start.isoformat(),
+                "end_date": prev_end.isoformat()}
+
+    cur_status, cur_data = _ga4_run_report(
+        creds,
+        dimensions=["sessionDefaultChannelGroup"],
+        metrics=["sessions", "engagedSessions",
+                 "engagementRate", "conversions"],
+        date_ranges=[cur_dr, prev_dr],
+        limit=20,
+    )
+    if not cur_data.get("ok"):
+        return jsonify(cur_data), 200
+
+    # Group rows by channel + date_range (rows are in
+    # row-major dimension order, with metrics repeating
+    # per date_range)
+    by_channel = {}
+    n_metrics = 4  # sessions, engagedSessions, engagementRate, conversions
+    for row in cur_data["rows"]:
+        ch = row["dims"][0]
+        if ch not in by_channel:
+            by_channel[ch] = {"current": {}, "previous": {}}
+        # metrics for first date range = current,
+        # metrics for second = previous
+        m_cur = row["metrics"][:n_metrics]
+        m_prev = row["metrics"][n_metrics:n_metrics * 2]
+        by_channel[ch]["current"] = {
+            "sessions": _parse_ga4_int(m_cur[0]),
+            "engaged_sessions": _parse_ga4_int(m_cur[1]),
+            "engagement_rate": _parse_ga4_float(m_cur[2]),
+            "conversions": _parse_ga4_int(m_cur[3]),
+        }
+        by_channel[ch]["previous"] = {
+            "sessions": _parse_ga4_int(m_prev[0]),
+            "engaged_sessions": _parse_ga4_int(m_prev[1]),
+            "engagement_rate": _parse_ga4_float(m_prev[2]),
+            "conversions": _parse_ga4_int(m_prev[3]),
+        }
+
+    # Normalise channel names into the requested taxonomy
+    TAX = {
+        "Organic Search": ("organic", "Organic"),
+        "Paid Social": ("paid_social", "Paid Social"),
+        "Organic Social": ("organic_social", "Organic Social"),
+        "Direct": ("direct", "Direct"),
+        "Paid Search": ("paid_search", "Paid Search"),
+        "Referral": ("referral", "Referral"),
+        "Email": ("email", "Email"),
+        "Unassigned": ("unassigned", "Unassigned"),
+    }
+    out = []
+    total_cur = sum(c["current"]["sessions"] for c in by_channel.values())
+    total_prev = sum(c["previous"]["sessions"] for c in by_channel.values())
+    seen = set()
+    for label, _ in TAX.items():
+        # GA4 channel names use multiple variants
+        ch_data = None
+        for variant in [label, label.lower(),
+                         label.replace(" ", ""), label.lower().replace(" ", "")]:
+            if variant in by_channel:
+                ch_data = by_channel[variant]
+                break
+        if ch_data is None:
+            seen.add(label)
+            out.append({
+                "channel": label,
+                "current_sessions": 0,
+                "previous_sessions": 0,
+                "share_of_sessions": 0.0,
+                "engagement_rate": 0.0,
+                "conversions": 0,
+                "delta_pct": None,
+                "data_status": "NOT_AVAILABLE",
+            })
+            continue
+        cur_s = ch_data["current"]["sessions"]
+        prev_s = ch_data["previous"]["sessions"]
+        share = (cur_s / total_cur * 100) if total_cur else 0.0
+        delta = None
+        if prev_s and prev_s > 0:
+            delta = round((cur_s - prev_s) / prev_s * 100, 1)
+        elif cur_s > 0:
+            delta = None  # avoid divide-by-zero / invented %
+        out.append({
+            "channel": label,
+            "current_sessions": cur_s,
+            "previous_sessions": prev_s,
+            "share_of_sessions": round(share, 1),
+            "engaged_sessions": ch_data["current"]["engaged_sessions"],
+            "engagement_rate": round(ch_data["current"]["engagement_rate"] * 100, 1),
+            "conversions": ch_data["current"]["conversions"],
+            "delta_pct": delta,
+            "data_status": "LIVE",
+        })
+    # Catch raw GA4 names not in our taxonomy
+    for ch in sorted(by_channel.keys()):
+        if ch in TAX or ch.lower() in [k.lower() for k in TAX]:
+            continue
+        cur_s = by_channel[ch]["current"]["sessions"]
+        prev_s = by_channel[ch]["previous"]["sessions"]
+        share = (cur_s / total_cur * 100) if total_cur else 0.0
+        delta = None
+        if prev_s and prev_s > 0:
+            delta = round((cur_s - prev_s) / prev_s * 100, 1)
+        out.append({
+            "channel": f"Other ({ch})",
+            "current_sessions": cur_s,
+            "previous_sessions": prev_s,
+            "share_of_sessions": round(share, 1),
+            "engagement_rate": round(by_channel[ch]["current"]["engagement_rate"] * 100, 1),
+            "conversions": by_channel[ch]["current"]["conversions"],
+            "delta_pct": delta,
+            "data_status": "LIVE",
+        })
+    out.sort(key=lambda x: -x["current_sessions"])
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "current_window": {
+            "start": cur_start.isoformat(),
+            "end": end_d.isoformat(),
+            "days": days,
+        },
+        "previous_window": {
+            "start": prev_start.isoformat(),
+            "end": prev_end.isoformat(),
+            "days": days,
+        },
+        "rows": out,
+        "total_current_sessions": total_cur,
+        "total_previous_sessions": total_prev,
+        "checked_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/pages-enriched", methods=["GET"])
+def ga4_pages_enriched(brand_id):
+    """GET /api/ga4/<brand>/pages-enriched?days=31
+
+    V2.1 §7: landing-page / page performance with sessions +
+    engagement + conversions. Adds comparison against the
+    previous equivalent window.
+
+    Filters the raw /pages endpoint to high-value service
+    pages per brand (Stick: /bookings/, club-fitting,
+    coaching, Psycho Bunny, Takomo, Vice, Avoda, LAB;
+    Swing Shack: discovered by usage).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    end_d = (date.today() - timedelta(days=1))
+    cur_start = end_d - timedelta(days=days - 1)
+    prev_end = cur_start - timedelta(days=1)
+    prev_start = prev_end - timedelta(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+    prev_dr = {"start_date": prev_start.isoformat(),
+                "end_date": prev_end.isoformat()}
+
+    status_d, data = _ga4_run_report(
+        creds,
+        dimensions=["pagePath"],
+        metrics=["sessions", "totalUsers", "engagedSessions",
+                 "engagementRate", "conversions"],
+        date_ranges=[cur_dr, prev_dr],
+        limit=500,
+    )
+    if not data.get("ok"):
+        return jsonify(data), 200
+
+    # Brand-specific high-value page patterns
+    if bid == "stick":
+        high_value_patterns = [
+            ("/bookings/", "Bookings"),
+            ("club-fitting", "Club Fitting"),
+            ("coaching", "Coaching"),
+            ("psycho-bunny", "Psycho Bunny"),
+            ("psycho_bunny", "Psycho Bunny"),
+            ("takomo", "Takomo"),
+            ("vice", "Vice"),
+            ("avoda", "Avoda"),
+            ("lab-putters", "L.A.B. Putters"),
+            ("lab_putters", "L.A.B. Putters"),
+        ]
+    elif bid == "swing-shack":
+        high_value_patterns = [
+            ("/membership", "Membership"),
+            ("/bookings/", "Bookings"),
+            ("/fitting", "Fitting"),
+            ("/lessons", "Lessons"),
+            ("/lesson", "Lessons"),
+            ("/coaching", "Coaching"),
+            ("/flagship", "Flagship Property"),
+            ("/10-ball", "10-Ball Truth"),
+            ("/shop", "Shop"),
+            ("store.", "Store"),
+        ]
+    else:
+        high_value_patterns = []
+
+    matched = {}
+    n_metrics = 5
+    for row in data["rows"]:
+        path = row["dims"][0] or ""
+        m_cur = row["metrics"][:n_metrics]
+        m_prev = row["metrics"][n_metrics:n_metrics * 2]
+        for pat, label in high_value_patterns:
+            if pat.lower() in path.lower():
+                if label not in matched:
+                    matched[label] = {"current": {}, "previous": {},
+                                      "paths_seen": set()}
+                matched[label]["current"][path] = {
+                    "sessions": _parse_ga4_int(m_cur[0]),
+                    "users": _parse_ga4_int(m_cur[1]),
+                    "engaged_sessions": _parse_ga4_int(m_cur[2]),
+                    "engagement_rate": _parse_ga4_float(m_cur[3]),
+                    "conversions": _parse_ga4_int(m_cur[4]),
+                }
+                matched[label]["previous"][path] = {
+                    "sessions": _parse_ga4_int(m_prev[0]),
+                    "engagement_rate": _parse_ga4_float(m_prev[3]),
+                }
+                matched[label]["paths_seen"].add(path)
+                break
+
+    # Aggregate per service page
+    rows = []
+    for label, m in matched.items():
+        cur_sessions = sum(p["sessions"] for p in m["current"].values())
+        prev_sessions = sum(p["sessions"] for p in m["previous"].values())
+        cur_users = sum(p["users"] for p in m["current"].values())
+        cur_engaged = sum(p["engaged_sessions"] for p in m["current"].values())
+        # Weighted engagement rate by sessions
+        if cur_sessions > 0:
+            cur_er = sum(p["engagement_rate"] * p["sessions"]
+                         for p in m["current"].values()) / cur_sessions
+        else:
+            cur_er = 0.0
+        cur_conv = sum(p["conversions"] for p in m["current"].values())
+        delta = None
+        if prev_sessions > 0:
+            delta = round((cur_sessions - prev_sessions)
+                          / prev_sessions * 100, 1)
+        elif cur_sessions > 0:
+            delta = None
+        rows.append({
+            "service_page": label,
+            "paths": sorted(m["paths_seen"])[:3],
+            "current_sessions": cur_sessions,
+            "previous_sessions": prev_sessions,
+            "current_users": cur_users,
+            "current_engaged_sessions": cur_engaged,
+            "engagement_rate": round(cur_er * 100, 1),
+            "conversions": cur_conv,
+            "delta_pct": delta,
+            "data_status": "LIVE",
+        })
+    rows.sort(key=lambda r: -r["current_sessions"])
+    # Also include top 5 raw paths (regardless of filter) for
+    # discovery
+    raw_seen = sorted(set(r["dims"][0] for r in data["rows"]),
+                      key=lambda p: -sum(p == rr["dims"][0]
+                                          for rr in data["rows"]))[:5]
+    top_raw = []
+    for p in raw_seen:
+        # aggregate across both windows
+        cs = sum(_parse_ga4_int(r["metrics"][0]) for r in data["rows"]
+                 if r["dims"][0] == p)
+        top_raw.append({"path": p, "current_sessions": cs})
+    top_raw.sort(key=lambda x: -x["current_sessions"])
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "current_window": {
+            "start": cur_start.isoformat(),
+            "end": end_d.isoformat(),
+            "days": days,
+        },
+        "previous_window": {
+            "start": prev_start.isoformat(),
+            "end": prev_end.isoformat(),
+            "days": days,
+        },
+        "service_pages": rows,
+        "top_raw_paths": top_raw[:5],
+        "checked_at": _now_iso(),
+    }), 200
+
+
+@app.route("/api/ga4/<brand_id>/event-audit", methods=["GET"])
+def ga4_event_audit(brand_id):
+    """GET /api/ga4/<brand>/event-audit?days=31
+
+    V2.1 §8: GA4 event-name breakdown — identifies which
+    configured key event the report should reference.
+
+    Returns:
+      - top events with count + keyEvent flag
+      - per-event commercial-meaning classification
+        (verified | candidate | unknown)
+      - source attribution for each event name
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    days = int(request.args.get("days", 31))
+    end_d = (date.today() - timedelta(days=1))
+    cur_start = end_d - timedelta(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+
+    # Per-event counts
+    status_e, event_data = _ga4_run_report(
+        creds,
+        dimensions=["eventName"],
+        metrics=["eventCount", "conversions"],
+        date_ranges=[cur_dr],
+        limit=200,
+    )
+
+    # Per-key-event-name breakdown (the configured key events)
+    status_k, key_data = _ga4_run_report(
+        creds,
+        dimensions=["eventName"],
+        metrics=["eventCount", "conversions",
+                 "totalUsers"],
+        date_ranges=[cur_dr],
+        limit=200,
+    )
+
+    if not event_data.get("ok"):
+        return jsonify(event_data), 200
+
+    # Per brand, classify known commercial-meaning events
+    KNOWN_KEY_EVENTS = {
+        "stick": {
+            "generate_lead": {
+                "commercial_meaning": "verified",
+                "config_source": "stickgolf.co.za CF7 wpcf7mailsent",
+                "note": ("Stick generate_lead event is "
+                         "configured in GA4 but the on-website "
+                         "listener is not yet production-validated. "
+                         "Do not report verified leads."),
+            },
+        },
+        "swing-shack": {
+            "generate_lead": {
+                "commercial_meaning": "candidate",
+                "config_source": "Contact / enquiry form",
+                "note": ("Verify eventName mapping against the "
+                         "configured GA4 key event registration."),
+            },
+        },
+    }
+    brand_keys = KNOWN_KEY_EVENTS.get(bid, {})
+
+    rows = []
+    for row in event_data.get("rows") or []:
+        nm = row["dims"][0]
+        cnt = _parse_ga4_int(row["metrics"][0])
+        conv = _parse_ga4_int(row["metrics"][1])
+        if cnt == 0:
+            continue
+        known = brand_keys.get(nm)
+        rows.append({
+            "event_name": nm,
+            "count": cnt,
+            "key_event_conversions": conv,
+            "commercial_meaning": (
+                known["commercial_meaning"] if known else "unknown"),
+            "config_source": (
+                known["config_source"] if known else ""),
+            "note": known["note"] if known else (
+                "Event has no validated commercial meaning for "
+                f"{bid}."),
+        })
+    rows.sort(key=lambda r: -r["count"])
+
+    # Headline
+    headline = None
+    key_rows = [r for r in rows if r["key_event_conversions"] > 0]
+    if not key_rows:
+        headline = ("No GA4 key events recorded in the last "
+                    f"{days} days for {bid}.")
+    elif all(r["commercial_meaning"] in ("unknown", "candidate")
+             for r in key_rows):
+        headline = (f"GA4 recorded "
+                    f"{sum(r['key_event_conversions'] for r in key_rows)} "
+                    "configured key event(s); commercial meaning has "
+                    "not yet been validated.")
+    else:
+        headline = (f"GA4 recorded "
+                    f"{sum(r['key_event_conversions'] for r in key_rows)} "
+                    "validated conversion(s).")
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "window": {
+            "start": cur_start.isoformat(),
+            "end": end_d.isoformat(),
+            "days": days,
+        },
+        "rows": rows,
+        "headline": headline,
+        "checked_at": _now_iso(),
+    }), 200
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
