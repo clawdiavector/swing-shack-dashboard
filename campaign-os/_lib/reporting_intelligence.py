@@ -1405,7 +1405,7 @@ def build_brand_report(brand_id: str, period_days: int = 31,
     # Pillar / content mix (brief §12)
     pmx = _pillar_mix(brand_id, planning)
     report["sections"]["pillar_mix"] = {
-        "title": "Content Pillar Mix (2026 planning)",
+        "title": "Content Pillar Mix (canonical Calendar)",
         "data_status": pmx.get("data_status"),
         "pillars_always_on": pmx.get("pillars_always_on"),
         "pillar_event_counts": pmx.get("pillar_event_counts"),
@@ -1414,6 +1414,16 @@ def build_brand_report(brand_id: str, period_days: int = 31,
         "unclassified_event_ids": pmx.get("unclassified_event_ids"),
         "cadences_by_lane": pmx.get("cadences_by_lane"),
         "total_events_classified": pmx.get("total_events_classified"),
+        # V2.1 §1: explicit canonical-denominator fields
+        "canonical_event_count": pmx.get("canonical_event_count"),
+        "classified_event_count": pmx.get("classified_event_count"),
+        "cultural_moment_count": pmx.get("cultural_moment_count"),
+        "preserved_unclassified_count": pmx.get(
+            "preserved_unclassified_count"),
+        "denominator_used_for_pillar_percentages": pmx.get(
+            "denominator_used_for_pillar_percentages"),
+        "excluded_event_count": pmx.get("excluded_event_count"),
+        "exclusion_reasons": pmx.get("exclusion_reasons"),
         "source": pmx.get("source"),
         "reason": pmx.get("reason"),
     }

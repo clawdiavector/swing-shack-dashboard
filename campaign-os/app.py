@@ -42630,28 +42630,40 @@ def ga4_channel_mix(brand_id):
         }), 200
     by_channel = {}
     n_metrics = 4  # sessions, engagedSessions, engagementRate, conversions
-    for row in rows_in:
-        if not row.get("dims"):
-            continue
-        ch = row["dims"][0] if row["dims"] else "Unknown"
-        if ch not in by_channel:
-            by_channel[ch] = {"current": {}, "previous": {}}
-        # metrics for first date range = current,
-        # metrics for second = previous
-        m_cur = row["metrics"][:n_metrics]
-        m_prev = row["metrics"][n_metrics:n_metrics * 2]
-        by_channel[ch]["current"] = {
-            "sessions": _parse_ga4_int(m_cur[0]),
-            "engaged_sessions": _parse_ga4_int(m_cur[1]),
-            "engagement_rate": _parse_ga4_float(m_cur[2]),
-            "conversions": _parse_ga4_int(m_cur[3]),
-        }
-        by_channel[ch]["previous"] = {
-            "sessions": _parse_ga4_int(m_prev[0]),
-            "engaged_sessions": _parse_ga4_int(m_prev[1]),
-            "engagement_rate": _parse_ga4_float(m_prev[2]),
-            "conversions": _parse_ga4_int(m_prev[3]),
-        }
+    try:
+        for row in rows_in:
+            if not row.get("dims"):
+                continue
+            ch = row["dims"][0] if row["dims"] else "Unknown"
+            if ch not in by_channel:
+                by_channel[ch] = {"current": {}, "previous": {}}
+            metrics_list = row.get("metrics") or []
+            # Pad to expected length so slice ops always work
+            while len(metrics_list) < n_metrics * 2:
+                metrics_list.append("0")
+            m_cur = metrics_list[:n_metrics]
+            m_prev = metrics_list[n_metrics:n_metrics * 2]
+            by_channel[ch]["current"] = {
+                "sessions": _parse_ga4_int(m_cur[0]),
+                "engaged_sessions": _parse_ga4_int(m_cur[1]),
+                "engagement_rate": _parse_ga4_float(m_cur[2]),
+                "conversions": _parse_ga4_int(m_cur[3]),
+            }
+            by_channel[ch]["previous"] = {
+                "sessions": _parse_ga4_int(m_prev[0]),
+                "engaged_sessions": _parse_ga4_int(m_prev[1]),
+                "engagement_rate": _parse_ga4_float(m_prev[2]),
+                "conversions": _parse_ga4_int(m_prev[3]),
+            }
+    except Exception as e:
+        import traceback
+        _app_log.error("channel-mix row unpack failed: %s", traceback.format_exc())
+        return jsonify({
+            "ok": False,
+            "error": f"channel-mix row unpack failed: {type(e).__name__}: {str(e)[:200]}",
+            "row_count": len(rows_in),
+            "checked_at": _now_iso(),
+        }), 200
 
     # Normalise channel names into the requested taxonomy
     TAX = {
@@ -42835,11 +42847,15 @@ def ga4_pages_enriched(brand_id):
     matched = {}
     n_metrics = 5
     for row in rows_in:
+        try:
         if not row.get("dims"):
             continue
         path = (row["dims"][0] if row["dims"] else "") or ""
-        m_cur = row["metrics"][:n_metrics]
-        m_prev = row["metrics"][n_metrics:n_metrics * 2]
+        metrics_list = row.get("metrics") or []
+        while len(metrics_list) < n_metrics * 2:
+            metrics_list.append("0")
+        m_cur = metrics_list[:n_metrics]
+        m_prev = metrics_list[n_metrics:n_metrics * 2]
         for pat, label in high_value_patterns:
             if pat.lower() in path.lower():
                 if label not in matched:
@@ -42857,7 +42873,8 @@ def ga4_pages_enriched(brand_id):
                     "engagement_rate": _parse_ga4_float(m_prev[3]),
                 }
                 matched[label]["paths_seen"].add(path)
-                break
+                except Exception:
+            pass
 
     # Aggregate per service page
     rows = []
@@ -43004,14 +43021,18 @@ def ga4_event_audit(brand_id):
     brand_keys = KNOWN_KEY_EVENTS.get(bid, {})
 
     rows = []
-    for row in rows_in:
-        if not row.get("dims"):
-            continue
-        nm = row["dims"][0]
-        cnt = _parse_ga4_int(row["metrics"][0])
-        conv = _parse_ga4_int(row["metrics"][1])
-        if cnt == 0:
-            continue
+    try:
+        for row in rows_in:
+            if not row.get("dims"):
+                continue
+            nm = row["dims"][0]
+            metrics_list = row.get("metrics") or []
+            while len(metrics_list) < 2:
+                metrics_list.append("0")
+            cnt = _parse_ga4_int(metrics_list[0])
+            conv = _parse_ga4_int(metrics_list[1])
+            if cnt == 0:
+                continue
         known = brand_keys.get(nm)
         rows.append({
             "event_name": nm,
@@ -43025,6 +43046,9 @@ def ga4_event_audit(brand_id):
                 "Event has no validated commercial meaning for "
                 f"{bid}."),
         })
+    except Exception:
+        pass
+
     rows.sort(key=lambda r: -r["count"])
 
     # Headline
