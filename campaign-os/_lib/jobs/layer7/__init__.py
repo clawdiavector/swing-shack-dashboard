@@ -16,6 +16,8 @@ LAYER7_JOB_NAMES: tuple[str, ...] = (
 
 LAYER7_DAILY = 86400
 
+_ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
+
 
 def layer7_specs() -> list[JobSpec]:
     """Return all Layer 7 JobSpecs."""
@@ -36,6 +38,8 @@ def layer7_specs() -> list[JobSpec]:
             ),
             writes=("post-outcomes.json",),
             upstream=("meta_refresh", "post_conversion_score", "publish_dispatch"),
+            brand_mode="per_brand",
+            requires_integrations=("meta",),
         ),
         JobSpec(
             name="human_edit_signal",
@@ -48,6 +52,8 @@ def layer7_specs() -> list[JobSpec]:
             reads=("human-edits.jsonl",),
             writes=("human-edit-summary.json",),
             upstream=(),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
         ),
         JobSpec(
             name="winner_promotion",
@@ -60,6 +66,8 @@ def layer7_specs() -> list[JobSpec]:
             reads=("post-outcomes.json", "human-edits.jsonl"),
             writes=("winning-recipes.json",),
             upstream=("post_outcomes", "human_edit_signal"),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
         ),
         JobSpec(
             name="proposal_outcome",
@@ -72,6 +80,8 @@ def layer7_specs() -> list[JobSpec]:
             reads=("proposals/pending.jsonl",),
             writes=("proposal-outcomes.json",),
             upstream=(),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
         ),
     ]
 

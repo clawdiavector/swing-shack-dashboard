@@ -14,6 +14,8 @@ LAYER5_JOB_NAMES: tuple[str, ...] = (
 
 LAYER5_DAILY = 86400
 
+_ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
+
 
 def layer5_specs() -> list[JobSpec]:
     """Return all Layer 5 JobSpecs."""
@@ -30,6 +32,8 @@ def layer5_specs() -> list[JobSpec]:
             reads=("agent-queue.json",),
             writes=("draft-assets/", "campaign-data.json"),
             upstream=("agent_queue_writer",),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
         ),
         JobSpec(
             name="asset_qc",
@@ -43,6 +47,8 @@ def layer5_specs() -> list[JobSpec]:
             reads=("draft-assets/",),
             writes=("asset-qc.json",),
             upstream=("draft_assets",),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
         ),
     ]
 

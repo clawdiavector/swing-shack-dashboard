@@ -20,7 +20,11 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
-def read_json(name: str) -> dict | list | None:
+def read_json(name: str, *, brand: str | None = None, spec=None) -> dict | list | None:
+    if spec is not None and brand is not None:
+        from ..brand_lanes import resolve_path
+
+        name = resolve_path(spec, name, brand)
     path = data_dir() / name
     if not path.is_file():
         return None
@@ -85,11 +89,15 @@ def js_substring(text: str | None, length: int) -> str:
     return "".join(out)
 
 
-def atomic_write(name: str, obj: Any) -> bool:
+def atomic_write(name: str, obj: Any, *, brand: str | None = None, spec=None) -> bool:
     """Write JSON atomically; skip when COS_JOB_CANCEL=1."""
     if os.environ.get("COS_JOB_CANCEL") == "1":
         return False
 
+    if spec is not None and brand is not None:
+        from ..brand_lanes import resolve_path
+
+        name = resolve_path(spec, name, brand)
     path = data_dir() / name
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(

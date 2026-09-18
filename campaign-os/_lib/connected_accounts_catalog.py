@@ -152,16 +152,193 @@ def _state_from_flags(
     live_ok: Optional[bool] = None,
     creds_ok: bool = False,
     partial: bool = False,
-) -> str:
+) -> tuple[str, str]:
+    """Return (state, health) — degraded collapses into partial per P1a contract."""
     if live_ok is True:
-        return "connected"
+        return "connected", "ok"
     if live_ok is False and creds_ok:
-        return "degraded"
+        return "partial", "degraded"
     if creds_ok and not partial:
-        return "connected"
+        return "connected", "ok"
     if creds_ok or partial:
-        return "partial"
-    return "missing"
+        return "partial", "ok"
+    return "missing", "ok"
+
+
+def _job_activity_for_brand(job_names: tuple[str, ...], brand_id: str) -> dict[str, Any]:
+    try:
+        from _lib.jobs import ledger
+        from _lib.jobs.runner import _last_success, verdict_for
+    except Exception:
+        return {}
+    now = _utc_now()
+    last_at: Optional[str] = None
+    verdict: Optional[str] = None
+    for name in job_names:
+        rows = ledger.read_rows(name, brand=brand_id)
+        if not rows:
+            continue
+        v = verdict_for(name, rows, now=now, brand=brand_id)
+        success = _last_success(rows)
+        finished = (success or {}).get("finished") or (success or {}).get("started")
+        if finished and (last_at is None or finished > last_at):
+            last_at = finished
+            verdict = v
+    return {"last_success_at": last_at, "job_verdict": verdict, "last_used_label": _age_label(last_at)}
+
+
+def _integration_row(
+    brand_id: str,
+    integration_id: str,
+    *,
+    label: str,
+    icon: str,
+    category: str,
+    purpose: str,
+    connect: dict[str, Any],
+    setup: dict[str, Any],
+) -> dict[str, Any]:
+    from _lib.jobs.brand_lanes import integration_applies, integration_state, load_brands_registry
+
+    reg = load_brands_registry()
+    scope = ((reg.get("brands") or {}).get(brand_id) or {}).get("integration_scope") or {}
+    scope_entry = scope.get(integration_id) or {}
+    applies = integration_applies(brand_id, integration_id)
+    state = integration_state(brand_id, integration_id)
+    health = "ok"
+
+    job_names = _JOB_BY_INTEGRATION.get(integration_id, ())
+    activity = _job_activity_for_brand(job_names, brand_id) if job_names else {}
+    data_rel = _DATA_FILE_BY_INTEGRATION.get(integration_id)
+    file_at = _data_file_mtime(data_rel) if data_rel else None
+    last_used = activity.get("last_success_at") or file_at
+
+    if state == "connected" and activity.get("job_verdict") not in (None, "OK", "SKIPPED"):
+        state = "partial"
+        if activity.get("job_verdict") in ("LATE", "FAILED"):
+            health = "degraded"
+
+    env_vars = list(scope_entry.get("env") or [])
+    creds_ok = state in ("connected", "partial")
+
+    return {
+        "id": integration_id,
+        "brand": brand_id,
+        "icon": icon,
+        "name": label,
+        "category": category,
+        "purpose": purpose,
+        "state": state,
+        "health": health,
+        "visible": True,
+        "applies": applies,
+        "na_reason": scope_entry.get("na_reason") if not applies else None,
+        "last_used_at": last_used,
+        "last_used_label": _age_label(last_used),
+        "job_verdict": activity.get("job_verdict"),
+        "credentials": {
+            "configured": creds_ok,
+            "env_vars": env_vars,
+            "key_prefix": _env_prefix(env_vars[0]) if env_vars else None,
+        },
+        "connect": connect,
+        "setup": setup,
+    }
+
+
+def build_brand_integrations(brand_id: str) -> dict[str, Any]:
+    """Brand-aware integration rows — every catalog key, all visible."""
+    from _lib.jobs.brand_lanes import load_brands_registry
+
+    reg = load_brands_registry()
+    catalog = reg.get("integrations") or {}
+    meta = catalog.get("meta") or {}
+    items: list[dict[str, Any]] = []
+
+    items.append(
+        _integration_row(
+            brand_id,
+            "postiz",
+            label="Postiz (publish hub)",
+            icon="📮",
+            category="publish",
+            purpose="Cross-post to Instagram, Facebook, TikTok, X, GBP, YouTube, LinkedIn.",
+            connect={"type": "oauth", "url": f"/api/postiz/oauth/login?brand={brand_id}", "label": "Connect Postiz"},
+            setup={
+                "auth_type": "API key + OAuth client",
+                "steps": [
+                    f"Set POSTIZ_API_KEY_{brand_id.upper().replace('-', '_')} or shared POSTIZ_API_KEY on Railway.",
+                    "Connect button runs Postiz OAuth; channels list refreshes on this page.",
+                ],
+            },
+        )
+    )
+    items.append(
+        _integration_row(
+            brand_id,
+            "meta",
+            label=meta.get("label") or "Meta (IG + FB)",
+            icon="📊",
+            category="publish",
+            purpose="IG + Facebook analytics and insights.",
+            connect={"type": "portal", "url": "/meta-portal", "label": "Meta setup portal"},
+            setup={
+                "auth_type": "System user token",
+                "steps": [
+                    "Set brand-scoped Meta env vars from integration_scope in brands.json.",
+                    "Use Refresh from Meta on Connected Accounts after credentials are set.",
+                ],
+            },
+        )
+    )
+    items.append(
+        _integration_row(
+            brand_id,
+            "gbp",
+            label="Google Business Profile",
+            icon="📍",
+            category="publish",
+            purpose="GBP daily plans, location insights, local SEO posts.",
+            connect={"type": "oauth", "url": f"/api/gbp/oauth/login?brand={brand_id}", "label": "Connect GBP"},
+            setup={
+                "auth_type": "Google OAuth (business.manage scope)",
+                "steps": [
+                    "Click Connect → sign in as GBP owner → token stored on DATA_DIR volume.",
+                ],
+            },
+        )
+    )
+
+    for iid, icon, purpose, connect in (
+        ("ga4", "📈", "Site traffic and conversion analytics.", {"type": "portal", "url": "/meta-portal", "label": "GA4 setup portal"}),
+        ("gsc", "🔎", "Search queries, impressions, clicks.", {"type": "manual", "url": "https://search.google.com/search-console", "label": "Open Search Console"}),
+        ("windsor", "💰", "Paid media spend and campaign metrics.", {"type": "manual", "url": "https://windsor.ai", "label": "Windsor dashboard"}),
+        ("ubersuggest", "📊", "Domain keyword rankings and SEO snapshots.", {"type": "none", "label": "Configured on Railway"}),
+        ("youtube", "▶️", "Public golf trend videos for Signal radar.", {"type": "manual", "url": "https://console.cloud.google.com/apis/library/youtube.googleapis.com", "label": "Enable YouTube API"}),
+        ("krea", "🎨", "AI image generation for Image Lab.", {"type": "manual", "url": "https://krea.ai", "label": "Krea account"}),
+        ("google_drive", "📁", "Ingest brand folders from Drive.", {"type": "portal", "url": "/secrets-sync", "label": "Secrets sync"}),
+    ):
+        entry = catalog.get(iid) or {}
+        items.append(
+            _integration_row(
+                brand_id,
+                iid,
+                label=entry.get("label") or iid,
+                icon=icon,
+                category="analytics" if iid not in ("youtube", "krea", "google_drive") else "optional",
+                purpose=purpose,
+                connect=connect,
+                setup={"auth_type": "See brands.json integration_scope", "steps": [f"Configure env vars for {brand_id}."]},
+            )
+        )
+
+    summary = {"connected": 0, "partial": 0, "missing": 0, "na": 0}
+    for it in items:
+        st = it.get("state", "missing")
+        if st in summary:
+            summary[st] += 1
+
+    return {"brand": brand_id, "integrations": items, "summary": summary}
 
 
 def build_catalog_extras() -> dict[str, Any]:
@@ -190,7 +367,7 @@ def build_catalog_extras() -> dict[str, Any]:
                 live_ok=True if ga4_activity.get("job_verdict") == "OK" else None,
                 creds_ok=ga4_creds,
                 partial=ga4_creds and ga4_activity.get("job_verdict") not in (None, "OK"),
-            ),
+            )[0],
             "last_used_at": ga4_last,
             "last_used_label": _age_label(ga4_last),
             "job_verdict": ga4_activity.get("job_verdict"),
@@ -233,7 +410,7 @@ def build_catalog_extras() -> dict[str, Any]:
                 live_ok=True if gsc_activity.get("job_verdict") == "OK" else None,
                 creds_ok=bool(gsc_creds),
                 partial=bool(gsc_creds) and gsc_activity.get("job_verdict") not in (None, "OK"),
-            ),
+            )[0],
             "last_used_at": gsc_last,
             "last_used_label": _age_label(gsc_last),
             "job_verdict": gsc_activity.get("job_verdict"),
@@ -270,7 +447,7 @@ def build_catalog_extras() -> dict[str, Any]:
             "state": _state_from_flags(
                 creds_ok=windsor_creds,
                 partial=windsor_creds and windsor_activity.get("job_verdict") == "LATE",
-            ),
+            )[0],
             "last_used_at": windsor_last,
             "last_used_label": _age_label(windsor_last),
             "job_verdict": windsor_activity.get("job_verdict"),
@@ -284,7 +461,7 @@ def build_catalog_extras() -> dict[str, Any]:
                 "auth_type": "API key",
                 "steps": [
                     "Copy API key from Windsor.ai account settings.",
-                    "Railway → swing-shack-dashboard → WINDSOR_API_KEY=<key>.",
+                    "Railway → WINDSOR_API_KEY=<key>.",
                     "windsor_refresh job pulls live Meta/Google ads on schedule.",
                 ],
             },
@@ -304,7 +481,7 @@ def build_catalog_extras() -> dict[str, Any]:
             "category": "optional",
             "category_label": "Optional scouts",
             "purpose": "Public golf trend videos for Signal radar — not your own channel.",
-            "state": _state_from_flags(creds_ok=yt_creds, partial=not yt_creds),
+            "state": _state_from_flags(creds_ok=yt_creds, partial=not yt_creds)[0],
             "last_used_at": yt_last,
             "last_used_label": _age_label(yt_last),
             "job_verdict": yt_activity.get("job_verdict"),
@@ -340,7 +517,7 @@ def build_catalog_extras() -> dict[str, Any]:
             "state": _state_from_flags(
                 live_ok=True if uber_activity.get("job_verdict") == "OK" else None,
                 creds_ok=uber_creds,
-            ),
+            )[0],
             "last_used_at": uber_last,
             "last_used_label": _age_label(uber_last),
             "job_verdict": uber_activity.get("job_verdict"),
@@ -451,7 +628,7 @@ def build_catalog_extras() -> dict[str, Any]:
         by_cat.setdefault(it.get("category", "optional"), []).append(it)
     categories = [{"id": cid, "label": labels.get(cid, cid), "items": by_cat.get(cid, [])} for cid in order if by_cat.get(cid)]
 
-    summary = {"connected": 0, "partial": 0, "degraded": 0, "missing": 0}
+    summary = {"connected": 0, "partial": 0, "missing": 0, "na": 0}
     for it in items:
         st = it.get("state", "missing")
         if st in summary:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 import secrets
 import threading
@@ -10,6 +11,11 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from . import ledger
+from .brand_lanes import (
+    partition_brands,
+    resolve_brands,
+    skipped_brands,
+)
 from .errors import RETRYABLE, classify, fingerprint
 from .registry import JOBS
 from .descriptions import description_for
@@ -44,9 +50,10 @@ def _parse_iso(s: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def _make_run_id(name: str, started: datetime) -> str:
+def _make_run_id(name: str, started: datetime, brand: str | None = None) -> str:
     stamp = started.strftime("%Y%m%dT%H%M%SZ")
-    return f"{stamp}-{name}-{secrets.token_hex(3)}"
+    brand_part = f"-{brand}" if brand else ""
+    return f"{stamp}-{name}{brand_part}-{secrets.token_hex(3)}"
 
 
 def _extract_rows(result: Any) -> Optional[int]:
@@ -82,17 +89,33 @@ def _status_from_result(result: Any) -> tuple[str, Optional[str]]:
     return "OK", None
 
 
-def _run_once(spec: JobSpec) -> tuple[str, Optional[str], Optional[int], Any, Optional[BaseException], float]:
+def _call_job_fn(spec: JobSpec, brand: str | None) -> Any:
+    if brand is None or spec.brand_mode != "per_brand":
+        return spec.fn()
+    try:
+        params = inspect.signature(spec.fn).parameters
+    except (TypeError, ValueError):
+        return spec.fn()
+    if "brand" in params:
+        return spec.fn(brand=brand)
+    return spec.fn()
+
+
+def _run_once(spec: JobSpec, brand: str | None = None) -> tuple[str, Optional[str], Optional[int], Any, Optional[BaseException], float]:
     """Execute one attempt in a daemon thread with hard timeout."""
     box: dict[str, Any] = {"result": None, "exc": None}
 
     def _target() -> None:
         try:
-            box["result"] = spec.fn()
+            box["result"] = _call_job_fn(spec, brand)
         except Exception as exc:  # noqa: BLE001 — ledger must capture any crash
             box["exc"] = exc
 
-    thread = threading.Thread(target=_target, name=f"job-{spec.name}", daemon=True)
+    thread = threading.Thread(
+        target=_target,
+        name=f"job-{spec.name}{f'-{brand}' if brand else ''}",
+        daemon=True,
+    )
     t0 = time.monotonic()
     thread.start()
     thread.join(timeout=spec.timeout_seconds)
@@ -107,25 +130,74 @@ def _run_once(spec: JobSpec) -> tuple[str, Optional[str], Optional[int], Any, Op
     return status, error, rows, box["result"], None, duration_s
 
 
-def run_job(name: str, triggered_by: str = "schedule") -> dict:
-    """Look up JOBS[name], run fn() with Tier-0 retry for RETRYABLE classes,
-    write ledger rows, optionally write a diagnostic bundle on non-OK.
-
-    Wall-clock worst case: (retries+1) * timeout_seconds + 10s backoff budget
-    (2s + 8s). Synchronous POST /api/jobs/run/<name> blocks for that long.
-    """
-    spec = JOBS.get(name)
-    if spec is None:
-        return {"ok": False, "job": name, "status": "FAILED", "error": "unknown job"}
-
-    started_dt = _utc_now()
-    started = _iso(started_dt)
-    run_id = _make_run_id(name, started_dt)
-
-    # Exactly one started row per run_id — outside the retry loop (§3.5).
+def _append_skipped_row(
+    *,
+    name: str,
+    run_id: str,
+    started: str,
+    triggered_by: str,
+    brand: str | None,
+    reason: str,
+) -> dict:
+    finished = _iso(_utc_now())
+    exit_row = {
+        "job": name,
+        "brand": brand,
+        "run_id": run_id,
+        "phase": "finished",
+        "started": started,
+        "finished": finished,
+        "status": "SKIPPED",
+        "triggered_by": triggered_by,
+        "error": reason,
+        "duration_s": 0.0,
+        "attempt": 1,
+        "attempts": 1,
+        "result_summary": {"skipped": True, "reason": reason},
+    }
     ledger.append_row(
         {
             "job": name,
+            "brand": brand,
+            "run_id": run_id,
+            "phase": "started",
+            "started": started,
+            "triggered_by": triggered_by,
+        }
+    )
+    ledger.append_row(exit_row)
+    return {
+        "ok": True,
+        "job": name,
+        "brand": brand,
+        "status": "SKIPPED",
+        "duration_s": 0.0,
+        "run_id": run_id,
+        "error": reason,
+        "started": started,
+        "finished": finished,
+        "triggered_by": triggered_by,
+        "phase": "finished",
+        "attempt": 1,
+        "attempts": 1,
+        "skipped": True,
+    }
+
+
+def _run_job_single(
+    spec: JobSpec,
+    name: str,
+    triggered_by: str,
+    brand: str | None,
+) -> dict:
+    started_dt = _utc_now()
+    started = _iso(started_dt)
+    run_id = _make_run_id(name, started_dt, brand)
+
+    ledger.append_row(
+        {
+            "job": name,
+            "brand": brand,
             "run_id": run_id,
             "phase": "started",
             "started": started,
@@ -150,7 +222,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
             delay = _BACKOFF_BEFORE_ATTEMPT.get(attempt, 8.0)
             time.sleep(delay)
 
-        status, error, rows, result, exc, duration_s = _run_once(spec)
+        status, error, rows, result, exc, duration_s = _run_once(spec, brand)
         error_class, _ = classify(
             exc=exc, message=error, spec=spec, result=result, status=status
         )
@@ -170,6 +242,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         ledger.append_row(
             {
                 "job": name,
+                "brand": brand,
                 "run_id": run_id,
                 "phase": "retry",
                 "attempt": next_attempt,
@@ -186,6 +259,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
 
     exit_row = {
         "job": name,
+        "brand": brand,
         "run_id": run_id,
         "phase": "finished",
         "started": started,
@@ -226,6 +300,7 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
     return {
         "ok": result_ok,
         "job": name,
+        "brand": brand,
         "status": status,
         "duration_s": total_duration,
         "rows": rows,
@@ -241,6 +316,80 @@ def run_job(name: str, triggered_by: str = "schedule") -> dict:
         "error_class": error_class if not result_ok else None,
         "error_fingerprint": fp,
     }
+
+
+def run_job(
+    name: str,
+    triggered_by: str = "schedule",
+    brand: str | None = None,
+) -> dict:
+    """Look up JOBS[name], run fn() with Tier-0 retry for RETRYABLE classes,
+    write ledger rows, optionally write a diagnostic bundle on non-OK.
+
+    For per_brand jobs without an explicit brand, fans out to all resolved brands.
+    """
+    spec = JOBS.get(name)
+    if spec is None:
+        return {"ok": False, "job": name, "status": "FAILED", "error": "unknown job"}
+
+    if spec.brand_mode == "per_brand":
+        if brand is not None:
+            resolved = set(resolve_brands(spec)) | set(skipped_brands(spec)) | set(spec.brands)
+            if brand not in resolved and brand not in resolve_brands(spec):
+                runnable, skip = partition_brands(spec)
+                if brand not in runnable and brand not in skip:
+                    return {
+                        "ok": False,
+                        "job": name,
+                        "brand": brand,
+                        "status": "FAILED",
+                        "error": f"brand {brand!r} not in resolved set",
+                    }
+            if brand in skipped_brands(spec) or (
+                spec.requires_integrations and brand not in resolve_brands(spec)
+            ):
+                started_dt = _utc_now()
+                return _append_skipped_row(
+                    name=name,
+                    run_id=_make_run_id(name, started_dt, brand),
+                    started=_iso(started_dt),
+                    triggered_by=triggered_by,
+                    brand=brand,
+                    reason="integration credentials missing for brand",
+                )
+            return _run_job_single(spec, name, triggered_by, brand)
+
+        runnable, skip = partition_brands(spec)
+        runs: list[dict] = []
+        for skip_brand in skip:
+            started_dt = _utc_now()
+            runs.append(
+                _append_skipped_row(
+                    name=name,
+                    run_id=_make_run_id(name, started_dt, skip_brand),
+                    started=_iso(started_dt),
+                    triggered_by=triggered_by,
+                    brand=skip_brand,
+                    reason="integration credentials missing for brand",
+                )
+            )
+        if not runnable and not runs:
+            started_dt = _utc_now()
+            return _append_skipped_row(
+                name=name,
+                run_id=_make_run_id(name, started_dt, None),
+                started=_iso(started_dt),
+                triggered_by=triggered_by,
+                brand=None,
+                reason="no brands resolved for job",
+            )
+        for run_brand in runnable:
+            runs.append(_run_job_single(spec, name, triggered_by, run_brand))
+        if len(runs) == 1:
+            return runs[0]
+        return {"ok": all(r.get("ok") for r in runs), "job": name, "runs": runs}
+
+    return _run_job_single(spec, name, triggered_by, None)
 
 
 def _finished_by_run_id(rows: list[dict]) -> dict[str, dict]:
@@ -296,12 +445,39 @@ def _last_success(rows: list[dict]) -> Optional[dict]:
     return None
 
 
-def verdict_for(name: str, rows: list[dict], *, now: Optional[datetime] = None) -> str:
-    """OK | LATE | FAILED | STUCK | NEVER — see plan §3.4."""
+def _aggregate_verdict(child_verdicts: list[str]) -> str:
+    """Job-level verdict: worst non-SKIPPED child; SKIPPED only if all children skipped."""
+    non_skipped = [v for v in child_verdicts if v != "SKIPPED"]
+    if not non_skipped:
+        return "SKIPPED" if child_verdicts else "NEVER"
+    priority = {"STUCK": 5, "FAILED": 4, "NEVER": 3, "LATE": 2, "OK": 1, "SKIPPED": 0}
+    return max(non_skipped, key=lambda v: priority.get(v, 0))
+
+
+def verdict_for(
+    name: str,
+    rows: list[dict],
+    *,
+    now: Optional[datetime] = None,
+    brand: str | None = None,
+) -> str:
+    """OK | LATE | FAILED | STUCK | NEVER | SKIPPED — see plan §3.4."""
     spec = JOBS.get(name)
     if spec is None:
         return "NEVER"
     now = now or _utc_now()
+
+    if brand is not None:
+        rows = [r for r in rows if r.get("brand") == brand]
+    elif spec.brand_mode == "per_brand":
+        grouped = ledger.last_rows_per_job_brand([name])
+        child_verdicts = [
+            verdict_for(name, grouped.get((name, b)) or [], now=now, brand=b)
+            for (_, b) in grouped.keys()
+            if _ == name
+        ]
+        if child_verdicts:
+            return _aggregate_verdict(child_verdicts)
 
     if not rows:
         return "NEVER"
@@ -312,6 +488,9 @@ def verdict_for(name: str, rows: list[dict], *, now: Optional[datetime] = None) 
     last = _last_finished(rows)
     if last is None:
         return "NEVER"
+
+    if last.get("status") == "SKIPPED":
+        return "SKIPPED"
 
     if last.get("status") != "OK":
         if spec.best_effort:
@@ -330,10 +509,44 @@ def verdict_for(name: str, rows: list[dict], *, now: Optional[datetime] = None) 
     return "LATE"
 
 
+def _brand_status_entries(spec: JobSpec, grouped: dict[tuple[str, str | None], list[dict]], now: datetime) -> list[dict]:
+    if spec.brand_mode != "per_brand":
+        return []
+    keys = sorted({b for (job, b) in grouped if job == spec.name})
+    if not keys:
+        keys = list(resolve_brands(spec)) + list(skipped_brands(spec))
+    entries: list[dict] = []
+    for brand_id in keys:
+        rows = grouped.get((spec.name, brand_id)) or []
+        verdict = verdict_for(spec.name, rows, now=now, brand=brand_id)
+        success = _last_success(rows)
+        last = _last_finished(rows)
+        last_success_at = None
+        last_success_age_h = None
+        if success:
+            finished = _parse_iso(success.get("finished") or success.get("started"))
+            if finished is not None:
+                last_success_at = _iso(finished)
+                last_success_age_h = round((now - finished).total_seconds() / 3600.0, 3)
+        entries.append(
+            {
+                "brand": brand_id,
+                "verdict": verdict,
+                "last_success_at": last_success_at,
+                "last_success_age_h": last_success_age_h,
+                "last_run_at": (last or {}).get("finished"),
+                "last_status": (last or {}).get("status"),
+                "last_error": (last or {}).get("error"),
+            }
+        )
+    return entries
+
+
 def build_status() -> dict:
     """Full status table with timestamps for UI / watchdog."""
     now = _utc_now()
     names = sorted(JOBS.keys())
+    grouped_brand = ledger.last_rows_per_job_brand(names)
     grouped = ledger.last_rows_per_job(names)
     jobs_out = []
     for name in names:
@@ -349,29 +562,32 @@ def build_status() -> dict:
             if finished is not None:
                 last_success_at = _iso(finished)
                 last_success_age_h = round((now - finished).total_seconds() / 3600.0, 3)
-        jobs_out.append(
-            {
-                "name": name,
-                "verdict": verdict,
-                "criticality": spec.criticality,
-                "last_success_at": last_success_at,
-                "last_success_age_h": last_success_age_h,
-                "last_run_at": (last or {}).get("finished"),
-                "last_started_at": (last or {}).get("started"),
-                "last_triggered_by": (last or {}).get("triggered_by"),
-                "last_status": (last or {}).get("status"),
-                "last_error": (last or {}).get("error"),
-                "last_duration_s": (last or {}).get("duration_s"),
-                "last_run_id": (last or {}).get("run_id"),
-                "last_error_class": (last or {}).get("error_class"),
-                "best_effort": bool(getattr(spec, "best_effort", False)),
-                "every_seconds": getattr(spec, "every_seconds", None),
-                "timeout_seconds": getattr(spec, "timeout_seconds", None),
-                "retries": getattr(spec, "retries", 0),
-                "schedule": schedule_for(name),
-                "info": description_for(name),
-            }
-        )
+        job_entry = {
+            "name": name,
+            "verdict": verdict,
+            "criticality": spec.criticality,
+            "brand_mode": spec.brand_mode,
+            "last_success_at": last_success_at,
+            "last_success_age_h": last_success_age_h,
+            "last_run_at": (last or {}).get("finished"),
+            "last_started_at": (last or {}).get("started"),
+            "last_triggered_by": (last or {}).get("triggered_by"),
+            "last_status": (last or {}).get("status"),
+            "last_error": (last or {}).get("error"),
+            "last_duration_s": (last or {}).get("duration_s"),
+            "last_run_id": (last or {}).get("run_id"),
+            "last_error_class": (last or {}).get("error_class"),
+            "best_effort": bool(getattr(spec, "best_effort", False)),
+            "every_seconds": getattr(spec, "every_seconds", None),
+            "timeout_seconds": getattr(spec, "timeout_seconds", None),
+            "retries": getattr(spec, "retries", 0),
+            "schedule": schedule_for(name),
+            "info": description_for(name),
+        }
+        brands = _brand_status_entries(spec, grouped_brand, now)
+        if brands:
+            job_entry["brands"] = brands
+        jobs_out.append(job_entry)
     return {"jobs": jobs_out}
 
 
@@ -397,6 +613,7 @@ def build_history(*, job: Optional[str] = None, limit_per_job: int = 12) -> dict
             runs.append(
                 {
                     "run_id": row.get("run_id"),
+                    "brand": row.get("brand"),
                     "started": row.get("started"),
                     "finished": row.get("finished"),
                     "status": row.get("status"),

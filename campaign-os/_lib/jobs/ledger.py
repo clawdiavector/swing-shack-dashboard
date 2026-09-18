@@ -27,8 +27,8 @@ def append_row(row: dict) -> None:
             fh.write(line)
 
 
-def read_rows(job: Optional[str] = None) -> list[dict]:
-    """Read ledger rows; optionally filter by job name. Missing file → []."""
+def read_rows(job: Optional[str] = None, brand: Optional[str] = None) -> list[dict]:
+    """Read ledger rows; optionally filter by job name and/or brand. Missing file → []."""
     path = _ledger_path()
     if not os.path.isfile(path):
         return []
@@ -45,18 +45,41 @@ def read_rows(job: Optional[str] = None) -> list[dict]:
                     continue
                 if job is not None and row.get("job") != job:
                     continue
+                if brand is not None:
+                    row_brand = row.get("brand")
+                    if brand == "" and row_brand is not None:
+                        continue
+                    if brand != "" and row_brand != brand:
+                        continue
                 out.append(row)
     except OSError:
         return []
     return out
 
 
-def last_rows_per_job(job_names: list[str]) -> dict[str, list[dict]]:
+def last_rows_per_job(
+    job_names: list[str],
+    *,
+    brand: Optional[str] = None,
+) -> dict[str, list[dict]]:
     """Return all rows grouped by job for the given names (order preserved)."""
     wanted = set(job_names)
     grouped: dict[str, list[dict]] = {n: [] for n in job_names}
-    for row in read_rows():
+    for row in read_rows(brand=brand if brand is not None else None):
         name = row.get("job")
         if name in wanted:
             grouped[name].append(row)
+    return grouped
+
+
+def last_rows_per_job_brand(job_names: list[str]) -> dict[tuple[str, str | None], list[dict]]:
+    """Group ledger rows by (job, brand) for per-brand verdict computation."""
+    wanted = set(job_names)
+    grouped: dict[tuple[str, str | None], list[dict]] = {}
+    for row in read_rows():
+        name = row.get("job")
+        if name not in wanted:
+            continue
+        key = (name, row.get("brand"))
+        grouped.setdefault(key, []).append(row)
     return grouped

@@ -14962,12 +14962,17 @@ def connected_accounts_status_route():
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
-    from _lib.connected_accounts_catalog import build_catalog_extras, infer_postiz_provider
+    from _lib.connected_accounts_catalog import (
+        build_brand_integrations,
+        build_catalog_extras,
+        infer_postiz_provider,
+    )
 
-    out = {"ok": True, "last_check": _dt_cls.now(_tz.utc).isoformat()}
+    brand = get_brand_id()
+    out = {"ok": True, "brand": brand, "last_check": _dt_cls.now(_tz.utc).isoformat()}
     if _POSTIZ_CLIENT_AVAILABLE:
         try:
-            status = _postiz_lib.postiz_status()
+            status = _postiz_lib.postiz_status(brand_id=brand)
             ch_data, ch_err = _postiz_lib.list_integrations()
             channels = []
             api_live_ok = ch_err is None and ch_data is not None
@@ -14995,7 +15000,7 @@ def connected_accounts_status_route():
                 "last_used_at": out["last_check"] if api_live_ok else None,
                 "channels": channels,
                 "channel_count": len(channels),
-                "connect_url": "/api/postiz/oauth/login?brand=swing-shack",
+                "connect_url": f"/api/postiz/oauth/login?brand={brand}",
                 "setup": {
                     "auth_type": "API key + OAuth client",
                     "env_vars": ["POSTIZ_API_KEY", "POSTIZ_OAUTH_CLIENT_ID", "POSTIZ_OAUTH_CLIENT_SECRET"],
@@ -15014,7 +15019,7 @@ def connected_accounts_status_route():
     if _GBP_OAUTH_AVAILABLE:
         try:
             gbp_creds = _gbp_lib.gbp_oauth_credentials_present()
-            token = _gbp_lib.load_token("swing-shack")
+            token = _gbp_lib.load_token(brand)
             gbp_last = (token or {}).get("rotated_at") or (token or {}).get("connected_at")
             out["gbp"] = {
                 "credentials_ok": gbp_creds,
@@ -15022,7 +15027,7 @@ def connected_accounts_status_route():
                 "google_account": (token or {}).get("google_account_email"),
                 "rotated_at": (token or {}).get("rotated_at"),
                 "last_used_at": gbp_last,
-                "connect_url": "/api/gbp/oauth/login?brand=swing-shack",
+                "connect_url": f"/api/gbp/oauth/login?brand={brand}",
                 "setup": {
                     "auth_type": "Google OAuth (business.manage scope)",
                     "env_vars": ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"],
@@ -15060,25 +15065,54 @@ def connected_accounts_status_route():
         "token_expires_never": False,
     }
     try:
-        _meta_cred_paths = [
-            os.path.expanduser("~/.openclaw-instance2/workspace/clients/swing-shack/credentials/meta-token.json"),
-            os.path.expanduser("~/.openclaw-instance2/workspace/swing-shack-dashboard/data/credentials/meta-token.json"),
-        ]
+        from _lib.jobs.brand_lanes import load_brands_registry
+
+        _reg = load_brands_registry()
+        _meta_scope = (
+            ((_reg.get("brands") or {}).get(brand) or {}).get("integration_scope") or {}
+        ).get("meta") or {}
+        _meta_envs = _meta_scope.get("env") or ["META_SYSTEM_USER_TOKEN"]
         meta_creds = None
-        for _p in _meta_cred_paths:
-            if os.path.exists(_p):
-                try:
-                    with open(_p) as f:
-                        meta_creds = json.load(f)
-                    break
-                except Exception:
+        for _env_name in _meta_envs:
+            _tok = (os.environ.get(_env_name) or "").strip()
+            if _tok:
+                meta_creds = {"access_token": _tok}
+                break
+        if meta_creds is None:
+            for _root in (
+                os.environ.get("DATA_DIR"),
+                os.environ.get("BUNDLED_DATA_DIR"),
+                BUNDLED_DATA_DIR,
+            ):
+                if not _root:
                     continue
-        if not meta_creds and os.environ.get("META_SYSTEM_USER_TOKEN"):
-            meta_creds = {
-                "access_token": os.environ["META_SYSTEM_USER_TOKEN"],
-                "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
-                "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
-            }
+                _cred_file = os.path.join(_root, "credentials", "meta", f"{brand}.json")
+                if os.path.isfile(_cred_file):
+                    try:
+                        with open(_cred_file, encoding="utf-8") as f:
+                            meta_creds = json.load(f)
+                        break
+                    except Exception:
+                        continue
+        if meta_creds and not meta_creds.get("access_token"):
+            for _env_name in _meta_envs:
+                _tok = (os.environ.get(_env_name) or "").strip()
+                if _tok:
+                    meta_creds["access_token"] = _tok
+                    break
+        if meta_creds:
+            meta_creds.setdefault(
+                "page_id",
+                os.environ.get(f"META_PAGE_ID_{brand.upper().replace('-', '_')}")
+                or os.environ.get("META_PAGE_ID"),
+            )
+            meta_creds.setdefault(
+                "instagram_account_id",
+                os.environ.get(
+                    f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID_{brand.upper().replace('-', '_')}"
+                )
+                or os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID"),
+            )
         # Backfill token_kind when missing. System user tokens come in
         # EAA or EAAB prefix — both are server-issued with admin scopes.
         # The prefix is naming only, NOT a capability signal. Any token
@@ -15144,9 +15178,7 @@ def connected_accounts_status_route():
                     except Exception:
                         pass
             # Capabilities — what the system user token will / does unlock.
-            # Built 2026-08-21 after the user confirmed all 21 scopes on
-            # system_user 61558075178636 (swing-shack business). The
-            # fetcher tries every metric; the response shows which ones
+            # The fetcher tries every metric; the response shows which ones
             # actually went through (some may still fail if a specific
             # permission hasn't been app-reviewed for the bound app).
             meta_out["capabilities"] = [
@@ -15195,19 +15227,18 @@ def connected_accounts_status_route():
     }
     out["meta"] = meta_out
 
+    brand_catalog = build_brand_integrations(brand)
+    out["integrations"] = brand_catalog.get("integrations", [])
+    out["summary"] = brand_catalog.get("summary", {})
     catalog = build_catalog_extras()
     out["categories"] = catalog.get("categories", [])
-    out["integrations"] = catalog.get("integrations", [])
-    out["summary"] = catalog.get("summary", {})
 
     # Primary cards for publish row (prepend to publish category in UI)
     primary_publish = []
     if out.get("postiz"):
         p = out["postiz"]
         st = "connected" if p.get("api_live_ok") and p.get("channel_count") else (
-            "degraded" if p.get("credentials_ok") and not p.get("api_live_ok") else (
-                "partial" if p.get("credentials_ok") else "missing"
-            )
+            "partial" if p.get("credentials_ok") else "missing"
         )
         primary_publish.append({
             "id": "postiz",
@@ -16274,6 +16305,8 @@ try:
         criticality="MEDIUM",
         credentials=("GOOGLE_OAUTH_CLIENT_SECRET",),
         writes=("gbp-daily-plans/",),
+        brand_mode="per_brand",
+        requires_integrations=("gbp",),
     ))
     _register_job(_JobSpec(
         name="freshness_scan",
@@ -16282,6 +16315,9 @@ try:
         criticality="LOW",
         best_effort=True,
         writes=("freshness.json",),
+        brand_mode="per_brand",
+        brands=("swing-shack", "stick", "bag-drop"),
+        shared_writes=("freshness.json",),
     ))
 
     def _run_publish_dispatch_job():
@@ -16296,6 +16332,8 @@ try:
         criticality="MEDIUM",
         best_effort=False,
         writes=("publish-sandbox/",),
+        brand_mode="per_brand",
+        requires_integrations=("postiz",),
     ))
     _JOBS_AVAILABLE = True
 except Exception as _jobs_exc:  # noqa: BLE001
@@ -16316,6 +16354,26 @@ def jobs_run(name):
         return jsonify({"ok": False, "error": "authentication required"}), 401
     if not _JOBS_AVAILABLE or name not in _JOBS_REGISTRY:
         return jsonify({"ok": False, "error": "unknown job", "job": name}), 404
+    spec = _JOBS_REGISTRY[name]
+    brand_param = (request.args.get('brand') or '').strip() or None
+    fanout_all = request.args.get('all') in ('1', 'true', 'yes')
+    if spec.brand_mode == 'per_brand' and not brand_param and not fanout_all:
+        return jsonify({
+            "ok": False,
+            "error": "per_brand job requires ?brand=<id> or ?all=1",
+            "job": name,
+        }), 400
+    if brand_param:
+        from _lib.jobs.brand_lanes import partition_brands, resolve_brands
+        runnable, skipped = partition_brands(spec)
+        allowed = set(runnable) | set(skipped) | set(spec.brands) | set(resolve_brands(spec))
+        if brand_param not in allowed:
+            return jsonify({
+                "ok": False,
+                "error": f"brand {brand_param!r} not in resolved set for job {name}",
+                "job": name,
+                "brand": brand_param,
+            }), 409
     # Query param is `reason` (ledger field is triggered_by). heal_of ignored until t58.
     reason = (request.args.get('reason') or '').strip()
     triggered_by = reason or 'schedule'
@@ -16340,7 +16398,7 @@ def jobs_run(name):
         except Exception:
             _app_log.exception("manual cooldown check failed name=%s", name)
     try:
-        row = _run_named_job(name, triggered_by=triggered_by)
+        row = _run_named_job(name, triggered_by=triggered_by, brand=brand_param)
         return jsonify(row), 200
     except Exception as e:
         _app_log.exception("jobs_run failed name=%s", name)

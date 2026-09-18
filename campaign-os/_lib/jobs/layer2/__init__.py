@@ -16,6 +16,8 @@ LAYER2_JOB_NAMES: tuple[str, ...] = (
 
 LAYER2_DAILY = 86400
 
+_ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
+
 
 def layer2_specs() -> list[JobSpec]:
     """Return all Layer 2 JobSpecs."""
@@ -29,6 +31,7 @@ def layer2_specs() -> list[JobSpec]:
             criticality="MEDIUM",
             credentials=(),
             writes=("slot-planner.json",),
+            brand_mode="fanout_internal",
         ),
         JobSpec(
             name="agent_queue_writer",
@@ -41,6 +44,8 @@ def layer2_specs() -> list[JobSpec]:
             writes=("agent-queue.json",),
             reads=("slot-planner.json", "freshness.json", "recommendation-scores.json"),
             upstream=("slot_planner", "freshness_scan", "insights_reco"),
+            brand_mode="fanout_internal",
+            shared_reads=("freshness.json",),
         ),
         JobSpec(
             name="review_sla",
@@ -51,6 +56,7 @@ def layer2_specs() -> list[JobSpec]:
             criticality="LOW",
             credentials=(),
             writes=("review-sla.json",),
+            brand_mode="fanout_internal",
         ),
         JobSpec(
             name="holiday_inject",
@@ -65,6 +71,8 @@ def layer2_specs() -> list[JobSpec]:
                 "intelligence/marketing-calendar/swing-shack.jsonl",
                 "intelligence/marketing-calendar/bag-drop.jsonl",
             ),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
         ),
     ]
 

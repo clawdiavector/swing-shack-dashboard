@@ -3,8 +3,20 @@
   "version": "1.0",
   "owner": "campaign-os",
   "description": "Brand registry for Campaign OS. Each brand has its own voice bible, hooks bank, meme bank, FAQ templates, GBP templates, and asset namespace. Brand is the top-level partition \u2014 everything else (campaigns, hooks, memes, captions) belongs to exactly one brand. To onboard a new brand: copy any existing brand block, give it a unique id, fill in the voice/positioning/visual fields, and Campaign OS will isolate its data automatically.",
-  "updated": "2026-07-30T10:45:00Z",
+  "updated": "2026-09-18T10:45:00Z",
   "default_brand_id": "swing-shack",
+  "integrations": {
+    "postiz": {"label": "Postiz", "scope_class": "per_brand", "state_source": "live_probe"},
+    "meta": {"label": "Meta (IG + FB)", "scope_class": "per_brand", "state_source": "live_probe"},
+    "gbp": {"label": "Google Business", "scope_class": "per_brand", "state_source": "token_file"},
+    "ga4": {"label": "Google Analytics 4", "scope_class": "per_brand", "state_source": "env+job_verdict"},
+    "gsc": {"label": "Search Console", "scope_class": "per_brand", "state_source": "env+job_verdict"},
+    "windsor": {"label": "Windsor.ai", "scope_class": "per_brand", "state_source": "env+job_verdict"},
+    "ubersuggest": {"label": "Ubersuggest", "scope_class": "per_brand", "state_source": "env+job_verdict"},
+    "youtube": {"label": "YouTube Data API", "scope_class": "shared_global", "state_source": "env"},
+    "krea": {"label": "Krea", "scope_class": "shared_global", "state_source": "env"},
+    "google_drive": {"label": "Google Drive", "scope_class": "shared_credential_per_brand_config", "state_source": "oauth_status"}
+  },
   "brands": {
     "swing-shack": {
       "id": "swing-shack",
@@ -46,7 +58,19 @@
       "active": true,
       "order": 1,
       "icon": "\u26f3",
-      "short_label": "SS"
+      "short_label": "SS",
+      "integration_scope": {
+        "postiz": {"applies": true, "env": ["POSTIZ_API_KEY", "POSTIZ_API_KEY_SWING_SHACK"], "credential_ref": "postiz-oauth/swing-shack.json", "na_reason": null},
+        "meta": {"applies": true, "env": ["META_SYSTEM_USER_TOKEN", "META_PAGE_ID_SWING_SHACK", "META_INSTAGRAM_BUSINESS_ACCOUNT_ID_SWING_SHACK"], "na_reason": null},
+        "gbp": {"applies": true, "env": ["GBP_LOCATION_ID_SWING_SHACK"], "credential_ref": "gbp/swing-shack.json", "na_reason": null},
+        "ga4": {"applies": true, "env": ["GA4_PROPERTY_SWING_SHACK", "GA4_CREDENTIALS_JSON_SWING_SHACK"], "config": {"domain": "swingshack.co.za"}, "na_reason": null},
+        "gsc": {"applies": true, "env": ["GSC_SITE_URL_SWING_SHACK", "GA4_CREDENTIALS_JSON_SWING_SHACK"], "na_reason": null},
+        "windsor": {"applies": true, "env": ["WINDSOR_API_KEY"], "na_reason": null},
+        "ubersuggest": {"applies": true, "env": ["UBERSUGGEST_ACCESS", "UBERSUGGEST_TOKEN_FILE", "BRAND_DOMAIN_SWING_SHACK"], "na_reason": null},
+        "youtube": {"applies": false, "na_reason": "Public trend source — no brand account exists."},
+        "krea": {"applies": false, "na_reason": "Shared image-gen provider."},
+        "google_drive": {"applies": true, "config": {"folder_name": "Swing Shack Brand Assets"}, "na_reason": null}
+      }
     },
     "stick": {
       "id": "stick",
@@ -72,7 +96,19 @@
       "active": true,
       "order": 2,
       "icon": "\ud83e\udeb5",
-      "short_label": "ST"
+      "short_label": "ST",
+      "integration_scope": {
+        "postiz": {"applies": true, "env": ["POSTIZ_API_KEY_STICK"], "credential_ref": "postiz-oauth/stick.json", "na_reason": null},
+        "meta": {"applies": true, "env": ["META_SYSTEM_USER_TOKEN_STICK_PAARL", "META_PAGE_ID_STICK", "META_INSTAGRAM_BUSINESS_ACCOUNT_ID_STICK"], "na_reason": null},
+        "gbp": {"applies": true, "env": ["GBP_LOCATION_ID_STICK"], "na_reason": null},
+        "ga4": {"applies": false, "na_reason": "No distinct property — stick shares swingshack.co.za."},
+        "gsc": {"applies": false, "na_reason": "Shares the swing-shack Search Console property."},
+        "windsor": {"applies": false, "na_reason": "Only Swing Shack has paid media today."},
+        "ubersuggest": {"applies": false, "na_reason": "Shares the swing-shack domain."},
+        "youtube": {"applies": false, "na_reason": "Public trend source."},
+        "krea": {"applies": false, "na_reason": "Shared image-gen provider."},
+        "google_drive": {"applies": true, "config": {"folder_name": "Stick Brand Assets"}, "na_reason": null}
+      }
     },
     "bag-drop": {
       "id": "bag-drop",
@@ -98,7 +134,19 @@
       "active": true,
       "order": 3,
       "icon": "\ud83c\udf92",
-      "short_label": "BD"
+      "short_label": "BD",
+      "integration_scope": {
+        "postiz": {"applies": true, "env": ["POSTIZ_API_KEY_BAG_DROP"], "na_reason": null},
+        "meta": {"applies": false, "na_reason": "No Meta account configured for bag-drop."},
+        "gbp": {"applies": true, "env": ["GBP_LOCATION_ID_BAG_DROP"], "na_reason": null},
+        "ga4": {"applies": false, "na_reason": "No distinct property — bag-drop shares swingshack.co.za."},
+        "gsc": {"applies": false, "na_reason": "Shares the swing-shack Search Console property."},
+        "windsor": {"applies": false, "na_reason": "No paid media account."},
+        "ubersuggest": {"applies": false, "na_reason": "No domain configured."},
+        "youtube": {"applies": false, "na_reason": "Public trend source."},
+        "krea": {"applies": false, "na_reason": "Shared image-gen provider."},
+        "google_drive": {"applies": true, "config": {"folder_name": "Bag Drop Brand Assets"}, "na_reason": null}
+      }
     }
   },
   "product_brands": {

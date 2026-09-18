@@ -9,7 +9,11 @@ JOBS: dict[str, JobSpec] = {}
 
 def register(spec: JobSpec) -> None:
     """Register or replace a JobSpec by name."""
+    from .brand_lanes import validate_job_spec
+
+    validate_job_spec(spec, JOBS)
     JOBS[spec.name] = spec
+    validate_job_spec(spec, JOBS)
 
 
 def _bootstrap_meta() -> None:
@@ -31,6 +35,8 @@ def _bootstrap_meta() -> None:
                 "facebook-analytics.json",
                 "facebook-business-analytics.json",
             ),
+            brand_mode="per_brand",
+            requires_integrations=("meta",),
         )
     )
 

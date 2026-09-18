@@ -88,16 +88,32 @@ _NO_DATA = object()
 
 # ── Credential resolution ─────────────────────────────────────────────
 
-def _credentials_present() -> bool:
+def _brand_env_suffix(brand_id: str | None) -> str:
+    if not brand_id:
+        return ""
+    return brand_id.upper().replace("-", "_")
+
+
+def _credentials_present(brand_id: str | None = None) -> bool:
     """True if a Postiz API key (server-to-server) is reachable.
 
-    Resolution order: env var > canonical file > bundled fallback.
+    Resolution order: POSTIZ_API_KEY_<BRAND> > global POSTIZ_API_KEY > file.
     """
-    return _read_api_key() is not None
+    return _read_api_key(brand_id=brand_id) is not None
 
 
-def _read_api_key() -> Optional[str]:
+def _read_api_key(brand_id: str | None = None) -> Optional[str]:
     """Resolve the API key without echoing it. Returns None if missing."""
+    if brand_id:
+        safe = _brand_env_suffix(brand_id)
+        for key in (
+            f"POSTIZ_API_KEY_{safe}",
+            f"POSTIZ_API_KEY_{brand_id.upper()}",
+            f"POSTIZ_API_KEY_{brand_id}",
+        ):
+            env = os.environ.get(key)
+            if env and env.strip():
+                return env.strip()
     env = os.environ.get("POSTIZ_API_KEY")
     if env and env.strip():
         return env.strip()
@@ -173,14 +189,14 @@ def _oauth_candidate_paths() -> list[Path]:
 
 # ── Status (read-only) ───────────────────────────────────────────────
 
-def postiz_status() -> dict:
+def postiz_status(brand_id: str | None = None) -> dict:
     """Status snapshot for /api/postiz/status. NEVER exposes the secret.
 
     Returns: {ok, api_key_present, api_key_length, api_key_prefix,
               oauth_client_id_present, oauth_client_secret_present,
-              api_base, last_check}
+              api_base, last_check, brand_id}
     """
-    key = _read_api_key()
+    key = _read_api_key(brand_id=brand_id)
     cid = _read_oauth_client_id()
     secret = _read_oauth_client_secret()
     return {
@@ -192,6 +208,7 @@ def postiz_status() -> dict:
         "oauth_client_secret_present": bool(secret),
         "api_base": POSTIZ_API_BASE,
         "last_check": _now_iso(),
+        "brand_id": brand_id,
     }
 
 
@@ -202,14 +219,14 @@ def _now_iso() -> str:
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
-def _auth_header_value() -> Optional[str]:
+def _auth_header_value(brand_id: str | None = None) -> Optional[str]:
     """Postiz uses bare Authorization without the "Bearer " prefix.
 
     This is a documented quirk that the verify-before-recording-as-fact skill
     calls out specifically. If you ever wire another API here, double-check
     their auth-header shape — most use Bearer, Postiz does not.
     """
-    k = _read_api_key()
+    k = _read_api_key(brand_id=brand_id)
     return k if k else None
 
 

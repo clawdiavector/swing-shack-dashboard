@@ -52,7 +52,7 @@ def test_jobs_history_returns_finished_runs(job_app):
 
 def test_jobs_status_includes_schedule_and_last_run(job_app):
     client, _, _ = job_app
-    client.post("/api/jobs/run/freshness_scan", headers=_auth())
+    client.post("/api/jobs/run/freshness_scan?all=1", headers=_auth())
     st = client.get("/api/jobs/status", headers=_auth()).get_json()
     row = next(j for j in st["jobs"] if j["name"] == "freshness_scan")
     assert "schedule" in row

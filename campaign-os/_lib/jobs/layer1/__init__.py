@@ -43,6 +43,9 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "insights_reco",
 )
 
+_ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
+_SS_ONLY = ("swing-shack",)
+
 
 def layer1_specs() -> list[JobSpec]:
     """Return all Layer 1 JobSpecs."""
@@ -56,6 +59,7 @@ def layer1_specs() -> list[JobSpec]:
             criticality="LOW",
             retries=2,
             writes=("golf-news.json",),
+            brand_mode="global",
         ),
         JobSpec(
             name="reddit_trends",
@@ -66,6 +70,7 @@ def layer1_specs() -> list[JobSpec]:
             criticality="LOW",
             retries=2,
             writes=("reddit-trends.json",),
+            brand_mode="global",
         ),
         JobSpec(
             name="youtube_trends",
@@ -79,6 +84,7 @@ def layer1_specs() -> list[JobSpec]:
             writes=("youtube-trends.json",),
             reads=("golf-news.json", "reddit-trends.json"),
             upstream=("golf_news", "reddit_trends"),
+            brand_mode="global",
         ),
         JobSpec(
             name="seo_rankings",
@@ -95,6 +101,9 @@ def layer1_specs() -> list[JobSpec]:
                 "ubersuggest-competitors.json",
                 "ubersuggest-backlinks.json",
             ),
+            brand_mode="per_brand",
+            brands=_SS_ONLY,
+            requires_integrations=("ubersuggest",),
         ),
         JobSpec(
             name="ga4_report",
@@ -106,6 +115,9 @@ def layer1_specs() -> list[JobSpec]:
             retries=1,
             credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
             writes=("ga4-metrics.json",),
+            brand_mode="per_brand",
+            brands=_SS_ONLY,
+            requires_integrations=("ga4",),
         ),
         JobSpec(
             name="site_audit",
@@ -116,6 +128,9 @@ def layer1_specs() -> list[JobSpec]:
             criticality="MEDIUM",
             retries=2,
             writes=("seo-audit.json", "geo-audit.json"),
+            brand_mode="per_brand",
+            brands=_SS_ONLY,
+            requires_integrations=("ubersuggest",),
         ),
         JobSpec(
             name="competitor_tracker",
@@ -128,6 +143,8 @@ def layer1_specs() -> list[JobSpec]:
             credentials=("META_SYSTEM_USER_TOKEN",),
             writes=("competitor-tracker.json",),
             reads=("competitor-tracker.json",),
+            brand_mode="per_brand",
+            requires_integrations=("meta",),
         ),
         JobSpec(
             name="windsor_refresh",
@@ -141,6 +158,9 @@ def layer1_specs() -> list[JobSpec]:
             writes=("meta-ads.json", "google-ads.json"),
             reads=("ga4-metrics.json",),
             upstream=("ga4_report",),
+            brand_mode="per_brand",
+            brands=_SS_ONLY,
+            requires_integrations=("windsor",),
         ),
         JobSpec(
             name="gsc_report",
@@ -153,6 +173,9 @@ def layer1_specs() -> list[JobSpec]:
             credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
             writes=("search-console.json",),
             upstream=("ga4_report",),
+            brand_mode="per_brand",
+            brands=_SS_ONLY,
+            requires_integrations=("gsc",),
         ),
         JobSpec(
             name="booking_truth",
@@ -166,6 +189,10 @@ def layer1_specs() -> list[JobSpec]:
             writes=("booking-events.json", "leads.json", "lead-quality.json"),
             reads=("reddit-trends.json", "booking-events.json"),
             upstream=("ga4_report", "reddit_trends"),
+            brand_mode="per_brand",
+            brands=_SS_ONLY,
+            requires_integrations=("ga4",),
+            shared_reads=("reddit-trends.json",),
         ),
         JobSpec(
             name="insights_hooks",
@@ -185,6 +212,13 @@ def layer1_specs() -> list[JobSpec]:
                 "hook-bank.json",
             ),
             upstream=("meta_refresh", "youtube_trends"),
+            brand_mode="per_brand",
+            requires_integrations=("meta",),
+            shared_reads=(
+                "youtube-trends.json",
+                "golf-news.json",
+                "reddit-trends.json",
+            ),
         ),
         JobSpec(
             name="post_conversion_score",
@@ -198,6 +232,8 @@ def layer1_specs() -> list[JobSpec]:
             writes=("post-conversion-score.json",),
             reads=("ig-business-analytics.json", "ga4-metrics.json"),
             upstream=("meta_refresh", "ga4_report"),
+            brand_mode="per_brand",
+            requires_integrations=("meta",),
         ),
         JobSpec(
             name="content_ideas_refresh",
@@ -216,6 +252,9 @@ def layer1_specs() -> list[JobSpec]:
                 "content-ideas.json",
             ),
             upstream=("insights_hooks", "insights_reco", "competitor_tracker"),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
+            shared_reads=("reddit-trends.json",),
         ),
         JobSpec(
             name="insights_reco",
@@ -256,6 +295,8 @@ def layer1_specs() -> list[JobSpec]:
                 "gsc_report",
                 "booking_truth",
             ),
+            brand_mode="per_brand",
+            brands=("swing-shack", "stick"),
         ),
     ]
 
