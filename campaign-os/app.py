@@ -43325,58 +43325,32 @@ def _v22_ga4_session_metrics(creds, dimensions, days_for_window=31,
             os.environ["_V22_METRICS_LEN"] = str(len(rows[0]["metrics"]))
         n_dr = len(date_ranges)
         n_m = len(metrics)
-        # GA4 may return:
-        #   (a) per dim-value, a row with len(date_ranges) sets of
-        #       metric values: dims=[channel], metrics=[m1_dr0, m2_dr0,
-        #       ..., m1_dr1, ...]
-        #   (b) per dim-value, ONE row per date_range — dims=[channel],
-        #       metrics=[m1, m2, ...] (single window); the same dim
-        #       value appears in n_dr rows.
-        # Determine which shape by looking at the metric count per row.
-        n_metrics_per_row = (rows[0]["__len_metrics"] if False else
-                              len(rows[0]["metrics"]) if rows else 0)
-        # Detect (a) vs (b) by comparing metric count to n_m * n_dr
-        is_multi_window_per_row = (
-            rows and len(rows[0]["metrics"]) >= n_m * n_dr)
-        if not is_multi_window_per_row and rows:
-            # shape (b): aggregate dim-value across rows
-            agg = {}  # key -> list of (date_range_index, metric_list)
-            for row in rows:
-                key = "|".join(row["dims"]) if row["dims"] else "_total"
-                metric_lists = list(row["metrics"] or [])
-                while len(metric_lists) < n_m:
-                    metric_lists.append("0")
-                # We don't know which date_range this row belongs to
-                # unless we add date_range as a hidden dimension. For
-                # now, GA4 always returns shape (a) when multiple
-                # date_ranges are passed; shape (b) is for single
-                # date_range queries.
-                agg.setdefault(key, []).append(metric_lists)
-            # If we have multiple rows per key, treat the FIRST as
-            # current and the SECOND as previous (the date_ranges
-            # param preserves order in the API).
-            return_dict = {}
-            for key, per_row_list in agg.items():
-                windows = []
-                for i in range(n_dr):
-                    if i < len(per_row_list):
-                        windows.append(per_row_list[i])
-                    else:
-                        windows.append(["0"] * n_m)
-                return_dict[key] = windows
-            agg = return_dict
-        else:
-            # shape (a): each row contains all date-range metrics
-            agg = {}
-            for row in rows:
-                key = "|".join(row["dims"]) if row["dims"] else "_total"
-                metric_lists = list(row["metrics"] or [])
-                while len(metric_lists) < n_m * n_dr:
-                    metric_lists.append("0")
-                per_window = []
-                for i in range(n_dr):
-                    per_window.append(metric_lists[i * n_m:(i + 1) * n_m])
-                agg[key] = per_window
+                # GA4 with multiple date_ranges returns ONE ROW PER
+        # (dim_value, date_range_index). The dim value is suffixed
+        # with '|date_range_N'. Strip the suffix and use N to
+        # bucket the row's metrics into the correct window.
+        agg = {}
+        for row in rows:
+            dvs = list(row["dims"]) if row["dims"] else ["_total"]
+            dr_index = None
+            cleaned_dvs = []
+            for dv in dvs:
+                if "|date_range_" in dv:
+                    base, _, idx_str = dv.rpartition("|date_range_")
+                    try:
+                        dr_index = int(idx_str)
+                        cleaned_dvs.append(base)
+                    except ValueError:
+                        cleaned_dvs.append(dv)
+                else:
+                    cleaned_dvs.append(dv)
+            if dr_index is None:
+                dr_index = 0
+            key = "|".join(cleaned_dvs) if cleaned_dvs else "_total"
+            metric_lists = list(row["metrics"] or [])
+            while len(metric_lists) < n_m:
+                metric_lists.append("0")
+            agg.setdefault(key, [[] for _ in range(n_dr)])[dr_index] = metric_lists
         def totals(per_window):
             if not per_window:
                 return None
