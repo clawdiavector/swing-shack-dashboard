@@ -897,234 +897,435 @@ def _list_opportunities(brand_id: str) -> list:
 # ── Opportunity clustering (V1.3 §3) ─────────────────────────────
 
 def _cluster_opportunities(brand_id: str) -> dict:
-    """V1.3 §3: cluster canonical Calendar opportunities that
-    substantially share brand + audience + commercial
-    objective + time window + CTA.
+    """V1.4: strategy-aware clustering with event_role semantics.
 
-    Per V1.3 §3: "Do not merge events merely because their
-    dates are close." Clustering uses strong evidence of
-    shared intent — commercial objective, audience, offer
-    context, campaign proposition.
+    V1.4 §3-§7 fixes:
+      - Two events cluster if ≥3 shared signals AND at least
+        one is a non-generic_context event with standalone
+        candidacy
+      - Cluster parent selected by strategy-aware scoring
+        (event_role dominates; commercial relevance + audience
+        + source + date_confidence break ties)
+      - Generic_context events (school terms, public holidays)
+        can be cluster MEMBERS but never cluster PARENT
+      - Useful_context events appear as supporting_context
+        for their cluster's parent, not as standalone
+      - Standalone_candidate events with no cluster siblings
+        appear as standalone_opportunities (not clustered)
 
     Returns:
       {
         "clusters": [
           {"cluster_id": ..., "event_keys": [...],
-           "shared_signals": ["commercial_objective", ...],
-           "rationale": "...",
+           "shared_signals": [...],
+           "parent_event_key": ...,
            "members": [{event_key, role: parent|member, ...}],
-           "primary_event_key": "...",
-           "secondary_event_keys": ["...", ...]}
+           "parent_selection_rationale": "..."}
         ],
-        "standalone_opportunities": ["event_key", ...]
+        "standalone_opportunities": [event_key, ...],
+        "supporting_context": [event_key, ...]
       }
     """
     if brand_id not in ALLOWED_BRAND_IDS:
-        return {"clusters": [], "standalone_opportunities": []}
+        return {"clusters": [], "standalone_opportunities": [],
+                "supporting_context": []}
     opps = get_brief_opportunities(brand_id)
     if not opps:
-        return {"clusters": [], "standalone_opportunities": []}
-    # For each opp, derive cluster signals
+        return {"clusters": [], "standalone_opportunities": [],
+                "supporting_context": []}
+
+    # Index each opp with role + cluster signals + standalone flag
     indexed = {}
     for o in opps:
         ek = o.get("event_key") or ""
-        # Cluster signals per V1.3 §3
-        commercial_objective = _infer_commercial_objective(o, brand_id)
-        audience_signal = _infer_audience_signal(o)
-        offer_context = _infer_offer_context(o)
-        cta_signal = _infer_cta_signal(o)
-        time_window = _derive_time_window(o)
+        role = _infer_event_role(o, brand_id)
+        o["event_role"] = role
+        o["standalone_candidate"] = _standalone_candidate(o)
+        o["useful_context"] = _useful_context(o)
+        o["event_role_priority"] = _event_role_priority(o)
         indexed[ek] = {
             "opp": o,
-            "commercial_objective": commercial_objective,
-            "audience_signal": audience_signal,
-            "offer_context": offer_context,
-            "cta_signal": cta_signal,
-            "time_window": time_window,
+            "commercial_objective": _infer_commercial_objective(o, brand_id),
+            "audience_signal": _infer_audience_signal(o),
+            "offer_context": _infer_offer_context(o),
+            "cta_signal": _infer_cta_signal(o),
+            "time_window": _derive_time_window(o),
+            "event_role": role,
+            "role_priority": o["event_role_priority"],
+            "standalone_candidate": o["standalone_candidate"],
+            "useful_context": o["useful_context"],
         }
-    # Greedy clustering: pick seed by highest commercial_objective
-    # similarity. Two events cluster if they share at least 3 of:
-    # commercial_objective, audience_signal, offer_context,
-    # cta_signal, time_window (within 14 days).
+
+    # V1.4 §6: separation of strategic usefulness vs
+    # standalone candidacy.
+    #   - standalone_candidate events are eligible to become
+    #     cluster parent
+    #   - useful_context events are eligible to become cluster
+    #     member (supporting_context) but never cluster parent
+    #   - generic_context events are eligible as supporting
+    #     context but NEVER BRIEF-able on their own
+
+    # Greedy clustering: pick a standalone_candidate event as
+    # the cluster seed. The seed is the FIRST (earliest
+    # event_start) standalone_candidate we encounter, but we
+    # walk in role_priority DESC order so the strongest event
+    # seeds the cluster.
     clusters = []
     used = set()
-    # Pre-defined cluster seeds we expect:
-    #   bag-drop BF + CM = same commercial object ("Festive season
-    #     online retail window") + audience (SA traveller online
-    #     shopper) + offer context (luggage/travel deals) + CTA
-    #     (shop now) + adjacent days
-    for ek_a, idx_a in indexed.items():
+    standalone_keys = []
+    supporting_keys = []
+
+    # Walk in role_priority DESC (strongest first), event_start
+    # ASC (earliest first within the same priority)
+    sorted_keys = sorted(
+        indexed.keys(),
+        key=lambda ek: (
+            -indexed[ek]["role_priority"],
+            indexed[ek]["opp"].get("event_start") or "9999-99-99",
+        ))
+    for ek_a in sorted_keys:
         if ek_a in used:
             continue
-        cluster = {
-            "cluster_id": f"cl-{len(clusters)+1:03d}",
-            "event_keys": [ek_a],
-            "shared_signals": [],
-            "members": [
-                {"event_key": ek_a, "role": "parent",
-                 "event_start": idx_a["opp"].get("event_start"),
-                 "event_end": idx_a["opp"].get("event_end"),
-                 "name": idx_a["opp"].get("name"),
-                 "date_confidence": idx_a["opp"].get("date_confidence"),
-                 "commercial_objective": idx_a["commercial_objective"],
-                 "audience_signal": idx_a["audience_signal"]},
-            ],
-            "primary_event_key": ek_a,
-            "secondary_event_keys": [],
-        }
-        for ek_b, idx_b in indexed.items():
+        idx_a = indexed[ek_a]
+        # Skip generic_context events as cluster seeds
+        if idx_a["event_role"] == "generic_context":
+            # These are useful only as supporting context
+            if idx_a["useful_context"]:
+                supporting_keys.append(ek_a)
+            used.add(ek_a)
+            continue
+        # Build cluster around this seed
+        cluster_members = []
+        # Iterate over all events not yet used; if they share
+        # ≥3 signals, they join
+        for ek_b in sorted_keys:
             if ek_b == ek_a or ek_b in used:
                 continue
+            idx_b = indexed[ek_b]
             shared = _shared_signals(idx_a, idx_b)
             if len(shared) >= 3:
-                cluster["event_keys"].append(ek_b)
-                cluster["members"].append({
-                    "event_key": ek_b, "role": "member",
+                cluster_members.append((ek_b, idx_b, shared))
+        if cluster_members:
+            # Strategy-aware parent selection (V1.4 §5)
+            candidates = [{
+                "event_key": ek_a,
+                "role_priority": idx_a["role_priority"],
+                "commercial_relevance":
+                    (idx_a["opp"].get("calendar_commercial_relevance")
+                     or ""),
+                "audience_relevance":
+                    (idx_a["opp"].get("calendar_audience_relevance")
+                     or ""),
+                "source_origin": idx_a["opp"].get("source_origin") or "",
+                "date_confidence": idx_a["opp"].get("date_confidence")
+                                    or "",
+                "event_role": idx_a["event_role"],
+            }]
+            for ek_b, idx_b, _ in cluster_members:
+                candidates.append({
+                    "event_key": ek_b,
+                    "role_priority": idx_b["role_priority"],
+                    "commercial_relevance":
+                        (idx_b["opp"].get("calendar_commercial_relevance")
+                         or ""),
+                    "audience_relevance":
+                        (idx_b["opp"].get("calendar_audience_relevance")
+                         or ""),
+                    "source_origin": idx_b["opp"].get("source_origin")
+                                     or "",
+                    "date_confidence": idx_b["opp"].get("date_confidence")
+                                        or "",
+                    "event_role": idx_b["event_role"],
+                })
+            parent_key = _select_cluster_parent(candidates)
+            # V1.4 §4: re-validate — generic_context cannot be
+            # parent even if score ranks higher
+            parent_idx = indexed[parent_key]
+            if parent_idx["event_role"] == "generic_context":
+                # Fall back to the highest-priority non-generic
+                fallback_candidates = [
+                    c for c in candidates
+                    if c["event_role"] != "generic_context"]
+                if fallback_candidates:
+                    parent_key = _select_cluster_parent(fallback_candidates)
+                # else: leave generic_context as parent
+                # (no non-generic candidate)
+            # Build member list
+            member_records = [{
+                "event_key": parent_key,
+                "role": "parent",
+                "event_role": indexed[parent_key]["event_role"],
+                "event_start": indexed[parent_key]["opp"].get("event_start"),
+                "event_end": indexed[parent_key]["opp"].get("event_end"),
+                "name": indexed[parent_key]["opp"].get("name"),
+                "date_confidence":
+                    indexed[parent_key]["opp"].get("date_confidence"),
+                "standalone_candidate":
+                    indexed[parent_key]["standalone_candidate"],
+                "useful_context":
+                    indexed[parent_key]["useful_context"],
+            }]
+            shared_signals = []
+            for ek_b, idx_b, shared in cluster_members:
+                member_records.append({
+                    "event_key": ek_b,
+                    "role": "member",
+                    "event_role": idx_b["event_role"],
                     "event_start": idx_b["opp"].get("event_start"),
                     "event_end": idx_b["opp"].get("event_end"),
                     "name": idx_b["opp"].get("name"),
-                    "date_confidence": idx_b["opp"].get("date_confidence"),
-                    "commercial_objective": idx_b["commercial_objective"],
-                    "audience_signal": idx_b["audience_signal"]})
-                cluster["shared_signals"] = shared
-                used.add(ek_b)
-        if len(cluster["event_keys"]) > 1:
-            cluster["secondary_event_keys"] = cluster["event_keys"][1:]
+                    "date_confidence":
+                        idx_b["opp"].get("date_confidence"),
+                    "standalone_candidate":
+                        idx_b["standalone_candidate"],
+                    "useful_context": idx_b["useful_context"],
+                })
+                if not shared_signals:
+                    shared_signals = shared
+                # Mark generic_context members as supporting_context
+                if idx_b["event_role"] == "generic_context":
+                    supporting_keys.append(ek_b)
+            # Determine parent selection rationale
+            parent_idx2 = indexed[parent_key]
+            rationale_parts = [f"selected {parent_key} as parent"]
+            if parent_idx2["event_role"] != "generic_context":
+                rationale_parts.append(
+                    f"(event_role={parent_idx2['event_role']})")
+            else:
+                rationale_parts.append(
+                    "(no stronger event_role candidate; "
+                    "generic_context as fallback)")
+            if parent_idx2["opp"].get("calendar_commercial_relevance"):
+                rationale_parts.append(
+                    f"commercial={parent_idx2['opp']['calendar_commercial_relevance']}")
+            cluster = {
+                "cluster_id": f"cl-{len(clusters)+1:03d}",
+                "parent_event_key": parent_key,
+                "event_keys": [parent_key] + [ek for ek, _, _
+                                                in cluster_members],
+                "shared_signals": shared_signals,
+                "members": member_records,
+                "parent_selection_rationale": "; ".join(rationale_parts),
+                "supporting_context": [ek for ek, _, _
+                                          in cluster_members
+                                          if indexed[ek]["event_role"]
+                                          == "generic_context"],
+            }
             clusters.append(cluster)
-        used.add(ek_a)
-    standalone = [ek for ek in indexed if ek not in used]
+            used.add(parent_key)
+            for ek_b, _, _ in cluster_members:
+                used.add(ek_b)
+        else:
+            # No cluster siblings — standalone
+            if idx_a["standalone_candidate"]:
+                standalone_keys.append(ek_a)
+            elif idx_a["useful_context"]:
+                supporting_keys.append(ek_a)
+            used.add(ek_a)
+    # Collect remaining unused (they were skipped earlier as
+    # generic_context seeds; already in supporting_keys via
+    # the seed path)
+    for ek in indexed:
+        if ek not in used and ek not in supporting_keys:
+            if indexed[ek]["standalone_candidate"]:
+                standalone_keys.append(ek)
+            else:
+                supporting_keys.append(ek)
     return {
         "brand_id": brand_id,
         "clusters": clusters,
-        "standalone_opportunities": standalone,
+        "standalone_opportunities": standalone_keys,
+        "supporting_context": supporting_keys,
         "cluster_count": len(clusters),
-        "standalone_count": len(standalone),
+        "standalone_count": len(standalone_keys),
+        "supporting_count": len(supporting_keys),
     }
 
 
-def _infer_commercial_objective(o: dict, brand_id: str) -> str:
-    """Per-event commercial objective inferred from pillars +
-    source_origin + calendar relevance signals."""
-    pillars = o.get("pillars") or []
-    if isinstance(pillars, list):
-        pillar_strs = [str(p).lower() for p in pillars]
-    else:
-        pillar_strs = []
-    if brand_id == "bag-drop" and any("bags-retail" in p
-                                       or "bag-drop" in p
-                                       for p in pillar_strs):
-        return "festive_season_luggage_retail"
-    if brand_id == "stick":
-        if any("stick-retail" in p for p in pillar_strs):
-            return "psycho_bunny_retail"
-        if any("stick-fitting" in p for p in pillar_strs):
-            return "club_fitting_service"
-        if any("stick-coaching" in p for p in pillar_strs):
-            return "coaching_service"
-    if brand_id == "swing-shack":
-        if any("ss-retail" in p for p in pillar_strs):
-            return "ss_retail"
-        if any("ss-fitting" in p for p in pillar_strs):
-            return "ss_fitting"
-        if any("ss-coaching" in p for p in pillar_strs):
-            return "ss_coaching"
-    return "general"
 
 
-def _infer_audience_signal(o: dict) -> str:
+# ── V1.4 §4 Event Role + Standalone/Context semantics ─────────────
+
+# Event roles (V1.4 §4): a generic_context event must not
+# become cluster_parent over a primary_commercial_moment.
+EVENT_ROLE_RANK = {
+    "primary_commercial_moment": 5,  # Black Friday, Cyber Monday, PGA
+    "campaign_extension":         4,  # tie-in to a primary moment
+    "reactive_moment":            3,  # responsive to a moment
+    "supporting_context":         2,  # family/travel season,
+                                       # provides context not the
+                                       # campaign itself
+    "generic_context":            1,  # public holidays, school
+                                       # terms, cultural moments that
+                                       # are NEVER the campaign concept
+}
+
+
+def _infer_event_role(o: dict, brand_id: str) -> str:
+    """V1.4 §4: assign event_role per the new clustering model.
+
+    Primary commercial moments (Black Friday, Cyber Monday,
+    SA Masters, Nedbank GC, etc.) take precedence over
+    contextual events (school terms, public holidays, family
+    seasons). Generic context is never BRIEF-able on its own;
+    it can only support a primary campaign.
+    """
     name = (o.get("name") or "").lower()
-    cal_audience = (o.get("calendar_audience_relevance") or "").lower()
-    blob = name + " " + cal_audience
-    if any(k in blob for k in ("sa ", "south african", "local")):
-        return "sa_local"
-    if any(k in blob for k in ("traveller", "travel", "festive")):
-        return "sa_traveller"
-    if any(k in blob for k in ("golfer", "tour", "championship", "open ")):
-        return "serious_golfer"
-    if any(k in blob for k in ("family", "parents")):
-        return "sa_family"
-    if any(k in blob for k in ("holiday", "festive", "school")):
-        return "sa_family"
-    if any(k in blob for k in ("cultural", "heritage", "cup")):
-        return "sa_cultural"
-    return "general"
-
-
-def _infer_offer_context(o: dict) -> str:
-    name = (o.get("name") or "").lower()
-    if any(k in name for k in ("black friday", "cyber monday", "festive")):
-        return "promotional_pricing"
-    if any(k in name for k in ("school", "term ", "holiday")):
-        return "family_travel_window"
-    if any(k in name for k in ("masters", "pga", "dunhill", "nedbank",
-                                "open ", "ryder", "presidents cup",
-                                "solheim")):
-        return "elite_golf_event"
-    if any(k in name for k in ("halloween", "valentine", "mothers day",
-                                "heritage day", "christmas")):
-        return "cultural_moment"
-    return "general"
-
-
-def _infer_cta_signal(o: dict) -> str:
-    pillar_strs = []
+    source_origin = (o.get("source_origin") or "").lower()
+    commercial_relevance = (o.get("calendar_commercial_relevance")
+                             or "").lower()
+    audience_relevance = (o.get("calendar_audience_relevance")
+                           or "").lower()
     pillars = o.get("pillars") or []
-    if isinstance(pillars, list):
-        pillar_strs = [str(p).lower() for p in pillars]
-    if any("retail" in p or "bags-retail" in p or "ss-retail"
-           for p in pillar_strs):
-        return "shop_visit_store"
-    if any("fitting" in p or "ss-fitting" in p for p in pillar_strs):
-        return "book_fitting"
-    if any("coaching" in p or "ss-coaching" in p for p in pillar_strs):
-        return "book_coaching"
-    return "general"
+    pillar_strs = ([str(p).lower() for p in pillars]
+                    if isinstance(pillars, list) else [])
+
+    # Strong primary commercial moments — Black Friday,
+    # Cyber Monday, SA Masters, Nedbank GC, BMW PGA, Dunhill,
+    # Presidents Cup, Solheim Cup, Ryder Cup, Open Week, Open
+    # Championship, pga-golf-lifestyle-show — all named,
+    # externally verifiable commercial events.
+    primary_keywords = (
+        "black friday", "cyber monday",
+        "bmw pga", "pga golf lifestyle show",
+        "nedbank golf challenge",
+        "alfred dunhill", "sa masters week",
+        "sa open", "open championship",
+        "presidents cup", "solheim cup", "ryder cup",
+        "rwanda open", "dp world",
+    )
+    if any(k in name for k in primary_keywords):
+        return "primary_commercial_moment"
+
+    # Festive travel season — strong campaign extension window
+    if ("festive" in name and "travel" in name):
+        return "campaign_extension"
+
+    # Campaign extension — events that extend a primary moment
+    if any(k in name for k in ("pre-black friday teaser",
+                                 "post-bf", "festive")):
+        return "campaign_extension"
+
+    # Reactive moments — short-window opportunities
+    if any(k in name for k in ("valentine", "mothers day",
+                                 "fathers day")):
+        return "reactive_moment"
+
+    # Supporting context — family/travel season windows
+    # (NOT the campaign itself, but useful context)
+    if any(k in name for k in ("school term ", "school holiday",
+                                 "holiday season", "family travel",
+                                 "family day", "family prep")):
+        return "supporting_context"
+
+    # Generic context — public holidays + school terms + heritage
+    # days + Christmas + Easter etc. — never a campaign concept
+    # on their own. Includes SA public holidays.
+    if any(k in name for k in ("human rights day", "good friday",
+                                 "family day", "freedom day",
+                                 "workers day", "youth day",
+                                 "national women", "heritage day",
+                                 "day of reconciliation",
+                                 "day of goodwill", "christmas",
+                                 "new year", "halloween",
+                                 "valentine", "easter")):
+        return "generic_context"
+
+    # Calendar public holidays with deterministic_calendar origin
+    # are generic_context by definition
+    if source_origin == "deterministic_calendar":
+        return "generic_context"
+
+    # Cultural moments from external sources
+    if any(k in name for k in ("heritage day", "sa cup",
+                                 "cultural")):
+        return "generic_context"
+
+    # Strong commercial + audience signal + named event →
+    # default to primary_commercial_moment (e.g. unknown but
+    # commercially relevant event)
+    if (("very high" in commercial_relevance
+         or "high" in commercial_relevance)
+            and ("very high" in audience_relevance
+                 or "high" in audience_relevance)):
+        return "primary_commercial_moment"
+
+    return "supporting_context"
 
 
-def _derive_time_window(o: dict) -> str:
-    """Bucket the opportunity by week-of-year for clustering."""
-    s = o.get("event_start") or ""
-    if not s:
-        return "no_date"
-    try:
-        ds = datetime.fromisoformat(s[:10])
-        return f"{ds.year}-W{ds.strftime('%V')}"
-    except Exception:
-        return "no_date"
+def _event_role_priority(o: dict) -> int:
+    """Numeric priority — higher = stronger candidate for
+    cluster parent or standalone BRIEF."""
+    role = o.get("event_role") or "supporting_context"
+    return EVENT_ROLE_RANK.get(role, 0)
 
 
-def _shared_signals(a: dict, b: dict) -> list:
-    """Return the list of cluster signals shared between two
-    indexed events. Two events cluster if >=3 shared signals."""
-    shared = []
-    if a["commercial_objective"] == b["commercial_objective"] \
-            and a["commercial_objective"] != "general":
-        shared.append("commercial_objective")
-    if a["audience_signal"] == b["audience_signal"] \
-            and a["audience_signal"] != "general":
-        shared.append("audience_signal")
-    if a["offer_context"] == b["offer_context"] \
-            and a["offer_context"] != "general":
-        shared.append("offer_context")
-    if a["cta_signal"] == b["cta_signal"] \
-            and a["cta_signal"] != "general":
-        shared.append("cta_signal")
-    # Time window: same week OR within 14 days
-    if (a["time_window"] != "no_date"
-            and a["time_window"] == b["time_window"]):
-        shared.append("time_window_same_week")
-    else:
-        try:
-            sa = a["opp"].get("event_start") or ""
-            sb = b["opp"].get("event_start") or ""
-            if sa and sb:
-                da = datetime.fromisoformat(sa[:10])
-                db = datetime.fromisoformat(sb[:10])
-                if abs((da - db).days) <= 14:
-                    shared.append("time_window_within_14d")
-        except Exception:
-            pass
-    return shared
+def _standalone_candidate(o: dict) -> bool:
+    """V1.4 §6: standalone_candidate=True means this event
+    can stand on its own as a Brief.
+
+    Independent of the gate decision — a primary_commercial_moment
+    can be standalone_candidate=true while gate=WATCH.
+    """
+    role = o.get("event_role") or "supporting_context"
+    if role in ("primary_commercial_moment", "campaign_extension",
+                 "reactive_moment"):
+        return True
+    return False
+
+
+def _useful_context(o: dict) -> bool:
+    """V1.4 §6: useful_context=True means this event is worth
+    referencing as context, but shouldn't drive its own Brief.
+
+    Generic context events ARE useful as context for
+    primary_commercial_moments. SA public holidays provide
+    audience signal; school terms provide family-prep signal.
+    """
+    role = o.get("event_role") or "supporting_context"
+    if role in ("supporting_context", "generic_context"):
+        return True
+    return False
+
+
+def _select_cluster_parent(candidates: list) -> str:
+    """V1.4 §5: strategy-aware parent selection.
+
+    Parent must be the event with the strongest event_role
+    AND strategic relevance AND earliest timing importance.
+    A generic_context event cannot become parent over a
+    primary_commercial_moment even if it has more shared signals.
+    """
+    if not candidates:
+        return ""
+    if len(candidates) == 1:
+        return candidates[0]["event_key"]
+
+    def parent_score(c):
+        role_pri = c.get("role_priority") or 0
+        commercial_relevance = c.get("commercial_relevance") or ""
+        commercial_pri = (2 if "very high" in commercial_relevance
+                           else 1 if "high" in commercial_relevance
+                           else 0)
+        audience_relevance = c.get("audience_relevance") or ""
+        audience_pri = (2 if "very high" in audience_relevance
+                          else 1 if "high" in audience_relevance
+                          else 0)
+        source_pri = (2 if c.get("source_origin") == "external"
+                       else 1 if c.get("source_origin") in
+                            ("scout", "internal_strategy")
+                       else 0)
+        date_pri = (2 if c.get("date_confidence") == "HIGH"
+                     else 1 if c.get("date_confidence") == "MEDIUM"
+                     else 0)
+        # Higher score = better parent. Role dominates.
+        return (role_pri * 1000
+                + commercial_pri * 100
+                + audience_pri * 50
+                + source_pri * 10
+                + date_pri)
+
+    return max(candidates, key=parent_score)["event_key"]
 
 
 # ── Opportunity Gate (brief §7 + V1.3 §4 recalibration) ──────────
@@ -1272,7 +1473,8 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
                        "V1.3 §4 requires HIGH or MEDIUM for BRIEF"),
         })
     if source_origin not in ("external", "scout", "internal_strategy",
-                              "internal_strategy_deprecated"):
+                              "internal_strategy_deprecated",
+                              "deterministic_calendar"):
         hard_gate_failures.append({
             "gate": "sufficient_evidence",
             "reason": (f"source_origin={source_origin!r}; V1.3 §4 "
@@ -1398,21 +1600,57 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
     medium_count = sum(1 for f in factors if f["score"] == "medium")
     low_count = sum(1 for f in factors if f["score"] == "low")
 
-    # V1.3 §3: cluster members default to WATCH
+    # V1.4 §6: separate cluster role from gate outcome.
+    #   - parent event_key of cluster: eligible for BRIEF
+    #   - member event_key: cluster_member → WATCH (not BRIEF)
+    #   - generic_context / supporting_context member: still
+    #     appears in cluster as useful_context, but its own
+    #     gate outcome respects standalone_candidate (false).
+    # V1.4 §7: cluster parent is strategy-aware. A generic_context
+    # event must not become parent over a primary_commercial_moment.
+    event_role = opportunity.get("event_role") or _infer_event_role(opportunity, brand_id)
+    standalone_candidate = opportunity.get("standalone_candidate")
+    if standalone_candidate is None:
+        standalone_candidate = _standalone_candidate({**opportunity, "event_role": event_role})
+    useful_context = opportunity.get("useful_context")
+    if useful_context is None:
+        useful_context = _useful_context({**opportunity, "event_role": event_role})
+
     if is_cluster_member_only:
-        gate = GATE_WATCH
-        confidence = "MEDIUM"
+        cluster_member_gate = GATE_WATCH
         factors.append({
             "factor": "cluster_membership",
             "score": "low",
-            "evidence": (f"Clustered under {cluster.get('primary_event_key')}; "
+            "evidence": (f"Clustered under {cluster.get('parent_event_key')}; "
                          f"Brief is generated for the cluster parent."),
         })
-        cluster_note = (f"Cluster member under {cluster.get('primary_event_key')}; "
+        cluster_note = (f"Cluster member under {cluster.get('parent_event_key')}; "
                         "watchlist until parent brief created.")
     else:
         cluster_note = None
-        # V1.3 §4 stricter thresholds: require >=4 high AND <=1 low
+
+    # Apply gate thresholds (V1.3 §4) only when standalone_candidate
+    # OR when standalone is unknown (legacy data). For non-standalone
+    # events with no parent context (useful_context only), force
+    # IGNORE (they cannot be BRIEF on their own).
+    if not standalone_candidate and not is_cluster_member_only:
+        # Standalone_candidate=false AND not cluster_member means
+        # this is a pure supporting_context event. It can NEVER be
+        # BRIEF on its own (V1.4 §6).
+        gate = GATE_IGNORE
+        confidence = "LOW"
+        factors.append({
+            "factor": "standalone_candidate",
+            "score": "low",
+            "evidence": (f"event_role={event_role} — not standalone_candidate. "
+                         f"Use as supporting context only, not as a standalone "
+                         f"campaign candidate."),
+        })
+    elif is_cluster_member_only:
+        gate = cluster_member_gate
+        confidence = "MEDIUM"
+    else:
+        # V1.3 §4 thresholds
         if high_count >= 5 and low_count == 0:
             gate = GATE_BRIEF
             confidence = "HIGH"
@@ -1438,6 +1676,9 @@ def _opportunity_gate(brand_id: str, opportunity: dict,
             "medium_count": medium_count,
             "low_count": low_count,
         },
+        "event_role": event_role,
+        "standalone_candidate": standalone_candidate,
+        "useful_context": useful_context,
     }
     if cluster_note:
         out["cluster_note"] = cluster_note

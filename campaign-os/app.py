@@ -22417,10 +22417,11 @@ def brief_v1_clusters(brand_id):
 def brief_v1_gate_regression(brand_id):
     """GET /api/brief/v1/<brand_id>/gate-regression
 
-    V1.3 §4: runs the recalibrated gate on every canonical
+    V1.4: runs the recalibrated gate on every canonical
     Calendar opportunity for the brand. Returns per-opp
-    gate + factor breakdown + cluster status. Designed
-    to validate discrimination (BRIEF / WATCH / IGNORE
+    gate + factor breakdown + cluster status + event_role
+    + standalone_candidate + useful_context. Designed to
+    validate discrimination (BRIEF / WATCH / IGNORE
     distribution) — not a predetermined disposition."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -22441,10 +22442,13 @@ def brief_v1_gate_regression(brand_id):
         gate = cb._opportunity_gate(brand_id, opp, ri, pmx, pcov)
         ek = opp.get("event_key") or ""
         cluster = cluster_map.get(ek)
+        # V1.4: use parent_event_key (was primary_event_key)
         cluster_role = (
             "parent" if cluster
-                       and ek == cluster.get("primary_event_key")
-            else "member" if cluster else "standalone")
+                       and ek == cluster.get("parent_event_key")
+            else "member" if cluster
+                          and ek != cluster.get("parent_event_key")
+            else "standalone")
         results.append({
             "event_key": ek,
             "name": opp.get("name"),
@@ -22461,6 +22465,10 @@ def brief_v1_gate_regression(brand_id):
             "low_count": gate.get("aggregate", {}).get("low_count"),
             "cluster_role": cluster_role,
             "cluster_id": cluster.get("cluster_id") if cluster else None,
+            "cluster_parent": cluster.get("parent_event_key") if cluster else None,
+            "event_role": gate.get("event_role"),
+            "standalone_candidate": gate.get("standalone_candidate"),
+            "useful_context": gate.get("useful_context"),
             "hard_gate_failures": gate.get("hard_gate_failures", []),
             "cluster_note": gate.get("cluster_note"),
         })
@@ -22472,6 +22480,8 @@ def brief_v1_gate_regression(brand_id):
         "gate_counts": gate_counts,
         "results": results,
         "clusters": clusters,
+        "standalone_opportunities": clusters.get("standalone_opportunities", []),
+        "supporting_context": clusters.get("supporting_context", []),
     }), 200
 
 
@@ -22567,6 +22577,121 @@ def brief_v1_render(brand_id, brief_id):
         return jsonify({"ok": False, "error": "brief not found"}), 404
     html = _render_brief_html(b)
     return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/review', methods=['GET'])
+def brief_v1_review(brand_id, brief_id):
+    """GET /api/brief/v1/<brand_id>/<brief_id>/review
+
+    V1.4 §1: real human approval UI. Renders a review page
+    that surfaces the operator approval flow.
+
+    When status == ready_for_review:
+      - APPROVE button (prompts for human-held secret in browser)
+      - REQUEST CHANGES button (prompts for operator note)
+      - REJECT button (prompts for operator note)
+    Otherwise:
+      - Read-only view of status + transitions
+
+    The page NEVER prefills the secret. The secret is sent
+    only in the browser's POST body when the operator
+    clicks APPROVE, then discarded immediately by the
+    browser.
+
+    Page does NOT include any creative content.
+    Page does NOT log the secret server-side.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    b = cb.get_brief(brand_id, brief_id)
+    if not b:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    html = _render_brief_review_html(b)
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route('/api/brief/v1/<brand_id>/<brief_id>/request-changes', methods=['POST'])
+def brief_v1_request_changes(brand_id, brief_id):
+    """POST /api/brief/v1/<brand_id>/<brief_id>/request-changes
+
+    V1.4 §3: REQUEST CHANGES flow. Does NOT require the
+    approval secret — operator only needs to provide a
+    note. Transitions ready_for_review → changes_requested.
+
+    Body: {note: "..."}
+
+    Preserves actor/session identity, timestamp, note, and
+    previous_status. The system may then revise the draft,
+    but may never self-approve it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in BRIEF_V1_BRAND_ALLOWED:
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be one of {BRIEF_V1_BRAND_ALLOWED}"}), 400
+    cb = _cb_import()
+    body = request.get_json(silent=True) or {}
+    note = (body.get("note") or "").strip()
+    if not note:
+        return jsonify({"ok": False,
+                        "error": "note is required for request-changes"}), 400
+    # Determine actor from session (session-authenticated, not
+    # operator-token-authenticated). V1.4 §3: REQUEST CHANGES
+    # does not require the approval secret.
+    actor = "operator"
+    current = cb.get_brief(brand_id, brief_id)
+    if not current:
+        return jsonify({"ok": False, "error": "brief not found"}), 404
+    if current.get("status") != cb.STATUS_READY_FOR_REVIEW:
+        return jsonify({"ok": False,
+                        "error": (f"request-changes requires status="
+                                  f"ready_for_review, got "
+                                  f"{current.get('status')}")}), 400
+    # Use a small inline transition that records note + actor
+    b = current
+    previous_status = b.get("status")
+    transitions = b.get("status_transitions") or []
+    transitions.append({
+        "from": previous_status,
+        "to": cb.STATUS_CHANGES_REQUESTED,
+        "actor": actor,
+        "approval_method": "session_request_changes",
+        "authenticated_operator": None,
+        "originating_ui_action": "brief_request_changes",
+        "note": note,
+        "at": _now_iso(),
+    })
+    b["status_transitions"] = transitions
+    b["status"] = cb.STATUS_CHANGES_REQUESTED
+    b["updated_at"] = b.get("updated_at") or _now_iso()
+    b["revision"] = int(b.get("revision", 1)) + 1
+    # Per V1.2 §2: moving away from approved clears creative_allowed;
+    # from ready_for_review, creative_allowed is already False.
+    # No change to creative_allowed here.
+    if hasattr(cb, "_write_brief"):
+        cb._write_brief(b)
+    if hasattr(cb, "_append_revision"):
+        cb._append_revision(b, {
+            "revision": b["revision"],
+            "saved_at": b["updated_at"],
+            "snapshot": b,
+            "note": (f"REQUEST CHANGES by {actor}: {note[:160]}"),
+            "drafted_by": "operator",
+        })
+    return jsonify({"ok": True,
+                    "brief_id": brief_id,
+                    "brand_id": brand_id,
+                    "status": cb.STATUS_CHANGES_REQUESTED,
+                    "previous_status": previous_status,
+                    "actor": actor,
+                    "note": note,
+                    "creative_allowed": b.get("creative_allowed"),
+                    "approval_method": "session_request_changes",
+                    "authenticated_operator": None}), 200
 
 
 def _render_brief_html(b: dict) -> str:
@@ -22922,6 +23047,287 @@ def weekly_report_page():
 
 
 # ─── STARTUP ────────────────────────────────────────────────────────────
+
+
+def _render_brief_review_html(b: dict) -> str:
+    """V1.4 §1: operator review page.
+
+    Renders the brief content + status + (when status ==
+    ready_for_review) the human approval controls. The
+    page does NOT include any creative content. It does
+    NOT prefill the approval secret. The secret is
+    captured only when the operator clicks APPROVE and
+    is cleared from the input by the browser after the
+    POST is sent.
+    """
+    def esc(s):
+        return (str(s or "")
+                .replace("&", "&amp;").replace("<", "&lt;")
+                .replace(">", "&gt;").replace('"', "&quot;"))
+
+    src_opp = b.get("source_opportunity", {}) or {}
+    bid = esc(b.get("brief_id"))
+    brand = esc(b.get("brand_id"))
+    status = esc(b.get("status"))
+    rev = b.get("revision", 1)
+    creative_allowed = bool(b.get("creative_allowed"))
+    created = esc(str(b.get("created_at", ""))[:19])
+    updated = esc(str(b.get("updated_at", ""))[:19])
+
+    # Brief summary sections (compact for review)
+    sections_html = []
+    for sec_key in ["opportunity", "timing", "business_objective",
+                    "audience", "problem_insight",
+                    "strategic_proposition", "cta_strategy"]:
+        sec = b.get(sec_key)
+        if not sec:
+            continue
+        title = sec_key.replace("_", " ").title()
+        body = ""
+        if isinstance(sec, dict):
+            for k, v in sec.items():
+                if k in ("title", "evidence_source", "evidence_basis"):
+                    continue
+                if isinstance(v, (str, int, float)):
+                    body += f"<div><strong>{esc(k)}</strong>: {esc(v)}</div>"
+                elif isinstance(v, list):
+                    body += f"<div><strong>{esc(k)}</strong>:</div><ul>"
+                    for item in v[:8]:
+                        if isinstance(item, dict):
+                            body += "<li>" + "; ".join(
+                                f"{esc(kk)}={esc(str(vv))}"
+                                for kk, vv in item.items()
+                                if isinstance(vv, (str, int, float))
+                            ) + "</li>"
+                        else:
+                            body += f"<li>{esc(item)}</li>"
+                    body += "</ul>"
+        sections_html.append(
+            f"<details open><summary><strong>{esc(title)}</strong></summary>"
+            f"<div class='sec-body'>{body}</div></details>")
+
+    sections_block = "".join(sections_html) if sections_html else (
+        "<em>No sections populated.</em>")
+
+    # Status transitions
+    transitions = b.get("status_transitions") or []
+    transitions_html = ""
+    if transitions:
+        rows = "".join(
+            f"<tr><td>{esc(t.get('from', ''))}</td>"
+            f"<td>{esc(t.get('to', ''))}</td>"
+            f"<td>{esc(t.get('actor', ''))}</td>"
+            f"<td>{esc(t.get('approval_method', ''))}</td>"
+            f"<td>{esc(str(t.get('at',''))[:19])}</td>"
+            f"<td>{esc(t.get('note', '')[:80])}</td></tr>"
+            for t in transitions)
+        transitions_html = (
+            "<h3>Status Transitions</h3>"
+            "<table class='tbl'>"
+            "<tr><th>From</th><th>To</th><th>Actor</th>"
+            "<th>Method</th><th>At</th><th>Note</th></tr>"
+            + rows + "</table>")
+
+    # Approval controls (only when ready_for_review)
+    approval_controls = ""
+    if status == "ready_for_review":
+        approval_controls = f"""
+<div class="approval-panel">
+  <h2>Operator Approval</h2>
+  <div class="meta">approval_available = <strong>true</strong> ·
+    current_status = <strong>{status}</strong> ·
+    creative_allowed = <strong>{str(creative_allowed).lower()}</strong></div>
+
+  <div class="approval-block">
+    <h3>Approve</h3>
+    <p class="meta">Approving requires the human-held approval secret.
+      The secret is held only by you (Christelle). It is not pre-filled,
+      not persisted client-side, and not returned by the API.</p>
+    <form id="approveForm" onsubmit="return submitApprove(event)">
+      <label>Approval secret:</label>
+      <input type="password" id="secret" name="secret"
+             autocomplete="off" required minlength="6"
+             placeholder="Enter your approval secret" />
+      <button type="submit">Approve</button>
+    </form>
+    <pre id="approveResult" class="result"></pre>
+  </div>
+
+  <div class="approval-block">
+    <h3>Request Changes</h3>
+    <p class="meta">Does NOT require the approval secret. Provide a
+      note explaining what to revise.</p>
+    <form id="rcForm" onsubmit="return submitRequestChanges(event)">
+      <label>Note:</label>
+      <textarea id="rcNote" required minlength="3"
+                placeholder="What should be revised?"></textarea>
+      <button type="submit">Request Changes</button>
+    </form>
+    <pre id="rcResult" class="result"></pre>
+  </div>
+
+  <div class="approval-block">
+    <h3>Reject</h3>
+    <p class="meta">Rejecting requires the approval secret + a
+      rejection reason.</p>
+    <form id="rejectForm" onsubmit="return submitReject(event)">
+      <label>Reason:</label>
+      <textarea id="rejectReason" required minlength="3"
+                placeholder="Why reject?"></textarea>
+      <label>Approval secret:</label>
+      <input type="password" id="rejectSecret"
+             autocomplete="off" required minlength="6"
+             placeholder="Enter your approval secret" />
+      <button type="submit">Reject</button>
+    </form>
+    <pre id="rejectResult" class="result"></pre>
+  </div>
+</div>
+"""
+    else:
+        approval_controls = f"""
+<div class="approval-panel">
+  <h2>Operator Approval</h2>
+  <div class="meta">approval_available = <strong>{
+            "true" if status == "ready_for_review" else "false"}</strong> ·
+    current_status = <strong>{status}</strong> ·
+    creative_allowed = <strong>{str(creative_allowed).lower()}</strong></div>
+  <p class="meta">Approval controls only appear when status is
+    <code>ready_for_review</code>.</p>
+</div>
+"""
+
+    js = f"""
+<script>
+async function postJSON(url, body, secret) {{
+  const headers = {{ 'Content-Type': 'application/json' }};
+  if (secret) {{
+    headers['X-Operator-Id'] = 'christelle';
+    headers['X-Operator-Token'] = secret;
+  }}
+  const resp = await fetch(url, {{
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(body),
+    credentials: 'same-origin'
+  }});
+  const text = await resp.text();
+  return {{ status: resp.status, body: text }};
+}}
+
+async function submitApprove(e) {{
+  e.preventDefault();
+  const secret = document.getElementById('secret').value;
+  if (!secret) return false;
+  const url = `/api/brief/v1/${{'{brand}'}}/${{'{bid}'}}/transition`;
+  const r = await postJSON(url, {{ to_status: 'approved' }}, secret);
+  document.getElementById('approveResult').textContent =
+    `HTTP ${{r.status}}: ${{r.body}}`;
+  // Clear the secret immediately after submission so it does not
+  // remain in DOM memory.
+  document.getElementById('secret').value = '';
+  if (r.status === 200) {{
+    setTimeout(() => location.reload(), 1500);
+  }}
+  return false;
+}}
+
+async function submitRequestChanges(e) {{
+  e.preventDefault();
+  const note = document.getElementById('rcNote').value;
+  if (!note) return false;
+  const url = `/api/brief/v1/${{'{brand}'}}/${{'{bid}'}}/request-changes`;
+  const r = await postJSON(url, {{ note: note }}, null);
+  document.getElementById('rcResult').textContent =
+    `HTTP ${{r.status}}: ${{r.body}}`;
+  document.getElementById('rcNote').value = '';
+  if (r.status === 200) {{
+    setTimeout(() => location.reload(), 1500);
+  }}
+  return false;
+}}
+
+async function submitReject(e) {{
+  e.preventDefault();
+  const reason = document.getElementById('rejectReason').value;
+  const secret = document.getElementById('rejectSecret').value;
+  if (!reason || !secret) return false;
+  const url = `/api/brief/v1/${{'{brand}'}}/${{'{bid}'}}/transition`;
+  const r = await postJSON(url, {{ to_status: 'rejected' }}, secret);
+  document.getElementById('rejectResult').textContent =
+    `HTTP ${{r.status}}: ${{r.body}}`;
+  document.getElementById('rejectReason').value = '';
+  document.getElementById('rejectSecret').value = '';
+  return false;
+}}
+</script>
+"""
+
+    html = f"""<!DOCTYPE html>
+<html><head>
+<meta charset='utf-8'>
+<title>Review Brief — {esc(src_opp.get('name',''))}</title>
+<style>
+  body {{ font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;
+         max-width:1000px; margin:1.5em auto; padding:0 1em; color:#1a1a1a; }}
+  h1 {{ margin:0 0 .2em; font-size:1.7em; }}
+  h2 {{ margin:1.4em 0 .4em; font-size:1.25em;
+        border-bottom:1px solid #eee; padding-bottom:.3em; }}
+  h3 {{ margin:1em 0 .3em; font-size:1.05em; }}
+  .meta {{ color:#666; font-size:.9em; }}
+  .pill {{ display:inline-block; padding:.15em .6em; border-radius:999px;
+           font-size:.78em; background:#eee; margin-right:.3em; }}
+  .status-draft {{ background:#fff3c4; }}
+  .status-ready {{ background:#cfe4ff; }}
+  .status-approved {{ background:#d4f8d4; }}
+  .status-rejected {{ background:#fcd7d7; }}
+  .status-changes {{ background:#ffeac4; }}
+  .sec-body {{ padding:.4em .8em; border-left:3px solid #ddd;
+               background:#fafafa; margin:.3em 0; }}
+  details {{ margin:.4em 0; }}
+  summary {{ cursor:pointer; }}
+  .tbl {{ width:100%; border-collapse:collapse; font-size:.85em; }}
+  .tbl th, .tbl td {{ padding:.3em .5em; border-bottom:1px solid #eee;
+                      text-align:left; }}
+  .approval-panel {{ margin-top:2em; padding:1em;
+                     border:2px solid #2a4a3a; background:#f8fbf8; }}
+  .approval-block {{ margin:1em 0; padding:1em;
+                     border:1px solid #ccc; background:#fff; }}
+  .approval-block label {{ display:block; font-weight:600;
+                           margin-top:.5em; }}
+  .approval-block input,
+  .approval-block textarea {{ width:100%; padding:.5em;
+                              font-size:1em; box-sizing:border-box;
+                              margin:.3em 0; font-family:inherit; }}
+  .approval-block textarea {{ min-height:5em; }}
+  .approval-block button {{ padding:.6em 1.2em; background:#2a4a3a;
+                            color:#fff; border:none; border-radius:4px;
+                            cursor:pointer; font-weight:600; }}
+  .approval-block button:hover {{ background:#3a6a4a; }}
+  .result {{ background:#f0f0f0; padding:.5em; font-size:.85em;
+             margin-top:.5em; white-space:pre-wrap; }}
+  code {{ background:#f0f0f0; padding:.1em .3em; border-radius:3px; }}
+</style></head><body>
+<h1>Review Brief — {esc(src_opp.get('name',''))}</h1>
+<div class='meta'>
+  Brand: <code>{brand}</code> ·
+  Status: <span class='pill status-{status.split("_")[0] if "_" in status else status}'>{status}</span> ·
+  Brief ID: <code>{bid}</code> ·
+  Revision: {rev} ·
+  Created: {created} ·
+  Updated: {updated} ·
+  creative_allowed: <strong>{str(creative_allowed).lower()}</strong>
+</div>
+<h2>Brief Sections</h2>
+{sections_block}
+{transitions_html}
+{approval_controls}
+{js}
+</body></html>
+"""
+    return html
+
+
 
 
 def _boot_load_persisted_secrets():
