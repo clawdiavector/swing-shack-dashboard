@@ -43580,6 +43580,8 @@ def ga4_v22_channel_mix(brand_id):
     total_prev = 0
     for channel_key in sorted(set(list(data["current"].keys()) +
                                   list(data["previous"].keys()))):
+        if channel_key.startswith("date_range_"):
+            continue
         cur = data["current"].get(channel_key) or {}
         prev = data["previous"].get(channel_key) or {}
         cur_s = _v22_safe_int(cur.get("sessions"))
@@ -43643,7 +43645,7 @@ def ga4_v22_pages(brand_id):
     rows = []
     for path in sorted(set(list(data["current"].keys()) +
                            list(data["previous"].keys()))):
-        if path == "_total":
+        if path == "_total" or path.startswith("date_range_"):
             continue
         cur = data["current"].get(path) or {}
         prev = data["previous"].get(path) or {}
@@ -43669,11 +43671,11 @@ def ga4_v22_pages(brand_id):
                                               else "flat"))),
         })
     rows.sort(key=lambda r: -r["current_sessions"])
-    # 90-day baseline at aggregate level
+    # 90-day baseline at aggregate level (exclude date_range keys)
     agg_n = data["ninety_day"]
     n_total_sessions = sum(_v22_safe_int(v.get("sessions"))
-                            for v in agg_n.values()
-                            if isinstance(v, dict))
+                            for k, v in agg_n.items()
+                            if isinstance(v, dict) and not k.startswith("date_range_"))
     return jsonify({
         "ok": True,
         "brand_id": bid,
@@ -43684,6 +43686,67 @@ def ga4_v22_pages(brand_id):
         "ninety_day_sessions_mean_per_day": round(n_total_sessions / 90, 2),
         "checked_at": data["checked_at"],
     }), 200
+
+
+
+# ─── REPORTING V2.2: UNIFIED MANAGEMENT REPORT ───────────────────────
+# Reuses the v22 GA4 endpoints (one report-period contract)
+# + canonical Calendar pillar mix + honest event-audit
+# identity + severity-rated what-needs-attention.
+# KEEP: report routes, brand isolation, HTML/JSON output,
+# source lineage, historical upload concept, analyst
+# commentary architecture, synthetic-data quarantine.
+
+
+@app.route('/api/reports/v2_2/<brand_id>', methods=['GET'])
+def report_v22_brand(brand_id):
+    """GET /api/reports/v2_2/<brand_id>?format=html|json&days=31
+
+    V2.2 management report — same numbers everywhere
+    (KPI PERIOD CONSISTENCY). Real previous + 90-day
+    baseline. Real movement in executive summary.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_v22_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_v22_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v22_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/v2_2/portfolio', methods=['GET'])
+def report_v22_portfolio():
+    """GET /api/reports/v2_2/portfolio?format=html|json"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_v22_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        html = _ri.render_v22_portfolio_html(reports)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v22_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     import sys as _sys

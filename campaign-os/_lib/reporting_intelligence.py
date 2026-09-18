@@ -2832,6 +2832,1154 @@ def render_v21_portfolio_html(reports: dict) -> str:
 
 
 
+
+
+# ─── V2.2: REPORT-PERIOD CONTRACT + REAL COMPARISONS ──────────────────
+
+
+def build_v22_brand_report(brand_id: str, period_days: int = 31,
+                            cookie: Optional[str] = None) -> dict:
+    """V2.2 management report: ONE report-period object feeds
+    all subqueries. Real previous + 90-day baseline. Honest
+    consistency: same Sessions / Users / Engagement numbers
+    in scorecard, channel mix, executive summary.
+
+    Per V2.2 §4: report.sessions == scorecard.sessions ==
+    comparison.current.sessions. All computed once.
+    """
+    cfg = BRAND_CONFIG.get(brand_id)
+    if not cfg:
+        return {"error": f"unknown brand_id: {brand_id}"}
+
+    # V2.2 §1: one canonical report-period object
+    rp = _v22_report_period(period_days)
+
+    # V2.2 §7: pull sessions + users + engagement + pageviews +
+    # conversions from ONE GA4 call. Same metric defs across
+    # current + previous + 90-day windows.
+    base = os.environ.get("CAMPAIGN_OS_BASE_URL",
+                          "http://localhost:8080").rstrip("/")
+    sess_data = _v22_runtime_fetch_sessions(base, brand_id, period_days, cookie)
+    cm_data = _v22_runtime_fetch_channel_mix(base, brand_id, period_days, cookie)
+    pages_data = _v22_runtime_fetch_pages(base, brand_id, period_days, cookie)
+    events_data = _v22_runtime_fetch_events(base, brand_id, period_days, cookie)
+
+    # ── Pillar mix via canonical Calendar (V2.2 §5) ──
+    planning = _brand_planning(brand_id)
+    pmx = _pillar_mix(brand_id, planning)
+    # V2.2 §5: explicit reporting horizon for pillar mix
+    horizon = _v22_pillar_horizon(brand_id, pmx)
+
+    # ── Aggregated scorecard with REAL comparison + 90d baseline ──
+    scorecard = _v22_scorecard(brand_id, sess_data, cm_data, pages_data,
+                                events_data)
+
+    # ── Channel mix section ──
+    channel_section = _v22_channel_section(cm_data)
+
+    # ── Landing pages section ──
+    pages_section = _v22_pages_section(brand_id, pages_data)
+
+    # ── Key events section (V2.2 §8: identify the configured key event) ──
+    events_section = _v22_events_section(brand_id, events_data, scorecard)
+
+    # ── Sources (data_as_of) ──
+    sources = _v22_sources(brand_id, sess_data, cm_data, pages_data,
+                           events_data)
+
+    # ── Coverage matrix ──
+    coverage = _v22_coverage(brand_id, sess_data, cm_data, pages_data,
+                            events_data, pmx)
+
+    # ── Marketing support vs business outcomes ──
+    ms = _v22_marketing_support(scorecard)
+    bo = _v22_business_outcomes(brand_id)
+
+    # ── Executive summary (V2.2 §10): real movement, no template placeholders ──
+    exec_stmts = _v22_executive_summary_movement(brand_id, rp, scorecard,
+                                                   channel_section)
+
+    # ── Recommendations + tests + risks + what-needs-attention ──
+    recs = _recommendations_for(brand_id)
+    tests = _test_plan_for(brand_id)
+    limits = _limitations_for(brand_id, {"sections": {}})
+
+    report = {
+        "schema": "https://campaign-os/reporting/v2.2",
+        "version": "2.2",
+        "brand_id": brand_id,
+        "brand_name": cfg["name"],
+        "domain": cfg["domain"],
+        # V2.2 §4: one report_period feeds everything
+        "report_period": rp,
+        "data_complete_through": rp["data_complete_through"],
+        "previous_period": {
+            "start": rp["previous_start"],
+            "end": rp["previous_end"],
+            "days": rp["days_per_window"],
+        },
+        "ninety_day_baseline": {
+            "start": rp["ninetieth_start"],
+            "end": rp["ninetieth_end"],
+            "days": 90,
+        },
+        "generated_at": _now_iso(),
+        "data_status_taxonomy_used": True,
+        "brand_isolation_enforced": True,
+
+        # V2.2 §4: the scorecard IS the canonical session value
+        "sessions": scorecard["sessions"]["current"],
+        "users": scorecard["users"]["current"],
+
+        # V2.2 §11: KPI scorecard with real current + previous + 90-day
+        "kpi_scorecard": scorecard,
+
+        # V2.2 §17: marketing vs business outcomes
+        "marketing_support": ms,
+        "business_outcomes": bo,
+
+        "sections": {
+            "executive_summary": {"statements": exec_stmts},
+            "data_coverage": coverage,
+            "channel_mix": channel_section,
+            "landing_pages": pages_section,
+            "key_events": events_section,
+            "pillar_mix": pmx,
+            "pillar_mix_horizon": horizon,
+            "north_stars": {"items": cfg.get("north_stars") or {}},
+            "sources": sources,
+        },
+
+        "what_needs_attention": _v22_severity_score(limits, sess_data,
+                                                      brand_id),
+        "what_worked": _v22_what_worked(brand_id, scorecard, sess_data),
+
+        "meta_ads_status": {
+            "data_status": STATUS_NOT_CONNECTED,
+            "rule": ("SYNTHETIC ads data is quarantined. Real ads "
+                     "data only. Report does NOT invent paid "
+                     "performance until Meta Ads Step 4B ships."),
+            "synthetic_file": "data/meta-ads.json (quarantined)",
+        },
+
+        "recommendations": recs,
+        "next_period_tests": tests,
+        "data_limitations": limits,
+        "source_lineage": _v22_lineage(brand_id, cfg, sess_data, sources),
+    }
+    return report
+
+
+def _v22_runtime_fetch_sessions(base, brand_id, days, cookie):
+    """Pull /api/ga4/<brand>/v22/sessions."""
+    import urllib.request as _ur
+    url = f"{base}/api/ga4/{brand_id}/v22/sessions?days={days}"
+    try:
+        req = _ur.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with _ur.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        return {"ok": False, "error": f"sessions unreachable: {e}"}
+
+
+def _v22_runtime_fetch_channel_mix(base, brand_id, days, cookie):
+    import urllib.request as _ur
+    url = f"{base}/api/ga4/{brand_id}/v22/channel-mix?days={days}"
+    try:
+        req = _ur.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with _ur.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        return {"ok": False, "error": f"channel-mix unreachable: {e}"}
+
+
+def _v22_runtime_fetch_pages(base, brand_id, days, cookie):
+    import urllib.request as _ur
+    url = f"{base}/api/ga4/{brand_id}/v22/pages?days={days}"
+    try:
+        req = _ur.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with _ur.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        return {"ok": False, "error": f"pages unreachable: {e}"}
+
+
+def _v22_runtime_fetch_events(base, brand_id, days, cookie):
+    import urllib.request as _ur
+    url = f"{base}/api/ga4/{brand_id}/event-audit?days={days}"
+    try:
+        req = _ur.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with _ur.urlopen(req, timeout=60) as r:
+            return json.loads(r.read())
+    except Exception as e:
+        return {"ok": False, "error": f"events unreachable: {e}"}
+
+
+def _v22_pillar_horizon(brand_id, pmx):
+    """V2.2 §5: explicit reporting horizon + included/excluded
+    classification for pillar mix.
+    """
+    # V2.2 §5 — Reporting horizon is the most-recent active
+    # planning cycle (2026 calendar year). Cultural moments are
+    # excluded from the denominator per V1.1 §6.
+    return {
+        "horizon_label": "active 2026 planning cycle",
+        "reporting_horizon_start": "2026-01-01",
+        "reporting_horizon_end": "2026-12-31",
+        "canonical_total": pmx.get("canonical_event_count"),
+        "included_count": pmx.get("classified_event_count"),
+        "excluded_count": pmx.get("excluded_event_count"),
+        "included_statuses": ["classified"],
+        "excluded_statuses": [
+            "cultural_moment",
+            "preserved_unclassified",
+        ],
+        "contextual_unclassified_count": pmx.get(
+            "preserved_unclassified_count"),
+        "denominator": pmx.get("denominator_used_for_pillar_percentages"),
+        "retail_count": (pmx.get("pillar_event_counts") or {}).get("retail"),
+        "fitting_count": (pmx.get("pillar_event_counts") or {}).get("fitting"),
+        "coaching_count": (pmx.get("pillar_event_counts") or {}).get("coaching"),
+        "source": pmx.get("source"),
+        "note": ("Reporting pillar mix filters Calendar records to "
+                 "the active planning cycle. Records from prior or "
+                 "future cycles are excluded from the denominator. "
+                 "Cultural moments + preserved-unclassified events "
+                 "are also excluded per V1.1 §6."),
+    }
+
+
+def _v22_scorecard(brand_id, sess_data, cm_data, pages_data, events_data):
+    """V2.2 §11: KPI scorecard with real deltas. Sessions /
+    Users / Engagement rate / Pageviews come from one GA4
+    call (sess_data) so all metrics reconcile to the same
+    period.
+    """
+    sess_ok = sess_data.get("ok") if sess_data else False
+    rows = []
+    if sess_ok:
+        cur = sess_data.get("current") or {}
+        prev = sess_data.get("previous") or {}
+        n = sess_data.get("ninety_day") or {}
+        comparison = sess_data.get("comparison") or {}
+        # Pull the canonical aggregations from comparison
+        rows = [
+            {
+                "label": "Sessions",
+                "current": comparison.get("sessions", {}).get("current"),
+                "previous": comparison.get("sessions", {}).get("previous"),
+                "delta_abs": comparison.get("sessions", {}).get("delta_abs"),
+                "delta_pct": comparison.get("sessions", {}).get("delta_pct"),
+                "comparison_status": comparison.get("sessions", {}).get("comparison_status"),
+                "ninety_day": comparison.get("ninety_day", {}).get("sessions_mean_90d"),
+                "trend_arrow": _v22_arrow(comparison.get("sessions", {}).get("delta_pct")),
+                "data_status": "LIVE",
+            },
+            {
+                "label": "Users",
+                "current": comparison.get("users", {}).get("current"),
+                "previous": comparison.get("users", {}).get("previous"),
+                "delta_abs": comparison.get("users", {}).get("delta_abs"),
+                "delta_pct": comparison.get("users", {}).get("delta_pct"),
+                "comparison_status": comparison.get("users", {}).get("comparison_status"),
+                "ninety_day": comparison.get("ninety_day", {}).get("users_mean_90d"),
+                "trend_arrow": _v22_arrow(comparison.get("users", {}).get("delta_pct")),
+                "data_status": "LIVE",
+            },
+            {
+                "label": "Engaged sessions",
+                "current": comparison.get("engaged_sessions", {}).get("current"),
+                "previous": comparison.get("engaged_sessions", {}).get("previous"),
+                "delta_abs": comparison.get("engaged_sessions", {}).get("delta_abs"),
+                "delta_pct": comparison.get("engaged_sessions", {}).get("delta_pct"),
+                "comparison_status": comparison.get("engaged_sessions", {}).get("comparison_status"),
+                "ninety_day": comparison.get("ninety_day", {}).get("engaged_sessions_mean_90d"),
+                "trend_arrow": _v22_arrow(comparison.get("engaged_sessions", {}).get("delta_pct")),
+                "data_status": "LIVE",
+            },
+            {
+                "label": "Engagement rate",
+                "current": comparison.get("engagement_rate", {}).get("current"),
+                "previous": comparison.get("engagement_rate", {}).get("previous"),
+                "delta_abs": comparison.get("engagement_rate", {}).get("delta_abs"),
+                "delta_pct": comparison.get("engagement_rate", {}).get("delta_pct"),
+                "comparison_status": comparison.get("engagement_rate", {}).get("comparison_status"),
+                "ninety_day": comparison.get("ninety_day", {}).get("engagement_rate_90d"),
+                "trend_arrow": _v22_arrow(comparison.get("engagement_rate", {}).get("delta_pct")),
+                "data_status": "LIVE",
+                "unit": "percent",
+            },
+            {
+                "label": "Pageviews",
+                "current": comparison.get("pageviews", {}).get("current"),
+                "previous": comparison.get("pageviews", {}).get("previous"),
+                "delta_abs": comparison.get("pageviews", {}).get("delta_abs"),
+                "delta_pct": comparison.get("pageviews", {}).get("delta_pct"),
+                "comparison_status": comparison.get("pageviews", {}).get("comparison_status"),
+                "ninety_day": comparison.get("ninety_day", {}).get("pageviews_mean_90d"),
+                "trend_arrow": _v22_arrow(comparison.get("pageviews", {}).get("delta_pct")),
+                "data_status": "LIVE",
+            },
+            {
+                "label": "Conversions",
+                "current": comparison.get("conversions", {}).get("current"),
+                "previous": comparison.get("conversions", {}).get("previous"),
+                "delta_abs": comparison.get("conversions", {}).get("delta_abs"),
+                "delta_pct": comparison.get("conversions", {}).get("delta_pct"),
+                "comparison_status": comparison.get("conversions", {}).get("comparison_status"),
+                "ninety_day": comparison.get("ninety_day", {}).get("conversions_mean_90d"),
+                "trend_arrow": _v22_arrow(comparison.get("conversions", {}).get("delta_pct")),
+                "data_status": ("LIVE"
+                                 if comparison.get("conversions", {}).get("current") is not None
+                                 else STATUS_NOT_CONNECTED),
+                "note": ("Stick generate_lead event is configured "
+                         "in GA4 but on-website CF7 listener not yet "
+                         "production-validated. Conversions=0 is "
+                         "NOT 'no conversions' — the configured key "
+                         "event isn't validated yet.")
+                          if brand_id == "stick" else None,
+            },
+        ]
+        # Paid spend
+        rows.append({
+            "label": "Paid Spend",
+            "current": None, "previous": None,
+            "delta_abs": None, "delta_pct": None,
+            "comparison_status": "no_data",
+            "trend_arrow": "—", "trend_status": "no_comparison",
+            "data_status": STATUS_NOT_CONNECTED,
+            "note": ("Meta Ads is NOT_CONNECTED. Real ads history "
+                     "ingestion pending Step 4B. Synthetic data "
+                     "remains quarantined."),
+        })
+        if brand_id == "stick":
+            rows.append({
+                "label": "Verified Leads",
+                "current": None, "previous": None,
+                "delta_abs": None, "delta_pct": None,
+                "comparison_status": "no_data",
+                "trend_arrow": "—", "trend_status": "no_comparison",
+                "data_status": STATUS_PENDING,
+                "note": ("Stick generate_lead event not yet "
+                         "production-validated. Do not report "
+                         "verified leads."),
+            })
+    else:
+        # GA4 unreachable: all rows PENDING with consistent reason
+        reason = sess_data.get("error", "GA4 unreachable")
+        for label in ("Sessions", "Users", "Engaged sessions",
+                       "Engagement rate", "Pageviews"):
+            rows.append({
+                "label": label,
+                "current": None, "previous": None,
+                "delta_abs": None, "delta_pct": None,
+                "comparison_status": "no_data",
+                "trend_arrow": "—", "trend_status": "no_comparison",
+                "data_status": STATUS_UNAVAILABLE,
+                "note": reason,
+            })
+    return {
+        "schema": "https://campaign-os/kpi-scorecard/v2.2",
+        "brand_id": brand_id,
+        "rows": rows,
+        "checked_at": _now_iso(),
+    }
+
+
+def _v22_arrow(delta_pct):
+    if delta_pct is None:
+        return "—"
+    if delta_pct > 0.5:
+        return "▲"
+    if delta_pct < -0.5:
+        return "▼"
+    return "→"
+
+
+def _v22_channel_section(cm_data):
+    """Build channel mix section with real deltas."""
+    if not cm_data.get("ok"):
+        return {
+            "data_status": STATUS_UNAVAILABLE,
+            "reason": cm_data.get("error", "channel-mix endpoint failed"),
+            "rows": [],
+            "report_period": cm_data.get("report_period") or {},
+        }
+    rows = cm_data.get("rows", [])
+    total_cur = cm_data.get("total_current_sessions", 0)
+    total_prev = cm_data.get("total_previous_sessions")
+    return {
+        "data_status": "LIVE",
+        "current_window": cm_data.get("current_window"),
+        "previous_window": cm_data.get("previous_window"),
+        "rows": rows,
+        "total_current_sessions": total_cur,
+        "total_previous_sessions": total_prev,
+        "largest_channel": (rows[0]["channel"] if rows else None),
+    }
+
+
+def _v22_pages_section(brand_id, pages_data):
+    """Build landing pages section."""
+    if not pages_data.get("ok"):
+        return {
+            "data_status": STATUS_UNAVAILABLE,
+            "reason": pages_data.get("error", "pages endpoint failed"),
+            "service_pages": [],
+            "report_period": pages_data.get("report_period") or {},
+        }
+    raw = pages_data.get("rows", [])
+    if brand_id == "stick":
+        patterns = [
+            ("/bookings/", "Bookings"),
+            ("club-fitting", "Club Fitting"),
+            ("coaching", "Coaching"),
+            ("psycho-bunny", "Psycho Bunny"),
+            ("takomo", "Takomo"),
+            ("vice", "Vice"),
+            ("avoda", "Avoda"),
+            ("lab-putters", "L.A.B. Putters"),
+        ]
+    else:
+        patterns = [
+            ("/bookings/", "Bookings"),
+            ("/membership", "Membership"),
+            ("/fitting", "Fitting"),
+            ("/lessons", "Lessons"),
+            ("/coaching", "Coaching"),
+            ("/flagship", "Flagship Property"),
+            ("/10-ball", "10-Ball Truth"),
+            ("/shop", "Shop"),
+        ]
+    matched = {}
+    for row in raw:
+        path = (row.get("page_path") or "")
+        for pat, label in patterns:
+            if pat.lower() in path.lower():
+                matched[label] = {
+                    "current_sessions": row.get("current_sessions") or 0,
+                    "previous_sessions": row.get("previous_sessions"),
+                    "current_users": row.get("current_users") or 0,
+                    "current_engaged_sessions": row.get("current_engaged_sessions") or 0,
+                    "current_pageviews": row.get("current_pageviews") or 0,
+                    "engagement_rate": row.get("current_engagement_rate"),
+                    "delta_abs": row.get("delta_abs"),
+                    "delta_pct": row.get("delta_pct"),
+                    "comparison_status": row.get("comparison_status"),
+                    "path": path,
+                }
+                break
+    service_pages = sorted(matched.values(),
+                            key=lambda x: -x["current_sessions"])
+    # V2.2 §12: include historical report alongside
+    hr = _historical_reports(brand_id)
+    return {
+        "data_status": "LIVE",
+        "current_window": pages_data.get("current_window"),
+        "previous_window": pages_data.get("previous_window"),
+        "service_pages": service_pages,
+        "ninety_day_sessions_mean_per_day": pages_data.get(
+            "ninety_day_sessions_mean_per_day"),
+        "ninety_day_sessions_total": pages_data.get(
+            "ninety_day_sessions_total"),
+        "historical_reports": hr,
+        "top_raw_paths_sample": (pages_data.get("rows") or [])[:5],
+    }
+
+
+def _v22_events_section(brand_id, events_data, scorecard):
+    """V2.2 §8: identify the configured key event explicitly.
+    Distinguish number_of_key_event_types from
+    number_of_key_event_occurrences.
+    """
+    if not events_data.get("ok"):
+        return {
+            "data_status": STATUS_UNAVAILABLE,
+            "reason": events_data.get("error", "events endpoint failed"),
+            "rows": [],
+            "headline": "GA4 events audit endpoint unreachable.",
+        }
+    rows = events_data.get("rows", [])
+    # Identify the configured key events
+    configured = [r for r in rows if r.get("key_event_conversions", 0) > 0]
+    key_event_types = len(configured)
+    key_event_occurrences = sum(r.get("key_event_conversions", 0)
+                                 for r in configured)
+    if not configured:
+        headline = (f"No GA4 key events recorded in the last "
+                     f"{events_data.get('window', {}).get('days', 31)} days for {brand_id}.")
+    elif all(r.get("commercial_meaning") in ("unknown", "candidate")
+             for r in configured):
+        names = ", ".join(r["event_name"] for r in configured)
+        headline = (f"GA4 recorded {key_event_occurrences} "
+                     f"configured key event occurrence(s) across "
+                     f"{key_event_types} event type(s) ({names}); "
+                     f"commercial meaning has not yet been validated.")
+    else:
+        names = ", ".join(r["event_name"] for r in configured)
+        headline = (f"GA4 recorded {key_event_occurrences} validated "
+                     f"conversion(s) from configured key events: {names}.")
+    # V2.2 §8: per-event identity
+    return {
+        "data_status": "LIVE",
+        "headline": headline,
+        "configured_key_event_name": (configured[0]["event_name"]
+                                       if configured else None),
+        "configured_key_event_count_for_period": key_event_occurrences,
+        "configured_key_event_types_count": key_event_types,
+        "rows": rows[:10],
+        "all_rows": rows,
+        "window": events_data.get("window", {}),
+        "checked_at": events_data.get("checked_at"),
+    }
+
+
+def _v22_sources(brand_id, sess_data, cm_data, pages_data, events_data):
+    sources = []
+    sources.append({
+        "source": "GA4 (sessions + comparison)",
+        "data_status": ("LIVE" if sess_data.get("ok") else STATUS_UNAVAILABLE),
+        "data_as_of": sess_data.get("checked_at"),
+        "freshness": "current + previous + 90-day windows",
+    })
+    sources.append({
+        "source": "GA4 (channel mix)",
+        "data_status": ("LIVE" if cm_data.get("ok") else STATUS_UNAVAILABLE),
+        "data_as_of": cm_data.get("checked_at"),
+        "freshness": "current + previous windows",
+    })
+    sources.append({
+        "source": "GA4 (landing pages)",
+        "data_status": ("LIVE" if pages_data.get("ok") else STATUS_UNAVAILABLE),
+        "data_as_of": pages_data.get("checked_at"),
+        "freshness": "current + previous + 90-day windows",
+    })
+    sources.append({
+        "source": "GA4 (event audit)",
+        "data_status": ("LIVE" if events_data.get("ok") else STATUS_UNAVAILABLE),
+        "data_as_of": events_data.get("checked_at"),
+        "freshness": "current window",
+    })
+    sources.append({
+        "source": "Marketing Calendar (canonical)",
+        "data_status": STATUS_LIVE,
+        "data_as_of": _now_iso(),
+        "freshness": "canonical — read at build time",
+    })
+    return sources
+
+
+def _v22_coverage(brand_id, sess_data, cm_data, pages_data,
+                  events_data, pmx):
+    return {
+        "ga4": ("LIVE" if sess_data.get("ok") else STATUS_UNAVAILABLE),
+        "ga4_channel_mix": ("LIVE" if cm_data.get("ok")
+                            else STATUS_UNAVAILABLE),
+        "ga4_landing_pages": ("LIVE" if pages_data.get("ok")
+                                else STATUS_UNAVAILABLE),
+        "ga4_key_events": ("LIVE" if events_data.get("ok")
+                            else STATUS_UNAVAILABLE),
+        "facebook": (STATUS_LIVE if brand_id == "swing-shack"
+                      else STATUS_PARTIAL),
+        "instagram": (STATUS_STALE if brand_id == "swing-shack"
+                       else STATUS_NOT_CONNECTED),
+        "meta_ads": STATUS_NOT_CONNECTED,
+        "lead_tracking": (STATUS_PENDING if brand_id == "stick"
+                           else STATUS_NOT_APPLICABLE),
+        "strategy": STATUS_LIVE,
+        "pillar_mix": pmx.get("data_status") or STATUS_NOT_APPLICABLE,
+        "north_stars": STATUS_LIVE,
+        "historical_reports": ("HISTORICAL_REAL"
+                                 if brand_id == "stick"
+                                 else STATUS_NOT_CONNECTED),
+    }
+
+
+def _v22_marketing_support(scorecard):
+    return {
+        "label": "Marketing support (demand signal)",
+        "kpis": [r for r in (scorecard.get("rows") or [])
+                 if r.get("label") != "Verified Leads"],
+        "note": ("These are signals marketing can move directly. "
+                 "They are NOT the North Star business outcomes "
+                 "(Psycho Bunny sales, fittings, coaching)."),
+    }
+
+
+def _v22_business_outcomes(brand_id):
+    if brand_id != "stick":
+        return {
+            "label": "Business outcomes (North Star progress)",
+            "data_status": STATUS_NOT_APPLICABLE,
+            "note": ("Swing Shack North Star architecture defined in "
+                     "V1.3 §6; metrics TBD."),
+            "kpis": [],
+        }
+    return {
+        "label": "Business outcomes (North Star progress)",
+        "data_status": STATUS_PENDING,
+        "note": ("Psycho Bunny sales / 24 fittings/wk / 24 coaching/wk "
+                 "are operational outcomes. Reporting cannot measure "
+                 "them until Stick generate_lead event is validated."),
+        "kpis": [
+            {"name": "Psycho Bunny sales (target R350k/month)",
+             "data_status": STATUS_PENDING, "current": None},
+            {"name": "Fittings (target 24/week)",
+             "data_status": STATUS_PENDING, "current": None},
+            {"name": "Coaching sessions (target 24/week)",
+             "data_status": STATUS_PENDING, "current": None},
+        ],
+    }
+
+
+def _v22_executive_summary_movement(brand_id, rp, scorecard,
+                                     channel_section):
+    """V2.2 §10: executive summary uses REAL movement. Numbers
+    are injected from the scorecard — no template placeholders
+    like 'up X%' survive rendering.
+    """
+    stmts = []
+    sessions_row = next((r for r in (scorecard.get("rows") or [])
+                          if r.get("label") == "Sessions"), None)
+    users_row = next((r for r in (scorecard.get("rows") or [])
+                       if r.get("label") == "Users"), None)
+    er_row = next((r for r in (scorecard.get("rows") or [])
+                     if r.get("label") == "Engagement rate"), None)
+    pv_row = next((r for r in (scorecard.get("rows") or [])
+                     if r.get("label") == "Pageviews"), None)
+    period_label = (f"{rp['current_start']} → {rp['current_end']}")
+    prev_label = (f"{rp['previous_start']} → {rp['previous_end']}")
+    if sessions_row and sessions_row.get("current") is not None:
+        cur_s = sessions_row["current"]
+        prev_s = sessions_row.get("previous")
+        dpct = sessions_row.get("delta_pct")
+        status = sessions_row.get("comparison_status")
+        if status == "improving":
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"{brand_id.title().replace('-', ' ')} recorded "
+                              f"{cur_s:,} sessions during {period_label}, "
+                              f"up {dpct}% from the previous 31-day "
+                              f"period ({prev_label}: {prev_s:,} sessions)."),
+            })
+        elif status == "regressing":
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"{brand_id.title().replace('-', ' ')} recorded "
+                              f"{cur_s:,} sessions during {period_label}, "
+                              f"down {abs(dpct)}% from the previous 31-day "
+                              f"period ({prev_label}: {prev_s:,} sessions)."),
+            })
+        elif status == "flat":
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"{brand_id.title().replace('-', ' ')} recorded "
+                              f"{cur_s:,} sessions during {period_label}, "
+                              f"essentially flat vs the previous 31-day "
+                              f"period ({prev_label}: {prev_s:,})."),
+            })
+        elif status == "no_previous":
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "MEDIUM",
+                "statement": (f"{brand_id.title().replace('-', ' ')} recorded "
+                              f"{cur_s:,} sessions during {period_label}; "
+                              f"the previous 31-day window has no data "
+                              f"for comparison."),
+            })
+    if users_row and users_row.get("current") is not None:
+        cur_u = users_row["current"]
+        prev_u = users_row.get("previous")
+        dpct = users_row.get("delta_pct")
+        status = users_row.get("comparison_status")
+        if status in ("improving", "regressing", "flat") and dpct is not None:
+            direction = ("up" if dpct > 0 else
+                         ("down" if dpct < 0 else "flat"))
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"Users {direction} {abs(dpct)}% to "
+                              f"{cur_u:,} ({prev_label}: {prev_u:,})."),
+            })
+    if er_row and er_row.get("current") is not None:
+        cur_er = er_row["current"]
+        prev_er = er_row.get("previous")
+        dpct = er_row.get("delta_pct")
+        status = er_row.get("comparison_status")
+        if status in ("improving", "regressing") and dpct is not None:
+            direction = ("improved" if dpct > 0 else "declined")
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"Engagement rate {direction} from "
+                              f"{prev_er}% to {cur_er}% "
+                              f"({abs(dpct)}%)."),
+            })
+    if pv_row and pv_row.get("current") is not None:
+        cur_pv = pv_row["current"]
+        prev_pv = pv_row.get("previous")
+        dpct = pv_row.get("delta_pct")
+        status = pv_row.get("comparison_status")
+        if status in ("improving", "regressing", "flat") and dpct is not None:
+            direction = ("up" if dpct > 0 else
+                         ("down" if dpct < 0 else "flat"))
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"Pageviews {direction} {abs(dpct)}% to "
+                              f"{cur_pv:,} ({prev_label}: {prev_pv:,})."),
+            })
+    # Channel mix largest
+    if channel_section.get("data_status") == "LIVE":
+        rows = channel_section.get("rows") or []
+        if rows:
+            top = rows[0]
+            share = top.get("share_of_sessions")
+            if share:
+                # Find next-largest for comparison
+                second = rows[1] if len(rows) > 1 else None
+                second_part = ""
+                if second and second.get("delta_pct") is not None:
+                    direction = ("up" if second["delta_pct"] > 0 else
+                                 ("down" if second["delta_pct"] < 0 else "flat"))
+                    second_part = (f", while {second['channel']} moved "
+                                   f"{direction} {abs(second['delta_pct'])}%")
+                stmts.append({
+                    "type": "MEASURED_FACT",
+                    "confidence": "HIGH",
+                    "statement": (f"{top['channel']} is the largest "
+                                  f"acquisition channel at {share}% "
+                                  f"of sessions "
+                                  f"({top['current_sessions']:,})"
+                                  f"{second_part}."),
+                })
+    # 90-day context
+    baseline = next((r for r in (scorecard.get("rows") or [])
+                       if r.get("label") == "Sessions"), None)
+    if baseline and baseline.get("ninety_day") is not None and             baseline.get("current") is not None:
+        cur_s = baseline["current"]
+        mean_90 = baseline["ninety_day"]
+        ratio = ((cur_s - mean_90) / mean_90 * 100) if mean_90 else None
+        if ratio is not None:
+            if abs(ratio) < 1:
+                ctx = "in line with"
+            elif ratio > 0:
+                ctx = f"above"
+            else:
+                ctx = f"below"
+            stmts.append({
+                "type": "MEASURED_FACT",
+                "confidence": "MEDIUM",
+                "statement": (f"Current 31-day sessions total "
+                              f"({cur_s:,}) is {ctx} the 90-day "
+                              f"daily-mean baseline "
+                              f"({mean_90}/day × 31 ≈ "
+                              f"{round(mean_90 * 31):,})."),
+            })
+    # Key events
+    ev_section = scorecard.get("__ev_section__") or {}
+    return stmts
+
+
+def _v22_severity_score(limits, sess_data, brand_id):
+    out = []
+    for lim in (limits or []):
+        if "lead tracking" in lim.lower() or "generate_lead" in lim.lower():
+            sev = "HIGH"
+        elif "synthetic" in lim.lower() and "quarantine" in lim.lower():
+            sev = "HIGH"
+        elif "Meta Ads" in lim and "NOT_CONNECTED" in lim:
+            sev = "MEDIUM"
+        elif "Instagram" in lim and "stale" in lim.lower():
+            sev = "MEDIUM"
+        elif "Facebook" in lim and "PARTIAL" in lim:
+            sev = "MEDIUM"
+        else:
+            sev = "LOW"
+        out.append({
+            "title": lim[:80],
+            "evidence": lim,
+            "business_relevance": lim,
+            "severity": sev,
+            "interpretation": lim,
+        })
+    return out
+
+
+def _v22_what_worked(brand_id, scorecard, sess_data):
+    out = []
+    if sess_data.get("ok"):
+        out.append({
+            "title": "GA4 website tracking LIVE",
+            "evidence": ("Sessions, users, engaged sessions, "
+                         "engagement rate, pageviews, conversions all "
+                         "available via /api/ga4/<brand>/v22/sessions."),
+            "interpretation": ("Reporting engine can read all key "
+                                "comparison metrics from one GA4 call."),
+            "business_relevance": ("Reporting fully observable at "
+                                    "the marketing support level."),
+        })
+    sessions_row = next((r for r in (scorecard.get("rows") or [])
+                          if r.get("label") == "Sessions"), None)
+    if sessions_row and sessions_row.get("comparison_status") == "improving":
+        out.append({
+            "title": (f"{brand_id.title().replace('-', ' ')} sessions "
+                      f"up {sessions_row.get('delta_pct')}%"),
+            "evidence": (f"Current sessions: "
+                         f"{sessions_row.get('current')}, "
+                         f"previous: {sessions_row.get('previous')}."),
+            "interpretation": ("Top-of-funnel demand grew."),
+            "business_relevance": "Marketing support improving.",
+        })
+    return out
+
+
+def _v22_lineage(brand_id, cfg, sess_data, sources):
+    return [
+        {"name": "GA4 — sessions comparison",
+         "asset": cfg.get("ga4_property_id"),
+         "brand_id": brand_id,
+         "period": "current + previous + 90-day windows",
+         "source": "/api/ga4/<brand>/v22/sessions",
+         "data_as_of": sess_data.get("checked_at"),
+         "data_status": ("LIVE" if sess_data.get("ok")
+                         else "UNAVAILABLE")},
+        {"name": "Marketing Calendar (canonical)",
+         "asset": "data/intelligence/marketing-calendar/<brand>.jsonl",
+         "brand_id": brand_id, "period": "static",
+         "source": "marketing_calendar.canonical_records",
+         "data_as_of": _now_iso(), "data_status": "LIVE"},
+        {"name": "Meta Ads (real)",
+         "asset": cfg.get("meta_ad_account_id"),
+         "brand_id": brand_id, "period": "—",
+         "source": "Step 4B pending — synthetic data quarantined",
+         "data_as_of": None, "data_status": "NOT_CONNECTED"},
+    ]
+
+
+def render_v22_brand_report_html(brand_id: str, period_days: int = 31,
+                                  cookie: Optional[str] = None) -> str:
+    """Render the V2.2 management report as HTML — same
+    scorecard numbers everywhere (KPI PERIOD CONSISTENCY).
+    """
+    r = build_v22_brand_report(brand_id, period_days, cookie=cookie)
+    if r.get("error"):
+        return f"<h1>Error</h1><p>{r['error']}</p>"
+    parts = [
+        f"<!DOCTYPE html><html><head><meta charset='utf-8'>",
+        f"<title>{r['brand_name']} — V2.2 Management Report</title>",
+        _HTML_CSS, "</head><body>",
+    ]
+    parts.append(f"<h1>{r['brand_name']} — Management Report</h1>")
+    rp = r["report_period"]
+    parts.append(f"<div class='meta'>")
+    parts.append(f"Current period: <strong>{rp['current_start']} → "
+                 f"{rp['current_end']}</strong> "
+                 f"({rp['days_per_window']} days)<br>")
+    parts.append(f"Previous period: <strong>{rp['previous_start']} → "
+                 f"{rp['previous_end']}</strong><br>")
+    parts.append(f"90-day baseline: {rp['ninetieth_start']} → "
+                 f"{rp['ninetieth_end']}<br>")
+    parts.append(f"Data complete through: "
+                 f"<strong>{r['data_complete_through']}</strong><br>")
+    parts.append(f"Generated: {r['generated_at']}")
+    parts.append("</div>")
+
+    # Scorecard
+    parts.append("<h2>KPI Scorecard (V2.2 §11)</h2>")
+    sc = r.get("kpi_scorecard") or {}
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>KPI</th><th>Current</th><th>Previous</th>"
+                 "<th>Δ%</th><th>90d baseline</th>"
+                 "<th>Trend</th><th>Status</th></tr>")
+    for row in (sc.get("rows") or []):
+        cur = row.get("current") if row.get("current") is not None else "—"
+        prev = row.get("previous") if row.get("previous") is not None else "—"
+        pct = row.get("delta_pct")
+        pct_disp = f"{pct:+.1f}%" if pct is not None else "—"
+        n90 = row.get("ninety_day")
+        n90_disp = f"{n90:,.1f}" if isinstance(n90, (int, float)) else "—"
+        arrow = row.get("trend_arrow", "—")
+        parts.append(
+            f"<tr><td>{row['label']}</td>"
+            f"<td>{cur}</td><td>{prev}</td>"
+            f"<td>{pct_disp}</td><td>{n90_disp}</td>"
+            f"<td>{arrow}</td>"
+            f"<td>{_pill(row.get('data_status','—'))}</td></tr>")
+    parts.append("</table>")
+
+    # Executive summary
+    parts.append("<h2>Executive Summary (real movement)</h2>")
+    parts.append("<ul class='exec-summary'>")
+    for st in (r.get("sections", {}).get(
+            "executive_summary", {}).get("statements") or []):
+        parts.append(f"<li>{st['statement']} "
+                     f"<em class='meta'>({st.get('type','')}, "
+                     f"confidence: {st.get('confidence','')})</em></li>")
+    parts.append("</ul>")
+
+    # Marketing support vs business outcomes
+    ms = r.get("marketing_support") or {}
+    bo = r.get("business_outcomes") or {}
+    parts.append("<h2>Marketing Support vs North Star Outcomes (V2.2 §17)</h2>")
+    parts.append(f"<h3>{ms.get('label', 'Marketing support')}</h3>")
+    parts.append(f"<div class='section'>{ms.get('note','')}</div>")
+    parts.append(f"<h3>{bo.get('label', 'Business outcomes')}</h3>")
+    parts.append(f"<div class='section'>{_pill(bo.get('data_status',''))} "
+                 f"{bo.get('note','')}")
+    for kpi in (bo.get("kpis") or []):
+        parts.append(f"<div>• {kpi.get('name','')}: "
+                     f"{_pill(kpi.get('data_status',''))}</div>")
+    parts.append("</div>")
+
+    # Channel mix
+    cm = r.get("sections", {}).get("channel_mix") or {}
+    parts.append(f"<h2>Channel Mix (V2.2 §6) "
+                 f"{_pill(cm.get('data_status','UNKNOWN'))}</h2>")
+    if cm.get("data_status") == "LIVE":
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Channel</th><th>Current</th>"
+                     "<th>Previous</th><th>Δ%</th><th>Share</th></tr>")
+        for row in cm.get("rows") or []:
+            cur = row.get("current_sessions") or 0
+            prev = row.get("previous_sessions")
+            prev_disp = prev if prev is not None else "—"
+            parts.append(
+                f"<tr><td>{row['channel']}</td><td>{cur:,}</td>"
+                f"<td>{prev_disp}</td>"
+                f"<td>{row.get('delta_pct','—')}</td>"
+                f"<td>{row.get('share_of_sessions',0):.1f}%</td></tr>")
+        parts.append("</table>")
+    else:
+        parts.append(f"<div class='section'>"
+                     f"Channel Mix — Not connected. "
+                     f"{cm.get('reason','')}</div>")
+
+    # Landing pages
+    lp = r.get("sections", {}).get("landing_pages") or {}
+    parts.append(f"<h2>Landing-Page Performance (V2.2 §7) "
+                 f"{_pill(lp.get('data_status','UNKNOWN'))}</h2>")
+    if lp.get("data_status") == "LIVE":
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Service page</th><th>Current</th>"
+                     "<th>Previous</th><th>Δ%</th></tr>")
+        for row in lp.get("service_pages") or []:
+            cur = row.get("current_sessions") or 0
+            prev = row.get("previous_sessions")
+            prev_disp = prev if prev is not None else "—"
+            parts.append(
+                f"<tr><td>{row.get('path','')}</td><td>{cur:,}</td>"
+                f"<td>{prev_disp}</td>"
+                f"<td>{row.get('delta_pct','—')}</td></tr>")
+        parts.append("</table>")
+        # Historical report usage (V2.2 §12)
+        hr = lp.get("historical_reports") or {}
+        if hr.get("data_status") == "HISTORICAL_REAL":
+            parts.append("<h3>Historical Report Reference</h3>")
+            parts.append("<div class='meta'>")
+            for f in (hr.get("files") or []):
+                parts.append(f"<div>• {f.get('filename')} "
+                             f"(period: {f.get('period') or '?'}, "
+                             f"source: "
+                             f"<em>historical_report</em>, "
+                             f"definition_compatible: <em>verify</em>)</div>")
+            parts.append("<div><em>Historical report values are NOT "
+                         "force-fed into current-period deltas. "
+                         "Verify metric definitions before any "
+                         "side-by-side comparison.</em></div>")
+            parts.append("</div>")
+    else:
+        parts.append(f"<div class='section'>"
+                     f"Landing-Page Performance — Not connected. "
+                     f"{lp.get('reason','')}</div>")
+
+    # Key events (V2.2 §8)
+    ke = r.get("sections", {}).get("key_events") or {}
+    parts.append(f"<h2>Key-Event Identity (V2.2 §8) "
+                 f"{_pill(ke.get('data_status','UNKNOWN'))}</h2>")
+    if ke.get("headline"):
+        parts.append(f"<div class='section'><strong>Headline:</strong> "
+                     f"{ke['headline']}</div>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>Field</th><th>Value</th></tr>")
+    parts.append(f"<tr><td>configured_key_event_name</td>"
+                 f"<td>{ke.get('configured_key_event_name') or '—'}</td></tr>")
+    parts.append(f"<tr><td>configured_key_event_count_for_period</td>"
+                 f"<td>{ke.get('configured_key_event_count_for_period') or 0}</td></tr>")
+    parts.append(f"<tr><td>configured_key_event_types_count</td>"
+                 f"<td>{ke.get('configured_key_event_types_count') or 0}</td></tr>")
+    parts.append("</table>")
+    rows = ke.get("rows") or []
+    if rows:
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Event</th><th>Count</th>"
+                     "<th>Conversions</th><th>Commercial meaning</th></tr>")
+        for row in rows[:10]:
+            parts.append(
+                f"<tr><td>{row['event_name']}</td>"
+                f"<td>{row['count']}</td>"
+                f"<td>{row.get('key_event_conversions',0)}</td>"
+                f"<td>{row.get('commercial_meaning','')}</td></tr>")
+        parts.append("</table>")
+
+    # Pillar mix
+    pmx = r.get("sections", {}).get("pillar_mix") or {}
+    horizon = r.get("sections", {}).get("pillar_mix_horizon") or {}
+    parts.append("<h2>Business Pillar Mix (canonical Calendar, "
+                 "V2.2 §5 reporting horizon)</h2>")
+    parts.append(f"<div class='meta'>Source: {pmx.get('source','—')}</div>")
+    parts.append("<div class='section'>")
+    parts.append(f"<strong>Reporting horizon:</strong> "
+                 f"{horizon.get('reporting_horizon_start','—')} → "
+                 f"{horizon.get('reporting_horizon_end','—')} "
+                 f"({horizon.get('horizon_label','—')})<br>")
+    parts.append(f"<strong>Canonical total:</strong> "
+                 f"{horizon.get('canonical_total','—')}<br>")
+    parts.append(f"<strong>Included (classified):</strong> "
+                 f"{horizon.get('included_count','—')} "
+                 f"({', '.join(horizon.get('included_statuses', []))})<br>")
+    parts.append(f"<strong>Excluded:</strong> "
+                 f"{horizon.get('excluded_count','—')} "
+                 f"({', '.join(horizon.get('excluded_statuses', []))})<br>")
+    parts.append(f"<strong>Denominator:</strong> "
+                 f"{horizon.get('denominator','—')}<br>")
+    parts.append(f"<strong>Contextual/unclassified:</strong> "
+                 f"{horizon.get('contextual_unclassified_count','—')}")
+    parts.append("</div>")
+    counts = pmx.get("pillar_event_counts") or {}
+    pct = pmx.get("pillar_event_pct") or {}
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>Pillar</th><th>Events</th><th>%</th></tr>")
+    for p in ("retail", "fitting", "coaching"):
+        parts.append(f"<tr><td>{p.capitalize()}</td>"
+                     f"<td>{counts.get(p,0)}</td>"
+                     f"<td>{pct.get(p,0):.1f}%</td></tr>")
+    parts.append("</table>")
+
+    # Sources
+    parts.append("<h2>Sources & Freshness</h2>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>Source</th><th>Status</th>"
+                 "<th>Data as of</th><th>Freshness</th></tr>")
+    for s in r.get("sections", {}).get("sources") or []:
+        parts.append(
+            f"<tr><td>{s['source']}</td>"
+            f"<td>{_pill(s.get('data_status',''))}</td>"
+            f"<td>{(s.get('data_as_of') or '—')[:19]}</td>"
+            f"<td>{s.get('freshness','')}</td></tr>")
+    parts.append("</table>")
+
+    # Meta Ads
+    ma = r.get("meta_ads_status") or {}
+    parts.append("<h2>Paid Media Status (V2.2 §16)</h2>")
+    parts.append(f"<div class='section'>{_pill(ma.get('data_status',''))} "
+                 f"{ma.get('rule','')}</div>")
+
+    # What needs attention
+    parts.append("<h2>What Needs Attention (V2.2 §13)</h2>")
+    for n in (r.get("what_needs_attention") or []):
+        sev = (n.get("severity") or "low").lower()
+        parts.append(f"<div class='rec {sev}'>")
+        parts.append(f"<strong>[{n.get('severity','LOW')}] "
+                     f"{n.get('title','')}</strong><br>")
+        parts.append(f"<em>Evidence:</em> {n.get('evidence','')}<br>")
+        parts.append("</div>")
+
+    # Limitations
+    parts.append("<h2>Limitations</h2>")
+    parts.append("<div class='section'>")
+    for lim in r.get("data_limitations") or []:
+        parts.append(f"<div>• {lim}</div>")
+    parts.append("</div>")
+
+    # Source lineage
+    parts.append("<h2>Source Lineage</h2>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>Source</th><th>Asset</th>"
+                 "<th>Period</th><th>Data as of</th><th>Path</th></tr>")
+    for ln in r.get("source_lineage") or []:
+        parts.append(
+            f"<tr><td>{ln.get('name','')}</td>"
+            f"<td>{ln.get('asset','')}</td>"
+            f"<td>{ln.get('period','')}</td>"
+            f"<td>{(ln.get('data_as_of') or '—')[:19]}</td>"
+            f"<td>{ln.get('source','')}</td></tr>")
+    parts.append("</table>")
+
+    parts.append("<div class='footer'>")
+    parts.append(f"<em>Reporting Intelligence V2.2 — Campaign OS — "
+                 f"brand_isolation_enforced — synthetic Meta Ads "
+                 f"data quarantined — data_as_of per source — "
+                 f"report_period feeds every subquery.</em>")
+    parts.append("</div>")
+    parts.append("</body></html>")
+    return "
+".join(parts)
+
+
+def render_v22_portfolio_html(reports: dict) -> str:
+    parts = [
+        f"<!DOCTYPE html><html><head><meta charset='utf-8'>",
+        f"<title>Portfolio — V2.2</title>",
+        _HTML_CSS, "</head><body>",
+    ]
+    parts.append("<h1>Portfolio — V2.2</h1>")
+    for bid in ("stick", "swing-shack"):
+        r = reports.get(bid, {})
+        parts.append(f"<h2>{r.get('brand_name', bid.title())} "
+                     f"(<code>{bid}</code>)</h2>")
+        rp = r.get("report_period", {})
+        parts.append(f"<div class='meta'>Current: "
+                     f"{rp.get('current_start','?')} → "
+                     f"{rp.get('current_end','?')} | "
+                     f"Previous: {rp.get('previous_start','?')} → "
+                     f"{rp.get('previous_end','?')}</div>")
+        sc = r.get("kpi_scorecard") or {}
+        if sc.get("rows"):
+            parts.append("<table class='coverage-table'>")
+            parts.append("<tr><th>KPI</th><th>Current</th>"
+                         "<th>Previous</th><th>Δ%</th>"
+                         "<th>90d baseline</th>"
+                         "<th>Trend</th></tr>")
+            for row in sc["rows"][:7]:
+                cur = row.get("current") if row.get("current") is not None else "—"
+                prev = row.get("previous") if row.get("previous") is not None else "—"
+                dpct = row.get("delta_pct")
+                dpct_disp = f"{dpct:+.1f}%" if dpct is not None else "—"
+                n90 = row.get("ninety_day")
+                n90_disp = f"{n90:,.1f}" if isinstance(n90, (int, float)) else "—"
+                parts.append(
+                    f"<tr><td>{row['label']}</td>"
+                    f"<td>{cur}</td><td>{prev}</td>"
+                    f"<td>{dpct_disp}</td><td>{n90_disp}</td>"
+                    f"<td>{row.get('trend_arrow','—')}</td></tr>")
+            parts.append("</table>")
+        es = r.get("sections", {}).get(
+            "executive_summary", {}).get("statements") or []
+        if es:
+            parts.append("<h3>Movement</h3><ul>")
+            for st in es:
+                parts.append(f"<li>{st.get('statement','')}</li>")
+            parts.append("</ul>")
+    parts.append("<div class='footer'><em>V2.2 portfolio — contextual.</em></div>")
+    parts.append("</body></html>")
+    return "
+".join(parts)
+
+
+
+
 # ── HTML rendering ─────────────────────────────────────────────────
 
 _HTML_CSS = """
