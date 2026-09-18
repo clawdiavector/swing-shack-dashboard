@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from ..errors import describe_exception
 from ..layer1._io import atomic_write, read_json
+from _lib.brand_validate import validate_brand_id
 
 CREATE_ACTIONS = frozenset({"draft_caption", "draft_image", "draft_gbp"})
 CAPTION_EST_USD = 0.002
@@ -400,10 +401,15 @@ def run() -> dict[str, Any]:
                 continue
 
             item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
-            brand_id = str(row.get("brand") or "")
+            brand_raw = row.get("brand")
             action = str(row.get("action") or "")
 
-            if not item_id or not brand_id:
+            if not item_id:
+                skipped += 1
+                continue
+            try:
+                brand_id = validate_brand_id(brand_raw)
+            except ValueError:
                 skipped += 1
                 continue
 

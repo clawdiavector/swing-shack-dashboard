@@ -312,6 +312,9 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     <h2>Agents <span class="chip" id="agents-verdict">—</span></h2>
     <div class="sub" id="agents-sub">L3 Mac fleet · heartbeat-reported · the dashboard never SSHs to the Mac.</div>
     <div id="agents-list" class="empty">Loading…</div>
+    <h3 style="margin:16px 0 8px;font-size:14px">Agent queue</h3>
+    <p class="stub-note" id="agent-queue-note">Pending rows in agent-queue.json · brand is required on every row · <code>all</code> = cross-lane foreman work only.</p>
+    <table><thead><tr><th>Agent</th><th>Brand</th><th>Action</th><th>Status</th><th>Payload ref</th></tr></thead><tbody id="agent-queue-body"></tbody></table>
   </section>
   <section class="summary" id="layer-approve" hidden>
     <h2>Approve <span class="chip" id="approve-verdict">—</span></h2>
@@ -630,7 +633,11 @@ async function loadAgents() {
         <span class="chip-detail">Last heartbeat ${esc(fmtSast(hb))} (${esc(ageLabel(ageH))})</span>
         <span class="chip-detail">Last action ${esc(a.last_action || '—')}</span>
         <span class="chip-detail">Last writes ${writes}</span>
-        <div class="actions"><button class="btn" type="button" data-enqueue-agent="${esc(a.id)}" data-enqueue-brand="stick">Enqueue stick</button></div>
+        <div class="actions">
+          <button class="btn" type="button" data-enqueue-agent="${esc(a.id)}" data-enqueue-brand="swing-shack">Enqueue SS</button>
+          <button class="btn" type="button" data-enqueue-agent="${esc(a.id)}" data-enqueue-brand="stick">Enqueue stick</button>
+          <button class="btn" type="button" data-enqueue-agent="${esc(a.id)}" data-enqueue-brand="bag-drop">Enqueue bag-drop</button>
+        </div>
       </div>`;
     }).join('');
   }
@@ -642,6 +649,7 @@ async function loadAgents() {
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
+  await loadAgentQueueTable();
 }
 
 async function enqueueAgent(agent, brand) {
@@ -654,8 +662,38 @@ async function enqueueAgent(agent, brand) {
     toast((r.data && r.data.error) || 'Enqueue failed', true);
     return;
   }
-  toast('Enqueued ' + agent + ' · ' + (r.data.rows ?? 0) + ' pending');
+  toast('Enqueued ' + agent + ' · ' + brand + ' · ' + (r.data.rows ?? 0) + ' pending');
   await loadAgents();
+  await loadAgentQueueTable();
+}
+
+async function loadAgentQueueTable() {
+  const body = $('agent-queue-body');
+  const note = $('agent-queue-note');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="5">Loading…</td></tr>';
+  const r = await api('/api/ops/agent-queue?status=pending&limit=50');
+  if (!r.ok || !r.data || !Array.isArray(r.data.rows)) {
+    if (body) body.innerHTML = '<tr><td colspan="5">Could not load agent queue.</td></tr>';
+    return;
+  }
+  const rows = r.data.rows;
+  if (note) {
+    note.textContent = `${rows.length} pending row${rows.length === 1 ? '' : 's'} · brand required on every row · all = cross-lane foreman only`;
+  }
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="5">No pending queue rows.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map((row) => (
+    '<tr>'
+    + '<td>' + esc(row.agent || '—') + '</td>'
+    + '<td><span class="chip">' + esc(row.brand || '—') + '</span></td>'
+    + '<td>' + esc(row.action || '—') + '</td>'
+    + '<td>' + esc(row.status || '—') + '</td>'
+    + '<td style="font-family:var(--mono);font-size:12px">' + esc(row.payload_ref || '—') + '</td>'
+    + '</tr>'
+  )).join('');
 }
 
 async function loadLearn() {

@@ -3,20 +3,23 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from ..layer1._io import as_dict, as_list, io_for_job, utc_now_iso
+from _lib.brand_validate import validate_brand_id
 
 JOB_NAME = "post_outcomes"
 from _lib import feedback_loop as fb
 
 OUTPUT = "post-outcomes.json"
 SCHEMA = "campaign-os/post-outcomes/v1"
-DEFAULT_BRAND = "stick"
 WINDOW_DAYS = 30
+
+_LOG = logging.getLogger("campaign_os.jobs.post_outcomes")
 
 HOOK_THEMES = {
     "club_fitting": ["fitting", "fitted", "club", "driver", "iron", "sub 70", "avoda", "miura", "takomo"],
@@ -171,7 +174,14 @@ def _build_outcome_row(
 
 def run(*, brand: str | None = None) -> dict:
     """Build post-outcomes.json from IG analytics + optional conversion + receipts."""
-    io = io_for_job(JOB_NAME, brand)
+    if not brand:
+        return {"ok": False, "error": "brand required"}
+    try:
+        lane_brand = validate_brand_id(brand)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
+
+    io = io_for_job(JOB_NAME, lane_brand)
     ig_doc = as_dict(io.read("ig-business-analytics.json"))
     media = as_list(ig_doc.get("media"))
     if not media:
@@ -199,9 +209,22 @@ def run(*, brand: str | None = None) -> dict:
 
     joined_receipts: set[str] = set()
     outcomes: list[dict[str, Any]] = []
+    receipts_skipped_no_brand = 0
 
     for receipt in receipts:
         if str(receipt.get("schema") or "") != "campaign-os/publish-receipt/v1":
+            continue
+        receipt_brand_raw = receipt.get("brand_id")
+        try:
+            receipt_brand = validate_brand_id(receipt_brand_raw)
+        except ValueError:
+            receipts_skipped_no_brand += 1
+            _LOG.info(
+                "post_outcomes skip receipt missing/invalid brand_id key=%s",
+                receipt.get("idempotency_key"),
+            )
+            continue
+        if receipt_brand != lane_brand:
             continue
         post, join_basis = _join_receipt(receipt, ig_by_hook, ig_by_id)
         if not post:
@@ -210,7 +233,7 @@ def run(*, brand: str | None = None) -> dict:
         conv = conversion_index.get(f"post:{post_id}") or conversion_index.get(f"hook:{post.get('hook_id')}")
         outcomes.append(_build_outcome_row(
             post,
-            brand_id=str(receipt.get("brand_id") or DEFAULT_BRAND),
+            brand_id=receipt_brand,
             conversion_row=conv,
             receipt=receipt,
             join_basis=join_basis,
@@ -224,7 +247,7 @@ def run(*, brand: str | None = None) -> dict:
         conv = conversion_index.get(f"post:{post_id}") or conversion_index.get(f"hook:{post.get('hook_id')}")
         outcomes.append(_build_outcome_row(
             post,
-            brand_id=DEFAULT_BRAND,
+            brand_id=lane_brand,
             conversion_row=conv,
             receipt=None,
             join_basis="ig_only",
@@ -237,10 +260,12 @@ def run(*, brand: str | None = None) -> dict:
         "schema": SCHEMA,
         "generated_at": utc_now_iso(),
         "generated_by": "layer7/post_outcomes.py",
+        "brand_id": lane_brand,
         "window_days": WINDOW_DAYS,
         "score_basis": "conversion_backed" if any_conversion else "engagement_only",
         "posts_total": len(ranked),
         "receipts_joined": len(joined_receipts),
+        "receipts_skipped_no_brand": receipts_skipped_no_brand,
         "outcomes": ranked,
     }
     io.write(OUTPUT, payload)

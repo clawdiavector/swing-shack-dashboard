@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from _lib.brand_validate import validate_brand_id
 from _lib.ops_layers import worst_verdict
 
 SCHEMA = "campaign-os/ops-agents/v1"
@@ -301,6 +302,7 @@ def _validate_queue_row(row: dict[str, str]) -> dict[str, str]:
     missing = QUEUE_ROW_KEYS - set(clean)
     if missing:
         raise ValueError(f"queue row missing keys: {sorted(missing)}")
+    clean["brand"] = validate_brand_id(clean["brand"], allow_sentinel=True)
     return clean
 
 
@@ -330,7 +332,7 @@ def normalise_enqueue(body: dict[str, Any]) -> dict[str, str]:
     agent = str(body.get("agent") or "").strip()
     if not AGENT_ID_RE.match(agent):
         raise ValueError("invalid agent id")
-    brand = _clamp_text(body.get("brand") or "stick", 64)
+    brand = validate_brand_id(body.get("brand"))
     reason = _clamp_text(body.get("reason") or "manual", 64)
     row_id = f"manual-{brand}-{agent}-{reason}"[:80]
     payload_ref = body.get("payload_ref")

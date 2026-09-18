@@ -10,6 +10,7 @@ from typing import Any
 
 from ..errors import describe_exception
 from ..layer1._io import atomic_write
+from _lib.brand_validate import validate_brand_id
 
 VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1792", "1792x1024"})
 REQUIRED_FIELDS = frozenset(
@@ -67,6 +68,13 @@ def _check_sidecar(sidecar: dict[str, Any], caption: str) -> list[str]:
         issues.append(f"missing fields: {', '.join(sorted(missing))}")
 
     brand_id = str(sidecar.get("brand_id") or "")
+    if not brand_id:
+        issues.append("invalid brand_id")
+    else:
+        try:
+            validate_brand_id(brand_id)
+        except ValueError:
+            issues.append("invalid brand_id")
     text = caption or ""
     if text.startswith("[LLM unavailable"):
         issues.append("placeholder caption from unavailable LLM")

@@ -81,6 +81,10 @@ class PublishSandboxTests(unittest.TestCase):
         self.assertEqual(s["queue_depth"], 2)
         self.assertEqual(s["queue_approved_ready"], 1)
 
+    def test_enqueue_rejects_invalid_brand(self) -> None:
+        with self.assertRaises(ValueError):
+            publish_sandbox.enqueue_item(brand_id="takomo", human_approved=False)
+
 
 if __name__ == "__main__":
     unittest.main()

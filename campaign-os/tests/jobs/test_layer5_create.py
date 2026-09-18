@@ -169,6 +169,37 @@ def test_draft_assets_respects_cap(l5_app, tmp_path, monkeypatch):
     assert "rate limit" not in err.lower()
 
 
+def test_draft_assets_skips_invalid_brand_row(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    item_id = _seed_approved_proposal(tmp_path)
+    doc = {
+        "schema": "campaign-os/agent-queue/v1",
+        "generated_at": "2026-09-17T10:00:00Z",
+        "rows": [
+            {
+                "id": "manual-takomo-cos-scout-manual",
+                "layer": "L3",
+                "agent": "cos-scout",
+                "brand": "takomo",
+                "action": "draft_caption",
+                "payload_ref": f"inbox/{item_id}",
+                "status": "pending",
+            }
+        ],
+    }
+    (tmp_path / "agent-queue.json").write_text(json.dumps(doc), encoding="utf-8")
+
+    with patch("_lib.p11_context_engine.run_caption_pipeline") as mock_pipe:
+        result = draft_assets.run()
+        mock_pipe.assert_not_called()
+
+    assert result.get("ok") is True
+    assert result.get("drafted") == 0
+    assert result.get("skipped") >= 1
+
+
 def test_draft_assets_only_approved(l5_app, tmp_path):
     from _lib.jobs.layer5 import draft_assets
 
@@ -408,10 +439,15 @@ def test_enqueue_flag_off_default(l5_app, tmp_path):
 
 
 def test_layers_l5_create_counts(l5_app, tmp_path):
+    from datetime import datetime, timezone
+
+    for mod in list(sys.modules):
+        if mod == "_lib.ops_layers":
+            del sys.modules[mod]
     from _lib.ops_layers import build_layers, load_create_stats
 
     (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
-    today = "2026-09-17T12:00:00Z"
+    today = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     sidecar = {
         "schema": "campaign-os/draft-asset/v1",
         "asset_id": "d1",

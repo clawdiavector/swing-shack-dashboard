@@ -43,10 +43,20 @@ def learn_env(monkeypatch, tmp_path):
     return app_module, tmp_path
 
 
-def _seed_fixtures(tmp_path: Path, *, with_conversion: bool = True) -> None:
-    shutil.copy(FIXTURES / "ig-business-analytics.min.json", tmp_path / "ig-business-analytics.json")
+LEARN_BRAND = "stick"
+
+
+def _brand_data_dir(tmp_path: Path, brand: str = LEARN_BRAND) -> Path:
+    root = tmp_path / "brands" / brand
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def _seed_fixtures(tmp_path: Path, *, with_conversion: bool = True, brand: str = LEARN_BRAND) -> None:
+    brand_root = _brand_data_dir(tmp_path, brand)
+    shutil.copy(FIXTURES / "ig-business-analytics.min.json", brand_root / "ig-business-analytics.json")
     if with_conversion:
-        shutil.copy(FIXTURES / "post-conversion-score.min.json", tmp_path / "post-conversion-score.json")
+        shutil.copy(FIXTURES / "post-conversion-score.min.json", brand_root / "post-conversion-score.json")
     sandbox = tmp_path / "publish-sandbox"
     sandbox.mkdir(parents=True, exist_ok=True)
     shutil.copy(FIXTURES / "receipts.jsonl", sandbox / "receipts.jsonl")
@@ -56,6 +66,22 @@ def _seed_fixtures(tmp_path: Path, *, with_conversion: bool = True) -> None:
     shutil.copy(FIXTURES / "proposals-pending.jsonl", proposals / "pending.jsonl")
 
 
+def _post_outcomes_path(tmp_path: Path, brand: str = LEARN_BRAND) -> Path:
+    return tmp_path / "brands" / brand / "post-outcomes.json"
+
+
+def _run_post_outcomes(brand: str = LEARN_BRAND):
+    from _lib.jobs.layer7 import post_outcomes
+
+    return post_outcomes.run(brand=brand)
+
+
+def _mirror_post_outcomes_for_winner(tmp_path: Path, brand: str = LEARN_BRAND) -> None:
+    src = _post_outcomes_path(tmp_path, brand)
+    if src.is_file():
+        shutil.copy(src, tmp_path / "post-outcomes.json")
+
+
 def _auth():
     return {"Authorization": "Bearer test-job-token-not-a-secret"}
 
@@ -63,12 +89,11 @@ def _auth():
 def test_post_outcomes_schema(learn_env):
     _, tmp_path = learn_env
     _seed_fixtures(tmp_path)
-    from _lib.jobs.layer7 import post_outcomes
-
-    result = post_outcomes.run()
+    result = _run_post_outcomes()
     assert result["ok"] is True
-    doc = json.loads((tmp_path / "post-outcomes.json").read_text(encoding="utf-8"))
+    doc = json.loads(_post_outcomes_path(tmp_path).read_text(encoding="utf-8"))
     assert doc["schema"] == "campaign-os/post-outcomes/v1"
+    assert doc["brand_id"] == LEARN_BRAND
     assert "outcomes" in doc
     assert doc["posts_total"] >= 1
 
@@ -76,10 +101,8 @@ def test_post_outcomes_schema(learn_env):
 def test_post_outcomes_joins_receipt_to_ig_post(learn_env):
     _, tmp_path = learn_env
     _seed_fixtures(tmp_path)
-    from _lib.jobs.layer7 import post_outcomes
-
-    post_outcomes.run()
-    doc = json.loads((tmp_path / "post-outcomes.json").read_text(encoding="utf-8"))
+    _run_post_outcomes()
+    doc = json.loads(_post_outcomes_path(tmp_path).read_text(encoding="utf-8"))
     joined = [
         row for row in doc["outcomes"]
         if row.get("join_basis") == "hook_id" and row.get("inbox_item_id")
@@ -91,28 +114,33 @@ def test_post_outcomes_joins_receipt_to_ig_post(learn_env):
 def test_post_outcomes_join_falls_back_on_blank_hook_id(learn_env):
     _, tmp_path = learn_env
     _seed_fixtures(tmp_path)
-    from _lib.jobs.layer7 import post_outcomes
-
-    result = post_outcomes.run()
+    result = _run_post_outcomes()
     assert result["ok"] is True
 
 
 def test_post_outcomes_no_ga4_is_engagement_only(learn_env):
     _, tmp_path = learn_env
     _seed_fixtures(tmp_path, with_conversion=False)
+    _run_post_outcomes()
+    doc = json.loads(_post_outcomes_path(tmp_path).read_text(encoding="utf-8"))
+    assert doc["score_basis"] == "engagement_only"
+
+
+def test_post_outcomes_requires_brand(learn_env):
     from _lib.jobs.layer7 import post_outcomes
 
-    post_outcomes.run()
-    doc = json.loads((tmp_path / "post-outcomes.json").read_text(encoding="utf-8"))
-    assert doc["score_basis"] == "engagement_only"
+    result = post_outcomes.run()
+    assert result["ok"] is False
+    assert "brand required" in str(result.get("error") or "")
 
 
 def test_winner_promotion_is_relative_not_absolute(learn_env):
     _, tmp_path = learn_env
     _seed_fixtures(tmp_path)
-    from _lib.jobs.layer7 import post_outcomes, winner_promotion
+    from _lib.jobs.layer7 import winner_promotion
 
-    post_outcomes.run()
+    _run_post_outcomes()
+    _mirror_post_outcomes_for_winner(tmp_path)
     result = winner_promotion.run()
     assert result["ok"] is True
     doc = json.loads((tmp_path / "winning-recipes.json").read_text(encoding="utf-8"))
@@ -143,9 +171,10 @@ def test_winner_promotion_below_min_samples_is_not_ready(learn_env):
 def test_winning_recipes_schema_frozen(learn_env):
     _, tmp_path = learn_env
     _seed_fixtures(tmp_path)
-    from _lib.jobs.layer7 import post_outcomes, winner_promotion
+    from _lib.jobs.layer7 import winner_promotion
 
-    post_outcomes.run()
+    _run_post_outcomes()
+    _mirror_post_outcomes_for_winner(tmp_path)
     winner_promotion.run()
     doc = json.loads((tmp_path / "winning-recipes.json").read_text(encoding="utf-8"))
     required = {"recipe_id", "brand_id", "rank", "percentile", "score", "evidence", "join_basis"}
@@ -207,9 +236,10 @@ def test_human_edit_signal_empty_file(learn_env, tmp_path):
 def test_learn_summary_bearer_and_session(learn_env):
     app_module, tmp_path = learn_env
     _seed_fixtures(tmp_path)
-    from _lib.jobs.layer7 import post_outcomes, winner_promotion, human_edit_signal, proposal_outcome
+    from _lib.jobs.layer7 import winner_promotion, human_edit_signal, proposal_outcome
 
-    post_outcomes.run()
+    _run_post_outcomes()
+    _mirror_post_outcomes_for_winner(tmp_path)
     winner_promotion.run()
     human_edit_signal.run()
     proposal_outcome.run()

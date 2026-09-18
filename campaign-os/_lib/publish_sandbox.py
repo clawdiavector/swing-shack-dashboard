@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from _lib.brand_validate import validate_brand_id
+
 SANDBOX_CONFIG_SCHEMA = "campaign-os/publish-sandbox/v1"
 RECEIPT_SCHEMA = "campaign-os/publish-receipt/v1"
 QUEUE_SCHEMA = "campaign-os/publish-queue-item/v1"
@@ -116,6 +118,7 @@ def enqueue_item(
 ) -> dict[str, Any]:
     """Append a pending queue row (no network)."""
     ensure_sandbox_layout()
+    brand_id = validate_brand_id(brand_id)
     key = idempotency_key or f"sb-{brand_id}-{platform}-{secrets.token_hex(8)}"
     item = {
         "schema": QUEUE_SCHEMA,
@@ -161,6 +164,11 @@ def dispatch_item(item: dict[str, Any]) -> tuple[dict[str, Any], Optional[str]]:
     if not key:
         return {}, "idempotency_key required"
 
+    try:
+        brand_id = validate_brand_id(item.get("brand_id"))
+    except ValueError as exc:
+        return {}, str(exc)
+
     existing = _receipt_index().get(key)
     if existing:
         return existing, None
@@ -169,7 +177,7 @@ def dispatch_item(item: dict[str, Any]) -> tuple[dict[str, Any], Optional[str]]:
         "schema": RECEIPT_SCHEMA,
         "mode": "sandbox",
         "inbox_item_id": item.get("inbox_item_id"),
-        "brand_id": item.get("brand_id"),
+        "brand_id": brand_id,
         "channel": item.get("channel", "postiz"),
         "platform": item.get("platform", "instagram"),
         "idempotency_key": key,

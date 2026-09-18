@@ -13972,11 +13972,14 @@ def publish_sandbox_enqueue_route():
     if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     body = request.get_json(silent=True) or {}
-    brand_id = (body.get("brand_id") or "").strip()
-    if not brand_id:
-        return jsonify({"ok": False, "error": "brand_id required"}), 400
     try:
+        from _lib.brand_validate import validate_brand_id
         from _lib.publish_sandbox import enqueue_item
+
+        brand_id = validate_brand_id(body.get("brand_id"))
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+    try:
         item = enqueue_item(
             brand_id=brand_id,
             platform=(body.get("platform") or "instagram").strip(),
@@ -16991,8 +16994,16 @@ def ops_agent_queue_get():
 
         from _lib import ops_agents as _ops_agents_mod
 
+        from _lib.brand_validate import validate_brand_id
+
         agent = (request.args.get("agent") or "").strip() or None
-        brand = (request.args.get("brand") or "").strip() or None
+        brand_raw = (request.args.get("brand") or "").strip() or None
+        brand = None
+        if brand_raw:
+            try:
+                brand = validate_brand_id(brand_raw)
+            except ValueError as exc:
+                return jsonify({"ok": False, "error": str(exc)}), 400
         status = (request.args.get("status") or "").strip() or None
         limit_raw = request.args.get("limit", "200")
         try:

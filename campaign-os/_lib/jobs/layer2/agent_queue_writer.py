@@ -6,6 +6,7 @@ from typing import Any
 
 from ..errors import describe_exception
 from _lib.brand_data_paths import read_brand_data_json
+from _lib.brand_validate import validate_brand_id
 from _lib.marketing_calendar import VALID_BRAND_IDS
 
 from ..layer1._io import as_dict, as_list, atomic_write, read_json, slug_id, utc_now_iso
@@ -24,10 +25,14 @@ def _rows_from_slots(slots_doc: dict[str, Any]) -> list[dict[str, str]]:
     for slot in as_list(slots_doc.get("empty_slots")):
         if not isinstance(slot, dict):
             continue
-        brand = str(slot.get("brand") or "")
+        brand_raw = str(slot.get("brand") or "")
         date = str(slot.get("date") or "")
         pillar_id = str(slot.get("pillar_id") or "")
-        if not brand or not date:
+        if not brand_raw or not date:
+            continue
+        try:
+            brand = validate_brand_id(brand_raw)
+        except ValueError:
             continue
         payload_ref = f"slot-planner.json#{brand}/{date}/{pillar_id}"
         rows.append(
@@ -82,9 +87,14 @@ def _rows_from_reco(reco_doc: dict[str, Any]) -> list[dict[str, str]]:
             if not hook or hook in seen:
                 continue
             seen.add(hook)
-            brand = str(item.get("owner") or item.get("brand") or "swing-shack").split()[0].lower()
-            if brand not in {"swing-shack", "stick", "bag-drop"}:
-                brand = "swing-shack"
+            owner_bits = str(item.get("owner") or item.get("brand") or "").strip().split()
+            if not owner_bits:
+                continue
+            brand_raw = owner_bits[0].lower()
+            try:
+                brand = validate_brand_id(brand_raw)
+            except ValueError:
+                continue
             payload_ref = f"recommendation-scores.json#{hook}"
             rows.append(
                 {
@@ -105,6 +115,7 @@ def _validate_row(row: dict[str, Any]) -> dict[str, str]:
     missing = ROW_KEYS - set(clean)
     if missing:
         raise ValueError(f"queue row missing keys: {sorted(missing)}")
+    clean["brand"] = validate_brand_id(clean["brand"], allow_sentinel=True)
     return clean
 
 
@@ -141,13 +152,26 @@ def run() -> dict[str, Any]:
         existing_rows = as_list(existing_doc.get("rows"))
 
         generated: list[dict[str, str]] = []
+        skipped_brand = 0
         generated.extend(_rows_from_slots(slots_doc))
         generated.extend(_rows_from_freshness(freshness_doc))
         for brand_id in VALID_BRAND_IDS:
             reco_doc = as_dict(read_brand_data_json("recommendation-scores.json", brand_id))
             generated.extend(_rows_from_reco(reco_doc))
 
-        rows = _merge_rows(generated, existing_rows)
+        pruned_existing: list[dict[str, Any]] = []
+        for row in existing_rows:
+            if not isinstance(row, dict):
+                continue
+            if row.get("status") == "pending" and not str(row.get("id", "")).startswith("manual-"):
+                try:
+                    validate_brand_id(row.get("brand"), allow_sentinel=True)
+                except ValueError:
+                    skipped_brand += 1
+                    continue
+            pruned_existing.append(row)
+
+        rows = _merge_rows(generated, pruned_existing)
         for row in rows:
             _validate_row(row)
 
@@ -158,6 +182,9 @@ def run() -> dict[str, Any]:
         }
         atomic_write(OUTPUT, payload)
         pending_count = sum(1 for row in rows if row.get("status") == "pending")
-        return {"ok": True, "rows": pending_count}
+        result: dict[str, Any] = {"ok": True, "rows": pending_count}
+        if skipped_brand:
+            result["skipped_brand"] = skipped_brand
+        return result
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "error": describe_exception(exc)}

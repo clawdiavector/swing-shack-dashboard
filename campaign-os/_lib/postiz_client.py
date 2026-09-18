@@ -104,6 +104,8 @@ def _credentials_present(brand_id: str | None = None) -> bool:
 
 def _read_api_key(brand_id: str | None = None) -> Optional[str]:
     """Resolve the API key without echoing it. Returns None if missing."""
+    from _lib.brand_validate import POSTIZ_GLOBAL_FALLBACK_BRAND
+
     if brand_id:
         safe = _brand_env_suffix(brand_id)
         for key in (
@@ -114,6 +116,8 @@ def _read_api_key(brand_id: str | None = None) -> Optional[str]:
             env = os.environ.get(key)
             if env and env.strip():
                 return env.strip()
+        if brand_id != POSTIZ_GLOBAL_FALLBACK_BRAND:
+            return None
     env = os.environ.get("POSTIZ_API_KEY")
     if env and env.strip():
         return env.strip()
