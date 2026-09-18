@@ -43748,6 +43748,149 @@ def report_v22_portfolio():
         _app_log.exception("report_v22_portfolio failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
+
+# ─── REPORTING V2.2: HISTORICAL REPORT SINGLE-CANONICAL-ROOT ───────────
+# V2.2 §6: ONE canonical durable root for historical reports:
+#   {DATA_DIR}/historical-reports/<brand_id>/<filename.json>
+# DATA_DIR on Railway resolves to /data/campaign-os (persistent
+# volume). Upload writes here. List reads here. Engine reads
+# here. Single source of truth.
+#
+# The V2.1 list-uploads endpoint scans multiple candidate
+# roots for backwards compatibility — V2.2 deprecates that
+# scan and provides /api/reports/v2_2/<brand>/historical-
+# reports as the single canonical view.
+
+
+@app.route('/api/reports/v2_2/<brand_id>/historical-reports',
+           methods=['GET'])
+def report_v22_historical_reports(brand_id):
+    """GET /api/reports/v2_2/<brand_id>/historical-reports
+
+    V2.2 §6: canonical single-root view. Reads ONLY from
+    {DATA_DIR}/historical-reports/<brand>/. Returns the
+    list of operator-uploaded historical reports for the
+    brand with metrics_summary + definition_compatible
+    flag per V2.2 §12.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": f"unknown brand_id: {brand_id}"}), 400
+    canonical_root = os.path.join(DATA_DIR, "historical-reports",
+                                    brand_id)
+    if not os.path.isdir(canonical_root):
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "canonical_root": canonical_root,
+            "count": 0,
+            "files": [],
+            "note": ("canonical root does not exist yet — no "
+                     "historical reports uploaded for this brand"),
+        }), 200
+    files = []
+    for fname in sorted(os.listdir(canonical_root)):
+        if not fname.endswith(".json"):
+            continue
+        p = os.path.join(canonical_root, fname)
+        try:
+            d = json.load(open(p))
+            files.append({
+                "filename": fname,
+                "period": d.get("period"),
+                "uploaded_at": d.get("uploaded_at"),
+                "uploaded_by": d.get("uploaded_by"),
+                "source": "historical_report",
+                "canonical_root": canonical_root,
+                "metrics_keys": sorted((d.get("metrics") or {}).keys())
+                                if isinstance(d.get("metrics"), dict) else [],
+                "metrics_count": len(d.get("metrics") or {})
+                                   if isinstance(d.get("metrics"), dict) else 0,
+                "observations_count": len(d.get("observations") or [])
+                                          if isinstance(d.get("observations"), list) else 0,
+                "definition_compatible": (
+                    "verify"  # per V2.2 §12: never auto-claim compat
+                ),
+                "note": ("Verify metric definitions before any "
+                         "side-by-side comparison. Historical "
+                         "values are NOT force-fed into current-"
+                         "period deltas."),
+            })
+        except Exception as e:
+            files.append({"filename": fname,
+                          "canonical_root": canonical_root,
+                          "parse_error": str(e)[:120]})
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "canonical_root": canonical_root,
+        "count": len(files),
+        "files": files,
+    }), 200
+
+
+@app.route('/api/admin/v22-migrate-historical-reports',
+           methods=['POST'])
+def admin_v22_migrate_historical_reports():
+    """POST /api/admin/v22-migrate-historical-reports
+
+    V2.2 §6 migration: copy historical reports from any
+    legacy root into the canonical {DATA_DIR}/historical-
+    reports/<brand>/ root. After migration, reads /
+    list-uploads / report ingestion all resolve to the
+    same canonical file.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    canonical_root = os.path.join(DATA_DIR, "historical-reports")
+    candidates = []
+    for root in [
+        os.path.join(DATA_DIR, "historical-reports"),
+        "/data/historical-reports",
+        os.path.join("/app", "data", "historical-reports"),
+        os.path.join(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))),
+                     "data", "historical-reports"),
+    ]:
+        if os.path.isdir(root):
+            candidates.append(root)
+    moved = []
+    for brand_id in ("stick", "swing-shack", "bag-drop"):
+        for src_root in candidates:
+            src_brand_dir = os.path.join(src_root, brand_id)
+            if not os.path.isdir(src_brand_dir):
+                continue
+            if os.path.abspath(src_brand_dir) == os.path.abspath(
+                    os.path.join(canonical_root, brand_id)):
+                continue  # already in canonical
+            dst_brand_dir = os.path.join(canonical_root, brand_id)
+            os.makedirs(dst_brand_dir, exist_ok=True)
+            for fname in sorted(os.listdir(src_brand_dir)):
+                if not fname.endswith(".json"):
+                    continue
+                src = os.path.join(src_brand_dir, fname)
+                dst = os.path.join(dst_brand_dir, fname)
+                if os.path.exists(dst):
+                    continue  # already migrated
+                import shutil
+                shutil.copy2(src, dst)
+                moved.append({
+                    "brand_id": brand_id,
+                    "filename": fname,
+                    "src": src,
+                    "dst": dst,
+                })
+    return jsonify({
+        "ok": True,
+        "canonical_root": canonical_root,
+        "candidates_scanned": candidates,
+        "moved": moved,
+        "moved_count": len(moved),
+    }), 200
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
