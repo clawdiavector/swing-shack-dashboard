@@ -424,24 +424,18 @@ def _read_json_file(path):
         return None
 
 
-def _resolve_data_path(rel_path: str) -> str:
-    """Resolve a data file path, preferring BUNDLED_DATA_DIR when the runtime
-    DATA_DIR (volume mount) doesn't have the file. Used by weekly-report,
-    insights, socials, and any module that needs to read historical data
-    that ships with the repo (IG analytics, Ubersuggest, ad stubs, etc.).
-    """
-    runtime_path = os.path.join(DATA_DIR, rel_path)
-    if os.path.exists(runtime_path):
-        return runtime_path
-    bundled_path = os.path.join(BUNDLED_DATA_DIR, rel_path)
-    if os.path.exists(bundled_path):
-        return bundled_path
-    return runtime_path  # caller will get FileNotFoundError or None
+def _resolve_data_path(rel_path: str, brand_id: str | None = None) -> str:
+    """Resolve a data file path, preferring brand lane then flat/bundled fallback."""
+    from _lib.brand_data_paths import resolve_brand_data_path
+
+    return resolve_brand_data_path(rel_path, brand_id)
 
 
-def _read_data_json(rel_path: str):
-    """Read a data file with DATA_DIR → BUNDLED_DATA_DIR fallback."""
-    return _read_json_file(_resolve_data_path(rel_path))
+def _read_data_json(rel_path: str, brand_id: str | None = None):
+    """Read a data file with brand-first path resolution."""
+    from _lib.brand_data_paths import read_brand_data_json
+
+    return read_brand_data_json(rel_path, brand_id)
 
 def load_schedule():
     """Read the scheduling sidecar; campaign-data.json remains read-only here."""
@@ -11940,7 +11934,7 @@ def insights_top_instagram_posts():
         limit = min(int(request.args.get("limit", 8)), 25)
         bid = request.args.get("brand_id") or get_brand_id()
         data_bid = resolve_data_brand(bid)
-        out = _ic.get_top_instagram_posts(limit=limit)
+        out = _ic.get_top_instagram_posts(brand_id=data_bid, limit=limit)
         out['requested_brand_id'] = bid
         out['data_source_brand_id'] = data_bid
         return jsonify(out), 200
@@ -11964,7 +11958,7 @@ def insights_ad_correlation():
         from _lib import insights_correlator as _ic
         bid = request.args.get("brand_id") or get_brand_id()
         data_bid = resolve_data_brand(bid)
-        out = _ic.get_ad_correlation_verdicts()
+        out = _ic.get_ad_correlation_verdicts(brand_id=data_bid)
         out['requested_brand_id'] = bid
         out['data_source_brand_id'] = data_bid
         return jsonify(out), 200
@@ -11988,7 +11982,7 @@ def insights_content_traffic_correlation():
         days = min(int(request.args.get("days", 30)), 90)
         bid = request.args.get("brand_id") or get_brand_id()
         data_bid = resolve_data_brand(bid)
-        out = _ic.get_content_traffic_correlations(days=days)
+        out = _ic.get_content_traffic_correlations(brand_id=data_bid, days=days)
         out['requested_brand_id'] = bid
         out['data_source_brand_id'] = data_bid
         return jsonify(out), 200
@@ -19729,20 +19723,15 @@ def get_brand_id():
 
 
 def resolve_data_brand(brand_id: str) -> str:
-    """For analytics endpoints, return the brand whose data files should be read.
+    """Return the brand id used for analytics file reads (identity mapping).
 
-    Sub-brands (Stick, Bag Drop, Takomo) delegate analytics to swing-shack so
-    we don't need separate IG / GBP / GA4 files per brand. The brand_id is
-    still used for voice/positioning/colour in the UI layer — only the
-    analytics endpoints swap to the delegate source.
+    Per-brand L1 outputs live under brands/<brand_id>/; callers pass brand_id
+    through to _read_data_json / _resolve_data_path. Slated for removal once
+    all call sites thread brand explicitly.
     """
     if not brand_id:
-        return 'swing-shack'
-    registry = load_brands_registry()
-    brand = (registry.get('brands') or {}).get(brand_id) or {}
-    delegate = brand.get('data_delegates_from')
-    if delegate and isinstance(delegate, str):
-        return delegate
+        registry = load_brands_registry()
+        return registry.get('default_brand_id') or 'swing-shack'
     return brand_id
 
 
@@ -20015,7 +20004,7 @@ def _weekly_collect_current(bid):
     # 1) GA4 — last 7 days (resilient: missing keys → zero + tagged)
     # Try runtime DATA_DIR first; fall back to bundled repo copy.
     try:
-        ga4_path = _resolve_data_path('ga4-metrics.json')
+        ga4_path = _resolve_data_path('ga4-metrics.json', bid)
         if os.path.exists(ga4_path):
             ga = _read_json_file(ga4_path) or {}
             window = ga.get('data_window', 'unknown')
@@ -20087,7 +20076,7 @@ def _weekly_collect_current(bid):
     # daily-grain IG metric we have on disk; interactions/posts are cumulative
     # so they only get compared from archived snapshots.
     try:
-        ig_biz_path = _resolve_data_path('ig-business-analytics.json')
+        ig_biz_path = _resolve_data_path('ig-business-analytics.json', bid)
         if os.path.exists(ig_biz_path):
             ig_biz = _read_json_file(ig_biz_path) or {}
             daily_reach = ig_biz.get('daily_reach', []) or []
@@ -20695,6 +20684,7 @@ def _weekly_build_brain(metrics, cur, prev, today):
       8. Gaps (what the brain still cannot see)
     """
     try:
+        bid = (cur or {}).get('brand_id') or 'swing-shack'
         c_28d = (cur or {}).get('28d', {}) or {}
         weekly = (cur or {}).get('weekly', {}) or {}
         ig_reach_28d = c_28d.get('ig_reach', 0) or 0
@@ -20711,15 +20701,15 @@ def _weekly_build_brain(metrics, cur, prev, today):
         # this fallback the brain renders an empty section instead of
         # the full CMO read.
         data_dir = DATA_DIR
-        funnel_leaks = _weekly_load_json(_resolve_data_path('funnel-leaks.json'))
-        seo = _weekly_load_json(_resolve_data_path('seo-rankings.json'))
-        comp = _weekly_load_json(_resolve_data_path('competitor-tracker.json'))
-        pcs = _weekly_load_json(_resolve_data_path('post-conversion-score.json'))
-        counter = _weekly_load_json(_resolve_data_path('counter-moves.json'))
-        bvm = _weekly_load_json(_resolve_data_path('booking-value-model.json'))
-        meta_ads = _weekly_load_json(_resolve_data_path('meta-ads.json'))
-        rec_outcomes = _weekly_load_json(_resolve_data_path('recommendation-outcomes.json'))
-        retarget_recs = _weekly_load_json(_resolve_data_path('retargeting-recommendations.json'))
+        funnel_leaks = _weekly_load_json(_resolve_data_path('funnel-leaks.json', bid))
+        seo = _weekly_load_json(_resolve_data_path('seo-rankings.json', bid))
+        comp = _weekly_load_json(_resolve_data_path('competitor-tracker.json', bid))
+        pcs = _weekly_load_json(_resolve_data_path('post-conversion-score.json', bid))
+        counter = _weekly_load_json(_resolve_data_path('counter-moves.json', bid))
+        bvm = _weekly_load_json(_resolve_data_path('booking-value-model.json', bid))
+        meta_ads = _weekly_load_json(_resolve_data_path('meta-ads.json', bid))
+        rec_outcomes = _weekly_load_json(_resolve_data_path('recommendation-outcomes.json', bid))
+        retarget_recs = _weekly_load_json(_resolve_data_path('retargeting-recommendations.json', bid))
 
         # === Cross-reference primitives (used by every section below) ===
         meta_ads_note = (meta_ads.get('_meta') or {}).get('note') or ''

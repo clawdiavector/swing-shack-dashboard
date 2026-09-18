@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from ._io import as_dict, parse_float, parse_int, read_json, utc_now_iso, fmt_num, js_substring
+from ._io import BrandIO, as_dict, parse_float, parse_int, utc_now_iso, fmt_num, js_substring
 
 # ── empty schemas ──────────────────────────────────────────────────────────
 
@@ -199,11 +199,11 @@ THEME_KEYWORDS = {
 }
 
 
-def step_anomaly_alerts() -> dict:
-    ig = as_dict(read_json("ig-analytics.json"))
-    ga4 = as_dict(read_json("ga4-metrics.json"))
-    seo = as_dict(read_json("seo-rankings.json"))
-    outcomes = as_dict(read_json("recommendation-outcomes.json"))
+def step_anomaly_alerts(io: BrandIO) -> dict:
+    ig = as_dict(io.read("ig-analytics.json"))
+    ga4 = as_dict(io.read("ga4-metrics.json"))
+    seo = as_dict(io.read("seo-rankings.json"))
+    outcomes = as_dict(io.read("recommendation-outcomes.json"))
 
     ig_posts = [p for p in (ig.get("posts") or []) if isinstance(p, dict)]
     ga4_pages = [p for p in (ga4.get("pages") or []) if isinstance(p, dict)]
@@ -429,15 +429,15 @@ def step_anomaly_alerts() -> dict:
 
 # ── 2. missed opportunities ─────────────────────────────────────────────────
 
-def step_missed_opportunities() -> dict:
-    hb = as_dict(read_json("hook-bank.json"))
-    ci = as_dict(read_json("content-ideas.json"))
-    ig = as_dict(read_json("ig-analytics.json"))
-    ga4 = as_dict(read_json("ga4-metrics.json"))
-    wi = as_dict(read_json("website-insights.json"))
-    rd = as_dict(read_json("reddit-trends.json"))
-    yt = as_dict(read_json("youtube-trends.json"))
-    seo = as_dict(read_json("seo-rankings.json"))
+def step_missed_opportunities(io: BrandIO) -> dict:
+    hb = as_dict(io.read("hook-bank.json"))
+    ci = as_dict(io.read("content-ideas.json"))
+    ig = as_dict(io.read("ig-analytics.json"))
+    ga4 = as_dict(io.read("ga4-metrics.json"))
+    wi = as_dict(io.read("website-insights.json"))
+    rd = as_dict(io.read("reddit-trends.json"))
+    yt = as_dict(io.read("youtube-trends.json"))
+    seo = as_dict(io.read("seo-rankings.json"))
 
     opportunities: list[dict] = []
     ig_posts = [p for p in (ig.get("posts") or []) if isinstance(p, dict)]
@@ -670,10 +670,10 @@ def _stage_of(path: str | None) -> str:
     return "AWARENESS"
 
 
-def step_funnel_leaks() -> dict:
-    ga4 = as_dict(read_json("ga4-metrics.json"))
-    ig = as_dict(read_json("ig-analytics.json"))
-    missed = as_dict(read_json("missed-opportunities.json"))
+def step_funnel_leaks(io: BrandIO) -> dict:
+    ga4 = as_dict(io.read("ga4-metrics.json"))
+    ig = as_dict(io.read("ig-analytics.json"))
+    missed = as_dict(io.read("missed-opportunities.json"))
 
     pages = [p for p in (ga4.get("pages") or []) if isinstance(p, dict)]
     ig_posts = [p for p in (ig.get("posts") or []) if isinstance(p, dict)]
@@ -885,8 +885,8 @@ def _bucket_cta(caption: str) -> str:
 
 
 def _normalise_ig_posts() -> tuple[list[dict], str]:
-    ig_raw = as_dict(read_json("ig-analytics.json"))
-    ig_business = as_dict(read_json("ig-business-analytics.json"))
+    ig_raw = as_dict(io.read("ig-analytics.json"))
+    ig_business = as_dict(io.read("ig-business-analytics.json"))
     biz_media = [
         m
         for m in (ig_business.get("media") or [])
@@ -934,8 +934,8 @@ def _normalise_ig_posts() -> tuple[list[dict], str]:
     return posts, "ig-analytics"
 
 
-def step_conversion_attribution() -> dict:
-    ga4 = as_dict(read_json("ga4-metrics.json"))
+def step_conversion_attribution(io: BrandIO) -> dict:
+    ga4 = as_dict(io.read("ga4-metrics.json"))
     ig_posts, _source = _normalise_ig_posts()
 
     ga4_pages = [dict(p) for p in (ga4.get("pages") or []) if isinstance(p, dict)]
@@ -1196,10 +1196,10 @@ def _rework_hook(hook: str, _topic: str) -> str:
     return f"{hook[:50]} — and here's exactly how to fix it. Book your session."
 
 
-def step_retargeting_recommendations() -> dict:
-    leaks = as_dict(read_json("funnel-leaks.json"))
-    missed = as_dict(read_json("missed-opportunities.json"))
-    plan = as_dict(read_json("post-plan.json"))
+def step_retargeting_recommendations(io: BrandIO) -> dict:
+    leaks = as_dict(io.read("funnel-leaks.json"))
+    missed = as_dict(io.read("missed-opportunities.json"))
+    plan = as_dict(io.read("post-plan.json"))
     planned_hooks = {
         (p.get("hook") or "").lower()[:40]
         for p in (plan.get("plan") or [])
@@ -1461,12 +1461,12 @@ def _confidence_score(rec: dict, outcomes: dict | None) -> int:
     return max(1, min(5, int(round(base_conf + learned_adj))))
 
 
-def step_recommendation_scores() -> dict:
-    retarget = as_dict(read_json("retargeting-recommendations.json"))
-    sales = as_dict(read_json("sales-priority.json"))
-    plan = as_dict(read_json("post-plan.json"))
-    leaks = as_dict(read_json("funnel-leaks.json"))
-    outcomes = read_json("recommendation-outcomes.json")
+def step_recommendation_scores(io: BrandIO) -> dict:
+    retarget = as_dict(io.read("retargeting-recommendations.json"))
+    sales = as_dict(io.read("sales-priority.json"))
+    plan = as_dict(io.read("post-plan.json"))
+    leaks = as_dict(io.read("funnel-leaks.json"))
+    outcomes = io.read("recommendation-outcomes.json")
     outcomes_dict = as_dict(outcomes) if outcomes else None
 
     retarget_items = []
@@ -1604,12 +1604,12 @@ def _make_rec_id(rec_type: str, topic: str | None, hook: str | None) -> str:
     return f"rec_{abs(h):08x}"
 
 
-def step_recommendation_outcomes() -> dict:
-    ig = as_dict(read_json("ig-analytics.json"))
-    ga4 = as_dict(read_json("ga4-metrics.json"))
-    retarget = as_dict(read_json("retargeting-recommendations.json"))
-    plan = as_dict(read_json("post-plan.json"))
-    sales = as_dict(read_json("sales-priority.json"))
+def step_recommendation_outcomes(io: BrandIO) -> dict:
+    ig = as_dict(io.read("ig-analytics.json"))
+    ga4 = as_dict(io.read("ga4-metrics.json"))
+    retarget = as_dict(io.read("retargeting-recommendations.json"))
+    plan = as_dict(io.read("post-plan.json"))
+    sales = as_dict(io.read("sales-priority.json"))
 
     ig_posts = [p for p in (ig.get("posts") or []) if isinstance(p, dict)]
     ga4_pages = [p for p in (ga4.get("pages") or []) if isinstance(p, dict)]
@@ -1942,9 +1942,9 @@ def step_recommendation_outcomes() -> dict:
 
 # ── 8. website insights ───────────────────────────────────────────────────
 
-def step_website_insights() -> dict:
-    ga4 = as_dict(read_json("ga4-metrics.json"))
-    geo = as_dict(read_json("geo-audit.json"))
+def step_website_insights(io: BrandIO) -> dict:
+    ga4 = as_dict(io.read("ga4-metrics.json"))
+    geo = as_dict(io.read("geo-audit.json"))
 
     pages = [p for p in (ga4.get("pages") or []) if isinstance(p, dict)]
     total_sessions = parse_int(ga4.get("total_sessions"))

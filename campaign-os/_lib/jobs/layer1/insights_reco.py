@@ -14,7 +14,9 @@ Pipeline order (must match legacy daily_pipeline):
 
 from __future__ import annotations
 
-from ._io import atomic_write
+from ._io import io_for_job
+
+JOB_NAME = "insights_reco"
 from ._reco_steps import (
     count_reco_rows,
     empty_anomaly_alerts,
@@ -69,17 +71,18 @@ _EMPTY_FNS = (
 )
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Run all eight reco scripts in pipeline order."""
+    io = io_for_job(JOB_NAME, brand)
     outputs: dict[str, dict] = {}
     try:
         for name, step_fn in zip(OUTPUT_FILES, _STEP_FNS):
-            payload = step_fn()
+            payload = step_fn(io)
             outputs[name] = payload
-            atomic_write(name, payload)
+            io.write(name, payload)
 
         return {"ok": True, "rows": count_reco_rows(outputs)}
     except Exception:
         for name, empty_fn in zip(OUTPUT_FILES, _EMPTY_FNS):
-            atomic_write(name, empty_fn())
+            io.write(name, empty_fn())
         return {"ok": False, "rows": 0}

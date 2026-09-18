@@ -34,15 +34,11 @@ _DATA_DIR = _REPO_ROOT / "data"
 _DATA_DIR_RUNTIME = Path(os.environ.get("DATA_DIR", str(_DATA_DIR)))
 
 
-def _read_json(name: str) -> Optional[dict]:
-    for base in (_DATA_DIR, _DATA_DIR_RUNTIME):
-        path = base / name
-        if path.exists():
-            try:
-                return json.load(open(path))
-            except (OSError, json.JSONDecodeError):
-                continue
-    return None
+def _read_json(name: str, brand_id: str | None = None) -> Optional[dict]:
+    from _lib.brand_data_paths import read_brand_data_json
+
+    data = read_brand_data_json(name, brand_id)
+    return data if isinstance(data, dict) else None
 
 
 def _today() -> str:
@@ -72,7 +68,7 @@ def evaluate_bet(bet: dict, brand_id: str = "swing-shack") -> dict:
     kpi = (bet.get("primary_kpi") or "").lower()
 
     # IG analytics — pulls from ig-analytics.json
-    ig = _read_json("ig-analytics.json") or {}
+    ig = _read_json("ig-analytics.json", brand_id) or {}
     if ig:
         posts = ig.get("posts", []) or []
         if posts and "engagement" in kpi:
@@ -90,7 +86,7 @@ def evaluate_bet(bet: dict, brand_id: str = "swing-shack") -> dict:
                 evidence_for.append(_evidence("ig-analytics.json", f"median engagement {median}%"))
 
     # FB analytics — pulls from facebook-business-analytics.json (the live file)
-    fb = _read_json("facebook-business-analytics.json") or _read_json("facebook-analytics.json") or {}
+    fb = _read_json("facebook-business-analytics.json", brand_id) or _read_json("facebook-analytics.json", brand_id) or {}
     if fb and "reach" in kpi:
         fans = fb.get("fan_count", 0) or 0
         if fans >= 1000:
@@ -99,7 +95,7 @@ def evaluate_bet(bet: dict, brand_id: str = "swing-shack") -> dict:
             evidence_against.append(_evidence("facebook-business-analytics.json", f"only {fans} fans — limited audience"))
 
     # GA4 — pulls from ga4-metrics.json
-    ga4 = _read_json("ga4-metrics.json") or {}
+    ga4 = _read_json("ga4-metrics.json", brand_id) or {}
     if ga4 and ("bookings" in kpi or "conversion" in kpi or "traffic" in kpi):
         sessions = ga4.get("total_sessions", 0) or 0
         pages = ga4.get("pages", []) or []
@@ -110,7 +106,7 @@ def evaluate_bet(bet: dict, brand_id: str = "swing-shack") -> dict:
             evidence_for.append(_evidence("ga4-metrics.json", f"{sessions} total sessions in last window"))
 
     # Ubersuggest — pulls from ubersuggest-domain.json for SEO
-    seo = _read_json("ubersuggest-domain.json") or {}
+    seo = _read_json("ubersuggest-domain.json", brand_id) or {}
     if seo and ("seo" in kpi or "search" in kpi or "ranking" in kpi):
         positions = seo.get("keyword_positions") or []
         rising = [k for k in positions if isinstance(k, dict) and (k.get("position_delta") or 0) <= -5]
@@ -157,7 +153,7 @@ def mine_lessons_from_data(brand_id: str = "swing-shack") -> list:
     lessons = []
 
     # 1. IG content patterns — which themes get engagement?
-    ig = _read_json("ig-analytics.json") or {}
+    ig = _read_json("ig-analytics.json", brand_id) or {}
     if ig:
         posts = ig.get("posts", []) or []
         if posts:
@@ -212,7 +208,7 @@ def mine_lessons_from_data(brand_id: str = "swing-shack") -> list:
                     })
 
     # 3. GA4 leaks — pages getting traffic but no content pushing them
-    ga4 = _read_json("ga4-metrics.json") or {}
+    ga4 = _read_json("ga4-metrics.json", brand_id) or {}
     if ga4:
         pages = ga4.get("pages", []) or []
         warm_no_content = [
@@ -233,7 +229,7 @@ def mine_lessons_from_data(brand_id: str = "swing-shack") -> list:
             })
 
     # 4. Stories vs posts efficiency
-    ig_biz = _read_json("ig-business-analytics.json") or {}
+    ig_biz = _read_json("ig-business-analytics.json", brand_id) or {}
     if ig_biz:
         stories = ig_biz.get("stories") or ig_biz.get("ig_stories") or []
         posts = ig_biz.get("posts") or ig_biz.get("ig_posts") or []
@@ -256,7 +252,7 @@ def mine_lessons_from_data(brand_id: str = "swing-shack") -> list:
                     })
 
     # 5. SEO — what improved and what slipped
-    seo = _read_json("ubersuggest-domain.json") or {}
+    seo = _read_json("ubersuggest-domain.json", brand_id) or {}
     if seo:
         kws = seo.get("keyword_positions") or []
         rising = sorted(

@@ -6,9 +6,12 @@ import json
 import os
 import re
 import tempfile
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+_flat_fallback_counts: dict[tuple[str | None, str | None, str], int] = {}
 
 
 def data_dir() -> Path:
@@ -20,12 +23,28 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
-def read_json(name: str, *, brand: str | None = None, spec=None) -> dict | list | None:
-    if spec is not None and brand is not None:
-        from ..brand_lanes import resolve_path
+def _fallback_brand() -> str:
+    from ..brand_lanes import load_brands_registry
 
-        name = resolve_path(spec, name, brand)
-    path = data_dir() / name
+    reg = load_brands_registry()
+    return str(reg.get("default_brand_id") or "swing-shack")
+
+
+def flat_fallback_counts() -> dict[str, int]:
+    """Return flat-fallback hit counts keyed by job:brand:file."""
+    return {f"{job or '?'}:{brand or '?'}:{name}": n for (job, brand, name), n in _flat_fallback_counts.items()}
+
+
+def reset_flat_fallback_counts() -> None:
+    _flat_fallback_counts.clear()
+
+
+def _count_flat_fallback(job_name: str | None, brand: str | None, name: str) -> None:
+    key = (job_name, brand, name)
+    _flat_fallback_counts[key] = _flat_fallback_counts.get(key, 0) + 1
+
+
+def _load_json_path(path: Path) -> dict | list | None:
     if not path.is_file():
         return None
     try:
@@ -33,6 +52,64 @@ def read_json(name: str, *, brand: str | None = None, spec=None) -> dict | list 
             return json.load(fh)
     except (json.JSONDecodeError, OSError):
         return None
+
+
+def read_json(
+    name: str,
+    *,
+    brand: str | None = None,
+    spec=None,
+    allow_flat_fallback: bool = True,
+) -> dict | list | None:
+    resolved = name
+    if spec is not None and brand is not None:
+        from ..brand_lanes import resolve_path
+
+        resolved = resolve_path(spec, name, brand)
+
+    path = data_dir() / resolved
+    loaded = _load_json_path(path)
+    if loaded is not None:
+        return loaded
+
+    if (
+        allow_flat_fallback
+        and os.environ.get("COS_FLAT_FALLBACK", "1") != "0"
+        and spec is not None
+        and brand is not None
+        and resolved != name
+        and brand == _fallback_brand()
+    ):
+        flat = data_dir() / name
+        loaded = _load_json_path(flat)
+        if loaded is not None:
+            _count_flat_fallback(getattr(spec, "name", None), brand, name)
+            return loaded
+
+    return None
+
+
+@dataclass(frozen=True)
+class BrandIO:
+    spec: Any
+    brand: str | None
+
+    def read(self, name: str, *, allow_flat_fallback: bool = True) -> dict | list | None:
+        return read_json(
+            name,
+            brand=self.brand,
+            spec=self.spec,
+            allow_flat_fallback=allow_flat_fallback,
+        )
+
+    def write(self, name: str, obj: Any) -> bool:
+        return atomic_write(name, obj, brand=self.brand, spec=self.spec)
+
+
+def io_for_job(job_name: str, brand: str | None) -> BrandIO:
+    from ..registry import JOBS
+
+    return BrandIO(JOBS.get(job_name), brand)
 
 
 def utc_now_iso() -> str:

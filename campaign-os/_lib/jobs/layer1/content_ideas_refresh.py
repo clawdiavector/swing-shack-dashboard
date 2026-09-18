@@ -5,7 +5,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ._io import as_dict, as_list, atomic_write, read_json, utc_date, utc_now_iso
+from ._io import as_dict, as_list, atomic_write, read_json, utc_date, utc_now_iso, io_for_job
+
+JOB_NAME = "content_ideas_refresh"
 
 OUTPUT = "content-ideas.json"
 
@@ -16,7 +18,7 @@ def _idea_id(prefix: str, title: str) -> str:
 
 
 def _mine_missed() -> list[dict]:
-    missed = as_dict(read_json("missed-opportunities.json"))
+    missed = as_dict(io.read("missed-opportunities.json"))
     ideas: list[dict] = []
     for opp in as_list(missed.get("opportunities"))[:15]:
         if not isinstance(opp, dict):
@@ -43,7 +45,7 @@ def _mine_missed() -> list[dict]:
 
 
 def _mine_reddit() -> list[dict]:
-    reddit = as_dict(read_json("reddit-trends.json"))
+    reddit = as_dict(io.read("reddit-trends.json"))
     ideas: list[dict] = []
     for item in as_list(reddit.get("hot_pain_points"))[:10]:
         if not isinstance(item, dict):
@@ -68,7 +70,7 @@ def _mine_reddit() -> list[dict]:
 
 
 def _mine_hooks() -> list[dict]:
-    hooks = as_dict(read_json("hook-bank.json"))
+    hooks = as_dict(io.read("hook-bank.json"))
     ideas: list[dict] = []
     for bucket in ("proven_and_trending", "trending_to_test"):
         for h in as_list((hooks.get("output_buckets") or {}).get(bucket))[:8]:
@@ -94,7 +96,7 @@ def _mine_hooks() -> list[dict]:
 
 
 def _mine_competitor() -> list[dict]:
-    comp = as_dict(read_json("competitor-tracker.json"))
+    comp = as_dict(io.read("competitor-tracker.json"))
     ideas: list[dict] = []
     for change in as_list(comp.get("changes"))[:5]:
         if not isinstance(change, dict):
@@ -129,9 +131,10 @@ def _dedupe(ideas: list[dict]) -> list[dict]:
     return out
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Merge mined ideas into content-ideas.json (preserve billboards + used)."""
-    existing = as_dict(read_json(OUTPUT))
+    io = io_for_job(JOB_NAME, brand)
+    existing = as_dict(io.read(OUTPUT))
     preserved_used = [
         i for i in as_list(existing.get("ideas"))
         if isinstance(i, dict) and i.get("used")
@@ -167,5 +170,5 @@ def run() -> dict:
         "billboards": billboards,
         "memes": memes,
     }
-    atomic_write(OUTPUT, payload)
+    io.write(OUTPUT, payload)
     return {"ok": True, "rows": len(ideas), "post_today": len(post_today)}

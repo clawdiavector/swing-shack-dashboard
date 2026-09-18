@@ -59,13 +59,11 @@ def _data_dir() -> Path:
     return roots[-1] if len(roots) > 1 else roots[0]
 
 
-def _resolve_json(rel: str) -> Any:
-    """Read a JSON file from runtime DATA_DIR, falling back to bundled."""
-    for base in _data_roots():
-        path = base / rel
-        if path.exists():
-            return _read_json(path)
-    return None
+def _resolve_json(rel: str, brand_id: str | None = None) -> Any:
+    """Read a JSON file with brand-first path resolution."""
+    from _lib.brand_data_paths import read_brand_data_json
+
+    return read_brand_data_json(rel, brand_id)
 
 
 def _read_json(path: Path) -> Any:
@@ -165,7 +163,7 @@ def _spike_pct(value: float, baseline: float) -> float:
     return round(((value - baseline) / baseline) * 100, 1)
 
 
-def get_content_traffic_correlations(days: int = 30) -> dict[str, Any]:
+def get_content_traffic_correlations(brand_id: str | None = None, days: int = 30) -> dict[str, Any]:
     """JOIN: when did IG posts go live vs when did GA4 see a traffic spike?
 
     Returns:
@@ -182,7 +180,7 @@ def get_content_traffic_correlations(days: int = 30) -> dict[str, Any]:
         _meta: { posts_scanned, days_covered, ga4_window }
       }
     """
-    ga4 = _resolve_json("ga4-metrics.json") or {}
+    ga4 = _resolve_json("ga4-metrics.json", brand_id) or {}
     if not isinstance(ga4, dict):
         ga4 = {}
     posts, ig_source = _load_ig_posts()
@@ -364,7 +362,7 @@ def _trend_summary(campaigns: list[dict[str, Any]],
     }
 
 
-def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
+def get_ad_correlation_verdicts(brand_id: str | None = None, days: int = 30) -> dict[str, Any]:
     """JOIN: when did a paid campaign go live vs when did traffic spike?
 
     Returns structured verdicts when ad data is available, OR a clean
@@ -379,13 +377,13 @@ def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
         combined_summary: "..."  # 1-line layman explanation
       }
     """
-    gads_data = _resolve_json("google-ads.json") or {}
+    gads_data = _resolve_json("google-ads.json", brand_id) or {}
     if not isinstance(gads_data, dict):
         gads_data = {}
-    mads_data = _resolve_json("meta-ads.json") or {}
+    mads_data = _resolve_json("meta-ads.json", brand_id) or {}
     if not isinstance(mads_data, dict):
         mads_data = {}
-    ga4 = _resolve_json("ga4-metrics.json") or {}
+    ga4 = _resolve_json("ga4-metrics.json", brand_id) or {}
     if not isinstance(ga4, dict):
         ga4 = {}
 
@@ -538,7 +536,7 @@ def get_ad_correlation_verdicts(days: int = 30) -> dict[str, Any]:
     }
 
 
-def get_top_instagram_posts(limit: int = 8) -> dict[str, Any]:
+def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict[str, Any]:
     """Surface top IG posts with thumbnails + engagement + plain-English verdict.
 
     Used by Insights v2 'Top Instagram Posts' card. Always runs (just reads

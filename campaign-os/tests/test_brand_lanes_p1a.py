@@ -261,10 +261,12 @@ def test_a12_no_swing_shack_literal_in_connected_accounts(job_env):
     assert 'or "swing-shack"' not in catalog_text
 
 
-def test_a13_data_delegates_from_still_present(job_env):
+def test_data_delegates_from_removed(job_env):
     reg = json.loads(BRANDS_FILE.read_text())
-    stick = reg["brands"]["stick"]
-    assert stick.get("data_delegates_from") == "swing-shack"
+    for bid in ("stick", "bag-drop"):
+        brand = reg["brands"][bid]
+        assert "data_delegates_from" not in brand
+        assert "data_delegate_note" not in brand
 
 
 def test_a14_postiz_brand_aware_api_key(job_env, monkeypatch):

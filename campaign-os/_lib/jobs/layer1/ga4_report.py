@@ -8,7 +8,9 @@ import os
 from datetime import date, timedelta
 from typing import Any, Optional
 
-from ._io import as_dict, atomic_write, read_json, utc_now_iso
+from ._io import as_dict, atomic_write, read_json, utc_now_iso, io_for_job
+
+JOB_NAME = "ga4_report"
 
 OUTPUT = "ga4-metrics.json"
 REPORT_TIMEOUT = 20
@@ -219,8 +221,9 @@ def _apply_stale_fallback(existing: dict, reason: str) -> dict:
     return existing
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Fetch GA4 metrics and write ga4-metrics.json."""
+    io = io_for_job(JOB_NAME, brand)
     missing = _missing_env_error()
     if missing:
         return {"ok": False, "error": missing}
@@ -231,7 +234,7 @@ def run() -> dict:
     start_str = start.isoformat()
     end_str = end.isoformat()
 
-    existing = as_dict(read_json(OUTPUT))
+    existing = as_dict(io.read(OUTPUT))
     had_fallback = bool(existing.get("total_sessions"))
 
     body = {
@@ -252,13 +255,13 @@ def run() -> dict:
             raise RuntimeError(json.dumps(report["error"])[:200])
         rows = _parse_rows(report)
         payload = _build_payload(rows, property_id, start_str, end_str)
-        atomic_write(OUTPUT, payload)
+        io.write(OUTPUT, payload)
         return {"ok": True, "rows": payload["total_sessions"]}
     except Exception as exc:
         err_msg = str(exc)[:500]
         if had_fallback:
             payload = _apply_stale_fallback(existing, err_msg)
-            atomic_write(OUTPUT, payload)
+            io.write(OUTPUT, payload)
             return {"ok": True, "rows": payload.get("total_sessions", 0), "stale": True}
         empty = {
             "updated": utc_now_iso(),
@@ -271,5 +274,5 @@ def run() -> dict:
             "_fallback_used": False,
             "_no_previous_data": True,
         }
-        atomic_write(OUTPUT, empty)
+        io.write(OUTPUT, empty)
         return {"ok": False, "error": err_msg}

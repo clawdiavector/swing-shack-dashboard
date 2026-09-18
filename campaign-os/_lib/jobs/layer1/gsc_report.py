@@ -10,7 +10,9 @@ import urllib.request
 from datetime import date, timedelta
 from typing import Any, Optional
 
-from ._io import atomic_write, utc_now_iso
+from ._io import atomic_write, utc_now_iso, io_for_job
+
+JOB_NAME = "gsc_report"
 from . import ga4_report
 
 OUTPUT = "search-console.json"
@@ -105,8 +107,9 @@ def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
     return out
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Fetch Search Console stats and write search-console.json."""
+    io = io_for_job(JOB_NAME, brand)
     missing = ga4_report._missing_env_error()
     if missing:
         return {"ok": False, "error": missing}
@@ -163,5 +166,5 @@ def run() -> dict:
         },
         "_live": True,
     }
-    atomic_write(OUTPUT, payload)
+    io.write(OUTPUT, payload)
     return {"ok": True, "rows": len(queries)}

@@ -7,7 +7,9 @@ import re
 from datetime import date, timedelta
 from typing import Any
 
-from ._io import as_dict, as_list, atomic_write, read_json, repo_root, utc_date, utc_now_iso
+from ._io import as_dict, as_list, atomic_write, read_json, repo_root, utc_date, utc_now_iso, io_for_job
+
+JOB_NAME = "booking_truth"
 from . import ga4_report
 
 BOOKING_OUT = "booking-events.json"
@@ -26,7 +28,7 @@ EVENT_SIGNALS: dict[str, list[str]] = {
 
 
 def _load_booking_template() -> dict:
-    existing = as_dict(read_json(BOOKING_OUT))
+    existing = as_dict(io.read(BOOKING_OUT))
     if existing.get("events"):
         return existing
     seed = repo_root() / "data" / BOOKING_OUT
@@ -97,7 +99,7 @@ def _event_measurable(event_id: str, ga_counts: dict[str, int], booking_sessions
 
 
 def _reddit_leads() -> list[dict]:
-    reddit = as_dict(read_json("reddit-trends.json"))
+    reddit = as_dict(io.read("reddit-trends.json"))
     leads: list[dict] = []
     idx = 0
     for src in ("hot_pain_points", "trends", "top_posts"):
@@ -125,8 +127,9 @@ def _reddit_leads() -> list[dict]:
     return leads[:25]
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Update booking funnel measurability + refresh lead inventory."""
+    io = io_for_job(JOB_NAME, brand)
     template = _load_booking_template()
     events_in = as_list(template.get("events"))
     if not events_in:
@@ -183,10 +186,10 @@ def run() -> dict:
             "ga4_probe_ok": ga_ok,
         },
     }
-    atomic_write(BOOKING_OUT, booking_payload)
+    io.write(BOOKING_OUT, booking_payload)
 
     # Leads: merge Reddit-derived prospects with any existing non-stale manual leads.
-    existing_leads = as_dict(read_json(LEADS_OUT))
+    existing_leads = as_dict(io.read(LEADS_OUT))
     preserved = [
         l for l in as_list(existing_leads.get("leads"))
         if isinstance(l, dict) and l.get("status") not in ("new",)
@@ -210,7 +213,7 @@ def run() -> dict:
             "preserved": len(preserved),
         },
     }
-    atomic_write(LEADS_OUT, leads_payload)
+    io.write(LEADS_OUT, leads_payload)
 
     high_intent = [l for l in merged if l.get("intent") == "high"]
     lead_quality_payload = {
@@ -224,7 +227,7 @@ def run() -> dict:
         },
         "top_leads": sorted(merged, key=lambda l: l.get("score", 0), reverse=True)[:10],
     }
-    atomic_write(LEAD_QUALITY_OUT, lead_quality_payload)
+    io.write(LEAD_QUALITY_OUT, lead_quality_payload)
 
     out = {
         "ok": True,

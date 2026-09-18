@@ -8,7 +8,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from ..layer1._io import as_dict, as_list, atomic_write, read_json, utc_now_iso
+from ..layer1._io import as_dict, as_list, io_for_job, utc_now_iso
+
+JOB_NAME = "post_outcomes"
 from _lib import feedback_loop as fb
 
 OUTPUT = "post-outcomes.json"
@@ -167,14 +169,15 @@ def _build_outcome_row(
     }
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Build post-outcomes.json from IG analytics + optional conversion + receipts."""
-    ig_doc = as_dict(read_json("ig-business-analytics.json"))
+    io = io_for_job(JOB_NAME, brand)
+    ig_doc = as_dict(io.read("ig-business-analytics.json"))
     media = as_list(ig_doc.get("media"))
     if not media:
         return {"ok": False, "error": "ig-business-analytics.json missing or empty — run meta_refresh first"}
 
-    conversion_doc = as_dict(read_json("post-conversion-score.json"))
+    conversion_doc = as_dict(io.read("post-conversion-score.json"))
     conversion_index = _conversion_index(conversion_doc)
     receipts = _read_jsonl("publish-sandbox/receipts.jsonl")
 
@@ -240,5 +243,5 @@ def run() -> dict:
         "receipts_joined": len(joined_receipts),
         "outcomes": ranked,
     }
-    atomic_write(OUTPUT, payload)
+    io.write(OUTPUT, payload)
     return {"ok": True, "rows": len(ranked)}

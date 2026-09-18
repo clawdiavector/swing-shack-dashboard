@@ -67,31 +67,17 @@ def _resolve_data_dir() -> Path:
 DATA_DIR = _resolve_data_dir()
 
 
-def _read_json(fname: str) -> Optional[dict]:
-    """Read JSON file from DATA_DIR with BUNDLED_DATA_DIR fallback.
+def _read_json(fname: str, brand_id: str | None = None) -> Optional[dict]:
+    """Read JSON via shared brand-aware resolver."""
+    from _lib.brand_data_paths import read_brand_data_json
 
-    Resolution order:
-      1. DATA_DIR/<fname> (the persistent volume when populated)
-      2. BUNDLED_DATA_DIR/<fname> (the repo's data/ folder)
-      3. None (caller handles the gap honestly via the confidence flag)
-    """
-    candidates = [DATA_DIR / fname]
-    bundled = os.environ.get("BUNDLED_DATA_DIR")
-    if bundled and Path(bundled) != DATA_DIR:
-        candidates.append(Path(bundled) / fname)
-    for p in candidates:
-        if p.exists():
-            try:
-                with open(p) as f:
-                    return json.load(f)
-            except Exception:
-                continue
-    return None
+    data = read_brand_data_json(fname, brand_id)
+    return data if isinstance(data, dict) else None
 
 
 # ── 1. POST-CONVERSION-SCORE (theme lift + winning formula) ───────────
 
-def load_post_conversion_score() -> dict:
+def load_post_conversion_score(brand_id: str | None = None) -> dict:
     """Read the post-conversion-score winner analysis.
 
     Returns: {
@@ -100,7 +86,7 @@ def load_post_conversion_score() -> dict:
       top_post_caption_preview, top_post_themes, posts_scored
     }
     """
-    data = _read_json("post-conversion-score.json")
+    data = _read_json("post-conversion-score.json", brand_id)
     if not data:
         return {"ok": False, "source": "none", "confidence": "no_data"}
     ranked = data.get("posts_ranked") or []
@@ -137,9 +123,9 @@ def load_post_conversion_score() -> dict:
 
 # ── 2. HOOK BANK (proven formulas + top hook text) ─────────────────
 
-def load_hook_bank() -> dict:
+def load_hook_bank(brand_id: str | None = None) -> dict:
     """Read hook-bank.json — proved hook formulas + best-text picks."""
-    data = _read_json("hook-bank.json")
+    data = _read_json("hook-bank.json", brand_id)
     if not data:
         return {"ok": False, "confidence": "no_data"}
     proven = (data.get("output_buckets") or {}).get("proven_only") or []
@@ -164,9 +150,9 @@ def load_hook_bank() -> dict:
 
 # ── 3. INSTAGRAM ANALYTICS (real engagement rates by format) ──────────
 
-def load_ig_analytics() -> dict:
+def load_ig_analytics(brand_id: str | None = None) -> dict:
     """Read ig-analytics.json — last 10 IG posts + per-pillar stats."""
-    data = _read_json("ig-analytics.json")
+    data = _read_json("ig-analytics.json", brand_id)
     if not data or not data.get("posts"):
         return {"ok": False, "confidence": "no_data"}
     posts = data["posts"]
@@ -200,9 +186,9 @@ def load_ig_analytics() -> dict:
 
 # ── 4. IG BUSINESS (account reach + followers) ───────────────────────
 
-def load_ig_business() -> dict:
+def load_ig_business(brand_id: str | None = None) -> dict:
     """Read ig-business-analytics.json — account-level 30d reach series."""
-    data = _read_json("ig-business-analytics.json")
+    data = _read_json("ig-business-analytics.json", brand_id)
     if not data:
         return {"ok": False, "confidence": "no_data"}
     account = data.get("account") or {}
@@ -227,9 +213,9 @@ def load_ig_business() -> dict:
 
 # ── 5. GA4 (sessions, top pages, conversion attribution) ─────────────
 
-def load_ga4() -> dict:
+def load_ga4(brand_id: str | None = None) -> dict:
     """Read ga4-metrics.json — last 30d of session data."""
-    data = _read_json("ga4-metrics.json")
+    data = _read_json("ga4-metrics.json", brand_id)
     if not data:
         return {"ok": False, "confidence": "no_data"}
     pages = data.get("pages") or []
@@ -289,7 +275,7 @@ def _load_channel_business(brand_id: str, channel: str) -> dict:
     Falls back to "no data" if file missing or data_pending=True.
     """
     fname = f"{channel}-business-analytics.json"
-    data = _read_json(fname)
+    data = _read_json(fname, brand_id)
     if not data or data.get("data_pending") is True:
         return {
             "ok": False,
@@ -317,16 +303,16 @@ def _load_channel_business(brand_id: str, channel: str) -> dict:
     }
 
 
-def load_facebook_business() -> dict:
-    return _load_channel_business("swing-shack", "facebook")
+def load_facebook_business(brand_id: str | None = None) -> dict:
+    return _load_channel_business(brand_id or "swing-shack", "facebook")
 
 
-def load_tiktok_business() -> dict:
-    return _load_channel_business("swing-shack", "tiktok")
+def load_tiktok_business(brand_id: str | None = None) -> dict:
+    return _load_channel_business(brand_id or "swing-shack", "tiktok")
 
 
-def load_x_business() -> dict:
-    return _load_channel_business("swing-shack", "x")
+def load_x_business(brand_id: str | None = None) -> dict:
+    return _load_channel_business(brand_id or "swing-shack", "x")
 
 
 # Generic post-level loader for non-IG channels
@@ -375,17 +361,17 @@ def load_channel_analytics(channel: str) -> dict:
     }
 
 
-def load_facebook_analytics() -> dict:
+def load_facebook_analytics(brand_id: str | None = None) -> dict:
     """Per-post metrics for swing-shack Facebook page."""
     return load_channel_analytics("facebook")
 
 
-def load_tiktok_analytics() -> dict:
+def load_tiktok_analytics(brand_id: str | None = None) -> dict:
     """Per-post metrics for swing-shack TikTok account."""
     return load_channel_analytics("tiktok")
 
 
-def load_x_analytics() -> dict:
+def load_x_analytics(brand_id: str | None = None) -> dict:
     """Per-post metrics for swing-shack X account."""
     return load_channel_analytics("x")
 
@@ -526,17 +512,17 @@ def build_brand_intel(brand_id: str = "swing-shack") -> dict:
       audience_equity: {...}
     }
     """
-    psc = load_post_conversion_score()
-    hbk = load_hook_bank()
-    iga = load_ig_analytics()
-    igb = load_ig_business()
-    fba = load_facebook_analytics()
-    fbb = load_facebook_business()
-    tta = load_tiktok_analytics()
-    ttb = load_tiktok_business()
-    xa = load_x_analytics()
-    xb = load_x_business()
-    ga4 = load_ga4()
+    psc = load_post_conversion_score(brand_id)
+    hbk = load_hook_bank(brand_id)
+    iga = load_ig_analytics(brand_id)
+    igb = load_ig_business(brand_id)
+    fba = load_facebook_analytics(brand_id)
+    fbb = load_facebook_business(brand_id)
+    tta = load_tiktok_analytics(brand_id)
+    ttb = load_tiktok_business(brand_id)
+    xa = load_x_analytics(brand_id)
+    xb = load_x_business(brand_id)
+    ga4 = load_ga4(brand_id)
     gbp = load_gbp_insights(brand_id)
     eq = compute_audience_equity(brand_id, ig=igb, gbp=gbp,
                                   facebook=fbb, tiktok=ttb, x=xb)

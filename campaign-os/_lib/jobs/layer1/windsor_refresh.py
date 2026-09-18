@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from ._io import atomic_write
+from ._io import atomic_write, io_for_job
+
+JOB_NAME = "windsor_refresh"
 
 META_OUT = "meta-ads.json"
 GOOGLE_OUT = "google-ads.json"
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Fetch paid media via Windsor and write ad correlation JSON files."""
+    io = io_for_job(JOB_NAME, brand)
     try:
         from _lib import windsor_client as _w  # noqa: PLC0415
         from _lib.windsor_fetcher import build_google_ads, build_meta_ads  # noqa: PLC0415
@@ -22,8 +25,8 @@ def run() -> dict:
 
     meta_payload = build_meta_ads(api_key)
     ga_payload = build_google_ads(api_key)
-    atomic_write(META_OUT, meta_payload)
-    atomic_write(GOOGLE_OUT, ga_payload)
+    io.write(META_OUT, meta_payload)
+    io.write(GOOGLE_OUT, ga_payload)
 
     live = int(bool(meta_payload.get("live"))) + int(bool(ga_payload.get("live")))
     if live == 0:

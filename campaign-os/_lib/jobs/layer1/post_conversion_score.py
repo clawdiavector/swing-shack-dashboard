@@ -7,7 +7,9 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from ._io import as_dict, as_list, atomic_write, read_json, utc_now_iso
+from ._io import as_dict, as_list, atomic_write, read_json, utc_now_iso, io_for_job
+
+JOB_NAME = "post_conversion_score"
 from . import ga4_report
 
 OUTPUT = "post-conversion-score.json"
@@ -186,13 +188,14 @@ def _score_posts(
     return scored
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Build post-conversion-score.json from GA4 + ig-business-analytics.json."""
+    io = io_for_job(JOB_NAME, brand)
     missing = ga4_report._missing_env_error()
     if missing:
         return {"ok": False, "error": missing}
 
-    ig_business = as_dict(read_json("ig-business-analytics.json"))
+    ig_business = as_dict(io.read("ig-business-analytics.json"))
     if not ig_business.get("media"):
         return {"ok": False, "error": "ig-business-analytics.json missing or empty — run meta_refresh first"}
 
@@ -273,5 +276,5 @@ def run() -> dict:
             ),
         },
     }
-    atomic_write(OUTPUT, payload)
+    io.write(OUTPUT, payload)
     return {"ok": True, "rows": len(scored_posts)}

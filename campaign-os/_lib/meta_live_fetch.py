@@ -68,35 +68,92 @@ CRED_PATHS = [
 ]
 
 
-def _load_token() -> dict | None:
-    # CAPI System User tokens come in two flavours on the wire:
-    #   - EAAB... (Conversions API app tokens — server-issued, never expire)
-    #   - EAA...  (Admin system user tokens — also server-issued, never expire)
-    # Both have the same scopes. The prefix is just a naming convention.
-    # We treat them identically and ATTEMPT all page-level + per-post
-    # metrics. If a metric is blocked by app review, the individual
-    # call returns #100 and we record the failure. The response tells
-    # the operator exactly which metrics are live.
-    if os.environ.get("META_SYSTEM_USER_TOKEN"):
-        _tok_str = os.environ["META_SYSTEM_USER_TOKEN"]
-        return {
-            "access_token": _tok_str,
-            "page_id": os.environ.get("META_PAGE_ID", "198859063301219"),
-            "instagram_account_id": os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671"),
-            "source": "env:META_SYSTEM_USER_TOKEN",
-            "token_kind": "capi_system_user",  # any token from the system user is CAPI-equivalent
-        }
-    # Then local file paths
-    for p in CRED_PATHS:
-        if p.exists():
-            try:
-                d = json.loads(p.read_text())
-                d["source"] = f"file:{p.name}"
-                d["token_kind"] = "capi_system_user" if "capi" in p.name else "long_lived_user"
-                return d
-            except Exception:
-                continue
-    return None
+def _default_brand_id() -> str:
+    from _lib.jobs.brand_lanes import load_brands_registry
+
+    reg = load_brands_registry()
+    return str(reg.get("default_brand_id") or "swing-shack")
+
+
+def _brand_safe(brand_id: str) -> str:
+    return brand_id.upper().replace("-", "_")
+
+
+def _first_set_env(*names: str) -> tuple[str | None, str | None]:
+    for name in names:
+        val = (os.environ.get(name) or "").strip()
+        if val:
+            return name, val
+    return None, None
+
+
+def _load_token(brand: str | None = None) -> dict:
+    """Resolve Meta credentials for a brand. Fail loud when required env is missing."""
+    bid = brand or _default_brand_id()
+    default_bid = _default_brand_id()
+
+    from _lib.jobs.brand_lanes import load_brands_registry
+
+    reg = load_brands_registry()
+    brand_entry = (reg.get("brands") or {}).get(bid) or {}
+    meta_scope = (brand_entry.get("integration_scope") or {}).get("meta") or {}
+    scope_env = list(meta_scope.get("env") or [])
+
+    token_candidates = [n for n in scope_env if "META_SYSTEM_USER_TOKEN" in n]
+    if bid == default_bid:
+        token_candidates = ["META_SYSTEM_USER_TOKEN", *token_candidates]
+    token_env, tok = _first_set_env(*token_candidates)
+    if not tok:
+        if bid == default_bid:
+            for p in CRED_PATHS:
+                if p.exists():
+                    try:
+                        d = json.loads(p.read_text())
+                        d["source"] = f"file:{p.name}"
+                        d["token_kind"] = "capi_system_user" if "capi" in p.name else "long_lived_user"
+                        d["ok"] = True
+                        return d
+                    except Exception:
+                        continue
+        missing = token_candidates[0] if token_candidates else "META_SYSTEM_USER_TOKEN"
+        return {"ok": False, "error": f"{missing} not set"}
+
+    page_candidates = [n for n in scope_env if n.startswith("META_PAGE_ID")]
+    if bid == default_bid:
+        page_candidates = ["META_PAGE_ID", *page_candidates]
+    page_env, page_id = _first_set_env(*page_candidates)
+    if not page_id:
+        if bid == default_bid:
+            page_id = os.environ.get("META_PAGE_ID", "198859063301219")
+        else:
+            missing = page_candidates[0] if page_candidates else f"META_PAGE_ID_{_brand_safe(bid)}"
+            return {"ok": False, "error": f"{missing} not set"}
+
+    ig_candidates = [n for n in scope_env if "META_INSTAGRAM" in n]
+    if bid == default_bid:
+        ig_candidates = ["META_INSTAGRAM_BUSINESS_ACCOUNT_ID", *ig_candidates]
+    ig_env, ig_id = _first_set_env(*ig_candidates)
+    if not ig_id:
+        if bid == default_bid:
+            ig_id = os.environ.get("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "17841456713897671")
+        else:
+            missing = ig_candidates[0] if ig_candidates else f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID_{_brand_safe(bid)}"
+            return {"ok": False, "error": f"{missing} not set"}
+
+    return {
+        "ok": True,
+        "access_token": tok,
+        "page_id": page_id,
+        "instagram_account_id": ig_id,
+        "source": f"env:{token_env or 'META_SYSTEM_USER_TOKEN'}",
+        "token_kind": "capi_system_user",
+    }
+
+
+def _write_meta_output(name: str, obj: dict, brand: str | None) -> None:
+    from _lib.jobs.layer1._io import io_for_job
+
+    io_for_job("meta_refresh", brand).write(name, obj)
 
 
 def _http(url, timeout=15):
@@ -109,11 +166,11 @@ def _http(url, timeout=15):
         return None, str(e)
 
 
-def fetch_all() -> dict:
+def fetch_all(*, brand: str | None = None) -> dict:
     """Pull IG + FB live data + write all 4 JSONs. Returns a summary dict."""
-    creds = _load_token()
-    if not creds:
-        return {"ok": False, "error": "no Meta token found"}
+    creds = _load_token(brand)
+    if not creds or creds.get("ok") is False:
+        return creds if creds else {"ok": False, "error": "no Meta token found"}
     tok = creds["access_token"]
     ig_id = creds["instagram_account_id"]
     page_id = creds["page_id"]
@@ -185,17 +242,17 @@ def fetch_all() -> dict:
             "followConversion": "0.000",
         })
 
-    (_live_data_dir() / "ig-analytics.json").write_text(json.dumps({
+    _write_meta_output("ig-analytics.json", {
         "schema": "https://clawdia.io/agents/instagram-analytics/v1",
         "updated": now_iso,
         "source": "Meta Graph API /v19.0 IG media insights (live fetch 2026-08-20)",
         "total_posts": len(ig_posts),
         "posts": ig_posts,
-    }, indent=2, ensure_ascii=False))
+    }, brand)
 
     # IG business
     avg_reach = sum(p["reach"] for p in ig_posts) / 30 if ig_posts else 0
-    (_live_data_dir() / "ig-business-analytics.json").write_text(json.dumps({
+    _write_meta_output("ig-business-analytics.json", {
         "schema": "https://clawdia.io/agents/ig-business-analytics/v1",
         "updated": now_iso,
         "source": "Meta Graph API /v19.0 IG account info (live fetch 2026-08-20)",
@@ -211,7 +268,7 @@ def fetch_all() -> dict:
             "profile_views": sum(p.get("profile_visits", 0) for p in ig_posts),
             "total_interactions": sum(p["likes"] + p["comments"] + p["saves"] + p["shares"] for p in ig_posts),
         },
-    }, indent=2, ensure_ascii=False))
+    }, brand)
 
     # 4.5. PAGE-LEVEL engagement metrics.
     # Built 2026-08-21: page-level metrics come from TWO endpoints:
@@ -429,7 +486,7 @@ def fetch_all() -> dict:
     posts_to_save = fb_posts_with_metrics if fb_posts_with_metrics else fb_normalized
     token_kind = creds.get("token_kind", "long_lived_user")
     is_capi = token_kind == "capi_system_user"
-    (_live_data_dir() / "facebook-analytics.json").write_text(json.dumps({
+    _write_meta_output("facebook-analytics.json", {
         "schema": "https://clawdia.io/agents/facebook-analytics/v1",
         "channel": "facebook",
         "updated": now_iso,
@@ -443,23 +500,22 @@ def fetch_all() -> dict:
             f"Posts fetched live (count={len(fb_posts)}). Per-post engagement metrics require pages_read_user_content + read_insights on the Clawdia app — app review pending per data/api-connections.json."
         ),
         "total_posts": len(posts_to_save),
-    }, indent=2, ensure_ascii=False))
+    }, brand)
 
     # FB business — enriched with page-level engagement when CAPI token is live
     token_kind = creds.get("token_kind", "long_lived_user")
     is_capi = token_kind == "capi_system_user"
-    (_live_data_dir() / "facebook-business-analytics.json").write_text(json.dumps({
+    _write_meta_output("facebook-business-analytics.json", {
         "schema": "https://clawdia.io/agents/facebook-business-analytics/v1",
         "channel": "facebook",
         "updated": now_iso,
         "generated_by": f"meta_live_fetch.py v2 (live fetch 2026-08-20, token={token_kind})",
-        "data_pending": not is_capi,  # with CAPI, data is fully populated
+        "data_pending": not is_capi,
         "account": {"id": page_id, "handle": "swing-shack", "name": page_name,
                    "biography": None, "followers_count": fan_count, "follows_count": None,
                    "media_count": None, "verified": False},
         "daily_reach": page_metrics.get("page_impressions", {}).get("points", 0) and [
-            # Spread the page_impressions totals across 30 days for the daily_reach series
-            None  # actually we tossed the day-by-day, just keep totals
+            None
         ],
         "media": [],
         "top_post": {"permalink": None},
@@ -479,7 +535,7 @@ def fetch_all() -> dict:
             "Page-level engagement metrics blocked by Meta app review (pages_read_user_content + read_insights on Clawdia app). "
             "Generate a CAPI System User token at business.facebook.com/settings/system-users to bypass."
         ),
-    }, indent=2, ensure_ascii=False))
+    }, brand)
 
     return {
         "ok": True,

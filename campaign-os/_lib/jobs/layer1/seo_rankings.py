@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import describe_exception
-from ._io import data_dir, repo_root
+from ._io import data_dir, repo_root, io_for_job
+
+JOB_NAME = "seo_rankings"
 
 WRITES = (
     "seo-rankings.json",
@@ -74,8 +76,9 @@ def _count_keywords() -> int:
         return 0
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Run Ubersuggest rank pull via the existing script."""
+    io = io_for_job(JOB_NAME, brand)
     if not _token_present():
         return {"ok": False, "error": "no ubersuggest token"}
 

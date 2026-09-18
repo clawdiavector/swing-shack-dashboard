@@ -8,15 +8,16 @@ from typing import Any
 
 from ._io import (
     as_dict,
-    atomic_write,
     empty_hook_bank,
     empty_youtube_hook_signals,
+    io_for_job,
     parse_float,
     parse_int,
-    read_json,
     slug_id,
     utc_now_iso,
 )
+
+JOB_NAME = "insights_hooks"
 
 TOPIC_KEYWORDS = {
     "driver": ["driver", "drive", "driving", "tee", "off the tee"],
@@ -514,7 +515,8 @@ def _analyse_hooks(
     }
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
+    io = io_for_job(JOB_NAME, brand)
     """Match legacy insight_analyst order: analyse_hooks then extract_youtube_signals.
 
     analyse_hooks.js reads the *prior* youtube-hook-signals.json; extract then
@@ -522,22 +524,22 @@ def run() -> dict:
     hook-bank cross-signal scores vs the JS baseline (Class A fail).
     """
     try:
-        read_json("golf-news.json")
-        read_json("hook-bank.json")
+        io.read("golf-news.json")
+        io.read("hook-bank.json")
 
         # Prior signals (may be missing on first run) — same as analyse_hooks.js
-        prior_signals = read_json("youtube-hook-signals.json")
+        prior_signals = io.read("youtube-hook-signals.json")
         if not isinstance(prior_signals, dict):
             prior_signals = None
 
         hook_bank = _analyse_hooks(
-            read_json("ig-analytics.json"),
-            read_json("ab-tests.json"),
+            io.read("ig-analytics.json"),
+            io.read("ab-tests.json"),
             prior_signals,
-            read_json("reddit-trends.json"),
+            io.read("reddit-trends.json"),
         )
 
-        yt_trends = as_dict(read_json("youtube-trends.json"))
+        yt_trends = as_dict(io.read("youtube-trends.json"))
         videos = yt_trends.get("top_videos") or []
         if not isinstance(videos, list):
             videos = []
@@ -553,8 +555,8 @@ def run() -> dict:
             hook_bank = empty_hook_bank()
             hook_bank["updated"] = utc_now_iso()
 
-        atomic_write("hook-bank.json", hook_bank)
-        atomic_write("youtube-hook-signals.json", yt_signals)
+        io.write("hook-bank.json", hook_bank)
+        io.write("youtube-hook-signals.json", yt_signals)
 
         signal_rows = len((yt_signals.get("signals") or {}).get("recurring_phrases") or [])
         rows = hook_bank["total_hooks"] + signal_rows
@@ -562,6 +564,6 @@ def run() -> dict:
     except Exception:
         empty_signals = empty_youtube_hook_signals()
         empty_bank = empty_hook_bank()
-        atomic_write("youtube-hook-signals.json", empty_signals)
-        atomic_write("hook-bank.json", empty_bank)
+        io.write("youtube-hook-signals.json", empty_signals)
+        io.write("hook-bank.json", empty_bank)
         return {"ok": False, "rows": 0}

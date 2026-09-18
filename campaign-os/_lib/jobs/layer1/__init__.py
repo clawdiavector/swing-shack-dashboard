@@ -210,6 +210,7 @@ def layer1_specs() -> list[JobSpec]:
                 "golf-news.json",
                 "reddit-trends.json",
                 "hook-bank.json",
+                "ab-tests.json",
             ),
             upstream=("meta_refresh", "youtube_trends"),
             brand_mode="per_brand",
@@ -218,6 +219,7 @@ def layer1_specs() -> list[JobSpec]:
                 "youtube-trends.json",
                 "golf-news.json",
                 "reddit-trends.json",
+                "ab-tests.json",
             ),
         ),
         JobSpec(
@@ -278,6 +280,7 @@ def layer1_specs() -> list[JobSpec]:
                 "ga4-metrics.json",
                 "seo-rankings.json",
                 "ig-analytics.json",
+                "ig-business-analytics.json",
                 "hook-bank.json",
                 "geo-audit.json",
                 "recommendation-scores.json",
@@ -285,6 +288,11 @@ def layer1_specs() -> list[JobSpec]:
                 "google-ads.json",
                 "search-console.json",
                 "booking-events.json",
+                "content-ideas.json",
+                "post-plan.json",
+                "reddit-trends.json",
+                "sales-priority.json",
+                "youtube-trends.json",
             ),
             upstream=(
                 "insights_hooks",
@@ -297,6 +305,12 @@ def layer1_specs() -> list[JobSpec]:
             ),
             brand_mode="per_brand",
             brands=("swing-shack", "stick"),
+            shared_reads=(
+                "reddit-trends.json",
+                "youtube-trends.json",
+                "post-plan.json",
+                "sales-priority.json",
+            ),
         ),
     ]
 

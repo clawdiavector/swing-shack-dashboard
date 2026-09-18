@@ -10,7 +10,9 @@ import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
-from ._io import as_dict, as_list, atomic_write, read_json, repo_root, utc_date, utc_now_iso
+from ._io import as_dict, as_list, atomic_write, read_json, repo_root, utc_date, utc_now_iso, io_for_job
+
+JOB_NAME = "competitor_tracker"
 
 OUTPUT = "competitor-tracker.json"
 GRAPH_VERSION = "v19.0"
@@ -255,9 +257,10 @@ def _refresh_competitors(
     return refreshed, fetched, errors
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Refresh competitor social signals and write competitor-tracker.json."""
-    prev = as_dict(read_json(OUTPUT))
+    io = io_for_job(JOB_NAME, brand)
+    prev = as_dict(io.read(OUTPUT))
     competitors = as_list(prev.get("competitors"))
     if not competitors:
         seed_path = repo_root() / "data" / OUTPUT
@@ -295,7 +298,7 @@ def run() -> dict:
         "competitors": updated_comps,
         "changes": changes,
     }
-    atomic_write(OUTPUT, payload)
+    io.write(OUTPUT, payload)
 
     if fetched == 0 and errors and not creds:
         return {"ok": False, "error": errors[0] if errors else "Meta token missing", "rows": 0}

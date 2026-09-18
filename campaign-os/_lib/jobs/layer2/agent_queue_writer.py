@@ -5,6 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from ..errors import describe_exception
+from _lib.brand_data_paths import read_brand_data_json
+from _lib.marketing_calendar import VALID_BRAND_IDS
+
 from ..layer1._io import as_dict, as_list, atomic_write, read_json, slug_id, utc_now_iso
 
 OUTPUT = "agent-queue.json"
@@ -133,7 +136,6 @@ def run() -> dict[str, Any]:
     try:
         slots_doc = as_dict(read_json("slot-planner.json"))
         freshness_doc = as_dict(read_json("freshness.json"))
-        reco_doc = as_dict(read_json("recommendation-scores.json"))
 
         existing_doc = as_dict(read_json(OUTPUT))
         existing_rows = as_list(existing_doc.get("rows"))
@@ -141,7 +143,9 @@ def run() -> dict[str, Any]:
         generated: list[dict[str, str]] = []
         generated.extend(_rows_from_slots(slots_doc))
         generated.extend(_rows_from_freshness(freshness_doc))
-        generated.extend(_rows_from_reco(reco_doc))
+        for brand_id in VALID_BRAND_IDS:
+            reco_doc = as_dict(read_brand_data_json("recommendation-scores.json", brand_id))
+            generated.extend(_rows_from_reco(reco_doc))
 
         rows = _merge_rows(generated, existing_rows)
         for row in rows:

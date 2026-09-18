@@ -9,7 +9,9 @@ from typing import Any
 import requests
 
 from ..errors import describe_exception
-from ._io import atomic_write, utc_now_iso
+from ._io import atomic_write, utc_now_iso, io_for_job
+
+JOB_NAME = "site_audit"
 
 SEO_OUTPUT = "seo-audit.json"
 GEO_OUTPUT = "geo-audit.json"
@@ -260,8 +262,9 @@ _GEO_FIXES = {
 }
 
 
-def run() -> dict:
+def run(*, brand: str | None = None) -> dict:
     """Audit site pages for SEO and GEO signals."""
+    io = io_for_job(JOB_NAME, brand)
     site = _site_base()
     seo_reports: list[dict[str, Any]] = []
     geo_reports: list[dict[str, Any]] = []
@@ -344,6 +347,6 @@ def run() -> dict:
         ],
     }
 
-    atomic_write(SEO_OUTPUT, seo_payload)
-    atomic_write(GEO_OUTPUT, geo_payload)
+    io.write(SEO_OUTPUT, seo_payload)
+    io.write(GEO_OUTPUT, geo_payload)
     return {"ok": True, "rows": len(all_seo_findings) + len(all_geo_findings)}
