@@ -3360,6 +3360,22 @@ def migrate_brief_to_v16_schema(brand_id: str, brief_id: str) -> dict:
     b["revision"] = int(b.get("revision", 1)) + 1
     b["migration_status"] = "migrated"
     b["approval_schema_status"] = "current"
+    # V1.6 §4: if the Brief was approved under a non-current
+    # method, clear creative_allowed + approved_at. The Brief
+    # must be re-approved under operator_token_v1 before
+    # Creative can begin.
+    approval_method = b.get("approval_method")
+    if (approval_method != OPERATOR_TRUST_VERSION
+            and b.get("creative_allowed")):
+        b["creative_allowed"] = False
+        b["approved_at"] = None
+        b["approved_by"] = None
+        b["approval_method"] = None
+        b["authenticated_operator"] = None
+        b["revalidation_required"] = True
+        b["revalidation_reason"] = (
+            "approval_method was not operator_token_v1; "
+            "creative_allowed cleared during schema migration")
     if hasattr(locals(), "_write_brief"):
         _write_brief(b)
     if hasattr(locals(), "_append_revision"):
