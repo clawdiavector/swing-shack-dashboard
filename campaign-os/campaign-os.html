@@ -289,8 +289,8 @@ a:hover{text-decoration:underline}
 .nav-search-input::placeholder{color:var(--tx-3)}
 .nav-search-field{position:relative}
 .nav-search-icon{
-  position:absolute;left:.55rem;top:50%;transform:translateY(-50%);
-  font-size:13px;color:var(--tx-3);pointer-events:none;line-height:1;
+  position:absolute;left:.6rem;top:50%;transform:translateY(-50%);
+  width:14px;height:14px;color:var(--tx-3);pointer-events:none;flex-shrink:0;
 }
 .nav-search-empty{font-size:11px;color:var(--tx-3);padding:.35rem .15rem 0;text-align:center}
 .nav-search-active .nav-group-tag{display:none}
@@ -1502,7 +1502,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 
     <div class="nav-search-wrap">
       <div class="nav-search-field">
-        <span class="nav-search-icon" aria-hidden="true">⌕</span>
+        <svg class="nav-search-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
         <input type="search" id="nav-search-input" class="nav-search-input" placeholder="Search pages…" autocomplete="off" aria-label="Search sidebar pages" enterkeyhint="search">
       </div>
       <div class="nav-search-empty" id="nav-search-empty" hidden>No pages match</div>
