@@ -4862,15 +4862,23 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 
 const TZ = 'Africa/Johannesburg';
 function fmtSast(iso) {
-  if (!iso) return '—';
+  if (iso == null || iso === '') return '—';
+  const s = String(iso).trim();
+  if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
   try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '—';
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
     return d.toLocaleString('en-ZA', {
-      timeZone: TZ, month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
+      timeZone: TZ,
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
     }) + ' SAST';
-  } catch (_) { return '—'; }
+  } catch (_) { return s; }
 }
 /** Layer 1 job fetch time — shown on cards fed by JSON job outputs. */
 function formatDataAsOf(iso, opts = {}) {
@@ -6265,7 +6273,7 @@ async function renderInsightsV2(){
         tone = 'bad'; toneEmoji = '🔴'; verdictLabel = 'Below average';
       }
       const cap = esc(p.caption_excerpt || p.caption || '(no caption)');
-      const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
+      const ts = p.timestamp ? fmtSast(p.timestamp) : '';
       const borderColor = tone==='good'?'#10b981':tone==='watch'?'#f59e0b':'#ef4444';
       const innerContent = `
           <div style="width:56px;height:56px;background:var(--bg-3);border-radius:6px;overflow:hidden;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;text-align:center;line-height:1.1">
@@ -8039,7 +8047,7 @@ async function renderBrief(){
     const d = S.channelRank;
     if(!d || !d.ok || !d.ranked){ body.innerHTML = '<span class="muted">Channel rank unavailable right now.</span>'; return; }
     const gens = d.generated_at || '';
-    $('#channel-rank-generated').textContent = gens ? ('Updated ' + new Date(gens).toLocaleTimeString()) : '';
+    $('#channel-rank-generated').textContent = gens ? ('Updated ' + fmtSast(gens)) : '';
     const max = Math.max(...d.ranked.map(c => c.total_score), 1);
     body.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem">
@@ -8114,7 +8122,7 @@ async function renderBrief(){
             `);
             }
             body.innerHTML = sections.join('');
-            if(meta) meta.textContent = `Brand: ${esc(d.brand_id||'')} · evaluated ${new Date(d.evaluated_at).toLocaleTimeString()}`;
+            if(meta) meta.textContent = `Brand: ${esc(d.brand_id||'')} · evaluated ${fmtSast(d.evaluated_at)}`;
             // Click handler — view event detail on Calendar surface. Per brief §13, click
             // → calendar event detail (source/evidence + strategy connection).
             body.querySelectorAll('.cal-intel-event-link').forEach(a => {
@@ -8163,7 +8171,7 @@ async function renderBrief(){
             } else if(item.due_at){
             const due = new Date(item.due_at);
             if(!isNaN(due.getTime())){
-            timingLine = `<div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">⏰ due ${esc(due.toLocaleDateString())}</div>`;
+            timingLine = `<div style="font-size:11px;color:var(--tx-3);margin-top:.2rem">⏰ due ${esc(fmtSast(item.due_at))}</div>`;
             }
             }
             const reason = item.message && bucketKey !== 'coming_up' ? `<div style="font-size:11.5px;color:var(--tx-2);margin-top:.25rem;line-height:1.35">${esc(item.message).slice(0,200)}${(item.message||'').length>200?'…':''}</div>` : '';
@@ -8697,7 +8705,7 @@ async function renderReview(){
         ${agePill}
         ${x.platform ? pill('live', x.platform) : ''}
         ${x.publishStatus ? pill(x.publishStatus==='scheduled'?'on':x.publishStatus==='published'?'review':x.publishStatus==='planned'?'live':'draft', x.publishStatus) : ''}
-        ${x.updatedAt ? `<span class="muted">${esc(x.updatedAt.slice(0,10))}</span>` : ''}
+        ${x.updatedAt ? `<span class="muted">${esc(fmtSast(x.updatedAt))}</span>` : ''}
         <span class="review-actions" style="margin-left:auto;display:flex;gap:.35rem;flex-wrap:wrap">
           <button class="btn-mini" onclick="openReview('${safeCid}','${safeId}')">Open</button>
           ${!isApproved && !isRejected ? `<button class="btn-mini" style="color:var(--red)" onclick="window.reviewAction('${safeCid}','${safeId}','rejected')">Reject</button>` : ''}
@@ -9243,7 +9251,7 @@ window.openReview = async (cid, aid) => {
       }
       strip.innerHTML = posts.map((p, i) => {
         const thumb = p.thumbnail_url || p.media_url || '';
-        const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
+        const ts = p.timestamp ? fmtSast(p.timestamp) : '';
         const cap = (p.caption || '').slice(0, 60) + ((p.caption || '').length > 60 ? '…' : '');
         const likes = p.like_count != null ? `❤️ ${p.like_count}` : '';
         const inner = `
@@ -9490,13 +9498,8 @@ async function renderPublish(){
   // Pick the most useful timestamp: scheduled (if set), else generated.
   const pickDate = it => it.scheduled_date || it.generated || it.publish_timestamp || null;
   const fmtDate = iso => {
-    if (!iso) return '';
-    try {
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return '';
-      const ymd = d.toISOString().slice(0, 10);
-      return ymd;
-    } catch(_){ return ''; }
+    const s = fmtSast(iso);
+    return s === '—' ? '' : s;
   };
   const row = it => {
     const platform = (it.platform || '').toLowerCase();
@@ -9615,7 +9618,7 @@ async function calSlotClick(event, assetId, scheduledFor, campaignId){
   const pop = document.createElement('div');
   pop.className = 'cal-popover';
   pop.style.cssText = 'position:fixed;left:'+Math.min(event.clientX, window.innerWidth-340)+'px;top:'+Math.min(event.clientY, window.innerHeight-260)+'px;width:320px;background:var(--bg-2);border:1px solid var(--bd);border-radius:10px;padding:14px;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.4)';
-  const dt = scheduledFor ? scheduledFor.slice(0,16).replace('T',' ') : '—';
+  const dt = scheduledFor ? fmtSast(scheduledFor) : '—';
   pop.innerHTML = `
     <div style="font-weight:600;font-size:13px;margin-bottom:8px">📅 Slot actions</div>
     <div class="muted" style="font-size:11px;margin-bottom:12px">Scheduled for ${esc(dt)}</div>
@@ -10080,8 +10083,8 @@ function calDetailPanelHtml(ev, ctx){
       <b>⚠ Conflicting sources</b>:
       <ul style="margin:.3rem 0 0 1.2rem;font-size:11.5px">${conflicts.map(c => `<li>${esc(typeof c === 'string' ? c : JSON.stringify(c))}</li>`).join('')}</ul>
     </div>`;
-  const lastVerified = ev.last_verified_at || ev.created_at || '—';
-  const nextVerify = ev.reverify_after || '—';
+  const lastVerified = fmtSast(ev.last_verified_at || ev.created_at);
+  const nextVerify = fmtSast(ev.reverify_after);
   const sources = (ev.source_urls || ev.evidence?.map(e => e.source_url) || []).filter(Boolean);
   const sourceList = sources.length === 0 ? '<span class="muted">none on record</span>'
     : sources.slice(0,4).map(s => `<a href="${esc(s)}" target="_blank" rel="noopener">${esc(s.slice(0,60))}${s.length>60?'…':''}</a>`).join(' · ');
@@ -10184,7 +10187,7 @@ async function renderSocials(){
     // can branch on it (🔌 not wired vs ⚪ empty).
     const graphEmpty = !meta.sources || (meta.sources.graph || 0) === 0;
     summary.textContent = `${posts.length} posts · ${meta.days_covered || days}d window · sources: ${(meta.sources?.graph || 0)} graph`;
-    status.textContent = `${meta.newest ? '🟢 live' : (graphEmpty ? '🔌 not wired' : '⚪ empty')} · newest ${meta.newest ? new Date(meta.newest).toLocaleDateString() : 'never'}`;
+    status.textContent = `${meta.newest ? '🟢 live' : (graphEmpty ? '🔌 not wired' : '⚪ empty')} · newest ${meta.newest ? fmtSast(meta.newest) : 'never'}`;
     // ── "Connect Instagram" CTA when both Meta graph + oembed fallback are empty ──
     // Mirrors the Performance > Connect analytics pattern (line 7760) so the user
     // gets a clear next-action when this section is genuinely empty because Instagram
@@ -10250,7 +10253,7 @@ async function renderSocials(){
       return;
     }
     grid.innerHTML = posts.map((p, i) => {
-      const ts = p.timestamp ? new Date(p.timestamp).toLocaleDateString() : '';
+      const ts = p.timestamp ? fmtSast(p.timestamp) : '';
       const thumb = p.thumbnail_url || p.oembed_thumbnail || p.media_url || '';
       const typeIcon = p.media_type === 'VIDEO' ? '🎥' : (p.media_type === 'CAROUSEL_ALBUM' ? '🖼️' : '📷');
       const caption = (p.caption || '').slice(0, 140) + ((p.caption||'').length > 140 ? '…' : '');
@@ -10289,7 +10292,7 @@ async function openSocialsDetail(post){
   try { oembed = await API.get('/api/socials/oembed?url=' + encodeURIComponent(permalink)); } catch(_){}
   const caption = post.caption || '(no caption)';
   const thumb = post.thumbnail_url || (oembed && oembed.thumbnail_url) || post.media_url || '';
-  const ts = post.timestamp ? new Date(post.timestamp).toLocaleString() : '';
+  const ts = post.timestamp ? fmtSast(post.timestamp) : '';
   const html = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-height:70vh;overflow:auto">
       <div>
@@ -10337,7 +10340,7 @@ async function renderTrends(){
     // Older keys (updated/fetched_at) were never wired by the backend; falling back to `ts` closes the
     // "Data last updated unknown" + `—` placeholder gap.
     const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
-    const updStr = updated ? (formatDataAsOf(updated) || new Date(updated).toLocaleString()) : 'unknown';
+    const updStr = updated ? (formatDataAsOf(updated) || fmtSast(updated)) : 'unknown';
     const srcAsOf = t.data_as_of || {};
     const srcLines = [
       srcAsOf.golf_news && `golf news: ${formatDataAsOf(srcAsOf.golf_news)}`,
@@ -10413,7 +10416,7 @@ async function renderTrends(){
     const itemDate = it.published_date || it.created_utc || it.date || '';
     const metaParts = [];
     if (src) metaParts.push(`<span class="muted">${esc(src)}</span>`);
-    if (itemDate) metaParts.push(`<span class="muted">${esc(String(itemDate).slice(0, 16))}</span>`);
+    if (itemDate) metaParts.push(`<span class="muted">${esc(fmtSast(itemDate))}</span>`);
     metaParts.push(rowFetchedAtHtml(rowAsOf));
     return `<li class="li"><div class="li-body"><div class="li-title">${esc(title)}</div>${metaParts.length ? `<div class="li-meta">${metaParts.join(' ')}</div>` : ''}</div><div class="li-act"><button class="btn-mini trend-caption-btn" data-topic="${esc(String(title).slice(0,80))}">Use →</button><button class="btn-mini" data-trend-campaign="${esc(String(title).slice(0,80))}" style="margin-left:4px">🚀 Campaign</button></div></li>`;
   }).join('') || '<li class="empty">No signals</li>';
@@ -11897,7 +11900,7 @@ async function _renderHeadHistory(){
     const meta = [
       batch.voice ? `voice: ${batch.voice}` : null,
       batch.pillar ? `pillar: ${batch.pillar}` : null,
-      batch.ts ? new Date(batch.ts).toLocaleString() : null,
+      batch.ts ? fmtSast(batch.ts) : null,
     ].filter(Boolean).join(' · ');
     return `
       <div class="li" style="margin-bottom:.5rem">
@@ -12060,7 +12063,7 @@ async function _renderCtaHistory(){
       batch.pillar ? `pillar: ${batch.pillar}` : null,
       batch.platform ? `platform: ${batch.platform}` : null,
       batch.category ? `cat: ${batch.category}` : null,
-      batch.ts ? new Date(batch.ts).toLocaleString() : null,
+      batch.ts ? fmtSast(batch.ts) : null,
     ].filter(Boolean).join(' · ');
     return `
       <div class="li" style="margin-bottom:.5rem">
@@ -13374,7 +13377,7 @@ async function _gbpDailyAudit(brand_id){
     }
     const rows = (r.plans || []).map(p =>
       `<li class="li" style="padding:10px;border-bottom:1px solid var(--bd)">
-        <div style="font-size:12px;color:var(--tx-2)"><code>${esc(p.plan_id)}</code> · ${p.posts_count} posts · ${p.publish_scheduled} published · ${esc(p.generated_at)}</div>
+        <div style="font-size:12px;color:var(--tx-2)"><code>${esc(p.plan_id)}</code> · ${p.posts_count} posts · ${p.publish_scheduled} published · ${esc(fmtSast(p.generated_at))}</div>
         <div class="muted" style="font-size:10px;margin-top:.2rem">file: <code>${esc(p.file)}</code></div>
       </li>`
     ).join('') || '<div class="empty">No plans yet</div>';
@@ -13661,7 +13664,7 @@ function postizRowHtml(it, bucket) {
   const postizId = esc(it.postizPostId || it.id || '');
   const title = esc((it.caption || it.name || it.title || '').slice(0, 90));
   const platform = esc(it.platform || it.channel || it.integrationProvider || '');
-  const dt = esc((it.publishDate || it.scheduledAt || it.publishedAt || '').slice(0, 16));
+  const dt = esc(fmtSast(it.publishDate || it.scheduledAt || it.publishedAt));
   const status = it.publishStatus || it.currentStatus || it.status || 'draft';
   const aid = esc(it.assetId || '');
   const cid = esc(it.campaignId || '');
@@ -13760,7 +13763,7 @@ async function renderPostiz(){
     $('#postiz-status-banner').innerHTML = '<div style="display:flex;gap:12px;align-items:center">' +
       pill(cls, ok ? 'API key ✓' : 'API key ✗') +
       pill(oauthBrands > 0 ? 'on' : 'draft', oauthBrands + ' brand(s) on OAuth') +
-      (st.last_check ? '<span class="muted" style="font-size:11px">last check: ' + esc(String(st.last_check).slice(0, 19)) + '</span>' : '') +
+      (st.last_check ? '<span class="muted" style="font-size:11px">last check: ' + esc(fmtSast(st.last_check)) + '</span>' : '') +
     '</div>';
   } catch(e) {
     $('#postiz-status-banner').innerHTML = '<span class="muted">Status check skipped: ' + esc(e.message) + '</span>';
@@ -14844,7 +14847,7 @@ async function loadAssetHistory(aid){
     <div class="muted" style="font-size:11px;margin-bottom:.4rem">📜 ${r.historyTotal} history events · ${r.refsTotal} publishing refs</div>
     ${hist.slice().reverse().slice(0,10).map(h => `
       <div style="display:flex;gap:.5rem;font-size:11px;padding:.2rem 0;border-bottom:1px dashed var(--bd)">
-        <span class="muted" style="min-width:140px">${esc(h.ts||'')}</span>
+        <span class="muted" style="min-width:140px">${esc(fmtSast(h.ts))}</span>
         <span>${pill(h.event==='inline-edit'?'on':'draft', h.event||'')}</span>
         <span class="muted">${esc(h.actor||'')}</span>
         ${h.fields?`<span>${esc((h.fields||[]).join(', '))}</span>`:''}
@@ -14906,7 +14909,7 @@ async function renderAgents(){
   // systemHealthHtml() paints data_status + priority as colour-mapped pills
   // and surfaces next_action + qa_warnings as a one-line summary + list,
   // matching the Status / Confidence / Generated KV rows above.
-  $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc((h.generated||'').slice(0,19))}</dd></dl>` + systemHealthHtml(h);
+  $('#agents-health').innerHTML = `<dl class="kvs"><dt>Status</dt><dd>${esc(h.status||'—')}</dd><dt>Confidence</dt><dd>${esc(h.confidence||'—')}</dd><dt>Generated</dt><dd>${esc(fmtSast(h.generated))}</dd></dl>` + systemHealthHtml(h);
   $('#agents-int').innerHTML = safeList(a.integration_health?.health, 12).map(integrationHealthHtml).filter(Boolean).join('') || '<div class="empty">No integration data</div>';
 }
 
@@ -17718,7 +17721,7 @@ async function renderAgency() {
       <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Approved</div><div style="font-size:24px;font-weight:700;color:var(--success)">${dashR.total_approved || 0}</div></div>
       <div style="padding:.75rem;background:var(--bg-2);border-radius:8px"><div style="font-size:10px;color:var(--tx-3);text-transform:uppercase">Avg Bible Score</div><div style="font-size:24px;font-weight:700;color:${(dashR.avg_bible_score || 0) >= 70 ? 'var(--success)' : (dashR.avg_bible_score || 0) >= 40 ? 'var(--accent)' : 'var(--danger)'}">${dashR.avg_bible_score || 0}/100</div></div>
     `;
-    $('#agency-overview-ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    $('#agency-overview-ts').textContent = 'Updated ' + fmtSast(new Date().toISOString());
     // Per-brand status
     $('#agency-brands').innerHTML = (dashR.brands || []).map(b => {
       const score = b.bible_score || 0;
@@ -17990,7 +17993,7 @@ async function renderReferenceImages() {
           <div style="font-size:10px;color:var(--tx-3);margin-top:.2rem">sha256: ${esc((img.sha256 || '').slice(0, 16))}…</div>
         </div>
         <div style="font-size:11px;color:var(--tx-2)">${esc(img.source || '')}</div>
-        <div style="font-size:11px;color:var(--tx-3)">${esc((img.verified_at || '').slice(0, 19))}</div>
+        <div style="font-size:11px;color:var(--tx-3)">${esc(fmtSast(img.verified_at))}</div>
         <div>
           <button class="btn-mini" data-refimg-delete="${esc(img.id)}">🗑 Remove</button>
         </div>

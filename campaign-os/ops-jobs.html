@@ -542,7 +542,7 @@ async function loadLearn() {
     ['Edit rate', h.edit_rate != null ? String(h.edit_rate) : '—'],
     ['Proposal gate', gate.verdict ?? h.proposal_gate ?? '—'],
     ['Gate measured %', gate.measured_pct != null ? String(gate.measured_pct) + '%' : '—'],
-    ['Last recipe run', h.last_recipe_at ?? '—'],
+    ['Last recipe run', fmtSast(h.last_recipe_at)],
   ];
   if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
   if (note) note.hidden = !!(h.ready && (h.recipes || 0) > 0);
@@ -596,7 +596,7 @@ async function loadCreate() {
   setChip(verdictChip, l5.verdict || 'NEVER');
   const rows = [
     ['Drafts today', l5.drafts_today ?? '—'],
-    ['Last draft at', l5.last_draft_at || '—'],
+    ['Last draft at', fmtSast(l5.last_draft_at)],
     ['QC failed', l5.qc_failed ?? '—'],
   ];
   if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
@@ -648,7 +648,7 @@ async function loadPublish() {
     ['Queue depth', j.queue_depth ?? '—'],
     ['Approved ready', j.queue_approved_ready ?? '—'],
     ['Receipts', j.receipt_count ?? '—'],
-    ['Last receipt', j.last_receipt_at || '—'],
+    ['Last receipt', fmtSast(j.last_receipt_at)],
     ['Last sandbox post', j.last_sandbox_post_id || '—'],
   ];
   if (body) body.innerHTML = rows.map(([k, v]) => '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>').join('');
@@ -746,15 +746,23 @@ function ageLabel(h) {
   return (n / 24).toFixed(1) + 'd ago';
 }
 function fmtSast(iso) {
-  if (!iso) return '—';
+  if (iso == null || iso === '') return '—';
+  const s = String(iso).trim();
+  if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
   try {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '—';
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
     return d.toLocaleString('en-ZA', {
-      timeZone: TZ, month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
+      timeZone: TZ,
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
     }) + ' SAST';
-  } catch (_) { return '—'; }
+  } catch (_) { return s; }
 }
 function scheduleTimes(sched) {
   if (!sched || !sched.cron_sast || !sched.cron_sast.length) return '—';

@@ -839,7 +839,10 @@ async function loadMeta() {
       const days = Math.floor((Date.now() - date.getTime()) / 86400000);
       const human = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
       document.getElementById('meta-refresh-time').textContent = human;
-      document.getElementById('meta-refresh-time').title = refreshedAt;
+      document.getElementById('meta-refresh-time').title = date.toLocaleString('en-ZA', {
+        timeZone: 'Africa/Johannesburg', weekday: 'short', day: 'numeric', month: 'short',
+        year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+      }) + ' SAST';
     } else {
       document.getElementById('meta-refresh-time').textContent = 'unknown';
     }

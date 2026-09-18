@@ -97,6 +97,20 @@ button:hover, .btn:hover { background: var(--bd); }
 
 <script>
 function escHtml(s){ if(s==null)return ''; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const TZ = 'Africa/Johannesburg';
+function fmtSast(iso) {
+  if (iso == null || iso === '') return '—';
+  const s = String(iso).trim();
+  if (!/^\d{4}-\d{2}-\d{2}(T|\b)/.test(s)) return s;
+  try {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleString('en-ZA', {
+      timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }) + ' SAST';
+  } catch (_) { return s; }
+}
 function shortUrl(u){ if(!u) return '—'; return u.replace(/^https?:\/\//, '').slice(0, 50); }
 function posLabel(cur, prev){
   if(prev && cur < prev) return `<span class="position winning">${prev}→${cur}</span>`;
@@ -180,7 +194,7 @@ function renderFreshness(fresh) {
   return Object.entries(fresh).map(([fn, info]) => {
     if (!info.exists) return `<div class="empty">${escHtml(fn)} — not present</div>`;
     const cls = info.fresh ? 'fresh' : 'stale';
-    return `<div style="margin:0.3rem 0"><span class="fresh-stale ${cls}">${escHtml(fn)}</span> — fetched ${info.age_days}d ago (${info.freshed_at ? info.fetched_at.slice(0,19) : '?'})</div>`;
+    return `<div style="margin:0.3rem 0"><span class="fresh-stale ${cls}">${escHtml(fn)}</span> — fetched ${info.age_days}d ago (${info.fetched_at ? fmtSast(info.fetched_at) : '?'})</div>`;
   }).join('');
 }
 
