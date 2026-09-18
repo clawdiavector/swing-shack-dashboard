@@ -515,6 +515,9 @@ def _brand_status_entries(spec: JobSpec, grouped: dict[tuple[str, str | None], l
     keys = sorted({b for (job, b) in grouped if job == spec.name})
     if not keys:
         keys = list(resolve_brands(spec)) + list(skipped_brands(spec))
+    runnable, skipped = partition_brands(spec)
+    runnable_set = set(runnable)
+    skipped_set = set(skipped)
     entries: list[dict] = []
     for brand_id in keys:
         rows = grouped.get((spec.name, brand_id)) or []
@@ -528,17 +531,19 @@ def _brand_status_entries(spec: JobSpec, grouped: dict[tuple[str, str | None], l
             if finished is not None:
                 last_success_at = _iso(finished)
                 last_success_age_h = round((now - finished).total_seconds() / 3600.0, 3)
-        entries.append(
-            {
-                "brand": brand_id,
-                "verdict": verdict,
-                "last_success_at": last_success_at,
-                "last_success_age_h": last_success_age_h,
-                "last_run_at": (last or {}).get("finished"),
-                "last_status": (last or {}).get("status"),
-                "last_error": (last or {}).get("error"),
-            }
-        )
+        entry: dict = {
+            "brand": brand_id,
+            "verdict": verdict,
+            "applies": brand_id in runnable_set,
+            "last_success_at": last_success_at,
+            "last_success_age_h": last_success_age_h,
+            "last_run_at": (last or {}).get("finished"),
+            "last_status": (last or {}).get("status"),
+            "last_error": (last or {}).get("error"),
+        }
+        if brand_id in skipped_set:
+            entry["skipped_reason"] = "integration credentials missing for brand"
+        entries.append(entry)
     return entries
 
 

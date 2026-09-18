@@ -75,6 +75,15 @@ main { padding: 12px 16px 96px; max-width: 880px; margin: 0 auto; }
 .chip.LATE { background: rgba(245,158,11,.15); color: var(--warn); }
 .chip.FAILED, .chip.STUCK { background: rgba(255,107,107,.15); color: var(--bad); }
 .chip.NEVER { background: rgba(154,160,166,.15); color: var(--muted); }
+.chip.SKIPPED { background: rgba(154,160,166,.12); color: var(--muted); }
+.chip.brand-active { outline: 2px solid var(--accent); outline-offset: 1px; }
+.brand-select {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 10px; font-size: 13px; min-width: 170px;
+}
+.brand-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.brand-strip { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.brand-strip .chip { font-size: 10px; padding: 2px 6px; }
 .chip.SANDBOX { background: rgba(110,168,255,.18); color: var(--accent-2); }
 .chip.LIVE { background: rgba(255,107,107,.12); color: var(--bad); }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -236,6 +245,7 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
 <body>
 <header>
   <h1 id="ops-title">Ops</h1>
+  <select id="brand-select" class="brand-select" aria-label="Brand filter"></select>
   <button class="btn" id="refresh" type="button">Refresh</button>
   <a class="btn" href="/">Campaign OS</a>
   <a class="btn" href="/?page=ops">Ops runbook</a>
@@ -266,7 +276,7 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
   <div id="layer-jobs">
     <section class="summary" id="summary">
       <h2>Schedule at a glance (SAST)</h2>
-      <table><thead><tr><th>Job</th><th>Verdict</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
+      <table><thead><tr><th>Job</th><th>Verdict</th><th>Applies to</th><th>Runs at</th><th>Scheduler</th><th>Last run</th></tr></thead><tbody id="summary-body"></tbody></table>
     </section>
     <div id="list" class="empty" hidden>Loading…</div>
   </div>
@@ -385,14 +395,143 @@ function toast(msg, bad) {
 }
 const TZ = 'Africa/Johannesburg';
 const OPS_LAYERS = ['jobs', 'health', 'agents', 'approve', 'create', 'publish', 'learn'];
+const BRAND_LS_KEY = 'campaign_os_active_brand';
+const ALL_BRANDS = '__all__';
 let historyByJob = {};
 let activeOpsLayer = 'jobs';
+let activeBrand = null;
+let jobsBrandFilter = null;
+let brandDisplayName = 'Campaign OS';
+let allJobsCache = [];
 
 function setChip(el, verdict) {
   if (!el) return;
   const v = verdict || 'NEVER';
   el.textContent = v;
   el.className = 'chip ' + v;
+}
+
+function syncBrandToUrl() {
+  if (!activeBrand || jobsBrandFilter === ALL_BRANDS) return;
+  try {
+    const url = new URL(location.href);
+    if (url.searchParams.get('brand') !== activeBrand) {
+      url.searchParams.set('brand', activeBrand);
+      history.replaceState(null, '', url.toString());
+    }
+  } catch (_) {}
+}
+
+function updateBrandChrome() {
+  if (jobsBrandFilter && jobsBrandFilter !== ALL_BRANDS) {
+    document.title = 'Ops · ' + brandDisplayName;
+  }
+}
+
+async function initBrandSwitcher() {
+  const params = new URLSearchParams(location.search);
+  const fromUrl = params.get('brand');
+  let fromLs = null;
+  try { fromLs = localStorage.getItem(BRAND_LS_KEY); } catch (_) {}
+
+  const r = await api('/api/brands');
+  if (!r.ok || !r.data) throw new Error('Could not load brands');
+  const d = r.data;
+  const brandsObj = d.brands || {};
+  const entries = Object.entries(brandsObj).sort((a, b) => {
+    const oa = a[1].order ?? 999;
+    const ob = b[1].order ?? 999;
+    return oa - ob || a[0].localeCompare(b[0]);
+  });
+
+  let resolved = fromUrl || fromLs || d.active_brand_id || d.default_brand_id;
+  if (!brandsObj[resolved]) {
+    resolved = d.default_brand_id;
+    if (fromUrl && fromUrl !== resolved) {
+      params.delete('brand');
+      history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+    }
+  }
+  activeBrand = resolved;
+  jobsBrandFilter = resolved;
+  brandDisplayName = (brandsObj[resolved] && (brandsObj[resolved].display_name || brandsObj[resolved].name)) || resolved;
+  try { localStorage.setItem(BRAND_LS_KEY, activeBrand); } catch (_) {}
+
+  const sel = $('brand-select');
+  sel.innerHTML = '<option value="' + ALL_BRANDS + '">All brands</option>'
+    + entries.map(([id, b]) =>
+      '<option value="' + esc(id) + '">' + esc(b.icon || '') + ' ' + esc(b.display_name || b.name || id) + '</option>'
+    ).join('');
+  sel.value = jobsBrandFilter;
+  syncBrandToUrl();
+  updateBrandChrome();
+
+  sel.addEventListener('change', async () => {
+    jobsBrandFilter = sel.value;
+    if (jobsBrandFilter === ALL_BRANDS) {
+      syncBrandToUrl();
+    } else {
+      activeBrand = jobsBrandFilter;
+      brandDisplayName = (brandsObj[activeBrand] && (brandsObj[activeBrand].display_name || brandsObj[activeBrand].name)) || activeBrand;
+      try { localStorage.setItem(BRAND_LS_KEY, activeBrand); } catch (_) {}
+      syncBrandToUrl();
+      updateBrandChrome();
+      try {
+        await api('/api/brands/' + encodeURIComponent(activeBrand) + '/select', { method: 'POST' });
+      } catch (_) {}
+    }
+    if (activeOpsLayer === 'jobs') await loadJobs();
+  });
+}
+
+function jobRunQuery(job) {
+  if (!job || job.brand_mode !== 'per_brand') return '';
+  if (jobsBrandFilter === ALL_BRANDS) return '&all=1';
+  const brand = jobsBrandFilter || activeBrand;
+  return brand ? '&brand=' + encodeURIComponent(brand) : '';
+}
+
+function brandVerdictChip(b) {
+  if (b.applies === false || b.skipped_reason) {
+    return { cls: 'SKIPPED', label: "Doesn't apply" };
+  }
+  return { cls: b.verdict || 'NEVER', label: b.brand };
+}
+
+function renderAppliesChips(j) {
+  if (j.brand_mode === 'global' || j.brand_mode === 'fanout_internal') {
+    return '<span class="chip NEVER">All brands</span>';
+  }
+  const brands = j.brands || [];
+  if (!brands.length) {
+    if (jobsBrandFilter && jobsBrandFilter !== ALL_BRANDS) {
+      return '<span class="chip SKIPPED">Doesn\'t apply</span>';
+    }
+    return '<span class="chip NEVER">—</span>';
+  }
+  return '<div class="brand-chips">' + brands.map(b => {
+    const chip = brandVerdictChip(b);
+    const active = jobsBrandFilter !== ALL_BRANDS && b.brand === jobsBrandFilter;
+    return '<span class="chip ' + esc(chip.cls) + (active ? ' brand-active' : '') + '">' + esc(chip.label) + '</span>';
+  }).join('') + '</div>';
+}
+
+function renderBrandStrip(j) {
+  if (j.brand_mode !== 'per_brand') return '';
+  const brands = j.brands || [];
+  if (!brands.length && jobsBrandFilter && jobsBrandFilter !== ALL_BRANDS) {
+    return '<div class="brand-strip"><span class="chip SKIPPED">Doesn\'t apply to ' + esc(jobsBrandFilter) + '</span></div>';
+  }
+  if (!brands.length) return '';
+  return '<div class="brand-strip">' + brands.map(b => {
+    const chip = brandVerdictChip(b);
+    const active = jobsBrandFilter !== ALL_BRANDS && b.brand === jobsBrandFilter;
+    return '<span class="chip ' + esc(chip.cls) + (active ? ' brand-active' : '') + '">' + esc(b.brand) + ': ' + esc(chip.cls === 'SKIPPED' ? 'Not set up' : (b.verdict || 'NEVER')) + '</span>';
+  }).join('') + '</div>';
+}
+
+function filterJobsForBrand(jobs) {
+  return jobs;
 }
 
 function readLayer() {
@@ -609,8 +748,10 @@ async function runDraftAssets() {
   const btn = $('create-run-draft-assets');
   if (btn) btn.disabled = true;
   try {
-    const r = await fetch('/api/jobs/run/draft_assets?reason=manual', { method: 'POST', credentials: 'same-origin' });
+    const q = jobRunQuery({ brand_mode: 'per_brand' });
+    const r = await fetch('/api/jobs/run/draft_assets?reason=manual' + q, { method: 'POST', credentials: 'same-origin' });
     const j = await r.json();
+    if (r.status === 409) throw new Error(j.error || 'Brand not in resolved set');
     if (!j.ok) throw new Error(j.error || 'run failed');
     const n = (j.result && j.result.drafted) != null ? j.result.drafted : j.drafted;
     toast('draft_assets: drafted ' + (n ?? 0));
@@ -658,8 +799,10 @@ async function runPublishDispatch() {
   const btn = $('publish-run-dispatch');
   if (btn) btn.disabled = true;
   try {
-    const r = await fetch('/api/jobs/run/publish_dispatch?reason=manual', { method: 'POST', credentials: 'same-origin' });
+    const q = jobRunQuery({ brand_mode: 'per_brand' });
+    const r = await fetch('/api/jobs/run/publish_dispatch?reason=manual' + q, { method: 'POST', credentials: 'same-origin' });
     const j = await r.json();
+    if (r.status === 409) throw new Error(j.error || 'Brand not in resolved set');
     if (!j.ok) throw new Error(j.error || 'run failed');
     const n = (j.result && j.result.dispatched) != null ? j.result.dispatched : j.dispatched;
     toast('publish_dispatch: dispatched ' + (n ?? 0));
@@ -856,6 +999,7 @@ function jobCard(j) {
         <div class="meta">${esc(j.criticality || '')}${j.best_effort ? ' · best_effort' : ''} · cadence ${esc(j.every_seconds ? Math.round(j.every_seconds/3600)+'h' : '—')}</div>
         <div class="meta">Last run ${esc(lastRun)} · ${esc(lastSt)} · ${esc(trig)} · ${esc(dur)}</div>
         <div class="meta">Last OK ${esc(lastOk)} (${esc(age)})</div>
+        ${renderBrandStrip(j)}
         ${j.last_error ? `<div class="meta" style="color:var(--bad)">${esc(String(j.last_error).slice(0,120))}</div>` : ''}
         ${j.last_error_class ? `<div class="meta">class: ${esc(j.last_error_class)}</div>` : ''}
       </div>
@@ -1036,6 +1180,7 @@ function renderSummary(jobs) {
     return `<tr class="${verdictRowClass(v)}" data-tip-job="${idx}">
       <td class="has-tip"><span class="job-name">${esc(title)}</span><br><span class="job-id">${esc(j.name)}</span><br><button type="button" class="link-btn" data-open-outputs="${esc(j.name)}">View outputs</button></td>
       <td><span class="chip ${esc(v)}">${esc(v)}</span></td>
+      <td>${renderAppliesChips(j)}</td>
       <td>${esc(scheduleTimes(j.schedule))}</td>
       <td>${esc((j.schedule && j.schedule.scheduler) || '—')}</td>
       <td>${esc(fmtSast(j.last_run_at))}<br><span class="${stCls}">${esc(st)}</span> · <span style="color:var(--muted)">${esc(j.last_triggered_by || '—')}</span></td>
@@ -1062,13 +1207,20 @@ async function loadHistory() {
 async function loadJobs() {
   const list = $('list');
   list.innerHTML = '<div class="empty">Loading…</div>';
+  if (!jobsBrandFilter) {
+    try { await initBrandSwitcher(); } catch (e) {
+      list.innerHTML = '<div class="err">Brand load failed: ' + esc(e.message) + '</div>';
+      return;
+    }
+  }
   await loadHistory();
   const r = await api('/api/jobs/status');
   if (!r.ok) {
     list.innerHTML = `<div class="err">Could not load status (${r.status}). ${esc(r.data && r.data.error)}</div>`;
     return;
   }
-  const jobs = (r.data && r.data.jobs) || [];
+  allJobsCache = (r.data && r.data.jobs) || [];
+  const jobs = filterJobsForBrand(allJobsCache);
   if (!jobs.length) {
     list.innerHTML = '<div class="empty">No jobs registered.</div>';
     return;
@@ -1082,9 +1234,13 @@ async function runNow(name, btn) {
   btn.disabled = true;
   const prev = btn.textContent;
   btn.textContent = worst >= 120 ? `Running (may take ~${Math.ceil(worst/60)}m)…` : 'Running…';
+  const jobMeta = allJobsCache.find(j => j.name === name) || { brand_mode: 'per_brand' };
   try {
-    const r = await api('/api/jobs/run/' + encodeURIComponent(name) + '?reason=manual', { method: 'POST' });
-    if (r.status === 429) {
+    const runUrl = '/api/jobs/run/' + encodeURIComponent(name) + '?reason=manual' + jobRunQuery(jobMeta);
+    const r = await api(runUrl, { method: 'POST' });
+    if (r.status === 409) {
+      toast((r.data && r.data.error) || 'Brand not in resolved set for this job', true);
+    } else if (r.status === 429) {
       toast(`Rate limited for ${name} — try again in ${(r.data && r.data.retry_after_s) || '?'}s`, true);
     } else if (!r.ok) {
       toast((r.data && r.data.error) || 'Run failed', true);
@@ -1094,7 +1250,6 @@ async function runNow(name, btn) {
       await loadJobs();
     }
   } catch (e) {
-    // Proxy may cut a long run; re-poll status rather than claiming failure.
     if (String(e.message) !== 'auth') {
       toast('Network blip — refreshing status…');
       await loadJobs();

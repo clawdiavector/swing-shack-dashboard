@@ -5067,7 +5067,7 @@ async function _briefRenderGbpToday(){
   const meta = document.getElementById('brief-gbp-today-meta');
   if(!body) return;
   try {
-    const r = await API.get('/api/gbp/daily-poster/latest?brand_id=swing-shack');
+    const r = await API.get('/api/gbp/daily-poster/latest?brand_id=' + encodeURIComponent(activeBrandId()));
     if(!r.ok || !r.posts || !r.posts.length){
       body.innerHTML = `<div class="empty" style="font-size:12px">No plan yet. <a href="#" data-go="gbp" style="color:var(--ac);text-decoration:none">Open GBP Daily → generate one</a></div>`;
       if(meta) meta.textContent = 'no plan';
@@ -5585,6 +5585,14 @@ const S = {
   brand:null, brandContext:null, brandDropdownOpen:false,
 };
 
+function activeBrandId() {
+  try {
+    return S.brand || S.brandContext?.brand_id || localStorage.getItem('campaign_os_active_brand') || 'swing-shack';
+  } catch (_) {
+    return S.brand || S.brandContext?.brand_id || 'swing-shack';
+  }
+}
+
 // ─── Brand switcher + per-brand data scoping ────────────────────
 async function loadBrandContext(){
   try {
@@ -5712,6 +5720,8 @@ async function switchBrand(brandId){
     // We store it in S so all fetches include it.
     S.brand = brandId;
     document.documentElement.dataset.brand = brandId;
+    try { localStorage.setItem('campaign_os_active_brand', brandId); } catch(_){}
+    GBP_BRAND = brandId;
     // Reload brand context + everything that depends on it
     await loadBrandContext();
     renderChromeForBrand();
@@ -5725,6 +5735,12 @@ async function switchBrand(brandId){
     // Re-render whichever section is active
     const active = Array.from($$('.section.on')).map(s => s.id.replace(/^sec-/, ''));
     active.forEach(sec => { try { renderSection(sec); } catch(e){ console.warn('render', sec, e); } });
+    if (typeof loadStrategyCard === 'function') {
+      try { await loadStrategyCard(); } catch(e){ console.warn('loadStrategyCard', e); }
+    }
+    if (typeof loadWorkspace === 'function') {
+      try { await loadWorkspace(); } catch(e){ console.warn('loadWorkspace', e); }
+    }
     toast(`Switched to ${(S.brandContext?.brand?.display_name) || brandId}`);
   } catch(e) {
     toast('Brand switch failed: ' + e.message, 'err');
@@ -6747,8 +6763,7 @@ function renderDataSourcesCard(w){
 async function renderLibrary(){
   const sec = $('#sec-library');
   if(!sec) return;
-  const brand = window.S?.brand || (window.S = window.S || {});
-  const bid = (window.S?.brand_id) || 'swing-shack';
+  const bid = activeBrandId();
   let html = `
     <div class="section-h">
       <h2 data-help="Universal archive for the active brand: every approved caption, every generated meme, every generated image, plus the FAQ list, hook bank entries, and the campaign/asset metadata. Tabs across the top filter by kind (Recently generated, Approved assets, Captions, Hooks, Memes, Images). The three quick-launch tiles at the top jump straight to the Visual Library (image browser) or the Meme Lab (meme remix workspace), or open the universal search across all kinds in one query. Empty state means nothing has been generated yet for this brand." data-help-title="Library">Library</h2>
@@ -7033,7 +7048,7 @@ async function renderSection(sec){
 // Usage from any render function:
 //
 //   // Wrap an existing hook item with image actions
-//   imageLink(itemEl, { prompt: hookText, brand_id: 'swing-shack' });
+//   imageLink(itemEl, { prompt: hookText, brand_id: activeBrandId() });
 //
 //   // Wrap an existing image (Visual Library thumbs) with Edit
 //   imageLink(thumbEl, { source_url: '/brand-images/swing-shack/foo.jpg',
@@ -7157,9 +7172,9 @@ async function openImageModal(opts) {
         ? {
             instruction,
             model, size,
-            brand_id: opts.brand_id || (window.S && S.brand_id) || 'swing-shack',
+            brand_id: opts.brand_id || activeBrandId(),
           }
-        : { prompt: instruction, model, size, brand_id: opts.brand_id || 'swing-shack' };
+        : { prompt: instruction, model, size, brand_id: opts.brand_id || activeBrandId() };
       // For edit, attach the source image
       if(isEdit){
         const src = $('#image-modal-source').value.trim();
@@ -7226,7 +7241,7 @@ async function generateFromAsset(asset_id, brand_id, sourceEl) {
     const r = await fetch(IL_CONFIG.endpoint + '/from-asset/' + encodeURIComponent(asset_id), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand_id: brand_id || 'swing-shack' }),
+      body: JSON.stringify({ brand_id: brand_id || activeBrandId() }),
     });
     const j = await r.json();
     if(!j.ok){ throw new Error(j.error || 'failed'); }
@@ -7317,16 +7332,16 @@ async function injectImageLinkChrome() {
       $('#image-fab').classList.remove('on');
       const mode = btn.dataset.mode;
       if(mode === 'generate' || mode === 'edit'){
-        openImageModal({ mode, brand_id: (window.S && S.brand_id) || 'swing-shack' });
+        openImageModal({ mode, brand_id: activeBrandId() });
       } else if(mode === 'cover-brief'){
         // Try to find an active brief from any surface; fall back to brand context
         const brief = (windowS && S.lastBrief) || (S.currentBrief) || '';
-        openImageModal({ mode: 'generate', brand_id: (window.S && S.brand_id) || 'swing-shack', prompt: brief || 'Cover image for the active brief' });
+        openImageModal({ mode: 'generate', brand_id: activeBrandId(), prompt: brief || 'Cover image for the active brief' });
       } else if(mode === 'from-recipe'){
         // Pull the active brand's recipe summary as the seed prompt
         (async () => {
           try {
-            const bid = (window.S && S.brand_id) || 'swing-shack';
+            const bid = activeBrandId();
             const r = await fetch('/api/visual-library/' + bid + '/recipe');
             const j = await r.json();
             const summary = (j && j.recipe && j.recipe.summary) || '';
@@ -7358,10 +7373,10 @@ async function injectImageLinkChrome() {
     if(e.ctrlKey || e.metaKey || e.altKey) return;
     if(e.key === 'g' || e.key === 'G'){
       e.preventDefault();
-      openImageModal({ mode: 'generate', brand_id: (window.S && S.brand_id) || 'swing-shack' });
+      openImageModal({ mode: 'generate', brand_id: activeBrandId() });
     } else if(e.key === 'e' || e.key === 'E'){
       e.preventDefault();
-      openImageModal({ mode: 'edit', brand_id: (window.S && S.brand_id) || 'swing-shack' });
+      openImageModal({ mode: 'edit', brand_id: activeBrandId() });
     }
   });
 }
@@ -11701,7 +11716,7 @@ $('#cap-gen').addEventListener('click', async () => {
   // P1.1 FINAL — call the v2 pipeline. The old /api/captions/generate
   // endpoint (hook-pool shuffler) is no longer used by the UI.
   const payload = {
-    brand_id: voice || 'swing-shack',
+    brand_id: voice || activeBrandId(),
     user_brief: brief || '',
     channel,
     n_survivors: n,
@@ -11773,7 +11788,7 @@ $('#cap-gen').addEventListener('click', async () => {
   $$('#cap-results [data-cap-different]').forEach(el => el.addEventListener('click', async () => {
     const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-different')));
     const payload2 = {
-      brand_id: p.brand_id || 'swing-shack',
+      brand_id: p.brand_id || activeBrandId(),
       user_brief: p.original_candidate || brief,
       channel: p.platform || 'instagram_feed',
       n_survivors: n,
@@ -11790,7 +11805,7 @@ $('#cap-gen').addEventListener('click', async () => {
   $$('#cap-results [data-cap-more]').forEach(el => el.addEventListener('click', async () => {
     const p = JSON.parse(decodeURIComponent(el.getAttribute('data-cap-more')));
     const payload2 = {
-      brand_id: p.brand_id || 'swing-shack',
+      brand_id: p.brand_id || activeBrandId(),
       user_brief: p.original_candidate || brief,
       channel: p.platform || 'instagram_feed',
       liked_mechanism: p.route,
@@ -12926,7 +12941,7 @@ async function generateSeoFix(){
 
 let GBP_DRAFTS_CACHE = [];
 let GBP_PLANS_CACHE = [];
-let GBP_BRAND = 'swing-shack';
+let GBP_BRAND = activeBrandId();
 
 function gbpStatusPill(status) {
   const k = status === 'scheduled' ? 'on' : status === 'published' ? 'live' : status === 'deleted' ? 'blocked' : 'draft';
@@ -13293,7 +13308,7 @@ async function _gbpDailyGenerate(brand_id){
   out.innerHTML = '<div class="muted" style="padding:18px;text-align:center">Generating plan…</div>';
   try {
     const r = await API.post('/api/gbp/daily-poster/preview', {
-      brand_id: brand_id || 'swing-shack',
+      brand_id: brand_id || activeBrandId(),
       days: 7,
       posts_per_day: 1,
     });
@@ -13346,7 +13361,7 @@ async function _gbpDailyPublish(brand_id){
   out.innerHTML = '<div class="muted" style="padding:18px;text-align:center">Publishing…</div>';
   try {
     const r = await API.post('/api/gbp/daily-poster/publish', {
-      brand_id: brand_id || 'swing-shack',
+      brand_id: brand_id || activeBrandId(),
       days: 7,
       posts_per_day: 1,
     });
@@ -13370,7 +13385,7 @@ async function _gbpDailyAudit(brand_id){
   const out = document.getElementById('gbp-plan-output');
   out.innerHTML = '<div class="muted" style="padding:18px;text-align:center">Loading audit trail…</div>';
   try {
-    const r = await API.get(`/api/gbp/daily-poster/plans?brand_id=${brand_id || 'swing-shack'}&limit=30`);
+    const r = await API.get(`/api/gbp/daily-poster/plans?brand_id=${encodeURIComponent(brand_id || activeBrandId())}&limit=30`);
     if (!r.ok) {
       out.innerHTML = `<div class="empty" style="color:#f87171">Audit failed: ${esc(r.error || 'unknown')}</div>`;
       return;
@@ -13392,15 +13407,15 @@ function _gbpDailyWire(){
   const pub = document.getElementById('gbp-publish-btn');
   const aud = document.getElementById('gbp-audit-btn');
   if (gen && !gen.dataset.wired) {
-    gen.addEventListener('click', () => _gbpDailyGenerate('swing-shack'));
+    gen.addEventListener('click', () => _gbpDailyGenerate(activeBrandId()));
     gen.dataset.wired = '1';
   }
   if (pub && !pub.dataset.wired) {
-    pub.addEventListener('click', () => _gbpDailyPublish('swing-shack'));
+    pub.addEventListener('click', () => _gbpDailyPublish(activeBrandId()));
     pub.dataset.wired = '1';
   }
   if (aud && !aud.dataset.wired) {
-    aud.addEventListener('click', () => _gbpDailyAudit('swing-shack'));
+    aud.addEventListener('click', () => _gbpDailyAudit(activeBrandId()));
     aud.dataset.wired = '1';
   }
 }
@@ -16857,7 +16872,7 @@ async function campaignPushToPostiz(cid, approvedCount) {
   if (!ok) return;
   try {
     const r = await API.post('/api/lanes/queue-for-postiz', {
-      brand_id: 'swing-shack',
+      brand_id: activeBrandId(),
       item_ids: 'all_approved',
     });
     if (!r.ok) throw new Error(r.error || 'Push failed');
@@ -17223,7 +17238,7 @@ async function imageAutoOverlay(btn) {
   try {
     const r = await API.post('/api/image-lab/auto-overlay', {
       image_bytes_b64: b64,
-      brand_id: p.brand_id || 'swing-shack',
+      brand_id: p.brand_id || activeBrandId(),
       headline: p.headline || p.hook || '',
       subhead: p.subhead || '',
       cta: p.cta || '',
@@ -17281,7 +17296,7 @@ const obState = {
 async function renderOnboarding() {
   if (!obState.voicesLoaded) {
     try {
-      const r = await API.get('/api/brand-settings/swing-shack');
+      const r = await API.get('/api/brand-settings/' + encodeURIComponent(activeBrandId()));
       if (r.ok && r.settings && r.settings.voice_system) {
         const vs = r.settings.voice_system;
         const voiceSel = document.getElementById('ob-voice');

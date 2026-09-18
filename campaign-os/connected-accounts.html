@@ -25,6 +25,12 @@
   .sum-partial { background: #78350f; color: #fcd34d; border-color: #92400e; }
   .sum-degraded { background: #7c2d12; color: #fdba74; border-color: #9a3412; }
   .sum-missing { background: #1f2937; color: #94a3b8; }
+  .sum-na { background: #1e293b; color: #64748b; border-color: #334155; }
+  .core-progress { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+  .brand-select {
+    background: var(--card); color: var(--tx); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; font-size: 13px; min-width: 160px;
+  }
   .cat { margin-bottom: 28px; }
   .cat-h { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
   .acc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
@@ -45,7 +51,9 @@
   .pill-partial { background: #78350f; color: #fcd34d; }
   .pill-degraded { background: #7c2d12; color: #fdba74; }
   .pill-missing { background: #374151; color: #9ca3af; }
+  .pill-na { background: #1e293b; color: #64748b; opacity: 0.85; }
   .pill-err { background: #7f1d1d; color: #fecaca; }
+  .acc-na { opacity: 0.82; }
   .channels { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0; }
   .chip { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; font-size: 10px; color: var(--muted); }
   .chip.ok { border-color: #065f46; color: #6ee7b7; }
@@ -66,6 +74,7 @@
 <div class="wrap">
   <div class="toolbar">
     <a class="back" href="/">← Campaign OS</a>
+    <select id="brand-select" class="brand-select" aria-label="Active brand"></select>
     <div class="meta" id="last-check">Checking…</div>
     <button class="btn btn-ghost" type="button" onclick="loadStatus()">↻ Refresh</button>
   </div>
@@ -80,6 +89,19 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const BRAND_LS_KEY = 'campaign_os_active_brand';
+const CORE_SIX = ['postiz', 'meta', 'gbp', 'ga4', 'gsc', 'youtube'];
+const ANALYTICS = ['windsor', 'ubersuggest'];
+const OPTIONAL = ['google_drive', 'krea'];
+const SECTION_ORDER = [
+  { id: 'core', label: 'Core six', ids: CORE_SIX },
+  { id: 'analytics', label: 'Analytics', ids: ANALYTICS },
+  { id: 'optional', label: 'Optional', ids: OPTIONAL },
+];
+
+let activeBrand = null;
+let brandDisplayName = 'Campaign OS';
+
 function toast(msg, kind) {
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -89,10 +111,11 @@ function toast(msg, kind) {
 }
 
 function pillClass(state) {
+  if (state === 'na') return 'pill pill-na';
   return 'pill pill-' + (state || 'missing');
 }
 function pillLabel(state) {
-  const m = { connected: 'Connected', partial: 'Partial', degraded: 'Degraded', missing: 'Not set up', err: 'Error' };
+  const m = { connected: 'Connected', partial: 'Partial', missing: 'Not set up', na: "Doesn't apply", err: 'Error' };
   return m[state] || state || 'Unknown';
 }
 
@@ -103,7 +126,6 @@ function esc(s) {
 
 const TZ = 'Africa/Johannesburg';
 
-/** ISO timestamp → "Thu, 18 Sep 2026, 08:58 SAST" (pass through relative labels like "2h ago"). */
 function formatWhen(iso) {
   if (iso == null || iso === '' || iso === 'never') return 'never';
   const s = String(iso).trim();
@@ -131,13 +153,80 @@ function formatLastUse(item) {
   return 'never';
 }
 
-function renderSetup(setup) {
-  if (!setup) return '';
-  const steps = (setup.steps || []).map(s => '<li>' + esc(s) + '</li>').join('');
-  const envs = (setup.env_vars || []).map(e => '<span class="env-tag">' + esc(e) + '</span>').join('');
+function syncBrandToUrl() {
+  if (!activeBrand) return;
+  try {
+    const url = new URL(location.href);
+    if (url.searchParams.get('brand') !== activeBrand) {
+      url.searchParams.set('brand', activeBrand);
+      history.replaceState(null, '', url.toString());
+    }
+  } catch (_) {}
+}
+
+function updateBrandChrome() {
+  document.title = 'Connected Accounts · ' + brandDisplayName;
+}
+
+async function initBrandSwitcher() {
+  const params = new URLSearchParams(location.search);
+  const fromUrl = params.get('brand');
+  let fromLs = null;
+  try { fromLs = localStorage.getItem(BRAND_LS_KEY); } catch (_) {}
+
+  const r = await fetch('/api/brands');
+  const d = await r.json();
+  const brandsObj = d.brands || {};
+  const entries = Object.entries(brandsObj).sort((a, b) => {
+    const oa = a[1].order ?? 999;
+    const ob = b[1].order ?? 999;
+    return oa - ob || a[0].localeCompare(b[0]);
+  });
+
+  let resolved = fromUrl || fromLs || d.active_brand_id || d.default_brand_id;
+  if (!brandsObj[resolved]) {
+    resolved = d.default_brand_id;
+    if (fromUrl && fromUrl !== resolved) {
+      params.delete('brand');
+      history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+    }
+  }
+  activeBrand = resolved;
+  brandDisplayName = (brandsObj[resolved] && (brandsObj[resolved].display_name || brandsObj[resolved].name)) || resolved;
+  try { localStorage.setItem(BRAND_LS_KEY, activeBrand); } catch (_) {}
+
+  const sel = document.getElementById('brand-select');
+  sel.innerHTML = entries.map(([id, b]) =>
+    '<option value="' + esc(id) + '">' + esc(b.icon || '') + ' ' + esc(b.display_name || b.name || id) + '</option>'
+  ).join('');
+  sel.value = activeBrand;
+  syncBrandToUrl();
+  updateBrandChrome();
+
+  sel.addEventListener('change', async () => {
+    activeBrand = sel.value;
+    brandDisplayName = (brandsObj[activeBrand] && (brandsObj[activeBrand].display_name || brandsObj[activeBrand].name)) || activeBrand;
+    try { localStorage.setItem(BRAND_LS_KEY, activeBrand); } catch (_) {}
+    syncBrandToUrl();
+    updateBrandChrome();
+    try {
+      await fetch('/api/brands/' + encodeURIComponent(activeBrand) + '/select', { method: 'POST' });
+    } catch (_) {}
+    await loadStatus();
+  });
+}
+
+function renderSetup(setup, item) {
+  const envs = [];
+  if (item && item.credentials && item.credentials.env_vars && item.credentials.env_vars.length) {
+    item.credentials.env_vars.forEach(e => envs.push('<span class="env-tag">' + esc(e) + '</span>'));
+  }
+  if (!setup && !envs.length) return '';
+  const steps = setup && setup.steps ? setup.steps.map(s => '<li>' + esc(s) + '</li>').join('') : '';
+  const setupEnvs = setup && setup.env_vars ? setup.env_vars.map(e => '<span class="env-tag">' + esc(e) + '</span>').join('') : '';
   return '<div class="setup">'
-    + (setup.auth_type ? '<h4>Auth: ' + esc(setup.auth_type) + '</h4>' : '')
-    + (envs ? '<div class="env-tags">' + envs + '</div>' : '')
+    + (setup && setup.auth_type ? '<h4>Auth: ' + esc(setup.auth_type) + '</h4>' : '')
+    + (envs.length ? '<div class="env-tags">' + envs.join('') + '</div>' : (setupEnvs ? '<div class="env-tags">' + setupEnvs + '</div>' : ''))
     + (steps ? '<ol>' + steps + '</ol>' : '')
     + '</div>';
 }
@@ -156,9 +245,20 @@ function renderChannels(details) {
     + '</div>';
 }
 
+function enrichIntegration(item, payload) {
+  const copy = Object.assign({}, item);
+  if (item.id === 'postiz' && payload.postiz) copy.details = payload.postiz;
+  else if (item.id === 'meta' && payload.meta) copy.details = payload.meta;
+  else if (item.id === 'gbp' && payload.gbp) copy.details = payload.gbp;
+  return copy;
+}
+
 function renderDetails(item) {
   const d = item.details || {};
   let html = '';
+  if (item.state === 'na' && item.na_reason) {
+    html += '<div class="acc-meta">' + esc(item.na_reason) + '</div>';
+  }
   if (item.id === 'postiz') html += renderChannels(d);
   if (item.id === 'gbp' && d.google_account) html += '<div class="acc-meta">Google account: <b>' + esc(d.google_account) + '</b></div>';
   if (item.id === 'meta') {
@@ -186,8 +286,9 @@ function renderConnect(item) {
 
 function renderAccordion(item) {
   const last = formatLastUse(item);
-  const open = item.state === 'missing' || item.state === 'degraded' ? ' open' : '';
-  return '<details class="acc"' + open + '>'
+  const open = item.state === 'missing' || item.state === 'partial' ? ' open' : '';
+  const naCls = item.state === 'na' ? ' acc-na' : '';
+  return '<details class="acc' + naCls + '"' + open + '>'
     + '<summary>'
     + '<span class="acc-icon">' + esc(item.icon || '🔌') + '</span>'
     + '<span class="acc-main">'
@@ -200,7 +301,7 @@ function renderAccordion(item) {
     + '<div class="acc-body">'
     + renderDetails(item)
     + renderConnect(item)
-    + renderSetup(item.setup)
+    + renderSetup(item.setup, item)
     + '</div>'
     + '</details>';
 }
@@ -210,9 +311,28 @@ function renderSummary(sum) {
   const parts = [];
   if (sum.connected) parts.push('<span class="sum-pill sum-connected">' + sum.connected + ' connected</span>');
   if (sum.partial) parts.push('<span class="sum-pill sum-partial">' + sum.partial + ' partial</span>');
-  if (sum.degraded) parts.push('<span class="sum-pill sum-degraded">' + sum.degraded + ' degraded</span>');
   if (sum.missing) parts.push('<span class="sum-pill sum-missing">' + sum.missing + ' not set up</span>');
+  if (sum.na) parts.push('<span class="sum-pill sum-na">' + sum.na + " doesn't apply</span>");
   return parts.join('');
+}
+
+function renderCoreProgress(integrations) {
+  const byId = {};
+  integrations.forEach(i => { byId[i.id] = i; });
+  const applicable = CORE_SIX.map(id => byId[id]).filter(i => i && i.applies === true);
+  const connected = applicable.filter(i => i.state === 'connected').length;
+  const denom = applicable.length;
+  if (!denom) return '';
+  return '<p class="core-progress"><b>' + connected + '</b> of <b>' + denom + '</b> core integrations connected for <b>' + esc(brandDisplayName) + '</b></p>';
+}
+
+function groupIntegrations(integrations) {
+  const byId = {};
+  integrations.forEach(i => { byId[i.id] = i; });
+  return SECTION_ORDER.map(section => ({
+    label: section.label,
+    items: section.ids.map(id => byId[id]).filter(Boolean),
+  })).filter(section => section.items.length);
 }
 
 async function refreshMeta() {
@@ -222,7 +342,11 @@ async function refreshMeta() {
   btn.disabled = true;
   btn.textContent = '⏳ Fetching…';
   try {
-    const r = await fetch('/api/meta/fetch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brand_id: 'swing-shack' }) });
+    const r = await fetch('/api/meta/fetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand_id: activeBrand }),
+    });
     const d = await r.json();
     if (d.ok) {
       toast('Meta refreshed: ' + (d.ig_posts || 0) + ' IG posts', 'ok');
@@ -240,24 +364,32 @@ async function refreshMeta() {
 
 async function loadStatus() {
   document.getElementById('catalog').innerHTML = '<div class="acc"><div class="acc-body">Loading…</div></div>';
+  if (!activeBrand) {
+    try { await initBrandSwitcher(); } catch (e) {
+      document.getElementById('catalog').innerHTML = '<div class="err">Brand load failed: ' + esc(e.message) + '</div>';
+      return;
+    }
+  }
   try {
-    const r = await fetch('/api/connected-accounts/status');
+    const r = await fetch('/api/connected-accounts/status?brand=' + encodeURIComponent(activeBrand));
     const d = await r.json();
     if (!d.ok) {
       document.getElementById('catalog').innerHTML = '<div class="err">Failed: ' + esc(d.error || 'unknown') + '</div>';
       return;
     }
     const checked = d.last_check ? formatWhen(d.last_check) : '—';
-    document.getElementById('last-check').innerHTML = 'Last checked: <b>' + esc(checked) + '</b>';
+    document.getElementById('last-check').innerHTML = 'Last checked: <b>' + esc(checked) + '</b> · brand <b>' + esc(brandDisplayName) + '</b>';
     document.getElementById('summary').innerHTML = renderSummary(d.summary);
-    const cats = d.categories || [];
-    if (!cats.length) {
+    const integrations = (d.integrations || []).map(item => enrichIntegration(item, d));
+    if (!integrations.length) {
       document.getElementById('catalog').innerHTML = '<div class="acc-body">No integrations configured.</div>';
       return;
     }
-    document.getElementById('catalog').innerHTML = cats.map(cat =>
-      '<section class="cat"><h2 class="cat-h">' + esc(cat.label || cat.id) + '</h2>'
-      + (cat.items || []).map(renderAccordion).join('')
+    const progress = renderCoreProgress(integrations);
+    const sections = groupIntegrations(integrations);
+    document.getElementById('catalog').innerHTML = progress + sections.map(section =>
+      '<section class="cat"><h2 class="cat-h">' + esc(section.label) + '</h2>'
+      + section.items.map(renderAccordion).join('')
       + '</section>'
     ).join('');
   } catch (e) {
@@ -265,7 +397,9 @@ async function loadStatus() {
   }
 }
 
-loadStatus();
+initBrandSwitcher().then(loadStatus).catch(e => {
+  document.getElementById('catalog').innerHTML = '<div class="err">Init failed: ' + esc(e.message) + '</div>';
+});
 </script>
 </body>
 </html>
