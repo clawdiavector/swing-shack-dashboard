@@ -1347,18 +1347,23 @@ def _cluster_opportunities(brand_id: str) -> dict:
                     "event_role": idx_b["event_role"],
                 })
             parent_key = _select_cluster_parent(candidates)
-            # V1.4 §4: re-validate — generic_context cannot be
-            # parent even if score ranks higher
+            # V1.4 §4 + §6: re-validate — only events with
+            # standalone_candidate=true can be parent.
+            # generic_context + supporting_context are
+            # useful_context only, never standalone campaigns.
             parent_idx = indexed[parent_key]
-            if parent_idx["event_role"] == "generic_context":
-                # Fall back to the highest-priority non-generic
+            if not parent_idx["standalone_candidate"]:
+                # Fall back to a standalone_candidate candidate
                 fallback_candidates = [
                     c for c in candidates
-                    if c["event_role"] != "generic_context"]
+                    if c["event_role"] in (
+                        "primary_commercial_moment",
+                        "campaign_extension",
+                        "reactive_moment")]
                 if fallback_candidates:
                     parent_key = _select_cluster_parent(fallback_candidates)
-                # else: leave generic_context as parent
-                # (no non-generic candidate)
+                # else: leave non-standalone as parent
+                # (no standalone candidate)
             # Build member list
             member_records = [{
                 "event_key": parent_key,
