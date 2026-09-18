@@ -279,6 +279,23 @@ a:hover{text-decoration:underline}
 .nav-group-tag{font-size:9px;font-weight:500;color:var(--tx-3);text-transform:none;letter-spacing:0;background:var(--bg-2);padding:2px 6px;border-radius:10px;border:1px solid var(--line)}
 .nav-group{display:flex;flex-direction:column;gap:1px;margin-bottom:.25rem}
 .nav-group[hidden]{display:none}
+.nav-search-wrap{padding:0 .35rem .85rem;margin-bottom:.35rem;border-bottom:1px solid var(--bd)}
+.nav-search-input{
+  width:100%;box-sizing:border-box;padding:.5rem .65rem .5rem 2rem;border-radius:var(--r-s);
+  border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:13px;
+  outline:none;transition:border-color var(--t),box-shadow var(--t);
+}
+.nav-search-input:focus{border-color:var(--ac);box-shadow:0 0 0 2px rgba(110,168,255,.22)}
+.nav-search-input::placeholder{color:var(--tx-3)}
+.nav-search-field{position:relative}
+.nav-search-icon{
+  position:absolute;left:.55rem;top:50%;transform:translateY(-50%);
+  font-size:13px;color:var(--tx-3);pointer-events:none;line-height:1;
+}
+.nav-search-empty{font-size:11px;color:var(--tx-3);padding:.35rem .15rem 0;text-align:center}
+.nav-search-active .nav-group-tag{display:none}
+.nav.nav-search-hit{background:var(--bg-3);color:var(--tx)}
+.nav[hidden]{display:none!important}
 .ext-mark{color:var(--tx-3);font-size:10px;margin-left:auto;padding-left:4px}
 .nav-soft{color:var(--tx-3);font-style:italic;font-weight:500;font-size:12px;opacity:0.7}
 .nav-soft:hover{color:var(--tx);opacity:1}
@@ -1481,6 +1498,14 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
       </div>
       <span class="brand-chev" aria-hidden="true" data-help="Click to open the brand dropdown. Lists every brand registered in data/brands.json. Use this to scope the whole app to a single brand context.">▾</span>
       <div class="brand-dropdown" id="brand-dropdown" role="listbox" hidden></div>
+    </div>
+
+    <div class="nav-search-wrap">
+      <div class="nav-search-field">
+        <span class="nav-search-icon" aria-hidden="true">⌕</span>
+        <input type="search" id="nav-search-input" class="nav-search-input" placeholder="Search pages…" autocomplete="off" aria-label="Search sidebar pages" enterkeyhint="search">
+      </div>
+      <div class="nav-search-empty" id="nav-search-empty" hidden>No pages match</div>
     </div>
 
     <!-- Simplified top-level nav (Daily essentials visible by default).
@@ -10305,16 +10330,15 @@ async function renderTrends(){
   if(!S.trends) S.trends = await API.get('/api/intel/trend_catcher');
   const t = S.trends;
   const v2 = await API.get('/api/intel/trends_v2');
-  // Hoisted: renderYT + v2 rows use these outside the banner block (per-row data_as_of).
-  const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
-  const srcAsOf = t.data_as_of || {};
   // Freshness banner — show last-updated time + how many sources returned data
   const banner = $('#tr-freshness-banner');
   if(banner){
     // /api/intel/trend_catcher and /api/intel/trends_v2 both surface the fetch time as top-level `ts`.
     // Older keys (updated/fetched_at) were never wired by the backend; falling back to `ts` closes the
     // "Data last updated unknown" + `—` placeholder gap.
+    const updated = t.updated || t.fetched_at || t.ts || v2.updated || v2.ts || null;
     const updStr = updated ? (formatDataAsOf(updated) || new Date(updated).toLocaleString()) : 'unknown';
+    const srcAsOf = t.data_as_of || {};
     const srcLines = [
       srcAsOf.golf_news && `golf news: ${formatDataAsOf(srcAsOf.golf_news)}`,
       srcAsOf.reddit && `reddit: ${formatDataAsOf(srcAsOf.reddit)}`,
@@ -15339,6 +15363,70 @@ document.addEventListener('click', (e) => {
   const head = e.target.closest('[data-nav-group]');
   if(head) toggleNavGroup(head.getAttribute('data-nav-group'));
 });
+
+function navSearchHaystack(el) {
+  return [
+    el.getAttribute('data-help-title') || '',
+    el.getAttribute('data-go') || '',
+    el.getAttribute('href') || '',
+    (el.textContent || '').replace(/\s+/g, ' ').trim(),
+  ].join(' ').toLowerCase();
+}
+function applyNavSearch(rawQuery) {
+  const side = document.querySelector('.side');
+  const emptyEl = document.getElementById('nav-search-empty');
+  if(!side) return;
+  const q = String(rawQuery || '').trim().toLowerCase();
+  const items = side.querySelectorAll('.nav-section .nav');
+  if(!q) {
+    side.classList.remove('nav-search-active');
+    items.forEach(el => { el.hidden = false; el.classList.remove('nav-search-hit'); });
+    side.querySelectorAll('.nav-section').forEach(sec => { sec.hidden = false; });
+    side.querySelectorAll('.nav-group-h').forEach(h => { h.hidden = false; });
+    if(emptyEl) emptyEl.hidden = true;
+    applyNavState();
+    return;
+  }
+  side.classList.add('nav-search-active');
+  let hits = 0;
+  side.querySelectorAll('.nav-section').forEach(section => {
+    if(section.id === 'all-tools-section') { section.hidden = true; return; }
+    let sectionHit = false;
+    section.querySelectorAll('.nav').forEach(nav => {
+      const match = navSearchHaystack(nav).includes(q);
+      nav.hidden = !match;
+      nav.classList.toggle('nav-search-hit', match);
+      if(match) { sectionHit = true; hits++; }
+    });
+    const group = section.querySelector('.nav-group');
+    const head = section.querySelector('.nav-group-h');
+    if(group) {
+      group.hidden = !sectionHit;
+      if(head) {
+        head.hidden = !sectionHit;
+        if(sectionHit) {
+          head.setAttribute('aria-expanded', 'true');
+          const chev = head.querySelector('.nav-group-chev');
+          if(chev) chev.textContent = '▾';
+        }
+      }
+    }
+    section.hidden = !sectionHit;
+  });
+  if(emptyEl) emptyEl.hidden = hits > 0;
+}
+(function bindNavSearch(){
+  const input = document.getElementById('nav-search-input');
+  if(!input) return;
+  input.addEventListener('input', () => applyNavSearch(input.value));
+  input.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') {
+      input.value = '';
+      applyNavSearch('');
+      input.blur();
+    }
+  });
+})();
 
 // Home "Ready to publish" empty-state CTAs. Delegated because renderBrief()
 // rebuilds the card's innerHTML on every refresh, so directly-bound
