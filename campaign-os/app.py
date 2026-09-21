@@ -44168,8 +44168,68 @@ def admin_v23_meta_discover_paths():
         "count": len(rows),
         "sample": rows[:5] if rows else None,
     }
+    # Try direct probe of known candidates
+    for act_id in ("2101557317059886", "1024882912541604", "3243721382960506",
+                    "act_2101557317059886", "act_1024882912541604",
+                    "act_3243721382960506"):
+        try:
+            sc, d = _meta_api(
+                f"/act_{act_id}",
+                {"fields": "id,name,account_status,owner_business,timezone_name"},
+                target)
+            rows = d.get("data") if isinstance(d, dict) and not d.get("error") else None
+            err_msg = (d.get("error", {}) or {}).get("message", "")[:120] if isinstance(d, dict) and d.get("error") else ""
+            results[f"/act_{act_id}"] = {"status": sc,
+                                          "data": rows,
+                                          "err": err_msg}
+            if sc == 200:
+                # Try to read its campaigns
+                cm_sc, cm_d = _meta_api(
+                    f"/act_{act_id}/campaigns",
+                    {"fields": "id,name,objective,status,effective_status,start_time,stop_time,daily_budget,lifetime_budget,spend_cap",
+                     "limit": 100},
+                    target)
+                rows = (cm_d.get("data") or []) if isinstance(cm_d, dict) else []
+                results[f"/act_{act_id}/campaigns"] = {
+                    "status": cm_sc,
+                    "count": len(rows),
+                    "sample": [{k: r.get(k) for k in ("id","name","objective","status")}
+                               for r in rows[:5]],
+                }
+        except Exception as e:
+            results[f"/act_{act_id}"] = {"exception": str(e)[:200]}
     return jsonify({"ok": True, "user_id": user_id, "app_id": app_id,
                      "results": results}), 200
+    # Try direct probe of known candidates
+    for act_id in ("2101557317059886", "1024882912541604", "3243721382960506",
+                    "act_2101557317059886", "act_1024882912541604",
+                    "act_3243721382960506"):
+        try:
+            sc, d = _meta_api(
+                f"/act_{act_id}",
+                {"fields": "id,name,account_status,owner_business,timezone_name"},
+                target)
+            rows = d.get("data") if isinstance(d, dict) and not d.get("error") else None
+            err_msg = (d.get("error", {}) or {}).get("message", "")[:120] if isinstance(d, dict) and d.get("error") else ""
+            results[f"/act_{act_id}"] = {"status": sc,
+                                          "data": rows,
+                                          "err": err_msg}
+            if sc == 200:
+                # Try to read its campaigns
+                cm_sc, cm_d = _meta_api(
+                    f"/act_{act_id}/campaigns",
+                    {"fields": "id,name,objective,status,effective_status,start_time,stop_time,daily_budget,lifetime_budget,spend_cap",
+                     "limit": 100},
+                    target)
+                rows = (cm_d.get("data") or []) if isinstance(cm_d, dict) else []
+                results[f"/act_{act_id}/campaigns"] = {
+                    "status": cm_sc,
+                    "count": len(rows),
+                    "sample": [{k: r.get(k) for k in ("id","name","objective","status")}
+                               for r in rows[:5]],
+                }
+        except Exception as e:
+            results[f"/act_{act_id}"] = {"exception": str(e)[:200]}
     return jsonify({"ok": True, "user_id": user_id, "app_id": app_id,
                      "results": results}), 200
 
