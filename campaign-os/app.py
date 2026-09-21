@@ -44080,9 +44080,12 @@ def admin_v23_meta_debug_url():
     composition for /debug_token."""
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    token = (request.args.get("token")
-              or os.environ.get("META_SYSTEM_USER_TOKEN"))
-    inspector = os.environ.get("META_SYSTEM_USER_TOKEN")
+    target_key = (request.args.get("target")
+                   or "META_SYSTEM_USER_TOKEN_STICK")
+    inspector_key = (request.args.get("inspector")
+                      or "META_SYSTEM_USER_TOKEN")
+    token = os.environ.get(target_key)
+    inspector = os.environ.get(inspector_key)
     if not token or not inspector:
         return jsonify({"ok": False,
                         "error": "missing token"}), 200
@@ -44104,7 +44107,11 @@ def admin_v23_meta_debug_url():
         except Exception as e:
             results[url] = {"error": str(e)[:200]}
     return jsonify({"ok": True, "results": results,
-                     "api_version_used": av}), 200
+                     "api_version_used": av,
+                     "target": target_key,
+                     "inspector": inspector_key,
+                     "target_prefix": token[:15] + "…",
+                     "inspector_prefix": inspector[:15] + "…"}), 200
 
 
 @app.route('/api/admin/v23-meta-audit', methods=['GET'])
