@@ -89,6 +89,7 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/ops/learn/summary',
     '/api/ops/agents',
     '/api/ops/agents/heartbeat',
+    '/api/ops/watch/heartbeat',
     '/api/ops/agents/enqueue',
     '/api/ops/agent-queue',
     '/api/ops/agent-queue/mark-done',
@@ -16864,12 +16865,23 @@ def ops_layers():
             inbox_counts = _unified_inbox_mod.inbox_counts(review_sla=review_sla)
         except Exception:
             _app_log.exception("ops_layers inbox counts failed; L4 NEVER fallback")
+        watch_hb = None
+        try:
+            from pathlib import Path
+
+            from _lib import ops_watch as _ops_watch_mod
+
+            watch_hb = _ops_watch_mod.read_heartbeat(Path(_data_paths()['data_dir']))
+        except Exception:
+            _app_log.exception("ops_layers watch heartbeat read failed")
+
         return jsonify(_ops_layers_mod.build_layers(
             jobs_status,
             freshness=freshness_payload,
             queue=queue_payload,
             agents=agents_roster,
             inbox=inbox_counts,
+            watch=watch_hb,
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
@@ -17025,6 +17037,37 @@ def ops_agents_heartbeat():
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("ops_agents_heartbeat failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/watch/heartbeat', methods=['POST'])
+def ops_watch_heartbeat():
+    """POST /api/ops/watch/heartbeat — Mac campaign-os-watch tick. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_watch as _ops_watch_mod
+
+        body = request.get_json(silent=True) or {}
+        hb = _ops_watch_mod.normalise_heartbeat(body)
+        _ops_watch_mod.write_heartbeat(Path(_data_paths()['data_dir']), hb)
+        _app_log.info(
+            "ops_watch heartbeat all_ok=%s jobs_ok=%s/%s",
+            hb.get("all_ok"),
+            hb.get("jobs_ok"),
+            hb.get("jobs_total"),
+        )
+        return jsonify({
+            "ok": True,
+            "received_at": hb.get("received_at"),
+            "all_ok": hb.get("all_ok"),
+        }), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_watch_heartbeat failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

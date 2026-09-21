@@ -285,7 +285,7 @@ table.hist tbody tr:hover { background: rgba(110,168,255,.06); }
     <div class="card health-chip" id="health-watch">
       <span class="chip-title">Linux watchdog</span>
       <span class="chip NEVER" id="health-watch-chip">NEVER</span>
-      <span class="chip-detail" id="health-watch-detail">campaign-os-watch on Linux does not report inbound to the dashboard. Silence on Telegram means healthy; a missing 07:00 digest means the cron host is down.</span>
+      <span class="chip-detail" id="health-watch-detail">campaign-os-watch on the Mac posts a bearer heartbeat every 15m. Silence on Telegram still means healthy jobs; a missing 07:00 digest means the cron host is down.</span>
     </div>
     <div class="card health-chip" id="health-digest">
       <span class="chip-title">Job digest (derived)</span>
@@ -874,7 +874,8 @@ async function loadHealth() {
   const calDetail = $('health-calendar-detail');
   const queueChip = $('health-queue-chip');
   const queueDetail = $('health-queue-detail');
-  setChip($('health-watch-chip'), 'NEVER');
+  const watchChip = $('health-watch-chip');
+  const watchDetail = $('health-watch-detail');
   digestDetail.textContent = 'Loading…';
   freshDetail.textContent = 'Loading…';
   calDetail.textContent = 'Loading…';
@@ -886,6 +887,13 @@ async function loadHealth() {
     return;
   }
   const l2 = layersR.data.layers.L2 || {};
+  setChip(watchChip, l2.watch_verdict || 'NEVER');
+  const watchAgeS = l2.watch_age_s;
+  if (l2.watch_verdict && l2.watch_verdict !== 'NEVER' && watchAgeS != null) {
+    const watchMin = Math.round(Number(watchAgeS) / 60);
+    const jobsNote = l2.watch_all_ok === false ? ' · jobs not all OK at last tick' : '';
+    watchDetail.textContent = `Last Mac heartbeat ${watchMin}m ago${jobsNote}. Cron every 15m on fives-mac-mini.`;
+  }
   setChip(digestChip, l2.verdict || 'NEVER');
   digestDetail.textContent = `OK ${l2.ok || 0} · LATE ${l2.late || 0} · STUCK ${l2.stuck || 0} · FAILED ${l2.failed || 0} · NEVER ${l2.never || 0} · DISABLED ${l2.disabled || 0} (derived from job ledger, same as 07:00 digest)`;
   const rotten = Number(l2.rotten || 0);

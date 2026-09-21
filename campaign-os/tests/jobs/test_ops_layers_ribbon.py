@@ -200,8 +200,11 @@ def test_layers_freshness_counts(job_app, tmp_path):
 
 
 def test_build_layers_pure_function():
+    from datetime import datetime, timezone
+
     from _lib.ops_layers import build_layers, worst_verdict
 
+    recent = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     payload = build_layers(
         {"jobs": [
             {"verdict": "OK"},
@@ -210,12 +213,14 @@ def test_build_layers_pure_function():
         ]},
         freshness={"rotten": 0, "stale": 2},
         queue={"rows": [{"id": "x", "status": "pending"}]},
+        watch={"received_at": recent, "all_ok": True},
     )
     assert payload["schema"] == "campaign-os/ops-layers/v1"
     assert payload["layers"]["L1"]["verdict"] == "FAILED"
     assert payload["layers"]["L1"]["ok"] == 1
     assert payload["layers"]["L2"]["queue_depth"] == 1
-    assert payload["layers"]["L2"]["watch_verdict"] == "NEVER"
+    assert payload["layers"]["L2"]["watch_verdict"] == "OK"
+    assert payload["layers"]["L2"]["watch_age_s"] is not None
     assert worst_verdict(["OK", "LATE", "STUCK"]) == "STUCK"
 
 
