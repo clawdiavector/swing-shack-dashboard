@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from _lib.brand_validate import validate_brand_id
+from _lib.jobs.layer1._io import slug_id
 from _lib.ops_layers import worst_verdict
 
 SCHEMA = "campaign-os/ops-agents/v1"
@@ -334,7 +335,11 @@ def normalise_enqueue(body: dict[str, Any]) -> dict[str, str]:
         raise ValueError("invalid agent id")
     brand = validate_brand_id(body.get("brand"))
     reason = _clamp_text(body.get("reason") or "manual", 64)
-    row_id = f"manual-{brand}-{agent}-{reason}"[:80]
+    dedupe_key = body.get("dedupe_key")
+    if dedupe_key is not None:
+        row_id = f"manual-{brand}-{agent}-{slug_id(str(dedupe_key), limit=32)}"[:80]
+    else:
+        row_id = f"manual-{brand}-{agent}-{reason}"[:80]
     payload_ref = body.get("payload_ref")
     if payload_ref is not None:
         payload_ref = _clamp_text(payload_ref, 120)

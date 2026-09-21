@@ -105,6 +105,15 @@ def _receipt_index() -> dict[str, dict[str, Any]]:
     return out
 
 
+def _queue_index_by_idempotency() -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for row in _read_jsonl(_queue_path()):
+        key = row.get("idempotency_key")
+        if key:
+            out[str(key)] = row
+    return out
+
+
 def enqueue_item(
     *,
     brand_id: str,
@@ -120,6 +129,9 @@ def enqueue_item(
     ensure_sandbox_layout()
     brand_id = validate_brand_id(brand_id)
     key = idempotency_key or f"sb-{brand_id}-{platform}-{secrets.token_hex(8)}"
+    existing = _receipt_index().get(key) or _queue_index_by_idempotency().get(key)
+    if existing:
+        return existing
     item = {
         "schema": QUEUE_SCHEMA,
         "queue_id": str(uuid.uuid4()),

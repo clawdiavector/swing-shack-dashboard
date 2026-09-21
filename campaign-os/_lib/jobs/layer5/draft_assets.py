@@ -14,6 +14,8 @@ from ..layer1._io import atomic_write, read_json
 from _lib.brand_validate import validate_brand_id
 
 CREATE_ACTIONS = frozenset({"draft_caption", "draft_image", "draft_gbp"})
+SLOT_ACTIONS = frozenset({"fill_slot"})
+PROCESS_ACTIONS = CREATE_ACTIONS | SLOT_ACTIONS
 CAPTION_EST_USD = 0.002
 IMAGE_EST_USD = 0.04
 GBP_EST_USD = 0.0
@@ -53,6 +55,61 @@ def _parse_inbox_ref(payload_ref: str) -> Optional[str]:
         return None
     item_id = payload_ref[len(prefix) :].strip()
     return item_id or None
+
+
+def _parse_slot_ref(payload_ref: str) -> Optional[tuple[str, str, str]]:
+    prefix = "slot-planner.json#"
+    if not payload_ref.startswith(prefix):
+        return None
+    parts = payload_ref[len(prefix) :].split("/")
+    if len(parts) < 2:
+        return None
+    brand = parts[0].strip()
+    slot_date = parts[1].strip()
+    pillar_id = parts[2].strip() if len(parts) > 2 else ""
+    if not brand or not slot_date:
+        return None
+    return brand, slot_date, pillar_id
+
+
+def _record_dates(record: dict[str, Any]) -> set[str]:
+    dates: set[str] = set()
+    for key in (
+        "event_date",
+        "event_start",
+        "event_window_start",
+        "campaign_start",
+        "campaign_end",
+        "event_window_end",
+    ):
+        raw = record.get(key)
+        if not raw or not isinstance(raw, str):
+            continue
+        dates.add(raw[:10])
+    return dates
+
+
+def _resolve_slot_calendar_item(
+    brand_id: str,
+    slot_date: str,
+    pillar_id: str,
+) -> Optional[str]:
+    """Map a slot-planner ref to an approved calendar_candidate item id."""
+    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+    for record in canonical_records(brand_id):
+        if str(record.get("status") or "") != "approved":
+            continue
+        rec_pillar = str(record.get("pillar_id") or record.get("pillar") or "")
+        if pillar_id and rec_pillar and rec_pillar != pillar_id:
+            continue
+        if slot_date not in _record_dates(record):
+            continue
+        cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+        if not cal_id:
+            continue
+        return f"calendar_candidate:{brand_id}:{cal_id}"
+    return None
 
 
 def _is_inbox_item_approved(item_id: str) -> bool:
@@ -392,7 +449,7 @@ def run() -> dict[str, Any]:
             r
             for r in rows
             if str(r.get("status") or "").lower() == "pending"
-            and str(r.get("action") or "") in CREATE_ACTIONS
+            and str(r.get("action") or "") in PROCESS_ACTIONS
         ]
 
         for row in pending:
@@ -400,18 +457,34 @@ def run() -> dict[str, Any]:
                 skipped += 1
                 continue
 
-            item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
             brand_raw = row.get("brand")
             action = str(row.get("action") or "")
 
-            if not item_id:
-                skipped += 1
-                continue
             try:
                 brand_id = validate_brand_id(brand_raw)
             except ValueError:
                 skipped += 1
                 continue
+
+            item_id: Optional[str] = None
+            if action in SLOT_ACTIONS:
+                slot = _parse_slot_ref(str(row.get("payload_ref") or ""))
+                if not slot:
+                    skipped += 1
+                    continue
+                slot_brand, slot_date, slot_pillar = slot
+                if slot_brand != brand_id:
+                    skipped += 1
+                    continue
+                item_id = _resolve_slot_calendar_item(brand_id, slot_date, slot_pillar)
+                if not item_id:
+                    skipped += 1
+                    continue
+            else:
+                item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
+                if not item_id:
+                    skipped += 1
+                    continue
 
             if not _is_inbox_item_approved(item_id):
                 skipped += 1
@@ -420,7 +493,7 @@ def run() -> dict[str, Any]:
             asset_id: Optional[str] = None
             err: Optional[str] = None
 
-            if action == "draft_caption":
+            if action in SLOT_ACTIONS or action == "draft_caption":
                 asset_id, err = _process_caption_row(row, item_id=item_id, brand_id=brand_id)
             elif action == "draft_image":
                 asset_id, err = _process_image_row(row, item_id=item_id, brand_id=brand_id)
