@@ -19569,7 +19569,7 @@ async function renderPlanning() {
   renderActiveNow(rightNow);
   renderTimeline(timeline, year);
   renderLaneLegend();
-  renderCalendar(mv);
+  renderPlanningCalendar(mv);
 }
 
 function renderActiveNow(rn) {
@@ -20059,12 +20059,12 @@ function renderLaneLegend() {
       document.getElementById('pl-active-filter').innerHTML = _planningLaneFilter
         ? 'Filtering by <b>' + esc(filterLabel) + '</b>. Click a day to see all lanes.'
         : 'Showing all lanes. Click a lane chip to filter.';
-      renderCalendar(_planningData?.mv);
+      renderPlanningCalendar(_planningData?.mv);
     });
   });
 }
 
-function renderCalendar(mv) {
+function renderPlanningCalendar(mv) {
   const el = document.getElementById('pl-calendar-grid');
   const summaryEl = document.getElementById('pl-calendar-summary');
   const titleEl = document.getElementById('pl-calendar-title');
