@@ -44389,6 +44389,363 @@ def admin_v23_meta_discover_all():
     return jsonify(out), 200
 
 
+
+
+# ─── META ADS STEP 4B: CANONICAL ATTRIBUTION ──────────────────────────
+# Per V2.2 §2-3: brand attribution via business ownership,
+# campaign/Page/IG association, destination URLs, AND audit-
+# verified cross-product token × account matrix.
+
+# Evidence-based canonical mapping (verified by /api/admin/v23-meta-discover-all):
+#   act_2101557317059886 → account name "Stick" → CANONICAL_STICK
+#                          accessible via META_SYSTEM_USER_TOKEN_STICK
+#                          AND META_SYSTEM_USER_TOKEN_STICK_PAARL
+#                          amount_spent: R 1,901,651
+#                          17 campaigns: 3 awareness / 8 engagement /
+#                                        1 leads / 5 traffic
+#   act_1024882912541604 → account name "Swing Shack – Ad account"
+#                          → CANONICAL_SWING_SHACK (despite historical
+#                            ambiguity, account name is unambiguous)
+#                          accessible via META_SYSTEM_USER_TOKEN (global)
+#                          amount_spent: R 3,168,003
+#                          28 campaigns: 1 conversions / 2 lead_gen /
+#                                        2 link_clicks / 1 awareness /
+#                                        4 engagement / 3 leads /
+#                                        3 sales / 8 traffic /
+#                                        1 page_likes / 3 post_engagement
+#   act_3243721382960506 → no token has access → AMBIGUOUS
+#                          (excluded from brand totals per §3)
+
+_META_ADS_TOKEN_FOR_BRAND = {
+    "stick": "META_SYSTEM_USER_TOKEN_STICK",  # primary Stick token
+    "swing-shack": "META_SYSTEM_USER_TOKEN",
+}
+
+_META_ADS_FALLBACK_TOKEN_FOR_BRAND = {
+    "stick": ["META_SYSTEM_USER_TOKEN_STICK_PAARL",
+              "META_SYSTEM_USER_TOKEN_STICK",
+              "META_SYSTEM_USER_TOKEN"],
+    "swing-shack": ["META_SYSTEM_USER_TOKEN"],
+}
+
+_META_ADS_ACCOUNT_FOR_BRAND = {
+    "stick": "act_2101557317059886",
+    "swing-shack": "act_1024882912541604",
+}
+
+_META_ADS_ACCOUNT_NAME = {
+    "act_2101557317059886": "Stick",
+    "act_1024882912541604": "Swing Shack – Ad account",
+    "act_3243721382960506": "AMBIGUOUS (no token access)",
+}
+
+_META_ADS_BRAND_CLASSIFICATION = {
+    "act_2101557317059886": "CANONICAL_STICK",
+    "act_1024882912541604": "CANONICAL_SWING_SHACK",
+    "act_3243721382960506": "AMBIGUOUS",
+}
+
+
+def _v23_resolve_ads_token(brand_id):
+    """Per V2.2 §3 brand isolation: resolve the System User
+    token that has READ permission for this brand's ads
+    account. Returns (token_label, token) or (None, None)."""
+    primary_label = _META_ADS_TOKEN_FOR_BRAND.get(brand_id)
+    for label in ([primary_label] if primary_label else []) +                   _META_ADS_FALLBACK_TOKEN_FOR_BRAND.get(brand_id, []):
+        token = os.environ.get(label)
+        if token:
+            return label, token
+    return None, None
+
+
+def _v23_resolve_ads_account(brand_id):
+    """Returns ad_account_id for brand, or None if not
+    classified as CANONICAL."""
+    return _META_ADS_ACCOUNT_FOR_BRAND.get(brand_id)
+
+
+# ─── META ADS STEP 4B: REAL INGESTION (READ-ONLY) ────────────────────
+# Per V2.2 §4-7: ingest campaign-level + ad-set + ad-level data
+# for the CANONICAL ad accounts. Preserve raw Meta objective +
+# action semantics — never rename.
+
+def _v23_fetch_ads_insights(account_id, token, time_range,
+                            level="campaign"):
+    """GET /v26.0/insights — campaign-level insights for the
+    current + previous periods. Returns the raw rows.
+    """
+    if not account_id or not token:
+        return {"ok": False, "error": "missing account or token"}
+    url = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+    if level == "campaign":
+        path = f"/{account_id}/insights"
+        fields = ("campaign_id,campaign_name,objective,impressions,"
+                  "reach,frequency,clicks,spend,cpc,cpm,ctr,"
+                  "landing_page_views,actions,conversions,"
+                  "cost_per_action_type,cost_per_conversion,"
+                  "purchase_roas")
+    else:
+        return {"ok": False, "error": f"unsupported level: {level}"}
+    params = {
+        "fields": fields,
+        "access_token": token,
+        "time_range": json.dumps(time_range),
+        "level": level,
+        "time_increment": "all",
+        "limit": 500,
+    }
+    try:
+        import requests as _r
+        resp = _r.get(url + path, params=params, timeout=60)
+        body = resp.json()
+        return {"ok": resp.status_code == 200,
+                "status": resp.status_code,
+                "data": body.get("data") or [],
+                "error": (body.get("error", {}) or {}).get(
+                    "message", "")[:200] if not resp.status_code == 200 else ""}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
+def _v23_fetch_ads_campaigns(account_id, token, brand_id):
+    """List campaigns with metadata for given ad account."""
+    url = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+    path = f"/{account_id}/campaigns"
+    fields = ("id,name,objective,status,effective_status,"
+              "start_time,stop_time,created_time,updated_time,"
+              "daily_budget,lifetime_budget,spend_cap,budget_remaining,"
+              "buying_type,promoted_object,source_id,"
+              "special_ad_category,special_ad_category_country")
+    params = {"fields": fields, "access_token": token,
+              "limit": 500}
+    try:
+        import requests as _r
+        resp = _r.get(url + path, params=params, timeout=60)
+        body = resp.json()
+        return {"ok": resp.status_code == 200,
+                "status": resp.status_code,
+                "data": body.get("data") or [],
+                "error": (body.get("error", {}) or {}).get(
+                    "message", "")[:200] if resp.status_code != 200 else ""}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
+def _v23_normalize_action_types(insight_rows):
+    """Per V2.2 §7: preserve raw Meta action_type semantics.
+    Extract results per action_type_id without renaming to
+    leads/sales/bookings unless explicitly equivalent."""
+    out = []
+    for row in insight_rows:
+        # Extract action results
+        actions = row.get("actions") or []
+        action_results = []
+        for a in actions:
+            action_results.append({
+                "action_type": a.get("action_type"),
+                "value": a.get("value"),
+            })
+        # cost_per_action_type
+        cpa = row.get("cost_per_action_type") or []
+        cost_per = []
+        for c in cpa:
+            cost_per.append({
+                "action_type": c.get("action_type"),
+                "value": c.get("value"),
+            })
+        # conversions
+        conversions_list = row.get("conversions") or []
+        conversions = []
+        for c in conversions_list:
+            conversions.append({
+                "action_type": c.get("action_type"),
+                "value": c.get("value"),
+            })
+        out.append({
+            "campaign_id": row.get("campaign_id"),
+            "campaign_name": row.get("campaign_name"),
+            "objective": row.get("objective"),
+            "impressions": _parse_ga4_int(row.get("impressions")),
+            "reach": _parse_ga4_int(row.get("reach")),
+            "frequency": round(_parse_ga4_float(row.get("frequency")), 2),
+            "clicks": _parse_ga4_int(row.get("clicks")),
+            "spend": _parse_ga4_float(row.get("spend")),
+            "cpc": _parse_ga4_float(row.get("cpc")),
+            "cpm": _parse_ga4_float(row.get("cpm")),
+            "ctr": round(_parse_ga4_float(row.get("ctr")), 2),
+            "landing_page_views": _parse_ga4_int(row.get("landing_page_views")),
+            "actions": action_results,
+            "cost_per_action_type": cost_per,
+            "conversions": conversions,
+        })
+    return out
+
+
+
+
+
+# ─── META ADS STEP 4B: DATA STORAGE + REPORTS ──────────────────────────
+# Per V2.2 §10: feed real paid-media data into the management
+# report. NO synthetic. NO mutation. Read-only ingest that
+# writes to DATA_DIR/paid-media/<brand>.jsonl (one JSON per
+# line, idempotent on date_time / campaign_id).
+
+
+def _v23_ingest_paid_media(brand_id, period_days=31, ytd=True):
+    """Real paid-media ingestion. Pulls current + previous
+    window insights + YTD totals for the CANONICAL ad account.
+    Writes cache to DATA_DIR/paid-media/<brand>.json.
+
+    Returns the cache dict (also written to disk).
+    """
+    cfg = BRAND_CONFIG.get(brand_id, {})
+    acc = _v23_resolve_ads_account(brand_id)
+    if not acc:
+        return {"ok": False, "brand_id": brand_id,
+                "error": "no canonical ad account for this brand",
+                "data_status": "NOT_CONNECTED"}
+    token_label, token = _v23_resolve_ads_token(brand_id)
+    if not token:
+        return {"ok": False, "brand_id": brand_id,
+                "error": "no token for this brand",
+                "token_label": token_label,
+                "data_status": "NOT_CONNECTED"}
+    rp = _v22_report_period(period_days)
+    current_tr = {"since": rp["current_start"],
+                   "until": rp["current_end"]}
+    previous_tr = {"since": rp["previous_start"],
+                    "until": rp["previous_end"]}
+    # ytd total since 2026-01-01 (or 2025-01-01, whichever is
+    # latest set up)
+    today = rp["current_end"]
+    year_start = f"{today[:4]}-01-01"
+    ytd_tr = {"since": year_start, "until": today}
+    out = {
+        "schema": "https://campaign-os/paid-media/v1",
+        "brand_id": brand_id,
+        "ad_account_id": acc,
+        "ad_account_name": _META_ADS_ACCOUNT_NAME.get(acc, "?"),
+        "brand_classification": _META_ADS_BRAND_CLASSIFICATION.get(acc, "?"),
+        "token_label": token_label,
+        "report_period": rp,
+        "fetched_at": _now_iso(),
+        "current_period": {},
+        "previous_period": {},
+        "ytd": {},
+        "campaigns": [],
+        "data_status": "LIVE",
+        "data_source": "meta_graph_api",
+        "api_version": _META_GRAPH_API_VERSION,
+    }
+    # Current period insights
+    res = _v23_fetch_ads_insights(acc, token, current_tr, "campaign")
+    out["current_period"] = {
+        "time_range": current_tr,
+        "ok": res.get("ok"),
+        "rows": _v23_normalize_action_types(res.get("data") or [])
+                  if res.get("ok") else [],
+        "error": (res.get("error") or
+                   "not normalized (fetch failed)") if not res.get("ok") else "",
+    }
+    # Previous period insights
+    res = _v23_fetch_ads_insights(acc, token, previous_tr, "campaign")
+    out["previous_period"] = {
+        "time_range": previous_tr,
+        "ok": res.get("ok"),
+        "rows": _v23_normalize_action_types(res.get("data") or [])
+                  if res.get("ok") else [],
+        "error": (res.get("error") or
+                   "not normalized (fetch failed)") if not res.get("ok") else "",
+    }
+    # YTD
+    if ytd:
+        res = _v23_fetch_ads_insights(acc, token, ytd_tr, "campaign")
+        out["ytd"] = {
+            "time_range": ytd_tr,
+            "ok": res.get("ok"),
+            "rows": _v23_normalize_action_types(res.get("data") or [])
+                      if res.get("ok") else [],
+            "error": (res.get("error") or
+                       "not normalized (fetch failed)") if not res.get("ok") else "",
+        }
+    # Campaign metadata
+    res = _v23_fetch_ads_campaigns(acc, token, brand_id)
+    if res.get("ok"):
+        out["campaigns"] = res.get("data") or []
+    # Aggregate campaign totals
+    def totals(rows):
+        t = {"campaigns_with_delivery": 0, "spend": 0.0, "impressions": 0,
+             "reach": 0, "clicks": 0, "landing_page_views": 0}
+        for r in rows or []:
+            t["spend"] += r.get("spend") or 0
+            t["impressions"] += r.get("impressions") or 0
+            t["reach"] += r.get("reach") or 0
+            t["clicks"] += r.get("clicks") or 0
+            t["landing_page_views"] += r.get("landing_page_views") or 0
+            if r.get("impressions"):
+                t["campaigns_with_delivery"] += 1
+        t["spend"] = round(t["spend"], 2)
+        if t["impressions"] > 0:
+            t["cpm"] = round((t["spend"] / t["impressions"]) * 1000, 2)
+            t["ctr"] = round((t["clicks"] / t["impressions"]) * 100, 2)
+        if t["clicks"] > 0:
+            t["cpc"] = round(t["spend"] / t["clicks"], 2)
+        return t
+    out["current_totals"] = totals(out["current_period"].get("rows"))
+    out["previous_totals"] = totals(out["previous_period"].get("rows"))
+    out["ytd_totals"] = totals(out["ytd"].get("rows"))
+    # Write cache
+    cache_dir = os.path.join(DATA_DIR, "paid-media")
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_path = os.path.join(cache_dir, f"{brand_id}.json")
+    with open(cache_path, "w") as f:
+        json.dump(out, f, indent=2, default=str)
+    return out
+
+
+@app.route("/api/meta/ads/ingest/<brand_id>", methods=["POST"])
+def meta_ads_ingest(brand_id):
+    """POST /api/meta/ads/ingest/<brand_id> — pull real Meta
+    Ads data for the brand's CANONICAL ad account. Read-only.
+
+    Writes to {DATA_DIR}/paid-media/<brand>.json. Returns
+    the full ingest summary.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    try:
+        out = _v23_ingest_paid_media(brand_id,
+                                       period_days=31, ytd=True)
+        return jsonify({"ok": True, "ingest": out}), 200
+    except Exception as e:
+        import traceback as _tb
+        return jsonify({"ok": False, "error": str(e)[:300],
+                        "trace": _tb.format_exc()[:500]}), 500
+
+
+@app.route("/api/meta/ads/cache/<brand_id>", methods=["GET"])
+def meta_ads_cache(brand_id):
+    """GET /api/meta/ads/cache/<brand_id> — return the cached
+    paid-media payload from the last ingest run.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    cache_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+    if not os.path.exists(cache_path):
+        # Try to ingest
+        out = _v23_ingest_paid_media(brand_id, period_days=31, ytd=True)
+        return jsonify({"ok": out.get("ok"), "cache": out,
+                        "note": "no cache yet — ran ingest on first access"}), 200
+    with open(cache_path) as f:
+        return jsonify({"ok": True, "cache": json.load(f)}), 200
+
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
