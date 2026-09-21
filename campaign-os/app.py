@@ -45218,6 +45218,203 @@ def meta_paid_media_refresh():
     }), 200
 
 
+
+
+# ─── CREATE V1 ────────────────────────────────────────────────────────
+# Per V1 §5-§25: Creative Package generation from approved Brief.
+# Read-only on Reporting V2.4.1. Read-only on canonical facts.
+# Banned-term + voice + fact + novelty validation runs on every
+# draft. Publish gate established but NOT implemented.
+
+try:
+    from _lib.creative_package import (
+        build_creative_package, get_creative_package,
+        list_creative_packages, validate_creative_item,
+        regenerate_route_field, operator_edit_provenance,
+        GENERATOR_VERSION as _CREATE_GENERATOR_VERSION,
+    )
+except Exception as _create_import_err:
+    build_creative_package = None
+    _create_import_err_repr = repr(_create_import_err)
+
+
+@app.route("/api/create/v1/can-generate/<brand_id>/<brief_id>",
+            methods=["GET"])
+def create_v1_can_generate(brand_id, brief_id):
+    """V1 §2: canonical gate. MUST be checked before any
+    generation. Production fails closed unless Brief is
+    approved via the current trusted human approval path."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    from _lib.campaign_brief import can_generate_creative_v17
+    gate = can_generate_creative_v17(brand_id, brief_id)
+    # Per V1 §2: unknown environment must DENY. Verify explicit.
+    env = (os.environ.get("CAMPAIGN_OS_ENV", "")).lower()
+    railway_env = (os.environ.get("RAILWAY_ENVIRONMENT", "")).lower()
+    railway_id = (os.environ.get("RAILWAY_ENVIRONMENT_ID", "")).strip()
+    if not env and not railway_env and not railway_id:
+        # Truly unknown — V1 §2 says DENY
+        return jsonify({
+            "ok": False,
+            "creative_allowed": False,
+            "environment": "unknown",
+            "rule": "V1 §2: unknown environment → DENY",
+            "gate": gate,
+        }), 403
+    return jsonify({"ok": gate.get("ok"),
+                     "environment": gate.get("environment"),
+                     "creative_allowed": gate.get("creative_allowed"),
+                     "gates": gate.get("gates"),
+                     "reasons": gate.get("reasons")})
+
+
+@app.route("/api/create/v1/package/<brand_id>/<brief_id>",
+            methods=["POST", "GET"])
+def create_v1_build_package(brand_id, brief_id):
+    """V1 §1-§22: build a creative_package from approved Brief.
+
+    Always passes through can_generate_creative_v17 first.
+    Production fails closed. Read-only on Reporting V2.4.1.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if build_creative_package is None:
+        return jsonify({"ok": False,
+                        "error": f"creative_package module import failed: {_create_import_err_repr}"}), 503
+    from _lib.campaign_brief import can_generate_creative_v17
+    gate = can_generate_creative_v17(brand_id, brief_id)
+    if not gate.get("ok"):
+        return jsonify({
+            "ok": False,
+            "blocked_by_gate": True,
+            "gate": gate,
+            "rule": ("V1 §1: must call can_generate_creative and "
+                      "receive ok=True before generation."),
+        }), 403
+    pkg = build_creative_package(brand_id, brief_id)
+    if not pkg.get("package_id"):
+        return jsonify({"ok": False,
+                        "error": pkg.get("error", "build failed")}), 400
+    return jsonify({"ok": True, "package": pkg}), 200
+
+
+@app.route("/api/create/v1/package/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_get_package(brand_id, brief_id, package_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if get_creative_package is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    pkg = get_creative_package(brand_id, brief_id, package_id)
+    if not pkg:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return jsonify({"ok": True, "package": pkg}), 200
+
+
+@app.route("/api/create/v1/packages/<brand_id>",
+            methods=["GET"])
+def create_v1_list_packages(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if list_creative_packages is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    return jsonify({"ok": True,
+                     "packages": list_creative_packages(brand_id)}), 200
+
+
+@app.route("/api/create/v1/validate-text", methods=["POST"])
+def create_v1_validate_text():
+    """V1 §11: standalone voice + banned-term validator."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if validate_creative_item is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    text = body.get("text") or ""
+    brand_id = body.get("brand_id") or ""
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    return jsonify({"ok": True,
+                     "validation": validate_creative_item(text, brand_id)}), 200
+
+
+@app.route("/api/create/v1/regenerate", methods=["POST"])
+def create_v1_regenerate_field():
+    """V1 §22: targeted regeneration of a single route field.
+    Bound to approved Brief + brand facts + voice + evidence +
+    strategy. Never free-form."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if regenerate_route_field is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id") or ""
+    brief_id = body.get("brief_id") or ""
+    package_id = body.get("package_id") or ""
+    route_id = body.get("route_id") or ""
+    field = body.get("field") or ""
+    reason = body.get("reason") or ""
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    r = regenerate_route_field(brand_id, brief_id, package_id,
+                                 route_id, field, reason)
+    return jsonify(r), 200 if r.get("ok") else 400
+
+
+@app.route("/api/create/v1/operator-edit", methods=["POST"])
+def create_v1_operator_edit():
+    """V1 §11 + §21: log operator edit. NEVER silently rewritten."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if operator_edit_provenance is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    r = operator_edit_provenance(
+        body.get("brand_id") or "",
+        body.get("brief_id") or "",
+        body.get("package_id") or "",
+        body.get("route_id") or "",
+        body.get("edit_summary") or "")
+    return jsonify(r), 200 if r.get("ok") else 400
+
+
+@app.route("/api/create/v1/publish-block/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_publish_block(brand_id, brief_id, package_id):
+    """V1 §25: explicit publish gate. publish_allowed=false in
+    this slice. Publish code MUST be built in a separate slice
+    with explicit operator confirmation per channel."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    pkg = get_creative_package(brand_id, brief_id, package_id)
+    if not pkg:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return jsonify({"ok": True,
+                     "publish_allowed": False,
+                     "publish_implemented": False,
+                     "publish_gate": pkg.get("publish", {}),
+                     "rule": ("V1 §25: publish gate established, NOT "
+                               "implemented. Do not call any publish "
+                               "endpoint until Publish V1 slice.")}), 200
+
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
