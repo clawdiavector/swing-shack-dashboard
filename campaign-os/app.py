@@ -44098,6 +44098,47 @@ def _meta_api_get(path, token, params=None):
     return _meta_api(path, params, token)
 
 
+
+
+
+@app.route('/api/admin/v23-meta-discover-paths', methods=['GET'])
+def admin_v23_meta_discover_paths():
+    """Test various ad-account discovery paths for a system user."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    target = os.environ.get("META_SYSTEM_USER_TOKEN_STICK_PAARL")
+    if not target:
+        return jsonify({"ok": False, "error": "no STICK_PAARL token"}), 200
+    import requests as _r
+    base = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+    results = {}
+    dbg_status, dbg = _meta_api("/debug_token",
+                                 {"input_token": target, "access_token": target},
+                                 None, in_token_param=True)
+    info = dbg.get("data") or {}
+    user_id = info.get("user_id")
+    app_id = info.get("app_id")
+    # Try various paths
+    candidates = [
+        f"/{user_id}/accounts",
+        f"/{user_id}/adspersonalaccounts",
+        f"/{user_id}/assigned_ad_accounts",
+        f"/me/adaccounts",
+        f"/{app_id}/businesses",
+        f"/{app_id}/accounts",
+    ]
+    for c in candidates:
+        sc, d = _meta_api(c, {"fields": "id,name,account_id,account_status,owner_business",
+                                "limit": 200}, target)
+        rows = (d.get("data") or []) if isinstance(d, dict) else []
+        results[c] = {"status": sc,
+                      "count": len(rows),
+                      "sample": rows[:2] if rows else None,
+                      "err": (d.get("error", {}) or {}).get("message", "")[:120] if isinstance(d, dict) and d.get("error") else ""}
+    return jsonify({"ok": True, "user_id": user_id, "app_id": app_id,
+                     "results": results}), 200
+
+
 @app.route('/api/admin/v23-meta-debug-url', methods=['GET'])
 def admin_v23_meta_debug_url():
     """GET /api/admin/v23-meta-debug-url — debug the URL
