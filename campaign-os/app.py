@@ -44021,13 +44021,9 @@ def _meta_audit_token(token_label, token):
     try:
         # Step 1: get debug_token info — requires a known-good
         # token to inspect the unknown one.
-        inspector = os.environ.get("META_SYSTEM_USER_TOKEN")
-        if not inspector:
-            out["status"] = "FAIL: no inspector token (META_SYSTEM_USER_TOKEN) for debug_token"
-            return out
         dbg_status, dbg_data = _meta_api(
             f"/{_META_GRAPH_API_VERSION}/debug_token",
-            {"input_token": token, "access_token": inspector},
+            {"input_token": token, "access_token": token},
             None, in_token_param=True)
         out["debug_token"] = {"status": dbg_status,
                               "input_token_prefix": token[:15] + "…",
@@ -44046,9 +44042,7 @@ def _meta_audit_token(token_label, token):
         out["scopes"] = token_info.get("scopes") or []
         # Use app|token for the right app context
         app_id = token_info.get("app_id")
-        app_scoped_token = (f"{app_id}|{token}" if app_id else token)
-        # Try to find this token's System User identity via
-        # /me/businesses + /<business_id>/ad_accounts
+        # Discover accessible ad accounts / businesses
         try:
             for path in ("/me/adaccounts", "/me/businesses"):
                 fields = ("account_id,name,account_status,owner_business,"
@@ -44056,7 +44050,7 @@ def _meta_audit_token(token_label, token):
                           "id,name,owned_ad_accounts,client_ad_accounts")
                 sc, data = _meta_api(f"/{_META_GRAPH_API_VERSION}{path}",
                                        {"fields": fields, "limit": 200},
-                                       app_scoped_token)
+                                       token)
                 key = "adaccounts" if "adaccounts" in path else "businesses"
                 rows = (data.get("data") or []) if isinstance(data, dict) else []
                 out[key] = {"status": sc, "count": len(rows), "data": data}
