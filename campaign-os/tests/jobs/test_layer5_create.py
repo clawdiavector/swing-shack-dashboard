@@ -378,9 +378,10 @@ def test_enqueue_on_proposal_approve(l5_app, tmp_path, monkeypatch):
     unified_inbox.approve_item("proposal:stick:prop-e", editor="test")
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 1
-    assert pending[0]["id"].startswith("manual-")
-    assert pending[0]["action"] == "draft_caption"
+    assert len(pending) == 2
+    actions = {r["action"] for r in pending}
+    assert actions == {"draft_caption", "draft_image"}
+    assert all(r["id"].startswith("manual-") for r in pending)
 
     _seed_brands(tmp_path)
     (tmp_path / "campaign-data.json").write_text(
@@ -659,11 +660,127 @@ def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 3
+    assert len(pending) == 6
     ids = {r["id"] for r in pending}
-    assert len(ids) == 3
+    assert len(ids) == 6
     payload_refs = {r["payload_ref"] for r in pending}
     assert len(payload_refs) == 3
+    actions = {r["action"] for r in pending}
+    assert actions == {"draft_caption", "draft_image"}
+
+
+def _seed_calendar_candidate_jsonl(
+    tmp_path: Path,
+    *,
+    brand: str = "swing-shack",
+    cal_id: str = "cal-swing-shack-moment-1789713288-cec0c7a3",
+    event_key: str = "moment-swing-shack-fixture",
+    status: str = "candidate",
+    revision: int = 1,
+) -> None:
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    record = {
+        "calendar_id": cal_id,
+        "event_key": event_key,
+        "brand_id": brand,
+        "status": status,
+        "revision": revision,
+        "title": "Fixture moment",
+        "event_date": "2026-09-25",
+    }
+    (cal_dir / f"{brand}.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+
+def test_canonical_equal_revision_last_write_wins(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    _purge_modules()
+    from _lib.marketing_calendar import canonical_records
+
+    cal_id = "cal-swing-shack-moment-1789713288-cec0c7a3"
+    event_key = "moment-swing-shack-fixture"
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    base = {
+        "calendar_id": cal_id,
+        "event_key": event_key,
+        "brand_id": "swing-shack",
+        "revision": 1,
+        "title": "Fixture moment",
+    }
+    line1 = {**base, "status": "candidate"}
+    line2 = {**base, "status": "approved"}
+    (cal_dir / "swing-shack.jsonl").write_text(
+        json.dumps(line1) + "\n" + json.dumps(line2) + "\n",
+        encoding="utf-8",
+    )
+
+    canon = canonical_records("swing-shack")
+    match = next(r for r in canon if r.get("calendar_id") == cal_id)
+    assert match["status"] == "approved"
+
+
+def test_calendar_candidate_approve_canonical_and_enqueue(l5_app, tmp_path, monkeypatch):
+    monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "1")
+    _purge_modules()
+
+    cal_id = "cal-swing-shack-moment-1789713288-cec0c7a3"
+    _seed_calendar_candidate_jsonl(tmp_path, cal_id=cal_id)
+    _seed_brands(tmp_path, brand="swing-shack", campaign_id="camp-swing-shack")
+
+    from _lib import unified_inbox
+    from _lib.marketing_calendar import canonical_records, list_records
+
+    result = unified_inbox.approve_item(f"calendar_candidate:swing-shack:{cal_id}", editor="test")
+    assert result.get("ok") is True
+
+    canon = canonical_records("swing-shack")
+    match = next(r for r in canon if r.get("calendar_id") == cal_id)
+    assert match["status"] == "approved"
+
+    appended = [r for r in list_records("swing-shack") if r.get("calendar_id") == cal_id]
+    assert max(int(r.get("revision") or 1) for r in appended) == 2
+
+    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
+    assert len(pending) == 2
+    actions = {r["action"] for r in pending}
+    assert actions == {"draft_caption", "draft_image"}
+    agents = {r["agent"] for r in pending}
+    assert agents == {"cos-caption", "cos-image"}
+
+
+def test_draft_assets_calendar_candidate_queue_row(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    cal_id = "cal-swing-shack-moment-1789713288-cec0c7a3"
+    event_key = "moment-swing-shack-fixture"
+    _seed_brands(tmp_path, brand="swing-shack", campaign_id="camp-swing-shack")
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    approved = {
+        "calendar_id": cal_id,
+        "event_key": event_key,
+        "brand_id": "swing-shack",
+        "status": "approved",
+        "revision": 2,
+        "title": "Approved moment",
+        "event_date": "2026-09-25",
+    }
+    (cal_dir / "swing-shack.jsonl").write_text(json.dumps(approved) + "\n", encoding="utf-8")
+    item_id = f"calendar_candidate:swing-shack:{event_key}"
+    _seed_queue_row(tmp_path, action="draft_caption", item_id=item_id, brand="swing-shack")
+
+    mock_result = {
+        "ok": True,
+        "survivors": [{"body": "Caption from calendar candidate"}],
+        "observability": {"provider": "openai", "model": "gpt-4o-mini"},
+    }
+    with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result):
+        result = draft_assets.run()
+
+    assert result.get("ok") is True
+    assert result.get("drafted") == 1
 
 
 def test_l6_enqueue_flag_off(l5_app, tmp_path, monkeypatch):

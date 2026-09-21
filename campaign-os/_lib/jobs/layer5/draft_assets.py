@@ -143,9 +143,11 @@ def _is_inbox_item_approved(item_id: str) -> bool:
         from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
 
         for record in canonical_records(brand_id):
-            rid = str(record.get("calendar_id") or record.get("event_key") or "")
-            if rid == cal_id:
-                return str(record.get("status") or "") == "approved"
+            rec_cal = str(record.get("calendar_id") or "")
+            rec_evt = str(record.get("event_key") or "")
+            if cal_id not in (rec_cal, rec_evt):
+                continue
+            return str(record.get("status") or "") == "approved"
         return False
 
     return False
