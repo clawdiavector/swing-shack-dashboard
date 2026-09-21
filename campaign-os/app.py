@@ -44010,12 +44010,12 @@ def _meta_audit_token(token_label, token):
         return out
     try:
         # /me — returns the user or System User identity
-        me_status, me_data = _meta_api_get(f"/{API_VERSION}/me", token,
+        me_status, me_data = _meta_api_get(f"/{_META_GRAPH_API_VERSION}/me", token,
                                             {"fields": "id,name,role"})
         out["me"] = {"status": me_status, "data": me_data}
         # /me/adaccounts
         aa_status, aa_data = _meta_api_get(
-            f"/{API_VERSION}/me/adaccounts", token,
+            f"/{_META_GRAPH_API_VERSION}/me/adaccounts", token,
             {"fields": "account_id,name,account_status,owner_business,timezone_name",
              "limit": "200"})
         out["adaccounts"] = {"status": aa_status, "count": len(
@@ -44023,7 +44023,7 @@ def _meta_audit_token(token_label, token):
             "data": aa_data}
         # /me/businesses
         bs_status, bs_data = _meta_api_get(
-            f"/{API_VERSION}/me/businesses", token,
+            f"/{_META_GRAPH_API_VERSION}/me/businesses", token,
             {"fields": "id,name,owned_ad_accounts,client_ad_accounts",
              "limit": "100"})
         out["businesses"] = {"status": bs_status, "count": len(
