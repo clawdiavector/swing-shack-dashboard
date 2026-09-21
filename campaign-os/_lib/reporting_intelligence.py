@@ -4795,13 +4795,26 @@ def _v24_compare_campaign(cur_row, prev_row):
 
 
 def _v24_campaign_insight(row, comparison, brand_id):
-    """V2.4 §8: produce concise per-campaign commentary.
+    """V2.4.1: produce concise per-campaign commentary.
 
-    - 'what_happened'
-    - 'what_it_means'
-    - 'what_needs_attention' (or None)
-    - 'recommended_next_action' (or None)
-    Only when evidence supports each statement. NEVER invents.
+    V2.4.1 §3 — Fact vs Inference discipline: only state
+    "X declined" / "X increased" as measured facts. Any
+    interpretation (creative fatigue, audience saturation)
+    is labelled as HYPOTHESIS requiring additional evidence
+    (rising frequency, repeated creative, audience delivery
+    history, Creative Genome repetition).
+
+    V2.4.1 §4 — Never use "intentional" / "likely intentional"
+    without budget/status/schedule evidence. Use neutral
+    "materially less spend this period; the available
+    reporting data does not establish whether the reduction
+    was intentional."
+
+    V2.4.1 §5 — Recommendations must cite the objective-
+    appropriate evidence (LPV for traffic, lead for leads,
+    reach for awareness). For ended campaigns, do NOT
+    recommend reactivation; suggest review for reuse
+    when the relevant product/commercial cycle returns.
     """
     name = (row.get("campaign_name") or "(unnamed)")[:60]
     objective = (row.get("objective") or "UNKNOWN")
@@ -4812,6 +4825,7 @@ def _v24_campaign_insight(row, comparison, brand_id):
     cpc = row.get("cpc") or 0
     cpm = row.get("cpm") or 0
     reach = row.get("reach") or 0
+    frequency = row.get("frequency") or 0
     def _safe(d, k, sk="delta_pct"):
         v = d.get(k)
         return (v or {}).get(sk) if isinstance(v, dict) else None
@@ -4823,7 +4837,7 @@ def _v24_campaign_insight(row, comparison, brand_id):
     reach_delta = _safe(comparison, "reach")
     status = comparison.get("comparison_status")
     lines = []
-    # What happened
+    # What happened — measured fact only
     if status == "new_campaign":
         lines.append({
             "what_happened": (f"New campaign launched this period: "
@@ -4838,13 +4852,17 @@ def _v24_campaign_insight(row, comparison, brand_id):
         lines.append({
             "what_happened": (f"{name} ran in the previous period but "
                                f"did not deliver in the current period."),
-            "what_it_means": ("Campaign either paused, completed, or "
-                               "delivered below Meta's reporting "
-                               "threshold."),
+            "what_it_means": ("The campaign is not producing rows in "
+                               "the current Meta insights window. "
+                               "Whether this reflects pause, completion, "
+                               "or delivery below Meta's reporting "
+                               "threshold is not determined from "
+                               "Meta-side data alone."),
         })
     elif spend_delta is not None and clicks_delta is not None:
         spd = abs(spend_delta)
         cld = abs(clicks_delta)
+        # FACT: what changed (no inferred intent)
         what = (f"{name} ({objective}) spent R {round(spend):,} "
                 f"({'up' if spend_delta > 0 else 'down'} "
                 f"{round(spd)}%) vs previous R "
@@ -4852,8 +4870,13 @@ def _v24_campaign_insight(row, comparison, brand_id):
         if clicks_delta is not None:
             what += (f" Clicks {'rose' if clicks_delta > 0 else 'fell'} "
                      f"{round(cld)}%.")
+        # V2.4.1 §4: only say "intentional" if budget change evidence exists
+        if spend_delta < -30:
+            # NO operator budget data available → do NOT say intentional
+            what += (" The available reporting data does not "
+                     "establish whether the reduction was intentional.")
         lines.append({"what_happened": what})
-        # What it means — efficiency
+        # What it means — efficiency (measured facts only)
         if (spend_delta is not None and spend_delta > 5
                 and clicks_delta is not None and clicks_delta < -2):
             lines.append({
@@ -4864,10 +4887,10 @@ def _v24_campaign_insight(row, comparison, brand_id):
                 and reach_delta is not None and reach_delta > 5
                 and cpm_delta is not None and cpm_delta < -2):
             lines.append({
-                "what_it_means": ("Reach expanded at lower CPM — efficient "
-                                   "distribution. CTR weakness suggests the "
-                                   "creative did not convert reach into "
-                                   "clicks."),
+                "what_it_means": ("Reach expanded at lower CPM. "
+                                   "CTR weakened, suggesting the "
+                                   "creative did not convert reach "
+                                   "into clicks."),
             })
         elif (spend_delta is not None and spend_delta > 5
                 and reach_delta is not None and reach_delta > 10
@@ -4879,10 +4902,15 @@ def _v24_campaign_insight(row, comparison, brand_id):
             })
         elif (ctr_delta is not None and ctr_delta < -0.3
                 and cpc_delta is not None and cpc_delta > 5):
+            # V2.4.1 §3: HYPOTHESIS, not stated cause
             lines.append({
-                "what_it_means": ("CTR fell materially while CPC rose — "
-                                   "either creative fatigue or audience "
-                                   "saturation."),
+                "what_it_means": ("CTR fell materially while CPC rose. "
+                                   "Creative fatigue and audience "
+                                   "saturation are possible "
+                                   "explanations; additional "
+                                   "evidence (rising frequency, repeated "
+                                   "creative, Creative Genome data) is "
+                                   "needed to confirm."),
             })
         elif (spend_delta is not None and abs(spend_delta) < 5):
             lines.append({
@@ -4897,31 +4925,32 @@ def _v24_campaign_insight(row, comparison, brand_id):
                                f"impressions / {clicks:,} clicks in the "
                                f"current 31 days."),
         })
-    # What needs attention
+    # What needs attention — measured observations only
     attention = []
     recs = []
     if cpc_delta is not None and cpc_delta > 15:
         attention.append("Rising CPC (up "
                           f"{round(cpc_delta)}%)")
-        recs.append("Refresh creative or refine audience to lower CPC")
+        recs.append("Investigate CPC movement against objective-appropriate efficiency baseline (lead for OUTCOME_LEADS, LPV for traffic, reach for awareness).")
     if ctr_delta is not None and ctr_delta < -0.4:
         attention.append("Falling CTR (down "
                           f"{round(abs(ctr_delta), 1)} pts)")
-        recs.append("Test new creative hooks / CTAs to recover CTR")
+        recs.append("Review creative variants and audience overlap before drawing a conclusion.")
     if spend_delta is not None and spend_delta > 50 and reach_delta is not None and reach_delta < 5:
         attention.append("Spend up materially without proportional reach gain")
-        recs.append("Investigate whether bid / audience expansion is widening delivery without incremental reach")
-    if (row.get("frequency") or 0) > 3.5:
-        attention.append(f"High frequency ({round(row.get('frequency'), 2)}) — audience fatigue risk")
-        recs.append("Expand audience or cap frequency to prevent fatigue")
+        recs.append("Review whether delivery is broadening to less efficient audience segments.")
+    if frequency > 3.5:
+        attention.append(f"High frequency ({round(frequency, 2)})")
+        recs.append("Frequency above 3.5 — verify audience size and Creative Genome repetition.")
     if (spend or 0) > 0 and (impressions or 0) > 0 and (clicks or 0) > 0:
         if ctr < 0.5 and spend > 200:
             attention.append(f"Very low CTR ({round(ctr, 2)}%)")
-            recs.append("CTR below 0.5% with material spend — creative diagnostic needed")
+            recs.append("CTR below 0.5% with material spend — review creative before concluding.")
     out = lines[0] if lines else {}
     if attention:
         out["what_needs_attention"] = "; ".join(attention)
     if recs:
+        # V2.4.1 §5: recommendations cite evidence
         out["recommended_next_action"] = " · ".join(recs)
     return out
 
@@ -5080,6 +5109,19 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
     prev_by_id = {str(r.get("campaign_id")): r for r in prev_rows}
     cur_by_id = {str(r.get("campaign_id")): r for r in cur_rows}
     all_ids = set(prev_by_id.keys()) | set(cur_by_id.keys())
+    # V2.4.1 §6: detect possible duplicate campaigns (same
+    # normalized name + same objective). Detection uses a
+    # normalized name (stripped + lowercased). Both are surfaced
+    # separately — we do NOT merge.
+    name_to_cids = {}
+    for cid in all_ids:
+        obj = cur_by_id.get(cid) or prev_by_id.get(cid) or {}
+        nm = (obj.get("campaign_name") or "").strip().lower()
+        if not nm:
+            continue
+        name_to_cids.setdefault(nm, set()).add(cid)
+    duplicate_groups = {nm: cids for nm, cids in name_to_cids.items()
+                          if len(cids) > 1}
     per_campaign = []
     for cid in all_ids:
         cur = cur_by_id.get(cid)
@@ -5088,6 +5130,31 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
         cur_obj = cur or prev
         primary = _v24_primary_result(cur_obj, cur_obj.get("objective"))
         insight = _v24_campaign_insight(cur_obj, comp, brand_id)
+        # V2.4.1 §6: duplicate flag
+        nm_norm = (cur_obj.get("campaign_name") or "").strip().lower()
+        in_duplicate_group = nm_norm in duplicate_groups
+        # V2.4.1 §7: lead measurement note (for any campaign
+        # whose primary_result contains leads)
+        lead_note = None
+        if primary and "leads" in (primary.get("primary_metric_label") or "").lower():
+            lead_note = ("Multiple Meta lead/action types may overlap; "
+                         "the count is the FIRST matching action_type in "
+                         "priority order (onsite_conversion.lead > lead > "
+                         "offsite_*add_meta_leads). Unique lead count may "
+                         "be lower. NOT a qualified lead / fitting booked "
+                         "/ coaching booked / sale.")
+        # V2.4.1 §3: tone down hypothesis language in insight
+        if insight and insight.get("what_needs_attention"):
+            ins_text = insight["what_needs_attention"]
+            for hyp in ("Creative fatigue", "audience fatigue",
+                        "audience saturation", "Creative Fatigue",
+                        "Audience Saturation"):
+                if hyp in ins_text:
+                    insight["what_needs_attention"] = (
+                        ins_text
+                        + " (Possible explanation; not established by "
+                          "current data. Test via Creative Genome / "
+                          "frequency / delivery history.)")
         per_campaign.append({
             "campaign_id": cid,
             "campaign_name": (cur or prev).get("campaign_name"),
@@ -5110,7 +5177,9 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
                             "cpm": prev.get("cpm")} if prev else None),
             "comparison": comp,
             "primary_result": primary,
+            "lead_measurement_note": lead_note,
             "insight": insight,
+            "possible_duplicate_campaign": in_duplicate_group,
             "drilldown": {
                 "adsets_url": f"/api/meta/ads/{brand_id}/campaigns/{cid}/adsets",
                 "adsets_label": (f"Adsets in '{(cur or prev or {}).get('campaign_name') or '(unknown)'}'"),
@@ -5121,6 +5190,42 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
         key=lambda c: ((c.get("current") or {}).get("spend") or
                        (c.get("previous") or {}).get("spend") or 0),
         reverse=True)
+    # V2.4.1 §2: explicit campaign count reconciliation
+    current_delivered = len(cur_rows)
+    previous_delivered = len(prev_rows)
+    comparable = sum(1 for c in per_campaign
+                       if (c.get("comparison") or {}).get(
+                           "comparison_status") == "comparable")
+    new_count = sum(1 for c in per_campaign
+                     if (c.get("comparison") or {}).get(
+                         "comparison_status") == "new_campaign")
+    ended_count = sum(1 for c in per_campaign
+                       if (c.get("comparison") or {}).get(
+                           "comparison_status") == "ended_campaign")
+    # Verify the math invariant: current = comparable + new
+    #                             previous = comparable + ended
+    math_ok = (current_delivered == comparable + new_count
+                and previous_delivered == comparable + ended_count)
+    campaign_counts = {
+        "current_delivered_count": current_delivered,
+        "previous_delivered_count": previous_delivered,
+        "comparable_count": comparable,
+        "new_campaign_count": new_count,
+        "ended_campaign_count": ended_count,
+        "invariants": {
+            "current_equals_comparable_plus_new":
+                current_delivered == comparable + new_count,
+            "previous_equals_comparable_plus_ended":
+                previous_delivered == comparable + ended_count,
+        },
+        "math_ok": math_ok,
+        "duplicate_campaign_groups": [
+            {"name_normalized": nm,
+              "campaign_ids": sorted(list(cids)),
+              "campaign_count": len(cids)}
+            for nm, cids in duplicate_groups.items()],
+        "total_unique_campaigns": len(all_ids),
+    }
     # YTD campaign table
     ytd_table = _v24_ytd_campaign_table(ytd_rows, brand_total_ytd)
     # Best + needs-attention per objective
@@ -5159,6 +5264,9 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
         "ytd_campaign_table": ytd_table,
         "ytd_brand_total_spend": round(brand_total_ytd, 2),
         "best_and_needs_attention": bn,
+        "campaign_counts": campaign_counts,
+        "duplicate_campaigns_visible":
+            campaign_counts.get("duplicate_campaign_groups") or [],
         "rule": ("Per-campaign insights come from "
                  "/act_{id}/insights?level=campaign. Raw Meta "
                  "actions preserved. NEVER renames Meta-reported "
@@ -5208,6 +5316,47 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
                                f"{n['campaign_name']} "
                                f"({n.get('attention_reason','see drill-down')})."),
             })
+    # V2.4.1 §2: campaign count reconciliation surfaced
+    summary_lines.append({
+        "type": "MEASURED_FACT",
+        "confidence": "HIGH",
+        "statement": (f"Campaign reconciliation: current delivered "
+                       f"{campaign_counts['current_delivered_count']} "
+                       f"(= {campaign_counts['comparable_count']} "
+                       f"comparable + {campaign_counts['new_campaign_count']} "
+                       f"new); previous delivered "
+                       f"{campaign_counts['previous_delivered_count']} "
+                       f"(= {campaign_counts['comparable_count']} "
+                       f"comparable + {campaign_counts['ended_campaign_count']} "
+                       f"ended); math_ok = "
+                       f"{campaign_counts['math_ok']}."),
+    })
+    # V2.4.1 §6: duplicate-campaign surface
+    dup_groups = campaign_counts.get("duplicate_campaign_groups") or []
+    if dup_groups:
+        for g in dup_groups:
+            summary_lines.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"Possible duplicate campaign group "
+                               f"({g['campaign_count']} campaigns with "
+                               f"similar names): ids "
+                               f"{', '.join(g['campaign_ids'])}. "
+                               f"Surfaced separately per V2.4.1 §6 "
+                               f"(do NOT merge)."),
+            })
+    # V2.4.1 §3: discipline statement
+    summary_lines.append({
+        "type": "DISCIPLINE",
+        "confidence": "HIGH",
+        "statement": ("Per V2.4.1 §3: commentary distinguishes "
+                       "measured facts from interpretive hypotheses. "
+                       "Interpretations about creative fatigue or "
+                       "audience saturation require additional "
+                       "evidence (Creative Genome repetition, "
+                       "audience delivery history, frequency trends) "
+                       "before being treated as established cause."),
+    })
     # GA4 cross-channel observation (V2.4 §11)
     ga4_cross = v23.get("paid_media", {}).get(
         "cross_channel_observations") or []

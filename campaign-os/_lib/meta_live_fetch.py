@@ -557,3 +557,328 @@ if __name__ == "__main__":
     result = fetch_all()
     print(json.dumps(result, indent=2))
     sys.exit(0 if result.get("ok") else 1)
+
+
+# ─── V2.4.1: PAID-MEDIA INGESTION (sibling to fetch_all) ────────────
+# Per V2.4.1 §1: extend the existing meta_refresh job to also
+# pull paid-media. Read-only — no Meta mutation. Reuses the
+# canonical token → brand → ad_account mapping.
+# Avoids importing app.py (circular import) by using os.environ
+# directly.
+
+_META_ADS_TOKEN_FOR_BRAND = {
+    "stick": "META_SYSTEM_USER_TOKEN_STICK",
+    "swing-shack": "META_SYSTEM_USER_TOKEN",
+}
+_META_ADS_ACCOUNT_FOR_BRAND = {
+    "stick": "act_2101557317059886",
+    "swing-shack": "act_1024882912541604",
+}
+_META_ADS_ACCOUNT_NAME = {
+    "act_2101557317059886": "Stick",
+    "act_1024882912541604": "Swing Shack – Ad account",
+}
+_META_ADS_BRAND_CLASSIFICATION = {
+    "act_2101557317059886": "CANONICAL_STICK",
+    "act_1024882912541604": "CANONICAL_SWING_SHACK",
+}
+_META_GRAPH_API_VERSION = "v26.0"
+
+
+def _pm_get(path, token, params):
+    """GET a Meta Graph API endpoint. Returns parsed JSON or
+    (None, error). Read-only."""
+    import urllib.request as _url_req
+    base = "https://graph.facebook.com"
+    full = f"{base}{path}"
+    sep = "&" if "?" in full else "?"
+    qp = "&".join(f"{k}={_url_req.quote(str(v), safe='')}"
+                   for k, v in params.items() if v is not None)
+    full_with_access = f"{full}{sep}access_token={_url_req.quote(token, safe='')}"
+    if qp:
+        full_with_access += f"&{qp}"
+    try:
+        with _url_req.urlopen(full_with_access, timeout=60) as r:
+            return json.loads(r.read()), None
+    except urllib.error.HTTPError as e:
+        try:
+            return None, f"HTTP {e.code}: {e.read().decode()[:200]}"
+        except Exception:
+            return None, f"HTTP {e.code}"
+    except Exception as e:
+        return None, str(e)[:200]
+
+
+def _pm_insights(act_id, token, time_range, level=None):
+    """Read-only /insights call. Same shape as the app.py version."""
+    if level and level != "default":
+        fields = ("campaign_id,campaign_name,adset_id,adset_name,"
+                  "ad_id,ad_name,objective,"
+                  "impressions,reach,frequency,clicks,spend,"
+                  "cpc,cpm,ctr,actions,conversions,"
+                  "cost_per_action_type,cost_per_conversion,"
+                  "purchase_roas")
+    else:
+        fields = ("impressions,reach,frequency,clicks,spend,"
+                  "cpc,cpm,ctr,actions,conversions,"
+                  "cost_per_action_type,cost_per_conversion,"
+                  "purchase_roas")
+    path = f"/{_META_GRAPH_API_VERSION}/{act_id}/insights"
+    return _pm_get(path, token, {"fields": fields,
+                                    "time_range": json.dumps(time_range),
+                                    "limit": 1000,
+                                    "level": level} if (level and level != "default") else
+                                  {"fields": fields,
+                                    "time_range": json.dumps(time_range),
+                                    "limit": 1000})
+
+
+def _pm_account_meta(act_id, token):
+    """Fetch ad-account metadata (id, name, amount_spent, currency,
+    spend_cap, account_status, timezone_name). Retry without
+    owner_business on 400."""
+    path = f"/{_META_GRAPH_API_VERSION}/{act_id}"
+    fields_full = ("id,name,account_status,amount_spent,spend_cap,"
+                    "currency,timezone_name,balance,disable_reason,"
+                    "owner_business")
+    for fields in (fields_full,
+                    "id,name,account_status,amount_spent,spend_cap,"
+                    "currency,timezone_name,balance,disable_reason"):
+        body, err = _pm_get(path, token, {"fields": fields})
+        if not err and body and body.get("id"):
+            return 200, body
+        if err and "owner_business" in err:
+            continue
+        return (200, body) if not err else (400, {"error_msg": err})
+    return 400, {"error_msg": "owner_business fallback exhausted"}
+
+
+def _pm_campaigns(act_id, token, brand_id):
+    """Fetch /campaigns list (id, name, objective, status,
+    effective_status, daily_budget, lifetime_budget, start_time,
+    stop_time, buying_type, special_ad_category)."""
+    path = f"/{_META_GRAPH_API_VERSION}/{act_id}/campaigns"
+    body, err = _pm_get(path, token, {"fields": ("id,name,objective,status,"
+                                                    "effective_status,"
+                                                    "daily_budget,"
+                                                    "lifetime_budget,"
+                                                    "start_time,stop_time,"
+                                                    "buying_type,"
+                                                    "special_ad_category,"
+                                                    "created_time,updated_time,"
+                                                    "budget_remaining,"
+                                                    "source_id"),
+                                        "limit": 500})
+    if err:
+        return {"ok": False, "data": [], "error": err}
+    return {"ok": True, "data": body.get("data") or []}
+
+
+def _pm_normalize(rows):
+    """Convert Meta insights row → dict with numeric fields."""
+    def _i(x):
+        try:
+            return int(x) if x is not None else None
+        except Exception:
+            return None
+    def _f(x):
+        try:
+            return float(x) if x is not None else None
+        except Exception:
+            return None
+    out = []
+    for row in rows or []:
+        actions = [{"action_type": a.get("action_type"),
+                     "value": a.get("value")} for a in (row.get("actions") or [])]
+        cpas = [{"action_type": c.get("action_type"),
+                  "value": c.get("value")} for c in (row.get("cost_per_action_type") or [])]
+        convs = [{"action_type": c.get("action_type"),
+                   "value": c.get("value")} for c in (row.get("conversions") or [])]
+        out.append({
+            "campaign_id": row.get("campaign_id"),
+            "campaign_name": row.get("campaign_name"),
+            "adset_id": row.get("adset_id"),
+            "adset_name": row.get("adset_name"),
+            "ad_id": row.get("ad_id"),
+            "ad_name": row.get("ad_name"),
+            "objective": row.get("objective"),
+            "impressions": _i(row.get("impressions")),
+            "reach": _i(row.get("reach")),
+            "frequency": _f(row.get("frequency")),
+            "clicks": _i(row.get("clicks")),
+            "spend": _f(row.get("spend")),
+            "cpc": _f(row.get("cpc")),
+            "cpm": _f(row.get("cpm")),
+            "ctr": _f(row.get("ctr")),
+            "actions": actions,
+            "cost_per_action_type": cpas,
+            "conversions": convs,
+        })
+    return out
+
+
+def fetch_paid_media(brand_id: str | None = None,
+                       period_days: int = 31) -> dict:
+    """Pull paid-media for one brand (or both if brand_id is None).
+
+    Per V2.4.1 §1: read-only Meta Graph API ingestion.
+    Writes cache to DATA_DIR/paid-media/<brand>.json.
+    Retains last-known-good cache on failure (caller controls
+    via separate write-after-success logic in app.py)."""
+    now_iso = _dt.datetime.now(_dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    brands = ([brand_id] if brand_id
+              else list(_META_ADS_TOKEN_FOR_BRAND.keys()))
+    out = {"ok": True, "refreshed_at": now_iso,
+            "fetched_at": now_iso, "brands": {}}
+    for bid in brands:
+        token_label = _META_ADS_TOKEN_FOR_BRAND.get(bid)
+        token = os.environ.get(token_label) if token_label else None
+        acc = _META_ADS_ACCOUNT_FOR_BRAND.get(bid)
+        if not token or not acc:
+            out["brands"][bid] = {"ok": False,
+                                    "error": "no canonical token or account",
+                                    "data_status": "NOT_CONNECTED"}
+            out["ok"] = False
+            continue
+        # Period contract: today excluded, 31d current, 31d previous,
+        # YTD since Jan 1 of current year.
+        today = _dt.date.today()
+        current_end = (today - _dt.timedelta(days=1)).isoformat()
+        current_start = (today - _dt.timedelta(days=period_days)).isoformat()
+        previous_end = (today - _dt.timedelta(days=period_days + 1)).isoformat()
+        previous_start = (today - _dt.timedelta(days=period_days * 2 + 1)).isoformat()
+        year_start = f"{today.year}-01-01"
+        report_period = {
+            "current_start": current_start,
+            "current_end": current_end,
+            "previous_start": previous_start,
+            "previous_end": previous_end,
+            "days_per_window": period_days,
+            "data_complete_through": current_end,
+            "fetched_at": now_iso,
+        }
+        # Fetch account meta
+        sc, aa_meta = _pm_account_meta(acc, token)
+        # Fetch campaigns metadata
+        cmeta = _pm_campaigns(acc, token, bid)
+        # Fetch insights at three windows
+        cur = _pm_insights(acc, token,
+                            {"since": current_start, "until": current_end},
+                            level="campaign")
+        prev = _pm_insights(acc, token,
+                              {"since": previous_start, "until": previous_end},
+                              level="campaign")
+        ytd = _pm_insights(acc, token,
+                            {"since": year_start, "until": current_end},
+                            level="campaign")
+        # If any insights call failed, mark the brand with error
+        # but DO NOT zero out — let the caller retain last-known-good.
+        err_msgs = []
+        if not cur[0]: err_msgs.append(f"current: {cur[1]}")
+        if not prev[0]: err_msgs.append(f"previous: {prev[1]}")
+        if not ytd[0]: err_msgs.append(f"ytd: {ytd[1]}")
+        cur_rows = _pm_normalize(cur[0].get("data") if cur[0] else [])
+        prev_rows = _pm_normalize(prev[0].get("data") if prev[0] else [])
+        ytd_rows = _pm_normalize(ytd[0].get("data") if ytd[0] else [])
+        # Campaign-name enrichment
+        cid_to_cname = {str(c.get("id")): c.get("name")
+                          for c in (cmeta.get("data") or [])}
+        for rows in (cur_rows, prev_rows, ytd_rows):
+            for r in rows:
+                if r.get("campaign_id") and not r.get("campaign_name"):
+                    r["campaign_name"] = cid_to_cname.get(
+                        str(r.get("campaign_id")))
+        # Totals
+        def _totals(rows):
+            t = {"spend": 0, "impressions": 0, "reach": 0,
+                  "clicks": 0}
+            for r in rows:
+                t["spend"] += (r.get("spend") or 0)
+                t["impressions"] += (r.get("impressions") or 0)
+                t["reach"] += (r.get("reach") or 0)
+                t["clicks"] += (r.get("clicks") or 0)
+            if t["clicks"]:
+                t["cpc"] = round(t["spend"] / t["clicks"], 4)
+            if t["impressions"]:
+                t["cpm"] = round(t["spend"] / t["impressions"] * 1000, 2)
+            if t["impressions"]:
+                t["ctr"] = round(t["clicks"] / t["impressions"] * 100, 2)
+            t["campaigns_with_delivery"] = len([r for r in rows if (r.get("spend") or 0) > 0])
+            return {k: (round(v, 2) if isinstance(v, float) else v)
+                     for k, v in t.items()}
+        cache = {
+            "schema": "https://campaign-os/paid-media/v2",
+            "brand_id": bid,
+            "ad_account_id": acc,
+            "ad_account_name": _META_ADS_ACCOUNT_NAME.get(acc, "?"),
+            "brand_classification": _META_ADS_BRAND_CLASSIFICATION.get(acc, "?"),
+            "token_label": token_label,
+            "report_period": report_period,
+            "fetched_at": now_iso,
+            "data_as_of": current_end,
+            "ad_account_meta": aa_meta if sc == 200 else {
+                "status": sc,
+                "error": (aa_meta.get("error_msg") if isinstance(aa_meta, dict) else ""),
+            },
+            "current_period": {"time_range": {"since": current_start,
+                                                 "until": current_end},
+                                "level": "campaign",
+                                "ok": bool(cur[0]),
+                                "rows": cur_rows,
+                                "error": (cur[1] or "") if not cur[0] else ""},
+            "previous_period": {"time_range": {"since": previous_start,
+                                                  "until": previous_end},
+                                 "level": "campaign",
+                                 "ok": bool(prev[0]),
+                                 "rows": prev_rows,
+                                 "error": (prev[1] or "") if not prev[0] else ""},
+            "ytd": {"time_range": {"since": year_start, "until": current_end},
+                     "level": "campaign",
+                     "ok": bool(ytd[0]),
+                     "rows": ytd_rows,
+                     "error": (ytd[1] or "") if not ytd[0] else ""},
+            "current_totals": _totals(cur_rows),
+            "previous_totals": _totals(prev_rows),
+            "ytd_totals": _totals(ytd_rows),
+            "campaigns": cmeta.get("data") or [],
+            "data_status": "LIVE" if not err_msgs else "PARTIAL",
+            "errors": err_msgs,
+            "data_source": "meta_graph_api",
+            "api_version": _META_GRAPH_API_VERSION,
+        }
+        # Write to canonical cache file (single root per brand).
+        try:
+            (DATA_DIR / "paid-media").mkdir(parents=True, exist_ok=True)
+            cache_path = DATA_DIR / "paid-media" / f"{bid}.json"
+            cache_path.write_text(json.dumps(cache, indent=2))
+            cache["cache_path"] = str(cache_path)
+        except Exception as e:
+            cache["cache_write_error"] = str(e)[:200]
+        out["brands"][bid] = {
+            "ok": not err_msgs,
+            "data_status": cache["data_status"],
+            "fetched_at": now_iso,
+            "data_as_of": current_end,
+            "campaigns_count": len(cmeta.get("data") or []),
+            "current_rows": len(cur_rows),
+            "previous_rows": len(prev_rows),
+            "ytd_rows": len(ytd_rows),
+            "ytd_spend": round(_totals(ytd_rows)["spend"] or 0, 2),
+            "errors": err_msgs,
+        }
+        if err_msgs:
+            out["ok"] = False
+    return out
+
+
+def fetch_all_with_paid_media(*, brand: str | None = None) -> dict:
+    """Combined: existing meta_refresh + paid-media ingestion.
+
+    Per V2.4.1 §1: extend the existing meta_refresh job to also
+    pull paid-media. Returns combined summary."""
+    base = fetch_all(brand=brand) or {"ok": True, "summary": "no-op"}
+    paid = fetch_paid_media(brand_id=brand)
+    base["paid_media"] = paid
+    base["combined_ok"] = bool(base.get("ok")) and bool(paid.get("ok"))
+    base["source"] = "extended meta_refresh job (V2.4.1 §1)"
+    return base
