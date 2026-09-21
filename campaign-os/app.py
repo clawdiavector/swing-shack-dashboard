@@ -43981,6 +43981,25 @@ def admin_v22_migrate_historical_reports():
 # Per V2.2 §11: read-only Meta access for both brands.
 # Token identities audited before any data is ingested.
 
+_META_GRAPH_API_VERSION = os.environ.get("INSTAGRAM_GRAPH_API_VERSION") or "v26.0"
+
+
+def _meta_api(path, params, token):
+    """GET against Meta Graph API with bearer token.
+    Returns (status_code, parsed_dict)."""
+    import requests as _r
+    if params is None:
+        params = {}
+    url = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}{path}"
+    params["access_token"] = token
+    try:
+        resp = _r.get(url, params=params, timeout=20)
+        return resp.status_code, resp.json()
+    except Exception as e:
+        return 0, {"error": str(e)}
+
+
+
 
 def _meta_audit_token(token_label, token):
     """Per V2.2 §1: audit identity + permissions. Returns dict
@@ -44016,17 +44035,8 @@ def _meta_audit_token(token_label, token):
 
 
 def _meta_api_get(path, token, params=None):
-    """GET against Meta Graph API with bearer token."""
-    import requests as _r
-    if params is None:
-        params = {}
-    url = f"https://graph.facebook.com{path}"
-    params["access_token"] = token
-    try:
-        resp = _r.get(url, params=params, timeout=20)
-        return resp.status_code, resp.json()
-    except Exception as e:
-        return 0, {"error": str(e)}
+    """Wrapper that delegates to _meta_api (defined above)."""
+    return _meta_api(path, params, token)
 
 
 @app.route('/api/admin/v23-meta-audit', methods=['GET'])
