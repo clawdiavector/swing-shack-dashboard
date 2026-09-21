@@ -44119,17 +44119,17 @@ def admin_v23_meta_discover_paths():
     user_id = info.get("user_id")
     app_id = info.get("app_id")
     # Try various paths
+    # Try versioned paths (which require the right version)
     candidates = [
-        f"/{user_id}/accounts",
-        f"/{user_id}/adspersonalaccounts",
-        f"/{user_id}/assigned_ad_accounts",
-        f"/me/adaccounts",
-        f"/{app_id}/businesses",
-        f"/{app_id}/accounts",
+        ("/" + user_id + "/assigned_ad_accounts",
+         ("id,account_id,name,account_status,owner_business")),
+        ("/" + user_id + "/accounts",
+         ("id,name")),
+        ("/" + user_id + "/businesses",
+         ("id,name,owned_ad_accounts,client_ad_accounts")),
     ]
-    for c in candidates:
-        sc, d = _meta_api(c, {"fields": "id,name,account_id,account_status,owner_business",
-                                "limit": 200}, target)
+    for c, fields in candidates:
+        sc, d = _meta_api(c, {"fields": fields, "limit": 200}, target)
         rows = (d.get("data") or []) if isinstance(d, dict) else []
         results[c] = {"status": sc,
                       "count": len(rows),
