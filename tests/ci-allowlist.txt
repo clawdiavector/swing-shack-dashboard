@@ -8,6 +8,7 @@ campaign-os/tests/jobs/test_ops_agents.py
 campaign-os/tests/jobs/test_calendar_bearer_auth.py
 campaign-os/tests/jobs/test_ops_agent_queue.py
 campaign-os/tests/jobs/test_ops_layers_ribbon.py
+campaign-os/tests/jobs/test_ops_watch.py
 campaign-os/tests/jobs/test_layer7_learn.py
 campaign-os/tests/jobs/test_unified_inbox_l4.py
 campaign-os/tests/jobs/test_redaction.py

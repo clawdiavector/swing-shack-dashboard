@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from _lib.ops_watch import derive_watch_verdict
+
 VERDICT_RANK = {"OK": 0, "LATE": 1, "STUCK": 2, "FAILED": 3, "NEVER": 4}
 VALID_VERDICTS = frozenset(VERDICT_RANK)
 ROLLUP_EXCLUDED = frozenset({"DISABLED", "SKIPPED"})
@@ -266,6 +268,7 @@ def build_layers(
     queue: Optional[dict | list] = None,
     agents: Optional[list[dict]] = None,
     inbox: Optional[dict] = None,
+    watch: Optional[dict] = None,
 ) -> dict[str, Any]:
     """Build campaign-os/ops-layers/v1 payload."""
     jobs = (jobs_status or {}).get("jobs") or []
@@ -283,6 +286,8 @@ def build_layers(
     stale = int((freshness or {}).get("stale") or 0)
     depth = queue_depth(queue)
     l2_verdict = _health_verdict(l1_verdict, rotten=rotten, stale=stale)
+
+    watch_verdict, watch_age_s = derive_watch_verdict(watch)
 
     l4_counts = inbox or {}
     l4_pending = int(l4_counts.get("pending") or 0)
@@ -315,8 +320,9 @@ def build_layers(
         "L2": {
             "label": "Health",
             "verdict": l2_verdict,
-            "watch_verdict": "NEVER",
-            "watch_age_s": None,
+            "watch_verdict": watch_verdict,
+            "watch_age_s": watch_age_s,
+            "watch_all_ok": bool((watch or {}).get("all_ok")) if watch else None,
             "digest_source": "derived",
             "ok": counts["ok"],
             "late": counts["late"],
