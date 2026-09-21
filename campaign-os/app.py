@@ -43984,14 +43984,24 @@ def admin_v22_migrate_historical_reports():
 _META_GRAPH_API_VERSION = os.environ.get("INSTAGRAM_GRAPH_API_VERSION") or "v26.0"
 
 
-def _meta_api(path, params, token):
+def _meta_api(path, params, token, in_token_param=None):
     """GET against Meta Graph API with bearer token.
-    Returns (status_code, parsed_dict)."""
+
+    If in_token_param is True, treat the token as the value
+    for the `input_token` query param (used for /debug_token
+    where the inspector has its own access_token param).
+
+    Returns (status_code, parsed_dict).
+    """
     import requests as _r
     if params is None:
         params = {}
     url = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}{path}"
-    params["access_token"] = token
+    if in_token_param is not None:
+        # Caller has already set input_token and access_token
+        pass
+    else:
+        params["access_token"] = token
     try:
         resp = _r.get(url, params=params, timeout=20)
         return resp.status_code, resp.json()
@@ -44016,9 +44026,12 @@ def _meta_audit_token(token_label, token):
             out["status"] = "FAIL: no inspector token (META_SYSTEM_USER_TOKEN) for debug_token"
             return out
         dbg_status, dbg_data = _meta_api(
-            f"/{_META_GRAPH_API_VERSION}/debug_token", {}, inspector)
-        dbg_data["input_token"] = token[:15] + "…"
-        out["debug_token"] = {"status": dbg_status, "data": dbg_data}
+            f"/{_META_GRAPH_API_VERSION}/debug_token",
+            {"input_token": token, "access_token": inspector},
+            None, in_token_param=True)
+        out["debug_token"] = {"status": dbg_status,
+                              "input_token_prefix": token[:15] + "…",
+                              "data": dbg_data}
         if dbg_status != 200 or not dbg_data.get("data", {}).get("is_valid"):
             err = (dbg_data.get("data") or {}).get("error", {})
             out["status"] = f"FAIL: invalid token — {err.get('message', '?')[:200]}"
