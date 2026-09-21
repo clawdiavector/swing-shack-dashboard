@@ -788,9 +788,9 @@ def test_calendar_candidate_approve_canonical_and_enqueue(l5_app, tmp_path, monk
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 2
+    assert len(pending) == 3
     actions = {r["action"] for r in pending}
-    assert actions == {"draft_caption", "draft_image"}
+    assert actions == {"draft_caption", "draft_image", "draft_gbp"}
     agents = {r["agent"] for r in pending}
     assert agents == {"cos-caption", "cos-image"}
 
@@ -848,12 +848,13 @@ def test_calendar_candidate_distinct_row_ids(l5_app, tmp_path, monkeypatch):
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 8
+    assert len(pending) == 12
     row_ids = {r["id"] for r in pending}
-    assert len(row_ids) == 8
+    assert len(row_ids) == 12
     actions = [r["action"] for r in pending]
     assert actions.count("draft_caption") == 4
     assert actions.count("draft_image") == 4
+    assert actions.count("draft_gbp") == 4
 
 
 def test_draft_assets_calendar_candidate_queue_row(l5_app, tmp_path):
