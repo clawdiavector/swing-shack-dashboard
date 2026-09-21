@@ -560,7 +560,13 @@ def transition_status(
     if new_status not in VALID_STATUSES:
         raise ValueError(f"status '{new_status}' invalid. Valid: {VALID_STATUSES}")
     all_records = list_records(brand_id)
-    target = next((r for r in all_records if r.get("calendar_id") == calendar_id), None)
+    target = next(
+        (
+            r for r in all_records
+            if r.get("calendar_id") == calendar_id or r.get("event_key") == calendar_id
+        ),
+        None,
+    )
     if not target:
         return None
     prev = target.get("status")
@@ -568,6 +574,7 @@ def transition_status(
     updated["status"] = new_status
     updated["previous_status"] = prev
     updated["transition_reason"] = reason
+    updated["revision"] = int(target.get("revision") or 1) + 1
     updated["last_verified"] = _now_iso()
     target_path = _watchlist_path(brand_id) if new_status == "watchlist" else _calendar_path(brand_id)
     with target_path.open("a") as f:
@@ -1784,7 +1791,7 @@ def canonical_records(brand_id: str, status_filter: Optional[str] = None) -> Lis
             else:
                 cur_rev = canonical[ek].get("revision") or 1
                 new_rev = r.get("revision") or 1
-                if new_rev > cur_rev:
+                if new_rev >= cur_rev:
                     canonical[ek] = r
     return sorted(
         canonical.values(),

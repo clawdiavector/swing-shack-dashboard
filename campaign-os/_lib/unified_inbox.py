@@ -426,7 +426,7 @@ def _l5_enqueue_enabled() -> bool:
 
 
 def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> None:
-    """Enqueue a draft_caption row after L4 approve (flag-gated; never fails approve)."""
+    """Enqueue draft_caption + draft_image rows after L4 approve (flag-gated; never fails approve)."""
     if not _l5_enqueue_enabled():
         return
     if item_type not in ("proposal", "calendar_candidate"):
@@ -435,17 +435,21 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
         from _lib import ops_agents  # noqa: PLC0415
 
         reason = item_type.replace("_", "-")[:32]
-        row = ops_agents.normalise_enqueue(
-            {
-                "agent": "cos-caption",
-                "brand": brand_id,
-                "reason": reason,
-                "action": "draft_caption",
-                "payload_ref": f"inbox/{item_id}",
-                "dedupe_key": item_id,
-            }
-        )
-        ops_agents.append_enqueue_row(_data_dir(), row)
+        for action, agent in (
+            ("draft_caption", "cos-caption"),
+            ("draft_image", "cos-image"),
+        ):
+            row = ops_agents.normalise_enqueue(
+                {
+                    "agent": agent,
+                    "brand": brand_id,
+                    "reason": reason,
+                    "action": action,
+                    "payload_ref": f"inbox/{item_id}",
+                    "dedupe_key": f"{item_id}:{action}",
+                }
+            )
+            ops_agents.append_enqueue_row(_data_dir(), row)
     except Exception:
         pass
 
