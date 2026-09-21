@@ -4967,7 +4967,8 @@ def _v24_best_and_needs_attention(per_campaign_comparisons,
     needs = {}
     for obj, items in by_obj.items():
         comparable = [c for c in items
-                       if c.get("comparison_status") == "comparable"]
+                       if ((c.get("comparison") or {}).get(
+                           "comparison_status") == "comparable")]
         # Best = lowest cost-per primary result among campaigns with
         # material spend
         def _cost_per(c):
