@@ -88,9 +88,25 @@ def test_class_missing_input(tmp_path, monkeypatch):
         every_seconds=86400,
         reads=("missing-input.json",),
     )
-    cls, evidence = classify(message="job failed", spec=spec)
+    cls, evidence = classify(spec=spec, result={"ok": False})
     assert cls == "missing_input"
-    assert evidence["matched"] == "missing_input"
+    assert evidence["matched"] == "missing_reads_spec"
+
+
+def test_class_missing_input_does_not_mask_real_error(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    spec = JobSpec(
+        name="insights_reco",
+        fn=lambda: {},
+        every_seconds=86400,
+        reads=("missing-input.json",),
+    )
+    cls, _ = classify(
+        message="NameError: name 'io' is not defined",
+        spec=spec,
+        result={"ok": False},
+    )
+    assert cls != "missing_input"
 
 
 def test_class_empty_result():

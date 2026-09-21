@@ -280,12 +280,23 @@ def _merge_agent_row(seed: Optional[dict[str, Any]], hb: Optional[dict[str, Any]
 
 def roster_verdict(agents: list[dict[str, Any]]) -> str:
     """Worst last_status among agents that have reported at least once."""
-    statuses = [
+    all_statuses = [
         str(a.get("last_status") or "NEVER").upper()
         for a in agents
         if a.get("last_heartbeat_at")
     ]
-    return worst_verdict(statuses) if statuses else "NEVER"
+    if not all_statuses:
+        return "NEVER"
+    from _lib.ops_layers import ROLLUP_EXCLUDED
+
+    statuses = [s for s in all_statuses if s not in ROLLUP_EXCLUDED]
+    if statuses:
+        return worst_verdict(statuses)
+    if "DISABLED" in all_statuses:
+        return "DISABLED"
+    if "SKIPPED" in all_statuses:
+        return "SKIPPED"
+    return worst_verdict(all_statuses)
 
 
 def build_agents_payload(base_dir: Path) -> dict[str, Any]:
