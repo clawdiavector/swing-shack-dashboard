@@ -4194,8 +4194,8 @@ def _v23_objective_aware_analysis(paid):
         elif "ENGAGEMENT" in obj:
             summary["primary_metric"] = "engagement / cost per relevant result"
         elif "SALES" in obj:
-            summary["primary_metric"] = ("Meta-reported purchase /
-                                          cost per Meta-reported purchase")
+            summary["primary_metric"] = ("Meta-reported purchase / "
+                                          "cost per Meta-reported purchase")
         else:
             summary["primary_metric"] = "see raw actions[] for type"
         out[obj] = summary
