@@ -22357,6 +22357,12 @@ except Exception as _e:
     _app_log.warning("reporting_intelligence import failed: %s", _e)
     _ri = None
 
+try:
+    from _lib import reporting_editorial as _ed
+except Exception as _e:
+    _app_log.warning("reporting_editorial import failed: %s", _e)
+    _ed = None
+
 
 @app.route('/api/reports/v1/<brand_id>', methods=['GET'])
 def report_v1_brand(brand_id):
@@ -45275,6 +45281,92 @@ def report_v24_portfolio():
     except Exception as e:
         _app_log.exception("report_v24_portfolio failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── REPORTING V2.5: EDITORIAL INTELLIGENCE LAYER ──────────────
+# V2.5 sits on top of V2.4.1 — reads it, does NOT modify it.
+# Adds: SEO + social + GA4 + funnel + editorial structure.
+# Deterministic templates only (no LLM narrative yet).
+
+
+@app.route("/api/reports/v2_5/<brand_id>", methods=["GET"])
+def report_v25_brand(brand_id):
+    """GET /api/reports/v2_5/<brand>?format=json|html&days=7
+
+    V2.5 editorial report: cross-source synthesis. V2.4.1 is
+    preserved unchanged; V2.5 reads its cache for the paid-media
+    section.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    if _ed is None:
+        return jsonify({"ok": False,
+                        "error": "editorial engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 7))
+    domain = request.args.get("domain") or (
+        "swingshack.co.za" if brand_id == "swing-shack" else "stickgolf.co.za")
+    try:
+        report = _ed.build_editorial_report(brand_id, period_days=days,
+                                              domain=domain)
+        if fmt == "json":
+            return jsonify({"ok": True, "report": report}), 200
+        html = _ed.render_editorial_report_html(report)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v25_brand failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
+
+
+@app.route("/api/reports/v2_5/<brand_id>/digest", methods=["GET"])
+def report_v25_brand_digest(brand_id):
+    """GET /api/reports/v2_5/<brand_id>/digest
+
+    Returns the Discord-digest markdown form of the editorial report.
+    Used by the daily 06:35 SAST cron + future #heidi posts.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    if _ed is None:
+        return jsonify({"ok": False, "error": "editorial engine unavailable"}), 503
+    domain = request.args.get("domain") or (
+        "swingshack.co.za" if brand_id == "swing-shack" else "stickgolf.co.za")
+    try:
+        report = _ed.build_editorial_report(brand_id, period_days=7,
+                                              domain=domain)
+        md = _ed.render_discord_digest(report)
+        return jsonify({"ok": True, "digest": md,
+                          "generated_at": report.get("generated_at"),
+                          "confidence": report.get("confidence")}), 200
+    except Exception as e:
+        _app_log.exception("report_v25_brand_digest failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
+
+
+@app.route("/reports/<brand_id>", methods=["GET"])
+def editorial_report_page(brand_id):
+    """GET /reports/<brand_id>
+
+    The editorial report UI page. Self-contained HTML — no chrome,
+    no navigation. Designed to be a focused CEO-grade read.
+    """
+    if not _is_authed():
+        return redirect(url_for("login", next=request.path))
+    if brand_id not in ("stick", "swing-shack"):
+        return "invalid brand", 400
+    if _ed is None:
+        return "editorial engine unavailable", 503
+    domain = ("swingshack.co.za" if brand_id == "swing-shack"
+              else "stickgolf.co.za")
+    report = _ed.build_editorial_report(brand_id, period_days=7,
+                                          domain=domain)
+    return _ed.render_editorial_report_html(report), 200, {
+        "Content-Type": "text/html; charset=utf-8"}
 
 
 @app.route("/api/meta/paid-media/refresh", methods=["POST"])
