@@ -45,6 +45,7 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
 
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
 _SS_ONLY = ("swing-shack",)
+_SS_AND_STICK = ("swing-shack", "stick")
 
 
 def layer1_specs() -> list[JobSpec]:
@@ -103,7 +104,7 @@ def layer1_specs() -> list[JobSpec]:
                 "ubersuggest-backlinks.json",
             ),
             brand_mode="per_brand",
-            brands=_SS_ONLY,
+            brands=_SS_AND_STICK,
             requires_integrations=("ubersuggest",),
         ),
         JobSpec(
@@ -117,7 +118,7 @@ def layer1_specs() -> list[JobSpec]:
             credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
             writes=("ga4-metrics.json",),
             brand_mode="per_brand",
-            brands=_SS_ONLY,
+            brands=_SS_AND_STICK,
             requires_integrations=("ga4",),
         ),
         JobSpec(
@@ -130,7 +131,7 @@ def layer1_specs() -> list[JobSpec]:
             retries=2,
             writes=("seo-audit.json", "geo-audit.json"),
             brand_mode="per_brand",
-            brands=_SS_ONLY,
+            brands=_SS_AND_STICK,
             requires_integrations=("ubersuggest",),
         ),
         JobSpec(
@@ -175,7 +176,7 @@ def layer1_specs() -> list[JobSpec]:
             writes=("search-console.json",),
             upstream=("ga4_report",),
             brand_mode="per_brand",
-            brands=_SS_ONLY,
+            brands=_SS_AND_STICK,
             requires_integrations=("gsc",),
         ),
         JobSpec(
@@ -191,7 +192,7 @@ def layer1_specs() -> list[JobSpec]:
             reads=("reddit-trends.json", "booking-events.json"),
             upstream=("ga4_report", "reddit_trends"),
             brand_mode="per_brand",
-            brands=_SS_ONLY,
+            brands=_SS_AND_STICK,
             requires_integrations=("ga4",),
             shared_reads=("reddit-trends.json",),
         ),
