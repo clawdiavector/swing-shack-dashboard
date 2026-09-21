@@ -4538,8 +4538,7 @@ def render_v23_brand_report_html(brand_id, period_days=31, cookie=None):
                  "real Meta Ads data, period-aligned with V2.2, "
                  "synthetic quarantined.</em></div>")
     parts.append("</body></html>")
-    return "
-".join(parts)
+    return "\n".join(parts)
 
 
 
