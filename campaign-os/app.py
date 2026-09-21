@@ -44489,9 +44489,8 @@ def _v23_fetch_ads_insights(account_id, token, time_range,
     params = {
         "fields": fields,
         "access_token": token,
-        "time_range": json.dumps(time_range),
-        "level": level,
-        "time_increment": "all",
+        "time_range": json.dumps({"since": time_range.get("since", "2026-01-01"),
+                                     "until": time_range.get("until", "2026-12-31")}),
         "limit": 500,
     }
     try:
