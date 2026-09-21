@@ -44175,8 +44175,11 @@ def admin_v23_meta_discover_paths():
         try:
             sc, d = _meta_api(
                 f"/act_{act_id}",
-                {"fields": "id,name,account_status,owner_business,timezone_name"},
-                target)
+                {"fields": "id,name,account_status,timezone_name,spend_cap,amount_spent,balance,currency,disable_reason"},target)
+            if sc == 400 and (d.get("error", {}).get("message", "") if isinstance(d, dict) else "").find("owner_business") >= 0:
+                # retry without problematic field
+                sc, d = _meta_api(f"/act_{act_id}",
+                                    {"fields": "id,name,account_status"}, target)
             rows = d.get("data") if isinstance(d, dict) and not d.get("error") else None
             err_msg = (d.get("error", {}) or {}).get("message", "")[:120] if isinstance(d, dict) and d.get("error") else ""
             results[f"/act_{act_id}"] = {"status": sc,
@@ -44207,8 +44210,11 @@ def admin_v23_meta_discover_paths():
         try:
             sc, d = _meta_api(
                 f"/act_{act_id}",
-                {"fields": "id,name,account_status,owner_business,timezone_name"},
-                target)
+                {"fields": "id,name,account_status,timezone_name,spend_cap,amount_spent,balance,currency,disable_reason"},target)
+            if sc == 400 and (d.get("error", {}).get("message", "") if isinstance(d, dict) else "").find("owner_business") >= 0:
+                # retry without problematic field
+                sc, d = _meta_api(f"/act_{act_id}",
+                                    {"fields": "id,name,account_status"}, target)
             rows = d.get("data") if isinstance(d, dict) and not d.get("error") else None
             err_msg = (d.get("error", {}) or {}).get("message", "")[:120] if isinstance(d, dict) and d.get("error") else ""
             results[f"/act_{act_id}"] = {"status": sc,
