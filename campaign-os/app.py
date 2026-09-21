@@ -44123,35 +44123,51 @@ def admin_v23_meta_discover_paths():
     # Discover pages, ad accounts, businesses accessible via
     # the System User. Try multiple paths.
     candidates = [
-        ("/" + user_id + "/accounts", "id,name,access_token,perms"),
         ("/" + user_id + "/accounts", "id,name"),
         ("/" + user_id + "/assigned_pages",
-         "id,name,access_token"),
+         "id,name"),
     ]
+    discovered_pages = []
     for c, fields in candidates:
         sc, d = _meta_api(c, {"fields": fields, "limit": 200}, target)
         rows = (d.get("data") or []) if isinstance(d, dict) else []
         results[f"{c}?fields={fields[:25]}"] = {
             "status": sc,
             "count": len(rows),
-            "sample": rows[:3] if rows else None,
+            "sample": rows[:5] if rows else None,
             "err": ((d.get("error") or {}).get("message", "")[:200]
                      if isinstance(d, dict) and d.get("error") else "")
         }
-    # Pick a page, get its ad account
-    account_listing = ((((results.get("/" + user_id + "/accounts?id,name,access_token,perms")
-                          or {}).get("sample")) or []) or [None])[0]
-    if account_listing:
-        acct_id = account_listing.get("id")
-        # Get the ad accounts this page can advertise
-        sc, d = _meta_api(
-            f"/{acct_id}/adspaymentaccounts",
-            {"fields": "id,account_id,name"}, target)
-        results[f"/{acct_id}/adspaymentaccounts"] = {
-            "status": sc,
-            "count": len(d.get("data") or []),
-            "sample": (d.get("data") or [])[:5] if isinstance(d, dict) else [],
-        }
+        discovered_pages.extend(rows)
+    # For each page, probe ad accounts
+    for page in discovered_pages:
+        page_id = page.get("id")
+        if not page_id:
+            continue
+        for ep in ("adspaymentaccounts", "adaccounts"):
+            sc, d = _meta_api(
+                f"/{page_id}/{ep}",
+                {"fields": ("id,account_id,name,account_status,"
+                              "owner_business"),
+                 "limit": 100},
+                target)
+            rows = (d.get("data") or []) if isinstance(d, dict) else []
+            results[f"/{page_id}/{ep}"] = {
+                "status": sc,
+                "count": len(rows),
+                "sample": rows[:5] if rows else None,
+            }
+    # Also try /<user_id>/businesses for direct businesses
+    sc, d = _meta_api(
+        f"/{user_id}/businesses",
+        {"fields": "id,name,owned_ad_accounts,client_ad_accounts",
+         "limit": 200}, target)
+    rows = (d.get("data") or []) if isinstance(d, dict) else []
+    results[f"/{user_id}/businesses"] = {
+        "status": sc,
+        "count": len(rows),
+        "sample": rows[:5] if rows else None,
+    }
     return jsonify({"ok": True, "user_id": user_id, "app_id": app_id,
                      "results": results}), 200
     return jsonify({"ok": True, "user_id": user_id, "app_id": app_id,
