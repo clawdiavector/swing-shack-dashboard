@@ -85,6 +85,23 @@ class PublishSandboxTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             publish_sandbox.enqueue_item(brand_id="takomo", human_approved=False)
 
+    def test_enqueue_idempotent_on_key(self) -> None:
+        key = "qc-test-asset"
+        first = publish_sandbox.enqueue_item(
+            brand_id="stick",
+            caption_preview="first",
+            idempotency_key=key,
+        )
+        second = publish_sandbox.enqueue_item(
+            brand_id="stick",
+            caption_preview="second",
+            idempotency_key=key,
+        )
+        queue = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
+        self.assertEqual(len(queue), 1)
+        self.assertEqual(first["idempotency_key"], second["idempotency_key"])
+        self.assertEqual(first["queue_id"], second["queue_id"])
+
 
 if __name__ == "__main__":
     unittest.main()

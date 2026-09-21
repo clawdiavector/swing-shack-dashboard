@@ -442,6 +442,7 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
                 "reason": reason,
                 "action": "draft_caption",
                 "payload_ref": f"inbox/{item_id}",
+                "dedupe_key": item_id,
             }
         )
         ops_agents.append_enqueue_row(_data_dir(), row)
