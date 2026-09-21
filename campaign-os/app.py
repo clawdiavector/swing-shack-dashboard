@@ -44469,7 +44469,71 @@ def _v23_resolve_ads_account(brand_id):
 # for the CANONICAL ad accounts. Preserve raw Meta objective +
 # action semantics — never rename.
 
+def _v23_fetch_ads_account_meta(account_id, token):
+    """GET /{account_id} with ad-account metadata fields.
+
+    Per V2.4 §1: returns the account-level fields needed to
+    interpret amount_spent correctly (it's lifetime MINOR
+    units — cents in ZAR/USD). The YTD actual spend comes
+    from /insights; amount_spent on the account itself is
+    a different field with a different date scope (lifetime).
+    """
+    import requests as _r
+    try:
+        resp = _r.get(
+            f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}/{account_id}",
+            params={"fields": ("id,name,account_status,amount_spent,"
+                                "spend_cap,currency,timezone_name,owner_business,"
+                                "balance,disable_reason"),
+                    "access_token": token},
+            timeout=15)
+        body = resp.json()
+        return resp.status_code, body
+    except Exception as e:
+        return 0, {"error": str(e)[:200]}
+
+
 def _v23_fetch_ads_insights(account_id, token, time_range,
+                            level=None):
+    """GET /v26.0/insights — campaign-level insights for the
+    current + previous periods. Returns the raw rows.
+
+    When level is None, Meta returns the consolidated account-
+    level row per time window. When level="campaign" /
+    "adset" / "ad", Meta returns one row per campaign/ad-set/ad
+    that had delivery in the window.
+    """
+    if not account_id or not token:
+        return {"ok": False, "error": "missing account or token"}
+    url = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+    path = f"/{account_id}/insights"
+    fields = ("impressions,reach,frequency,clicks,spend,"
+              "cpc,cpm,ctr,actions,conversions,"
+              "cost_per_action_type,cost_per_conversion,"
+              "purchase_roas")
+    params = {
+        "fields": fields,
+        "access_token": token,
+        "time_range": json.dumps({"since": time_range.get("since", "2026-01-01"),
+                                     "until": time_range.get("until", "2026-12-31")}),
+        "limit": 1000,
+    }
+    if level and level != "default":
+        params["level"] = level
+    try:
+        import requests as _r
+        resp = _r.get(url + path, params=params, timeout=60)
+        body = resp.json()
+        return {"ok": resp.status_code == 200,
+                "status": resp.status_code,
+                "data": body.get("data") or [],
+                "error": (body.get("error", {}) or {}).get(
+                    "message", "")[:200] if not resp.status_code == 200 else ""}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:200]}
+
+
+def _v23_fetch_ads_insights_legacy(account_id, token, time_range,
                             level="campaign"):
     """GET /v26.0/insights — campaign-level insights for the
     current + previous periods. Returns the raw rows.
@@ -44563,6 +44627,10 @@ def _v23_normalize_action_types(insight_rows):
         out.append({
             "campaign_id": row.get("campaign_id"),
             "campaign_name": row.get("campaign_name"),
+            "adset_id": row.get("adset_id"),
+            "adset_name": row.get("adset_name"),
+            "ad_id": row.get("ad_id"),
+            "ad_name": row.get("ad_name"),
             "objective": row.get("objective"),
             "impressions": _parse_ga4_int(row.get("impressions")),
             "reach": _parse_ga4_int(row.get("reach")),
@@ -44623,8 +44691,13 @@ def _v23_ingest_paid_media(brand_id, period_days=31, ytd=True):
     today = rp["current_end"]
     year_start = f"{today[:4]}-01-01"
     ytd_tr = {"since": year_start, "until": today}
+    # Fetch the ad-account metadata to record amount_spent
+    # correctly (per V2.4 §1 — it is lifetime spend in MINOR
+    # units / cents). This MUST be labeled "lifetime_minor_units"
+    # not "spend".
+    aa_meta_sc, aa_meta = _v23_fetch_ads_account_meta(acc, token)
     out = {
-        "schema": "https://campaign-os/paid-media/v1",
+        "schema": "https://campaign-os/paid-media/v2",
         "brand_id": brand_id,
         "ad_account_id": acc,
         "ad_account_name": _META_ADS_ACCOUNT_NAME.get(acc, "?"),
@@ -44632,37 +44705,45 @@ def _v23_ingest_paid_media(brand_id, period_days=31, ytd=True):
         "token_label": token_label,
         "report_period": rp,
         "fetched_at": _now_iso(),
+        "data_as_of": rp["current_end"],
         "current_period": {},
         "previous_period": {},
         "ytd": {},
         "campaigns": [],
+        "ad_account_meta": aa_meta if aa_meta_sc == 200 else {
+            "status": aa_meta_sc,
+            "error": (aa_meta.get("error", {}) or {}).get(
+                "message", "")[:200] if isinstance(aa_meta, dict) else ""
+        },
         "data_status": "LIVE",
         "data_source": "meta_graph_api",
         "api_version": _META_GRAPH_API_VERSION,
     }
-    # Current period insights
-    res = _v23_fetch_ads_insights(acc, token, current_tr, "campaign")
+    # Current period — per-campaign insights
+    res = _v23_fetch_ads_insights(acc, token, current_tr, level="campaign")
     out["current_period"] = {
         "time_range": current_tr,
+        "level": "campaign",
         "ok": res.get("ok"),
         "rows": _v23_normalize_action_types(res.get("data") or [])
                   if res.get("ok") else [],
         "error": (res.get("error") or
                    "not normalized (fetch failed)") if not res.get("ok") else "",
     }
-    # Previous period insights
-    res = _v23_fetch_ads_insights(acc, token, previous_tr, "campaign")
+    # Previous period — per-campaign insights
+    res = _v23_fetch_ads_insights(acc, token, previous_tr, level="campaign")
     out["previous_period"] = {
         "time_range": previous_tr,
+        "level": "campaign",
         "ok": res.get("ok"),
         "rows": _v23_normalize_action_types(res.get("data") or [])
                   if res.get("ok") else [],
         "error": (res.get("error") or
                    "not normalized (fetch failed)") if not res.get("ok") else "",
     }
-    # YTD
+    # YTD — per-campaign insights (for spend-per-campaign)
     if ytd:
-        res = _v23_fetch_ads_insights(acc, token, ytd_tr, "campaign")
+        res = _v23_fetch_ads_insights(acc, token, ytd_tr, level="campaign")
         out["ytd"] = {
             "time_range": ytd_tr,
             "ok": res.get("ok"),
@@ -44830,6 +44911,146 @@ def report_v23_portfolio():
     except Exception as e:
         _app_log.exception("report_v23_portfolio failed")
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
+
+
+# ─── V2.4: PER-CAMPAIGN INSIGHTS + DRILL-DOWN ────────────────────────
+# Per V2.4 §2-4: query Meta Insights at level=campaign,
+# level=adset, level=ad. Preserve raw Meta actions.
+# Per V2.4 §1: amount_spent is lifetime MINOR UNITS (cents)
+# — distinct from YTD insights spend.
+
+
+@app.route("/api/meta/ads/<brand_id>/campaigns/<campaign_id>/adsets",
+            methods=["GET"])
+def meta_ads_campaign_adsets(brand_id, campaign_id):
+    """GET /api/meta/ads/<brand>/campaigns/<cid>/adsets
+
+    V2.4 §10: drill-down. Returns ad-sets in the campaign
+    with current-period insights. Uses the same report-period
+    contract as V2.3/V2.4.
+
+    Returns the raw rows. Per V2.4 §7: do NOT call low-spend
+    adsets "bad" — surface raw metrics only.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    acc = _v23_resolve_ads_account(brand_id)
+    token_label, token = _v23_resolve_ads_token(brand_id)
+    if not acc or not token:
+        return jsonify({"ok": False,
+                        "error": "no canonical ad account or token"}), 200
+    days = int(request.args.get("days", 31))
+    rp = _v22_report_period(days)
+    current_tr = {"since": rp["current_start"], "until": rp["current_end"]}
+    res = _v23_fetch_ads_insights(acc, token, current_tr, level="adset")
+    rows = (_v23_normalize_action_types(res.get("data") or [])
+              if res.get("ok") else [])
+    # Filter to the requested campaign
+    filtered = [r for r in rows
+                  if r.get("campaign_id") == str(campaign_id)]
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "campaign_id": campaign_id,
+        "time_range": current_tr,
+        "fetched_at": _now_iso(),
+        "adset_count": len(filtered),
+        "rows": filtered,
+        "note": ("V2.4 §10 drill-down. Raw Meta actions preserved. "
+                 "amount_spent at the account level is lifetime minor "
+                 "units (cents) — distinct from this period's spend."),
+    }), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/adsets/<adset_id>/ads",
+            methods=["GET"])
+def meta_ads_adset_ads(brand_id, adset_id):
+    """GET /api/meta/ads/<brand>/adsets/<aid>/ads
+
+    V2.4 §10 drill-down: returns the ads under an ad-set with
+    current-period insights. Same period contract.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    acc = _v23_resolve_ads_account(brand_id)
+    token_label, token = _v23_resolve_ads_token(brand_id)
+    if not acc or not token:
+        return jsonify({"ok": False,
+                        "error": "no canonical ad account or token"}), 200
+    days = int(request.args.get("days", 31))
+    rp = _v22_report_period(days)
+    current_tr = {"since": rp["current_start"], "until": rp["current_end"]}
+    res = _v23_fetch_ads_insights(acc, token, current_tr, level="ad")
+    rows = (_v23_normalize_action_types(res.get("data") or [])
+              if res.get("ok") else [])
+    filtered = [r for r in rows
+                  if r.get("adset_id") == str(adset_id)]
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "adset_id": adset_id,
+        "time_range": current_tr,
+        "fetched_at": _now_iso(),
+        "ad_count": len(filtered),
+        "rows": filtered,
+    }), 200
+
+
+@app.route("/api/meta/ads/<brand_id>/ads/<ad_id>/insights",
+            methods=["GET"])
+def meta_ads_ad_insights(brand_id, ad_id):
+    """GET /api/meta/ads/<brand>/ads/<ad_id>/insights
+
+    Single-ad insights drill-down.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    acc = _v23_resolve_ads_account(brand_id)
+    _, token = _v23_resolve_ads_token(brand_id)
+    if not acc or not token:
+        return jsonify({"ok": False,
+                        "error": "no canonical ad account or token"}), 200
+    days = int(request.args.get("days", 31))
+    rp = _v22_report_period(days)
+    current_tr = {"since": rp["current_start"], "until": rp["current_end"]}
+    # Meta allows per-id insights via /{ad_id}/insights
+    import requests as _r
+    try:
+        resp = _r.get(
+            f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}/{ad_id}/insights",
+            params={"fields": ("impressions,reach,frequency,clicks,spend,"
+                                "cpc,cpm,ctr,actions,conversions,"
+                                "cost_per_action_type"),
+                    "time_range": json.dumps(current_tr),
+                    "access_token": token,
+                    "limit": 100},
+            timeout=30)
+        body = resp.json()
+        rows = (body.get("data") or []) if resp.status_code == 200 else []
+        normalized = _v23_normalize_action_types(rows) if rows else []
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "ad_id": ad_id,
+            "time_range": current_tr,
+            "fetched_at": _now_iso(),
+            "row_count": len(normalized),
+            "rows": normalized,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:200]}), 200
 
 
 if __name__ == '__main__':
