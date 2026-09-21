@@ -44050,18 +44050,40 @@ def _meta_audit_token(token_label, token):
         out["scopes"] = token_info.get("scopes") or []
         # Use app|token for the right app context
         app_id = token_info.get("app_id")
-        # Discover accessible ad accounts / businesses
+        # Discover ad accounts via assigned businesses (System User
+        # tokens don't expose /me/adaccounts directly; resolve via
+        # /<user_id>/assigned_businesses -> /<bid>/owned_ad_accounts
+        # and /<bid>/client_ad_accounts).
+        user_id = token_info.get("user_id")
         try:
-            for path in ("/me/adaccounts", "/me/businesses"):
-                fields = ("account_id,name,account_status,owner_business,"
-                          "timezone_name" if "adaccounts" in path else
-                          "id,name,owned_ad_accounts,client_ad_accounts")
-                sc, data = _meta_api(path,
-                                       {"fields": fields, "limit": 200},
-                                       token)
-                key = "adaccounts" if "adaccounts" in path else "businesses"
-                rows = (data.get("data") or []) if isinstance(data, dict) else []
-                out[key] = {"status": sc, "count": len(rows), "data": data}
+            bs_sc, bs_data = _meta_api(
+                f"/{user_id}/assigned_businesses",
+                {"fields": "id,name,owned_ad_accounts,client_ad_accounts",
+                 "limit": 200},
+                token)
+            bs_rows = (bs_data.get("data") or []) if isinstance(bs_data, dict) else []
+            out["businesses"] = {"status": bs_sc,
+                                    "count": len(bs_rows),
+                                    "data": bs_data}
+            all_accounts = []
+            for b in bs_rows:
+                bid = b.get("id")
+                for sub in ("owned_ad_accounts", "client_ad_accounts"):
+                    aa_sc, aa_data = _meta_api(
+                        f"/{bid}/{sub}",
+                        {"fields": ("account_id,name,account_status,"
+                                    "owner_business,timezone_name"),
+                         "limit": 200},
+                        token)
+                    accounts = ((aa_data.get("data") or [])
+                                 if isinstance(aa_data, dict) else [])
+                    for a in accounts:
+                        a["_via_business"] = bid
+                        a["_via_sub_endpoint"] = sub
+                    all_accounts.extend(accounts)
+            out["adaccounts"] = {"status": 200,
+                                   "count": len(all_accounts),
+                                   "data": {"data": all_accounts}}
         except Exception as e:
             out["status"] = (f"WARN: identity resolved but "
                              f"ad account discovery failed: "
