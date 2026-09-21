@@ -44325,6 +44325,70 @@ def admin_v23_meta_audit():
     out["accounts_seen"] = sorted(out["accounts_seen"])
     return jsonify(out), 200
 
+
+
+
+@app.route('/api/admin/v23-meta-discover-all', methods=['GET'])
+def admin_v23_meta_discover_all():
+    """Test ALL tokens against ALL ad-account candidates."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    import requests as _r
+    tokens = {
+        "global": os.environ.get("META_SYSTEM_USER_TOKEN"),
+        "stick_alerts": os.environ.get("META_SYSTEM_USER_TOKEN_STICK"),
+        "stick_paarl": os.environ.get("META_SYSTEM_USER_TOKEN_STICK_PAARL"),
+    }
+    candidates = ["2101557317059886", "1024882912541604", "3243721382960506"]
+    out = {"ok": True, "matrix": {}}
+    for tname, token in tokens.items():
+        if not token:
+            continue
+        out["matrix"][tname] = {}
+        for act in candidates:
+            # Probe with simple fields (no owner_business)
+            req_url = (f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+                       f"/act_{act}")
+            try:
+                r = _r.get(req_url,
+                            params={"fields": "id,name,account_status,spend_cap,amount_spent",
+                                    "access_token": token},
+                            timeout=15)
+                body = r.json()
+                ok = (r.status_code == 200 and "id" in body)
+                out["matrix"][tname][act] = {
+                    "status": r.status_code,
+                    "ok": ok,
+                    "data": body if ok else None,
+                    "err": (body.get("error", {}) or {}).get("message", "")[:120] if not ok else "",
+                }
+            except Exception as e:
+                out["matrix"][tname][act] = {"status": 0, "exception": str(e)[:120]}
+            # Probe campaigns if account accessible
+            if out["matrix"][tname][act]["ok"]:
+                try:
+                    r2 = _r.get(
+                        req_url + "/campaigns",
+                        params={"fields": ("id,name,objective,status,effective_status,"
+                                            "daily_budget,lifetime_budget,spend_cap,"
+                                            "start_time,stop_time"),
+                                "access_token": token, "limit": 200},
+                        timeout=15)
+                    body2 = r2.json()
+                    rows = body2.get("data", []) if r2.status_code == 200 else []
+                    out["matrix"][tname][act]["campaigns_count"] = len(rows)
+                    if rows:
+                        # Group by objective
+                        obj_counts = {}
+                        for c in rows:
+                            obj = c.get("objective", "unknown")
+                            obj_counts[obj] = obj_counts.get(obj, 0) + 1
+                        out["matrix"][tname][act]["objectives"] = obj_counts
+                except Exception as e:
+                    out["matrix"][tname][act]["campaigns_error"] = str(e)[:120]
+    return jsonify(out), 200
+
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
