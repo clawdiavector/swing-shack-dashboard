@@ -30,10 +30,11 @@ def is_path_allowed(job: str, rel: str) -> bool:
         return False
     norm = _normalize_rel(rel)
     for allowed in spec.writes or ():
+        allowed_raw = (allowed or "").strip().replace("\\", "/")
+        is_dir = allowed_raw.endswith("/")
         allowed_norm = _normalize_rel(allowed)
-        if allowed_norm.endswith("/"):
-            prefix = allowed_norm.rstrip("/")
-            if norm == prefix or norm.startswith(prefix + "/"):
+        if is_dir:
+            if norm == allowed_norm or norm.startswith(allowed_norm + "/"):
                 return True
         elif norm == allowed_norm:
             return True

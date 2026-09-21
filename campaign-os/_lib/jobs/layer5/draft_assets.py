@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import traceback
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,6 +13,8 @@ from typing import Any, Optional
 from ..errors import describe_exception
 from ..layer1._io import atomic_write, read_json
 from _lib.brand_validate import validate_brand_id
+
+from .image_draft_context import build_image_prompt, image_url_for
 
 CREATE_ACTIONS = frozenset({"draft_caption", "draft_image", "draft_gbp"})
 SLOT_ACTIONS = frozenset({"fill_slot"})
@@ -24,6 +27,34 @@ VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1792", "1792x1024"})
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _exc_label(exc: BaseException) -> str:
+    """describe_exception() plus the last frame so an outcome names its own line."""
+    frames = traceback.extract_tb(exc.__traceback__)
+    if not frames:
+        return describe_exception(exc)
+    frame = frames[-1]
+    return f"{describe_exception(exc)} at {Path(frame.filename).name}:{frame.lineno} in {frame.name}"
+
+
+def _record_error(exc: BaseException, *, context: dict[str, Any]) -> str:
+    """Write full traceback for Ops JSON; return the short label."""
+    label = _exc_label(exc)
+    try:
+        atomic_write(
+            "draft-assets/_diagnostics/last-error.json",
+            {
+                "schema": "campaign-os/draft-assets-diagnostic/v1",
+                "ts": _utc_now_iso(),
+                "error": label,
+                "traceback": traceback.format_exc()[-8000:],
+                "context": context,
+            },
+        )
+    except Exception:  # noqa: BLE001 — diagnostics must never mask the real error
+        pass
+    return label
 
 
 def _data_dir() -> Path:
@@ -55,6 +86,18 @@ def _parse_inbox_ref(payload_ref: str) -> Optional[str]:
         return None
     item_id = payload_ref[len(prefix) :].strip()
     return item_id or None
+
+
+def _approved_calendar_records(brand_id: str) -> list[dict[str, Any]]:
+    """canonical_records with dict guard — bad JSONL lines must not abort the job."""
+    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+    try:
+        records = canonical_records(brand_id)
+    except Exception as exc:  # noqa: BLE001
+        _record_error(exc, context={"brand": brand_id, "read": "canonical_records"})
+        return []
+    return [r for r in records if isinstance(r, dict)]
 
 
 def _parse_slot_ref(payload_ref: str) -> Optional[tuple[str, str, str]]:
@@ -95,9 +138,7 @@ def _resolve_slot_calendar_item(
     pillar_id: str,
 ) -> Optional[str]:
     """Map a slot-planner ref to an approved calendar_candidate item id."""
-    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
-
-    for record in canonical_records(brand_id):
+    for record in _approved_calendar_records(brand_id):
         if str(record.get("status") or "") != "approved":
             continue
         rec_pillar = str(record.get("pillar_id") or record.get("pillar") or "")
@@ -140,9 +181,7 @@ def _is_inbox_item_approved(item_id: str) -> bool:
 
     if item_type == "calendar_candidate":
         brand_id, cal_id = key.split(":", 1)
-        from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
-
-        for record in canonical_records(brand_id):
+        for record in _approved_calendar_records(brand_id):
             rid = str(record.get("calendar_id") or record.get("event_key") or "")
             if rid == cal_id:
                 return str(record.get("status") or "") == "approved"
@@ -158,7 +197,7 @@ def _load_brands_registry() -> dict[str, Any]:
             return json.loads(path.read_text(encoding="utf-8")) or {}
         except (OSError, json.JSONDecodeError):
             pass
-    bundled = Path(__file__).resolve().parents[2] / "data" / "brands.json"
+    bundled = Path(__file__).resolve().parents[4] / "data" / "brands.json"
     if bundled.is_file():
         try:
             return json.loads(bundled.read_text(encoding="utf-8")) or {}
@@ -180,8 +219,16 @@ def _resolve_campaign_id(brand_id: str) -> str:
     from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
 
     reg = _load_brands_registry()
-    brands = reg.setdefault("brands", {})
-    brand_entry = brands.setdefault(brand_id, {"id": brand_id, "campaign_ids": []})
+    if not isinstance(reg, dict):
+        reg = {"brands": {}}
+    brands = reg.get("brands")
+    if not isinstance(brands, dict):
+        brands = {}
+        reg["brands"] = brands
+    brand_entry = brands.get(brand_id)
+    if not isinstance(brand_entry, dict):
+        brand_entry = {"id": brand_id, "campaign_ids": []}
+        brands[brand_id] = brand_entry
     cids = brand_entry.get("campaign_ids")
     if not isinstance(cids, list):
         cids = []
@@ -232,6 +279,8 @@ def _write_draft(
     platform: str,
     source_item_id: str,
     sidecar: dict[str, Any],
+    image_path: str | None = None,
+    image_url: str | None = None,
 ) -> str:
     from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
 
@@ -240,10 +289,17 @@ def _write_draft(
     now = _utc_now_iso()
 
     data = _load_campaign_data()
-    campaign = data.setdefault("campaigns", {}).setdefault(campaign_id, {})
+    campaigns = data.get("campaigns")
+    if not isinstance(campaigns, dict):
+        campaigns = {}
+        data["campaigns"] = campaigns
+    campaign = campaigns.get(campaign_id)
+    if not isinstance(campaign, dict):
+        campaign = {}
+        campaigns[campaign_id] = campaign
     campaign.setdefault("identity", {"name": f"L5 drafts ({brand_id})", "brand": brand_id})
     assets = campaign.setdefault("assets", {})
-    assets[asset_id] = {
+    asset_row: dict[str, Any] = {
         "name": sidecar.get("title") or f"Draft {asset_id[-6:]}",
         "caption": caption,
         "approvalStatus": "draft",
@@ -251,6 +307,11 @@ def _write_draft(
         "updatedAt": now,
         "draft_ref": f"draft-assets/{asset_id}.json",
     }
+    if image_path:
+        asset_row["image_path"] = image_path
+    if image_url:
+        asset_row["image_url"] = image_url
+    assets[asset_id] = asset_row
     campaign["updatedAt"] = now
     _write_campaign_data(data)
 
@@ -282,15 +343,21 @@ def _process_caption_row(
     if not allowed:
         return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
 
-    result = run_caption_pipeline(
-        {
-            "brand_id": brand_id,
-            "user_brief": f"Draft from approved inbox item {item_id}",
-            "channel": "instagram",
-            "n_survivors": 1,
-            "n_candidates": 3,
-        }
-    )
+    try:
+        result = run_caption_pipeline(
+            {
+                "brand_id": brand_id,
+                "user_brief": f"Draft from approved inbox item {item_id}",
+                "channel": "instagram",
+                "n_survivors": 1,
+                "n_candidates": 3,
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        return None, _record_error(
+            exc,
+            context={"brand": brand_id, "item": item_id, "step": "run_caption_pipeline"},
+        )
     if not isinstance(result, dict) or not result.get("ok"):
         err = str(result.get("error") or "caption pipeline failed")
         if "key" in err.lower() or "auth" in err.lower():
@@ -340,7 +407,11 @@ def _process_image_row(
     brand_id: str,
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
-    from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
+    from _lib.image_gen_router import (  # noqa: PLC0415
+        DEFAULT_OUTPUT_BASE,
+        ImageGenAuthError,
+        generate_image_with_persistence,
+    )
 
     size = "1024x1024"
     est = llm_spend.modelled_image_cost(size)
@@ -348,18 +419,20 @@ def _process_image_row(
     if not allowed:
         return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
 
-    output_base = str(_data_dir() / "draft-assets" / "images")
     try:
         result = generate_image_with_persistence(
             brand_id=brand_id,
-            prompt=f"Social image for approved inbox item {item_id}",
+            prompt=build_image_prompt(brand_id=brand_id, item_id=item_id),
             size=size,
-            output_base=output_base,
+            output_base=DEFAULT_OUTPUT_BASE,
         )
     except ImageGenAuthError:
         return None, "missing OPENAI_API_KEY"
     except Exception as exc:  # noqa: BLE001
-        return None, describe_exception(exc)
+        return None, _record_error(
+            exc,
+            context={"brand": brand_id, "item": item_id, "step": "generate_image_with_persistence"},
+        )
 
     llm_spend.write_approval_receipt(
         route="job:draft_assets",
@@ -374,18 +447,23 @@ def _process_image_row(
     )
 
     image_path = getattr(result, "saved_path", None) or getattr(result, "path", None)
+    image_path_str = str(image_path) if image_path else None
+    image_url = image_url_for(brand_id, image_path_str)
     caption = f"Image draft for {item_id}"
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
         platform="instagram",
         source_item_id=item_id,
+        image_path=image_path_str,
+        image_url=image_url,
         sidecar={
             "action": "draft_image",
             "route": "job:draft_assets/image",
             "model": getattr(result, "model", None),
             "provider": getattr(result, "provider", None),
-            "image_path": str(image_path) if image_path else None,
+            "image_path": image_path_str,
+            "image_url": image_url,
             "image_size": size,
             "cost_estimate_usd": est,
             "queue_row_id": row.get("id"),
@@ -402,12 +480,18 @@ def _process_gbp_row(
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import gbp_daily_poster  # noqa: PLC0415
 
-    plan = gbp_daily_poster.build_daily_plan(
-        brand_id,
-        days=1,
-        posts_per_day=1,
-        publish=False,
-    )
+    try:
+        plan = gbp_daily_poster.build_daily_plan(
+            brand_id,
+            days=1,
+            posts_per_day=1,
+            publish=False,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return None, _record_error(
+            exc,
+            context={"brand": brand_id, "item": item_id, "step": "build_daily_plan"},
+        )
     if not isinstance(plan, dict) or not plan.get("ok"):
         return None, str(plan.get("error") or "gbp plan failed")
 
@@ -435,13 +519,14 @@ def _process_gbp_row(
     return asset_id, None
 
 
-def run() -> dict[str, Any]:
+def run(brand: str | None = None) -> dict[str, Any]:
     """Process pending L5 queue rows into draft_asset inbox rows."""
     drafted = 0
     skipped = 0
     errors: list[str] = []
     stop_cap = False
     stop_auth = False
+    rows: list[dict[str, Any]] = []
 
     try:
         rows = _read_queue()
@@ -450,104 +535,122 @@ def run() -> dict[str, Any]:
             for r in rows
             if str(r.get("status") or "").lower() == "pending"
             and str(r.get("action") or "") in PROCESS_ACTIONS
+            and (brand is None or str(r.get("brand") or "") == brand)
         ]
 
         for row in pending:
-            if stop_cap or stop_auth:
-                skipped += 1
-                continue
-
-            brand_raw = row.get("brand")
-            action = str(row.get("action") or "")
-
             try:
-                brand_id = validate_brand_id(brand_raw)
-            except ValueError:
-                skipped += 1
-                continue
-
-            item_id: Optional[str] = None
-            if action in SLOT_ACTIONS:
-                slot = _parse_slot_ref(str(row.get("payload_ref") or ""))
-                if not slot:
-                    skipped += 1
-                    continue
-                slot_brand, slot_date, slot_pillar = slot
-                if slot_brand != brand_id:
-                    skipped += 1
-                    continue
-                item_id = _resolve_slot_calendar_item(brand_id, slot_date, slot_pillar)
-                if not item_id:
-                    skipped += 1
-                    continue
-            else:
-                item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
-                if not item_id:
+                if stop_cap or stop_auth:
                     skipped += 1
                     continue
 
-            if not _is_inbox_item_approved(item_id):
-                skipped += 1
-                continue
+                brand_raw = row.get("brand")
+                action = str(row.get("action") or "")
 
-            asset_id: Optional[str] = None
-            err: Optional[str] = None
+                try:
+                    brand_id = validate_brand_id(brand_raw)
+                except ValueError:
+                    skipped += 1
+                    continue
 
-            if action in SLOT_ACTIONS or action == "draft_caption":
-                asset_id, err = _process_caption_row(row, item_id=item_id, brand_id=brand_id)
-            elif action == "draft_image":
-                asset_id, err = _process_image_row(row, item_id=item_id, brand_id=brand_id)
-            elif action == "draft_gbp":
-                asset_id, err = _process_gbp_row(row, item_id=item_id, brand_id=brand_id)
-            else:
-                skipped += 1
-                continue
+                item_id: Optional[str] = None
+                if action in SLOT_ACTIONS:
+                    slot = _parse_slot_ref(str(row.get("payload_ref") or ""))
+                    if not slot:
+                        skipped += 1
+                        continue
+                    slot_brand, slot_date, slot_pillar = slot
+                    if slot_brand != brand_id:
+                        skipped += 1
+                        continue
+                    item_id = _resolve_slot_calendar_item(brand_id, slot_date, slot_pillar)
+                    if not item_id:
+                        skipped += 1
+                        continue
+                else:
+                    item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
+                    if not item_id:
+                        skipped += 1
+                        continue
 
-            if err:
-                if "daily LLM spend cap reached" in err:
-                    stop_cap = True
+                if not _is_inbox_item_approved(item_id):
+                    skipped += 1
+                    continue
+
+                asset_id: Optional[str] = None
+                err: Optional[str] = None
+
+                if action in SLOT_ACTIONS or action == "draft_caption":
+                    asset_id, err = _process_caption_row(row, item_id=item_id, brand_id=brand_id)
+                elif action == "draft_image":
+                    asset_id, err = _process_image_row(row, item_id=item_id, brand_id=brand_id)
+                elif action == "draft_gbp":
+                    asset_id, err = _process_gbp_row(row, item_id=item_id, brand_id=brand_id)
+                else:
+                    skipped += 1
+                    continue
+
+                if err:
+                    if "daily LLM spend cap reached" in err:
+                        stop_cap = True
+                        errors.append(err)
+                        skipped += 1
+                        continue
+                    if "missing OPENAI_API_KEY" in err:
+                        stop_auth = True
+                        errors.append(err)
+                        skipped += 1
+                        continue
+                    skipped += 1
                     errors.append(err)
-                    skipped += 1
                     continue
-                if "missing OPENAI_API_KEY" in err:
-                    stop_auth = True
-                    errors.append(err)
+
+                if asset_id:
+                    row["status"] = "done"
+                    drafted += 1
+                else:
                     skipped += 1
-                    continue
+            except Exception as exc:  # noqa: BLE001
                 skipped += 1
-                errors.append(err)
+                errors.append(
+                    _record_error(
+                        exc,
+                        context={
+                            "row_id": row.get("id"),
+                            "action": row.get("action"),
+                            "brand": row.get("brand"),
+                            "payload_ref": row.get("payload_ref"),
+                        },
+                    )
+                )
                 continue
-
-            if asset_id:
-                row["status"] = "done"
-                drafted += 1
-            else:
-                skipped += 1
-
-        _write_queue(rows)
-
-        if stop_auth:
-            return {
-                "ok": False,
-                "error": "missing OPENAI_API_KEY",
-                "drafted": drafted,
-                "skipped": skipped,
-            }
-        if stop_cap:
-            return {
-                "ok": False,
-                "error": "daily LLM spend cap reached",
-                "drafted": drafted,
-                "skipped": skipped,
-            }
-        if errors and drafted == 0:
-            return {
-                "ok": False,
-                "error": errors[0],
-                "drafted": drafted,
-                "skipped": skipped,
-            }
-
-        return {"ok": True, "drafted": drafted, "skipped": skipped, "rows": drafted}
     except Exception as exc:  # noqa: BLE001
-        return {"ok": False, "error": describe_exception(exc), "drafted": drafted, "skipped": skipped}
+        label = _record_error(exc, context={"step": "run"})
+        return {"ok": False, "error": label, "drafted": drafted, "skipped": skipped}
+    finally:
+        if rows:
+            _write_queue(rows)
+
+    if stop_auth:
+        return {
+            "ok": False,
+            "error": "missing OPENAI_API_KEY",
+            "drafted": drafted,
+            "skipped": skipped,
+        }
+    if stop_cap:
+        return {
+            "ok": False,
+            "error": "daily LLM spend cap reached",
+            "drafted": drafted,
+            "skipped": skipped,
+        }
+    if errors and drafted == 0:
+        return {
+            "ok": False,
+            "error": errors[0],
+            "drafted": drafted,
+            "skipped": skipped,
+        }
+
+    return {"ok": True, "drafted": drafted, "skipped": skipped, "rows": drafted}

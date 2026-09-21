@@ -16,6 +16,12 @@ SANDBOX_CONFIG_SCHEMA = "campaign-os/publish-sandbox/v1"
 RECEIPT_SCHEMA = "campaign-os/publish-receipt/v1"
 QUEUE_SCHEMA = "campaign-os/publish-queue-item/v1"
 
+INTENDED_CHANNELS_FALLBACK: dict[str, list[str]] = {
+    "swing-shack": ["instagram", "facebook", "gbp"],
+    "stick": ["instagram", "facebook"],
+    "bag-drop": [],
+}
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -46,6 +52,62 @@ def _receipts_path() -> Path:
 
 def _mirror_path() -> Path:
     return sandbox_dir() / "postiz-mirror.json"
+
+
+def _load_brands_registry() -> dict[str, Any]:
+    path = _data_dir() / "brands.json"
+    if path.is_file():
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(doc, dict):
+                return doc
+        except (OSError, json.JSONDecodeError):
+            pass
+    bundled = Path(__file__).resolve().parents[2] / "data" / "brands.json"
+    if bundled.is_file():
+        try:
+            doc = json.loads(bundled.read_text(encoding="utf-8"))
+            if isinstance(doc, dict):
+                return doc
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {"brands": {}}
+
+
+def intended_publish_channels(brand_id: str) -> list[str]:
+    """Return brands.json publish_channels, else the auth-status matrix fallback."""
+    brand_id = validate_brand_id(brand_id)
+    reg = _load_brands_registry()
+    brands = reg.get("brands") if isinstance(reg, dict) else None
+    if isinstance(brands, dict):
+        entry = brands.get(brand_id)
+        if isinstance(entry, dict):
+            channels = entry.get("publish_channels")
+            if isinstance(channels, list):
+                return [str(ch) for ch in channels if ch]
+    return list(INTENDED_CHANNELS_FALLBACK.get(brand_id, []))
+
+
+def enqueue_for_intended_channels(
+    *,
+    brand_id: str,
+    caption_preview: str,
+    inbox_item_id: str,
+    asset_id: str,
+) -> list[dict[str, Any]]:
+    """One sandbox queue row per intended publish channel for this brand."""
+    items: list[dict[str, Any]] = []
+    for platform in intended_publish_channels(brand_id):
+        item = enqueue_item(
+            brand_id=brand_id,
+            platform=platform,
+            caption_preview=caption_preview,
+            inbox_item_id=inbox_item_id,
+            human_approved=False,
+            idempotency_key=f"qc-{asset_id}-{platform}",
+        )
+        items.append(item)
+    return items
 
 
 def ensure_sandbox_layout() -> Path:

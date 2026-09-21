@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -52,9 +53,26 @@ def _auth():
     return {"Authorization": "Bearer test-job-token-not-a-secret"}
 
 
-def _seed_brands(tmp_path: Path, brand: str = "stick", campaign_id: str = "camp-stick") -> None:
+def _seed_brands(
+    tmp_path: Path,
+    brand: str = "stick",
+    campaign_id: str = "camp-stick",
+    *,
+    campaign_ids: list[str] | None = None,
+    publish_channels: list[str] | None = None,
+) -> None:
+    cids = campaign_ids if campaign_ids is not None else ([campaign_id] if campaign_id else [])
+    entry: dict = {"id": brand, "campaign_ids": cids}
+    if publish_channels is not None:
+        entry["publish_channels"] = publish_channels
+    elif brand == "stick":
+        entry["publish_channels"] = ["instagram", "facebook"]
+    elif brand == "swing-shack":
+        entry["publish_channels"] = ["instagram", "facebook", "gbp"]
+    elif brand == "bag-drop":
+        entry["publish_channels"] = []
     (tmp_path / "brands.json").write_text(
-        json.dumps({"brands": {brand: {"id": brand, "campaign_ids": [campaign_id]}}}),
+        json.dumps({"brands": {brand: entry}}),
         encoding="utf-8",
     )
     (tmp_path / "campaign-data.json").write_text(
@@ -378,9 +396,10 @@ def test_enqueue_on_proposal_approve(l5_app, tmp_path, monkeypatch):
     unified_inbox.approve_item("proposal:stick:prop-e", editor="test")
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 1
-    assert pending[0]["id"].startswith("manual-")
-    assert pending[0]["action"] == "draft_caption"
+    assert len(pending) == 2
+    actions = {r["action"] for r in pending}
+    assert actions == {"draft_caption", "draft_image"}
+    assert all(r["id"].startswith("manual-") for r in pending)
 
     _seed_brands(tmp_path)
     (tmp_path / "campaign-data.json").write_text(
@@ -600,10 +619,14 @@ def test_asset_qc_pass_enqueues_publish_sandbox(l5_app, tmp_path, monkeypatch):
     assert result.get("ok") is True
     assert result.get("passed") == 1
     queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
-    assert len(queue_rows) == 1
-    assert queue_rows[0].get("brand_id") == "stick"
-    assert queue_rows[0].get("human_approved") is False
-    assert queue_rows[0].get("idempotency_key") == f"qc-{asset_id}"
+    assert len(queue_rows) == 2
+    assert {r.get("platform") for r in queue_rows} == {"instagram", "facebook"}
+    assert all(r.get("brand_id") == "stick" for r in queue_rows)
+    assert all(r.get("human_approved") is False for r in queue_rows)
+    assert {r.get("idempotency_key") for r in queue_rows} == {
+        f"qc-{asset_id}-instagram",
+        f"qc-{asset_id}-facebook",
+    }
 
 
 def test_asset_qc_enqueue_idempotent(l5_app, tmp_path, monkeypatch):
@@ -639,7 +662,7 @@ def test_asset_qc_enqueue_idempotent(l5_app, tmp_path, monkeypatch):
     asset_qc.run()
     asset_qc.run()
     queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
-    assert len(queue_rows) == 1
+    assert len(queue_rows) == 2
 
 
 def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
@@ -659,11 +682,12 @@ def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 3
+    assert len(pending) == 6
     ids = {r["id"] for r in pending}
-    assert len(ids) == 3
+    assert len(ids) == 6
     payload_refs = {r["payload_ref"] for r in pending}
     assert len(payload_refs) == 3
+    assert {r["action"] for r in pending} == {"draft_caption", "draft_image"}
 
 
 def test_l6_enqueue_flag_off(l5_app, tmp_path, monkeypatch):
@@ -699,3 +723,293 @@ def test_l6_enqueue_flag_off(l5_app, tmp_path, monkeypatch):
     asset_qc.run()
     queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
     assert queue_rows == []
+
+
+def test_draft_assets_error_carries_frame(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    item_id = _seed_approved_proposal(tmp_path)
+    _seed_queue_row(tmp_path, action="draft_caption", item_id=item_id)
+
+    with patch(
+        "_lib.p11_context_engine.run_caption_pipeline",
+        side_effect=AttributeError("boom"),
+    ):
+        result = draft_assets.run(brand="stick")
+
+    assert result.get("ok") is False
+    err = str(result.get("error") or "")
+    assert re.search(r"AttributeError at \S+\.py:\d+", err)
+    diag_path = tmp_path / "draft-assets" / "_diagnostics" / "last-error.json"
+    assert diag_path.is_file()
+    diag = json.loads(diag_path.read_text(encoding="utf-8"))
+    assert diag.get("traceback")
+
+
+def test_draft_assets_survives_malformed_calendar_line(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path, campaign_ids=[])
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    (cal_dir / "stick.jsonl").write_text("[\"not-a-dict\"]\n", encoding="utf-8")
+    item_id = "calendar_candidate:stick:cal-bad"
+    record = {
+        "calendar_id": "cal-bad",
+        "brand_id": "stick",
+        "status": "approved",
+        "title": "Bad line neighbour",
+    }
+    with (cal_dir / "stick.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record) + "\n")
+    _seed_queue_row(tmp_path, action="draft_caption", item_id=item_id)
+
+    mock_result = {
+        "ok": True,
+        "survivors": [{"body": "Caption despite bad neighbour line"}],
+        "observability": {"provider": "openai", "model": "gpt-4o-mini"},
+    }
+    with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result):
+        result = draft_assets.run(brand="stick")
+
+    assert result.get("ok") is True
+    assert result.get("skipped") >= 1
+
+
+def test_approved_candidate_drafts_caption_and_image(l5_app, tmp_path, monkeypatch):
+    monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "1")
+    _purge_modules()
+
+    cal_id = "cal-stick-visible"
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    record = {
+        "calendar_id": cal_id,
+        "brand_id": "stick",
+        "status": "candidate",
+        "title": "Stick school holidays",
+        "event_date": "2026-09-25",
+    }
+    (cal_dir / "stick.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+    item_id = f"calendar_candidate:stick:{cal_id}"
+
+    _seed_brands(tmp_path, campaign_ids=[])
+
+    from _lib import unified_inbox
+
+    approved = unified_inbox.approve_item(item_id, editor="test")
+    assert approved.get("ok") is True
+    with (cal_dir / "stick.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write(
+            json.dumps(
+                {
+                    **record,
+                    "status": "approved",
+                    "revision": 2,
+                    "event_key": cal_id,
+                }
+            )
+            + "\n"
+        )
+
+    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
+    assert {r["action"] for r in pending} == {"draft_caption", "draft_image"}
+
+    mock_result = {
+        "ok": True,
+        "survivors": [{"body": "Term 4 caption"}],
+        "observability": {"provider": "openai", "model": "gpt-4o-mini"},
+    }
+    mock_gen = MagicMock()
+    mock_gen.model = "test-model"
+    mock_gen.provider = "openrouter"
+    mock_gen.saved_path = "data/brand-directory/stick/images/gen-test.png"
+
+    with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result), patch(
+        "_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen
+    ):
+        from _lib.jobs.layer5 import draft_assets
+
+        result = draft_assets.run(brand="stick")
+
+    assert result.get("ok") is True
+    assert result.get("drafted") == 2
+    sidecars = [json.loads(p.read_text(encoding="utf-8")) for p in (tmp_path / "draft-assets").glob("*.json")]
+    actions = {s.get("action") for s in sidecars}
+    assert actions == {"draft_caption", "draft_image"}
+    queue2 = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    done_rows = [
+        r
+        for r in queue2.get("rows") or []
+        if r.get("action") in ("draft_caption", "draft_image") and r.get("status") == "done"
+    ]
+    assert len(done_rows) == 2
+
+
+def test_draft_asset_inbox_payload_exposes_caption_and_image(l5_app, tmp_path):
+    from _lib import unified_inbox
+
+    _seed_brands(tmp_path)
+    long_caption = "x" * 420
+    image_path = "data/brand-directory/stick/images/gen-review.png"
+    image_url = "/brand-images/stick/gen-review.png"
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    data["campaigns"]["camp-stick"]["assets"] = {
+        "draft-caption": {
+            "name": "Caption draft",
+            "caption": long_caption,
+            "approvalStatus": "draft",
+            "platform": "instagram",
+            "updatedAt": "2026-09-17T12:00:00Z",
+        },
+        "draft-image": {
+            "name": "Image draft",
+            "caption": "Image draft for stick",
+            "approvalStatus": "draft",
+            "platform": "instagram",
+            "image_path": image_path,
+            "image_url": image_url,
+            "updatedAt": "2026-09-17T12:00:00Z",
+        },
+    }
+    (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+
+    payload = unified_inbox.list_items(status="all", item_type="draft_asset", brand="stick")
+    items = {i["meta"]["asset_id"]: i for i in payload.get("items") or []}
+    assert items["draft-caption"]["meta"]["caption"] == long_caption
+    assert items["draft-image"]["meta"]["image_url"].startswith("/brand-images/stick/")
+    assert Path(items["draft-image"]["meta"]["image_path"]).name == "gen-review.png"
+
+
+def test_publish_request_per_intended_channel(l5_app, tmp_path, monkeypatch):
+    from _lib import publish_sandbox
+    from _lib.jobs import publish_dispatch
+    from _lib.jobs.layer5 import asset_qc
+
+    monkeypatch.setenv("CAMPAIGN_OS_L6_ENQUEUE", "1")
+    monkeypatch.setenv("PUBLISH_MODE", "sandbox")
+
+    def _seed_qc_asset(*, brand: str, campaign_id: str, asset_id: str, caption: str) -> None:
+        (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+        sidecar = {
+            "schema": "campaign-os/draft-asset/v1",
+            "asset_id": asset_id,
+            "campaign_id": campaign_id,
+            "brand_id": brand,
+            "source_inbox_item_id": f"proposal:{brand}:x",
+            "created_at": "2026-09-17T12:00:00Z",
+            "action": "draft_caption",
+            "cost_estimate_usd": 0.002,
+        }
+        (tmp_path / "draft-assets" / f"{asset_id}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+        data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+        data.setdefault("campaigns", {}).setdefault(campaign_id, {"assets": {}})
+        data["campaigns"][campaign_id]["assets"][asset_id] = {
+            "name": f"{brand} draft",
+            "caption": caption,
+            "approvalStatus": "draft",
+            "updatedAt": "2026-09-17T12:00:00Z",
+        }
+        (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+
+    (tmp_path / "brands.json").write_text(
+        json.dumps(
+            {
+                "brands": {
+                    "stick": {
+                        "id": "stick",
+                        "campaign_ids": ["camp-stick"],
+                        "publish_channels": ["instagram", "facebook"],
+                    },
+                    "swing-shack": {
+                        "id": "swing-shack",
+                        "campaign_ids": ["camp-ss"],
+                        "publish_channels": ["instagram", "facebook", "gbp"],
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "campaign-data.json").write_text(
+        json.dumps({"campaigns": {"camp-stick": {"assets": {}}, "camp-ss": {"assets": {}}}}),
+        encoding="utf-8",
+    )
+    publish_sandbox.ensure_sandbox_layout()
+    _seed_qc_asset(brand="stick", campaign_id="camp-stick", asset_id="draft-stick", caption="Stick caption")
+    _seed_qc_asset(
+        brand="swing-shack",
+        campaign_id="camp-ss",
+        asset_id="draft-ss",
+        caption="Swing caption",
+    )
+
+    asset_qc.run()
+    asset_qc.run()
+    queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
+    stick_platforms = {r["platform"] for r in queue_rows if r.get("brand_id") == "stick"}
+    ss_platforms = {r["platform"] for r in queue_rows if r.get("brand_id") == "swing-shack"}
+    assert stick_platforms == {"instagram", "facebook"}
+    assert ss_platforms == {"instagram", "facebook", "gbp"}
+    assert len([r for r in queue_rows if r.get("brand_id") == "stick"]) == 2
+    assert len([r for r in queue_rows if r.get("brand_id") == "swing-shack"]) == 3
+
+    for row in queue_rows:
+        publish_sandbox.approve_item(str(row.get("idempotency_key")))
+
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        dispatch = publish_dispatch.run()
+        mock_urlopen.assert_not_called()
+
+    assert dispatch.get("ok") is True
+    assert dispatch.get("mode") == "sandbox"
+    assert dispatch.get("dispatched") == 5
+    receipts = publish_sandbox._read_jsonl(publish_sandbox._receipts_path())
+    assert len(receipts) == 5
+    assert all(r.get("mode") == "sandbox" for r in receipts)
+
+
+def test_intended_publish_channels_matches_auth_matrix(l5_app, tmp_path):
+    from _lib import publish_sandbox
+    from _lib.connection_status import PUBLISHING_CHANNELS
+
+    (tmp_path / "brands.json").write_text(
+        json.dumps(
+            {
+                "brands": {
+                    "swing-shack": {
+                        "id": "swing-shack",
+                        "publish_channels": ["instagram", "facebook", "gbp"],
+                    },
+                    "stick": {
+                        "id": "stick",
+                        "publish_channels": ["instagram", "facebook"],
+                    },
+                    "bag-drop": {"id": "bag-drop", "publish_channels": []},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert publish_sandbox.intended_publish_channels("swing-shack") == [
+        "instagram",
+        "facebook",
+        "gbp",
+    ]
+    assert publish_sandbox.intended_publish_channels("stick") == ["instagram", "facebook"]
+    assert publish_sandbox.intended_publish_channels("bag-drop") == []
+    for brand in ("swing-shack", "stick", "bag-drop"):
+        channels = publish_sandbox.intended_publish_channels(brand)
+        assert not {"tiktok", "x", "linkedin"} & set(channels)
+        assert set(channels).issubset(set(PUBLISHING_CHANNELS))
+
+
+def test_draft_assets_diagnostics_path_allowed(l5_app):
+    from _lib.jobs.output_file import is_path_allowed
+    from _lib.jobs.registry import JOBS
+
+    assert "draft_assets" in JOBS
+    assert is_path_allowed("draft_assets", "draft-assets/_diagnostics/last-error.json") is True

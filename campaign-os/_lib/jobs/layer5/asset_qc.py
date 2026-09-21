@@ -117,13 +117,11 @@ def _maybe_enqueue_publish_request(
         return
     from _lib import publish_sandbox  # noqa: PLC0415
 
-    publish_sandbox.enqueue_item(
+    publish_sandbox.enqueue_for_intended_channels(
         brand_id=brand_id,
-        platform=str(sidecar.get("platform") or asset.get("platform") or "instagram"),
         caption_preview=caption,
         inbox_item_id=str(sidecar.get("source_inbox_item_id") or ""),
-        human_approved=False,
-        idempotency_key=f"qc-{asset_id}",
+        asset_id=asset_id,
     )
 
 
