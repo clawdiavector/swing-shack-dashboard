@@ -130,7 +130,33 @@ def _score_posts(
         metrics = post.get("metrics") if isinstance(post.get("metrics"), dict) else {}
         reach = int(metrics.get("reach") or post.get("reach") or 0)
         engagement_rate = float(post.get("engagement_rate_pct") or 0)
-        caption = post.get("caption_preview") or post.get("caption") or ""
+        caption = (
+            post.get("captionPreview")
+            or post.get("caption_preview")
+            or post.get("caption")
+            or ""
+        )
+        media_type = post.get("media_type") or "IMAGE"
+        format_type_raw = post.get("format_type") or ""
+        is_reel = (
+            str(format_type_raw).lower() == "reel"
+            or str(media_type).upper() in ("VIDEO", "REEL")
+        )
+
+        def _engagement(metric_key: str, *post_keys: str) -> int:
+            val = metrics.get(metric_key)
+            if val is None:
+                for pk in post_keys:
+                    val = post.get(pk)
+                    if val is not None:
+                        break
+            return int(val or 0)
+
+        likes = _engagement("likes", "likes")
+        comments = _engagement("comments", "comments")
+        saves = _engagement("saved", "saves", "saved")
+        shares = _engagement("shares", "shares")
+        permalink = post.get("permalink") or post.get("permalink_url") or ""
 
         direct_sessions = ga_by_hook.get(hook_id, 0)
         if direct_sessions == 0 and hook_id:
@@ -160,16 +186,16 @@ def _score_posts(
             "post_id": post.get("id"),
             "post_date": post_date,
             "hook_id": hook_id,
-            "media_type": post.get("media_type", "IMAGE"),
-            "format_type": "reel" if post.get("media_type") == "VIDEO" else "image",
+            "media_type": media_type,
+            "format_type": "reel" if is_reel else "image",
             "caption_preview": caption[:100],
-            "permalink": post.get("permalink", ""),
+            "permalink": permalink,
             "reach": reach,
             "engagement_rate_pct": engagement_rate,
-            "likes": metrics.get("likes", 0),
-            "comments": metrics.get("comments", 0),
-            "saves": metrics.get("saved", 0),
-            "shares": metrics.get("shares", 0),
+            "likes": likes,
+            "comments": comments,
+            "saves": saves,
+            "shares": shares,
             "themes": themes,
             "is_winning_theme_combo": _is_winning_combo(themes),
             "direct_attributed_sessions": direct_sessions,
