@@ -62,6 +62,7 @@ def test_non_retryable_classes_single_attempt(data_dir):
                 every_seconds=3600,
                 retries=2,
                 timeout_seconds=5,
+                brand_mode="global",
                 writes=(f"{name}.json",),
             )
         )
@@ -89,6 +90,7 @@ def test_retryable_http_5xx_retries_with_backoff(data_dir, monkeypatch):
             every_seconds=3600,
             retries=2,
             timeout_seconds=5,
+            brand_mode="global",
             writes=("retry_5xx.json",),
         )
     )
@@ -125,6 +127,7 @@ def test_outage_absorbed_no_alert(data_dir, monkeypatch):
             retries=2,
             timeout_seconds=5,
             criticality="HIGH",
+            brand_mode="global",
             writes=("outage.json",),
         )
     )
@@ -176,6 +179,7 @@ def test_timeout_not_retried(data_dir, monkeypatch):
             every_seconds=3600,
             retries=2,
             timeout_seconds=1,
+            brand_mode="global",
             writes=("timeout.json",),
         )
     )
@@ -195,6 +199,7 @@ def test_legacy_ledger_verdicts_unchanged(data_dir):
             fn=lambda: {"ok": True},
             every_seconds=3600,
             criticality="MEDIUM",
+            brand_mode="global",
             writes=("legacy.json",),
         )
     )
@@ -261,6 +266,7 @@ def test_stuck_ignores_orphan_started_superseded_by_later_finished(data_dir):
             fn=lambda: {"ok": True},
             every_seconds=86400,
             timeout_seconds=300,
+            brand_mode="global",
             writes=("stuck_superseded.json",),
         )
     )
@@ -307,6 +313,7 @@ def test_stuck_detects_orphan_started_without_later_finished(data_dir):
             fn=lambda: {"ok": True},
             every_seconds=86400,
             timeout_seconds=300,
+            brand_mode="global",
             writes=("stuck_real.json",),
         )
     )
