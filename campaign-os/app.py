@@ -45099,6 +45099,125 @@ def meta_ads_ad_insights(brand_id, ad_id):
         return jsonify({"ok": False, "error": str(e)[:200]}), 200
 
 
+
+
+# ─── REPORTING V2.4: PER-CAMPAIGN INTELLIGENCE ────────────────────────
+
+
+@app.route("/api/reports/v2_4/<brand_id>", methods=["GET"])
+def report_v24_brand(brand_id):
+    """GET /api/reports/v2_4/<brand>?format=html|json&days=31
+
+    V2.4 management report: V2.2 + V2.3 + per-campaign intelligence.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_v24_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_v24_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v24_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/reports/v2_4/portfolio", methods=["GET"])
+def report_v24_portfolio():
+    """GET /api/reports/v2_4/portfolio?format=html|json"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_v24_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        # Minimal HTML portfolio
+        rows = []
+        for bid, r in reports.items():
+            pm24 = r.get("paid_media_v24", {})
+            aa = pm24.get("account_reconciliation") or {}
+            ytd = pm24.get("ytd_brand_total_spend", 0)
+            top_campaign = ((pm24.get("ytd_campaign_table") or [])
+                             and (pm24.get("ytd_campaign_table") or [])[0].get("campaign_name"))
+            parts2 = [f"<tr><td>{r.get('brand_name', bid)}</td>"]
+            parts2.append(f"<td>{pm24.get('ad_account_name','-')}</td>")
+            parts2.append(f"<td>R {ytd:,.2f}</td>")
+            parts2.append(f"<td>R {aa.get('amount_spent_zar', 0):,.2f}</td>")
+            parts2.append(f"<td>{top_campaign or '—'}</td>")
+            parts2.append(f"<td><a href='/api/reports/v2_4/{bid}?format=html'>Full →</a></td></tr>")
+            rows.append("".join(parts2))
+        html = (
+            "<!DOCTYPE html><html><head>"
+            "<meta charset='utf-8'>"
+            "<title>Portfolio V2.4</title></head><body>"
+            "<h1>Portfolio — V2.4 (Per-Campaign Paid Media)</h1>"
+            "<table class='coverage-table'>"
+            "<tr><th>Brand</th><th>Ad account</th>"
+            "<th>YTD spend (insights)</th>"
+            "<th>Lifetime spend (act_meta)</th>"
+            "<th>Top YTD campaign</th><th></th></tr>"
+            + "".join(rows) +
+            "</table>"
+            "<div class='footer'><em>V2.4 portfolio — "
+            "per-campaign Meta Ads data per brand.</em></div>"
+            "</body></html>")
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v24_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/meta/paid-media/refresh", methods=["POST"])
+def meta_paid_media_refresh():
+    """POST /api/meta/paid-media/refresh
+
+    V2.4 §12: scheduled refresh. Re-ingests both brands.
+    Safe to call from cron. Read-only.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    out = {}
+    for brand_id in ("stick", "swing-shack"):
+        try:
+            res = _v23_ingest_paid_media(brand_id, 31, ytd=True)
+            out[brand_id] = {
+                "ok": res.get("ok"),
+                "data_status": res.get("data_status"),
+                "fetched_at": res.get("fetched_at"),
+                "campaigns_count": len(res.get("campaigns") or []),
+                "ytd_spend": (((res.get("ytd_totals") or {}).get("spend"))
+                                or (((res.get("ytd") or {}).get("rows") or [])
+                                     and round(sum(((r or {}).get("spend") or 0)
+                                                    for r in (res.get("ytd") or {}).get("rows")),
+                                               2))),
+            }
+        except Exception as e:
+            out[brand_id] = {"ok": False, "error": str(e)[:200]}
+    return jsonify({
+        "ok": True,
+        "refreshed_at": _now_iso(),
+        "brands": out,
+        "note": ("Read-only refresh. Source: Meta Graph API. "
+                 "Cache file: DATA_DIR/paid-media/<brand>.json. "
+                 "Synthetic data/meta-ads.json never read."),
+    }), 200
+
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
