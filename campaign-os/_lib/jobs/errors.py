@@ -198,9 +198,12 @@ def classify(
         if _is_parse_exc(exc) or _PARSE_MSG.search(msg):
             return "parse", {"matched": "parse", "status": http}
 
-        # 8 missing_input
-        if _missing_reads(spec) or _MISSING_MSG.search(msg):
+        # 8 missing_input — spec-based check is a last resort: it describes the
+        # data dir, not the run, so it must not mask a real error message.
+        if _MISSING_MSG.search(msg):
             return "missing_input", {"matched": "missing_input", "status": http}
+        if exc is None and not msg and _missing_reads(spec):
+            return "missing_input", {"matched": "missing_reads_spec", "status": http}
 
         # 9 empty_result
         if isinstance(result, dict):

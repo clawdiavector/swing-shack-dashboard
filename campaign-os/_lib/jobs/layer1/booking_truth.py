@@ -7,7 +7,7 @@ import re
 from datetime import date, timedelta
 from typing import Any
 
-from ._io import as_dict, as_list, atomic_write, read_json, repo_root, utc_date, utc_now_iso, io_for_job
+from ._io import BrandIO, as_dict, as_list, repo_root, utc_date, utc_now_iso, io_for_job
 
 JOB_NAME = "booking_truth"
 from . import ga4_report
@@ -27,7 +27,7 @@ EVENT_SIGNALS: dict[str, list[str]] = {
 }
 
 
-def _load_booking_template() -> dict:
+def _load_booking_template(io: BrandIO) -> dict:
     existing = as_dict(io.read(BOOKING_OUT))
     if existing.get("events"):
         return existing
@@ -98,7 +98,7 @@ def _event_measurable(event_id: str, ga_counts: dict[str, int], booking_sessions
     return False, 0, "No GA4 signal in last 28 days"
 
 
-def _reddit_leads() -> list[dict]:
+def _reddit_leads(io: BrandIO) -> list[dict]:
     reddit = as_dict(io.read("reddit-trends.json"))
     leads: list[dict] = []
     idx = 0
@@ -130,7 +130,7 @@ def _reddit_leads() -> list[dict]:
 def run(*, brand: str | None = None) -> dict:
     """Update booking funnel measurability + refresh lead inventory."""
     io = io_for_job(JOB_NAME, brand)
-    template = _load_booking_template()
+    template = _load_booking_template(io)
     events_in = as_list(template.get("events"))
     if not events_in:
         return {"ok": False, "error": f"{BOOKING_OUT} has no events inventory"}
@@ -194,7 +194,7 @@ def run(*, brand: str | None = None) -> dict:
         l for l in as_list(existing_leads.get("leads"))
         if isinstance(l, dict) and l.get("status") not in ("new",)
     ]
-    fresh = _reddit_leads()
+    fresh = _reddit_leads(io)
     seen_titles = {re.sub(r"\s+", " ", (l.get("title") or "").lower()) for l in preserved}
     merged = list(preserved)
     for lead in fresh:
