@@ -93,6 +93,17 @@ def test_output_top_level_keys_match_seeds(seed_data_dir: Path) -> None:
         )
 
 
+def test_run_records_error_on_exception(seed_data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def _boom(_io):
+        raise RuntimeError("boom")
+
+    step_fns = (_boom,) + insights_reco._STEP_FNS[1:]
+    monkeypatch.setattr(insights_reco, "_STEP_FNS", step_fns)
+    result = insights_reco.run()
+    assert result["ok"] is False
+    assert "boom" in result["error"]
+
+
 def test_empty_schemas(seed_data_dir: Path) -> None:
     empties = (
         empty_anomaly_alerts(),

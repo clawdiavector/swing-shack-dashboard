@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from ._io import as_dict, as_list, atomic_write, read_json, utc_date, utc_now_iso, io_for_job
+from ._io import BrandIO, as_dict, as_list, utc_date, utc_now_iso, io_for_job
 
 JOB_NAME = "content_ideas_refresh"
 
@@ -17,7 +17,7 @@ def _idea_id(prefix: str, title: str) -> str:
     return f"{prefix}-{utc_date()}-{slug or 'idea'}"
 
 
-def _mine_missed() -> list[dict]:
+def _mine_missed(io: BrandIO) -> list[dict]:
     missed = as_dict(io.read("missed-opportunities.json"))
     ideas: list[dict] = []
     for opp in as_list(missed.get("opportunities"))[:15]:
@@ -44,7 +44,7 @@ def _mine_missed() -> list[dict]:
     return ideas
 
 
-def _mine_reddit() -> list[dict]:
+def _mine_reddit(io: BrandIO) -> list[dict]:
     reddit = as_dict(io.read("reddit-trends.json"))
     ideas: list[dict] = []
     for item in as_list(reddit.get("hot_pain_points"))[:10]:
@@ -69,7 +69,7 @@ def _mine_reddit() -> list[dict]:
     return ideas
 
 
-def _mine_hooks() -> list[dict]:
+def _mine_hooks(io: BrandIO) -> list[dict]:
     hooks = as_dict(io.read("hook-bank.json"))
     ideas: list[dict] = []
     for bucket in ("proven_and_trending", "trending_to_test"):
@@ -95,7 +95,7 @@ def _mine_hooks() -> list[dict]:
     return ideas
 
 
-def _mine_competitor() -> list[dict]:
+def _mine_competitor(io: BrandIO) -> list[dict]:
     comp = as_dict(io.read("competitor-tracker.json"))
     ideas: list[dict] = []
     for change in as_list(comp.get("changes"))[:5]:
@@ -143,10 +143,10 @@ def run(*, brand: str | None = None) -> dict:
     memes = existing.get("memes") if isinstance(existing.get("memes"), list) else []
 
     mined = _dedupe(
-        _mine_hooks()
-        + _mine_missed()
-        + _mine_reddit()
-        + _mine_competitor()
+        _mine_hooks(io)
+        + _mine_missed(io)
+        + _mine_reddit(io)
+        + _mine_competitor(io)
     )
 
     # Keep unused existing ideas that aren't duplicated
