@@ -44481,7 +44481,7 @@ def _v23_fetch_ads_insights(account_id, token, time_range,
         path = f"/{account_id}/insights"
         fields = ("campaign_id,campaign_name,objective,impressions,"
                   "reach,frequency,clicks,spend,cpc,cpm,ctr,"
-                  "landing_page_views,actions,conversions,"
+                  "actions,conversions,"
                   "cost_per_action_type,cost_per_conversion,"
                   "purchase_roas")
     else:
@@ -44572,7 +44572,7 @@ def _v23_normalize_action_types(insight_rows):
             "cpc": _parse_ga4_float(row.get("cpc")),
             "cpm": _parse_ga4_float(row.get("cpm")),
             "ctr": round(_parse_ga4_float(row.get("ctr")), 2),
-            "landing_page_views": _parse_ga4_int(row.get("landing_page_views")),
+            "landing_page_views": None,  # not valid in this v26 insights endpoint
             "actions": action_results,
             "cost_per_action_type": cost_per,
             "conversions": conversions,
@@ -44684,7 +44684,7 @@ def _v23_ingest_paid_media(brand_id, period_days=31, ytd=True):
             t["impressions"] += r.get("impressions") or 0
             t["reach"] += r.get("reach") or 0
             t["clicks"] += r.get("clicks") or 0
-            t["landing_page_views"] += r.get("landing_page_views") or 0
+            # landing_page_views not available at campaign level via v26 API
             if r.get("impressions"):
                 t["campaigns_with_delivery"] += 1
         t["spend"] = round(t["spend"], 2)
