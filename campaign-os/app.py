@@ -44598,7 +44598,11 @@ def _v23_ingest_paid_media(brand_id, period_days=31, ytd=True):
 
     Returns the cache dict (also written to disk).
     """
-    cfg = BRAND_CONFIG.get(brand_id, {})
+    cfg = {"name": ("Stick Golf" if brand_id == "stick"
+                     else ("Swing Shack" if brand_id == "swing-shack"
+                           else brand_id.title())),
+            "domain": ("stickgolf.co.za" if brand_id == "stick"
+                        else "swing-shack.com")}
     acc = _v23_resolve_ads_account(brand_id)
     if not acc:
         return {"ok": False, "brand_id": brand_id,
