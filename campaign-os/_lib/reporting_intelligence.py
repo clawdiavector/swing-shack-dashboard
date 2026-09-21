@@ -5112,7 +5112,7 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
             "insight": insight,
             "drilldown": {
                 "adsets_url": f"/api/meta/ads/{brand_id}/campaigns/{cid}/adsets",
-                "adsets_label": (f"Adsets in '{cur.get('campaign_name') or prev.get('campaign_name')}'"),
+                "adsets_label": (f"Adsets in '{(cur or prev or {}).get('campaign_name') or '(unknown)'}'"),
             },
         })
     # Sort: spend desc
