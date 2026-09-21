@@ -466,33 +466,8 @@ def _aggregate_verdict(child_verdicts: list[str]) -> str:
     return max(non_skipped, key=lambda v: priority.get(v, 0))
 
 
-def verdict_for(
-    name: str,
-    rows: list[dict],
-    *,
-    now: Optional[datetime] = None,
-    brand: str | None = None,
-) -> str:
-    """OK | LATE | FAILED | STUCK | NEVER | SKIPPED | DISABLED — see plan §3.4."""
-    spec = JOBS.get(name)
-    if spec is None:
-        return "NEVER"
-    if not getattr(spec, "enabled", True):
-        return "DISABLED"
-    now = now or _utc_now()
-
-    if brand is not None:
-        rows = [r for r in rows if r.get("brand") == brand]
-    elif spec.brand_mode == "per_brand":
-        grouped = ledger.last_rows_per_job_brand([name])
-        child_verdicts = [
-            verdict_for(name, grouped.get((name, b)) or [], now=now, brand=b)
-            for (_, b) in grouped.keys()
-            if _ == name
-        ]
-        if child_verdicts:
-            return _aggregate_verdict(child_verdicts)
-
+def _verdict_for_rows(spec: JobSpec, rows: list[dict], now: datetime) -> str:
+    """Leaf evaluation for one already-filtered row set. Never recurses."""
     if not rows:
         return "NEVER"
 
@@ -523,10 +498,42 @@ def verdict_for(
     return "LATE"
 
 
+def verdict_for(
+    name: str,
+    rows: list[dict],
+    *,
+    now: Optional[datetime] = None,
+    brand: str | None = None,
+    grouped: dict[tuple[str, str | None], list[dict]] | None = None,
+) -> str:
+    """OK | LATE | FAILED | STUCK | NEVER | SKIPPED | DISABLED — see plan §3.4."""
+    spec = JOBS.get(name)
+    if spec is None:
+        return "NEVER"
+    if not getattr(spec, "enabled", True):
+        return "DISABLED"
+    now = now or _utc_now()
+
+    if brand is not None:
+        return _verdict_for_rows(spec, [r for r in rows if r.get("brand") == brand], now)
+
+    if spec.brand_mode == "per_brand":
+        brand_grouped = grouped if grouped is not None else ledger.last_rows_per_job_brand([name])
+        child_verdicts = [
+            _verdict_for_rows(spec, child_rows, now)
+            for (job_name, b), child_rows in brand_grouped.items()
+            if job_name == name and b is not None
+        ]
+        if child_verdicts:
+            return _aggregate_verdict(child_verdicts)
+
+    return _verdict_for_rows(spec, rows, now)
+
+
 def _brand_status_entries(spec: JobSpec, grouped: dict[tuple[str, str | None], list[dict]], now: datetime) -> list[dict]:
     if spec.brand_mode != "per_brand":
         return []
-    keys = sorted({b for (job, b) in grouped if job == spec.name})
+    keys = sorted({b for (job, b) in grouped if job == spec.name and b is not None})
     if not keys:
         keys = list(resolve_brands(spec)) + list(skipped_brands(spec))
     runnable, skipped = partition_brands(spec)
@@ -571,7 +578,7 @@ def build_status() -> dict:
     for name in names:
         spec = JOBS[name]
         rows = grouped.get(name) or []
-        verdict = verdict_for(name, rows, now=now)
+        verdict = verdict_for(name, rows, now=now, grouped=grouped_brand)
         success = _last_success(rows)
         last = _last_finished(rows)
         last_success_at = None
