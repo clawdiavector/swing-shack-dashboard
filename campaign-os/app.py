@@ -44479,18 +44479,27 @@ def _v23_fetch_ads_account_meta(account_id, token):
     a different field with a different date scope (lifetime).
     """
     import requests as _r
-    try:
-        resp = _r.get(
-            f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}/{account_id}",
-            params={"fields": ("id,name,account_status,amount_spent,"
-                                "spend_cap,currency,timezone_name,owner_business,"
-                                "balance,disable_reason"),
-                    "access_token": token},
-            timeout=15)
-        body = resp.json()
-        return resp.status_code, body
-    except Exception as e:
-        return 0, {"error": str(e)[:200]}
+    base_fields = ("id,name,account_status,amount_spent,spend_cap,"
+                    "currency,timezone_name,balance,disable_reason")
+    for fields in (base_fields + ",owner_business", base_fields):
+        try:
+            resp = _r.get(
+                f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}/{account_id}",
+                params={"fields": fields, "access_token": token},
+                timeout=15)
+            body = resp.json()
+            if resp.status_code == 200:
+                # Normalize amount_spent into the report payload
+                return resp.status_code, body
+            err_msg = (body.get("error", {}) or {}).get(
+                "message", "")[:200]
+            # Retry only on owner_business field errors
+            if "owner_business" in err_msg:
+                continue
+            return resp.status_code, body
+        except Exception as e:
+            return 0, {"error": str(e)[:200]}
+    return 0, {"error": "field fallback exhausted"}
 
 
 def _v23_fetch_ads_insights(account_id, token, time_range,
@@ -44502,15 +44511,32 @@ def _v23_fetch_ads_insights(account_id, token, time_range,
     level row per time window. When level="campaign" /
     "adset" / "ad", Meta returns one row per campaign/ad-set/ad
     that had delivery in the window.
+
+    Meta's insights response uses these dimensions when
+    level=campaign / adset / ad:
+      - campaign_id / campaign_name
+      - adset_id / adset_name
+      - ad_id / ad_name
+      - objective
+    These come back as top-level keys when `level` is set, NOT
+    inside a `dimensions` field.
     """
     if not account_id or not token:
         return {"ok": False, "error": "missing account or token"}
     url = f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
     path = f"/{account_id}/insights"
-    fields = ("impressions,reach,frequency,clicks,spend,"
-              "cpc,cpm,ctr,actions,conversions,"
-              "cost_per_action_type,cost_per_conversion,"
-              "purchase_roas")
+    if level and level != "default":
+        fields = ("campaign_id,campaign_name,adset_id,adset_name,"
+                  "ad_id,ad_name,objective,"
+                  "impressions,reach,frequency,clicks,spend,"
+                  "cpc,cpm,ctr,actions,conversions,"
+                  "cost_per_action_type,cost_per_conversion,"
+                  "purchase_roas")
+    else:
+        fields = ("impressions,reach,frequency,clicks,spend,"
+                  "cpc,cpm,ctr,actions,conversions,"
+                  "cost_per_action_type,cost_per_conversion,"
+                  "purchase_roas")
     params = {
         "fields": fields,
         "access_token": token,
@@ -44756,6 +44782,26 @@ def _v23_ingest_paid_media(brand_id, period_days=31, ytd=True):
     res = _v23_fetch_ads_campaigns(acc, token, brand_id)
     if res.get("ok"):
         out["campaigns"] = res.get("data") or []
+    # Build a campaign id -> name map (insights rows return
+    # campaign_id but no campaign_name when level=campaign —
+    # the name comes from /campaigns).
+    cid_to_cname = {}
+    for c in (out["campaigns"] or []):
+        cid_to_cname[str(c.get("id"))] = c.get("name")
+    # Patch normalized rows with the name lookup. The row's
+    # campaign_id may be a numeric string OR a stringified id;
+    # try both.
+    def _enrich(rows):
+        for r in rows or []:
+            cid = str(r.get("campaign_id") or "").strip()
+            if cid and not r.get("campaign_name"):
+                r["campaign_name"] = cid_to_cname.get(cid)
+        return rows
+    out["current_period"]["rows"] = _enrich(
+        out["current_period"].get("rows"))
+    out["previous_period"]["rows"] = _enrich(
+        out["previous_period"].get("rows"))
+    out["ytd"]["rows"] = _enrich(out["ytd"].get("rows"))
     # Aggregate campaign totals
     def totals(rows):
         t = {"campaigns_with_delivery": 0, "spend": 0.0, "impressions": 0,
