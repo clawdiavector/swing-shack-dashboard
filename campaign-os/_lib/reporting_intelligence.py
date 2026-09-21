@@ -4812,12 +4812,15 @@ def _v24_campaign_insight(row, comparison, brand_id):
     cpc = row.get("cpc") or 0
     cpm = row.get("cpm") or 0
     reach = row.get("reach") or 0
-    spend_delta = comparison.get("spend", {}).get("delta_pct")
-    clicks_delta = comparison.get("clicks", {}).get("delta_pct")
-    ctr_delta = comparison.get("ctr", {}).get("delta_abs")
-    cpc_delta = comparison.get("cpc", {}).get("delta_pct")
-    cpm_delta = comparison.get("cpm", {}).get("delta_pct")
-    reach_delta = comparison.get("reach", {}).get("delta_pct")
+    def _safe(d, k, sk="delta_pct"):
+        v = d.get(k)
+        return (v or {}).get(sk) if isinstance(v, dict) else None
+    spend_delta = _safe(comparison, "spend")
+    clicks_delta = _safe(comparison, "clicks")
+    ctr_delta = _safe(comparison, "ctr", "delta_abs")
+    cpc_delta = _safe(comparison, "cpc")
+    cpm_delta = _safe(comparison, "cpm")
+    reach_delta = _safe(comparison, "reach")
     status = comparison.get("comparison_status")
     lines = []
     # What happened
