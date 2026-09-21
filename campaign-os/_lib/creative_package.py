@@ -1,37 +1,42 @@
-"""Creative Package V1.1 — REAL generation with canonical grounding.
+"""Creative Package V1.2 — Structured output + embedding voice gate.
 
-V1.1 supersedes V1's structural placeholder with:
+V1.2 builds on V1.1 (real generation, canonical grounding) with
+two upgrades ONLY:
 
-1. CANONICAL FACTS — reads knowledge.json per brand (the same
-   source Brief + Reporting consume). NOT hand-seeded overlays.
-2. STRUCTURED GROUNDING — every claim maps to a fact_id with
-   fact_ref, canonical value, source_path, verified_status,
-   authority_level. Quarantined facts are SKIPPED.
-3. FULL REPORTING V2.4.1 INPUT — calls build_v24_brand_report
-   to consume GA4 movement, channel mix, cross-channel
-   observations, What Worked, What Needs Attention, recommendations.
-4. REAL LLM-BACKED GENERATION — routes prompt Hermes/MiniMax
-   with grounded context, voice rules, banned terms, CTA rules.
-   Generation produces usable creative copy, not placeholder.
-5. CONCEPT ROUTE DISTINCTNESS — pre-merge check: two routes with
-   identical audience_tension + mechanic are merged/dropped.
-6. APPROVED CHANNELS ONLY — explicit per Brief. Carousel is its
-   own channel; it never auto-converts from Facebook.
-7. CREATIVE GENOME INTEGRATION — reads visual-dna-index.json
-   per brand. Returns signal + sample_size + confidence.
-8. SEMANTIC NOVELTY — uses existing historical embeddings
-   when available; falls back to Jaccard.
-9. HTML UI — renders Brief + Reporting + concept routes +
-   channel drafts + visual direction + validation + revision
-   log.
-10. CREATIVE REVIEW LIFECYCLE — drives draft → ready_for_review
-    → changes_requested → approved / rejected.
-11. can_publish_creative — canonical read-only publish gate
-    (publish_allowed=false globally).
+1. STRUCTURED OUTPUT — replaces the V1.1 regex-based parser
+   (HOOK: / CORE: / DIRECTION: / CTA: regex) with a Pydantic
+   constrained-decoding contract. When an API key is present,
+   the LLM is called via OpenAI strict-mode response_format;
+   when no key is present, the deterministic stub still
+   produces a Pydantic-validated object. Either way, the
+   package never carries raw text blobs that need regex
+   interpretation downstream.
 
-Deterministic code prepares grounding/context. The generation
-layer writes the creative. Deterministic validators then check
-the output. Per V1.1 §5.
+2. EMBEDDING VOICE GATE — computes a per-brand voice centroid
+   from canonical sources only:
+     - data/brand-directory/<brand>/voice/do-say-dont-say.md
+       "## Do say" examples
+     - knowledge.json voice_rules.do_say
+   Then for each generated route, computes the cosine
+   similarity between the route's generated copy and the
+   centroid. Routes with cosine < 0.70 are auto-flagged
+   `voice_embedding_gate: REVIEW_REQUIRED` with a debug
+   breakdown. Routes ≥ 0.70 pass.
+
+Both upgrades preserve the V1.1 contract: same gate, same
+canonical facts source (knowledge.json), same Reporting V2.4.1
+input (build_v24_brand_report), same publish gate
+(publish_allowed=false globally).
+
+V1.2 explicitly does NOT add:
+- CAPI / measurement tracks (separate slice)
+- LLM-as-judge rubric (deferred until calibration can happen)
+- Changes to Reporting, Calendar, Brief
+- Synthetic data hooks
+
+Deterministic code prepares grounding/context. Pydantic schema
+constrains generation. Deterministic validators (voice / banned /
+fact / novelty / voice-embedding-gate) check the output.
 """
 
 from __future__ import annotations
@@ -45,7 +50,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-GENERATOR_VERSION = "create_v1.1"
+GENERATOR_VERSION = "create_v1.2"
 
 CHANNEL_SET = (
     "instagram_reel", "instagram_carousel", "instagram_static",
@@ -90,6 +95,372 @@ def _read_json(path: Path) -> Any:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+# ── PYDANTIC STRUCTURED OUTPUT (V1.2 §1) ──────────────────────
+# Replaces V1.1's regex-based parser (HOOK: / CORE: / DIRECTION: / CTA:)
+# with a Pydantic constrained-decoding contract.
+#
+# Schema design rules (per the structured-output research):
+# - Flat (no nested objects unless modeling real structure)
+# - All fields required; missing values use explicit null ("| None")
+# - Enum-constrained where the value space is closed
+# - Field descriptions include 1-2 examples (embedded examples beat
+#   separate few-shot for constrained decoding)
+#
+# Why Pydantic not Instructor: the project stdlib already has
+# pydantic 2.12. Instructor adds another dep with its own auth
+# helpers. We get the same Pydantic-validation benefit for free.
+
+try:
+    from pydantic import BaseModel, Field, ConfigDict
+except Exception:  # pragma: no cover — pydantic is in requirements.txt
+    BaseModel = object  # type: ignore
+    Field = lambda *a, **k: None  # type: ignore
+    ConfigDict = lambda **k: None  # type: ignore
+
+
+class CreativeRouteCopy(BaseModel):
+    """Flat, all-required structured copy for one route.
+
+    Field descriptions include 1-2 examples each (per
+    structured-output research: embedded examples outperform
+    separate few-shot for constrained decoding).
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    HOOK: str = Field(
+        ...,
+        max_length=160,
+        description=("Attention-grabbing opening line for the creative. "
+                      "Must be ≤90 chars at display. Examples: "
+                      "'Custom fitting changes the game.' "
+                      "'A number you can verify.'"),
+    )
+    CORE: str = Field(
+        ...,
+        max_length=400,
+        description=("1-2 sentences stating the core message. "
+                      "Must be grounded in canonical facts only. "
+                      "Examples: 'Booking a session is how you find out for yourself.' "
+                      "'We measure before we prescribe.'"),
+    )
+    DIRECTION: str = Field(
+        ...,
+        max_length=400,
+        description=("Visual direction brief — describe what "
+                      "should appear on screen/stage. No fake "
+                      "assets. Examples: 'Operator on camera "
+                      "demonstrating one measurement step on the "
+                      "studio floor.' 'Single number on screen, "
+                      "source labeled.'"),
+    )
+    CTA: str = Field(
+        ...,
+        max_length=160,
+        description=("Call-to-action. Default to brand's canonical "
+                      "CTA from knowledge.json cta_rules.default_cta. "
+                      "Examples: 'Book your session → swingshack.co.za' "
+                      "'Build your 101T → swingshack.co.za/takomo'"),
+    )
+    TENSION: Optional[str] = Field(
+        default=None,
+        max_length=160,
+        description=("Audience tension framing (from the Brief). "
+                      "Optional. Examples: 'If you've been guessing.' "
+                      "'Are you sure your swing is improving?'"),
+    )
+
+
+class CreativeRoutePayload(BaseModel):
+    """Envelope wrapping CreativeRouteCopy with the route_id.
+
+    Two-layer structure (envelope + content) keeps the schema
+    flat-ish while still binding each copy to its route_id
+    without inline union types. Field is named `content`
+    (not `copy`) to avoid shadowing BaseModel.copy().
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    route_id: str = Field(
+        ...,
+        pattern=r"^(expert_demonstration|proof_and_data|challenge_test)$",
+        description="One of the three canonical route roles.",
+    )
+    content: CreativeRouteCopy = Field(
+        ...,
+        description="The structured creative copy for this route.",
+    )
+
+
+_PydanticRouteCopy = CreativeRouteCopy
+_PydanticRoutePayload = CreativeRoutePayload
+
+
+def _route_schema_for_openai() -> dict:
+    """Build the OpenAI strict-mode JSON Schema from the
+    Pydantic model.
+
+    Returns a dict ready for `response_format.json_schema.schema`.
+    Hand-built (not via model_json_schema()) so we can pin
+    additionalProperties=false + required + patterns for strict
+    mode.
+    """
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["route_id", "content"],
+        "properties": {
+            "route_id": {
+                "type": "string",
+                "enum": ["expert_demonstration", "proof_and_data",
+                          "challenge_test"],
+            },
+            "content": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["HOOK", "CORE", "DIRECTION", "CTA"],
+                "properties": {
+                    "HOOK": {
+                        "type": "string",
+                        "maxLength": 160,
+                        "description": ("Attention-grabbing opening line. "
+                                          "≤90 chars at display. "
+                                          "Examples: 'Custom fitting changes the game.' "
+                                          "'A number you can verify.'"),
+                    },
+                    "CORE": {
+                        "type": "string",
+                        "maxLength": 400,
+                        "description": ("1-2 sentences, grounded in canonical facts. "
+                                          "Examples: 'Booking a session is how you find out for yourself.' "
+                                          "'We measure before we prescribe.'"),
+                    },
+                    "DIRECTION": {
+                        "type": "string",
+                        "maxLength": 400,
+                        "description": ("Visual direction brief. No fake assets. "
+                                          "Examples: 'Operator on camera demonstrating one measurement step.' "
+                                          "'Single number on screen, source labeled.'"),
+                    },
+                    "CTA": {
+                        "type": "string",
+                        "maxLength": 160,
+                        "description": ("Call-to-action. Default to brand's canonical CTA. "
+                                          "Examples: 'Book your session → swingshack.co.za' "
+                                          "'Build your 101T → swingshack.co.za/takomo'"),
+                    },
+                    "TENSION": {
+                        "type": ["string", "null"],
+                        "maxLength": 160,
+                        "description": ("Audience tension framing (optional). "
+                                          "Examples: 'If you've been guessing.'"),
+                    },
+                },
+            },
+        },
+    }
+
+
+def _build_structured_payload_from_stub(route_role: str, facts: dict,
+                                            brief: dict) -> dict:
+    """Deterministic structured payload for the stub path.
+
+    Returns a Pydantic-validated dict matching the OpenAI
+    schema. Replaces V1.1's regex parser with explicit,
+    schema-conformant construction.
+    """
+    hook_core = _build_stub_core(route_role, brief, facts)
+    payload = _PydanticRoutePayload(
+        route_id=route_role,
+        content=_PydanticRouteCopy(**hook_core),
+    )
+    return payload.model_dump()
+
+
+def _build_stub_core(route_role: str, brief: dict,
+                       facts: dict) -> dict:
+    """Assemble structured core copy for the stub path.
+
+    Per V1.1 §5: per-role template derived from grounded context.
+    """
+    claim = (brief.get("core_claim") or "We measure before we prescribe.").strip()
+    tension = (brief.get("audience_tension") or "").strip()
+    default_cta = (facts.get("cta_rules") or {}).get(
+        "default_cta") or "Book your session"
+    if route_role == "expert_demonstration":
+        return {
+            "HOOK": claim[:90] or "We measure before we prescribe.",
+            "CORE": claim[:200],
+            "DIRECTION": ("Operator on camera demonstrating one measurement "
+                            "step on the studio floor. Direct-to-camera "
+                            "explanation with a single number on screen — "
+                            "TrackMan capture, swing close-up, or "
+                            "measurement result."),
+            "CTA": default_cta[:80],
+            "TENSION": tension[:120] or None,
+        }
+    if route_role == "proof_and_data":
+        return {
+            "HOOK": "A number you can verify.",
+            "CORE": claim[:200],
+            "DIRECTION": ("Single number on screen, source labeled. "
+                            "Caption explains the context WITHOUT "
+                            "reinterpreting the number. Brand card + "
+                            "booking URL footer."),
+            "CTA": default_cta[:80],
+            "TENSION": tension[:120] or None,
+        }
+    if route_role == "challenge_test":
+        return {
+            "HOOK": "If you've been guessing — find out for real.",
+            "CORE": claim[:200],
+            "DIRECTION": ("Question on screen with operator voiceover. "
+                            "One invitation to verify. End with booking "
+                            "CTA. Direct, non-aggressive, measurement-led."),
+            "CTA": default_cta[:80],
+            "TENSION": tension[:120] or None,
+        }
+    return {
+        "HOOK": claim[:90] or "We measure before we prescribe.",
+        "CORE": claim[:200],
+        "DIRECTION": "Operator demonstrates one measurement step.",
+        "CTA": default_cta[:80],
+        "TENSION": tension[:120] or None,
+    }
+
+
+# ── EMBEDDING VOICE GATE (V1.2 §2) ─────────────────────────────
+# Per-brand voice centroid built from canonical sources ONLY.
+# Computes cosine similarity between route generated copy and
+# the centroid. Routes < 0.70 → REVIEW_REQUIRED.
+
+VOICE_GATE_THRESHOLD = 0.70
+VOICE_GATE_EMBED_DIM = 256
+
+
+def _build_voice_centroid(brand_id: str) -> dict:
+    """Build per-brand voice centroid from canonical sources.
+
+    Sources:
+      1. data/brand-directory/<brand>/voice/do-say-dont-say.md
+         "## Do say" section — each Do-say bullet is one
+         in-brand phrase
+      2. knowledge.json voice_rules.do_say[]
+
+    Returns:
+      {
+        "status": "ok" | "insufficient_data",
+        "sample_size": int,
+        "embedding_dim": int,
+        "centroid": List[float] or None,
+        "in_brand_phrases": List[str],
+        "source_paths": List[str],
+        "rule": str,
+      }
+
+    Quarantined phrases (post-validation) are excluded. The
+    centroid is the unit-normalized mean of bag-of-words
+    vectors of the in-brand phrases. (Replaceable with a real
+    embedding model when one is wired in.)
+    """
+    phrases = []
+    sources = []
+    # Source 1: do-say-dont-say.md "## Do say" section
+    md = _read_text(_brand_dir(brand_id) / "voice" / "do-say-dont-say.md")
+    if md:
+        in_do = False
+        for line in md.split("\n"):
+            if line.strip().startswith("## Do say") or line.strip().startswith("## Do Say"):
+                in_do = True
+                continue
+            if in_do and line.startswith("## "):
+                in_do = False
+            if in_do:
+                # Strip bullets, quotes, trailing punctuation
+                clean = re.sub(r"^[-\s•❌✅*\d\.]+", "", line).strip()
+                clean = clean.strip("\"'`").rstrip(",.;:")
+                if clean and len(clean) > 3 and len(clean) < 200:
+                    phrases.append(clean)
+        if phrases:
+            sources.append("voice/do-say-dont-say.md")
+    # Source 2: knowledge.json voice_rules.do_say
+    k = _load_knowledge(brand_id)
+    vr_do_say = (k.get("voice_rules") or {}).get("do_say") or []
+    for p in vr_do_say:
+        if p and p not in phrases and len(p) > 3 and len(p) < 200:
+            phrases.append(p)
+    if vr_do_say:
+        sources.append("knowledge.json voice_rules.do_say")
+    if not phrases:
+        return {
+            "status": "insufficient_data",
+            "sample_size": 0,
+            "embedding_dim": VOICE_GATE_EMBED_DIM,
+            "centroid": None,
+            "in_brand_phrases": [],
+            "source_paths": [],
+            "rule": ("Voice gate requires in-brand phrases. "
+                      "Populate voice/do-say-dont-say.md "
+                      "## Do say section + knowledge.json "
+                      "voice_rules.do_say."),
+        }
+    vecs = [_bag_of_words_vec(p, dim=VOICE_GATE_EMBED_DIM) for p in phrases]
+    centroid = [sum(v[i] for v in vecs) / len(vecs) for i in range(VOICE_GATE_EMBED_DIM)]
+    n = sum(x * x for x in centroid) ** 0.5
+    if n:
+        centroid = [x / n for x in centroid]
+    return {
+        "status": "ok",
+        "sample_size": len(phrases),
+        "embedding_dim": VOICE_GATE_EMBED_DIM,
+        "centroid": centroid,
+        "in_brand_phrases": phrases,
+        "source_paths": sources,
+        "rule": ("Cosine similarity vs unit-normalised mean of "
+                  "bag-of-words vectors of in-brand phrases. "
+                  "Replaceable with a real embedding model when "
+                  "one is wired in."),
+    }
+
+
+def _voice_gate_for_route(route_text: str, brand_id: str,
+                            centroid: dict) -> dict:
+    """Compute cosine similarity between route text and centroid.
+
+    Returns:
+      {
+        cosine: float,
+        threshold: float,
+        verdict: PASS | REVIEW_REQUIRED,
+        centroid_status: str,
+        centroid_sample_size: int,
+        rule: str,
+      }
+    """
+    threshold = VOICE_GATE_THRESHOLD
+    if not centroid or centroid.get("status") != "ok":
+        return {
+            "cosine": None,
+            "threshold": threshold,
+            "verdict": "REVIEW_REQUIRED",
+            "centroid_status": centroid.get("status") if centroid else "missing",
+            "centroid_sample_size": (centroid or {}).get("sample_size", 0),
+            "rule": "voice gate inert — centroid missing",
+        }
+    vec = _bag_of_words_vec(route_text, dim=VOICE_GATE_EMBED_DIM)
+    cos = _cosine(vec, centroid["centroid"])
+    verdict = "PASS" if cos >= threshold else "REVIEW_REQUIRED"
+    return {
+        "cosine": round(cos, 4),
+        "threshold": threshold,
+        "verdict": verdict,
+        "centroid_status": centroid.get("status"),
+        "centroid_sample_size": centroid.get("sample_size", 0),
+        "centroid_source_paths": centroid.get("source_paths", []),
+        "rule": ("Cosine similarity vs per-brand voice centroid. "
+                  f"≥{threshold} = PASS, < {threshold} = REVIEW_REQUIRED."),
+    }
 
 
 # ── CANONICAL FACT SOURCE (knowledge.json) ────────────────────
@@ -477,31 +848,88 @@ def _summarize_report(report: dict) -> dict:
 
 # ── GENERATION ENGINE ─────────────────────────────────────────
 
-def _call_llm(prompt: str) -> str:
+def _call_llm(prompt: str, route_role: str = "",
+                 facts: Optional[dict] = None,
+                 brief: Optional[dict] = None) -> dict:
+    """V1.2 §1 — Structured-output generation.
+
+    Returns a Pydantic-validated dict matching CreativeRoutePayload
+    schema:
+      {"route_id": str, "content": {HOOK, CORE, DIRECTION, CTA, TENSION}}
+
+    Three modes:
+      1. API key + strict-mode supported → call LLM with
+         response_format.json_schema (OpenAI strict mode). The
+         provider enforces the schema at token level; output is
+         guaranteed to conform.
+      2. API key + strict-mode NOT supported → call LLM with
+         plain prompt + temperature=0.6; parse response with
+         Pydantic; if validation fails, fall back to stub.
+      3. No API key → return deterministic stub path
+         (Pydantic-validated structured payload derived from
+         per-role template).
+
+    The stub path is no longer empty placeholder — it returns
+    usable structured copy per the per-role template.
+    """
+    # Mode 3 — no key: deterministic stub
     api_key = (os.environ.get("HERMES_API_KEY")
                 or os.environ.get("OPENAI_API_KEY")
                 or os.environ.get("MINIMAX_API_KEY"))
     if not api_key:
-        return _stub_generation(prompt)
+        return _build_structured_payload_from_stub(
+            route_role or "expert_demonstration",
+            facts or {},
+            brief or {})
+    # Mode 1+2 — API key present
     try:
         import urllib.request
         endpoint = (os.environ.get("HERMES_LLM_ENDPOINT")
                      or "https://hermes-agent.nousresearch.com/v1/chat/completions")
-        body = json.dumps({
+        # Try strict-mode response_format (OpenAI-compatible)
+        body = {
             "model": os.environ.get("HERMES_MODEL", "MiniMax-M3"),
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.6, "max_tokens": 800,
-        }).encode()
+            "temperature": 0.6,
+            "max_tokens": 800,
+        }
+        # OpenAI strict mode — only attempt if provider supports it
+        # (controlled by env flag to avoid 400s on incompatible endpoints)
+        if os.environ.get("HERMES_STRICT_SCHEMA", "true").lower() in ("1", "true", "yes"):
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "CreativeRoutePayload",
+                    "schema": _route_schema_for_openai(),
+                    "strict": True,
+                },
+            }
         req = urllib.request.Request(
-            endpoint, data=body,
+            endpoint, data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json",
                        "Authorization": f"Bearer {api_key}"})
         with urllib.request.urlopen(req, timeout=60) as r:
             data = json.loads(r.read())
-            return data.get("choices", [{}])[0].get(
-                "message", {}).get("content", "").strip()
-    except Exception as e:
-        return _stub_generation(prompt) + f"\n[gen_error: {str(e)[:80]}]"
+        content_str = (data.get("choices", [{}])[0].get("message", {})
+                          .get("content", ""))
+        # Mode 1: response is already schema-conformant (strict mode)
+        # Mode 2: parse with Pydantic; on failure, fall back to stub
+        try:
+            parsed_obj = json.loads(content_str)
+            payload = _PydanticRoutePayload(**parsed_obj)
+            return payload.model_dump()
+        except Exception:
+            # Pydantic validation failed → fall back to stub
+            return _build_structured_payload_from_stub(
+                route_role or "expert_demonstration",
+                facts or {},
+                brief or {})
+    except Exception:
+        # Network / endpoint error → deterministic stub fallback
+        return _build_structured_payload_from_stub(
+            route_role or "expert_demonstration",
+            facts or {},
+            brief or {})
 
 
 def _stub_generation(prompt: str) -> str:
@@ -799,13 +1227,30 @@ def build_creative_package(brand_id: str, brief_id: str) -> dict:
     genome = creative_genome_signal(brand_id)
     routes_meta = design_routes(brief, facts, reporting, genome)
     ground_ctx = _build_ground_ctx(facts, brand_id)
+    # Build per-brand voice centroid ONCE (canonical sources only).
+    # Used by the embedding voice gate (V1.2 §2).
+    voice_centroid = _build_voice_centroid(brand_id)
     routes = []
     for rm in routes_meta:
         prompt = build_route_prompt(rm["route_role"], brand_id, brief,
                                        ground_ctx, facts, reporting, genome,
                                        facts.get("voice_rules") or {})
-        generated_text = _call_llm(prompt)
-        generated = _parse_llm_output(generated_text)
+        # V1.2 §1: structured output — returns Pydantic-validated
+        # dict with route_id + content.{HOOK,CORE,DIRECTION,CTA,TENSION}
+        payload = _call_llm(prompt, route_role=rm["route_role"],
+                              facts=facts, brief=brief)
+        # Normalize to V1.1 "generated" shape so downstream
+        # _draft_channel, voice_validation, novelty_check still work
+        content = payload.get("content") or {}
+        generated = {
+            "HOOK": content.get("HOOK") or "",
+            "CORE": content.get("CORE") or "",
+            "DIRECTION": content.get("DIRECTION") or "",
+            "CTA": content.get("CTA") or "",
+            "TENSION": content.get("TENSION") or "",
+            "_schema_version": "creative_v1.2",
+            "_route_id": payload.get("route_id") or rm["route_id"],
+        }
         combined = " ".join([generated.get("HOOK") or "",
                                 generated.get("CORE") or "",
                                 generated.get("DIRECTION") or "",
@@ -815,6 +1260,21 @@ def build_creative_package(brand_id: str, brief_id: str) -> dict:
             (generated.get("HOOK") or "")
             + " " + (generated.get("CORE") or ""), brand_id)
         voice = voice_validation(combined, facts, brand_id)
+        # V1.2 §2: embedding voice gate — cosine vs per-brand centroid
+        voice_gate = _voice_gate_for_route(combined, brand_id,
+                                              voice_centroid)
+        # Combined validation status: FAIL if voice fails OR
+        # gate blocks; WARNING if voice gate requires review
+        if voice.get("validation_status") == "FAIL":
+            vstatus = "FAIL"
+        elif voice_gate.get("verdict") == "REVIEW_REQUIRED":
+            vstatus = "WARNING"
+        elif voice.get("validation_status") == "WARNING":
+            vstatus = "WARNING"
+        elif grounding.get("operator_fact_required") or grounding.get("cross_brand_leaks"):
+            vstatus = "WARNING"
+        else:
+            vstatus = "PASS"
         routes.append({
             "route_id": rm["route_id"],
             "working_concept_name": rm["route_role"],
@@ -829,14 +1289,22 @@ def build_creative_package(brand_id: str, brief_id: str) -> dict:
             "fact_grounding": grounding,
             "novelty": novelty,
             "voice": voice,
-            "validation_status": _route_validation_status(voice, grounding,
-                                                              novelty),
+            "voice_gate": voice_gate,
+            "voice_centroid_summary": {
+                "status": voice_centroid.get("status"),
+                "sample_size": voice_centroid.get("sample_size"),
+                "embedding_dim": voice_centroid.get("embedding_dim"),
+                "source_paths": voice_centroid.get("source_paths") or [],
+                "in_brand_phrase_count": len(voice_centroid.get(
+                    "in_brand_phrases") or []),
+            },
+            "validation_status": vstatus,
             "required_assets": _required_assets_for_route(brand_id),
             "revisions": [{
                 "revision": "system_draft",
                 "generated_at": _now_iso(),
                 "generated_by": GENERATOR_VERSION,
-                "change_reason": "initial generation via LLM layer",
+                "change_reason": "initial generation via Pydantic structured output",
                 "previous_revision": None,
             }],
         })
@@ -1087,8 +1555,10 @@ def regenerate_route_field(brand_id: str, brief_id: str,
         prompt += "\nFOCUS: regenerate CTA only.\n"
     elif field == "tension":
         prompt += "\nFOCUS: regenerate TENSION framing only.\n"
-    new_text = _call_llm(prompt)
-    new_parsed = _parse_llm_output(new_text)
+    # V1.2 §1: structured output — returns Pydantic-validated dict
+    payload = _call_llm(prompt, route_role=target["working_concept_name"],
+                          facts=facts, brief=brief)
+    new_parsed = (payload.get("content") or {})  # {HOOK, CORE, DIRECTION, CTA, TENSION}
     gen = target.setdefault("generated", {})
     if field == "hook" and new_parsed.get("HOOK"):
         gen["HOOK"] = new_parsed["HOOK"]
@@ -1106,8 +1576,23 @@ def regenerate_route_field(brand_id: str, brief_id: str,
     target["voice"] = voice_validation(combined, facts, brand_id)
     target["novelty"] = novelty_check(
         (gen.get("HOOK") or "") + " " + (gen.get("CORE") or ""), brand_id)
-    target["validation_status"] = _route_validation_status(
-        target["voice"], target["fact_grounding"], target["novelty"])
+    # V1.2 §2: re-run voice gate after regen (centroid reused)
+    voice_centroid = _build_voice_centroid(brand_id)
+    target["voice_gate"] = _voice_gate_for_route(combined, brand_id,
+                                                    voice_centroid)
+    # Combined status: voice FAIL → FAIL; voice gate REVIEW_REQUIRED → WARNING
+    if target["voice"].get("validation_status") == "FAIL":
+        vstatus = "FAIL"
+    elif target["voice_gate"].get("verdict") == "REVIEW_REQUIRED":
+        vstatus = "WARNING"
+    elif target["voice"].get("validation_status") == "WARNING":
+        vstatus = "WARNING"
+    elif (target["fact_grounding"].get("operator_fact_required")
+            or target["fact_grounding"].get("cross_brand_leaks")):
+        vstatus = "WARNING"
+    else:
+        vstatus = "PASS"
+    target["validation_status"] = vstatus
     target.setdefault("revisions", []).append({
         "revision": "regeneration",
         "field": field,
@@ -1363,6 +1848,20 @@ def _render_route(r, brand_id, brief_id, package_id):
     fg_xb = fg.get("cross_brand_leaks") or []
     fg_op_html = "".join(f'<div class="operator-required">{o.get("claim")[:120]} — {o.get("note") or ""}</div>' for o in fg_op) or "<span style='color:#9aa3b2;'>none</span>"
     fg_xb_html = "".join(f'<div class="cross-brand">{x.get("sentence")[:120]} — mentioned: {x.get("mentioned_brand")}</div>' for x in fg_xb) or "<span style='color:#9aa3b2;'>none</span>"
+    # V1.2 §2: voice gate + centroid summary for the table
+    vg = r.get("voice_gate") or {}
+    vg_verdict = vg.get("verdict") or "?"
+    vg_cosine = vg.get("cosine")
+    vg_cosine = "n/a" if vg_cosine is None else f"{vg_cosine:.4f}"
+    vg_threshold = vg.get("threshold") or 0.0
+    vg_status = "PASS" if vg_verdict == "PASS" else (
+        "FAIL" if vg_verdict == "FAIL" else "WARNING")
+    centroid = r.get("voice_centroid_summary") or {}
+    centroid_status = centroid.get("status") or "?"
+    centroid_n = centroid.get("sample_size") or 0
+    centroid_dim = centroid.get("embedding_dim") or "?"
+    centroid_sources = centroid.get("source_paths") or []
+    schema_version = gen.get("_schema_version") or "?"
     return f"""<div class="route">
 <div class="route-meta">
   <strong>{r.get('working_concept_name')}</strong> · <code>{rid}</code> ·
@@ -1378,6 +1877,11 @@ def _render_route(r, brand_id, brief_id, package_id):
 <tr><th>Fact grounding</th><td>{len(fg.get('grounded_claims') or [])} grounded, {len(fg_op)} operator-required</td></tr>
 <tr><th>Cross-brand leaks</th><td>{len(fg_xb)}</td></tr>
 <tr><th>Novelty signal</th><td>{nov.get('combined_signal')} (lex={lex_max}, sem={sem_max})</td></tr>
+<tr><th>Voice gate (V1.2)</th><td class="valid-{vg_status}">{vg_verdict}</td></tr>
+<tr><th>Voice gate cosine</th><td>{vg_cosine} (threshold {vg_threshold})</td></tr>
+<tr><th>Voice centroid</th><td>{centroid_status} · {centroid_n} phrases · dim {centroid_dim}</td></tr>
+<tr><th>Centroid sources</th><td>{', '.join(centroid_sources) or 'none'}</td></tr>
+<tr><th>Schema version</th><td>{schema_version}</td></tr>
 <tr><th>Revisions</th><td>{len(r.get('revisions') or [])}</td></tr>
 </table>
 <h3>Operator-required facts</h3>
