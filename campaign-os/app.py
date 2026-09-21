@@ -115,6 +115,58 @@ _INBOX_DUAL_AUTH_SUFFIXES = ('/approve', '/reject', '/edit')
 # stricter than the session cookie. it's scope-bound + time-limited).
 PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
 
+# V1.1 §11: HTML Creative Package view
+@app.route("/create/v1/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_html(brand_id, brief_id, package_id):
+    """V1.1 §11 — operator-facing Creative Package view (HTML)."""
+    if not _is_authed():
+        return _html_error("Auth required", "session not authed")
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return _html_error("Invalid brand", brand_id)
+    if get_creative_package is None:
+        return _html_error("module unavailable", str(_create_import_err_repr))
+    return render_package_html(brand_id, brief_id, package_id), 200
+
+
+# V1.1 §14: lifecycle transition
+@app.route("/api/create/v1/transition/<brand_id>/<brief_id>/<package_id>",
+            methods=["POST"])
+def create_v1_transition(brand_id, brief_id, package_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    body = request.get_json(silent=True) or {}
+    to_status = body.get("to_status") or request.args.get("to_status")
+    reason = body.get("reason") or ""
+    actor = body.get("actor") or "operator"
+    if not to_status:
+        return jsonify({"ok": False, "error": "to_status required"}), 400
+    if transition_creative_status is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    r = transition_creative_status(brand_id, brief_id, package_id,
+                                       to_status, reason, actor)
+    return jsonify(r), 200 if r.get("ok") else 400
+
+
+# V1.1 §15: can_publish_creative canonical read-only endpoint
+@app.route("/api/create/v1/can-publish/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_can_publish(brand_id, brief_id, package_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if can_publish_creative is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    r = can_publish_creative(brand_id, brief_id, package_id)
+    return jsonify(r), 200 if r.get("ok") else 404
+
+
+
 
 
 # v2026-08-13: weekly-report export with a valid ?share=<token> query
@@ -45231,10 +45283,15 @@ try:
         build_creative_package, get_creative_package,
         list_creative_packages, validate_creative_item,
         regenerate_route_field, operator_edit_provenance,
+        transition_creative_status, can_publish_creative,
+        render_package_html,
         GENERATOR_VERSION as _CREATE_GENERATOR_VERSION,
     )
 except Exception as _create_import_err:
     build_creative_package = None
+    transition_creative_status = None
+    can_publish_creative = None
+    render_package_html = None
     _create_import_err_repr = repr(_create_import_err)
 
 

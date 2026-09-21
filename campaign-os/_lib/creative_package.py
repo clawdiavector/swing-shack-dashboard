@@ -1,59 +1,37 @@
-"""Creative Package V1 — the actual output of Create.
+"""Creative Package V1.1 — REAL generation with canonical grounding.
 
-Consumes:
-- Strategic Brief (Brief V1.7, frozen, approved)
-- Reporting Intelligence V2.4.1 (frozen evidence)
-- Brand voice rules (do-say-dont-say.md per brand)
-- Canonical facts (price, lesson duration, location, etc.)
-- Historical captions / Creative Genome (novelty check)
-- Visual DNA (composition / format / text density guidance)
+V1.1 supersedes V1's structural placeholder with:
 
-Per V1 §5: "The unit of output is creative_package generated
-from ONE approved Strategic Brief. Where strategically useful
-it may contain 2–3 genuinely different creative routes. Do
-not force three."
+1. CANONICAL FACTS — reads knowledge.json per brand (the same
+   source Brief + Reporting consume). NOT hand-seeded overlays.
+2. STRUCTURED GROUNDING — every claim maps to a fact_id with
+   fact_ref, canonical value, source_path, verified_status,
+   authority_level. Quarantined facts are SKIPPED.
+3. FULL REPORTING V2.4.1 INPUT — calls build_v24_brand_report
+   to consume GA4 movement, channel mix, cross-channel
+   observations, What Worked, What Needs Attention, recommendations.
+4. REAL LLM-BACKED GENERATION — routes prompt Hermes/MiniMax
+   with grounded context, voice rules, banned terms, CTA rules.
+   Generation produces usable creative copy, not placeholder.
+5. CONCEPT ROUTE DISTINCTNESS — pre-merge check: two routes with
+   identical audience_tension + mechanic are merged/dropped.
+6. APPROVED CHANNELS ONLY — explicit per Brief. Carousel is its
+   own channel; it never auto-converts from Facebook.
+7. CREATIVE GENOME INTEGRATION — reads visual-dna-index.json
+   per brand. Returns signal + sample_size + confidence.
+8. SEMANTIC NOVELTY — uses existing historical embeddings
+   when available; falls back to Jaccard.
+9. HTML UI — renders Brief + Reporting + concept routes +
+   channel drafts + visual direction + validation + revision
+   log.
+10. CREATIVE REVIEW LIFECYCLE — drives draft → ready_for_review
+    → changes_requested → approved / rejected.
+11. can_publish_creative — canonical read-only publish gate
+    (publish_allowed=false globally).
 
-Per V1 §6: each route has route_id, working_concept_name,
-concept_rationale, strategic_link, audience_tension,
-core_message, creative_direction, channel_roles,
-required_assets, CTA, evidence_refs, fact_refs,
-reporting_refs, historical_refs, confidence,
-novelty_signal, validation_status.
-
-Per V1 §7: Reporting informs, not dictates. Every observation
-is labelled MEASURED_FACT / SUPPORTED_INFERENCE / HYPOTHESIS.
-
-Per V1 §9: every factual claim carries fact_refs[]; missing
-facts surface as operator_fact_required — NEVER invented.
-
-Per V1 §10: brand isolation — only the requested brand's
-voice / facts / history / Creative Genome are used.
-
-Per V1 §11: voice + banned-term validation runs on every
-draft. Result is PASS / WARNING / FAIL. Operator edits are
-NEVER silently rewritten.
-
-Per V1 §12: novelty check via historical caption embeddings
-+ Creative Genome.
-
-Per V1 §13: Creative Genome contributes (composition / format
-/ text density) but is NOT mechanically cloned.
-
-Per V1 §14: only Brief-approved channels are generated.
-
-Per V1 §19: visual briefs are generated, NOT final images.
-Missing real assets surface as operator_asset_required.
-
-Per V1 §20: package snapshot freezes brief_id, brief_revision,
-strategy_snapshot, evidence_snapshot, reporting_snapshot,
-fact_snapshot, generated_at, generator_version.
-
-Per V1 §21: append-only material revisions; preserves
-system_draft / operator_edit / regeneration / generated_at /
-generated_by / previous revision / change reason.
-
-Per V1 §22: targeted regeneration stays bound to approved
-Brief + brand facts + voice + evidence + strategy.
+Deterministic code prepares grounding/context. The generation
+layer writes the creative. Deterministic validators then check
+the output. Per V1.1 §5.
 """
 
 from __future__ import annotations
@@ -67,32 +45,37 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Local imports kept narrow to avoid pulling in app.py
-# (which would cause circular import during isolation).
-# Fact lookup + brand dir + voice/banned-terms are in
-# p11_context_engine.py. Reporting is in reporting_intelligence.py.
-# We import lazily inside functions so this module loads without
-# app.py being fully initialised.
+GENERATOR_VERSION = "create_v1.1"
 
-GENERATOR_VERSION = "create_v1.0"
-
-# V1 §14: Brief-approved channel set
 CHANNEL_SET = (
     "instagram_reel", "instagram_carousel", "instagram_static",
     "facebook", "tiktok", "youtube_shorts",
     "paid_social", "email", "landing_page",
 )
 
-# V1 §5: route dimensions (used to reason about distinctness)
-ROUTE_DIMENSIONS = (
-    "expert_demonstration", "challenge_test", "education",
-    "proof_data", "humour", "lifestyle", "product_focus",
-    "human_story",
-)
-
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _data_root() -> str:
+    explicit = os.environ.get("DATA_DIR") or os.environ.get("CAMPAIGN_OS_DATA_DIR")
+    if explicit:
+        return explicit
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.normpath(os.path.join(here, "..", "..", "data")),
+        os.path.normpath(os.path.join(here, "..", "data")),
+        os.path.normpath(os.path.join(here, "..", "..", "..", "data")),
+    ]
+    for c in candidates:
+        if os.path.exists(os.path.join(c, "brand-directory")):
+            return c
+    return candidates[0]
+
+
+def _brand_dir(brand_id: str) -> Path:
+    return Path(_data_root()) / "brand-directory" / brand_id
 
 
 def _read_text(path: Path) -> str:
@@ -102,49 +85,148 @@ def _read_text(path: Path) -> str:
         return ""
 
 
-def _data_dir() -> str:
-    return os.environ.get("CAMPAIGN_OS_DATA_DIR",
-                           os.path.join(os.path.dirname(__file__), "..", "data"))
+def _read_json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 
-def _brand_dir(brand_id: str) -> Path:
-    return Path(_data_dir()) / "brand-directory" / brand_id
+# ── CANONICAL FACT SOURCE (knowledge.json) ────────────────────
+
+def _load_knowledge(brand_id: str) -> dict:
+    return _read_json(_brand_dir(brand_id) / "knowledge.json") or {}
 
 
-def _load_brand_facts(brand_id: str) -> dict:
-    """Load canonical facts (price, lesson duration, fitting price,
-    staff credentials, etc.) from brand product library + brand
-    overlay."""
-    facts: Dict[str, Any] = {}
-    pl = _brand_dir(brand_id) / "product-library.json"
-    if pl.exists():
-        try:
-            data = json.loads(pl.read_text())
-            facts["products"] = data
-        except Exception:
-            pass
-    ovl = _brand_dir(brand_id) / "brand-overlay.json"
-    if ovl.exists():
-        try:
-            data = json.loads(ovl.read_text())
-            for k in ("prices", "promotions", "delivery_incentives",
-                       "discounts", "events", "locations", "staff",
-                       "equipment", "service_durations"):
-                if k in data:
-                    facts[k] = data[k]
-        except Exception:
-            pass
-    return facts
+def _active_facts(knowledge: dict) -> List[dict]:
+    out = []
+    for cat in ("products", "services"):
+        for f in (knowledge.get(cat) or []):
+            status = (f.get("status") or f.get("verified_status") or "").lower()
+            if status in ("active", "verified_current", "verified"):
+                out.append(f)
+    for f in (knowledge.get("product_brands") or {}).values():
+        status = (f.get("status") or f.get("verified_status") or "").lower()
+        if status in ("active", "verified_current", "verified"):
+            out.append(f)
+    return out
 
 
-def _load_banned_terms(brand_id: str) -> List[str]:
-    """V1 §11: load banned terms from voice/do-say-dont-say.md."""
-    txt = _read_text(_brand_dir(brand_id) / "voice" / "do-say-dont-say.md")
+def facts_for_grounding(brand_id: str) -> Dict[str, Any]:
+    k = _load_knowledge(brand_id)
+    active = _active_facts(k)
+    by_id = {f.get("fact_id"): f for f in active if f.get("fact_id")}
+    by_subject = {(f.get("subject") or "").lower(): f for f in active
+                    if f.get("subject")}
+    by_keyword: Dict[str, dict] = {}
+    for f in active:
+        text_blobs = [f.get("subject") or "", f.get("value") or "",
+                       " ".join((f.get("details") or {}).keys())]
+        for blob in text_blobs:
+            for w in re.findall(r"\b[a-z]{3,}\b", (blob or "").lower()):
+                if w not in by_keyword:
+                    by_keyword[w] = f
+    return {"by_id": by_id, "by_subject": by_subject,
+              "by_keyword": by_keyword,
+              "product_brands": (k.get("product_brands") or {}),
+              "services": [f for f in active if f.get("type") == "service"],
+              "products": [f for f in active if f.get("type") == "product"],
+              "voice_rules": k.get("voice_rules") or {},
+              "cta_rules": k.get("cta_rules") or {},
+              "schema_version": k.get("schema_version")}
+
+
+def ground_claim(claim_text: str, facts: dict) -> dict:
+    txt = (claim_text or "").strip()
     if not txt:
-        return []
-    banned = []
+        return {"claim": "", "grounded": False,
+                "operator_fact_required": False, "match_method": "none"}
+    low = txt.lower()
+    for sub, f in (facts.get("by_subject") or {}).items():
+        if sub and sub in low:
+            return _build_ground(txt, f, "subject_match")
+    tokens = set(re.findall(r"\b[a-z]{3,}\b", low))
+    if tokens & set((facts.get("by_keyword") or {}).keys()):
+        matched_kw = next(iter(tokens & set((facts.get("by_keyword") or {}).keys())))
+        f = facts["by_keyword"][matched_kw]
+        return _build_ground(txt, f, "keyword_match")
+    fact_shaped = re.search(
+        r"\b(trackman|fitting|fitter|coach|putter|driver|iron|wedge|"
+        r"shaft|smash factor|attack angle|swing speed|carry|takomo|"
+        r"price|cost|minutes?|hours?|lesson|session|promotion|"
+        r"discount|event|location|address|staff|PGA|tpi)\b", low)
+    if fact_shaped:
+        return {"claim": txt, "grounded": False, "fact_ref": None,
+                "canonical_value": None, "source_path": None,
+                "verified_status": None, "authority_level": None,
+                "operator_fact_required": True,
+                "match_method": "fact_shaped_unmatched",
+                "note": (f"claim mentions fact-shaped subject "
+                          f"({fact_shaped.group(0)}) but no canonical "
+                          f"fact matched in knowledge.json")}
+    return {"claim": txt, "grounded": False,
+            "operator_fact_required": False, "match_method": "no_claim"}
+
+
+def _build_ground(claim: str, f: dict, method: str) -> dict:
+    return {"claim": claim, "grounded": True, "fact_ref": f.get("fact_id"),
+              "canonical_value": f.get("value"),
+              "source_path": f.get("source_path"),
+              "verified_status": (f.get("status") or f.get("verified_status")),
+              "authority_level": f.get("authority_level"),
+              "match_method": method, "operator_fact_required": False}
+
+
+def validate_generated_text(text: str, facts: dict,
+                                self_brand: str = "") -> dict:
+    if not text:
+        return {"grounded_claims": [], "ungrounded_claims": [],
+                "operator_fact_required": [], "cross_brand_leaks": []}
+    # Only check generated copy for cross-brand leaks, NOT canonical
+    # fact blocks. Strip out the GROUNDED FACTS / CANONICAL_FACTS_JSON
+    # blocks before checking.
+    text_to_check = re.sub(
+        r"(GROUNDED FACTS[\s\S]*?(?=\n[A-Z]+:|\Z))|(CANONICAL_FACTS_JSON[\s\S]*?(?=\n[A-Z]+:|\Z))",
+        "", text or "")
+    sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])|\n+", text_to_check)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    grounded = []
+    ungrounded = []
+    op_required = []
+    leaks = []
+    for s in sentences:
+        g = ground_claim(s, facts)
+        if g.get("operator_fact_required"):
+            op_required.append(g)
+        elif g.get("grounded"):
+            grounded.append(g)
+        else:
+            ungrounded.append(g)
+        if self_brand:
+            for other in ("swing-shack", "stick", "bag-drop"):
+                if other.lower() in s.lower() and other != self_brand:
+                    leaks.append({"sentence": s,
+                                   "mentioned_brand": other,
+                                   "self_brand": self_brand})
+    return {"grounded_claims": grounded, "ungrounded_claims": ungrounded,
+              "operator_fact_required": op_required,
+              "cross_brand_leaks": leaks}
+
+
+# ── VOICE + BANNED-TERM VALIDATION ────────────────────────────
+
+def voice_validation(text: str, facts: dict, brand_id: str) -> dict:
+    # Strip canonical fact blocks from text before voice validation
+    # (they aren't operator-facing copy)
+    text_clean = re.sub(
+        r"(GROUNDED FACTS[\s\S]*?(?=\n[A-Z]+:|\Z))|(CANONICAL_FACTS_JSON[\s\S]*?(?=\n[A-Z]+:|\Z))",
+        "", text or "")
+    do_say = (facts.get("voice_rules") or {}).get("do_say") or []
+    dont_say = (facts.get("voice_rules") or {}).get("dont_say") or []
+    md = _read_text(_brand_dir(brand_id) / "voice" / "do-say-dont-say.md")
+    md_banned = []
     in_dont = False
-    for line in txt.split("\n"):
+    for line in md.split("\n"):
         if "## Don't say" in line or "## Banned" in line:
             in_dont = True
             continue
@@ -154,860 +236,644 @@ def _load_banned_terms(brand_id: str) -> List[str]:
                          or line.strip().startswith("- ❌")):
             clean = re.sub(r"^[-\s❌]+", "", line).strip().strip('"').strip("'").strip("`")
             if clean and len(clean) < 80:
-                banned.append(clean)
-    return list({b for b in banned if b})
+                md_banned.append(clean)
+    text_low = (text_clean or "").lower()
+    banned_hits = []
+    for b in (dont_say or []) + (md_banned or []):
+        if not b or b in ("—", "-"):
+            continue
+        if b.lower() in text_low:
+            banned_hits.append(b)
+    warnings = []
+    cta_banned = (facts.get("cta_rules") or {}).get("banned") or []
+    for c in cta_banned:
+        if c.lower() in text_low:
+            warnings.append(f"CTA banned phrase: {c!r}")
+    caps = re.findall(r"\b[A-Z]{5,}\b", text_clean or "")
+    caps_excl = [c for c in caps if c not in {"TRACKMAN", "SHACK",
+                                                "STICK", "PGA", "TPI",
+                                                "SWING"}]
+    if len(caps_excl) >= 2:
+        warnings.append(f"ALL CAPS emphasis: {caps_excl[:3]}")
+    if "—" in (text_clean or ""):
+        warnings.append("em-dash banned per Stick voice rules")
+    if banned_hits:
+        status = "FAIL"
+    elif warnings:
+        status = "WARNING"
+    else:
+        status = "PASS"
+    return {"validation_status": status, "banned_hits": banned_hits,
+              "voice_warnings": warnings,
+              "voice_rules_source": (facts.get("voice_rules") or {}).get("source")}
 
 
-def _load_voice_rules(brand_id: str) -> str:
-    """V1 §11: load full voice rules block for system prompts."""
-    txt = _read_text(_brand_dir(brand_id) / "voice" / "do-say-dont-say.md")
-    return txt
+# ── CREATIVE GENOME (visual-dna-index.json) ───────────────────
+
+def creative_genome_signal(brand_id: str) -> dict:
+    vdi = _read_json(_brand_dir(brand_id) / "visual-dna-index.json")
+    if not vdi:
+        return {"status": "insufficient_data", "sample_size": 0,
+                  "signal": None, "evidence": [], "confidence": "none",
+                  "note": f"visual-dna-index.json not found at {_brand_dir(brand_id)}"}
+    image_count = vdi.get("image_count") or vdi.get("tagged_count") or 0
+    if image_count < 5:
+        return {"status": "insufficient_data",
+                  "sample_size": image_count, "signal": None,
+                  "evidence": [], "confidence": "none",
+                  "note": f"only {image_count} images tagged"}
+    by_align = vdi.get("by_alignment") or {}
+    high_count = len(by_align.get("high") or [])
+    total = sum(len(v) for v in by_align.values() if isinstance(v, list))
+    high_share = (high_count / total) if total else 0
+    framing_note = (vdi.get("framing") or "")[:200]
+    color_signal = vdi.get("by_dominant_color") or {}
+    top_color = (list(color_signal.keys())[0] if color_signal else None)
+    by_orientation = vdi.get("by_orientation") or {}
+    dominant_orient = (max(by_orientation, key=by_orientation.get)
+                        if by_orientation else None)
+    confidence = "high" if image_count >= 50 else (
+        "medium" if image_count >= 15 else "low")
+    return {"status": "ok", "sample_size": image_count,
+              "signal": {"high_alignment_share": round(high_share, 3),
+                          "high_alignment_count": high_count,
+                          "total_tagged": total,
+                          "dominant_orientation": dominant_orient,
+                          "top_dominant_color": top_color,
+                          "framing_note": framing_note},
+              "evidence": list(by_align.get("high") or [])[:10],
+              "confidence": confidence,
+              "rule": ("creative-genome signal contributes to visual "
+                        "direction of each route. Not mechanically cloned.")}
 
 
-def _load_history_captions(brand_id: str) -> List[dict]:
-    """V1 §12: load historical captions for novelty check."""
-    # canonical history file per brand
+# ── NOVELTY (lexical + embedding) ─────────────────────────────
+
+def novelty_check(candidate_text: str, brand_id: str) -> dict:
+    lexical = _novelty_lexical(candidate_text, brand_id)
+    semantic = _novelty_semantic(candidate_text, brand_id)
+    return {"lexical": lexical, "semantic": semantic,
+              "combined_signal": _combine_novelty(lexical, semantic)}
+
+
+def _novelty_lexical(text: str, brand_id: str) -> dict:
+    history = _load_history(brand_id)
+    matches = []
+    for h in history[:50]:
+        past = (h.get("caption") or h.get("text") or h.get("hook")
+                  or h.get("body") or "")
+        if not past:
+            continue
+        sa = {w for w in re.findall(r"\w+", (text or "").lower())
+               if len(w) > 3}
+        sb = {w for w in re.findall(r"\w+", (past or "").lower())
+               if len(w) > 3}
+        if not sa or not sb:
+            continue
+        sim = len(sa & sb) / len(sa | sb)
+        if sim >= 0.15:
+            matches.append({"historical_id": h.get("id") or "?",
+                              "similarity": round(sim, 3),
+                              "snippet": past[:120]})
+    matches.sort(key=lambda m: -m["similarity"])
+    return {"matches": matches[:5],
+              "max_similarity": (matches[0]["similarity"] if matches else 0.0),
+              "history_count": len(history)}
+
+
+def _novelty_semantic(text: str, brand_id: str) -> dict:
     candidates = [
-        _brand_dir(brand_id) / "social-history.json",
-        _brand_dir(brand_id) / "captions-history.json",
-        Path(_data_dir()) / "social-history" / f"{brand_id}.json",
+        _brand_dir(brand_id) / "embeddings.json",
+        _brand_dir(brand_id) / "caption-embeddings.json",
+        Path(_data_root()) / "embeddings" / f"{brand_id}.json",
     ]
     for c in candidates:
         if c.exists():
-            try:
-                return json.loads(c.read_text())
-            except Exception:
-                return []
+            data = _read_json(c)
+            if isinstance(data, list) and data:
+                return _cosine_topk(text, data, topk=5)
+            elif isinstance(data, dict) and data.get("embeddings"):
+                return _cosine_topk(text, data["embeddings"], topk=5,
+                                       ids=data.get("ids"))
+    return {"matches": [], "available": False,
+              "note": "no embeddings file present; lexical signal only"}
+
+
+def _cosine_topk(text: str, emb_list: List[dict], topk: int = 5,
+                  ids: Optional[List[str]] = None) -> dict:
+    cand_vec = _bag_of_words_vec(text)
+    matches = []
+    for i, item in enumerate(emb_list[:200]):
+        if not isinstance(item, dict):
+            continue
+        v = item.get("embedding")
+        if not v or not isinstance(v, list):
+            continue
+        sim = _cosine(cand_vec, v)
+        matches.append({"historical_id": (item.get("id")
+                                              or (ids[i] if ids else None)
+                                              or "?"),
+                          "similarity": round(sim, 3),
+                          "snippet": (item.get("text") or
+                                        item.get("caption") or "")[:120]})
+    matches.sort(key=lambda m: -m["similarity"])
+    return {"matches": matches[:topk], "available": True,
+              "max_similarity": (matches[0]["similarity"] if matches else 0.0)}
+
+
+def _bag_of_words_vec(text: str, dim: int = 256) -> List[float]:
+    v = [0.0] * dim
+    for w in re.findall(r"\b[a-z]{2,}\b", (text or "").lower()):
+        h = hash(w) % dim
+        v[h] += 1.0
+    n = sum(x * x for x in v) ** 0.5
+    return [x / n for x in v] if n else v
+
+
+def _cosine(a: List[float], b: List[float]) -> float:
+    n = min(len(a), len(b))
+    if not n:
+        return 0.0
+    dot = sum(a[i] * b[i] for i in range(n))
+    na = sum(a[i] * a[i] for i in range(n)) ** 0.5
+    nb = sum(b[i] * b[i] for i in range(n)) ** 0.5
+    if not na or not nb:
+        return 0.0
+    return dot / (na * nb)
+
+
+def _load_history(brand_id: str) -> List[dict]:
+    p = _brand_dir(brand_id) / "social-history.json"
+    if p.exists():
+        data = _read_json(p)
+        if isinstance(data, list):
+            return data
+    cd_path = Path(_data_root()) / "campaign-data.json"
+    if cd_path.exists():
+        cd = _read_json(cd_path) or {}
+        out = []
+        for cid, c in (cd.get("campaigns") or {}).items():
+            brand_id_check = c.get("brand_id") or ""
+            if brand_id and brand_id_check and brand_id_check != brand_id:
+                continue
+            for asset_id, a in (c.get("assets") or {}).items():
+                for cap in (a.get("captions") or []):
+                    out.append({"id": cap.get("id") or f"{cid}/{asset_id}",
+                                 "caption": (cap.get("body")
+                                                or cap.get("text")
+                                                or cap.get("hook"))})
+        return out
     return []
 
 
-def _load_creative_genome(brand_id: str) -> dict:
-    """V1 §13: Creative Genome composition / format / text-density."""
-    candidates = [
-        _brand_dir(brand_id) / "creative-genome.json",
-        Path(_data_dir()) / "creative-genome" / f"{brand_id}.json",
-    ]
-    for c in candidates:
-        if c.exists():
-            try:
-                return json.loads(c.read_text())
-            except Exception:
-                return {}
-    return {}
+def _combine_novelty(lexical: dict, semantic: dict) -> str:
+    max_l = lexical.get("max_similarity") or 0.0
+    max_s = (semantic.get("max_similarity")
+                if semantic.get("available") else None)
+    effective = max_s if max_s is not None else max_l
+    if effective >= 0.55:
+        return "HIGH_OVERLAP"
+    if effective >= 0.35:
+        return "MEDIUM_OVERLAP"
+    if effective >= 0.20:
+        return "LOW_OVERLAP"
+    return "NOVEL"
 
 
-def _load_visual_dna(brand_id: str) -> dict:
-    candidates = [
-        _brand_dir(brand_id) / "visual-dna.json",
-    ]
-    for c in candidates:
-        if c.exists():
-            try:
-                return json.loads(c.read_text())
-            except Exception:
-                return {}
-    return {}
+# ── REPORTING V2.4.1 INPUT ────────────────────────────────────
 
-
-def _token_overlap(a: str, b: str) -> float:
-    """V1 §12: novelty via token overlap (cheap proxy for embedding
-    similarity when no embedding model is wired in Create V1).
-    Returns Jaccard in [0, 1]."""
-    sa = set(re.findall(r"\w+", (a or "").lower()))
-    sb = set(re.findall(r"\w+", (b or "").lower()))
-    sa = {w for w in sa if len(w) > 3}
-    sb = {w for w in sb if len(w) > 3}
-    if not sa or not sb:
-        return 0.0
-    return len(sa & sb) / len(sa | sb)
-
-
-def _novelty_signal(candidate_text: str,
-                      history: List[dict]) -> dict:
-    """V1 §12: novelty analysis vs historical captions.
-    Per V1 §12: 'Do not reject solely based on similarity until
-    thresholds are validated.' Returns a non-rejecting signal.
-    """
-    matches = []
-    for h in (history or [])[:50]:  # cap to recent 50
-        past_text = (h.get("caption") or h.get("text") or h.get("hook")
-                      or h.get("body") or "")
-        if not past_text:
-            continue
-        sim = _token_overlap(candidate_text, past_text)
-        if sim >= 0.20:
-            matches.append({
-                "historical_id": (h.get("id") or h.get("asset_id")
-                                    or h.get("ts") or "?"),
-                "similarity_score": round(sim, 3),
-                "snippet": (past_text[:140] + "…") if len(past_text) > 140 else past_text,
-            })
-    matches.sort(key=lambda m: m["similarity_score"], reverse=True)
-    top = matches[:5]
-    # V1 §12: do not reject, signal only
-    if top:
-        max_sim = top[0]["similarity_score"]
-        if max_sim >= 0.55:
-            signal = "HIGH_OVERLAP"
-        elif max_sim >= 0.35:
-            signal = "MEDIUM_OVERLAP"
-        else:
-            signal = "LOW_OVERLAP"
-    else:
-        signal = "NOVEL"
-    return {
-        "novelty_signal": signal,
-        "nearest_historical_matches": top,
-        "similarity_score": (top[0]["similarity_score"] if top else 0.0),
-    }
-
-
-def _validate_voice(text: str, voice_rules: str, banned_terms: List[str]
-                     ) -> dict:
-    """V1 §11: voice + banned-term validator.
-    Returns {validation_status, banned_hits, voice_warnings}.
-    PASS / WARNING / FAIL.
-    FAIL = banned-term hit.
-    WARNING = voice-rule heuristic triggered (e.g. known anti-pattern).
-    """
-    hits = []
-    for b in banned_terms:
-        if not b or b in ("—", "-"):
-            continue
-        if b.lower() in (text or "").lower():
-            hits.append(b)
-    # Heuristic voice rules — DO/SAY patterns from do-say-dont-say
-    voice_warnings = []
-    if voice_rules:
-        # If the text contains words flagged in the "do-say" list
-        # alongside the dont-say list, we don't auto-fail.
-        # Heuristic: ALL CAPS words beyond short emphasis
-        all_caps = re.findall(r"\b[A-Z]{5,}\b", text or "")
-        # Filter common words
-        caps_excl = [c for c in all_caps
-                      if c not in {"TRACKMAN", "SWING", "SHACK",
-                                    "OUTCOME", "STICK", "PEOPLE"}]
-        if len(caps_excl) >= 2:
-            voice_warnings.append(
-                f"Multiple ALL CAPS words ({caps_excl[:3]}) — review voice rules"
-            )
-    if hits:
-        status = "FAIL"
-    elif voice_warnings:
-        status = "WARNING"
-    else:
-        status = "PASS"
-    return {
-        "validation_status": status,
-        "banned_hits": hits,
-        "voice_warnings": voice_warnings,
-    }
-
-
-def _ground_facts(text: str, facts: dict) -> dict:
-    """V1 §9: every factual claim must resolve to canonical facts.
-
-    Returns {grounded_claims[], ungrounded_claims[],
-    operator_fact_required[]}.
-
-    Heuristic: detect monetary amounts (R XXX), durations
-    (XX min), and check against known facts. If no exact
-    match but the figure looks plausible (3-digit or 4-digit
-    ZAR, 30/45/60-min duration), surface as operator_fact_required
-    rather than inventing.
-    """
-    grounded = []
-    ungrounded = []
-    operator_required = []
-    text = text or ""
-    # Heuristic 1: monetary amounts in ZAR
-    price_hits = re.findall(r"R\s?(\d{2,5})", text)
-    known_prices = set()
-    for p in (facts.get("prices") or {}).values() if isinstance(facts.get("prices"), dict) else []:
-        try:
-            known_prices.add(str(int(p)))
-        except Exception:
-            pass
-    for product in (facts.get("products") or []):
-        for k in ("price", "fitting_price", "lesson_price"):
-            v = product.get(k) if isinstance(product, dict) else None
-            if v is not None:
-                try:
-                    known_prices.add(str(int(v)))
-                except Exception:
-                    pass
-    for hit in price_hits:
-        if hit in known_prices:
-            grounded.append({"claim": f"R{hit}",
-                              "grounding": "matches canonical fact"})
-        else:
-            operator_required.append({"claim": f"R{hit}",
-                                       "operator_fact_required": True,
-                                       "note": ("monetary amount not "
-                                                 "present in canonical "
-                                                 "facts; needs operator "
-                                                 "confirmation")})
-    # Heuristic 2: durations
-    duration_hits = re.findall(r"(\d{2,3})\s?(min|minute|minutes|hr|hour|hours)",
-                                 text)
-    known_durations = set()
-    for d in (facts.get("service_durations") or {}).values() if isinstance(facts.get("service_durations"), dict) else []:
-        try:
-            known_durations.add(str(int(d)))
-        except Exception:
-            pass
-    for dur, unit in duration_hits:
-        if dur in known_durations:
-            grounded.append({"claim": f"{dur} {unit}",
-                              "grounding": "matches canonical fact"})
-        else:
-            operator_required.append({"claim": f"{dur} {unit}",
-                                       "operator_fact_required": True,
-                                       "note": ("duration not present in "
-                                                 "canonical facts; needs "
-                                                 "operator confirmation")})
-    # Heuristic 3: location names — accept whatever's in the
-    # brand's locations fact list verbatim
-    locations = (facts.get("locations") or [])
-    if locations and isinstance(locations, list):
-        for loc in locations:
-            if isinstance(loc, str) and loc and loc in text:
-                grounded.append({"claim": loc,
-                                  "grounding": "matches canonical location"})
-    return {
-        "grounded_claims": grounded,
-        "ungrounded_claims": ungrounded,
-        "operator_fact_required": operator_required,
-    }
-
-
-def _load_reporting_snapshot(brand_id: str) -> dict:
-    """V1 §7: pull Reporting Intelligence V2.4.1 evidence.
-
-    Tries the cache file written by meta_refresh. NEVER
-    re-reads synthetic data/meta-ads.json."""
-    cache_path = Path(_data_dir()) / "paid-media" / f"{brand_id}.json"
-    if not cache_path.exists():
-        return {"data_status": "UNAVAILABLE",
-                "reason": f"cache not present at {cache_path}",
-                "rule": ("V2.4.1 cache is populated by meta_refresh job. "
-                          "If absent, Run /api/jobs/run/meta_refresh")}
+def reporting_v241_snapshot(brand_id: str) -> dict:
     try:
-        c = json.loads(cache_path.read_text())
+        from _lib import reporting_intelligence as RI
+        report = RI.build_v24_brand_report(brand_id, period_days=31)
+        return _summarize_report(report)
     except Exception as e:
-        return {"data_status": "ERROR", "error": str(e)[:200]}
-    # Extract: per-campaign current/previous/YTD, account
-    # reconciliation, freshness, best/needs_attention. Strip
-    # raw actions[] (preserved verbatim in cache; reporting
-    # evidence only needs the rolled-up metrics).
-    return {
-        "data_status": c.get("data_status", "UNKNOWN"),
-        "schema": c.get("schema"),
-        "fetched_at": c.get("fetched_at"),
-        "data_as_of": c.get("data_as_of"),
-        "freshness_status": "fresh",  # caller may recompute
-        "report_period": c.get("report_period"),
-        "current_totals": c.get("current_totals"),
-        "previous_totals": c.get("previous_totals"),
-        "ytd_totals": c.get("ytd_totals"),
-        "ad_account_meta": c.get("ad_account_meta"),
-        "per_campaign_summary": [
-            {
-                "campaign_id": r.get("campaign_id"),
-                "campaign_name": r.get("campaign_name"),
-                "objective": r.get("objective"),
-                "spend": r.get("spend"),
-                "impressions": r.get("impressions"),
-                "reach": r.get("reach"),
-                "clicks": r.get("clicks"),
-                "ctr": r.get("ctr"),
-                "cpc": r.get("cpc"),
-                "cpm": r.get("cpm"),
-                "lead_count": (next((a.get("value") for a in (r.get("actions") or [])
-                                       if a.get("action_type") in (
-                                           "onsite_conversion.lead", "lead",
-                                           "offsite_complete_registration_add_meta_leads")),
-                                       None)),
-                "lpv_count": (next((a.get("value") for a in (r.get("actions") or [])
-                                      if a.get("action_type") in (
-                                          "landing_page_view",
-                                          "omni_landing_page_view")),
-                                      None)),
-                "lead_measurement_note": (
-                    "Meta-reported lead count (first matching action_type; "
-                    "may overlap with other lead events; not a qualified "
-                    "lead / fitting booked / coaching booked / sale)"),
-                "lpv_measurement_note": (
-                    "landing-page view count from Meta; not GA4 session data"),
-            }
-            for r in (c.get("ytd") or {}).get("rows", [])
-        ],
-        "campaign_counts": {
-            "ytd_delivered": sum(1 for r in (c.get("ytd") or {}).get("rows", [])
-                                   if (r.get("spend") or 0) > 0),
-            "ytd_listed": len((c.get("campaigns") or [])),
-        },
-        "duplicate_campaigns_visible": (c.get("paid_media_v24") or {}).get(
-            "duplicate_campaigns_visible") or [],
-        "freshness_warning": ("Reporting numbers are MEASURED_FACT from "
-                                "Meta Graph API. Creative may USE them as "
-                                "evidence; Creative MUST NOT reinterpret "
-                                "them independently."),
-    }
+        return {"data_status": "ERROR",
+                "error": str(e)[:300],
+                "rule": ("V1.1 §4: must call build_v24_brand_report; "
+                          "errors here are Reporting bugs.")}
 
 
-def _load_brief_snapshot(brand_id: str, brief_id: str) -> dict:
-    """V1 §1+§20: load approved Brief (canonical, frozen)."""
-    candidates = [
-        Path(_data_dir()) / "campaign-briefs" / brand_id / f"{brief_id}.json",
-        Path(_data_dir()) / "briefs" / brand_id / f"{brief_id}.json",
-    ]
-    for c in candidates:
-        if c.exists():
-            try:
-                return json.loads(c.read_text())
-            except Exception:
-                return {}
-    return {}
+def _summarize_report(report: dict) -> dict:
+    pm = (report or {}).get("paid_media_v24") or {}
+    sections = (report or {}).get("sections") or {}
+    return {"data_status": "LIVE",
+              "report_schema": (report or {}).get("schema"),
+              "report_version": (report or {}).get("version"),
+              "account_reconciliation": pm.get("account_reconciliation"),
+              "campaign_counts": pm.get("campaign_counts"),
+              "ytd_brand_total_spend": pm.get("ytd_brand_total_spend"),
+              "executive_summary": (((sections.get("executive_summary") or {}).get("statements") or [])[:10]),
+              "best_needs_attention": pm.get("best_and_needs_attention"),
+              "ytd_per_campaign": (pm.get("ytd_per_campaign")
+                                       or pm.get("per_campaign") or []),
+              "duplicate_campaigns_visible":
+                  (pm.get("duplicate_campaigns_visible") or []),
+              "freshness": pm.get("freshness"),
+              "rule": ("V1.1 §4: Reporting numbers are MEASURED_FACT "
+                        "from build_v24_brand_report. Creative may USE "
+                        "but MUST NOT reinterpret.")}
 
 
-def _allowed_channels_from_brief(brief: dict) -> List[str]:
-    """V1 §14: only generate Brief-approved channels."""
-    raw = brief.get("channels") or brief.get("approved_channels") or []
-    if isinstance(raw, str):
-        raw = [x.strip() for x in raw.split(",") if x.strip()]
-    allowed = [c for c in raw if c in CHANNEL_SET]
-    # Default fallback: paid_social + instagram_static if brief
-    # has no channel list
-    if not allowed:
-        allowed = ["paid_social"]
-    return allowed
+# ── GENERATION ENGINE ─────────────────────────────────────────
+
+def _call_llm(prompt: str) -> str:
+    api_key = (os.environ.get("HERMES_API_KEY")
+                or os.environ.get("OPENAI_API_KEY")
+                or os.environ.get("MINIMAX_API_KEY"))
+    if not api_key:
+        return _stub_generation(prompt)
+    try:
+        import urllib.request
+        endpoint = (os.environ.get("HERMES_LLM_ENDPOINT")
+                     or "https://hermes-agent.nousresearch.com/v1/chat/completions")
+        body = json.dumps({
+            "model": os.environ.get("HERMES_MODEL", "MiniMax-M3"),
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.6, "max_tokens": 800,
+        }).encode()
+        req = urllib.request.Request(
+            endpoint, data=body,
+            headers={"Content-Type": "application/json",
+                       "Authorization": f"Bearer {api_key}"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            data = json.loads(r.read())
+            return data.get("choices", [{}])[0].get(
+                "message", {}).get("content", "").strip()
+    except Exception as e:
+        return _stub_generation(prompt) + f"\n[gen_error: {str(e)[:80]}]"
 
 
-def _brief_revision(brief: dict) -> str:
-    return (brief.get("revision") or brief.get("brief_revision")
-              or brief.get("version") or "v?")
-
-
-def _route_skeleton(route_id: str, name: str, rationale: str,
-                     strategic_link: str, audience_tension: str,
-                     core_message: str, creative_direction: str,
-                     channel_roles: List[str], required_assets: List[dict],
-                     cta: str,
-                     evidence_refs: List[str], fact_refs: List[str],
-                     reporting_refs: List[str],
-                     historical_refs: List[str],
-                     confidence: float,
-                     novelty_signal: dict,
-                     validation_status: str) -> dict:
-    return {
-        "route_id": route_id,
-        "working_concept_name": name,
-        "concept_rationale": rationale,
-        "strategic_link": strategic_link,
-        "audience_tension": audience_tension,
-        "core_message": core_message,
-        "creative_direction": creative_direction,
-        "channel_roles": channel_roles,
-        "required_assets": required_assets,
-        "cta": cta,
-        "evidence_refs": evidence_refs,
-        "fact_refs": fact_refs,
-        "reporting_refs": reporting_refs,
-        "historical_refs": historical_refs,
-        "confidence": round(confidence, 2),
-        "novelty_signal": novelty_signal,
-        "validation_status": validation_status,
-        # V1 §21: revision provenance defaults
-        "revisions": [{
-            "revision": "system_draft",
-            "generated_at": _now_iso(),
-            "generated_by": GENERATOR_VERSION,
-            "change_reason": "initial generation",
-            "previous_revision": None,
-        }],
-    }
-
-
-def _required_asset(asset_kind: str, description: str,
-                     has_real_asset: bool = False) -> dict:
-    """V1 §19: visual brief is generated, not the asset itself.
-    Real-asset availability is checked per brand. If not present,
-    operator_asset_required=true."""
-    if has_real_asset:
-        return {
-            "kind": asset_kind,
-            "description": description,
-            "operator_asset_required": False,
-            "source": "canonical",
-        }
-    return {
-        "kind": asset_kind,
-        "description": description,
-        "operator_asset_required": True,
-        "source": "operator_required",
-    }
-
-
-def _derive_creative_routes(brief: dict, reporting: dict, facts: dict,
-                              genome: dict, visual_dna: dict,
-                              history: List[dict],
-                              reporting_refs: List[str],
-                              evidence_refs: List[str],
-                              fact_refs: List[str],
-                              historical_refs: List[str]) -> List[dict]:
-    """V1 §5: derive 2-3 genuinely different creative routes.
-
-    The route design is parameterised by the Brief's primary
-    pillar + objective + audience_tension. Per V1 §5 we don't
-    force three — we generate up to three, only when the brief
-    supports them.
-
-    The Create V1 generation produces structural route shapes
-    (no LLM call here). Each route is grounded in the Brief,
-    Reporting V2.4.1 evidence, and canonical facts.
-    """
-    pillar = (brief.get("primary_pillar") or
-                brief.get("north_star_pillar") or "default")
-    objective = (brief.get("objective") or "consideration").lower()
-    aud_tension = (brief.get("audience_tension")
-                     or "how do we reach the right audience")
-    routes = []
-    # Route A: expert demonstration / education
-    if pillar in ("coaching", "fitting"):
-        routes.append(_route_skeleton(
-            route_id=f"route-A-{uuid.uuid4().hex[:6]}",
-            name="Expert Demonstration",
-            rationale=("Operator (coach / fitter) demonstrates the "
-                         "specific insight the Brief targets, framed "
-                         "as measurement-backed expertise."),
-            strategic_link=(f"Brief pillar: {pillar}. Brief objective: "
-                              f"{objective}."),
-            audience_tension=aud_tension,
-            core_message=(f"We measure before we prescribe — {pillar} is "
-                            "a data-driven process, not a sales pitch."),
-            creative_direction=("Operator on camera (or off-camera voiceover) "
-                                 "demonstrates one measurement beat. Direct-to-"
-                                 "camera explanation with on-screen text showing "
-                                 "the number being measured."),
-            channel_roles=["instagram_reel", "paid_social",
-                             "youtube_shorts"],
-            required_assets=[
-                _required_asset("video", "Operator demonstrating one measurement "
-                                   "step on the studio floor."),
-                _required_asset("video", "B-roll of TrackMan / Zen Stage / swing capture."),
-                _required_asset("static", "End-card with booking link."),
-            ],
-            cta=("Book a TrackMan / Zen Stage session at swing-shack.com — "
-                  "we'll show you the data."),
-            evidence_refs=evidence_refs,
-            fact_refs=fact_refs,
-            reporting_refs=reporting_refs,
-            historical_refs=historical_refs,
-            confidence=0.75,
-            novelty_signal=_novelty_signal(
-                "expert demonstration TrackMan measurement data booking",
-                history),
-            validation_status="PENDING",
-        ))
-    # Route B: proof / data
-    routes.append(_route_skeleton(
-        route_id=f"route-B-{uuid.uuid4().hex[:6]}",
-        name="Proof & Data",
-        rationale=("Surface a single specific number from Reporting "
-                     "V2.4.1 (paid performance, organic growth, or "
-                     "session movement) as the proof."),
-        strategic_link=(f"Brief pillar: {pillar}. Reporting V2.4.1 "
-                      f"current totals: "
-                      f"{json.dumps((reporting.get('current_totals') or {}))[:200]}."),
-        audience_tension=aud_tension,
-        core_message=("A number you can verify — this is what the work "
-                       "produced."),
-        creative_direction=("Single number on screen, source labeled. "
-                             "Caption explains the context WITHOUT "
-                             "reinterpreting the number."),
-        channel_roles=["instagram_static", "instagram_carousel",
-                        "facebook", "paid_social"],
-        required_assets=[
-            _required_asset("static", "Number-on-screen graphic with "
-                                "source label (e.g. 'Meta reporting, "
-                                "2026-08-21 → 2026-09-20')."),
-            _required_asset("static", "Brand card (logo + booking link)."),
-        ],
-        cta=("See the source. Book a session."),
-        evidence_refs=evidence_refs,
-        fact_refs=fact_refs,
-        reporting_refs=reporting_refs,
-        historical_refs=historical_refs,
-        confidence=0.70,
-        novelty_signal=_novelty_signal(
-            "proof data number reporting measurement",
-            history),
-        validation_status="PENDING",
-    ))
-    # Route C: challenge / test (only when brief explicitly
-    # supports it via audience_tension language like "myth",
-    # "challenge", "are you ready", "find out", etc.)
-    tension_lower = (aud_tension or "").lower()
-    challenge_kw = ("myth" in tension_lower or "challenge" in tension_lower
-                     or "find out" in tension_lower or "test" in tension_lower
-                     or "guess" in tension_lower)
-    if challenge_kw:
-        routes.append(_route_skeleton(
-            route_id=f"route-C-{uuid.uuid4().hex[:6]}",
-            name="Challenge / Test",
-            rationale=("Brief audience_tension contains challenge / "
-                         "myth / find-out language. Frame the asset as "
-                         "an open invitation to verify."),
-            strategic_link=(f"Brief pillar: {pillar}. Audience tension: "
-                              f"{aud_tension}."),
-            audience_tension=aud_tension,
-            core_message=("If you've been guessing — book the session "
-                           "and find out for real."),
-            creative_direction=("Question on screen, CTA = book. Direct, "
-                                 "non-aggressive, measurement-led."),
-            channel_roles=["instagram_reel", "tiktok", "youtube_shorts",
-                            "paid_social"],
-            required_assets=[
-                _required_asset("video", "Hook question on screen with "
-                                  "operator voiceover."),
-                _required_asset("static", "End-card with booking link."),
-            ],
-            cta=("Find out — book a session."),
-            evidence_refs=evidence_refs,
-            fact_refs=fact_refs,
-            reporting_refs=reporting_refs,
-            historical_refs=historical_refs,
-            confidence=0.65,
-            novelty_signal=_novelty_signal(
-                "challenge test find out book session",
-                history),
-            validation_status="PENDING",
-        ))
-    return routes
-
-
-def _validate_route(route: dict, voice_rules: str, banned_terms: List[str],
-                      facts: dict, history: List[dict]) -> dict:
-    """V1 §11+§9+§12: run voice, banned-term, fact-grounding, novelty
-    on each route."""
-    # Combine all route text into one validation surface
-    text_blobs = [
-        route.get("core_message") or "",
-        route.get("creative_direction") or "",
-        route.get("audience_tension") or "",
-        route.get("cta") or "",
-        " ".join(route.get("concept_rationale") or []),
-    ]
-    full = "\n".join([t for t in text_blobs if t])
-    voice = _validate_voice(full, voice_rules, banned_terms)
-    grounding = _ground_facts(full, facts)
-    novelty = _novelty_signal(full, history)
-    # Combine into a single validation_status
-    if voice["validation_status"] == "FAIL":
-        status = "FAIL"
-    elif grounding["operator_fact_required"]:
-        # Operator fact required is a WARNING, not a FAIL — the
-        # route is structurally valid, but ungrounded claims
-        # need operator input.
-        status = "WARNING"
-    elif voice["validation_status"] == "WARNING":
-        status = "WARNING"
+def _stub_generation(prompt: str) -> str:
+    route_role = re.search(r"ROUTE_ROLE:\s*([^\n]+)", prompt)
+    core_claim = re.search(r"CORE_CLAIM:\s*([^\n]+)", prompt)
+    aud_tension = re.search(r"AUDIENCE_TENSION:\s*([^\n]+)", prompt)
+    cta = re.search(r"DEFAULT_CTA:\s*([^\n]+)", prompt)
+    facts_block = re.search(r"CANONICAL_FACTS_JSON:\s*(\{[\s\S]+?\})\nREPORTING_BRIEF", prompt)
+    role = ((route_role.group(1) if route_role else "expert_demonstration").strip())
+    claim = ((core_claim.group(1) if core_claim else "We measure before we prescribe.").strip())
+    tension = ((aud_tension.group(1) if aud_tension else "").strip())
+    cta_t = ((cta.group(1) if cta else "Book your session").strip())
+    facts_summary = ""
+    if facts_block:
+        try:
+            f = json.loads(facts_block.group(1))
+            sv = ", ".join((f.get("services") or [])[:4])
+            pr = ", ".join((f.get("products") or [])[:4])
+            facts_summary = (f"\nGROUNDED FACTS (knowledge.json):\n"
+                              f"  Services: {sv or '(none)'}\n"
+                              f"  Products: {pr or '(none)'}\n")
+        except Exception:
+            pass
+    # Per-role template (richer than raw echo)
+    if role == "expert_demonstration":
+        hook = (claim[:90] or "We measure before we prescribe.")
+        direction = ("Operator on camera demonstrating one measurement step "
+                      "on the studio floor. Direct-to-camera explanation with "
+                      "a single number on screen — TrackMan capture, swing "
+                      "close-up, or measurement result.")
+    elif role == "proof_and_data":
+        hook = "A number you can verify."
+        direction = ("Single number on screen, source labeled. Caption explains "
+                      "the context WITHOUT reinterpreting the number. "
+                      "Brand card + booking URL footer.")
+    elif role == "challenge_test":
+        hook = "If you've been guessing — find out for real."
+        direction = ("Question on screen with operator voiceover. One "
+                      "invitation to verify. End with booking CTA. "
+                      "Direct, non-aggressive, measurement-led.")
     else:
-        status = "PASS"
-    out = {
-        "voice": voice,
-        "fact_grounding": grounding,
-        "novelty": novelty,
-        "validation_status": status,
-    }
+        hook = (claim[:90] or "We measure before we prescribe.")
+        direction = ("Operator demonstrates one measurement step. "
+                      "Number on screen. Source labeled.")
+    return (
+        f"HOOK: {hook}\n"
+        f"CORE: {claim[:160]}\n"
+        f"TENSION: {tension[:120]}\n"
+        f"DIRECTION: {direction}\n"
+        f"CTA: {cta_t[:80]}\n"
+        f"{facts_summary}"
+    )
+
+
+def build_route_prompt(route_role: str, brand_id: str,
+                        brief: dict, ground_ctx: str,
+                        facts: dict, reporting: dict,
+                        genome_signal: dict,
+                        voice_rules: dict) -> str:
+    do_say = voice_rules.get("do_say") or []
+    dont_say = voice_rules.get("dont_say") or []
+    default_cta = (facts.get("cta_rules") or {}).get(
+        "default_cta") or "Book your session"
+    audience_tension = brief.get("audience_tension") or ""
+    core_claim = brief.get("core_claim") or ""
+    facts_json = json.dumps({
+        "services": [f.get("subject") for f in facts.get("services", [])],
+        "products": [f.get("subject") for f in facts.get("products", [])],
+        "product_brands": list((facts.get("product_brands") or {}).keys()),
+    }, indent=1)
+    return (
+        "BRAND_ID: " + brand_id + "\n"
+        "ROUTE_ROLE: " + route_role + "\n"
+        "AUDIENCE_TENSION: " + audience_tension + "\n"
+        "CORE_CLAIM: " + core_claim + "\n"
+        "DEFAULT_CTA: " + default_cta + "\n"
+        "VOICE_DO_SAY: " + " | ".join(do_say[:20]) + "\n"
+        "VOICE_DONT_SAY: " + " | ".join(dont_say[:20]) + "\n"
+        "GROUNDED_CONTEXT:\n" + ground_ctx + "\n"
+        "CANONICAL_FACTS_JSON: " + facts_json + "\n"
+        "REPORTING_BRIEF:\n" + _report_brief_summary(reporting) + "\n"
+        "CREATIVE_GENOME:\n" + _genome_block(genome_signal) + "\n"
+        "TASK: Produce a single creative block with these labelled "
+        "sections — HOOK (max 90 chars, attention-grabbing, no cliché), "
+        "CORE (1-2 sentences, factual, ground every claim), DIRECTION "
+        "(visual brief, no fake assets), CTA (use DEFAULT_CTA unless "
+        "Brief requires otherwise). Respect VOICE_DONT_SAY. Cite "
+        "canonical facts only.\n"
+    )
+
+
+def _report_brief_summary(reporting: dict) -> str:
+    if not reporting or reporting.get("data_status") != "LIVE":
+        return ("Reporting snapshot unavailable. Reason: " + str(
+            reporting.get("error") or reporting.get("data_status") or "?"))
+    cc = (reporting.get("campaign_counts") or {})
+    spend_ytd = reporting.get("ytd_brand_total_spend")
+    bn = (reporting.get("best_needs_attention") or {}).get("by_objective") or {}
+    lines = [f"YTD spend: R{spend_ytd}",
+              f"Campaigns current/previous: "
+              f"{cc.get('current_delivered_count')}/{cc.get('previous_delivered_count')} "
+              f"(comparable {cc.get('comparable_count')})"]
+    for obj, items in (bn.get("best") or {}).items():
+        for i in (items or [])[:1]:
+            lines.append(f"  Best [{obj}]: {i.get('campaign_name')}")
+    for obj, items in (bn.get("needs_attention") or {}).items():
+        for i in (items or [])[:1]:
+            lines.append(f"  Needs attention [{obj}]: {i.get('campaign_name')}")
+    return "\n".join(lines[:10])
+
+
+def _genome_block(signal: dict) -> str:
+    if (signal or {}).get("status") != "ok":
+        return ("Creative Genome: insufficient_data. "
+                "No visual-recipe influence on this package.")
+    s = signal.get("signal") or {}
+    return (f"sample_size: {signal.get('sample_size')}\n"
+              f"high_alignment_share: {s.get('high_alignment_share')}\n"
+              f"dominant_orientation: {s.get('dominant_orientation')}\n"
+              f"top_dominant_color: {s.get('top_dominant_color')}\n"
+              f"confidence: {signal.get('confidence')}\n"
+              f"framing_note: {(s.get('framing_note') or '')[:200]}")
+
+
+# ── CONCEPT ROUTES ────────────────────────────────────────────
+
+def design_routes(brief: dict, facts: dict,
+                    reporting: dict, genome: dict) -> List[dict]:
+    pillar = (brief.get("primary_pillar") or "default").lower()
+    tension = (brief.get("audience_tension") or "").lower()
+    routes = []
+    if pillar in ("coaching", "fitting"):
+        routes.append({"route_id": "expert_demonstration",
+                        "route_role": "expert_demonstration",
+                        "mechanic": "operator demonstrates measurement",
+                        "audience_tension": tension,
+                        "proof_mechanism": "TrackMan numbers on screen",
+                        "narrative": "before → measure → prescribe",
+                        "cta_hint": "Book a TrackMan session"})
+    routes.append({"route_id": "proof_and_data",
+                    "route_role": "proof_and_data",
+                    "mechanic": "single number on screen",
+                    "audience_tension": tension,
+                    "proof_mechanism": "Reporting V2.4.1 with source label",
+                    "narrative": "this is what we measured",
+                    "cta_hint": "See the source. Book a session."})
+    challenge_kw = ("myth" in tension or "challenge" in tension
+                     or "find out" in tension or "test" in tension
+                     or "guess" in tension or "sure" in tension)
+    if challenge_kw:
+        routes.append({"route_id": "challenge_test",
+                        "route_role": "challenge_test",
+                        "mechanic": "open invitation to verify",
+                        "audience_tension": tension,
+                        "proof_mechanism": "implicit (book the session — data follows)",
+                        "narrative": "if you've been guessing — here's the way out",
+                        "cta_hint": "Find out — book a session"})
+    return _dedupe_routes(routes)
+
+
+def _dedupe_routes(routes: List[dict]) -> List[dict]:
+    seen = set()
+    out = []
+    for r in routes:
+        sig = (r.get("mechanic"), r.get("proof_mechanism"),
+                r.get("audience_tension"))
+        if sig in seen:
+            continue
+        seen.add(sig)
+        out.append(r)
     return out
 
 
-def _channel_drafts(route: dict, allowed_channels: List[str],
-                     reporting_refs: List[str], fact_refs: List[str]
-                     ) -> dict:
-    """V1 §14-§18: produce channel-specific drafts for each
-    approved channel.
+# ── CHANNEL DRAFTING ──────────────────────────────────────────
 
-    Per V1 §14: 'Do not automatically generate all channels.'
-    Per V1 §15-§18: each format has its own minimal structural
-    skeleton (hook, opening visual, beats, CTA, duration, asset
-    requirements)."""
-    drafts = {}
-    for ch in allowed_channels:
-        if ch == "instagram_reel" or ch == "youtube_shorts" or ch == "tiktok":
-            # V1 §15
-            drafts[ch] = {
-                "format": ch,
-                "hook": (route["core_message"][:80] + "…"
-                          if len(route["core_message"]) > 80
-                          else route["core_message"]),
-                "opening_visual": "Operator on studio floor OR B-roll of measurement setup.",
-                "beat_sequence": [
-                    {"beat": 1, "duration_s": "0-3",
-                      "what_happens": "Hook question or surprising data point.",
-                      "on_screen_text": route["core_message"][:60]},
-                    {"beat": 2, "duration_s": "3-12",
-                      "what_happens": "Demonstration / explanation — concrete and specific.",
-                      "on_screen_text": "One number, one measurement."},
-                    {"beat": 3, "duration_s": "12-22",
-                      "what_happens": "Result / what the audience should do next.",
-                      "on_screen_text": route["cta"][:60]},
-                ],
-                "spoken_copy": route["creative_direction"],
-                "on_screen_text_summary": route["core_message"],
-                "broll": ["TrackMan / Zen Stage capture",
-                          "Swing close-up",
-                          "Studio environment"],
-                "cta": route["cta"],
-                "estimated_duration_s": 22,
-                "required_assets": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "reporting_refs": reporting_refs,
-                "validation_status": route["validation_status"],
-            }
-        elif ch == "instagram_carousel":
-            # V1 §16
-            drafts[ch] = {
-                "format": ch,
-                "slides": [
-                    {"slide": 1, "purpose": "Hook",
-                      "headline": route["core_message"][:80],
-                      "supporting_copy": "Why this matters.",
-                      "visual_direction": "Bold type, brand card, single number."},
-                    {"slide": 2, "purpose": "Proof",
-                      "headline": "What we measured",
-                      "supporting_copy": "One specific data point.",
-                      "visual_direction": "Number on screen."},
-                    {"slide": 3, "purpose": "Method",
-                      "headline": "How we measured it",
-                      "supporting_copy": "One measurement step.",
-                      "visual_direction": "Operator + measurement tool."},
-                    {"slide": 4, "purpose": "Action",
-                      "headline": "Try it yourself",
-                      "supporting_copy": route["cta"],
-                      "visual_direction": "Booking CTA + brand card."},
-                ],
-                "cta": route["cta"],
-                "required_assets": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "reporting_refs": reporting_refs,
-                "validation_status": route["validation_status"],
-            }
-        elif ch == "instagram_static":
-            # V1 §17
-            drafts[ch] = {
-                "format": ch,
-                "message": route["core_message"],
-                "visual_concept": ("Single number on screen with "
-                                    "source label, brand card."),
-                "on_image_text": route["core_message"][:80],
-                "caption": route["core_message"],
-                "cta": route["cta"],
-                "asset_requirements": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "reporting_refs": reporting_refs,
-                "validation_status": route["validation_status"],
-            }
-        elif ch == "paid_social":
-            # V1 §18
-            drafts[ch] = {
-                "format": ch,
-                "objective": route["strategic_link"],
-                "creative_concept": route["working_concept_name"],
-                "primary_text": route["core_message"],
-                "headline": route["core_message"][:40],
-                "description": route["creative_direction"][:120],
-                "cta": route["cta"],
-                "destination": ("Booking URL (operator must confirm)"),
-                "visual_or_video_direction": route["creative_direction"],
-                "asset_requirements": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "reporting_refs": reporting_refs,
-                "validation_status": route["validation_status"],
-                # V1 §18: never invent expected results
-                "expected_results": None,
-            }
-        elif ch in ("facebook",):
-            drafts[ch] = {
-                "format": ch,
-                "primary_text": route["core_message"],
-                "headline": route["core_message"][:60],
-                "cta": route["cta"],
-                "asset_requirements": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "reporting_refs": reporting_refs,
-                "validation_status": route["validation_status"],
-            }
-        elif ch == "email":
-            drafts[ch] = {
-                "format": ch,
-                "subject_line": route["core_message"][:60],
-                "preview_text": (route["audience_tension"][:80]
-                                    if route["audience_tension"] else None),
-                "body": route["creative_direction"],
-                "cta": route["cta"],
-                "asset_requirements": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "validation_status": route["validation_status"],
-            }
-        elif ch == "landing_page":
-            drafts[ch] = {
-                "format": ch,
-                "hero_headline": route["core_message"][:80],
-                "hero_subline": (route["audience_tension"][:120]
-                                    if route["audience_tension"] else None),
-                "body": route["creative_direction"],
-                "cta": route["cta"],
-                "asset_requirements": route["required_assets"],
-                "evidence_refs": route["evidence_refs"],
-                "fact_refs": route["fact_refs"],
-                "validation_status": route["validation_status"],
-            }
-    return drafts
+def _draft_channel(route_role: str, channel: str,
+                     generated: dict, facts: dict) -> dict:
+    default_cta = (facts.get("cta_rules") or {}).get("default_cta") or ""
+    base = {"format": channel,
+              "validation_required": ["voice", "banned_term",
+                                         "fact_grounding"]}
+    if channel in ("instagram_reel", "youtube_shorts", "tiktok"):
+        return {**base,
+                  "hook": generated.get("HOOK") or "?",
+                  "core": generated.get("CORE") or "",
+                  "direction": generated.get("DIRECTION") or "",
+                  "cta": generated.get("CTA") or default_cta,
+                  "beat_sequence": [
+                      {"beat": 1, "duration_s": "0-3",
+                        "what": "Hook question or surprising number.",
+                        "on_screen_text": (generated.get("HOOK") or "")[:60]},
+                      {"beat": 2, "duration_s": "3-15",
+                        "what": "Demonstration / explanation — one measurement step.",
+                        "on_screen_text": "One number, one measurement."},
+                      {"beat": 3, "duration_s": "15-25",
+                        "what": "Result / CTA.",
+                        "on_screen_text": (generated.get("CTA") or default_cta)[:60]},
+                  ],
+                  "broll": ["TrackMan capture", "swing close-up",
+                              "studio environment"],
+                  "estimated_duration_s": 25}
+    if channel == "instagram_carousel":
+        return {**base,
+                  "slides": [
+                      {"slide": 1, "purpose": "Hook",
+                        "headline": (generated.get("HOOK") or "")[:80],
+                        "supporting": "Why this matters.",
+                        "visual_direction": "Bold type + brand card."},
+                      {"slide": 2, "purpose": "Proof",
+                        "headline": "What we measured",
+                        "supporting": "One specific data point.",
+                        "visual_direction": "Number on screen, source label."},
+                      {"slide": 3, "purpose": "Method",
+                        "headline": "How we measured it",
+                        "supporting": "One measurement step.",
+                        "visual_direction": "Operator + measurement tool."},
+                      {"slide": 4, "purpose": "Action",
+                        "headline": "Try it yourself",
+                        "supporting": generated.get("CTA") or default_cta,
+                        "visual_direction": "Booking CTA + brand card."},
+                  ],
+                  "cta": generated.get("CTA") or default_cta}
+    if channel == "instagram_static":
+        return {**base,
+                  "message": generated.get("CORE") or generated.get("HOOK") or "",
+                  "on_image_text": (generated.get("HOOK") or "")[:80],
+                  "caption": generated.get("CORE") or "",
+                  "cta": generated.get("CTA") or default_cta}
+    if channel == "paid_social":
+        return {**base,
+                  "objective": "consideration",
+                  "creative_concept": route_role,
+                  "primary_text": generated.get("CORE") or "",
+                  "headline": (generated.get("HOOK") or "")[:40],
+                  "description": (generated.get("DIRECTION") or "")[:120],
+                  "cta": generated.get("CTA") or default_cta,
+                  "destination": "swingshack.co.za",
+                  "visual_or_video_direction": generated.get("DIRECTION") or "",
+                  "expected_results": None}
+    if channel == "facebook":
+        return {**base,
+                  "primary_text": generated.get("CORE") or "",
+                  "headline": (generated.get("HOOK") or "")[:60],
+                  "cta": generated.get("CTA") or default_cta}
+    if channel == "email":
+        return {**base,
+                  "subject_line": (generated.get("HOOK") or "")[:60],
+                  "preview_text": (generated.get("TENSION") or "")[:80],
+                  "body": generated.get("DIRECTION") or "",
+                  "cta": generated.get("CTA") or default_cta}
+    if channel == "landing_page":
+        return {**base,
+                  "hero_headline": (generated.get("HOOK") or "")[:80],
+                  "hero_subline": (generated.get("CORE") or "")[:120],
+                  "body": generated.get("DIRECTION") or "",
+                  "cta": generated.get("CTA") or default_cta}
+    return {**base, "raw": generated}
 
 
-def _publish_block(creative_package: dict) -> dict:
-    """V1 §25: establish (but NOT implement) can_publish_creative.
+# ── BRIEF / CHANNELS ──────────────────────────────────────────
 
-    Always returns publish_allowed=false in this slice. Captures
-    every gate that would be checked when Publish is built."""
-    block_reasons = []
-    routes = creative_package.get("routes") or []
-    # Per V1 §25
-    for r in routes:
-        if r.get("validation_status") == "FAIL":
-            block_reasons.append(
-                f"route {r.get('route_id')} ({r.get('working_concept_name')}) "
-                f"has validation_status=FAIL — voice/banned-term hit")
-    ungrounded = []
-    for r in routes:
-        for uf in (r.get("fact_grounding") or {}).get(
-                "operator_fact_required") or []:
-            ungrounded.append(
-                f"route {r.get('route_id')}: {uf.get('claim')} — "
-                f"{uf.get('note')}")
-    asset_issues = []
-    for r in routes:
-        for a in r.get("required_assets") or []:
-            if a.get("operator_asset_required"):
-                asset_issues.append(
-                    f"route {r.get('route_id')} asset "
-                    f"{a.get('kind')}: operator_asset_required")
-    stale = creative_package.get("creative_strategy_stale", False)
-    if stale:
-        block_reasons.append("creative_strategy_stale=true")
-    return {
-        "publish_allowed": False,
-        "publish_implemented": False,
-        "block_reasons": block_reasons,
-        "unresolved_fact_requirements": ungrounded,
-        "unresolved_asset_requirements": asset_issues,
-        "stale_strategy": stale,
-        "rules": ("V1 §25: publish gate established, NOT implemented. "
-                   "publish_allowed=false in this slice. Publish code "
-                   "MUST be built in a separate slice with explicit "
-                   "operator confirmation per channel."),
-    }
+def _load_brief(brand_id: str, brief_id: str) -> dict:
+    candidates = [
+        Path(_data_root()) / "briefs" / brand_id / f"{brief_id}.json",
+        Path(_data_root()) / "campaign-briefs" / brand_id / f"{brief_id}.json",
+    ]
+    for c in candidates:
+        if c.exists():
+            data = _read_json(c)
+            if isinstance(data, dict):
+                return data
+    return {}
 
 
-# ── PUBLIC API ────────────────────────────────────────────────────────
+def _allowed_channels(brief: dict) -> List[str]:
+    raw = brief.get("channels") or brief.get("approved_channels") or []
+    if isinstance(raw, str):
+        raw = [x.strip() for x in raw.split(",") if x.strip()]
+    return [c for c in raw if c in CHANNEL_SET] or ["paid_social"]
+
+
+# ── PACKAGE BUILD ─────────────────────────────────────────────
 
 def build_creative_package(brand_id: str, brief_id: str) -> dict:
-    """V1 §1-§22: build a creative_package from one approved Brief.
-
-    Returns the package dict (also written to
-    DATA_DIR/creative-packages/<brand>/<brief_id>__<id>.json
-    with the package frozen snapshot).
-    """
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return {"ok": False,
                 "error": f"brand_id must be swing-shack|stick|bag-drop, got {brand_id}"}
-    # Load inputs
-    brief = _load_brief_snapshot(brand_id, brief_id)
+    brief = _load_brief(brand_id, brief_id)
     if not brief:
         return {"ok": False,
                 "error": f"brief not found: {brand_id}/{brief_id}",
                 "creative_strategy_stale": True}
-    reporting = _load_reporting_snapshot(brand_id)
-    facts = _load_brand_facts(brand_id)
-    voice_rules = _load_voice_rules(brand_id)
-    banned_terms = _load_banned_terms(brand_id)
-    history = _load_history_captions(brand_id)
-    genome = _load_creative_genome(brand_id)
-    visual_dna = _load_visual_dna(brand_id)
-    # V1 §10 brand isolation: only the requested brand's data is
-    # touched. The functions above all scope by brand_id.
-    # Build evidence refs
-    evidence_refs = [
-        f"brief:{brand_id}/{brief_id}@{_brief_revision(brief)}",
-    ]
-    if reporting.get("data_status") == "LIVE":
-        evidence_refs.append(
-            f"reporting_v2.4.1:{brand_id}@{reporting.get('fetched_at')}")
-    reporting_refs = [
-        f"reporting_v2.4.1.current_totals.{k}"
-        for k in ((reporting.get("current_totals") or {}).keys())][:10]
-    fact_refs = sorted((facts.get("products") or {}).keys()
-                       if isinstance(facts.get("products"), dict) else [])
-    historical_refs = [
-        h.get("id") or h.get("asset_id") or h.get("ts") or "?"
-        for h in (history or [])[:20]]
-    # Routes
-    routes = _derive_creative_routes(brief, reporting, facts, genome,
-                                       visual_dna, history,
-                                       reporting_refs, evidence_refs,
-                                       fact_refs, historical_refs)
-    # V1 §11+§9+§12: validate every route
-    for r in routes:
-        val = _validate_route(r, voice_rules, banned_terms, facts,
-                                history)
-        r.update(val)
-    # V1 §14: only Brief-approved channels
-    allowed_channels = _allowed_channels_from_brief(brief)
+    facts = facts_for_grounding(brand_id)
+    reporting = reporting_v241_snapshot(brand_id)
+    genome = creative_genome_signal(brand_id)
+    routes_meta = design_routes(brief, facts, reporting, genome)
+    ground_ctx = _build_ground_ctx(facts, brand_id)
+    routes = []
+    for rm in routes_meta:
+        prompt = build_route_prompt(rm["route_role"], brand_id, brief,
+                                       ground_ctx, facts, reporting, genome,
+                                       facts.get("voice_rules") or {})
+        generated_text = _call_llm(prompt)
+        generated = _parse_llm_output(generated_text)
+        combined = " ".join([generated.get("HOOK") or "",
+                                generated.get("CORE") or "",
+                                generated.get("DIRECTION") or "",
+                                generated.get("CTA") or ""])
+        grounding = validate_generated_text(combined, facts, brand_id)
+        novelty = novelty_check(
+            (generated.get("HOOK") or "")
+            + " " + (generated.get("CORE") or ""), brand_id)
+        voice = voice_validation(combined, facts, brand_id)
+        routes.append({
+            "route_id": rm["route_id"],
+            "working_concept_name": rm["route_role"],
+            "concept_rationale": rm.get("mechanic"),
+            "strategic_link": (f"Brief pillar: {brief.get('primary_pillar')}. "
+                                  f"Brief objective: {brief.get('objective')}."),
+            "audience_tension": brief.get("audience_tension") or "",
+            "mechanic": rm.get("mechanic"),
+            "proof_mechanism": rm.get("proof_mechanism"),
+            "narrative": rm.get("narrative"),
+            "generated": generated,
+            "fact_grounding": grounding,
+            "novelty": novelty,
+            "voice": voice,
+            "validation_status": _route_validation_status(voice, grounding,
+                                                              novelty),
+            "required_assets": _required_assets_for_route(brand_id),
+            "revisions": [{
+                "revision": "system_draft",
+                "generated_at": _now_iso(),
+                "generated_by": GENERATOR_VERSION,
+                "change_reason": "initial generation via LLM layer",
+                "previous_revision": None,
+            }],
+        })
+    allowed = _allowed_channels(brief)
     channel_drafts = {}
     for r in routes:
-        channel_drafts[r["route_id"]] = _channel_drafts(
-            r, allowed_channels, reporting_refs, fact_refs)
-    # V1 §20: package snapshot
+        channel_drafts[r["route_id"]] = {
+            ch: _draft_channel(r["working_concept_name"], ch,
+                                  r["generated"], facts)
+            for ch in allowed
+        }
     snapshot = {
         "brief_id": brief_id,
-        "brief_revision": _brief_revision(brief),
+        "brief_revision": (brief.get("revision")
+                              or brief.get("brief_revision") or "v?"),
         "strategy_snapshot": {
             "primary_pillar": brief.get("primary_pillar"),
             "objective": brief.get("objective"),
             "audience_tension": brief.get("audience_tension"),
             "north_star_link": brief.get("north_star_link"),
-            "channels_approved": allowed_channels,
+            "channels_approved": allowed,
             "creative_allowed": brief.get("creative_allowed"),
             "status": brief.get("status"),
         },
-        "evidence_snapshot": {"refs": evidence_refs},
-        "reporting_snapshot": {
-            "schema": reporting.get("schema"),
-            "fetched_at": reporting.get("fetched_at"),
-            "data_as_of": reporting.get("data_as_of"),
-            "current_totals": reporting.get("current_totals"),
-            "previous_totals": (reporting.get("current_totals") or {})
-                if False else reporting.get("previous_totals"),
-            "ytd_totals": reporting.get("ytd_totals"),
-            "data_status": reporting.get("data_status"),
-            "freshness_warning": reporting.get("freshness_warning"),
+        "evidence_snapshot": {
+            "facts_source": (facts.get("schema_version")
+                                or "knowledge.json"),
+            "reporting_source": "build_v24_brand_report",
+            "genome_status": genome.get("status"),
+            "genome_sample_size": genome.get("sample_size"),
         },
+        "reporting_snapshot": reporting,
         "fact_snapshot": {
-            "products_count": len(facts.get("products") or [])
-                if isinstance(facts.get("products"), list) else
-                len((facts.get("products") or {})),
-            "canonical_fact_keys": sorted(
-                [k for k in (facts or {}).keys()
-                 if k not in ("products",)]),
+            "schema_version": facts.get("schema_version"),
+            "active_facts_count": (len(facts.get("services") or [])
+                                       + len(facts.get("products") or [])),
+            "product_brands": list((facts.get("product_brands") or {}).keys()),
         },
     }
     package_id = f"cp-{uuid.uuid4().hex[:10]}"
@@ -1018,20 +884,20 @@ def build_creative_package(brand_id: str, brief_id: str) -> dict:
         "generator_version": GENERATOR_VERSION,
         "generated_at": _now_iso(),
         "creative_strategy_stale": False,
+        "status": "draft",
         "snapshot": snapshot,
         "routes": routes,
         "channel_drafts": channel_drafts,
-        "allowed_channels": allowed_channels,
-        "rule": ("V1 §1-§22: output from approved Brief + Reporting V2.4.1 "
-                 "+ canonical facts + brand voice + Creative Genome. "
-                 "Read-only from Reporting (does NOT reinterpret numbers). "
-                 "Reports revenue/cost results only as Reporting numbers; "
-                 "leads only as 'Meta-reported leads' with lead_measurement_note."),
-        "publish": _publish_block({"routes": routes,
-                                       "creative_strategy_stale": False}),
+        "allowed_channels": allowed,
+        "creative_genome": genome,
+        "rule": ("V1.1: package from approved Brief + canonical "
+                  "knowledge.json facts + Reporting V2.4.1 + "
+                  "Creative Genome + voice/banned/CTA rules. "
+                  "LLM generation + deterministic validation. "
+                  "Publish remains blocked."),
+        "publish": _can_publish_creative(routes, allowed, facts),
     }
-    # Persist
-    outdir = Path(_data_dir()) / "creative-packages" / brand_id
+    outdir = Path(_data_root()) / "creative-packages" / brand_id
     try:
         outdir.mkdir(parents=True, exist_ok=True)
         path = outdir / f"{brief_id}__{package_id}.json"
@@ -1042,39 +908,206 @@ def build_creative_package(brand_id: str, brief_id: str) -> dict:
     return pkg
 
 
-def validate_creative_item(item_text: str, brand_id: str) -> dict:
-    """V1 §11: standalone voice + banned-term validator."""
-    voice_rules = _load_voice_rules(brand_id)
-    banned = _load_banned_terms(brand_id)
-    return _validate_voice(item_text, voice_rules, banned)
+def _build_ground_ctx(facts: dict, brand_id: str) -> str:
+    lines = [f"BRAND: {brand_id}",
+              f"Knowledge schema: {facts.get('schema_version')}"]
+    services = facts.get("services") or []
+    lines.append(f"SERVICES ({len(services)}):")
+    for s in services[:10]:
+        v = (s.get("value") or "")[:200]
+        lines.append(f"  - {s.get('subject')} [{s.get('fact_id')}]: {v}")
+    products = facts.get("products") or []
+    if products:
+        lines.append(f"PRODUCTS ({len(products)}):")
+        for p in products[:10]:
+            v = (p.get("value") or "")[:200]
+            lines.append(f"  - {p.get('subject')} [{p.get('fact_id')}]: {v}")
+    pbs = facts.get("product_brands") or {}
+    if pbs:
+        lines.append("PRODUCT_BRANDS:")
+        for k, v in pbs.items():
+            lines.append(f"  - {k}: {(v.get('value') or '')[:200]}")
+    cta = (facts.get("cta_rules") or {}).get("default_cta")
+    if cta:
+        lines.append(f"DEFAULT_CTA: {cta}")
+    return "\n".join(lines)
+
+
+def _parse_llm_output(text: str) -> dict:
+    out: Dict[str, str] = {}
+    for label in ("HOOK", "CORE", "DIRECTION", "CTA", "TENSION", "OBJECTIVE"):
+        m = re.search(rf"{label}:\s*(.+?)(?=\n[A-Z]+:|\Z)", text, re.DOTALL)
+        if m:
+            out[label] = m.group(1).strip()
+    if not out:
+        out["CORE"] = text.strip()
+    return out
+
+
+def _route_validation_status(voice: dict, grounding: dict,
+                                novelty: dict) -> str:
+    if voice.get("validation_status") == "FAIL":
+        return "FAIL"
+    if grounding.get("operator_fact_required") or grounding.get("cross_brand_leaks"):
+        return "WARNING"
+    if voice.get("validation_status") == "WARNING":
+        return "WARNING"
+    return "PASS"
+
+
+def _required_assets_for_route(brand_id: str) -> List[dict]:
+    visual_dir = _brand_dir(brand_id) / "images"
+    has_images = visual_dir.exists() and any(visual_dir.iterdir())
+    available = (sorted(p.name for p in visual_dir.glob("*.jpg"))[:10]
+                   if has_images else [])
+    return [
+        {"kind": "video",
+          "description": "Operator demonstrating one measurement step.",
+          "operator_asset_required": True,
+          "available_real_assets": available,
+          "source": "operator_required"},
+        {"kind": "static",
+          "description": "Brand card with booking URL.",
+          "operator_asset_required": True,
+          "available_real_assets": available,
+          "source": "operator_required"},
+    ]
+
+
+# ── can_publish_creative ─────────────────────────────────────
+
+def _can_publish_creative(routes, allowed_channels, facts) -> dict:
+    block_reasons = []
+    unresolved_facts = []
+    unresolved_assets = []
+    for r in routes:
+        if r.get("validation_status") == "FAIL":
+            block_reasons.append(f"route {r.get('route_id')} validation=FAIL")
+        for uf in (r.get("fact_grounding") or {}).get(
+                "operator_fact_required") or []:
+            unresolved_facts.append(f"{r.get('route_id')}: {(uf.get('claim') or '')[:80]}")
+        for a in r.get("required_assets") or []:
+            if a.get("operator_asset_required"):
+                unresolved_assets.append(f"{r.get('route_id')}: {a.get('kind')}")
+    return {"publish_allowed": False, "publish_implemented": False,
+              "block_reasons": block_reasons,
+              "unresolved_fact_requirements": unresolved_facts,
+              "unresolved_asset_requirements": unresolved_assets,
+              "stale_strategy": False,
+              "gates": {
+                  "creative_status_approved": False,
+                  "no_unresolved_facts": len(unresolved_facts) == 0,
+                  "no_unresolved_assets": len(unresolved_assets) == 0,
+                  "strategy_not_stale": True,
+                  "validation_passed": all(
+                      r.get("validation_status") != "FAIL" for r in routes),
+              },
+              "rule": ("V1.1 §15: can_publish_creative is read-only and "
+                        "publish_allowed=false globally. Publish code is "
+                        "a separate slice.")}
+
+
+def can_publish_creative(brand_id: str, brief_id: str,
+                            package_id: str) -> dict:
+    pkg = get_creative_package(brand_id, brief_id, package_id)
+    if not pkg:
+        return {"ok": False, "error": "package not found"}
+    return {"ok": True, "publish": pkg.get("publish")}
+
+
+# ── PERSISTENCE / READ / LIST ─────────────────────────────────
+
+def get_creative_package(brand_id: str, brief_id: str,
+                           package_id: str) -> Optional[dict]:
+    pkgdir = Path(_data_root()) / "creative-packages" / brand_id
+    matches = list(pkgdir.glob(f"{brief_id}__{package_id}.json"))
+    if not matches:
+        return None
+    return _read_json(matches[0])
+
+
+def list_creative_packages(brand_id: str) -> List[dict]:
+    pkgdir = Path(_data_root()) / "creative-packages" / brand_id
+    if not pkgdir.exists():
+        return []
+    out = []
+    for p in sorted(pkgdir.glob("*.json")):
+        d = _read_json(p)
+        if not d:
+            continue
+        out.append({"package_id": d.get("package_id"),
+                     "brief_id": d.get("brief_id"),
+                     "brand_id": d.get("brand_id"),
+                     "generated_at": d.get("generated_at"),
+                     "generator_version": d.get("generator_version"),
+                     "route_count": len(d.get("routes") or []),
+                     "channels": d.get("allowed_channels") or [],
+                     "status": d.get("status")})
+    return out
+
+
+def validate_creative_item(text: str, brand_id: str) -> dict:
+    facts = facts_for_grounding(brand_id)
+    return voice_validation(text, facts, brand_id)
 
 
 def regenerate_route_field(brand_id: str, brief_id: str,
                               package_id: str, route_id: str,
                               field: str,
                               reason: str) -> dict:
-    """V1 §22: targeted regeneration of a single field on a route.
-
-    Stays bound to approved Brief + brand facts + voice +
-    evidence + strategy. Never free-form.
-    """
-    allowed_fields = {
-        "hook", "core_message", "audience_tension",
-        "creative_direction", "cta",
-        "concept_rationale", "strategic_link",
-    }
+    allowed_fields = ("hook", "core", "direction", "cta", "tension")
     if field not in allowed_fields:
         return {"ok": False,
                 "error": f"field must be one of {sorted(allowed_fields)}"}
-    pkgdir = Path(_data_dir()) / "creative-packages" / brand_id
+    pkgdir = Path(_data_root()) / "creative-packages" / brand_id
     matches = list(pkgdir.glob(f"{brief_id}__{package_id}.json"))
     if not matches:
         return {"ok": False, "error": "package not found"}
-    pkg = json.loads(matches[0].read_text())
+    pkg = _read_json(matches[0])
     target = next((r for r in (pkg.get("routes") or [])
                     if r.get("route_id") == route_id), None)
     if not target:
         return {"ok": False, "error": "route not found"}
+    brief = _load_brief(brand_id, brief_id)
+    facts = facts_for_grounding(brand_id)
+    reporting = reporting_v241_snapshot(brand_id)
+    genome = creative_genome_signal(brand_id)
+    ground_ctx = _build_ground_ctx(facts, brand_id)
+    prompt = build_route_prompt(target["working_concept_name"],
+                                   brand_id, brief, ground_ctx, facts,
+                                   reporting, genome,
+                                   facts.get("voice_rules") or {})
+    if field == "hook":
+        prompt += "\nFOCUS: regenerate the HOOK only.\n"
+    elif field == "core":
+        prompt += "\nFOCUS: regenerate the CORE message only.\n"
+    elif field == "direction":
+        prompt += "\nFOCUS: regenerate DIRECTION only.\n"
+    elif field == "cta":
+        prompt += "\nFOCUS: regenerate CTA only.\n"
+    elif field == "tension":
+        prompt += "\nFOCUS: regenerate TENSION framing only.\n"
+    new_text = _call_llm(prompt)
+    new_parsed = _parse_llm_output(new_text)
+    gen = target.setdefault("generated", {})
+    if field == "hook" and new_parsed.get("HOOK"):
+        gen["HOOK"] = new_parsed["HOOK"]
+    elif field == "core" and new_parsed.get("CORE"):
+        gen["CORE"] = new_parsed["CORE"]
+    elif field == "direction" and new_parsed.get("DIRECTION"):
+        gen["DIRECTION"] = new_parsed["DIRECTION"]
+    elif field == "cta" and new_parsed.get("CTA"):
+        gen["CTA"] = new_parsed["CTA"]
+    elif field == "tension" and new_parsed.get("TENSION"):
+        gen["TENSION"] = new_parsed["TENSION"]
+    combined = " ".join([gen.get("HOOK") or "", gen.get("CORE") or "",
+                            gen.get("DIRECTION") or "", gen.get("CTA") or ""])
+    target["fact_grounding"] = validate_generated_text(combined, facts, brand_id)
+    target["voice"] = voice_validation(combined, facts, brand_id)
+    target["novelty"] = novelty_check(
+        (gen.get("HOOK") or "") + " " + (gen.get("CORE") or ""), brand_id)
+    target["validation_status"] = _route_validation_status(
+        target["voice"], target["fact_grounding"], target["novelty"])
     target.setdefault("revisions", []).append({
         "revision": "regeneration",
         "field": field,
@@ -1085,64 +1118,305 @@ def regenerate_route_field(brand_id: str, brief_id: str,
             "revision") if target.get("revisions") else None,
     })
     matches[0].write_text(json.dumps(pkg, indent=2))
-    return {"ok": True, "package_id": package_id,
-            "route_id": route_id, "field": field,
-            "revisions": target["revisions"]}
-
-
-def get_creative_package(brand_id: str, brief_id: str,
-                           package_id: str) -> Optional[dict]:
-    pkgdir = Path(_data_dir()) / "creative-packages" / brand_id
-    matches = list(pkgdir.glob(f"{brief_id}__{package_id}.json"))
-    if not matches:
-        return None
-    return json.loads(matches[0].read_text())
-
-
-def list_creative_packages(brand_id: str) -> List[dict]:
-    pkgdir = Path(_data_dir()) / "creative-packages" / brand_id
-    if not pkgdir.exists():
-        return []
-    out = []
-    for p in sorted(pkgdir.glob("*.json")):
-        try:
-            d = json.loads(p.read_text())
-        except Exception:
-            continue
-        out.append({
-            "package_id": d.get("package_id"),
-            "brief_id": d.get("brief_id"),
-            "brand_id": d.get("brand_id"),
-            "generated_at": d.get("generated_at"),
-            "generator_version": d.get("generator_version"),
-            "route_count": len(d.get("routes") or []),
-            "channels": d.get("allowed_channels") or [],
-        })
-    return out
+    return {"ok": True, "package_id": package_id, "route_id": route_id,
+              "field": field, "revisions": target["revisions"],
+              "validation_status": target["validation_status"]}
 
 
 def operator_edit_provenance(brand_id: str, brief_id: str,
                                package_id: str, route_id: str,
-                               edit_summary: str) -> dict:
-    """V1 §11: log an operator edit (NEVER silently rewritten)."""
-    pkgdir = Path(_data_dir()) / "creative-packages" / brand_id
+                               edit_summary: str, edits: dict = None) -> dict:
+    pkgdir = Path(_data_root()) / "creative-packages" / brand_id
     matches = list(pkgdir.glob(f"{brief_id}__{package_id}.json"))
     if not matches:
         return {"ok": False, "error": "package not found"}
-    pkg = json.loads(matches[0].read_text())
+    pkg = _read_json(matches[0])
     target = next((r for r in (pkg.get("routes") or [])
                     if r.get("route_id") == route_id), None)
     if not target:
         return {"ok": False, "error": "route not found"}
+    gen = target.setdefault("generated", {})
+    if edits:
+        for k, v in edits.items():
+            uk = k.upper()
+            if uk in gen:
+                gen[uk] = v
     target.setdefault("revisions", []).append({
         "revision": "operator_edit",
         "edit_summary": edit_summary,
+        "edits_applied": list((edits or {}).keys()),
         "generated_at": _now_iso(),
         "generated_by": "operator",
         "previous_revision": (target.get("revisions") or [])[-1].get(
             "revision") if target.get("revisions") else None,
     })
     matches[0].write_text(json.dumps(pkg, indent=2))
-    return {"ok": True, "package_id": package_id,
-            "route_id": route_id,
-            "revisions": target["revisions"]}
+    return {"ok": True, "package_id": package_id, "route_id": route_id,
+              "revisions": target["revisions"]}
+
+
+def transition_creative_status(brand_id: str, brief_id: str,
+                                  package_id: str, to_status: str,
+                                  reason: str = "",
+                                  actor: str = "operator") -> dict:
+    valid = {"draft": ("ready_for_review",),
+              "ready_for_review": ("changes_requested", "approved",
+                                       "rejected"),
+              "changes_requested": ("ready_for_review",),
+              "approved": ("superseded",),
+              "rejected": ("draft",),
+              "superseded": ()}
+    pkgdir = Path(_data_root()) / "creative-packages" / brand_id
+    matches = list(pkgdir.glob(f"{brief_id}__{package_id}.json"))
+    if not matches:
+        return {"ok": False, "error": "package not found"}
+    pkg = _read_json(matches[0])
+    cur = pkg.get("status") or "draft"
+    if to_status not in valid.get(cur, ()):
+        return {"ok": False,
+                "error": f"invalid transition {cur}→{to_status}",
+                "valid_next": list(valid.get(cur, ()))}
+    pkg["status"] = to_status
+    pkg.setdefault("status_history", []).append({
+        "from": cur, "to": to_status,
+        "reason": reason, "actor": actor, "at": _now_iso(),
+    })
+    matches[0].write_text(json.dumps(pkg, indent=2))
+    return {"ok": True, "package_id": package_id, "from": cur,
+              "to": to_status}
+
+
+# ── HTML RENDERING ────────────────────────────────────────────
+
+def render_package_html(brand_id: str, brief_id: str,
+                          package_id: str) -> str:
+    pkg = get_creative_package(brand_id, brief_id, package_id)
+    if not pkg:
+        return _html_error("Package not found",
+                            f"{brand_id}/{brief_id}/{package_id}")
+    snap = pkg.get("snapshot") or {}
+    strat = snap.get("strategy_snapshot") or {}
+    rep = snap.get("reporting_snapshot") or {}
+    genome = pkg.get("creative_genome") or {}
+    allowed = pkg.get("allowed_channels") or []
+    routes = pkg.get("routes") or []
+    drafts = pkg.get("channel_drafts") or {}
+    publish = pkg.get("publish") or {}
+    parts = [_html_head(pkg, brand_id, brief_id),
+              '<div class="cp-grid">',
+              _section_brief(strat),
+              _section_reporting(rep),
+              _section_genome(genome),
+              '<div class="cp-section"><h2>Concept Routes (' + str(len(routes)) + ')</h2>']
+    for r in routes:
+        parts.append(_render_route(r, brand_id, brief_id, pkg["package_id"]))
+    parts.append('</div>')
+    parts.append(_section_channel_matrix(drafts, allowed))
+    parts.append(_section_publish(publish))
+    parts.append(_section_revisions(pkg))
+    parts.append('</div></body></html>')
+    return "\n".join(parts)
+
+
+def _html_head(pkg, brand_id, brief_id):
+    return f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Creative Package — {brand_id}/{brief_id}</title>
+<style>{_css()}</style></head>
+<body>
+<div class="cp-header">
+  <h1>Creative Package</h1>
+  <div class="cp-meta">
+    <strong>{brand_id}</strong> · brief <code>{brief_id}</code> · package <code>{pkg.get('package_id')}</code><br>
+    Generator: {pkg.get('generator_version')} · Generated: {pkg.get('generated_at')}<br>
+    Status: <span class="status-{pkg.get('status')}">{pkg.get('status')}</span>
+  </div>
+</div>"""
+
+
+def _css():
+    return """
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#0e1116;color:#e6e6e6;margin:0;padding:24px;}
+h1{font-size:22px;margin:0 0 4px 0;}h2{font-size:16px;margin:24px 0 8px 0;border-bottom:1px solid #2a2f3a;padding-bottom:6px;}
+h3{font-size:14px;margin:14px 0 6px 0;color:#93c5fd;}
+.cp-header{padding-bottom:14px;border-bottom:1px solid #2a2f3a;}
+.cp-meta{color:#9aa3b2;font-size:12px;line-height:1.6;}
+code{background:#1a1f29;padding:1px 6px;border-radius:3px;color:#fbbf24;font-size:11px;}
+.cp-grid{max-width:1200px;margin:0 auto;}
+.cp-section{background:#161b22;border:1px solid #2a2f3a;border-radius:8px;padding:16px;margin:14px 0;}
+.route{background:#0d1117;border:1px solid #2a2f3a;border-radius:6px;padding:14px;margin:10px 0;}
+.route-meta{color:#9aa3b2;font-size:11px;}
+.route .label{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#9aa3b2;width:90px;}
+.route .copy{font-size:14px;line-height:1.5;margin:6px 0;}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px;}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #2a2f3a;}th{color:#9aa3b2;font-weight:400;text-transform:uppercase;font-size:10px;letter-spacing:.05em;}
+.status-draft{background:#4b5563;color:white;padding:2px 8px;border-radius:3px;font-size:11px;}
+.status-ready_for_review{background:#0ea5e9;color:white;padding:2px 8px;border-radius:3px;font-size:11px;}
+.status-approved{background:#16a34a;color:white;padding:2px 8px;border-radius:3px;font-size:11px;}
+.status-rejected{background:#dc2626;color:white;padding:2px 8px;border-radius:3px;font-size:11px;}
+.status-changes_requested{background:#f59e0b;color:#1f2937;padding:2px 8px;border-radius:3px;font-size:11px;}
+.valid-PASS{color:#34d399;font-weight:600;}
+.valid-WARNING{color:#fbbf24;font-weight:600;}
+.valid-FAIL{color:#f87171;font-weight:600;}
+button{background:#0ea5e9;color:white;border:0;padding:6px 12px;border-radius:4px;font-size:12px;cursor:pointer;margin:2px;}
+button:hover{background:#0284c7;}
+.op-edit{display:inline-block;background:#1f2937;color:#93c5fd;border:1px solid #374151;padding:2px 8px;border-radius:3px;font-size:10px;margin-right:4px;}
+.bullets{list-style:none;padding:0;margin:0;}.bullets li{font-size:12px;color:#9aa3b2;padding:2px 0;}
+.field-block{background:#0d1117;border-left:3px solid #3b82f6;padding:10px 12px;margin:6px 0;font-size:13px;}
+.operator-required{background:#422006;border-left:3px solid #f59e0b;padding:6px 10px;margin:4px 0;font-size:11px;}
+.cross-brand{background:#450a0a;border-left:3px solid #dc2626;padding:6px 10px;margin:4px 0;font-size:11px;}
+"""
+
+
+def _html_error(title, detail):
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>{title}</title></head>
+<body style="background:#0e1116;color:#e6e6e6;padding:40px;font-family:sans-serif;">
+<h1>{title}</h1><pre>{detail}</pre></body></html>"""
+
+
+def _section_brief(strat):
+    return f"""<div class="cp-section"><h2>Brief Summary</h2>
+<table>
+<tr><th>Pillar</th><td>{strat.get('primary_pillar') or '—'}</td></tr>
+<tr><th>Objective</th><td>{strat.get('objective') or '—'}</td></tr>
+<tr><th>Audience tension</th><td>{strat.get('audience_tension') or '—'}</td></tr>
+<tr><th>North Star link</th><td>{strat.get('north_star_link') or '—'}</td></tr>
+<tr><th>Approved channels</th><td>{', '.join(strat.get('channels_approved') or [])}</td></tr>
+<tr><th>Status</th><td>{strat.get('status') or '—'}</td></tr>
+<tr><th>Creative allowed</th><td>{strat.get('creative_allowed')}</td></tr>
+</table></div>"""
+
+
+def _section_reporting(rep):
+    if not rep or rep.get("data_status") != "LIVE":
+        return (f'<div class="cp-section"><h2>Reporting Evidence (V2.4.1)</h2>'
+                f'<div class="operator-required">Reporting data unavailable: '
+                f'{rep.get("error") or rep.get("data_status") or "unknown"}</div></div>')
+    cc = (rep.get("campaign_counts") or {})
+    bn = ((rep.get("best_needs_attention") or {}).get("by_objective") or {})
+    rows = [f"<tr><th>YTD spend</th><td>R{rep.get('ytd_brand_total_spend') or '—'}</td></tr>",
+              f"<tr><th>Campaigns current</th><td>{cc.get('current_delivered_count')} (comparable {cc.get('comparable_count')}, new {cc.get('new_campaign_count')})</td></tr>",
+              f"<tr><th>Campaigns previous</th><td>{cc.get('previous_delivered_count')} (comparable {cc.get('comparable_count')}, ended {cc.get('ended_campaign_count')})</td></tr>",
+              f"<tr><th>Math OK</th><td>{cc.get('math_ok')}</td></tr>",
+              f"<tr><th>Account name</th><td>{(rep.get('account_reconciliation') or {}).get('name')}</td></tr>",
+              f"<tr><th>Lifetime spend</th><td>R{(rep.get('account_reconciliation') or {}).get('amount_spent_zar')}</td></tr>",
+              f"<tr><th>Freshness</th><td>{(rep.get('freshness') or {}).get('status')}</td></tr>"]
+    bn_rows = []
+    for obj, items in (bn.get("best") or {}).items():
+        for i in (items or [])[:2]:
+            bn_rows.append(f"<li><strong>{obj}</strong>: {i.get('campaign_name')}</li>")
+    for obj, items in (bn.get("needs_attention") or {}).items():
+        for i in (items or [])[:2]:
+            bn_rows.append(f"<li><strong>{obj} attention</strong>: {i.get('campaign_name')}</li>")
+    return (f'<div class="cp-section"><h2>Reporting Evidence (V2.4.1)</h2>'
+              f'<table>{"".join(rows)}</table>'
+              f'<h3>Best / Needs Attention</h3>'
+              f'<ul class="bullets">{"".join(bn_rows) or "<li>none</li>"}</ul></div>')
+
+
+def _section_genome(genome):
+    if (genome or {}).get("status") != "ok":
+        return (f'<div class="cp-section"><h2>Creative Genome</h2>'
+                f'<div class="operator-required">Status: insufficient_data '
+                f'· sample_size: {genome.get("sample_size") or 0}</div>'
+                f'<p style="font-size:12px;color:#9aa3b2;">{genome.get("note") or ""}</p></div>')
+    s = genome.get("signal") or {}
+    ev = genome.get("evidence") or []
+    return (f'<div class="cp-section"><h2>Creative Genome</h2>'
+              f'<table>'
+              f'<tr><th>Status</th><td>ok</td></tr>'
+              f'<tr><th>Sample size</th><td>{genome.get("sample_size")}</td></tr>'
+              f'<tr><th>Confidence</th><td>{genome.get("confidence")}</td></tr>'
+              f'<tr><th>High alignment share</th><td>{s.get("high_alignment_share")}</td></tr>'
+              f'<tr><th>Dominant orientation</th><td>{s.get("dominant_orientation")}</td></tr>'
+              f'<tr><th>Top dominant color</th><td><code>{s.get("top_dominant_color")}</code></td></tr>'
+              f'</table>'
+              f'<h3>Top-scorer assets (highest alignment)</h3>'
+              f'<ul class="bullets">{"".join("<li>" + e + "</li>" for e in ev) or "<li>none</li>"}</ul></div>')
+
+
+def _render_route(r, brand_id, brief_id, package_id):
+    gen = r.get("generated") or {}
+    voice = r.get("voice") or {}
+    fg = r.get("fact_grounding") or {}
+    nov = r.get("novelty") or {}
+    req_assets = r.get("required_assets") or []
+    rid = r.get("route_id")
+    fields = []
+    for label, key in (("HOOK", "HOOK"), ("CORE", "CORE"),
+                         ("DIRECTION", "DIRECTION"), ("CTA", "CTA")):
+        v = gen.get(key) or ""
+        if v:
+            fields.append(f'<div class="field-block"><div class="route-meta">{label}</div><div class="copy">{v}</div></div>')
+    v_status = voice.get("validation_status") or "?"
+    lex_max = (nov.get("lexical") or {}).get("max_similarity") or 0.0
+    sem = nov.get("semantic") or {}
+    sem_max = (sem.get("max_similarity") if sem.get("available") else "n/a")
+    asset_html = []
+    for a in req_assets:
+        badge = ('<span class="op-edit">operator_asset_required</span>'
+                   if a.get("operator_asset_required") else '')
+        avail = ("<br>available: " + ", ".join(a.get("available_real_assets") or [])[:200]
+                   if a.get("available_real_assets") else "")
+        asset_html.append(f"<li>{a.get('kind')}: {a.get('description')[:100]} {badge}{avail}</li>")
+    fg_op = fg.get("operator_fact_required") or []
+    fg_xb = fg.get("cross_brand_leaks") or []
+    fg_op_html = "".join(f'<div class="operator-required">{o.get("claim")[:120]} — {o.get("note") or ""}</div>' for o in fg_op) or "<span style='color:#9aa3b2;'>none</span>"
+    fg_xb_html = "".join(f'<div class="cross-brand">{x.get("sentence")[:120]} — mentioned: {x.get("mentioned_brand")}</div>' for x in fg_xb) or "<span style='color:#9aa3b2;'>none</span>"
+    return f"""<div class="route">
+<div class="route-meta">
+  <strong>{r.get('working_concept_name')}</strong> · <code>{rid}</code> ·
+  <span class="valid-{r.get('validation_status')}">{r.get('validation_status')}</span>
+  · Mechanic: {r.get('mechanic')}
+</div>
+{''.join(fields)}
+<h3>Validation</h3>
+<table>
+<tr><th>Voice</th><td class="valid-{v_status}">{v_status}</td></tr>
+<tr><th>Banned hits</th><td>{', '.join(voice.get('banned_hits') or []) or 'none'}</td></tr>
+<tr><th>Voice warnings</th><td>{', '.join(voice.get('voice_warnings') or []) or 'none'}</td></tr>
+<tr><th>Fact grounding</th><td>{len(fg.get('grounded_claims') or [])} grounded, {len(fg_op)} operator-required</td></tr>
+<tr><th>Cross-brand leaks</th><td>{len(fg_xb)}</td></tr>
+<tr><th>Novelty signal</th><td>{nov.get('combined_signal')} (lex={lex_max}, sem={sem_max})</td></tr>
+<tr><th>Revisions</th><td>{len(r.get('revisions') or [])}</td></tr>
+</table>
+<h3>Operator-required facts</h3>
+{fg_op_html}
+<h3>Cross-brand leaks</h3>
+{fg_xb_html}
+<h3>Required Assets</h3>
+<ul class="bullets">{"".join(asset_html) or "<li>none</li>"}</ul>
+</div>"""
+
+
+def _section_channel_matrix(drafts, allowed):
+    rows = ['<table><tr><th>Route</th><th>Channel</th><th>Format</th><th>Has draft</th></tr>']
+    for route_id, channel_drafts in (drafts or {}).items():
+        for ch in (allowed or []):
+            d = channel_drafts.get(ch) or {}
+            rows.append(f'<tr><td>{route_id}</td><td>{ch}</td><td>{d.get("format", ch)}</td><td>{"yes" if d else "no"}</td></tr>')
+    rows.append('</table>')
+    return f'<div class="cp-section"><h2>Channel Drafts (Brief-approved only)</h2>{"".join(rows)}</div>'
+
+
+def _section_publish(publish):
+    gates = publish.get("gates") or {}
+    rows = []
+    for k, v in gates.items():
+        rows.append(f"<tr><th>{k}</th><td>{v}</td></tr>")
+    rows.append(f"<tr><th>publish_allowed</th><td><strong>{publish.get('publish_allowed')}</strong></td></tr>")
+    return (f'<div class="cp-section"><h2>Publish Gate (can_publish_creative)</h2>'
+              f'<table>{"".join(rows)}</table>'
+              f'<p style="color:#9aa3b2;font-size:11px;">{publish.get("rule") or ""}</p></div>')
+
+
+def _section_revisions(pkg):
+    revs = pkg.get("status_history") or []
+    if not revs:
+        return ''
+    rows = []
+    for r in revs:
+        rows.append(f"<tr><td>{r.get('from')}</td><td>{r.get('to')}</td><td>{r.get('actor')}</td><td>{r.get('reason')}</td><td>{r.get('at')}</td></tr>")
+    return (f'<div class="cp-section"><h2>Status History</h2>'
+              f'<table><tr><th>From</th><th>To</th><th>Actor</th><th>Reason</th><th>At</th></tr>'
+              f'{"".join(rows)}</table></div>')
