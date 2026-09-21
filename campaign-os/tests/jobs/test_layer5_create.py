@@ -365,6 +365,30 @@ def test_gbp_draft_is_dry_run(l5_app, tmp_path):
     assert kwargs.get("publish") is False
 
 
+def test_enqueue_on_calendar_approve(l5_app, tmp_path, monkeypatch):
+    monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "1")
+    _purge_modules()
+
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    record = {
+        "calendar_id": "cal-enq",
+        "event_key": "cal-enq",
+        "status": "candidate",
+        "title": "Enqueue calendar",
+    }
+    (cal_dir / "stick.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    from _lib import unified_inbox
+
+    unified_inbox.approve_item("calendar_candidate:stick:cal-enq", editor="test")
+    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
+    actions = {r.get("action") for r in pending}
+    assert "draft_caption" in actions
+    assert "draft_image" in actions
+
+
 def test_enqueue_on_proposal_approve(l5_app, tmp_path, monkeypatch):
     monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "1")
     _purge_modules()
