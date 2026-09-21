@@ -1,22 +1,12 @@
 {
   "_meta": {
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-25"
+    "fetched_at": "2026-09-18"
   },
-  "backlinks": 26,
+  "backlinks": 28,
   "domain": "swingshack.co.za",
-  "domainAuthority": 13,
+  "domainAuthority": 11,
   "domainTraffic": {
-    "202408": {
-      "fourthTier": 24,
-      "paidKw": 0,
-      "paidTraffic": 0,
-      "searchKw": 53,
-      "searchTraffic": 432,
-      "secondTier": 12,
-      "thirdTier": 16,
-      "topTier": 1
-    },
     "202409": {
       "fourthTier": 39,
       "paidKw": 0,
@@ -246,12 +236,39 @@
       "secondTier": 14,
       "thirdTier": 34,
       "topTier": 2
+    },
+    "202608": {
+      "fourthTier": 2,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 66,
+      "searchTraffic": 924,
+      "secondTier": 20,
+      "thirdTier": 42,
+      "topTier": 2
     }
   },
-  "follow": 23,
+  "follow": 25,
   "noFollow": 3,
-  "organic": 51,
+  "organic": 66,
   "organicKeywords": [
+    {
+      "competition": 0.03,
+      "cpc": 2.86,
+      "cpcDollars": 2.86,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "swing shack",
+      "path": "/",
+      "pd": 3,
+      "position": 6,
+      "position_group": 3,
+      "sd": 14,
+      "traffic": 9,
+      "type": "organic",
+      "updated_at": 1789083826,
+      "url": "http://swingshack.co.za/",
+      "volume": 390
+    },
     {
       "competition": 0.03,
       "cpc": 0,
@@ -287,6 +304,23 @@
       "volume": 50
     },
     {
+      "competition": 0.97,
+      "cpc": 0.62,
+      "cpcDollars": 0.62,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "best japanese forged irons",
+      "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "pd": 97,
+      "position": 25,
+      "position_group": 18,
+      "sd": 23,
+      "traffic": 1,
+      "type": "organic",
+      "updated_at": 1787184854,
+      "url": "http://swingshack.co.za/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "volume": 40
+    },
+    {
       "competition": 0.08,
       "cpc": 0,
       "cpcDollars": 0,
@@ -304,6 +338,23 @@
       "volume": 40
     },
     {
+      "competition": 0.36,
+      "cpc": 0,
+      "cpcDollars": 0,
+      "domain": "swingshack.co.za:organic:en:2840",
+      "keyword": "miura vs mizuno irons",
+      "path": "/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "pd": 36,
+      "position": 16,
+      "position_group": 12,
+      "sd": 20,
+      "traffic": 1,
+      "type": "organic",
+      "updated_at": 1788011103,
+      "url": "http://swingshack.co.za/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
+      "volume": 30
+    },
+    {
       "competition": 0.96,
       "cpc": 0.81,
       "cpcDollars": 0.81,
@@ -319,32 +370,10 @@
       "updated_at": 1787067292,
       "url": "http://swingshack.co.za/miura-vs-fujimoto-irons-which-japanese-forged-iron-is-better-for-your-game/",
       "volume": 40
-    },
-    {
-      "competition": 0.42,
-      "cpc": 0.34,
-      "cpcDollars": 0.34,
-      "domain": "swingshack.co.za:organic:en:2840",
-      "keyword": "golf clubs in south africa",
-      "path": "/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-      "pd": 42,
-      "position": 89,
-      "position_group": 75,
-      "sd": 50,
-      "traffic": 0,
-      "type": "organic",
-      "updated_at": 1785630204,
-      "url": "http://swingshack.co.za/golf-equipment-club-fitting-brands-in-south-africa-swing-shack-johannesburg/",
-      "volume": 50
     }
   ],
   "paidKeywords": 0,
-  "paidTraffic": 2,
-  "refDomains": 11,
-  "serviceInfo": {
-    "isConnectedToGA": true,
-    "isConnectedToGSC": false,
-    "isUsingGoogleData": true
-  },
-  "traffic": 967
+  "paidTraffic": 0,
+  "refDomains": 13,
+  "traffic": 924
 }

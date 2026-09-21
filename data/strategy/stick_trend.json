@@ -1,0 +1,20 @@
+{
+  "brand_id": "stick",
+  "snapshots": [
+    {
+      "date": "2026-09-21",
+      "iso_week": [
+        2026,
+        39
+      ],
+      "moves": {},
+      "bets": {},
+      "aggregate": {
+        "evidence_for_total": 0,
+        "evidence_against_total": 0,
+        "lessons_total": 0,
+        "lessons_invalid": 0
+      }
+    }
+  ]
+}

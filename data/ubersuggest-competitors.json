@@ -2,143 +2,143 @@
   "_meta": {
     "count": 15,
     "domain": "swingshack.co.za",
-    "fetched_at": "2026-08-25"
+    "fetched_at": "2026-09-18"
   },
   "competitors": [
     {
-      "backlinks": 170,
-      "commonKeywordCount": 19,
+      "backlinks": 7,
+      "commonKeywordCount": 27,
+      "domain": "par72.co.za",
+      "domainAuthority": 3,
+      "gapKeywordCount": 2,
+      "organic": 56,
+      "traffic": 528
+    },
+    {
+      "backlinks": 9137,
+      "commonKeywordCount": 37,
+      "domain": "randpark.co.za",
+      "domainAuthority": 30,
+      "gapKeywordCount": 742,
+      "organic": 836,
+      "traffic": 17543
+    },
+    {
+      "backlinks": 205,
+      "commonKeywordCount": 20,
       "domain": "justinharding.co.za",
       "domainAuthority": 12,
       "gapKeywordCount": 28,
-      "organic": 74,
-      "traffic": 220
-    },
-    {
-      "backlinks": 6,
-      "commonKeywordCount": 19,
-      "domain": "par72.co.za",
-      "domainAuthority": 4,
-      "gapKeywordCount": 0,
-      "organic": 37,
-      "traffic": 776
-    },
-    {
-      "backlinks": 71,
-      "commonKeywordCount": 30,
-      "domain": "foreandfine.org",
-      "domainAuthority": 10,
-      "gapKeywordCount": 48,
-      "organic": 128,
-      "traffic": 23
-    },
-    {
-      "backlinks": 18,
-      "commonKeywordCount": 25,
-      "domain": "golfroom.co.za",
-      "domainAuthority": 3,
-      "gapKeywordCount": 11,
-      "organic": 20,
-      "traffic": 73
-    },
-    {
-      "backlinks": 1383,
-      "commonKeywordCount": 12,
-      "domain": "flightscope.co.za",
-      "domainAuthority": 10,
-      "gapKeywordCount": 12,
-      "organic": 98,
-      "traffic": 260
-    },
-    {
-      "backlinks": 22,
-      "commonKeywordCount": 14,
-      "domain": "thetee.co.za",
-      "domainAuthority": 6,
-      "gapKeywordCount": 21,
-      "organic": 55,
-      "traffic": 22
-    },
-    {
-      "backlinks": 24,
-      "commonKeywordCount": 32,
-      "domain": "hometee.co.za",
-      "domainAuthority": 3,
-      "gapKeywordCount": 18,
-      "organic": 100,
-      "traffic": 715
-    },
-    {
-      "backlinks": 19,
-      "commonKeywordCount": 26,
-      "domain": "swinglounge.co.za",
-      "domainAuthority": 2,
-      "gapKeywordCount": 4,
-      "organic": 25,
-      "traffic": 636
-    },
-    {
-      "backlinks": 495,
-      "commonKeywordCount": 52,
-      "domain": "worldofgolf.co.za",
-      "domainAuthority": 24,
-      "gapKeywordCount": 354,
-      "organic": 460,
-      "traffic": 14434
+      "organic": 104,
+      "traffic": 511
     },
     {
       "backlinks": 0,
       "commonKeywordCount": 21,
       "domain": "isim.co.za",
       "domainAuthority": 1,
-      "gapKeywordCount": 14,
-      "organic": 32,
-      "traffic": 135
+      "gapKeywordCount": 13,
+      "organic": 46,
+      "traffic": 360
     },
     {
-      "backlinks": 4076216,
-      "commonKeywordCount": 11,
-      "domain": "golfmonthly.com",
-      "domainAuthority": 69,
-      "gapKeywordCount": 1150,
-      "organic": 243724,
-      "traffic": 557435
+      "backlinks": 15,
+      "commonKeywordCount": 29,
+      "domain": "golfroom.co.za",
+      "domainAuthority": 3,
+      "gapKeywordCount": 12,
+      "organic": 24,
+      "traffic": 71
     },
     {
-      "backlinks": 28,
-      "commonKeywordCount": 46,
-      "domain": "golfbar.co.za",
-      "domainAuthority": 7,
-      "gapKeywordCount": 39,
-      "organic": 103,
-      "traffic": 1034
-    },
-    {
-      "backlinks": 9131,
-      "commonKeywordCount": 38,
-      "domain": "randpark.co.za",
-      "domainAuthority": 30,
-      "gapKeywordCount": 692,
-      "organic": 727,
-      "traffic": 37369
-    },
-    {
-      "backlinks": 4205,
-      "commonKeywordCount": 19,
-      "domain": "thecountryclub.co.za",
-      "domainAuthority": 31,
-      "gapKeywordCount": 781,
-      "organic": 1141,
-      "traffic": 18794
-    },
-    {
-      "backlinks": 41,
-      "commonKeywordCount": 25,
+      "backlinks": 40,
+      "commonKeywordCount": 24,
       "domain": "humansport.co.za",
       "domainAuthority": 4,
-      "gapKeywordCount": 23,
-      "organic": 60,
-      "traffic": 61
+      "gapKeywordCount": 22,
+      "organic": 56,
+      "traffic": 39
+    },
+    {
+      "backlinks": 35421,
+      "commonKeywordCount": 11,
+      "domain": "shopindoorgolf.com",
+      "domainAuthority": 34,
+      "gapKeywordCount": 12,
+      "organic": 6548,
+      "traffic": 253355
+    },
+    {
+      "backlinks": 354,
+      "commonKeywordCount": 28,
+      "domain": "modgolf.co.za",
+      "domainAuthority": 14,
+      "gapKeywordCount": 395,
+      "organic": 341,
+      "traffic": 3165
+    },
+    {
+      "backlinks": 24,
+      "commonKeywordCount": 30,
+      "domain": "hometee.co.za",
+      "domainAuthority": 3,
+      "gapKeywordCount": 17,
+      "organic": 141,
+      "traffic": 727
+    },
+    {
+      "backlinks": 190873,
+      "commonKeywordCount": 10,
+      "domain": "carlofet.com",
+      "domainAuthority": 40,
+      "gapKeywordCount": 12,
+      "organic": 2845,
+      "traffic": 24334
+    },
+    {
+      "backlinks": 1,
+      "commonKeywordCount": 39,
+      "domain": "golfsimcentre.co.za",
+      "domainAuthority": 1,
+      "gapKeywordCount": 13,
+      "organic": 48,
+      "traffic": 34
+    },
+    {
+      "backlinks": 25497,
+      "commonKeywordCount": 17,
+      "domain": "theproshop.co.za",
+      "domainAuthority": 38,
+      "gapKeywordCount": 1969,
+      "organic": 2320,
+      "traffic": 103933
+    },
+    {
+      "backlinks": 30,
+      "commonKeywordCount": 52,
+      "domain": "golfbar.co.za",
+      "domainAuthority": 7,
+      "gapKeywordCount": 43,
+      "organic": 92,
+      "traffic": 996
+    },
+    {
+      "backlinks": 494,
+      "commonKeywordCount": 53,
+      "domain": "worldofgolf.co.za",
+      "domainAuthority": 24,
+      "gapKeywordCount": 369,
+      "organic": 647,
+      "traffic": 14253
+    },
+    {
+      "backlinks": 1382,
+      "commonKeywordCount": 13,
+      "domain": "flightscope.co.za",
+      "domainAuthority": 9,
+      "gapKeywordCount": 10,
+      "organic": 97,
+      "traffic": 499
     }
   ]
 }
