@@ -1,0 +1,21 @@
+{
+  "brief_id": "test-fitting-awareness-2026-q4-v11",
+  "brand_id": "stick",
+  "revision": "v1.0",
+  "status": "approved",
+  "creative_allowed": true,
+  "approval_method": "operator_token_v1",
+  "authenticated_operator": "test_operator",
+  "approved_at": "2026-09-21T08:00:00Z",
+  "approved_by": "test_operator",
+  "primary_pillar": "fitting",
+  "objective": "consideration",
+  "audience_tension": "Are you sure your swing is actually improving? Or are you just guessing?",
+  "core_claim": "Custom fitting changes the game \u2014 get the data, then make the call.",
+  "north_star_link": "24 fittings/week",
+  "channels": [
+    "instagram_reel",
+    "instagram_static",
+    "paid_social"
+  ]
+}
