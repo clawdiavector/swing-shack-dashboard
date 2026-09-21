@@ -44074,6 +44074,39 @@ def _meta_api_get(path, token, params=None):
     return _meta_api(path, params, token)
 
 
+@app.route('/api/admin/v23-meta-debug-url', methods=['GET'])
+def admin_v23_meta_debug_url():
+    """GET /api/admin/v23-meta-debug-url — debug the URL
+    composition for /debug_token."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    token = (request.args.get("token")
+              or os.environ.get("META_SYSTEM_USER_TOKEN"))
+    inspector = os.environ.get("META_SYSTEM_USER_TOKEN")
+    if not token or not inspector:
+        return jsonify({"ok": False,
+                        "error": "missing token"}), 200
+    import requests as _r
+    av = _META_GRAPH_API_VERSION
+    # Try multiple URL compositions
+    results = {}
+    for url in [
+        f"https://graph.facebook.com/{av}/debug_token",
+        f"https://graph.facebook.com/v26.0/debug_token",
+        f"https://graph.facebook.com/debug_token",
+    ]:
+        try:
+            r = _r.get(url, params={"input_token": token,
+                                     "access_token": inspector},
+                        timeout=15)
+            results[url] = {"status": r.status_code,
+                             "body_excerpt": r.text[:300]}
+        except Exception as e:
+            results[url] = {"error": str(e)[:200]}
+    return jsonify({"ok": True, "results": results,
+                     "api_version_used": av}), 200
+
+
 @app.route('/api/admin/v23-meta-audit', methods=['GET'])
 def admin_v23_meta_audit():
     """GET /api/admin/v23-meta-audit — audit Meta token identities
