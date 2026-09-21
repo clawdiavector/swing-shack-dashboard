@@ -44009,26 +44009,48 @@ def _meta_audit_token(token_label, token):
         out["status"] = "FAIL: token too short or missing"
         return out
     try:
-        # /me — returns the user or System User identity
-        me_status, me_data = _meta_api_get(f"/{_META_GRAPH_API_VERSION}/me", token,
-                                            {"fields": "id,name,role"})
-        out["me"] = {"status": me_status, "data": me_data}
-        # /me/adaccounts
-        aa_status, aa_data = _meta_api_get(
-            f"/{_META_GRAPH_API_VERSION}/me/adaccounts", token,
-            {"fields": "account_id,name,account_status,owner_business,timezone_name",
-             "limit": "200"})
-        out["adaccounts"] = {"status": aa_status, "count": len(
-            aa_data.get("data", []) if isinstance(aa_data, dict) else []),
-            "data": aa_data}
-        # /me/businesses
-        bs_status, bs_data = _meta_api_get(
-            f"/{_META_GRAPH_API_VERSION}/me/businesses", token,
-            {"fields": "id,name,owned_ad_accounts,client_ad_accounts",
-             "limit": "100"})
-        out["businesses"] = {"status": bs_status, "count": len(
-            bs_data.get("data", []) if isinstance(bs_data, dict) else []),
-            "data": bs_data}
+        # Step 1: get debug_token info — requires a known-good
+        # token to inspect the unknown one.
+        inspector = os.environ.get("META_SYSTEM_USER_TOKEN")
+        if not inspector:
+            out["status"] = "FAIL: no inspector token (META_SYSTEM_USER_TOKEN) for debug_token"
+            return out
+        dbg_status, dbg_data = _meta_api(
+            f"/{_META_GRAPH_API_VERSION}/debug_token", {}, inspector)
+        dbg_data["input_token"] = token[:15] + "…"
+        out["debug_token"] = {"status": dbg_status, "data": dbg_data}
+        if dbg_status != 200 or not dbg_data.get("data", {}).get("is_valid"):
+            err = (dbg_data.get("data") or {}).get("error", {})
+            out["status"] = f"FAIL: invalid token — {err.get('message', '?')[:200]}"
+            return out
+        token_info = dbg_data.get("data", {})
+        out["token_type"] = ("user" if token_info.get("type") == "USER"
+                              else ("system_user" if token_info.get("type") == "SYSTEM_USER"
+                                    else token_info.get("type")))
+        out["app_id"] = token_info.get("app_id")
+        out["user_id"] = token_info.get("user_id")
+        out["expires_at"] = token_info.get("expires_at")
+        out["scopes"] = token_info.get("scopes") or []
+        # Use app|token for the right app context
+        app_id = token_info.get("app_id")
+        app_scoped_token = (f"{app_id}|{token}" if app_id else token)
+        # Try to find this token's System User identity via
+        # /me/businesses + /<business_id>/ad_accounts
+        try:
+            for path in ("/me/adaccounts", "/me/businesses"):
+                fields = ("account_id,name,account_status,owner_business,"
+                          "timezone_name" if "adaccounts" in path else
+                          "id,name,owned_ad_accounts,client_ad_accounts")
+                sc, data = _meta_api(f"/{_META_GRAPH_API_VERSION}{path}",
+                                       {"fields": fields, "limit": 200},
+                                       app_scoped_token)
+                key = "adaccounts" if "adaccounts" in path else "businesses"
+                rows = (data.get("data") or []) if isinstance(data, dict) else []
+                out[key] = {"status": sc, "count": len(rows), "data": data}
+        except Exception as e:
+            out["status"] = (f"WARN: identity resolved but "
+                             f"ad account discovery failed: "
+                             f"{type(e).__name__}: {str(e)[:200]}")
     except Exception as e:
         out["status"] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
     return out
