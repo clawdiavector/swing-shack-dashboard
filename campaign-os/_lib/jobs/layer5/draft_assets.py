@@ -335,6 +335,38 @@ def _process_caption_row(
     return asset_id, None
 
 
+def _find_caption_draft_for_item(source_item_id: str) -> tuple[Optional[str], Optional[str]]:
+    """Return (caption_asset_id, caption_text) when a caption draft exists."""
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return None, None
+
+    from _lib.unified_inbox import _load_campaign_data  # noqa: PLC0415
+
+    for path in sorted(draft_dir.glob("*.json")):
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if sidecar.get("source_inbox_item_id") != source_item_id:
+            continue
+        if sidecar.get("action") != "draft_caption":
+            continue
+        asset_id = str(sidecar.get("asset_id") or "")
+        if not asset_id:
+            continue
+        data = _load_campaign_data()
+        for campaign in (data.get("campaigns") or {}).values():
+            asset = (campaign.get("assets") or {}).get(asset_id)
+            if isinstance(asset, dict):
+                caption = str(asset.get("caption") or "").strip()
+                if caption:
+                    return asset_id, caption
+    return None, None
+
+
 def _process_image_row(
     row: dict[str, Any],
     *,
@@ -343,21 +375,29 @@ def _process_image_row(
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
     from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
+    from _lib.jobs.layer5.image_draft_context import build_image_draft_context  # noqa: PLC0415
 
-    size = "1024x1024"
+    ctx = build_image_draft_context(brand_id, item_id)
+    size = ctx.aspect
     est = llm_spend.modelled_image_cost(size)
     allowed, reason = llm_spend.check("image", est)
     if not allowed:
         return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
 
     output_base = str(_data_dir() / "draft-assets" / "images")
+    gen_kwargs: dict[str, Any] = {
+        "brand_id": brand_id,
+        "prompt": ctx.job,
+        "size": size,
+        "output_base": output_base,
+    }
+    if ctx.refs:
+        gen_kwargs["reference_dnas"] = ctx.refs
+    if ctx.products:
+        gen_kwargs["product_service_items"] = ctx.products
+
     try:
-        result = generate_image_with_persistence(
-            brand_id=brand_id,
-            prompt=f"Social image for approved inbox item {item_id}",
-            size=size,
-            output_base=output_base,
-        )
+        result = generate_image_with_persistence(**gen_kwargs)
     except ImageGenAuthError:
         return None, "missing OPENAI_API_KEY"
     except Exception as exc:  # noqa: BLE001
@@ -376,7 +416,24 @@ def _process_image_row(
     )
 
     image_path = getattr(result, "saved_path", None) or getattr(result, "path", None)
-    caption = f"Image draft for {item_id}"
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    title = str(calendar.get("title") or "")
+    angle = str(calendar.get("angle") or "")
+    caption_asset_id, caption_text = _find_caption_draft_for_item(item_id)
+    if caption_text:
+        caption = caption_text
+    elif title and angle:
+        caption = f"{title} — {angle}"
+    elif title:
+        caption = title
+    else:
+        caption = f"Image draft for {item_id}"
+
+    cd = ctx.lineage.get("creative_director") if isinstance(ctx.lineage.get("creative_director"), dict) else {}
+    model_routing = dict(cd.get("model_routing") or {})
+    if cd.get("requirements"):
+        model_routing["requirements"] = cd["requirements"]
+
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
@@ -391,6 +448,19 @@ def _process_image_row(
             "image_size": size,
             "cost_estimate_usd": est,
             "queue_row_id": row.get("id"),
+            "title": title or None,
+            "prompt": ctx.job,
+            "prompt_used": getattr(result, "prompt_used", None),
+            "sections": cd.get("sections") or [],
+            "negative_prompt": cd.get("negative_prompt") or "",
+            "model_routing": model_routing,
+            "reference_dnas": ctx.lineage.get("reference_meta") or [],
+            "product_service_items": ctx.lineage.get("product_meta") or [],
+            "brand_bible": ctx.lineage.get("brand_bible") or {},
+            "calendar": calendar,
+            "router_sidecar_path": getattr(result, "saved_sidecar_path", None),
+            "caption_asset_id": caption_asset_id,
+            "context_degraded": ctx.lineage.get("degraded") or [],
         },
     )
     return asset_id, None
