@@ -43974,6 +43974,106 @@ def admin_v22_migrate_historical_reports():
         "moved_count": len(moved),
     }), 200
 
+
+
+
+# ─── META ADS STEP 4B: AUDIT + INGESTION (READ-ONLY) ──────────────────
+# Per V2.2 §11: read-only Meta access for both brands.
+# Token identities audited before any data is ingested.
+
+
+def _meta_audit_token(token_label, token):
+    """Per V2.2 §1: audit identity + permissions. Returns dict
+    with me / businesses / adaccounts / system_user_info."""
+    out = {"token_label": token_label, "token_prefix": token[:15] + "…"}
+    if not token or len(token) < 50:
+        out["status"] = "FAIL: token too short or missing"
+        return out
+    try:
+        # /me — returns the user or System User identity
+        me_status, me_data = _meta_api_get(f"/{API_VERSION}/me", token,
+                                            {"fields": "id,name,role"})
+        out["me"] = {"status": me_status, "data": me_data}
+        # /me/adaccounts
+        aa_status, aa_data = _meta_api_get(
+            f"/{API_VERSION}/me/adaccounts", token,
+            {"fields": "account_id,name,account_status,owner_business,timezone_name",
+             "limit": "200"})
+        out["adaccounts"] = {"status": aa_status, "count": len(
+            aa_data.get("data", []) if isinstance(aa_data, dict) else []),
+            "data": aa_data}
+        # /me/businesses
+        bs_status, bs_data = _meta_api_get(
+            f"/{API_VERSION}/me/businesses", token,
+            {"fields": "id,name,owned_ad_accounts,client_ad_accounts",
+             "limit": "100"})
+        out["businesses"] = {"status": bs_status, "count": len(
+            bs_data.get("data", []) if isinstance(bs_data, dict) else []),
+            "data": bs_data}
+    except Exception as e:
+        out["status"] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
+    return out
+
+
+def _meta_api_get(path, token, params=None):
+    """GET against Meta Graph API with bearer token."""
+    import requests as _r
+    if params is None:
+        params = {}
+    url = f"https://graph.facebook.com{path}"
+    params["access_token"] = token
+    try:
+        resp = _r.get(url, params=params, timeout=20)
+        return resp.status_code, resp.json()
+    except Exception as e:
+        return 0, {"error": str(e)}
+
+
+@app.route('/api/admin/v23-meta-audit', methods=['GET'])
+def admin_v23_meta_audit():
+    """GET /api/admin/v23-meta-audit — audit Meta token identities
+    + accessible ad accounts + businesses. READ-ONLY.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    out = {"ok": True, "audit": {}, "businesses_seen": set(),
+           "accounts_seen": set(),
+           "ownership_summary": []}
+    token_labels = [
+        ("META_SYSTEM_USER_TOKEN", os.environ.get("META_SYSTEM_USER_TOKEN")),
+        ("META_SYSTEM_USER_TOKEN_STICK",
+         os.environ.get("META_SYSTEM_USER_TOKEN_STICK")),
+        ("META_SYSTEM_USER_TOKEN_STICK_PAARL",
+         os.environ.get("META_SYSTEM_USER_TOKEN_STICK_PAARL")),
+    ]
+    for label, token in token_labels:
+        if not token:
+            out["audit"][label] = {"token_label": label,
+                                    "status": "NOT_SET"}
+            continue
+        audited = _meta_audit_token(label, token)
+        out["audit"][label] = audited
+    # Summary
+    summary = []
+    for label, audit_dict in out["audit"].items():
+        me_data = (audit_dict.get("me") or {}).get("data") or {}
+        aa_data = (audit_dict.get("adaccounts") or {}).get("data") or {}
+        bs_data = (audit_dict.get("businesses") or {}).get("data") or {}
+        accounts = aa_data.get("data", []) if isinstance(aa_data, dict) else []
+        businesses = bs_data.get("data", []) if isinstance(bs_data, dict) else []
+        summary.append({
+            "token": label,
+            "identity": (me_data.get("id"), me_data.get("name"),
+                          me_data.get("role")),
+            "adaccounts_visible": [a.get("account_id") for a in accounts],
+            "businesses_visible": [b.get("id") for b in businesses],
+        })
+    # Convert sets to lists for JSON
+    out["ownership_summary"] = summary
+    out["businesses_seen"] = sorted(out["businesses_seen"])
+    out["accounts_seen"] = sorted(out["accounts_seen"])
+    return jsonify(out), 200
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
