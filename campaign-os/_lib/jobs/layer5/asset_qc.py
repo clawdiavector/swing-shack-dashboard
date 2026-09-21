@@ -26,6 +26,11 @@ def _data_dir() -> Path:
     return Path(os.environ.get("DATA_DIR", "/data/campaign-os"))
 
 
+def _l6_enqueue_enabled() -> bool:
+    raw = (os.environ.get("CAMPAIGN_OS_L6_ENQUEUE") or "").strip().lower()
+    return raw not in ("0", "false", "no", "off")
+
+
 def _load_sidecars() -> list[tuple[Path, dict[str, Any]]]:
     root = _data_dir() / "draft-assets"
     if not root.is_dir():
@@ -98,6 +103,30 @@ def _check_sidecar(sidecar: dict[str, Any], caption: str) -> list[str]:
     return issues
 
 
+def _maybe_enqueue_publish_request(
+    *,
+    sidecar: dict[str, Any],
+    asset: dict[str, Any],
+    caption: str,
+    asset_id: str,
+) -> None:
+    if not _l6_enqueue_enabled():
+        return
+    brand_id = str(sidecar.get("brand_id") or "")
+    if not brand_id:
+        return
+    from _lib import publish_sandbox  # noqa: PLC0415
+
+    publish_sandbox.enqueue_item(
+        brand_id=brand_id,
+        platform=str(sidecar.get("platform") or asset.get("platform") or "instagram"),
+        caption_preview=caption,
+        inbox_item_id=str(sidecar.get("source_inbox_item_id") or ""),
+        human_approved=False,
+        idempotency_key=f"qc-{asset_id}",
+    )
+
+
 def run() -> dict[str, Any]:
     """Run deterministic QC; reject failing assets in campaign-data.json."""
     try:
@@ -125,6 +154,12 @@ def run() -> dict[str, Any]:
             verdict = "pass" if not issues else "fail"
             if verdict == "pass":
                 passed += 1
+                _maybe_enqueue_publish_request(
+                    sidecar=sidecar,
+                    asset=asset,
+                    caption=caption,
+                    asset_id=asset_id,
+                )
             else:
                 failed += 1
                 _reject_asset(campaign_id, asset_id, "; ".join(issues))

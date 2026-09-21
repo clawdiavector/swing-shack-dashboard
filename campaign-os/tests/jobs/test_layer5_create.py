@@ -476,3 +476,226 @@ def test_ops_create_tab_anon_401(l5_app):
     assert resp.status_code in (302, 401)
     spend = anon.get("/api/ops/llm-spend")
     assert spend.status_code == 401
+
+
+def _seed_approved_calendar(tmp_path: Path, *, brand: str = "stick", cal_id: str = "cal-slot-1") -> str:
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    record = {
+        "calendar_id": cal_id,
+        "event_key": "evt-slot-1",
+        "brand_id": brand,
+        "pillar_id": "stick-retail",
+        "status": "approved",
+        "event_date": "2026-09-20",
+        "title": "Approved slot day",
+    }
+    (cal_dir / f"{brand}.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+    return f"calendar_candidate:{brand}:{cal_id}"
+
+
+def _seed_fill_slot_row(tmp_path: Path, *, brand: str = "stick") -> None:
+    row = {
+        "id": f"stick-fill-slot-2026-09-20",
+        "layer": "L3",
+        "agent": "cos-scout",
+        "brand": brand,
+        "action": "fill_slot",
+        "payload_ref": f"slot-planner.json#{brand}/2026-09-20/stick-retail",
+        "status": "pending",
+    }
+    doc = {"schema": "campaign-os/agent-queue/v1", "generated_at": "2026-09-17T10:00:00Z", "rows": [row]}
+    (tmp_path / "agent-queue.json").write_text(json.dumps(doc), encoding="utf-8")
+
+
+def test_fill_slot_produces_draft(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    _seed_approved_calendar(tmp_path)
+    _seed_fill_slot_row(tmp_path)
+
+    mock_result = {
+        "ok": True,
+        "survivors": [{"body": "Caption from fill_slot"}],
+        "observability": {"provider": "openai", "model": "gpt-4o-mini"},
+    }
+    with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result):
+        result = draft_assets.run()
+
+    assert result.get("ok") is True
+    assert result.get("drafted") == 1
+    sidecars = list((tmp_path / "draft-assets").glob("*.json"))
+    assert sidecars
+    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    fill_rows = [r for r in queue["rows"] if r.get("action") == "fill_slot"]
+    assert fill_rows[0]["status"] == "done"
+
+
+def test_fill_slot_skips_invalid_brand(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    _seed_approved_calendar(tmp_path, brand="stick")
+    doc = {
+        "schema": "campaign-os/agent-queue/v1",
+        "generated_at": "2026-09-17T10:00:00Z",
+        "rows": [
+            {
+                "id": "takomo-fill-slot",
+                "layer": "L3",
+                "agent": "cos-scout",
+                "brand": "takomo",
+                "action": "fill_slot",
+                "payload_ref": "slot-planner.json#stick/2026-09-20/stick-retail",
+                "status": "pending",
+            }
+        ],
+    }
+    (tmp_path / "agent-queue.json").write_text(json.dumps(doc), encoding="utf-8")
+
+    with patch("_lib.p11_context_engine.run_caption_pipeline") as mock_pipe:
+        result = draft_assets.run()
+        mock_pipe.assert_not_called()
+
+    assert result.get("ok") is True
+    assert result.get("drafted") == 0
+
+
+def test_asset_qc_pass_enqueues_publish_sandbox(l5_app, tmp_path, monkeypatch):
+    from _lib import publish_sandbox
+    from _lib.jobs.layer5 import asset_qc
+
+    monkeypatch.delenv("CAMPAIGN_OS_L6_ENQUEUE", raising=False)
+    _seed_brands(tmp_path)
+    publish_sandbox.ensure_sandbox_layout()
+
+    asset_id = "draft-qc-pass"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    sidecar = {
+        "schema": "campaign-os/draft-asset/v1",
+        "asset_id": asset_id,
+        "campaign_id": "camp-stick",
+        "brand_id": "stick",
+        "source_inbox_item_id": "proposal:stick:x",
+        "created_at": "2026-09-17T12:00:00Z",
+        "action": "draft_caption",
+        "cost_estimate_usd": 0.002,
+    }
+    (tmp_path / "draft-assets" / f"{asset_id}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    data["campaigns"]["camp-stick"]["assets"][asset_id] = {
+        "name": "QC pass draft",
+        "caption": "Clean caption for publish queue",
+        "approvalStatus": "draft",
+        "platform": "instagram",
+        "updatedAt": "2026-09-17T12:00:00Z",
+    }
+    (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        result = asset_qc.run()
+        mock_urlopen.assert_not_called()
+
+    assert result.get("ok") is True
+    assert result.get("passed") == 1
+    queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
+    assert len(queue_rows) == 1
+    assert queue_rows[0].get("brand_id") == "stick"
+    assert queue_rows[0].get("human_approved") is False
+    assert queue_rows[0].get("idempotency_key") == f"qc-{asset_id}"
+
+
+def test_asset_qc_enqueue_idempotent(l5_app, tmp_path, monkeypatch):
+    from _lib import publish_sandbox
+    from _lib.jobs.layer5 import asset_qc
+
+    monkeypatch.delenv("CAMPAIGN_OS_L6_ENQUEUE", raising=False)
+    _seed_brands(tmp_path)
+    publish_sandbox.ensure_sandbox_layout()
+
+    asset_id = "draft-qc-idem"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    sidecar = {
+        "schema": "campaign-os/draft-asset/v1",
+        "asset_id": asset_id,
+        "campaign_id": "camp-stick",
+        "brand_id": "stick",
+        "source_inbox_item_id": "proposal:stick:x",
+        "created_at": "2026-09-17T12:00:00Z",
+        "action": "draft_caption",
+        "cost_estimate_usd": 0.002,
+    }
+    (tmp_path / "draft-assets" / f"{asset_id}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    data["campaigns"]["camp-stick"]["assets"][asset_id] = {
+        "name": "Idempotent QC draft",
+        "caption": "Same caption daily",
+        "approvalStatus": "draft",
+        "updatedAt": "2026-09-17T12:00:00Z",
+    }
+    (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+
+    asset_qc.run()
+    asset_qc.run()
+    queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
+    assert len(queue_rows) == 1
+
+
+def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
+    monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "1")
+    _purge_modules()
+
+    (tmp_path / "proposals").mkdir(parents=True, exist_ok=True)
+    for pid in ("p-001", "p-002", "p-003"):
+        row = {"id": pid, "brand_id": "stick", "title": f"Proposal {pid}", "status": "pending"}
+        with (tmp_path / "proposals" / "pending.jsonl").open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row) + "\n")
+
+    from _lib import unified_inbox
+
+    for pid in ("p-001", "p-002", "p-003"):
+        unified_inbox.approve_item(f"proposal:stick:{pid}", editor="test")
+
+    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
+    pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
+    assert len(pending) == 3
+    ids = {r["id"] for r in pending}
+    assert len(ids) == 3
+    payload_refs = {r["payload_ref"] for r in pending}
+    assert len(payload_refs) == 3
+
+
+def test_l6_enqueue_flag_off(l5_app, tmp_path, monkeypatch):
+    from _lib import publish_sandbox
+    from _lib.jobs.layer5 import asset_qc
+
+    monkeypatch.setenv("CAMPAIGN_OS_L6_ENQUEUE", "0")
+    _seed_brands(tmp_path)
+    publish_sandbox.ensure_sandbox_layout()
+
+    asset_id = "draft-l6-off"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    sidecar = {
+        "schema": "campaign-os/draft-asset/v1",
+        "asset_id": asset_id,
+        "campaign_id": "camp-stick",
+        "brand_id": "stick",
+        "source_inbox_item_id": "proposal:stick:x",
+        "created_at": "2026-09-17T12:00:00Z",
+        "action": "draft_caption",
+        "cost_estimate_usd": 0.002,
+    }
+    (tmp_path / "draft-assets" / f"{asset_id}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    data["campaigns"]["camp-stick"]["assets"][asset_id] = {
+        "name": "Flag off draft",
+        "caption": "No sandbox enqueue",
+        "approvalStatus": "draft",
+        "updatedAt": "2026-09-17T12:00:00Z",
+    }
+    (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+
+    asset_qc.run()
+    queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
+    assert queue_rows == []
