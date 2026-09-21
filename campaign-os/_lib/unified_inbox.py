@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from datetime import datetime, timezone
@@ -426,7 +427,7 @@ def _l5_enqueue_enabled() -> bool:
 
 
 def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> None:
-    """Enqueue draft_caption + draft_image rows after L4 approve (flag-gated; never fails approve)."""
+    """Enqueue draft_caption (+ draft_image for calendar candidates) after L4 approve."""
     if not _l5_enqueue_enabled():
         return
     if item_type not in ("proposal", "calendar_candidate"):
@@ -435,10 +436,13 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
         from _lib import ops_agents  # noqa: PLC0415
 
         reason = item_type.replace("_", "-")[:32]
-        for action, agent in (
-            ("draft_caption", "cos-caption"),
-            ("draft_image", "cos-image"),
-        ):
+        item_hash = hashlib.sha1(item_id.encode()).hexdigest()[:12]
+        pairs: list[tuple[str, str]] = [("draft_caption", "cos-caption")]
+        if item_type == "calendar_candidate":
+            pairs.append(("draft_image", "cos-image"))
+
+        for action, agent in pairs:
+            dedupe_key = f"{action}-{item_hash}"
             row = ops_agents.normalise_enqueue(
                 {
                     "agent": agent,
@@ -446,7 +450,7 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
                     "reason": reason,
                     "action": action,
                     "payload_ref": f"inbox/{item_id}",
-                    "dedupe_key": f"{item_id}:{action}",
+                    "dedupe_key": dedupe_key,
                 }
             )
             ops_agents.append_enqueue_row(_data_dir(), row)
