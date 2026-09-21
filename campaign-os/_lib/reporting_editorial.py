@@ -148,25 +148,67 @@ def _read_v24_report(brand_id: str, period_days: int) -> Optional[dict]:
     isn't available, the paid_media section shows 'unavailable' but
     the rest of the report still renders.
     """
-    # Try cache first
+    # Try cache first (written by v25_daily_pull.py sync job)
     cache = _data_root() / "paid-media-v24" / f"{brand_id}.json"
     d = _read_json(cache)
     if d:
         return d
     # Try alternate cache location
     cache2 = _data_root() / "paid-media" / f"{brand_id}.json"
-    return _read_json(cache2)
+    d2 = _read_json(cache2)
+    if d2:
+        return d2
+    # Last resort: build in-process via reporting_intelligence.
+    # This only works inside the Flask process; called from the
+    # /api/reports/v2_5 endpoint, not from CLI scripts.
+    try:
+        from _lib import reporting_intelligence as _ri
+        return _ri.build_v24_brand_report(brand_id, period_days)
+    except Exception:
+        return None
 
 
 # ── SEO read ──────────────────────────────────────────────────
 
 def _read_seo_snapshot(domain: str = "swingshack.co.za") -> dict:
-    """Aggregate Ubersuggest snapshots into one dict."""
+    """Aggregate Ubersuggest / SEO snapshots into one dict.
+
+    Two on-disk shapes are recognised:
+
+    Shape A — /api/seo/overview response saved by v25_daily_pull.py:
+        {"schema": "v2.5-editorial-seo-v1", "raw": {...}, ...}
+
+    Shape B — historical files (seo-rankings.json, ubersuggest-*.json)
+    written by fetch_ubersuggest.py.
+    """
     root = _data_root()
     rankings = _read_json(root / "seo-rankings.json") or {}
     domain_data = _read_json(root / "ubersuggest-domain.json") or {}
     backlinks = _read_json(root / "ubersuggest-backlinks.json") or {}
     competitors = _read_json(root / "ubersuggest-competitors.json") or {}
+
+    # Normalise: if rankings has a "raw" sub-dict (the /api/seo/overview
+    # response), unwrap it so _seo_kpis() only sees one canonical shape.
+    raw = rankings.get("raw") or {}
+
+    # The /api/seo/overview endpoint returns:
+    #   {ok, generated_at, domain_health: {domain_authority, ...,
+    #    keyword_footprint: {top_3, top_10, ...}, weekly_change,
+    #    total_backlinks, ref_domains}, summary: {...}}
+    if raw.get("domain_health"):
+        dh = raw["domain_health"]
+        kf = dh.get("keyword_footprint") or {}
+        rankings = {
+            "domain_authority": dh.get("domain_authority"),
+            "backlinks": dh.get("total_backlinks"),
+            "ref_domains": dh.get("ref_domains"),
+            "keyword_footprint": kf,
+            "weekly_change": dh.get("weekly_change") or {},
+            "average_position_trend": (raw.get("average_position_trend")
+                                         or []),
+            "fetched_at": raw.get("generated_at"),
+        }
+
     return {
         "rankings": rankings,
         "domain": domain_data,
@@ -177,21 +219,18 @@ def _read_seo_snapshot(domain: str = "swingshack.co.za") -> dict:
 
 def _seo_kpis(snapshot: dict) -> dict:
     """Extract the 4 SEO KPIs that go on the kpi card row."""
-    domain = snapshot.get("domain") or {}
-    backlinks = snapshot.get("backlinks") or {}
     rankings = snapshot.get("rankings") or {}
     kf = rankings.get("keyword_footprint") or {}
     return {
-        "domain_authority": domain.get("domainAuthority"),
-        "backlinks": backlinks.get("backlinks") or domain.get("backlinks"),
-        "ref_domains": backlinks.get("refDomains"),
+        "domain_authority": rankings.get("domain_authority"),
+        "backlinks": rankings.get("backlinks"),
+        "ref_domains": rankings.get("ref_domains"),
         "top_3_keywords": kf.get("top_3"),
         "top_10_keywords": kf.get("top_10"),
         "ranking_top_100": kf.get("ranking_top_100"),
-        "weekly_change": kf.get("weekly_change") or {},
+        "weekly_change": rankings.get("weekly_change") or {},
         "average_position_trend": rankings.get("average_position_trend") or [],
-        "fetched_at": (backlinks.get("_meta") or {}).get("fetched_at")
-                       or (domain.get("_meta") or {}).get("fetched_at"),
+        "fetched_at": rankings.get("fetched_at"),
     }
 
 
@@ -384,18 +423,71 @@ def _social_narrative(recent: List[dict], reach: int,
 # ── Web / GA4 read ────────────────────────────────────────────
 
 def _read_ga4_snapshot() -> dict:
-    """GA4 ingest varies — try common paths."""
+    """GA4 ingest varies — try common paths.
+
+    We read whatever's already on disk; the V2.5 daily pull script
+    (scripts/v25_daily_pull.py) is responsible for keeping these
+    fresh.
+
+    Recognised shapes:
+    - {"sessions": int, "top_pages": [{"path","sessions"}],
+       "channels": {...}, "fetched_at": iso}
+    - ga4-metrics.json (legacy shape from fetch_ga4):
+       {"total_sessions", "pages": [{"path","sessions"}],
+        "fetched_at"}
+    """
     candidates = [
         _data_root() / "analytics" / "ga4-sessions.json",
         _data_root() / "analytics" / "ga4.json",
         _data_root() / "ga4-sessions.json",
         _data_root() / "analytics" / "ga4-traffic.json",
+        _data_root() / "ga4-metrics.json",  # existing on disk
     ]
     for p in candidates:
         d = _read_json(p)
         if d:
-            return d
+            return _normalize_ga4(d)
     return {}
+
+
+def _normalize_ga4(d: dict) -> dict:
+    """Normalise various GA4 file shapes to V2.5's preferred shape.
+
+    V2.5 prefers:
+      {"sessions": int,
+       "top_pages": [{"path": str, "views": int}],
+       "channels": {"organic": int, ...},
+       "fetched_at": iso}
+    """
+    # Already in V2.5 shape
+    if "sessions" in d and "top_pages" in d:
+        return d
+    # ga4-metrics.json / fetch_ga4 legacy shape
+    if "total_sessions" in d or "pages" in d:
+        pages = []
+        for p in (d.get("pages") or []):
+            path = p.get("path") or p.get("page") or "?"
+            views = p.get("sessions") or p.get("views") or p.get(
+                "screenPageViews") or 0
+            pages.append({"path": path, "views": views})
+        return {
+            "sessions": d.get("total_sessions"),
+            "top_pages": pages,
+            "channels": d.get("channels") or {},
+            "fetched_at": d.get("fetched_at"),
+        }
+    # ga4-cache.json shape (per-brand keyed)
+    for k, v in d.items():
+        if isinstance(v, dict) and ("total_sessions" in v or "rows" in v):
+            rows = v.get("rows") or []
+            return {
+                "sessions": v.get("total_sessions") or sum(
+                    r.get("sessions", 0) for r in rows),
+                "top_pages": [],
+                "channels": {},
+                "fetched_at": v.get("checked_at") or v.get("fetched_at"),
+            }
+    return d
 
 
 def _web_section() -> dict:
@@ -530,40 +622,89 @@ def _paid_media_section(v24_report: Optional[dict]) -> dict:
     v24 = v24_report.get("paid_media_v24") or {}
     counts = v24.get("campaign_counts") or {}
     account = v24_report.get("account_reconciliation") or {}
+
+    # Detect "no real Meta data" — when there's no spend, no
+    # verified counts, and no campaigns, the report was generated
+    # without tokens / cache. Surface this honestly.
+    spent_zar = account.get("amount_spent_zar")
+    has_spend = spent_zar is not None and spent_zar > 0
+    math_ok = bool(counts.get("math_ok"))
+    campaigns = v24.get("campaigns") or []
+    has_campaigns = len(campaigns) > 0
+
+    # Even without Meta data, V2.4.1 still emits session-level metrics.
+    sessions = v24_report.get("sessions")
+
+    if not has_spend and not has_campaigns:
+        # No real Meta data — give an honest explanation
+        reason = (v24.get("rule")
+                  or v24.get("data_status_taxonomy_used")
+                  or "Meta token not configured or no cache present")
+        # Use cache freshness if we have a snapshot
+        freshness_age = _age_days(
+            v24_report.get("generated_at") or v24_report.get("fetched_at"))
+        freshness_label, freshness_class = _freshness_label(freshness_age)
+        age_str = (f" ({freshness_age:.1f}d ago)"
+                   if freshness_age is not None else "")
+        return {
+            "available": False,
+            "bullets": [
+                "Meta paid-media data not present",
+                f"Reason: {str(reason)[:120]}",
+                f"Snapshot{age_str} is from daily pull — token / cache state",
+            ],
+            "narrative": ("V2.4.1 ran but returned no Meta paid-media data. "
+                           "Spend + campaigns + leads all require either a "
+                           "cached /api/meta/ads/cache/<brand> payload or "
+                           "live Meta API access."),
+            "freshness_label": freshness_label,
+            "freshness_class": freshness_class,
+            "freshness_age_days": freshness_age,
+        }
+
     bullets = []
-    spent = account.get("amount_spent")  # cents
-    spent_zar = (spent / 100.0) if spent else None
-    if spent_zar is not None:
+    if has_spend:
         bullets.append(
             f"Lifetime spend {_fmt_money(spent_zar)} "
-            f"({account.get('currency', 'ZAR')})"
+            f"({account.get('currency', 'ZAR') or 'ZAR'})"
         )
-    if counts:
-        if counts.get("math_ok"):
-            bullets.append(
-                f"{counts.get('current_delivered_count', '?')} current, "
-                f"{counts.get('comparable_count', '?')} comparable, "
-                f"{counts.get('new_campaign_count', '?')} new, "
-                f"{counts.get('ended_campaign_count', '?')} ended"
-            )
-        else:
-            bullets.append(
-                f"Campaign counts math check FAILED — see V2.4.1 directly"
-            )
-    campaigns = v24.get("campaigns") or []
-    if campaigns:
-        best = sorted(campaigns, key=lambda c: c.get("results", 0), reverse=True)[:3]
-        for c in best:
-            spend = (c.get("amount_spent_cents") or 0) / 100.0
-            results = c.get("results") or 0
-            cost_per = _safe_div(spend, results)
-            bullets.append(
-                f"{c.get('campaign_name') or c.get('campaign_id')}: "
-                f"{_fmt_money(spend)} spend, {results} results "
-                f"({_fmt_money(cost_per) if cost_per else '—'}/result)"
-            )
+    if counts and math_ok:
+        bullets.append(
+            f"{counts.get('current_delivered_count', '?')} current, "
+            f"{counts.get('comparable_count', '?')} comparable, "
+            f"{counts.get('new_campaign_count', '?')} new, "
+            f"{counts.get('ended_campaign_count', '?')} ended"
+        )
+    elif counts:
+        bullets.append(
+            f"Campaign counts math check FAILED — see V2.4.1 directly"
+        )
+
+    if has_campaigns:
+        # V2.4.1 stores per_campaign, not flat campaigns
+        per_campaign = v24.get("per_campaign") or []
+        if per_campaign:
+            best = sorted(per_campaign,
+                            key=lambda c: c.get("results", 0),
+                            reverse=True)[:3]
+            for c in best:
+                spend = (c.get("amount_spent_cents") or 0) / 100.0
+                results = c.get("results") or 0
+                cost_per = _safe_div(spend, results)
+                bullets.append(
+                    f"{c.get('campaign_name') or c.get('campaign_id')}: "
+                    f"{_fmt_money(spend)} spend, {results} results "
+                    f"({_fmt_money(cost_per) if cost_per else '—'}/result)"
+                )
+
+    # Meta-reported leads (V2.4.1)
+    leads = v24.get("meta_reported_leads_total_31d")
+    if leads is not None:
+        bullets.append(f"Meta-reported leads (31d): {_fmt_int(leads)}")
+
     narrative = "Paid-media signals present and math_ok — see V2.4.1 for full detail."
-    freshness_age = _age_days(v24_report.get("generated_at"))
+    freshness_age = _age_days(
+        v24_report.get("generated_at") or v24_report.get("fetched_at"))
     freshness_label, freshness_class = _freshness_label(freshness_age)
     return {
         "available": True,
@@ -578,22 +719,25 @@ def _paid_media_section(v24_report: Optional[dict]) -> dict:
 # ── KPI cards (top row) ────────────────────────────────────────
 
 def _kpi_cards(brand_id: str, web: dict, social: dict,
-                 paid: dict, seo_kpis: dict) -> List[dict]:
+                 paid: dict, seo_kpis: dict,
+                 v24_report: Optional[dict] = None) -> List[dict]:
     """Build the 8 stat cards for the top of the report.
 
     Order matters: paid → web → social → SEO. Most actionable on top.
     """
     cards = []
-    # 1. Spend
-    spent = None
-    if paid.get("available"):
-        # Will be filled by paid section — read from V2.4 cache directly
-        pass
+    # 1. Spend — read from V2.4.1 account_reconciliation if available
+    spent_zar = None
+    currency = "ZAR"
+    if v24_report:
+        ar = v24_report.get("account_reconciliation") or {}
+        spent_zar = ar.get("amount_spent_zar")
+        currency = ar.get("currency") or "ZAR"
     cards.append({
         "label": "Spend",
-        "value": "—",
+        "value": _fmt_money(spent_zar) if spent_zar else "—",
         "delta": None,
-        "period": "Last 7 days",
+        "period": "Lifetime (V2.4.1)",
         "class_name": "neutral",
         "source": "Meta Ads Manager",
     })
@@ -951,7 +1095,7 @@ def build_editorial_report(brand_id: str,
     paid_section = _paid_media_section(v24)
     funnel_section = _funnel_section(social_section, web_section, v24)
     cards = _kpi_cards(brand_id, web_section, social_section,
-                         paid_section, seo_kpis)
+                         paid_section, seo_kpis, v24)
 
     headline = _headline(cards, paid_section, seo_kpis)
     bottom_line = _bottom_line(cards, paid_section, seo_kpis,

@@ -50,3 +50,11 @@ campaign-os/data/
 # The setup script writes to this file in the operator's
 # working directory — the verifier JSON is the secret.
 .railway-operator-tokens.json
+
+
+# V2.5 daily pull cache — written by scripts/v25_daily_pull.py
+# NOT source-controlled. Regenerated each day at ~06:00 SAST.
+data/paid-media-v24/
+data/analytics/ga4-sessions.json
+data/analytics/ga4-pages.json
+
