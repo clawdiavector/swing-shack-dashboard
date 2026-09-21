@@ -422,3 +422,13 @@ def _compose_cd(
     except Exception as exc:
         degraded.append({"source": "creative_director", "reason": str(exc)[:120]})
         return {"sections": [], "negative_prompt": "", "model_routing": {}}
+
+
+def image_url_for(brand_id: str, saved_path: str | None) -> str | None:
+    """/brand-images/<brand>/<basename> — mirrors app.py image generate preview_url."""
+    if not saved_path:
+        return None
+    name = Path(saved_path).name
+    if not name:
+        return None
+    return f"/brand-images/{brand_id}/{name}"

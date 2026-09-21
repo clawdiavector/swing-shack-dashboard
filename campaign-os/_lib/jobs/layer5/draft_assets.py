@@ -13,6 +13,8 @@ from ..errors import describe_exception
 from ..layer1._io import atomic_write, read_json
 from _lib.brand_validate import validate_brand_id
 
+from .image_draft_context import image_url_for
+
 CREATE_ACTIONS = frozenset({"draft_caption", "draft_image", "draft_gbp"})
 SLOT_ACTIONS = frozenset({"fill_slot"})
 PROCESS_ACTIONS = CREATE_ACTIONS | SLOT_ACTIONS
@@ -234,6 +236,8 @@ def _write_draft(
     platform: str,
     source_item_id: str,
     sidecar: dict[str, Any],
+    image_path: str | None = None,
+    image_url: str | None = None,
 ) -> str:
     from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
 
@@ -245,7 +249,7 @@ def _write_draft(
     campaign = data.setdefault("campaigns", {}).setdefault(campaign_id, {})
     campaign.setdefault("identity", {"name": f"L5 drafts ({brand_id})", "brand": brand_id})
     assets = campaign.setdefault("assets", {})
-    assets[asset_id] = {
+    asset_row: dict[str, Any] = {
         "name": sidecar.get("title") or f"Draft {asset_id[-6:]}",
         "caption": caption,
         "approvalStatus": "draft",
@@ -253,6 +257,11 @@ def _write_draft(
         "updatedAt": now,
         "draft_ref": f"draft-assets/{asset_id}.json",
     }
+    if image_path:
+        asset_row["image_path"] = image_path
+    if image_url:
+        asset_row["image_url"] = image_url
+    assets[asset_id] = asset_row
     campaign["updatedAt"] = now
     _write_campaign_data(data)
 
@@ -434,17 +443,23 @@ def _process_image_row(
     if cd.get("requirements"):
         model_routing["requirements"] = cd["requirements"]
 
+    image_path_str = str(image_path) if image_path else None
+    image_url = image_url_for(brand_id, image_path_str)
+
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
         platform="instagram",
         source_item_id=item_id,
+        image_path=image_path_str,
+        image_url=image_url,
         sidecar={
             "action": "draft_image",
             "route": "job:draft_assets/image",
             "model": getattr(result, "model", None),
             "provider": getattr(result, "provider", None),
-            "image_path": str(image_path) if image_path else None,
+            "image_path": image_path_str,
+            "image_url": image_url,
             "image_size": size,
             "cost_estimate_usd": est,
             "queue_row_id": row.get("id"),
