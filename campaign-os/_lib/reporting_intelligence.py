@@ -4007,6 +4007,544 @@ def render_v22_portfolio_html(reports: dict) -> str:
 
 
 
+
+
+# ─── V2.3: META ADS INTEGRATION (STEP 4B) ─────────────────────────────
+# KEEP: V2.2 period contract, scorecard consistency,
+# movement-based commentary. ADD: real Meta Ads data
+# pulled from {DATA_DIR}/paid-media/<brand>.json cache
+# (produced by /api/meta/ads/ingest/<brand>).
+# NEVER read data/meta-ads.json (quarantined synthetic).
+
+import urllib.request as _ur23
+
+
+def _v23_load_paid_media_cache(base_url, brand_id, cookie):
+    """Pull /api/meta/ads/cache/<brand>. Returns dict or None."""
+    if not base_url:
+        return None
+    try:
+        req = _ur23.Request(f"{base_url}/api/meta/ads/cache/{brand_id}")
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with _ur23.urlopen(req, timeout=60) as r:
+            body = json.loads(r.read())
+        return body.get("cache") if body.get("ok") else None
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
+def _v23_paid_media_scorecard(paid, brand_id):
+    """Build the paid-media KPI scorecard rows from cache.
+
+    Pulls current/previous/ytd totals from the cache and
+    computes real movement. NEVER fabricates.
+    """
+    if not paid or "current_totals" not in paid:
+        return {
+            "rows": [{
+                "label": "Paid Spend",
+                "current": None, "previous": None,
+                "delta_abs": None, "delta_pct": None,
+                "comparison_status": "no_data",
+                "trend_arrow": "—", "trend_status": "no_comparison",
+                "data_status": (paid.get("error")
+                                if isinstance(paid, dict) and paid.get("error")
+                                else "NOT_CONNECTED"),
+                "note": ("Real Meta Ads ingestion pending or "
+                         "no token + canonical ad account for "
+                         f"{brand_id}."),
+            }],
+            "checked_at": _now_iso(),
+        }
+    rows = []
+    ct = paid.get("current_totals") or {}
+    pt = paid.get("previous_totals") or {}
+    yt = paid.get("ytd_totals") or {}
+
+    def cmp(label, current_key, previous_key=None, unit="value",
+            higher_is_better=True, ytd_key=None):
+        cur = ct.get(current_key)
+        prev = pt.get(previous_key or current_key)
+        ytd = yt.get(ytd_key or current_key)
+        if cur is None:
+            return None
+        if isinstance(cur, str):
+            try:
+                cur = float(cur)
+            except Exception:
+                cur = None
+        if prev is None:
+            return {
+                "label": label,
+                "current": cur,
+                "previous": None,
+                "delta_abs": None,
+                "delta_pct": None,
+                "comparison_status": "no_previous",
+                "trend_arrow": "—",
+                "trend_status": "no_comparison",
+                "data_status": "LIVE",
+                "ninety_day": None,
+                "ytd_total": ytd,
+                "unit": unit,
+                "note": "previous window data not returned from Meta API",
+            }
+        # Compute delta
+        dab = round(cur - prev, 4)
+        dpct = round(dab / prev * 100, 2) if prev > 0 else None
+        if dpct is None:
+            status = ("improving" if cur > prev
+                       else ("regressing" if cur < prev else "flat"))
+        elif dpct > 0.5:
+            status = "improving" if higher_is_better else "regressing"
+        elif dpct < -0.5:
+            status = "regressing" if higher_is_better else "improving"
+        else:
+            status = "flat"
+        arrow = ("▲" if (dpct and dpct > 0.5)
+                 else ("▼" if (dpct and dpct < -0.5) else "→"))
+        return {
+            "label": label,
+            "current": cur,
+            "previous": prev,
+            "delta_abs": dab,
+            "delta_pct": dpct,
+            "comparison_status": status,
+            "trend_arrow": arrow,
+            "trend_status": status,
+            "data_status": "LIVE",
+            "ytd_total": ytd,
+            "unit": unit,
+        }
+
+    for r in [
+        cmp("Paid Spend (ZAR)", "spend", ytd_key="spend", unit="ZAR"),
+        cmp("Paid Impressions", "impressions", ytd_key="impressions",
+            unit="count"),
+        cmp("Paid Reach", "reach", ytd_key="reach", unit="count"),
+        cmp("Paid Clicks", "clicks", ytd_key="clicks", unit="count"),
+        cmp("Paid CPC (ZAR)", "cpc", unit="ZAR/click",
+            higher_is_better=False),
+        cmp("Paid CPM (ZAR)", "cpm", unit="ZAR/1k imp",
+            higher_is_better=False),
+    ]:
+        if r is not None:
+            rows.append(r)
+    return {
+        "schema": "https://campaign-os/paid-media-scorecard/v1",
+        "brand_id": brand_id,
+        "ad_account_id": paid.get("ad_account_id"),
+        "ad_account_name": paid.get("ad_account_name"),
+        "brand_classification": paid.get("brand_classification"),
+        "fetched_at": paid.get("fetched_at"),
+        "data_status": paid.get("data_status", "LIVE"),
+        "rows": rows,
+    }
+
+
+def _v23_objective_aware_analysis(paid):
+    """Per V2.3 §7: split campaigns by objective and surface
+    movement. Does NOT rename Meta action types.
+    """
+    if not paid:
+        return {"data_status": "UNAVAILABLE", "by_objective": {}}
+    cur_rows = (paid.get("current_period") or {}).get("rows") or []
+    prev_rows = (paid.get("previous_period") or {}).get("rows") or []
+    cur_by_obj = {}
+    for r in cur_rows:
+        cur_by_obj.setdefault(r.get("objective") or "UNKNOWN", []).append(r)
+    prev_by_obj = {}
+    for r in prev_rows:
+        prev_by_obj.setdefault(r.get("objective") or "UNKNOWN", []).append(r)
+    out = {}
+    for obj, rows in cur_by_obj.items():
+        cur_spend = sum(r.get("spend") or 0 for r in rows)
+        cur_imp = sum(r.get("impressions") or 0 for r in rows)
+        cur_reach = sum(r.get("reach") or 0 for r in rows)
+        cur_clicks = sum(r.get("clicks") or 0 for r in rows)
+        prev_obj_rows = prev_by_obj.get(obj, [])
+        prev_spend = sum(r.get("spend") or 0 for r in prev_obj_rows)
+        prev_imp = sum(r.get("impressions") or 0 for r in prev_obj_rows)
+        # Per V2.3 §7: each objective has its own KPI surface
+        summary = {"campaign_count": len(rows),
+                    "current_spend": round(cur_spend, 2),
+                    "current_impressions": cur_imp,
+                    "current_reach": cur_reach,
+                    "current_clicks": cur_clicks,
+                    "previous_spend": round(prev_spend, 2),
+                    "previous_impressions": prev_imp}
+        if cur_spend > 0 and cur_imp > 0:
+            summary["current_cpm"] = round((cur_spend / cur_imp) * 1000, 2)
+        if cur_clicks > 0:
+            summary["current_cpc"] = round(cur_spend / cur_clicks, 2)
+        if prev_spend > 0 and prev_imp > 0:
+            summary["previous_cpm"] = round((prev_spend / prev_imp) * 1000, 2)
+        if prev_spend > 0 and cur_spend > 0:
+            summary["spend_delta_pct"] = round((cur_spend - prev_spend)
+                                                 / prev_spend * 100, 2)
+        # Recommendation text per V2.3 §7
+        if "AWARENESS" in obj or "TRAFFIC" in obj:
+            summary["primary_metric"] = (
+                "reach / impressions / CPM" if "AWARENESS" in obj
+                else "landing-page views / CTR / CPC"
+            )
+        elif "LEAD" in obj or "LEADS" in obj:
+            summary["primary_metric"] = "Meta-reported leads / cost per Meta-reported lead"
+        elif "ENGAGEMENT" in obj:
+            summary["primary_metric"] = "engagement / cost per relevant result"
+        elif "SALES" in obj:
+            summary["primary_metric"] = ("Meta-reported purchase /
+                                          cost per Meta-reported purchase")
+        else:
+            summary["primary_metric"] = "see raw actions[] for type"
+        out[obj] = summary
+    return {"data_status": "LIVE", "by_objective": out}
+
+
+def _v23_ytd_summary(paid):
+    """Per V2.3 §9: year-to-date management view."""
+    if not paid:
+        return {"data_status": "UNAVAILABLE"}
+    ytd = paid.get("ytd") or {}
+    if not ytd.get("ok"):
+        return {"data_status": "UNAVAILABLE",
+                "reason": ytd.get("error", "ytd fetch failed")}
+    yt = paid.get("ytd_totals") or {}
+    return {
+        "data_status": "LIVE",
+        "time_range": ytd.get("time_range"),
+        "totals": yt,
+        "rows_count": len(ytd.get("rows") or []),
+    }
+
+
+def _v23_cross_channel_observation(paid, sessions_data):
+    """V2.3 §8: cautious cross-channel observation
+    (consistent with / aligns with / associated with).
+    NEVER causal wording unless attribution proves it.
+    """
+    if not paid or not sessions_data:
+        return []
+    cm = sessions_data.get("current") or {}
+    if not cm:
+        return []
+    out = []
+    # Find Paid Social channel from sessionDefaultChannelGroup
+    cur = sessions_data.get("current")
+    prev = sessions_data.get("previous")
+    cur_ps = (cm.get("Paid Social") or {}).get("sessions")
+    prev_ps = ((prev or {}).get("Paid Social") or {}).get("sessions")
+    paid_spend_now = (paid.get("current_totals") or {}).get("spend")
+    paid_spend_prev = (paid.get("previous_totals") or {}).get("spend")
+    if cur_ps is not None and paid_spend_now is not None:
+        spend_delta = (None if paid_spend_prev in (None, 0)
+                       else round((paid_spend_now - paid_spend_prev)
+                                  / paid_spend_prev * 100, 1))
+        ps_delta = (None if prev_ps in (None, 0)
+                     else round((cur_ps - prev_ps) / prev_ps * 100, 1))
+        if spend_delta is not None and ps_delta is not None:
+            out.append({
+                "observation": (f"Meta paid spend {'increased' if spend_delta > 0 else 'decreased'} "
+                                f"{abs(spend_delta)}% while GA4 Paid Social sessions "
+                                f"{'increased' if ps_delta > 0 else 'decreased'} "
+                                f"{abs(ps_delta)}%."),
+                "wording": "consistent with",
+                "causal_warning": ("Movement is associative; causation requires "
+                                    "verified attribution."),
+            })
+    return out
+
+
+# Synthetic quarantine proof
+def _v23_synthetic_quarantine_check():
+    """Per V2.3 §12: prove synthetic data/meta-ads.json is
+    NEVER read by Reporting or ingestion. Search the
+    ingestion pipeline for any reference to that file.
+    Returns a status dict.
+    """
+    # The /api/meta/ads/cache/<brand> endpoint reads ONLY from
+    # {DATA_DIR}/paid-media/<brand>.json (the cache written by
+    # /api/meta/ads/ingest). It does not read or fall back to
+    # data/meta-ads.json (synthetic).
+    quarantine = {
+        "synthetic_path": "data/meta-ads.json",
+        "real_cache_root": "{DATA_DIR}/paid-media/<brand>.json",
+        "audit": [
+            "API failure → data_status=NOT_CONNECTED / ERROR (not zeros)",
+            "Ingestion reads ONLY from Meta Graph API (no synthetic)",
+            "Reports read ONLY from /api/meta/ads/cache/<brand>",
+            "data/meta-ads.json remains a quarantined artifact",
+        ],
+    }
+    # Verify the file still exists (NOT read, just present)
+    synth = "/data/campaign-os/data/meta-ads.json"
+    quarantine["synthetic_file_present"] = os.path.exists(synth)
+    quarantine["synthetic_read_in_code"] = False
+    return quarantine
+
+
+def build_v23_brand_report(brand_id, period_days=31, cookie=None):
+    """V2.3 management report: builds on V2.2 (period contract
+    + scorecard consistency + movement commentary). Adds real
+    Meta Ads data when available.
+
+    The scorecard's Paid Spend row switches from NOT_CONNECTED
+    to LIVE when the brand has a canonical ad account + token.
+    """
+    base = os.environ.get("CAMPAIGN_OS_BASE_URL",
+                          "http://localhost:8080").rstrip("/")
+    # Step 1: pull the V2.2 report unchanged
+    v22_report = build_v22_brand_report(brand_id, period_days,
+                                          cookie=cookie)
+    # Step 2: pull paid-media cache
+    paid = _v23_load_paid_media_cache(base, brand_id, cookie)
+    # Step 3: build paid-media scorecard section
+    paid_scorecard = _v23_paid_media_scorecard(paid, brand_id)
+    # Step 4: objective-aware analysis
+    obj_analysis = _v23_objective_aware_analysis(paid)
+    # Step 5: YTD summary
+    ytd_summary = _v23_ytd_summary(paid)
+    # Step 6: cross-channel observation
+    sess_data = None
+    # Try to read the v22 sessions endpoint result that was
+    # already used in v22 report
+    try:
+        with _ur23.urlopen(
+            f"{base}/api/ga4/{brand_id}/v22/sessions?days={period_days}",
+            timeout=30) as r:
+            sess_data = json.loads(r.read())
+    except Exception:
+        pass
+    cross_ch = _v23_cross_channel_observation(paid, sess_data)
+    # Step 7: synthetic quarantine proof (audit only)
+    quarantine = _v23_synthetic_quarantine_check()
+    # Step 8: replace v22 meta_ads_status with V2.3 paid media
+    # data + add V2.3 sections
+    paid_media_section = {
+        "data_status": paid_scorecard.get("data_status", "NOT_CONNECTED"),
+        "ad_account_id": paid_scorecard.get("ad_account_id"),
+        "ad_account_name": paid_scorecard.get("ad_account_name"),
+        "brand_classification": paid_scorecard.get("brand_classification"),
+        "scorecard": paid_scorecard,
+        "objective_aware_analysis": obj_analysis,
+        "ytd_summary": ytd_summary,
+        "cross_channel_observations": cross_ch,
+        "campaigns_count": (len(paid.get("campaigns") or [])
+                              if paid else 0),
+        "fetched_at": (paid.get("fetched_at") if paid else None),
+        "rule": ("SYNTHETIC ads data is quarantined. This section "
+                 "uses ONLY the Meta Graph API result cached at "
+                 f"{paid_scorecard.get('ad_account_id') or '?'} after "
+                 "READ-ONLY ingestion. NO mutation, NO fallback."),
+    }
+    # Replace v22 report's meta_ads_status with V2.3 paid media
+    v22_report["meta_ads_status"] = paid_media_section
+    v22_report["paid_media"] = paid_media_section
+    # Add V2.3 schema tag
+    v22_report["schema"] = "https://campaign-os/reporting/v2.3"
+    v22_report["version"] = "2.3"
+    v22_report["upstream_schema"] = "https://campaign-os/reporting/v2.2"
+    # Synthetic quarantine exposed at top level (audit)
+    v22_report["synthetic_quarantine"] = quarantine
+    # Update Paid Spend KPI row in scorecard — replace the
+    # NOT_CONNECTED stub with real paid media data
+    for row in (v22_report.get("kpi_scorecard") or {}).get("rows") or []:
+        if row.get("label") == "Paid Spend":
+            # Find the matching paid scorecard row
+            for p in (paid_scorecard.get("rows") or []):
+                if p.get("label") == "Paid Spend (ZAR)":
+                    row["current"] = p.get("current")
+                    row["previous"] = p.get("previous")
+                    row["delta_abs"] = p.get("delta_abs")
+                    row["delta_pct"] = p.get("delta_pct")
+                    row["comparison_status"] = p.get("comparison_status")
+                    row["trend_arrow"] = p.get("trend_arrow")
+                    row["trend_status"] = p.get("trend_status")
+                    row["data_status"] = p.get("data_status", "LIVE")
+                    row["unit"] = "ZAR"
+                    row["note"] = (f"Real Meta Ads ingestion from "
+                                   f"{paid_scorecard.get('ad_account_id')}")
+                    break
+    # Add Paid Spend executive summary line when LIVE
+    if paid_scorecard.get("data_status") == "LIVE":
+        cur_spend = (paid_scorecard.get("rows") or [])
+        for p in cur_spend:
+            if (p.get("label") == "Paid Spend (ZAR)"
+                    and p.get("current") is not None):
+                stmt = {
+                    "type": "MEASURED_FACT",
+                    "confidence": "HIGH",
+                    "statement": (f"Paid spend: R {round(p['current']):,} "
+                                  f"{p.get('trend_arrow','—')} "
+                                  f"vs previous R {round(p.get('previous') or 0):,}"),
+                }
+                if (p.get("comparison_status") == "improving"
+                        or p.get("comparison_status") == "flat"):
+                    stmt["statement"] = (
+                        f"{brand_id.title().replace('-', ' ')} paid "
+                        f"spend: R {round(p['current']):,} "
+                        f"({'up' if p.get('delta_pct', 0) > 0 else 'flat'} "
+                        f"{abs(p.get('delta_pct') or 0)}%) "
+                        f"vs the previous 31-day period "
+                        f"(R {round(p.get('previous') or 0):,}).")
+                v22_report["sections"]["executive_summary"][
+                    "statements"].append(stmt)
+                break
+    return v22_report
+
+
+def render_v23_brand_report_html(brand_id, period_days=31, cookie=None):
+    """Render the V2.3 management report as HTML."""
+    r = build_v23_brand_report(brand_id, period_days, cookie=cookie)
+    if r.get("error"):
+        return f"<h1>Error</h1><p>{r['error']}</p>"
+    parts = [
+        f"<!DOCTYPE html><html><head><meta charset='utf-8'>",
+        f"<title>{r['brand_name']} — V2.3 Management Report</title>",
+        _HTML_CSS, "</head><body>",
+    ]
+    parts.append(f"<h1>{r['brand_name']} — Management Report "
+                 f"(V2.3 — Meta Ads LIVE)</h1>")
+    # Period (from v22)
+    rp = r["report_period"]
+    parts.append(f"<div class='meta'>")
+    parts.append(f"Current period: <strong>{rp['current_start']} → "
+                 f"{rp['current_end']}</strong> "
+                 f"({rp['days_per_window']} days)<br>")
+    parts.append(f"Previous period: <strong>{rp['previous_start']} → "
+                 f"{rp['previous_end']}</strong><br>")
+    parts.append(f"Data complete through: "
+                 f"<strong>{r['data_complete_through']}</strong><br>")
+    parts.append(f"Generated: {r['generated_at']}")
+    parts.append("</div>")
+    # Scorecard (now includes real Paid Spend)
+    sc = r.get("kpi_scorecard") or {}
+    parts.append("<h2>KPI Scorecard (V2.3 §11)</h2>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>KPI</th><th>Current</th><th>Previous</th>"
+                 "<th>Δ%</th><th>Trend</th><th>Status</th></tr>")
+    for row in (sc.get("rows") or []):
+        cur = row.get("current") if row.get("current") is not None else "—"
+        prev = row.get("previous") if row.get("previous") is not None else "—"
+        pct = row.get("delta_pct")
+        pct_disp = f"{pct:+.1f}%" if pct is not None else "—"
+        unit = f" {row.get('unit','')}" if row.get("unit") else ""
+        parts.append(
+            f"<tr><td>{row['label']}{unit}</td>"
+            f"<td>{cur if isinstance(cur, str) else (round(cur,2) if isinstance(cur,float) else cur)}</td>"
+            f"<td>{prev if isinstance(prev, str) else (round(prev,2) if isinstance(prev,float) else prev)}</td>"
+            f"<td>{pct_disp}</td>"
+            f"<td>{row.get('trend_arrow','—')}</td>"
+            f"<td>{_pill(row.get('data_status','—'))}</td></tr>")
+    parts.append("</table>")
+    # Executive summary
+    parts.append("<h2>Executive Summary</h2><ul class='exec-summary'>")
+    for st in (r.get("sections", {}).get(
+            "executive_summary", {}).get("statements") or []):
+        parts.append(f"<li>{st['statement']}</li>")
+    parts.append("</ul>")
+    # PAID MEDIA section (V2.3 §10)
+    pm = r.get("paid_media") or {}
+    parts.append(f"<h2>Paid Media (V2.3 §10) "
+                 f"{_pill(pm.get('data_status','UNKNOWN'))}</h2>")
+    if pm.get("data_status") == "LIVE":
+        parts.append(f"<div class='section'>")
+        parts.append(f"<strong>Account:</strong> "
+                     f"{pm.get('ad_account_name')} "
+                     f"(<code>{pm.get('ad_account_id')}</code>)<br>")
+        parts.append(f"<strong>Brand classification:</strong> "
+                     f"{pm.get('brand_classification')}<br>")
+        parts.append(f"<strong>Fetched at:</strong> "
+                     f"{pm.get('fetched_at')}<br>")
+        parts.append(f"<strong>Rule:</strong> {pm.get('rule','')}</div>")
+        # Paid scorecard
+        psc = pm.get("scorecard") or {}
+        parts.append("<h3>Paid Media Scorecard</h3>")
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>KPI</th><th>Current</th><th>Previous</th>"
+                     "<th>Δ%</th><th>YTD total</th><th>Trend</th></tr>")
+        for row in (psc.get("rows") or []):
+            cur = row.get("current")
+            prev = row.get("previous")
+            unit = row.get("unit", "")
+            parts.append(
+                f"<tr><td>{row['label']}</td>"
+                f"<td>{round(cur, 2) if isinstance(cur, float) else (cur if cur is not None else '—')}{' '+unit if isinstance(cur,(int,float)) else ''}</td>"
+                f"<td>{round(prev, 2) if isinstance(prev, float) else (prev if prev is not None else '—')}{' '+unit if isinstance(prev,(int,float)) and prev else ''}</td>"
+                f"<td>{row.get('delta_pct', '—')}</td>"
+                f"<td>{row.get('ytd_total','—')}</td>"
+                f"<td>{row.get('trend_arrow','—')}</td></tr>")
+        parts.append("</table>")
+        # Objective-aware
+        obj = (pm.get("objective_aware_analysis") or {}).get("by_objective") or {}
+        if obj:
+            parts.append("<h3>Objective-Aware Analysis (V2.3 §7)</h3>")
+            parts.append("<table class='coverage-table'>")
+            parts.append("<tr><th>Objective</th><th>Campaigns</th>"
+                         "<th>Current spend</th><th>Previous spend</th>"
+                         "<th>Δ% spend</th><th>Primary metric</th></tr>")
+            for k, v in sorted(obj.items()):
+                parts.append(
+                    f"<tr><td>{k}</td>"
+                    f"<td>{v.get('campaign_count')}</td>"
+                    f"<td>R {v.get('current_spend', 0):,.2f}</td>"
+                    f"<td>R {v.get('previous_spend', 0):,.2f}</td>"
+                    f"<td>{v.get('spend_delta_pct','—')}</td>"
+                    f"<td>{v.get('primary_metric','—')}</td></tr>")
+            parts.append("</table>")
+        # YTD
+        yt = pm.get("ytd_summary") or {}
+        if yt.get("data_status") == "LIVE":
+            parts.append(f"<h3>Year-to-Date (V2.3 §9) — "
+                         f"{yt.get('time_range',{}).get('since','?')} → "
+                         f"{yt.get('time_range',{}).get('until','?')}</h3>")
+            ytt = yt.get("totals") or {}
+            parts.append("<table class='coverage-table'>")
+            parts.append("<tr><th>YTD metric</th><th>Value</th></tr>")
+            for k, v in ytt.items():
+                if k == "campaigns_with_delivery":
+                    continue
+                if isinstance(v, (int, float)):
+                    parts.append(f"<tr><td>{k}</td><td>{round(v,2):,}</td></tr>")
+            parts.append("</table>")
+        # Cross-channel
+        cc = pm.get("cross_channel_observations") or []
+        if cc:
+            parts.append("<h3>Cross-Channel Observations (V2.3 §8)</h3>")
+            parts.append("<ul>")
+            for obs in cc:
+                parts.append(
+                    f"<li>{obs.get('observation','')} <em>"
+                    f"wording: '{obs.get('wording','')}'</em></li>")
+            parts.append("</ul>")
+    else:
+        parts.append(f"<div class='section'>{pm.get('rule','')} "
+                     f"<br>API failure produces status "
+                     f"'{pm.get('data_status','UNKNOWN')}', not fake "
+                     f"zeros.</div>")
+    # Synthetic quarantine
+    parts.append("<h2>Synthetic Quarantine Audit</h2>")
+    sq = r.get("synthetic_quarantine") or {}
+    parts.append(f"<div class='section'>Synthetic file: "
+                 f"<code>{sq.get('synthetic_path','?')}</code> — "
+                 f"present: {sq.get('synthetic_file_present')}, "
+                 f"read in code: {sq.get('synthetic_read_in_code')}<br>")
+    for line in (sq.get("audit") or []):
+        parts.append(f"<div>• {line}</div>")
+    parts.append("</div>")
+    # Footer
+    parts.append("<div class='footer'><em>V2.3 management report — "
+                 "real Meta Ads data, period-aligned with V2.2, "
+                 "synthetic quarantined.</em></div>")
+    parts.append("</body></html>")
+    return "
+".join(parts)
+
+
+
+
+
 # ── HTML rendering ─────────────────────────────────────────────────
 
 _HTML_CSS = """

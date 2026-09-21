@@ -44749,6 +44749,89 @@ def meta_ads_cache(brand_id):
         return jsonify({"ok": True, "cache": json.load(f)}), 200
 
 
+
+
+# ─── REPORTING V2.3: REAL META ADS INTEGRATION ────────────────────────
+# Builds on V2.2 (period contract, scorecard consistency,
+# movement-based commentary) and adds real Meta Ads data
+# when accessible via the canonical token + account mapping.
+
+
+@app.route('/api/reports/v2_3/<brand_id>', methods=['GET'])
+def report_v23_brand(brand_id):
+    """GET /api/reports/v2_3/<brand_id>?format=html|json&days=31
+
+    V2.3 management report — V2.2 + real paid-media data.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_v23_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_v23_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v23_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/reports/v2_3/portfolio', methods=['GET'])
+def report_v23_portfolio():
+    """GET /api/reports/v2_3/portfolio?format=html|json"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_v23_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        # Compose a minimal portfolio HTML (link each brand to
+        # its own report)
+        rows = []
+        for bid, r in reports.items():
+            sc = r.get("kpi_scorecard", {})
+            pm = r.get("paid_media", {})
+            rows.append(
+                f"<tr><td>{r.get('brand_name', bid)}</td>"
+                f"<td>{pm.get('ad_account_name','-')}<br>"
+                f"<code>{pm.get('ad_account_id','')}</code></td>"
+                f"<td>{_pill(pm.get('data_status','NOT_CONNECTED'))}</td>"
+                f"<td>R {round((pm.get('scorecard',{}) .get('rows',[{}])[0]).get('current',0) or 0):,}</td>"
+                f"<td><a href='/api/reports/v2_3/{bid}?format=html'>"
+                f"Full report →</a></td></tr>")
+        html = (
+            "<!DOCTYPE html><html><head>"
+            "<meta charset='utf-8'>"
+            "<title>Portfolio V2.3</title></head><body>"
+            "<h1>Portfolio — V2.3 (Real Meta Ads)</h1>"
+            "<table class='coverage-table'>"
+            "<tr><th>Brand</th><th>Ad account</th><th>Status</th>"
+            "<th>Current spend (ZAR)</th><th></th></tr>"
+            + "".join(rows) +
+            "</table>"
+            "<div class='footer'><em>V2.3 portfolio — Meta Ads LIVE per "
+            "canonical account mapping.</em></div>"
+            "</body></html>")
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v23_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == '__main__':
     import sys as _sys
     print(f'[boot] starting Campaign OS, DATA_DIR={DATA_DIR}, PORT={os.environ.get("PORT", "8000")}', flush=True, file=_sys.stderr)
