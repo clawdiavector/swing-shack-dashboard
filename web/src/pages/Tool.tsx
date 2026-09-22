@@ -1,6 +1,6 @@
 import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { ToolFrame } from '../components/ToolFrame'
-import { TOOL_BY_SLUG, parentLabel, toolEmbedSrc } from '../lib/tools'
+import { TOOL_BY_SLUG, mergeNativeTarget, parentLabel, toolEmbedSrc } from '../lib/tools'
 
 export function Tool() {
   const { slug = '' } = useParams()
@@ -9,8 +9,8 @@ export function Tool() {
   if (!tool) {
     return <Navigate to="/other" replace />
   }
-  if (slug === 'accounts') {
-    return <Navigate to="/ops?tab=accounts" replace />
+  if (tool.native) {
+    return <Navigate to={mergeNativeTarget(tool.native, params)} replace />
   }
 
   const chip = params.get('title') || params.get('asset') || params.get('item') || undefined

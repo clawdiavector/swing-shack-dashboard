@@ -5,21 +5,106 @@ export type ToolDef = {
   from: string
   page?: string
   path?: string
+  native?: string
 }
 
 export const TOOLS: ToolDef[] = [
-  { slug: 'buildpost', page: 'buildpost', label: 'Build a post', hint: 'Caption, visual, hook', from: '/create' },
-  { slug: 'captions', page: 'captions', label: 'Captions', hint: 'IG / FB / LinkedIn', from: '/create' },
-  { slug: 'headlines', page: 'headlines', label: 'Headlines', hint: 'Punchy titles', from: '/create' },
-  { slug: 'hooks', page: 'hooks', label: 'Hook bank', hint: 'Openers', from: '/create' },
-  { slug: 'ctas', page: 'ctas', label: 'CTAs', hint: 'Ask for the click', from: '/create' },
-  { slug: 'hashtagseo', page: 'hashtagseo', label: 'Hashtags', hint: 'Discoverability', from: '/create' },
-  { slug: 'imagegen', page: 'imagegen', label: 'Image gen', hint: 'Generate a still', from: '/create' },
-  { slug: 'image-lab', path: '/image-lab', label: 'Image lab', hint: 'Iterate and crop', from: '/create' },
-  { slug: 'visualizer', path: '/visualizer', label: 'Visual library', hint: 'Past assets', from: '/create' },
-  { slug: 'memes', page: 'memes', label: 'Meme Lord', hint: 'Classic meme desk', from: '/create' },
-  { slug: 'meme-lab', path: '/meme-lab', label: 'Meme lab', hint: 'Templates', from: '/create' },
-  { slug: 'library', page: 'library', label: 'Copy library', hint: 'Reuse a winner', from: '/create' },
+  {
+    slug: 'buildpost',
+    page: 'buildpost',
+    label: 'Build a post',
+    hint: 'Caption, visual, hook',
+    from: '/create',
+    native: '/create/post',
+  },
+  {
+    slug: 'captions',
+    page: 'captions',
+    label: 'Captions',
+    hint: 'IG / FB / LinkedIn',
+    from: '/create',
+    native: '/create/captions',
+  },
+  {
+    slug: 'headlines',
+    page: 'headlines',
+    label: 'Headlines',
+    hint: 'Punchy titles',
+    from: '/create',
+    native: '/create/copy?tab=headlines',
+  },
+  {
+    slug: 'hooks',
+    page: 'hooks',
+    label: 'Hook bank',
+    hint: 'Openers',
+    from: '/create',
+    native: '/create/copy?tab=hooks',
+  },
+  {
+    slug: 'ctas',
+    page: 'ctas',
+    label: 'CTAs',
+    hint: 'Ask for the click',
+    from: '/create',
+    native: '/create/copy?tab=ctas',
+  },
+  {
+    slug: 'hashtagseo',
+    page: 'hashtagseo',
+    label: 'Hashtags',
+    hint: 'Discoverability',
+    from: '/create',
+    native: '/create/copy?tab=hashtags',
+  },
+  {
+    slug: 'imagegen',
+    page: 'imagegen',
+    label: 'Image gen',
+    hint: 'Generate a still',
+    from: '/create',
+    native: '/create/images?tab=generate',
+  },
+  {
+    slug: 'image-lab',
+    path: '/image-lab',
+    label: 'Image lab',
+    hint: 'Iterate and crop',
+    from: '/create',
+    native: '/create/images?tab=lab',
+  },
+  {
+    slug: 'visualizer',
+    path: '/visualizer',
+    label: 'Visual library',
+    hint: 'Past assets',
+    from: '/create',
+    native: '/create/images?tab=library',
+  },
+  {
+    slug: 'memes',
+    page: 'memes',
+    label: 'Meme Lord',
+    hint: 'Classic meme desk',
+    from: '/create',
+    native: '/create/memes?tab=lord',
+  },
+  {
+    slug: 'meme-lab',
+    path: '/meme-lab',
+    label: 'Meme lab',
+    hint: 'Templates',
+    from: '/create',
+    native: '/create/memes?tab=lab',
+  },
+  {
+    slug: 'library',
+    page: 'library',
+    label: 'Copy library',
+    hint: 'Reuse a winner',
+    from: '/create',
+    native: '/create/copy?tab=library',
+  },
   { slug: 'calendar', page: 'calendar', label: 'Month grid', hint: 'Every brand, one month', from: '/calendar' },
   { slug: 'planning', page: 'planning', label: 'Planning', hint: 'Themes and lanes', from: '/calendar' },
   { slug: 'ideas', page: 'ideas', label: 'Ideas', hint: 'Backlog to park', from: '/calendar' },
@@ -28,7 +113,14 @@ export const TOOLS: ToolDef[] = [
   { slug: 'gbp', page: 'gbp', label: 'GBP', hint: 'Google Business Profile', from: '/publish' },
   { slug: 'gmb', page: 'gmb', label: 'GBP drafts', hint: 'Pending listings', from: '/publish' },
   { slug: 'socials', page: 'socials', label: 'Socials', hint: 'What’s live', from: '/daily' },
-  { slug: 'accounts', path: '/connected-accounts', label: 'Accounts', hint: 'Connected channels', from: '/publish' },
+  {
+    slug: 'accounts',
+    path: '/connected-accounts',
+    label: 'Accounts',
+    hint: 'Connected channels',
+    from: '/publish',
+    native: '/ops?tab=accounts',
+  },
   { slug: 'weekly-report', path: '/weekly-report', label: 'This week', hint: 'Weekly report', from: '/results' },
   { slug: 'insights', page: 'insights', label: 'Insights', hint: 'What worked', from: '/results' },
   { slug: 'performance', page: 'performance', label: 'Reach', hint: 'Performance', from: '/results' },
@@ -60,6 +152,16 @@ export function toolTo(slug: string, extra?: Record<string, string | undefined>)
   }
   const qs = q.toString()
   return qs ? `/tool/${slug}?${qs}` : `/tool/${slug}`
+}
+
+/** Merge catalog default query on `native` with inbound deep-link params (inbound wins). */
+export function mergeNativeTarget(native: string, inbound: URLSearchParams): string {
+  const qIndex = native.indexOf('?')
+  const path = qIndex >= 0 ? native.slice(0, qIndex) : native
+  const merged = new URLSearchParams(qIndex >= 0 ? native.slice(qIndex + 1) : '')
+  inbound.forEach((value, key) => merged.set(key, value))
+  const qs = merged.toString()
+  return qs ? `${path}?${qs}` : path
 }
 
 export function toolEmbedSrc(tool: ToolDef, params: URLSearchParams) {

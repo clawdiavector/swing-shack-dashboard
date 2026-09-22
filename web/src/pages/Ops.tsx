@@ -1,9 +1,9 @@
-import { ClipboardCheck, ExternalLink } from 'lucide-react'
+import { ClipboardCheck } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../components/chrome'
-import { Badge, Button, StatCard, Tip } from '../components/ui'
+import { Badge, Button, ClassicLink, StatCard, Tip } from '../components/ui'
 import {
   fetchAccounts,
   fetchAgentQueue,
@@ -71,22 +71,6 @@ function SkeletonRows({ n = 4 }: { n?: number }) {
         <li key={i} className="glass h-16 animate-pulse rounded-2xl border border-white/10" />
       ))}
     </ul>
-  )
-}
-
-function ClassicLink({ href, label }: { href: string; label: string }) {
-  const tip = `Open the classic ${label} page in a full tab. Leftover HTML stays live.`
-  return (
-    <Tip text={tip}>
-      <a
-        href={href}
-        title={tip}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-ac hover:text-yel"
-      >
-        Open in Classic
-        <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.5} />
-      </a>
-    </Tip>
   )
 }
 

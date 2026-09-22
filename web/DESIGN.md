@@ -65,6 +65,16 @@ Classic link. Verdict badges: OK → green, LATE/STUCK → gold, FAILED → red,
 
 Classic `/ops`, `/ops/jobs`, and `/connected-accounts` stay live — each tab has “Open in Classic”.
 
+## Studio
+
+Native work surfaces live under `/app/create/<cluster>` with optional `?tab=` inside a cluster
+(post · captions · copy · images · memes). Tab strips use `FilterChips` like Ops. Every interactive
+control carries a `Tip`. Every cluster page includes a **ClassicLink** raw anchor to the matching
+`/?page=…` or standalone HTML — never route Classic URLs through `Button`/`IconTile` (native round trip).
+
+Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-lab.html`,
+`campaign-os.html` sections) stay on disk and served; Heroes does not delete them.
+
 ## Daily (first designed page)
 
 1. Kicker: Today · brand · date

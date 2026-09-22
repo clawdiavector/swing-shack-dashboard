@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { toDesk } from '../lib/desk'
@@ -61,6 +62,22 @@ export function Tip({
         {text}
       </span>
     </span>
+  )
+}
+
+export function ClassicLink({ href, label }: { href: string; label: string }) {
+  const tip = `Open the classic ${label} page in a full tab. Leftover HTML stays live.`
+  return (
+    <Tip text={tip}>
+      <a
+        href={href}
+        title={tip}
+        className="inline-flex items-center gap-1 text-sm font-semibold text-ac hover:text-yel"
+      >
+        Open in Classic
+        <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.5} />
+      </a>
+    </Tip>
   )
 }
 
