@@ -479,8 +479,13 @@ def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
         return {"status": "NOT_CONNECTED"}
     kfp = (dh.get("keyword_footprint") or {})
     wc = (dh.get("weekly_change") or rank.get("weekly_change") or {})
+    # fetched_at may live at rank.fetched_at OR rank.metadata.fetched_at
+    _meta = rank.get("metadata") or {}
+    fetched_at = (rank.get("fetched_at")
+                    or _meta.get("fetched_at")
+                    or dh.get("fetched_at"))
     return {
-        "status": "LIVE" if (dh.get("fetched_at") or rank.get("fetched_at")) else "PARTIAL",
+        "status": "LIVE" if fetched_at else "PARTIAL",
         "domain_authority": dh.get("domain_authority")
                                 or rank.get("domain_authority"),
         "backlinks": dh.get("total_backlinks")
@@ -492,8 +497,7 @@ def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
         "top_10": kfp.get("top_10") if kfp.get("top_10") is not None
                     else rank.get("top_10_keywords"),
         "weekly_change": wc,
-        "fetched_at": rank.get("fetched_at")
-                       or dh.get("fetched_at"),
+        "fetched_at": fetched_at,
         "manager_read": dh.get("manager_read") or rank.get("manager_read"),
     }
 
