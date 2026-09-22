@@ -8,7 +8,6 @@ import {
   fetchAssetAiDraft,
   fetchInboxItem,
   postJson,
-  type InboxItem,
 } from '../../lib/api'
 import { parentLabel } from '../../lib/tools'
 
