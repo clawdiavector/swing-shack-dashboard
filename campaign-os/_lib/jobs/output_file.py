@@ -23,15 +23,38 @@ def _normalize_rel(rel: str) -> str:
     return "/".join(parts)
 
 
+def _brand_scope(spec) -> tuple[str, ...]:
+    """Brands this per_brand job writes under — credential-independent."""
+    if spec.brand_mode != "per_brand":
+        return ()
+    from .brand_lanes import partition_brands
+
+    runnable, skipped = partition_brands(spec)
+    return tuple(sorted(set(runnable) | set(skipped) | set(spec.brands)))
+
+
+def _allowed_writes(spec) -> list[str]:
+    """Flat writes plus their brand-resolved twins. Order: flat first, then brands."""
+    out: list[str] = []
+    for rel in spec.writes or ():
+        is_dir = rel.endswith("/")
+        norm = _normalize_rel(rel)
+        out.append(norm + "/" if is_dir else norm)
+        if spec.brand_mode == "per_brand" and rel not in spec.shared_writes:
+            for brand in _brand_scope(spec):
+                child = f"brands/{brand}/{norm}"
+                out.append(child + "/" if is_dir else child)
+    return out
+
+
 def is_path_allowed(job: str, rel: str) -> bool:
     """True if rel is listed in the job's writes (exact file or under a write dir)."""
     spec = JOBS.get(job)
     if spec is None:
         return False
     norm = _normalize_rel(rel)
-    for allowed in spec.writes or ():
-        allowed_raw = (allowed or "").strip().replace("\\", "/")
-        is_dir = allowed_raw.endswith("/")
+    for allowed in _allowed_writes(spec):
+        is_dir = allowed.endswith("/")
         allowed_norm = _normalize_rel(allowed)
         if is_dir:
             if norm == allowed_norm or norm.startswith(allowed_norm + "/"):
@@ -48,31 +71,33 @@ def list_output_files(job: str) -> list[dict[str, Any]]:
         return []
     out: list[dict[str, Any]] = []
     base = _data_dir()
-    for rel in spec.writes or ():
-        rel_norm = _normalize_rel(rel)
+    for rel_allowed in _allowed_writes(spec):
+        is_dir = rel_allowed.endswith("/")
+        rel_norm = _normalize_rel(rel_allowed)
         path = os.path.join(base, rel_norm)
-        if rel_norm.endswith("/"):
+        if is_dir:
             entries: list[str] = []
             if os.path.isdir(path):
                 try:
+                    prefix = rel_allowed
                     entries = sorted(
-                        f"{rel_norm}{name}"
+                        f"{prefix}{name}"
                         for name in os.listdir(path)
                         if name.endswith(".json")
                     )[:200]
                 except OSError:
                     entries = []
-            out.append({"path": rel_norm, "kind": "directory", "entries": entries})
+            out.append({"path": rel_allowed, "kind": "directory", "entries": entries})
         else:
             exists = os.path.isfile(path)
             size = os.path.getsize(path) if exists else None
             out.append(
                 {
-                    "path": rel_norm,
+                    "path": rel_allowed,
                     "kind": "file",
                     "exists": exists,
                     "bytes": size,
-                    "viewable": exists and rel_norm.endswith(".json"),
+                    "viewable": exists and rel_allowed.endswith(".json"),
                 }
             )
     return out

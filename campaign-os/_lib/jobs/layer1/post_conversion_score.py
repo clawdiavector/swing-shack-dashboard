@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import json
+import re
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from ._io import as_dict, as_list, atomic_write, read_json, utc_now_iso, io_for_job
+from ._io import as_dict, as_list, io_for_job, parse_float, utc_now_iso
 
 JOB_NAME = "post_conversion_score"
 from . import ga4_report
@@ -38,6 +38,42 @@ def _classify_themes(caption: str) -> list[str]:
 def _is_winning_combo(themes: list[str]) -> bool:
     themes_set = set(themes)
     return any(combo.issubset(themes_set) for combo in WINNING_THEME_COMBOS)
+
+
+def _caption_of(post: dict) -> str:
+    return (
+        post.get("captionPreview")
+        or post.get("caption_preview")
+        or post.get("caption")
+        or ""
+    )
+
+
+def _caption_to_hook_id(caption: str) -> str:
+    """Mirror layer7/post_outcomes._caption_to_hook_id — first line, slugified, 50 chars."""
+    first_line = (caption or "").split("\n")[0]
+    return re.sub(r"[^a-z0-9]+", "-", first_line.lower()).strip("-")[:50]
+
+
+def _merge_sources(ig_analytics: dict, ig_business: dict) -> list[dict]:
+    """Analytics posts as the base roster, enriched from business media by id."""
+    analytics = [p for p in as_list(ig_analytics.get("posts")) if isinstance(p, dict)]
+    business = [m for m in as_list(ig_business.get("media")) if isinstance(m, dict)]
+    if not analytics:
+        return business
+
+    biz_by_id = {str(m.get("id")): m for m in business if m.get("id")}
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for post in analytics:
+        pid = str(post.get("id") or "")
+        biz = biz_by_id.get(pid) or {}
+        row = {**post, **{k: v for k, v in biz.items() if v not in (None, "", {}, [])}}
+        merged.append(row)
+        if pid:
+            seen.add(pid)
+    merged.extend(m for m in business if str(m.get("id") or "") not in seen)
+    return merged
 
 
 def _run_ga4_report(property_id: str, bearer: str, body: dict) -> dict:
@@ -113,35 +149,38 @@ def _fetch_daily_ig_bookings(property_id: str, bearer: str, start: str, end: str
 
 
 def _score_posts(
-    ig_business: dict,
+    source: dict | list,
     ga_by_hook: dict[str, int],
     ig_daily: dict[str, int],
     median_ig_bookings: float,
 ) -> list[dict]:
+    posts = source if isinstance(source, list) else as_list(as_dict(source).get("media"))
     scored: list[dict] = []
-    for post in as_list(ig_business.get("media")):
+    for post in posts:
         if not isinstance(post, dict):
             continue
         post_date_raw = post.get("timestamp") or ""
         if not post_date_raw:
             continue
         post_date = post_date_raw[:10]
-        hook_id = post.get("hook_id") or ""
+        caption = _caption_of(post)
+
+        engagement_rate = parse_float(
+            post.get("engagement_rate_pct")
+            if post.get("engagement_rate_pct") is not None
+            else post.get("engagementRate"),
+            0.0,
+        )
+
+        format_type_raw = str(post.get("format_type") or "").lower()
+        media_type = post.get("media_type") or {
+            "reel": "VIDEO",
+            "carousel": "CAROUSEL_ALBUM",
+        }.get(format_type_raw, "IMAGE")
+        is_reel = format_type_raw == "reel" or str(media_type).upper() in ("VIDEO", "REEL")
+
         metrics = post.get("metrics") if isinstance(post.get("metrics"), dict) else {}
         reach = int(metrics.get("reach") or post.get("reach") or 0)
-        engagement_rate = float(post.get("engagement_rate_pct") or 0)
-        caption = (
-            post.get("captionPreview")
-            or post.get("caption_preview")
-            or post.get("caption")
-            or ""
-        )
-        media_type = post.get("media_type") or "IMAGE"
-        format_type_raw = post.get("format_type") or ""
-        is_reel = (
-            str(format_type_raw).lower() == "reel"
-            or str(media_type).upper() in ("VIDEO", "REEL")
-        )
 
         def _engagement(metric_key: str, *post_keys: str) -> int:
             val = metrics.get(metric_key)
@@ -157,6 +196,10 @@ def _score_posts(
         saves = _engagement("saved", "saves", "saved")
         shares = _engagement("shares", "shares")
         permalink = post.get("permalink") or post.get("permalink_url") or ""
+
+        hook_id = str(post.get("hook_id") or "")
+        if not hook_id or hook_id.isdigit() or hook_id == str(post.get("id") or ""):
+            hook_id = _caption_to_hook_id(caption)
 
         direct_sessions = ga_by_hook.get(hook_id, 0)
         if direct_sessions == 0 and hook_id:
@@ -215,15 +258,23 @@ def _score_posts(
 
 
 def run(*, brand: str | None = None) -> dict:
-    """Build post-conversion-score.json from GA4 + ig-business-analytics.json."""
+    """Build post-conversion-score.json from GA4 + ig-analytics / ig-business sources."""
     io = io_for_job(JOB_NAME, brand)
     missing = ga4_report._missing_env_error(brand)
     if missing:
         return {"ok": False, "error": missing}
 
+    ig_analytics = as_dict(io.read("ig-analytics.json"))
     ig_business = as_dict(io.read("ig-business-analytics.json"))
-    if not ig_business.get("media"):
-        return {"ok": False, "error": "ig-business-analytics.json missing or empty — run meta_refresh first"}
+    posts = _merge_sources(ig_analytics, ig_business)
+    if not posts:
+        return {
+            "ok": False,
+            "error": (
+                "ig-analytics.json and ig-business-analytics.json missing or empty "
+                "— run meta_refresh first"
+            ),
+        }
 
     end = date.today()
     start = end - timedelta(days=30)
@@ -245,7 +296,7 @@ def run(*, brand: str | None = None) -> dict:
     baseline_vals = sorted(ig_daily.values())
     median_ig_bookings = baseline_vals[len(baseline_vals) // 2] if baseline_vals else 0
 
-    scored_posts = _score_posts(ig_business, ga_by_hook, ig_daily, float(median_ig_bookings))
+    scored_posts = _score_posts(posts, ga_by_hook, ig_daily, float(median_ig_bookings))
     top_posts = scored_posts[:5]
     reels = [p for p in scored_posts if p.get("format_type") == "reel"]
     images = [p for p in scored_posts if p.get("format_type") == "image"]
@@ -272,6 +323,11 @@ def run(*, brand: str | None = None) -> dict:
         "updated": utc_now_iso(),
         "generated_by": "layer1/post_conversion_score.py",
         "window": {"start": start_str, "end": end_str},
+        "sources": {
+            "ig_analytics_posts": len(as_list(ig_analytics.get("posts"))),
+            "ig_business_media": len(as_list(ig_business.get("media"))),
+            "merged_posts": len(posts),
+        },
         "scoring_formula": (
             "raw_score = (direct_attributed * 10 + (window_total/3) * 3 + reach * 0.001) * theme_mult"
             " | normalized_score = raw / max(raw) * 100"

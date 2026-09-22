@@ -234,7 +234,7 @@ def layer1_specs() -> list[JobSpec]:
             retries=0,
             credentials=("GA4_PROPERTY_ID", "GA4_SERVICE_ACCOUNT_JSON_PATH"),
             writes=("post-conversion-score.json",),
-            reads=("ig-business-analytics.json", "ga4-metrics.json"),
+            reads=("ig-analytics.json", "ig-business-analytics.json", "ga4-metrics.json"),
             upstream=("meta_refresh", "ga4_report"),
             brand_mode="per_brand",
             requires_integrations=("meta",),
