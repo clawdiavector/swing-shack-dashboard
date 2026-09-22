@@ -245,8 +245,10 @@ def _paid_totals_from_campaigns(v24: dict) -> Dict[str, Any]:
     """Aggregate 7-day current + previous totals from
     paid_media_v24.per_campaign[].current and .previous.
 
-    Returns dict with current_period + previous_period keys
-    compatible with the V3.1 expected shape.
+    Returns dict with current_period + previous_period keys.
+    Meta-reported leads only count OUTCOME_LEADS campaigns (where
+    primary_metric_label == "Meta-reported leads") — NOT the sum
+    of every primary_result (that would conflate reach with leads).
     """
     pm = v24.get("paid_media_v24") or {}
     cur: Dict[str, float] = {
@@ -266,13 +268,14 @@ def _paid_totals_from_campaigns(v24: dict) -> Dict[str, Any]:
         prev["total_impressions"] += float(c_prev.get("impressions") or 0)
         prev["total_reach"] += float(c_prev.get("reach") or 0)
         prev["total_clicks"] += float(c_prev.get("clicks") or 0)
-    # Primary result totals (objective-relevant) — sum primary_value
-    for c in (pm.get("per_campaign") or []):
+        # Meta-reported leads: ONLY OUTCOME_LEADS campaigns drive
+        # the 'Meta-reported leads' total — objective-aware.
         pr = c.get("primary_result") or {}
-        pv = pr.get("primary_value")
-        if isinstance(pv, (int, float)):
-            cur["total_results"] += float(pv)
-    # No reliable previous primary_result aggregation in V2.4.1 shape
+        if (c.get("objective") == "OUTCOME_LEADS"
+                and pr.get("primary_metric_label") == "Meta-reported leads"):
+            pv = pr.get("primary_value")
+            if isinstance(pv, (int, float)):
+                cur["total_results"] += float(pv)
     return {
         "current_period": cur,
         "previous_period": prev,
