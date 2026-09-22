@@ -335,7 +335,7 @@ def _data_paths():
     Reading from os.environ on every call lets tests override DATA_DIR via
     `os.environ['DATA_DIR']` even when the module was imported elsewhere.
     """
-    base = os.environ.get('DATA_DIR') or '/data'
+    base = os.environ.get('DATA_DIR') or '/data/campaign-os'
     return {
         'data_dir': base,
         'campaign_file': os.path.join(base, 'campaign-data.json'),
@@ -345,7 +345,7 @@ def _data_paths():
     }
 
 
-DATA_DIR = os.environ.get('DATA_DIR', '/data')
+DATA_DIR = os.environ.get('DATA_DIR', '/data/campaign-os')
 
 # Strategy page HTML template (rendered via render_template_string).
 # Loaded once at module import — the page is big but renders fast.
@@ -374,55 +374,50 @@ BRANCH = 'main'
 # ─── HELPERS ────────────────────────────────────────────────────────────
 
 def load_data():
-    """Load campaign data. Order:
-      1. Runtime DATA_DIR/campaign-data.json (primary)
-      2. Bundled repo <data/campaign-data.json> (updated by each deploy)
-      3. Bundled campaign-os/campaign-data.json (legacy)
+    """Load campaign data. Read-only precedence (runtime is never overwritten):
+      1. Runtime DATA_DIR/campaign-data.json when it exists and parses
+      2. Bundled repo data/campaign-data.json (read-only fallback)
+      3. Legacy campaign-os/campaign-data.json (read-only fallback)
       4. Minimal empty structure
-    Each step is only used if the previous exists AND is parseable."""
+    """
     paths = _data_paths()
     runtime_file = paths['campaign_file']
-    
-    # Look at file modification times to decide which is freshest.
-    # The runtime volume may have OLD data seeded from the initial deploy; if
-    # the bundled repo is NEWER than the runtime copy, prefer the bundled copy.
     bundled_repo = Path(REPO_ROOT) / "data" / "campaign-data.json"
     bundled_legacy = Path(os.path.dirname(os.path.abspath(__file__))) / "campaign-data.json"
-    
-    candidates = []
-    if os.path.exists(runtime_file):
-        candidates.append((runtime_file, os.path.getmtime(runtime_file), "runtime"))
-    if bundled_repo.exists():
-        candidates.append((bundled_repo, os.path.getmtime(bundled_repo), "bundled_repo"))
-    if bundled_legacy.exists():
-        candidates.append((bundled_legacy, os.path.getmtime(bundled_legacy), "bundled_legacy"))
-    
-    # Use the freshest parseable candidate.
-    candidates.sort(key=lambda c: c[1], reverse=True)
-    for path, mtime, label in candidates:
+
+    def _try_load(path, label):
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 d = json.load(f)
-                if not isinstance(d.get("campaigns"), dict):
-                    raise ValueError(f"{label} has no campaigns dict")
-                if __import__('os').environ.get('DATA_SYNC_DEBUG'):
-                    print(f"load_data: using {label} ({path}, mtime={mtime})")
-                # Auto-promote fresh bundled data into the runtime volume so
-                # subsequent save_data() writes don't clobber the latest repo copy.
-                if label in ("bundled_repo", "bundled_legacy") and os.path.exists(runtime_file):
-                    try:
-                        os.makedirs(paths['data_dir'], exist_ok=True)
-                        from shutil import copy2
-                        copy2(path, runtime_file)
-                    except Exception:
-                        pass
-                return d
+            if not isinstance(d.get("campaigns"), dict):
+                raise ValueError(f"{label} has no campaigns dict")
+            if os.environ.get('DATA_SYNC_DEBUG'):
+                mtime = os.path.getmtime(path) if os.path.exists(path) else None
+                print(f"load_data: using {label} ({path}, mtime={mtime})")
+            return d
         except Exception as exc:
-            if __import__('os').environ.get('DATA_SYNC_DEBUG'):
+            if os.environ.get('DATA_SYNC_DEBUG'):
                 print(f"load_data: {label} ({path}) broken: {exc}")
-            continue
-    
-    # Final fallback: minimal empty structure
+            return None
+
+    if os.path.exists(runtime_file):
+        runtime_doc = _try_load(runtime_file, "runtime")
+        if runtime_doc is not None:
+            return runtime_doc
+        _app_log.error(
+            "load_data: runtime campaign-data exists but is unreadable: %s",
+            runtime_file,
+        )
+
+    for path, label in (
+        (bundled_repo, "bundled_repo"),
+        (bundled_legacy, "bundled_legacy"),
+    ):
+        if path.exists():
+            doc = _try_load(path, label)
+            if doc is not None:
+                return doc
+
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
 
 @app.route('/api/admin/data-sync-bundled', methods=['POST'])
@@ -509,8 +504,9 @@ def load_schedule():
     """Read the scheduling sidecar; campaign-data.json remains read-only here."""
     paths = _data_paths()
     schedule_file = paths['schedule_file']
-    manifest = _read_json_file(schedule_file)
-    if manifest is None:
+    if os.path.exists(schedule_file):
+        manifest = _read_json_file(schedule_file)
+    else:
         manifest = _read_json_file(BUNDLED_SCHEDULE_FILE)
     if not isinstance(manifest, dict):
         manifest = {}
@@ -541,8 +537,14 @@ def save_schedule(manifest):
     return payload
 
 def _read_publisher_queue():
-    for path in (os.path.join(DATA_DIR, 'publish-queue.json'),
-                 os.path.join(BUNDLED_DATA_DIR, 'publish-queue.json')):
+    paths = _data_paths()
+    volume_path = os.path.join(paths['data_dir'], 'publish-queue.json')
+    bundled_path = os.path.join(BUNDLED_DATA_DIR, 'publish-queue.json')
+    if os.path.exists(volume_path):
+        candidates = (volume_path,)
+    else:
+        candidates = (volume_path, bundled_path)
+    for path in candidates:
         value = _read_json_file(path)
         if isinstance(value, dict):
             items = value.get('queued') if isinstance(value.get('queued'), list) else value.get('queue')
@@ -635,64 +637,19 @@ def _schedule_response(manifest):
     return payload
 
 def git_push(message):
-    """
-    Commit and push current campaign data to GitHub.
-    Returns (success: bool, message: str)
-    """
-    try:
-        subprocess.run(['git', 'config', '--global', 'user.email', 'agent@openclaw.ai'],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        subprocess.run(['git', 'config', '--global', 'user.name', 'Clawdia Agent'],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        subprocess.run(['git', 'add', 'campaign-os/campaign-data.json'],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        # Check if there are changes to commit
-        result = subprocess.run(['git', 'diff', '--cached', '--quiet'],
-                               cwd=REPO_DIR, check=False, capture_output=True)
-        if result.returncode == 0:
-            return True, "No changes to commit"
-        subprocess.run(['git', 'commit', '-m', message],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        env = {**os.environ}
-        token = os.environ.get('GITHUB_TOKEN', '')
-        remote = f'https://x-access-token:{token}@github.com/clawdiavector/swing-shack-dashboard.git'
-        subprocess.run(['git', 'push', remote, BRANCH],
-                       cwd=REPO_DIR, check=True, capture_output=True, env=env)
-        return True, "Committed and pushed to GitHub"
-    except subprocess.CalledProcessError as e:
-        stderr = e.stderr.decode() if e.stderr else ''
-        return False, f"Git error: {stderr or str(e)}"
-    except Exception as e:
-        return False, f"Error: {str(e)}"
+    """Git push to a data-volume repo is disabled (runtime volume is not a git tree)."""
+    del message
+    return False, "git push disabled: no repo on the data volume"
+
+_INIT_REPO_LOGGED = False
+
 
 def init_repo():
-    """
-    Clone GitHub repo to DATA_DIR on first run.
-    Uses GITHUB_TOKEN env var for authentication.
-    """
-    if os.path.exists(os.path.join(REPO_DIR, '.git')):
-        # Already cloned — just pull latest
-        try:
-            subprocess.run(['git', 'pull', 'origin', BRANCH],
-                           cwd=REPO_DIR, check=True, capture_output=True)
-            print(f"Git pull OK: {REPO_DIR}")
-        except Exception as e:
-            print(f"Git pull failed (non-fatal): {e}")
-        return
-
-    os.makedirs(DATA_DIR, exist_ok=True)
-    token = os.environ.get('GITHUB_TOKEN', '')
-    if not token:
-        print("WARNING: GITHUB_TOKEN not set — GitHub sync disabled")
-        return
-
-    remote_url = f'https://x-access-token:{token}@github.com/clawdiavector/swing-shack-dashboard.git'
-    try:
-        subprocess.run(['git', 'clone', '--depth=1', remote_url, REPO_DIR],
-                       cwd=DATA_DIR, check=True, capture_output=True)
-        print(f"Git clone OK: {REPO_DIR}")
-    except Exception as e:
-        print(f"Git clone failed (non-fatal): {e}")
+    """No-op: do not clone or pull a product git tree under DATA_DIR."""
+    global _INIT_REPO_LOGGED
+    if not _INIT_REPO_LOGGED:
+        print("git sync disabled: DATA_DIR is not a git working tree")
+        _INIT_REPO_LOGGED = True
 
 # ─── BOOTSTRAP (t47) ────────────────────────────────────────────────────
 # Process-level once. Must NOT live on an HTTP request path.
@@ -703,7 +660,7 @@ _GIT_SYNC_DONE = False
 
 
 def _boot_git_sync():
-    """Clone/pull DATA_DIR repo at most once per process (t47)."""
+    """Import-time git boot hook (no-op sync) at most once per process (t47)."""
     global _GIT_SYNC_DONE
     with _GIT_SYNC_LOCK:
         if _GIT_SYNC_DONE:
@@ -1193,7 +1150,8 @@ def health_v2():
     return jsonify({
         "status": "ok",
         "ts": _now_iso(),
-        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git')),
+        "git_sync": "disabled",
+        "git_synced": False,
         "instance_id": _instance_id(),
         "region": _instance_region(),
         "role": role,
@@ -24088,6 +24046,9 @@ def _boot_seed_persistent_data():
         skipped_existing = []
         seed_targets = [
             "meta-post-index.json",
+            "campaign-data.json",
+            "scheduled-items.json",
+            "publish-queue.json",
         ]
         # Add per-brand feedback + integration files
         try:
@@ -24096,6 +24057,12 @@ def _boot_seed_persistent_data():
                 seed_targets.append(f"integrations/{_bid}/instagram.json")
                 seed_targets.append(f"brand-directory/{_bid}/feedback/image-performance.json")
                 seed_targets.append(f"brand-directory/{_bid}/feedback/learned-signals.json")
+        except Exception:
+            pass
+        try:
+            from _lib.marketing_calendar import VALID_BRAND_IDS as _VBI
+            for _bid in _VBI:
+                seed_targets.append(f"brand-directory/{_bid}/calendar_config.json")
         except Exception:
             pass
 
@@ -24138,6 +24105,21 @@ def _boot_seed_persistent_data():
         _app_log.warning("Boot seed: dispatcher failed (non-fatal): %s", _e)
 
 
+_SEED_BOOT_LOCK = threading.Lock()
+_SEED_BOOT_DONE = False
+
+
+def _boot_seed_once():
+    """Seed DATA_DIR from bundled defaults once per process (import + __main__)."""
+    global _SEED_BOOT_DONE
+    with _SEED_BOOT_LOCK:
+        if _SEED_BOOT_DONE:
+            return
+        _SEED_BOOT_DONE = True
+        _boot_seed_persistent_data()
+
+
+_boot_seed_once()
 
 # ─── Strategy layer API ────────────────────────────────────────────────
 # Big-picture strategy view — sits above the calendar.
