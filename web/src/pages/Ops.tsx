@@ -156,7 +156,6 @@ function LayerRibbon({
             <Tip key={key} text={openTip} block>
               <button
                 type="button"
-                title={openTip}
                 onClick={() => onSelectTab(nativeTab)}
                 className="w-full text-left"
               >
@@ -175,7 +174,6 @@ function LayerRibbon({
           <Tip key={key} text={tip} block>
             <button
               type="button"
-              title={tip}
               onClick={() => onSelectTab('jobs')}
               className="glass w-full rounded-2xl border-[1.5px] border-bd px-3 py-3 text-left backdrop-blur-xl"
             >
@@ -185,7 +183,11 @@ function LayerRibbon({
               <p className="mt-1 font-display text-2xl font-semibold">{verdict}</p>
               <p className="mt-0.5 text-xs text-tx3">
                 Classic only —{' '}
-                <ClassicLink href={layer.href || `/ops?layer=${key}`} label={layer.label || key} />
+                <ClassicLink
+                  tip={false}
+                  href={layer.href || `/ops?layer=${key}`}
+                  label={layer.label || key}
+                />
               </p>
             </button>
           </Tip>

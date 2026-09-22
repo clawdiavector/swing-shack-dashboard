@@ -65,20 +65,29 @@ export function Tip({
   )
 }
 
-export function ClassicLink({ href, label }: { href: string; label: string }) {
-  const tip = `Open the classic ${label} page in a full tab. Leftover HTML stays live.`
-  return (
-    <Tip text={tip}>
-      <a
-        href={href}
-        title={tip}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-ac hover:text-yel"
-      >
-        Open in Classic
-        <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.5} />
-      </a>
-    </Tip>
+export function ClassicLink({
+  href,
+  label,
+  tip: tipProp,
+}: {
+  href: string
+  label: string
+  /** Custom bubble text, or `false` to render a plain link (no Tip). */
+  tip?: string | false
+}) {
+  const defaultTip = `Open the classic ${label} page in a full tab. Leftover HTML stays live.`
+  const link = (
+    <a
+      href={href}
+      className="inline-flex items-center gap-1 text-sm font-semibold text-ac hover:text-yel"
+    >
+      Open in Classic
+      <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.5} />
+    </a>
   )
+  if (tipProp === false) return link
+  const tipText = tipProp ?? defaultTip
+  return <Tip text={tipText}>{link}</Tip>
 }
 
 export function Button({
@@ -118,7 +127,7 @@ export function Button({
   )
   return (
     <Tip text={tip}>
-      <Link to={to || toDesk(href || '/daily')} title={tip} className={cls}>
+      <Link to={to || toDesk(href || '/daily')} className={cls}>
         {inner}
       </Link>
     </Tip>
@@ -179,7 +188,7 @@ export function StatCard({
   if (to || href) {
     return (
       <Tip text={tip} block>
-        <Link to={to || toDesk(href || '/daily')} title={tip} className={cls}>
+        <Link to={to || toDesk(href || '/daily')} className={cls}>
           {body}
         </Link>
       </Tip>
@@ -204,7 +213,6 @@ export function IconTile({
     <Tip text={tip} block>
     <Link
       to={toDesk(href)}
-      title={tip}
       className="glass group flex items-start gap-2 rounded-2xl border-[1.5px] border-white/10 p-4 backdrop-blur-xl hover:border-ac/40"
     >
       <span className="glass-pill grid shrink-0 place-items-center rounded-xl p-2.5">
