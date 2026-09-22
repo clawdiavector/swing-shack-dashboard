@@ -1,67 +1,37 @@
-"""weekly_report_v3.py — Weekly Management Report V3.3.
+"""weekly_report_v3.py — Weekly Marketing Report V3.4.
 
-Renderer-only. Sits ON TOP of Reporting Intelligence V2.4.1
+Renderer-only. Sits on top of Reporting Intelligence V2.4.1
 (frozen). Reads canonical V2.4.1 data via build_v24_brand_report().
 
-V3.3 fixes (per V3.3 operator directive):
+V3.4 change: language. The numbers come from the same V2.4.1
+pipeline as V3.3. The structure is reorganised for Herman:
 
-  1. Period-aware paid-media cache — V2.4 cache reader takes
-     period_days so 7-day and 31-day reads do not collide.
-     The /api/meta/ads/cache endpoint serves
-     DATA_DIR/paid-media/<brand>__<period_days>d.json.
+  # <Brand> Weekly Marketing Report
+  <date range>
 
-  2. Direct Meta audit endpoint — /api/meta/paid-media/audit
-     queries Meta Graph API directly for current 7d / previous
-     7d / current 31d windows. Weekly report values reconcile
-     against these.
+  ## This week at a glance            — headline numbers + plain summary
+  ## Website traffic                  — sessions, users, engagement
+  ## Where visitors came from         — acquisition channels
+  ## Advertising                      — Meta spend + campaigns grouped by purpose
+  ## Website pages                    — top landing pages
+  ## Social media                     — Instagram + Facebook reach / interactions
+  ## Best content                     — top 3–5 IG/FB pieces with one observation
+  ## What worked                      — real positive results, no spend increases
+  ## What needs attention             — real performance issues
+  ## What we should do this week      — up to 3 actions, plain English
+  ## Business targets                 — North Stars + honest data status
+  ## Data still missing               — connector gaps, technical limitations
 
-  3. TLDR severity column removed. Replaced with optional
-     `signal` = improving | stable | declining | baseline
-     ONLY when volume + confidence support it. Tiny channels
-     get a percentage without a verdict.
+Words banned from the management report (operator's V3.4 directive):
+  delta, materiality, objective-aware, period contract,
+  primary result, source status, query, attribution, cadence,
+  connector (in body — OK in "Data still missing"), downstream,
+  baseline signal, contracted delivery, rose movement,
+  channel-level delta, source_status, data_status, query_level,
+  period_adapted, freshness, comparator, etc.
 
-  4. Objective-aware campaign analysis. Never cross-objective
-     "best/worst". Within each objective (Awareness / Traffic
-     / Engagement / Leads), evaluate each campaign against its
-     OWN prior-period values.
-
-  5. WHAT WORKED = outcome / efficiency signal only. Spend is
-     an INPUT. A move in spend is not an outcome.
-
-  6. WHAT NEEDS ATTENTION = performance issues, not just
-     connector gaps. Deteriorating paid delivery, duplicate
-     campaigns, source freshness issues.
-
-  7. EXECUTIVE READ = narrative explaining the week. 2-4
-     sentences. Identifies the moving parts and where the
-     change came from.
-
-  8. ORGANIC SOCIAL — restored. Real data from V2.4 + the
-     IG/FB overview endpoints. PARTIAL labels when sources
-     are absent for one brand.
-
-  9. WEBSITE PAGES — restored via V2.4 sections.landing_pages
-     .service_pages[] (real weekly comparison).
-
- 10. CONTENT PERFORMANCE section — restored using tracked
-     IG/FB media. 3-5 most engaging pieces with format, topic,
-     reach, interactions.
-
- 11. SWING SHACK PENDING CHRISTELLE North Stars — moved to
-     Data Notes / Strategy Configuration. Executive section
-     stays clean.
-
- 12. MARKETING ACTIONS — evidence → interpretation → decision
-     → success measure. No automatic scale/pause/increase
-     without per-objective efficiency evidence.
-
- 13. ACCOUNT-LEVEL results = precise terminology. Only counts
-     OUTCOME_LEADS primary_results as "Meta-reported leads".
-     Traffic / Awareness / Engagement NOT collapsed into a
-     single "results" count.
-
- 14. METRIC FORMATTING — CTR as %, CPC/CPM with 2-decimal
-     precision, never rounded to integer R values.
+Technical logs may keep technical terminology. The management
+report does not.
 """
 from __future__ import annotations
 
@@ -185,20 +155,12 @@ def _compute_periods(as_of: Optional[str] = None) -> Dict[str, str]:
     cur_start = anchor - datetime.timedelta(days=6)
     prev_end = cur_start - datetime.timedelta(days=1)
     prev_start = prev_end - datetime.timedelta(days=6)
-    cur28_end = anchor
-    cur28_start = anchor - datetime.timedelta(days=27)
-    prev28_end = cur28_start - datetime.timedelta(days=1)
-    prev28_start = prev28_end - datetime.timedelta(days=27)
     return {
         "data_complete_through": cur_end.isoformat(),
         "current_week_start": cur_start.isoformat(),
         "current_week_end": cur_end.isoformat(),
         "previous_week_start": prev_start.isoformat(),
         "previous_week_end": prev_end.isoformat(),
-        "current_28d_start": cur28_start.isoformat(),
-        "current_28d_end": cur28_end.isoformat(),
-        "previous_28d_start": prev28_start.isoformat(),
-        "previous_28d_end": prev28_end.isoformat(),
     }
 
 
@@ -217,47 +179,7 @@ def _read_v24(bid: str, as_of: Optional[str] = None,
     return r
 
 
-def _read_meta_organic(bid: str, cookie: Optional[str] = None) -> Dict[str, Any]:
-    """Best-effort organic social pull from Railway — IG + FB.
-    Returns dict with keys: ig (dict | None), fb (dict | None).
-    Each source surfaces its own status (LIVE / PARTIAL / NOT_CONNECTED).
-    """
-    from flask import current_app
-    out: Dict[str, Any] = {"ig": None, "fb": None}
-    try:
-        # Lazy import — only available in app context
-        from app import _is_authed, meta_ig_business_overview, meta_fb_page_overview
-    except Exception:
-        return out
-    try:
-        with current_app.test_request_context("/"):
-            # Reuse the cookie via request context isn't trivial here;
-            # in production callers pass cookie through build_v32.
-            pass
-    except Exception:
-        pass
-    return out
-
-
-# ── canonical North Stars (V2.4.1 → calendar_config loader) ────
-
-def _extract_north_stars_from_v24(v24: dict) -> List[dict]:
-    items = ((v24.get("sections") or {})
-              .get("north_stars") or {}).get("items") or {}
-    out = []
-    for key, payload in items.items():
-        if not isinstance(payload, dict):
-            continue
-        out.append({
-            "id": key,
-            "label": payload.get("label") or key,
-            "metric": payload.get("target") or "",
-            "source": payload.get("source") or "calendar_config.json",
-        })
-    return out
-
-
-# ── KPI extraction from V2.4.1 (real shape) ────────────────────
+# ── V2.4.1 extractors ──────────────────────────────────────────
 
 def _extract_kpi(v24: dict, label: str) -> Dict[str, Any]:
     for row in (v24.get("kpi_scorecard") or {}).get("rows") or []:
@@ -267,9 +189,6 @@ def _extract_kpi(v24: dict, label: str) -> Dict[str, Any]:
 
 
 def _paid_totals_from_campaigns(v24: dict) -> Dict[str, Any]:
-    """Aggregate 7-day current + previous totals from per-campaign.
-    Meta-reported leads only counts OUTCOME_LEADS campaigns.
-    """
     pm = v24.get("paid_media_v24") or {}
     cur: Dict[str, float] = {
         "total_spend": 0.0, "total_impressions": 0.0,
@@ -311,69 +230,46 @@ def _compute_paid_efficiency(cur: dict, prev: dict) -> Dict[str, Optional[float]
     return out
 
 
-# ── objective-aware campaign grouping ──────────────────────────
+# ── North Stars from V2.4.1 ─────────────────────────────────────
 
-_OBJECTIVE_METRIC = {
-    "OUTCOME_AWARENESS": (
-        "reach",
-        "CPM (R/1k imp)",
-        lambda c: (c.get("current") or {}).get("reach"),
-        lambda c: (c.get("current") or {}).get("cpm"),
-    ),
-    "OUTCOME_TRAFFIC": (
-        "landing_page_views",
-        "R/view",
-        lambda c: ((c.get("primary_result") or {}).get("primary_value")),
-        lambda c: ((c.get("primary_result") or {}).get("primary_cost_per_unit")),
-    ),
-    "OUTCOME_ENGAGEMENT": (
-        "engagement result",
-        "R/engagement",
-        lambda c: ((c.get("primary_result") or {}).get("primary_value")),
-        lambda c: ((c.get("primary_result") or {}).get("primary_cost_per_unit")),
-    ),
-    "OUTCOME_LEADS": (
-        "Meta-reported leads",
-        "R/lead (Meta-reported)",
-        lambda c: ((c.get("primary_result") or {}).get("primary_value")),
-        lambda c: ((c.get("primary_result") or {}).get("primary_cost_per_unit")),
-    ),
-}
-
-
-def _campaigns_by_objective(pm: dict) -> Dict[str, List[dict]]:
-    out: Dict[str, List[dict]] = {}
-    for c in (pm.get("per_campaign") or []):
-        if (c.get("current") or {}).get("spend", 0) > 0:
-            obj = c.get("objective") or "OUTCOME_OTHER"
-            out.setdefault(obj, []).append(c)
+def _extract_north_stars_from_v24(v24: dict) -> List[dict]:
+    items = ((v24.get("sections") or {})
+              .get("north_stars") or {}).get("items") or {}
+    out = []
+    for key, payload in items.items():
+        if not isinstance(payload, dict):
+            continue
+        out.append({
+            "id": key,
+            "label": payload.get("label") or key,
+            "metric": payload.get("target") or "",
+            "source": payload.get("source") or "calendar_config.json",
+        })
     return out
 
 
-# ── signal classification (replaces severity) ─────────────────
+# ── objective → plain-English grouping ──────────────────────────
 
-def _classify_signal(curr, prev, *, confidence="high",
-                        materiality_threshold=10) -> str:
-    """Classify a movement as improving / stable / declining / baseline.
+_OBJECTIVE_GROUP = {
+    "OUTCOME_AWARENESS": ("Awareness campaigns",
+                            "people reached", "people", "cost per 1,000 reached"),
+    "OUTCOME_TRAFFIC": ("Website traffic campaigns",
+                          "website visits", "visits", "cost per website visit"),
+    "OUTCOME_ENGAGEMENT": ("Engagement campaigns",
+                              "engagements", "engagements", "cost per engagement"),
+    "OUTCOME_LEADS": ("Lead campaigns",
+                       "leads", "leads", "cost per lead"),
+}
 
-    - Materiality threshold (default 10 absolute units) prevents
-      small volumes from receiving verdicts.
-    - 'baseline' when previous is missing or zero.
-    """
-    if curr is None:
-        return "—"
-    if prev is None or prev == 0:
-        return "baseline"
-    try:
-        c = float(curr); p = float(prev)
-    except (ValueError, TypeError):
-        return "—"
-    if abs(c - p) < materiality_threshold:
-        return "stable"
-    if c > p:
-        return "improving"
-    return "declining"
 
+def _objective_group_label(obj: str) -> Tuple[str, str, str, str]:
+    """Return (group_title, primary_metric_noun, primary_metric_unit,
+    cost_label) — operator-facing English, not technical."""
+    return _OBJECTIVE_GROUP.get(obj, ("Other campaigns", "results", "results",
+                                       "cost per result"))
+
+
+# ── number formatting ──────────────────────────────────────────
 
 def _fmt(v: Any, kind: str = "int") -> str:
     if v is None:
@@ -385,982 +281,73 @@ def _fmt(v: Any, kind: str = "int") -> str:
     except (ValueError, TypeError):
         return str(v)
     if kind == "money":
-        # Rounded to 2 decimals (per V3.3 — preserve precision for management comparisons)
         return f"R{n:,.2f}"
+    if kind == "money_round":
+        return f"R{n:,.0f}"
     if kind == "pct":
         return f"{n:.2f}%"
     if kind == "decimal":
         return f"{n:,.2f}"
+    if kind == "money_per":
+        # e.g. R3.01
+        if n >= 100:
+            return f"R{n:,.0f}"
+        return f"R{n:,.2f}"
     return f"{int(round(n)):,}"
 
 
-def _pct(curr, prev) -> Tuple[str, str]:
+def _change(curr, prev) -> Tuple[str, str]:
+    """Plain-English movement description: up/down/flat/neutral."""
     if curr is None or prev is None:
-        return ("—", "baseline")
+        return ("same as baseline", "neutral")
     try:
         c = float(curr); p = float(prev)
     except (ValueError, TypeError):
-        return ("—", "baseline")
+        return ("same as baseline", "neutral")
     if p == 0:
         if c == 0:
-            return ("flat", "neutral")
-        return ("baseline", "baseline")
+            return ("no change", "neutral")
+        return ("no comparison available", "baseline")
+    if c > p:
+        return ("up", "up")
+    if c < p:
+        return ("down", "down")
+    return ("flat", "neutral")
+
+
+def _change_word(curr, prev) -> str:
+    """up / down / flat / no change."""
+    word, _ = _change(curr, prev)
+    return word
+
+
+def _pct_word(curr, prev) -> str:
+    """Plain-English +/- percentage phrase."""
+    if curr is None or prev is None:
+        return ""
+    try:
+        c = float(curr); p = float(prev)
+    except (ValueError, TypeError):
+        return ""
+    if p == 0:
+        return ""
     pct = (c - p) / p * 100
-    arrow = "up" if pct > 0 else "down" if pct < 0 else "neutral"
-    return (f"{pct:+.1f}%", arrow)
+    if pct > 0:
+        return f"up {pct:.1f}%"
+    if pct < 0:
+        return f"down {abs(pct):.1f}%"
+    return "no change"
 
 
-# ── TLDR rows (no severity; signal + optional verdict) ────────
-
-def _build_tldr_rows(v24: dict) -> List[dict]:
-    rows: List[dict] = []
-
-    sessions = _extract_kpi(v24, "Sessions")
-    s_cur = sessions.get("current")
-    s_prev = sessions.get("previous")
-    rows.append({
-        "metric": "Website sessions (7d)",
-        "current": _fmt(s_cur),
-        "previous": _fmt(s_prev) if s_prev is not None else "—",
-        "change": _pct(s_cur, s_prev)[0],
-        "signal": _classify_signal(s_cur, s_prev, materiality_threshold=10),
-    })
-    users = _extract_kpi(v24, "Users")
-    rows.append({
-        "metric": "Users (7d)",
-        "current": _fmt(users.get("current")),
-        "previous": _fmt(users.get("previous")) if users.get("previous") is not None else "—",
-        "change": _pct(users.get("current"), users.get("previous"))[0],
-        "signal": _classify_signal(users.get("current"), users.get("previous"),
-                                       materiality_threshold=10),
-    })
-    eng = _extract_kpi(v24, "Engaged sessions")
-    rows.append({
-        "metric": "Engaged sessions (7d)",
-        "current": _fmt(eng.get("current")),
-        "previous": _fmt(eng.get("previous")) if eng.get("previous") is not None else "—",
-        "change": _pct(eng.get("current"), eng.get("previous"))[0],
-        "signal": _classify_signal(eng.get("current"), eng.get("previous"),
-                                       materiality_threshold=5),
-    })
-    er = _extract_kpi(v24, "Engagement rate")
-    rows.append({
-        "metric": "Engagement rate (7d)",
-        "current": _fmt(er.get("current"), "decimal") if er.get("current") is not None else "—",
-        "previous": _fmt(er.get("previous"), "decimal") if er.get("previous") is not None else "—",
-        "change": _pct(er.get("current"), er.get("previous"))[0],
-        "signal": _classify_signal(er.get("current"), er.get("previous"),
-                                       materiality_threshold=0.5),
-    })
-    # Read paid spend from per-campaign aggregation (period-correct).
-    # kpi_scorecard['Paid Spend'] is YTD/31d even when period_days=7 —
-    # we use _paid_totals_from_campaigns() so the value matches the
-    # current_period time_range used everywhere else.
-    paid_totals = _paid_totals_from_campaigns(v24)
-    p_cur = paid_totals["current_period"].get("total_spend")
-    p_prev = paid_totals["previous_period"].get("total_spend")
-    rows.append({
-        "metric": "Meta paid spend (7d)",
-        "current": _fmt(p_cur, "money"),
-        "previous": _fmt(p_prev, "money") if p_prev is not None else "—",
-        "change": _pct(p_cur, p_prev)[0],
-        "signal": _classify_signal(p_cur, p_prev, materiality_threshold=50),
-    })
-    leads = _extract_kpi(v24, "Verified Leads")
-    cur_results = paid_totals["current_period"].get("total_results")
-    leads_cur = leads.get("current") if leads.get("current") is not None else cur_results
-    leads_status = leads.get("data_status", "OK")
-    rows.append({
-        "metric": "Meta-reported leads (7d)",
-        "current": _fmt(leads_cur) if leads_cur is not None else "—",
-        "previous": _fmt(leads.get("previous")) if leads.get("previous") is not None else "—",
-        "change": _pct(leads_cur, leads.get("previous"))[0],
-        "signal": _classify_signal(leads_cur, leads.get("previous"),
-                                       materiality_threshold=1),
-    })
-    efficiency = _compute_paid_efficiency(paid_totals["current_period"],
-                                            paid_totals["previous_period"])
-    for label, key, fmt_kind in (("Meta CTR (7d)", "ctr", "pct"),
-                                     ("Meta CPC (7d)", "cpc", "money"),
-                                     ("Meta CPM (7d)", "cpm", "money")):
-        v = efficiency.get(key)
-        rows.append({
-            "metric": label,
-            "current": _fmt(v, fmt_kind) if v is not None else "—",
-            "previous": "—",
-            "change": "—",
-            "signal": "baseline" if v is None else _classify_signal(v, None, materiality_threshold=0),
-        })
-    return rows
-
-
-# ── WHAT WORKED = outcome / efficiency signal ─────────────────
-
-def _derive_what_worked(v24: dict, bid: str) -> List[str]:
-    """Outcome-based — no spend-increase as win.
-
-    Returns a list of FACT statements describing observed
-    performance signals (efficiency, retention, organic improvement).
-    """
-    worked: List[str] = []
-    sessions = _extract_kpi(v24, "Sessions")
-    s_cur = sessions.get("current")
-    s_prev = sessions.get("previous")
-    if (s_cur is not None and s_prev is not None
-            and s_prev > 0 and s_cur > s_prev
-            and (s_cur - s_prev) >= 10):
-        pct, _ = _pct(s_cur, s_prev)
-        worked.append(
-            f"FACT: Website sessions this week: {_fmt(s_cur)} "
-            f"(prev {_fmt(s_prev)}, {pct}). Material movement (>=10 sessions).")
-    paid_totals = _paid_totals_from_campaigns(v24)
-    cur = paid_totals["current_period"]
-    prev = paid_totals["previous_period"]
-    eff_cur = _compute_paid_efficiency(cur, prev)
-    eff_prev = _compute_paid_efficiency(prev, prev)  # placeholder
-    # CPC improving = lower current CPC than previous
-    if cur.get("total_clicks", 0) > 0 and prev.get("total_clicks", 0) > 0:
-        cur_cpc = (cur["total_spend"] / cur["total_clicks"]) if cur["total_clicks"] else None
-        prev_cpc = (prev["total_spend"] / prev["total_clicks"]) if prev["total_clicks"] else None
-        if cur_cpc and prev_cpc and cur_cpc < prev_cpc * 0.95:
-            worked.append(
-                f"FACT: Meta CPC improved from R{prev_cpc:.2f} to R{cur_cpc:.2f} "
-                f"({((cur_cpc - prev_cpc) / prev_cpc * 100):+.1f}%).")
-    # Channel-level improvements: organic / direct gains
-    cm = (v24.get("sections") or {}).get("channel_mix") or {}
-    for ch in (cm.get("rows") or []):
-        cur_v = ch.get("current_sessions")
-        prev_v = ch.get("previous_sessions")
-        share = ch.get("share_of_sessions") or 0
-        if (cur_v is not None and prev_v is not None
-                and cur_v > prev_v
-                and (cur_v - prev_v) >= 10
-                and ch.get("comparison_status") == "improving"):
-            pct, _ = _pct(cur_v, prev_v)
-            worked.append(
-                f"FACT: {ch.get('channel')} sessions: {_fmt(cur_v)} "
-                f"(prev {_fmt(prev_v)}, {pct}, share {share:.1f}%).")
-    # Landing page engagement: highest-engagement pages
-    lp = ((v24.get("sections") or {}).get("landing_pages") or {})
-    for sp in (lp.get("service_pages") or [])[:3]:
-        if sp.get("current_sessions", 0) >= 5 and sp.get("engagement_rate", 0) >= 70:
-            worked.append(
-                f"FACT: Page '{sp.get('path')}' engagement: "
-                f"{sp.get('engagement_rate'):.1f}% "
-                f"({sp.get('current_sessions')} sessions).")
-    return worked
-
-
-def _derive_what_needs_attention(v24: dict, bid: str) -> List[Tuple[str, str]]:
-    """Performance issues, not just connector gaps."""
-    items: List[Tuple[str, str]] = []
-    paid_totals = _paid_totals_from_campaigns(v24)
-    cur = paid_totals["current_period"]
-    prev = paid_totals["previous_period"]
-    sessions = _extract_kpi(v24, "Sessions")
-    s_cur = sessions.get("current")
-    s_prev = sessions.get("previous")
-
-    # Paid media delivery deterioration (objective: when impressions
-    # or reach or clicks fell materially, surface it)
-    if (cur.get("total_impressions", 0) > 0
-            and prev.get("total_impressions", 0) > 0):
-        imp_delta = (cur["total_impressions"] - prev["total_impressions"]) \
-                       / prev["total_impressions"] * 100
-        clk_delta = (cur["total_clicks"] - prev["total_clicks"]) \
-                       / max(prev["total_clicks"], 1) * 100
-        if imp_delta <= -15:
-            items.append((
-                "MEDIUM",
-                f"Meta impressions fell {imp_delta:+.1f}% WoW "
-                f"({_fmt(prev['total_impressions'])} → {_fmt(cur['total_impressions'])}). "
-                f"Reach and delivery contracted."))
-        elif clk_delta <= -20:
-            items.append((
-                "MEDIUM",
-                f"Meta clicks fell {clk_delta:+.1f}% WoW "
-                f"({_fmt(prev['total_clicks'])} → {_fmt(cur['total_clicks'])}). "
-                f"Click volume contracted while impressions moved less."))
-
-    # CTR deterioration vs prior period
-    if (cur.get("total_clicks", 0) > 100 and prev.get("total_clicks", 0) > 100):
-        cur_ctr = (cur["total_clicks"] / cur["total_impressions"]) if cur["total_impressions"] else None
-        prev_ctr = (prev["total_clicks"] / prev["total_impressions"]) if prev["total_impressions"] else None
-        if cur_ctr and prev_ctr and cur_ctr < prev_ctr * 0.85:
-            items.append((
-                "MEDIUM",
-                f"Meta CTR fell from {prev_ctr*100:.2f}% to {cur_ctr*100:.2f}%. "
-                f"Creative fatigue or audience-saturation hypothesis — verify with "
-                f"frequency + creative-history evidence before scaling."))
-
-    # Duplicate campaign detection
-    pm = v24.get("paid_media_v24") or {}
-    for grp in (pm.get("duplicate_campaigns_visible") or []):
-        items.append((
-            "HIGH",
-            f"Possible duplicate campaign group ({grp.get('campaign_count')} "
-            f"campaigns with similar names): ids {', '.join((grp.get('campaign_ids') or []))}. "
-            f"Surfaced separately per V2.4.1 §6 (do NOT merge)."))
-
-    # Paid-media source freshness
-    freshness = ((pm.get("freshness") or {}).get("status") or "").lower()
-    if "stale" in freshness:
-        items.append((
-            "MEDIUM",
-            f"Meta paid-media freshness = '{freshness}'. "
-            f"data_as_of={(pm.get('data_as_of') or '?')}. "
-            f"Re-ingest before relying on paid-media numbers."))
-
-    # GA4 missing
-    if (sessions.get("data_status") or "").upper() in ("UNAVAILABLE", "NOT_CONNECTED"):
-        items.append((
-            "MEDIUM",
-            f"GA4 unavailable for this brand — weekly comparison "
-            f"only available when GA4 KPI scorecard rows are populated."))
-
-    # Bookings/CRM missing
-    leads = _extract_kpi(v24, "Verified Leads")
-    if (leads.get("data_status") or "").upper() == "PENDING":
-        items.append((
-            "HIGH",
-            "Bookings / Verified Leads connector not wired — verified "
-            "outcomes cannot flow into reporting."))
-
-    return items
-
-
-# ── MARKETING ACTIONS — evidence-based ─────────────────────────
-
-def _derive_marketing_actions(v24: dict, bid: str) -> List[dict]:
-    """Up to 3 actions. Never automatic scale/pause/increase.
-    Each: evidence → interpretation → decision/test → success measure.
-    """
-    actions: List[dict] = []
-    sessions = _extract_kpi(v24, "Sessions")
-    s_cur = sessions.get("current")
-    s_prev = sessions.get("previous")
-    cm = (v24.get("sections") or {}).get("channel_mix") or {}
-    channels = cm.get("rows") or []
-    paid_totals = _paid_totals_from_campaigns(v24)
-    cur = paid_totals["current_period"]
-    prev = paid_totals["previous_period"]
-    pm = v24.get("paid_media_v24") or {}
-
-    # Action 1: largest movement channel — investigate, not scale
-    top = max(channels, key=lambda c: abs((c.get("current_sessions") or 0)
-                                          - (c.get("previous_sessions") or 0))) \
-            if channels else None
-    if top:
-        t_cur = top.get("current_sessions")
-        t_prev = top.get("previous_sessions")
-        if t_cur is not None and t_prev is not None and abs(t_cur - t_prev) >= 5:
-            pct, _ = _pct(t_cur, t_prev)
-            direction = "rose" if t_cur > t_prev else "fell"
-            actions.append({
-                "action": (f"Investigate {direction} movement in the "
-                            f"{top.get('channel')} channel this week."),
-                "why": (f"Movement: {t_prev} → {t_cur} sessions "
-                        f"({pct}). Status: {top.get('comparison_status', '—')}. "
-                        f"Share of total sessions: {top.get('share_of_sessions', 0):.1f}%."),
-                "measure": (f"{top.get('channel')} sessions WoW; for paid traffic, "
-                            f"check campaign-level CTR and CPC WoW."),
-            })
-
-    # Action 2: objective-aware — within one objective, find a
-    # notable efficiency shift (improving or declining) per campaign
-    by_obj = _campaigns_by_objective(pm)
-    if by_obj:
-        # Pick the objective with the most material campaigns
-        target_obj = max(by_obj.keys(),
-                          key=lambda k: len(by_obj[k]))
-        cs = by_obj[target_obj]
-        if len(cs) >= 1:
-            obj_label = _OBJECTIVE_METRIC.get(target_obj, ("", "", None, None))[0]
-            cost_label = _OBJECTIVE_METRIC.get(target_obj, ("", "", None, None))[1]
-            # For each campaign, compare current cost-per-result vs
-            # previous; flag notable movements.
-            movements = []
-            for c in cs:
-                cur_v = (c.get("current") or {}).get("spend") or 0
-                prev_v = (c.get("previous") or {}).get("spend") or 0
-                pr = c.get("primary_result") or {}
-                cur_cpr = pr.get("primary_cost_per_unit")
-                prev_cpr = (((c.get("previous") or {}).get("cost_per_action_type"))
-                              or None)  # best effort
-                movements.append({
-                    "name": c.get("campaign_name"),
-                    "objective": target_obj,
-                    "cur_spend": cur_v,
-                    "prev_spend": prev_v,
-                    "cur_cost_per": cur_cpr,
-                    "primary_value": pr.get("primary_value"),
-                    "metric_label": pr.get("primary_metric_label"),
-                    "cost_label": cost_label,
-                })
-            # Surface: campaign with largest absolute spend (so we
-            # actually describe SOMETHING), then describe it.
-            movements.sort(key=lambda m: m["cur_spend"], reverse=True)
-            top_mv = movements[0]
-            if top_mv["cur_spend"] > 0:
-                actions.append({
-                    "action": (f"Review '{top_mv['name']}' cost-per-result "
-                                f"trend before next spend decision."),
-                    "why": (f"Largest material {target_obj} campaign this week "
-                            f"(R{top_mv['cur_spend']:.2f} spend). "
-                            f"Current cost per result: "
-                            f"{_fmt(top_mv['cur_cost_per'], 'money') if top_mv['cur_cost_per'] else '—'} "
-                            f"({top_mv['metric_label'] or obj_label})."),
-                    "measure": (f"This campaign's cost-per-result WoW; "
-                                f"Meta-reported results WoW."),
-                })
-
-    # Action 3: NS support — keep funding a NS-aligned campaign
-    # if it exists and has measurable spend
-    ns_items = _extract_north_stars_from_v24(v24)
-    paid_campaigns = [c for c in (pm.get("per_campaign") or [])
-                        if c.get("status") == "DELIVERED"
-                        and (c.get("current") or {}).get("spend", 0) > 0]
-    # Find a campaign whose objective matches a NS direction
-    fitting_or_coaching_campaigns = [
-        c for c in paid_campaigns
-        if c.get("objective") == "OUTCOME_LEADS"
-        and any(t in (c.get("campaign_name") or "").lower()
-                  for t in ("fit", "coach", "lesson", "assessment", "leads"))
-    ]
-    if fitting_or_coaching_campaigns and ns_items:
-        c = fitting_or_coaching_campaigns[0]
-        obj_label = _OBJECTIVE_METRIC.get(c.get("objective"), ("", "", None, None))[0]
-        cost_label = _OBJECTIVE_METRIC.get(c.get("objective"), ("", "", None, None))[1]
-        actions.append({
-            "action": (f"Track '{c.get('campaign_name')}' against the "
-                        f"Fitting/Coaching North Star."),
-            "why": (f"This campaign has the objective that supports "
-                    f"the Fitting / Coaching North Star. Current "
-                    f"7-day primary result: "
-                    f"{((c.get('primary_result') or {}).get('primary_value') or '—')} "
-                    f"{obj_label} "
-                    f"({((c.get('primary_result') or {}).get('primary_metric_label')) or ''}). "
-                    f"Booking connector not yet wired — "
-                    f"validated outcomes not yet flowing."),
-            "measure": ("This campaign's primary-result metric WoW; "
-                          "eventually, verified bookings when the CRM connector is live."),
-        })
-
-    return actions[:3]
-
-
-def _derive_measurement_actions(v24: dict) -> List[str]:
-    out: List[str] = []
-    pm = v24.get("paid_media_v24") or {}
-    ks = v24.get("kpi_scorecard") or {}
-    rows = ks.get("rows") or []
-    sessions = _extract_kpi(v24, "Sessions")
-    if (sessions.get("data_status") or "").upper() in ("UNAVAILABLE", "NOT_CONNECTED"):
-        out.append("Wire per-brand GA4 property + service-account JSON "
-                     "for this brand (the other brand already has it).")
-    leads = _extract_kpi(v24, "Verified Leads")
-    if leads.get("data_status") == "PENDING":
-        out.append("Wire CRM / booking connector so Verified Leads stops "
-                     "being PENDING and we can report measured outcomes.")
-    freshness = (pm.get("freshness") or {}).get("status") or ""
-    if "stale" in freshness.lower():
-        out.append(f"Refresh stale paid-media source "
-                     f"(data_as_of={(pm.get('data_as_of') or '?')}).")
-    lp = ((v24.get("sections") or {})
-            .get("landing_pages") or {})
-    sp = lp.get("service_pages") or []
-    if not sp:
-        out.append("Confirm GA4 top-pages / service-pages dimension is "
-                     "enabled for this brand — landing_pages rows is empty.")
-    # Check if IG is missing for THIS brand
-    dc = ((v24.get("sections") or {})
-            .get("data_coverage") or {})
-    ig_status = dc.get("instagram") or ""
-    if isinstance(ig_status, str) and ig_status.upper() in ("PARTIAL", "NOT_CONNECTED"):
-        out.append("Configure Stick Instagram business account + token so "
-                     "organic IG insights surface in the weekly report.")
-    if not out:
-        out.append("No measurement actions this period.")
-    return out
-
-
-# ── markdown rendering ─────────────────────────────────────────
-
-def _render_markdown(bid: str, v24: dict, north_stars: List[dict],
-                       periods: Dict[str, str],
-                       organic: Dict[str, Any],
-                       contamination_block: Optional[str] = None,
-                       as_of: Optional[str] = None) -> str:
-    facts = _brand_canonical(bid)["canonical"]
-    L: List[str] = []
-
-    L.append(f"# {facts['display_name']} — Weekly Management Report")
-    L.append(f"_{periods['current_week_start']} → "
-               f"{periods['current_week_end']}_  ")
-    if as_of:
-        L.append(f"_As of: {as_of} (pinned)_  ")
-    L.append(f"_Data complete through: "
-               f"{periods['data_complete_through']}_")
-    L.append("")
-
-    if contamination_block:
-        L.append("**REPORT BLOCKED — brand contamination detected.**")
-        L.append("")
-        L.append(contamination_block)
-        return "\n".join(L)
-
-    # ── Source status (connectors) ──
-    pm = v24.get("paid_media_v24") or {}
-    pm_source_status = pm.get("data_status") or "UNKNOWN"
-    pm_freshness = (pm.get("freshness") or {}).get("status") or "unknown"
-    pm_data_as_of = ((pm.get("freshness") or {}).get("data_as_of")
-                       or pm.get("data_as_of") or "—")
-    sessions = _extract_kpi(v24, "Sessions")
-    s_status = sessions.get("data_status", "OK")
-    ig_status = organic.get("ig", {}).get("status") if organic.get("ig") else "unknown"
-    fb_status = organic.get("fb", {}).get("status") if organic.get("fb") else "unknown"
-    L.append(f"**Source status (connectors):** Meta Ads = `{pm_source_status}` "
-               f"({pm_freshness}, data_as_of={pm_data_as_of}); "
-               f"GA4 = `{s_status}`; "
-               f"Instagram = `{ig_status}`; "
-               f"Facebook Page = `{fb_status}`.")
-    L.append("")
-
-    # ── Executive Read (narrative, 2-4 sentences) ──
-    L.append("**Executive Read:**")
-    L.append(_build_executive_read(bid, v24, organic, periods))
-    L.append("")
-
-    # ── TL;DR Numbers (no severity) ──
-    L.append("## TL;DR — Numbers (Last 7 days)")
-    L.append(f"_{periods['current_week_start']} → "
-               f"{periods['current_week_end']} · "
-               f"prev 7d: {periods['previous_week_start']} → "
-               f"{periods['previous_week_end']}_")
-    L.append("")
-    L.append("| Metric | Current | Previous | Change | Signal |")
-    L.append("|---|---|---|---|---|")
-    rows = _build_tldr_rows(v24)
-    for r in rows:
-        L.append(f"| {r['metric']} | {r['current']} | {r['previous']} | "
-                   f"{r['change']} | {r['signal']} |")
-    L.append("")
-    L.append("> Signal = improving / stable / declining / baseline. Applied only when "
-               "absolute volume + confidence support a verdict — small channels show "
-               "the percentage without an automated signal.")
-    L.append("")
-
-    # ── Organic Social ──
-    L.append("## Organic Social")
-    L.append("")
-    _append_organic_block(L, organic, periods)
-
-    # ── Acquisition Channels ──
-    L.append("## Acquisition (7d)")
-    L.append("")
-    cm = (v24.get("sections") or {}).get("channel_mix") or {}
-    if cm.get("rows"):
-        L.append("| Channel | Current | Previous | Change | Share | Status |")
-        L.append("|---|---|---|---|---|---|")
-        for ch in (cm.get("rows") or []):
-            cur_v = ch.get("current_sessions")
-            prev_v = ch.get("previous_sessions")
-            pct, _ = _pct(cur_v, prev_v)
-            L.append(f"| {ch.get('channel','?')} | "
-                       f"{_fmt(cur_v)} | {_fmt(prev_v)} | {pct} | "
-                       f"{(ch.get('share_of_sessions') or 0):.1f}% | "
-                       f"{(ch.get('comparison_status') or '—')} |")
-        L.append("")
-
-    # ── Website Pages (service_pages) ──
-    L.append("## Website Pages (7d)")
-    L.append("")
-    lp = ((v24.get("sections") or {})
-            .get("landing_pages") or {})
-    sp_list = lp.get("service_pages") or []
-    if sp_list:
-        L.append("| Path | Current sessions | Previous | Change | Engagement |")
-        L.append("|---|---|---|---|---|")
-        for sp in sp_list[:6]:
-            cur_s = sp.get("current_sessions")
-            prev_s = sp.get("previous_sessions")
-            pct, _ = _pct(cur_s, prev_s)
-            L.append(f"| {sp.get('path','?')} | "
-                       f"{_fmt(cur_s)} | {_fmt(prev_s)} | {pct} | "
-                       f"{(sp.get('engagement_rate') or 0):.1f}% |")
-        L.append("")
-    else:
-        L.append("No service-page rows this period.")
-        L.append("")
-
-    # ── Paid Media ──
-    L.append("## Paid Media — Meta Ads (V2.4.1, 7d window)")
-    L.append(f"_{periods['current_week_start']} → "
-               f"{periods['current_week_end']}_")
-    L.append("")
-    L.append(f"_source_status=`{pm_source_status}`, "
-               f"data_as_of={pm_data_as_of}, freshness={pm_freshness}._")
-    L.append("")
-    L.append("**Period contract:**")
-    L.append(f"- current_start: `{periods['current_week_start']}`")
-    L.append(f"- current_end: `{periods['current_week_end']}`")
-    L.append(f"- previous_start: `{periods['previous_week_start']}`")
-    L.append(f"- previous_end: `{periods['previous_week_end']}`")
-    L.append(f"- query_level: `account + campaign`")
-    L.append(f"- queried_at: `{pm.get('fetched_at') or '?'}`")
-    L.append("")
-    if pm_source_status != "LIVE":
-        L.append(f"Meta Ads source_status = `{pm_source_status}` — see "
-                   f"Data Notes. **Not the same as zero spend.**")
-        L.append("")
-    else:
-        cur = paid_totals = _paid_totals_from_campaigns(v24)["current_period"]
-        prev = _paid_totals_from_campaigns(v24)["previous_period"]
-        eff = _compute_paid_efficiency(cur, prev)
-        L.append("| Metric | Current (7d) | Previous (7d) | Change |")
-        L.append("|---|---|---|---|")
-        L.append(f"| Spend | {_fmt(cur.get('total_spend'), 'money')} | "
-                   f"{_fmt(prev.get('total_spend'), 'money')} | "
-                   f"{_pct(cur.get('total_spend'), prev.get('total_spend'))[0]} |")
-        L.append(f"| Impressions | {_fmt(cur.get('total_impressions'))} | "
-                   f"{_fmt(prev.get('total_impressions'))} | "
-                   f"{_pct(cur.get('total_impressions'), prev.get('total_impressions'))[0]} |")
-        L.append(f"| Reach | {_fmt(cur.get('total_reach'))} | "
-                   f"{_fmt(prev.get('total_reach'))} | "
-                   f"{_pct(cur.get('total_reach'), prev.get('total_reach'))[0]} |")
-        L.append(f"| Clicks | {_fmt(cur.get('total_clicks'))} | "
-                   f"{_fmt(prev.get('total_clicks'))} | "
-                   f"{_pct(cur.get('total_clicks'), prev.get('total_clicks'))[0]} |")
-        L.append(f"| Meta-reported leads (OUTCOME_LEADS) | "
-                   f"{_fmt(cur.get('total_results'))} | "
-                   f"— | — |")
-        L.append(f"| CTR | {_fmt(eff.get('ctr'), 'pct')} | — | — |")
-        L.append(f"| CPC | {_fmt(eff.get('cpc'), 'money')} | — | — |")
-        L.append(f"| CPM | {_fmt(eff.get('cpm'), 'money')} | — | — |")
-        L.append("")
-        # Objective-aware campaigns
-        by_obj = _campaigns_by_objective(pm)
-        if by_obj:
-            L.append(f"**Campaigns this week ({sum(len(v) for v in by_obj.values())} "
-                       f"material, grouped by objective):**")
-            L.append("")
-            _append_campaign_table_by_objective(L, by_obj)
-
-    # ── Content Performance (top 3-5 pieces from IG + FB) ──
-    L.append("## Content Performance")
-    L.append("")
-    _append_content_block(L, organic)
-
-    # ── Business / Funnel ──
-    L.append("## Business / Funnel Signals")
-    L.append("")
-    L.append("| Stage | Value | Confidence |")
-    L.append("|---|---|---|")
-    s_cur = sessions.get("current")
-    s_status = sessions.get("data_status", "OK")
-    L.append(f"| Website sessions (7d) | {_fmt(s_cur) if s_cur is not None else '—'} | {s_status.lower()} |")
-    eng = _extract_kpi(v24, "Engaged sessions")
-    L.append(f"| Engaged sessions (7d) | {_fmt(eng.get('current')) if eng.get('current') is not None else '—'} | {eng.get('data_status','—').lower() if eng.get('data_status') else '—'} |")
-    paid_totals = _paid_totals_from_campaigns(v24)
-    leads_cur = paid_totals["current_period"].get("total_results")
-    L.append(f"| Meta-reported leads (7d, OUTCOME_LEADS) | "
-               f"{_fmt(leads_cur) if leads_cur is not None else '—'} | {pm.get('data_status','—').lower() if pm.get('data_status') else '—'} |")
-    L.append(f"| Bookings / sales (7d) | NOT YET MEASURED — CRM/POS connector pending | low |")
-    L.append("")
-    L.append("> Revenue modelling requires real conversion rate × outcome value × verified "
-               "attribution. Until the operational CRM/POS connector is wired, no revenue "
-               "projections possible.")
-    L.append("")
-
-    # ── North Stars — Stick: in body. Swing Shack: only confirmed,
-    #    pending ones moved to Data Notes ──
-    confirmed_ns = [ns for ns in north_stars
-                      if "PENDING" not in ns.get("label", "").upper()
-                      and "PENDING" not in ns.get("metric", "").upper()
-                      and ns.get("metric")]
-    pending_ns = [ns for ns in north_stars
-                    if "PENDING" in ns.get("label", "").upper()
-                    or "PENDING" in ns.get("metric", "").upper()
-                    or not ns.get("metric")]
-    if confirmed_ns:
-        L.append("## North Stars (canonical — from Reporting V2.4.1)")
-        L.append("")
-        for ns in confirmed_ns:
-            L.append(f"- **{ns['label']}** — {ns['metric']}")
-            L.append(f"  - Source: `{ns['source']}`")
-            L.append(f"  - Outcome measurement: PENDING — operational "
-                       f"connector not yet integrated with reporting")
-        L.append("")
-    if pending_ns:
-        L.append("## North Stars (strategy configuration gaps)")
-        L.append("")
-        L.append("Targets below exist as configuration keys but the canonical "
-                   "weekly / monthly target value has not yet been confirmed by "
-                   "Christelle. They are NOT carried as operational North Stars.")
-        L.append("")
-        for ns in pending_ns:
-            L.append(f"- `{ns['label']}` — {ns['metric'] or 'target not set'} "
-                       f"(source: `{ns['source']}`, PENDING)")
-        L.append("")
-
-    # ── What Worked ──
-    L.append("## What Worked (outcome / efficiency)")
-    L.append("")
-    worked = _derive_what_worked(v24, bid)
-    if worked:
-        for w in worked:
-            L.append(f"- {w}")
-    else:
-        L.append("- No material outcome/efficiency signal this period. "
-                   "Connectors and spend alone are inputs, not outcomes.")
-    L.append("")
-
-    # ── What Needs Attention ──
-    L.append("## What Needs Attention")
-    L.append("")
-    attention = _derive_what_needs_attention(v24, bid)
-    if attention:
-        for sev, txt in attention:
-            L.append(f"- **[{sev}]** {txt}")
-    else:
-        L.append("- No material performance issues detected this period.")
-    L.append("")
-
-    # ── Marketing Actions ──
-    L.append("## Marketing Actions (evidence-based, max 3)")
-    L.append("")
-    actions = _derive_marketing_actions(v24, bid)
-    if actions:
-        for i, a in enumerate(actions, 1):
-            L.append(f"{i}. **{a['action']}**")
-            L.append(f"   - **Evidence → Interpretation:** {a['why']}")
-            L.append(f"   - **Decision / Test:** {a['action']}")
-            L.append(f"   - **Success measure:** {a['measure']}")
-    else:
-        L.append("- No marketing actions defensible from the current data set. "
-                   "See Measurement / Data Actions for the gaps blocking decisions.")
-    L.append("")
-    L.append("> Reporting informs decisions; it does not mutate campaigns. "
-               "Scale / pause / increase-budget actions require per-objective "
-               "efficiency evidence — not a single-week WoW % change.")
-    L.append("")
-
-    # ── Measurement / Data Actions ──
-    L.append("## Measurement / Data Actions")
-    L.append("")
-    meas = _derive_measurement_actions(v24)
-    for i, a in enumerate(meas, 1):
-        L.append(f"{i}. {a}")
-    L.append("")
-
-    # ── Data Notes / Limitations ──
-    L.append("## Data Notes / Limitations")
-    L.append("")
-    L.append("**Period contract:**")
-    L.append(f"- data_complete_through = "
-               f"{periods['data_complete_through']} (yesterday, "
-               f"today's incomplete data excluded)")
-    L.append(f"- current_week = {periods['current_week_start']} → "
-               f"{periods['current_week_end']} (7 complete days)")
-    L.append(f"- previous_week = {periods['previous_week_start']} → "
-               f"{periods['previous_week_end']} (7 complete days)")
-    L.append(f"- current_28d = {periods['current_28d_start']} → "
-               f"{periods['current_28d_end']} (28 complete days)")
-    L.append(f"- previous_28d = {periods['previous_28d_start']} → "
-               f"{periods['previous_28d_end']} (28 complete days)")
-    L.append("")
-    L.append("**Source lineage (from V2.4.1 canonical):**")
-    sl = v24.get("source_lineage") or []
-    for s in sl:
-        L.append(f"- {s.get('source','?')}: "
-                   f"data_as_of={s.get('data_as_of') or '?'}")
-    L.append("")
-    L.append(f"**Paid-media freshness:** data_as_of={pm_data_as_of}, "
-               f"status={pm_freshness}, source_status={pm_source_status}. "
-               f"7-day cache validated against direct Meta Graph API audit.")
-    L.append("")
-    L.append("**Tone:** management report — outcomes first, actions only when "
-               "evidence supports them. Missing data ≠ zero. No creative generation.")
-    L.append("")
-    L.append("---")
-    L.append(f"_Generated {datetime.datetime.now(datetime.timezone.utc).isoformat()} • V2.4.1 frozen • V3.3 renderer._")
-    return "\n".join(L)
-
-
-def _build_executive_read(bid: str, v24: dict, organic: Dict[str, Any],
-                            periods: Dict[str, str]) -> str:
-    """Narrative 2-4 sentences explaining the week."""
-    s = _extract_kpi(v24, "Sessions")
-    s_cur = s.get("current")
-    s_prev = s.get("previous")
-    cm = (v24.get("sections") or {}).get("channel_mix") or {}
-    chans = cm.get("rows") or []
-    # Find the largest mover
-    movers = []
-    for c in chans:
-        cur_v = c.get("current_sessions")
-        prev_v = c.get("previous_sessions")
-        if cur_v is not None and prev_v is not None:
-            movers.append((c.get("channel"), cur_v - prev_v))
-    movers.sort(key=lambda t: abs(t[1]), reverse=True)
-    parts: List[str] = []
-    if s_cur is not None and s_prev is not None and s_prev > 0:
-        pct, _ = _pct(s_cur, s_prev)
-        direction = "edged up" if s_cur > s_prev else "fell" if s_cur < s_prev else "held flat at"
-        parts.append(f"Website traffic {direction} {pct} WoW "
-                       f"({_fmt(s_cur)} sessions vs {_fmt(s_prev)}).")
-    if movers:
-        biggest = movers[0]
-        if abs(biggest[1]) >= 5:
-            sign = "+" if biggest[1] > 0 else ""
-            parts.append(f"The {biggest[0]} channel moved {sign}{biggest[1]} sessions "
-                          f"(largest channel-level delta).")
-    # Paid-media direction (objective-aware, no cross-objective ranking)
-    paid_totals = _paid_totals_from_campaigns(v24)
-    cur = paid_totals["current_period"]
-    prev = paid_totals["previous_period"]
-    if cur.get("total_impressions", 0) > 0 and prev.get("total_impressions", 0) > 0:
-        imp_delta = (cur["total_impressions"] - prev["total_impressions"]) \
-                       / prev["total_impressions"] * 100
-        if abs(imp_delta) >= 10:
-            parts.append(f"Paid-media delivery {'contracted' if imp_delta < 0 else 'expanded'} "
-                           f"{imp_delta:+.1f}% (impressions WoW); spend stayed at "
-                           f"R{cur['total_spend']:,.2f}.")
-    # Pending bookings connector call-out
-    leads = _extract_kpi(v24, "Verified Leads")
-    if leads.get("data_status") == "PENDING":
-        parts.append("Validated bookings / sales not yet wired — "
-                      "Meta-reported lead count is the closest signal until "
-                      "the CRM/POS connector is live.")
-    if not parts:
-        return "_Insufficient data to summarise this week — see Data Notes._"
-    return " ".join(parts[:4])
-
-
-def _append_organic_block(L: List[str], organic: Dict[str, Any],
-                            periods: Dict[str, str]) -> None:
-    ig = organic.get("ig") or {}
-    fb = organic.get("fb") or {}
-    ig_status = ig.get("status", "NOT_CONNECTED")
-    fb_status = fb.get("status", "NOT_CONNECTED")
-    if ig_status == "NOT_CONNECTED" and fb_status == "NOT_CONNECTED":
-        L.append(f"Instagram and Facebook Page data not available for this brand. "
-                   f"Connector not configured (see Data Notes).")
-        L.append("")
-        return
-    L.append("| Channel | Reach/Impressions | Interactions | Profile / Clicks | "
-               "Source status |")
-    L.append("|---|---|---|---|---|")
-    if ig_status != "NOT_CONNECTED":
-        L.append(f"| Instagram (28d) | "
-                   f"{_fmt(ig.get('reach'))} | "
-                   f"{_fmt(ig.get('interactions'))} | "
-                   f"profile_views {_fmt(ig.get('profile_views'))} | "
-                   f"`{ig_status}` |")
-    else:
-        L.append(f"| Instagram (28d) | — | — | — | `PARTIAL — connector not configured` |")
-    if fb_status != "NOT_CONNECTED":
-        L.append(f"| Facebook Page (28d) | "
-                   f"{_fmt(fb.get('impressions'))} | "
-                   f"{_fmt(fb.get('engagements'))} | "
-                   f"clicks {_fmt(fb.get('clicks'))} | "
-                   f"`{fb_status}` |")
-    else:
-        L.append(f"| Facebook Page (28d) | — | — | — | `PARTIAL — connector not configured` |")
-    L.append("")
-    L.append("> Reach / interactions: 28d totals. No Story-vs-post efficiency claim "
-               "made here — sample windows differ from the 7d paid block.")
-    L.append("")
-
-
-def _append_content_block(L: List[str], organic: Dict[str, Any]) -> None:
-    ig_top = (organic.get("ig") or {}).get("top_posts") or []
-    fb_top = (organic.get("fb") or {}).get("top_posts") or []
-    if not ig_top and not fb_top:
-        L.append("No recent IG / FB media tracked for this brand.")
-        L.append("")
-        return
-    L.append("Top-performing content pieces (most-engaging, recent):")
-    L.append("")
-    L.append("| Platform | Format | Topic (caption preview) | Interactions | Source |")
-    L.append("|---|---|---|---|---|")
-    pieces = sorted(
-        [("Instagram", p) for p in ig_top]
-        + [("Facebook Page", p) for p in fb_top],
-        key=lambda t: (t[1].get("interactions") or 0),
-        reverse=True,
-    )[:5]
-    for platform, p in pieces:
-        caption = (p.get("caption") or "")[:60]
-        fmt_type = p.get("media_type") or "?"
-        L.append(f"| {platform} | {fmt_type} | {caption} | "
-                   f"{_fmt(p.get('interactions'))} | {platform} |")
-    L.append("")
-    L.append("**Observation:** " + (pieces[0][1].get("caption")[:120] + "..." if pieces else
-                                          "_No content tracked._"))
-
-
-def _append_campaign_table_by_objective(L: List[str], by_obj: Dict[str, List[dict]]) -> None:
-    for obj in sorted(by_obj.keys()):
-        label, cost_label, value_fn, cost_fn = _OBJECTIVE_METRIC.get(
-            obj, ("primary result", "R/result", None, None))
-        cs = sorted(by_obj[obj], key=lambda c: (c.get("current") or {}).get("spend", 0), reverse=True)
-        L.append(f"### {obj} — {label}")
-        L.append("")
-        L.append("| Campaign | Spend | Impressions | Reach | Clicks | CTR | CPC | "
-                   f"{label} | Cost / {label} |")
-        L.append("|---|---|---|---|---|---|---|---|---|")
-        for c in cs:
-            cur = c.get("current") or {}
-            pr = c.get("primary_result") or {}
-            ctr = cur.get("ctr") or 0
-            cpc = cur.get("cpc") or 0
-            # CTR is reported as percentage in Meta. _v24_normalize_action_types
-            # may store as fraction (0.18) or as percentage (18). Check scale.
-            ctr_str = f"{ctr*100:.2f}%" if ctr < 1 else f"{ctr:.2f}%"
-            L.append(f"| {c.get('campaign_name','?')} | "
-                       f"{_fmt(cur.get('spend'), 'money')} | "
-                       f"{_fmt(cur.get('impressions'))} | "
-                       f"{_fmt(cur.get('reach'))} | "
-                       f"{_fmt(cur.get('clicks'))} | "
-                       f"{ctr_str} | "
-                       f"{_fmt(cpc, 'money')} | "
-                       f"{_fmt(pr.get('primary_value'))} {pr.get('primary_value_unit','')} | "
-                       f"{_fmt(pr.get('primary_cost_per_unit'), 'money')} |")
-        L.append("")
-        if len(cs) >= 2:
-            L.append(f"_Within-objective ranking: not applied — campaigns have "
-                       f"different prior-period baselines and objective-specific "
-                       f"cost-per-result definitions. Compare each campaign to its "
-                       f"OWN previous-week numbers._")
-            L.append("")
-
-
-# ── HTML rendering ──────────────────────────────────────────────
-
-def _render_html(bid: str, v24: dict, north_stars: List[dict],
-                   periods: Dict[str, str], organic: Dict[str, Any],
-                   contamination_block: Optional[str] = None,
-                   as_of: Optional[str] = None) -> str:
-    md = _render_markdown(bid, v24, north_stars, periods, organic,
-                            contamination_block, as_of)
-    facts = _brand_canonical(bid)["canonical"]
-    title = (f"{facts['display_name']} — Weekly Management Report"
-              f" ({periods['current_week_start']} → "
-              f"{periods['current_week_end']})")
-    if contamination_block:
-        title = f"{title} — BLOCKED"
-    body = md.replace("&", "&amp;").replace("<", "&lt;").replace(
-        ">", "&gt;")
-    body_html = body.replace("\n## ", "\n<h2>").replace("\n### ", "\n<h3>")
-    body_html = body_html.replace("**", "")
-    return (
-        "<!doctype html><html><head><meta charset='utf-8'>"
-        f"<title>{title}</title>"
-        "<style>body{font-family:-apple-system,BlinkMacSystemFont,"
-        "'Segoe UI',Roboto,sans-serif;max-width:920px;margin:40px auto;"
-        "padding:0 20px;color:#1a1f2e;line-height:1.5;}"
-        "h1{margin-bottom:8px}h2{margin-top:32px;border-bottom:1px solid "
-        "#e3e6ed;padding-bottom:6px}table{border-collapse:collapse;"
-        "width:100%;margin:12px 0}th,td{padding:6px 10px;text-align:left;"
-        "border-bottom:1px solid #e3e6ed;font-size:14px}th{background:"
-        "#f6f7fb}blockquote{border-left:3px solid #cdd2dd;margin:8px 0;"
-        "padding:6px 14px;color:#4a5568;background:#fafbfd}"
-        "@media print {body{margin:0 auto}}</style>"
-        "</head><body>"
-        f"<pre style='white-space:pre-wrap;font-family:inherit;"
-        f"font-size:14px;line-height:1.55'>{body_html}</pre>"
-        "</body></html>")
-
-
-# ── main entry ─────────────────────────────────────────────────
-
-def build_v33(bid: str, fmt: str = "markdown",
-                as_of: Optional[str] = None,
-                cookie: Optional[str] = None) -> dict:
-    if bid not in ("stick", "swing-shack", "bag-drop"):
-        return {"report_status": "INVALID_BRAND",
-                "block_reason": "brand_id must be stick, swing-shack, or bag-drop",
-                "contaminations": [],
-                "rendered": f"# Invalid brand\n\n`{bid}` is not a managed brand.",
-                "raw_payload": {}}
-
-    periods = _compute_periods(as_of)
-    v24 = _read_v24(bid, as_of, cookie=cookie)
-
-    if not v24 or "error" in v24:
-        return {
-            "report_status": "V24_UNAVAILABLE",
-            "block_reason": v24.get("error", "V2.4.1 read failed"),
-            "contaminations": [],
-            "rendered": (f"# {bid.title()} — Weekly Management Report\n\n"
-                          f"**V2.4.1 unavailable:** "
-                          f"{v24.get('error', 'unknown error')}\n\n"
-                          f"Period: {periods['current_week_start']} → "
-                          f"{periods['current_week_end']}"),
-            "raw_payload": {"v24": v24, "periods": periods},
-        }
-
-    clean, violations = _validate_brand_isolation(bid, v24)
-    if not clean:
-        block = ("Identifiers found in V2.4.1 payload:\n"
-                  + "\n".join(f"- `{v}`" for v in violations)
-                  + "\n\nThis report will not render until the canonical "
-                    "V2.4.1 data sources are scoped to this brand only.")
-        return {
-            "report_status": "BLOCKED_BRAND_CONTAMINATION",
-            "block_reason": "V2.4.1 payload contains identifiers from a "
-                             "different brand.",
-            "contaminations": violations,
-            "rendered": _render_markdown(bid, v24, [], periods, {},
-                                           contamination_block=block,
-                                           as_of=as_of),
-            "raw_payload": {"v24": v24, "periods": periods},
-        }
-
-    north_stars = _extract_north_stars_from_v24(v24)
-
-    # Read organic social from on-disk cache (Railway writes these
-    # via /api/instagram/refresh and /api/meta/fb-page/refresh).
-    organic = _read_organic_from_cache(bid)
-
-    status = "OK"
-
-    if fmt == "html":
-        rendered = _render_html(bid, v24, north_stars, periods, organic,
-                                  as_of=as_of)
-    elif fmt == "json":
-        rendered = _render_markdown(bid, v24, north_stars, periods, organic,
-                                      as_of=as_of)
-    else:
-        rendered = _render_markdown(bid, v24, north_stars, periods, organic,
-                                      as_of=as_of)
-
-    return {
-        "report_status": status,
-        "block_reason": None,
-        "contaminations": [],
-        "rendered": rendered,
-        "raw_payload": {
-            "v24": v24,
-            "periods": periods,
-            "north_stars": north_stars,
-            "brand_id": bid,
-            "generator": "weekly_report_v3.3",
-            "as_of": as_of,
-            "organic": organic,
-        },
-    }
-
+# ── reading organic cache (IG + FB) ─────────────────────────────
 
 def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
-    """Read the IG + FB cache files written by Railway refreshes.
-    Returns dict with keys 'ig' and 'fb', each containing status +
-    reach + interactions + top posts.
-    """
     out: Dict[str, Any] = {"ig": None, "fb": None}
-    # IG
-    ig_status, ig_data = "NOT_CONNECTED", {}
+    ig_data = {}
+    ig_brand_map = {
+        "swingshack": "swing-shack",
+        "stickgolf": "stick",
+    }
     for r in (
         _data_root(),
         Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"),
@@ -1371,22 +358,13 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
             if p.is_file():
                 try:
                     raw = json.loads(p.read_text(encoding="utf-8"))
-                    # If brand-scoped, only accept it for that brand
-                    account = (raw.get("account") or {})
-                    username = account.get("username")
-                    # Map IG username to brand
-                    ig_brand_map = {
-                        "swingshack": "swing-shack",
-                        "stickgolf": "stick",
-                    }
-                    detected_brand = ig_brand_map.get(
-                        (username or "").lower().replace("@", ""))
-                    # Per-brand file preferred
-                    if detected_brand and detected_brand != bid:
-                        # This file belongs to a different brand — skip.
+                    username = ((raw.get("account") or {})
+                                  .get("username") or "")
+                    detected = ig_brand_map.get(
+                        username.lower().replace("@", ""))
+                    if detected and detected != bid:
                         continue
                     ig_data = raw
-                    ig_status = "LIVE" if raw.get("window_totals") else "PARTIAL"
                 except Exception:
                     continue
                 if ig_data:
@@ -1394,10 +372,9 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
         if ig_data:
             break
     if ig_data:
-        # Filter top posts to those within the current 7d window if possible
         wt = ig_data.get("window_totals") or {}
         out["ig"] = {
-            "status": ig_status,
+            "status": "LIVE" if wt else "PARTIAL",
             "username": (ig_data.get("account") or {}).get("username"),
             "followers": (ig_data.get("account") or {}).get("followers_count"),
             "reach": wt.get("reach") or wt.get("accounts_engaged"),
@@ -1408,7 +385,8 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
                 {
                     "id": p.get("id"),
                     "media_type": p.get("media_type"),
-                    "caption": (p.get("caption_preview") or p.get("caption") or "").strip(),
+                    "caption": (p.get("caption_preview")
+                                  or p.get("caption") or "").strip(),
                     "interactions": ((p.get("metrics") or {})
                                           .get("total_interactions")),
                     "reach": ((p.get("metrics") or {})
@@ -1418,8 +396,7 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
                 for p in (ig_data.get("media") or [])[:10]
             ],
         }
-    # FB
-    fb_status, fb_data = "NOT_CONNECTED", {}
+    fb_data = {}
     for r in (
         _data_root(),
         Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"),
@@ -1429,7 +406,6 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
             try:
                 raw = json.loads(p.read_text(encoding="utf-8"))
                 fb_data = raw
-                fb_status = "LIVE" if raw.get("window_totals") else "PARTIAL"
             except Exception:
                 continue
             if fb_data:
@@ -1438,7 +414,7 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
         wt = fb_data.get("window_totals") or {}
         page = fb_data.get("page") or {}
         out["fb"] = {
-            "status": fb_status,
+            "status": "LIVE" if wt else "PARTIAL",
             "page_name": page.get("name"),
             "fans": page.get("fan_count"),
             "impressions": wt.get("page_impressions"),
@@ -1448,7 +424,8 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
                 {
                     "id": p.get("id"),
                     "media_type": p.get("type") or p.get("media_type"),
-                    "caption": (p.get("message") or p.get("message_preview") or "").strip(),
+                    "caption": (p.get("message")
+                                  or p.get("message_preview") or "").strip(),
                     "interactions": (
                         (p.get("reactions_total") or 0)
                         + (p.get("comments") or 0)
@@ -1463,18 +440,905 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
     return out
 
 
+# ── executive read ─────────────────────────────────────────────
+
+def _build_executive_read(bid: str, v24: dict, organic: Dict[str, Any],
+                            periods: Dict[str, str]) -> str:
+    s = _extract_kpi(v24, "Sessions")
+    s_cur = s.get("current")
+    s_prev = s.get("previous")
+    cm = (v24.get("sections") or {}).get("channel_mix") or {}
+    chans = cm.get("rows") or []
+    movers = []
+    for c in chans:
+        cur_v = c.get("current_sessions")
+        prev_v = c.get("previous_sessions")
+        if cur_v is not None and prev_v is not None:
+            movers.append((c.get("channel"), cur_v - prev_v))
+    movers.sort(key=lambda t: abs(t[1]), reverse=True)
+
+    paid_totals = _paid_totals_from_campaigns(v24)
+    cur = paid_totals["current_period"]
+    prev = paid_totals["previous_period"]
+
+    parts: List[str] = []
+    if s_cur is not None and s_prev is not None and s_prev > 0:
+        pct = (s_cur - s_prev) / s_prev * 100
+        if abs(s_cur - s_prev) >= 10:
+            if pct > 0:
+                parts.append(
+                    f"Website traffic increased by {abs(s_cur - s_prev)} sessions "
+                    f"({pct:.1f}% more) compared with last week.")
+            elif pct < 0:
+                parts.append(
+                    f"Website traffic fell by {abs(s_cur - s_prev)} sessions "
+                    f"({abs(pct):.1f}% less) compared with last week.")
+            else:
+                parts.append(
+                    f"Website traffic was the same as last week "
+                    f"({_fmt(s_cur)} sessions).")
+        else:
+            parts.append(
+                f"Website traffic stayed about the same as last week "
+                f"({_fmt(s_cur)} vs {_fmt(s_prev)}).")
+    if movers:
+        biggest = movers[0]
+        if abs(biggest[1]) >= 5:
+            sign_word = "more" if biggest[1] > 0 else "fewer"
+            sign_n = abs(biggest[1])
+            parts.append(
+                f"The {biggest[0]} channel brought {sign_n} {sign_word} "
+                f"sessions than last week.")
+    if (cur.get("total_impressions", 0) > 0
+            and prev.get("total_impressions", 0) > 0):
+        imp_pct = ((cur["total_impressions"] - prev["total_impressions"])
+                     / prev["total_impressions"] * 100)
+        if abs(imp_pct) >= 10:
+            if imp_pct > 0:
+                parts.append(
+                    f"Meta ads reached {abs(imp_pct):.1f}% more people this week "
+                    f"than last week.")
+            else:
+                parts.append(
+                    f"Meta ads reached {abs(imp_pct):.1f}% fewer people this week "
+                    f"than last week — paid delivery should be watched.")
+    leads = _extract_kpi(v24, "Verified Leads")
+    if leads.get("data_status") == "PENDING":
+        parts.append("We still cannot tell how many Meta leads turned into real "
+                       "bookings.", )
+    if not parts:
+        return ("Not enough data yet to summarise the week. Check Data still "
+                "missing below.")
+    return " ".join(parts[:4])
+
+
+# ── "this week at a glance" headline ────────────────────────────
+
+def _build_headline(bid: str, v24: dict, organic: Dict[str, Any]) -> List[str]:
+    """A handful of headline numbers in plain English."""
+    s = _extract_kpi(v24, "Sessions")
+    s_cur = s.get("current")
+    s_prev = s.get("previous")
+    paid_totals = _paid_totals_from_campaigns(v24)
+    cur = paid_totals["current_period"]
+    prev = paid_totals["previous_period"]
+    leads_cur = paid_totals["current_period"].get("total_results")
+    lines: List[str] = []
+    # Website sessions
+    if s_cur is not None:
+        if s_prev is not None and s_prev > 0 and (s_cur - s_prev) >= 5:
+            pct = (s_cur - s_prev) / s_prev * 100
+            direction = "up" if pct > 0 else "down"
+            lines.append(
+                f"Website sessions: {_fmt(s_cur)} ({direction} "
+                f"{abs(pct):.1f}% compared with last week)")
+        else:
+            lines.append(f"Website sessions: {_fmt(s_cur)} this week")
+    # Top channel
+    cm = (v24.get("sections") or {}).get("channel_mix") or {}
+    chans = cm.get("rows") or []
+    paid_social = next((c for c in chans
+                          if c.get("channel") == "Paid Social"), None)
+    organic_search = next((c for c in chans
+                            if c.get("channel") == "Organic Search"), None)
+    if paid_social and paid_social.get("current_sessions") is not None:
+        ps_cur = paid_social["current_sessions"]
+        ps_prev = paid_social.get("previous_sessions")
+        pct = _pct_word(ps_cur, ps_prev)
+        if pct:
+            lines.append(
+                f"Paid Social: {_fmt(ps_cur)} sessions ({pct} compared with "
+                f"last week)")
+        else:
+            lines.append(
+                f"Paid Social: {_fmt(ps_cur)} sessions this week")
+    if organic_search and organic_search.get("current_sessions") is not None:
+        os_cur = organic_search["current_sessions"]
+        os_prev = organic_search.get("previous_sessions")
+        pct = _pct_word(os_cur, os_prev)
+        if pct:
+            lines.append(
+                f"Organic Search (Google): {_fmt(os_cur)} sessions "
+                f"({pct} compared with last week)")
+        else:
+            lines.append(
+                f"Organic Search (Google): {_fmt(os_cur)} sessions this week")
+    if cur.get("total_spend", 0) > 0:
+        spend_cur = cur["total_spend"]
+        spend_prev = prev.get("total_spend")
+        pct = _pct_word(spend_cur, spend_prev)
+        if pct:
+            lines.append(
+                f"Meta ad spend: {_fmt(spend_cur, 'money')} ({pct} compared "
+                f"with last week)")
+        else:
+            lines.append(
+                f"Meta ad spend: {_fmt(spend_cur, 'money')} this week")
+    if leads_cur is not None:
+        lines.append(f"Meta leads: {_fmt(leads_cur)} this week")
+    return lines
+
+
+# ── website traffic section ────────────────────────────────────
+
+def _build_website_traffic(v24: dict) -> List[str]:
+    L: List[str] = []
+    L.append("## Website traffic")
+    L.append("")
+    s = _extract_kpi(v24, "Sessions")
+    u = _extract_kpi(v24, "Users")
+    e = _extract_kpi(v24, "Engaged sessions")
+    er = _extract_kpi(v24, "Engagement rate")
+    pv = _extract_kpi(v24, "Pageviews")
+    bullets: List[str] = []
+    for label, kpi in (("Sessions", s), ("Users", u),
+                         ("Engaged sessions", e),
+                         ("Engagement rate", er),
+                         ("Pageviews", pv)):
+        cur_v = kpi.get("current")
+        prev_v = kpi.get("previous")
+        if cur_v is None:
+            continue
+        kind = "decimal" if label == "Engagement rate" else "int"
+        line = f"- **{label}:** {_fmt(cur_v, kind)} this week"
+        pct = _pct_word(cur_v, prev_v)
+        if pct:
+            line += f" ({pct} compared with last week, "
+            line += f"was {_fmt(prev_v, kind)})"
+        bullets.append(line)
+    if not bullets:
+        L.append("Website traffic numbers not available this week.")
+        L.append("")
+        return L
+    L.extend(bullets)
+    L.append("")
+    return L
+
+
+# ── where visitors came from ───────────────────────────────────
+
+def _build_acquisition(v24: dict) -> List[str]:
+    L: List[str] = []
+    L.append("## Where visitors came from")
+    L.append("")
+    cm = (v24.get("sections") or {}).get("channel_mix") or {}
+    chans = cm.get("rows") or []
+    if not chans:
+        L.append("No visitor-source data this week.")
+        L.append("")
+        return L
+    chans_sorted = sorted(chans, key=lambda c: c.get("current_sessions") or 0,
+                            reverse=True)
+    for c in chans_sorted:
+        cur_v = c.get("current_sessions")
+        prev_v = c.get("previous_sessions")
+        share = c.get("share_of_sessions") or 0
+        if cur_v is None:
+            continue
+        line = f"- **{c.get('channel','?')}:** {_fmt(cur_v)} sessions this week"
+        pct = _pct_word(cur_v, prev_v)
+        if pct:
+            line += f" ({pct} compared with last week, was {_fmt(prev_v)})"
+        line += f" — {share:.1f}% of all sessions"
+        L.append(line)
+    L.append("")
+    return L
+
+
+# ── advertising section ────────────────────────────────────────
+
+def _build_advertising(v24: dict) -> List[str]:
+    L: List[str] = []
+    L.append("## Advertising")
+    L.append("")
+    pm = v24.get("paid_media_v24") or {}
+    if (pm.get("data_status") or "").upper() != "LIVE":
+        L.append("Advertising is not connected for this brand.")
+        L.append("")
+        return L
+    paid_totals = _paid_totals_from_campaigns(v24)
+    cur = paid_totals["current_period"]
+    prev = paid_totals["previous_period"]
+    eff = _compute_paid_efficiency(cur, prev)
+    # Top totals in plain English
+    L.append("**This week on Meta ads:**")
+    L.append("")
+    L.append(f"- Total spend: {_fmt(cur.get('total_spend'), 'money')} "
+               f"({_pct_word(cur.get('total_spend'), prev.get('total_spend'))} "
+               f"compared with last week)")
+    L.append(f"- People reached: {_fmt(cur.get('total_reach'))} "
+               f"({_pct_word(cur.get('total_reach'), prev.get('total_reach'))} "
+               f"compared with last week)")
+    L.append(f"- Total clicks on ads: {_fmt(cur.get('total_clicks'))} "
+               f"({_pct_word(cur.get('total_clicks'), prev.get('total_clicks'))} "
+               f"compared with last week)")
+    if cur.get("total_impressions", 0) > 0:
+        ctr = (cur.get("total_clicks") or 0) / cur["total_impressions"] * 100
+        L.append(f"- Average click-through rate: {ctr:.2f}% "
+                   f"(people who clicked the ad after seeing it)")
+    if cur.get("total_clicks", 0) > 0:
+        cpc = (cur.get("total_spend") or 0) / cur["total_clicks"]
+        L.append(f"- Average cost per click: R{cpc:,.2f}")
+    L.append(f"- Meta leads (from lead campaigns): "
+               f"{_fmt(cur.get('total_results'))}")
+    L.append("")
+    # Group campaigns by objective → plain-English label
+    by_obj: Dict[str, List[dict]] = {}
+    for c in (pm.get("per_campaign") or []):
+        if (c.get("current") or {}).get("spend", 0) > 0:
+            obj = c.get("objective") or "OUTCOME_OTHER"
+            by_obj.setdefault(obj, []).append(c)
+    if by_obj:
+        L.append("**Campaigns running this week, grouped by what they try to do:**")
+        L.append("")
+        for obj in sorted(by_obj.keys()):
+            group_title, pm_noun, pm_unit, cost_label = _objective_group_label(obj)
+            cs = sorted(by_obj[obj],
+                          key=lambda c: (c.get("current") or {}).get("spend", 0),
+                          reverse=True)
+            L.append(f"### {group_title}")
+            L.append("")
+            for c in cs:
+                cur_c = c.get("current") or {}
+                pr = c.get("primary_result") or {}
+                spend = cur_c.get("spend") or 0
+                # Primary value
+                pv = pr.get("primary_value")
+                pmu = pr.get("primary_value_unit", "")
+                pml = pr.get("primary_metric_label", "")
+                # Cost per primary
+                cpr = pr.get("primary_cost_per_unit")
+                L.append(f"- **{c.get('campaign_name','?')}**")
+                L.append(f"  - Spend this week: {_fmt(spend, 'money')}")
+                if pv is not None:
+                    if obj == "OUTCOME_AWARENESS":
+                        L.append(f"  - People reached: {_fmt(pv)}")
+                        if cpr is not None:
+                            L.append(f"  - Cost per 1,000 people reached: "
+                                       f"{_fmt(cpr, 'money_per')}")
+                    elif obj == "OUTCOME_TRAFFIC":
+                        L.append(f"  - Website visits from this ad: {_fmt(pv)}")
+                        if cpr is not None:
+                            L.append(f"  - Cost per website visit: "
+                                       f"{_fmt(cpr, 'money_per')}")
+                    elif obj == "OUTCOME_ENGAGEMENT":
+                        L.append(f"  - Engagements: {_fmt(pv)}")
+                        if cpr is not None:
+                            L.append(f"  - Cost per engagement: "
+                                       f"{_fmt(cpr, 'money_per')}")
+                    elif obj == "OUTCOME_LEADS":
+                        L.append(f"  - Leads: {_fmt(pv)}")
+                        if cpr is not None:
+                            L.append(f"  - Cost per lead: "
+                                       f"{_fmt(cpr, 'money_per')}")
+                    else:
+                        L.append(f"  - {pml or 'result'}: {_fmt(pv)}")
+                        if cpr is not None:
+                            L.append(f"  - Cost per result: "
+                                       f"{_fmt(cpr, 'money_per')}")
+                # Reach / impressions summary line for context
+                if obj != "OUTCOME_AWARENESS":
+                    reach = cur_c.get("reach")
+                    if reach:
+                        L.append(f"  - People reached: {_fmt(reach)}")
+                L.append("")
+    return L
+
+
+# ── website pages ──────────────────────────────────────────────
+
+def _build_website_pages(v24: dict) -> List[str]:
+    L: List[str] = []
+    L.append("## Website pages")
+    L.append("")
+    lp = ((v24.get("sections") or {})
+            .get("landing_pages") or {})
+    sp_list = lp.get("service_pages") or []
+    # Filter out zero/zero pages unless something notable
+    sp_filtered = [sp for sp in sp_list
+                     if (sp.get("current_sessions") or 0) > 0]
+    if not sp_filtered:
+        L.append("No significant website page activity this week.")
+        L.append("")
+        return L
+    sp_filtered = sorted(sp_filtered,
+                          key=lambda s: s.get("current_sessions") or 0,
+                          reverse=True)[:6]
+    L.append("Pages that got visits this week (top 6):")
+    L.append("")
+    for sp in sp_filtered:
+        cur_s = sp.get("current_sessions")
+        prev_s = sp.get("previous_sessions")
+        eng = sp.get("engagement_rate") or 0
+        line = f"- **{sp.get('path','?')}** — {_fmt(cur_s)} sessions"
+        pct = _pct_word(cur_s, prev_s)
+        if pct:
+            line += f" this week ({pct} compared with last week, was {_fmt(prev_s)})"
+        line += f". Engagement: {eng:.1f}%"
+        L.append(line)
+    L.append("")
+    return L
+
+
+# ── social media ───────────────────────────────────────────────
+
+def _build_social_media(bid: str, organic: Dict[str, Any],
+                          periods: Dict[str, str]) -> List[str]:
+    L: List[str] = []
+    L.append("## Social media")
+    L.append("")
+    ig = organic.get("ig") or {}
+    fb = organic.get("fb") or {}
+    ig_status = ig.get("status", "NOT_CONNECTED")
+    fb_status = fb.get("status", "NOT_CONNECTED")
+    if ig_status == "NOT_CONNECTED" and fb_status == "NOT_CONNECTED":
+        L.append("Social media reporting is not yet connected for this brand.")
+        L.append("")
+        return L
+    if ig_status != "NOT_CONNECTED":
+        L.append("**Instagram (last 28 days):**")
+        L.append("")
+        if ig.get("interactions") is not None:
+            L.append(f"- Total interactions: {_fmt(ig.get('interactions'))}")
+        if ig.get("reach") is not None:
+            L.append(f"- People reached: {_fmt(ig.get('reach'))}")
+        if ig.get("profile_views") is not None:
+            L.append(f"- Profile visits: {_fmt(ig.get('profile_views'))}")
+        if ig.get("followers") is not None:
+            L.append(f"- Followers: {_fmt(ig.get('followers'))}")
+        L.append("")
+    else:
+        L.append("**Instagram:** reporting is not fully set up yet (see Data "
+                   "still missing below).")
+        L.append("")
+    if fb_status != "NOT_CONNECTED":
+        L.append("**Facebook page (last 28 days):**")
+        L.append("")
+        if fb.get("engagements") is not None:
+            L.append(f"- Engagements: {_fmt(fb.get('engagements'))}")
+        if fb.get("impressions") is not None:
+            L.append(f"- Impressions: {_fmt(fb.get('impressions'))}")
+        if fb.get("clicks") is not None:
+            L.append(f"- Clicks: {_fmt(fb.get('clicks'))}")
+        if fb.get("fans") is not None:
+            L.append(f"- Page fans: {_fmt(fb.get('fans'))}")
+        L.append("")
+    else:
+        L.append("**Facebook page:** reporting is incomplete (see Data still "
+                   "missing below).")
+        L.append("")
+    return L
+
+
+# ── best content ───────────────────────────────────────────────
+
+def _build_best_content(bid: str, organic: Dict[str, Any]) -> List[str]:
+    L: List[str] = []
+    L.append("## Best content")
+    L.append("")
+    ig_top = (organic.get("ig") or {}).get("top_posts") or []
+    fb_top = (organic.get("fb") or {}).get("top_posts") or []
+    pieces = sorted(
+        [("Instagram", p) for p in ig_top]
+        + [("Facebook", p) for p in fb_top],
+        key=lambda t: (t[1].get("interactions") or 0),
+        reverse=True,
+    )[:5]
+    if not pieces:
+        L.append("No content pieces available for this brand.")
+        L.append("")
+        return L
+    # Convert platform → English
+    plat_label = {"Instagram": "Instagram", "Facebook": "Facebook page"}
+    for platform, p in pieces:
+        media_type = p.get("media_type") or "post"
+        type_word = {"VIDEO": "Reel/Video", "IMAGE": "Image",
+                       "CAROUSEL_ALBUM": "Carousel",
+                       "REEL": "Reel"}.get(media_type, media_type)
+        caption_short = (p.get("caption") or "").replace("\n", " ")
+        if len(caption_short) > 80:
+            caption_short = caption_short[:77] + "..."
+        L.append(f"- **{plat_label.get(platform, platform)} — {type_word}:** "
+                   f"{caption_short or '(no caption)'}")
+        L.append(f"  - People reached: {_fmt(p.get('reach'))}")
+        L.append(f"  - Interactions: {_fmt(p.get('interactions'))}")
+        L.append("")
+    # One short observation
+    if len(pieces) >= 2:
+        top = pieces[0]
+        second = pieces[1]
+        top_label = (top[1].get("caption") or "")[:60]
+        second_label = (second[1].get("caption") or "")[:60]
+        L.append("**Observation:** The post with the most interactions this "
+                   f"period was from {top[0]}. "
+                   f"{'It had a higher reach than the others.' if top[1].get('reach', 0) > second[1].get('reach', 0) else 'Its reach was similar to the others.'} "
+                   "Drawing a strong pattern from one post would be "
+                   "premature — keep watching over the next few weeks.")
+        L.append("")
+    return L
+
+
+# ── what worked / what needs attention ─────────────────────────
+
+def _build_what_worked(v24: dict, bid: str) -> List[str]:
+    """Plain-English positive results. Spend-increases are NOT wins."""
+    L: List[str] = []
+    L.append("## What worked")
+    L.append("")
+    items: List[str] = []
+    # Sessions up materially
+    s = _extract_kpi(v24, "Sessions")
+    s_cur = s.get("current")
+    s_prev = s.get("previous")
+    if (s_cur is not None and s_prev is not None
+            and s_prev > 0 and s_cur > s_prev
+            and (s_cur - s_prev) >= 10):
+        pct = (s_cur - s_prev) / s_prev * 100
+        items.append(
+            f"Website sessions increased from {_fmt(s_prev)} to "
+            f"{_fmt(s_cur)} ({pct:.1f}% more than last week).")
+    # Channels that improved
+    cm = (v24.get("sections") or {}).get("channel_mix") or {}
+    for ch in (cm.get("rows") or []):
+        cur_v = ch.get("current_sessions")
+        prev_v = ch.get("previous_sessions")
+        if (cur_v is not None and prev_v is not None
+                and cur_v > prev_v
+                and (cur_v - prev_v) >= 10
+                and ch.get("comparison_status") == "improving"):
+            share = ch.get("share_of_sessions") or 0
+            items.append(
+                f"{ch.get('channel')} brought more visitors this week "
+                f"({_fmt(cur_v)} sessions, up from {_fmt(prev_v)}, "
+                f"{share:.1f}% of all sessions).")
+    # Landing pages with high engagement
+    lp = ((v24.get("sections") or {}).get("landing_pages") or {})
+    for sp in (lp.get("service_pages") or [])[:3]:
+        if sp.get("current_sessions", 0) >= 5 and sp.get("engagement_rate", 0) >= 70:
+            items.append(
+                f"The page '{sp.get('path')}' had strong engagement "
+                f"({sp.get('engagement_rate'):.1f}% of visitors interacted "
+                f"with it, from {_fmt(sp.get('current_sessions'))} sessions).")
+    # Cost improvements in Meta (CPC down)
+    paid_totals = _paid_totals_from_campaigns(v24)
+    cur = paid_totals["current_period"]
+    prev = paid_totals["previous_period"]
+    if (cur.get("total_clicks", 0) > 50
+            and prev.get("total_clicks", 0) > 50):
+        cur_cpc = ((cur.get("total_spend") or 0)
+                     / cur["total_clicks"]) if cur["total_clicks"] else None
+        prev_cpc = ((prev.get("total_spend") or 0)
+                      / prev["total_clicks"]) if prev["total_clicks"] else None
+        if cur_cpc and prev_cpc and cur_cpc < prev_cpc * 0.95:
+            items.append(
+                f"Cost per click on Meta ads went down: last week was "
+                f"R{prev_cpc:,.2f} per click, this week is "
+                f"R{cur_cpc:,.2f}.")
+    if not items:
+        items.append("Nothing stood out clearly as a positive result this week.")
+    for it in items:
+        L.append(f"- {it}")
+    L.append("")
+    return L
+
+
+def _build_what_needs_attention(v24: dict, bid: str) -> List[str]:
+    L: List[str] = []
+    L.append("## What needs attention")
+    L.append("")
+    items: List[str] = []
+    paid_totals = _paid_totals_from_campaigns(v24)
+    cur = paid_totals["current_period"]
+    prev = paid_totals["previous_period"]
+    s = _extract_kpi(v24, "Sessions")
+    # Channel regressions (material only)
+    cm = (v24.get("sections") or {}).get("channel_mix") or {}
+    for ch in (cm.get("rows") or []):
+        cur_v = ch.get("current_sessions")
+        prev_v = ch.get("previous_sessions")
+        share = ch.get("share_of_sessions") or 0
+        if (cur_v is not None and prev_v is not None
+                and cur_v < prev_v
+                and (prev_v - cur_v) >= 10
+                and share >= 10):
+            items.append(
+                f"{ch.get('channel')} sessions fell from {_fmt(prev_v)} to "
+                f"{_fmt(cur_v)} last week — worth checking why.")
+    # Paid-media impressions / clicks contracted materially
+    if (cur.get("total_impressions", 0) > 0
+            and prev.get("total_impressions", 0) > 0):
+        imp_pct = ((cur["total_impressions"] - prev["total_impressions"])
+                     / prev["total_impressions"] * 100)
+        clk_pct = ((cur["total_clicks"] - prev["total_clicks"])
+                     / max(prev["total_clicks"], 1) * 100)
+        if imp_pct <= -15:
+            items.append(
+                f"Meta ads reached {abs(imp_pct):.1f}% fewer people this week "
+                f"({_fmt(prev['total_impressions'])} → "
+                f"{_fmt(cur['total_impressions'])} impressions). "
+                f"This is a meaningful drop in delivery.")
+        if clk_pct <= -20:
+            items.append(
+                f"Meta ad clicks fell {abs(clk_pct):.1f}% this week "
+                f"({_fmt(prev['total_clicks'])} → "
+                f"{_fmt(cur['total_clicks'])}).")
+    # Duplicate campaigns
+    pm = v24.get("paid_media_v24") or {}
+    for grp in (pm.get("duplicate_campaigns_visible") or []):
+        items.append(
+            f"Two campaigns with the same name are running at the same time "
+            f"({grp.get('campaign_count')} campaigns: "
+            f"{', '.join((grp.get('campaign_ids') or []))}). "
+            f"Check whether both are meant to be active.")
+    # CRM / bookings missing — surfaced as a real issue (we cannot
+    # measure actual conversions)
+    leads = _extract_kpi(v24, "Verified Leads")
+    if leads.get("data_status") == "PENDING":
+        items.append(
+            "We still cannot tell how many Meta leads turned into real "
+            "bookings — the bookings link to marketing is not in place.")
+    # GA4 missing for this brand
+    if (s.get("data_status") or "").upper() in ("UNAVAILABLE", "NOT_CONNECTED"):
+        items.append(
+            "Website analytics for this brand is not fully connected yet, "
+            "so the traffic numbers above may be incomplete.")
+    if not items:
+        items.append("Nothing important is asking for attention right now.")
+    for it in items:
+        L.append(f"- {it}")
+    L.append("")
+    return L
+
+
+# ── what we should do this week ────────────────────────────────
+
+def _build_actions(v24: dict, bid: str) -> List[str]:
+    L: List[str] = []
+    L.append("## What we should do this week")
+    L.append("")
+    actions: List[dict] = []
+    s = _extract_kpi(v24, "Sessions")
+    cm = (v24.get("sections") or {}).get("channel_mix") or {}
+    paid_totals = _paid_totals_from_campaigns(v24)
+    cur = paid_totals["current_period"]
+    prev = paid_totals["previous_period"]
+    pm = v24.get("paid_media_v24") or {}
+
+    # Action 1: largest mover channel
+    chans = cm.get("rows") or []
+    top_mover = None
+    if chans:
+        candidates = [(c, abs((c.get("current_sessions") or 0)
+                                - (c.get("previous_sessions") or 0)))
+                       for c in chans]
+        candidates = [c for c in candidates if c[1] >= 5]
+        if candidates:
+            candidates.sort(key=lambda t: t[1], reverse=True)
+            top_mover = candidates[0][0]
+    if top_mover:
+        cur_v = top_mover.get("current_sessions")
+        prev_v = top_mover.get("previous_sessions")
+        chan = top_mover.get("channel")
+        share = top_mover.get("share_of_sessions") or 0
+        direction = "increased" if cur_v > prev_v else "fell"
+        if direction == "increased":
+            suggestion = (
+                f"check which pages and search terms brought the extra "
+                f"traffic, then use those topics in upcoming content")
+        else:
+            suggestion = (
+                f"check why the change happened before scaling or pausing "
+                f"anything")
+        actions.append({
+            "what": (f"Watch the {chan} channel closely this week."),
+            "why": (f"{chan} {direction} this week "
+                      f"({_fmt(prev_v)} → {_fmt(cur_v)} sessions, "
+                      f"{share:.1f}% of all sessions)."),
+            "watch": suggestion,
+        })
+    # Action 2: largest active lead campaign — its cost-per-lead
+    lead_campaigns = [c for c in (pm.get("per_campaign") or [])
+                       if c.get("objective") == "OUTCOME_LEADS"
+                       and (c.get("current") or {}).get("spend", 0) > 0]
+    if lead_campaigns:
+        lead_campaigns.sort(
+            key=lambda c: (c.get("current") or {}).get("spend", 0),
+            reverse=True)
+        c = lead_campaigns[0]
+        spend = (c.get("current") or {}).get("spend") or 0
+        pr = c.get("primary_result") or {}
+        leads_count = pr.get("primary_value")
+        cpr = pr.get("primary_cost_per_unit")
+        if cpr is not None and leads_count is not None:
+            actions.append({
+                "what": (f"Keep monitoring '{c.get('campaign_name','?')}' "
+                          f"this week."),
+                "why": (f"It produced {_fmt(leads_count)} leads at "
+                          f"{_fmt(cpr, 'money_per')} per lead."),
+                "watch": ("compare cost per lead with last week before "
+                            "deciding whether to increase its budget"),
+            })
+    # Action 3: NS-aligned campaign — describe its actual traffic
+    # signal (landing_page_views or leads) before any budget call
+    fitting_or_coaching_campaigns = [
+        c for c in (pm.get("per_campaign") or [])
+        if (c.get("current") or {}).get("spend", 0) > 0
+        and any(t in (c.get("campaign_name") or "").lower()
+                  for t in ("fit", "coach", "lesson", "assessment", "leads"))
+    ]
+    if fitting_or_coaching_campaigns:
+        c = fitting_or_coaching_campaigns[0]
+        obj = c.get("objective")
+        spend = (c.get("current") or {}).get("spend") or 0
+        pr = c.get("primary_result") or {}
+        pv = pr.get("primary_value")
+        pml = pr.get("primary_metric_label")
+        if obj == "OUTCOME_LEADS" and pv is not None:
+            actions.append({
+                "what": (f"Keep '{c.get('campaign_name','?')}' running."),
+                "why": (f"It is the lead campaign aligned with the "
+                          f"Fitting/Coaching business targets — "
+                          f"{_fmt(pv)} leads this week."),
+                "watch": ("how many of those leads become real bookings "
+                            "(once that link is in place)"),
+            })
+        elif obj == "LINK_CLICKS" and pv is not None:
+            actions.append({
+                "what": (f"Keep '{c.get('campaign_name','?')}' running."),
+                "why": (f"It brought {_fmt(pv)} website visits this week "
+                          f"at {(_fmt(pr.get('primary_cost_per_unit'), 'money_per') or '—')} each."),
+                "watch": ("how many of those visits reach the booking page "
+                            "and how many continue to fill it in"),
+            })
+
+    if not actions:
+        L.append("- Not enough clear evidence this week to recommend a "
+                  "specific action. Wait until next week's data to see the "
+                  "trends.")
+        L.append("")
+        return L
+    for i, a in enumerate(actions[:3], 1):
+        L.append(f"{i}. {a['what']}")
+        L.append(f"   - **Why:** {a['why']}")
+        L.append(f"   - **What to watch:** {a['watch']}")
+    L.append("")
+    return L
+
+
+# ── business targets ───────────────────────────────────────────
+
+def _build_targets(v24: dict, bid: str) -> List[str]:
+    L: List[str] = []
+    L.append("## Business targets")
+    L.append("")
+    ns = _extract_north_stars_from_v24(v24)
+    confirmed = [n for n in ns
+                  if n.get("metric")
+                  and "PENDING" not in (n.get("metric", "") + n.get("label", "")).upper()]
+    if confirmed:
+        for n in confirmed:
+            L.append(f"- **{n['label']}** — {n['metric']}")
+        L.append("")
+    L.append("Actual business results are not connected yet, so this report "
+               "cannot show progress against these targets.")
+    L.append("")
+    return L
+
+
+# ── data still missing ────────────────────────────────────────
+
+def _build_data_missing(v24: dict, organic: Dict[str, Any]) -> List[str]:
+    L: List[str] = []
+    L.append("## Data still missing")
+    L.append("")
+    items: List[str] = []
+    s = _extract_kpi(v24, "Sessions")
+    if (s.get("data_status") or "").upper() in ("UNAVAILABLE", "NOT_CONNECTED"):
+        items.append("Website analytics is not fully connected for this brand.")
+    leads = _extract_kpi(v24, "Verified Leads")
+    if leads.get("data_status") == "PENDING":
+        items.append("Linking bookings or sales back to marketing leads is "
+                       "not yet in place — so we cannot show how many leads "
+                       "became real customers.")
+    ig = organic.get("ig") or {}
+    if ig.get("status") == "NOT_CONNECTED":
+        items.append(f"Instagram reporting is not set up yet.")
+    elif ig.get("status") == "PARTIAL":
+        items.append("Instagram reporting is partly set up but the data is "
+                       "not full enough yet.")
+    fb = organic.get("fb") or {}
+    if fb.get("status") == "PARTIAL":
+        items.append("Facebook page reporting is incomplete.")
+    elif fb.get("status") == "NOT_CONNECTED":
+        items.append("Facebook page reporting is not set up yet.")
+    if not items:
+        items.append("No missing data sources reported this week.")
+    for it in items:
+        L.append(f"- {it}")
+    L.append("")
+    return L
+
+
+# ── markdown rendering ─────────────────────────────────────────
+
+def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
+                       periods: Dict[str, str],
+                       contamination_block: Optional[str] = None,
+                       as_of: Optional[str] = None) -> str:
+    facts = _brand_canonical(bid)["canonical"]
+    L: List[str] = []
+    # Header
+    title = f"# {facts['display_name']} Weekly Marketing Report"
+    L.append(title)
+    L.append(f"_{periods['current_week_start']} → "
+               f"{periods['current_week_end']}_  ")
+    if as_of:
+        L.append(f"_Pinned to: {as_of}_  ")
+    L.append("")
+
+    if contamination_block:
+        L.append("**REPORT BLOCKED — brand contamination detected.**")
+        L.append("")
+        L.append(contamination_block)
+        return "\n".join(L)
+
+    # This week at a glance
+    L.append("## This week at a glance")
+    L.append("")
+    for line in _build_headline(bid, v24, organic):
+        L.append(f"- {line}")
+    L.append("")
+    # Executive summary narrative (plain English)
+    L.append("**What happened this week:**")
+    L.append("")
+    L.append(_build_executive_read(bid, v24, organic, periods))
+    L.append("")
+    # Sections in operator-specified order
+    L.extend(_build_website_traffic(v24))
+    L.extend(_build_acquisition(v24))
+    L.extend(_build_advertising(v24))
+    L.extend(_build_website_pages(v24))
+    L.extend(_build_social_media(bid, organic, periods))
+    L.extend(_build_best_content(bid, organic))
+    L.extend(_build_what_worked(v24, bid))
+    L.extend(_build_what_needs_attention(v24, bid))
+    L.extend(_build_actions(v24, bid))
+    L.extend(_build_targets(v24, bid))
+    L.extend(_build_data_missing(v24, organic))
+
+    # Footer — kept technical (technical log)
+    L.append("---")
+    L.append(f"_Generated {datetime.datetime.now(datetime.timezone.utc).isoformat()} "
+               "• V2.4.1 frozen • V3.4 renderer (plain English)._")
+    return "\n".join(L)
+
+
+# ── HTML rendering ────────────────────────────────────────────
+
+def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
+                   periods: Dict[str, str],
+                   contamination_block: Optional[str] = None,
+                   as_of: Optional[str] = None) -> str:
+    md = _render_markdown(bid, v24, organic, periods, contamination_block,
+                            as_of)
+    facts = _brand_canonical(bid)["canonical"]
+    title = (f"{facts['display_name']} Weekly Marketing Report — "
+              f"{periods['current_week_start']} → {periods['current_week_end']}")
+    if contamination_block:
+        title = f"{title} — BLOCKED"
+    body = md.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    body_html = body.replace("\n## ", "\n<h2>").replace("\n### ", "\n<h3>")
+    body_html = body_html.replace("**", "")
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        f"<title>{title}</title>"
+        "<style>body{font-family:-apple-system,BlinkMacSystemFont,"
+        "'Segoe UI',Roboto,sans-serif;max-width:920px;margin:40px auto;"
+        "padding:0 20px;color:#1a1f2e;line-height:1.5;}"
+        "h1{margin-bottom:8px}h2{margin-top:32px;border-bottom:1px solid "
+        "#e3e6ed;padding-bottom:6px}h3{margin-top:18px;color:#3a4151}"
+        "ul{margin:8px 0;padding-left:24px}li{margin:6px 0;font-size:15px}"
+        "@media print {body{margin:0 auto}}</style>"
+        "</head><body>"
+        f"<pre style='white-space:pre-wrap;font-family:inherit;"
+        f"font-size:14px;line-height:1.55'>{body_html}</pre>"
+        "</body></html>")
+
+
+# ── main entry ─────────────────────────────────────────────────
+
+def build_v34(bid: str, fmt: str = "markdown",
+                as_of: Optional[str] = None,
+                cookie: Optional[str] = None) -> dict:
+    if bid not in ("stick", "swing-shack", "bag-drop"):
+        return {"report_status": "INVALID_BRAND",
+                "block_reason": "brand_id must be stick, swing-shack, or bag-drop",
+                "contaminations": [],
+                "rendered": f"# Invalid brand\n\n`{bid}` is not a managed brand.",
+                "raw_payload": {}}
+    periods = _compute_periods(as_of)
+    v24 = _read_v24(bid, as_of, cookie=cookie)
+    if not v24 or "error" in v24:
+        return {
+            "report_status": "V24_UNAVAILABLE",
+            "block_reason": v24.get("error", "V2.4.1 read failed"),
+            "contaminations": [],
+            "rendered": (f"# {bid.title()} Weekly Marketing Report\n\n"
+                          f"V2.4.1 unavailable: "
+                          f"{v24.get('error', 'unknown error')}"),
+            "raw_payload": {"v24": v24, "periods": periods},
+        }
+    clean, violations = _validate_brand_isolation(bid, v24)
+    if not clean:
+        block = ("Identifiers found in V2.4.1 payload:\n"
+                  + "\n".join(f"- `{v}`" for v in violations)
+                  + "\n\nThis report will not render until the canonical "
+                    "V2.4.1 data sources are scoped to this brand only.")
+        return {
+            "report_status": "BLOCKED_BRAND_CONTAMINATION",
+            "block_reason": "V2.4.1 payload contains identifiers from a "
+                             "different brand.",
+            "contaminations": violations,
+            "rendered": _render_markdown(bid, v24, {}, periods,
+                                           contamination_block=block,
+                                           as_of=as_of),
+            "raw_payload": {"v24": v24, "periods": periods},
+        }
+    organic = _read_organic_from_cache(bid)
+    status = "OK"
+    if fmt == "html":
+        rendered = _render_html(bid, v24, organic, periods, as_of=as_of)
+    elif fmt == "json":
+        rendered = _render_markdown(bid, v24, organic, periods, as_of=as_of)
+    else:
+        rendered = _render_markdown(bid, v24, organic, periods, as_of=as_of)
+    return {
+        "report_status": status,
+        "block_reason": None,
+        "contaminations": [],
+        "rendered": rendered,
+        "raw_payload": {
+            "v24": v24,
+            "periods": periods,
+            "brand_id": bid,
+            "generator": "weekly_report_v3.4",
+            "as_of": as_of,
+            "organic": organic,
+        },
+    }
+
+
 # ── snapshot ──────────────────────────────────────────────────
 
-def archive_snapshot_v33(bid: str, as_of: Optional[str] = None,
+def archive_snapshot_v34(bid: str, as_of: Optional[str] = None,
                             snapshot_root: Optional[Path] = None,
                             cookie: Optional[str] = None) -> Dict[str, Any]:
-    out = build_v33(bid, fmt="json", as_of=as_of, cookie=cookie)
+    out = build_v34(bid, fmt="json", as_of=as_of, cookie=cookie)
     v24 = (out.get("raw_payload") or {}).get("v24") or {}
     periods = (out.get("raw_payload") or {}).get("periods") or {}
-    north_stars = (out.get("raw_payload") or {}).get("north_stars") or []
     organic = (out.get("raw_payload") or {}).get("organic") or {}
     snapshot = {
-        "schema": "https://campaign-os/weekly-report/v3.3-snapshot",
+        "schema": "https://campaign-os/weekly-report/v3.4-snapshot",
         "brand_id": bid,
         "as_of": as_of or periods.get("data_complete_through"),
         "current_period": {
@@ -1487,12 +1351,10 @@ def archive_snapshot_v33(bid: str, as_of: Optional[str] = None,
         },
         "data_complete_through": periods.get("data_complete_through"),
         "kpi_values": {},
-        "source_statuses": {},
         "organic_status": {
             "instagram": (organic.get("ig") or {}).get("status"),
             "facebook": (organic.get("fb") or {}).get("status"),
         },
-        "north_stars": north_stars,
         "report_status": out.get("report_status"),
         "archived_at": datetime.datetime.now(
             datetime.timezone.utc).isoformat(),
@@ -1515,12 +1377,6 @@ def archive_snapshot_v33(bid: str, as_of: Optional[str] = None,
         "current_period": pt.get("current_period"),
         "previous_period": pt.get("previous_period"),
     }
-    for src in (v24.get("source_lineage") or []):
-        snapshot["source_statuses"][src.get("source", "?")] = {
-            "status": src.get("status"),
-            "fetched_at": src.get("fetched_at"),
-            "data_as_of": src.get("data_as_of"),
-        }
     root = snapshot_root or _data_root()
     snap_dir = root / "weekly-snapshots" / bid
     snap_dir.mkdir(parents=True, exist_ok=True)
@@ -1531,27 +1387,35 @@ def archive_snapshot_v33(bid: str, as_of: Optional[str] = None,
     return snapshot
 
 
-# Backwards-compat aliases
+# Backwards-compat aliases for older callers in app.py
 def build_v31(*args, **kwargs):
-    return build_v33(*args, **kwargs)
+    return build_v34(*args, **kwargs)
 
 
 def build_v32(*args, **kwargs):
-    return build_v33(*args, **kwargs)
+    return build_v34(*args, **kwargs)
+
+
+def build_v33(*args, **kwargs):
+    return build_v34(*args, **kwargs)
 
 
 def archive_snapshot_v31(*args, **kwargs):
-    return archive_snapshot_v33(*args, **kwargs)
+    return archive_snapshot_v34(*args, **kwargs)
 
 
 def archive_snapshot_v32(*args, **kwargs):
-    return archive_snapshot_v33(*args, **kwargs)
+    return archive_snapshot_v34(*args, **kwargs)
+
+
+def archive_snapshot_v33(*args, **kwargs):
+    return archive_snapshot_v34(*args, **kwargs)
 
 
 if __name__ == "__main__":
     bid = sys.argv[1] if len(sys.argv) > 1 else "stick"
     fmt = sys.argv[2] if len(sys.argv) > 2 else "markdown"
     as_of = sys.argv[3] if len(sys.argv) > 3 else None
-    out = build_v33(bid, fmt=fmt, as_of=as_of)
+    out = build_v34(bid, fmt=fmt, as_of=as_of)
     print(out["rendered"])
     sys.exit(0 if out["report_status"] == "OK" else 2)
