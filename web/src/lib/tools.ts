@@ -161,7 +161,14 @@ export const TOOLS: ToolDef[] = [
     from: '/publish',
     native: '/publish/gbp?tab=drafts',
   },
-  { slug: 'socials', page: 'socials', label: 'Socials', hint: 'What’s live', from: '/daily' },
+  {
+    slug: 'socials',
+    page: 'socials',
+    label: 'Socials',
+    hint: 'What’s live',
+    from: '/daily',
+    native: '/publish/socials',
+  },
   {
     slug: 'accounts',
     path: '/connected-accounts',

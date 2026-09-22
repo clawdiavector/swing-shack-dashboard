@@ -1006,6 +1006,77 @@ export function updateGmbDraft(id: string, body: GmbDraft) {
   })
 }
 
+export type SocialsStatus = {
+  ok?: boolean
+  graph_configured?: boolean
+  oembed_reachable?: boolean
+  ig_account_id?: string | null
+  reason?: string | null
+}
+
+export function fetchSocialsStatus() {
+  return getJson<SocialsStatus>('/api/socials/status')
+}
+
+export type SocialPost = {
+  id?: string
+  caption?: string
+  media_type?: string
+  media_url?: string
+  thumbnail_url?: string
+  permalink?: string
+  timestamp?: string
+  like_count?: number
+  comments_count?: number
+  source?: string
+  oembed_html?: string
+  oembed_author?: string
+  oembed_thumbnail?: string
+}
+
+export type SocialsPostsPayload = {
+  data?: SocialPost[]
+  paging?: { next_cursor?: string | null; has_more?: boolean }
+  _meta?: {
+    total_returned?: number
+    days_covered?: number
+    oldest?: string | null
+    newest?: string | null
+    sources?: Record<string, number>
+    graph_error?: string | null
+  }
+}
+
+export function fetchSocialsPosts(opts: { days?: number; limit?: number; after?: string }) {
+  const q = new URLSearchParams()
+  if (opts.days != null) q.set('days', String(opts.days))
+  if (opts.limit != null) q.set('limit', String(opts.limit))
+  if (opts.after) q.set('after', opts.after)
+  return getJson<SocialsPostsPayload>(`/api/socials/posts?${q}`)
+}
+
+export type SocialsOembed = {
+  ok?: boolean
+  html?: string
+  author_name?: string
+  thumbnail_url?: string
+  provider?: string
+  type?: string
+  version?: string
+  error?: string
+}
+
+export async function fetchSocialsOembed(url: string): Promise<SocialsOembed & { httpStatus?: number }> {
+  const q = new URLSearchParams({ url })
+  const res = await fetch(`/api/socials/oembed?${q}`, { credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as SocialsOembed
+  return { ...data, httpStatus: res.status }
+}
+
 export async function deleteGmbDraft(id: string) {
   const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}`, {
     method: 'DELETE',

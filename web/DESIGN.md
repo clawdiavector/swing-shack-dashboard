@@ -69,7 +69,7 @@ Classic `/ops`, `/ops/jobs`, and `/connected-accounts` stay live — each tab ha
 
 Native work surfaces live under `/app/create/<cluster>` with optional `?tab=` inside a cluster
 (post · captions · copy · images · memes), under `/app/calendar`, `/app/calendar/ideas`, and
-`/app/calendar/lanes`, and under `/app/publish/queue`, `/app/publish/postiz`, and `/app/publish/gbp`.
+`/app/calendar/lanes`, and under `/app/publish/queue`, `/app/publish/postiz`, `/app/publish/gbp`, and `/app/publish/socials`.
 Tab strips use `FilterChips` like Ops. Every interactive
 control carries a `Tip`. Every cluster page includes a **ClassicLink** raw anchor to the matching
 `/?page=…` or standalone HTML — never route Classic URLs through `Button`/`IconTile` (native round trip).
@@ -114,6 +114,18 @@ configured ✓/✗ only.
 Classic `/?page=publish`, `/?page=postiz`, `/?page=gbp` and `/?page=gmb` stay live — each
 native page carries a ClassicLink raw anchor to its classic page.
 
+## Socials
+
+Native surface: `/app/publish/socials` (`?tab=posts|health`, default `posts`). `?days=30|90|365`
+(default `90`) and `?type=IMAGE|VIDEO|CAROUSEL_ALBUM` filter the grid (type is client-side).
+`?post=` opens the detail panel once, then drops from the URL.
+
+`/api/socials/*` reads the **default Meta account** (env), not the brand chip — the page states that
+and shows brand wiring from `/api/connected-accounts/status`. Per-brand Graph threading is deferred
+(P5b); do not imply the feed follows the header chip.
+
+Classic `/?page=socials` stays live — native page carries a ClassicLink raw anchor.
+
 ## Results
 
 `/app/results` is the hub. **P4a** native surfaces: `/app/results/week` (`?tab=summary|hooks|failures|agents`)
@@ -153,7 +165,7 @@ Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-l
 3. Waiting on you (count → Review)
 4. This week / Today reports (two panels)
 5. Queue cards from `/api/today/panel`
-6. What’s live (link to existing Socials)
+6. What’s live → `/app/publish/socials` (native Socials)
 
 ## Other
 

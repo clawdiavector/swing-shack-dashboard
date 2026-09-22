@@ -1,4 +1,4 @@
-import { CheckCircle2, Link2, MapPin, Rocket, Send } from 'lucide-react'
+import { CheckCircle2, Link2, MapPin, Rocket, Send, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
@@ -127,6 +127,7 @@ export function Publish() {
           <IconTile href="/?page=postiz" icon={Rocket} label="Postiz" hint="Scheduler" />
           <IconTile href="/?page=gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
           <IconTile href="/?page=gmb" icon={MapPin} label="GBP drafts" hint="Pending listings" />
+          <IconTile href="/publish/socials" icon={Share2} label="Socials" hint="What went live" />
           <IconTile href="/ops?tab=accounts" icon={Link2} label="Accounts" hint="Connected channels" />
         </div>
       </section>

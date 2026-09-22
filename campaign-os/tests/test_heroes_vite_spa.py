@@ -50,6 +50,7 @@ def test_root_enters_campaign_os_app():
 
 
 def test_classic_page_query_still_served():
+    """Classic ?page=socials stays served; native route is /app/publish/socials (P5)."""
     from app import app
 
     client = app.test_client()
@@ -92,6 +93,48 @@ def test_weekly_report_page_still_public():
     client = app.test_client()
     resp = client.get('/weekly-report', follow_redirects=False)
     assert resp.status_code == 200
+
+
+def test_socials_status_endpoint_shape():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/api/socials/status')
+    assert resp.status_code == 200
+    data = resp.get_json()
+    for key in ('ok', 'graph_configured', 'oembed_reachable', 'ig_account_id', 'reason'):
+        assert key in data
+
+
+def test_socials_posts_endpoint_shape():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/api/socials/posts?days=30&limit=5')
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert 'data' in data
+    assert 'paging' in data
+    assert '_meta' in data
+    assert data['_meta'].get('days_covered') == 30
+
+
+def test_socials_oembed_rejects_non_instagram_url():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/api/socials/oembed?url=https://example.com')
+    assert resp.status_code == 400
+
+
+def test_app_publish_socials_serves_spa():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/app/publish/socials', follow_redirects=True)
+    body = resp.get_data(as_text=True)
+    assert resp.status_code in (200, 503)
+    assert 'Campaign OS' in body or 'not built' in body.lower()
 
 
 def test_results_alias_redirects_to_app():
