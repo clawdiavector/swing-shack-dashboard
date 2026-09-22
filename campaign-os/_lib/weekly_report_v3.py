@@ -2570,7 +2570,7 @@ def build_v36(bid: str, fmt: str = "markdown",
 def archive_snapshot_v36(bid: str, as_of: Optional[str] = None,
                             snapshot_root: Optional[Path] = None,
                             cookie: Optional[str] = None) -> Dict[str, Any]:
-    out = build_v35(bid, fmt="json", as_of=as_of, cookie=cookie)
+    out = build_v36(bid, fmt="json", as_of=as_of, cookie=cookie)
     v24 = (out.get("raw_payload") or {}).get("v24") or {}
     periods = (out.get("raw_payload") or {}).get("periods") or {}
     organic = (out.get("raw_payload") or {}).get("organic") or {}
