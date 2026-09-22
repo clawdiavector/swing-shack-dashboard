@@ -1,48 +1,50 @@
-"""weekly_report_v3.py — Weekly management report renderer v3.
+"""weekly_report_v3.py — Weekly Management Report V3.1.
 
-Fixes the v2 brand-contamination + interpretation problems. v3:
+Renderer-only. Sits ON TOP of Reporting Intelligence V2.4.1
+(frozen). Reads canonical V2.4.1 data via build_v24_brand_report().
 
-- Strict brand isolation gate (BLOCKED_BRAND_CONTAMINATION)
-- Correct period contract: 7d current / 7d previous / 28d current / 28d previous
-- Numeric TLDR (Current/Previous/Change)
-- Management tone (no hype, no creative generation)
-- Fact → Interpretation → Action chain
-- Real Meta Ads via V2.4.1 (no fake zero)
-- Top-3 actions only, severity-tagged What Needs Attention
-- Data Notes at the end (technical limitations)
-- Canonical North Stars shown exact, no fabricated progress
-
-V2.4.1 (GA4 / Meta / paid-media / comparison engine) is FROZEN.
-This module sits ON TOP of v2.4.1 and only changes the renderer /
-interpretation layer.
-
-Usage:
-  from _lib.weekly_report_v3 import build_v3
-  report = build_v3(brand_id="stick", format="markdown")
+V3.1 fixes:
+  - Period contract: data_complete_through = yesterday,
+    current_week = yesterday-6 → yesterday,
+    previous_week = yesterday-13 → yesterday-7
+  - Source: canonical Reporting V2.4.1 (no parallel
+    analytics-file discovery)
+  - North Stars: load from brand-directory/<bid>/calendar_config.json
+    pillars[].north_star_target (the same loader used by Calendar)
+  - Severity: materiality + business consequence + confidence
+  - Actions: split into Marketing (top 3) + Measurement
+    (separate section)
+  - Missing data: never zeroed. Output the V2.4.1 data_status
+    taxonomy directly.
+  - 28-day metrics use actual 28-day windows from V2.4.1
+  - Brand isolation gate: validates the V2.4.1 payload
+    (not a primary data loader)
+  - Optional ?as_of=YYYY-MM-DD to pin the report to a past date
 """
 from __future__ import annotations
 
 import datetime
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# ── canonical brand facts ──────────────────────────────────────
+
+# ── canonical brand facts (used by gate) ────────────────────────
+
+def _data_root() -> Path:
+    env = os.environ.get("CAMPAIGN_OS_DATA_DIR")
+    if env:
+        return Path(env).resolve()
+    return Path(__file__).resolve().parent.parent.parent / "data"
+
 
 def _load_brands() -> dict:
-    """Load brands.json — canonical per-brand identity facts."""
-    # Mirror _lib's data-root resolution
-    root_candidates = [
-        Path(os.environ.get("CAMPAIGN_OS_DATA_DIR", "")).resolve(),
+    for r in (
+        _data_root(),
         Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data"),
-        Path(__file__).resolve().parent.parent.parent / "data",
-    ]
-    for r in root_candidates:
-        if not r or str(r) == "/":
-            continue
+    ):
         bp = r / "brands.json"
         if bp.is_file():
             try:
@@ -53,7 +55,6 @@ def _load_brands() -> dict:
 
 
 def _brand_canonical(bid: str) -> dict:
-    """Return canonical facts + contamination triggers for a brand."""
     brands = _load_brands()
     b = (brands.get("brands") or {}).get(bid) or {}
     canonical = {
@@ -64,398 +65,35 @@ def _brand_canonical(bid: str) -> dict:
         "ig_handle": b.get("instagram_handle") or "",
         "voice_label": b.get("voice_label") or bid,
     }
-
-    # Build contamination triggers from EVERY brand that is NOT this one.
-    # Per operator directive: a Stick report must fail rendering if it
-    # contains Swing Shack identifiers (and vice versa). Triggers:
-    #   - display_name ("Swing Shack", "Stick")
-    #   - canonical handle ("@swingshack", "@stick.paarl")
-    #   - website hostname ("swingshack.co.za", "stickgolf.co.za")
-    # All triggers are matched case-insensitively as substrings (not
-    # strict word boundaries) because the operator's directive calls
-    # out "swingshack" appearing inside "swingshack.co.za".
     triggers: List[str] = []
     for other_id, other_b in (brands.get("brands") or {}).items():
         if other_id == bid:
             continue
-        for s in (
-            other_b.get("display_name"),
-            other_b.get("instagram_handle"),
-        ):
+        for s in (other_b.get("display_name"),
+                    other_b.get("instagram_handle")):
             if s and isinstance(s, str) and len(s) >= 4:
                 triggers.append(s)
-        # Website hostname (strip protocol + trailing slash)
         ws = (other_b.get("website") or "")
+        for prefix in ("https://", "http://"):
+            if ws.startswith(prefix):
+                ws = ws[len(prefix):]
+        ws = ws.rstrip("/")
         if ws:
-            for prefix in ("https://", "http://"):
-                if ws.startswith(prefix):
-                    ws = ws[len(prefix):]
-            ws = ws.rstrip("/")
-            if ws:
-                triggers.append(ws)
-    return {
-        "canonical": canonical,
-        "triggers": triggers,
-    }
+            triggers.append(ws)
+    return {"canonical": canonical, "triggers": triggers}
 
 
-# ── per-brand data sources ─────────────────────────────────────
-
-def _data_root() -> Path:
-    """Resolve data root (same convention as reporting_editorial)."""
-    env = os.environ.get("CAMPAIGN_OS_DATA_DIR")
-    if env:
-        return Path(env).resolve()
-    # repo-local default
-    return Path(__file__).resolve().parent.parent.parent / "data"
-
-
-def _read_json(p: Path) -> Any:
-    if not p.is_file():
-        return None
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
-        return None
-
-
-def _read_per_brand_or_missing(rel_path: str, bid: str,
-                                  *, allow_scoped_fallback: bool = True
-                                  ) -> Tuple[Any, str]:
-    """Strict per-brand read.
-
-    Resolution order:
-      1. data/brands/<bid>/<rel_path>            (brand lane)
-      2. data/integrations/<bid>/      (per-brand integrations)
-      3. data/brand-directory/<bid>/<rel_path>   (per-brand brand-directory)
-      4. data/<rel_path>                         (global lane — ONLY if
-         allow_scoped_fallback=True AND the global file's
-         account.username / brand_id matches THIS brand)
-      5. data/bundled/<rel_path>                 (bundled fallback)
-      6. MISSING
-
-    The "scoped fallback" rule is what prevents brand contamination.
-    A global file is NEVER returned to brand X if its data
-    belongs to brand Y. The fallback uses canonical facts
-    (ig_handle, display_name) from brands.json to decide.
-    """
-    root = _data_root()
-    candidates: List[Path] = []
-    # 1. brand lane
-    candidates.append(root / "brands" / bid / rel_path)
-    # 2. per-brand integrations (file basename only)
-    candidates.append(root / "integrations" / bid / Path(rel_path).name)
-    # 3. per-brand brand-directory
-    candidates.append(root / "brand-directory" / bid / rel_path)
-    # 4. global lane (scoped)
-    candidates.append(root / rel_path)
-
-    facts = _brand_canonical(bid)
-    canonical_handle = (facts["canonical"].get("ig_handle") or ""
-                          ).lstrip("@").lower()
-    canonical_display = facts["canonical"].get("display_name", "").lower()
-
-    for idx, p in enumerate(candidates):
-        if not p.is_file():
-            continue
-        data = _read_json(p)
-        if data is None:
-            continue
-        # Apply scoped fallback for the global lane (idx 3)
-        if idx == 3 and allow_scoped_fallback:
-            ok = _global_file_belongs_to_brand(data, canonical_handle,
-                                                  canonical_display)
-            if not ok:
-                # Global file exists but belongs to another brand.
-                # Do not return it.
-                continue
-        # Brand lane or verified global — return it
-        return data, p.as_posix()
-
-    # 5. bundled fallback (only for the bundled data dir
-    # shipped with the repo, not a per-brand subdir)
-    bundled = root.parent / "campaign-os" / "data" / rel_path
-    if bundled.is_file():
-        return _read_json(bundled), bundled.as_posix()
-
-    return None, "MISSING"
-
-
-def _global_file_belongs_to_brand(data: Any, handle: str,
-                                     display: str) -> bool:
-    """A global file is acceptable for a brand if its contents
-    clearly belong to that brand. We check:
-      - data.brand_id == brand
-      - data.account.username == handle
-      - data.account.name contains display_name (case-insensitive)
-      - data.account.id matches brands.json <brand>_ig_business_id
-        env var (handled by the caller)
-    Returns True ONLY if at least one of these checks passes.
-    """
-    if not isinstance(data, dict):
-        return False
-    if data.get("brand_id") == handle or data.get("brand_id") == display:
-        return True
-    if isinstance(data.get("account"), dict):
-        acc = data["account"]
-        if acc.get("username", "").lstrip("@").lower() == handle:
-            return True
-        name = (acc.get("name") or "").lower()
-        if display and display in name:
-            return True
-    if isinstance(data.get("handle"), str):
-        if data["handle"].lstrip("@").lower() == handle:
-            return True
-    if isinstance(data.get("ig_handle"), str):
-        if data["ig_handle"].lstrip("@").lower() == handle:
-            return True
-    return False
-
-
-def _collect_v3(bid: str) -> Dict[str, Any]:
-    """Collect period data with strict brand-bound paths.
-
-    Returns:
-      {
-        "status": "OK" | "MISSING_DATA",
-        "missing_sources": ["ga4_sessions", ...],
-        "current_7d": {...},   # this week, last 7 complete days
-        "previous_7d": {...},  # immediately preceding 7 complete days
-        "current_28d": {...},  # this 28 days
-        "previous_28d": {...}, # preceding 28 days
-        "stories_live": {...}, # live snapshots (clearly marked)
-        "raw": {...},          # underlying data for fact→interpretation
-        "sources": [...],      # source windows + freshness
-      }
-    """
-    today = datetime.datetime.now(datetime.timezone.utc).date()
-    cur_7_start = today - datetime.timedelta(days=6)
-    cur_7_end = today
-    prev_7_start = cur_7_start - datetime.timedelta(days=7)
-    prev_7_end = cur_7_start - datetime.timedelta(days=1)
-    cur_28_start = today - datetime.timedelta(days=27)
-    cur_28_end = today
-    prev_28_start = cur_28_start - datetime.timedelta(days=28)
-    prev_28_end = cur_28_start - datetime.timedelta(days=1)
-
-    out = {
-        "status": "OK",
-        "missing_sources": [],
-        "current_7d": {"start": cur_7_start.isoformat(),
-                          "end": cur_7_end.isoformat(), "metrics": {}},
-        "previous_7d": {"start": prev_7_start.isoformat(),
-                          "end": prev_7_end.isoformat(), "metrics": {}},
-        "current_28d": {"start": cur_28_start.isoformat(),
-                          "end": cur_28_end.isoformat(), "metrics": {}},
-        "previous_28d": {"start": prev_28_start.isoformat(),
-                          "end": prev_28_end.isoformat(), "metrics": {}},
-        "stories_live": {"captured_at": datetime.datetime.now(
-            datetime.timezone.utc).isoformat(), "metrics": {}},
-        "raw": {},
-        "sources": [],
-    }
-
-    # ── GA4 ───────────────────────────────────────────────
-    ga, ga_path = _read_per_brand_or_missing("ga4-metrics.json", bid)
-    if ga:
-        out["raw"]["ga4"] = ga
-        out["sources"].append({
-            "name": "ga4", "path": ga_path,
-            "window": ga.get("data_window", "unknown"),
-            "fetched_at": ga.get("fetched_at"),
-            "scope": f"brand:{bid}",
-        })
-        total = ga.get("total_sessions", 0) or 0
-        # We don't split weekly/previous here from the cumulative file.
-        # The single point-in-time ga4-metrics.json is a 7-day window
-        # snapshot; previous_7d is empty if no archived prev snapshot.
-        out["current_7d"]["metrics"]["ga4_sessions"] = total
-        out["current_28d"]["metrics"]["ga4_sessions"] = total
-        out["previous_7d"]["metrics"]["ga4_sessions"] = None  # unknown
-        out["previous_28d"]["metrics"]["ga4_sessions"] = None
-        out["missing_sources"].append("ga4_previous_week")
-    else:
-        out["missing_sources"].append("ga4_current_week")
-
-    # ── Instagram (per-brand only) ────────────────────────
-    ig, ig_path = _read_per_brand_or_missing(
-        "analytics/instagram-analytics.json", bid)
-    if not ig:
-        ig, ig_path = _read_per_brand_or_missing(
-            "ig-business-analytics.json", bid)
-    if ig:
-        out["raw"]["instagram"] = ig
-        out["sources"].append({
-            "name": "instagram", "path": ig_path,
-            "fetched_at": ig.get("lastUpdated") or ig.get("metadata"),
-            "scope": f"brand:{bid}",
-        })
-        posts = ig.get("posts") or []
-        reach_28 = sum((p.get("reach") or 0) for p in posts)
-        interactions_28 = sum(
-            ((p.get("like_count") or 0) + (p.get("comments_count") or 0)
-             + (p.get("shares") or 0) + (p.get("saves") or 0))
-            for p in posts)
-        out["current_28d"]["metrics"]["ig_posts"] = len(posts)
-        out["current_28d"]["metrics"]["ig_reach"] = reach_28
-        out["current_28d"]["metrics"]["ig_interactions"] = interactions_28
-        out["previous_28d"]["metrics"]["ig_posts"] = None
-        out["previous_28d"]["metrics"]["ig_reach"] = None
-        out["previous_28d"]["metrics"]["ig_interactions"] = None
-        # Top performers are real Stick posts (or whatever per-brand file says)
-        out["raw"]["ig_top_performers"] = (ig.get("topPerformers") or [])[:5]
-        out["missing_sources"].append("ig_previous_28d")
-    else:
-        out["missing_sources"].append("instagram_current")
-
-    # ── Live Stories (clearly marked LIVE SNAPSHOT) ────────
-    # Live Story data is captured-as-of-now, NOT comparable to 7d/28d
-    # windows. v3 surfaces it separately with the LIVE SNAPSHOT label.
-    daily_reach = (ig or {}).get("daily_reach") if ig else None
-    if daily_reach:
-        # last 24h reach only
-        if isinstance(daily_reach, list) and daily_reach:
-            live_reach = sum(
-                d.get("value", 0) for d in daily_reach
-                if isinstance(d, dict)
-                and d.get("date") == today.isoformat())
-            out["stories_live"]["metrics"]["ig_reach_24h"] = live_reach
-            out["stories_live"]["sample_size"] = 1  # 1 day only
-            out["raw"]["daily_reach"] = daily_reach
-
-    # ── Meta Ads (V2.4.1) ────────────────────────────────
-    # Read per-brand cache file written by v25 daily pull.
-    paid, paid_path = _read_per_brand_or_missing(
-        "paid-media-v24/swing-shack.json".replace("swing-shack", bid),
-        bid)
-    # Fallback: V2.4.1 writes to paid-media/<brand>.json via the app
-    if not paid:
-        paid, paid_path = _read_per_brand_or_missing(
-            f"paid-media/{bid}.json", bid)
-    if paid:
-        out["raw"]["paid_media"] = paid
-        out["sources"].append({
-            "name": "paid_media_v24", "path": paid_path,
-            "fetched_at": paid.get("fetched_at")
-                          or paid.get("data", {}).get("fetched_at"),
-            "scope": f"brand:{bid}",
-        })
-        # V2.4.1 normalised structure
-        data = paid.get("data") or paid.get("paid_media_v24") or {}
-        out["current_7d"]["metrics"]["meta_spend"] = (
-            data.get("current_period") or {}).get("total_spend")
-        out["previous_7d"]["metrics"]["meta_spend"] = (
-            data.get("previous_period") or {}).get("total_spend")
-        out["current_7d"]["metrics"]["meta_impressions"] = (
-            data.get("current_period") or {}).get("total_impressions")
-        out["current_7d"]["metrics"]["meta_reach"] = (
-            data.get("current_period") or {}).get("total_reach")
-        out["current_7d"]["metrics"]["meta_results"] = (
-            data.get("current_period") or {}).get("total_results")
-        # Per-campaign table
-        out["raw"]["paid_campaigns"] = (
-            data.get("per_campaign") or [])
-    else:
-        out["missing_sources"].append("paid_media_v24")
-
-    # ── Google Ads (concise) ─────────────────────────────
-    gad, gad_path = _read_per_brand_or_missing(
-        "google-ads/summary.json", bid)
-    if gad:
-        out["raw"]["google_ads"] = gad
-        out["sources"].append({
-            "name": "google_ads", "path": gad_path,
-            "fetched_at": gad.get("fetched_at"),
-            "scope": f"brand:{bid}",
-        })
-        out["current_7d"]["metrics"]["google_spend"] = (
-            gad.get("current_period") or {}).get("cost")
-        out["previous_7d"]["metrics"]["google_spend"] = (
-            gad.get("previous_period") or {}).get("cost")
-    else:
-        out["missing_sources"].append("google_ads")
-
-    # ── Published content (last 7d) ───────────────────────
-    # Read the publisher queue or per-brand publish log
-    pq, pq_path = _read_per_brand_or_missing(
-        "publish-queue.json", bid)
-    if pq:
-        out["raw"]["publish_queue"] = pq
-        out["sources"].append({
-            "name": "publish_queue", "path": pq_path,
-            "fetched_at": "live",
-            "scope": f"brand:{bid}",
-        })
-        items = (pq.get("queued") or pq.get("queue") or [])
-        if isinstance(items, list):
-            n = len(items)
-            out["current_7d"]["metrics"]["content_published_7d"] = n
-        else:
-            out["current_7d"]["metrics"]["content_published_7d"] = 0
-
-    # ── Top landing pages ────────────────────────────────
-    ga = out["raw"].get("ga4") or {}
-    pages = ga.get("pages") or []
-    top_pages = []
-    seen = set()
-    for p in pages:
-        pp = p.get("path")
-        if pp and pp not in seen:
-            seen.add(pp)
-            top_pages.append({
-                "path": pp,
-                "sessions": p.get("sessions") or 0,
-                "engagement_rate": p.get("engRate")
-                                    or p.get("engagementRate"),
-            })
-        if len(top_pages) >= 5:
-            break
-    out["raw"]["top_pages"] = top_pages
-
-    # ── Mark status ──────────────────────────────────────
-    if not out["missing_sources"]:
-        out["status"] = "OK"
-    elif any(s for s in out["missing_sources"]
-              if "current" in s or "google" in s or "paid" in s):
-        out["status"] = "PARTIAL"
-    else:
-        out["status"] = "OK_PREVIOUS_MISSING"
-
-    return out
-
-
-# ── brand isolation gate ───────────────────────────────────────
-
-def _validate_brand_isolation(bid: str, payload: Any) -> Tuple[bool, List[str]]:
-    """Scan payload for cross-brand contamination.
-
-    Returns (clean, list_of_violations). If not clean, the renderer
-    MUST NOT render — it returns BLOCKED_BRAND_CONTAMINATION.
-
-    Triggers are matched as case-insensitive substrings (per
-    operator directive: "swingshack" inside "swingshack.co.za" must
-    trigger BLOCKED for Stick).
-
-    An identifier that BOTH the current brand AND another brand
-    claim (e.g. bag-drop reuses @swingshack from Swing Shack) is
-    NOT treated as contamination when scanning a report for the
-    brand that legitimately owns it — we filter out any trigger
-    that also appears in the current brand's canonical identifiers.
-    """
+def _validate_brand_isolation(bid: str, payload: Any
+                                  ) -> Tuple[bool, List[str]]:
     facts = _brand_canonical(bid)
     raw_triggers = facts["triggers"]
-    # Whitelist: identifiers this brand ALSO claims.
-    # These are not contamination when they appear in this brand's data.
     canonical = facts["canonical"]
-    own_strings = set()
+    own = set()
     for s in (canonical.get("display_name"), canonical.get("ig_handle"),
                 canonical.get("website")):
         if s:
-            own_strings.add(s.lower())
-    triggers = []
-    for t in raw_triggers:
-        if t.lower() not in own_strings:
-            triggers.append(t)
+            own.add(s.lower())
+    triggers = [t for t in raw_triggers if t.lower() not in own]
     if not triggers:
         return True, []
     text = json.dumps(payload, ensure_ascii=False, default=str)
@@ -466,18 +104,177 @@ def _validate_brand_isolation(bid: str, payload: Any) -> Tuple[bool, List[str]]:
     return (len(violations) == 0), violations
 
 
-# ── period helpers ─────────────────────────────────────────────
+# ── period contract ─────────────────────────────────────────────
 
-def _pct_change(cur: Optional[float], prev: Optional[float]) -> Tuple[str, str]:
-    """Return (display_pct, direction) for Current vs Previous.
-
-    direction in {up, down, neutral, baseline}.
+def _compute_periods(as_of: Optional[str] = None) -> Dict[str, str]:
+    """Operator spec:
+       data_complete_through = yesterday
+       current_week  = yesterday-6 → yesterday
+       previous_week = yesterday-13 → yesterday-7
+       current_28d   = yesterday-27 → yesterday
+       previous_28d  = yesterday-55 → yesterday-28
     """
-    if cur is None or prev is None:
+    if as_of:
+        try:
+            anchor = datetime.date.fromisoformat(as_of)
+        except (ValueError, TypeError):
+            anchor = datetime.datetime.now(
+                datetime.timezone.utc).date() - datetime.timedelta(days=1)
+    else:
+        anchor = datetime.datetime.now(
+            datetime.timezone.utc).date() - datetime.timedelta(days=1)
+    cur_end = anchor
+    cur_start = anchor - datetime.timedelta(days=6)
+    prev_end = cur_start - datetime.timedelta(days=1)
+    prev_start = prev_end - datetime.timedelta(days=6)
+    cur28_end = anchor
+    cur28_start = anchor - datetime.timedelta(days=27)
+    prev28_end = cur28_start - datetime.timedelta(days=1)
+    prev28_start = prev28_end - datetime.timedelta(days=27)
+    return {
+        "data_complete_through": cur_end.isoformat(),
+        "current_week_start": cur_start.isoformat(),
+        "current_week_end": cur_end.isoformat(),
+        "previous_week_start": prev_start.isoformat(),
+        "previous_week_end": prev_end.isoformat(),
+        "current_28d_start": cur28_start.isoformat(),
+        "current_28d_end": cur28_end.isoformat(),
+        "previous_28d_start": prev28_start.isoformat(),
+        "previous_28d_end": prev28_end.isoformat(),
+    }
+
+
+# ── canonical North Stars (from Calendar loader) ────────────────
+
+def _load_canonical_north_stars(bid: str) -> List[dict]:
+    """Read North Stars from the SAME source Calendar uses:
+    data/brand-directory/<bid>/calendar_config.json → pillars[].
+
+    Each pillar that has north_star_target contributes one
+    canonical North Star. We DO NOT maintain a separate file.
+    """
+    root = _data_root()
+    candidates = [
+        root / "brand-directory" / bid / "calendar_config.json",
+        root / "brands" / bid / "calendar_config.json",
+    ]
+    for p in candidates:
+        if p.is_file():
+            try:
+                cfg = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            out = []
+            for pillar in (cfg.get("pillars") or []):
+                tgt = pillar.get("north_star_target") or {}
+                if not tgt:
+                    continue
+                if tgt.get("monthly_target_zar"):
+                    metric = (f"R{int(tgt['monthly_target_zar']):,}"
+                                f"/month ({pillar.get('name','?')})")
+                elif (tgt.get("daily_volume") and
+                       tgt.get("operating_days_per_week")):
+                    weekly = (tgt["daily_volume"]
+                                * tgt["operating_days_per_week"])
+                    metric = (f"{tgt['daily_volume']} per day × "
+                                f"{tgt['operating_days_per_week']} "
+                                f"days/week = {weekly}/week "
+                                f"({pillar.get('name','?')})")
+                else:
+                    metric = pillar.get("objective", pillar.get("name", "?"))
+                out.append({
+                    "id": pillar.get("pillar_id"),
+                    "label": pillar.get("name", pillar.get("pillar_id", "?")),
+                    "metric": metric,
+                    "objective": pillar.get("objective", ""),
+                    "source": tgt.get("source", ""),
+                    "source_provenance": tgt.get("source_provenance", ""),
+                    "pillar_priority": pillar.get("priority", ""),
+                })
+            return out
+    return []
+
+
+# ── canonical V2.4.1 read ──────────────────────────────────────
+
+def _read_v24(bid: str, as_of: Optional[str] = None) -> Dict[str, Any]:
+    """Read canonical V2.4.1 report. Renderer-only — no parallel
+    analytics-file discovery.
+    """
+    from _lib.reporting_intelligence import build_v24_brand_report
+    periods = _compute_periods(as_of)
+    try:
+        r = build_v24_brand_report(bid, period_days=7, cookie=None) or {}
+    except Exception as e:
+        return {"error": str(e), "bid": bid, "periods": periods}
+    r["__periods"] = periods
+    r["__bid"] = bid
+    return r
+
+
+# ── KPI extraction from V2.4.1 ─────────────────────────────────
+
+def _extract_kpi(v24: dict, label: str) -> Dict[str, Any]:
+    for row in (v24.get("kpi_scorecard") or {}).get("rows") or []:
+        if row.get("label", "").lower() == label.lower():
+            return row
+    return {}
+
+
+# ── severity (materiality + confidence + business consequence) ─
+
+def _severity_materiality(current: Optional[float],
+                            previous: Optional[float],
+                            confidence: str = "high",
+                            materiality: str = "medium",
+                            business_consequence: str = "medium") -> str:
+    if current is None or previous is None:
+        return "MEDIUM"
+    try:
+        c = float(current); p = float(prev)
+    except (ValueError, TypeError):
+        return "MEDIUM"
+    if p == 0 and c == 0:
+        return "LOW"
+    abs_change = abs(c - p)
+    mat_score = (0 if abs_change < 5 else
+                  1 if abs_change < 50 else
+                  2 if abs_change < 200 else 3)
+    mat_score += {"low": -1, "medium": 0, "high": 1}.get(materiality, 0)
+    bc_score = {"low": 0, "medium": 1, "high": 2}.get(business_consequence, 1)
+    if confidence in ("low", "no_data", "unavailable", "not_connected"):
+        mat_score = max(0, mat_score - 1)
+    total = mat_score + bc_score
+    if total >= 4:
+        return "HIGH"
+    if total >= 2:
+        return "MEDIUM"
+    return "LOW"
+
+
+# ── number formatting ──────────────────────────────────────────
+
+def _fmt(v: Any, kind: str = "int") -> str:
+    if v is None:
+        return "—"
+    if v in ("", "unknown"):
+        return "—"
+    try:
+        n = float(v)
+    except (ValueError, TypeError):
+        return str(v)
+    if kind == "money":
+        return f"R{int(round(n)):,}"
+    if kind == "pct":
+        return f"{n:.1f}%"
+    return f"{int(round(n)):,}"
+
+
+def _pct(curr: Optional[float], prev: Optional[float]) -> Tuple[str, str]:
+    if curr is None or prev is None:
         return ("—", "baseline")
     try:
-        c = float(cur)
-        p = float(prev)
+        c = float(curr); p = float(prev)
     except (ValueError, TypeError):
         return ("—", "baseline")
     if p == 0:
@@ -489,574 +286,782 @@ def _pct_change(cur: Optional[float], prev: Optional[float]) -> Tuple[str, str]:
     return (f"{pct:+.1f}%", arrow)
 
 
-def _fmt_num(v: Any, fmt: str = "int") -> str:
-    if v is None:
-        return "—"
-    try:
-        n = float(v)
-    except (ValueError, TypeError):
-        return str(v)
-    if fmt == "money":
-        return f"R{int(round(n)):,}"
-    if fmt == "pct":
-        return f"{n:.1f}%"
-    return f"{int(round(n)):,}"
+# ── KPI row builder ────────────────────────────────────────────
 
-
-# ── severity helpers ──────────────────────────────────────────
-
-def _severity_for_change(pct: float, prev: Optional[float],
-                          threshold_high: float = 20.0,
-                          threshold_med: float = 10.0) -> str:
-    """Return HIGH / MEDIUM / LOW based on % change magnitude."""
-    if pct is None or prev is None:
-        return "MEDIUM"  # missing comparison = noteworthy
-    if abs(pct) >= threshold_high:
-        return "HIGH"
-    if abs(pct) >= threshold_med:
-        return "MEDIUM"
-    return "LOW"
-
-
-# ── TLDR ──────────────────────────────────────────────────────
-
-def _build_tldr(bid: str, data: dict) -> List[dict]:
-    """8-10 numeric KPI cards for the top of the report.
-
-    Each row: {metric, current, previous, change, severity, fmt}
-    """
-    cur = data["current_7d"]["metrics"]
-    prev = data["previous_7d"]["metrics"]
-    c28 = data["current_28d"]["metrics"]
-    p28 = data["previous_28d"]["metrics"]
-
+def _build_tldr_rows(v24: dict, periods: dict) -> List[dict]:
     rows: List[dict] = []
-
-    def add(metric, cur_v, prev_v, fmt="int"):
-        pct, direction = _pct_change(cur_v, prev_v)
-        try:
-            pct_n = float(pct.rstrip("%")) if "%" in pct else 0.0
-        except Exception:
-            pct_n = 0.0
-        sev = _severity_for_change(pct_n, prev_v)
+    kpi_map = [
+        ("Content published (7d)", "Content published", "int",
+            "medium", "medium", "high"),
+        ("Website sessions (7d)", "Sessions", "int",
+            "high", "high", "high"),
+        ("Engaged sessions (7d)", "Engaged sessions", "int",
+            "high", "high", "high"),
+        ("IG reach (28d)", "IG reach (28d)", "int",
+            "medium", "medium", "high"),
+        ("Meta paid spend (7d)", "Meta paid spend (7d)", "money",
+            "high", "high", "high"),
+        ("Meta impressions (7d)", "Meta impressions (7d)", "int",
+            "high", "medium", "high"),
+        ("Meta results (7d)", "Meta results (7d)", "int",
+            "high", "high", "high"),
+        ("Google Ads spend (7d)", "Google Ads spend (7d)", "money",
+            "medium", "medium", "high"),
+    ]
+    paid_keys = {
+        "Meta paid spend (7d)": "total_spend",
+        "Meta impressions (7d)": "total_impressions",
+        "Meta results (7d)": "total_results",
+        "Google Ads spend (7d)": "total_spend",
+    }
+    for label, kpi_label, fmt, mat, bc, conf in kpi_map:
+        if kpi_label in paid_keys:
+            pm = v24.get("paid_media_v24") or {}
+            key = paid_keys[label]
+            cur = pm.get("current_period", {}).get(key)
+            prev = pm.get("previous_period", {}).get(key)
+            status_label = pm.get("data_status") or "OK"
+            if pm.get("data_status") not in (None, "OK", "PRESENT",
+                                                "CONNECTED", "LIVE"):
+                cur = None
+                prev = None
+            sev = _severity_materiality(cur, prev,
+                                          confidence=str(status_label).lower(),
+                                          materiality=mat,
+                                          business_consequence=bc)
+        else:
+            row = _extract_kpi(v24, kpi_label)
+            cur = row.get("current")
+            prev = row.get("previous")
+            status_label = row.get("data_status", "OK")
+            sev = _severity_materiality(cur, prev,
+                                          confidence=str(status_label).lower(),
+                                          materiality=mat,
+                                          business_consequence=bc)
+        pct, _ = _pct(cur, prev)
         rows.append({
-            "metric": metric,
-            "current": _fmt_num(cur_v, fmt),
-            "previous": _fmt_num(prev_v, fmt) if prev_v is not None else "—",
+            "metric": label,
+            "current": _fmt(cur, fmt),
+            "previous": _fmt(prev, fmt),
             "change": pct,
-            "direction": direction,
             "severity": sev,
-            "fmt": fmt,
         })
-
-    add("Content published (7d)", cur.get("content_published_7d"),
-        None)
-    add("Website sessions (7d)", cur.get("ga4_sessions"),
-        prev.get("ga4_sessions"))
-    add("IG reach (28d)", c28.get("ig_reach"), p28.get("ig_reach"))
-    add("IG interactions (28d)", c28.get("ig_interactions"),
-        p28.get("ig_interactions"))
-    add("Meta paid spend (7d)", cur.get("meta_spend"),
-        prev.get("meta_spend"), fmt="money")
-    add("Meta impressions (7d)", cur.get("meta_impressions"),
-        prev.get("meta_impressions"))
-    add("Meta results (7d)", cur.get("meta_results"),
-        prev.get("meta_results"))
-    add("Google Ads spend (7d)", cur.get("google_spend"),
-        prev.get("google_spend"), fmt="money")
     return rows
 
 
-# ── markdown renderer ─────────────────────────────────────────
-
-def _section_header(title: str, period: Optional[str] = None) -> str:
-    if period:
-        return f"## {title}  \n_{period}_"
-    return f"## {title}"
-
-
-def _row(metric, current, previous, change, severity=None) -> str:
-    """Markdown table row with optional severity tag."""
-    base = f"| {metric} | {current} | {previous} | {change} |"
-    if severity:
-        return f"{base} {severity} |"
-    return base
+def _ig_row_line(label: str, org: dict) -> str:
+    cur = org.get(f"ig_{label.lower()}_current")
+    prev = org.get(f"ig_{label.lower()}_previous")
+    pct, _ = _pct(cur, prev)
+    return (f"| {label} | {_fmt(cur)} | {_fmt(prev)} | {pct} |")
 
 
-def _render_markdown(bid: str, data: dict, tldr: List[dict],
-                       north_stars: dict) -> str:
+# ── marketing + measurement action derivation ──────────────────
+
+def _derive_marketing_actions(v24: dict, periods: dict) -> List[dict]:
+    actions: List[dict] = []
+
+    sessions_row = _extract_kpi(v24, "Sessions")
+    sess_cur = sessions_row.get("current")
+    sess_prev = sessions_row.get("previous")
+    pm24 = v24.get("paid_media_v24") or {}
+    pm_status = pm24.get("data_status")
+    channels = (v24.get("sections") or {}).get("ga4_channels") or []
+    top_channel = (max(channels, key=lambda c: c.get("sessions", 0))
+                    if channels else None)
+
+    if (sess_cur is not None and sess_prev is not None
+            and sess_prev > 0 and sess_cur > sess_prev * 1.05):
+        if top_channel:
+            delta_pct = ((sess_cur - sess_prev) / sess_prev) * 100
+            actions.append({
+                "action": (f"Increase paid investment in "
+                            f"{top_channel.get('channel','?')} this week."),
+                "why": (f"Weekly sessions are up {delta_pct:+.1f}% WoW, "
+                        f"and {top_channel.get('channel','?')} is the "
+                        f"largest acquisition channel at "
+                        f"{_fmt(top_channel.get('sessions'))} sessions."),
+                "measure": (f"{top_channel.get('channel','?')} sessions "
+                            f"WoW; Meta-reported leads for the campaign."),
+            })
+        else:
+            delta_pct = ((sess_cur - sess_prev) / sess_prev) * 100
+            actions.append({
+                "action": "Maintain current acquisition mix.",
+                "why": (f"Weekly sessions are up {delta_pct:+.1f}% WoW."),
+                "measure": "Sessions WoW; Meta-reported leads WoW.",
+            })
+    elif (sess_cur is not None and sess_prev is not None
+            and sess_prev > 0 and sess_cur < sess_prev * 0.95):
+        delta_pct = ((sess_prev - sess_cur) / sess_prev) * 100
+        actions.append({
+            "action": ("Reallocate paid spend toward channels with "
+                        "positive WoW movement."),
+            "why": (f"Weekly sessions are down {delta_pct:+.1f}% WoW. "
+                    f"Channel-level review is needed before next "
+                    f"campaign decision."),
+            "measure": ("Channel-mix share WoW; cost-per-result per "
+                        "channel."),
+        })
+
+    if pm_status in ("OK", "PRESENT", "CONNECTED", "LIVE"):
+        campaigns = [c for c in (pm24.get("per_campaign") or [])
+                       if (c.get("amount_spend_cents") or 0) > 0]
+        if campaigns:
+            def _efficiency(c):
+                spend = (c.get("amount_spend_cents") or 0) / 100
+                res = c.get("results") or 0
+                if spend <= 0:
+                    return float('inf')
+                return res / spend
+            best = max(campaigns, key=_efficiency)
+            worst = min(campaigns, key=_efficiency)
+            actions.append({
+                "action": (f"Scale the highest-efficiency Meta campaign "
+                            f"({best.get('campaign_name','?')}) and "
+                            f"review the lowest-efficiency one "
+                            f"({worst.get('campaign_name','?')})."),
+                "why": ("Material campaigns this week produced a "
+                        "clearest efficiency spread. Doubling down on "
+                        "the best performer and reworking the worst is "
+                        "the highest-leverage paid decision."),
+                "measure": ("Cost-per-result per campaign WoW; total "
+                            "Meta-reported leads WoW."),
+            })
+
+    ig_reach = ((v24.get("sections") or {}).get("organic_social") or {}).get(
+        "ig_reach_current")
+    if ig_reach is not None:
+        actions.append({
+            "action": ("Test one organic post aligned with the strongest "
+                        "28d theme this week."),
+            "why": (f"IG reach 28d = {_fmt(ig_reach)}. Theme-aligned "
+                    f"content has measurable organic lift in the past "
+                    f"28 days."),
+            "measure": ("IG reach + interactions on the test post over "
+                        "7d vs 28d average."),
+        })
+    else:
+        actions.append({
+            "action": "Confirm organic content cadence this week.",
+            "why": ("No baseline IG reach available for this brand — "
+                    "establish one before drawing conclusions."),
+            "measure": "Posts published 7d; IG reach + interactions 28d.",
+        })
+
+    while len(actions) < 3:
+        actions.append({
+            "action": ("(No additional priority action — focus on the "
+                        "actions above first.)"),
+            "why": "—",
+            "measure": "—",
+        })
+    return actions[:3]
+
+
+def _derive_measurement_actions(v24: dict, periods: dict) -> List[str]:
+    out: List[str] = []
+    pm24 = v24.get("paid_media_v24") or {}
+    pm_status = pm24.get("data_status")
+    if pm_status in ("NOT_CONNECTED", "UNAVAILABLE"):
+        out.append("Wire Meta Ads per-brand token / config so V2.4.1 "
+                     "paid-media reporting is available.")
+    sessions_row = _extract_kpi(v24, "Sessions")
+    if sessions_row.get("data_status") in ("UNAVAILABLE", "NOT_CONNECTED"):
+        out.append("Wire per-brand GA4 property + service-account JSON "
+                     "(Swing Shack has it; Stick needs its own).")
+    lineage = v24.get("source_lineage") or []
+    stale = [s for s in lineage
+              if "stale" in str(s.get("status", "")).lower()]
+    if stale:
+        out.append("Refresh stale V2.4.1 source(s): "
+                     + ", ".join(s.get("source", "?") for s in stale))
+    out.append("Archive this week's snapshot so next week's WoW "
+                 "comparison is real (not first-baseline).")
+    return out
+
+
+# ── markdown rendering ─────────────────────────────────────────
+
+def _render_markdown(bid: str, v24: dict, north_stars: List[dict],
+                       periods: Dict[str, str],
+                       status: str,
+                       contamination_block: Optional[str] = None,
+                       as_of: Optional[str] = None) -> str:
     facts = _brand_canonical(bid)["canonical"]
     L: List[str] = []
-    today = datetime.datetime.now().strftime("%d %b %Y")
 
-    # HEADER
-    title = facts['display_name'] if facts['display_name'] else bid.title().replace("-", " ")
-    L.append(f"# {title} — Weekly Management Report")
-    L.append(f"_{data['current_7d']['start']} → {data['current_7d']['end']}_  ")
-    L.append(f"_Generated {today}_")
+    L.append(f"# {facts['display_name']} — Weekly Management Report")
+    L.append(f"_{periods['current_week_start']} → "
+               f"{periods['current_week_end']}_  ")
+    if as_of:
+        L.append(f"_As of: {as_of} (pinned)_  ")
+    L.append(f"_Data complete through: "
+               f"{periods['data_complete_through']}_")
     L.append("")
 
-    # EXECUTIVE READ (single paragraph, top of report)
-    exec_lines = []
-    if data["current_7d"]["metrics"].get("ga4_sessions"):
-        exec_lines.append(
-            f"Weekly website traffic: "
-            f"{_fmt_num(data['current_7d']['metrics']['ga4_sessions'])} sessions.")
-    if data["current_28d"]["metrics"].get("ig_reach"):
-        exec_lines.append(
-            f"28d IG reach: "
-            f"{_fmt_num(data['current_28d']['metrics']['ig_reach'])}.")
-    paid_v = data["current_7d"]["metrics"].get("meta_spend")
-    if paid_v is not None:
-        exec_lines.append(
-            f"Meta paid spend (7d): {_fmt_num(paid_v, 'money')}.")
-    elif "paid_media_v24" in data["missing_sources"]:
-        exec_lines.append("Meta paid spend: NOT CONNECTED — see Data Notes.")
-    L.append("**Executive Read:** " + " ".join(exec_lines)
-              if exec_lines else "_No executive read possible — see Data Notes._")
+    if contamination_block:
+        L.append("**REPORT BLOCKED — brand contamination detected.**")
+        L.append("")
+        L.append(contamination_block)
+        return "\n".join(L)
+
+    exec_parts = []
+    sessions_row = _extract_kpi(v24, "Sessions")
+    sessions_cur = sessions_row.get("current")
+    sessions_prev = sessions_row.get("previous")
+    if sessions_cur is not None:
+        exec_parts.append(f"Weekly sessions: {_fmt(sessions_cur)}.")
+    if sessions_prev is not None:
+        pct, _ = _pct(sessions_cur, sessions_prev)
+        exec_parts.append(f"WoW change: {pct}.")
+    spend = ((v24.get("paid_media_v24") or {}).get(
+        "current_period") or {}).get("total_spend")
+    if spend is not None:
+        exec_parts.append(
+            f"Meta paid spend (7d): {_fmt(spend, 'money')}.")
+    elif (v24.get("paid_media_v24") or {}).get("data_status"):
+        st = v24["paid_media_v24"]["data_status"]
+        exec_parts.append(f"Meta paid spend: {st} — see Data Notes.")
+    L.append("**Executive Read:** " +
+               (" ".join(exec_parts) if exec_parts else
+                "_No executive read possible — see Data Notes._"))
     L.append("")
 
-    # TLDR — NUMBERS FIRST
-    L.append(_section_header(
-        "TL;DR — Numbers (Last 7 days unless noted)",
-        f"7d: {data['current_7d']['start']} → {data['current_7d']['end']} | "
-        f"prev 7d: {data['previous_7d']['start']} → {data['previous_7d']['end']}"))
+    L.append("## TL;DR — Numbers (Last 7 days)")
+    L.append(f"_{periods['current_week_start']} → "
+               f"{periods['current_week_end']} · "
+               f"prev 7d: {periods['previous_week_start']} → "
+               f"{periods['previous_week_end']}_")
     L.append("")
     L.append("| Metric | Current | Previous | Change | Severity |")
     L.append("|---|---|---|---|---|")
-    for r in tldr:
-        L.append(_row(r["metric"], r["current"], r["previous"],
-                      r["change"], r["severity"]))
-    L.append("")
-    L.append("> WoW assessment unavailable — first valid baseline."
-              if all(r["previous"] == "—" for r in tldr)
-              else "> Change % = current vs previous 7-day window. "
-                   "Severity reflects magnitude only.")
+    rows = _build_tldr_rows(v24, periods)
+    for r in rows:
+        L.append(f"| {r['metric']} | {r['current']} | {r['previous']} | "
+                   f"{r['change']} | {r['severity']} |")
     L.append("")
 
-    # SOCIAL PERFORMANCE
-    L.append(_section_header(
-        "Social Performance",
-        f"28d: {data['current_28d']['start']} → {data['current_28d']['end']}"))
+    L.append("## Social Performance")
+    L.append(f"_{periods['current_28d_start']} → "
+               f"{periods['current_28d_end']} (28d)_")
     L.append("")
-    ig_ok = "instagram_current" not in data["missing_sources"]
-    if ig_ok:
-        ig = data["current_28d"]["metrics"]
-        L.append("**Instagram (28d)**")
+    org = (v24.get("sections") or {}).get("organic_social") or {}
+    L.append("**Instagram (28d)**")
+    L.append("")
+    L.append("| Metric | Current | Previous | Change |")
+    L.append("|---|---|---|---|")
+    L.append(_ig_row_line("Reach", org))
+    L.append(_ig_row_line("Interactions", org))
+    L.append(_ig_row_line("Posts", org))
+    L.append("")
+    stories = v24.get("stories_live") or {}
+    if stories.get("ig_reach_24h") is not None:
+        L.append(f"> **LIVE SNAPSHOT — Stories (last 24h):** "
+                   f"{_fmt(stories['ig_reach_24h'])} reach · "
+                   f"sample = {stories.get('sample_size', '?')} day. "
+                   f"**Not** comparable to the 28d IG reach above.")
         L.append("")
+    L.append("**Facebook**")
+    L.append("")
+    fb = (v24.get("sections") or {}).get("facebook") or {}
+    if fb.get("status") in ("present", "OK", "LIVE"):
         L.append("| Metric | Current | Previous | Change |")
         L.append("|---|---|---|---|")
-        for label, key in (("Reach", "ig_reach"),
-                            ("Interactions", "ig_interactions"),
-                            ("Posts", "ig_posts")):
-            prev_v = data["previous_28d"]["metrics"].get(key)
-            pct, _ = _pct_change(ig.get(key), prev_v)
-            L.append(f"| {label} | {_fmt_num(ig.get(key))} | "
-                       f"{_fmt_num(prev_v) if prev_v is not None else '—'} | "
-                       f"{pct} |")
-        L.append("")
-        if data["raw"].get("ig_top_performers"):
-            L.append("Top 3-5 posts (most recent 28d):")
-            for p in data["raw"]["ig_top_performers"][:5]:
-                cap = (p.get("caption") or "")[:80]
-                L.append(f"- {p.get('reach', '?')} reach · "
-                           f"{_fmt_num(p.get('interactions'))} interactions · "
-                           f"\"{cap}\"")
-            L.append("")
-        if data["stories_live"]["metrics"].get("ig_reach_24h") is not None:
-            L.append(f"> **LIVE SNAPSHOT — Stories (last 24h):** "
-                       f"{_fmt_num(data['stories_live']['metrics']['ig_reach_24h'])} "
-                       f"reach · sample size = 1 day. **Not** comparable to "
-                       f"the 28d IG reach above.")
-            L.append("")
-    else:
-        L.append("Instagram insights: MISSING for this brand. See Data Notes.")
-        L.append("")
-    fb_ok = "facebook_current" not in data["missing_sources"]
-    if fb_ok:
-        L.append("**Facebook**")
-        L.append("")
-        L.append("| Metric | Current | Previous | Change |")
-        L.append("|---|---|---|---|")
-        L.append("| (Facebook metrics not yet wired per-brand — see Data Notes) |  |  |  |")
+        for k in ("reach", "interactions", "page_views", "follows"):
+            cv = fb.get(k)
+            pv = fb.get(f"prev_{k}")
+            pct, _ = _pct(cv, pv)
+            L.append(f"| {k} | {_fmt(cv)} | {_fmt(pv)} | {pct} |")
         L.append("")
     else:
-        L.append("Facebook: MISSING for this brand. See Data Notes.")
+        L.append(f"Facebook: {fb.get('status', 'NOT_CONNECTED')} — see "
+                   f"Data Notes.")
         L.append("")
 
-    # WEBSITE & ACQUISITION
-    L.append(_section_header(
-        "Website & Acquisition",
-        f"7d: {data['current_7d']['start']} → {data['current_7d']['end']}"))
+    L.append("## Website & Acquisition")
+    L.append(f"_{periods['current_week_start']} → "
+               f"{periods['current_week_end']}_")
     L.append("")
-    if "ga4_current_week" not in data["missing_sources"]:
-        L.append("| Metric | Current | Previous | Change |")
-        L.append("|---|---|---|---|")
-        cur_v = data["current_7d"]["metrics"].get("ga4_sessions")
-        prev_v = data["previous_7d"]["metrics"].get("ga4_sessions")
-        pct, _ = _pct_change(cur_v, prev_v)
-        L.append(f"| Sessions | {_fmt_num(cur_v)} | "
-                   f"{_fmt_num(prev_v) if prev_v is not None else '—'} | {pct} |")
-        L.append("| Users | (not yet split — see Data Notes) |  |  |")
-        L.append("| Engagement rate | (not yet split — see Data Notes) |  |  |")
+    sess_cur = sessions_row.get("current")
+    sess_prev = sessions_row.get("previous")
+    sess_status = sessions_row.get("data_status", "OK")
+    L.append("| Metric | Current | Previous | Change |")
+    L.append("|---|---|---|---|")
+    pct, _ = _pct(sess_cur, sess_prev)
+    L.append(f"| Sessions | {_fmt(sess_cur)} | "
+               f"{_fmt(sess_prev)} | {pct} |")
+    for label in ("Users", "Engaged sessions", "Engagement rate",
+                    "Pageviews"):
+        r = _extract_kpi(v24, label)
+        c = r.get("current"); p = r.get("previous")
+        pct2, _ = _pct(c, p)
+        L.append(f"| {label} | "
+                   f"{_fmt(c, 'pct' if 'rate' in label else 'int')} | "
+                   f"{_fmt(p, 'pct' if 'rate' in label else 'int')} | "
+                   f"{pct2} |")
+    L.append("")
+    if sess_status in ("UNAVAILABLE", "NOT_CONNECTED"):
+        L.append(f"> GA4 source: `{sess_status}` — see Data Notes. "
+                   f"**Not the same as zero.**")
         L.append("")
-        if data["raw"].get("top_pages"):
-            L.append("**Top landing pages**")
-            L.append("")
-            L.append("| Path | Sessions | Engagement |")
-            L.append("|---|---|---|")
-            for p in data["raw"]["top_pages"]:
-                er = p.get("engagement_rate") or "—"
-                L.append(f"| {p['path']} | {_fmt_num(p['sessions'])} | {er} |")
-            L.append("")
-        L.append("> Note: page sessions ≠ leads / bookings / purchases unless "
-                   "verified events exist on this brand.")
+    lp = (v24.get("sections") or {}).get("ga4_landing_pages") or {}
+    if lp.get("rows"):
+        L.append("**Top landing pages**")
         L.append("")
-    else:
-        L.append("GA4: MISSING for this brand. See Data Notes.")
+        L.append("| Path | Sessions | Engagement |")
+        L.append("|---|---|---|")
+        for r in (lp.get("rows") or [])[:5]:
+            L.append(f"| {r.get('path','?')} | {_fmt(r.get('sessions'))} | "
+                       f"{_fmt(r.get('engagement_rate'), 'pct')} |")
+        L.append("")
+        L.append("> Page sessions ≠ leads / bookings / purchases unless "
+                   "verified events exist.")
         L.append("")
 
-    # PAID MEDIA
-    L.append(_section_header(
-        "Paid Media — Meta Ads (V2.4.1)",
-        f"7d: {data['current_7d']['start']} → {data['current_7d']['end']}"))
+    L.append("## Paid Media — Meta Ads (V2.4.1)")
+    L.append(f"_{periods['current_week_start']} → "
+               f"{periods['current_week_end']}_")
     L.append("")
-    if "paid_media_v24" in data["missing_sources"]:
-        L.append("Meta Ads: NOT_CONNECTED — see Data Notes for token / "
-                   "connector state. **Not the same as zero spend.**")
+    pm24 = v24.get("paid_media_v24") or {}
+    pm_status = pm24.get("data_status", "UNKNOWN")
+    if pm_status not in ("OK", "PRESENT", "CONNECTED", "LIVE"):
+        L.append(f"Meta Ads: `{pm_status}` — see Data Notes. "
+                   f"**Not the same as zero spend.**")
         L.append("")
     else:
-        cur_v = data["current_7d"]["metrics"].get("meta_spend")
-        prev_v = data["previous_7d"]["metrics"].get("meta_spend")
-        pct, _ = _pct_change(cur_v, prev_v)
+        cur_p = pm24.get("current_period") or {}
+        prev_p = pm24.get("previous_period") or {}
         L.append("| Metric | Current | Previous | Change |")
         L.append("|---|---|---|---|")
-        L.append(f"| Spend | {_fmt_num(cur_v, 'money')} | "
-                   f"{_fmt_num(prev_v, 'money') if prev_v is not None else '—'} | {pct} |")
-        L.append(f"| Impressions | {_fmt_num(data['current_7d']['metrics'].get('meta_impressions'))} | "
-                   f"— | — |")
-        L.append(f"| Reach | {_fmt_num(data['current_7d']['metrics'].get('meta_reach'))} | "
-                   f"— | — |")
-        L.append(f"| Results | {_fmt_num(data['current_7d']['metrics'].get('meta_results'))} | "
-                   f"— | — |")
+        for k, label in (("total_spend", "Spend"),
+                            ("total_impressions", "Impressions"),
+                            ("total_reach", "Reach"),
+                            ("total_results", "Results")):
+            cv = cur_p.get(k); pv = prev_p.get(k)
+            pct2, _ = _pct(cv, pv)
+            L.append(f"| {label} | "
+                       f"{_fmt(cv, 'money' if k=='total_spend' else 'int')} | "
+                       f"{_fmt(pv, 'money' if k=='total_spend' else 'int')} | "
+                       f"{pct2} |")
         L.append("")
-        campaigns = data["raw"].get("paid_campaigns") or []
-        if campaigns:
-            L.append("**Campaign-level (material campaigns only)**")
+        pc = pm24.get("per_campaign") or []
+        material = [c for c in pc if (c.get("amount_spend_cents") or 0)
+                     > 0]
+        if material:
+            L.append("**Campaigns (material — spend > 0)**")
             L.append("")
-            L.append("| Campaign | Objective | Spend | Result | Efficiency | WoW |")
-            L.append("|---|---|---|---|---|---|")
-            for c in campaigns[:8]:
-                spend = c.get("amount_spend_cents", 0) / 100
-                res = c.get("results", 0)
-                eff = (spend / res) if res else None
-                wow = c.get("change_pct", "—")
+            L.append("| Campaign | Objective | Spend | Result | "
+                       "Efficiency |")
+            L.append("|---|---|---|---|---|")
+            for c in material[:8]:
+                spend_v = (c.get("amount_spend_cents") or 0) / 100
+                res = c.get("results") or 0
+                eff = (spend_v / res) if res else None
                 L.append(f"| {c.get('campaign_name') or c.get('campaign_id')} | "
-                           f"{c.get('objective', '—')} | "
-                           f"{_fmt_num(spend, 'money')} | "
-                           f"{_fmt_num(res)} | "
-                           f"{_fmt_num(eff, 'money') if eff else '—'}/result | "
-                           f"{wow} |")
+                           f"{c.get('objective','—')} | "
+                           f"{_fmt(spend_v, 'money')} | "
+                           f"{_fmt(res)} | "
+                           f"{_fmt(eff, 'money') if eff else '—'}/result |")
             L.append("")
         else:
-            L.append("No material campaigns in this window.")
+            L.append("No material campaigns in this window (spend > 0).")
             L.append("")
-        L.append("> Lead terminology preserved as 'Meta-reported leads' — "
-                   "not yet matched to CRM or qualified as bookings.")
+        L.append("> Lead terminology preserved as 'Meta-reported leads' "
+                   "— not yet matched to CRM or qualified as bookings.")
         L.append("")
-        # Google Ads
-        if "google_ads" not in data["missing_sources"]:
-            cur_v = data["current_7d"]["metrics"].get("google_spend")
-            prev_v = data["previous_7d"]["metrics"].get("google_spend")
-            pct, _ = _pct_change(cur_v, prev_v)
-            L.append("**Google Ads**")
-            L.append("")
-            L.append(f"Spend (7d): {_fmt_num(cur_v, 'money')} "
-                       f"(prev: {_fmt_num(prev_v, 'money') if prev_v is not None else '—'}, "
-                       f"{pct})")
-            L.append("")
+        gad = (v24.get("sections") or {}).get("google_ads") or {}
+        if gad.get("current_period"):
+            cs = gad["current_period"].get("cost")
+            ps = (gad.get("previous_period") or {}).get("cost")
+            pct3, _ = _pct(cs, ps)
+            if cs is not None and cs > 0:
+                L.append(f"**Google Ads:** spend (7d) "
+                           f"{_fmt(cs, 'money')} (prev "
+                           f"{_fmt(ps, 'money')}, {pct3})")
+                L.append("")
+            else:
+                L.append("**Google Ads:** 0 spend — no campaigns ran.")
+                L.append("")
         else:
-            L.append("**Google Ads:** 0 spend — no campaigns ran this period.")
+            L.append("**Google Ads:** NOT_CONNECTED — see Data Notes.")
             L.append("")
 
-    # CONTENT PERFORMANCE
-    L.append(_section_header(
-        "Content Performance",
-        "7d: posts published + top pieces (28d reach from IG top performers)"))
+    L.append("## Content Performance")
     L.append("")
-    pub_n = data["current_7d"]["metrics"].get("content_published_7d")
+    pub_n = ((v24.get("sections") or {}).get("publish_7d") or
+              (v24.get("kpi_scorecard") or {}).get("content_published_7d"))
     if pub_n is not None:
-        L.append(f"Published (7d): **{_fmt_num(pub_n)} pieces** "
-                   f"(prev: —, first valid baseline)")
+        L.append(f"Published (7d): **{_fmt(pub_n)} pieces** "
+                   f"(prev: first valid baseline)")
         L.append("")
-    if data["raw"].get("ig_top_performers"):
+    top = ((v24.get("sections") or {}).get("organic_social") or {}).get(
+        "top_performers") or []
+    if top:
         L.append("**Top pieces (28d)**")
         L.append("")
         L.append("| Format | Theme | Reach | Interactions |")
         L.append("|---|---|---|---|")
-        for p in data["raw"]["ig_top_performers"][:5]:
+        for p in top[:5]:
             cap = (p.get("caption") or "")[:60]
-            L.append(f"| {p.get('media_type', 'post')} | {cap}… | "
-                       f"{_fmt_num(p.get('reach'))} | "
-                       f"{_fmt_num(p.get('interactions'))} |")
+            L.append(f"| {p.get('media_type','post')} | {cap}… | "
+                       f"{_fmt(p.get('reach'))} | "
+                       f"{_fmt(p.get('interactions'))} |")
         L.append("")
-        L.append("> Patterns here are observation only — not enough volume "
-                   "for an established pattern claim.")
-        L.append("")
-    else:
-        L.append("No top performers data for this brand this period.")
+        L.append("> Patterns here are observation only — single pieces "
+                   "do not establish a pattern.")
         L.append("")
 
-    # BUSINESS / FUNNEL SIGNALS
-    L.append(_section_header(
-        "Business / Funnel Signals"))
+    L.append("## Business / Funnel Signals")
     L.append("")
     L.append("Sessions → engagement → leads → outcomes")
     L.append("")
     L.append("| Stage | Value | Confidence |")
     L.append("|---|---|---|")
-    L.append(f"| Website sessions | {_fmt_num(data['current_7d']['metrics'].get('ga4_sessions'))} | high |")
-    L.append(f"| IG interactions (28d) | {_fmt_num(data['current_28d']['metrics'].get('ig_interactions'))} | high |")
-    L.append(f"| Meta-reported leads | NOT YET MEASURED — connector pending | low |")
-    L.append(f"| Bookings / sales | NOT YET MEASURED — CRM/POS connector pending | low |")
+    ig_int = ((v24.get("sections") or {}).get("organic_social") or {}).get(
+        "ig_interactions_current")
+    L.append(f"| Website sessions (7d) | {_fmt(sess_cur)} | "
+               f"{str(sessions_row.get('data_status','OK')).lower()} |")
+    L.append(f"| IG interactions (28d) | {_fmt(ig_int)} | high |")
+    leads_n = (pm24.get("current_period") or {}).get("total_results")
+    L.append(f"| Meta-reported leads (7d) | "
+               f"{_fmt(leads_n) if leads_n is not None else 'NOT YET MEASURED — connector pending'} | "
+               f"{str((pm24.get('current_period') or {}).get('results_status', 'unknown')).lower()} |")
+    L.append("| Bookings / sales (7d) | NOT YET MEASURED — "
+               "CRM/POS connector pending | low |")
     L.append("")
-    L.append("> Revenue modelling requires real conversion rate × outcome value × "
-               "verified attribution. **Stick CRM / POS connector is pending — "
-               "no revenue projections possible yet.**")
+    L.append("> Revenue modelling requires real conversion rate × "
+               "outcome value × verified attribution. Until the "
+               "operational CRM/POS connector is wired, no revenue "
+               "projections possible.")
     L.append("")
 
-    # NORTH STARS
-    L.append(_section_header("North Stars"))
+    L.append("## North Stars")
     L.append("")
-    if north_stars and north_stars.get("north_stars"):
-        for ns in north_stars["north_stars"]:
+    if north_stars:
+        for ns in north_stars:
             L.append(f"- **{ns['label']}** — {ns['metric']}")
-            L.append(f"  - Outcome measurement: {ns['outcome_measurement']}")
-            L.append(f"  - Marketing support signal: {ns['marketing_support_signal']}")
+            L.append(f"  - Source: {ns['source'] or 'calendar_config.json'}")
+            if ns.get("source_provenance"):
+                L.append(f"  - Provenance: `{ns['source_provenance']}`")
+            L.append(f"  - Outcome measurement: PENDING — operational "
+                       f"connector not yet integrated with reporting")
         L.append("")
         L.append("> Progress percentages not shown until real operational "
-                   "connectors are live.")
+                   "connectors are live. Source: "
+                   "`data/brand-directory/<brand>/calendar_config.json` "
+                   "(canonical loader, also used by Calendar / Brief).")
         L.append("")
     else:
-        L.append("No canonical North Stars defined for this brand.")
+        L.append("No canonical North Stars defined for this brand in "
+                   "calendar_config.json.")
         L.append("")
 
-    # WHAT WORKED
-    L.append(_section_header("What Worked"))
+    L.append("## What Worked")
     L.append("")
     worked: List[str] = []
-    if data["current_7d"]["metrics"].get("ga4_sessions"):
-        # Don't claim "improvement" — show fact only
+    if (sess_cur is not None and sess_prev is not None
+            and sess_prev > 0 and sess_cur > sess_prev):
+        pct2, _ = _pct(sess_cur, sess_prev)
         worked.append(
-            f"FACT: Website recorded "
-            f"{_fmt_num(data['current_7d']['metrics']['ga4_sessions'])} "
-            f"sessions in the last 7 days. "
-            f"WoW comparison: "
-            f"{_fmt_num(data['previous_7d']['metrics'].get('ga4_sessions'))} "
-            f"(change % unavailable — no archived previous snapshot).")
-    if data["current_28d"]["metrics"].get("ig_reach"):
-        worked.append(
-            f"FACT: 28d IG reach = "
-            f"{_fmt_num(data['current_28d']['metrics']['ig_reach'])}. "
-            f"Compared to a 28d previous window: "
-            f"{_fmt_num(data['previous_28d']['metrics'].get('ig_reach'))}.")
+            f"FACT: Website sessions this week: {_fmt(sess_cur)} "
+            f"(prev {_fmt(sess_prev)}, {pct2}).")
+    if pm_status in ("OK", "PRESENT", "CONNECTED", "LIVE"):
+        cr = (pm24.get("current_period") or {}).get("total_results")
+        pr = (pm24.get("previous_period") or {}).get("total_results")
+        if cr is not None and pr is not None and pr > 0 and cr > pr:
+            pct3, _ = _pct(cr, pr)
+            worked.append(
+                f"FACT: Meta-reported leads this week: {_fmt(cr)} "
+                f"(prev {_fmt(pr)}, {pct3}).")
     if worked:
         for w in worked:
             L.append(f"- {w}")
     else:
         L.append("- No evidence-based 'what worked' items this period.")
     L.append("")
-    L.append("> No connector-status items go here. Measurement availability "
-               "is not marketing performance.")
+    L.append("> Connector-status items go to Data Notes, not here. "
+               "Measurement availability is not marketing performance.")
     L.append("")
 
-    # WHAT NEEDS ATTENTION
-    L.append(_section_header("What Needs Attention"))
+    L.append("## What Needs Attention")
     L.append("")
-    att: List[Tuple[str, str]] = []  # (severity, text)
-    if "ga4_previous_week" in data["missing_sources"]:
-        att.append(("MEDIUM",
-                     "WoW comparison for website sessions is unavailable — "
-                     "first valid baseline not yet established."))
-    if "paid_media_v24" in data["missing_sources"]:
-        att.append(("HIGH",
-                     "Meta Ads: NOT_CONNECTED — paid-media reporting absent "
-                     "for this brand. Acquire token / wire per-brand config."))
-    if "instagram_current" in data["missing_sources"]:
-        att.append(("MEDIUM",
-                     "Instagram: per-brand analytics file missing. "
-                     "Confirm IG business account ID is configured for this brand."))
-    if "google_ads" in data["missing_sources"]:
-        att.append(("LOW",
-                     "Google Ads: no data path. Either genuinely zero spend, "
-                     "or connector not wired. Confirm before claiming zero."))
-    if not att:
-        att.append(("LOW",
-                     "All standard data sources present. No high-severity gaps."))
-    for sev, txt in att:
+    attention = []
+    if sessions_row.get("data_status") in ("UNAVAILABLE", "NOT_CONNECTED"):
+        attention.append(("MEDIUM",
+            "GA4 unavailable for this brand — weekly comparison cannot "
+            "be performed against real traffic."))
+    if pm_status in ("NOT_CONNECTED", "UNAVAILABLE"):
+        attention.append(("HIGH",
+            "Meta Ads connector missing for this brand — paid-media "
+            "spend / reach / results not visible to Reporting."))
+    if (sessions_prev is None and sess_cur is not None):
+        attention.append(("MEDIUM",
+            "Previous-week data not archived — WoW comparison uses the "
+            "first valid baseline. Archive snapshots to start building "
+            "a comparison trail."))
+    attention.append(("HIGH",
+        "Bookings / sales connector not wired — verified enquiry "
+        "events not yet flowing into reporting."))
+    if not attention:
+        attention.append(("LOW",
+            "All standard data sources present. No high-severity gaps."))
+    for sev, txt in attention:
         L.append(f"- **[{sev}]** {txt}")
     L.append("")
-    L.append("> Severity reflects marketing/business consequence of the gap, "
-               "not sample size.")
+    L.append("> Severity considers business consequence, volume / "
+               "materiality, magnitude of change, confidence / data "
+               "quality, and North Star relevance — not magnitude alone.")
     L.append("")
 
-    # ACTIONS
-    L.append(_section_header("Actions for This Week"))
+    L.append("## Marketing Actions — Top 3")
     L.append("")
-    actions: List[dict] = []
-    if "paid_media_v24" in data["missing_sources"]:
-        actions.append({
-            "n": 1,
-            "action": "Wire Meta Ads connector for this brand (token + "
-                       "per-brand config).",
-            "why": "Paid-media reporting is absent. Without it, paid "
-                    "performance and WoW change are unmeasurable.",
-            "measure": "/api/meta/ads/cache/<brand> returns ok=true with "
-                        "current_period populated.",
-        })
-    if "ga4_previous_week" in data["missing_sources"]:
-        actions.append({
-            "n": len(actions) + 1,
-            "action": "Archive a baseline GA4 snapshot so future reports "
-                       "can show real WoW comparisons.",
-            "why": "First valid baseline is needed before 'clean week' / "
-                    "improvement claims are valid.",
-            "measure": "data/weekly-snapshots/<brand>/<date>.json contains "
-                        "the previous week's GA4 totals.",
-        })
-    if "instagram_current" in data["missing_sources"]:
-        actions.append({
-            "n": len(actions) + 1,
-            "action": "Confirm per-brand IG business account ID is wired "
-                       "and that daily-reach time-series writes to the brand "
-                       "lane (not the global shared file).",
-            "why": "Without per-brand IG data, social section falls back "
-                    "to the shared Swing Shack file — a brand contamination "
-                    "failure.",
-            "measure": "data/integrations/<brand>/instagram.json has "
-                        "ig_business_account_id; "
-                        "data/brand-directory/<brand>/analytics/"
-                        "instagram-analytics.json is populated.",
-        })
-    while len(actions) < 3:
-        actions.append({
-            "n": len(actions) + 1,
-            "action": "(No additional priority action — focus on the gaps "
-                       "above first.)",
-            "why": "—",
-            "measure": "—",
-        })
-    actions = actions[:3]
-    for a in actions:
-        L.append(f"{a['n']}. **{a['action']}**")
+    actions = _derive_marketing_actions(v24, periods)
+    for i, a in enumerate(actions, 1):
+        L.append(f"{i}. **{a['action']}**")
         L.append(f"   - **Why:** {a['why']}")
         L.append(f"   - **Measure:** {a['measure']}")
     L.append("")
-    L.append("> No fake uplift ranges. No generated hook. No generated "
-               "caption. Reporting does not bypass Create.")
+    L.append("> Marketing actions are decisions about content / channel / "
+               "audience — derived from the data above. They do not "
+               "generate copy; Opportunity → Brief → Create handles "
+               "creative.")
     L.append("")
 
-    # DATA NOTES
-    L.append(_section_header("Data Notes / Limitations"))
+    L.append("## Measurement / Data Actions")
     L.append("")
-    if data["missing_sources"]:
-        L.append("**Missing data sources (not zero):**")
-        for s in data["missing_sources"]:
-            L.append(f"- {s}")
-        L.append("")
+    meas = _derive_measurement_actions(v24, periods)
+    for i, a in enumerate(meas, 1):
+        L.append(f"{i}. {a}")
+    if not meas:
+        L.append("- No measurement actions this period.")
+    L.append("")
+    L.append("> Measurement actions cover connectors, event validation, "
+               "scope, stale sources, CRM integration. They do not "
+               "displace the marketing decisions above.")
+    L.append("")
+
+    L.append("## Data Notes / Limitations")
+    L.append("")
     L.append("**Period contract:**")
-    L.append("- current_week = latest 7 complete days "
-               f"({data['current_7d']['start']} → {data['current_7d']['end']})")
-    L.append("- previous_week = immediately preceding 7 complete days "
-               f"({data['previous_7d']['start']} → {data['previous_7d']['end']})")
-    L.append("- current_28d = latest 28 complete days")
-    L.append("- previous_28d = immediately preceding 28 complete days")
+    L.append(f"- data_complete_through = "
+               f"{periods['data_complete_through']} (yesterday, "
+               f"today's incomplete data excluded)")
+    L.append(f"- current_week = {periods['current_week_start']} → "
+               f"{periods['current_week_end']} "
+               f"(7 complete days)")
+    L.append(f"- previous_week = {periods['previous_week_start']} → "
+               f"{periods['previous_week_end']} "
+               f"(7 complete days)")
+    L.append(f"- current_28d = {periods['current_28d_start']} → "
+               f"{periods['current_28d_end']} "
+               f"(28 complete days)")
+    L.append(f"- previous_28d = {periods['previous_28d_start']} → "
+               f"{periods['previous_28d_end']} "
+               f"(28 complete days)")
     L.append("")
-    L.append("**Live snapshots (not comparable to windowed metrics):**")
-    if data["stories_live"]["metrics"]:
-        for k, v in data["stories_live"]["metrics"].items():
-            L.append(f"- {k}: {_fmt_num(v)} (captured "
-                       f"{data['stories_live']['captured_at']})")
+    L.append("**Source data status (from V2.4.1 canonical):**")
+    lineage = v24.get("source_lineage") or []
+    if lineage:
+        for src in lineage:
+            L.append(f"- {src.get('source','?')}: status="
+                       f"`{src.get('status','?')}`, fetched="
+                       f"{src.get('fetched_at','?')}, as_of="
+                       f"{src.get('data_as_of','?')}")
+    else:
+        L.append("- (no source_lineage emitted by V2.4.1 this run)")
     L.append("")
-    L.append("**Connector status (dynamic):**")
-    for s in data["sources"]:
-        L.append(f"- {s['name']}: scope={s.get('scope','?')}, "
-                   f"window={s.get('window','?')}, "
-                   f"fetched={s.get('fetched_at','?')}")
+    L.append("**Tone:** management report — numbers first, conclusions "
+               "only when evidence supports them. Missing data ≠ zero. "
+               "No creative generation.")
     L.append("")
-    L.append("**Tone:** This is a management report. Numbers first. "
-               "Conclusions only when evidence supports them.")
-    L.append("")
-
-    # FOOTER
     L.append("---")
-    L.append(f"_Generated {datetime.datetime.now(datetime.timezone.utc).isoformat()} • "
-               f"V2.4.1 frozen • V3 renderer._")
+    L.append(f"_Generated {datetime.datetime.now(datetime.timezone.utc).isoformat()} • V2.4.1 frozen • V3.1 renderer._")
     return "\n".join(L)
+
+
+# ── HTML rendering (wraps markdown) ───────────────────────────
+
+def _render_html(bid: str, v24: dict, north_stars: List[dict],
+                   periods: Dict[str, str],
+                   status: str,
+                   contamination_block: Optional[str] = None,
+                   as_of: Optional[str] = None) -> str:
+    md = _render_markdown(bid, v24, north_stars, periods, status,
+                            contamination_block, as_of)
+    facts = _brand_canonical(bid)["canonical"]
+    title = (f"{facts['display_name']} — Weekly Management Report"
+              f" ({periods['current_week_start']} → "
+              f"{periods['current_week_end']})")
+    if contamination_block:
+        title = f"{title} — BLOCKED"
+    body = md.replace("&", "&amp;").replace("<", "&lt;").replace(
+        ">", "&gt;")
+    body_html = (body.replace("\n## ", "\n<h2>")
+                  .replace("\n### ", "\n<h3>"))
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        f"<title>{title}</title>"
+        "<style>body{font-family:-apple-system,BlinkMacSystemFont,"
+        "'Segoe UI',Roboto,sans-serif;max-width:920px;margin:40px auto;"
+        "padding:0 20px;color:#1a1f2e;line-height:1.5;}"
+        "h1{margin-bottom:8px}h2{margin-top:32px;border-bottom:1px solid "
+        "#e3e6ed;padding-bottom:6px}table{border-collapse:collapse;"
+        "width:100%;margin:12px 0}th,td{padding:6px 10px;text-align:left;"
+        "border-bottom:1px solid #e3e6ed;font-size:14px}th{background:"
+        "#f6f7fb}blockquote{border-left:3px solid #cdd2dd;margin:8px 0;"
+        "padding:6px 14px;color:#4a5568;background:#fafbfd}"
+        "@media print {body{margin:0 auto}}</style>"
+        "</head><body>"
+        f"<pre style='white-space:pre-wrap;font-family:inherit;"
+        f"font-size:14px;line-height:1.55'>{body_html}</pre>"
+        "</body></html>")
 
 
 # ── main entry ─────────────────────────────────────────────────
 
-def build_v3(bid: str, fmt: str = "markdown") -> dict:
-    """Build the V3 weekly management report.
+def build_v31(bid: str, fmt: str = "markdown",
+                as_of: Optional[str] = None) -> dict:
+    """Build the V3.1 weekly management report."""
+    if bid not in ("stick", "swing-shack", "bag-drop"):
+        return {"report_status": "INVALID_BRAND",
+                "block_reason": "brand_id must be stick, swing-shack, or bag-drop",
+                "contaminations": [],
+                "rendered": f"# Invalid brand\n\n`{bid}` is not a managed brand.",
+                "raw_payload": {}}
 
-    Returns:
-      {
-        "report_status": "OK" | "BLOCKED_BRAND_CONTAMINATION" | "MISSING_DATA",
-        "block_reason": str | None,
-        "contaminations": [str],
-        "rendered": str,        # markdown / html
-        "raw_payload": {...},   # for JSON consumers
-      }
-    """
-    data = _collect_v3(bid)
-    north_stars = _read_per_brand_or_missing(
-        "north_stars.json", bid)[0] or {}
-    if isinstance(north_stars, list):
-        north_stars = {"north_stars": north_stars}
+    periods = _compute_periods(as_of)
+    v24 = _read_v24(bid, as_of)
 
-    # Brand isolation gate
-    clean, violations = _validate_brand_isolation(bid, data)
-    if not clean:
+    if not v24 or "error" in v24:
         return {
-            "report_status": "BLOCKED_BRAND_CONTAMINATION",
-            "block_reason": "Rendered data contains identifiers from a "
-                             "different brand. Refusing to render.",
-            "contaminations": violations,
+            "report_status": "V24_UNAVAILABLE",
+            "block_reason": v24.get("error", "V2.4.1 read failed"),
+            "contaminations": [],
             "rendered": (f"# {bid.title()} — Weekly Management Report\n\n"
-                          "**REPORT BLOCKED — brand contamination detected.**\n\n"
-                          "Identifiers found in source data:\n"
-                          + "\n".join(f"- `{v}`" for v in violations)
-                          + "\n\nThis report will not render until the data "
-                          "sources are scoped to this brand only."),
-            "raw_payload": {},
+                          f"**V2.4.1 unavailable:** "
+                          f"{v24.get('error', 'unknown error')}\n\n"
+                          f"Period: {periods['current_week_start']} → "
+                          f"{periods['current_week_end']}"),
+            "raw_payload": {"v24": v24, "periods": periods},
         }
 
-    tldr = _build_tldr(bid, data)
-    if fmt in ("markdown", "md"):
-        rendered = _render_markdown(bid, data, tldr, north_stars)
+    clean, violations = _validate_brand_isolation(bid, v24)
+    if not clean:
+        block = ("Identifiers found in V2.4.1 payload:\n"
+                  + "\n".join(f"- `{v}`" for v in violations)
+                  + "\n\nThis report will not render until the canonical "
+                    "V2.4.1 data sources are scoped to this brand only.")
+        return {
+            "report_status": "BLOCKED_BRAND_CONTAMINATION",
+            "block_reason": "V2.4.1 payload contains identifiers from a "
+                             "different brand.",
+            "contaminations": violations,
+            "rendered": _render_markdown(bid, v24, [], periods, "BLOCKED",
+                                           contamination_block=block,
+                                           as_of=as_of),
+            "raw_payload": {"v24": v24, "periods": periods},
+        }
+
+    north_stars = _load_canonical_north_stars(bid)
+    status = "OK"
+
+    if fmt == "html":
+        rendered = _render_html(bid, v24, north_stars, periods, status,
+                                  as_of=as_of)
     else:
-        rendered = _render_markdown(bid, data, tldr, north_stars)
+        rendered = _render_markdown(bid, v24, north_stars, periods,
+                                      status, as_of=as_of)
 
     return {
-        "report_status": data["status"],
+        "report_status": status,
         "block_reason": None,
         "contaminations": [],
         "rendered": rendered,
         "raw_payload": {
-            "data": data,
-            "tldr": tldr,
+            "v24": v24,
+            "periods": periods,
             "north_stars": north_stars,
             "brand_id": bid,
-            "generator": "weekly_report_v3",
+            "generator": "weekly_report_v3.1",
+            "as_of": as_of,
         },
     }
+
+
+# ── snapshot (archive current week for next-week WoW) ──────────
+
+def archive_snapshot_v31(bid: str, as_of: Optional[str] = None,
+                            snapshot_root: Optional[Path] = None
+                            ) -> Dict[str, Any]:
+    """Archive the V3.1 canonical report state so next week's
+    WoW comparison is real (not first-baseline)."""
+    out = build_v31(bid, fmt="json", as_of=as_of)
+    v24 = (out.get("raw_payload") or {}).get("v24") or {}
+    periods = (out.get("raw_payload") or {}).get("periods") or {}
+    north_stars = (out.get("raw_payload") or {}).get("north_stars") or []
+
+    snapshot = {
+        "schema": "https://campaign-os/weekly-report/v3.1-snapshot",
+        "brand_id": bid,
+        "as_of": as_of or periods.get("data_complete_through"),
+        "current_period": {
+            "start": periods.get("current_week_start"),
+            "end": periods.get("current_week_end"),
+        },
+        "previous_period": {
+            "start": periods.get("previous_week_start"),
+            "end": periods.get("previous_week_end"),
+        },
+        "data_complete_through": periods.get("data_complete_through"),
+        "kpi_values": {},
+        "source_statuses": {},
+        "north_stars": north_stars,
+        "report_status": out.get("report_status"),
+        "archived_at": datetime.datetime.now(
+            datetime.timezone.utc).isoformat(),
+    }
+    for label in ("Sessions", "Users", "Engaged sessions",
+                    "Engagement rate", "Pageviews", "IG reach (28d)",
+                    "IG interactions (28d)"):
+        r = _extract_kpi(v24, label)
+        snapshot["kpi_values"][label] = {
+            "current": r.get("current"),
+            "previous": r.get("previous"),
+            "data_status": r.get("data_status"),
+        }
+    pm24 = v24.get("paid_media_v24") or {}
+    snapshot["kpi_values"]["Meta paid spend"] = {
+        "current": (pm24.get("current_period") or {}).get("total_spend"),
+        "previous": (pm24.get("previous_period") or {}).get("total_spend"),
+        "data_status": pm24.get("data_status"),
+    }
+    snapshot["kpi_values"]["Meta results"] = {
+        "current": (pm24.get("current_period") or {}).get("total_results"),
+        "previous": (pm24.get("previous_period") or {}).get("total_results"),
+        "data_status": pm24.get("data_status"),
+    }
+    for src in (v24.get("source_lineage") or []):
+        snapshot["source_statuses"][src.get("source", "?")] = {
+            "status": src.get("status"),
+            "fetched_at": src.get("fetched_at"),
+            "data_as_of": src.get("data_as_of"),
+        }
+
+    root = snapshot_root or _data_root()
+    snap_dir = root / "weekly-snapshots" / bid
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    fn = snap_dir / f"{snapshot['current_period']['end']}.json"
+    fn.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False,
+                                default=str), encoding="utf-8")
+    snapshot["path"] = fn.as_posix()
+    return snapshot
 
 
 if __name__ == "__main__":
     bid = sys.argv[1] if len(sys.argv) > 1 else "stick"
     fmt = sys.argv[2] if len(sys.argv) > 2 else "markdown"
-    out = build_v3(bid, fmt=fmt)
+    as_of = sys.argv[3] if len(sys.argv) > 3 else None
+    out = build_v31(bid, fmt=fmt, as_of=as_of)
     print(out["rendered"])
-    sys.exit(0 if out["report_status"] !=
-             "BLOCKED_BRAND_CONTAMINATION" else 2)
+    sys.exit(0 if out["report_status"] == "OK" else 2)

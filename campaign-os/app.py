@@ -23230,36 +23230,77 @@ def report_v1_list_uploads(brand_id):
 @app.route('/api/weekly-report', methods=['GET'])
 def weekly_report_api():
     """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
-    Returns the weekly report. Default format = html.
 
-    Analytics delegate: when the requested brand has data_delegates_from set
-    (e.g. stick → swing-shack), compute metrics against the delegate source
-    while keeping the requested brand's voice/positioning for the hero.
+    V3.1: reads canonical Reporting V2.4.1 (frozen) and renders
+    via the weekly_report_v3 module. No parallel analytics-file
+    discovery. Period contract: data_complete_through = yesterday,
+    current_week = yesterday-6 → yesterday, previous_week =
+    yesterday-13 → yesterday-7.
+
+    Optional ?as_of=YYYY-MM-DD pins the report to a past date.
     """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _wr3 is None:
+        return jsonify({"ok": False,
+                        "error": "weekly_report_v3 unavailable"}), 503
     bid = request.args.get('brand') or get_brand_id()
-    fmt = request.args.get('format', 'html').lower()
-    # Analytics source follows delegation; voice/positioning stay on the brand
-    data_bid = resolve_data_brand(bid)
-    if fmt == 'json':
-        return jsonify({
-            'brand_id': bid,
-            'data_source_brand_id': data_bid,
-            'brand_meta': _weekly_brand_meta(bid),
-            'metrics': _weekly_compute_metrics(data_bid),
-        }), 200
-    if fmt == 'markdown':
-        from flask import Response
-        return Response(_weekly_render_markdown(bid, data_bid=data_bid), mimetype='text/markdown'), 200
-    return _weekly_render_html(bid, data_bid=data_bid), 200
+    fmt = (request.args.get('format', 'html') or 'html').lower()
+    as_of = request.args.get('as_of') or None
+    try:
+        out = _wr3.build_v31(bid, fmt=fmt, as_of=as_of)
+        status = out.get("report_status", "OK")
+        if status == "BLOCKED_BRAND_CONTAMINATION":
+            return jsonify({
+                "ok": False,
+                "report_status": status,
+                "block_reason": out.get("block_reason"),
+                "contaminations": out.get("contaminations"),
+                "rendered": out.get("rendered"),
+            }), 422
+        if status == "V24_UNAVAILABLE":
+            return jsonify({"ok": False, "report_status": status,
+                              "error": out.get("block_reason"),
+                              "rendered": out.get("rendered")}), 503
+        if fmt == 'json':
+            return jsonify({"ok": True,
+                              "report_status": status,
+                              "report": out.get("raw_payload"),
+                              "rendered": out.get("rendered")}), 200
+        if fmt == 'markdown':
+            from flask import Response
+            return Response(out.get("rendered", ""),
+                              mimetype='text/markdown'), 200
+        # HTML default
+        return out.get("rendered", ""), 200, {
+            "Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("weekly_report_api v3.1 failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
 @app.route('/api/weekly-report/snapshot', methods=['POST', 'GET'])
 def weekly_report_snapshot():
-    """Archive the current week for the brand. Returns the saved path."""
+    """Archive the V3.1 canonical report state for next-week WoW.
+
+    V3.1: writes brand_id, current period, data_as_of, KPI values,
+    source statuses to data/weekly-snapshots/<brand>/<date>.json.
+    The legacy `_weekly_save_snapshot` (using the old broken renderer)
+    is no longer called.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _wr3 is None:
+        return jsonify({"ok": False,
+                        "error": "weekly_report_v3 unavailable"}), 503
     bid = request.args.get('brand') or get_brand_id()
-    cur = _weekly_collect_current(bid)
-    path = _weekly_save_snapshot(bid, cur)
-    return jsonify({'brand_id': bid, 'path': path, 'iso_week': datetime.datetime.now(datetime.timezone.utc).isocalendar()[:2]}), 200
+    as_of = request.args.get('as_of') or None
+    try:
+        snap = _wr3.archive_snapshot_v31(bid, as_of=as_of)
+        return jsonify({"ok": True, "snapshot": snap}), 200
+    except Exception as e:
+        _app_log.exception("weekly_report_snapshot v3.1 failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
 @app.route('/api/meta/test-exchange', methods=['GET'])
@@ -23393,11 +23434,26 @@ def weekly_report_snapshots():
 @app.route('/weekly-report', methods=['GET'])
 def weekly_report_page():
     """GET /weekly-report?brand=swing-shack
-    Renders the weekly-report HTML page directly (same as /api/weekly-report?format=html).
+
+    V3.1: renders via weekly_report_v3.build_v31 (canonical V2.4.1).
+    The legacy `_weekly_render_html` (which was the contaminated
+    renderer) is no longer called from this route.
     """
+    if not _is_authed():
+        return redirect(url_for("login", next=request.path))
+    if _wr3 is None:
+        return "weekly_report_v3 unavailable", 503
     bid = request.args.get('brand') or get_brand_id()
-    data_bid = resolve_data_brand(bid)
-    return _weekly_render_html(bid, data_bid=data_bid), 200
+    if bid not in ("stick", "swing-shack", "bag-drop"):
+        return "invalid brand", 400
+    as_of = request.args.get('as_of') or None
+    out = _wr3.build_v31(bid, fmt='html', as_of=as_of)
+    if out.get("report_status") == "BLOCKED_BRAND_CONTAMINATION":
+        return (f"<h1>{bid} — Weekly Report BLOCKED</h1>"
+                f"<p>Brand contamination: {out.get('block_reason')}</p>"
+                f"<pre>{out.get('rendered', '')}</pre>"), 422
+    return out.get("rendered", ""), 200, {
+        "Content-Type": "text/html; charset=utf-8"}
 
 
 # ─── STARTUP ────────────────────────────────────────────────────────────
@@ -45468,36 +45524,29 @@ def report_v25_share(brand_id):
 #  - Top-3 actions only, severity-tagged
 #  - Canonical North Stars shown exact, no fabricated progress
 #
-# v3 does NOT touch the existing /api/weekly-report endpoint.
-# The old renderer stays as-is for compat; v3 is opt-in via
-# /api/weekly-report/v3. Operators run both, compare, then
-# promote v3 to default once they're confident.
+# V3.1 NOTE: This route (kept for backwards compatibility) is now
+# an alias for the canonical /api/weekly-report endpoint. V3.1
+# is the default — no separate opt-in route is needed anymore.
+# Existing clients hitting /api/weekly-report/v3/<brand> continue
+# to work via this alias.
 
 
 @app.route("/api/weekly-report/v3/<brand_id>", methods=["GET"])
 def weekly_report_v3(brand_id):
-    """GET /api/weekly-report/v3/<brand>?format=markdown|json
+    """GET /api/weekly-report/v3/<brand>?format=markdown|json|html
 
-    Brand-new weekly management report renderer (v3).
-    Default format = markdown (matches the operator's preferred
-    paste-into-Notion workflow).
-
-    Returns:
-      200 OK — markdown body
-      200 OK + report_status=BLOCKED_BRAND_CONTAMINATION — if the
-      collected data contains identifiers from another brand.
+    Backwards-compat alias — V3.1 is now the default at
+    /api/weekly-report. This route forwards to the same handler.
     """
+    fmt = (request.args.get("format", "markdown") or "markdown").lower()
+    as_of = request.args.get("as_of") or None
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
-    if brand_id not in ("stick", "swing-shack"):
-        return jsonify({"ok": False,
-                        "error": f"brand_id must be stick or swing-shack"}), 400
     if _wr3 is None:
         return jsonify({"ok": False,
                         "error": "weekly_report_v3 unavailable"}), 503
-    fmt = (request.args.get("format", "markdown") or "markdown").lower()
     try:
-        out = _wr3.build_v3(brand_id, fmt=fmt)
+        out = _wr3.build_v31(brand_id, fmt=fmt, as_of=as_of)
         status = out.get("report_status", "OK")
         if status == "BLOCKED_BRAND_CONTAMINATION":
             return jsonify({
@@ -45512,10 +45561,13 @@ def weekly_report_v3(brand_id):
                               "report_status": status,
                               "report": out.get("raw_payload"),
                               "rendered": out.get("rendered")}), 200
+        if fmt == "html":
+            return out.get("rendered", ""), 200, {
+                "Content-Type": "text/html; charset=utf-8"}
         return out.get("rendered"), 200, {
             "Content-Type": "text/markdown; charset=utf-8"}
     except Exception as e:
-        _app_log.exception("weekly_report_v3 failed")
+        _app_log.exception("weekly_report_v3 (alias) failed")
         return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
