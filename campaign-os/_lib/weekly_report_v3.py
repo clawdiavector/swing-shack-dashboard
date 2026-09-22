@@ -1097,13 +1097,19 @@ def _build_actions(v24: dict, bid: str) -> List[str]:
                 "watch": ("compare cost per lead with last week before "
                             "deciding whether to increase its budget"),
             })
-    # Action 3: NS-aligned campaign — describe its actual traffic
-    # signal (landing_page_views or leads) before any budget call
+    # Action 3: NS-aligned traffic campaign (avoid duplicating
+    # the lead campaign if Action 2 already mentioned it)
+    lead_campaign_names = set()
+    for a in actions:
+        for token in a.get("what", "").split("'"):
+            lead_campaign_names.add(token.strip())
     fitting_or_coaching_campaigns = [
         c for c in (pm.get("per_campaign") or [])
         if (c.get("current") or {}).get("spend", 0) > 0
+        and c.get("objective") in ("LINK_CLICKS", "OUTCOME_TRAFFIC")
+        and c.get("campaign_name") not in lead_campaign_names
         and any(t in (c.get("campaign_name") or "").lower()
-                  for t in ("fit", "coach", "lesson", "assessment", "leads"))
+                  for t in ("fit", "coach", "lesson", "assessment"))
     ]
     if fitting_or_coaching_campaigns:
         c = fitting_or_coaching_campaigns[0]
@@ -1111,17 +1117,7 @@ def _build_actions(v24: dict, bid: str) -> List[str]:
         spend = (c.get("current") or {}).get("spend") or 0
         pr = c.get("primary_result") or {}
         pv = pr.get("primary_value")
-        pml = pr.get("primary_metric_label")
-        if obj == "OUTCOME_LEADS" and pv is not None:
-            actions.append({
-                "what": (f"Keep '{c.get('campaign_name','?')}' running."),
-                "why": (f"It is the lead campaign aligned with the "
-                          f"Fitting/Coaching business targets — "
-                          f"{_fmt(pv)} leads this week."),
-                "watch": ("how many of those leads become real bookings "
-                            "(once that link is in place)"),
-            })
-        elif obj == "LINK_CLICKS" and pv is not None:
+        if pv is not None:
             actions.append({
                 "what": (f"Keep '{c.get('campaign_name','?')}' running."),
                 "why": (f"It brought {_fmt(pv)} website visits this week "
