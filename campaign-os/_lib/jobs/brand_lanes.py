@@ -92,20 +92,44 @@ def integration_applies(brand_id: str, integration_id: str) -> bool:
     return True
 
 
+def _oauth_status_integration_state(integration_id: str, scope: dict) -> str:
+    """Drive-style shared OAuth: token file + per-brand config (no env vars)."""
+    folder_name = ((scope.get("config") or {}).get("folder_name") or "").strip()
+    if integration_id == "google_drive":
+        from _lib import google_drive
+
+        st = google_drive.status()
+        has_token = bool(st.get("has_token"))
+        connected = bool(st.get("connected"))
+        auth_error = st.get("auth_error")
+
+        if not has_token and not connected:
+            return "missing"
+        if auth_error or not folder_name:
+            return "partial"
+        if connected or has_token:
+            return "connected"
+        return "missing"
+    return "missing"
+
+
 def integration_state(brand_id: str, integration_id: str) -> str:
     """Return connected | partial | missing | na for a brand+integration pair."""
     reg = load_brands_registry()
     brand = (reg.get("brands") or {}).get(brand_id) or {}
     scope = (brand.get("integration_scope") or {}).get(integration_id)
+    integ = (reg.get("integrations") or {}).get(integration_id) or {}
 
     if scope is not None and not scope.get("applies", True):
         return "na"
 
     if scope is None:
-        integ = (reg.get("integrations") or {}).get(integration_id) or {}
         if integ.get("scope_class") == "shared_global":
             return "na"
         return "missing"
+
+    if integ.get("state_source") == "oauth_status":
+        return _oauth_status_integration_state(integration_id, scope)
 
     env_names = list(scope.get("env") or [])
     cred_ref = scope.get("credential_ref")

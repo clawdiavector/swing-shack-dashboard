@@ -221,7 +221,7 @@ def _integration_row(
     env_vars = list(scope_entry.get("env") or [])
     creds_ok = state in ("connected", "partial")
 
-    return {
+    row: dict[str, Any] = {
         "id": integration_id,
         "brand": brand_id,
         "icon": icon,
@@ -244,6 +244,11 @@ def _integration_row(
         "connect": connect,
         "setup": setup,
     }
+    if integration_id == "google_drive":
+        fn = ((scope_entry.get("config") or {}).get("folder_name") or "").strip()
+        if fn:
+            row["folder_name"] = fn
+    return row
 
 
 def build_brand_integrations(brand_id: str) -> dict[str, Any]:
