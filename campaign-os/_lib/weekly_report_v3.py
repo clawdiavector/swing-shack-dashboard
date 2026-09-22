@@ -301,7 +301,7 @@ def _severity_materiality(current, previous, *, confidence="high",
     if current is None or previous is None:
         return "MEDIUM"
     try:
-        c = float(current); p = float(prev)
+        c = float(current); p = float(previous)
     except (ValueError, TypeError):
         return "MEDIUM"
     if p == 0 and c == 0:
@@ -527,7 +527,10 @@ def _derive_marketing_actions(v24: dict, bid: str) -> List[dict]:
                 return res / spend  # result per R
             with_eff = [(c, _eff(c)) for c in campaigns if _eff(c) is not None]
             if len(with_eff) >= 2:
-                with_eff.sort(key=lambda t: t[1], reverse=True)
+                # Sort by efficiency descending. _eff() returns
+                # Optional[float] but our filter guarantees non-None.
+                with_eff.sort(key=lambda t: t[1] if t[1] is not None else 0.0,
+                                 reverse=True)
                 best = with_eff[0][0]
                 worst = with_eff[-1][0]
                 best_name = best.get("campaign_name", "?")
