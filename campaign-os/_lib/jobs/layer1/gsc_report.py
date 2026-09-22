@@ -20,6 +20,24 @@ OUTPUT = "search-console.json"
 SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"]
 API_BASE = "https://www.googleapis.com/webmasters/v3"
 
+# GSC returns 403 both for "this principal has no grant on this property"
+# (an ACL state, not a run failure) and for revoked/missing scopes. Only the
+# first is a skip, and only for a non-default brand lane — a 403 on the
+# default brand's property is a real regression and must stay FAILED/LATE.
+_ACL_DENIED_MARKERS = (
+    "does not have sufficient permission",
+    "insufficient permission",
+    "user does not have access",
+    "permission_denied",
+)
+
+
+def _is_acl_denied(message: str) -> bool:
+    if "GSC HTTP 403" not in message:
+        return False
+    low = message.lower()
+    return any(m in low for m in _ACL_DENIED_MARKERS)
+
 
 def _resolve_site_url(brand: str | None) -> tuple[str | None, str | None]:
     """Return (site_url, error). Non-default brands require GSC_SITE_URL_<BRAND>."""
@@ -158,7 +176,15 @@ def run(*, brand: str | None = None) -> dict:
             site, bearer, prev_start.isoformat(), prev_end.isoformat(), ["query"], 50
         )
     except RuntimeError as exc:
-        return {"ok": False, "error": str(exc)[:400]}
+        msg = str(exc)[:400]
+        if brand and brand != _fallback_brand() and _is_acl_denied(msg):
+            return {
+                "ok": True,
+                "skipped": True,
+                "reason": f"GSC property {site} not shared with this brand's credential",
+                "detail": msg,
+            }
+        return {"ok": False, "error": msg}
 
     deltas = _delta(queries, prev_queries)
     rising = sorted(
