@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useBrand } from '../components/BrandSwitch'
+import { BrandSwitch, useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
@@ -81,7 +81,7 @@ function morningTitle(opts: {
 }
 
 export function Daily() {
-  const { brandId, brandLabel } = useBrand()
+  const { brandId } = useBrand()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [layers, setLayers] = useState<LayersPayload | null>(null)
   const [learn, setLearn] = useState<LearnSummary | null>(null)
@@ -117,7 +117,6 @@ export function Daily() {
   const counts = data?.counts
   const waiting = counts?.review ?? 0
   const drafts = counts?.draft ?? 0
-  const brand = brandLabel || data?.active_brand_label || data?.active_brand_id || 'the desk'
   const queue = (data?.cards || []) as TodayCard[]
   const rest = queue.slice(0, 7)
   const asOf = data?.ts
@@ -246,7 +245,12 @@ export function Daily() {
         icon={Sun}
         badge="Morning brief"
         here="/daily"
-        title={`${greeting()}, ${brand}`}
+        title={
+          <>
+            {greeting()},{' '}
+            <BrandSwitch variant="inline" />
+          </>
+        }
       >
         {data?.summary || 'Loading your decisions for today…'}
       </PageIntro>

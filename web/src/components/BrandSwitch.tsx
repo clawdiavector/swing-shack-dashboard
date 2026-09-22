@@ -136,6 +136,7 @@ export function BrandSwitch({ variant = 'bar' }: { variant?: 'bar' | 'inline' })
   const bar = variant === 'bar'
   const current = brands.find((row) => row.id === brandId)
   const currentTone = TONE_CLS[current?.tone || 'gold']
+  const inlineTextTone = currentTone.bar.split(' ')[0]
 
   return (
     <span ref={box} className={`relative inline-flex ${bar ? 'shrink-0' : 'align-baseline'}`}>
@@ -149,13 +150,16 @@ export function BrandSwitch({ variant = 'bar' }: { variant?: 'bar' | 'inline' })
           className={
             bar
               ? `inline-flex items-center gap-2 rounded-full border bg-bg2 px-3 py-1.5 text-sm font-semibold ${currentTone.bar}`
-              : `inline-flex cursor-pointer items-baseline gap-1.5 border-0 bg-transparent p-0 font-[inherit] text-[length:inherit] leading-[inherit] ${currentTone.bar.split(' ')[0]}`
+              : `inline-flex cursor-pointer items-baseline gap-1.5 border-0 bg-transparent p-0 font-display text-[length:inherit] leading-[inherit] font-semibold ${inlineTextTone} hover:opacity-90`
           }
         >
-          <span aria-hidden className={`h-2 w-2 rounded-full ${currentTone.swatch}`} />
+          <span
+            aria-hidden
+            className={`rounded-full ${currentTone.swatch} ${bar ? 'h-2 w-2' : 'h-[0.42em] w-[0.42em] min-h-[10px] min-w-[10px]'}`}
+          />
           {label}
           <ChevronDown
-            className={`${bar ? 'h-4 w-4' : 'h-7 w-7 self-center'} shrink-0 ${open ? 'rotate-180' : ''}`}
+            className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''} ${bar ? 'h-4 w-4' : 'h-[0.55em] w-[0.55em] min-h-[14px] min-w-[14px] opacity-85'}`}
             strokeWidth={2.5}
           />
         </button>
