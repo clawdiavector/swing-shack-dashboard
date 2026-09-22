@@ -1,6 +1,6 @@
 import { matchTool, toolTo } from './tools'
 
-const SPA_PREFIXES = ['/daily', '/review', '/create', '/calendar', '/publish', '/results', '/other', '/desk', '/tool']
+const SPA_PREFIXES = ['/daily', '/review', '/create', '/calendar', '/publish', '/results', '/ops', '/other', '/desk', '/tool']
 
 function isSpaPath(path: string) {
   return SPA_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`))

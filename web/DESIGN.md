@@ -35,7 +35,7 @@ No full-saturation fills on idle chrome.
 
 ## Layout
 
-- Phone: bottom nav (7 items, Other last). Content 16px inset.
+- Phone: bottom nav (8 items, Other last). Content 16px inset.
 - iPad: compact top rail + optional split (list | detail).
 - Desktop: 220px left rail, 32px content gutter, max 1120px.
 - Cards: 12px radius, 1px `--rule`, no drop shadows heavier than 8px.
@@ -56,6 +56,14 @@ Empty: teach the next action (“Nothing waiting — go to Studio”).
 - `md` 768 — iPad portrait
 - `lg` 1024 — iPad landscape / small laptop
 - `xl` 1280 — desktop rail
+
+## Ops
+
+Native `/app/ops` with tabs **Jobs · Agents · Accounts** (`?tab=jobs|agents|accounts`).
+Legacy inbound links use `?layer=jobs|agents`; other `?layer=` values land on Jobs with a
+Classic link. Verdict badges: OK → green, LATE/STUCK → gold, FAILED → red, NEVER → mute.
+
+Classic `/ops`, `/ops/jobs`, and `/connected-accounts` stay live — each tab has “Open in Classic”.
 
 ## Daily (first designed page)
 

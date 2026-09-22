@@ -9,6 +9,7 @@ import { Publish } from './pages/Publish'
 import { Results } from './pages/Results'
 import { Review } from './pages/Review'
 import { ReviewPiece } from './pages/ReviewPiece'
+import { Ops } from './pages/Ops'
 import { Tool } from './pages/Tool'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="publish" element={<Publish />} />
         <Route path="results" element={<Results />} />
+        <Route path="ops" element={<Ops />} />
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />
         <Route path="tool/:slug" element={<Tool />} />

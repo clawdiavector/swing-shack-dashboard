@@ -9,6 +9,9 @@ export function Tool() {
   if (!tool) {
     return <Navigate to="/other" replace />
   }
+  if (slug === 'accounts') {
+    return <Navigate to="/ops?tab=accounts" replace />
+  }
 
   const chip = params.get('title') || params.get('asset') || params.get('item') || undefined
   const from = params.get('from') || tool.from

@@ -115,7 +115,7 @@ export function Shell() {
       </div>
 
       <nav
-        className="glass fixed inset-x-0 bottom-0 z-20 grid grid-cols-7 border-t border-white/10 lg:hidden"
+        className="glass fixed inset-x-0 bottom-0 z-20 grid grid-cols-8 border-t border-white/10 lg:hidden"
         aria-label="Campaigner rail"
       >
         {RAIL.map((item) => {

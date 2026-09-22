@@ -32,6 +32,7 @@ export const RAIL: RailItem[] = [
   { to: '/calendar', label: 'Calendar', hint: 'Schedule', icon: CalendarDays },
   { to: '/publish', label: 'Publish', hint: 'Go live', icon: Rocket },
   { to: '/results', label: 'Results', hint: 'What worked', icon: Activity },
+  { to: '/ops', label: 'Ops', hint: 'Jobs · agents · accounts', icon: Bot },
   { to: '/other', label: 'Other', hint: 'Leftovers', icon: MoreHorizontal },
 ]
 
@@ -40,9 +41,7 @@ export const OTHER_GROUPS = [
     title: 'Ops',
     icon: Layers,
     items: [
-      { href: '/ops?layer=jobs', label: 'Jobs', icon: ClipboardCheck },
       { href: '/ops?layer=health', label: 'Health', icon: Activity },
-      { href: '/ops?layer=agents', label: 'Agents', icon: Bot },
       { href: '/ops?layer=approve', label: 'Approve counts', icon: Inbox },
       { href: '/?page=ops', label: 'Ops runbook', icon: FileStack },
       { href: '/cockpit-operational', label: 'Operational cockpit', icon: LayoutDashboard },

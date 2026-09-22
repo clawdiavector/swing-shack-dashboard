@@ -19,7 +19,7 @@ export function Other() {
   return (
     <div className="space-y-6">
       <PageIntro icon={MoreHorizontal} badge="Leftovers" here="/other" title="Other">
-        Nothing here is deleted. Review later and say what dies. Ops lives in this list.
+        Nothing here is deleted. Review later and say what dies. Jobs and agents moved to Ops on the rail.
       </PageIntro>
 
       <label className="glass flex items-center gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">

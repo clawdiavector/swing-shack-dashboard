@@ -108,7 +108,7 @@ export function Publish() {
           <IconTile href="/?page=postiz" icon={Rocket} label="Postiz" hint="Scheduler" />
           <IconTile href="/?page=gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
           <IconTile href="/?page=gmb" icon={MapPin} label="GBP drafts" hint="Pending listings" />
-          <IconTile href="/connected-accounts" icon={Link2} label="Accounts" hint="Connected channels" />
+          <IconTile href="/ops?tab=accounts" icon={Link2} label="Accounts" hint="Connected channels" />
         </div>
       </section>
     </div>
