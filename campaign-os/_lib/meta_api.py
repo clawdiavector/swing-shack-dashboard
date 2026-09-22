@@ -1470,7 +1470,8 @@ def list_recent_posts_for_brand(
             "discovery pass via /me/accounts → /{page_id}?fields=instagram_business_account."
         )
     default_fields = [
-        "id", "caption", "media_type", "media_url", "permalink",
+        "id", "caption", "media_type", "media_product_type",
+        "media_url", "permalink",
         "thumbnail_url", "timestamp", "username", "is_comment_enabled",
     ]
     fields = fields or default_fields

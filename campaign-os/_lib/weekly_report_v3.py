@@ -438,6 +438,7 @@ def _read_instagram_posts_for_brand(bid: str) -> List[Dict[str, Any]]:
             out.append({
                 "id": p.get("id"),
                 "media_type": (p.get("media_type") or "IMAGE").upper(),
+                "media_product_type": (p.get("media_product_type") or "").upper(),
                 "caption": cap,
                 "interactions": 0,  # filled below from insights if available
                 "reach": 0,
@@ -543,8 +544,24 @@ def _render_stories(bid: str, periods: Optional[Dict[str, str]] = None) -> str:
             if not (cur_start_dt <= pa.date() <= cur_end_dt):
                 continue
         in_week.append(s)
+    has_ig_account = _brand_has_instagram_account(bid)
     if not in_week:
-        return ""
+        if not has_ig_account:
+            return ""  # brand has no IG account at all — skip silently
+        # IG account is configured but no active stories — show honest empty card
+        return """
+<section id="sec-Stories" class="report-section">
+  <div class="section-eyebrow">Stories</div>
+  <h2>Stories this week</h2>
+  <p class="lead">No active stories in the past 24 hours.</p>
+  <div class="content-empty">
+    <div class="content-empty-title">No active stories right now.</div>
+    <div class="content-empty-meta">Meta expires stories after 24h, so anything
+      older in the reporting week is no longer available. The Instagram Graph
+      API was called for this brand but returned no currently-live stories.</div>
+  </div>
+</section>
+"""
     in_week.sort(key=lambda s: ((s.get("reach") or 0),
                                   (s.get("interactions") or 0)),
                   reverse=True)
@@ -2154,10 +2171,18 @@ def _render_best_content(bid: str, organic: Dict[str, Any],
     # Render cards (one per post this week — DO NOT cap to 3)
     cards = ""
     for p in week_posts:
+        media_product_type = (p.get("media_product_type") or "").upper()
         media_type = (p.get("media_type") or "IMAGE").upper()
-        type_word = {"VIDEO": "Reel", "IMAGE": "Image",
-                       "CAROUSEL_ALBUM": "Carousel",
-                       "REEL": "Reel"}.get(media_type, "Post")
+        # media_product_type is more specific (FEED / REELS / STORY)
+        # but it's optional and not requested by default.
+        if media_product_type == "REELS":
+            type_word = "Reel"
+        elif media_product_type == "STORY":
+            type_word = "Story"
+        else:
+            type_word = {"VIDEO": "Reel", "IMAGE": "Image",
+                           "CAROUSEL_ALBUM": "Carousel",
+                           "REEL": "Reel"}.get(media_type, "Post")
         caption = (p.get("caption") or "").replace("\n", " ").strip()
         if len(caption) > 130:
             caption = caption[:127] + "..."
