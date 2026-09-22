@@ -4558,14 +4558,24 @@ def render_v23_brand_report_html(brand_id, period_days=31, cookie=None):
 #  - per-campaign insight commentary
 #  - data_as_of / freshness surfaced
 
-def _v24_load_paid_media_cache_v2(base_url, brand_id, cookie):
+def _v24_load_paid_media_cache_v2(base_url, brand_id, cookie, period_days=None):
     """Pull /api/meta/ads/cache/<brand> — V2.4 cache (with per-
-    campaign insights + account_meta)."""
+    campaign insights + account_meta).
+
+    When period_days is provided (e.g. 7 or 31), request the
+    period-specific cache so current_period / previous_period in
+    the response actually reflect that window. The cache endpoint
+    stores files at DATA_DIR/paid-media/<brand>__<period_days>d.json
+    so V2.4's 7-day call and 31-day call do NOT collide.
+    """
     if not base_url:
         return None
     try:
         import urllib.request as _ur24
-        req = _ur24.Request(f"{base_url}/api/meta/ads/cache/{brand_id}")
+        url = f"{base_url}/api/meta/ads/cache/{brand_id}"
+        if period_days is not None:
+            url += f"?period_days={period_days}"
+        req = _ur24.Request(url)
         if cookie:
             req.add_header("Cookie", cookie)
         with _ur24.urlopen(req, timeout=60) as r:
@@ -5090,7 +5100,7 @@ def build_v24_brand_report(brand_id, period_days=31, cookie=None):
     base = os.environ.get(
         "CAMPAIGN_OS_BASE_URL", "http://localhost:8080").rstrip("/")
     v23 = build_v23_brand_report(brand_id, period_days, cookie=cookie)
-    paid = _v24_load_paid_media_cache_v2(base, brand_id, cookie)
+    paid = _v24_load_paid_media_cache_v2(base, brand_id, cookie, period_days=period_days)
     if not paid:
         v23["schema"] = "https://campaign-os/reporting/v2.4"
         v23["version"] = "2.4"

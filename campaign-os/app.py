@@ -45024,20 +45024,36 @@ def meta_ads_ingest(brand_id):
 
 @app.route("/api/meta/ads/cache/<brand_id>", methods=["GET"])
 def meta_ads_cache(brand_id):
-    """GET /api/meta/ads/cache/<brand_id> — return the cached
-    paid-media payload from the last ingest run.
+    """GET /api/meta/ads/cache/<brand_id>[?period_days=7|31]
+
+    Period-aware cache lookup. Files are stored as
+    DATA_DIR/paid-media/<brand>__<period_days>d.json so the
+    7-day weekly cache does not collide with the 31-day monthly
+    cache. When ?period_days is omitted, defaults to 31 (backward
+    compat with older V2.4 callers).
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("stick", "swing-shack"):
         return jsonify({"ok": False,
                         "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
-    cache_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+    period_days = request.args.get("period_days", 31, type=int)
+    if period_days not in (7, 14, 28, 31, 90):
+        period_days = 31
+    cache_path = os.path.join(DATA_DIR, "paid-media",
+                                f"{brand_id}__{period_days}d.json")
     if not os.path.exists(cache_path):
-        # Try to ingest
-        out = _v23_ingest_paid_media(brand_id, period_days=31, ytd=True)
+        # Trigger an on-demand ingest at the requested period.
+        out = _v23_ingest_paid_media(brand_id, period_days=period_days, ytd=False)
+        # _v23_ingest_paid_media writes its own canonical file at
+        # <brand>.json (NOT period-scoped) — copy that to the
+        # period-scoped path so subsequent lookups hit cache.
+        canonical_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+        if os.path.exists(canonical_path):
+            import shutil
+            shutil.copy2(canonical_path, cache_path)
         return jsonify({"ok": out.get("ok"), "cache": out,
-                        "note": "no cache yet — ran ingest on first access"}), 200
+                        "note": f"no {period_days}d cache yet — ran ingest on first access"}), 200
     with open(cache_path) as f:
         return jsonify({"ok": True, "cache": json.load(f)}), 200
 
@@ -45575,19 +45591,137 @@ def weekly_report_v3(brand_id):
         return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
-@app.route("/api/meta/paid-media/refresh", methods=["POST"])
-def meta_paid_media_refresh():
-    """POST /api/meta/paid-media/refresh
+@app.route("/api/meta/paid-media/audit", methods=["GET"])
+def meta_paid_media_audit():
+    """GET /api/meta/paid-media/audit?brand=<id>
 
-    V2.4 §12: scheduled refresh. Re-ingests both brands.
-    Safe to call from cron. Read-only.
+    Read-only direct Meta Graph API audit. Queries /insights
+    with time_range sent EXPLICITLY for current 7d, previous 7d,
+    and current 31d windows. Returns raw Meta totals + the
+    exact time_range sent + campaign-level breakdown.
+
+    This is the operator's "ground truth" that V3 weekly reporting
+    values must reconcile against. Does NOT mutate cache.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = request.args.get("brand", "stick")
+    if brand not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": "brand must be stick or swing-shack"}), 400
+    acc = _v23_resolve_ads_account(brand)
+    if not acc:
+        return jsonify({"ok": False, "brand": brand,
+                          "error": "no canonical ad account"}), 400
+    token_label, token = _v23_resolve_ads_token(brand)
+    if not token:
+        return jsonify({"ok": False, "brand": brand,
+                          "error": "no token for this brand",
+                          "token_label": token_label}), 400
+    windows = [
+        ("current_7d", "2026-09-15", "2026-09-21"),
+        ("previous_7d", "2026-09-08", "2026-09-14"),
+        ("current_31d", "2026-08-22", "2026-09-21"),
+    ]
+    fields = ("spend,impressions,reach,clicks,cpc,cpm,ctr,"
+              "frequency,actions,cost_per_action_type,objective")
+    out = {
+        "brand_id": brand,
+        "account_id": acc,
+        "token_label": token_label,
+        "queried_at": _now_iso(),
+        "windows": {},
+    }
+    for label, since, until in windows:
+        tr = {"since": since, "until": until}
+        try:
+            params = {"fields": fields, "level": "account",
+                        "time_range": json.dumps(tr),
+                        "access_token": token}
+            url = (f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+                    f"/{acc}/insights")
+            import urllib.parse as _up
+            with urllib.request.urlopen(
+                url + "?" + _up.urlencode(params), timeout=60) as r:
+                acct_body = json.loads(r.read())
+            # Campaign-level
+            params["level"] = "campaign"
+            params["limit"] = 200
+            with urllib.request.urlopen(
+                url + "?" + _up.urlencode(params), timeout=60) as r:
+                camp_body = json.loads(r.read())
+            acct_data = (acct_body.get("data") or [{}])[0]
+            campaigns = []
+            for row in (camp_body.get("data") or []):
+                campaigns.append({
+                    "campaign_id": row.get("id"),
+                    "campaign_name": (row.get("campaign_name")
+                                         or row.get("name")),
+                    "objective": row.get("objective"),
+                    "spend": float(row.get("spend") or 0),
+                    "impressions": int(row.get("impressions") or 0),
+                    "reach": int(row.get("reach") or 0),
+                    "clicks": int(row.get("clicks") or 0),
+                    "cpc": float(row.get("cpc") or 0),
+                    "cpm": float(row.get("cpm") or 0),
+                    "ctr": float(row.get("ctr") or 0),
+                    "actions": row.get("actions") or [],
+                    "cost_per_action_type": row.get("cost_per_action_type") or [],
+                })
+            out["windows"][label] = {
+                "time_range_sent": tr,
+                "queried_at": _now_iso(),
+                "account_level": {
+                    "spend": float(acct_data.get("spend") or 0),
+                    "impressions": int(acct_data.get("impressions") or 0),
+                    "reach": int(acct_data.get("reach") or 0),
+                    "clicks": int(acct_data.get("clicks") or 0),
+                    "cpc": float(acct_data.get("cpc") or 0),
+                    "cpm": float(acct_data.get("cpm") or 0),
+                    "ctr": float(acct_data.get("ctr") or 0),
+                },
+                "campaign_aggregate": {
+                    "spend": round(sum(c["spend"] for c in campaigns), 2),
+                    "impressions": sum(c["impressions"] for c in campaigns),
+                    "reach": sum(c["reach"] for c in campaigns),
+                    "clicks": sum(c["clicks"] for c in campaigns),
+                    "n_campaigns": len(campaigns),
+                },
+                "per_campaign": sorted(campaigns,
+                                            key=lambda c: c["spend"],
+                                            reverse=True),
+            }
+        except Exception as e:
+            out["windows"][label] = {
+                "time_range_sent": tr,
+                "queried_at": _now_iso(),
+                "error": str(e)[:300],
+            }
+    return jsonify({"ok": True, "audit": out}), 200
+
+
+@app.route("/api/meta/paid-media/refresh", methods=["POST"])
+def meta_paid_media_refresh():
+    """POST /api/meta/paid-media/refresh[?period_days=7|31]
+
+    V2.4 §12: scheduled refresh. Re-ingests both brands at the
+    requested period_days. Safe to call from cron. Read-only.
+
+    The canonical file DATA_DIR/paid-media/<brand>.json is written
+    by _v23_ingest_paid_media. After both brands are ingested, we
+    also copy each canonical file to DATA_DIR/paid-media/<brand>__<period_days>d.json
+    so the /api/meta/ads/cache endpoint can serve a period-aware
+    cache without the weekly and monthly caches colliding.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    period_days = request.args.get("period_days", 31, type=int)
+    if period_days not in (7, 14, 28, 31, 90):
+        period_days = 31
     out = {}
     for brand_id in ("stick", "swing-shack"):
         try:
-            res = _v23_ingest_paid_media(brand_id, 31, ytd=True)
+            res = _v23_ingest_paid_media(brand_id, period_days,
+                                            ytd=(period_days >= 31))
             out[brand_id] = {
                 "ok": res.get("ok"),
                 "data_status": res.get("data_status"),
@@ -45601,16 +45735,27 @@ def meta_paid_media_refresh():
             }
         except Exception as e:
             out[brand_id] = {"ok": False, "error": str(e)[:200]}
+    # Copy canonical cache files into period-scoped caches so
+    # /api/meta/ads/cache?period_days=7 hits a fresh 7-day cache.
+    period_cache_paths = {}
+    for brand_id in ("stick", "swing-shack"):
+        canonical = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+        per = os.path.join(DATA_DIR, "paid-media",
+                              f"{brand_id}__{period_days}d.json")
+        if os.path.exists(canonical):
+            import shutil
+            shutil.copy2(canonical, per)
+            period_cache_paths[brand_id] = per
     return jsonify({
         "ok": True,
         "refreshed_at": _now_iso(),
+        "period_days": period_days,
         "brands": out,
+        "period_cache_paths": period_cache_paths,
         "note": ("Read-only refresh. Source: Meta Graph API. "
                  "Cache file: DATA_DIR/paid-media/<brand>.json. "
                  "Synthetic data/meta-ads.json never read."),
     }), 200
-
-
 
 
 # ─── CREATE V1 ────────────────────────────────────────────────────────
