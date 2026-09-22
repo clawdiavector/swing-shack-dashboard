@@ -25,6 +25,42 @@ import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# Period-aware Instagram post lookup (V3.6).
+import datetime as _dt_mod
+
+# 'as_of' may be a date or datetime
+def _parse_published_at(value) -> Optional[_dt_mod.datetime]:
+    """Parse an ISO-8601 Instagram post timestamp into tz-aware UTC datetime."""
+    if not value:
+        return None
+    if isinstance(value, _dt_mod.datetime):
+        dt = value
+    else:
+        s = str(value).strip()
+        try:
+            s_clean = s.replace("Z", "+00:00") if s.endswith("Z") else s
+            dt = _dt_mod.datetime.fromisoformat(s_clean)
+        except Exception:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_dt_mod.timezone.utc)
+    return dt
+
+def _in_report_week(value, cur_start: str, cur_end: str) -> bool:
+    """True if a post timestamp falls inside the report week (inclusive)."""
+    dt = _parse_published_at(value)
+    if dt is None:
+        return False
+    try:
+        start = _dt_mod.datetime.fromisoformat(cur_start).replace(
+            tzinfo=_dt_mod.timezone.utc)
+        end_excl = (_dt_mod.datetime.fromisoformat(cur_end)
+                      + _dt_mod.timedelta(days=1)).replace(
+                          tzinfo=_dt_mod.timezone.utc)
+    except Exception:
+        return False
+    return start <= dt < end_excl
+
 # ── data root / brand facts ─────────────────────────────────────
 
 def _data_root() -> Path:
@@ -342,6 +378,74 @@ def _sign(curr, prev) -> str:
 
 
 # ── read organic (IG + FB) from disk cache ─────────────────────
+
+def _brand_has_instagram_account(bid: str) -> bool:
+    """True iff the brand has an Instagram business account configured.
+
+    Reads data/integrations/<bid>/instagram.json. Avoids the
+    upstream /api/insights/top-instagram-posts endpoint's
+    stick->swing-shack delegation, which silently returns SS
+    posts under a 'stick' label.
+    """
+    for r in (_data_root(),
+                Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
+        p = r / "integrations" / bid / "instagram.json"
+        if p.is_file():
+            try:
+                d = json.loads(p.read_text())
+            except Exception:
+                continue
+            # configured must be true AND ig_business_account_id set
+            return bool(d.get("configured")) and bool(d.get("ig_business_account_id"))
+    return False
+
+
+def _read_instagram_posts_for_brand(bid: str) -> List[Dict[str, Any]]:
+    """Load Instagram posts published by this brand, with timestamps.
+
+    Guard rails:
+      1. Brand must have its own IG business account configured
+         (data/integrations/<bid>/instagram.json). If not, return [].
+      2. The upstream insights_correlator delegates stick->swing-shack
+         silently and labels the response as 'stick', so we cannot
+         rely on its data_source_brand_id.
+      3. We only return posts with parseable published_at timestamps.
+    """
+    if not _brand_has_instagram_account(bid):
+        return []
+    out: List[Dict[str, Any]] = []
+    try:
+        from _lib import insights_correlator as _ic  # type: ignore
+        r = _ic.get_top_instagram_posts(brand_id=bid, limit=25) or {}
+        for p in r.get("posts") or []:
+            if not isinstance(p, dict):
+                continue
+            dt = _parse_published_at(p.get("timestamp"))
+            if dt is None:
+                continue
+            out.append({
+                "id": p.get("id"),
+                "media_type": (p.get("media_type") or "IMAGE").upper(),
+                "caption": (p.get("caption_excerpt") or "").strip(),
+                "interactions": (int(p.get("like_count") or 0)
+                                    + int(p.get("comments_count") or 0)
+                                    + int(p.get("saves") or 0)
+                                    + int(p.get("shares") or 0)),
+                "reach": int(p.get("reach") or 0),
+                "likes": int(p.get("like_count") or 0),
+                "comments": int(p.get("comments_count") or 0),
+                "saves": int(p.get("saves") or 0),
+                "shares": int(p.get("shares") or 0),
+                "permalink": p.get("permalink") or "",
+                "thumbnail_url": p.get("thumbnail_url") or "",
+                "timestamp": p.get("timestamp"),
+                "published_at": dt,
+                "source": r.get("_meta", {}).get("source") or "insights_correlator",
+            })
+    except Exception:
+        return []
+    return out
+
 
 def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
     out: Dict[str, Any] = {"ig": None, "fb": None}
@@ -821,7 +925,7 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
     sections.append(_render_website_pages(v24))
     sections.append(_render_seo(seo, seo_kw, primary, bid))
     sections.append(_render_social(bid, organic, primary))
-    sections.append(_render_best_content(bid, organic, primary))
+    sections.append(_render_best_content(bid, organic, primary, periods))
     sections.append(_render_worked_attention(v24, primary))
     sections.append(_render_actions(v24, bid, primary, accent))
     sections.append(_render_targets(v24, primary, accent, bid))
@@ -1360,6 +1464,47 @@ table.data .trend-flat, table.data .trend-neutral {{ color: var(--ink-muted); }}
   color: var(--bad); padding: 24px; border-radius: 12px;
   font-family: monospace; white-space: pre-wrap;
 }}
+.content-card .thumb img {{
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
+}}
+.content-card .thumb-fallback {{
+  font-size: 14px; letter-spacing: .04em; font-weight: 600;
+}}
+.content-card .type-row {{
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 10px; margin-bottom: 6px;
+}}
+.content-card .type-row .type {{
+  margin: 0;
+}}
+.content-card .pub-date {{
+  font-size: 10px; letter-spacing: .04em;
+  color: var(--ink-muted); font-weight: 500;
+  text-transform: uppercase;
+  background: var(--neutral-soft);
+  padding: 3px 8px; border-radius: 999px;
+  white-space: nowrap;
+}}
+.content-card .content-permalink {{
+  display: inline-block; margin-top: 10px;
+  font-size: 12px; font-weight: 600;
+  color: var(--brand-primary);
+}}
+.content-card .content-permalink:hover {{
+  text-decoration: underline;
+}}
+.content-empty {{
+  background: var(--neutral-soft); border-radius: 10px;
+  padding: 24px; text-align: center;
+}}
+.content-empty-title {{
+  font-weight: 600; color: var(--ink);
+  margin-bottom: 6px; font-size: 15px;
+}}
+.content-empty-meta {{
+  font-size: 12px; color: var(--ink-muted); line-height: 1.5;
+}}
 @media (max-width: 920px) {{
   .kpi-row {{ grid-template-columns: repeat(2, 1fr); }}
   .action-grid {{ grid-template-columns: 1fr; }}
@@ -1782,45 +1927,111 @@ def _render_social(bid: str, organic: Dict[str, Any], primary: str) -> str:
 
 
 def _render_best_content(bid: str, organic: Dict[str, Any],
-                           primary: str) -> str:
-    ig_top = (organic.get("ig") or {}).get("top_posts") or []
-    fb_top = (organic.get("fb") or {}).get("top_posts") or []
-    pieces = sorted(
-        [("Instagram", p) for p in ig_top]
-        + [("Facebook", p) for p in fb_top],
-        key=lambda t: (t[1].get("interactions") or 0),
+                           primary: str,
+                           periods: Optional[Dict[str, str]] = None) -> str:
+    """V3.6: only show posts published during the report week.
+
+    Reads Instagram posts via insights_correlator (in-process, no
+    external HTTP). Filters by week. Shows published date on the
+    card. Uses the real thumbnail when available, otherwise the
+    brand-coloured fallback.
+
+    Never fills empty slots with older posts. If only one post
+    was published this week, one card. If none, an honest
+    'No new feed posts were published this week.' message.
+    """
+    cur_start = (periods or {}).get("current_week_start", "")
+    cur_end = (periods or {}).get("current_week_end", "")
+    cur_end_dt = _dt_mod.date.fromisoformat(cur_end) if cur_end else None
+    cur_start_dt = _dt_mod.date.fromisoformat(cur_start) if cur_start else None
+    # Load posts for THIS brand (brand-scoped, not delegated)
+    posts = _read_instagram_posts_for_brand(bid)
+    week_posts: List[Dict[str, Any]] = []
+    for p in posts:
+        pa = p.get("published_at")
+        if pa is None:
+            continue
+        if cur_start_dt and cur_end_dt:
+            if not (cur_start_dt <= pa.date() <= cur_end_dt):
+                continue
+        week_posts.append(p)
+    # Rank by reach, then interactions
+    week_posts.sort(
+        key=lambda p: ((p.get("reach") or 0), (p.get("interactions") or 0)),
         reverse=True,
-    )[:3]
-    if not pieces:
-        return ""
+    )
+    # Section header
+    period_label = ""
+    if cur_start_dt and cur_end_dt:
+        period_label = (f"{cur_start_dt.strftime('%d %B')} → " 
+                          f"{cur_end_dt.strftime('%d %B %Y')}")
+    if not week_posts:
+        # Empty week — honest message. Don't fill slots.
+        return f"""
+<section id="sec-Content" class="report-section">
+  <div class="section-eyebrow">Best content</div>
+  <h2>Best content</h2>
+  <p class="lead">Posts published between {period_label or 'this period'}.</p>
+  <div class="content-empty">
+    <div class="content-empty-title">No new feed posts were published this week.</div>
+    <div class="content-empty-meta">Next refresh pulls fresh data from the
+      Instagram Graph API. Older posts are kept in the historical archive
+      but never shown under "Best content" in the weekly report.</div>
+  </div>
+</section>
+"""
+    # Render cards (one per post this week — DO NOT cap to 3)
     cards = ""
-    plat_label = {"Instagram": "Instagram", "Facebook": "Facebook page"}
-    for platform, p in pieces:
-        media_type = p.get("media_type") or "post"
+    for p in week_posts:
+        media_type = (p.get("media_type") or "IMAGE").upper()
         type_word = {"VIDEO": "Reel", "IMAGE": "Image",
                        "CAROUSEL_ALBUM": "Carousel",
                        "REEL": "Reel"}.get(media_type, "Post")
-        caption = (p.get("caption") or "").replace("\n", " ")
-        if len(caption) > 110:
-            caption = caption[:107] + "..."
-        icon = {"Instagram": "IG", "Facebook": "FB"}.get(platform, "•")
+        caption = (p.get("caption") or "").replace("\n", " ").strip()
+        if len(caption) > 130:
+            caption = caption[:127] + "..."
+        thumb = p.get("thumbnail_url") or ""
+        pa = p.get("published_at")
+        pub_date_label = (pa.strftime("%d %b") if pa else "?")
+        full_pub_date = (pa.strftime("%d %B %Y") if pa else "")
+        # Card
+        if thumb:
+            thumb_html = (f'<img src="{_esc(thumb)}" alt="{_esc(type_word)} preview" '
+                            f'loading="lazy" />')
+        else:
+            thumb_html = f'<span class="thumb-fallback">IG · {type_word}</span>'
+        permalink = p.get("permalink") or ""
+        reach = p.get("reach") or 0
+        interactions = p.get("interactions") or 0
+        permalink_html = (f'<a href="{_esc(permalink)}" target="_blank" '
+                            f'rel="noopener" class="content-permalink">'
+                            f'View on Instagram ↗</a>' if permalink else '')
         cards += f"""
         <div class="content-card">
-          <div class="thumb">{icon} · {type_word}</div>
+          <div class="thumb">{thumb_html}</div>
           <div class="meta">
-            <div class="type">{_esc(plat_label.get(platform, platform))} · {_esc(type_word)}</div>
+            <div class="type-row">
+              <span class="type">{_esc(type_word)}</span>
+              <span class="pub-date" title="{_esc(full_pub_date)}">Published {_esc(pub_date_label)}</span>
+            </div>
             <div class="caption">{_esc(caption) or '<span class="kpi-secondary">(no caption)</span>'}</div>
             <div class="stats">
-              <span>Reach: <strong>{_esc(_fmt(p.get('reach')))}</strong></span>
-              <span>Interactions: <strong>{_esc(_fmt(p.get('interactions')))}</strong></span>
+              <span>Reach: <strong>{_esc(_fmt(reach))}</strong></span>
+              <span>Interactions: <strong>{_esc(_fmt(interactions))}</strong></span>
             </div>
+            {permalink_html}
           </div>
         </div>"""
+    count_n = len(week_posts)
+    post_word = "post" if count_n == 1 else "posts"
+    lead = (f"{count_n} {post_word} published between {period_label}. " 
+              if period_label else f"{count_n} {post_word} published this week. ")
+    lead += "Ranked by people reached, then interactions."
     return f"""
 <section id="sec-Content" class="report-section">
   <div class="section-eyebrow">Best content</div>
   <h2>Best content</h2>
-  <p class="lead">Top 3 posts by interactions this period.</p>
+  <p class="lead">{_esc(lead)}</p>
   <div class="content-grid">{cards}</div>
 </section>
 """
@@ -2192,24 +2403,38 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
         L.append("")
     L.append("## Best content")
     L.append("")
-    ig_top = (organic.get("ig") or {}).get("top_posts") or []
-    fb_top = (organic.get("fb") or {}).get("top_posts") or []
-    pieces = sorted(
-        [("Instagram", p) for p in ig_top]
-        + [("Facebook", p) for p in fb_top],
-        key=lambda t: (t[1].get("interactions") or 0),
-        reverse=True,
-    )[:3]
-    if pieces:
-        for platform, p in pieces:
-            media_type = p.get("media_type") or "post"
+    # V3.6: filter to report week only
+    cur_start_dt = (datetime.date.fromisoformat(periods['current_week_start'])
+                      if periods.get('current_week_start') else None)
+    cur_end_dt = (datetime.date.fromisoformat(periods['current_week_end'])
+                    if periods.get('current_week_end') else None)
+    week_posts: List[Dict[str, Any]] = []
+    for p in _read_instagram_posts_for_brand(bid):
+        pa = p.get("published_at")
+        if not pa:
+            continue
+        if cur_start_dt and cur_end_dt and not (cur_start_dt <= pa.date() <= cur_end_dt):
+            continue
+        week_posts.append(p)
+    week_posts.sort(key=lambda p: ((p.get("reach") or 0), (p.get("interactions") or 0)),
+                      reverse=True)
+    if not week_posts:
+        L.append("No new feed posts were published this week.")
+        L.append("")
+    else:
+        for p in week_posts:
+            media_type = (p.get("media_type") or "IMAGE").upper()
             type_word = {"VIDEO": "Reel", "IMAGE": "Image"}.get(media_type, "Post")
-            caption = (p.get("caption") or "").replace("\n", " ")
-            if len(caption) > 90:
-                caption = caption[:87] + "..."
-            L.append(f"- **{platform} — {type_word}:** {caption}")
+            caption = (p.get("caption") or "").replace("\n", " ").strip()
+            if len(caption) > 110:
+                caption = caption[:107] + "..."
+            pa = p.get("published_at")
+            pub_date_label = pa.strftime("%d %b %Y") if pa else "unknown date"
+            L.append(f"- **{type_word} — published {pub_date_label}:** {caption}")
             L.append(f"  - Reach: {_fmt(p.get('reach'))}, "
                       f"interactions: {_fmt(p.get('interactions'))}")
+            if p.get("permalink"):
+                L.append(f"  - [View on Instagram]({p['permalink']})")
         L.append("")
     L.append("## What worked")
     L.append("")
@@ -2274,7 +2499,7 @@ def _render_markdown(bid: str, v24: dict, organic: Dict[str, Any],
 
 # ── main entry ─────────────────────────────────────────────────
 
-def build_v35(bid: str, fmt: str = "markdown",
+def build_v36(bid: str, fmt: str = "markdown",
                 as_of: Optional[str] = None,
                 cookie: Optional[str] = None) -> dict:
     if bid not in ("stick", "swing-shack", "bag-drop"):
@@ -2333,7 +2558,7 @@ def build_v35(bid: str, fmt: str = "markdown",
             "v24": v24,
             "periods": periods,
             "brand_id": bid,
-            "generator": "weekly_report_v3.5",
+            "generator": "weekly_report_v3.6",
             "as_of": as_of,
             "organic": organic,
             "seo": seo,
@@ -2342,7 +2567,7 @@ def build_v35(bid: str, fmt: str = "markdown",
     }
 
 
-def archive_snapshot_v35(bid: str, as_of: Optional[str] = None,
+def archive_snapshot_v36(bid: str, as_of: Optional[str] = None,
                             snapshot_root: Optional[Path] = None,
                             cookie: Optional[str] = None) -> Dict[str, Any]:
     out = build_v35(bid, fmt="json", as_of=as_of, cookie=cookie)
@@ -2351,7 +2576,7 @@ def archive_snapshot_v35(bid: str, as_of: Optional[str] = None,
     organic = (out.get("raw_payload") or {}).get("organic") or {}
     seo = (out.get("raw_payload") or {}).get("seo") or {}
     snapshot = {
-        "schema": "https://campaign-os/weekly-report/v3.5-snapshot",
+        "schema": "https://campaign-os/weekly-report/v3.6-snapshot",
         "brand_id": bid,
         "as_of": as_of or periods.get("data_complete_through"),
         "current_period": {
@@ -2403,35 +2628,35 @@ def archive_snapshot_v35(bid: str, as_of: Optional[str] = None,
 
 # Backwards-compat aliases for older callers in app.py
 def build_v31(*args, **kwargs):
-    return build_v35(*args, **kwargs)
+    return build_v36(*args, **kwargs)
 
 
 def build_v32(*args, **kwargs):
-    return build_v35(*args, **kwargs)
+    return build_v36(*args, **kwargs)
 
 
 def build_v33(*args, **kwargs):
-    return build_v35(*args, **kwargs)
+    return build_v36(*args, **kwargs)
 
 
 def build_v34(*args, **kwargs):
-    return build_v35(*args, **kwargs)
+    return build_v36(*args, **kwargs)
 
 
 def archive_snapshot_v31(*args, **kwargs):
-    return archive_snapshot_v35(*args, **kwargs)
+    return archive_snapshot_v36(*args, **kwargs)
 
 
 def archive_snapshot_v32(*args, **kwargs):
-    return archive_snapshot_v35(*args, **kwargs)
+    return archive_snapshot_v36(*args, **kwargs)
 
 
 def archive_snapshot_v33(*args, **kwargs):
-    return archive_snapshot_v35(*args, **kwargs)
+    return archive_snapshot_v36(*args, **kwargs)
 
 
 def archive_snapshot_v34(*args, **kwargs):
-    return archive_snapshot_v35(*args, **kwargs)
+    return archive_snapshot_v36(*args, **kwargs)
 
 
 if __name__ == "__main__":
