@@ -1150,7 +1150,7 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
   <a class="topbar-back" href="/weekly-report">← Back to reports dashboard</a>
   <span class="topbar-spacer"></span>
   <span class="topbar-brand-label">Brand:</span>
-  {brand_pills}
+  {_pills}
 </nav>
 <header class="page-header">
   <div class="header-inner">
