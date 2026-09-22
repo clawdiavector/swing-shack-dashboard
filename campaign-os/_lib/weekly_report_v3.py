@@ -867,7 +867,7 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
                 break
     kpi_html = ""
     for s in sections:
-        if s.startswith("<section id='sec-KPI'>"):
+        if s.startswith('<section id="sec-KPI">'):
             kpi_html = s
             break
     css = _css(primary, accent)
