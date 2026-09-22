@@ -7,10 +7,10 @@ import { Button, IconTile, StatCard } from '../components/ui'
 import { fetchToday, type TodayPanel } from '../lib/api'
 
 const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = [
-  { href: '/weekly-report', label: 'This week', hint: 'Weekly report', icon: LineChart },
-  { href: '/?page=insights', label: 'What worked', hint: 'Insights', icon: Sparkles },
+  { href: '/results/week', label: 'This week', hint: 'Weekly report', icon: LineChart },
+  { href: '/results/worked?tab=posts', label: 'What worked', hint: 'Insights', icon: Sparkles },
   { href: '/?page=performance', label: 'Reach', hint: 'Performance', icon: Activity },
-  { href: '/?page=learning', label: 'Learnings', hint: 'Recipes', icon: BookOpen },
+  { href: '/results/worked?tab=recipes', label: 'Learnings', hint: 'Recipes', icon: BookOpen },
   { href: '/?page=trends', label: 'Trends', hint: 'What is moving', icon: TrendingUp },
   { href: '/?page=seo', label: 'SEO', hint: 'Rankings and audit', icon: Search },
 ]
@@ -43,7 +43,7 @@ export function Results() {
           tone="green"
         />
         <StatCard
-          href="/weekly-report"
+          to="/results/week"
           icon={LineChart}
           label="Weekly"
           value="Open"
@@ -67,10 +67,10 @@ export function Results() {
           title="This week’s report"
           meta="What shipped, what moved, and what to do next Monday."
         >
-          <Button href="/weekly-report" icon={LineChart} tip="Open this week’s full report.">
+          <Button to="/results/week" icon={LineChart} tip="Open this week’s full report.">
             Open weekly report
           </Button>
-          <Button href="/?page=insights" icon={Sparkles} tone="ghost" tip="Open what worked — posts, reach, and recipes.">
+          <Button to="/results/worked?tab=posts" icon={Sparkles} tone="ghost" tip="Open what worked — posts, reach, and recipes.">
             Insights
           </Button>
         </HeroPanel>

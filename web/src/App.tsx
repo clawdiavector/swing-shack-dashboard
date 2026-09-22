@@ -21,6 +21,8 @@ import { Lanes } from './pages/calendar/Lanes'
 import { Gbp } from './pages/publish/Gbp'
 import { PostizPage } from './pages/publish/PostizPage'
 import { Queue } from './pages/publish/Queue'
+import { Week } from './pages/results/Week'
+import { Worked } from './pages/results/Worked'
 
 export default function App() {
   return (
@@ -44,6 +46,8 @@ export default function App() {
         <Route path="publish/postiz" element={<PostizPage />} />
         <Route path="publish/gbp" element={<Gbp />} />
         <Route path="results" element={<Results />} />
+        <Route path="results/week" element={<Week />} />
+        <Route path="results/worked" element={<Worked />} />
         <Route path="ops" element={<Ops />} />
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />

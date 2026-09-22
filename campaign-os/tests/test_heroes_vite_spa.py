@@ -75,3 +75,30 @@ def test_classic_publish_surfaces_still_served():
     for page in ('publish', 'postiz', 'gbp', 'gmb'):
         resp = client.get(f'/?page={page}', follow_redirects=False)
         assert resp.status_code in (200, 302)
+
+
+def test_classic_results_surfaces_still_served():
+    from app import app
+
+    client = app.test_client()
+    for page in ('insights', 'performance', 'learning', 'trends', 'seo'):
+        resp = client.get(f'/?page={page}', follow_redirects=False)
+        assert resp.status_code in (200, 302)
+
+
+def test_weekly_report_page_still_public():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/weekly-report', follow_redirects=False)
+    assert resp.status_code == 200
+
+
+def test_results_alias_redirects_to_app():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/results', follow_redirects=False)
+    loc = resp.headers.get('Location') or ''
+    assert resp.status_code in (301, 302)
+    assert '/app/results' in loc or '/login' in loc

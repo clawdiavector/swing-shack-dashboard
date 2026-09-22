@@ -114,6 +114,35 @@ configured ✓/✗ only.
 Classic `/?page=publish`, `/?page=postiz`, `/?page=gbp` and `/?page=gmb` stay live — each
 native page carries a ClassicLink raw anchor to its classic page.
 
+## Results
+
+`/app/results` is the hub. **P4a** native surfaces: `/app/results/week` (`?tab=summary|hooks|failures|agents`)
+and `/app/results/worked` (`?tab=posts|recipes|ctas|patterns|traffic`). Reach, trends, and SEO stay Classic
+until P4b.
+
+`/results/week` fetches **both** weekly reports: brand-true KPIs from `/api/weekly-report?format=json` and
+portfolio-wide detail from `/api/intel/weekly_report` (interpretation, hooks, agents). Say which is which on
+the page — do not show intel numbers under the wrong brand chip. When `data_source_brand_id` differs from
+the active brand, show a delegation badge.
+
+`/results/worked` merges Classic insights and learnings. The **posts** and **traffic** tabs are brand-true
+(via `brand_id` / delegation). **Recipes, CTAs, and patterns** read flat learn files — label those sections
+portfolio-wide, not once at the top.
+
+`?tab=` selects the view and is written back with `replace:true`. Missing or malformed falls back to the
+default tab, never an error. `?post=` / `?hook_id=` highlight a row once, then drop from the URL (same as
+Publish queue `?item=`). SEO deep links in P4b will use **`?sp=`** on the native route (not `?page=`, which
+collides with Classic section names) and translate to `page=` at the fetch boundary.
+
+Live actions: weekly snapshot (`POST /api/weekly-report/snapshot`) and share-link mint
+(`POST /api/intel/weekly_report/share`) are labelled **(live)**. Share mint requires a typed confirm naming
+the brand; show `expires_at` and a copyable link only — never log tokens. Reporting V1 (`/api/reports/v1/`)
+is offered only for `swing-shack` and `stick`; other brands get a disabled tile with the reason in words.
+
+Classic `/weekly-report` (public HTML), `/?page=insights`, and `/?page=learning` stay live — native pages
+carry ClassicLink raw anchors. Do not widen `PUBLIC_ROUTE_PREFIXES` or move the public weekly page behind
+the SPA.
+
 Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-lab.html`,
 `campaign-os.html` sections) stay on disk and served; Heroes does not delete them.
 

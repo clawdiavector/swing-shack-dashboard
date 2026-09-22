@@ -540,6 +540,8 @@ export type InsightPost = {
   plain_english?: string
   like_count?: number
   timestamp?: string
+  permalink?: string
+  thumbnail_url?: string
 }
 
 export type InsightsPosts = {
@@ -548,10 +550,145 @@ export type InsightsPosts = {
   _meta?: { average_engagement?: number; total_scanned?: number; fetched_at?: string; reason?: string }
 }
 
-export function fetchTopPosts(brand?: string) {
-  const q = new URLSearchParams({ limit: '3' })
+export function fetchTopPosts(brand?: string, limit = 3) {
+  const q = new URLSearchParams({ limit: String(limit) })
   if (brand) q.set('brand_id', brand)
   return getJson<InsightsPosts>(`/api/insights/top-instagram-posts?${q}`)
+}
+
+export type WeeklyReportJson = {
+  brand_id?: string
+  data_source_brand_id?: string
+  brand_meta?: Record<string, unknown>
+  metrics?: Record<string, unknown>
+}
+
+export type WeekOnWeekCell = {
+  current?: number
+  previous?: number
+  delta?: number
+  pct_change?: number
+}
+
+export type IntelWeeklyReport = {
+  ok?: boolean
+  ts?: string
+  week_start?: string
+  week_end?: string
+  window_label?: string
+  window_note?: string
+  brand?: string
+  headline?: string
+  headline_kpis?: {
+    published?: number
+    failed?: number
+    win_rate_pct?: number
+    agent_runs?: number
+    agent_pass_rate_pct?: number
+  }
+  platforms?: unknown
+  by_day?: unknown
+  top_hooks?: unknown[]
+  top_ctas?: unknown[]
+  seo_movers?: unknown[]
+  failures?: { item_id?: string; platform?: string; reason?: string; ts?: string }[]
+  agent_breakdown?: Record<
+    string,
+    { total?: number; passed?: number; failed?: number; partial?: number; pass_rate_pct?: number }
+  >
+  week_on_week?: Record<string, WeekOnWeekCell>
+  ga4?: unknown
+  youtube?: unknown
+  reddit?: unknown
+  ig_business?: unknown
+  seo_health?: unknown
+  interpretation?: string
+  visual_insights?: unknown
+  ig_topic_clusters?: unknown
+  export_path?: string
+}
+
+export function fetchWeeklyReportJson(brand: string) {
+  const q = new URLSearchParams({ brand, format: 'json' })
+  return getJson<WeeklyReportJson>(`/api/weekly-report?${q}`)
+}
+
+export function fetchIntelWeeklyReport() {
+  return getJson<IntelWeeklyReport>('/api/intel/weekly_report')
+}
+
+export async function snapshotWeeklyReport(brand: string) {
+  const q = new URLSearchParams({ brand })
+  const res = await fetch(`/api/weekly-report/snapshot?${q}`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  if (!res.ok) throw new Error(`/api/weekly-report/snapshot ${res.status}`)
+  return res.json() as Promise<{ brand_id?: string; path?: string; iso_week?: unknown }>
+}
+
+export type WeeklyShareResponse = {
+  ok?: boolean
+  share_url?: string
+  expires_at?: string
+  ttl_seconds?: number
+  error?: string
+}
+
+export function shareWeeklyReport(ttlSeconds?: number) {
+  const body = ttlSeconds != null ? { ttl_seconds: ttlSeconds } : {}
+  return postJson<WeeklyShareResponse>('/api/intel/weekly_report/share', body)
+}
+
+export type LearningRow = { title?: string; kind?: string; why?: string }
+
+export type IntelLearning = {
+  ok?: boolean
+  ts?: string
+  what_worked?: LearningRow[]
+  what_failed?: LearningRow[]
+  recommendation_outcomes?: unknown[]
+  best_recommendation?: unknown
+  trend_delta?: unknown
+  cta_rankings?: unknown[]
+  failure_patterns?: unknown[]
+  confidence_bands?: Record<string, unknown>
+  data_as_of?: Record<string, string | null | undefined>
+}
+
+export function fetchIntelLearning() {
+  return getJson<IntelLearning>('/api/intel/learning')
+}
+
+export type ContentTrafficMatch = Record<string, unknown>
+
+export type ContentTrafficCorrelation = {
+  ok?: boolean
+  matches?: ContentTrafficMatch[]
+  unmatched_spikes?: ContentTrafficMatch[]
+  _meta?: { fetched_at?: string; reason?: string }
+}
+
+export function fetchContentTrafficCorrelation(brand: string, days = 30) {
+  const q = new URLSearchParams({ days: String(days), brand_id: brand })
+  return getJson<ContentTrafficCorrelation>(`/api/insights/content-traffic-correlation?${q}`)
+}
+
+export type AdCorrelation = {
+  ok?: boolean
+  configured?: boolean
+  google_ads?: Record<string, unknown>
+  meta_ads?: Record<string, unknown>
+  combined_summary?: string
+  error?: string
+}
+
+export function fetchAdCorrelation() {
+  return getJson<AdCorrelation>('/api/insights/ad-correlation')
 }
 
 export type BrandRecord = {
