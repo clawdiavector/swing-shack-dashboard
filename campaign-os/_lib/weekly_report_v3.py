@@ -1974,9 +1974,9 @@ def _render_best_content(bid: str, organic: Dict[str, Any],
   <p class="lead">Posts published between {period_label or 'this period'}.</p>
   <div class="content-empty">
     <div class="content-empty-title">No new feed posts were published this week.</div>
-    <div class="content-empty-meta">Next refresh pulls fresh data from the
-      Instagram Graph API. Older posts are kept in the historical archive
-      but never shown under "Best content" in the weekly report.</div>
+    <div class="content-empty-meta">No new posts were published this week.
+      Older posts are kept in the historical archive but never shown
+      under "Best content" in the weekly report.</div>
   </div>
 </section>
 """
