@@ -492,7 +492,8 @@ def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
         "top_10": kfp.get("top_10") if kfp.get("top_10") is not None
                     else rank.get("top_10_keywords"),
         "weekly_change": wc,
-        "fetched_at": rank.get("fetched_at"),
+        "fetched_at": rank.get("fetched_at")
+                       or dh.get("fetched_at"),
         "manager_read": dh.get("manager_read") or rank.get("manager_read"),
     }
 
