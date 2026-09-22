@@ -39,6 +39,7 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "agent_queue_writer": _LAYER2_7_DAILY,
     "review_sla": _LAYER2_7_DAILY,
     "holiday_inject": _LAYER2_7_DAILY,
+    "data_archive": _LAYER2_7_DAILY,
     "draft_assets": _LAYER2_7_DAILY,
     "asset_qc": _LAYER2_7_DAILY,
     "publish_dispatch": _LAYER2_7_DAILY,

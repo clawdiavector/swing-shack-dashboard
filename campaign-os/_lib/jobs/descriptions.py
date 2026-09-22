@@ -206,6 +206,15 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "source_origin=deterministic_calendar via marketing_calendar. No Firecrawl, no keys."
         ),
     },
+    "data_archive": {
+        "title": "Rotten data archive",
+        "summary": "Flags or relocates JSON older than 42 days; ignored by freshness and queue.",
+        "detail": (
+            "Walks $DATA_DIR for rotten files (> stale_days × 3). Objects get "
+            "_campaign_os_archive in place; arrays copy to archive/YYYY-MM-DD/ with a stub. "
+            "Updates archive/manifest.json. Does not touch stale-only files."
+        ),
+    },
 }
 
 

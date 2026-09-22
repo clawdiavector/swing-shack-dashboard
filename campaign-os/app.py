@@ -16214,101 +16214,15 @@ def post_conversion_score_endpoint():
 # the data/ tree on demand using the same heuristic the retired
 # scripts/data_freshness_check.js used (deleted t33) so the SPA always gets
 # a usable payload.
-_FRESHNESS_TS_KEYS = frozenset({
-    'generated', 'lastUpdated', 'last_run', 'last_run_at', 'last_check',
-    'ts', 'date', 'saved_at', 'published_at', 'posted_at', 'polled',
-    'fetched_at', 'updated_at', 'created_at', 'scanned_at', 'synced_at',
-    'checked_at', 'detected_at', 'analyzed_at', 'snapshot_at',
-})
-_FRESHNESS_SKIP = frozenset({'freshness.json', 'freshness-detail.json', 'meta-auth-health.json'})
+from _lib.jobs import freshness_heuristic as _freshness_h  # noqa: E402
+
 _freshness_cache = {'data': None, 'ts': 0.0}
 _FRESHNESS_CACHE_TTL = 300  # seconds — match the daily cron cadence loosely
 
-
-def _walk_freshness_timestamps(node, hits, depth=0):
-    if depth > 8 or len(hits) > 80:
-        return
-    if isinstance(node, list):
-        for v in node:
-            _walk_freshness_timestamps(v, hits, depth + 1)
-        return
-    if not isinstance(node, dict):
-        return
-    for k, v in node.items():
-        if k in _FRESHNESS_TS_KEYS and (isinstance(v, str) or isinstance(v, (int, float))):
-            hits.append(v)
-        if isinstance(v, (dict, list)):
-            _walk_freshness_timestamps(v, hits, depth + 1)
-
-
-def _freshness_parse_ts(v):
-    if isinstance(v, bool):
-        return None
-    if isinstance(v, (int, float)):
-        n = float(v)
-        if n > 1e11:
-            return n  # ms
-        if n > 1e9:
-            return n * 1000.0  # s
-        return None
-    if isinstance(v, str):
-        s = v.strip()
-        if not s:
-            return None
-        try:
-            ms = datetime.datetime.fromisoformat(s.replace('Z', '+00:00')).timestamp() * 1000.0
-            return ms
-        except (ValueError, TypeError):
-            return None
-    return None
-
-
-def _freshness_classify(parsed, mtime_ts):
-    """Return (staleness, newest_ts_iso, newest_raw, age_days). None for static/unknown."""
-    if not isinstance(parsed, dict):
-        return ('unknown', None, None, None)
-    hits = []
-    _walk_freshness_timestamps(parsed, hits)
-    if not hits:
-        return ('static', None, None, None)
-    newest_ms = None
-    newest_raw = None
-    for h in hits:
-        ms = _freshness_parse_ts(h)
-        if ms is None:
-            continue
-        if newest_ms is None or ms > newest_ms:
-            newest_ms = ms
-            newest_raw = h
-    if newest_ms is None:
-        return ('unknown', None, None, None)
-    age_days = round((mtime_ts - newest_ms) / 86400000.0, 1)
-    if age_days < 0:
-        age_days = 0.0
-    iso = datetime.datetime.fromtimestamp(newest_ms / 1000.0, tz=datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
-    stale_days = 14
-    if age_days > stale_days * 3:
-        staleness = 'rotten'
-    elif age_days > stale_days:
-        staleness = 'stale'
-    else:
-        staleness = 'fresh'
-    return (staleness, iso, newest_raw, age_days)
-
-
-def _walk_data_json_files(root):
-    """Yield (abs_path, rel_path) for every *.json under root."""
-    if not root or not os.path.isdir(root):
-        return
-    for dirpath, _dirs, files in os.walk(root):
-        for name in files:
-            if not name.endswith('.json'):
-                continue
-            if name in _FRESHNESS_SKIP:
-                continue
-            ap = os.path.join(dirpath, name)
-            rp = os.path.relpath(ap, root)
-            yield ap, rp
+_walk_freshness_timestamps = _freshness_h.walk_timestamps
+_freshness_parse_ts = _freshness_h.parse_ts
+_freshness_classify = _freshness_h.classify
+_walk_data_json_files = _freshness_h.walk_data_json_files
 
 
 def _build_freshness_on_demand(data_root):
@@ -16318,7 +16232,14 @@ def _build_freshness_on_demand(data_root):
         'generated': _now_iso(),
         'stale_days_threshold': stale_days,
         'total_files': 0,
-        'by_staleness': {'fresh': 0, 'stale': 0, 'rotten': 0, 'unknown': 0, 'static': 0},
+        'by_staleness': {
+            'fresh': 0,
+            'stale': 0,
+            'rotten': 0,
+            'unknown': 0,
+            'static': 0,
+            'archived': 0,
+        },
         'stale_files': [],
         'rotten_files': [],
     }
@@ -16331,6 +16252,10 @@ def _build_freshness_on_demand(data_root):
         try:
             mtime_ms = os.path.getmtime(ap) * 1000.0
         except OSError:
+            continue
+        if _freshness_h.is_archived_ignored(parsed):
+            summary['total_files'] += 1
+            summary['by_staleness']['archived'] = summary['by_staleness'].get('archived', 0) + 1
             continue
         staleness, newest_ts, newest_raw, age_days = _freshness_classify(parsed, mtime_ms)
         summary['total_files'] += 1
