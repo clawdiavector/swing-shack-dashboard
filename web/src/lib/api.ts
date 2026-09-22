@@ -643,3 +643,255 @@ export function fetchMemeCatalog(brand?: string) {
   const q = brand ? `?brand=${encodeURIComponent(brand)}` : ''
   return getJson<MemeCatalogPayload>(`/api/intel/memes/catalog${q}`)
 }
+
+export type PostizQueueItem = Record<string, unknown> & {
+  publish_id?: string
+  item_id?: string
+  platform?: string
+  caption_preview?: string
+  scheduled_date?: string
+  publish_timestamp?: string
+  status?: string
+  postiz_post_id?: string
+}
+
+export type PostizOverview = {
+  ok?: boolean
+  ts?: string
+  summary?: string
+  queue?: PostizQueueItem[]
+  scheduled?: PostizQueueItem[]
+  published?: PostizQueueItem[]
+  queue_total?: number
+  scheduled_total?: number
+  published_total?: number
+  dedup?: { queue_hidden_shipped?: number }
+  note?: string
+  error?: string
+}
+
+export function fetchPostizOverview() {
+  return getJson<PostizOverview>('/api/intel/postiz')
+}
+
+export type PostizStatus = {
+  ok?: boolean
+  api_key_present?: boolean
+  oauth_client_id_present?: boolean
+  oauth_client_secret_present?: boolean
+  api_base?: string
+  last_check?: string
+  oauth_token_brands?: Array<Record<string, unknown>>
+  error?: string
+}
+
+export async function fetchPostizStatus(): Promise<PostizStatus & { httpStatus?: number }> {
+  const res = await fetch('/api/postiz/status', { credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as PostizStatus
+  return { ...data, httpStatus: res.status }
+}
+
+export type PostizChannels = {
+  ok?: boolean
+  channels?: Array<{ id?: string; provider?: string; name?: string; disabled?: boolean }>
+  count?: number
+  error?: string
+}
+
+export async function fetchPostizChannels(): Promise<PostizChannels & { httpStatus?: number }> {
+  const res = await fetch('/api/postiz/channels', { credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as PostizChannels
+  return { ...data, httpStatus: res.status }
+}
+
+export type PublishMode = {
+  ok?: boolean
+  mode?: string
+  label?: string
+  hint?: string
+}
+
+export function fetchPublishMode() {
+  return getJson<PublishMode>('/api/publish/mode')
+}
+
+export type PublishSandboxSummary = {
+  ok?: boolean
+  mode?: string
+  queue_depth?: number
+  receipt_count?: number
+  last_receipt_at?: string
+}
+
+export function fetchPublishSandboxSummary() {
+  return getJson<PublishSandboxSummary>('/api/publish/sandbox/summary')
+}
+
+export type PostizPostActionResult = {
+  ok?: boolean
+  partial?: boolean
+  error?: string
+}
+
+async function postJsonWithStatus<T>(path: string, body: unknown): Promise<{ status: number; data: T }> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as T
+  return { status: res.status, data }
+}
+
+export function cancelPostizPost(postId: string, reason: string) {
+  return postJsonWithStatus<PostizPostActionResult>(
+    `/api/postiz/posts/${encodeURIComponent(postId)}/cancel`,
+    { reason: reason.slice(0, 200) },
+  )
+}
+
+export function reschedulePostizPost(postId: string, scheduledAt: string, content?: string) {
+  const body: { scheduledAt: string; content?: string } = { scheduledAt }
+  if (content) body.content = content
+  return postJsonWithStatus<PostizPostActionResult>(
+    `/api/postiz/posts/${encodeURIComponent(postId)}/reschedule`,
+    body,
+  )
+}
+
+export type GbpStatus = {
+  ok?: boolean
+  credentials_present?: boolean
+  scopes?: string[]
+  tokens_per_brand?: Record<string, unknown>
+  error?: string
+}
+
+export async function fetchGbpStatus(): Promise<GbpStatus & { httpStatus?: number }> {
+  const res = await fetch('/api/gbp/status', { credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json()) as GbpStatus
+  return { ...data, httpStatus: res.status }
+}
+
+export type GbpSuggestions = {
+  ok?: boolean
+  ts?: string
+  input?: Record<string, unknown>
+  last_post?: Record<string, unknown>
+}
+
+export function fetchGbpSuggestions() {
+  return getJson<GbpSuggestions>('/api/intel/gbp_suggestions')
+}
+
+export type GbpPlan = Record<string, unknown>
+
+export function fetchGbpPlans(brandId: string, limit = 30) {
+  const q = new URLSearchParams({ brand_id: brandId, limit: String(limit) })
+  return getJson<{ ok?: boolean; plans?: GbpPlan[]; count?: number }>(
+    `/api/gbp/daily-poster/plans?${q}`,
+  )
+}
+
+export async function fetchGbpLatestPlan(brandId: string) {
+  const q = new URLSearchParams({ brand_id: brandId })
+  const res = await fetch(`/api/gbp/daily-poster/latest?${q}`, { credentials: 'same-origin' })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  return { status: res.status, data }
+}
+
+export type GbpDailyPosterBody = {
+  brand_id: string
+  days?: number
+  posts_per_day?: number
+}
+
+export function previewGbpDailyPlan(body: GbpDailyPosterBody) {
+  return postJson<Record<string, unknown>>('/api/gbp/daily-poster/preview', body)
+}
+
+export function publishGbpDailyPlan(body: GbpDailyPosterBody) {
+  return postJson<Record<string, unknown>>('/api/gbp/daily-poster/publish', body)
+}
+
+export type GmbDraft = {
+  id?: string
+  title?: string
+  body?: string
+  cta?: string
+  link?: string
+  imageUrl?: string
+  brand?: string
+}
+
+export function fetchGmbDrafts() {
+  return getJson<{ ok?: boolean; drafts?: GmbDraft[]; count?: number }>('/api/intel/gmb/drafts')
+}
+
+export function createGmbDraft(body: GmbDraft) {
+  return postJson<{ ok?: boolean; draft?: GmbDraft }>('/api/intel/gmb/drafts', body)
+}
+
+export function updateGmbDraft(id: string, body: GmbDraft) {
+  return fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(async (res) => {
+    if (res.status === 401) {
+      window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+      throw new Error('auth required')
+    }
+    if (!res.ok) throw new Error(`${res.status}`)
+    return res.json() as Promise<{ ok?: boolean; draft?: GmbDraft }>
+  })
+}
+
+export async function deleteGmbDraft(id: string) {
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return res.json() as Promise<{ ok?: boolean; deleted?: boolean }>
+}
+
+export async function scheduleGmbDraft(id: string) {
+  const res = await fetch(`/api/intel/gmb/draft/${encodeURIComponent(id)}/schedule`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  return { status: res.status, data }
+}

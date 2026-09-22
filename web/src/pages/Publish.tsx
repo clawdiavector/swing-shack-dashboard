@@ -2,13 +2,20 @@ import { CheckCircle2, Link2, MapPin, Rocket, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
-import { Button, IconTile, QueueItem, StatCard } from '../components/ui'
-import { fetchToday, type TodayCard, type TodayCounts, type TodayPanel } from '../lib/api'
+import { Badge, Button, IconTile, QueueItem, StatCard } from '../components/ui'
+import { fetchPublishMode, fetchToday, type PublishMode, type TodayCard, type TodayCounts, type TodayPanel } from '../lib/api'
 
 export function Publish() {
   const { brandId } = useBrand()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [counts, setCounts] = useState<TodayCounts | null>(null)
+  const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
+
+  useEffect(() => {
+    fetchPublishMode()
+      .then(setPublishMode)
+      .catch(() => setPublishMode(null))
+  }, [])
 
   useEffect(() => {
     fetchToday(brandId)
@@ -30,7 +37,19 @@ export function Publish() {
 
   return (
     <div className="space-y-6">
-      <PageIntro icon={Rocket} badge="Go live" here="/publish" title="Queued to ship">
+      <PageIntro
+        icon={Rocket}
+        badge="Go live"
+        here="/publish"
+        title="Queued to ship"
+        actions={
+          publishMode ? (
+            <Badge tone={publishMode.mode === 'live' ? 'red' : 'gold'}>
+              {publishMode.label || publishMode.mode} — sandbox applies to dispatch job only
+            </Badge>
+          ) : null
+        }
+      >
         Approved work, GBP, Postiz, and accounts — one screen. Approve still does not publish.
       </PageIntro>
 

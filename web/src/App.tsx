@@ -18,6 +18,9 @@ import { Images } from './pages/studio/Images'
 import { Memes } from './pages/studio/Memes'
 import { Ideas } from './pages/calendar/Ideas'
 import { Lanes } from './pages/calendar/Lanes'
+import { Gbp } from './pages/publish/Gbp'
+import { PostizPage } from './pages/publish/PostizPage'
+import { Queue } from './pages/publish/Queue'
 
 export default function App() {
   return (
@@ -37,6 +40,9 @@ export default function App() {
         <Route path="calendar/ideas" element={<Ideas />} />
         <Route path="calendar/lanes" element={<Lanes />} />
         <Route path="publish" element={<Publish />} />
+        <Route path="publish/queue" element={<Queue />} />
+        <Route path="publish/postiz" element={<PostizPage />} />
+        <Route path="publish/gbp" element={<Gbp />} />
         <Route path="results" element={<Results />} />
         <Route path="ops" element={<Ops />} />
         <Route path="other" element={<Other />} />

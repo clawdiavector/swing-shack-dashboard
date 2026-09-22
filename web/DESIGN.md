@@ -68,8 +68,9 @@ Classic `/ops`, `/ops/jobs`, and `/connected-accounts` stay live — each tab ha
 ## Studio
 
 Native work surfaces live under `/app/create/<cluster>` with optional `?tab=` inside a cluster
-(post · captions · copy · images · memes), and under `/app/calendar`, `/app/calendar/ideas`, and
-`/app/calendar/lanes`. Tab strips use `FilterChips` like Ops. Every interactive
+(post · captions · copy · images · memes), under `/app/calendar`, `/app/calendar/ideas`, and
+`/app/calendar/lanes`, and under `/app/publish/queue`, `/app/publish/postiz`, and `/app/publish/gbp`.
+Tab strips use `FilterChips` like Ops. Every interactive
 control carries a `Tip`. Every cluster page includes a **ClassicLink** raw anchor to the matching
 `/?page=…` or standalone HTML — never route Classic URLs through `Button`/`IconTile` (native round trip).
 
@@ -88,6 +89,30 @@ bundles · leaks. Lanes: now · month · timeline), as in Ops and Studio.
 
 Classic `/?page=calendar`, `/?page=ideas` and `/?page=planning` stay live — each native
 page carries a ClassicLink raw anchor to its classic page.
+
+## Publish
+
+`/app/publish` is the hub (brand-scoped counts from `/api/today/panel`). Native surfaces:
+`/app/publish/queue` (drafts · scheduled · published · failed), `/app/publish/postiz`
+(credentials · channels · mode), `/app/publish/gbp` (`?tab=plans|suggestions|drafts` — GBP
+plans and GMB drafts share one page because they are one surface).
+
+`?tab=` selects the view, as in Ops and Studio, and is written back with `replace:true`.
+`?item=` / `?asset=` arrive from Review and select a queue row; they are consumed once,
+never sticky. Missing or malformed params fall back to the default tab, never an error.
+
+The publish queue is **not brand-scoped** — `/api/intel/postiz` reads flat files and its rows
+carry no brand key. The page says so out loud. GBP daily-poster and GMB drafts *are*
+brand-scoped and always send `brand_id` from `useBrand()`.
+
+Live actions — GBP daily publish, GMB draft publish, Postiz cancel/reschedule — are labelled
+"(live)", never "schedule". The two destructive ones sit behind a typed confirm naming the
+brand. `PUBLISH_MODE=sandbox` gates the dispatch job only, so the mode badge says that and
+never implies the page is safe. No bulk publish, no auto-retry. Secrets are rendered as
+configured ✓/✗ only.
+
+Classic `/?page=publish`, `/?page=postiz`, `/?page=gbp` and `/?page=gmb` stay live — each
+native page carries a ClassicLink raw anchor to its classic page.
 
 Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-lab.html`,
 `campaign-os.html` sections) stay on disk and served; Heroes does not delete them.
