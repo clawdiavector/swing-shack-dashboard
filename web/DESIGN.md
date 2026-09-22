@@ -28,8 +28,9 @@ No full-saturation fills on idle chrome.
 
 ## Type
 
-- UI: `"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif`
-- CEO numbers / Daily kicker: `"IBM Plex Serif", ui-serif, Georgia, serif`
+- UI: `"Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif` (self-hosted in the Vite bundle for production CSP)
+- CEO numbers / Daily kicker: `Fraunces, Georgia, ui-serif, serif`
+- Root `html { font-size: 18px }` — rem tokens read 1.125× a 16px baseline.
 - Scale (rem, not fluid): 12 / 14 / 16 / 20 / 28 / 40
 - Line length for prose ~65ch. Stats can be dense.
 
@@ -37,7 +38,7 @@ No full-saturation fills on idle chrome.
 
 - Phone: bottom nav (8 items, Other last). Content 16px inset.
 - iPad: compact top rail + optional split (list | detail).
-- Desktop: 220px left rail, 32px content gutter, max 1120px.
+- Desktop: 272px left rail (`lg` breakpoint), 32px content gutter, max 1680px content width.
 - Cards: 12px radius, 1px `--rule`, no drop shadows heavier than 8px.
 
 ## Components
@@ -170,3 +171,34 @@ Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-l
 ## Other
 
 Leftover pages stay linked. Do not 410 or delete files.
+
+## After P5
+
+Native surfaces on integrate (signed code):
+
+| Rail | Native route | Landed |
+|---|---|---|
+| Daily | `/app/daily` | pre-P0 |
+| Review | `/app/review`, `/app/review/:itemId` | pre-P0 |
+| Ops | `/app/ops` `?tab=jobs\|agents\|accounts` | P0 |
+| Create | `/app/create/post` `captions` `copy` `images` `memes` | P1 |
+| Calendar | `/app/calendar`, `/calendar/ideas`, `/calendar/lanes` | P2 |
+| Publish | `/app/publish/queue` `postiz` `gbp` | P3 |
+| Results | `/app/results/week` `worked` | P4a |
+| Socials | `/app/publish/socials` | P5 |
+
+Shared contract on native surfaces: `?tab=` selects the view and is written back
+`replace:true`; malformed values fall back to the default tab; one-shot params
+(`?item=` `?asset=` `?post=` `?hook_id=`) are consumed once; `?date=` is the
+calendar deep link; every page has a **ClassicLink** raw anchor; controls carry a
+`Tip`; live actions are `(live)`; destructive actions use a typed confirm naming
+the brand.
+
+Still Classic (not bugs): `performance`, `trends`, `seo`, and legacy `/?page=review`
+— catalog slugs without `native:` until **P4b**. Deferred by design: **P5b** per-brand
+Meta Graph (Socials reads default env account); publish queue not brand-scoped;
+portfolio-wide learn files on Results; **P7** data review only.
+
+Classic cutover: bare `/` already → `/app/daily`. Optional `HEROES_CUTOVER=true`
+(on Railway) maps signed-off `/?page=` slugs to native routes; default off.
+`/home.html?page=…` never redirects (ToolFrame embeds). See `RAILWAY.md` §3.

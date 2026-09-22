@@ -145,3 +145,71 @@ def test_results_alias_redirects_to_app():
     loc = resp.headers.get('Location') or ''
     assert resp.status_code in (301, 302)
     assert '/app/results' in loc or '/login' in loc
+
+
+def test_cutover_default_classic_page_query_not_redirected():
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/?page=socials', follow_redirects=False)
+    assert resp.status_code == 200
+    assert b'Campaign OS' in resp.data
+
+
+def test_cutover_enabled_maps_socials_to_native(monkeypatch):
+    monkeypatch.setenv('HEROES_CUTOVER', 'true')
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/?page=socials', follow_redirects=False)
+    assert resp.status_code in (301, 302)
+    assert '/app/publish/socials' in (resp.headers.get('Location') or '')
+
+
+def test_cutover_enabled_unmapped_performance_stays_classic(monkeypatch):
+    monkeypatch.setenv('HEROES_CUTOVER', 'true')
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/?page=performance', follow_redirects=False)
+    assert resp.status_code == 200
+    assert b'Campaign OS' in resp.data
+
+
+def test_cutover_enabled_home_html_embed_stays_classic(monkeypatch):
+    monkeypatch.setenv('HEROES_CUTOVER', 'true')
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/home.html?page=socials&embed=1', follow_redirects=False)
+    assert resp.status_code == 200
+    assert b'Campaign OS' in resp.data
+
+
+def test_cutover_enabled_carries_inbound_query(monkeypatch):
+    monkeypatch.setenv('HEROES_CUTOVER', 'true')
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/?page=gbp&brand=stick', follow_redirects=False)
+    loc = resp.headers.get('Location') or ''
+    assert resp.status_code in (301, 302)
+    assert 'brand=stick' in loc
+
+
+def test_ops_stays_classic_with_cutover_on(monkeypatch):
+    monkeypatch.setenv('HEROES_CUTOVER', 'true')
+    from app import app
+
+    client = app.test_client()
+    resp = client.get('/ops', follow_redirects=False)
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert 'ops' in body.lower() or 'Campaign OS' in body
+
+
+def test_public_route_prefixes_unchanged():
+    from app import PUBLIC_ROUTE_PREFIXES
+
+    assert '/weekly-report' in PUBLIC_ROUTE_PREFIXES
+    assert len(PUBLIC_ROUTE_PREFIXES) == 18
