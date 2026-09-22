@@ -1,3 +1,13 @@
+# Campaign Heroes UI (Vite + Tailwind) — built first so Railway still
+# auto-deploys from GitHub. Source-only Vite without this stage would
+# ship an unbuilt /app.
+FROM node:20-bookworm-slim AS web
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+RUN npm run build
+
 FROM python:3.12-slim-bookworm
 
 # git is required by Railway build context + some app-level metadata capture.
@@ -27,6 +37,8 @@ COPY assets/ /app/assets/
 # Copy scripts/ (fetchers: fetch_ig_business.py, fetch_ubersuggest.py, etc.
 # — referenced by the in-app /refresh endpoints)
 COPY scripts/ /app/scripts/
+# Built Campaign Heroes SPA
+COPY --from=web /web/dist /app/web/dist
 
 # Module-gap gate (Tier: deploy determinism, 2026-09-09 / P0a t05).
 # Missing imported _lib modules fail the image build.

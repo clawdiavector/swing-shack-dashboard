@@ -2,7 +2,18 @@
 
 ## 1 — What builds this
 
-`Dockerfile` at the repo root is the build. `railway.json` selects `builder: DOCKERFILE`, sets `startCommand` to `python app.py` (relative to the image `WORKDIR` `/app/campaign-os`), and health-checks `/api/health`. **There is no other build config.**
+`Dockerfile` at the repo root is the build. It is **multi-stage**: a Node 20
+stage runs `npm ci && npm run build` in `web/` (Vite + Tailwind), then the
+Python 3.12 image copies `web/dist` to `/app/web/dist`. Flask serves that
+bundle at **`/app`** (`/daily` redirects there). Classic `/` is still
+`campaign-os.html` until Kyle cuts over.
+
+`railway.json` selects `builder: DOCKERFILE`, sets `startCommand` to
+`python app.py` (relative to the image `WORKDIR` `/app/campaign-os`), and
+health-checks `/api/health`. **There is no other build config.** GitHub
+merge to the Railway branch still auto-deploys — do not treat Mac as the
+only ship path. Mac preview commands: skill `campaign-os` module
+`mac-build-deploy.md`.
 
 `Procfile`, `runtime.txt`, and `campaign-os/railway.json` were removed on 2026-09-09 and must not come back. They disagreed with the Dockerfile (Nixpacks vs Docker, Python 3.11 vs 3.12, different start commands) and that ambiguity cost a day of builder ping-pong.
 

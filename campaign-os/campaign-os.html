@@ -179,6 +179,8 @@ a:hover{text-decoration:underline}
 
 /* ─── Layout ─────────────────────────────────────────────────── */
 .app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+html.embed .app{grid-template-columns:1fr}
+html.embed .side{display:none !important}
 .side{
   background:var(--bg-2);
   border-right:1px solid var(--bd);
@@ -1485,6 +1487,15 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
 <meta http-equiv="Expires" content="0">
 </head>
 <body>
+<script>
+(function () {
+  try {
+    if (new URLSearchParams(location.search).get('embed') === '1') {
+      document.documentElement.classList.add('embed');
+    }
+  } catch (_) {}
+})();
+</script>
 <div class="app">
 
   <!-- ─── Sidebar ─────────────────────────────────────────── -->
@@ -1594,6 +1605,7 @@ ul.hooks-generated-list{list-style:none;padding:0;margin:0}
     <!-- Quick links (sub-nav under primary items) -->
     <div class="nav-section nav-sub">
       <div class="nav-title">Quick links</div>
+      <a class="nav nav-link" href="/app/daily" data-help-title="Campaign Heroes" data-help="New campaigner desk: Daily, Review, Create, Calendar, Publish, Results, Other. Classic pages stay. Nothing deleted."><span class="nav-icon">⛳</span> Campaign Heroes</a>
       <a class="nav nav-link" href="/visualizer" data-help-title="Visual Library" data-help="Full visual library: 122+ brand images, filter by color/brand/mood, discover by element, generate new images with the recipe-informed gpt-image-1 pipeline."><span class="nav-icon">🎨</span> Visual Library</a>
       <a class="nav nav-link" href="/meme-lab" data-help-title="Meme Lab" data-help="Meme templates gallery + remix workspace. Browse existing meme formats, remix them with your brand voice, save to Review queue."><span class="nav-icon">😂</span> Meme Lab</a>
       <a class="nav nav-link" href="#" data-go="onboarding" onclick="go('onboarding');return false;" data-help-title="First Campaign in 10 Minutes" data-help="5-step guided tour from zero to a reviewable campaign draft. Voice → Idea → Channels → Generate → Review."><span class="nav-icon">🚀</span> First Campaign</a>

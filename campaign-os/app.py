@@ -25,7 +25,7 @@ import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
 from pathlib import Path
 from typing import Optional, List
-from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort
+from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort, session
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -15456,10 +15456,65 @@ def connected_accounts_page():
 
 
 # ─── STATIC FILES ─────────────────────────────────────────────────────
+# Campaign OS Vite UI lives at /app/*. Classic tools embed via /app/desk.
+# Dist is produced by `npm run build` in web/ (Docker Node stage or local).
+_WEB_DIST = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'web', 'dist')
+)
+_HEROES_PAGES = ('daily', 'review', 'create', 'calendar', 'publish', 'results', 'other', 'desk')
+
+
+def _heroes_index():
+    index_path = os.path.join(_WEB_DIST, 'index.html')
+    if not os.path.isfile(index_path):
+        return (
+            '<!doctype html><html><body style="font-family:sans-serif;padding:2rem">'
+            '<p>Campaign Heroes UI is not built.</p>'
+            '<p>Run <code>npm ci &amp;&amp; npm run build</code> in <code>web/</code>, '
+            'or wait for the Docker Node stage.</p>'
+            '<p><a href="/">Classic desk</a></p></body></html>',
+            503,
+            {'Content-Type': 'text/html; charset=utf-8'},
+        )
+    return send_from_directory(_WEB_DIST, 'index.html')
+
+
+@app.route('/app')
+@app.route('/app/')
+def heroes_root():
+    return redirect('/app/daily')
+
+
+@app.route('/app/<path:spa_path>')
+def heroes_app(spa_path):
+    target = os.path.normpath(os.path.join(_WEB_DIST, spa_path))
+    if not target.startswith(_WEB_DIST):
+        abort(404)
+    if os.path.isfile(target):
+        return send_from_directory(_WEB_DIST, spa_path)
+    return _heroes_index()
+
+
+@app.route('/daily')
+@app.route('/review')
+@app.route('/create')
+@app.route('/calendar')
+@app.route('/publish')
+@app.route('/results')
+@app.route('/other')
+@app.route('/desk')
+def heroes_alias():
+    leaf = (request.path or '/daily').strip('/')
+    if leaf not in _HEROES_PAGES:
+        leaf = 'daily'
+    return redirect(f'/app/{leaf}')
+
 
 @app.route('/')
 def index():
-    return send_from_directory('.', 'campaign-os.html')
+    if request.args.get('page'):
+        return send_from_directory('.', 'campaign-os.html')
+    return redirect('/app/daily')
 
 @app.route('/home.html')
 def home_alias():
@@ -15990,7 +16045,28 @@ def today_panel():
         for item in brief.get(key, [])[:8]:
             ident = str(item.get('assetId') or item.get('id') or item.get('name') or '')
             if ident and ident not in hidden:
-                cards.append({'id': ident, 'label': label, 'kind': kind, 'title': item.get('name') or item.get('title') or item.get('action') or 'Untitled', 'campaignId': item.get('campaignId'), 'updatedAt': item.get('updatedAt')})
+                updated = item.get('updatedAt') or item.get('updated_at')
+                created = item.get('createdAt') or item.get('created_at')
+                scheduled = item.get('scheduledFor') or item.get('scheduled_for') or item.get('dueAt')
+                stamp = updated or created or scheduled or item.get('reviewTs') or item.get('ts')
+                stamp_kind = (
+                    'updated' if updated else
+                    'created' if created else
+                    'scheduled' if scheduled else
+                    'as_of'
+                )
+                cards.append({
+                    'id': ident,
+                    'label': label,
+                    'kind': kind,
+                    'title': item.get('name') or item.get('title') or item.get('action') or 'Untitled',
+                    'campaignId': item.get('campaignId') or item.get('campaign') or item.get('campaign_id'),
+                    'updatedAt': updated,
+                    'createdAt': created,
+                    'stamp': stamp,
+                    'stampKind': stamp_kind,
+                    'why': item.get('why') or item.get('rationale') or item.get('reason') or item.get('action'),
+                })
     # v2026-08-17: include the true review/publish totals (from brief.counts)
     # in the panel response. The cards array is still capped at 8 per kind for
     # UI rendering, but consumers like the Calendar empty-state need the
@@ -16006,16 +16082,24 @@ def today_panel():
     panel_counts = brief.get('counts') or {}
     brief_actions = _today_brief_actions()
     active_brand_id = brief_actions.get("brand_id") or "swing-shack"
+    panel_ts = _now_iso()
+    for card in cards:
+        if not card.get('stamp'):
+            card['stamp'] = panel_ts
+            card['stampKind'] = 'as_of'
     return jsonify({
         'ok': True,
-        'ts': _now_iso(),
+        'ts': panel_ts,
         'summary': brief.get('summary', ''),
         'cards': cards,
         'dismissed': sorted(hidden),
         'count': len(cards),
         # V1.2 §6: explicit brand context
         'active_brand_id': active_brand_id,
-        'active_brand_label': active_brand_id.title(),
+        'active_brand_label': (
+            ((load_brands_registry().get('brands') or {}).get(active_brand_id) or {}).get('display_name')
+            or active_brand_id.replace('-', ' ').title()
+        ),
         'counts': {
             'review': int(panel_counts.get('review') or 0),
             'draft': int(panel_counts.get('draft') or 0),
@@ -19867,10 +19951,26 @@ def load_brands_registry():
 
 
 def get_brand_id():
-    """Resolve the active brand from request headers or query string."""
+    """Resolve the active brand: header/query, then session, then persisted pick."""
     bid = request.headers.get('X-Brand') or request.args.get('brand_id') or request.args.get('brand')
     if bid:
         return bid
+    try:
+        sid = session.get('active_brand_id')
+        if sid:
+            return sid
+    except Exception:
+        pass
+    try:
+        state_path = os.path.join(_data_paths()['data_dir'], 'active-brand.json')
+        if os.path.exists(state_path):
+            with open(state_path) as f:
+                pref = json.load(f)
+            pid = (pref or {}).get('brand_id')
+            if pid:
+                return pid
+    except Exception:
+        pass
     registry = load_brands_registry()
     return registry.get('default_brand_id') or 'swing-shack'
 
@@ -19989,6 +20089,10 @@ def select_brand(brand_id):
     os.makedirs(paths['data_dir'], exist_ok=True)
     with open(state_path, 'w') as f:
         json.dump({"brand_id": brand_id, "selected_at": _now_iso()}, f, indent=2)
+    try:
+        session['active_brand_id'] = brand_id
+    except Exception:
+        pass
     return jsonify({"ok": True, "brand_id": brand_id}), 200
 
 
@@ -37232,7 +37336,7 @@ def _apply_security_headers(response):
     # Prevent MIME sniffing
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     # Prevent clickjacking
-    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     # XSS protection (legacy but still requested by some scanners)
     response.headers.setdefault("X-XSS-Protection", "1; mode=block")
     # Referrer policy
@@ -37252,7 +37356,7 @@ def _apply_security_headers(response):
         "style-src 'self' 'unsafe-inline'; "
         "font-src 'self' data:; "
         "connect-src 'self'; "
-        "frame-ancestors 'none';"
+        "frame-ancestors 'self';"
     )
     return response
 

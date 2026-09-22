@@ -36,8 +36,11 @@ Never `/Users/fivefriday/...` — that is a dead Mac path in old docs.
 
 ## 5. How production boots
 
-- Root `Dockerfile` (`python:3.12-slim-bookworm`) + `railway.json` (builder `DOCKERFILE`,
-  startCommand `python app.py`, healthcheck `/api/health`).
+- Root `Dockerfile` is multi-stage: Node 20 builds `web/` (Vite), then
+  `python:3.12-slim-bookworm` copies `web/dist` and runs Flask.
+- Campaign Heroes UI: `/app` (aliases `/daily` … `/other`). Classic `/` is still
+  `campaign-os.html`. Do not delete leftover HTML.
+- `railway.json` builder `DOCKERFILE`, startCommand `python app.py`, healthcheck `/api/health`.
 - There is no other build config. `Procfile` / `runtime.txt` / `campaign-os/railway.json` were deleted 2026-09-09 and must not return.
 - Details: `RAILWAY.md`.
 

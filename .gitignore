@@ -2,6 +2,7 @@ credentials.json
 tiktok-marketing/config.json
 *.log
 node_modules/
+web/dist/
 .DS_Store
 __pycache__/
 *.pyc
