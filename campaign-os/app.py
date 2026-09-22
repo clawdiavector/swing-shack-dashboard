@@ -22363,6 +22363,12 @@ except Exception as _e:
     _app_log.warning("reporting_editorial import failed: %s", _e)
     _ed = None
 
+try:
+    from _lib import weekly_report_v3 as _wr3
+except Exception as _e:
+    _app_log.warning("weekly_report_v3 import failed: %s", _e)
+    _wr3 = None
+
 
 @app.route('/api/reports/v1/<brand_id>', methods=['GET'])
 def report_v1_brand(brand_id):
@@ -45443,6 +45449,74 @@ def report_v25_share(brand_id):
     except Exception as exc:
         _app_log.exception("report_v25_share failed")
         return jsonify({"ok": False, "error": str(exc)[:200]}), 500
+
+
+# ─── WEEKLY MANAGEMENT REPORT V3 ───────────────────────────
+# v3 sits ON TOP of v2.4.1 (which is frozen). It does NOT touch
+# GA4 ingestion, Meta ingestion, comparison engine, paid-media
+# ingestion, historical storage, campaign performance, or
+# source lineage. v3 only fixes the weekly renderer output:
+#
+#  - Brand isolation gate (BLOCKED_BRAND_CONTAMINATION)
+#  - Correct period contract (7d current / 7d previous /
+#    28d current / 28d previous)
+#  - Numeric TLDR with Current/Previous/Change
+#  - No fake revenue modelling, no fake uplift predictions
+#  - Fact → Interpretation → Action chain
+#  - Live Stories clearly marked LIVE SNAPSHOT
+#  - Data Notes at the end (technical limitations)
+#  - Top-3 actions only, severity-tagged
+#  - Canonical North Stars shown exact, no fabricated progress
+#
+# v3 does NOT touch the existing /api/weekly-report endpoint.
+# The old renderer stays as-is for compat; v3 is opt-in via
+# /api/weekly-report/v3. Operators run both, compare, then
+# promote v3 to default once they're confident.
+
+
+@app.route("/api/weekly-report/v3/<brand_id>", methods=["GET"])
+def weekly_report_v3(brand_id):
+    """GET /api/weekly-report/v3/<brand>?format=markdown|json
+
+    Brand-new weekly management report renderer (v3).
+    Default format = markdown (matches the operator's preferred
+    paste-into-Notion workflow).
+
+    Returns:
+      200 OK — markdown body
+      200 OK + report_status=BLOCKED_BRAND_CONTAMINATION — if the
+      collected data contains identifiers from another brand.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    if _wr3 is None:
+        return jsonify({"ok": False,
+                        "error": "weekly_report_v3 unavailable"}), 503
+    fmt = (request.args.get("format", "markdown") or "markdown").lower()
+    try:
+        out = _wr3.build_v3(brand_id, fmt=fmt)
+        status = out.get("report_status", "OK")
+        if status == "BLOCKED_BRAND_CONTAMINATION":
+            return jsonify({
+                "ok": False,
+                "report_status": status,
+                "block_reason": out.get("block_reason"),
+                "contaminations": out.get("contaminations"),
+                "rendered": out.get("rendered"),
+            }), 422
+        if fmt == "json":
+            return jsonify({"ok": True,
+                              "report_status": status,
+                              "report": out.get("raw_payload"),
+                              "rendered": out.get("rendered")}), 200
+        return out.get("rendered"), 200, {
+            "Content-Type": "text/markdown; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("weekly_report_v3 failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
 @app.route("/api/meta/paid-media/refresh", methods=["POST"])

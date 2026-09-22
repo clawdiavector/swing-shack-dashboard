@@ -1,0 +1,46 @@
+{
+  "schema": "https://campaign-os/brand-directory/north-stars/v1",
+  "brand_id": "stick",
+  "updated": "2026-09-22",
+  "source": "operator directive (Discord, 2026-09-22)",
+  "north_stars": [
+    {
+      "id": "retail_psycho_bunny_sales",
+      "label": "Retail",
+      "metric": "R350,000 Psycho Bunny sales/month",
+      "category": "revenue",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Stick CRM / POS integration not in place",
+      "marketing_support_signal": "Relevant traffic + content cadence from organic + paid",
+      "do_not_fabricate_progress": true
+    },
+    {
+      "id": "fitting_throughput",
+      "label": "Fitting",
+      "metric": "24 fittings/week",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Stick fitting booking system not integrated with reporting",
+      "marketing_support_signal": "Booking-page sessions from relevant traffic sources",
+      "do_not_fabricate_progress": true
+    },
+    {
+      "id": "coaching_throughput",
+      "label": "Coaching",
+      "metric": "24 coaching sessions/week",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Stick coaching scheduling system not integrated with reporting",
+      "marketing_support_signal": "Coaching-page sessions + IG/FB engagement on coach content",
+      "do_not_fabricate_progress": true
+    }
+  ],
+  "rules": {
+    "exact_only": "Always show the metric verbatim — do not derive progress percentages without real connector data",
+    "no_fabrication": "Until a connector is live, progress against each North Star is NOT YET MEASURABLE",
+    "signal_substitute": "Show the marketing support signal instead (traffic, content, paid evidence) so the report is still useful"
+  }
+}
