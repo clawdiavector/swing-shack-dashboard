@@ -366,6 +366,20 @@ export type JobBrandEntry = {
   skipped_reason?: string | null
 }
 
+/** `/api/jobs/status` — `campaign-os/_lib/jobs/descriptions.py`. */
+export type JobInfoObject = {
+  title?: string
+  summary?: string
+  detail?: string
+}
+
+/** `/api/jobs/status` — `campaign-os/_lib/jobs/schedules.py`. */
+export type JobScheduleObject = {
+  cadence?: string
+  cron_sast?: string[] | unknown
+  scheduler?: string
+}
+
 export type JobEntry = {
   name?: string
   verdict?: string
@@ -386,8 +400,8 @@ export type JobEntry = {
   every_seconds?: number | null
   timeout_seconds?: number | null
   retries?: number | null
-  schedule?: string | null
-  info?: string | null
+  schedule?: string | JobScheduleObject | null
+  info?: string | JobInfoObject | null
   brands?: JobBrandEntry[]
 }
 
