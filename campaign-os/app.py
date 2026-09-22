@@ -15463,6 +15463,53 @@ _WEB_DIST = os.path.normpath(
 )
 _HEROES_PAGES = ('daily', 'review', 'create', 'calendar', 'publish', 'results', 'other', 'desk')
 
+# Classic ?page= → native /app route. Kyle-gated: default off.
+# Only slugs whose native surface is signed off appear here.
+_CLASSIC_TO_NATIVE = {
+    'buildpost': '/app/create/post',
+    'captions': '/app/create/captions',
+    'headlines': '/app/create/copy?tab=headlines',
+    'hooks': '/app/create/copy?tab=hooks',
+    'ctas': '/app/create/copy?tab=ctas',
+    'hashtagseo': '/app/create/copy?tab=hashtags',
+    'library': '/app/create/copy?tab=library',
+    'imagegen': '/app/create/images?tab=generate',
+    'memes': '/app/create/memes?tab=lord',
+    'calendar': '/app/calendar',
+    'ideas': '/app/calendar/ideas',
+    'planning': '/app/calendar/lanes',
+    'publish': '/app/publish/queue',
+    'postiz': '/app/publish/postiz',
+    'gbp': '/app/publish/gbp?tab=plans',
+    'gmb': '/app/publish/gbp?tab=drafts',
+    'socials': '/app/publish/socials',
+    'insights': '/app/results/worked?tab=posts',
+    'learning': '/app/results/worked?tab=recipes',
+}
+
+
+def _heroes_cutover_enabled():
+    """HEROES_CUTOVER=true sends Classic ?page= deep links to the native surface.
+
+    Default off. Kyle owns this variable. Flipping it deletes nothing:
+    /home.html?page=… and every standalone .html stay served."""
+    return os.environ.get('HEROES_CUTOVER', 'false').lower() in ('true', '1', 'yes')
+
+
+def _merge_native_redirect(native, args):
+    """Merge catalog default query on native with inbound params (inbound wins). Skips page."""
+    q_index = native.find('?')
+    path = native[:q_index] if q_index >= 0 else native
+    default_qs = native[q_index + 1:] if q_index >= 0 else ''
+    from urllib.parse import parse_qsl, urlencode
+    merged = dict(parse_qsl(default_qs, keep_blank_values=True))
+    for key in args:
+        if key == 'page':
+            continue
+        merged[key] = args.get(key)
+    qs = urlencode(merged)
+    return f'{path}?{qs}' if qs else path
+
 
 def _heroes_index():
     index_path = os.path.join(_WEB_DIST, 'index.html')
@@ -15512,7 +15559,12 @@ def heroes_alias():
 
 @app.route('/')
 def index():
-    if request.args.get('page'):
+    page = request.args.get('page')
+    if page:
+        if _heroes_cutover_enabled():
+            native = _CLASSIC_TO_NATIVE.get(page)
+            if native:
+                return redirect(_merge_native_redirect(native, request.args))
         return send_from_directory('.', 'campaign-os.html')
     return redirect('/app/daily')
 

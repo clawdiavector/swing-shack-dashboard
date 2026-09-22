@@ -5,8 +5,8 @@
 `Dockerfile` at the repo root is the build. It is **multi-stage**: a Node 20
 stage runs `npm ci && npm run build` in `web/` (Vite + Tailwind), then the
 Python 3.12 image copies `web/dist` to `/app/web/dist`. Flask serves that
-bundle at **`/app`** (`/daily` redirects there). Classic `/` is still
-`campaign-os.html` until Kyle cuts over.
+bundle at **`/app`**. Bare **`/`** redirects to **`/app/daily`**. Classic deep
+links still work via `/?page=<section>` until Kyle enables cutover (below).
 
 `railway.json` selects `builder: DOCKERFILE`, sets `startCommand` to
 `python app.py` (relative to the image `WORKDIR` `/app/campaign-os`), and
@@ -35,6 +35,7 @@ These live on the **Railway service**, not in `railway.json`.
 | `CAMPAIGN_OS_DAILY_LLM_CAP_USD` | e.g. `5` (default) | no | Hard daily cap for image generate routes |
 | `COS_LLM_DAILY_CAP_USD` | alias for the above | no | Accepted if the longer name unset |
 | `CAMPAIGN_OS_PASSWORD` | shared login | yes in prod | Railway service variables |
+| `HEROES_CUTOVER` | `true` / `1` / `yes` | no (default **off**) | When on, mapped `/?page=` slugs 302 to native `/app/…` routes. Unmapped pages (Reach, Trends, SEO, etc.) stay Classic. **`/home.html?page=…` never redirects** — ToolFrame embeds depend on it. Rollback: unset or set `false`; no redeploy required. |
 
 If `DATA_DIR` is not set, the app falls back to ephemeral storage and editorial state is lost on every redeploy.
 
