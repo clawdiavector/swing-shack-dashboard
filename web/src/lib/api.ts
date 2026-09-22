@@ -570,6 +570,23 @@ export type WeekOnWeekCell = {
   pct_change?: number
 }
 
+/** Rule-based weekly intel narrative (`campaign-os/_lib/intelligence.py`). */
+export type IntelWeeklyInterpretationClaim = {
+  claim?: string
+  evidence?: string
+  source?: string
+  category?: string
+  severity?: string
+}
+
+export type IntelWeeklyInterpretation = {
+  headline_take?: string
+  whats_working?: IntelWeeklyInterpretationClaim[] | unknown[]
+  whats_not?: IntelWeeklyInterpretationClaim[] | unknown[]
+  look_at?: IntelWeeklyInterpretationClaim[] | unknown[]
+  sources_used?: string[] | unknown
+}
+
 export type IntelWeeklyReport = {
   ok?: boolean
   ts?: string
@@ -602,7 +619,7 @@ export type IntelWeeklyReport = {
   reddit?: unknown
   ig_business?: unknown
   seo_health?: unknown
-  interpretation?: string
+  interpretation?: string | IntelWeeklyInterpretation
   visual_insights?: unknown
   ig_topic_clusters?: unknown
   export_path?: string

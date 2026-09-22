@@ -420,7 +420,7 @@ export function Daily() {
           <IconTile href="/?page=socials" icon={Share2} label="Socials" hint="What’s live for this brand" />
           <IconTile href="/?page=gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
           <IconTile href="/?page=buildpost" icon={Sparkles} label="Build a post" hint="Jump straight into studio" />
-          <IconTile href="/weekly-report" icon={CheckCircle2} label="This week" hint="Weekly report" />
+          <IconTile href="/results/week" icon={CheckCircle2} label="This week" hint="Weekly report" />
         </div>
       </section>
     </div>

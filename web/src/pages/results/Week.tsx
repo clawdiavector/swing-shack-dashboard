@@ -84,18 +84,101 @@ function metricEntries(metrics: Record<string, unknown> | undefined) {
   return Object.entries(metrics).filter(([, v]) => v != null && typeof v !== 'object')
 }
 
-function renderHookish(items: unknown[] | undefined, empty: string) {
+function renderClaimList(items: unknown[] | undefined, empty: string) {
   if (!items?.length) {
     return <p className="text-sm text-tx3">{empty}</p>
   }
   return (
     <ul className="space-y-2">
-      {items.map((item, i) => (
-        <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm text-tx">
-          {typeof item === 'string' ? item : JSON.stringify(item)}
-        </li>
-      ))}
+      {items.map((item, i) => {
+        if (typeof item === 'string') {
+          return (
+            <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm text-tx">
+              {item}
+            </li>
+          )
+        }
+        if (item && typeof item === 'object' && 'claim' in item) {
+          const row = item as { claim?: string; evidence?: string; source?: string; severity?: string }
+          return (
+            <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm">
+              <p className="font-medium text-tx">
+                {row.severity ? (
+                  <span className="mr-2 rounded-full bg-red/20 px-2 py-0.5 text-xs uppercase text-red">
+                    {row.severity}
+                  </span>
+                ) : null}
+                {row.claim || '—'}
+                {row.source ? (
+                  <span className="ml-2 font-mono text-xs text-tx3">{row.source}</span>
+                ) : null}
+              </p>
+              {row.evidence ? <p className="mt-1 text-tx2">{row.evidence}</p> : null}
+            </li>
+          )
+        }
+        return (
+          <li key={i} className="glass rounded-2xl border border-white/10 px-4 py-3 text-sm text-tx">
+            {JSON.stringify(item)}
+          </li>
+        )
+      })}
     </ul>
+  )
+}
+
+function renderHookish(items: unknown[] | undefined, empty: string) {
+  return renderClaimList(items, empty)
+}
+
+function renderInterpretationBlock(interpretation: NonNullable<IntelWeeklyReport['interpretation']>) {
+  if (typeof interpretation === 'string') {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-bg2/30 p-4 text-sm text-tx2 whitespace-pre-wrap">
+        {interpretation}
+      </div>
+    )
+  }
+  const sources = Array.isArray(interpretation.sources_used)
+    ? interpretation.sources_used.filter((s): s is string => typeof s === 'string')
+    : []
+  return (
+    <div className="space-y-4 rounded-2xl border border-white/10 bg-bg2/30 p-4 text-sm text-tx2">
+      {interpretation.headline_take ? (
+        <blockquote className="border-l-2 border-yel pl-3 font-medium text-tx">
+          <span className="text-tx3">Headline take: </span>
+          {interpretation.headline_take}
+        </blockquote>
+      ) : null}
+      {interpretation.whats_working?.length ? (
+        <div>
+          <h3 className="mb-2 font-semibold text-tx">What&apos;s working</h3>
+          {renderClaimList(interpretation.whats_working as unknown[], 'Nothing flagged as working.')}
+        </div>
+      ) : null}
+      {interpretation.whats_not?.length ? (
+        <div>
+          <h3 className="mb-2 font-semibold text-tx">What&apos;s not</h3>
+          {renderClaimList(interpretation.whats_not as unknown[], 'No issues flagged.')}
+        </div>
+      ) : null}
+      {interpretation.look_at?.length ? (
+        <div>
+          <h3 className="mb-2 font-semibold text-tx">What to look at</h3>
+          {renderClaimList(interpretation.look_at as unknown[], 'No follow-ups listed.')}
+        </div>
+      ) : null}
+      {sources.length ? (
+        <p className="text-xs text-tx3">
+          Sources read ({sources.length}):{' '}
+          {sources.map((s) => (
+            <span key={s} className="mr-1 inline-block rounded-full border border-white/10 px-2 py-0.5 font-mono">
+              {s}
+            </span>
+          ))}
+        </p>
+      ) : null}
+    </div>
   )
 }
 
@@ -242,11 +325,7 @@ export function Week() {
               ))}
             </div>
           ) : null}
-          {intel.interpretation ? (
-            <div className="rounded-2xl border border-white/10 bg-bg2/30 p-4 text-sm text-tx2 whitespace-pre-wrap">
-              {intel.interpretation}
-            </div>
-          ) : null}
+          {intel.interpretation ? renderInterpretationBlock(intel.interpretation) : null}
           {intel.week_on_week && Object.keys(intel.week_on_week).length ? (
             <div>
               <h3 className="mb-2 text-sm font-semibold text-tx">Week on week</h3>
