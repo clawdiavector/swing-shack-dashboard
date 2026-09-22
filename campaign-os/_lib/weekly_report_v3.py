@@ -854,21 +854,21 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
         if sid == "KPI":
             continue
         for s in sections:
-            if s.startswith(f"<section id=\"sec-{sid}\">"):
-                cards_html += s
+            if s.lstrip().startswith(f'<section id="sec-{sid}"'):
+                cards_html += s.lstrip()
                 break
     sections_html = ""
     for sid, slabel in section_titles:
         if sid == "KPI":
             continue
         for s in sections:
-            if s.startswith(f"<section id=\"sec-{sid}\">"):
-                sections_html += s
+            if s.lstrip().startswith(f'<section id="sec-{sid}"'):
+                sections_html += s.lstrip()
                 break
     kpi_html = ""
     for s in sections:
-        if s.startswith('<section id="sec-KPI">'):
-            kpi_html = s
+        if s.lstrip().startswith('<section id="sec-KPI"'):
+            kpi_html = s.lstrip()
             break
     css = _css(primary, accent)
     return f"""<!doctype html>
