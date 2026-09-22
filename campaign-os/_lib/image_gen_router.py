@@ -1073,7 +1073,7 @@ def generate_image_with_persistence(
         "warning": result.warning,
         "size": kwargs.get("size", "1024x1024"),
         "provider_job_id": result.provider_job_id,
-        "saved_at": dt.utcnow().isoformat() + "Z",
+        "saved_at": dt.datetime.utcnow().isoformat() + "Z",
     }
     saved, sidecar_path = _persist(
         brand_id=kwargs.get("brand_id"),
