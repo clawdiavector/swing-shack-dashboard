@@ -21,7 +21,7 @@ Python is **3.12**, declared once, in `Dockerfile` line 1 (`python:3.12-slim-boo
 
 ## 2 — Which branch the service points at
 
-Set the Railway service deploy branch to **`integrate/campaign-os-option-c`** while Option C work is in flight (confirm in Railway: *Service → Settings → Source → Branch*). Do **not** point at retired branches (`feat/asset-state-engine`, `fix/asset-state-engine-deploy`).
+Set the Railway service deploy branch to **`integrate/campaign-os-brand-lanes-v1`** while program work is in flight (confirm in Railway: *Service → Settings → Source → Branch*). Do **not** point at retired branches (`integrate/campaign-os-option-c`, `feat/asset-state-engine`, `fix/asset-state-engine-deploy`).
 
 ## 3 — Environment variables
 
@@ -70,23 +70,17 @@ You got paged at 07:00 or Telegram shouted. Act from this page alone — no lapt
 | `GET /api/ops/llm-spend` | session | Today’s generate spend vs hard cap |
 | `GET /ops/jobs` | **session only** (bearer does **not** open HTML) | Human dashboard — verdicts, drawer, Run now |
 
-### 6.0b Eleven registered jobs
+### 6.0b Registered jobs (live count — do not freeze)
 
-| job | every_s | timeout_s | criticality | best_effort |
-|---|---:|---:|---|---|
-| `meta_refresh` | 43200 | 60 | HIGH | no |
-| `gbp_tick` | 86400 | 60 | MEDIUM | no |
-| `freshness_scan` | 86400 | 60 | LOW | yes |
-| `golf_news` | 86400 | 60 | LOW | yes |
-| `reddit_trends` | 86400 | 60 | LOW | yes |
-| `youtube_trends` | 86400 | 90 | LOW | yes |
-| `seo_rankings` | 86400 | 120 | MEDIUM | yes |
-| `ga4_report` | 86400 | 90 | MEDIUM | no |
-| `site_audit` | 86400 | 90 | MEDIUM | yes |
-| `insights_hooks` | 86400 | 120 | HIGH | no |
-| `insights_reco` | 86400 | 180 | MEDIUM | no |
+Job names, cadence, and criticality change. Use **`GET /api/jobs/status`** on phone or:
 
-`meta_refresh` goes LATE at **18h** (`43200×1.5`); 24h jobs go LATE at **36h**. `site_audit` STUCK at **180s** (`90×2`).
+```bash
+cd campaign-os && python3 -c "import sys;sys.path.insert(0,'.');from _lib.jobs.registry import JOBS;print(len(JOBS))"
+```
+
+Shape reference (not exhaustive): Layer 1 daily batch via `layer1-daily-cron.yml`, `gbp_tick`, `meta_refresh`, `freshness_scan`, **`publish_dispatch`**, plus layer 2–7 jobs — see [`docs/dev/jobs.md`](docs/dev/jobs.md).
+
+`meta_refresh` goes LATE at **18h** when `every_s=43200`; 24h jobs go LATE at **36h**. STUCK uses `timeout_seconds × 2` per job (see §6.2).
 
 ### 6.1 What the alerts mean
 
@@ -154,7 +148,7 @@ If Hermes is down and you only have Railway: *Service → Deployments → View L
 | `campaign-os-watch` | 15m | `--no-agent` | Prints **nothing** when all OK; change-detect + 4h re-assert on bad sets |
 | `campaign-os-digest` | 07:00 daily | `--no-agent` | **Always** prints the full table (dead-man switch) |
 
-Both belong on **exactly one** cron host (Linux desk box default). Do not also run them on the Mac.
+Both belong on **exactly one** cron host — **Mac `fives-mac-mini`** (2026-09-22 ruling). Do not schedule them on the Linux foreman box. See [`docs/dev/architecture.md`](docs/dev/architecture.md).
 
 **Status at plan time:** scripts live in agent-control; Hermes cron registration may still be blocked on `COS_JOB_TOKEN` in the cron host env. **Do not assume silence means healthy until `hermes cron list` shows both jobs active.** A missing 07:00 digest is the dead-man signal either way.
 

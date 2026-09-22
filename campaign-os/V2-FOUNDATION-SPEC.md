@@ -1,4 +1,7 @@
 # Campaign OS v2 — Foundation Spec
+
+> **Historical spec (2026-05) — not an implement contract (2026-09-22).** Use [`docs/dev/INDEX.md`](../docs/dev/INDEX.md).
+
 **Version:** 2.0
 **Date:** 2026-05-28
 **Status:** LOCKED — Build phase active

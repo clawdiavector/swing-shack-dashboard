@@ -1,5 +1,7 @@
 # Marketing OS — North Star
 
+> **Product vision — not an engineering implement contract (2026-09-22).** For L1–L8 and build work use [`docs/dev/layers-and-agents.md`](dev/layers-and-agents.md) and [`docs/dev/INDEX.md`](dev/INDEX.md).
+
 > The product spec that should drive every Campaign OS decision. Source of truth for "what does Marketing OS mean by X".
 
 ## Core idea

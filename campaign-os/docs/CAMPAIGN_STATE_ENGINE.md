@@ -1,5 +1,7 @@
 # Campaign State Engine
 
+> **Historical — Node `campaign-state-engine.js` deleted in t33 (2026-09-14).** Not an implement contract (2026-09-22). Use [`docs/dev/INDEX.md`](../../docs/dev/INDEX.md).
+
 **Module**: `scripts/_lib/campaign-state-engine.js`
 **CLI**: `scripts/activate-campaign.js`
 **Spec**: Step 91

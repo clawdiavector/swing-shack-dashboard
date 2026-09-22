@@ -1,5 +1,7 @@
 # Asset State Engine
 
+> **Historical (pre–t33 producers) — not an implement contract (2026-09-22).** Use [`docs/dev/INDEX.md`](../../docs/dev/INDEX.md).
+
 > **Step 87.** The canonical Asset State Engine owns the five
 > publishing-state fields on every Campaign OS asset. Producers
 > (Cockpit, Publisher, Image-Gen, Copywriter, Review Queue, Truth

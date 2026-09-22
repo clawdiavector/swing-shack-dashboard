@@ -1,4 +1,7 @@
 # Campaign OS v2 — Agent Write-Back Layer
+
+> **Historical spec (2026-06) — not an implement contract (2026-09-22).** Use [`docs/dev/INDEX.md`](../docs/dev/INDEX.md).
+
 **Version:** 1.0
 **Date:** 2026-06-01
 **Status:** DRAFT — awaiting GitHub transfer

@@ -1,4 +1,7 @@
 # Campaign OS — Full Specifications & Requirements
+
+> **Historical spec (2026-06) — not an implement contract (2026-09-22).** Use [`docs/dev/INDEX.md`](../docs/dev/INDEX.md).
+
 **Version:** 1.0
 **Date:** 2026-06-11
 **Status:** Living document — reflects current committed state + target state

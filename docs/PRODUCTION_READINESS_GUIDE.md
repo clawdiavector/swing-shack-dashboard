@@ -1,5 +1,7 @@
 # Production Readiness Guide — Campaign OS
 
+> **Historical — not current ops truth (2026-09-22).** Superseded by [`docs/dev/INDEX.md`](dev/INDEX.md) and [`RAILWAY.md`](../RAILWAY.md). Claims such as "all 4 brands" are stale.
+
 **Live URL:** https://swing-shack-dashboard-production.up.railway.app  
 **Last verified:** 2026-08-11  
 **Status:** Production-ready for all 4 brands. Image-gen works. Insights work. Weekly reports work. Data delegation wired.

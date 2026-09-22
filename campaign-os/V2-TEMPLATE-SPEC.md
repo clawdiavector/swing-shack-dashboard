@@ -1,4 +1,7 @@
 # Campaign OS v2 — Template Schema
+
+> **Historical spec (2026-06) — not an implement contract (2026-09-22).** Use [`docs/dev/INDEX.md`](../docs/dev/INDEX.md).
+
 **Version:** 1.0-draft
 **Date:** 2026-06-01
 **Status:** DRAFT — awaiting ImageGen visual asset skeleton

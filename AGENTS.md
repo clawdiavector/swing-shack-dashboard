@@ -7,13 +7,15 @@ Standing instructions for any agent (human or automated) touching this repo.
 Flask cockpit (`campaign-os/app.py`, count with `wc -l` / `@app.route` — do not freeze numbers) serving one SPA
 (`campaign-os/campaign-os.html`, **44 sections / 45 nav keys**). The Flask app **is** production.
 
+**Developer library:** [`docs/dev/INDEX.md`](docs/dev/INDEX.md) — start here before changing product code.
+
 The Node fleet (`legacy/agents/` + most of `scripts/*.js`) was deleted in t33 (2026-09-14);
 `docs/layer1-salvage-20260911.yaml` is the surviving machine-readable record; git history holds the rest.
 
 ## 2. Branches — READ BEFORE YOU COMMIT
 
 - **Canonical:** `main`.
-- **Active program work lands on `integrate/campaign-os-option-c`**, never `main`, until Kyle merges at program end.
+- **Active program work lands on `integrate/campaign-os-brand-lanes-v1`**, never `main`, until Kyle merges at program end.
 - **NEVER** push `main` / `master` / `develop` without Kyle naming that branch in-session.
 - `feat/asset-state-engine` is dead history — do not push it, do not believe docs that cite it.
 - Doc: `context/protected-branch-push.md` in the agent-control repo.
@@ -46,14 +48,16 @@ Never `/Users/fivefriday/...` — that is a dead Mac path in old docs.
 
 ## 6. The jobs (replaces the retired Node fleet)
 
-There are **no agents** in the live product. There are **three registered jobs** under
-`campaign-os/_lib/jobs/{spec,registry,runner,ledger}.py`:
+There are **no agents** in the live product. Registered jobs are **`JobSpec`** entries under
+`campaign-os/_lib/jobs/{spec,registry,runner,ledger}.py` plus bootstrap registrations in `app.py`.
+**Do not quote a job count** — count at runtime:
 
-| Job | Cadence | Criticality | Writes (`$DATA_DIR`-relative) |
-|---|---|---|---|
-| `meta_refresh` | 12h | HIGH | `ig-analytics.json`, `ig-business-analytics.json`, `facebook-analytics.json`, `facebook-business-analytics.json` |
-| `gbp_tick` | 24h | MEDIUM | `gbp-daily-plans/` |
-| `freshness_scan` | 24h | LOW (`best_effort`) | `freshness.json` |
+```bash
+cd campaign-os && python3 -c "import sys;sys.path.insert(0,'.');from _lib.jobs.registry import JOBS;print(len(JOBS))"
+grep -nA1 '_register_job(_JobSpec(' app.py | grep name=
+```
+
+See [`docs/dev/jobs.md`](docs/dev/jobs.md) for anatomy, verdicts, and workflows.
 
 Endpoints (bearer `COS_JOB_TOKEN` **or** session):
 
@@ -85,7 +89,7 @@ Adding a job = a `JobSpec` in `_lib/jobs/`, **not** a folder of JS under `legacy
 curl -H "Authorization: Bearer $COS_JOB_TOKEN" <prod>/api/jobs/status
 ```
 
-**Cron host default (P0c, Kyle override window):** Linux desk box — **exactly one host**. Do not also run these crons on the Mac.
+**Cron host (2026-09-22):** Mac `fives-mac-mini` — Hermes `campaign-os-watch`, `campaign-os-digest`, and the L3 daily Mac chain. Do **not** schedule those on the Linux foreman box. Verify with `hermes cron list` on the Mac. Details: [`docs/dev/architecture.md`](docs/dev/architecture.md).
 
 ## 8. Standing rules
 
@@ -136,6 +140,7 @@ Count it; do not quote a stale number. There is no CI merge gate today (t28 adds
 
 agent-control: `manifests/campaign-os-master-plan-20260910.yaml` (ordered task list) and
 `handoffs/campaign-os-*.md`. **This repo carries no roadmap. Do not start one.**
+[`docs/dev/state-of-play.md`](docs/dev/state-of-play.md) is a dated branch snapshot, not a roadmap.
 
 ---
 
