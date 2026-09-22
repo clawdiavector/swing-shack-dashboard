@@ -45287,6 +45287,33 @@ def report_v24_portfolio():
 # V2.5 sits on top of V2.4.1 — reads it, does NOT modify it.
 # Adds: SEO + social + GA4 + funnel + editorial structure.
 # Deterministic templates only (no LLM narrative yet).
+#
+# V2.5 supports signed share tokens (same mechanism as the weekly
+# report export). Mint via POST /api/reports/v2_5/<brand>/share
+# while authed; recipients hit /reports/<brand>?share=<token>
+# without login. Tokens are 24h TTL, scope-bound to "v25_report".
+
+
+def _v25_verify_share_token(token: str) -> bool:
+    """Validate a share token minted by /api/reports/v2_5/<brand>/share.
+
+    Scope-bound to "v25_report" so a token for any other use case
+    cannot accidentally unlock the editorial report endpoint.
+    """
+    if not token:
+        return False
+    try:
+        payload = _serializer.loads(token, max_age=SHARE_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return False
+    return isinstance(payload, dict) and payload.get("scope") == "v25_report"
+
+
+def _v25_is_authed_or_shared() -> bool:
+    """Allow either session cookie auth OR a valid share token."""
+    if _is_authed():
+        return True
+    return _v25_verify_share_token(request.args.get("share", ""))
 
 
 @app.route("/api/reports/v2_5/<brand_id>", methods=["GET"])
@@ -45296,8 +45323,10 @@ def report_v25_brand(brand_id):
     V2.5 editorial report: cross-source synthesis. V2.4.1 is
     preserved unchanged; V2.5 reads its cache for the paid-media
     section.
+
+    Auth: session cookie OR valid ?share=<token>.
     """
-    if not _is_authed():
+    if not _v25_is_authed_or_shared():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("stick", "swing-shack"):
         return jsonify({"ok": False,
@@ -45327,8 +45356,10 @@ def report_v25_brand_digest(brand_id):
 
     Returns the Discord-digest markdown form of the editorial report.
     Used by the daily 06:35 SAST cron + future #heidi posts.
+
+    Auth: session cookie OR valid ?share=<token>.
     """
-    if not _is_authed():
+    if not _v25_is_authed_or_shared():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("stick", "swing-shack"):
         return jsonify({"ok": False, "error": "invalid brand"}), 400
@@ -45354,8 +45385,10 @@ def editorial_report_page(brand_id):
 
     The editorial report UI page. Self-contained HTML — no chrome,
     no navigation. Designed to be a focused CEO-grade read.
+
+    Auth: session cookie OR valid ?share=<token>.
     """
-    if not _is_authed():
+    if not _v25_is_authed_or_shared():
         return redirect(url_for("login", next=request.path))
     if brand_id not in ("stick", "swing-shack"):
         return "invalid brand", 400
@@ -45367,6 +45400,49 @@ def editorial_report_page(brand_id):
                                           domain=domain)
     return _ed.render_editorial_report_html(report), 200, {
         "Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/api/reports/v2_5/<brand_id>/share", methods=["POST"])
+def report_v25_share(brand_id):
+    """POST /api/reports/v2_5/<brand_id>/share
+
+    Mint a signed share URL for the editorial report. Recipient
+    clicks the URL → report renders without login. 24h TTL.
+
+    Body (optional JSON): {"ttl_seconds": 86400}
+      default 24h, clamped to [60s, 7d].
+
+    Auth required (the recipient of the share link does not need auth).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False,
+                        "error": "auth required to mint share links"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    try:
+        body = request.get_json(silent=True) or {}
+        ttl = int(body.get("ttl_seconds", SHARE_TOKEN_MAX_AGE))
+        ttl = max(60, min(ttl, 60 * 60 * 24 * 7))
+        payload = {"scope": "v25_report", "v": 1,
+                    "brand_id": brand_id}
+        token = _serializer.dumps(payload)
+        host = request.host_url.rstrip("/")
+        share_url = f"{host}/reports/{brand_id}?share={token}"
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + \
+            datetime.timedelta(seconds=ttl)
+        return jsonify({
+            "ok": True,
+            "share_url": share_url,
+            "json_share_url": (f"{host}/api/reports/v2_5/{brand_id}"
+                                f"?format=json&share={token}"),
+            "token": token,
+            "expires_at": expires_at.isoformat(),
+            "ttl_seconds": ttl,
+            "brand_id": brand_id,
+        })
+    except Exception as exc:
+        _app_log.exception("report_v25_share failed")
+        return jsonify({"ok": False, "error": str(exc)[:200]}), 500
 
 
 @app.route("/api/meta/paid-media/refresh", methods=["POST"])
