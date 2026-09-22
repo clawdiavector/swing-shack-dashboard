@@ -66,7 +66,7 @@
         "gbp": {"applies": true, "env": ["GBP_LOCATION_ID_SWING_SHACK"], "credential_ref": "gbp/swing-shack.json", "na_reason": null},
         "ga4": {"applies": true, "env": ["GA4_PROPERTY_SWING_SHACK", "GA4_CREDENTIALS_JSON_SWING_SHACK"], "config": {"domain": "swingshack.co.za"}, "na_reason": null},
         "gsc": {"applies": true, "env": ["GSC_SITE_URL_SWING_SHACK", "GA4_CREDENTIALS_JSON_SWING_SHACK"], "na_reason": null},
-        "windsor": {"applies": true, "env": ["WINDSOR_API_KEY"], "na_reason": null},
+        "windsor": {"applies": false, "na_reason": "Paid media is not shown on Connected Accounts."},
         "ubersuggest": {"applies": true, "env": ["UBERSUGGEST_ACCESS", "UBERSUGGEST_TOKEN_FILE", "BRAND_DOMAIN_SWING_SHACK"], "na_reason": null},
         "youtube": {"applies": false, "na_reason": "Public trend source — no brand account exists."},
         "krea": {"applies": false, "na_reason": "Shared image-gen provider."},

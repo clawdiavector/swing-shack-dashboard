@@ -64,6 +64,35 @@ def _env_any(*names: str) -> bool:
     return False
 
 
+def _env_satisfied(env_name: str, brand_id: str) -> bool:
+    """True if env_name is set or a job-equivalent fallback is present."""
+    if (os.environ.get(env_name) or "").strip():
+        return True
+
+    safe = _brand_safe(brand_id)
+    upper = env_name.upper()
+
+    if upper.startswith("GA4_PROPERTY"):
+        return _env_any("GA4_PROPERTY_ID", "GA4_PROPERTY", env_name)
+
+    if "GA4_CREDENTIALS_JSON" in upper or upper.startswith("GA4_CREDENTIALS_"):
+        if _env_any("GA4_CREDENTIALS_JSON", env_name):
+            return True
+        path = (os.environ.get("GA4_SERVICE_ACCOUNT_JSON_PATH") or "").strip()
+        return bool(path and os.path.isfile(path))
+
+    if upper.startswith("GSC_SITE_URL"):
+        return _env_any("GSC_SITE_URL", "SEARCH_CONSOLE_SITE_URL", env_name)
+
+    suffix = f"_{safe}"
+    if env_name.endswith(suffix):
+        base = env_name[: -len(suffix)]
+        if base:
+            return _env_any(base, env_name)
+
+    return False
+
+
 def _credential_file_exists(credential_ref: str) -> bool:
     if not credential_ref:
         return False
@@ -109,17 +138,20 @@ def integration_state(brand_id: str, integration_id: str) -> str:
 
     env_names = list(scope.get("env") or [])
     cred_ref = scope.get("credential_ref")
-    has_cred = _env_any(*env_names) if env_names else False
-    if cred_ref and _credential_file_exists(cred_ref):
-        has_cred = True
+    has_cred_file = bool(cred_ref and _credential_file_exists(cred_ref))
 
-    if not has_cred:
-        return "missing"
+    if env_names:
+        satisfied = [_env_satisfied(n, brand_id) for n in env_names]
+        any_ok = any(satisfied) or has_cred_file
+        if not any_ok:
+            return "missing"
+        if not all(satisfied):
+            return "partial"
+        return "connected"
 
-    if env_names and not all((os.environ.get(n) or "").strip() for n in env_names):
-        return "partial"
-
-    return "connected"
+    if has_cred_file:
+        return "connected"
+    return "missing"
 
 
 def resolve_brands(spec: JobSpec) -> tuple[str, ...]:

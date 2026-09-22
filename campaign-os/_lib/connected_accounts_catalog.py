@@ -213,9 +213,9 @@ def _integration_row(
     file_at = _data_file_mtime(data_rel) if data_rel else None
     last_used = activity.get("last_success_at") or file_at
 
-    if state == "connected" and activity.get("job_verdict") not in (None, "OK", "SKIPPED"):
+    if state == "connected" and activity.get("job_verdict") not in (None, "OK"):
         state = "partial"
-        if activity.get("job_verdict") in ("LATE", "FAILED"):
+        if activity.get("job_verdict") in ("LATE", "FAILED", "STUCK"):
             health = "degraded"
 
     env_vars = list(scope_entry.get("env") or [])
@@ -311,8 +311,12 @@ def build_brand_integrations(brand_id: str) -> dict[str, Any]:
 
     for iid, icon, purpose, connect in (
         ("ga4", "📈", "Site traffic and conversion analytics.", {"type": "portal", "url": "/meta-portal", "label": "GA4 setup portal"}),
-        ("gsc", "🔎", "Search queries, impressions, clicks.", {"type": "manual", "url": "https://search.google.com/search-console", "label": "Open Search Console"}),
-        ("windsor", "💰", "Paid media spend and campaign metrics.", {"type": "manual", "url": "https://windsor.ai", "label": "Windsor dashboard"}),
+        (
+            "gsc",
+            "🔎",
+            "Search queries, impressions, clicks.",
+            {"type": "oauth", "url": f"/api/gsc/oauth/login?brand={brand_id}", "label": "Connect Search Console"},
+        ),
         ("ubersuggest", "📊", "Domain keyword rankings and SEO snapshots.", {"type": "none", "label": "Configured on Railway"}),
         ("youtube", "▶️", "Public golf trend videos for Signal radar.", {"type": "manual", "url": "https://console.cloud.google.com/apis/library/youtube.googleapis.com", "label": "Enable YouTube API"}),
         ("krea", "🎨", "AI image generation for Image Lab.", {"type": "manual", "url": "https://krea.ai", "label": "Krea account"}),
@@ -445,43 +449,6 @@ def build_catalog_extras() -> dict[str, Any]:
                     "Click Connect Search Console on Connected Accounts (signed in).",
                     "Set GSC_SITE_URL_SWING_SHACK=https://swingshack.co.za/ if needed (default).",
                     "gsc_report job writes search-console.json on success.",
-                ],
-            },
-        }
-    )
-
-    # Windsor
-    windsor_creds = _env_any("WINDSOR_API_KEY", "WINDSOR_API_KEY_FILE")
-    windsor_activity = _job_activity(_JOB_BY_INTEGRATION["windsor"])
-    windsor_file_at = _data_file_mtime(_DATA_FILE_BY_INTEGRATION["windsor"])
-    windsor_last = windsor_activity.get("last_success_at") or windsor_file_at
-    items.append(
-        {
-            "id": "windsor",
-            "icon": "💰",
-            "name": "Windsor.ai (Meta + Google Ads)",
-            "category": "analytics",
-            "category_label": "Analytics & data",
-            "purpose": "Live paid media spend and campaign metrics (meta-ads.json, google-ads.json).",
-            "state": _state_from_flags(
-                creds_ok=windsor_creds,
-                partial=windsor_creds and windsor_activity.get("job_verdict") == "LATE",
-            )[0],
-            "last_used_at": windsor_last,
-            "last_used_label": _age_label(windsor_last),
-            "job_verdict": windsor_activity.get("job_verdict"),
-            "credentials": {
-                "configured": windsor_creds,
-                "env_vars": ["WINDSOR_API_KEY", "WINDSOR_API_KEY_FILE"],
-                "key_prefix": _env_prefix("WINDSOR_API_KEY"),
-            },
-            "connect": {"type": "manual", "url": "https://windsor.ai", "label": "Windsor dashboard"},
-            "setup": {
-                "auth_type": "API key",
-                "steps": [
-                    "Copy API key from Windsor.ai account settings.",
-                    "Railway → WINDSOR_API_KEY=<key>.",
-                    "windsor_refresh job pulls live Meta/Google ads on schedule.",
                 ],
             },
         }
