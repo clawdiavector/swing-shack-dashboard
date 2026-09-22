@@ -453,21 +453,18 @@ def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
     """Pull Ubersuggest SEO summary for the brand.
 
     Uses _lib.seo_insights in the same process so we read the
-    Railway-fresh disk cache. Falls back to direct file read.
+    Railway-fresh disk cache. Only Swing Shack has Ubersuggest
+    configured today; other brands return NOT_CONFIGURED.
     """
-    rank = {}
-    overview = {}
+    if bid != "swing-shack":
+        return {"status": "NOT_CONFIGURED"}
     try:
         from _lib import seo_insights  # type: ignore
+        dh = seo_insights.domain_health() or {}
         rank = seo_insights.load_seo_rankings() or {}
-        if bid != "swing-shack":
-            # Multi-brand: this would need its own Ubersuggest project,
-            # which we don't have yet.
-            return {"status": "NOT_CONFIGURED"}
-        overview = seo_insights.load_domain_overview() or {}
     except Exception:
-        pass
-    # If the in-process loaders failed, try a direct file read.
+        dh = {}
+        rank = {}
     if not rank:
         for r in (_data_root(),
                     Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
@@ -478,28 +475,25 @@ def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
                     break
                 except Exception:
                     continue
-    if not rank:
+    if not rank and not dh:
         return {"status": "NOT_CONNECTED"}
-    fetched_at = rank.get("fetched_at")
-    domain_health = (rank.get("domain_health") or {})
-    weekly_change = rank.get("weekly_change") or {}
-    # KPI counts may live either in domain_health (Railway-fresh) or
-    # in the rank top-level (older schema). Prefer domain_health.
-    top_3 = (domain_health.get("keyword_footprint") or {}).get("top_3")         if (domain_health.get("keyword_footprint") or {}).get("top_3")         is not None else rank.get("top_3_keywords")
-    top_10 = (domain_health.get("keyword_footprint") or {}).get("top_10")         if (domain_health.get("keyword_footprint") or {}).get("top_10")         is not None else rank.get("top_10_keywords")
+    kfp = (dh.get("keyword_footprint") or {})
+    wc = (dh.get("weekly_change") or rank.get("weekly_change") or {})
     return {
-        "status": "LIVE" if fetched_at else "PARTIAL",
-        "domain_authority": rank.get("domain_authority")
-                                or (domain_health.get("domain_authority")),
-        "backlinks": rank.get("backlinks")
-                        or (domain_health.get("total_backlinks")),
-        "ref_domains": rank.get("ref_domains")
-                          or (domain_health.get("ref_domains")),
-        "top_3": top_3,
-        "top_10": top_10,
-        "weekly_change": weekly_change,
-        "fetched_at": fetched_at,
-        "manager_read": rank.get("manager_read"),
+        "status": "LIVE" if (dh.get("fetched_at") or rank.get("fetched_at")) else "PARTIAL",
+        "domain_authority": dh.get("domain_authority")
+                                or rank.get("domain_authority"),
+        "backlinks": dh.get("total_backlinks")
+                        or rank.get("backlinks"),
+        "ref_domains": dh.get("ref_domains")
+                          or rank.get("ref_domains"),
+        "top_3": kfp.get("top_3") if kfp.get("top_3") is not None
+                    else rank.get("top_3_keywords"),
+        "top_10": kfp.get("top_10") if kfp.get("top_10") is not None
+                    else rank.get("top_10_keywords"),
+        "weekly_change": wc,
+        "fetched_at": rank.get("fetched_at"),
+        "manager_read": dh.get("manager_read") or rank.get("manager_read"),
     }
 
 
