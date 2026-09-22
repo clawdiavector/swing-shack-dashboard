@@ -74,6 +74,31 @@ function SkeletonRows({ n = 4 }: { n?: number }) {
   )
 }
 
+function formatJobInfo(info: JobEntry['info']): string | null {
+  if (info == null || info === '') return null
+  if (typeof info === 'string') return info
+  const title = info.title?.trim()
+  const summary = info.summary?.trim()
+  if (title && summary) return `${title} — ${summary}`
+  if (title) return title
+  if (summary) return summary
+  const detail = info.detail?.trim()
+  return detail || null
+}
+
+function formatJobSchedule(schedule: JobEntry['schedule']): string | null {
+  if (schedule == null || schedule === '') return null
+  if (typeof schedule === 'string') return schedule
+  const cadence = schedule.cadence?.trim()
+  if (cadence) return cadence
+  const cron = schedule.cron_sast
+  if (Array.isArray(cron) && cron.length) {
+    return `SAST ${cron.filter((t): t is string => typeof t === 'string').join(', ')}`
+  }
+  const scheduler = schedule.scheduler?.trim()
+  return scheduler || null
+}
+
 function jobRowMeta(job: JobEntry, brandId: string) {
   if (job.brand_mode === 'per_brand' && job.brands?.length) {
     const row = job.brands.find((b) => b.brand === brandId) || job.brands[0]
@@ -84,7 +109,7 @@ function jobRowMeta(job: JobEntry, brandId: string) {
     if (row?.last_status) return `Last status: ${row.last_status}`
   }
   if (job.last_error) return job.last_error
-  return job.info || job.schedule || 'Scheduled job — check verdict.'
+  return formatJobInfo(job.info) || formatJobSchedule(job.schedule) || 'Scheduled job — check verdict.'
 }
 
 function jobVerdictForBrand(job: JobEntry, brandId: string) {
@@ -213,6 +238,7 @@ function JobsTab({ brandId }: { brandId: string }) {
           const verdict = jobVerdictForBrand(job, brandId)
           const tone = verdictTone(verdict)
           const meta = jobRowMeta(job, brandId)
+          const scheduleLabel = formatJobSchedule(job.schedule)
           const when = formatStamp(jobLastRunForBrand(job, brandId))
           return (
             <li
@@ -232,7 +258,7 @@ function JobsTab({ brandId }: { brandId: string }) {
                   </div>
                   <p className="mt-1 text-sm text-tx2">{meta}</p>
                   <p className="mt-0.5 text-xs text-tx3">
-                    {job.schedule ? `${job.schedule} · ` : ''}
+                    {scheduleLabel ? `${scheduleLabel} · ` : ''}
                     Last run {when}
                   </p>
                 </div>
