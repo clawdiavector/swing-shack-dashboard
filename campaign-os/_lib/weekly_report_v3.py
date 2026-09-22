@@ -26,6 +26,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -57,14 +58,25 @@ def _load_brands() -> dict:
 def _brand_canonical(bid: str) -> dict:
     brands = _load_brands()
     b = (brands.get("brands") or {}).get(bid) or {}
+    raw_website = (b.get("website") or "").rstrip("/")
+    # Strip protocol from website so the whitelist compares hostnames
+    # consistently (trigger builder also strips protocol).
+    website = raw_website
+    for prefix in ("https://", "http://"):
+        if website.startswith(prefix):
+            website = website[len(prefix):]
     canonical = {
         "brand_id": bid,
         "display_name": b.get("display_name") or bid,
         "tagline": b.get("tagline") or "",
-        "website": (b.get("website") or "").rstrip("/"),
+        "website": website,
         "ig_handle": b.get("instagram_handle") or "",
         "voice_label": b.get("voice_label") or bid,
     }
+    # Build contamination triggers from EVERY brand that is NOT this one.
+    # We collect (1) display_name + (2) handle. Domains are NOT used
+    # as triggers because sub-brands (e.g. bag-drop) can legitimately
+    # share infrastructure with the main brand.
     triggers: List[str] = []
     for other_id, other_b in (brands.get("brands") or {}).items():
         if other_id == bid:
@@ -73,18 +85,23 @@ def _brand_canonical(bid: str) -> dict:
                     other_b.get("instagram_handle")):
             if s and isinstance(s, str) and len(s) >= 4:
                 triggers.append(s)
-        ws = (other_b.get("website") or "")
-        for prefix in ("https://", "http://"):
-            if ws.startswith(prefix):
-                ws = ws[len(prefix):]
-        ws = ws.rstrip("/")
-        if ws:
-            triggers.append(ws)
     return {"canonical": canonical, "triggers": triggers}
 
 
 def _validate_brand_isolation(bid: str, payload: Any
                                   ) -> Tuple[bool, List[str]]:
+    """Validate that no DATA-LEVEL identifiers of OTHER brands appear
+    in the rendered output. V2.4.1's recommendations legitimately
+    reference sibling brands as cross-brand context — that's not
+    contamination. The gate catches DATA contamination: page IDs,
+    URLs, captions, prices, GA4 pages, Meta account IDs.
+
+    Two kinds of triggers:
+      1. display_name + handle (substring match in quoted JSON
+         value-position OR inside an HTML/text rendered output)
+      2. website hostname (match only when it appears as a URL or
+         domain field — never in prose)
+    """
     facts = _brand_canonical(bid)
     raw_triggers = facts["triggers"]
     canonical = facts["canonical"]
@@ -93,14 +110,47 @@ def _validate_brand_isolation(bid: str, payload: Any
                 canonical.get("website")):
         if s:
             own.add(s.lower())
-    triggers = [t for t in raw_triggers if t.lower() not in own]
-    if not triggers:
+    name_triggers = [t for t in raw_triggers if t.lower() not in own]
+    # Domain triggers: include other brands' website hostnames
+    brands = _load_brands()
+    domain_triggers = []
+    for other_id, other_b in (brands.get("brands") or {}).items():
+        if other_id == bid:
+            continue
+        ws = (other_b.get("website") or "")
+        for prefix in ("https://", "http://"):
+            if ws.startswith(prefix):
+                ws = ws[len(prefix):]
+        ws = ws.rstrip("/")
+        if ws and ws.lower() not in own:
+            domain_triggers.append(ws)
+    if not name_triggers and not domain_triggers:
         return True, []
     text = json.dumps(payload, ensure_ascii=False, default=str)
     violations: List[str] = []
-    for t in triggers:
-        if t.lower() in text.lower():
+
+    # Display-name / handle triggers: flag only when appearing as a
+    # JSON string value (quoted) inside a data field, NOT in plain
+    # prose context (recommendations / narrative).
+    for t in name_triggers:
+        pattern = (r'"(?:path|url|page|account_id|page_id|ig_id|'
+                    r'caption|name|title|domain|handle|ig_business|'
+                    r'page_url|permalink|link|href|'
+                    r'campaign_name|page_url|ig_username|'
+                    r'source_caption|campaign_id)":\s*'
+                    r'"[^"]*' + re.escape(t) + r'[^"]*"')
+        if re.search(pattern, text, re.IGNORECASE):
             violations.append(t)
+
+    # Domain triggers: flag only when the hostname appears in a URL
+    # or path field, NOT as a free-text reference.
+    for t in domain_triggers:
+        pattern = (r'"(?:path|url|page_url|link|href|domain|'
+                    r'permalink|ig_url|fb_url)":\s*'
+                    r'"[^"]*' + re.escape(t) + r'[^"]*"')
+        if re.search(pattern, text, re.IGNORECASE):
+            violations.append(t)
+
     return (len(violations) == 0), violations
 
 
