@@ -174,11 +174,20 @@ def _compute_periods(as_of: Optional[str] = None) -> Dict[str, str]:
 
 # ── canonical V2.4.1 read ──────────────────────────────────────
 
-def _read_v24(bid: str, as_of: Optional[str] = None) -> Dict[str, Any]:
+def _read_v24(bid: str, as_of: Optional[str] = None,
+                cookie: Optional[str] = None) -> Dict[str, Any]:
+    """Read canonical V2.4.1.
+
+    When called from a Flask request, pass cookie=request.headers.get(
+    'Cookie') so V2.4.1's internal /api/ga4 + /api/meta calls reuse
+    the operator's session. Without it, V2.4.1 falls back to
+    UNAVAILABLE / mock data — even on Railway production.
+    """
     from _lib.reporting_intelligence import build_v24_brand_report
     periods = _compute_periods(as_of)
     try:
-        r = build_v24_brand_report(bid, period_days=7, cookie=None) or {}
+        r = build_v24_brand_report(bid, period_days=7,
+                                     cookie=cookie) or {}
     except Exception as e:
         return {"error": str(e), "bid": bid, "periods": periods}
     r["__periods"] = periods
@@ -977,8 +986,14 @@ def _render_html(bid: str, v24: dict, north_stars: List[dict],
 # ── main entry ─────────────────────────────────────────────────
 
 def build_v32(bid: str, fmt: str = "markdown",
-                as_of: Optional[str] = None) -> dict:
-    """Build the V3.2 weekly management report."""
+                as_of: Optional[str] = None,
+                cookie: Optional[str] = None) -> dict:
+    """Build the V3.2 weekly management report.
+
+    Pass cookie=... to thread the operator's session through to
+    V2.4.1's internal API calls. Without it, V2.4.1 returns
+    UNAVAILABLE / mock data even on Railway production.
+    """
     if bid not in ("stick", "swing-shack", "bag-drop"):
         return {"report_status": "INVALID_BRAND",
                 "block_reason": "brand_id must be stick, swing-shack, or bag-drop",
@@ -987,7 +1002,7 @@ def build_v32(bid: str, fmt: str = "markdown",
                 "raw_payload": {}}
 
     periods = _compute_periods(as_of)
-    v24 = _read_v24(bid, as_of)
+    v24 = _read_v24(bid, as_of, cookie=cookie)
 
     if not v24 or "error" in v24:
         return {
@@ -1051,9 +1066,10 @@ def build_v32(bid: str, fmt: str = "markdown",
 # ── snapshot (archive current week for next-week WoW) ──────────
 
 def archive_snapshot_v32(bid: str, as_of: Optional[str] = None,
-                            snapshot_root: Optional[Path] = None
+                            snapshot_root: Optional[Path] = None,
+                            cookie: Optional[str] = None
                             ) -> Dict[str, Any]:
-    out = build_v32(bid, fmt="json", as_of=as_of)
+    out = build_v32(bid, fmt="json", as_of=as_of, cookie=cookie)
     v24 = (out.get("raw_payload") or {}).get("v24") or {}
     periods = (out.get("raw_payload") or {}).get("periods") or {}
     north_stars = (out.get("raw_payload") or {}).get("north_stars") or []

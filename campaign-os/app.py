@@ -23248,7 +23248,8 @@ def weekly_report_api():
     fmt = (request.args.get('format', 'html') or 'html').lower()
     as_of = request.args.get('as_of') or None
     try:
-        out = _wr3.build_v31(bid, fmt=fmt, as_of=as_of)
+        cookie=request.headers.get('Cookie')
+        out = _wr3.build_v31(bid, fmt=fmt, as_of=as_of, cookie=cookie)
         status = out.get("report_status", "OK")
         if status == "BLOCKED_BRAND_CONTAMINATION":
             return jsonify({
@@ -23296,7 +23297,8 @@ def weekly_report_snapshot():
     bid = request.args.get('brand') or get_brand_id()
     as_of = request.args.get('as_of') or None
     try:
-        snap = _wr3.archive_snapshot_v31(bid, as_of=as_of)
+        cookie=request.headers.get('Cookie')
+        snap = _wr3.archive_snapshot_v31(bid, as_of=as_of, cookie=cookie)
         return jsonify({"ok": True, "snapshot": snap}), 200
     except Exception as e:
         _app_log.exception("weekly_report_snapshot v3.1 failed")
@@ -23447,7 +23449,8 @@ def weekly_report_page():
     if bid not in ("stick", "swing-shack", "bag-drop"):
         return "invalid brand", 400
     as_of = request.args.get('as_of') or None
-    out = _wr3.build_v31(bid, fmt='html', as_of=as_of)
+    cookie=request.headers.get('Cookie')
+    out = _wr3.build_v31(bid, fmt='html', as_of=as_of, cookie=cookie)
     if out.get("report_status") == "BLOCKED_BRAND_CONTAMINATION":
         return (f"<h1>{bid} — Weekly Report BLOCKED</h1>"
                 f"<p>Brand contamination: {out.get('block_reason')}</p>"
@@ -45546,7 +45549,8 @@ def weekly_report_v3(brand_id):
         return jsonify({"ok": False,
                         "error": "weekly_report_v3 unavailable"}), 503
     try:
-        out = _wr3.build_v31(brand_id, fmt=fmt, as_of=as_of)
+        cookie=request.headers.get('Cookie')
+        out = _wr3.build_v31(brand_id, fmt=fmt, as_of=as_of, cookie=cookie)
         status = out.get("report_status", "OK")
         if status == "BLOCKED_BRAND_CONTAMINATION":
             return jsonify({
