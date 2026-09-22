@@ -380,71 +380,100 @@ def _sign(curr, prev) -> str:
 # ── read organic (IG + FB) from disk cache ─────────────────────
 
 def _brand_has_instagram_account(bid: str) -> bool:
-    """True iff the brand has an Instagram business account configured.
+    """True iff the brand has an Instagram business account available.
 
-    Reads data/integrations/<bid>/instagram.json. Avoids the
-    upstream /api/insights/top-instagram-posts endpoint's
-    stick->swing-shack delegation, which silently returns SS
-    posts under a 'stick' label.
+    Two paths must agree:
+      1. data/integrations/<bid>/instagram.json on disk.
+      2. meta_api.load_brand_integration() with env-var overlays
+         (so deployments with META_INSTAGRAM_BUSINESS_ACCOUNT_ID_<BRAND>
+         set on Railway work even when the local config file says
+         configured:false).
     """
-    for r in (_data_root(),
-                Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
-        p = r / "integrations" / bid / "instagram.json"
-        if p.is_file():
-            try:
-                d = json.loads(p.read_text())
-            except Exception:
-                continue
-            # configured must be true AND ig_business_account_id set
-            return bool(d.get("configured")) and bool(d.get("ig_business_account_id"))
-    return False
+    try:
+        from _lib import meta_api as _ma
+        cfg = _ma.load_brand_integration(bid)
+        return bool(cfg.get("ig_business_account_id"))             and bool(cfg.get("configured", True))
+    except Exception:
+        return False
 
 
 def _read_instagram_posts_for_brand(bid: str) -> List[Dict[str, Any]]:
-    """Load Instagram posts published by this brand, with timestamps.
+    """Load Instagram posts published by THIS brand, with real timestamps.
 
-    Guard rails:
-      1. Brand must have its own IG business account configured
-         (data/integrations/<bid>/instagram.json). If not, return [].
-      2. The upstream insights_correlator delegates stick->swing-shack
-         silently and labels the response as 'stick', so we cannot
-         rely on its data_source_brand_id.
-      3. We only return posts with parseable published_at timestamps.
+    Brand-isolation guard:
+      1. Calls _lib.meta_api.list_recent_posts_for_brand(bid) which
+         resolves the BRAND-SCOPED token + ig_business_account_id.
+      2. Returns posts published to the brand's own IG account.
+      3. Stick no longer inherits Swing Shack posts — the per-brand
+         function uses load_brand_integration() which now overlays
+         env-var META_INSTAGRAM_BUSINESS_ACCOUNT_ID_<BRAND> and
+         META_SYSTEM_USER_TOKEN_<BRAND>_PAARL onto the config.
+      4. Returns [] if no IG account is configured for the brand.
     """
-    if not _brand_has_instagram_account(bid):
-        return []
-    out: List[Dict[str, Any]] = []
     try:
-        from _lib import insights_correlator as _ic  # type: ignore
-        r = _ic.get_top_instagram_posts(brand_id=bid, limit=25) or {}
-        for p in r.get("posts") or []:
+        from _lib import meta_api as _ma  # type: ignore
+        cfg = _ma.load_brand_integration(bid)
+        if not cfg.get("ig_business_account_id"):
+            return []
+        if not cfg.get("configured"):
+            return []
+        try:
+            r = _ma.list_recent_posts_for_brand(bid, limit=25) or {}
+        except Exception:
+            r = {}
+        # Defence: if list_recent_posts returned a different account than
+        # what we asked for (stick delegation bug from upstream), reject.
+        meta = r.get("_meta") or {}
+        if meta.get("ig_account_id") and cfg.get("ig_business_account_id")                 and meta["ig_account_id"] != cfg["ig_business_account_id"]:
+            return []
+        out: List[Dict[str, Any]] = []
+        for p in r.get("data") or []:
             if not isinstance(p, dict):
                 continue
-            dt = _parse_published_at(p.get("timestamp"))
+            ts = p.get("timestamp")
+            dt = _parse_published_at(ts)
             if dt is None:
                 continue
+            cap = (p.get("caption") or "").strip()
             out.append({
                 "id": p.get("id"),
                 "media_type": (p.get("media_type") or "IMAGE").upper(),
-                "caption": (p.get("caption_excerpt") or "").strip(),
-                "interactions": (int(p.get("like_count") or 0)
-                                    + int(p.get("comments_count") or 0)
-                                    + int(p.get("saves") or 0)
-                                    + int(p.get("shares") or 0)),
-                "reach": int(p.get("reach") or 0),
-                "likes": int(p.get("like_count") or 0),
-                "comments": int(p.get("comments_count") or 0),
-                "saves": int(p.get("saves") or 0),
-                "shares": int(p.get("shares") or 0),
+                "caption": cap,
+                "interactions": 0,  # filled below from insights if available
+                "reach": 0,
+                "likes": 0,
+                "comments": 0,
+                "saves": 0,
+                "shares": 0,
                 "permalink": p.get("permalink") or "",
-                "thumbnail_url": p.get("thumbnail_url") or "",
-                "timestamp": p.get("timestamp"),
+                "thumbnail_url": (p.get("thumbnail_url") or p.get("media_url") or ""),
+                "timestamp": ts,
                 "published_at": dt,
-                "source": r.get("_meta", {}).get("source") or "insights_correlator",
+                "source": f"meta_api.list_recent_posts_for_brand (brand={bid})",
             })
+        # Fetch per-media insights so the cards have real engagement numbers.
+        for post in out:
+            mid = post.get("id")
+            if not mid:
+                continue
+            try:
+                ins = _ma.get_post_insights_for_brand(
+                    bid, mid, media_type=post.get("media_type")) or {}
+                flat = ins.get("_flat") or {}
+                post["reach"] = int(flat.get("reach") or 0)
+                post["likes"] = int(flat.get("likes") or 0)
+                post["comments"] = int(flat.get("comments") or 0)
+                post["saves"] = int(flat.get("saved") or 0)
+                post["shares"] = int(flat.get("shares") or 0)
+                post["interactions"] = (post["likes"]
+                                          + post["comments"]
+                                          + post["saves"]
+                                          + post["shares"])
+            except Exception:
+                pass
+        return out
     except Exception:
         return []
-    return out
 
 
 def _read_instagram_stories_for_brand(bid: str) -> List[Dict[str, Any]]:
@@ -463,7 +492,7 @@ def _read_instagram_stories_for_brand(bid: str) -> List[Dict[str, Any]]:
         return []
     try:
         from _lib import meta_api as _ma  # type: ignore
-        out = _ma.get_ig_stories(limit=50, with_insights=True) or {}
+        out = _ma.get_ig_stories(limit=50, with_insights=True, brand_id=bid) or {}
         meta = out.get("_meta") or {}
         # Fail loud on auth errors so we don't pretend we have stories.
         # If errored, return [] and let the section hide.
