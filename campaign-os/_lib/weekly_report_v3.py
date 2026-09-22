@@ -450,39 +450,57 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
 # ── read SEO from disk cache ───────────────────────────────────
 
 def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
-    """Pull Ubersuggest SEO summary + winning/leaking keywords."""
-    p = _data_root() / "seo-rankings.json"
-    if not p.is_file():
-        p = Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/seo-rankings.json")
-    if not p.is_file():
-        return {"status": "NOT_CONNECTED"}
+    """Pull Ubersuggest SEO summary for the brand.
+
+    Uses _lib.seo_insights in the same process so we read the
+    Railway-fresh disk cache. Falls back to direct file read.
+    """
+    rank = {}
+    overview = {}
     try:
-        raw = json.loads(p.read_text(encoding="utf-8"))
+        from _lib import seo_insights  # type: ignore
+        rank = seo_insights.load_seo_rankings() or {}
+        if bid != "swing-shack":
+            # Multi-brand: this would need its own Ubersuggest project,
+            # which we don't have yet.
+            return {"status": "NOT_CONFIGURED"}
+        overview = seo_insights.load_domain_overview() or {}
     except Exception:
+        pass
+    # If the in-process loaders failed, try a direct file read.
+    if not rank:
+        for r in (_data_root(),
+                    Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
+            p = r / "seo-rankings.json"
+            if p.is_file():
+                try:
+                    rank = json.loads(p.read_text(encoding="utf-8"))
+                    break
+                except Exception:
+                    continue
+    if not rank:
         return {"status": "NOT_CONNECTED"}
-    domain_health = raw.get("domain_health") or {}
-    weekly_change = raw.get("weekly_change") or {}
-    fetched_at = raw.get("fetched_at")
-    # Try to filter per brand by domain
-    brand_domain = _brand_canonical(bid).get("website") or ""
-    # If raw contains a brand-domain key, use it
-    brand_block = (raw.get("per_brand") or {}).get(bid) or None
-    if brand_block:
-        return _seo_block(brand_block, fetched_at)
-    # Fall back to the single SEO file (which is the swing-shack block)
-    if bid == "swing-shack" or not brand_domain:
-        winning = (raw.get("top_3_keywords") or 0)
-        return {
-            "status": "LIVE" if fetched_at else "PARTIAL",
-            "domain_authority": raw.get("domain_authority"),
-            "backlinks": raw.get("backlinks"),
-            "ref_domains": raw.get("ref_domains"),
-            "top_3": raw.get("top_3_keywords"),
-            "top_10": raw.get("top_10_keywords"),
-            "weekly_change": weekly_change,
-            "fetched_at": fetched_at,
-        }
-    return {"status": "NOT_CONFIGURED"}
+    fetched_at = rank.get("fetched_at")
+    domain_health = (rank.get("domain_health") or {})
+    weekly_change = rank.get("weekly_change") or {}
+    # KPI counts may live either in domain_health (Railway-fresh) or
+    # in the rank top-level (older schema). Prefer domain_health.
+    top_3 = (domain_health.get("keyword_footprint") or {}).get("top_3")         if (domain_health.get("keyword_footprint") or {}).get("top_3")         is not None else rank.get("top_3_keywords")
+    top_10 = (domain_health.get("keyword_footprint") or {}).get("top_10")         if (domain_health.get("keyword_footprint") or {}).get("top_10")         is not None else rank.get("top_10_keywords")
+    return {
+        "status": "LIVE" if fetched_at else "PARTIAL",
+        "domain_authority": rank.get("domain_authority")
+                                or (domain_health.get("domain_authority")),
+        "backlinks": rank.get("backlinks")
+                        or (domain_health.get("total_backlinks")),
+        "ref_domains": rank.get("ref_domains")
+                          or (domain_health.get("ref_domains")),
+        "top_3": top_3,
+        "top_10": top_10,
+        "weekly_change": weekly_change,
+        "fetched_at": fetched_at,
+        "manager_read": rank.get("manager_read"),
+    }
 
 
 def _seo_block(block: dict, fetched_at: str) -> Dict[str, Any]:
@@ -501,26 +519,35 @@ def _seo_block(block: dict, fetched_at: str) -> Dict[str, Any]:
 # ── try to enrich SEO with winning/leaking keywords (Railway only) ──
 
 def _read_seo_keywords(bid: str, cookie: Optional[str] = None) -> Dict[str, Any]:
-    """Hit /api/seo/keywords/{winning,leaking,quick_wins}.
-    Falls back to disk cache for local / cookie-less contexts."""
-    base = _page_meta(bid)
+    """Pull winning / leaking / quick-win SEO keywords.
+
+    Uses _lib.seo_insights in the same process (no external HTTP
+    hop). Falls back to disk cache if the import fails.
+    """
     out = {"winning": [], "leaking": [], "quick_wins": []}
-    if cookie:
-        for cat in ("winning", "leaking", "quick_wins"):
-            try:
-                req = urllib.request.Request(
-                    f"{base}/api/seo/keywords/{cat}",
-                    headers={"Cookie": f"cos_session={cookie}",
-                                "Accept": "application/json"},
-                )
-                with urllib.request.urlopen(req, timeout=10) as resp:
-                    body = json.loads(resp.read().decode())
-                    out[cat] = (body.get("items") or [])
-            except (urllib.error.URLError, urllib.error.HTTPError,
-                        TimeoutError, json.JSONDecodeError, Exception):
-                pass
+    try:
+        from _lib import seo_insights  # type: ignore
+        rank = seo_insights.load_seo_rankings()
+        out["winning"] = seo_insights.winning_keywords(rank) or []
+        out["leaking"] = seo_insights.leaking_keywords(rank) or []
+        out["quick_wins"] = seo_insights.quick_wins(rank) or []
         if any(out.values()):
             return out
+    except Exception:
+        pass
+    # Disk cache fallback
+    for r in (_data_root(),
+                Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
+        p = r / "seo-keywords.json"
+        if p.is_file():
+            try:
+                raw = json.loads(p.read_text())
+                for cat in ("winning", "leaking", "quick_wins"):
+                    out[cat] = raw.get(cat) or raw.get(f"{bid}_{cat}") or []
+                return out
+            except Exception:
+                continue
+    return out
     # Fall back to disk cache
     for r in (_data_root(),
                 Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
