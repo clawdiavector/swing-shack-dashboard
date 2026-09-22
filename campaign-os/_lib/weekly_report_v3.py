@@ -255,10 +255,16 @@ _OBJECTIVE_GROUP = {
                             "people reached", "people", "cost per 1,000 reached"),
     "OUTCOME_TRAFFIC": ("Website traffic campaigns",
                           "website visits", "visits", "cost per website visit"),
+    "LINK_CLICKS": ("Website traffic campaigns",
+                      "website visits", "visits", "cost per website visit"),
     "OUTCOME_ENGAGEMENT": ("Engagement campaigns",
                               "engagements", "engagements", "cost per engagement"),
     "OUTCOME_LEADS": ("Lead campaigns",
                        "leads", "leads", "cost per lead"),
+    "OUTCOME_SALES": ("Sales campaigns",
+                        "purchases", "purchases", "cost per purchase"),
+    "OUTCOME_APP": ("App campaigns",
+                      "app events", "events", "cost per app event"),
 }
 
 
@@ -710,32 +716,45 @@ def _build_advertising(v24: dict) -> List[str]:
                 cpr = pr.get("primary_cost_per_unit")
                 L.append(f"- **{c.get('campaign_name','?')}**")
                 L.append(f"  - Spend this week: {_fmt(spend, 'money')}")
-                if pv is not None:
-                    if obj == "OUTCOME_AWARENESS":
-                        L.append(f"  - People reached: {_fmt(pv)}")
-                        if cpr is not None:
-                            L.append(f"  - Cost per 1,000 people reached: "
-                                       f"{_fmt(cpr, 'money_per')}")
-                    elif obj == "OUTCOME_TRAFFIC":
-                        L.append(f"  - Website visits from this ad: {_fmt(pv)}")
-                        if cpr is not None:
-                            L.append(f"  - Cost per website visit: "
-                                       f"{_fmt(cpr, 'money_per')}")
-                    elif obj == "OUTCOME_ENGAGEMENT":
-                        L.append(f"  - Engagements: {_fmt(pv)}")
-                        if cpr is not None:
-                            L.append(f"  - Cost per engagement: "
-                                       f"{_fmt(cpr, 'money_per')}")
-                    elif obj == "OUTCOME_LEADS":
-                        L.append(f"  - Leads: {_fmt(pv)}")
-                        if cpr is not None:
-                            L.append(f"  - Cost per lead: "
-                                       f"{_fmt(cpr, 'money_per')}")
-                    else:
-                        L.append(f"  - {pml or 'result'}: {_fmt(pv)}")
-                        if cpr is not None:
-                            L.append(f"  - Cost per result: "
-                                       f"{_fmt(cpr, 'money_per')}")
+                # Primary result line — plain-English by objective
+                if obj == "OUTCOME_AWARENESS":
+                    L.append(f"  - People reached: {_fmt(pv) if pv is not None else '—'}")
+                    if cpr is not None:
+                        L.append(f"  - Cost per 1,000 people reached: "
+                                   f"{_fmt(cpr, 'money_per')}")
+                elif obj in ("OUTCOME_TRAFFIC", "LINK_CLICKS"):
+                    L.append(f"  - Website visits from this ad: "
+                               f"{_fmt(pv) if pv is not None else '—'}")
+                    if cpr is not None:
+                        L.append(f"  - Cost per website visit: "
+                                   f"{_fmt(cpr, 'money_per')}")
+                elif obj == "OUTCOME_ENGAGEMENT":
+                    L.append(f"  - Engagements: "
+                               f"{_fmt(pv) if pv is not None else '—'}")
+                    if cpr is not None:
+                        L.append(f"  - Cost per engagement: "
+                                   f"{_fmt(cpr, 'money_per')}")
+                elif obj == "OUTCOME_LEADS":
+                    L.append(f"  - Leads: "
+                               f"{_fmt(pv) if pv is not None else '—'}")
+                    if cpr is not None:
+                        L.append(f"  - Cost per lead: "
+                                   f"{_fmt(cpr, 'money_per')}")
+                elif obj == "OUTCOME_SALES":
+                    L.append(f"  - Purchases: "
+                               f"{_fmt(pv) if pv is not None else '—'}")
+                    if cpr is not None:
+                        L.append(f"  - Cost per purchase: "
+                                   f"{_fmt(cpr, 'money_per')}")
+                else:
+                    label_noun = (pml or "result").replace(
+                        "_", " ").replace("landing page views",
+                                            "website visits")
+                    L.append(f"  - {label_noun}: "
+                               f"{_fmt(pv) if pv is not None else '—'}")
+                    if cpr is not None:
+                        L.append(f"  - Cost per result: "
+                                   f"{_fmt(cpr, 'money_per')}")
                 # Reach / impressions summary line for context
                 if obj != "OUTCOME_AWARENESS":
                     reach = cur_c.get("reach")
