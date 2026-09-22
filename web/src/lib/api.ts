@@ -104,6 +104,23 @@ async function getJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  if (!res.ok) {
+    throw new Error(`${path} ${res.status}`)
+  }
+  return res.json() as Promise<T>
+}
+
 export function fetchToday(brand?: string) {
   const q = brand ? `?brand=${encodeURIComponent(brand)}` : ''
   return getJson<TodayPanel>(`/api/today/panel${q}`)
@@ -402,4 +419,52 @@ export async function inboxAction(id: string, action: 'approve' | 'reject', reas
     body: JSON.stringify({ editor: 'operator', reason }),
   })
   return res.json() as Promise<{ ok?: boolean; error?: string }>
+}
+
+export type AssetAiDraft = {
+  ok?: boolean
+  assetId?: string
+  campaignId?: string
+  caption?: string
+  source?: string
+  ts?: string
+  error?: string
+}
+
+export function fetchAssetAiDraft(assetId: string, campaignId?: string) {
+  const q = new URLSearchParams()
+  if (campaignId) q.set('campaignId', campaignId)
+  const suffix = q.toString() ? `?${q}` : ''
+  return getJson<AssetAiDraft>(`/api/assets/${encodeURIComponent(assetId)}/ai-draft${suffix}`)
+}
+
+export type VisualLibraryPayload = {
+  ok?: boolean
+  images?: unknown[]
+  stats?: Record<string, unknown>
+  error?: string
+}
+
+export function fetchVisualLibrary(brand: string) {
+  return getJson<VisualLibraryPayload>(
+    `/api/visual-library/${encodeURIComponent(brand)}/images`,
+  )
+}
+
+export function fetchVisualLibraryStats(brand: string) {
+  return getJson<Record<string, unknown>>(
+    `/api/visual-library/${encodeURIComponent(brand)}/stats`,
+  )
+}
+
+export type MemeCatalogPayload = {
+  ok?: boolean
+  memes?: unknown[]
+  templates?: unknown[]
+  error?: string
+}
+
+export function fetchMemeCatalog(brand?: string) {
+  const q = brand ? `?brand=${encodeURIComponent(brand)}` : ''
+  return getJson<MemeCatalogPayload>(`/api/intel/memes/catalog${q}`)
 }

@@ -5,6 +5,7 @@ export type ToolDef = {
   from: string
   page?: string
   path?: string
+  native?: string
 }
 
 export const TOOLS: ToolDef[] = [
@@ -28,7 +29,14 @@ export const TOOLS: ToolDef[] = [
   { slug: 'gbp', page: 'gbp', label: 'GBP', hint: 'Google Business Profile', from: '/publish' },
   { slug: 'gmb', page: 'gmb', label: 'GBP drafts', hint: 'Pending listings', from: '/publish' },
   { slug: 'socials', page: 'socials', label: 'Socials', hint: 'What’s live', from: '/daily' },
-  { slug: 'accounts', path: '/connected-accounts', label: 'Accounts', hint: 'Connected channels', from: '/publish' },
+  {
+    slug: 'accounts',
+    path: '/connected-accounts',
+    label: 'Accounts',
+    hint: 'Connected channels',
+    from: '/publish',
+    native: '/ops?tab=accounts',
+  },
   { slug: 'weekly-report', path: '/weekly-report', label: 'This week', hint: 'Weekly report', from: '/results' },
   { slug: 'insights', page: 'insights', label: 'Insights', hint: 'What worked', from: '/results' },
   { slug: 'performance', page: 'performance', label: 'Reach', hint: 'Performance', from: '/results' },
@@ -60,6 +68,16 @@ export function toolTo(slug: string, extra?: Record<string, string | undefined>)
   }
   const qs = q.toString()
   return qs ? `/tool/${slug}?${qs}` : `/tool/${slug}`
+}
+
+/** Merge catalog default query on `native` with inbound deep-link params (inbound wins). */
+export function mergeNativeTarget(native: string, inbound: URLSearchParams): string {
+  const qIndex = native.indexOf('?')
+  const path = qIndex >= 0 ? native.slice(0, qIndex) : native
+  const merged = new URLSearchParams(qIndex >= 0 ? native.slice(qIndex + 1) : '')
+  inbound.forEach((value, key) => merged.set(key, value))
+  const qs = merged.toString()
+  return qs ? `${path}?${qs}` : path
 }
 
 export function toolEmbedSrc(tool: ToolDef, params: URLSearchParams) {
