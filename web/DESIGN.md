@@ -68,9 +68,26 @@ Classic `/ops`, `/ops/jobs`, and `/connected-accounts` stay live — each tab ha
 ## Studio
 
 Native work surfaces live under `/app/create/<cluster>` with optional `?tab=` inside a cluster
-(post · captions · copy · images · memes). Tab strips use `FilterChips` like Ops. Every interactive
+(post · captions · copy · images · memes), and under `/app/calendar`, `/app/calendar/ideas`, and
+`/app/calendar/lanes`. Tab strips use `FilterChips` like Ops. Every interactive
 control carries a `Tip`. Every cluster page includes a **ClassicLink** raw anchor to the matching
 `/?page=…` or standalone HTML — never route Classic URLs through `Button`/`IconTile` (native round trip).
+
+## Calendar
+
+Native surfaces: `/app/calendar` (full month), `/app/calendar/ideas` (backlog),
+`/app/calendar/lanes` (themes · timeline · right-now).
+
+`?date=YYYY-MM-DD` is the calendar's deep-link contract and is honoured on all three:
+it sets the visible month and the selected day, and it is the park target on Ideas.
+Missing or malformed falls back to today, never an error. Every day-selection and
+month-step writes `?date=` back with `replace:true`.
+
+Inside a page, `?tab=` selects the view (Ideas: ideas · today · week · missed · upsells ·
+bundles · leaks. Lanes: now · month · timeline), as in Ops and Studio.
+
+Classic `/?page=calendar`, `/?page=ideas` and `/?page=planning` stay live — each native
+page carries a ClassicLink raw anchor to its classic page.
 
 Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-lab.html`,
 `campaign-os.html` sections) stay on disk and served; Heroes does not delete them.

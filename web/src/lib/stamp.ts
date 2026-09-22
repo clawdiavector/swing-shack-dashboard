@@ -71,6 +71,14 @@ export function isoDate(d: Date) {
   return `${y}-${m}-${day}`
 }
 
+/** Deep-link date param: YYYY-MM-DD only; junk falls back to today. */
+export function parseIsoDateParam(raw: string | null | undefined): Date {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return new Date()
+  const d = parseDate(raw)
+  if (!d || isoDate(d) !== raw) return new Date()
+  return d
+}
+
 export function dayInMonth(raw: string | null | undefined, year: number, month0: number) {
   const d = parseDate(raw)
   if (!d) return null

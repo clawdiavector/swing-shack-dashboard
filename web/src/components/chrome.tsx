@@ -122,12 +122,16 @@ export function FilterChips({
 }
 
 export function MonthGrid({
+  year: yearProp,
+  month0: month0Prop,
   highlight,
   embedded,
   counts,
   selected,
   onSelect,
 }: {
+  year?: number
+  month0?: number
   highlight?: number
   embedded?: boolean
   counts?: Record<number, number>
@@ -135,15 +139,16 @@ export function MonthGrid({
   onSelect?: (day: number) => void
 }) {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const today = now.getDate()
+  const year = yearProp ?? now.getFullYear()
+  const month = month0Prop ?? now.getMonth()
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth()
+  const today = isCurrentMonth ? now.getDate() : -1
   const first = new Date(year, month, 1)
   const pad = (first.getDay() + 6) % 7
   const days = new Date(year, month + 1, 0).getDate()
   const cells = [...Array(pad).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)]
   while (cells.length % 7) cells.push(null)
-  const monthName = now.toLocaleString('en-ZA', { month: 'long' })
+  const monthName = new Date(year, month, 1).toLocaleString('en-ZA', { month: 'long' })
 
   return (
     <div className={embedded ? 'pt-1' : 'glass rounded-2xl border-[1.5px] border-white/10 p-4 backdrop-blur-xl'}>

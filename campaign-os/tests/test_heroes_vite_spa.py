@@ -57,3 +57,12 @@ def test_classic_page_query_still_served():
     assert resp.status_code in (200, 302)
     if resp.status_code == 200:
         assert b'Campaign OS' in resp.data
+
+
+def test_classic_calendar_ideas_planning_still_served():
+    from app import app
+
+    client = app.test_client()
+    for page in ('calendar', 'ideas', 'planning'):
+        resp = client.get(f'/?page={page}', follow_redirects=False)
+        assert resp.status_code in (200, 302)

@@ -16,6 +16,8 @@ import { Captions } from './pages/studio/Captions'
 import { Copy } from './pages/studio/Copy'
 import { Images } from './pages/studio/Images'
 import { Memes } from './pages/studio/Memes'
+import { Ideas } from './pages/calendar/Ideas'
+import { Lanes } from './pages/calendar/Lanes'
 
 export default function App() {
   return (
@@ -32,6 +34,8 @@ export default function App() {
         <Route path="create/images" element={<Images />} />
         <Route path="create/memes" element={<Memes />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="calendar/ideas" element={<Ideas />} />
+        <Route path="calendar/lanes" element={<Lanes />} />
         <Route path="publish" element={<Publish />} />
         <Route path="results" element={<Results />} />
         <Route path="ops" element={<Ops />} />

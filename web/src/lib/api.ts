@@ -141,6 +141,7 @@ export type CalendarView = {
   items?: CalendarItem[]
   calendar_count?: number
   error?: string
+  status?: number
 }
 
 export async function fetchCalendarMonth(brand: string, start: string, end: string) {
@@ -152,8 +153,182 @@ export async function fetchCalendarMonth(brand: string, start: string, end: stri
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
     throw new Error('auth required')
   }
-  if (!res.ok) return { ok: false, items: [] } as CalendarView
+  if (!res.ok) {
+    let error = ''
+    try {
+      const j = (await res.json()) as { error?: string }
+      error = j.error || ''
+    } catch {
+      error = ''
+    }
+    return { ok: false, items: [], error, status: res.status } as CalendarView
+  }
   return res.json() as Promise<CalendarView>
+}
+
+export type IntelCalendarSlot = {
+  source?: string
+  assetId?: string
+  campaignId?: string
+  campaignName?: string
+  name?: string
+  caption?: string
+  approvalStatus?: string
+  publishStatus?: string
+  platform?: string
+  brand?: string
+  pillar?: string
+  color?: string
+  scheduledFor?: string
+}
+
+export type IntelCalendarDay = {
+  date?: string
+  weekday?: string
+  count?: number
+  slots?: IntelCalendarSlot[]
+}
+
+export type IntelCalendarPayload = {
+  ok?: boolean
+  ts?: string
+  today?: string
+  totalScheduled?: number
+  days?: IntelCalendarDay[]
+  error?: string
+}
+
+export function fetchIntelCalendar(brand: string, startIso: string, days: number) {
+  const q = new URLSearchParams({
+    brand: brand,
+    start: startIso,
+    days: String(days),
+  })
+  return getJson<IntelCalendarPayload>(`/api/intel/calendar?${q}`)
+}
+
+export type OpportunitiesPayload = {
+  ok?: boolean
+  ts?: string
+  ideas?: unknown[]
+  post_today?: unknown[]
+  this_week?: unknown[]
+  reels?: unknown[]
+  missed?: unknown[]
+  upsells?: unknown[]
+  bundles?: unknown[]
+  landing_fixes?: unknown[]
+  lead_capture_fixes?: unknown[]
+  funnel_leaks?: unknown[]
+  error?: string
+}
+
+export function fetchOpportunities(brand: string) {
+  const q = new URLSearchParams({ brand })
+  return getJson<OpportunitiesPayload>(`/api/intel/opportunities?${q}`)
+}
+
+export type CalendarCandidateBody = {
+  brand_id: string
+  type: string
+  title: string
+  event_date: string
+  source_type?: string
+  status?: string
+  pillars?: string[]
+  suggested_angles?: string[]
+  campaign_ids?: string[]
+  product_brand?: string
+}
+
+export type CalendarCandidateRecord = {
+  ok?: boolean
+  record?: { calendar_id?: string; status?: string; created_at?: string }
+  error?: string
+}
+
+export function addCalendarCandidate(body: CalendarCandidateBody) {
+  return postJson<CalendarCandidateRecord>('/api/calendar/candidates', body)
+}
+
+export type CalendarTransitionBody = {
+  brand_id: string
+  calendar_id: string
+  new_status: string
+  reason?: string
+}
+
+export function transitionCalendarRecord(body: CalendarTransitionBody) {
+  return postJson<{ ok?: boolean; error?: string }>('/api/calendar/transition', body)
+}
+
+export function fetchCalendarCandidates(brand: string, status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : ''
+  return getJson<{ ok?: boolean; records?: unknown[]; count?: number }>(
+    `/api/calendar/candidates/${encodeURIComponent(brand)}${q}`,
+  )
+}
+
+export function fetchPlanningBigIdea(brand: string) {
+  return getJson<Record<string, unknown>>(`/api/planning/${encodeURIComponent(brand)}/big-idea`)
+}
+
+export function fetchPlanningMonth(brand: string, month: string) {
+  const q = new URLSearchParams({ month })
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/month?${q}`,
+  )
+}
+
+export function fetchPlanningRightNow(brand: string) {
+  return getJson<Record<string, unknown>>(`/api/planning/${encodeURIComponent(brand)}/right-now`)
+}
+
+export function fetchPlanningTimeline(brand: string, year: string) {
+  const q = new URLSearchParams({ year })
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/timeline?${q}`,
+  )
+}
+
+export function fetchImportantDates(year: string) {
+  const q = new URLSearchParams({ year })
+  return getJson<Record<string, unknown>>(`/api/important-dates?${q}`)
+}
+
+export function generateIdeas(brand: string, n = 6, platform = 'instagram') {
+  const q = new URLSearchParams({ brand })
+  return postJson<Record<string, unknown>>(`/api/intel/generate_ideas?${q}`, { n, platform })
+}
+
+export type ScheduleResult = {
+  ok?: boolean
+  assetId?: string
+  scheduledFor?: string
+  error?: string
+}
+
+export function rescheduleAsset(
+  assetId: string,
+  body: { campaignId?: string; scheduledFor: string; platform?: string; updatedBy?: string },
+) {
+  return postJson<ScheduleResult>(`/api/schedule/${encodeURIComponent(assetId)}`, body)
+}
+
+export function duplicateScheduledAsset(assetId: string, body: Record<string, unknown>) {
+  return postJson<ScheduleResult>(`/api/schedule/${encodeURIComponent(assetId)}/duplicate`, body)
+}
+
+export async function unscheduleAsset(assetId: string) {
+  const res = await fetch(`/api/schedule/${encodeURIComponent(assetId)}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  })
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  return res.json() as Promise<ScheduleResult>
 }
 
 export function fetchInbox(status = 'pending') {

@@ -129,7 +129,6 @@ export function BuildPost() {
   const [hook, setHook] = useState('')
   const [campaignId, setCampaignId] = useState(campaignParam || '')
 
-  const [inboxMeta, setInboxMeta] = useState<InboxItem | null>(null)
   const [prefillNote, setPrefillNote] = useState('')
 
   const [pkg, setPkg] = useState<BuildPostPackage | null>(null)
@@ -161,7 +160,6 @@ export function BuildPost() {
         const item = await fetchInboxItem(itemId)
         if (cancelled) return
         if (item) {
-          setInboxMeta(item)
           if (item.meta?.campaign_id) resolvedCampaign = item.meta.campaign_id
           setCampaignId((prev) => prev || item.meta?.campaign_id || '')
           if (item.title) setIdeaText((prev) => prev || item.title || '')
