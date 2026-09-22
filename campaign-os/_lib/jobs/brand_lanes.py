@@ -64,6 +64,27 @@ def _env_any(*names: str) -> bool:
     return False
 
 
+def _ubersuggest_token_ok() -> bool:
+    if _env_any("UBERSUGGEST_ACCESS", "UBERSUGGEST_REFRESH_TOKEN", "UBERSUGGEST_ACCESS_TOKEN"):
+        return True
+    path = (os.environ.get("UBERSUGGEST_TOKEN_FILE") or "").strip()
+    if path and os.path.isfile(path):
+        return True
+    default = os.path.join(os.environ.get("DATA_DIR") or "/data", "ubersuggest-token.json")
+    return os.path.isfile(default)
+
+
+def _brand_domain_ok(brand_id: str) -> bool:
+    safe = _brand_safe(brand_id)
+    if _env_any(f"BRAND_DOMAIN_{safe}", "BRAND_DOMAIN"):
+        return True
+    reg = load_brands_registry()
+    default_bid = str(reg.get("default_brand_id") or "swing-shack")
+    if brand_id == default_bid:
+        return bool((os.environ.get("SWING_SHACK_DOMAIN") or "swingshack.co.za").strip())
+    return False
+
+
 def _env_satisfied(env_name: str, brand_id: str) -> bool:
     """True if env_name is set or a job-equivalent fallback is present."""
     if (os.environ.get(env_name) or "").strip():
@@ -71,6 +92,23 @@ def _env_satisfied(env_name: str, brand_id: str) -> bool:
 
     safe = _brand_safe(brand_id)
     upper = env_name.upper()
+
+    if upper.startswith("META_SYSTEM_USER_TOKEN"):
+        return _env_any(
+            env_name,
+            f"META_SYSTEM_USER_TOKEN_{safe}",
+            "META_SYSTEM_USER_TOKEN_STICK",
+            "META_SYSTEM_USER_TOKEN",
+        )
+
+    if upper.startswith("GBP_LOCATION_ID"):
+        return _env_any(env_name, "GBP_LOCATION_ID")
+
+    if upper.startswith("UBERSUGGEST_"):
+        return _ubersuggest_token_ok()
+
+    if upper.startswith("BRAND_DOMAIN"):
+        return _brand_domain_ok(brand_id)
 
     if upper.startswith("GA4_PROPERTY"):
         return _env_any("GA4_PROPERTY_ID", "GA4_PROPERTY", env_name)
@@ -91,6 +129,30 @@ def _env_satisfied(env_name: str, brand_id: str) -> bool:
             return _env_any(base, env_name)
 
     return False
+
+
+def env_unsatisfied_names(
+    brand_id: str,
+    integration_id: str,
+    env_names: list[str],
+    *,
+    credential_ref: str | None = None,
+) -> list[str]:
+    """Env vars from brands.json that are still unsatisfied for setup UI."""
+    if integration_id == "gbp":
+        if credential_ref and _credential_file_exists(credential_ref):
+            return []
+        safe = _brand_safe(brand_id)
+        if _env_any(f"GBP_LOCATION_ID_{safe}", "GBP_LOCATION_ID"):
+            return []
+        return [n for n in env_names if not _env_satisfied(n, brand_id)]
+
+    if integration_id == "ubersuggest":
+        if _ubersuggest_token_ok():
+            return []
+        return ["UBERSUGGEST_ACCESS or UBERSUGGEST_TOKEN_FILE or UBERSUGGEST_REFRESH_TOKEN"]
+
+    return [n for n in env_names if not _env_satisfied(n, brand_id)]
 
 
 def _credential_file_exists(credential_ref: str) -> bool:
@@ -139,6 +201,21 @@ def integration_state(brand_id: str, integration_id: str) -> str:
     env_names = list(scope.get("env") or [])
     cred_ref = scope.get("credential_ref")
     has_cred_file = bool(cred_ref and _credential_file_exists(cred_ref))
+
+    if integration_id == "gbp":
+        if has_cred_file:
+            return "connected"
+        safe = _brand_safe(brand_id)
+        if _env_any(f"GBP_LOCATION_ID_{safe}", "GBP_LOCATION_ID") or any(
+            _env_satisfied(n, brand_id) for n in env_names
+        ):
+            return "connected"
+        return "missing"
+
+    if integration_id == "ubersuggest":
+        if _ubersuggest_token_ok():
+            return "connected"
+        return "missing"
 
     if env_names:
         satisfied = [_env_satisfied(n, brand_id) for n in env_names]

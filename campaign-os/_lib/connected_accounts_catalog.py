@@ -168,12 +168,14 @@ def _state_from_flags(
 def _job_activity_for_brand(job_names: tuple[str, ...], brand_id: str) -> dict[str, Any]:
     try:
         from _lib.jobs import ledger
-        from _lib.jobs.runner import _last_success, verdict_for
+        from _lib.jobs.runner import _last_finished, _last_success, verdict_for
     except Exception:
         return {}
     now = _utc_now()
     last_at: Optional[str] = None
     verdict: Optional[str] = None
+    last_status: Optional[str] = None
+    last_error: Optional[str] = None
     for name in job_names:
         rows = ledger.read_rows(name, brand=brand_id)
         if not rows:
@@ -184,7 +186,17 @@ def _job_activity_for_brand(job_names: tuple[str, ...], brand_id: str) -> dict[s
         if finished and (last_at is None or finished > last_at):
             last_at = finished
             verdict = v
-    return {"last_success_at": last_at, "job_verdict": verdict, "last_used_label": _age_label(last_at)}
+        last_row = _last_finished([r for r in rows if r.get("brand") in (brand_id, None)])
+        if last_row:
+            last_status = last_row.get("status")
+            last_error = last_row.get("error")
+    return {
+        "last_success_at": last_at,
+        "job_verdict": verdict,
+        "last_used_label": _age_label(last_at),
+        "last_status": last_status,
+        "last_error": last_error,
+    }
 
 
 def _integration_row(
@@ -198,7 +210,12 @@ def _integration_row(
     connect: dict[str, Any],
     setup: dict[str, Any],
 ) -> dict[str, Any]:
-    from _lib.jobs.brand_lanes import integration_applies, integration_state, load_brands_registry
+    from _lib.jobs.brand_lanes import (
+        env_unsatisfied_names,
+        integration_applies,
+        integration_state,
+        load_brands_registry,
+    )
 
     reg = load_brands_registry()
     scope = ((reg.get("brands") or {}).get(brand_id) or {}).get("integration_scope") or {}
@@ -213,13 +230,17 @@ def _integration_row(
     file_at = _data_file_mtime(data_rel) if data_rel else None
     last_used = activity.get("last_success_at") or file_at
 
-    if state == "connected" and activity.get("job_verdict") not in (None, "OK"):
+    job_verdict = activity.get("job_verdict")
+    if state == "connected" and job_verdict == "SKIPPED":
         state = "partial"
-        if activity.get("job_verdict") in ("LATE", "FAILED", "STUCK"):
-            health = "degraded"
 
     env_vars = list(scope_entry.get("env") or [])
+    cred_ref = scope_entry.get("credential_ref")
+    env_unsatisfied = env_unsatisfied_names(
+        brand_id, integration_id, env_vars, credential_ref=cred_ref
+    )
     creds_ok = state in ("connected", "partial")
+    skip_reason = (activity.get("last_error") or "") if job_verdict == "SKIPPED" else None
 
     return {
         "id": integration_id,
@@ -235,10 +256,12 @@ def _integration_row(
         "na_reason": scope_entry.get("na_reason") if not applies else None,
         "last_used_at": last_used,
         "last_used_label": _age_label(last_used),
-        "job_verdict": activity.get("job_verdict"),
+        "job_verdict": job_verdict,
+        "last_error": skip_reason,
         "credentials": {
             "configured": creds_ok,
             "env_vars": env_vars,
+            "env_unsatisfied": env_unsatisfied,
             "key_prefix": _env_prefix(env_vars[0]) if env_vars else None,
         },
         "connect": connect,
