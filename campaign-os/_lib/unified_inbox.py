@@ -263,6 +263,10 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
     if brand:
         intelligence.set_request_brand(brand)
     inbox = intelligence.review_inbox()
+    campaign_data = _load_campaign_data()
+    campaigns = campaign_data.get("campaigns") if isinstance(campaign_data, dict) else {}
+    if not isinstance(campaigns, dict):
+        campaigns = {}
     out: list[dict[str, Any]] = []
     buckets = {
         "pending": inbox.get("pending") or [],
@@ -280,6 +284,17 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
             brand_id = str(row.get("brand") or brand or "")
             ts = row.get("updatedAt")
             item_status = bucket_name if bucket_name != "pending" else "pending"
+            asset: dict[str, Any] = {}
+            campaign = campaigns.get(cid)
+            if isinstance(campaign, dict):
+                assets = campaign.get("assets")
+                if isinstance(assets, dict):
+                    maybe_asset = assets.get(aid)
+                    if isinstance(maybe_asset, dict):
+                        asset = maybe_asset
+            full_caption = str(asset.get("caption") or row.get("caption") or "")
+            image_path = asset.get("image_path")
+            image_url = asset.get("image_url")
             out.append({
                 "id": _item_id("draft_asset", f"{cid}:{aid}"),
                 "type": "draft_asset",
@@ -297,6 +312,9 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     "asset_id": aid,
                     "platform": row.get("platform"),
                     "approval_status": row.get("approvalStatus"),
+                    "caption": full_caption,
+                    "image_path": image_path,
+                    "image_url": image_url,
                 },
             })
     return out
@@ -427,22 +445,22 @@ def _l5_enqueue_enabled() -> bool:
 
 
 def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> None:
-    """Enqueue draft_caption (+ draft_image for calendar candidates) after L4 approve."""
+    """Enqueue draft_caption + draft_image (+ draft_gbp when intended) after L4 approve."""
     if not _l5_enqueue_enabled():
         return
     if item_type not in ("proposal", "calendar_candidate"):
         return
     try:
         from _lib import ops_agents  # noqa: PLC0415
+        from _lib.publish_sandbox import intended_publish_channels  # noqa: PLC0415
 
         reason = item_type.replace("_", "-")[:32]
         item_hash = hashlib.sha1(item_id.encode()).hexdigest()[:12]
-        pairs: list[tuple[str, str]] = [("draft_caption", "cos-caption")]
-        if item_type == "calendar_candidate":
-            pairs.append(("draft_image", "cos-image"))
-
-        for action, agent in pairs:
-            dedupe_key = f"{action}-{item_hash}"
+        actions = ["draft_caption", "draft_image"]
+        if "gbp" in intended_publish_channels(brand_id):
+            actions.append("draft_gbp")
+        for action in actions:
+            agent = "cos-image" if action == "draft_image" else "cos-caption"
             row = ops_agents.normalise_enqueue(
                 {
                     "agent": agent,
@@ -450,7 +468,7 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
                     "reason": reason,
                     "action": action,
                     "payload_ref": f"inbox/{item_id}",
-                    "dedupe_key": dedupe_key,
+                    "dedupe_key": f"{action}-{item_hash}",
                 }
             )
             ops_agents.append_enqueue_row(_data_dir(), row)

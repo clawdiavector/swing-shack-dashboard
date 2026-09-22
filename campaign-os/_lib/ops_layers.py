@@ -8,8 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from _lib.ops_watch import derive_watch_verdict
+
 VERDICT_RANK = {"OK": 0, "LATE": 1, "STUCK": 2, "FAILED": 3, "NEVER": 4}
 VALID_VERDICTS = frozenset(VERDICT_RANK)
+ROLLUP_EXCLUDED = frozenset({"DISABLED", "SKIPPED"})
 
 
 def _utc_now_iso() -> str:
@@ -20,12 +23,20 @@ def worst_verdict(verdicts: list[str]) -> str:
     """Worst verdict across a list using OK < LATE < STUCK < FAILED < NEVER."""
     if not verdicts:
         return "NEVER"
-    return max(verdicts, key=lambda v: VERDICT_RANK.get(str(v).upper(), 4))
+    return max(verdicts, key=lambda v: VERDICT_RANK.get(str(v).upper(), -1))
 
 
 def count_verdicts(jobs: list[dict]) -> dict[str, int]:
     """Count jobs by verdict for L1 digest chips."""
-    counts = {"ok": 0, "late": 0, "stuck": 0, "failed": 0, "never": 0}
+    counts = {
+        "ok": 0,
+        "late": 0,
+        "stuck": 0,
+        "failed": 0,
+        "never": 0,
+        "disabled": 0,
+        "skipped": 0,
+    }
     for job in jobs:
         v = str(job.get("verdict") or "NEVER").upper()
         if v == "OK":
@@ -36,6 +47,10 @@ def count_verdicts(jobs: list[dict]) -> dict[str, int]:
             counts["stuck"] += 1
         elif v == "FAILED":
             counts["failed"] += 1
+        elif v == "DISABLED":
+            counts["disabled"] += 1
+        elif v == "SKIPPED":
+            counts["skipped"] += 1
         else:
             counts["never"] += 1
     return counts
@@ -253,17 +268,26 @@ def build_layers(
     queue: Optional[dict | list] = None,
     agents: Optional[list[dict]] = None,
     inbox: Optional[dict] = None,
+    watch: Optional[dict] = None,
 ) -> dict[str, Any]:
     """Build campaign-os/ops-layers/v1 payload."""
     jobs = (jobs_status or {}).get("jobs") or []
-    job_verdicts = [str(j.get("verdict") or "NEVER").upper() for j in jobs]
+    all_verdicts = [str(j.get("verdict") or "NEVER").upper() for j in jobs]
+    job_verdicts = [v for v in all_verdicts if v not in ROLLUP_EXCLUDED]
     counts = count_verdicts(jobs)
-    l1_verdict = worst_verdict(job_verdicts)
+    if job_verdicts:
+        l1_verdict = worst_verdict(job_verdicts)
+    elif all_verdicts:
+        l1_verdict = "DISABLED" if "DISABLED" in all_verdicts else "SKIPPED"
+    else:
+        l1_verdict = "NEVER"
 
     rotten = int((freshness or {}).get("rotten") or 0)
     stale = int((freshness or {}).get("stale") or 0)
     depth = queue_depth(queue)
     l2_verdict = _health_verdict(l1_verdict, rotten=rotten, stale=stale)
+
+    watch_verdict, watch_age_s = derive_watch_verdict(watch)
 
     l4_counts = inbox or {}
     l4_pending = int(l4_counts.get("pending") or 0)
@@ -289,19 +313,24 @@ def build_layers(
             "stuck": counts["stuck"],
             "failed": counts["failed"],
             "never": counts["never"],
+            "disabled": counts["disabled"],
+            "skipped": counts["skipped"],
             "href": "/ops?layer=jobs",
         },
         "L2": {
             "label": "Health",
             "verdict": l2_verdict,
-            "watch_verdict": "NEVER",
-            "watch_age_s": None,
+            "watch_verdict": watch_verdict,
+            "watch_age_s": watch_age_s,
+            "watch_all_ok": bool((watch or {}).get("all_ok")) if watch else None,
             "digest_source": "derived",
             "ok": counts["ok"],
             "late": counts["late"],
             "stuck": counts["stuck"],
             "failed": counts["failed"],
             "never": counts["never"],
+            "disabled": counts["disabled"],
+            "skipped": counts["skipped"],
             "rotten": rotten,
             "stale": stale,
             "queue_depth": depth,

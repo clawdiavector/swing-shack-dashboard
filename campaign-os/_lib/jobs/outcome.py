@@ -23,6 +23,8 @@ def summarize_result(result: Any) -> dict[str, Any]:
     if "ok" in result:
         out["ok"] = bool(result.get("ok"))
     for key in (
+        "skipped",
+        "reason",
         "rows",
         "ig_posts",
         "fb_posts",

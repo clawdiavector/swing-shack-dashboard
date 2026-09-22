@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from ..errors import describe_exception
@@ -9,7 +10,8 @@ from _lib.brand_data_paths import read_brand_data_json
 from _lib.brand_validate import validate_brand_id
 from _lib.marketing_calendar import VALID_BRAND_IDS
 
-from ..layer1._io import as_dict, as_list, atomic_write, read_json, slug_id, utc_now_iso
+from ..freshness_heuristic import is_archived_ignored
+from ..layer1._io import as_dict, as_list, atomic_write, data_dir, read_json, slug_id, utc_now_iso
 
 OUTPUT = "agent-queue.json"
 SCHEMA = "campaign-os/agent-queue/v1"
@@ -49,6 +51,20 @@ def _rows_from_slots(slots_doc: dict[str, Any]) -> list[dict[str, str]]:
     return rows
 
 
+def _freshness_entry_archived(path: str) -> bool:
+    norm = path.replace("\\", "/")
+    if norm == "archive" or norm.startswith("archive/"):
+        return True
+    full = data_dir() / norm
+    if not full.is_file():
+        return False
+    try:
+        loaded = json.loads(full.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return is_archived_ignored(loaded)
+
+
 def _rows_from_freshness(freshness_doc: dict[str, Any]) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for bucket in ("rotten_files", "stale_files"):
@@ -57,6 +73,8 @@ def _rows_from_freshness(freshness_doc: dict[str, Any]) -> list[dict[str, str]]:
                 continue
             path = str(entry.get("path") or entry.get("file") or "")
             if not path:
+                continue
+            if _freshness_entry_archived(path):
                 continue
             payload_ref = f"freshness.json#{path}"
             rows.append(

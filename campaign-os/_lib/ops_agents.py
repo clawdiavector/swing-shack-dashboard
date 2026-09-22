@@ -28,25 +28,25 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "profile": "cos-foreman",
         "kind": "hermes",
         "layer": "all",
-        "schedule": "on demand + 15m",
+        "schedule": "daily 07:25 + 15m watch",
         "enabled": False,
-        "expected_every_s": None,
+        "expected_every_s": 86400,
     },
     {
         "id": "cos-scout",
         "profile": "cos-scout",
         "kind": "hermes",
         "layer": "L3",
-        "schedule": "weekly + queue",
+        "schedule": "daily 07:40",
         "enabled": False,
-        "expected_every_s": 604800,
+        "expected_every_s": 86400,
     },
     {
         "id": "cos-reactive",
         "profile": "cos-reactive",
         "kind": "hermes",
         "layer": "L3",
-        "schedule": "daily 07:30",
+        "schedule": "daily 07:45",
         "enabled": False,
         "expected_every_s": 86400,
     },
@@ -55,7 +55,7 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "profile": "cos-interpreter",
         "kind": "hermes",
         "layer": "L3",
-        "schedule": "daily after reco",
+        "schedule": "daily 08:10",
         "enabled": False,
         "expected_every_s": 86400,
     },
@@ -64,7 +64,7 @@ KNOWN_AGENTS: tuple[dict[str, Any], ...] = (
         "profile": "cos-triage",
         "kind": "hermes",
         "layer": "L3",
-        "schedule": "daily 08:00",
+        "schedule": "daily 08:30",
         "enabled": False,
         "expected_every_s": 86400,
     },
@@ -281,12 +281,23 @@ def _merge_agent_row(seed: Optional[dict[str, Any]], hb: Optional[dict[str, Any]
 
 def roster_verdict(agents: list[dict[str, Any]]) -> str:
     """Worst last_status among agents that have reported at least once."""
-    statuses = [
+    all_statuses = [
         str(a.get("last_status") or "NEVER").upper()
         for a in agents
         if a.get("last_heartbeat_at")
     ]
-    return worst_verdict(statuses) if statuses else "NEVER"
+    if not all_statuses:
+        return "NEVER"
+    from _lib.ops_layers import ROLLUP_EXCLUDED
+
+    statuses = [s for s in all_statuses if s not in ROLLUP_EXCLUDED]
+    if statuses:
+        return worst_verdict(statuses)
+    if "DISABLED" in all_statuses:
+        return "DISABLED"
+    if "SKIPPED" in all_statuses:
+        return "SKIPPED"
+    return worst_verdict(all_statuses)
 
 
 def build_agents_payload(base_dir: Path) -> dict[str, Any]:

@@ -99,7 +99,7 @@ def _seed_min_calendar(data_dir: Path, brand_id: str = "stick") -> None:
 def test_layer2_jobs_registered(data_dir):
     from _lib.jobs.registry import JOBS
 
-    for name in ("slot_planner", "agent_queue_writer", "review_sla", "holiday_inject"):
+    for name in ("slot_planner", "agent_queue_writer", "review_sla", "holiday_inject", "data_archive"):
         assert name in JOBS
         assert JOBS[name].credentials == ()
 
@@ -108,7 +108,7 @@ def test_schedules_and_descriptions(data_dir):
     from _lib.jobs.descriptions import description_for
     from _lib.jobs.schedules import schedule_for
 
-    for name in ("slot_planner", "agent_queue_writer", "review_sla"):
+    for name in ("slot_planner", "agent_queue_writer", "review_sla", "data_archive"):
         assert schedule_for(name)
         desc = description_for(name)
         assert desc.get("title")

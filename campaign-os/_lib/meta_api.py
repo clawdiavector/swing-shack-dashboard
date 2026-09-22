@@ -970,8 +970,13 @@ def get_page_insights(metrics: Optional[list[str]] = None, period: str = "days_2
 # can honestly report "0" instead of fabricating.
 
 
-def get_ig_stories(limit: int = 50, with_insights: bool = True) -> dict:
+def get_ig_stories(limit: int = 50, with_insights: bool = True,
+                        brand_id: Optional[str] = None) -> dict:
     """GET /{ig_account_id}/stories - list recent Instagram stories.
+
+    brand_id — optional. When supplied, the per-brand IG account ID and
+    credential token are resolved (so Stick doesn't share Swing Shack
+    stories via the global env var).
 
     Requires scope: instagram_basic, instagram_manage_insights (the latter for
     per-story reach/follows via the inline `insights.metric(...)` field).
@@ -981,21 +986,32 @@ def get_ig_stories(limit: int = 50, with_insights: bool = True) -> dict:
         "data": [{ id, media_type, timestamp, permalink, reach?, follows?,
                    total_interactions? }],
         "paging": {...},
-        "_meta": { ig_account_id, fetched, endpoint, source, has_insights }
+        "_meta": { ig_account_id, fetched, endpoint, source, has_insights,
+                   brand_id }
       }
 
     Stories older than 24h disappear from this endpoint automatically (Meta
     expires them). For a 28d window we may want a separate archival strategy,
     but for the weekly report this is fine.
     """
-    if not meta_credentials_present():
-        raise MetaAuthError(
-            "Meta credentials not configured - set META_APP_ID, "
-            "META_INSTAGRAM_BUSINESS_ACCOUNT_ID, META_ACCESS_TOKEN[_FILE]"
-        )
-    ig_account_id = _read_meta_id("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "instagram_account_id") or ""
-    if not ig_account_id.isdigit():
-        raise ValueError(f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID must be numeric, got: {ig_account_id!r}")
+    if brand_id and brand_id in OPERATING_BRANDS:
+        cfg = load_brand_integration(brand_id)
+        ig_account_id = cfg.get("ig_business_account_id") or ""
+        creds = resolve_credentials_for_brand(brand_id, cfg)
+        token_override = creds.get("token")
+        if not ig_account_id or not ig_account_id.isdigit():
+            return {"data": [], "_meta": {"error": "no IG account for brand",
+                                            "brand_id": brand_id}}
+    else:
+        if not meta_credentials_present():
+            raise MetaAuthError(
+                "Meta credentials not configured - set META_APP_ID, "
+                "META_INSTAGRAM_BUSINESS_ACCOUNT_ID, META_ACCESS_TOKEN[_FILE]"
+            )
+        ig_account_id = _read_meta_id("META_INSTAGRAM_BUSINESS_ACCOUNT_ID", "instagram_account_id") or ""
+        token_override = None
+        if not ig_account_id.isdigit():
+            raise ValueError(f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID must be numeric, got: {ig_account_id!r}")
     fields = ["id", "media_type", "timestamp", "permalink"]
     if with_insights:
         # `reach` works without extra App Review; the other metrics were
@@ -1007,7 +1023,8 @@ def get_ig_stories(limit: int = 50, with_insights: bool = True) -> dict:
         "fields": ",".join(fields),
         "limit": min(int(limit), 100),
     }
-    out = _graph_get(f"/{ig_account_id}/stories", params)
+    out = _graph_get(f"/{ig_account_id}/stories", params,
+                       token_override=token_override)
     # Flatten insights into the story object so downstream code is uniform.
     for story in out.get("data", []):
         ins_obj = story.pop("insights", None)
@@ -1271,8 +1288,15 @@ def _read_system_user_token() -> Optional[str]:
 def load_brand_integration(brand_id: str, platform: str = "instagram") -> dict[str, Any]:
     """Load per-brand integration config from data/integrations/<brand>/<platform>.json.
 
-    Returns the raw config dict. The brand may not be configured — caller is
-    responsible for checking `configured` flag and missing fields.
+    Also overlays any per-brand env-var overrides. This lets deployments
+    that have brand-specific tokens + account IDs (e.g. stick has
+    META_PAGE_ID_STICK, META_INSTAGRAM_BUSINESS_ACCOUNT_ID_STICK,
+    META_SYSTEM_USER_TOKEN_STICK_PAARL set on Railway) work even when
+    the JSON config file says configured:false.
+
+    Returns the raw config dict (with env overlays applied).
+    The brand may not be configured — caller is responsible for checking
+    `configured` flag and missing fields.
     """
     if brand_id not in OPERATING_BRANDS:
         raise ValueError(
@@ -1282,13 +1306,50 @@ def load_brand_integration(brand_id: str, platform: str = "instagram") -> dict[s
         )
     cfg_path = _integrations_root() / brand_id / f"{platform}.json"
     if not cfg_path.exists():
-        return {"brand_id": brand_id, "platform": platform, "configured": False,
-                "notes": "No config file at " + str(cfg_path)}
-    try:
-        return json.loads(cfg_path.read_text())
-    except Exception as e:
-        return {"brand_id": brand_id, "platform": platform, "configured": False,
-                "notes": f"Config unreadable: {e}"}
+        cfg: dict[str, Any] = {"brand_id": brand_id, "platform": platform,
+                                 "configured": False,
+                                 "notes": "No config file at " + str(cfg_path)}
+    else:
+        try:
+            cfg = json.loads(cfg_path.read_text())
+        except Exception as e:
+            cfg = {"brand_id": brand_id, "platform": platform,
+                   "configured": False,
+                   "notes": f"Config unreadable: {e}"}
+    # Overlay per-brand env vars (so deployment-time wiring beats
+    # stale config files). Naming convention:
+    #   META_PAGE_ID_<BRAND>
+    #   META_INSTAGRAM_BUSINESS_ACCOUNT_ID_<BRAND>
+    #   META_FACEBOOK_PAGE_ID_<BRAND>
+    #   META_SYSTEM_USER_TOKEN_<BRAND>
+    #   META_SYSTEM_USER_TOKEN_<BRAND>_PAARL
+    _bid_upper = brand_id.replace("-", "_").upper()
+    _overlays = [
+        ("facebook_page_id", f"META_PAGE_ID_{_bid_upper}", None),
+        ("facebook_page_id", f"META_FACEBOOK_PAGE_ID_{_bid_upper}", None),
+        ("ig_business_account_id",
+         f"META_INSTAGRAM_BUSINESS_ACCOUNT_ID_{_bid_upper}", None),
+        ("credential_env",
+         f"META_SYSTEM_USER_TOKEN_{_bid_upper}", "system_user_token"),
+        ("credential_env",
+         f"META_SYSTEM_USER_TOKEN_{_bid_upper}_PAARL", "system_user_token"),
+    ]
+    _overlay_applied = False
+    for _key, _env_name, _cred_mode in _overlays:
+        _v = os.environ.get(_env_name, "").strip()
+        if _v and (not cfg.get(_key) or _key == "credential_env"):
+            cfg[_key] = _v if _key != "credential_env" else _env_name
+            _overlay_applied = True
+        if _key == "credential_env" and _v and _cred_mode:
+            cfg["credential_mode"] = _cred_mode
+    # If env overlays populated the IG account ID, mark as configured
+    if (cfg.get("ig_business_account_id") and cfg.get("configured") is False):
+        cfg["configured"] = True
+        cfg["notes"] = (cfg.get("notes", "") + 
+                          " | env-overlay applied").lstrip(" |")
+    if _overlay_applied:
+        cfg["_meta_env_overlay_applied"] = True
+    return cfg
 
 
 def resolve_credentials_for_brand(
@@ -1409,7 +1470,8 @@ def list_recent_posts_for_brand(
             "discovery pass via /me/accounts → /{page_id}?fields=instagram_business_account."
         )
     default_fields = [
-        "id", "caption", "media_type", "media_url", "permalink",
+        "id", "caption", "media_type", "media_product_type",
+        "media_url", "permalink",
         "thumbnail_url", "timestamp", "username", "is_comment_enabled",
     ]
     fields = fields or default_fields

@@ -328,6 +328,13 @@ def _pull_backlinks_overview(um, domain: str) -> dict:
 
 
 def main() -> int:
+    # Per-brand output suffix so multiple brands don't trample
+    # on each other's ubersuggest-*.json cache files.
+    brand = os.environ.get("STRATEGY_BRAND", "swing-shack").strip() or "swing-shack"
+    if brand != "swing-shack":
+        brand_suffix = f"-{brand}"
+    else:
+        brand_suffix = ""
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--domain", help=f"override Swing Shack domain (default: {DEFAULT_DOMAIN})")
     parser.add_argument("--window", type=int, help=f"override window days (default: {DEFAULT_WINDOW_DAYS})")
@@ -371,7 +378,7 @@ def main() -> int:
         payload = _pull_position_info(um, project_id, window=window, lang=lang, device=device)
         seo_rankings = _flatten_to_seo_rankings(payload, domain=domain, lang=lang)
         seo_rankings["metadata"]["project_id_prefix"] = project_id[:12]
-        _atomic_write(DATA_DIR / "seo-rankings.json", seo_rankings)
+        _atomic_write(DATA_DIR / f"seo-rankings{brand_suffix}.json", seo_rankings)
         _LOG.info(
             f"[rank report] {len(seo_rankings['keywords'])} keywords, "
             f"{seo_rankings['summary'].get('up', 0)} up / "
@@ -392,7 +399,7 @@ def main() -> int:
             "domain": domain,
             "fetched_at": date.today().isoformat(),
         }
-        _atomic_write(DATA_DIR / "ubersuggest-domain.json", domain_data)
+        _atomic_write(DATA_DIR / f"ubersuggest-domain{brand_suffix}.json", domain_data)
     except Exception as e:
         _LOG.error(f"domain_overview failed: {e}")
         failures.append("ubersuggest-domain")
@@ -404,7 +411,7 @@ def main() -> int:
             "domain": domain,
             "fetched_at": date.today().isoformat(),
         }
-        _atomic_write(DATA_DIR / "ubersuggest-backlinks.json", bk_data)
+        _atomic_write(DATA_DIR / f"ubersuggest-backlinks{brand_suffix}.json", bk_data)
     except Exception as e:
         _LOG.error(f"backlinks_overview failed: {e}")
         failures.append("ubersuggest-backlinks")
@@ -414,7 +421,7 @@ def main() -> int:
         comp_data = _pull_competitors(um, domain)
         # _pull_competitors already sets `_meta` (including `count`); no need
         # to overwrite it here.
-        _atomic_write(DATA_DIR / "ubersuggest-competitors.json", comp_data)
+        _atomic_write(DATA_DIR / f"ubersuggest-competitors{brand_suffix}.json", comp_data)
     except Exception as e:
         _LOG.warning(f"competitors() failed (non-fatal): {e}")
 

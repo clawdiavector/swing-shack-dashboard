@@ -69,6 +69,16 @@ jobs:
             -o /tmp/holiday_inject.json
           python3 scripts/cos_job_summary.py print /tmp/holiday_inject.json
 
+      - name: L2 — data_archive
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -sf -X POST "$BASE/api/jobs/run/data_archive" \
+            -H "Authorization: Bearer ${COS_JOB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -o /tmp/data_archive.json
+          python3 scripts/cos_job_summary.py print /tmp/data_archive.json
+
       - name: L5 — draft_assets
         continue-on-error: true
         run: |
@@ -148,7 +158,7 @@ jobs:
           python3 -c "
           import json
           names = [
-              'slot_planner','agent_queue_writer','review_sla','holiday_inject',
+              'slot_planner','agent_queue_writer','review_sla','holiday_inject','data_archive',
               'draft_assets','asset_qc','publish_dispatch',
               'post_outcomes','winner_promotion','proposal_outcome','human_edit_signal',
           ]

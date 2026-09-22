@@ -4544,6 +4544,1057 @@ def render_v23_brand_report_html(brand_id, period_days=31, cookie=None):
 
 
 
+
+
+# ─── V2.4: PER-CAMPAIGN PAID-MEDIA INTELLIGENCE ────────────────────────
+# Builds on V2.3 (real Meta Ads ingestion + period contract).
+# Adds:
+#  - per-campaign current vs previous period deltas
+#  - per-campaign YTD spend + share of brand spend
+#  - objective-aware primary-result analysis per campaign
+#  - best / needs-attention surfacing per objective category
+#  - new_campaign / ended_campaign status
+#  - drill-down URLs (adset, ad) for diagnostic navigation
+#  - per-campaign insight commentary
+#  - data_as_of / freshness surfaced
+
+def _v24_load_paid_media_cache_v2(base_url, brand_id, cookie, period_days=None):
+    """Pull /api/meta/ads/cache/<brand> — V2.4 cache (with per-
+    campaign insights + account_meta).
+
+    When period_days is provided (e.g. 7 or 31), request the
+    period-specific cache so current_period / previous_period in
+    the response actually reflect that window. The cache endpoint
+    stores files at DATA_DIR/paid-media/<brand>__<period_days>d.json
+    so V2.4's 7-day call and 31-day call do NOT collide.
+    """
+    if not base_url:
+        return None
+    try:
+        import urllib.request as _ur24
+        url = f"{base_url}/api/meta/ads/cache/{brand_id}"
+        if period_days is not None:
+            url += f"?period_days={period_days}"
+        req = _ur24.Request(url)
+        if cookie:
+            req.add_header("Cookie", cookie)
+        with _ur24.urlopen(req, timeout=60) as r:
+            body = json.loads(r.read())
+        return body.get("cache") if body.get("ok") else None
+    except Exception as e:
+        return {"error": str(e)[:200]}
+
+
+def _v24_action_value(actions, candidates):
+    """Pull the first matching action value from a Meta actions[]
+    list. Returns None if no match. candidate list is in priority
+    order. NEVER renames / fabricates.
+    """
+    if not actions:
+        return None
+    by_type = {a.get("action_type"): a.get("value") for a in actions}
+    for c in candidates:
+        v = by_type.get(c)
+        if v is not None:
+            try:
+                return int(v)
+            except Exception:
+                return v
+    return None
+
+
+def _v24_primary_result(row, objective):
+    """Per V2.4 §5: objective-aware primary result.
+
+    Awareness -> reach / impressions / frequency / CPM
+    Traffic -> landing_page_view / CTR / CPC
+    Engagement -> post_engagement / page_engagement
+    Leads -> onsite_conversion.lead / lead / offsite_*lead*
+    Sales -> purchase (only when Meta actually returns it)
+
+    Returns a dict with the result name + value + cost_per —
+    or {"primary_result": None} if no applicable action is
+    present.
+    """
+    actions = row.get("actions") or []
+    cpas = row.get("cost_per_action_type") or []
+    cpa_map = {c.get("action_type"): c.get("value") for c in cpas}
+    spend = row.get("spend") or 0
+    obj = (objective or "").upper()
+    if "AWARENESS" in obj:
+        primary_metric_label = "reach"
+        primary_value = row.get("reach")
+        cpm = row.get("cpm")
+        return {
+            "primary_metric_label": primary_metric_label,
+            "primary_value": primary_value,
+            "primary_value_unit": "people",
+            "primary_cost_per_unit": cpm,
+            "primary_cost_per_label": "CPM (R/1k imp)",
+        }
+    if "TRAFFIC" in obj or "LINK_CLICKS" in obj:
+        v = _v24_action_value(
+            actions, ["landing_page_view", "omni_landing_page_view"])
+        if v is not None:
+            cppv = None
+            for c in cpas:
+                if c.get("action_type") in (
+                        "landing_page_view", "omni_landing_page_view"):
+                    cppv = float(c.get("value") or 0)
+                    break
+            return {
+                "primary_metric_label": "landing_page_views",
+                "primary_value": v,
+                "primary_value_unit": "views",
+                "primary_cost_per_unit": round(cppv, 2) if cppv else None,
+                "primary_cost_per_label": "R/view",
+            }
+        else:
+            return {
+                "primary_metric_label": "link_clicks",
+                "primary_value": row.get("clicks"),
+                "primary_value_unit": "clicks",
+                "primary_cost_per_unit": round(spend / row.get("clicks"), 2)
+                    if row.get("clicks") else None,
+                "primary_cost_per_label": "CPC (R/click)",
+            }
+    if "ENGAGEMENT" in obj:
+        v = _v24_action_value(
+            actions, ["post_engagement", "page_engagement"])
+        if v is not None:
+            cpe = None
+            for c in cpas:
+                if c.get("action_type") in ("post_engagement",
+                                              "page_engagement"):
+                    cpe = float(c.get("value") or 0)
+                    break
+            return {
+                "primary_metric_label": "post_engagement",
+                "primary_value": v,
+                "primary_value_unit": "engagements",
+                "primary_cost_per_unit": round(cpe, 4) if cpe else None,
+                "primary_cost_per_label": "R/engagement",
+            }
+        v = _v24_action_value(actions, ["onsite_conversion.messaging_conversation_started_7d",
+                                          "onsite_conversion.total_messaging_connection"])
+        if v is not None:
+            return {
+                "primary_metric_label": "messaging_connection",
+                "primary_value": v,
+                "primary_value_unit": "connections",
+                "primary_cost_per_unit": None,
+                "primary_cost_per_label": None,
+            }
+    if "LEAD" in obj or "LEADS" in obj:
+        # Meta-reported leads per V2.4 §5
+        # Lead surface candidates:
+        #   onsite_conversion.lead (Pixel)
+        #   lead (Pixel aggregated)
+        #   offsite_complete_registration_add_meta_leads (offsite form)
+        #   offsite_search_add_meta_leads (search)
+        #   offsite_contact_website_add_meta_leads
+        #   offsite_content_view_add_meta_leads
+        v = _v24_action_value(
+            actions, ["onsite_conversion.lead", "lead",
+                       "offsite_complete_registration_add_meta_leads",
+                       "offsite_submit_application_add_meta_leads",
+                       "offsite_search_add_meta_leads",
+                       "offsite_contact_website_add_meta_leads",
+                       "offsite_content_view_add_meta_leads"])
+        if v is not None:
+            # cost per Meta-reported lead
+            cpl = None
+            for c in cpas:
+                if c.get("action_type") in (
+                        "onsite_conversion.lead", "lead",
+                        "offsite_complete_registration_add_meta_leads",
+                        "offsite_submit_application_add_meta_leads",
+                        "offsite_search_add_meta_leads",
+                        "offsite_contact_website_add_meta_leads",
+                        "offsite_content_view_add_meta_leads"):
+                    cpl = float(c.get("value") or 0)
+                    break
+            return {
+                "primary_metric_label": "Meta-reported leads",
+                "primary_value": v,
+                "primary_value_unit": "leads",
+                "primary_cost_per_unit": round(cpl, 2) if cpl else None,
+                "primary_cost_per_label": "R/lead (Meta-reported)",
+                "commercial_meaning_unvalidated": True,
+                "commercial_meaning_note": ("NOT a qualified lead, fitting "
+                                            "booked, coaching booked, or "
+                                            "sale — only Meta-reported "
+                                            "lead event."),
+            }
+    if "SALES" in obj or "CONVERSIONS" in obj:
+        # Only show purchase if Meta actually returns one
+        v = _v24_action_value(
+            actions, ["purchase", "omni_purchase"])
+        if v is not None:
+            cpp = None
+            for c in cpas:
+                if c.get("action_type") in ("purchase", "omni_purchase"):
+                    cpp = float(c.get("value") or 0)
+                    break
+            return {
+                "primary_metric_label": "Meta-reported purchase",
+                "primary_value": v,
+                "primary_value_unit": "purchases",
+                "primary_cost_per_unit": round(cpp, 2) if cpp else None,
+                "primary_cost_per_label": "R/purchase (Meta-reported)",
+                "commercial_meaning_unvalidated": True,
+                "commercial_meaning_note": ("Per V2.4 §5: surface as "
+                                            "'Meta-reported purchase' only "
+                                            "until validated against real "
+                                            "sales data."),
+            }
+    # Fallback: surface link_clicks + CTR
+    return {
+        "primary_metric_label": "link_clicks",
+        "primary_value": row.get("clicks"),
+        "primary_value_unit": "clicks",
+        "primary_cost_per_unit": round(spend / row.get("clicks"), 2)
+            if row.get("clicks") else None,
+        "primary_cost_per_label": "CPC (R/click)",
+    }
+
+
+def _v24_compare_campaign(cur_row, prev_row):
+    """Compute current/previous/delta for one campaign. Returns
+    a dict with comparison_status: new_campaign / ended_campaign /
+    comparable / no_previous / no_current.
+    """
+    if not cur_row and not prev_row:
+        return {"comparison_status": "no_data"}
+    out = {"comparison_status": "comparable"}
+    if cur_row and not prev_row:
+        out["comparison_status"] = "new_campaign"
+    if prev_row and not cur_row:
+        out["comparison_status"] = "ended_campaign"
+    cur = cur_row or {}
+    prev = prev_row or {}
+    def _delta(a, b):
+        if a is None or b is None:
+            return None
+        try:
+            a = float(a)
+            b = float(b)
+        except Exception:
+            return None
+        return {"current": a, "previous": b,
+                "delta_abs": round(a - b, 4),
+                "delta_pct": (round((a - b) / b * 100, 2)
+                                if b != 0 else None)}
+    out["spend"] = _delta(cur.get("spend"), prev.get("spend"))
+    out["impressions"] = _delta(cur.get("impressions"),
+                                  prev.get("impressions"))
+    out["reach"] = _delta(cur.get("reach"), prev.get("reach"))
+    out["clicks"] = _delta(cur.get("clicks"), prev.get("clicks"))
+    # CTR delta is in absolute percentage points (not pct change)
+    if (cur.get("ctr") is not None
+            and prev.get("ctr") is not None):
+        out["ctr"] = {"current": cur.get("ctr"),
+                       "previous": prev.get("ctr"),
+                       "delta_abs": round(cur.get("ctr") - prev.get("ctr"), 2),
+                       "delta_pct": None}
+    else:
+        out["ctr"] = _delta(cur.get("ctr"), prev.get("ctr"))
+    out["cpc"] = _delta(cur.get("cpc"), prev.get("cpc"))
+    out["cpm"] = _delta(cur.get("cpm"), prev.get("cpm"))
+    return out
+
+
+def _v24_campaign_insight(row, comparison, brand_id):
+    """V2.4.1: produce concise per-campaign commentary.
+
+    V2.4.1 §3 — Fact vs Inference discipline: only state
+    "X declined" / "X increased" as measured facts. Any
+    interpretation (creative fatigue, audience saturation)
+    is labelled as HYPOTHESIS requiring additional evidence
+    (rising frequency, repeated creative, audience delivery
+    history, Creative Genome repetition).
+
+    V2.4.1 §4 — Never use "intentional" / "likely intentional"
+    without budget/status/schedule evidence. Use neutral
+    "materially less spend this period; the available
+    reporting data does not establish whether the reduction
+    was intentional."
+
+    V2.4.1 §5 — Recommendations must cite the objective-
+    appropriate evidence (LPV for traffic, lead for leads,
+    reach for awareness). For ended campaigns, do NOT
+    recommend reactivation; suggest review for reuse
+    when the relevant product/commercial cycle returns.
+    """
+    name = (row.get("campaign_name") or "(unnamed)")[:60]
+    objective = (row.get("objective") or "UNKNOWN")
+    spend = row.get("spend") or 0
+    impressions = row.get("impressions") or 0
+    clicks = row.get("clicks") or 0
+    ctr = row.get("ctr") or 0
+    cpc = row.get("cpc") or 0
+    cpm = row.get("cpm") or 0
+    reach = row.get("reach") or 0
+    frequency = row.get("frequency") or 0
+    def _safe(d, k, sk="delta_pct"):
+        v = d.get(k)
+        return (v or {}).get(sk) if isinstance(v, dict) else None
+    spend_delta = _safe(comparison, "spend")
+    clicks_delta = _safe(comparison, "clicks")
+    ctr_delta = _safe(comparison, "ctr", "delta_abs")
+    cpc_delta = _safe(comparison, "cpc")
+    cpm_delta = _safe(comparison, "cpm")
+    reach_delta = _safe(comparison, "reach")
+    status = comparison.get("comparison_status")
+    lines = []
+    # What happened — measured fact only
+    if status == "new_campaign":
+        lines.append({
+            "what_happened": (f"New campaign launched this period: "
+                               f"{name} spent R {round(spend):,} "
+                               f"({impressions:,} impressions, "
+                               f"{clicks:,} clicks)."),
+            "what_it_means": ("No previous-period baseline for direct "
+                               "comparison — performance needs time to "
+                               "stabilize."),
+        })
+    elif status == "ended_campaign":
+        lines.append({
+            "what_happened": (f"{name} ran in the previous period but "
+                               f"did not deliver in the current period."),
+            "what_it_means": ("The campaign is not producing rows in "
+                               "the current Meta insights window. "
+                               "Whether this reflects pause, completion, "
+                               "or delivery below Meta's reporting "
+                               "threshold is not determined from "
+                               "Meta-side data alone."),
+        })
+    elif spend_delta is not None and clicks_delta is not None:
+        spd = abs(spend_delta)
+        cld = abs(clicks_delta)
+        # FACT: what changed (no inferred intent)
+        what = (f"{name} ({objective}) spent R {round(spend):,} "
+                f"({'up' if spend_delta > 0 else 'down'} "
+                f"{round(spd)}%) vs previous R "
+                f"{round((comparison.get('spend', {}).get('previous') or 0)):,}.")
+        if clicks_delta is not None:
+            what += (f" Clicks {'rose' if clicks_delta > 0 else 'fell'} "
+                     f"{round(cld)}%.")
+        # V2.4.1 §4: only say "intentional" if budget change evidence exists
+        if spend_delta < -30:
+            # NO operator budget data available → do NOT say intentional
+            what += (" The available reporting data does not "
+                     "establish whether the reduction was intentional.")
+        lines.append({"what_happened": what})
+        # What it means — efficiency (measured facts only)
+        if (spend_delta is not None and spend_delta > 5
+                and clicks_delta is not None and clicks_delta < -2):
+            lines.append({
+                "what_it_means": ("Spend increased while clicks fell, "
+                                   "producing a materially higher CPC."),
+            })
+        elif (spend_delta is not None and spend_delta < -5
+                and reach_delta is not None and reach_delta > 5
+                and cpm_delta is not None and cpm_delta < -2):
+            lines.append({
+                "what_it_means": ("Reach expanded at lower CPM. "
+                                   "CTR weakened, suggesting the "
+                                   "creative did not convert reach "
+                                   "into clicks."),
+            })
+        elif (spend_delta is not None and spend_delta > 5
+                and reach_delta is not None and reach_delta > 10
+                and ctr_delta is not None and ctr_delta < -0.2):
+            lines.append({
+                "what_it_means": ("Higher spend reached more people but "
+                                   "CTR weakened — distribution is "
+                                   "working, click response isn't."),
+            })
+        elif (ctr_delta is not None and ctr_delta < -0.3
+                and cpc_delta is not None and cpc_delta > 5):
+            # V2.4.1 §3: HYPOTHESIS, not stated cause
+            lines.append({
+                "what_it_means": ("CTR fell materially while CPC rose. "
+                                   "Creative fatigue and audience "
+                                   "saturation are possible "
+                                   "explanations; additional "
+                                   "evidence (rising frequency, repeated "
+                                   "creative, Creative Genome data) is "
+                                   "needed to confirm."),
+            })
+        elif (spend_delta is not None and abs(spend_delta) < 5):
+            lines.append({
+                "what_it_means": (f"Spend flat (R {round(spend):,}) with "
+                                   f"{round(clicks)} clicks — stable "
+                                   f"delivery."),
+            })
+    else:
+        lines.append({
+            "what_happened": (f"{name} ({objective}) delivered "
+                               f"R {round(spend):,} / {impressions:,} "
+                               f"impressions / {clicks:,} clicks in the "
+                               f"current 31 days."),
+        })
+    # What needs attention — measured observations only
+    attention = []
+    recs = []
+    if cpc_delta is not None and cpc_delta > 15:
+        attention.append("Rising CPC (up "
+                          f"{round(cpc_delta)}%)")
+        recs.append("Investigate CPC movement against objective-appropriate efficiency baseline (lead for OUTCOME_LEADS, LPV for traffic, reach for awareness).")
+    if ctr_delta is not None and ctr_delta < -0.4:
+        attention.append("Falling CTR (down "
+                          f"{round(abs(ctr_delta), 1)} pts)")
+        recs.append("Review creative variants and audience overlap before drawing a conclusion.")
+    if spend_delta is not None and spend_delta > 50 and reach_delta is not None and reach_delta < 5:
+        attention.append("Spend up materially without proportional reach gain")
+        recs.append("Review whether delivery is broadening to less efficient audience segments.")
+    if frequency > 3.5:
+        attention.append(f"High frequency ({round(frequency, 2)})")
+        recs.append("Frequency above 3.5 — verify audience size and Creative Genome repetition.")
+    if (spend or 0) > 0 and (impressions or 0) > 0 and (clicks or 0) > 0:
+        if ctr < 0.5 and spend > 200:
+            attention.append(f"Very low CTR ({round(ctr, 2)}%)")
+            recs.append("CTR below 0.5% with material spend — review creative before concluding.")
+    out = lines[0] if lines else {}
+    if attention:
+        out["what_needs_attention"] = "; ".join(attention)
+    if recs:
+        # V2.4.1 §5: recommendations cite evidence
+        out["recommended_next_action"] = " · ".join(recs)
+    return out
+
+
+def _v24_ytd_campaign_table(ytd_rows, brand_total_spend):
+    """Build the per-campaign YTD table sorted by spend desc.
+    Includes share_of_brand_spend + objective-aware primary result.
+    """
+    total = brand_total_spend or 1
+    out = []
+    for row in (ytd_rows or []):
+        spend = row.get("spend") or 0
+        primary = _v24_primary_result(row, row.get("objective"))
+        out.append({
+            "campaign_id": row.get("campaign_id"),
+            "campaign_name": row.get("campaign_name"),
+            "objective": row.get("objective"),
+            "status": "DELIVERED",
+            "spend_ytd": round(spend, 2),
+            "share_of_brand_spend_pct": round(spend / total * 100, 2),
+            "impressions_ytd": row.get("impressions"),
+            "reach_ytd": row.get("reach"),
+            "clicks_ytd": row.get("clicks"),
+            "ctr_ytd": row.get("ctr"),
+            "cpc_ytd": row.get("cpc"),
+            "cpm_ytd": row.get("cpm"),
+            "primary_result": primary,
+            "actions_ytd_count": len(row.get("actions") or []),
+        })
+    out.sort(key=lambda r: r.get("spend_ytd") or 0, reverse=True)
+    return out
+
+
+def _v24_best_and_needs_attention(per_campaign_comparisons,
+                                     ytd_table):
+    """V2.4 §9: surface strongest campaigns + campaigns needing
+    attention per objective category. Avoids cross-objective ranking.
+    """
+    by_obj = {}
+    for c in per_campaign_comparisons or []:
+        by_obj.setdefault(c.get("objective") or "UNKNOWN", []).append(c)
+    best = {}
+    needs = {}
+    for obj, items in by_obj.items():
+        comparable = [c for c in items
+                       if ((c.get("comparison") or {}).get(
+                           "comparison_status") == "comparable")]
+        # Best = lowest cost-per primary result among campaigns with
+        # material spend
+        def _cost_per(c):
+            pr = c.get("primary_result") or {}
+            return pr.get("primary_cost_per_unit")
+        with_cpp = [c for c in comparable
+                     if (c.get("current", {}).get("spend") or 0) > 100
+                     and _cost_per(c) is not None]
+        if with_cpp:
+            best[obj] = sorted(with_cpp,
+                                key=lambda c: _cost_per(c) or 1e9)[0]
+        # Needs attention = highest CPC increase or biggest CTR fall
+        def _attention_score(c):
+            score = 0
+            spend = (c.get("current", {}).get("spend") or 0)
+            if spend < 50:
+                return None
+            cpc_d = c.get("comparison", {}).get("cpc", {}).get("delta_pct")
+            ctr_d = c.get("comparison", {}).get("ctr", {}).get("delta_abs")
+            if cpc_d is not None and cpc_d > 15:
+                score += cpc_d
+            if ctr_d is not None and ctr_d < -0.2:
+                score += abs(ctr_d) * 5
+            return score
+        with_score = [(c, _attention_score(c)) for c in comparable]
+        with_score = [(c, s) for c, s in with_score if s is not None]
+        with_score.sort(key=lambda cs: cs[1], reverse=True)
+        if with_score:
+            needs[obj] = with_score[0][0]
+    return {
+        "by_objective": {
+            "best": {k: {"campaign_id": v.get("campaign_id"),
+                         "campaign_name": v.get("campaign_name"),
+                         "objective": v.get("objective"),
+                         "current_spend": (v.get("current", {}).get("spend")),
+                         "primary_result": v.get("primary_result")}
+                       for k, v in best.items()},
+            "needs_attention": {k: {"campaign_id": v.get("campaign_id"),
+                                     "campaign_name": v.get("campaign_name"),
+                                     "objective": v.get("objective"),
+                                     "current_spend": (v.get("current", {}).get("spend")),
+                                     "attention_reason": v.get("insight", {}).get("what_needs_attention")}
+                                    for k, v in needs.items()},
+        },
+        "schema": "https://campaign-os/paid-media-best-needs/v1",
+    }
+
+
+def _v24_freshness(cache):
+    """Compute freshness signal. Returns: 'fresh' (<24h),
+    'recent' (<72h), 'stale' (>72h)."""
+    fa = cache.get("fetched_at")
+    if not fa:
+        return {"status": "no_data", "fetched_at": None}
+    try:
+        from datetime import datetime, timezone
+        t = datetime.fromisoformat(fa.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        age_hours = (now - t).total_seconds() / 3600
+        if age_hours < 24:
+            status = "fresh"
+        elif age_hours < 72:
+            status = "recent"
+        else:
+            status = "stale"
+        return {
+            "status": status,
+            "fetched_at": fa,
+            "data_as_of": cache.get("data_as_of") or cache.get(
+                "report_period", {}).get("current_end"),
+            "age_hours": round(age_hours, 1),
+        }
+    except Exception as e:
+        return {"status": "unknown", "error": str(e)[:200],
+                "fetched_at": fa}
+
+
+def build_v24_brand_report(brand_id, period_days=31, cookie=None):
+    """V2.4 management report — V2.3 + per-campaign intelligence.
+
+    Adds:
+    - per-campaign current vs previous comparison
+    - per-campaign YTD spend table
+    - objective-aware primary-result per campaign
+    - best / needs-attention per objective
+    - drill-down URLs (adset / ad)
+    - per-campaign insight commentary
+    - freshness timestamp + freshness status
+    """
+    base = os.environ.get(
+        "CAMPAIGN_OS_BASE_URL", "http://localhost:8080").rstrip("/")
+    v23 = build_v23_brand_report(brand_id, period_days, cookie=cookie)
+    paid = _v24_load_paid_media_cache_v2(base, brand_id, cookie, period_days=period_days)
+    if not paid:
+        v23["schema"] = "https://campaign-os/reporting/v2.4"
+        v23["version"] = "2.4"
+        v23["paid_media_v24"] = {
+            "data_status": "UNAVAILABLE",
+            "rule": ("Real Meta Ads cache not present. Run "
+                     "/api/meta/ads/ingest/<brand> (read-only) "
+                     "to populate."),
+        }
+        return v23
+    cur_rows = (paid.get("current_period") or {}).get("rows") or []
+    prev_rows = (paid.get("previous_period") or {}).get("rows") or []
+    ytd_rows = (paid.get("ytd") or {}).get("rows") or []
+    brand_total_ytd = sum((r.get("spend") or 0) for r in ytd_rows)
+    # Per-campaign comparison
+    prev_by_id = {str(r.get("campaign_id")): r for r in prev_rows}
+    cur_by_id = {str(r.get("campaign_id")): r for r in cur_rows}
+    all_ids = set(prev_by_id.keys()) | set(cur_by_id.keys())
+    # V2.4.1 §6: detect possible duplicate campaigns (same
+    # normalized name + same objective). Detection uses a
+    # normalized name (stripped + lowercased). Both are surfaced
+    # separately — we do NOT merge.
+    name_to_cids = {}
+    for cid in all_ids:
+        obj = cur_by_id.get(cid) or prev_by_id.get(cid) or {}
+        nm = (obj.get("campaign_name") or "").strip().lower()
+        if not nm:
+            continue
+        name_to_cids.setdefault(nm, set()).add(cid)
+    duplicate_groups = {nm: cids for nm, cids in name_to_cids.items()
+                          if len(cids) > 1}
+    per_campaign = []
+    for cid in all_ids:
+        cur = cur_by_id.get(cid)
+        prev = prev_by_id.get(cid)
+        comp = _v24_compare_campaign(cur, prev)
+        cur_obj = cur or prev
+        primary = _v24_primary_result(cur_obj, cur_obj.get("objective"))
+        insight = _v24_campaign_insight(cur_obj, comp, brand_id)
+        # V2.4.1 §6: duplicate flag
+        nm_norm = (cur_obj.get("campaign_name") or "").strip().lower()
+        in_duplicate_group = nm_norm in duplicate_groups
+        # V2.4.1 §7: lead measurement note (for any campaign
+        # whose primary_result contains leads)
+        lead_note = None
+        if primary and "leads" in (primary.get("primary_metric_label") or "").lower():
+            lead_note = ("Multiple Meta lead/action types may overlap; "
+                         "the count is the FIRST matching action_type in "
+                         "priority order (onsite_conversion.lead > lead > "
+                         "offsite_*add_meta_leads). Unique lead count may "
+                         "be lower. NOT a qualified lead / fitting booked "
+                         "/ coaching booked / sale.")
+        # V2.4.1 §3: tone down hypothesis language in insight
+        if insight and insight.get("what_needs_attention"):
+            ins_text = insight["what_needs_attention"]
+            for hyp in ("Creative fatigue", "audience fatigue",
+                        "audience saturation", "Creative Fatigue",
+                        "Audience Saturation"):
+                if hyp in ins_text:
+                    insight["what_needs_attention"] = (
+                        ins_text
+                        + " (Possible explanation; not established by "
+                          "current data. Test via Creative Genome / "
+                          "frequency / delivery history.)")
+        per_campaign.append({
+            "campaign_id": cid,
+            "campaign_name": (cur or prev).get("campaign_name"),
+            "objective": (cur or prev).get("objective"),
+            "status": "DELIVERED" if cur else "ENDED",
+            "current": ({"spend": cur.get("spend"),
+                          "impressions": cur.get("impressions"),
+                          "reach": cur.get("reach"),
+                          "clicks": cur.get("clicks"),
+                          "ctr": cur.get("ctr"),
+                          "cpc": cur.get("cpc"),
+                          "cpm": cur.get("cpm"),
+                          "frequency": cur.get("frequency")} if cur else None),
+            "previous": ({"spend": prev.get("spend"),
+                            "impressions": prev.get("impressions"),
+                            "reach": prev.get("reach"),
+                            "clicks": prev.get("clicks"),
+                            "ctr": prev.get("ctr"),
+                            "cpc": prev.get("cpc"),
+                            "cpm": prev.get("cpm")} if prev else None),
+            "comparison": comp,
+            "primary_result": primary,
+            "lead_measurement_note": lead_note,
+            "insight": insight,
+            "possible_duplicate_campaign": in_duplicate_group,
+            "drilldown": {
+                "adsets_url": f"/api/meta/ads/{brand_id}/campaigns/{cid}/adsets",
+                "adsets_label": (f"Adsets in '{(cur or prev or {}).get('campaign_name') or '(unknown)'}'"),
+            },
+        })
+    # Sort: spend desc
+    per_campaign.sort(
+        key=lambda c: ((c.get("current") or {}).get("spend") or
+                       (c.get("previous") or {}).get("spend") or 0),
+        reverse=True)
+    # V2.4.1 §2: explicit campaign count reconciliation
+    current_delivered = len(cur_rows)
+    previous_delivered = len(prev_rows)
+    comparable = sum(1 for c in per_campaign
+                       if (c.get("comparison") or {}).get(
+                           "comparison_status") == "comparable")
+    new_count = sum(1 for c in per_campaign
+                     if (c.get("comparison") or {}).get(
+                         "comparison_status") == "new_campaign")
+    ended_count = sum(1 for c in per_campaign
+                       if (c.get("comparison") or {}).get(
+                           "comparison_status") == "ended_campaign")
+    # Verify the math invariant: current = comparable + new
+    #                             previous = comparable + ended
+    math_ok = (current_delivered == comparable + new_count
+                and previous_delivered == comparable + ended_count)
+    campaign_counts = {
+        "current_delivered_count": current_delivered,
+        "previous_delivered_count": previous_delivered,
+        "comparable_count": comparable,
+        "new_campaign_count": new_count,
+        "ended_campaign_count": ended_count,
+        "invariants": {
+            "current_equals_comparable_plus_new":
+                current_delivered == comparable + new_count,
+            "previous_equals_comparable_plus_ended":
+                previous_delivered == comparable + ended_count,
+        },
+        "math_ok": math_ok,
+        "duplicate_campaign_groups": [
+            {"name_normalized": nm,
+              "campaign_ids": sorted(list(cids)),
+              "campaign_count": len(cids)}
+            for nm, cids in duplicate_groups.items()],
+        "total_unique_campaigns": len(all_ids),
+    }
+    # YTD campaign table
+    ytd_table = _v24_ytd_campaign_table(ytd_rows, brand_total_ytd)
+    # Best + needs-attention per objective
+    bn = _v24_best_and_needs_attention(per_campaign, ytd_table)
+    # Freshness
+    freshness = _v24_freshness(paid)
+    # Account-level reconciliation (V2.4 §1)
+    aa_meta = paid.get("ad_account_meta") or {}
+    aa_recon = {
+        "name": aa_meta.get("name"),
+        "currency": aa_meta.get("currency"),
+        "amount_spent_raw_minor_units": aa_meta.get("amount_spent"),
+        "amount_spent_field_label": (
+            "Lifetime spend in minor units (cents) from "
+            "/act_{id} — distinct from YTD actual spend reported "
+            "in /insights."),
+        "amount_spent_zar": (round(int(aa_meta.get("amount_spent") or 0) / 100, 2)
+                              if aa_meta.get("amount_spent") else None),
+        "spend_cap": aa_meta.get("spend_cap"),
+        "account_status": aa_meta.get("account_status"),
+        "timezone_name": aa_meta.get("timezone_name"),
+    }
+    v23["schema"] = "https://campaign-os/reporting/v2.4"
+    v23["version"] = "2.4"
+    v23["upstream_schema"] = "https://campaign-os/reporting/v2.3"
+    v23["paid_media_v24"] = {
+        "data_status": "LIVE",
+        "ad_account_id": paid.get("ad_account_id"),
+        "ad_account_name": paid.get("ad_account_name"),
+        "brand_classification": paid.get("brand_classification"),
+        "data_as_of": paid.get("data_as_of"),
+        "fetched_at": paid.get("fetched_at"),
+        "freshness": freshness,
+        "account_reconciliation": aa_recon,
+        "per_campaign": per_campaign,
+        "ytd_campaign_table": ytd_table,
+        "ytd_brand_total_spend": round(brand_total_ytd, 2),
+        "best_and_needs_attention": bn,
+        "campaign_counts": campaign_counts,
+        "duplicate_campaigns_visible":
+            campaign_counts.get("duplicate_campaign_groups") or [],
+        "rule": ("Per-campaign insights come from "
+                 "/act_{id}/insights?level=campaign. Raw Meta "
+                 "actions preserved. NEVER renames Meta-reported "
+                 "leads / purchases to commercial outcomes."),
+        "caveats": [
+            "Per-campaign comparisons treat objective-specific "
+            "metrics individually; cross-objective ranking is not "
+            "performed (per V2.4 §7).",
+            "amount_spent on the ad account = LIFETIME MINOR "
+            "UNITS (cents). YTD actual spend is the sum of "
+            "per-campaign spend from /insights.",
+            "Meta-reported leads / purchases are surfaced as raw "
+            "Meta events, not as qualified leads / confirmed sales.",
+        ],
+    }
+    # Add management executive summary lines from the
+    # best / needs-attention + YTD totals
+    summary_lines = v23.get("sections", {}).get(
+        "executive_summary", {}).get("statements", [])
+    summary_lines.append({
+        "type": "MEASURED_FACT",
+        "confidence": "HIGH",
+        "statement": (f"{brand_id.title().replace('-', ' ')} year-to-date "
+                       f"spend totals R {round(brand_total_ytd):,} across "
+                       f"{len(ytd_table)} campaigns. "
+                       f"Largest share: "
+                       f"{ytd_table[0]['campaign_name'] if ytd_table else '?'} "
+                       f"at {ytd_table[0]['share_of_brand_spend_pct'] if ytd_table else 0}% of "
+                       f"brand spend."),
+    })
+    if bn.get("by_objective", {}).get("best"):
+        for obj, b in list(bn["by_objective"]["best"].items())[:2]:
+            summary_lines.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"Strongest {obj} campaign this period: "
+                               f"{b['campaign_name']} "
+                               f"(cost per primary result "
+                               f"R {b['primary_result']['primary_cost_per_unit']})."),
+            })
+    if bn.get("by_objective", {}).get("needs_attention"):
+        for obj, n in list(bn["by_objective"]["needs_attention"].items())[:2]:
+            summary_lines.append({
+                "type": "MEASURED_FACT",
+                "confidence": "MEDIUM",
+                "statement": (f"{obj} campaign needing attention: "
+                               f"{n['campaign_name']} "
+                               f"({n.get('attention_reason','see drill-down')})."),
+            })
+    # V2.4.1 §2: campaign count reconciliation surfaced
+    summary_lines.append({
+        "type": "MEASURED_FACT",
+        "confidence": "HIGH",
+        "statement": (f"Campaign reconciliation: current delivered "
+                       f"{campaign_counts['current_delivered_count']} "
+                       f"(= {campaign_counts['comparable_count']} "
+                       f"comparable + {campaign_counts['new_campaign_count']} "
+                       f"new); previous delivered "
+                       f"{campaign_counts['previous_delivered_count']} "
+                       f"(= {campaign_counts['comparable_count']} "
+                       f"comparable + {campaign_counts['ended_campaign_count']} "
+                       f"ended); math_ok = "
+                       f"{campaign_counts['math_ok']}."),
+    })
+    # V2.4.1 §6: duplicate-campaign surface
+    dup_groups = campaign_counts.get("duplicate_campaign_groups") or []
+    if dup_groups:
+        for g in dup_groups:
+            summary_lines.append({
+                "type": "MEASURED_FACT",
+                "confidence": "HIGH",
+                "statement": (f"Possible duplicate campaign group "
+                               f"({g['campaign_count']} campaigns with "
+                               f"similar names): ids "
+                               f"{', '.join(g['campaign_ids'])}. "
+                               f"Surfaced separately per V2.4.1 §6 "
+                               f"(do NOT merge)."),
+            })
+    # V2.4.1 §3: discipline statement
+    summary_lines.append({
+        "type": "DISCIPLINE",
+        "confidence": "HIGH",
+        "statement": ("Per V2.4.1 §3: commentary distinguishes "
+                       "measured facts from interpretive hypotheses. "
+                       "Interpretations about creative fatigue or "
+                       "audience saturation require additional "
+                       "evidence (Creative Genome repetition, "
+                       "audience delivery history, frequency trends) "
+                       "before being treated as established cause."),
+    })
+    # GA4 cross-channel observation (V2.4 §11)
+    ga4_cross = v23.get("paid_media", {}).get(
+        "cross_channel_observations") or []
+    # Append a per-campaign-level cross-channel if UTM-matching
+    # is reliable — for now we report the V2.3 observation + flag
+    # campaign-level GA4 attribution as unavailable
+    summary_lines.append({
+        "type": "CAVEAT",
+        "confidence": "HIGH",
+        "statement": ("Campaign-level GA4 attribution is "
+                       "available only where Meta campaign names "
+                       "or UTMs map reliably to GA4 campaign data. "
+                       "This is the case-by-case basis — no fuzzy "
+                       "matching performed."),
+    })
+    return v23
+
+
+def render_v24_brand_report_html(brand_id, period_days=31, cookie=None):
+    """Render the V2.4 management report as HTML."""
+    r = build_v24_brand_report(brand_id, period_days, cookie=cookie)
+    if r.get("error"):
+        return f"<h1>Error</h1><p>{r['error']}</p>"
+    parts = [
+        f"<!DOCTYPE html><html><head><meta charset='utf-8'>",
+        f"<title>{r['brand_name']} — V2.4 Management Report</title>",
+        _HTML_CSS, "</head><body>",
+    ]
+    parts.append(f"<h1>{r['brand_name']} — Management Report "
+                 f"(V2.4 — Per-Campaign Paid Media)</h1>")
+    rp = r["report_period"]
+    pm24 = r.get("paid_media_v24") or {}
+    fresh = pm24.get("freshness") or {}
+    parts.append(f"<div class='meta'>")
+    parts.append(f"Current period: <strong>{rp['current_start']} → "
+                 f"{rp['current_end']}</strong> ({rp['days_per_window']} days)<br>")
+    parts.append(f"Previous period: <strong>{rp['previous_start']} → "
+                 f"{rp['previous_end']}</strong><br>")
+    parts.append(f"Data complete through: <strong>{r['data_complete_through']}</strong><br>")
+    parts.append(f"Paid media data_as_of: <strong>{pm24.get('data_as_of', '?')}</strong> "
+                 f"({fresh.get('status','?')}, age {fresh.get('age_hours','?')}h)<br>")
+    parts.append(f"Generated: {r['generated_at']}")
+    parts.append("</div>")
+    # Account reconciliation (V2.4 §1)
+    aa = pm24.get("account_reconciliation") or {}
+    parts.append("<h2>Account Reconciliation (V2.4 §1)</h2>")
+    parts.append(f"<table class='coverage-table'>")
+    parts.append(f"<tr><th>Field</th><th>Value</th><th>Notes</th></tr>")
+    parts.append(f"<tr><td>Ad account name</td><td>{aa.get('name','?')}</td>"
+                 f"<td>—</td></tr>")
+    parts.append(f"<tr><td>Currency</td><td>{aa.get('currency','?')}</td>"
+                 f"<td>—</td></tr>")
+    parts.append(f"<tr><td>amount_spent (raw)</td>"
+                 f"<td>{aa.get('amount_spent_raw_minor_units','?')} "
+                 f"{aa.get('currency','')}</td>"
+                 f"<td><strong>LIFETIME MINOR UNITS (cents)</strong></td></tr>")
+    parts.append(f"<tr><td>amount_spent (ZAR)</td>"
+                 f"<td>R {aa.get('amount_spent_zar', 0):,.2f}</td>"
+                 f"<td>Lifetime spend to date</td></tr>")
+    parts.append(f"<tr><td>spend_cap</td><td>{aa.get('spend_cap','?')}</td>"
+                 f"<td>0 = no cap</td></tr>")
+    parts.append(f"<tr><td>YTD actual spend</td>"
+                 f"<td>R {pm24.get('ytd_brand_total_spend', 0):,.2f}</td>"
+                 f"<td>From /act_{{id}}/insights?level=campaign&time_range=2026-01-01→{rp['current_end']}</td></tr>")
+    parts.append(f"</table>")
+    # Executive summary
+    parts.append("<h2>Executive Summary</h2><ul class='exec-summary'>")
+    for st in (r.get("sections", {}).get(
+            "executive_summary", {}).get("statements") or []):
+        parts.append(f"<li>{st['statement']}</li>")
+    parts.append("</ul>")
+    # Paid media summary (V2.4 §13)
+    pm = r.get("paid_media", {})
+    parts.append(f"<h2>Paid Media Summary (V2.4 §13) "
+                 f"{_pill(pm.get('data_status','UNKNOWN'))}</h2>")
+    if pm.get("data_status") == "LIVE":
+        sc = (pm.get("scorecard") or {}).get("rows") or []
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>KPI</th><th>Current</th><th>Previous</th>"
+                     "<th>Δ%</th><th>YTD total</th></tr>")
+        for row in sc:
+            cur = row.get("current")
+            prev = row.get("previous")
+            unit = row.get("unit", "")
+            cur_disp = (round(cur, 2) if isinstance(cur, (int, float))
+                          else cur)
+            prev_disp = (round(prev, 2) if isinstance(prev, (int, float))
+                           else prev)
+            pct = row.get("delta_pct")
+            pct_disp = f"{pct:+.1f}%" if pct is not None else "—"
+            parts.append(
+                f"<tr><td>{row['label']}</td>"
+                f"<td>{cur_disp} {unit}</td>"
+                f"<td>{prev_disp}</td>"
+                f"<td>{pct_disp}</td>"
+                f"<td>{row.get('ytd_total','—')}</td></tr>")
+        parts.append("</table>")
+    # Per-campaign current vs previous (V2.4 §3-4)
+    pc = pm24.get("per_campaign") or []
+    parts.append("<h2>Campaign Performance — Current vs Previous</h2>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>Campaign</th><th>Objective</th>"
+                 "<th>Current spend</th><th>Previous spend</th>"
+                 "<th>Δ% spend</th><th>Clicks Δ%</th>"
+                 "<th>CPC Δ%</th><th>CTR Δ</th>"
+                 "<th>Status</th><th>Insight</th></tr>")
+    for c in pc:
+        cn = c.get('campaign_name') or '(?)'
+        obj = c.get('objective') or '?'
+        cur = c.get('current') or {}
+        prev = c.get('previous') or {}
+        comp = c.get('comparison') or {}
+        sp_d = comp.get('spend', {}).get('delta_pct')
+        cl_d = comp.get('clicks', {}).get('delta_pct')
+        cp_d = comp.get('cpc', {}).get('delta_pct')
+        ct_d = comp.get('ctr', {}).get('delta_abs')
+        sp_disp = f"{sp_d:+.1f}%" if sp_d is not None else "—"
+        cl_disp = f"{cl_d:+.1f}%" if cl_d is not None else "—"
+        cp_disp = f"{cp_d:+.1f}%" if cp_d is not None else "—"
+        ct_disp = f"{ct_d:+.2f}" if ct_d is not None else "—"
+        ins = c.get('insight') or {}
+        ins_short = (ins.get('what_needs_attention')
+                       or ins.get('what_it_means') or '')[:80]
+        parts.append(
+            f"<tr><td>{cn}</td><td>{obj}</td>"
+            f"<td>R {cur.get('spend') or 0:,.2f}</td>"
+            f"<td>R {prev.get('spend') or 0:,.2f}</td>"
+            f"<td>{sp_disp}</td>"
+            f"<td>{cl_disp}</td>"
+            f"<td>{cp_disp}</td>"
+            f"<td>{ct_d}</td>"
+            f"<td>{_pill(c.get('status','?'))}</td>"
+            f"<td>{ins_short}</td></tr>")
+    parts.append("</table>")
+    # YTD spend per campaign (V2.4 §6)
+    yt = pm24.get("ytd_campaign_table") or []
+    parts.append("<h2>YTD Spend per Campaign (V2.4 §6)</h2>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>#</th><th>Campaign</th><th>Objective</th>"
+                 "<th>YTD spend</th><th>Share of brand</th>"
+                 "<th>Impressions</th><th>Clicks</th>"
+                 "<th>Primary result</th><th>Cost / primary</th></tr>")
+    for i, c in enumerate(yt, 1):
+        pr = c.get("primary_result") or {}
+        pr_lbl = pr.get("primary_metric_label", "—")
+        pr_v = pr.get("primary_value", "—")
+        pr_cpp = pr.get("primary_cost_per_unit")
+        pr_cpp_disp = (f"R {pr_cpp:,.2f}" if isinstance(pr_cpp, (int, float))
+                          else "—")
+        parts.append(
+            f"<tr><td>{i}</td>"
+            f"<td>{c.get('campaign_name','?')}</td>"
+            f"<td>{c.get('objective','?')}</td>"
+            f"<td>R {c.get('spend_ytd', 0):,.2f}</td>"
+            f"<td>{c.get('share_of_brand_spend_pct', 0)}%</td>"
+            f"<td>{(c.get('impressions_ytd') or 0):,}</td>"
+            f"<td>{(c.get('clicks_ytd') or 0):,}</td>"
+            f"<td>{pr_lbl}: {pr_v}</td>"
+            f"<td>{pr_cpp_disp}</td></tr>")
+    parts.append("</table>")
+    # Best + needs attention (V2.4 §9)
+    bn = pm24.get("best_and_needs_attention") or {}
+    by_obj = bn.get("by_objective") or {}
+    if by_obj.get("best"):
+        parts.append("<h3>What Worked (per objective, V2.4 §9)</h3>")
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Objective</th><th>Campaign</th>"
+                     "<th>Spend</th><th>Primary result</th>"
+                     "<th>Cost / primary</th></tr>")
+        for obj, b in (by_obj.get("best") or {}).items():
+            pr = b.get("primary_result") or {}
+            pr_v = pr.get("primary_value", "—")
+            pr_cpp = pr.get("primary_cost_per_unit")
+            pr_cpp_disp = (f"R {pr_cpp:,.2f}"
+                              if isinstance(pr_cpp, (int, float)) else "—")
+            parts.append(
+                f"<tr><td>{obj}</td>"
+                f"<td>{b.get('campaign_name','?')}</td>"
+                f"<td>R {b.get('current_spend') or 0:,.2f}</td>"
+                f"<td>{pr.get('primary_metric_label','?')}: {pr_v}</td>"
+                f"<td>{pr_cpp_disp}</td></tr>")
+        parts.append("</table>")
+    if by_obj.get("needs_attention"):
+        parts.append("<h3>What Needs Attention (per objective)</h3>")
+        parts.append("<table class='coverage-table'>")
+        parts.append("<tr><th>Objective</th><th>Campaign</th>"
+                     "<th>Spend</th><th>Reason</th>"
+                     "<th>Recommended action</th></tr>")
+        for obj, n in (by_obj.get("needs_attention") or {}).items():
+            ins = (n.get("attention_reason") or "see drill-down")
+            parts.append(
+                f"<tr><td>{obj}</td>"
+                f"<td>{n.get('campaign_name','?')}</td>"
+                f"<td>R {n.get('current_spend') or 0:,.2f}</td>"
+                f"<td>{ins}</td>"
+                f"<td>{ins}</td></tr>")
+        parts.append("</table>")
+    # Drill-down URLs (V2.4 §10)
+    parts.append("<h3>Drill-Down URLs (V2.4 §10)</h3>")
+    parts.append("<table class='coverage-table'>")
+    parts.append("<tr><th>Campaign</th><th>Adset drill-down</th></tr>")
+    for c in pc[:20]:
+        cn = c.get('campaign_name', '?')
+        cid = c.get('campaign_id', '?')
+        url = f"/api/meta/ads/{brand_id}/campaigns/{cid}/adsets"
+        parts.append(f"<tr><td>{cn}</td>"
+                       f"<td><a href='{url}'>{url}</a></td></tr>")
+    parts.append("</table>")
+    # Synthetic quarantine (re-assert V2.3 §12)
+    sq = r.get("synthetic_quarantine") or {}
+    parts.append("<h2>Synthetic Quarantine Audit (V2.4 §16)</h2>")
+    parts.append(f"<div class='section'>Synthetic file: "
+                 f"<code>{sq.get('synthetic_path','?')}</code> — "
+                 f"present: {sq.get('synthetic_file_present')}, "
+                 f"read in code: {sq.get('synthetic_read_in_code')}<br>")
+    for line in (sq.get("audit") or []):
+        parts.append(f"<div>• {line}</div>")
+    parts.append("</div>")
+    parts.append("<div class='footer'><em>V2.4 management report — "
+                 "per-campaign paid media + V2.2 analytics + V2.3 "
+                 "real Meta Ads. All read-only.</em></div>")
+    parts.append("</body></html>")
+    return "\n".join(parts)
+
+
+
+
+
 # ── HTML rendering ─────────────────────────────────────────────────
 
 _HTML_CSS = """

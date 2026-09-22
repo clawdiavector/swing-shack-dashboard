@@ -82,7 +82,7 @@ def run(*, brand: str | None = None) -> dict:
             io.write(name, payload)
 
         return {"ok": True, "rows": count_reco_rows(outputs)}
-    except Exception:
+    except Exception as exc:
         for name, empty_fn in zip(OUTPUT_FILES, _EMPTY_FNS):
             io.write(name, empty_fn())
-        return {"ok": False, "rows": 0}
+        return {"ok": False, "rows": 0, "error": f"{type(exc).__name__}: {exc}"}

@@ -89,6 +89,7 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/ops/learn/summary',
     '/api/ops/agents',
     '/api/ops/agents/heartbeat',
+    '/api/ops/watch/heartbeat',
     '/api/ops/agents/enqueue',
     '/api/ops/agent-queue',
     '/api/ops/agent-queue/mark-done',
@@ -114,6 +115,58 @@ _INBOX_DUAL_AUTH_SUFFIXES = ('/approve', '/reject', '/edit')
 # means the route itself enforces the share-token gate (which is
 # stricter than the session cookie. it's scope-bound + time-limited).
 PUBLIC_ROUTES.add('/api/intel/weekly_report/export')
+
+# V1.1 §11: HTML Creative Package view
+@app.route("/create/v1/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_html(brand_id, brief_id, package_id):
+    """V1.1 §11 — operator-facing Creative Package view (HTML)."""
+    if not _is_authed():
+        return _html_error("Auth required", "session not authed")
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return _html_error("Invalid brand", brand_id)
+    if get_creative_package is None:
+        return _html_error("module unavailable", str(_create_import_err_repr))
+    return render_package_html(brand_id, brief_id, package_id), 200
+
+
+# V1.1 §14: lifecycle transition
+@app.route("/api/create/v1/transition/<brand_id>/<brief_id>/<package_id>",
+            methods=["POST"])
+def create_v1_transition(brand_id, brief_id, package_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    body = request.get_json(silent=True) or {}
+    to_status = body.get("to_status") or request.args.get("to_status")
+    reason = body.get("reason") or ""
+    actor = body.get("actor") or "operator"
+    if not to_status:
+        return jsonify({"ok": False, "error": "to_status required"}), 400
+    if transition_creative_status is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    r = transition_creative_status(brand_id, brief_id, package_id,
+                                       to_status, reason, actor)
+    return jsonify(r), 200 if r.get("ok") else 400
+
+
+# V1.1 §15: can_publish_creative canonical read-only endpoint
+@app.route("/api/create/v1/can-publish/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_can_publish(brand_id, brief_id, package_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if can_publish_creative is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    r = can_publish_creative(brand_id, brief_id, package_id)
+    return jsonify(r), 200 if r.get("ok") else 404
+
+
 
 
 
@@ -282,7 +335,7 @@ def _data_paths():
     Reading from os.environ on every call lets tests override DATA_DIR via
     `os.environ['DATA_DIR']` even when the module was imported elsewhere.
     """
-    base = os.environ.get('DATA_DIR') or '/data'
+    base = os.environ.get('DATA_DIR') or '/data/campaign-os'
     return {
         'data_dir': base,
         'campaign_file': os.path.join(base, 'campaign-data.json'),
@@ -292,7 +345,7 @@ def _data_paths():
     }
 
 
-DATA_DIR = os.environ.get('DATA_DIR', '/data')
+DATA_DIR = os.environ.get('DATA_DIR', '/data/campaign-os')
 
 # Strategy page HTML template (rendered via render_template_string).
 # Loaded once at module import — the page is big but renders fast.
@@ -321,55 +374,50 @@ BRANCH = 'main'
 # ─── HELPERS ────────────────────────────────────────────────────────────
 
 def load_data():
-    """Load campaign data. Order:
-      1. Runtime DATA_DIR/campaign-data.json (primary)
-      2. Bundled repo <data/campaign-data.json> (updated by each deploy)
-      3. Bundled campaign-os/campaign-data.json (legacy)
+    """Load campaign data. Read-only precedence (runtime is never overwritten):
+      1. Runtime DATA_DIR/campaign-data.json when it exists and parses
+      2. Bundled repo data/campaign-data.json (read-only fallback)
+      3. Legacy campaign-os/campaign-data.json (read-only fallback)
       4. Minimal empty structure
-    Each step is only used if the previous exists AND is parseable."""
+    """
     paths = _data_paths()
     runtime_file = paths['campaign_file']
-    
-    # Look at file modification times to decide which is freshest.
-    # The runtime volume may have OLD data seeded from the initial deploy; if
-    # the bundled repo is NEWER than the runtime copy, prefer the bundled copy.
     bundled_repo = Path(REPO_ROOT) / "data" / "campaign-data.json"
     bundled_legacy = Path(os.path.dirname(os.path.abspath(__file__))) / "campaign-data.json"
-    
-    candidates = []
-    if os.path.exists(runtime_file):
-        candidates.append((runtime_file, os.path.getmtime(runtime_file), "runtime"))
-    if bundled_repo.exists():
-        candidates.append((bundled_repo, os.path.getmtime(bundled_repo), "bundled_repo"))
-    if bundled_legacy.exists():
-        candidates.append((bundled_legacy, os.path.getmtime(bundled_legacy), "bundled_legacy"))
-    
-    # Use the freshest parseable candidate.
-    candidates.sort(key=lambda c: c[1], reverse=True)
-    for path, mtime, label in candidates:
+
+    def _try_load(path, label):
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 d = json.load(f)
-                if not isinstance(d.get("campaigns"), dict):
-                    raise ValueError(f"{label} has no campaigns dict")
-                if __import__('os').environ.get('DATA_SYNC_DEBUG'):
-                    print(f"load_data: using {label} ({path}, mtime={mtime})")
-                # Auto-promote fresh bundled data into the runtime volume so
-                # subsequent save_data() writes don't clobber the latest repo copy.
-                if label in ("bundled_repo", "bundled_legacy") and os.path.exists(runtime_file):
-                    try:
-                        os.makedirs(paths['data_dir'], exist_ok=True)
-                        from shutil import copy2
-                        copy2(path, runtime_file)
-                    except Exception:
-                        pass
-                return d
+            if not isinstance(d.get("campaigns"), dict):
+                raise ValueError(f"{label} has no campaigns dict")
+            if os.environ.get('DATA_SYNC_DEBUG'):
+                mtime = os.path.getmtime(path) if os.path.exists(path) else None
+                print(f"load_data: using {label} ({path}, mtime={mtime})")
+            return d
         except Exception as exc:
-            if __import__('os').environ.get('DATA_SYNC_DEBUG'):
+            if os.environ.get('DATA_SYNC_DEBUG'):
                 print(f"load_data: {label} ({path}) broken: {exc}")
-            continue
-    
-    # Final fallback: minimal empty structure
+            return None
+
+    if os.path.exists(runtime_file):
+        runtime_doc = _try_load(runtime_file, "runtime")
+        if runtime_doc is not None:
+            return runtime_doc
+        _app_log.error(
+            "load_data: runtime campaign-data exists but is unreadable: %s",
+            runtime_file,
+        )
+
+    for path, label in (
+        (bundled_repo, "bundled_repo"),
+        (bundled_legacy, "bundled_legacy"),
+    ):
+        if path.exists():
+            doc = _try_load(path, label)
+            if doc is not None:
+                return doc
+
     return {"campaigns": {}, "activeCampaignId": None, "portfolioMetadata": {}}
 
 @app.route('/api/admin/data-sync-bundled', methods=['POST'])
@@ -456,8 +504,9 @@ def load_schedule():
     """Read the scheduling sidecar; campaign-data.json remains read-only here."""
     paths = _data_paths()
     schedule_file = paths['schedule_file']
-    manifest = _read_json_file(schedule_file)
-    if manifest is None:
+    if os.path.exists(schedule_file):
+        manifest = _read_json_file(schedule_file)
+    else:
         manifest = _read_json_file(BUNDLED_SCHEDULE_FILE)
     if not isinstance(manifest, dict):
         manifest = {}
@@ -488,8 +537,14 @@ def save_schedule(manifest):
     return payload
 
 def _read_publisher_queue():
-    for path in (os.path.join(DATA_DIR, 'publish-queue.json'),
-                 os.path.join(BUNDLED_DATA_DIR, 'publish-queue.json')):
+    paths = _data_paths()
+    volume_path = os.path.join(paths['data_dir'], 'publish-queue.json')
+    bundled_path = os.path.join(BUNDLED_DATA_DIR, 'publish-queue.json')
+    if os.path.exists(volume_path):
+        candidates = (volume_path,)
+    else:
+        candidates = (volume_path, bundled_path)
+    for path in candidates:
         value = _read_json_file(path)
         if isinstance(value, dict):
             items = value.get('queued') if isinstance(value.get('queued'), list) else value.get('queue')
@@ -582,64 +637,19 @@ def _schedule_response(manifest):
     return payload
 
 def git_push(message):
-    """
-    Commit and push current campaign data to GitHub.
-    Returns (success: bool, message: str)
-    """
-    try:
-        subprocess.run(['git', 'config', '--global', 'user.email', 'agent@openclaw.ai'],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        subprocess.run(['git', 'config', '--global', 'user.name', 'Clawdia Agent'],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        subprocess.run(['git', 'add', 'campaign-os/campaign-data.json'],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        # Check if there are changes to commit
-        result = subprocess.run(['git', 'diff', '--cached', '--quiet'],
-                               cwd=REPO_DIR, check=False, capture_output=True)
-        if result.returncode == 0:
-            return True, "No changes to commit"
-        subprocess.run(['git', 'commit', '-m', message],
-                       cwd=REPO_DIR, check=True, capture_output=True)
-        env = {**os.environ}
-        token = os.environ.get('GITHUB_TOKEN', '')
-        remote = f'https://x-access-token:{token}@github.com/clawdiavector/swing-shack-dashboard.git'
-        subprocess.run(['git', 'push', remote, BRANCH],
-                       cwd=REPO_DIR, check=True, capture_output=True, env=env)
-        return True, "Committed and pushed to GitHub"
-    except subprocess.CalledProcessError as e:
-        stderr = e.stderr.decode() if e.stderr else ''
-        return False, f"Git error: {stderr or str(e)}"
-    except Exception as e:
-        return False, f"Error: {str(e)}"
+    """Git push to a data-volume repo is disabled (runtime volume is not a git tree)."""
+    del message
+    return False, "git push disabled: no repo on the data volume"
+
+_INIT_REPO_LOGGED = False
+
 
 def init_repo():
-    """
-    Clone GitHub repo to DATA_DIR on first run.
-    Uses GITHUB_TOKEN env var for authentication.
-    """
-    if os.path.exists(os.path.join(REPO_DIR, '.git')):
-        # Already cloned — just pull latest
-        try:
-            subprocess.run(['git', 'pull', 'origin', BRANCH],
-                           cwd=REPO_DIR, check=True, capture_output=True)
-            print(f"Git pull OK: {REPO_DIR}")
-        except Exception as e:
-            print(f"Git pull failed (non-fatal): {e}")
-        return
-
-    os.makedirs(DATA_DIR, exist_ok=True)
-    token = os.environ.get('GITHUB_TOKEN', '')
-    if not token:
-        print("WARNING: GITHUB_TOKEN not set — GitHub sync disabled")
-        return
-
-    remote_url = f'https://x-access-token:{token}@github.com/clawdiavector/swing-shack-dashboard.git'
-    try:
-        subprocess.run(['git', 'clone', '--depth=1', remote_url, REPO_DIR],
-                       cwd=DATA_DIR, check=True, capture_output=True)
-        print(f"Git clone OK: {REPO_DIR}")
-    except Exception as e:
-        print(f"Git clone failed (non-fatal): {e}")
+    """No-op: do not clone or pull a product git tree under DATA_DIR."""
+    global _INIT_REPO_LOGGED
+    if not _INIT_REPO_LOGGED:
+        print("git sync disabled: DATA_DIR is not a git working tree")
+        _INIT_REPO_LOGGED = True
 
 # ─── BOOTSTRAP (t47) ────────────────────────────────────────────────────
 # Process-level once. Must NOT live on an HTTP request path.
@@ -650,7 +660,7 @@ _GIT_SYNC_DONE = False
 
 
 def _boot_git_sync():
-    """Clone/pull DATA_DIR repo at most once per process (t47)."""
+    """Import-time git boot hook (no-op sync) at most once per process (t47)."""
     global _GIT_SYNC_DONE
     with _GIT_SYNC_LOCK:
         if _GIT_SYNC_DONE:
@@ -1140,7 +1150,8 @@ def health_v2():
     return jsonify({
         "status": "ok",
         "ts": _now_iso(),
-        "git_synced": os.path.exists(os.path.join(REPO_DIR, '.git')),
+        "git_sync": "disabled",
+        "git_synced": False,
         "instance_id": _instance_id(),
         "region": _instance_region(),
         "role": role,
@@ -16297,101 +16308,15 @@ def post_conversion_score_endpoint():
 # the data/ tree on demand using the same heuristic the retired
 # scripts/data_freshness_check.js used (deleted t33) so the SPA always gets
 # a usable payload.
-_FRESHNESS_TS_KEYS = frozenset({
-    'generated', 'lastUpdated', 'last_run', 'last_run_at', 'last_check',
-    'ts', 'date', 'saved_at', 'published_at', 'posted_at', 'polled',
-    'fetched_at', 'updated_at', 'created_at', 'scanned_at', 'synced_at',
-    'checked_at', 'detected_at', 'analyzed_at', 'snapshot_at',
-})
-_FRESHNESS_SKIP = frozenset({'freshness.json', 'freshness-detail.json', 'meta-auth-health.json'})
+from _lib.jobs import freshness_heuristic as _freshness_h  # noqa: E402
+
 _freshness_cache = {'data': None, 'ts': 0.0}
 _FRESHNESS_CACHE_TTL = 300  # seconds — match the daily cron cadence loosely
 
-
-def _walk_freshness_timestamps(node, hits, depth=0):
-    if depth > 8 or len(hits) > 80:
-        return
-    if isinstance(node, list):
-        for v in node:
-            _walk_freshness_timestamps(v, hits, depth + 1)
-        return
-    if not isinstance(node, dict):
-        return
-    for k, v in node.items():
-        if k in _FRESHNESS_TS_KEYS and (isinstance(v, str) or isinstance(v, (int, float))):
-            hits.append(v)
-        if isinstance(v, (dict, list)):
-            _walk_freshness_timestamps(v, hits, depth + 1)
-
-
-def _freshness_parse_ts(v):
-    if isinstance(v, bool):
-        return None
-    if isinstance(v, (int, float)):
-        n = float(v)
-        if n > 1e11:
-            return n  # ms
-        if n > 1e9:
-            return n * 1000.0  # s
-        return None
-    if isinstance(v, str):
-        s = v.strip()
-        if not s:
-            return None
-        try:
-            ms = datetime.datetime.fromisoformat(s.replace('Z', '+00:00')).timestamp() * 1000.0
-            return ms
-        except (ValueError, TypeError):
-            return None
-    return None
-
-
-def _freshness_classify(parsed, mtime_ts):
-    """Return (staleness, newest_ts_iso, newest_raw, age_days). None for static/unknown."""
-    if not isinstance(parsed, dict):
-        return ('unknown', None, None, None)
-    hits = []
-    _walk_freshness_timestamps(parsed, hits)
-    if not hits:
-        return ('static', None, None, None)
-    newest_ms = None
-    newest_raw = None
-    for h in hits:
-        ms = _freshness_parse_ts(h)
-        if ms is None:
-            continue
-        if newest_ms is None or ms > newest_ms:
-            newest_ms = ms
-            newest_raw = h
-    if newest_ms is None:
-        return ('unknown', None, None, None)
-    age_days = round((mtime_ts - newest_ms) / 86400000.0, 1)
-    if age_days < 0:
-        age_days = 0.0
-    iso = datetime.datetime.fromtimestamp(newest_ms / 1000.0, tz=datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z')
-    stale_days = 14
-    if age_days > stale_days * 3:
-        staleness = 'rotten'
-    elif age_days > stale_days:
-        staleness = 'stale'
-    else:
-        staleness = 'fresh'
-    return (staleness, iso, newest_raw, age_days)
-
-
-def _walk_data_json_files(root):
-    """Yield (abs_path, rel_path) for every *.json under root."""
-    if not root or not os.path.isdir(root):
-        return
-    for dirpath, _dirs, files in os.walk(root):
-        for name in files:
-            if not name.endswith('.json'):
-                continue
-            if name in _FRESHNESS_SKIP:
-                continue
-            ap = os.path.join(dirpath, name)
-            rp = os.path.relpath(ap, root)
-            yield ap, rp
+_walk_freshness_timestamps = _freshness_h.walk_timestamps
+_freshness_parse_ts = _freshness_h.parse_ts
+_freshness_classify = _freshness_h.classify
+_walk_data_json_files = _freshness_h.walk_data_json_files
 
 
 def _build_freshness_on_demand(data_root):
@@ -16401,7 +16326,14 @@ def _build_freshness_on_demand(data_root):
         'generated': _now_iso(),
         'stale_days_threshold': stale_days,
         'total_files': 0,
-        'by_staleness': {'fresh': 0, 'stale': 0, 'rotten': 0, 'unknown': 0, 'static': 0},
+        'by_staleness': {
+            'fresh': 0,
+            'stale': 0,
+            'rotten': 0,
+            'unknown': 0,
+            'static': 0,
+            'archived': 0,
+        },
         'stale_files': [],
         'rotten_files': [],
     }
@@ -16414,6 +16346,10 @@ def _build_freshness_on_demand(data_root):
         try:
             mtime_ms = os.path.getmtime(ap) * 1000.0
         except OSError:
+            continue
+        if _freshness_h.is_archived_ignored(parsed):
+            summary['total_files'] += 1
+            summary['by_staleness']['archived'] = summary['by_staleness'].get('archived', 0) + 1
             continue
         staleness, newest_ts, newest_raw, age_days = _freshness_classify(parsed, mtime_ms)
         summary['total_files'] += 1
@@ -16948,12 +16884,23 @@ def ops_layers():
             inbox_counts = _unified_inbox_mod.inbox_counts(review_sla=review_sla)
         except Exception:
             _app_log.exception("ops_layers inbox counts failed; L4 NEVER fallback")
+        watch_hb = None
+        try:
+            from pathlib import Path
+
+            from _lib import ops_watch as _ops_watch_mod
+
+            watch_hb = _ops_watch_mod.read_heartbeat(Path(_data_paths()['data_dir']))
+        except Exception:
+            _app_log.exception("ops_layers watch heartbeat read failed")
+
         return jsonify(_ops_layers_mod.build_layers(
             jobs_status,
             freshness=freshness_payload,
             queue=queue_payload,
             agents=agents_roster,
             inbox=inbox_counts,
+            watch=watch_hb,
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
@@ -17109,6 +17056,37 @@ def ops_agents_heartbeat():
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("ops_agents_heartbeat failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/watch/heartbeat', methods=['POST'])
+def ops_watch_heartbeat():
+    """POST /api/ops/watch/heartbeat — Mac campaign-os-watch tick. Session or bearer."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from pathlib import Path
+
+        from _lib import ops_watch as _ops_watch_mod
+
+        body = request.get_json(silent=True) or {}
+        hb = _ops_watch_mod.normalise_heartbeat(body)
+        _ops_watch_mod.write_heartbeat(Path(_data_paths()['data_dir']), hb)
+        _app_log.info(
+            "ops_watch heartbeat all_ok=%s jobs_ok=%s/%s",
+            hb.get("all_ok"),
+            hb.get("jobs_ok"),
+            hb.get("jobs_total"),
+        )
+        return jsonify({
+            "ok": True,
+            "received_at": hb.get("received_at"),
+            "all_ok": hb.get("all_ok"),
+        }), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_watch_heartbeat failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -22418,6 +22396,18 @@ except Exception as _e:
     _app_log.warning("reporting_intelligence import failed: %s", _e)
     _ri = None
 
+try:
+    from _lib import reporting_editorial as _ed
+except Exception as _e:
+    _app_log.warning("reporting_editorial import failed: %s", _e)
+    _ed = None
+
+try:
+    from _lib import weekly_report_v3 as _wr3
+except Exception as _e:
+    _app_log.warning("weekly_report_v3 import failed: %s", _e)
+    _wr3 = None
+
 
 @app.route('/api/reports/v1/<brand_id>', methods=['GET'])
 def report_v1_brand(brand_id):
@@ -23279,36 +23269,79 @@ def report_v1_list_uploads(brand_id):
 @app.route('/api/weekly-report', methods=['GET'])
 def weekly_report_api():
     """GET /api/weekly-report?brand=swing-shack&format=html|json|markdown
-    Returns the weekly report. Default format = html.
 
-    Analytics delegate: when the requested brand has data_delegates_from set
-    (e.g. stick → swing-shack), compute metrics against the delegate source
-    while keeping the requested brand's voice/positioning for the hero.
+    V3.1: reads canonical Reporting V2.4.1 (frozen) and renders
+    via the weekly_report_v3 module. No parallel analytics-file
+    discovery. Period contract: data_complete_through = yesterday,
+    current_week = yesterday-6 → yesterday, previous_week =
+    yesterday-13 → yesterday-7.
+
+    Optional ?as_of=YYYY-MM-DD pins the report to a past date.
     """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _wr3 is None:
+        return jsonify({"ok": False,
+                        "error": "weekly_report_v3 unavailable"}), 503
     bid = request.args.get('brand') or get_brand_id()
-    fmt = request.args.get('format', 'html').lower()
-    # Analytics source follows delegation; voice/positioning stay on the brand
-    data_bid = resolve_data_brand(bid)
-    if fmt == 'json':
-        return jsonify({
-            'brand_id': bid,
-            'data_source_brand_id': data_bid,
-            'brand_meta': _weekly_brand_meta(bid),
-            'metrics': _weekly_compute_metrics(data_bid),
-        }), 200
-    if fmt == 'markdown':
-        from flask import Response
-        return Response(_weekly_render_markdown(bid, data_bid=data_bid), mimetype='text/markdown'), 200
-    return _weekly_render_html(bid, data_bid=data_bid), 200
+    fmt = (request.args.get('format', 'html') or 'html').lower()
+    as_of = request.args.get('as_of') or None
+    try:
+        cookie=request.headers.get('Cookie')
+        out = _wr3.build_v31(bid, fmt=fmt, as_of=as_of, cookie=cookie)
+        status = out.get("report_status", "OK")
+        if status == "BLOCKED_BRAND_CONTAMINATION":
+            return jsonify({
+                "ok": False,
+                "report_status": status,
+                "block_reason": out.get("block_reason"),
+                "contaminations": out.get("contaminations"),
+                "rendered": out.get("rendered"),
+            }), 422
+        if status == "V24_UNAVAILABLE":
+            return jsonify({"ok": False, "report_status": status,
+                              "error": out.get("block_reason"),
+                              "rendered": out.get("rendered")}), 503
+        if fmt == 'json':
+            return jsonify({"ok": True,
+                              "report_status": status,
+                              "report": out.get("raw_payload"),
+                              "rendered": out.get("rendered")}), 200
+        if fmt == 'markdown':
+            from flask import Response
+            return Response(out.get("rendered", ""),
+                              mimetype='text/markdown'), 200
+        # HTML default
+        return out.get("rendered", ""), 200, {
+            "Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("weekly_report_api v3.1 failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
 @app.route('/api/weekly-report/snapshot', methods=['POST', 'GET'])
 def weekly_report_snapshot():
-    """Archive the current week for the brand. Returns the saved path."""
+    """Archive the V3.1 canonical report state for next-week WoW.
+
+    V3.1: writes brand_id, current period, data_as_of, KPI values,
+    source statuses to data/weekly-snapshots/<brand>/<date>.json.
+    The legacy `_weekly_save_snapshot` (using the old broken renderer)
+    is no longer called.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _wr3 is None:
+        return jsonify({"ok": False,
+                        "error": "weekly_report_v3 unavailable"}), 503
     bid = request.args.get('brand') or get_brand_id()
-    cur = _weekly_collect_current(bid)
-    path = _weekly_save_snapshot(bid, cur)
-    return jsonify({'brand_id': bid, 'path': path, 'iso_week': datetime.datetime.now(datetime.timezone.utc).isocalendar()[:2]}), 200
+    as_of = request.args.get('as_of') or None
+    try:
+        cookie=request.headers.get('Cookie')
+        snap = _wr3.archive_snapshot_v31(bid, as_of=as_of, cookie=cookie)
+        return jsonify({"ok": True, "snapshot": snap}), 200
+    except Exception as e:
+        _app_log.exception("weekly_report_snapshot v3.1 failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
 
 
 @app.route('/api/meta/test-exchange', methods=['GET'])
@@ -23442,11 +23475,27 @@ def weekly_report_snapshots():
 @app.route('/weekly-report', methods=['GET'])
 def weekly_report_page():
     """GET /weekly-report?brand=swing-shack
-    Renders the weekly-report HTML page directly (same as /api/weekly-report?format=html).
+
+    V3.1: renders via weekly_report_v3.build_v31 (canonical V2.4.1).
+    The legacy `_weekly_render_html` (which was the contaminated
+    renderer) is no longer called from this route.
     """
+    if not _is_authed():
+        return redirect(url_for("login", next=request.path))
+    if _wr3 is None:
+        return "weekly_report_v3 unavailable", 503
     bid = request.args.get('brand') or get_brand_id()
-    data_bid = resolve_data_brand(bid)
-    return _weekly_render_html(bid, data_bid=data_bid), 200
+    if bid not in ("stick", "swing-shack", "bag-drop"):
+        return "invalid brand", 400
+    as_of = request.args.get('as_of') or None
+    cookie=request.headers.get('Cookie')
+    out = _wr3.build_v31(bid, fmt='html', as_of=as_of, cookie=cookie)
+    if out.get("report_status") == "BLOCKED_BRAND_CONTAMINATION":
+        return (f"<h1>{bid} — Weekly Report BLOCKED</h1>"
+                f"<p>Brand contamination: {out.get('block_reason')}</p>"
+                f"<pre>{out.get('rendered', '')}</pre>"), 422
+    return out.get("rendered", ""), 200, {
+        "Content-Type": "text/html; charset=utf-8"}
 
 
 # ─── STARTUP ────────────────────────────────────────────────────────────
@@ -24153,6 +24202,9 @@ def _boot_seed_persistent_data():
         skipped_existing = []
         seed_targets = [
             "meta-post-index.json",
+            "campaign-data.json",
+            "scheduled-items.json",
+            "publish-queue.json",
         ]
         # Add per-brand feedback + integration files
         try:
@@ -24161,6 +24213,12 @@ def _boot_seed_persistent_data():
                 seed_targets.append(f"integrations/{_bid}/instagram.json")
                 seed_targets.append(f"brand-directory/{_bid}/feedback/image-performance.json")
                 seed_targets.append(f"brand-directory/{_bid}/feedback/learned-signals.json")
+        except Exception:
+            pass
+        try:
+            from _lib.marketing_calendar import VALID_BRAND_IDS as _VBI
+            for _bid in _VBI:
+                seed_targets.append(f"brand-directory/{_bid}/calendar_config.json")
         except Exception:
             pass
 
@@ -24203,6 +24261,21 @@ def _boot_seed_persistent_data():
         _app_log.warning("Boot seed: dispatcher failed (non-fatal): %s", _e)
 
 
+_SEED_BOOT_LOCK = threading.Lock()
+_SEED_BOOT_DONE = False
+
+
+def _boot_seed_once():
+    """Seed DATA_DIR from bundled defaults once per process (import + __main__)."""
+    global _SEED_BOOT_DONE
+    with _SEED_BOOT_LOCK:
+        if _SEED_BOOT_DONE:
+            return
+        _SEED_BOOT_DONE = True
+        _boot_seed_persistent_data()
+
+
+_boot_seed_once()
 
 # ─── Strategy layer API ────────────────────────────────────────────────
 # Big-picture strategy view — sits above the calendar.
@@ -25195,7 +25268,18 @@ def seo_refresh():
                 "error": "Ubersuggest credentials not configured",
                 "hint": "run scripts/ubersuggest_oauth.py on this machine to authorise"
             }), 503
-        project_id = _us.find_project_id_for_domain("swingshack.co.za")
+        # Resolve brand + domain (default swing-shack, support stick)
+        brand = (request.get_json(silent=True) or {}).get("brand") or "swing-shack"
+        brand = brand.strip().lower()
+        if brand not in ("swing-shack", "stick"):
+            return jsonify({"ok": False, "error": f"unsupported brand: {brand}"}), 400
+        domain = "stickgolf.co.za" if brand == "stick" else "swingshack.co.za"
+        # Per-brand output suffix
+        if brand == "swing-shack":
+            file_suffix = ""  # backwards-compat
+        else:
+            file_suffix = f"-{brand}"
+        project_id = _us.find_project_id_for_domain(domain)
         end = _dt2.date.today().isoformat()
         start = (_dt2.date.today() - _dt2.timedelta(days=60)).isoformat()
         logs = []
@@ -25213,15 +25297,15 @@ def seo_refresh():
             return raw
 
         pos_raw = _unpack(_us.project_position_info(project_id, start_date=start, end_date=end, language="en", device="desktop"))
-        domain = _unpack(_us.domain_overview("swingshack.co.za"))
-        bl = _unpack(_us.backlinks_overview("swingshack.co.za"))
-        comps_raw = _unpack(_us.competitors("swingshack.co.za"))
+        domain_data = _unpack(_us.domain_overview(domain))
+        bl = _unpack(_us.backlinks_overview(domain))
+        comps_raw = _unpack(_us.competitors(domain))
 
         n_keywords = len((pos_raw or {}).get("keywords", []) or [])
         n_comps = len(comps_raw) if isinstance(comps_raw, list) else len((comps_raw or {}).get("competitors", []))
 
         logs.append("project_position_info: %d keywords" % n_keywords)
-        logs.append("domain_overview: DA %s" % (domain or {}).get("domainAuthority", "?"))
+        logs.append("domain_overview: DA %s" % (domain_data or {}).get("domainAuthority", "?"))
         logs.append("backlinks: %s" % (bl or {}).get("backlinks", "?"))
         logs.append("competitors: %d" % n_comps)
 
@@ -25232,13 +25316,14 @@ def seo_refresh():
             # Position info — pos_raw is already unpacked to the inner dict
             pos_doc = dict(pos_raw or {})
             pos_doc["metadata"] = {
-                "domain": "swingshack.co.za",
+                "domain": domain,
+                "brand_id": brand,
                 "fetched_at": fetched_at,
                 "startDate": start,
                 "endDate": end,
                 "project_id": project_id,
             }
-            with open(os.path.join(data_dir, "seo-rankings.json"), "w") as f:
+            with open(os.path.join(data_dir, f"seo-rankings{file_suffix}.json"), "w") as f:
                 json.dump(pos_doc, f, indent=2, default=str)
             # Force a fresh read so the insights engine picks up the new file
             try:
@@ -25247,33 +25332,35 @@ def seo_refresh():
             except Exception:
                 pass
             # Domain overview
-            dom_doc = dict(domain or {})
-            dom_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
-            with open(os.path.join(data_dir, "ubersuggest-domain.json"), "w") as f:
+            dom_doc = dict(domain_data or {})
+            dom_doc["_meta"] = {"domain": domain, "brand_id": brand, "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, f"ubersuggest-domain{file_suffix}.json"), "w") as f:
                 json.dump(dom_doc, f, indent=2, default=str)
             # Backlinks
             bl_doc = dict(bl or {})
-            bl_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
-            with open(os.path.join(data_dir, "ubersuggest-backlinks.json"), "w") as f:
+            bl_doc["_meta"] = {"domain": domain, "brand_id": brand, "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, f"ubersuggest-backlinks{file_suffix}.json"), "w") as f:
                 json.dump(bl_doc, f, indent=2, default=str)
             # Competitors
             comps_doc = {
                 "competitors": comps_raw if isinstance(comps_raw, list) else (comps_raw or {}).get("competitors", []),
-                "_meta": {"domain": "swingshack.co.za", "fetched_at": fetched_at, "count": n_comps},
+                "_meta": {"domain": domain, "brand_id": brand, "fetched_at": fetched_at, "count": n_comps},
             }
-            with open(os.path.join(data_dir, "ubersuggest-competitors.json"), "w") as f:
+            with open(os.path.join(data_dir, f"ubersuggest-competitors{file_suffix}.json"), "w") as f:
                 json.dump(comps_doc, f, indent=2, default=str)
-            logs.append("persisted: data/seo-rankings.json + 3x ubersuggest-*.json")
+            logs.append(f"persisted: data/seo-rankings{file_suffix}.json + 3x ubersuggest-{file_suffix}*.json")
         except Exception as exc:
             logs.append(f"persistence failed: {exc}")
 
         return jsonify({
             "ok": True,
+            "brand_id": brand,
+            "domain": domain,
             "project_id": project_id,
             "window": {"start": start, "end": end},
             "logs": logs,
             "summary": {
-                "domain_authority": (domain or {}).get("domainAuthority"),
+                "domain_authority": (domain_data or {}).get("domainAuthority"),
                 "backlinks": (bl or {}).get("backlinks"),
                 "tracked_keywords": n_keywords,
             },
@@ -45014,20 +45101,36 @@ def meta_ads_ingest(brand_id):
 
 @app.route("/api/meta/ads/cache/<brand_id>", methods=["GET"])
 def meta_ads_cache(brand_id):
-    """GET /api/meta/ads/cache/<brand_id> — return the cached
-    paid-media payload from the last ingest run.
+    """GET /api/meta/ads/cache/<brand_id>[?period_days=7|31]
+
+    Period-aware cache lookup. Files are stored as
+    DATA_DIR/paid-media/<brand>__<period_days>d.json so the
+    7-day weekly cache does not collide with the 31-day monthly
+    cache. When ?period_days is omitted, defaults to 31 (backward
+    compat with older V2.4 callers).
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
     if brand_id not in ("stick", "swing-shack"):
         return jsonify({"ok": False,
                         "error": f"brand_id must be stick or swing-shack, got {brand_id}"}), 400
-    cache_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+    period_days = request.args.get("period_days", 31, type=int)
+    if period_days not in (7, 14, 28, 31, 90):
+        period_days = 31
+    cache_path = os.path.join(DATA_DIR, "paid-media",
+                                f"{brand_id}__{period_days}d.json")
     if not os.path.exists(cache_path):
-        # Try to ingest
-        out = _v23_ingest_paid_media(brand_id, period_days=31, ytd=True)
+        # Trigger an on-demand ingest at the requested period.
+        out = _v23_ingest_paid_media(brand_id, period_days=period_days, ytd=False)
+        # _v23_ingest_paid_media writes its own canonical file at
+        # <brand>.json (NOT period-scoped) — copy that to the
+        # period-scoped path so subsequent lookups hit cache.
+        canonical_path = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+        if os.path.exists(canonical_path):
+            import shutil
+            shutil.copy2(canonical_path, cache_path)
         return jsonify({"ok": out.get("ok"), "cache": out,
-                        "note": "no cache yet — ran ingest on first access"}), 200
+                        "note": f"no {period_days}d cache yet — ran ingest on first access"}), 200
     with open(cache_path) as f:
         return jsonify({"ok": True, "cache": json.load(f)}), 200
 
@@ -45253,6 +45356,683 @@ def meta_ads_ad_insights(brand_id, ad_id):
         }), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)[:200]}), 200
+
+
+
+
+# ─── REPORTING V2.4: PER-CAMPAIGN INTELLIGENCE ────────────────────────
+
+
+@app.route("/api/reports/v2_4/<brand_id>", methods=["GET"])
+def report_v24_brand(brand_id):
+    """GET /api/reports/v2_4/<brand>?format=html|json&days=31
+
+    V2.4 management report: V2.2 + V2.3 + per-campaign intelligence.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        if fmt == "json":
+            r = _ri.build_v24_brand_report(brand_id, days, cookie=cookie)
+            return jsonify({"ok": True, "report": r}), 200
+        html = _ri.render_v24_brand_report_html(brand_id, days, cookie=cookie)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v24_brand failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/reports/v2_4/portfolio", methods=["GET"])
+def report_v24_portfolio():
+    """GET /api/reports/v2_4/portfolio?format=html|json"""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _ri is None:
+        return jsonify({"ok": False, "error": "reporting engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 31))
+    cookie = request.headers.get("Cookie", "")
+    try:
+        reports = {bid: _ri.build_v24_brand_report(bid, days, cookie=cookie)
+                   for bid in ("stick", "swing-shack")}
+        if fmt == "json":
+            return jsonify({"ok": True, "reports": reports}), 200
+        # Minimal HTML portfolio
+        rows = []
+        for bid, r in reports.items():
+            pm24 = r.get("paid_media_v24", {})
+            aa = pm24.get("account_reconciliation") or {}
+            ytd = pm24.get("ytd_brand_total_spend", 0)
+            top_campaign = ((pm24.get("ytd_campaign_table") or [])
+                             and (pm24.get("ytd_campaign_table") or [])[0].get("campaign_name"))
+            parts2 = [f"<tr><td>{r.get('brand_name', bid)}</td>"]
+            parts2.append(f"<td>{pm24.get('ad_account_name','-')}</td>")
+            parts2.append(f"<td>R {ytd:,.2f}</td>")
+            parts2.append(f"<td>R {aa.get('amount_spent_zar', 0):,.2f}</td>")
+            parts2.append(f"<td>{top_campaign or '—'}</td>")
+            parts2.append(f"<td><a href='/api/reports/v2_4/{bid}?format=html'>Full →</a></td></tr>")
+            rows.append("".join(parts2))
+        html = (
+            "<!DOCTYPE html><html><head>"
+            "<meta charset='utf-8'>"
+            "<title>Portfolio V2.4</title></head><body>"
+            "<h1>Portfolio — V2.4 (Per-Campaign Paid Media)</h1>"
+            "<table class='coverage-table'>"
+            "<tr><th>Brand</th><th>Ad account</th>"
+            "<th>YTD spend (insights)</th>"
+            "<th>Lifetime spend (act_meta)</th>"
+            "<th>Top YTD campaign</th><th></th></tr>"
+            + "".join(rows) +
+            "</table>"
+            "<div class='footer'><em>V2.4 portfolio — "
+            "per-campaign Meta Ads data per brand.</em></div>"
+            "</body></html>")
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v24_portfolio failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ─── REPORTING V2.5: EDITORIAL INTELLIGENCE LAYER ──────────────
+# V2.5 sits on top of V2.4.1 — reads it, does NOT modify it.
+# Adds: SEO + social + GA4 + funnel + editorial structure.
+# Deterministic templates only (no LLM narrative yet).
+#
+# V2.5 supports signed share tokens (same mechanism as the weekly
+# report export). Mint via POST /api/reports/v2_5/<brand>/share
+# while authed; recipients hit /reports/<brand>?share=<token>
+# without login. Tokens are 24h TTL, scope-bound to "v25_report".
+
+
+def _v25_verify_share_token(token: str) -> bool:
+    """Validate a share token minted by /api/reports/v2_5/<brand>/share.
+
+    Scope-bound to "v25_report" so a token for any other use case
+    cannot accidentally unlock the editorial report endpoint.
+    """
+    if not token:
+        return False
+    try:
+        payload = _serializer.loads(token, max_age=SHARE_TOKEN_MAX_AGE)
+    except (BadSignature, SignatureExpired):
+        return False
+    return isinstance(payload, dict) and payload.get("scope") == "v25_report"
+
+
+def _v25_is_authed_or_shared() -> bool:
+    """Allow either session cookie auth OR a valid share token."""
+    if _is_authed():
+        return True
+    return _v25_verify_share_token(request.args.get("share", ""))
+
+
+@app.route("/api/reports/v2_5/<brand_id>", methods=["GET"])
+def report_v25_brand(brand_id):
+    """GET /api/reports/v2_5/<brand>?format=json|html&days=7
+
+    V2.5 editorial report: cross-source synthesis. V2.4.1 is
+    preserved unchanged; V2.5 reads its cache for the paid-media
+    section.
+
+    Auth: session cookie OR valid ?share=<token>.
+    """
+    if not _v25_is_authed_or_shared():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False,
+                        "error": f"brand_id must be stick or swing-shack"}), 400
+    if _ed is None:
+        return jsonify({"ok": False,
+                        "error": "editorial engine unavailable"}), 503
+    fmt = (request.args.get("format", "html") or "html").lower()
+    days = int(request.args.get("days", 7))
+    domain = request.args.get("domain") or (
+        "swingshack.co.za" if brand_id == "swing-shack" else "stickgolf.co.za")
+    try:
+        report = _ed.build_editorial_report(brand_id, period_days=days,
+                                              domain=domain)
+        if fmt == "json":
+            return jsonify({"ok": True, "report": report}), 200
+        html = _ed.render_editorial_report_html(report)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("report_v25_brand failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
+
+
+@app.route("/api/reports/v2_5/<brand_id>/digest", methods=["GET"])
+def report_v25_brand_digest(brand_id):
+    """GET /api/reports/v2_5/<brand_id>/digest
+
+    Returns the Discord-digest markdown form of the editorial report.
+    Used by the daily 06:35 SAST cron + future #heidi posts.
+
+    Auth: session cookie OR valid ?share=<token>.
+    """
+    if not _v25_is_authed_or_shared():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    if _ed is None:
+        return jsonify({"ok": False, "error": "editorial engine unavailable"}), 503
+    domain = request.args.get("domain") or (
+        "swingshack.co.za" if brand_id == "swing-shack" else "stickgolf.co.za")
+    try:
+        report = _ed.build_editorial_report(brand_id, period_days=7,
+                                              domain=domain)
+        md = _ed.render_discord_digest(report)
+        return jsonify({"ok": True, "digest": md,
+                          "generated_at": report.get("generated_at"),
+                          "confidence": report.get("confidence")}), 200
+    except Exception as e:
+        _app_log.exception("report_v25_brand_digest failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
+
+
+@app.route("/reports/<brand_id>", methods=["GET"])
+def editorial_report_page(brand_id):
+    """GET /reports/<brand_id>
+
+    The editorial report UI page. Self-contained HTML — no chrome,
+    no navigation. Designed to be a focused CEO-grade read.
+
+    Auth: session cookie OR valid ?share=<token>.
+    """
+    if not _v25_is_authed_or_shared():
+        return redirect(url_for("login", next=request.path))
+    if brand_id not in ("stick", "swing-shack"):
+        return "invalid brand", 400
+    if _ed is None:
+        return "editorial engine unavailable", 503
+    domain = ("swingshack.co.za" if brand_id == "swing-shack"
+              else "stickgolf.co.za")
+    report = _ed.build_editorial_report(brand_id, period_days=7,
+                                          domain=domain)
+    return _ed.render_editorial_report_html(report), 200, {
+        "Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/api/reports/v2_5/<brand_id>/share", methods=["POST"])
+def report_v25_share(brand_id):
+    """POST /api/reports/v2_5/<brand_id>/share
+
+    Mint a signed share URL for the editorial report. Recipient
+    clicks the URL → report renders without login. 24h TTL.
+
+    Body (optional JSON): {"ttl_seconds": 86400}
+      default 24h, clamped to [60s, 7d].
+
+    Auth required (the recipient of the share link does not need auth).
+    """
+    if not _is_authed():
+        return jsonify({"ok": False,
+                        "error": "auth required to mint share links"}), 401
+    if brand_id not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": "invalid brand"}), 400
+    try:
+        body = request.get_json(silent=True) or {}
+        ttl = int(body.get("ttl_seconds", SHARE_TOKEN_MAX_AGE))
+        ttl = max(60, min(ttl, 60 * 60 * 24 * 7))
+        payload = {"scope": "v25_report", "v": 1,
+                    "brand_id": brand_id}
+        token = _serializer.dumps(payload)
+        host = request.host_url.rstrip("/")
+        share_url = f"{host}/reports/{brand_id}?share={token}"
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + \
+            datetime.timedelta(seconds=ttl)
+        return jsonify({
+            "ok": True,
+            "share_url": share_url,
+            "json_share_url": (f"{host}/api/reports/v2_5/{brand_id}"
+                                f"?format=json&share={token}"),
+            "token": token,
+            "expires_at": expires_at.isoformat(),
+            "ttl_seconds": ttl,
+            "brand_id": brand_id,
+        })
+    except Exception as exc:
+        _app_log.exception("report_v25_share failed")
+        return jsonify({"ok": False, "error": str(exc)[:200]}), 500
+
+
+# ─── WEEKLY MANAGEMENT REPORT V3 ───────────────────────────
+# v3 sits ON TOP of v2.4.1 (which is frozen). It does NOT touch
+# GA4 ingestion, Meta ingestion, comparison engine, paid-media
+# ingestion, historical storage, campaign performance, or
+# source lineage. v3 only fixes the weekly renderer output:
+#
+#  - Brand isolation gate (BLOCKED_BRAND_CONTAMINATION)
+#  - Correct period contract (7d current / 7d previous /
+#    28d current / 28d previous)
+#  - Numeric TLDR with Current/Previous/Change
+#  - No fake revenue modelling, no fake uplift predictions
+#  - Fact → Interpretation → Action chain
+#  - Live Stories clearly marked LIVE SNAPSHOT
+#  - Data Notes at the end (technical limitations)
+#  - Top-3 actions only, severity-tagged
+#  - Canonical North Stars shown exact, no fabricated progress
+#
+# V3.1 NOTE: This route (kept for backwards compatibility) is now
+# an alias for the canonical /api/weekly-report endpoint. V3.1
+# is the default — no separate opt-in route is needed anymore.
+# Existing clients hitting /api/weekly-report/v3/<brand> continue
+# to work via this alias.
+
+
+@app.route("/api/weekly-report/v3/<brand_id>", methods=["GET"])
+def weekly_report_v3(brand_id):
+    """GET /api/weekly-report/v3/<brand>?format=markdown|json|html
+
+    Backwards-compat alias — V3.1 is now the default at
+    /api/weekly-report. This route forwards to the same handler.
+    """
+    fmt = (request.args.get("format", "markdown") or "markdown").lower()
+    as_of = request.args.get("as_of") or None
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if _wr3 is None:
+        return jsonify({"ok": False,
+                        "error": "weekly_report_v3 unavailable"}), 503
+    try:
+        cookie=request.headers.get('Cookie')
+        out = _wr3.build_v31(brand_id, fmt=fmt, as_of=as_of, cookie=cookie)
+        status = out.get("report_status", "OK")
+        if status == "BLOCKED_BRAND_CONTAMINATION":
+            return jsonify({
+                "ok": False,
+                "report_status": status,
+                "block_reason": out.get("block_reason"),
+                "contaminations": out.get("contaminations"),
+                "rendered": out.get("rendered"),
+            }), 422
+        if fmt == "json":
+            return jsonify({"ok": True,
+                              "report_status": status,
+                              "report": out.get("raw_payload"),
+                              "rendered": out.get("rendered")}), 200
+        if fmt == "html":
+            return out.get("rendered", ""), 200, {
+                "Content-Type": "text/html; charset=utf-8"}
+        return out.get("rendered"), 200, {
+            "Content-Type": "text/markdown; charset=utf-8"}
+    except Exception as e:
+        _app_log.exception("weekly_report_v3 (alias) failed")
+        return jsonify({"ok": False, "error": str(e)[:200]}), 500
+
+
+@app.route("/api/meta/paid-media/audit", methods=["GET"])
+def meta_paid_media_audit():
+    """GET /api/meta/paid-media/audit?brand=<id>
+
+    Read-only direct Meta Graph API audit. Queries /insights
+    with time_range sent EXPLICITLY for current 7d, previous 7d,
+    and current 31d windows. Returns raw Meta totals + the
+    exact time_range sent + campaign-level breakdown.
+
+    This is the operator's "ground truth" that V3 weekly reporting
+    values must reconcile against. Does NOT mutate cache.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = request.args.get("brand", "stick")
+    if brand not in ("stick", "swing-shack"):
+        return jsonify({"ok": False, "error": "brand must be stick or swing-shack"}), 400
+    acc = _v23_resolve_ads_account(brand)
+    if not acc:
+        return jsonify({"ok": False, "brand": brand,
+                          "error": "no canonical ad account"}), 400
+    token_label, token = _v23_resolve_ads_token(brand)
+    if not token:
+        return jsonify({"ok": False, "brand": brand,
+                          "error": "no token for this brand",
+                          "token_label": token_label}), 400
+    windows = [
+        ("current_7d", "2026-09-15", "2026-09-21"),
+        ("previous_7d", "2026-09-08", "2026-09-14"),
+        ("current_31d", "2026-08-22", "2026-09-21"),
+    ]
+    fields = ("spend,impressions,reach,clicks,cpc,cpm,ctr,"
+              "frequency,actions,cost_per_action_type,objective")
+    out = {
+        "brand_id": brand,
+        "account_id": acc,
+        "token_label": token_label,
+        "queried_at": _now_iso(),
+        "windows": {},
+    }
+    for label, since, until in windows:
+        tr = {"since": since, "until": until}
+        try:
+            params = {"fields": fields, "level": "account",
+                        "time_range": json.dumps(tr),
+                        "access_token": token}
+            url = (f"https://graph.facebook.com/{_META_GRAPH_API_VERSION}"
+                    f"/{acc}/insights")
+            import urllib.parse as _up
+            with urllib.request.urlopen(
+                url + "?" + _up.urlencode(params), timeout=60) as r:
+                acct_body = json.loads(r.read())
+            # Campaign-level
+            params["level"] = "campaign"
+            params["limit"] = 200
+            with urllib.request.urlopen(
+                url + "?" + _up.urlencode(params), timeout=60) as r:
+                camp_body = json.loads(r.read())
+            acct_data = (acct_body.get("data") or [{}])[0]
+            campaigns = []
+            for row in (camp_body.get("data") or []):
+                campaigns.append({
+                    "campaign_id": row.get("id"),
+                    "campaign_name": (row.get("campaign_name")
+                                         or row.get("name")),
+                    "objective": row.get("objective"),
+                    "spend": float(row.get("spend") or 0),
+                    "impressions": int(row.get("impressions") or 0),
+                    "reach": int(row.get("reach") or 0),
+                    "clicks": int(row.get("clicks") or 0),
+                    "cpc": float(row.get("cpc") or 0),
+                    "cpm": float(row.get("cpm") or 0),
+                    "ctr": float(row.get("ctr") or 0),
+                    "actions": row.get("actions") or [],
+                    "cost_per_action_type": row.get("cost_per_action_type") or [],
+                })
+            out["windows"][label] = {
+                "time_range_sent": tr,
+                "queried_at": _now_iso(),
+                "account_level": {
+                    "spend": float(acct_data.get("spend") or 0),
+                    "impressions": int(acct_data.get("impressions") or 0),
+                    "reach": int(acct_data.get("reach") or 0),
+                    "clicks": int(acct_data.get("clicks") or 0),
+                    "cpc": float(acct_data.get("cpc") or 0),
+                    "cpm": float(acct_data.get("cpm") or 0),
+                    "ctr": float(acct_data.get("ctr") or 0),
+                },
+                "campaign_aggregate": {
+                    "spend": round(sum(c["spend"] for c in campaigns), 2),
+                    "impressions": sum(c["impressions"] for c in campaigns),
+                    "reach": sum(c["reach"] for c in campaigns),
+                    "clicks": sum(c["clicks"] for c in campaigns),
+                    "n_campaigns": len(campaigns),
+                },
+                "per_campaign": sorted(campaigns,
+                                            key=lambda c: c["spend"],
+                                            reverse=True),
+            }
+        except Exception as e:
+            out["windows"][label] = {
+                "time_range_sent": tr,
+                "queried_at": _now_iso(),
+                "error": str(e)[:300],
+            }
+    return jsonify({"ok": True, "audit": out}), 200
+
+
+@app.route("/api/meta/paid-media/refresh", methods=["POST"])
+def meta_paid_media_refresh():
+    """POST /api/meta/paid-media/refresh[?period_days=7|31]
+
+    V2.4 §12: scheduled refresh. Re-ingests both brands at the
+    requested period_days. Safe to call from cron. Read-only.
+
+    The canonical file DATA_DIR/paid-media/<brand>.json is written
+    by _v23_ingest_paid_media. After both brands are ingested, we
+    also copy each canonical file to DATA_DIR/paid-media/<brand>__<period_days>d.json
+    so the /api/meta/ads/cache endpoint can serve a period-aware
+    cache without the weekly and monthly caches colliding.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    period_days = request.args.get("period_days", 31, type=int)
+    if period_days not in (7, 14, 28, 31, 90):
+        period_days = 31
+    out = {}
+    for brand_id in ("stick", "swing-shack"):
+        try:
+            res = _v23_ingest_paid_media(brand_id, period_days,
+                                            ytd=(period_days >= 31))
+            out[brand_id] = {
+                "ok": res.get("ok"),
+                "data_status": res.get("data_status"),
+                "fetched_at": res.get("fetched_at"),
+                "campaigns_count": len(res.get("campaigns") or []),
+                "ytd_spend": (((res.get("ytd_totals") or {}).get("spend"))
+                                or (((res.get("ytd") or {}).get("rows") or [])
+                                     and round(sum(((r or {}).get("spend") or 0)
+                                                    for r in (res.get("ytd") or {}).get("rows")),
+                                               2))),
+            }
+        except Exception as e:
+            out[brand_id] = {"ok": False, "error": str(e)[:200]}
+    # Copy canonical cache files into period-scoped caches so
+    # /api/meta/ads/cache?period_days=7 hits a fresh 7-day cache.
+    period_cache_paths = {}
+    for brand_id in ("stick", "swing-shack"):
+        canonical = os.path.join(DATA_DIR, "paid-media", f"{brand_id}.json")
+        per = os.path.join(DATA_DIR, "paid-media",
+                              f"{brand_id}__{period_days}d.json")
+        if os.path.exists(canonical):
+            import shutil
+            shutil.copy2(canonical, per)
+            period_cache_paths[brand_id] = per
+    return jsonify({
+        "ok": True,
+        "refreshed_at": _now_iso(),
+        "period_days": period_days,
+        "brands": out,
+        "period_cache_paths": period_cache_paths,
+        "note": ("Read-only refresh. Source: Meta Graph API. "
+                 "Cache file: DATA_DIR/paid-media/<brand>.json. "
+                 "Synthetic data/meta-ads.json never read."),
+    }), 200
+
+
+# ─── CREATE V1 ────────────────────────────────────────────────────────
+# Per V1 §5-§25: Creative Package generation from approved Brief.
+# Read-only on Reporting V2.4.1. Read-only on canonical facts.
+# Banned-term + voice + fact + novelty validation runs on every
+# draft. Publish gate established but NOT implemented.
+
+try:
+    from _lib.creative_package import (
+        build_creative_package, get_creative_package,
+        list_creative_packages, validate_creative_item,
+        regenerate_route_field, operator_edit_provenance,
+        transition_creative_status, can_publish_creative,
+        render_package_html,
+        GENERATOR_VERSION as _CREATE_GENERATOR_VERSION,
+    )
+except Exception as _create_import_err:
+    build_creative_package = None
+    transition_creative_status = None
+    can_publish_creative = None
+    render_package_html = None
+    _create_import_err_repr = repr(_create_import_err)
+
+
+@app.route("/api/create/v1/can-generate/<brand_id>/<brief_id>",
+            methods=["GET"])
+def create_v1_can_generate(brand_id, brief_id):
+    """V1 §2: canonical gate. MUST be checked before any
+    generation. Production fails closed unless Brief is
+    approved via the current trusted human approval path."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    from _lib.campaign_brief import can_generate_creative_v17
+    gate = can_generate_creative_v17(brand_id, brief_id)
+    # Per V1 §2: unknown environment must DENY. Verify explicit.
+    env = (os.environ.get("CAMPAIGN_OS_ENV", "")).lower()
+    railway_env = (os.environ.get("RAILWAY_ENVIRONMENT", "")).lower()
+    railway_id = (os.environ.get("RAILWAY_ENVIRONMENT_ID", "")).strip()
+    if not env and not railway_env and not railway_id:
+        # Truly unknown — V1 §2 says DENY
+        return jsonify({
+            "ok": False,
+            "creative_allowed": False,
+            "environment": "unknown",
+            "rule": "V1 §2: unknown environment → DENY",
+            "gate": gate,
+        }), 403
+    return jsonify({"ok": gate.get("ok"),
+                     "environment": gate.get("environment"),
+                     "creative_allowed": gate.get("creative_allowed"),
+                     "gates": gate.get("gates"),
+                     "reasons": gate.get("reasons")})
+
+
+@app.route("/api/create/v1/package/<brand_id>/<brief_id>",
+            methods=["POST", "GET"])
+def create_v1_build_package(brand_id, brief_id):
+    """V1 §1-§22: build a creative_package from approved Brief.
+
+    Always passes through can_generate_creative_v17 first.
+    Production fails closed. Read-only on Reporting V2.4.1.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if build_creative_package is None:
+        return jsonify({"ok": False,
+                        "error": f"creative_package module import failed: {_create_import_err_repr}"}), 503
+    from _lib.campaign_brief import can_generate_creative_v17
+    gate = can_generate_creative_v17(brand_id, brief_id)
+    if not gate.get("ok"):
+        return jsonify({
+            "ok": False,
+            "blocked_by_gate": True,
+            "gate": gate,
+            "rule": ("V1 §1: must call can_generate_creative and "
+                      "receive ok=True before generation."),
+        }), 403
+    pkg = build_creative_package(brand_id, brief_id)
+    if not pkg.get("package_id"):
+        return jsonify({"ok": False,
+                        "error": pkg.get("error", "build failed")}), 400
+    return jsonify({"ok": True, "package": pkg}), 200
+
+
+@app.route("/api/create/v1/package/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_get_package(brand_id, brief_id, package_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if get_creative_package is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    pkg = get_creative_package(brand_id, brief_id, package_id)
+    if not pkg:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return jsonify({"ok": True, "package": pkg}), 200
+
+
+@app.route("/api/create/v1/packages/<brand_id>",
+            methods=["GET"])
+def create_v1_list_packages(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    if list_creative_packages is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    return jsonify({"ok": True,
+                     "packages": list_creative_packages(brand_id)}), 200
+
+
+@app.route("/api/create/v1/validate-text", methods=["POST"])
+def create_v1_validate_text():
+    """V1 §11: standalone voice + banned-term validator."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if validate_creative_item is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    text = body.get("text") or ""
+    brand_id = body.get("brand_id") or ""
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    return jsonify({"ok": True,
+                     "validation": validate_creative_item(text, brand_id)}), 200
+
+
+@app.route("/api/create/v1/regenerate", methods=["POST"])
+def create_v1_regenerate_field():
+    """V1 §22: targeted regeneration of a single route field.
+    Bound to approved Brief + brand facts + voice + evidence +
+    strategy. Never free-form."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if regenerate_route_field is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    brand_id = body.get("brand_id") or ""
+    brief_id = body.get("brief_id") or ""
+    package_id = body.get("package_id") or ""
+    route_id = body.get("route_id") or ""
+    field = body.get("field") or ""
+    reason = body.get("reason") or ""
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    r = regenerate_route_field(brand_id, brief_id, package_id,
+                                 route_id, field, reason)
+    return jsonify(r), 200 if r.get("ok") else 400
+
+
+@app.route("/api/create/v1/operator-edit", methods=["POST"])
+def create_v1_operator_edit():
+    """V1 §11 + §21: log operator edit. NEVER silently rewritten."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if operator_edit_provenance is None:
+        return jsonify({"ok": False, "error": "module unavailable"}), 503
+    body = request.get_json(silent=True) or {}
+    r = operator_edit_provenance(
+        body.get("brand_id") or "",
+        body.get("brief_id") or "",
+        body.get("package_id") or "",
+        body.get("route_id") or "",
+        body.get("edit_summary") or "")
+    return jsonify(r), 200 if r.get("ok") else 400
+
+
+@app.route("/api/create/v1/publish-block/<brand_id>/<brief_id>/<package_id>",
+            methods=["GET"])
+def create_v1_publish_block(brand_id, brief_id, package_id):
+    """V1 §25: explicit publish gate. publish_allowed=false in
+    this slice. Publish code MUST be built in a separate slice
+    with explicit operator confirmation per channel."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("stick", "swing-shack", "bag-drop"):
+        return jsonify({"ok": False,
+                        "error": "brand_id must be stick|swing-shack|bag-drop"}), 400
+    pkg = get_creative_package(brand_id, brief_id, package_id)
+    if not pkg:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    return jsonify({"ok": True,
+                     "publish_allowed": False,
+                     "publish_implemented": False,
+                     "publish_gate": pkg.get("publish", {}),
+                     "rule": ("V1 §25: publish gate established, NOT "
+                               "implemented. Do not call any publish "
+                               "endpoint until Publish V1 slice.")}), 200
 
 
 if __name__ == '__main__':

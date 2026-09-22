@@ -1,0 +1,157 @@
+{
+  "_meta": {
+    "domain": "stickgolf.co.za",
+    "fetched_at": "2026-09-22"
+  },
+  "backlinks": 7,
+  "domain": "stickgolf.co.za",
+  "domainAuthority": 3,
+  "domainTraffic": {
+    "202509": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202510": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202511": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202512": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202601": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202602": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202603": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 0,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202604": {
+      "fourthTier": 1,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 1,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 0,
+      "topTier": 0
+    },
+    "202605": {
+      "fourthTier": 0,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 2,
+      "searchTraffic": 0,
+      "secondTier": 0,
+      "thirdTier": 2,
+      "topTier": 0
+    },
+    "202606": {
+      "fourthTier": 1,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 6,
+      "searchTraffic": 4,
+      "secondTier": 0,
+      "thirdTier": 5,
+      "topTier": 0
+    },
+    "202607": {
+      "fourthTier": 2,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 11,
+      "searchTraffic": 53,
+      "secondTier": 2,
+      "thirdTier": 7,
+      "topTier": 0
+    },
+    "202608": {
+      "fourthTier": 2,
+      "paidKw": 0,
+      "paidTraffic": 0,
+      "searchKw": 10,
+      "searchTraffic": 44,
+      "secondTier": 1,
+      "thirdTier": 6,
+      "topTier": 1
+    }
+  },
+  "follow": 7,
+  "noFollow": 0,
+  "organic": 10,
+  "organicKeywords": [
+    {
+      "competition": 1,
+      "cpc": 1.61,
+      "cpcDollars": 1.61,
+      "domain": "stickgolf.co.za:organic:en:2840",
+      "keyword": "psycho bunny golf",
+      "path": "/psycho-bunny-at-stick/",
+      "pd": 100,
+      "position": 20,
+      "position_group": 14,
+      "sd": 17,
+      "traffic": 1,
+      "type": "organic",
+      "updated_at": 1789476874,
+      "url": "http://stickgolf.co.za/psycho-bunny-at-stick/",
+      "volume": 170
+    }
+  ],
+  "paidKeywords": 0,
+  "paidTraffic": 0,
+  "refDomains": 1,
+  "traffic": 44
+}

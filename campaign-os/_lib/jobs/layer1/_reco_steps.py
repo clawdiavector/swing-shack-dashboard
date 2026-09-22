@@ -884,7 +884,7 @@ def _bucket_cta(caption: str) -> str:
     return "SOFT"
 
 
-def _normalise_ig_posts() -> tuple[list[dict], str]:
+def _normalise_ig_posts(io: BrandIO) -> tuple[list[dict], str]:
     ig_raw = as_dict(io.read("ig-analytics.json"))
     ig_business = as_dict(io.read("ig-business-analytics.json"))
     biz_media = [
@@ -936,7 +936,7 @@ def _normalise_ig_posts() -> tuple[list[dict], str]:
 
 def step_conversion_attribution(io: BrandIO) -> dict:
     ga4 = as_dict(io.read("ga4-metrics.json"))
-    ig_posts, _source = _normalise_ig_posts()
+    ig_posts, _source = _normalise_ig_posts(io)
 
     ga4_pages = [dict(p) for p in (ga4.get("pages") or []) if isinstance(p, dict)]
     for p in ga4_pages:

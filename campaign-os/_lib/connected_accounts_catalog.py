@@ -168,12 +168,14 @@ def _state_from_flags(
 def _job_activity_for_brand(job_names: tuple[str, ...], brand_id: str) -> dict[str, Any]:
     try:
         from _lib.jobs import ledger
-        from _lib.jobs.runner import _last_success, verdict_for
+        from _lib.jobs.runner import _last_finished, _last_success, verdict_for
     except Exception:
         return {}
     now = _utc_now()
     last_at: Optional[str] = None
     verdict: Optional[str] = None
+    last_status: Optional[str] = None
+    last_error: Optional[str] = None
     for name in job_names:
         rows = ledger.read_rows(name, brand=brand_id)
         if not rows:
@@ -184,7 +186,17 @@ def _job_activity_for_brand(job_names: tuple[str, ...], brand_id: str) -> dict[s
         if finished and (last_at is None or finished > last_at):
             last_at = finished
             verdict = v
-    return {"last_success_at": last_at, "job_verdict": verdict, "last_used_label": _age_label(last_at)}
+        last_row = _last_finished([r for r in rows if r.get("brand") in (brand_id, None)])
+        if last_row:
+            last_status = last_row.get("status")
+            last_error = last_row.get("error")
+    return {
+        "last_success_at": last_at,
+        "job_verdict": verdict,
+        "last_used_label": _age_label(last_at),
+        "last_status": last_status,
+        "last_error": last_error,
+    }
 
 
 def _integration_row(
@@ -198,7 +210,12 @@ def _integration_row(
     connect: dict[str, Any],
     setup: dict[str, Any],
 ) -> dict[str, Any]:
-    from _lib.jobs.brand_lanes import integration_applies, integration_state, load_brands_registry
+    from _lib.jobs.brand_lanes import (
+        env_unsatisfied_names,
+        integration_applies,
+        integration_state,
+        load_brands_registry,
+    )
 
     reg = load_brands_registry()
     scope = ((reg.get("brands") or {}).get(brand_id) or {}).get("integration_scope") or {}
@@ -213,13 +230,17 @@ def _integration_row(
     file_at = _data_file_mtime(data_rel) if data_rel else None
     last_used = activity.get("last_success_at") or file_at
 
-    if state == "connected" and activity.get("job_verdict") not in (None, "OK", "SKIPPED"):
+    job_verdict = activity.get("job_verdict")
+    if state == "connected" and job_verdict == "SKIPPED":
         state = "partial"
-        if activity.get("job_verdict") in ("LATE", "FAILED"):
-            health = "degraded"
 
     env_vars = list(scope_entry.get("env") or [])
+    cred_ref = scope_entry.get("credential_ref")
+    env_unsatisfied = env_unsatisfied_names(
+        brand_id, integration_id, env_vars, credential_ref=cred_ref
+    )
     creds_ok = state in ("connected", "partial")
+    skip_reason = (activity.get("last_error") or "") if job_verdict == "SKIPPED" else None
 
     return {
         "id": integration_id,
@@ -235,10 +256,12 @@ def _integration_row(
         "na_reason": scope_entry.get("na_reason") if not applies else None,
         "last_used_at": last_used,
         "last_used_label": _age_label(last_used),
-        "job_verdict": activity.get("job_verdict"),
+        "job_verdict": job_verdict,
+        "last_error": skip_reason,
         "credentials": {
             "configured": creds_ok,
             "env_vars": env_vars,
+            "env_unsatisfied": env_unsatisfied,
             "key_prefix": _env_prefix(env_vars[0]) if env_vars else None,
         },
         "connect": connect,
@@ -311,8 +334,12 @@ def build_brand_integrations(brand_id: str) -> dict[str, Any]:
 
     for iid, icon, purpose, connect in (
         ("ga4", "📈", "Site traffic and conversion analytics.", {"type": "portal", "url": "/meta-portal", "label": "GA4 setup portal"}),
-        ("gsc", "🔎", "Search queries, impressions, clicks.", {"type": "manual", "url": "https://search.google.com/search-console", "label": "Open Search Console"}),
-        ("windsor", "💰", "Paid media spend and campaign metrics.", {"type": "manual", "url": "https://windsor.ai", "label": "Windsor dashboard"}),
+        (
+            "gsc",
+            "🔎",
+            "Search queries, impressions, clicks.",
+            {"type": "oauth", "url": f"/api/gsc/oauth/login?brand={brand_id}", "label": "Connect Search Console"},
+        ),
         ("ubersuggest", "📊", "Domain keyword rankings and SEO snapshots.", {"type": "none", "label": "Configured on Railway"}),
         ("youtube", "▶️", "Public golf trend videos for Signal radar.", {"type": "manual", "url": "https://console.cloud.google.com/apis/library/youtube.googleapis.com", "label": "Enable YouTube API"}),
         ("krea", "🎨", "AI image generation for Image Lab.", {"type": "manual", "url": "https://krea.ai", "label": "Krea account"}),
@@ -445,43 +472,6 @@ def build_catalog_extras() -> dict[str, Any]:
                     "Click Connect Search Console on Connected Accounts (signed in).",
                     "Set GSC_SITE_URL_SWING_SHACK=https://swingshack.co.za/ if needed (default).",
                     "gsc_report job writes search-console.json on success.",
-                ],
-            },
-        }
-    )
-
-    # Windsor
-    windsor_creds = _env_any("WINDSOR_API_KEY", "WINDSOR_API_KEY_FILE")
-    windsor_activity = _job_activity(_JOB_BY_INTEGRATION["windsor"])
-    windsor_file_at = _data_file_mtime(_DATA_FILE_BY_INTEGRATION["windsor"])
-    windsor_last = windsor_activity.get("last_success_at") or windsor_file_at
-    items.append(
-        {
-            "id": "windsor",
-            "icon": "💰",
-            "name": "Windsor.ai (Meta + Google Ads)",
-            "category": "analytics",
-            "category_label": "Analytics & data",
-            "purpose": "Live paid media spend and campaign metrics (meta-ads.json, google-ads.json).",
-            "state": _state_from_flags(
-                creds_ok=windsor_creds,
-                partial=windsor_creds and windsor_activity.get("job_verdict") == "LATE",
-            )[0],
-            "last_used_at": windsor_last,
-            "last_used_label": _age_label(windsor_last),
-            "job_verdict": windsor_activity.get("job_verdict"),
-            "credentials": {
-                "configured": windsor_creds,
-                "env_vars": ["WINDSOR_API_KEY", "WINDSOR_API_KEY_FILE"],
-                "key_prefix": _env_prefix("WINDSOR_API_KEY"),
-            },
-            "connect": {"type": "manual", "url": "https://windsor.ai", "label": "Windsor dashboard"},
-            "setup": {
-                "auth_type": "API key",
-                "steps": [
-                    "Copy API key from Windsor.ai account settings.",
-                    "Railway → WINDSOR_API_KEY=<key>.",
-                    "windsor_refresh job pulls live Meta/Google ads on schedule.",
                 ],
             },
         }

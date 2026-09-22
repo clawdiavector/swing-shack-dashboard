@@ -1,0 +1,2894 @@
+{
+  "debug": {
+    "all_scored_signals": [
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Manuel Elvira choked back the tears as an elated JJ Spaun celebrated becoming only the third US player to win the BMW PGA Championship at Wentworth.",
+            "metadata": {
+              "feed_position": 1,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Elvira loses nerve as Spaun triumphs at Wentworth",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/cwvgyze7603jo?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f0d4dd213864a83d",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.01,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Elvira loses nerve as Spaun triumphs at Wentworth"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "JJ Spaun hits a final round of 67 to win the PGA Championship and to become the second American in three years to do so.",
+            "metadata": {
+              "feed_position": 2,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Spaun wins PGA Championship after final round of 67",
+            "url": "https://www.bbc.co.uk/sport/golf/videos/cm4g50pr405eo?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f92e9e741cc35367",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Spaun wins PGA Championship after final round of 67"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Rory McIlroy stands two strokes behind the third-round leaders heading into the final day after a three-under 72 at the BMW PGA Championship at Wentworth.",
+            "metadata": {
+              "feed_position": 3,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Eagle leaves McIlroy two off Wentworth lead",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/cjx2zvg507l6o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "4e58b37b0f865b6a",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.01,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Eagle leaves McIlroy two off Wentworth lead"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Rory McIlroy stays in contention with a five-under 67 to sit four strokes behind second-round leader Ryan Gerard at the BMW PGA Championship at Wentworth.",
+            "metadata": {
+              "feed_position": 4,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "McIlroy in mix heading into weekend at Wentworth",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/c94gm0gg6mm7o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "e4183dd066081622",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.01,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "McIlroy in mix heading into weekend at Wentworth"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Matt Fitzpatrick says he is not \"100% comfortable\" with the prospect of travelling to Dubai for the season-ending DP World Tour Championship in November when he is due to be defending champion.",
+            "metadata": {
+              "feed_position": 5,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Fitzpatrick not '100% comfortable' with tour finals in Dubai",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/cxr507jrz761o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f27c03a4542cdd53",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Fitzpatrick not '100% comfortable' with tour finals in Dubai"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Tiger Woods says he \"can hit pretty much anything\" after returning to the range for the first time since a car crash six months ago.",
+            "metadata": {
+              "feed_position": 6,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Woods seen on range for first time since car crash",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/cm93evw39588o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [
+            {
+              "note": "Review against tragedy and human-suffering newsjacking rules.",
+              "term": "car crash",
+              "type": "hard_safety_term"
+            }
+          ],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "e3556e90921dc712",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Woods seen on range for first time since car crash"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Rory McIlroy climbs the leaderboard in the PGA Championship after an eagle on the 18th hole at Wentworth Club in Virginia Water, Surrey.",
+            "metadata": {
+              "feed_position": 7,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "'Look at this!' - McIlroy in contention after eagle on 18th",
+            "url": "https://www.bbc.co.uk/sport/golf/videos/c3dx0djnp085o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "51780eca6f999c75",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "'Look at this!' - McIlroy in contention after eagle on 18th"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Watch the best shots from each match on the third and final day of the 2026 Solheim Cup, including Lottie Woad's winning putt for Europe.",
+            "metadata": {
+              "feed_position": 8,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Hull \u0026 Woad deliver as Europe win Solheim Cup",
+            "url": "https://www.bbc.co.uk/sport/golf/videos/cj3d85zmdd6o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "272cdd9bac67c6a2",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Hull \u0026 Woad deliver as Europe win Solheim Cup"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Lottie Woad putts with composure to get Europe to 14 points before Carlota Ciganda seals victory in the 2026 Solheim Cup as they defeat the US 15-13.",
+            "metadata": {
+              "feed_position": 9,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Woad putt puts Europe on brink of Solheim Cup win",
+            "url": "https://www.bbc.co.uk/sport/golf/videos/cgqdz24v02go?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "fdf0280ed242c038",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Woad putt puts Europe on brink of Solheim Cup win"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Carlota Ciganda's pressure putt for par earns Europe an unlikely half after Lauren Coughlin narrowly missed the chance to earn the US a point, with scores locked at 4-4 following day one of the 2026 Solheim Cup.",
+            "metadata": {
+              "feed_position": 10,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Europe rescue half as US falter in final hole drama",
+            "url": "https://www.bbc.co.uk/sport/golf/videos/c804g8ll0xlo?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "4a6a50b28022923e",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.01,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Europe rescue half as US falter in final hole drama"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Aaron Rai shoots a six-under 66 to share the first-round lead with Sweden's Joakim Lagergren at the BMW PGA Championship at Wentworth as Rory McIlroy suffers a late stumble.",
+            "metadata": {
+              "feed_position": 11,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "McIlroy falters as Rai shares lead at Wentworth",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/ckddvn3g5574o?at_medium=RSS\u0026at_campaign=rss"
+          },
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "PGA champion Aaron Rai and Joakim Lagergren of Sweden both shot 6-under 66 on Wednesday and share the lead after first-round play at the BMW Championship at Wentworth.",
+            "metadata": {
+              "feed_position": 13,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Rai, Lagergren share BMW lead as McIlroy falters",
+            "url": "https://www.espn.com/golf/story/_/id/49966702/rai-lagergren-share-bmw-championship-lead-mcilroy-falters-late"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 2,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "bdacba9b919befb3",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.029,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "McIlroy falters as Rai shares lead at Wentworth"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "The Irish Open will take place in early July next year as the DP World Tour announced its schedule for 2027.",
+            "metadata": {
+              "feed_position": 12,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Irish Open moved as tour confirms 2027 schedule",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/c68xk9yzrnj7o?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "a5c7093476ee0b9e",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Irish Open moved as tour confirms 2027 schedule"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "PGA Tour chief executive Brian Rolapp says there are no plans to create an instant pathway back for LIV Golf's biggest stars after the breakaway series filed for bankruptcy protection.",
+            "metadata": {
+              "feed_position": 13,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "PGA Tour not planning return programme for LIV stars",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/c5pve7md09wgo?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "38b40b2dcbc4daec",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "PGA Tour not planning return programme for LIV stars"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Captain Anna Nordqvist's faith in Europe's young rookies paid off as they delivered crucial points in regaining the Solheim Cup with victory over the United States, writes Iain Carter.",
+            "metadata": {
+              "feed_position": 14,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "How youth helped Nordqvist answer critics and deliver Solheim Cup win",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/cg49nxv2ykgo?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "c79aedb926985bf9",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.01,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "How youth helped Nordqvist answer critics and deliver Solheim Cup win"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "BBC Sport",
+            "engagement": {},
+            "excerpt": "Charley Hull gets the ball rolling as Europe's big guns finally came to the fore in Sunday's singles as they wrestled the Solheim Cup back from the United States with a 15½-12½ victory at Bernardus Golf Club in the Netherlands.",
+            "metadata": {
+              "feed_position": 15,
+              "feed_title": "BBC Sport",
+              "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "'Finally got our points' - Hull and Woad shine in European Solheim win",
+            "url": "https://www.bbc.co.uk/sport/golf/articles/c0m3pnlyl9vo?at_medium=RSS\u0026at_campaign=rss"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "388db84f3bf75993",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.019,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "'Finally got our points' - Hull and Woad shine in European Solheim win"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Here are some of the main takeaways from LIV Golf's bankruptcy filings, including its plans for player compensation.",
+            "metadata": {
+              "feed_position": 1,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Top takeaways from LIV Golf's bankruptcy filings",
+            "url": "https://www.espn.com/golf/story/_/id/49893153/takeaways-liv-golf-bankruptcy-filings-player-contracts"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "34f68ca2967c4ff4",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.024,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Top takeaways from LIV Golf's bankruptcy filings"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Zach Johnson won the Pure Insurance Championship on Sunday at foggy Pebble Beach for his second straight PGA Tour Champions victory and the sixth in his first season on the 50-and-over circuit.",
+            "metadata": {
+              "feed_position": 2,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Johnson wins for 6th time in 15 Champions starts",
+            "url": "https://www.espn.com/golf/story/_/id/49995551/zach-johnson-wins-pebble-stays-hot-pga-tour-champions"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "e55134fe96f33280",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.02,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Johnson wins for 6th time in 15 Champions starts"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Jacob Bridgeman rallied from a five-shot deficit with the lowest round of his young PGA Tour career, a 10-under 61 that carried him to a two-shot victory Sunday in the Biltmore Championship Asheville.",
+            "metadata": {
+              "feed_position": 3,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Bridgeman rallies to win inaugural Biltmore Championship",
+            "url": "https://www.espn.com/golf/story/_/id/49992480/jacob-bridgeman-win-inaugural-biltmore-championship-asheville"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "0623c606ae7fe363",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Bridgeman rallies to win inaugural Biltmore Championship"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "American J.J. Spaun birdied four of his last five holes to secure a two-shot victory at the BMW PGA Championship, the European tour's flagship event.",
+            "metadata": {
+              "feed_position": 4,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Presidents Cup snub Spaun wins BMW PGA Championship",
+            "url": "https://www.espn.com/golf/story/_/id/49990444/jj-spaun-wins-bmw-pga-championship-2-strokes"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "7ba87c80f64195b2",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Presidents Cup snub Spaun wins BMW PGA Championship"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "PGA Tour rookie Neal Shipley retained a one-shot lead over Ben Kohles in the inaugural Biltmore Championship Asheville.",
+            "metadata": {
+              "feed_position": 5,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Shipley clings to 1-shot lead at inaugural Biltmore",
+            "url": "https://www.espn.com/golf/story/_/id/49981546/neal-shipley-keep-1-shot-lead-ben-kohles-biltmore"
+          },
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Neal Shipley gave his forgettable rookie season on the PGA Tour a glimmer of hope Friday when he got off to a torrid start and finished with a 9-under 62, giving him a one-shot lead over Ben Kohles in the inaugural Biltmore Championship Asheville.",
+            "metadata": {
+              "feed_position": 7,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Shipley leads Biltmore by 1 with time running out on PGA Tour rookie season",
+            "url": "https://www.espn.com/golf/story/_/id/49975510/neal-shipley-gets-torrid-start-9-62-1-shot-lead-biltmore-championship-asheville"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 2,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "6ad03249be74d9d0",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.019,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Shipley clings to 1-shot lead at inaugural Biltmore"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Rory McIlroy's birdie-eagle finish has him in contention heading into the final round of the BMW Open Championship.",
+            "metadata": {
+              "feed_position": 6,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "McIlroy jumps into BMW PGA contention after strong finish",
+            "url": "https://www.espn.com/golf/story/_/id/49980634/rory-mcilroy-2-shots-back-bmw-pga-championship-lead"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "3b09080f6e225a72",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.023,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "McIlroy jumps into BMW PGA contention after strong finish"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Ryan Gerard finished eagle-birdie to shoot a 7-under 65 on Friday and take a two-stroke lead after the second round of the BMW PGA Championship.",
+            "metadata": {
+              "feed_position": 8,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Gerard fires 65, leads BMW by 2 at halfway point",
+            "url": "https://www.espn.com/golf/story/_/id/49974988/ryan-gerard-cards-65-leads-bmw-pga-championship-2"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "7e325312bb3890fc",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.022,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Gerard fires 65, leads BMW by 2 at halfway point"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "The 2026 LIV Golf season wrapped up in Indianapolis. While there are plans being worked on for new financing, the future of the upstart league remains uncertain.",
+            "metadata": {
+              "feed_position": 9,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Golf, but quieter: Is this the end of LIV Golf?",
+            "url": "https://www.espn.com/golf/story/_/id/49704816/is-music-end-liv-golf-uncertain-future-indianapolis"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "86c9bdab6d391d12",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.023,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Golf, but quieter: Is this the end of LIV Golf?"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Patrick Reed, who leads the Race to Dubai rankings, was forced to retire from the BMW PGA Championship after injuring his left hand during Friday's second round.",
+            "metadata": {
+              "feed_position": 10,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Race to Dubai leader Reed injures hand, out of BMW",
+            "url": "https://www.espn.com/golf/story/_/id/49973983/patrick-reed-exits-bmw-pga-championship-hand-injury"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "8d1aa2b693b04908",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.022,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Race to Dubai leader Reed injures hand, out of BMW"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Jon Rahm missed the cut at the BMW PGA Championship, finishing last among 36-hole finishers for the first time in his nearly 100 events on the European tour.",
+            "metadata": {
+              "feed_position": 11,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Rahm struggles to 78-77, last among 36-hole finishers at BMW PGA",
+            "url": "https://www.espn.com/golf/story/_/id/49973144/jon-rahm-struggles-78-77-misses-cut-bmw-pga-championship"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "6ae8f3811398e5cb",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Rahm struggles to 78-77, last among 36-hole finishers at BMW PGA"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Max Greyserman found himself in a peculiar spot, away from golf for five weeks and suddenly fighting to keep his full PGA Tour card. He responded Thursday with a 7-under 64 to share the lead with Eric Cole in the inaugural Biltmore Championship Asheville.",
+            "metadata": {
+              "feed_position": 12,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Greyserman, Cole share lead at inaugural Biltmore tournament",
+            "url": "https://www.espn.com/golf/story/_/id/49968531/max-greyserman-eric-cole-share-lead-inaugural-biltmore-championship-asheville"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "29e99007f7b2557c",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.02,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Greyserman, Cole share lead at inaugural Biltmore tournament"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "The European tour's newfound collaboration with the Asian Tour will see events in Hong Kong and Singapore return to the schedule for 2027.",
+            "metadata": {
+              "feed_position": 14,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Hong Kong, Singapore return to European tour for 2027",
+            "url": "https://www.espn.com/golf/story/_/id/49955884/hong-kong-singapore-return-european-tour-2027"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "5c84e79f9a206f81",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.023,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Hong Kong, Singapore return to European tour for 2027"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Billy Horschel has failed to register a top 10 on the PGA Tour this year and is No. 100 in the FedEx Cup going into the fall. If he doesn't finish in the top 100, he loses his full PGA Tour card for the first time in more than a decade.",
+            "metadata": {
+              "feed_position": 15,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Horschel skipping BMW tournament in bid to keep full PGA Tour card",
+            "url": "https://www.espn.com/golf/story/_/id/49949555/horschel-pga-tour-asheville-field-top-100-status-stake"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "7436e6434e9a3f7c",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.02,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Horschel skipping BMW tournament in bid to keep full PGA Tour card"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Google’s threat intelligence group said it had a mole inside TeamPCP's inner circle.",
+            "metadata": {
+              "feed_position": 1,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "An undercover Google analyst infiltrated a notorious supply-chain hacking gang",
+            "url": "https://arstechnica.com/security/2026/09/an-undercover-google-analyst-infiltrated-a-notorious-supply-chain-hacking-gang/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "bc1bba93cf3c33e6",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.546,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.546,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "An undercover Google analyst infiltrated a notorious supply-chain hacking gang"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Unlike previous Ferrari four-seaters, this one is better for humans than cargo.",
+            "metadata": {
+              "feed_position": 2,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Don't call it an SUV: The Ferrari Purosangue review",
+            "url": "https://arstechnica.com/cars/2026/09/dont-call-it-an-suv-the-ferrari-purosangue-review/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "64c8dc046e287acd",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Don't call it an SUV: The Ferrari Purosangue review"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Isotope ratios provide a hint that the giants were actively managing temperatures.",
+            "metadata": {
+              "feed_position": 3,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "T. rex teeth indicate it ran as warm as an elephant",
+            "url": "https://arstechnica.com/science/2026/09/t-rex-teeth-indicate-it-ran-as-warm-as-an-elephant/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "db264481b3ef7bf8",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "T. rex teeth indicate it ran as warm as an elephant"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Chariklo is only about 250 km across, but it has two rings, and they're changing.",
+            "metadata": {
+              "feed_position": 5,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Rings around a tiny body have changed over the past decade",
+            "url": "https://arstechnica.com/science/2026/09/rings-around-a-tiny-body-have-changed-over-the-past-decade/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "b0ed36b010d65458",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Rings around a tiny body have changed over the past decade"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "But the military's overall use of AI seems to be accelerating.",
+            "metadata": {
+              "feed_position": 6,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "AI hallucination of Chinese nuclear components almost led to US military attack",
+            "url": "https://arstechnica.com/ai/2026/09/report-us-almost-boarded-chinese-ship-over-hallucinated-ai-arms-report/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "d3c421ddd17fb034",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "AI hallucination of Chinese nuclear components almost led to US military attack"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "FAA plans for AI tool to help manage DC air traffic before a nationwide rollout.",
+            "metadata": {
+              "feed_position": 7,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "FAA tees up $875M AI tool to help manage air traffic congestion",
+            "url": "https://arstechnica.com/ai/2026/09/faa-tees-up-875m-ai-tool-to-help-manage-air-traffic-congestion/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "b1904272eebed5d9",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "FAA tees up $875M AI tool to help manage air traffic congestion"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "FCC rejects concerns about repressive governments buying influence over CBS owner.",
+            "metadata": {
+              "feed_position": 8,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "FCC lets Paramount sell 49.5% equity stake to Saudi Arabia, UAE, and Qatar",
+            "url": "https://arstechnica.com/tech-policy/2026/09/fcc-lets-paramount-sell-49-5-equity-stake-to-saudi-arabia-uae-and-qatar/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "4914c9efdcf3ea5f",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "FCC lets Paramount sell 49.5% equity stake to Saudi Arabia, UAE, and Qatar"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Rare cells with widespread connectivity seem to be able to trigger sleep.",
+            "metadata": {
+              "feed_position": 9,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Finding the cells that put our brain to sleep",
+            "url": "https://arstechnica.com/science/2026/09/finding-the-cells-that-put-our-brain-to-sleep/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "77e2ef3a28cf8306",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Finding the cells that put our brain to sleep"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "The Federal Register website briefly used an open source Chinese AI search tool.",
+            "metadata": {
+              "feed_position": 10,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "US government website used Chinese model the FBI called \"malicious\"",
+            "url": "https://arstechnica.com/tech-policy/2026/09/us-government-website-used-chinese-model-the-fbi-called-malicious/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "5a8c5deb1214a281",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "US government website used Chinese model the FBI called \"malicious\""
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Ning Xu of Tsinghua University captured tiny cilia beating in airways of a child with rare respiratory disorder.",
+            "metadata": {
+              "feed_position": 11,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Meet the winner of Nikon's Small World in Motion video contest",
+            "url": "https://arstechnica.com/science/2026/09/meet-the-winner-of-nikons-small-world-in-motion-video-contest/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "5607c61dd56d6499",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Meet the winner of Nikon's Small World in Motion video contest"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Researchers used Claude to reach an OpenAI employee account and sensitive GitHub data.",
+            "metadata": {
+              "feed_position": 12,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Researchers used Claude to hack OpenAI",
+            "url": "https://arstechnica.com/ai/2026/09/researchers-used-claude-to-hack-openai/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "7b4b8b9746ce9b29",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.431,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.4
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.431,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Researchers used Claude to hack OpenAI"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "“I can tell you SpaceX has already gone captive.\"",
+            "metadata": {
+              "feed_position": 13,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Rocket Report: China wants a Raptor 3 engine; SpaceX set for big Starship test",
+            "url": "https://arstechnica.com/space/2026/09/rocket-report-ula-flies-into-uncertain-future-falcon-9-family-hits-700-launches/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f02b521121986daa",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.387,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.387,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Rocket Report: China wants a Raptor 3 engine; SpaceX set for big Starship test"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "The USPSTF sets insurance coverage for preventive services, like colonoscopies.",
+            "metadata": {
+              "feed_position": 14,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "RFK Jr. names 8 new members to influential preventive medicine task force",
+            "url": "https://arstechnica.com/health/2026/09/rfk-jr-stacks-another-influential-federal-panel-with-questionable-picks/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "ce598157cdaafc27",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "RFK Jr. names 8 new members to influential preventive medicine task force"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Scaleout deploys decentralized AI-driven learning to military bases and drones.",
+            "metadata": {
+              "feed_position": 15,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Small AI models let drones autonomously identify and attack battlefield targets",
+            "url": "https://arstechnica.com/ai/2026/09/nato-backed-startup-adapts-ai-for-autonomous-drone-recon-and-attack-missions/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f5346eeb3b8063a3",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Small AI models let drones autonomously identify and attack battlefield targets"
+      }
+    ],
+    "dropped_signal_ids": [
+      "f0d4dd213864a83d",
+      "f92e9e741cc35367",
+      "4e58b37b0f865b6a",
+      "e4183dd066081622",
+      "f27c03a4542cdd53",
+      "e3556e90921dc712",
+      "51780eca6f999c75",
+      "272cdd9bac67c6a2",
+      "fdf0280ed242c038",
+      "4a6a50b28022923e",
+      "bdacba9b919befb3",
+      "a5c7093476ee0b9e",
+      "38b40b2dcbc4daec",
+      "c79aedb926985bf9",
+      "388db84f3bf75993",
+      "34f68ca2967c4ff4",
+      "e55134fe96f33280",
+      "0623c606ae7fe363",
+      "7ba87c80f64195b2",
+      "6ad03249be74d9d0",
+      "3b09080f6e225a72",
+      "7e325312bb3890fc",
+      "86c9bdab6d391d12",
+      "8d1aa2b693b04908",
+      "6ae8f3811398e5cb",
+      "29e99007f7b2557c",
+      "5c84e79f9a206f81",
+      "7436e6434e9a3f7c",
+      "bc1bba93cf3c33e6",
+      "64c8dc046e287acd",
+      "db264481b3ef7bf8",
+      "b0ed36b010d65458",
+      "d3c421ddd17fb034",
+      "b1904272eebed5d9",
+      "4914c9efdcf3ea5f",
+      "77e2ef3a28cf8306",
+      "5a8c5deb1214a281",
+      "5607c61dd56d6499",
+      "7b4b8b9746ce9b29",
+      "f02b521121986daa",
+      "ce598157cdaafc27",
+      "f5346eeb3b8063a3"
+    ],
+    "include_all_scored": true
+  },
+  "diagnostics": {
+    "emitted_by_lane": {},
+    "evidence_by_source": {
+      "major_feed": 54
+    },
+    "hygiene_rejections": {
+      "seo_landing_page": 1
+    },
+    "lane_caps": null,
+    "selection": {
+      "limit": 20,
+      "min_major_news": 0.55,
+      "min_queue_priority": 40,
+      "mode": "mechanical_floor"
+    },
+    "signals_by_lane": {
+      "major_news_unmatched": 42
+    },
+    "source_status": {
+      "major_feed": {
+        "attempted": true,
+        "available": true,
+        "evidence_count": 54,
+        "requested": true,
+        "status": "used"
+      }
+    },
+    "total_emitted_signals": 0,
+    "total_scored_signals": 42
+  },
+  "monitor": {
+    "depth": "quick",
+    "feed_urls": [
+      "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+      "https://www.espn.com/espn/rss/golf/news",
+      "https://golf.com/feed",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "generated_at": "2026-09-21T11:12:14.349043Z",
+    "lookback_days": 1,
+    "max_age_hours": 24,
+    "mock": false,
+    "name": "swing-shack",
+    "new_only": true,
+    "profile": {
+      "company": "map[brands:[swing-shack stick] geography:ZA name:Swing Shack one_sentence:TrackMan-powered indoor golf studio and custom-fitting shop — performance-led, measurement-first, in Paarl / Cape Town. website:https://swingshack.co.za]",
+      "competitors": [
+        "Titleist",
+        "Callaway",
+        "TaylorMade",
+        "PING",
+        "Cobra Golf",
+        "XXIO"
+      ],
+      "exclusions": [
+        "map[no_human_suffering:true no_tragedy:true topics_never_pitch:[beginner golf tips golf fashion PGA Tour drama golf course architecture]]"
+      ],
+      "feed_urls": [
+        "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+        "https://www.espn.com/espn/rss/golf/news",
+        "https://golf.com/feed",
+        "https://feeds.arstechnica.com/arstechnica/index"
+      ],
+      "search_terms": [
+        "indoor golf studio",
+        "TrackMan fitting",
+        "driver fitting cost",
+        "custom golf club fitting",
+        "golf swing speed data",
+        "golf coaching Cape Town",
+        "indoor golf South Africa",
+        "golf fitting near me",
+        "golf simulator",
+        "golf launch monitor",
+        "golf performance data",
+        "attack angle golf"
+      ],
+      "spokespeople": [
+        "Christelle (operator / owner)",
+        "Dave (head coach / fitter)"
+      ],
+      "standing": [
+        "TrackMan-powered studio with 200+ verified members",
+        "Data-first fitting methodology (we measure before we prescribe)",
+        "Independent custom-fitter (no manufacturer payola)",
+        "Specialise in slice correction and game-improvement fitting"
+      ],
+      "topics": [
+        "indoor golf",
+        "custom fitting",
+        "TrackMan",
+        "golf swing data",
+        "driver fitting",
+        "golf coaching",
+        "golf retail",
+        "golf performance"
+      ],
+      "x_news": {
+        "enabled": true
+      },
+      "x_trends": {
+        "locations": [],
+        "mode": "none",
+        "woeids": []
+      }
+    },
+    "queries": [],
+    "sources_requested": [],
+    "sources_used": [
+      "major_feed"
+    ]
+  },
+  "signals": null,
+  "source_errors": {},
+  "store": {
+    "path": "/Users/fivefriday/.local/share/newsjack/monitor.db",
+    "run_id": 2,
+    "saved": true
+  }
+}

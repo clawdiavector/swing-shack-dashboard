@@ -91,7 +91,7 @@
 <script>
 const BRAND_LS_KEY = 'campaign_os_active_brand';
 const CORE_SIX = ['postiz', 'meta', 'gbp', 'ga4', 'gsc', 'youtube'];
-const ANALYTICS = ['windsor', 'ubersuggest'];
+const ANALYTICS = ['ubersuggest'];
 const OPTIONAL = ['google_drive', 'krea'];
 const SECTION_ORDER = [
   { id: 'core', label: 'Core six', ids: CORE_SIX },
@@ -218,14 +218,23 @@ async function initBrandSwitcher() {
 
 function renderSetup(setup, item) {
   const envs = [];
-  if (item && item.credentials && item.credentials.env_vars && item.credentials.env_vars.length) {
-    item.credentials.env_vars.forEach(e => envs.push('<span class="env-tag">' + esc(e) + '</span>'));
+  if (item && item.state !== 'connected') {
+    const unsatisfied = item.credentials && item.credentials.env_unsatisfied;
+    if (unsatisfied && unsatisfied.length) {
+      unsatisfied.forEach(e => envs.push('<span class="env-tag">' + esc(e) + '</span>'));
+    }
   }
   if (!setup && !envs.length) return '';
   const steps = setup && setup.steps ? setup.steps.map(s => '<li>' + esc(s) + '</li>').join('') : '';
-  const setupEnvs = setup && setup.env_vars ? setup.env_vars.map(e => '<span class="env-tag">' + esc(e) + '</span>').join('') : '';
+  const setupEnvs = (item && item.state !== 'connected' && setup && setup.env_vars)
+    ? setup.env_vars.map(e => '<span class="env-tag">' + esc(e) + '</span>').join('')
+    : '';
+  const skipNote = (item && item.state === 'partial' && item.last_error)
+    ? '<p class="acc-meta err">' + esc(item.last_error) + '</p>'
+    : '';
   return '<div class="setup">'
     + (setup && setup.auth_type ? '<h4>Auth: ' + esc(setup.auth_type) + '</h4>' : '')
+    + skipNote
     + (envs.length ? '<div class="env-tags">' + envs.join('') + '</div>' : (setupEnvs ? '<div class="env-tags">' + setupEnvs + '</div>' : ''))
     + (steps ? '<ol>' + steps + '</ol>' : '')
     + '</div>';
@@ -267,7 +276,9 @@ function renderDetails(item) {
     if ((d.blockers || []).length) html += '<div class="err">' + d.blockers.map(b => '⚠ ' + esc(b)).join('<br>') + '</div>';
   }
   if (item.error) html += '<div class="err">' + esc(item.error) + '</div>';
-  if (item.job_verdict) html += '<div class="acc-meta">Job verdict: <b>' + esc(item.job_verdict) + '</b></div>';
+  if (item.job_verdict && item.state !== 'connected') {
+    html += '<div class="acc-meta">Job verdict: <b>' + esc(item.job_verdict) + '</b></div>';
+  }
   if (item.summary) html += '<div class="acc-meta">Mode: <b>' + esc(item.summary) + '</b></div>';
   return html;
 }

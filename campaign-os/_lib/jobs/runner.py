@@ -76,6 +76,9 @@ def _status_from_result(result: Any) -> tuple[str, Optional[str]]:
     """Return (status, error). status is OK | FAILED."""
     if not isinstance(result, dict):
         return "FAILED", "job returned non-dict"
+    if result.get("skipped") is True:
+        reason = result.get("reason") or "skipped by job"
+        return "SKIPPED", str(reason)[:500]
     if result.get("ok") is False:
         err = result.get("error")
         if err is not None:
@@ -227,7 +230,7 @@ def _run_job_single(
             exc=exc, message=error, spec=spec, result=result, status=status
         )
 
-        if status == "OK":
+        if status in ("OK", "SKIPPED"):
             break
 
         can_retry = (
@@ -255,7 +258,8 @@ def _run_job_single(
     finished = _iso(_utc_now())
     total_duration = round(time.monotonic() - t_run0, 3)
     result_ok = status == "OK"
-    fp = fingerprint(name, error_class, error) if not result_ok else None
+    skipped = status == "SKIPPED"
+    fp = fingerprint(name, error_class, error) if not (result_ok or skipped) else None
 
     exit_row = {
         "job": name,
@@ -272,13 +276,13 @@ def _run_job_single(
         "duration_s": total_duration,
         "attempt": attempt,
         "attempts": attempt,
-        "error_class": error_class if not result_ok else None,
+        "error_class": error_class if not (result_ok or skipped) else None,
         "error_fingerprint": fp,
         "result_summary": summarize_result(result),
     }
     ledger.append_row(exit_row)
 
-    if not result_ok:
+    if not result_ok and not skipped:
         try:
             from .diagnostics import write_bundle
 
@@ -298,7 +302,8 @@ def _run_job_single(
             log.warning("write_bundle raised job=%s run_id=%s", name, run_id, exc_info=True)
 
     return {
-        "ok": result_ok,
+        "ok": result_ok or skipped,
+        "skipped": skipped,
         "job": name,
         "brand": brand,
         "status": status,
@@ -313,7 +318,7 @@ def _run_job_single(
         "phase": "finished",
         "attempt": attempt,
         "attempts": attempt,
-        "error_class": error_class if not result_ok else None,
+        "error_class": error_class if not (result_ok or skipped) else None,
         "error_fingerprint": fp,
     }
 

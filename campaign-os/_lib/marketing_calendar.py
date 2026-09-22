@@ -2103,24 +2103,30 @@ VALID_ALERT_STATUSES = ["new", "seen", "dismissed", "acted_on"]
 VALID_ALERT_PRIORITIES = ["low", "normal", "high", "urgent"]
 
 
-def _alerts_path(brand_id: str) -> "Path":
-    """Where alerts are persisted for a brand.
+def _alerts_write_path(brand_id: str) -> "Path":
+    """Persist alerts on the runtime volume only."""
+    return _DATA_DIR / "brand-directory" / brand_id / "calendar_alerts.jsonl"
 
-    Uses the same precedence as the rest of marketing_calendar:
-      1. DATA_DIR (volume-mounted /data/campaign-os/brand-directory)
-      2. BUNDLED_DATA_DIR (/app/data/brand-directory)
-      3. REPO_DATA_DIR + default local fallback
-    """
-    for candidate in (_DATA_DIR / "brand-directory", _BUNDLED_DATA_DIR, _REPO_DATA_DIR):
-        if candidate and candidate.exists() and (candidate / brand_id).exists():
-            return candidate / brand_id / "calendar_alerts.jsonl"
-    # If brand dir doesn't exist yet anywhere, fall back to BUNDLED_DATA_DIR (which
-    # is always writable on Railway as /app/data) and create on first write
+
+def _alerts_read_paths(brand_id: str) -> list:
+    """Read paths: volume first, then bundled/repo/local fallbacks."""
+    volume_path = _alerts_write_path(brand_id)
+    if volume_path.exists():
+        return [volume_path]
+    paths = []
     for candidate in (_DATA_DIR / "brand-directory", _BUNDLED_DATA_DIR, _REPO_DATA_DIR):
         if candidate and candidate.exists():
-            return candidate / brand_id / "calendar_alerts.jsonl"
-    # Final fallback (e.g. local dev)
-    return _DEFAULT_LOCAL_DIR / brand_id / "calendar_alerts.jsonl"
+            p = candidate / brand_id / "calendar_alerts.jsonl"
+            if p.exists():
+                paths.append(p)
+    if paths:
+        return paths
+    return [volume_path]
+
+
+def _alerts_path(brand_id: str) -> "Path":
+    """Write target for alerts (volume)."""
+    return _alerts_write_path(brand_id)
 
 
 def _ensure_runs_dir() -> "Path":
@@ -2131,8 +2137,6 @@ def _ensure_runs_dir() -> "Path":
     """
     for candidate in (
         _DATA_DIR / "_system" / "calendar_runs",
-        _BUNDLED_DATA_DIR.parent / "_system" / "calendar_runs",
-        _REPO_DATA_DIR.parent / "_system" / "calendar_runs",
         Path("/tmp/calendar_runs"),
     ):
         try:
@@ -2169,11 +2173,11 @@ def list_alerts(
     """Read all alerts for a brand. Optional filters by status + alert_type."""
     if brand_id not in VALID_BRAND_IDS:
         raise ValueError(f"brand_id '{brand_id}' is not an operating brand.")
-    path = _alerts_path(brand_id)
-    if not path.exists():
+    paths = _alerts_read_paths(brand_id)
+    if not paths or not paths[0].exists():
         return []
     out = []
-    for line in path.read_text().splitlines():
+    for line in paths[0].read_text().splitlines():
         if not line.strip():
             continue
         try:

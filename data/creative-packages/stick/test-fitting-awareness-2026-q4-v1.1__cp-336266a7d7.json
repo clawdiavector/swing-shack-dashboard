@@ -1,0 +1,804 @@
+{
+  "package_id": "cp-336266a7d7",
+  "brand_id": "stick",
+  "brief_id": "test-fitting-awareness-2026-q4-v1.1",
+  "generator_version": "create_v1.1",
+  "generated_at": "2026-09-21T09:16:15.443802Z",
+  "creative_strategy_stale": false,
+  "status": "draft",
+  "snapshot": {
+    "brief_id": "test-fitting-awareness-2026-q4-v1.1",
+    "brief_revision": "v1.0",
+    "strategy_snapshot": {
+      "primary_pillar": "fitting",
+      "objective": "consideration",
+      "audience_tension": "Are you sure your swing is actually improving? Or are you just guessing?",
+      "north_star_link": "24 fittings/week",
+      "channels_approved": [
+        "instagram_reel",
+        "instagram_static",
+        "paid_social"
+      ],
+      "creative_allowed": true,
+      "status": "approved"
+    },
+    "evidence_snapshot": {
+      "facts_source": "p11c-v1",
+      "reporting_source": "build_v24_brand_report",
+      "genome_status": "ok",
+      "genome_sample_size": 10
+    },
+    "reporting_snapshot": {
+      "data_status": "LIVE",
+      "report_schema": "https://campaign-os/reporting/v2.4",
+      "report_version": "2.4",
+      "account_reconciliation": {
+        "name": null,
+        "currency": null,
+        "amount_spent_raw_minor_units": null,
+        "amount_spent_field_label": "Lifetime spend in minor units (cents) from /act_{id} \u2014 distinct from YTD actual spend reported in /insights.",
+        "amount_spent_zar": null,
+        "spend_cap": null,
+        "account_status": null,
+        "timezone_name": null
+      },
+      "campaign_counts": {
+        "current_delivered_count": 0,
+        "previous_delivered_count": 0,
+        "comparable_count": 0,
+        "new_campaign_count": 0,
+        "ended_campaign_count": 0,
+        "invariants": {
+          "current_equals_comparable_plus_new": true,
+          "previous_equals_comparable_plus_ended": true
+        },
+        "math_ok": true,
+        "duplicate_campaign_groups": [],
+        "total_unique_campaigns": 0
+      },
+      "ytd_brand_total_spend": 0,
+      "executive_summary": [
+        {
+          "type": "MEASURED_FACT",
+          "confidence": "HIGH",
+          "statement": "Stick year-to-date spend totals R 0 across 0 campaigns. Largest share: ? at 0% of brand spend."
+        },
+        {
+          "type": "MEASURED_FACT",
+          "confidence": "HIGH",
+          "statement": "Campaign reconciliation: current delivered 0 (= 0 comparable + 0 new); previous delivered 0 (= 0 comparable + 0 ended); math_ok = True."
+        },
+        {
+          "type": "DISCIPLINE",
+          "confidence": "HIGH",
+          "statement": "Per V2.4.1 \u00a73: commentary distinguishes measured facts from interpretive hypotheses. Interpretations about creative fatigue or audience saturation require additional evidence (Creative Genome repetition, audience delivery history, frequency trends) before being treated as established cause."
+        },
+        {
+          "type": "CAVEAT",
+          "confidence": "HIGH",
+          "statement": "Campaign-level GA4 attribution is available only where Meta campaign names or UTMs map reliably to GA4 campaign data. This is the case-by-case basis \u2014 no fuzzy matching performed."
+        }
+      ],
+      "best_needs_attention": {
+        "by_objective": {
+          "best": {},
+          "needs_attention": {}
+        },
+        "schema": "https://campaign-os/paid-media-best-needs/v1"
+      },
+      "ytd_per_campaign": [],
+      "duplicate_campaigns_visible": [],
+      "freshness": {
+        "status": "no_data",
+        "fetched_at": null
+      },
+      "rule": "V1.1 \u00a74: Reporting numbers are MEASURED_FACT from build_v24_brand_report. Creative may USE but MUST NOT reinterpret."
+    },
+    "fact_snapshot": {
+      "schema_version": "p11c-v1",
+      "active_facts_count": 3,
+      "product_brands": [
+        "takomo"
+      ]
+    }
+  },
+  "routes": [
+    {
+      "route_id": "expert_demonstration",
+      "working_concept_name": "expert_demonstration",
+      "concept_rationale": "operator demonstrates measurement",
+      "strategic_link": "Brief pillar: fitting. Brief objective: consideration.",
+      "audience_tension": "Are you sure your swing is actually improving? Or are you just guessing?",
+      "mechanic": "operator demonstrates measurement",
+      "proof_mechanism": "TrackMan numbers on screen",
+      "narrative": "before \u2192 measure \u2192 prescribe",
+      "generated": {
+        "HOOK": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "CORE": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "DIRECTION": "Operator on camera demonstrating one measurement step on the studio floor. Direct-to-camera explanation with a single number on screen \u2014 TrackMan capture, swing close-up, or measurement result.",
+        "CTA": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "TENSION": "Are you sure your swing is actually improving? Or are you just guessing?"
+      },
+      "fact_grounding": {
+        "grounded_claims": [
+          {
+            "claim": "Custom fitting changes the game \u2014 get the data, then make the call.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Custom fitting changes the game \u2014 get the data, then make the call.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Operator on camera demonstrating one measurement step on the studio floor.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Direct-to-camera explanation with a single number on screen \u2014 TrackMan capture, swing close-up, or measurement result.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Build your 101T \u2192 swingshack.co.za/takomo",
+            "grounded": true,
+            "fact_ref": "stick-pb-takomo",
+            "canonical_value": "Finnish golf club maker (forged irons). Lives under Stick as a product_brand. Operating brand is stick.",
+            "source_path": "data/brand-directory/takomo/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "subject_match",
+            "operator_fact_required": false
+          }
+        ],
+        "ungrounded_claims": [],
+        "operator_fact_required": [],
+        "cross_brand_leaks": []
+      },
+      "novelty": {
+        "lexical": {
+          "matches": [],
+          "max_similarity": 0.0,
+          "history_count": 0
+        },
+        "semantic": {
+          "matches": [],
+          "available": false,
+          "note": "no embeddings file present; lexical signal only"
+        },
+        "combined_signal": "NOVEL"
+      },
+      "voice": {
+        "validation_status": "WARNING",
+        "banned_hits": [],
+        "voice_warnings": [
+          "em-dash banned per Stick voice rules"
+        ],
+        "voice_rules_source": "data/brand-directory/stick/README.md + data/brand-directory/stick/voice/do-say-dont-say.md"
+      },
+      "validation_status": "WARNING",
+      "required_assets": [
+        {
+          "kind": "video",
+          "description": "Operator demonstrating one measurement step.",
+          "operator_asset_required": true,
+          "available_real_assets": [
+            "stick_ballfittingpost.jpg",
+            "stick_ballfittingpost_1.jpg",
+            "stick_ballfittingpost_2.jpg",
+            "stick_ballfittingpost_3.jpg",
+            "stick_ballfittingpost_4.jpg",
+            "stick_ballfittingstory copy 2.jpg",
+            "stick_ballfittingstory copy 3.jpg",
+            "stick_ballfittingstory copy 4.jpg",
+            "stick_ballfittingstory copy.jpg",
+            "stick_ballfittingstory.jpg"
+          ],
+          "source": "operator_required"
+        },
+        {
+          "kind": "static",
+          "description": "Brand card with booking URL.",
+          "operator_asset_required": true,
+          "available_real_assets": [
+            "stick_ballfittingpost.jpg",
+            "stick_ballfittingpost_1.jpg",
+            "stick_ballfittingpost_2.jpg",
+            "stick_ballfittingpost_3.jpg",
+            "stick_ballfittingpost_4.jpg",
+            "stick_ballfittingstory copy 2.jpg",
+            "stick_ballfittingstory copy 3.jpg",
+            "stick_ballfittingstory copy 4.jpg",
+            "stick_ballfittingstory copy.jpg",
+            "stick_ballfittingstory.jpg"
+          ],
+          "source": "operator_required"
+        }
+      ],
+      "revisions": [
+        {
+          "revision": "system_draft",
+          "generated_at": "2026-09-21T09:16:15.122994Z",
+          "generated_by": "create_v1.1",
+          "change_reason": "initial generation via LLM layer",
+          "previous_revision": null
+        }
+      ]
+    },
+    {
+      "route_id": "proof_and_data",
+      "working_concept_name": "proof_and_data",
+      "concept_rationale": "single number on screen",
+      "strategic_link": "Brief pillar: fitting. Brief objective: consideration.",
+      "audience_tension": "Are you sure your swing is actually improving? Or are you just guessing?",
+      "mechanic": "single number on screen",
+      "proof_mechanism": "Reporting V2.4.1 with source label",
+      "narrative": "this is what we measured",
+      "generated": {
+        "HOOK": "A number you can verify.",
+        "CORE": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "DIRECTION": "Single number on screen, source labeled. Caption explains the context WITHOUT reinterpreting the number. Brand card + booking URL footer.",
+        "CTA": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "TENSION": "Are you sure your swing is actually improving? Or are you just guessing?"
+      },
+      "fact_grounding": {
+        "grounded_claims": [
+          {
+            "claim": "Custom fitting changes the game \u2014 get the data, then make the call.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Caption explains the context WITHOUT reinterpreting the number.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Brand card + booking URL footer.",
+            "grounded": true,
+            "fact_ref": "stick-pb-takomo",
+            "canonical_value": "Finnish golf club maker (forged irons). Lives under Stick as a product_brand. Operating brand is stick.",
+            "source_path": "data/brand-directory/takomo/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Build your 101T \u2192 swingshack.co.za/takomo",
+            "grounded": true,
+            "fact_ref": "stick-pb-takomo",
+            "canonical_value": "Finnish golf club maker (forged irons). Lives under Stick as a product_brand. Operating brand is stick.",
+            "source_path": "data/brand-directory/takomo/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "subject_match",
+            "operator_fact_required": false
+          }
+        ],
+        "ungrounded_claims": [
+          {
+            "claim": "A number you can verify.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          },
+          {
+            "claim": "Single number on screen, source labeled.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          }
+        ],
+        "operator_fact_required": [],
+        "cross_brand_leaks": []
+      },
+      "novelty": {
+        "lexical": {
+          "matches": [],
+          "max_similarity": 0.0,
+          "history_count": 0
+        },
+        "semantic": {
+          "matches": [],
+          "available": false,
+          "note": "no embeddings file present; lexical signal only"
+        },
+        "combined_signal": "NOVEL"
+      },
+      "voice": {
+        "validation_status": "WARNING",
+        "banned_hits": [],
+        "voice_warnings": [
+          "em-dash banned per Stick voice rules"
+        ],
+        "voice_rules_source": "data/brand-directory/stick/README.md + data/brand-directory/stick/voice/do-say-dont-say.md"
+      },
+      "validation_status": "WARNING",
+      "required_assets": [
+        {
+          "kind": "video",
+          "description": "Operator demonstrating one measurement step.",
+          "operator_asset_required": true,
+          "available_real_assets": [
+            "stick_ballfittingpost.jpg",
+            "stick_ballfittingpost_1.jpg",
+            "stick_ballfittingpost_2.jpg",
+            "stick_ballfittingpost_3.jpg",
+            "stick_ballfittingpost_4.jpg",
+            "stick_ballfittingstory copy 2.jpg",
+            "stick_ballfittingstory copy 3.jpg",
+            "stick_ballfittingstory copy 4.jpg",
+            "stick_ballfittingstory copy.jpg",
+            "stick_ballfittingstory.jpg"
+          ],
+          "source": "operator_required"
+        },
+        {
+          "kind": "static",
+          "description": "Brand card with booking URL.",
+          "operator_asset_required": true,
+          "available_real_assets": [
+            "stick_ballfittingpost.jpg",
+            "stick_ballfittingpost_1.jpg",
+            "stick_ballfittingpost_2.jpg",
+            "stick_ballfittingpost_3.jpg",
+            "stick_ballfittingpost_4.jpg",
+            "stick_ballfittingstory copy 2.jpg",
+            "stick_ballfittingstory copy 3.jpg",
+            "stick_ballfittingstory copy 4.jpg",
+            "stick_ballfittingstory copy.jpg",
+            "stick_ballfittingstory.jpg"
+          ],
+          "source": "operator_required"
+        }
+      ],
+      "revisions": [
+        {
+          "revision": "system_draft",
+          "generated_at": "2026-09-21T09:16:15.301045Z",
+          "generated_by": "create_v1.1",
+          "change_reason": "initial generation via LLM layer",
+          "previous_revision": null
+        }
+      ]
+    },
+    {
+      "route_id": "challenge_test",
+      "working_concept_name": "challenge_test",
+      "concept_rationale": "open invitation to verify",
+      "strategic_link": "Brief pillar: fitting. Brief objective: consideration.",
+      "audience_tension": "Are you sure your swing is actually improving? Or are you just guessing?",
+      "mechanic": "open invitation to verify",
+      "proof_mechanism": "implicit (book the session \u2014 data follows)",
+      "narrative": "if you've been guessing \u2014 here's the way out",
+      "generated": {
+        "HOOK": "If you've been guessing \u2014 find out for real.",
+        "CORE": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "DIRECTION": "Question on screen with operator voiceover. One invitation to verify. End with booking CTA. Direct, non-aggressive, measurement-led.",
+        "CTA": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "TENSION": "Are you sure your swing is actually improving? Or are you just guessing?"
+      },
+      "fact_grounding": {
+        "grounded_claims": [
+          {
+            "claim": "Custom fitting changes the game \u2014 get the data, then make the call.",
+            "grounded": true,
+            "fact_ref": "stick-service-fitting",
+            "canonical_value": "Fittings are delivered via Swing Shack's TrackMan bay. Stick writes the voice; Swing Shack operates the service.",
+            "source_path": "data/brand-directory/stick/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "keyword_match",
+            "operator_fact_required": false
+          },
+          {
+            "claim": "Build your 101T \u2192 swingshack.co.za/takomo",
+            "grounded": true,
+            "fact_ref": "stick-pb-takomo",
+            "canonical_value": "Finnish golf club maker (forged irons). Lives under Stick as a product_brand. Operating brand is stick.",
+            "source_path": "data/brand-directory/takomo/README.md",
+            "verified_status": "active",
+            "authority_level": "high",
+            "match_method": "subject_match",
+            "operator_fact_required": false
+          }
+        ],
+        "ungrounded_claims": [
+          {
+            "claim": "If you've been guessing \u2014 find out for real.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          },
+          {
+            "claim": "Question on screen with operator voiceover.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          },
+          {
+            "claim": "One invitation to verify.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          },
+          {
+            "claim": "End with booking CTA.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          },
+          {
+            "claim": "Direct, non-aggressive, measurement-led.",
+            "grounded": false,
+            "operator_fact_required": false,
+            "match_method": "no_claim"
+          }
+        ],
+        "operator_fact_required": [],
+        "cross_brand_leaks": []
+      },
+      "novelty": {
+        "lexical": {
+          "matches": [],
+          "max_similarity": 0.0,
+          "history_count": 0
+        },
+        "semantic": {
+          "matches": [],
+          "available": false,
+          "note": "no embeddings file present; lexical signal only"
+        },
+        "combined_signal": "NOVEL"
+      },
+      "voice": {
+        "validation_status": "WARNING",
+        "banned_hits": [],
+        "voice_warnings": [
+          "em-dash banned per Stick voice rules"
+        ],
+        "voice_rules_source": "data/brand-directory/stick/README.md + data/brand-directory/stick/voice/do-say-dont-say.md"
+      },
+      "validation_status": "WARNING",
+      "required_assets": [
+        {
+          "kind": "video",
+          "description": "Operator demonstrating one measurement step.",
+          "operator_asset_required": true,
+          "available_real_assets": [
+            "stick_ballfittingpost.jpg",
+            "stick_ballfittingpost_1.jpg",
+            "stick_ballfittingpost_2.jpg",
+            "stick_ballfittingpost_3.jpg",
+            "stick_ballfittingpost_4.jpg",
+            "stick_ballfittingstory copy 2.jpg",
+            "stick_ballfittingstory copy 3.jpg",
+            "stick_ballfittingstory copy 4.jpg",
+            "stick_ballfittingstory copy.jpg",
+            "stick_ballfittingstory.jpg"
+          ],
+          "source": "operator_required"
+        },
+        {
+          "kind": "static",
+          "description": "Brand card with booking URL.",
+          "operator_asset_required": true,
+          "available_real_assets": [
+            "stick_ballfittingpost.jpg",
+            "stick_ballfittingpost_1.jpg",
+            "stick_ballfittingpost_2.jpg",
+            "stick_ballfittingpost_3.jpg",
+            "stick_ballfittingpost_4.jpg",
+            "stick_ballfittingstory copy 2.jpg",
+            "stick_ballfittingstory copy 3.jpg",
+            "stick_ballfittingstory copy 4.jpg",
+            "stick_ballfittingstory copy.jpg",
+            "stick_ballfittingstory.jpg"
+          ],
+          "source": "operator_required"
+        }
+      ],
+      "revisions": [
+        {
+          "revision": "system_draft",
+          "generated_at": "2026-09-21T09:16:15.443738Z",
+          "generated_by": "create_v1.1",
+          "change_reason": "initial generation via LLM layer",
+          "previous_revision": null
+        }
+      ]
+    }
+  ],
+  "channel_drafts": {
+    "expert_demonstration": {
+      "instagram_reel": {
+        "format": "instagram_reel",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "hook": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "core": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "direction": "Operator on camera demonstrating one measurement step on the studio floor. Direct-to-camera explanation with a single number on screen \u2014 TrackMan capture, swing close-up, or measurement result.",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "beat_sequence": [
+          {
+            "beat": 1,
+            "duration_s": "0-3",
+            "what": "Hook question or surprising number.",
+            "on_screen_text": "Custom fitting changes the game \u2014 get the data, then make th"
+          },
+          {
+            "beat": 2,
+            "duration_s": "3-15",
+            "what": "Demonstration / explanation \u2014 one measurement step.",
+            "on_screen_text": "One number, one measurement."
+          },
+          {
+            "beat": 3,
+            "duration_s": "15-25",
+            "what": "Result / CTA.",
+            "on_screen_text": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (k"
+          }
+        ],
+        "broll": [
+          "TrackMan capture",
+          "swing close-up",
+          "studio environment"
+        ],
+        "estimated_duration_s": 25
+      },
+      "instagram_static": {
+        "format": "instagram_static",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "message": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "on_image_text": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "caption": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]"
+      },
+      "paid_social": {
+        "format": "paid_social",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "objective": "consideration",
+        "creative_concept": "expert_demonstration",
+        "primary_text": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "headline": "Custom fitting changes the game \u2014 get th",
+        "description": "Operator on camera demonstrating one measurement step on the studio floor. Direct-to-camera explanation with a single nu",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "destination": "swingshack.co.za",
+        "visual_or_video_direction": "Operator on camera demonstrating one measurement step on the studio floor. Direct-to-camera explanation with a single number on screen \u2014 TrackMan capture, swing close-up, or measurement result.",
+        "expected_results": null
+      }
+    },
+    "proof_and_data": {
+      "instagram_reel": {
+        "format": "instagram_reel",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "hook": "A number you can verify.",
+        "core": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "direction": "Single number on screen, source labeled. Caption explains the context WITHOUT reinterpreting the number. Brand card + booking URL footer.",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "beat_sequence": [
+          {
+            "beat": 1,
+            "duration_s": "0-3",
+            "what": "Hook question or surprising number.",
+            "on_screen_text": "A number you can verify."
+          },
+          {
+            "beat": 2,
+            "duration_s": "3-15",
+            "what": "Demonstration / explanation \u2014 one measurement step.",
+            "on_screen_text": "One number, one measurement."
+          },
+          {
+            "beat": 3,
+            "duration_s": "15-25",
+            "what": "Result / CTA.",
+            "on_screen_text": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (k"
+          }
+        ],
+        "broll": [
+          "TrackMan capture",
+          "swing close-up",
+          "studio environment"
+        ],
+        "estimated_duration_s": 25
+      },
+      "instagram_static": {
+        "format": "instagram_static",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "message": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "on_image_text": "A number you can verify.",
+        "caption": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]"
+      },
+      "paid_social": {
+        "format": "paid_social",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "objective": "consideration",
+        "creative_concept": "proof_and_data",
+        "primary_text": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "headline": "A number you can verify.",
+        "description": "Single number on screen, source labeled. Caption explains the context WITHOUT reinterpreting the number. Brand card + bo",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "destination": "swingshack.co.za",
+        "visual_or_video_direction": "Single number on screen, source labeled. Caption explains the context WITHOUT reinterpreting the number. Brand card + booking URL footer.",
+        "expected_results": null
+      }
+    },
+    "challenge_test": {
+      "instagram_reel": {
+        "format": "instagram_reel",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "hook": "If you've been guessing \u2014 find out for real.",
+        "core": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "direction": "Question on screen with operator voiceover. One invitation to verify. End with booking CTA. Direct, non-aggressive, measurement-led.",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "beat_sequence": [
+          {
+            "beat": 1,
+            "duration_s": "0-3",
+            "what": "Hook question or surprising number.",
+            "on_screen_text": "If you've been guessing \u2014 find out for real."
+          },
+          {
+            "beat": 2,
+            "duration_s": "3-15",
+            "what": "Demonstration / explanation \u2014 one measurement step.",
+            "on_screen_text": "One number, one measurement."
+          },
+          {
+            "beat": 3,
+            "duration_s": "15-25",
+            "what": "Result / CTA.",
+            "on_screen_text": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (k"
+          }
+        ],
+        "broll": [
+          "TrackMan capture",
+          "swing close-up",
+          "studio environment"
+        ],
+        "estimated_duration_s": 25
+      },
+      "instagram_static": {
+        "format": "instagram_static",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "message": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "on_image_text": "If you've been guessing \u2014 find out for real.",
+        "caption": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]"
+      },
+      "paid_social": {
+        "format": "paid_social",
+        "validation_required": [
+          "voice",
+          "banned_term",
+          "fact_grounding"
+        ],
+        "objective": "consideration",
+        "creative_concept": "challenge_test",
+        "primary_text": "Custom fitting changes the game \u2014 get the data, then make the call.",
+        "headline": "If you've been guessing \u2014 find out for r",
+        "description": "Question on screen with operator voiceover. One invitation to verify. End with booking CTA. Direct, non-aggressive, meas",
+        "cta": "Build your 101T \u2192 swingshack.co.za/takomo\n\nGROUNDED FACTS (knowledge.json):\n  Services: fitting (cross-reference to swing-shack), Takomo 101T fitting\n  Products: Takomo 101T\n\n[gen_error: HTTP Error 404: Not Found]",
+        "destination": "swingshack.co.za",
+        "visual_or_video_direction": "Question on screen with operator voiceover. One invitation to verify. End with booking CTA. Direct, non-aggressive, measurement-led.",
+        "expected_results": null
+      }
+    }
+  },
+  "allowed_channels": [
+    "instagram_reel",
+    "instagram_static",
+    "paid_social"
+  ],
+  "creative_genome": {
+    "status": "ok",
+    "sample_size": 10,
+    "signal": {
+      "high_alignment_share": 0,
+      "high_alignment_count": 0,
+      "total_tagged": 0,
+      "dominant_orientation": "portrait",
+      "top_dominant_color": "#516a3c",
+      "framing_note": "Auto-built from dissector sweep 2026-08-31 (10 stick images). Stick has no bible-visual.json yet, so compliance scores reflect palette/composition heuristics. Run again after stick/bible-visual.json i"
+    },
+    "evidence": [],
+    "confidence": "low",
+    "rule": "creative-genome signal contributes to visual direction of each route. Not mechanically cloned."
+  },
+  "rule": "V1.1: package from approved Brief + canonical knowledge.json facts + Reporting V2.4.1 + Creative Genome + voice/banned/CTA rules. LLM generation + deterministic validation. Publish remains blocked.",
+  "publish": {
+    "publish_allowed": false,
+    "publish_implemented": false,
+    "block_reasons": [],
+    "unresolved_fact_requirements": [],
+    "unresolved_asset_requirements": [
+      "expert_demonstration: video",
+      "expert_demonstration: static",
+      "proof_and_data: video",
+      "proof_and_data: static",
+      "challenge_test: video",
+      "challenge_test: static"
+    ],
+    "stale_strategy": false,
+    "gates": {
+      "creative_status_approved": false,
+      "no_unresolved_facts": true,
+      "no_unresolved_assets": false,
+      "strategy_not_stale": true,
+      "validation_passed": true
+    },
+    "rule": "V1.1 \u00a715: can_publish_creative is read-only and publish_allowed=false globally. Publish code is a separate slice."
+  }
+}

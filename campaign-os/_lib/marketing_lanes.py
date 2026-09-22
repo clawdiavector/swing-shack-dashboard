@@ -98,20 +98,21 @@ PLATFORMS = ["instagram", "facebook", "tiktok", "x", "linkedin", "gbp", "youtube
 
 # ── Path resolution ───────────────────────────────────────────────────────
 def _data_root() -> Path:
-    """DATA_DIR (Railway volume) first, then BUNDLED_DATA_DIR (seed), then cwd/data."""
-    candidates = []
+    """Runtime DATA_DIR when set; never write lane data into bundled seed."""
     data_dir = os.environ.get("DATA_DIR")
     if data_dir:
-        candidates.append(Path(data_dir))
+        root = Path(data_dir)
+        root.mkdir(parents=True, exist_ok=True)
+        return root
     bundled = os.environ.get("BUNDLED_DATA_DIR")
     if bundled:
-        candidates.append(Path(bundled))
-    candidates.append(Path("/data/campaign-os"))
-    candidates.append(Path.cwd() / "data")
+        candidates = [Path(bundled), Path("/data/campaign-os"), Path.cwd() / "data"]
+    else:
+        candidates = [Path("/data/campaign-os"), Path.cwd() / "data"]
     for c in candidates:
         if c.exists():
             return c
-    return candidates[0] if candidates else Path.cwd() / "data"
+    return candidates[0]
 
 
 def _lanes_dir(brand_id: str) -> Path:

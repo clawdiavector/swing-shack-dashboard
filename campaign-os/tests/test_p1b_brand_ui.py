@@ -27,7 +27,6 @@ CATALOG_IDS = {
     "ga4",
     "gsc",
     "youtube",
-    "windsor",
     "ubersuggest",
     "google_drive",
     "krea",
@@ -97,12 +96,16 @@ def test_p1b_stick_integrations_all_ten_visible(job_env):
     items = data.get("integrations") or []
     ids = {it["id"] for it in items}
     assert ids == CATALOG_IDS
-    assert len(items) == 10
+    assert len(items) == 9
+    assert "windsor" not in ids
     by_id = {it["id"]: it for it in items}
     for iid in ("postiz", "meta", "gbp", "google_drive"):
         assert by_id[iid]["state"] == "missing"
         assert by_id[iid]["applies"] is True
-    for iid in ("ga4", "gsc", "windsor", "ubersuggest", "youtube", "krea"):
+    for iid in ("ga4", "gsc", "ubersuggest"):
+        assert by_id[iid]["state"] == "missing"
+        assert by_id[iid]["applies"] is True
+    for iid in ("youtube", "krea"):
         assert by_id[iid]["state"] == "na"
         assert by_id[iid]["applies"] is False
         assert (by_id[iid].get("na_reason") or "").strip()
@@ -114,8 +117,8 @@ def test_p1b_stick_summary_counts_match(job_env):
     summary = data.get("summary") or {}
     items = data.get("integrations") or []
     assert summary.get("connected", 0) + summary.get("partial", 0) + summary.get("missing", 0) + summary.get("na", 0) == len(items)
-    assert summary.get("missing") == 4
-    assert summary.get("na") == 6
+    assert summary.get("missing") == 7
+    assert summary.get("na") == 2
 
 
 def test_p1b_jobs_status_brands_carry_applies(job_env):
@@ -143,3 +146,4 @@ def test_p1b_connected_accounts_renderer_emits_row_per_id():
     assert "groupIntegrations" in CONNECTED_HTML
     assert "renderAccordion" in CONNECTED_HTML
     assert "integrations.filter" not in CONNECTED_HTML
+    assert "item.state !== 'connected'" in CONNECTED_HTML
