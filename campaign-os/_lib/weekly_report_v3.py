@@ -452,17 +452,21 @@ def _build_tldr_rows(v24: dict) -> List[dict]:
         "signal": _classify_signal(er.get("current"), er.get("previous"),
                                        materiality_threshold=0.5),
     })
-    spend = _extract_kpi(v24, "Paid Spend")
+    # Read paid spend from per-campaign aggregation (period-correct).
+    # kpi_scorecard['Paid Spend'] is YTD/31d even when period_days=7 —
+    # we use _paid_totals_from_campaigns() so the value matches the
+    # current_period time_range used everywhere else.
+    paid_totals = _paid_totals_from_campaigns(v24)
+    p_cur = paid_totals["current_period"].get("total_spend")
+    p_prev = paid_totals["previous_period"].get("total_spend")
     rows.append({
         "metric": "Meta paid spend (7d)",
-        "current": _fmt(spend.get("current"), "money"),
-        "previous": _fmt(spend.get("previous"), "money") if spend.get("previous") is not None else "—",
-        "change": _pct(spend.get("current"), spend.get("previous"))[0],
-        "signal": _classify_signal(spend.get("current"), spend.get("previous"),
-                                       materiality_threshold=50),
+        "current": _fmt(p_cur, "money"),
+        "previous": _fmt(p_prev, "money") if p_prev is not None else "—",
+        "change": _pct(p_cur, p_prev)[0],
+        "signal": _classify_signal(p_cur, p_prev, materiality_threshold=50),
     })
     leads = _extract_kpi(v24, "Verified Leads")
-    paid_totals = _paid_totals_from_campaigns(v24)
     cur_results = paid_totals["current_period"].get("total_results")
     leads_cur = leads.get("current") if leads.get("current") is not None else cur_results
     leads_status = leads.get("data_status", "OK")
