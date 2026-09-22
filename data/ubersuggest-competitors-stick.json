@@ -1,0 +1,99 @@
+{
+  "_meta": {
+    "count": 10,
+    "domain": "stickgolf.co.za",
+    "fetched_at": "2026-09-22"
+  },
+  "competitors": [
+    {
+      "backlinks": 0,
+      "commonKeywordCount": 3,
+      "domain": "webuyclubz.co.za",
+      "domainAuthority": 1,
+      "gapKeywordCount": 212,
+      "organic": 317,
+      "traffic": 4896
+    },
+    {
+      "backlinks": 81497,
+      "commonKeywordCount": 3,
+      "domain": "decathlon.co.za",
+      "domainAuthority": 34,
+      "gapKeywordCount": 7370,
+      "organic": 5745,
+      "traffic": 35692
+    },
+    {
+      "backlinks": 4194895,
+      "commonKeywordCount": 6,
+      "domain": "takealot.com",
+      "domainAuthority": 65,
+      "gapKeywordCount": 293278,
+      "organic": 882187,
+      "traffic": 2565081
+    },
+    {
+      "backlinks": 163306,
+      "commonKeywordCount": 3,
+      "domain": "taylormadegolf.co.za",
+      "domainAuthority": 23,
+      "gapKeywordCount": 231,
+      "organic": 719,
+      "traffic": 2414
+    },
+    {
+      "backlinks": 571,
+      "commonKeywordCount": 5,
+      "domain": "thegolflab.co.za",
+      "domainAuthority": 12,
+      "gapKeywordCount": 321,
+      "organic": 282,
+      "traffic": 1485
+    },
+    {
+      "backlinks": 3697,
+      "commonKeywordCount": 5,
+      "domain": "onegolf.co.za",
+      "domainAuthority": 18,
+      "gapKeywordCount": 923,
+      "organic": 769,
+      "traffic": 7029
+    },
+    {
+      "backlinks": 70478,
+      "commonKeywordCount": 5,
+      "domain": "golfersclub.co.za",
+      "domainAuthority": 32,
+      "gapKeywordCount": 1324,
+      "organic": 1557,
+      "traffic": 34014
+    },
+    {
+      "backlinks": 874,
+      "commonKeywordCount": 6,
+      "domain": "simplygolf.co.za",
+      "domainAuthority": 15,
+      "gapKeywordCount": 833,
+      "organic": 842,
+      "traffic": 2136
+    },
+    {
+      "backlinks": 9321,
+      "commonKeywordCount": 3,
+      "domain": "stix.golf",
+      "domainAuthority": 34,
+      "gapKeywordCount": 114,
+      "organic": 15974,
+      "traffic": 172061
+    },
+    {
+      "backlinks": 1118,
+      "commonKeywordCount": 7,
+      "domain": "houseofgolf.co.za",
+      "domainAuthority": 16,
+      "gapKeywordCount": 1295,
+      "organic": 982,
+      "traffic": 9926
+    }
+  ]
+}

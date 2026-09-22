@@ -725,29 +725,42 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
 def _read_seo_from_cache(bid: str) -> Dict[str, Any]:
     """Pull Ubersuggest SEO summary for the brand.
 
-    Uses _lib.seo_insights in the same process so we read the
-    Railway-fresh disk cache. Only Swing Shack has Ubersuggest
-    configured today; other brands return NOT_CONFIGURED.
+    Reads the per-brand cache files written by
+    scripts/fetch_ubersuggest.py:
+      data/ubersuggest-domain-<bid>.json
+      data/ubersuggest-backlinks-<bid>.json
+      data/seo-rankings-<bid>.json
+      data/ubersuggest-competitors-<bid>.json
+
+    swing-shack keeps the legacy un-suffixed file names
+    (ubersuggest-domain.json, etc.) for backwards compat.
     """
-    if bid != "swing-shack":
+    if bid not in ("swing-shack", "stick", "bag-drop"):
         return {"status": "NOT_CONFIGURED"}
-    try:
-        from _lib import seo_insights  # type: ignore
-        dh = seo_insights.domain_health() or {}
-        rank = seo_insights.load_seo_rankings() or {}
-    except Exception:
-        dh = {}
-        rank = {}
-    if not rank:
-        for r in (_data_root(),
-                    Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
-            p = r / "seo-rankings.json"
-            if p.is_file():
-                try:
-                    rank = json.loads(p.read_text(encoding="utf-8"))
-                    break
-                except Exception:
-                    continue
+    suffix = "" if bid == "swing-shack" else f"-{bid}"
+    dh = {}
+    rank = {}
+    for r in (_data_root(),
+                Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
+        domain_p = r / f"ubersuggest-domain{suffix}.json"
+        rank_p = r / f"seo-rankings{suffix}.json"
+        if domain_p.is_file():
+            try:
+                d_dh = json.loads(domain_p.read_text(encoding="utf-8"))
+                # ubersuggest-domain.json uses flat keys; adapt
+                dh = {
+                    "domain_authority": d_dh.get("domainAuthority") or d_dh.get("domain_authority"),
+                    "total_backlinks": d_dh.get("backlinks") or d_dh.get("total_backlinks"),
+                    "ref_domains": d_dh.get("refDomains") or d_dh.get("ref_domains"),
+                    "domainTraffic": d_dh.get("domainTraffic") or d_dh.get("domain_traffic"),
+                    "fetched_at": (d_dh.get("_meta") or {}).get("fetched_at") or d_dh.get("fetched_at"),
+                    "manager_read": d_dh.get("manager_read"),
+                }
+                if rank_p.is_file():
+                    rank = json.loads(rank_p.read_text(encoding="utf-8"))
+                break
+            except Exception:
+                continue
     if not rank and not dh:
         return {"status": "NOT_CONNECTED"}
     kfp = (dh.get("keyword_footprint") or {})
@@ -794,12 +807,25 @@ def _read_seo_keywords(bid: str, cookie: Optional[str] = None) -> Dict[str, Any]
     """Pull winning / leaking / quick-win SEO keywords.
 
     Uses _lib.seo_insights in the same process (no external HTTP
-    hop). Falls back to disk cache if the import fails.
+    hop). Falls back to per-brand disk cache if the import fails.
     """
     out = {"winning": [], "leaking": [], "quick_wins": []}
+    suffix = "" if bid == "swing-shack" else f"-{bid}"
     try:
         from _lib import seo_insights  # type: ignore
-        rank = seo_insights.load_seo_rankings()
+        # Load the per-brand rankings file directly to honour brand suffix.
+        rank = None
+        for _r in (_data_root(),
+                    Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
+            _p = _r / f"seo-rankings{suffix}.json"
+            if _p.is_file():
+                try:
+                    rank = json.loads(_p.read_text(encoding="utf-8"))
+                    break
+                except Exception:
+                    continue
+        if rank is None:
+            rank = seo_insights.load_seo_rankings() or {}
         out["winning"] = seo_insights.winning_keywords(rank) or []
         out["leaking"] = seo_insights.leaking_keywords(rank) or []
         out["quick_wins"] = seo_insights.quick_wins(rank) or []

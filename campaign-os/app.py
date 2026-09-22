@@ -25205,7 +25205,18 @@ def seo_refresh():
                 "error": "Ubersuggest credentials not configured",
                 "hint": "run scripts/ubersuggest_oauth.py on this machine to authorise"
             }), 503
-        project_id = _us.find_project_id_for_domain("swingshack.co.za")
+        # Resolve brand + domain (default swing-shack, support stick)
+        brand = (request.get_json(silent=True) or {}).get("brand") or "swing-shack"
+        brand = brand.strip().lower()
+        if brand not in ("swing-shack", "stick"):
+            return jsonify({"ok": False, "error": f"unsupported brand: {brand}"}), 400
+        domain = "stickgolf.co.za" if brand == "stick" else "swingshack.co.za"
+        # Per-brand output suffix
+        if brand == "swing-shack":
+            file_suffix = ""  # backwards-compat
+        else:
+            file_suffix = f"-{brand}"
+        project_id = _us.find_project_id_for_domain(domain)
         end = _dt2.date.today().isoformat()
         start = (_dt2.date.today() - _dt2.timedelta(days=60)).isoformat()
         logs = []
@@ -25223,15 +25234,15 @@ def seo_refresh():
             return raw
 
         pos_raw = _unpack(_us.project_position_info(project_id, start_date=start, end_date=end, language="en", device="desktop"))
-        domain = _unpack(_us.domain_overview("swingshack.co.za"))
-        bl = _unpack(_us.backlinks_overview("swingshack.co.za"))
-        comps_raw = _unpack(_us.competitors("swingshack.co.za"))
+        domain_data = _unpack(_us.domain_overview(domain))
+        bl = _unpack(_us.backlinks_overview(domain))
+        comps_raw = _unpack(_us.competitors(domain))
 
         n_keywords = len((pos_raw or {}).get("keywords", []) or [])
         n_comps = len(comps_raw) if isinstance(comps_raw, list) else len((comps_raw or {}).get("competitors", []))
 
         logs.append("project_position_info: %d keywords" % n_keywords)
-        logs.append("domain_overview: DA %s" % (domain or {}).get("domainAuthority", "?"))
+        logs.append("domain_overview: DA %s" % (domain_data or {}).get("domainAuthority", "?"))
         logs.append("backlinks: %s" % (bl or {}).get("backlinks", "?"))
         logs.append("competitors: %d" % n_comps)
 
@@ -25242,13 +25253,14 @@ def seo_refresh():
             # Position info — pos_raw is already unpacked to the inner dict
             pos_doc = dict(pos_raw or {})
             pos_doc["metadata"] = {
-                "domain": "swingshack.co.za",
+                "domain": domain,
+                "brand_id": brand,
                 "fetched_at": fetched_at,
                 "startDate": start,
                 "endDate": end,
                 "project_id": project_id,
             }
-            with open(os.path.join(data_dir, "seo-rankings.json"), "w") as f:
+            with open(os.path.join(data_dir, f"seo-rankings{file_suffix}.json"), "w") as f:
                 json.dump(pos_doc, f, indent=2, default=str)
             # Force a fresh read so the insights engine picks up the new file
             try:
@@ -25257,33 +25269,35 @@ def seo_refresh():
             except Exception:
                 pass
             # Domain overview
-            dom_doc = dict(domain or {})
-            dom_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
-            with open(os.path.join(data_dir, "ubersuggest-domain.json"), "w") as f:
+            dom_doc = dict(domain_data or {})
+            dom_doc["_meta"] = {"domain": domain, "brand_id": brand, "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, f"ubersuggest-domain{file_suffix}.json"), "w") as f:
                 json.dump(dom_doc, f, indent=2, default=str)
             # Backlinks
             bl_doc = dict(bl or {})
-            bl_doc["_meta"] = {"domain": "swingshack.co.za", "fetched_at": fetched_at}
-            with open(os.path.join(data_dir, "ubersuggest-backlinks.json"), "w") as f:
+            bl_doc["_meta"] = {"domain": domain, "brand_id": brand, "fetched_at": fetched_at}
+            with open(os.path.join(data_dir, f"ubersuggest-backlinks{file_suffix}.json"), "w") as f:
                 json.dump(bl_doc, f, indent=2, default=str)
             # Competitors
             comps_doc = {
                 "competitors": comps_raw if isinstance(comps_raw, list) else (comps_raw or {}).get("competitors", []),
-                "_meta": {"domain": "swingshack.co.za", "fetched_at": fetched_at, "count": n_comps},
+                "_meta": {"domain": domain, "brand_id": brand, "fetched_at": fetched_at, "count": n_comps},
             }
-            with open(os.path.join(data_dir, "ubersuggest-competitors.json"), "w") as f:
+            with open(os.path.join(data_dir, f"ubersuggest-competitors{file_suffix}.json"), "w") as f:
                 json.dump(comps_doc, f, indent=2, default=str)
-            logs.append("persisted: data/seo-rankings.json + 3x ubersuggest-*.json")
+            logs.append(f"persisted: data/seo-rankings{file_suffix}.json + 3x ubersuggest-{file_suffix}*.json")
         except Exception as exc:
             logs.append(f"persistence failed: {exc}")
 
         return jsonify({
             "ok": True,
+            "brand_id": brand,
+            "domain": domain,
             "project_id": project_id,
             "window": {"start": start, "end": end},
             "logs": logs,
             "summary": {
-                "domain_authority": (domain or {}).get("domainAuthority"),
+                "domain_authority": (domain_data or {}).get("domainAuthority"),
                 "backlinks": (bl or {}).get("backlinks"),
                 "tracked_keywords": n_keywords,
             },

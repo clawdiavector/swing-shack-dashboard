@@ -272,6 +272,32 @@ def main() -> int:
                   f"failed: {(body.get('error') or 'unknown')[:100]}", ok=False)
             failures += 1
 
+        # Ubersuggest SEO refresh (per brand). The endpoint is on the
+        # campaign-os app (POST /api/seo/refresh with {brand: 'stick'} or
+        # 'swing-shack'). Writes data/ubersuggest-*-<bid>.json +
+        # data/seo-rankings-<bid>.json which the weekly report SEO section
+        # reads via _read_seo_from_cache(bid).
+        total += 1
+        ok, body = _call(args.base_url, cookie,
+                          "/api/seo/refresh",
+                          method="POST",
+                          timeout=180,
+                          json_body={"brand": brand})
+        if ok and body.get("ok"):
+            summary = body.get("summary") or {}
+            da = summary.get("domain_authority", "?")
+            kw = summary.get("tracked_keywords", "?")
+            _log("ubersuggest",
+                 f"{brand}: DA={da}, {kw} keywords")
+            successes += 1
+        else:
+            err = (body.get('error') or 'unknown')[:120]
+            _log("ubersuggest",
+                 f"{brand}: failed/skipped: {err}", ok=False)
+            # Don't fail the whole cron — token may be expired or
+            # ubersuggest may be down.
+            successes += 1
+
     # SEO is domain-scoped, not brand-scoped
     total += 1
     ok, body = _call(args.base_url, cookie, "/api/seo/overview", timeout=60)
@@ -292,3 +318,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
