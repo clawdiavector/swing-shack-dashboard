@@ -501,25 +501,38 @@ def _seo_block(block: dict, fetched_at: str) -> Dict[str, Any]:
 # ── try to enrich SEO with winning/leaking keywords (Railway only) ──
 
 def _read_seo_keywords(bid: str, cookie: Optional[str] = None) -> Dict[str, Any]:
-    """Hit /api/seo/keywords/{winning,leaking,quick_wins} via the same Flask process."""
+    """Hit /api/seo/keywords/{winning,leaking,quick_wins}.
+    Falls back to disk cache for local / cookie-less contexts."""
     base = _page_meta(bid)
     out = {"winning": [], "leaking": [], "quick_wins": []}
-    if not cookie:
-        # local dev with no cookie: return empty
-        return out
-    for cat in ("winning", "leaking", "quick_wins"):
-        try:
-            req = urllib.request.Request(
-                f"{base}/api/seo/keywords/{cat}",
-                headers={"Cookie": f"cos_session={cookie}",
-                            "Accept": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                body = json.loads(resp.read().decode())
-                out[cat] = (body.get("items") or [])
-        except (urllib.error.URLError, urllib.error.HTTPError,
-                    TimeoutError, json.JSONDecodeError, Exception):
-            pass
+    if cookie:
+        for cat in ("winning", "leaking", "quick_wins"):
+            try:
+                req = urllib.request.Request(
+                    f"{base}/api/seo/keywords/{cat}",
+                    headers={"Cookie": f"cos_session={cookie}",
+                                "Accept": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    body = json.loads(resp.read().decode())
+                    out[cat] = (body.get("items") or [])
+            except (urllib.error.URLError, urllib.error.HTTPError,
+                        TimeoutError, json.JSONDecodeError, Exception):
+                pass
+        if any(out.values()):
+            return out
+    # Fall back to disk cache
+    for r in (_data_root(),
+                Path("/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data")):
+        p = r / "seo-keywords.json"
+        if p.is_file():
+            try:
+                raw = json.loads(p.read_text())
+                for cat in ("winning", "leaking", "quick_wins"):
+                    out[cat] = raw.get(cat) or raw.get(f"{bid}_{cat}") or []
+                return out
+            except Exception:
+                continue
     return out
 
 
@@ -841,7 +854,7 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
         if sid == "KPI":
             continue
         for s in sections:
-            if s.startswith(f"<section id='sec-{sid}'>"):
+            if s.startswith(f"<section id=\"sec-{sid}\">"):
                 cards_html += s
                 break
     sections_html = ""
@@ -849,7 +862,7 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
         if sid == "KPI":
             continue
         for s in sections:
-            if s.startswith(f"<section id='sec-{sid}'>"):
+            if s.startswith(f"<section id=\"sec-{sid}\">"):
                 sections_html += s
                 break
     kpi_html = ""
