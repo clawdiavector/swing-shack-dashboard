@@ -11,6 +11,7 @@ import { Review } from './pages/Review'
 import { ReviewPiece } from './pages/ReviewPiece'
 import { Ops } from './pages/Ops'
 import { Tool } from './pages/Tool'
+import { BuildPost } from './pages/studio/BuildPost'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="review" element={<Review />} />
         <Route path="review/:itemId" element={<ReviewPiece />} />
         <Route path="create" element={<Create />} />
+        <Route path="create/post" element={<BuildPost />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="publish" element={<Publish />} />
         <Route path="results" element={<Results />} />

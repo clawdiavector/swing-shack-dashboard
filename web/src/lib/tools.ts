@@ -9,7 +9,14 @@ export type ToolDef = {
 }
 
 export const TOOLS: ToolDef[] = [
-  { slug: 'buildpost', page: 'buildpost', label: 'Build a post', hint: 'Caption, visual, hook', from: '/create' },
+  {
+    slug: 'buildpost',
+    page: 'buildpost',
+    label: 'Build a post',
+    hint: 'Caption, visual, hook',
+    from: '/create',
+    native: '/create/post',
+  },
   { slug: 'captions', page: 'captions', label: 'Captions', hint: 'IG / FB / LinkedIn', from: '/create' },
   { slug: 'headlines', page: 'headlines', label: 'Headlines', hint: 'Punchy titles', from: '/create' },
   { slug: 'hooks', page: 'hooks', label: 'Hook bank', hint: 'Openers', from: '/create' },
