@@ -1139,6 +1139,10 @@ def build_v31(*args, **kwargs):
     return build_v32(*args, **kwargs)
 
 
+def archive_snapshot_v31(*args, **kwargs):
+    return archive_snapshot_v32(*args, **kwargs)
+
+
 if __name__ == "__main__":
     bid = sys.argv[1] if len(sys.argv) > 1 else "stick"
     fmt = sys.argv[2] if len(sys.argv) > 2 else "markdown"
