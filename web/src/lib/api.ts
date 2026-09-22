@@ -92,7 +92,7 @@ export type LayersPayload = {
   error?: string
 }
 
-async function getJson<T>(path: string): Promise<T> {
+export async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(path, { credentials: 'same-origin' })
   if (res.status === 401) {
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
