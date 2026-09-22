@@ -447,6 +447,129 @@ def _read_instagram_posts_for_brand(bid: str) -> List[Dict[str, Any]]:
     return out
 
 
+def _read_instagram_stories_for_brand(bid: str) -> List[Dict[str, Any]]:
+    """Fetch recent Instagram stories via _lib.meta_api.get_ig_stories().
+
+    Stories expire after 24h on Meta, so this only returns the
+    past 24-48h of stories — not the full week. We surface a
+    short summary rather than per-story cards so the section
+    stays honest about the data window.
+
+    Honors the same brand-isolation guard as
+    _read_instagram_posts_for_brand() — only brands with an IG
+    business account configured are eligible.
+    """
+    if not _brand_has_instagram_account(bid):
+        return []
+    try:
+        from _lib import meta_api as _ma  # type: ignore
+        out = _ma.get_ig_stories(limit=50, with_insights=True) or {}
+        meta = out.get("_meta") or {}
+        # Fail loud on auth errors so we don't pretend we have stories.
+        # If errored, return [] and let the section hide.
+        if not meta.get("fetched"):
+            return []
+        stories: List[Dict[str, Any]] = []
+        for s in (out.get("data") or []):
+            if not isinstance(s, dict):
+                continue
+            ts = s.get("timestamp")
+            stories.append({
+                "id": s.get("id"),
+                "media_type": (s.get("media_type") or "IMAGE").upper(),
+                "timestamp": ts,
+                "published_at": _parse_published_at(ts),
+                "permalink": s.get("permalink") or "",
+                "reach": int((s.get("reach") or 0)),
+                "interactions": int((s.get("total_interactions") or 0)),
+                "follows": int((s.get("follows") or 0)),
+            })
+        return stories
+    except Exception:
+        return []
+
+
+def _render_stories(bid: str, periods: Optional[Dict[str, str]] = None) -> str:
+    """Render a small 'Stories this week' section if stories exist.
+
+    Stories only persist on Meta for 24h, so the section uses
+    lighter styling than Best content and notes the data
+    window explicitly. Hidden entirely when no stories exist
+    or the IG account isn't configured.
+    """
+    stories = _read_instagram_stories_for_brand(bid)
+    cur_start = (periods or {}).get("current_week_start", "")
+    cur_end = (periods or {}).get("current_week_end", "")
+    cur_start_dt = (_dt_mod.date.fromisoformat(cur_start)
+                      if cur_start else None)
+    cur_end_dt = (_dt_mod.date.fromisoformat(cur_end)
+                    if cur_end else None)
+    # Filter to the report week (or last 24h when week unavailable).
+    in_week: List[Dict[str, Any]] = []
+    for s in stories:
+        pa = s.get("published_at")
+        if pa is None:
+            continue
+        if cur_start_dt and cur_end_dt:
+            if not (cur_start_dt <= pa.date() <= cur_end_dt):
+                continue
+        in_week.append(s)
+    if not in_week:
+        return ""
+    in_week.sort(key=lambda s: ((s.get("reach") or 0),
+                                  (s.get("interactions") or 0)),
+                  reverse=True)
+    # Aggregate metrics
+    total_reach = sum(s.get("reach", 0) for s in in_week)
+    total_int = sum(s.get("interactions", 0) for s in in_week)
+    total_follows = sum(s.get("follows", 0) for s in in_week)
+    # Render compact tiles
+    tiles = ""
+    for s in in_week[:8]:  # cap display at 8
+        pa = s.get("published_at")
+        date_lbl = (pa.strftime("%a %H:%M") if pa else "?")
+        med = s.get("media_type", "IMAGE")
+        is_video = "VIDEO" in med
+        med_word = "Video" if is_video else "Image"
+        reach = s.get("reach") or 0
+        intrx = s.get("interactions") or 0
+        follows = s.get("follows") or 0
+        perma = s.get("permalink") or ""
+        link_html = (f'<a href="{_esc(perma)}" target="_blank" '
+                       f'rel="noopener" class="story-link">View ↗</a>'
+                       if perma else "")
+        tiles += f"""
+        <div class="story-tile">
+          <div class="story-head">
+            <span class="story-when">{_esc(date_lbl)}</span>
+            <span class="story-type">{_esc(med_word)}</span>
+          </div>
+          <div class="story-stats">
+            <span>Reach: <strong>{_esc(_fmt(reach))}</strong></span>
+            <span>Interactions: <strong>{_esc(_fmt(intrx))}</strong></span>
+            <span>Follows: <strong>{_esc(_fmt(follows))}</strong></span>
+          </div>
+          {link_html}
+        </div>"""
+    n = len(in_week)
+    noun = "story" if n == 1 else "stories"
+    reach_lbl = (f"{_fmt(total_reach)} total reach, "
+                  f"{_fmt(total_int)} interactions, "
+                  f"{_fmt(total_follows)} follows")
+    window_note = ("Stories shown for the past 24 hours only — "
+                     "Meta expires stories after 24h, so anything "
+                     "older in the reporting week is no longer available.")
+    return f"""
+<section id="sec-Stories" class="report-section">
+  <div class="section-eyebrow">Stories</div>
+  <h2>Stories this week</h2>
+  <p class="lead">{n} {noun} active in the past 24 hours · {reach_lbl}.</p>
+  <p class="lead">{_esc(window_note)}</p>
+  <div class="story-grid">{tiles}</div>
+</section>
+"""
+
+
 def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
     out: Dict[str, Any] = {"ig": None, "fb": None}
     ig_brand_map = {
@@ -926,6 +1049,9 @@ def _render_html(bid: str, v24: dict, organic: Dict[str, Any],
     sections.append(_render_seo(seo, seo_kw, primary, bid))
     sections.append(_render_social(bid, organic, primary))
     sections.append(_render_best_content(bid, organic, primary, periods))
+    stories_html = _render_stories(bid, periods)
+    if stories_html:
+        sections.append(stories_html)
     sections.append(_render_worked_attention(v24, primary))
     sections.append(_render_actions(v24, bid, primary, accent))
     sections.append(_render_targets(v24, primary, accent, bid))
@@ -969,6 +1095,7 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
         ("SEO", "Google search"),
         ("Social", "Social media"),
         ("Content", "Best content"),
+        ("Stories", "Stories this week"),
         ("Worked", "What worked & what needs attention"),
         ("Actions", "What we should do this week"),
         ("Targets", "Business targets"),
@@ -1000,6 +1127,15 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
         if s.lstrip().startswith('<section id="sec-KPI"'):
             kpi_html = s.lstrip()
             break
+    # Top-of-report brand switcher
+    _all_brands = [("swing-shack", "Swing Shack"), ("stick", "Stick"),
+                   ("bag-drop", "Bag Drop")]
+    _cur_bid = facts.get("brand_id") or ""
+    _pills = ""
+    for _b, _label in _all_brands:
+        _cls = "topbar-brand-pill current" if _b == _cur_bid else "topbar-brand-pill"
+        _href = f"/weekly-report?brand={_b}&as_of={as_of or ''}"
+        _pills += (f'<a class="{_cls}" href="{_esc(_href)}">{_esc(_label)}</a>')
     css = _css(primary, accent)
     return f"""<!doctype html>
 <html lang="en">
@@ -1010,6 +1146,12 @@ def _wrap_html(facts: dict, periods: Dict[str, str],
 <style>{css}</style>
 </head>
 <body>
+<nav class="report-topbar">
+  <a class="topbar-back" href="/weekly-report">← Back to reports dashboard</a>
+  <span class="topbar-spacer"></span>
+  <span class="topbar-brand-label">Brand:</span>
+  {brand_pills}
+</nav>
 <header class="page-header">
   <div class="header-inner">
     <div class="brand-block">
