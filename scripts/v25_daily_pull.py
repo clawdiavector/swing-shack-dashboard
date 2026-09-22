@@ -94,13 +94,20 @@ def _get_session_cookie(base_url: str, password: str) -> str:
 
 
 def _call(base_url: str, cookie: str, path: str,
-           timeout: int = 60) -> tuple[bool, dict]:
-    """GET <base><path> with the session cookie. Returns (ok, body)."""
+           timeout: int = 60,
+           method: str = "GET",
+           json_body: dict | None = None) -> tuple[bool, dict]:
+    """<method> <base><path> with the session cookie. Returns (ok, body)."""
     url = f"{base_url.rstrip('/')}{path}"
+    data = None
+    if json_body is not None:
+        data = json.dumps(json_body).encode("utf-8")
     try:
-        req = urllib.request.Request(url)
+        req = urllib.request.Request(url, data=data, method=method)
         if cookie:
             req.add_header("Cookie", f"cos_session={cookie}")
+        if data is not None:
+            req.add_header("Content-Type", "application/json")
         resp = urllib.request.urlopen(req, timeout=timeout)
         body = json.loads(resp.read())
         return True, body
