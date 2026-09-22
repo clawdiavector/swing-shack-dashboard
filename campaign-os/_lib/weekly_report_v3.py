@@ -2166,9 +2166,29 @@ def _render_best_content(bid: str, organic: Dict[str, Any],
         </div>"""
     count_n = len(week_posts)
     post_word = "post" if count_n == 1 else "posts"
-    lead = (f"{count_n} {post_word} published between {period_label}. " 
-              if period_label else f"{count_n} {post_word} published this week. ")
-    lead += "Ranked by people reached, then interactions."
+    # How many stories were active during the week (only the past 24h
+    # are still retrievable from Meta — surfaced separately in
+    # sec-Stories; here we count just the feed posts since stories
+    # can't be backfilled past 24h).
+    story_count = len(_read_instagram_stories_for_brand(bid))
+    lead_parts = []
+    if period_label:
+        lead_parts.append(
+            f"{count_n} {post_word} published between {period_label}. ")
+    else:
+        lead_parts.append(
+            f"{count_n} {post_word} published this week. ")
+    lead_parts.append("Ranked by people reached, then interactions. ")
+    if story_count > 0:
+        s_word = "story" if story_count == 1 else "stories"
+        lead_parts.append(
+            f"Plus {story_count} active {s_word} in the past 24 hours "
+            f"(see Stories this week below).")
+    else:
+        lead_parts.append(
+            "No active stories in the past 24 hours — "
+            "see Stories this week below.")
+    lead = "".join(lead_parts)
     return f"""
 <section id="sec-Content" class="report-section">
   <div class="section-eyebrow">Best content</div>
