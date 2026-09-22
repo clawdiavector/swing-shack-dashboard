@@ -146,3 +146,4 @@ def test_p1b_connected_accounts_renderer_emits_row_per_id():
     assert "groupIntegrations" in CONNECTED_HTML
     assert "renderAccordion" in CONNECTED_HTML
     assert "integrations.filter" not in CONNECTED_HTML
+    assert "item.state !== 'connected'" in CONNECTED_HTML

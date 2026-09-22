@@ -100,3 +100,72 @@ def test_windsor_absent_from_brand_integrations(brands_env):
         out = build_brand_integrations(brand_id)
         ids = {it["id"] for it in out["integrations"]}
         assert "windsor" not in ids
+
+
+def test_gbp_oauth_file_connected_without_location_env(brands_env, monkeypatch):
+    from _lib.jobs import brand_lanes as bl
+
+    monkeypatch.delenv("GBP_LOCATION_ID_SWING_SHACK", raising=False)
+    monkeypatch.delenv("GBP_LOCATION_ID", raising=False)
+    with patch.object(bl, "_credential_file_exists", return_value=True):
+        assert bl.integration_state("swing-shack", "gbp") == "connected"
+
+
+def test_ubersuggest_token_file_only_connected(brands_env, monkeypatch, tmp_path):
+    from _lib.jobs.brand_lanes import integration_state
+
+    monkeypatch.delenv("UBERSUGGEST_ACCESS", raising=False)
+    monkeypatch.delenv("UBERSUGGEST_REFRESH_TOKEN", raising=False)
+    tok = tmp_path / "uber.json"
+    tok.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("UBERSUGGEST_TOKEN_FILE", str(tok))
+    assert integration_state("swing-shack", "ubersuggest") == "connected"
+
+
+def test_stick_meta_shared_token_not_missing(brands_env, monkeypatch):
+    from _lib.jobs.brand_lanes import integration_state
+
+    monkeypatch.delenv("META_SYSTEM_USER_TOKEN_STICK_PAARL", raising=False)
+    monkeypatch.setenv("META_SYSTEM_USER_TOKEN", "shared-tok")
+    monkeypatch.setenv("META_PAGE_ID_STICK", "123")
+    monkeypatch.setenv("META_INSTAGRAM_BUSINESS_ACCOUNT_ID_STICK", "456")
+    assert integration_state("stick", "meta") == "connected"
+
+
+def test_late_job_verdict_does_not_demote_connected(brands_env, monkeypatch):
+    import _lib.connected_accounts_catalog as cat
+
+    monkeypatch.setenv("UBERSUGGEST_ACCESS", "tok")
+    fake = {"last_success_at": "2026-01-01T00:00:00Z", "job_verdict": "LATE", "last_status": "OK"}
+    with patch.object(cat, "_job_activity_for_brand", return_value=fake):
+        out = cat.build_brand_integrations("swing-shack")
+    uber = next(it for it in out["integrations"] if it["id"] == "ubersuggest")
+    assert uber["state"] == "connected"
+
+
+def test_stuck_overall_ok_brand_stays_connected(brands_env, monkeypatch):
+    import _lib.connected_accounts_catalog as cat
+
+    monkeypatch.setenv("META_SYSTEM_USER_TOKEN", "tok")
+    monkeypatch.setenv("META_PAGE_ID_SWING_SHACK", "1")
+    monkeypatch.setenv("META_INSTAGRAM_BUSINESS_ACCOUNT_ID_SWING_SHACK", "2")
+    fake = {
+        "last_success_at": "2026-01-01T00:00:00Z",
+        "job_verdict": "OK",
+        "last_status": "OK",
+    }
+    with patch.object(cat, "_job_activity_for_brand", return_value=fake):
+        out = cat.build_brand_integrations("swing-shack")
+    meta = next(it for it in out["integrations"] if it["id"] == "meta")
+    assert meta["state"] == "connected"
+    fake_stuck = {**fake, "job_verdict": "STUCK"}
+    with patch.object(cat, "_job_activity_for_brand", return_value=fake_stuck):
+        out2 = cat.build_brand_integrations("swing-shack")
+    meta2 = next(it for it in out2["integrations"] if it["id"] == "meta")
+    assert meta2["state"] == "connected"
+
+
+def test_connected_html_skips_env_tags_for_connected():
+    html = (CAMPAIGN_OS / "connected-accounts.html").read_text(encoding="utf-8")
+    assert "item.state !== 'connected'" in html
+    assert "env_unsatisfied" in html
