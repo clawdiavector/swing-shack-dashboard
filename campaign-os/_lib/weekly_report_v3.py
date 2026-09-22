@@ -1408,7 +1408,7 @@ def _read_organic_from_cache(bid: str) -> Dict[str, Any]:
                 {
                     "id": p.get("id"),
                     "media_type": p.get("media_type"),
-                    "caption": (p.get("caption") or "").strip(),
+                    "caption": (p.get("caption_preview") or p.get("caption") or "").strip(),
                     "interactions": ((p.get("metrics") or {})
                                           .get("total_interactions")),
                     "reach": ((p.get("metrics") or {})
