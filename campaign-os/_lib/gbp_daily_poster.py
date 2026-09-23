@@ -609,16 +609,55 @@ def build_daily_plan(
 # ── Plan persistence ────────────────────────────────────────────────
 
 
-_GBP_PLAN_DIR = Path(
-    os.environ.get("GBP_PLAN_DIR") or "data/gbp-daily-plans"
-)
+def _plan_dir() -> Path:
+    """Resolve the gbp-daily-plans directory.
+
+    Resolution order:
+      1. GBP_PLAN_DIR env var (specific override)
+      2. DATA_DIR env var (Railway persistent volume — matches the
+         resolution order used elsewhere in the project)
+      3. Walk up from this file until we find data/gbp-daily-plans.
+      4. Canonical local path on the Mac.
+    """
+    env = os.environ.get("GBP_PLAN_DIR") or os.environ.get("DATA_DIR")
+    if env:
+        base = Path(env) / "gbp-daily-plans"
+    else:
+        here = Path(__file__).resolve().parent
+        candidate = None
+        for _ in range(8):
+            test = here / "data" / "gbp-daily-plans"
+            if test.is_dir():
+                candidate = test
+                break
+            if here.parent == here:
+                break
+            here = here.parent
+        if candidate:
+            base = candidate
+        else:
+            base = Path(os.path.expanduser(
+                "~/.openclaw-instance2/workspace/swing-shack-dashboard/data/gbp-daily-plans"
+            ))
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+# Module-level handle, lazily resolved.
+_GBP_PLAN_DIR: Optional[Path] = None
+
+
+def _get_plan_dir() -> Path:
+    global _GBP_PLAN_DIR
+    if _GBP_PLAN_DIR is None:
+        _GBP_PLAN_DIR = _plan_dir()
+    return _GBP_PLAN_DIR
 
 
 def save_plan(plan: dict) -> Path:
     today = _dt.date.today().isoformat()
     brand = plan["brand_id"]
-    out_dir = Path(_GBP_PLAN_DIR)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = _get_plan_dir()
     out = out_dir / f"{brand}-{today}.json"
     out.write_text(json.dumps(plan, indent=2, ensure_ascii=False), encoding="utf-8")
     return out
@@ -626,7 +665,7 @@ def save_plan(plan: dict) -> Path:
 
 def latest_plan(brand_id: str) -> Optional[dict]:
     """Find the most recent plan file for a brand."""
-    out_dir = Path(_GBP_PLAN_DIR)
+    out_dir = _get_plan_dir()
     if not out_dir.is_dir():
         return None
     candidates = sorted(out_dir.glob(f"{brand_id}-*.json"), reverse=True)
@@ -640,7 +679,7 @@ def latest_plan(brand_id: str) -> Optional[dict]:
 
 def list_plans(brand_id: Optional[str] = None, limit: int = 30) -> list[dict]:
     """List past plans, newest first."""
-    out_dir = Path(_GBP_PLAN_DIR)
+    out_dir = _get_plan_dir()
     if not out_dir.is_dir():
         return []
     out = []
@@ -785,7 +824,7 @@ def _gbp_publish_cron_tick(*, brand: str | None = None, dry_run: bool = False) -
                 "scheduled_count": 1 if result.get("ok") else 0,
             }
             today = _dt.date.today().isoformat()
-            out = Path(_GBP_PLAN_DIR) / f"{b}-{today}.json"
+            out = _get_plan_dir() / f"{b}-{today}.json"
             try:
                 out.write_text(json.dumps(plan, indent=2, ensure_ascii=False), encoding="utf-8")
             except Exception as exc:
