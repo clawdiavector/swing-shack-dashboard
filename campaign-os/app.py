@@ -14538,6 +14538,14 @@ def gsc_debug_resolve_route():
         out["resolve_error"] = err
     except Exception as exc:
         out["resolve_exception"] = str(exc)
+    # Per-brand file existence
+    try:
+        data_dir = _os.environ.get("DATA_DIR", "/data")
+        for fn in ("search-console.json", "ga4-metrics.json", "seo-rankings.json"):
+            for sub in (Path(data_dir) / "brands" / brand / fn, Path(data_dir) / fn):
+                out[f"file:{fn}:{sub}"] = "PRESENT" if sub.is_file() else "MISSING"
+    except Exception as exc:
+        out["file_probe_error"] = str(exc)
     return jsonify(out), 200
 
 
