@@ -1965,10 +1965,11 @@ def brand_image_serve(brand_id, filename):
     a path inside the brand-directory and rejects traversal attempts.
 
     Falls back from DATA_DIR/brand-directory/<brand>/images → bundled copy
-    (same pattern as /assets/). If the file is not found under the requested
-    brand (e.g. a DNA record indexed under swing-shack but the actual PNG lives
-    under takomo/), scan sibling brand directories under each root for the same
-    filename.
+    (same pattern as /assets/), then L5 draft gens under
+    DATA_DIR/draft-assets/images/<brand>/images. If the file is not found under
+    the requested brand (e.g. a DNA record indexed under swing-shack but the
+    actual PNG lives under takomo/), scan sibling brand directories under each
+    root for the same filename.
     """
     from pathlib import Path as _P
 
@@ -1979,6 +1980,12 @@ def brand_image_serve(brand_id, filename):
         if runtime.exists():
             bases.append(runtime.resolve())
         bases.append(bundled.resolve())
+        draft_images = _P(DATA_DIR) / 'draft-assets' / 'images' / brand / 'images'
+        draft_brand = _P(DATA_DIR) / 'draft-assets' / 'images' / brand
+        if draft_images.exists():
+            bases.append(draft_images.resolve())
+        if draft_brand.exists():
+            bases.append(draft_brand.resolve())
         return bases
 
     def _brand_directory_roots() -> list:
