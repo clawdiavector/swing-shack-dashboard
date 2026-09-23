@@ -50,7 +50,8 @@ export function ReviewPiece() {
   const aid = item?.meta?.asset_id
 
   function load() {
-    fetchInboxItem(id)
+    fetchInboxItem(id, brandId)
+      .then((found) => found ?? fetchInboxItem(id))
       .then((found) => {
         setItem(found)
         setLoaded(true)
@@ -59,7 +60,7 @@ export function ReviewPiece() {
         setError(err.message)
         setLoaded(true)
       })
-    fetchInbox('pending')
+    fetchInbox('pending', brandId)
       .then((payload) => setQueue(payload.items || []))
       .catch(() => setQueue([]))
   }
