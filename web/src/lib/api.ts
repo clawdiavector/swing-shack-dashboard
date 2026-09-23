@@ -836,6 +836,12 @@ export type CampaignAsset = {
   imageUrl?: string
   mediaUrl?: string
   filePath?: string
+  visual_url?: string
+  image_url?: string
+  media_url?: string
+  file_path?: string
+  creative_url?: string
+  image_path?: string
   publishingReferences?: Array<{ postizId?: string; mediaUrl?: string }>
 }
 
@@ -897,12 +903,36 @@ export function resolveAssetUrl(raw?: string | null): string {
 
 export function assetVisualUrl(asset?: CampaignAsset | null): string {
   if (!asset) return ''
+  const raw =
+    asset.visualUrl ||
+    asset.imageUrl ||
+    asset.mediaUrl ||
+    asset.visual_url ||
+    asset.image_url ||
+    asset.media_url ||
+    asset.creative_url ||
+    asset.filePath ||
+    asset.file_path ||
+    asset.image_path ||
+    ''
   return (
-    resolveAssetUrl(asset.visualUrl || asset.imageUrl || asset.mediaUrl) ||
-    resolveAssetUrl(asset.filePath) ||
+    resolveAssetUrl(raw) ||
     resolveAssetUrl(asset.publishingReferences?.[0]?.mediaUrl) ||
     ''
   )
+}
+
+export function inboxItemThumbUrl(item?: InboxItem | null): string {
+  const meta = item?.meta as Record<string, unknown> | undefined
+  if (!meta) return ''
+  const raw = String(
+    meta.image_url ||
+      meta.imageUrl ||
+      meta.image_path ||
+      meta.filePath ||
+      '',
+  ).trim()
+  return resolveAssetUrl(raw)
 }
 
 export type VisualLibraryPayload = {

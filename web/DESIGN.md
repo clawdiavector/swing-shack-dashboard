@@ -195,7 +195,8 @@ Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-l
 5. Today ticker lists the brand’s **pending unified inbox** (same queue as Review), not
    morning-brief cards alone. Counts/summary still come from `/api/today/panel?brand=`.
 6. “What worked” thumbs: `thumbnail_url`, then `media_url` (not VIDEO), then oEmbed
-   recovery on image error via `/api/socials/oembed`.
+   recovery on image error via `/api/socials/oembed`. Review/Daily queue rows use
+   optional list thumbs that hide on `<img>` error (no broken icon, no “no thumb” slot).
 7. Shortcuts use native Heroes routes (`/publish/socials`, `/publish/gbp`, `/create/post`,
    `/results/week`).
 

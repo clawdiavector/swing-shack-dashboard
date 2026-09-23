@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { ExternalLink } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { toDesk } from '../lib/desk'
 import { formatDateStamp, formatStamp, stampLabel } from '../lib/stamp'
@@ -252,6 +252,20 @@ export function PageHeader({
   )
 }
 
+function QueueItemThumb({ src, alt }: { src: string; alt: string }) {
+  const [hidden, setHidden] = useState(false)
+  if (hidden) return null
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setHidden(true)}
+      className="h-12 w-12 shrink-0 rounded-xl border border-bd object-cover"
+    />
+  )
+}
+
 export function QueueItem({
   to,
   tip: tipText,
@@ -264,6 +278,8 @@ export function QueueItem({
   dateOnly,
   action,
   footer,
+  thumb,
+  thumbAlt,
 }: {
   to?: string
   tip?: string
@@ -276,10 +292,14 @@ export function QueueItem({
   dateOnly?: boolean
   action?: ReactNode
   footer?: ReactNode
+  thumb?: string
+  thumbAlt?: string
 }) {
   const when = dateOnly ? formatDateStamp(stamp) : formatStamp(stamp)
+  const thumbNode = thumb ? <QueueItemThumb src={thumb} alt={thumbAlt || title} /> : null
   const body = (
     <>
+      {thumbNode}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={tone}>{badge}</Badge>

@@ -10,6 +10,7 @@ import {
   fetchInbox,
   fetchInboxItem,
   inboxAction,
+  inboxItemThumbUrl,
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
@@ -93,7 +94,11 @@ export function ReviewPiece() {
     }
   }, [cid, aid])
 
-  const visualUrl = useMemo(() => assetVisualUrl(asset), [asset])
+  const visualUrl = useMemo(() => {
+    const fromAsset = assetVisualUrl(asset)
+    if (fromAsset) return fromAsset
+    return inboxItemThumbUrl(item)
+  }, [asset, item])
   const caption =
     asset?.caption ||
     asset?.description ||
@@ -285,7 +290,9 @@ export function ReviewPiece() {
         <section>
           <h2 className="mb-3 font-display text-xl font-semibold">Next in the queue</h2>
           <ul className="space-y-2">
-            {rest.map((row) => (
+            {rest.map((row) => {
+              const thumb = inboxItemThumbUrl(row)
+              return (
               <QueueItem
                 key={row.id}
                 to={`/review/${encodeURIComponent(row.id)}`}
@@ -295,8 +302,11 @@ export function ReviewPiece() {
                 meta={row.brand_id}
                 stamp={row.created_at}
                 stampKind="created"
+                thumb={thumb || undefined}
+                thumbAlt={row.title || row.id}
               />
-            ))}
+              )
+            })}
           </ul>
         </section>
       ) : null}

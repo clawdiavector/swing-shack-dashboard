@@ -12,6 +12,8 @@ export default defineConfig({
       '/api': apiTarget,
       '/login': apiTarget,
       '/logout': apiTarget,
+      '/assets': apiTarget,
+      '/brand-images': apiTarget,
     },
   },
 })

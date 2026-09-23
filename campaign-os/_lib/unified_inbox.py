@@ -17,6 +17,23 @@ ITEM_TYPES = frozenset({"calendar_candidate", "proposal", "draft_asset", "publis
 _DRAFT_HEX_TITLE = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
 
 
+def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
+    """Resolve image_path / image_url from campaign assets (camelCase or snake_case)."""
+    if not asset:
+        return None, None
+    image_url = (
+        asset.get("creative_url")
+        or asset.get("image_url")
+        or asset.get("visualUrl")
+        or asset.get("imageUrl")
+        or asset.get("mediaUrl")
+    )
+    image_path = asset.get("image_path") or asset.get("filePath")
+    if not image_url and image_path:
+        image_url = image_path
+    return image_path, image_url
+
+
 def _draft_item_title(row: dict[str, Any], asset: dict[str, Any], aid: str) -> str:
     title = str(row.get("name") or aid)
     if not _DRAFT_HEX_TITLE.match(title):
@@ -306,8 +323,7 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     if isinstance(maybe_asset, dict):
                         asset = maybe_asset
             full_caption = str(asset.get("caption") or row.get("caption") or "")
-            image_path = asset.get("image_path")
-            image_url = asset.get("image_url")
+            image_path, image_url = _asset_image_meta(asset)
             out.append({
                 "id": _item_id("draft_asset", f"{cid}:{aid}"),
                 "type": "draft_asset",
