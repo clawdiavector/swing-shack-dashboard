@@ -112,6 +112,7 @@ export function dayInMonth(raw: string | null | undefined, year: number, month0:
 
 export function stampLabel(kind?: string) {
   if (kind === 'created') return 'Landed'
+  if (kind === 'goes_out') return 'Goes out'
   if (kind === 'scheduled') return 'Goes live'
   if (kind === 'holiday') return 'Public holiday'
   if (kind === 'moment') return 'On the calendar'

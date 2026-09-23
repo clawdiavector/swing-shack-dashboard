@@ -88,26 +88,92 @@ def intended_publish_channels(brand_id: str) -> list[str]:
     return list(INTENDED_CHANNELS_FALLBACK.get(brand_id, []))
 
 
+def _normalize_platform(platform: str) -> str:
+    from _lib.jobs.layer5.image_draft_context import _normalize_platform as _norm  # noqa: PLC0415
+
+    return _norm(platform)
+
+
+def platform_allowed(brand_id: str, platform: str) -> bool:
+    """True when platform is on the brand publish_channels allowlist."""
+    brand_id = validate_brand_id(brand_id)
+    want = _normalize_platform(platform)
+    allowed = {_normalize_platform(ch) for ch in intended_publish_channels(brand_id)}
+    return want in allowed
+
+
+def _would_publish_at_from_event_date(event_date: str) -> Optional[str]:
+    raw = (event_date or "").strip()
+    if not raw:
+        return None
+    if "T" in raw:
+        return raw if raw.endswith("Z") else f"{raw}Z"
+    return f"{raw}T09:00:00Z"
+
+
+def enqueue_for_primary_channel(
+    *,
+    brand_id: str,
+    caption_preview: str,
+    inbox_item_id: str,
+    asset_id: str,
+    asset_platform: str = "",
+    lodged_title: str = "",
+) -> list[dict[str, Any]]:
+    """One sandbox row for the calendar moment's primary_channel (allowlist-checked)."""
+    from _lib.jobs.layer5.image_draft_context import (  # noqa: PLC0415
+        calendar_event_date_for_item,
+        lodged_title_for_item,
+        primary_channel_for_item,
+    )
+
+    brand_id = validate_brand_id(brand_id)
+    inbox_ref = str(inbox_item_id or "")
+    platform = primary_channel_for_item(
+        brand_id,
+        inbox_ref,
+        fallback=asset_platform or "instagram",
+    )
+    if not platform_allowed(brand_id, platform):
+        return []
+    title = lodged_title_for_item(
+        brand_id,
+        inbox_ref,
+        sidecar_title=lodged_title,
+    )
+    event_date = calendar_event_date_for_item(brand_id, inbox_ref)
+    item = enqueue_item(
+        brand_id=brand_id,
+        platform=platform,
+        caption_preview=caption_preview,
+        inbox_item_id=inbox_item_id,
+        human_approved=False,
+        would_publish_at=_would_publish_at_from_event_date(event_date),
+        idempotency_key=f"qc-{asset_id}-{platform}",
+        lodged_title=title or None,
+        event_date=event_date or None,
+    )
+    return [item]
+
+
 def enqueue_for_intended_channels(
     *,
     brand_id: str,
     caption_preview: str,
     inbox_item_id: str,
     asset_id: str,
+    asset_platform: str = "",
+    lodged_title: str = "",
 ) -> list[dict[str, Any]]:
-    """One sandbox queue row per intended publish channel for this brand."""
-    items: list[dict[str, Any]] = []
-    for platform in intended_publish_channels(brand_id):
-        item = enqueue_item(
-            brand_id=brand_id,
-            platform=platform,
-            caption_preview=caption_preview,
-            inbox_item_id=inbox_item_id,
-            human_approved=False,
-            idempotency_key=f"qc-{asset_id}-{platform}",
-        )
-        items.append(item)
-    return items
+    """Backward-compatible alias — one row on primary_channel only."""
+    return enqueue_for_primary_channel(
+        brand_id=brand_id,
+        caption_preview=caption_preview,
+        inbox_item_id=inbox_item_id,
+        asset_id=asset_id,
+        asset_platform=asset_platform,
+        lodged_title=lodged_title,
+    )
 
 
 def ensure_sandbox_layout() -> Path:
@@ -186,6 +252,8 @@ def enqueue_item(
     human_approved: bool = False,
     would_publish_at: Optional[str] = None,
     idempotency_key: Optional[str] = None,
+    lodged_title: Optional[str] = None,
+    event_date: Optional[str] = None,
 ) -> dict[str, Any]:
     """Append a pending queue row (no network)."""
     ensure_sandbox_layout()
@@ -202,6 +270,8 @@ def enqueue_item(
         "channel": channel,
         "platform": platform,
         "caption_preview": (caption_preview or "")[:500],
+        "lodged_title": (lodged_title or "")[:240] or None,
+        "event_date": (event_date or "")[:32] or None,
         "idempotency_key": key,
         "human_approved": bool(human_approved),
         "human_approved_at": _utc_now_iso() if human_approved else None,
@@ -394,6 +464,8 @@ def list_queue(*, brand: str | None = None, limit: int = 50) -> dict[str, Any]:
                 "channel": row.get("channel"),
                 "caption": row.get("caption_preview") or "",
                 "caption_preview": row.get("caption_preview") or "",
+                "lodged_title": row.get("lodged_title"),
+                "event_date": row.get("event_date"),
                 "status": row.get("status"),
                 "human_approved": bool(row.get("human_approved")),
                 "created_at": row.get("created_at"),

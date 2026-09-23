@@ -271,6 +271,8 @@ export function QueueItem({
   tip: tipText,
   badge,
   tone,
+  channelBadge,
+  channelTone,
   title,
   meta,
   stamp,
@@ -285,6 +287,8 @@ export function QueueItem({
   tip?: string
   badge: string
   tone: 'gold' | 'green' | 'blue' | 'mute'
+  channelBadge?: string
+  channelTone?: 'gold' | 'green' | 'blue' | 'mute'
   title: string
   meta?: string
   stamp?: string | null
@@ -303,6 +307,9 @@ export function QueueItem({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={tone}>{badge}</Badge>
+          {channelBadge ? (
+            <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
+          ) : null}
           <span className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">
             {stampLabel(stampKind)} {when}
           </span>

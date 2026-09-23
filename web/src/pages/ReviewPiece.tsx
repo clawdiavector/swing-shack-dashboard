@@ -10,6 +10,8 @@ import {
   fetchInbox,
   fetchInboxItem,
   inboxAction,
+  inboxChannelLabel,
+  inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
   type CampaignAsset,
@@ -295,18 +297,22 @@ export function ReviewPiece() {
             {rest.map((row) => {
               const thumb = inboxItemThumbUrl(row)
               const media = inboxMediaTag(row)
+              const channel = inboxChannelLabel(row)
+              const goesOut = inboxGoesOutIso(row)
               return (
               <QueueItem
                 key={row.id}
                 to={`/review/${encodeURIComponent(row.id)}`}
                 badge={media.label}
                 tone={media.tone}
+                channelBadge={channel || undefined}
                 title={row.title || row.summary || row.id}
                 meta={[reviewType(row.type).label, row.brand_id]
                   .filter(Boolean)
                   .join(' · ')}
-                stamp={row.created_at}
-                stampKind="created"
+                stamp={goesOut || row.created_at}
+                stampKind={goesOut ? 'goes_out' : 'created'}
+                dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={row.title || row.id}
               />

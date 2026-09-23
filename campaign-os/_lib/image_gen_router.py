@@ -639,12 +639,19 @@ def _persist(
 
     save_dir = Path(output_base) / safe_brand / "images"
     save_dir.mkdir(parents=True, exist_ok=True)
+    sidecar_path = save_dir / f"{fname}.meta.json"
+    sidecar["saved_at"] = ts
+    if not raw:
+        sidecar["saved_filename"] = None
+        sidecar["bytes_size"] = 0
+        sidecar_path.write_text(json.dumps(sidecar, indent=2))
+        return None, str(sidecar_path)
+
     fpath = save_dir / fname
     fpath.write_bytes(raw)
 
-    sidecar_path = save_dir / f"{fname}.meta.json"
-    sidecar["saved_at"] = ts
     sidecar["saved_filename"] = fname
+    sidecar["bytes_size"] = len(raw)
     sidecar_path.write_text(json.dumps(sidecar, indent=2))
 
     return str(fpath), str(sidecar_path)
@@ -1083,8 +1090,8 @@ def generate_image_with_persistence(
         output_base=kwargs.get("output_base", DEFAULT_OUTPUT_BASE),
     )
     if saved:
-        # Patch up the GenResult with new fields
         result.saved_path = saved
+    if sidecar_path:
         result.saved_sidecar_path = sidecar_path
     return result
 

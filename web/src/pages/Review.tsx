@@ -8,6 +8,8 @@ import {
   fetchInbox,
   fetchPostingWeek,
   inboxAction,
+  inboxChannelLabel,
+  inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
   type InboxItem,
@@ -163,18 +165,22 @@ function ReviewInbox({ brandId }: { brandId: string }) {
             const thumb = inboxItemThumbUrl(item)
             const media = inboxMediaTag(item)
             const kind = reviewType(item.type).label
+            const channel = inboxChannelLabel(item)
+            const goesOut = inboxGoesOutIso(item)
             return (
               <QueueItem
                 key={item.id}
                 to={`/review/${encodeURIComponent(item.id)}`}
                 badge={item.sla_state === 'stale' ? 'stale' : media.label}
                 tone={item.sla_state === 'stale' ? 'gold' : media.tone}
+                channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
                 meta={[kind, item.brand_id, item.meta?.caption?.slice(0, 70)]
                   .filter(Boolean)
                   .join(' · ')}
-                stamp={item.created_at}
-                stampKind="created"
+                stamp={goesOut || item.created_at}
+                stampKind={goesOut ? 'goes_out' : 'created'}
+                dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={item.title || item.id}
                 action={

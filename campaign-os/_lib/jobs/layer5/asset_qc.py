@@ -103,6 +103,27 @@ def _check_sidecar(sidecar: dict[str, Any], caption: str) -> list[str]:
     return issues
 
 
+def _resolve_png_size(asset: dict[str, Any]) -> int | None:
+    from _lib.unified_inbox import _asset_image_file_size  # noqa: PLC0415
+
+    return _asset_image_file_size(asset)
+
+
+def _enqueue_ready(
+    *,
+    caption: str,
+    asset: dict[str, Any],
+    sidecar: dict[str, Any],
+    platform: str,
+) -> bool:
+    if not (caption or "").strip():
+        return False
+    if str(platform or "").lower() == "gbp":
+        return True
+    size = _resolve_png_size(asset)
+    return size is not None and size > 0
+
+
 def _maybe_enqueue_publish_request(
     *,
     sidecar: dict[str, Any],
@@ -116,12 +137,25 @@ def _maybe_enqueue_publish_request(
     if not brand_id:
         return
     from _lib import publish_sandbox  # noqa: PLC0415
+    from _lib.jobs.layer5.image_draft_context import primary_channel_for_item  # noqa: PLC0415
 
-    publish_sandbox.enqueue_for_intended_channels(
+    inbox_item_id = str(sidecar.get("source_inbox_item_id") or "")
+    asset_platform = str(asset.get("platform") or sidecar.get("platform") or "")
+    platform = primary_channel_for_item(
+        brand_id,
+        inbox_item_id,
+        fallback=asset_platform or "instagram",
+    )
+    if not _enqueue_ready(caption=caption, asset=asset, sidecar=sidecar, platform=platform):
+        return
+    lodged_title = str(sidecar.get("title") or asset.get("name") or "")
+    publish_sandbox.enqueue_for_primary_channel(
         brand_id=brand_id,
         caption_preview=caption,
-        inbox_item_id=str(sidecar.get("source_inbox_item_id") or ""),
+        inbox_item_id=inbox_item_id,
         asset_id=asset_id,
+        asset_platform=asset_platform,
+        lodged_title=lodged_title,
     )
 
 
@@ -148,6 +182,21 @@ def run() -> dict[str, Any]:
             caption = str(asset.get("caption") or "")
 
             issues = _check_sidecar(sidecar, caption)
+            action = str(sidecar.get("action") or "")
+            if action == "draft_image":
+                from _lib.jobs.layer5.image_draft_context import primary_channel_for_item  # noqa: PLC0415
+
+                inbox_item_id = str(sidecar.get("source_inbox_item_id") or "")
+                asset_platform = str(asset.get("platform") or "")
+                platform = primary_channel_for_item(
+                    str(sidecar.get("brand_id") or ""),
+                    inbox_item_id,
+                    fallback=asset_platform or "instagram",
+                )
+                if platform != "gbp":
+                    size = _resolve_png_size(asset)
+                    if size is None or size <= 0:
+                        issues.append("image file missing or empty")
             checked += 1
             verdict = "pass" if not issues else "fail"
             if verdict == "pass":

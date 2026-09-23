@@ -438,6 +438,69 @@ def calendar_title_for_item(brand_id: str, inbox_item_id: str) -> str:
     return _first_str(record, "title", "event_key")
 
 
+def _normalize_platform(raw: str) -> str:
+    p = (raw or "").strip().lower()
+    aliases = {
+        "fb": "facebook",
+        "ig": "instagram",
+        "google": "gbp",
+        "google_business": "gbp",
+        "google-business": "gbp",
+    }
+    return aliases.get(p, p)
+
+
+def calendar_record_for_item(brand_id: str, inbox_item_id: str) -> Optional[dict[str, Any]]:
+    """Calendar moment dict for a calendar_candidate inbox id, else None."""
+    item_type, item_brand, cal_id = _parse_item_id(inbox_item_id)
+    if item_type != "calendar_candidate" or not cal_id:
+        return None
+    try:
+        record = _resolve_calendar_record(item_brand or brand_id, cal_id)
+    except Exception:  # noqa: BLE001
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def primary_channel_for_item(
+    brand_id: str,
+    inbox_item_id: str,
+    *,
+    fallback: str = "instagram",
+) -> str:
+    """Channel this lodge publishes on (calendar primary_channel, else asset fallback)."""
+    record = calendar_record_for_item(brand_id, inbox_item_id)
+    if record:
+        ch = _first_str(record, "primary_channel", "platform", "channel")
+        if ch:
+            return _normalize_platform(ch)
+    return _normalize_platform(fallback)
+
+
+def calendar_event_date_for_item(brand_id: str, inbox_item_id: str) -> str:
+    """Goes-out date (YYYY-MM-DD) from the calendar moment when available."""
+    record = calendar_record_for_item(brand_id, inbox_item_id)
+    if not record:
+        return ""
+    return _first_str(record, "event_date", "event_start", "event_window_start")
+
+
+def lodged_title_for_item(
+    brand_id: str,
+    inbox_item_id: str,
+    *,
+    sidecar_title: str = "",
+    asset_name: str = "",
+) -> str:
+    """Human title for cards — sidecar/asset name, else calendar title."""
+    for candidate in (sidecar_title, asset_name):
+        text = (candidate or "").strip()
+        if text and not text.lower().startswith("draft "):
+            return text
+    cal = calendar_title_for_item(brand_id, inbox_item_id)
+    return cal.strip()
+
+
 def image_url_for(brand_id: str, saved_path: str | None) -> str | None:
     """/brand-images/<brand>/<basename> — mirrors app.py image generate preview_url."""
     if not saved_path:

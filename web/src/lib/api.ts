@@ -60,6 +60,9 @@ export type InboxItem = {
     campaign_id?: string
     asset_id?: string
     platform?: string
+    primary_channel?: string
+    event_date?: string
+    goes_out_at?: string
     approval_status?: string
     caption?: string
     image_path?: string
@@ -960,6 +963,21 @@ export type InboxMediaTag = {
   tone: 'green' | 'mute' | 'gold'
 }
 
+export function inboxChannelLabel(item?: InboxItem | null): string {
+  const meta = item?.meta
+  const raw = String(meta?.primary_channel || meta?.platform || '').trim()
+  if (!raw) return ''
+  return raw.replace(/_/g, ' ')
+}
+
+export function inboxGoesOutIso(item?: InboxItem | null): string | null {
+  const meta = item?.meta
+  const raw = meta?.goes_out_at || meta?.event_date
+  if (!raw) return null
+  const s = String(raw).trim()
+  return s || null
+}
+
 export function inboxMediaTag(item?: InboxItem | null): InboxMediaTag {
   if (inboxItemThumbUrl(item)) {
     return { id: 'has-image', label: 'Has image', tone: 'green' }
@@ -1103,6 +1121,8 @@ export type SandboxQueueItem = {
   human_approved?: boolean
   created_at?: string
   would_publish_at?: string
+  lodged_title?: string
+  event_date?: string
   asset_id?: string
   campaign_id?: string
   inbox_item_id?: string

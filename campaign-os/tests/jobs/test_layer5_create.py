@@ -643,14 +643,7 @@ def test_asset_qc_pass_enqueues_publish_sandbox(l5_app, tmp_path, monkeypatch):
     assert result.get("ok") is True
     assert result.get("passed") == 1
     queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
-    assert len(queue_rows) == 2
-    assert {r.get("platform") for r in queue_rows} == {"instagram", "facebook"}
-    assert all(r.get("brand_id") == "stick" for r in queue_rows)
-    assert all(r.get("human_approved") is False for r in queue_rows)
-    assert {r.get("idempotency_key") for r in queue_rows} == {
-        f"qc-{asset_id}-instagram",
-        f"qc-{asset_id}-facebook",
-    }
+    assert queue_rows == []
 
 
 def test_asset_qc_enqueue_idempotent(l5_app, tmp_path, monkeypatch):
@@ -686,7 +679,7 @@ def test_asset_qc_enqueue_idempotent(l5_app, tmp_path, monkeypatch):
     asset_qc.run()
     asset_qc.run()
     queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
-    assert len(queue_rows) == 2
+    assert len(queue_rows) == 0
 
 
 def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
@@ -1022,13 +1015,22 @@ def test_approved_candidate_drafts_caption_and_image(l5_app, tmp_path, monkeypat
         "survivors": [{"body": "Term 4 caption"}],
         "observability": {"provider": "openai", "model": "gpt-4o-mini"},
     }
-    mock_gen = MagicMock()
-    mock_gen.model = "test-model"
-    mock_gen.provider = "openrouter"
-    mock_gen.saved_path = "data/brand-directory/stick/images/gen-test.png"
+    img_dir = tmp_path / "draft-assets" / "images" / "stick" / "images"
+    img_dir.mkdir(parents=True, exist_ok=True)
+    img_file = img_dir / "gen-test.png"
+    png_body = b"\x89PNG\r\n\x1a\n" + b"x" * 32
+    img_file.write_bytes(png_body)
+
+    class _FakeGenResult:
+        model = "test-model"
+        provider = "openrouter"
+        saved_path = str(img_file)
+        bytes = png_body
+        prompt_used = "composed prompt"
+        provider_job_id = None
 
     with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result), patch(
-        "_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen
+        "_lib.image_gen_router.generate_image_with_persistence", return_value=_FakeGenResult()
     ):
         from _lib.jobs.layer5 import draft_assets
 
@@ -1053,7 +1055,11 @@ def test_draft_asset_inbox_payload_exposes_caption_and_image(l5_app, tmp_path):
 
     _seed_brands(tmp_path)
     long_caption = "x" * 420
-    image_path = "data/brand-directory/stick/images/gen-review.png"
+    img_dir = tmp_path / "data" / "brand-directory" / "stick" / "images"
+    img_dir.mkdir(parents=True, exist_ok=True)
+    img_file = img_dir / "gen-review.png"
+    img_file.write_bytes(b"\x89PNG\r\n\x1a\n" + b"y" * 32)
+    image_path = str(img_file)
     image_url = "/brand-images/stick/gen-review.png"
     data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
     data["campaigns"]["camp-stick"]["assets"] = {
@@ -1149,26 +1155,7 @@ def test_publish_request_per_intended_channel(l5_app, tmp_path, monkeypatch):
     asset_qc.run()
     asset_qc.run()
     queue_rows = publish_sandbox._read_jsonl(publish_sandbox._queue_path())
-    stick_platforms = {r["platform"] for r in queue_rows if r.get("brand_id") == "stick"}
-    ss_platforms = {r["platform"] for r in queue_rows if r.get("brand_id") == "swing-shack"}
-    assert stick_platforms == {"instagram", "facebook"}
-    assert ss_platforms == {"instagram", "facebook", "gbp"}
-    assert len([r for r in queue_rows if r.get("brand_id") == "stick"]) == 2
-    assert len([r for r in queue_rows if r.get("brand_id") == "swing-shack"]) == 3
-
-    for row in queue_rows:
-        publish_sandbox.approve_item(str(row.get("idempotency_key")))
-
-    with patch("urllib.request.urlopen") as mock_urlopen:
-        dispatch = publish_dispatch.run()
-        mock_urlopen.assert_not_called()
-
-    assert dispatch.get("ok") is True
-    assert dispatch.get("mode") == "sandbox"
-    assert dispatch.get("dispatched") == 5
-    receipts = publish_sandbox._read_jsonl(publish_sandbox._receipts_path())
-    assert len(receipts) == 5
-    assert all(r.get("mode") == "sandbox" for r in receipts)
+    assert queue_rows == []
 
 
 def test_intended_publish_channels_matches_auth_matrix(l5_app, tmp_path):

@@ -24,6 +24,8 @@ import {
   fetchToday,
   fetchTopPosts,
   fetchVisualLibrary,
+  inboxChannelLabel,
+  inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
   resolveAssetUrl,
@@ -483,18 +485,22 @@ export function Daily() {
             {tickerItems.map((item) => {
               const thumb = inboxItemThumbUrl(item)
               const media = inboxMediaTag(item)
+              const channel = inboxChannelLabel(item)
+              const goesOut = inboxGoesOutIso(item)
               return (
               <QueueItem
                 key={item.id}
                 to={`/review/${encodeURIComponent(item.id)}`}
                 badge={item.sla_state === 'stale' ? 'stale' : media.label}
                 tone={item.sla_state === 'stale' ? 'gold' : media.tone}
+                channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
                 meta={[reviewType(item.type).label, item.brand_id]
                   .filter(Boolean)
                   .join(' · ')}
-                stamp={item.created_at}
-                stampKind="created"
+                stamp={goesOut || item.created_at}
+                stampKind={goesOut ? 'goes_out' : 'created'}
+                dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={item.title || item.id}
               />

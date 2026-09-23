@@ -14,7 +14,7 @@ import {
   type TodayCounts,
   type TodayPanel,
 } from '../lib/api'
-import { sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
+import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
 export function Publish() {
@@ -155,16 +155,21 @@ export function Publish() {
                   const id = sandboxRowId(row)
                   const thumb = resolveAssetUrl(row.image_url || row.image_path)
                   const caption = String(row.caption || row.caption_preview || '').trim()
+                  const goesOut = sandboxGoesOutIso(row)
+                  const platform = String(row.platform || 'post')
                   return (
                     <QueueItem
                       key={id || sandboxTitle(row)}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
                       tip="Open the sandbox preview — mock only, nothing goes live."
-                      badge={String(row.platform || 'post')}
+                      badge="sandbox"
                       tone="gold"
+                      channelBadge={platform}
                       title={sandboxTitle(row)}
                       meta={[row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
-                      stamp={row.created_at}
+                      stamp={goesOut || row.created_at}
+                      stampKind={goesOut ? 'goes_out' : 'created'}
+                      dateOnly={Boolean(goesOut)}
                       thumb={thumb || undefined}
                       thumbAlt={caption.slice(0, 80) || id}
                     />

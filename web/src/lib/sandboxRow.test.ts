@@ -41,6 +41,15 @@ describe('sandboxTitle', () => {
     expect(sandboxTitle({ caption: long } as SandboxQueueItem)).toHaveLength(120)
   })
 
+  it('prefers lodged_title over caption', () => {
+    expect(
+      sandboxTitle({
+        lodged_title: 'Weekend fittings',
+        caption: 'Long caption body',
+      } as SandboxQueueItem),
+    ).toBe('Weekend fittings')
+  })
+
   it('falls back to platform and brand', () => {
     expect(sandboxTitle({ platform: 'instagram', brand_id: 'swing-shack' } as SandboxQueueItem)).toBe(
       'Sandbox instagram — swing-shack',

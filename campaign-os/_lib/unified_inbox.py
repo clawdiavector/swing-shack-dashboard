@@ -82,9 +82,54 @@ def _is_caption_only_l5_draft(asset_id: str, asset: dict[str, Any]) -> bool:
     return str(sidecar.get("action") or "") in ("draft_caption", "fill_slot")
 
 
+def _resolve_image_path(asset: dict[str, Any]) -> Path | None:
+    if not asset:
+        return None
+    raw = asset.get("image_path") or asset.get("filePath")
+    if not raw:
+        url = (
+            asset.get("creative_url")
+            or asset.get("image_url")
+            or asset.get("visualUrl")
+            or asset.get("imageUrl")
+            or asset.get("mediaUrl")
+        )
+        raw = url
+    path_s = str(raw or "").strip()
+    if not path_s or path_s.startswith(("http://", "https://", "data:")):
+        return None
+    candidate = Path(path_s)
+    if candidate.is_file():
+        return candidate
+    alt = _data_dir() / path_s.lstrip("/")
+    if alt.is_file():
+        return alt
+    bundled = Path(__file__).resolve().parents[2] / path_s.lstrip("/")
+    if bundled.is_file():
+        return bundled
+    return None
+
+
+def _asset_image_file_size(asset: dict[str, Any]) -> int | None:
+    path = _resolve_image_path(asset)
+    if not path:
+        return None
+    try:
+        return int(path.stat().st_size)
+    except OSError:
+        return None
+
+
+def _asset_has_reviewable_image(asset: dict[str, Any]) -> bool:
+    size = _asset_image_file_size(asset)
+    return size is not None and size > 0
+
+
 def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
     """Resolve image_path / image_url from campaign assets (camelCase or snake_case)."""
     if not asset:
+        return None, None
+    if not _asset_has_reviewable_image(asset):
         return None, None
     image_url = (
         asset.get("creative_url")
@@ -392,11 +437,40 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
             platform = str(row.get("platform") or asset.get("platform") or "")
             if bucket_name == "pending" and platform != "gbp" and _is_caption_only_l5_draft(aid, asset):
                 continue
+            sidecar_path = _data_dir() / "draft-assets" / f"{aid}.json"
+            sidecar: dict[str, Any] = {}
+            if sidecar_path.is_file():
+                try:
+                    loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                    if isinstance(loaded, dict):
+                        sidecar = loaded
+                except (OSError, json.JSONDecodeError):
+                    pass
+            source_item = str(sidecar.get("source_inbox_item_id") or "")
+            from _lib.jobs.layer5.image_draft_context import (  # noqa: PLC0415
+                calendar_event_date_for_item,
+                lodged_title_for_item,
+                primary_channel_for_item,
+            )
+
+            primary_channel = primary_channel_for_item(
+                brand_id,
+                source_item,
+                fallback=platform or "instagram",
+            )
+            lodged_title = lodged_title_for_item(
+                brand_id,
+                source_item,
+                sidecar_title=str(sidecar.get("title") or ""),
+                asset_name=str(asset.get("name") or row.get("name") or ""),
+            )
+            event_date = calendar_event_date_for_item(brand_id, source_item)
+            display_title = lodged_title or _draft_item_title(row, asset, aid)
             out.append({
                 "id": _item_id("draft_asset", f"{cid}:{aid}"),
                 "type": "draft_asset",
                 "brand_id": brand_id,
-                "title": _draft_item_title(row, asset, aid),
+                "title": display_title,
                 "summary": str(row.get("caption") or "")[:240],
                 "evidence": [{"source": "review_inbox", "ref": f"{cid}/{aid}"}],
                 "created_at": ts,
@@ -407,7 +481,9 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 "meta": {
                     "campaign_id": cid,
                     "asset_id": aid,
-                    "platform": row.get("platform"),
+                    "platform": primary_channel or row.get("platform"),
+                    "primary_channel": primary_channel,
+                    "event_date": event_date or None,
                     "approval_status": row.get("approvalStatus"),
                     "caption": full_caption,
                     "image_path": image_path,
@@ -438,11 +514,23 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
         item_status = "pending"
         if status != "all" and item_status != status:
             continue
+        lodged_title = str(row.get("lodged_title") or "").strip()
+        inbox_ref = str(row.get("inbox_item_id") or "")
+        if not lodged_title and inbox_ref:
+            from _lib.jobs.layer5.image_draft_context import lodged_title_for_item  # noqa: PLC0415
+
+            lodged_title = lodged_title_for_item(brand_id, inbox_ref)
+        platform = str(row.get("platform") or "post")
+        title = lodged_title or str(row.get("caption_preview") or "")[:120] or key
+        event_date = str(row.get("event_date") or "").strip()
+        goes_out = row.get("would_publish_at") or (
+            f"{event_date}T09:00:00Z" if event_date and "T" not in event_date else event_date
+        )
         out.append({
             "id": _item_id("publish_request", key),
             "type": "publish_request",
             "brand_id": brand_id,
-            "title": f"Publish {row.get('platform') or 'post'} — {brand_id}",
+            "title": title,
             "summary": str(row.get("caption_preview") or "")[:240],
             "evidence": [{"source": "publish-sandbox", "ref": key}],
             "created_at": ts,
@@ -451,7 +539,13 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
             "sla_state": _sla_state(str(ts) if ts else None, now=now),
             "blocked_missing_oauth": blocked,
             "actions": ["approve", "edit", "reject"],
-            "meta": _publish_request_meta(row, key, campaign_data),
+            "meta": {
+                **_publish_request_meta(row, key, campaign_data),
+                "platform": platform,
+                "primary_channel": platform,
+                "event_date": event_date or None,
+                "goes_out_at": goes_out or None,
+            },
         })
     return out
 

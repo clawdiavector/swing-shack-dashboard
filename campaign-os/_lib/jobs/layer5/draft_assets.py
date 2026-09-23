@@ -15,7 +15,7 @@ from ..errors import describe_exception
 from ..layer1._io import atomic_write, read_json
 from _lib.brand_validate import validate_brand_id
 
-from .image_draft_context import calendar_title_for_item, image_url_for
+from .image_draft_context import calendar_title_for_item, image_url_for, primary_channel_for_item
 
 _DRAFT_HEX_NAME = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
 _CAPTION_NAME_MAX = 72
@@ -467,10 +467,11 @@ def _process_caption_row(
         caption=caption,
         calendar_title=cal_title,
     )
+    primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
-        platform="instagram",
+        platform=primary_platform,
         source_item_id=item_id,
         sidecar={
             "action": "draft_caption",
@@ -827,25 +828,37 @@ def _process_image_row(
         model_routing["requirements"] = cd["requirements"]
 
     image_path_str = str(image_path) if image_path else None
-    image_url = image_url_for(brand_id, image_path_str)
+    raw_bytes = getattr(result, "bytes", b"")
+    if not isinstance(raw_bytes, (bytes, bytearray)):
+        raw_bytes = b""
+    has_bytes = len(raw_bytes) > 0
+    if image_path_str:
+        try:
+            has_bytes = Path(image_path_str).is_file() and Path(image_path_str).stat().st_size > 0
+        except OSError:
+            has_bytes = False
+    image_url = image_url_for(brand_id, image_path_str) if has_bytes else None
     def _result_str(attr: str) -> str | None:
         val = getattr(result, attr, None)
         return val if isinstance(val, str) else None
 
+    primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    provider_job_id = getattr(result, "provider_job_id", None)
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
-        platform="instagram",
+        platform=primary_platform,
         source_item_id=item_id,
-        image_path=image_path_str,
+        image_path=image_path_str if has_bytes else None,
         image_url=image_url,
         sidecar={
             "action": "draft_image",
             "route": "job:draft_assets/image",
             "model": _result_str("model"),
             "provider": _result_str("provider"),
-            "image_path": image_path_str,
+            "image_path": image_path_str if has_bytes else None,
             "image_url": image_url,
+            "provider_job_id": provider_job_id,
             "image_size": size,
             "cost_estimate_usd": est,
             "queue_row_id": row.get("id"),

@@ -3306,19 +3306,21 @@ def image_poll_krea_job():
             ext = ".png" if "png" in mime else (
                 ".jpg" if "jpeg" in mime or "jpg" in mime else ".bin"
             )
-            out_path = brand_dir / f"{job_id}{ext}"
-            out_path.write_bytes(img_bytes)
             sidecar = {
                 "job_id": job_id,
                 "brand_id": brand_id,
                 "provider": "krea",
                 "url": url,
                 "mime": mime,
+                "bytes_size": len(img_bytes),
                 "saved_at": dt.utcnow().isoformat() + "Z",
             }
             (brand_dir / f"{job_id}.json").write_text(
                 json.dumps(sidecar, indent=2)
             )
+            if img_bytes:
+                out_path = brand_dir / f"{job_id}{ext}"
+                out_path.write_bytes(img_bytes)
         return jsonify({
             "ok": True,
             "job_id": job_id,
