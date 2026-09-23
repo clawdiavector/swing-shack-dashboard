@@ -626,7 +626,10 @@ def get_top_instagram_posts(brand_id: str | None = None, limit: int = 8) -> dict
             "timestamp": p.get("timestamp"),
             "engagementRate": er,
             "permalink": p.get("permalink"),
-            "thumbnail_url": p.get("thumbnail_url") or p.get("media_url"),
+            "thumbnail_url": p.get("thumbnail_url") or (
+                "" if (p.get("media_type") or "").upper() == "VIDEO" else (p.get("media_url") or "")
+            ),
+            "media_url": p.get("media_url"),
             "media_type": p.get("media_type"),
             "caption_excerpt": cap,
             "like_count": p.get("like_count"),

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
+import { InsightPostThumb } from '../components/InsightPostThumb'
 import { Badge, Button, IconTile, StatCard, Tip } from '../components/ui'
 import { fetchToday, fetchTopPosts, type InsightPost, type TodayPanel } from '../lib/api'
 
@@ -20,7 +21,6 @@ export function Results() {
   const { brandId, brandLabel } = useBrand()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [posts, setPosts] = useState<InsightPost[]>([])
-  const [brokenThumbs, setBrokenThumbs] = useState<Record<string, true>>({})
 
   useEffect(() => {
     fetchToday(brandId)
@@ -29,7 +29,6 @@ export function Results() {
   }, [brandId])
 
   useEffect(() => {
-    setBrokenThumbs({})
     fetchTopPosts(brandId, 3)
       .then((p) => setPosts(p.posts || []))
       .catch(() => setPosts([]))
@@ -109,7 +108,6 @@ export function Results() {
               const to = p.id
                 ? `/results/worked?tab=posts&post=${encodeURIComponent(p.id)}`
                 : '/results/worked?tab=posts'
-              const src = p.thumbnail_url && !brokenThumbs[key] ? p.thumbnail_url : ''
               const line = p.plain_english || p.caption_excerpt || 'Recent post'
               return (
                 <li key={key}>
@@ -118,19 +116,12 @@ export function Results() {
                       to={to}
                       className="glass flex items-center gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 hover:border-ac/40"
                     >
-                      {src ? (
-                        <img
-                          src={src}
-                          alt=""
-                          loading="lazy"
-                          onError={() => setBrokenThumbs((m) => ({ ...m, [key]: true }))}
-                          className="h-16 w-16 shrink-0 rounded-xl object-cover"
-                        />
-                      ) : (
-                        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-bd text-[12px] text-tx3">
-                          no thumb
-                        </span>
-                      )}
+                      <InsightPostThumb
+                        post={p}
+                        thumbKey={key}
+                        className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                        placeholderClassName="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-bd text-[12px] text-tx3"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="line-clamp-2 text-sm font-medium">{line}</span>
                         {p.verdict ? (

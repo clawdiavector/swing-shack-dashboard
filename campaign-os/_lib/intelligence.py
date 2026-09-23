@@ -237,6 +237,30 @@ def _enrich_do_first_where(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return out
 
 
+def _brand_scoped_reco_entries(
+    entries: List[Any],
+    scoped_brand: str | None,
+) -> List[Dict[str, Any]]:
+    """Keep recommendation rows owned by the active brand; drop unscoped rows."""
+    if not isinstance(entries, list):
+        return []
+    if not scoped_brand:
+        return [e for e in entries if isinstance(e, dict)]
+    out: List[Dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        nested = entry.get("item")
+        cid = entry.get("campaignId") or entry.get("campaign_id")
+        if isinstance(nested, dict):
+            cid = cid or nested.get("campaignId") or nested.get("campaign_id")
+        if not cid:
+            continue
+        if _owns_campaign(str(cid), scoped_brand):
+            out.append(entry)
+    return out
+
+
 def morning_brief() -> Dict[str, Any]:
     """Synthesize 'what should Christelle do today?' from all signals."""
     cd = _campaign_data()
@@ -294,10 +318,19 @@ def morning_brief() -> Dict[str, Any]:
                     "issue": asset.get("revisionRequest", "") or asset.get("approvalStatus", "") or "",
                 })
 
-    # Pull top recommendations from data/
-    do_first = (_read_json(os.path.join(DATA_DIR, "recommendation-scores.json")) or {}).get("do_first") or []
-    missed = (_read_json(os.path.join(DATA_DIR, "missed-opportunities.json")) or {})
+    # Pull top recommendations from runtime data (brand-scoped).
+    scores = _read_json(_runtime_data_file("recommendation-scores.json")) or {}
+    do_first_raw = scores.get("do_first") if isinstance(scores, dict) else []
+    do_first = _brand_scoped_reco_entries(
+        do_first_raw if isinstance(do_first_raw, list) else [],
+        scoped_brand,
+    )
+    missed = _read_json(_runtime_data_file("missed-opportunities.json")) or {}
     missed_list = missed.get("opportunities", []) if isinstance(missed, dict) else []
+    missed_list = _brand_scoped_reco_entries(
+        missed_list if isinstance(missed_list, list) else [],
+        scoped_brand,
+    )
     high_impact_missed = [m for m in missed_list if isinstance(m, dict) and m.get("severity") == "high"][:3]
 
     # Quick wins from SEO

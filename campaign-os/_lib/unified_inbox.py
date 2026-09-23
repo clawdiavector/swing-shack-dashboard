@@ -387,7 +387,13 @@ def list_items(
         for fn in collectors.values():
             items.extend(fn(brand=brand, status=status, now=now))
 
-    items.sort(key=lambda x: (0 if x.get("sla_state") == "stale" else 1, x.get("updated_at") or ""))
+    def _created_desc_key(item: dict[str, Any]) -> datetime:
+        parsed = _parse_iso(item.get("created_at"))
+        if parsed is not None:
+            return parsed
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+    items.sort(key=_created_desc_key, reverse=True)
 
     stale = sum(1 for i in items if i.get("sla_state") == "stale" and i.get("status") == "pending")
     return {

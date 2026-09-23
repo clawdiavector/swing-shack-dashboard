@@ -15,20 +15,23 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandSwitch, useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
+import { InsightPostThumb } from '../components/InsightPostThumb'
 import { Badge, Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
+  fetchInbox,
   fetchLayers,
   fetchLearn,
   fetchToday,
   fetchTopPosts,
+  type InboxItem,
   type InsightPost,
   type InsightsPosts,
   type LayerEntry,
   type LayersPayload,
   type LearnSummary,
-  type TodayCard,
   type TodayPanel,
 } from '../lib/api'
+import { reviewType } from '../lib/reviewType'
 import type { BriefAction } from '../lib/api'
 import { formatStamp } from '../lib/stamp'
 
@@ -118,12 +121,12 @@ export function Daily() {
   const [layers, setLayers] = useState<LayersPayload | null>(null)
   const [learn, setLearn] = useState<LearnSummary | null>(null)
   const [posts, setPosts] = useState<InsightPost[]>([])
+  const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
   const [insightMeta, setInsightMeta] = useState<InsightsPosts['_meta']>()
   const [error, setError] = useState('')
-  const [brokenThumbs, setBrokenThumbs] = useState<Record<string, true>>({})
 
   function load(brand?: string) {
-    setBrokenThumbs({})
+    setInboxItems(null)
     fetchToday(brand)
       .then(setData)
       .catch((err: Error) => setError(err.message))
@@ -142,6 +145,9 @@ export function Daily() {
         setPosts([])
         setInsightMeta(undefined)
       })
+    fetchInbox('pending', brand)
+      .then((payload) => setInboxItems(payload.items || []))
+      .catch(() => setInboxItems([]))
   }
 
   useEffect(() => {
@@ -151,8 +157,7 @@ export function Daily() {
   const counts = data?.counts
   const waiting = counts?.review ?? 0
   const drafts = counts?.draft ?? 0
-  const queue = (data?.cards || []) as TodayCard[]
-  const rest = queue.slice(0, 7)
+  const tickerItems = (inboxItems || []).slice(0, 7)
   const asOf = data?.ts
   const best = posts[0]
   const l1 = layerOf(layers, 'L1')
@@ -445,24 +450,24 @@ export function Daily() {
             </Tip>
           </div>
           <ul className="space-y-2">
-            {rest.map((card) => (
+            {tickerItems.map((item) => (
               <QueueItem
-                key={`${card.kind}-${card.id}`}
-                to={card.kind === 'review' || card.kind === 'action' ? `/review/${encodeURIComponent(card.id)}` : '/review'}
-                badge={card.label}
-                tone={kindTone(card.kind)}
-                title={card.title}
-                meta={card.why && card.why !== card.title ? card.why : undefined}
-                stamp={card.stamp || card.updatedAt || asOf}
-                stampKind={card.stampKind}
+                key={item.id}
+                to={`/review/${encodeURIComponent(item.id)}`}
+                badge={item.sla_state === 'stale' ? 'stale' : reviewType(item.type).label}
+                tone={kindTone(item.sla_state === 'stale' ? 'review' : 'draft')}
+                title={item.title || item.summary || item.id}
+                meta={item.meta?.caption?.slice(0, 90) || item.brand_id}
+                stamp={item.created_at}
+                stampKind="created"
               />
             ))}
-            {data && rest.length === 0 ? (
+            {inboxItems && tickerItems.length === 0 ? (
               <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
                 Nothing else waiting — go to Studio if you want a new draft.
               </li>
             ) : null}
-            {!data && !error ? (
+            {inboxItems === null && !error ? (
               <>
                 <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
                 <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
@@ -481,7 +486,6 @@ export function Daily() {
                   const to = p.id
                     ? `/results/worked?tab=posts&post=${encodeURIComponent(p.id)}`
                     : '/results/worked?tab=posts'
-                  const src = p.thumbnail_url && !brokenThumbs[key] ? p.thumbnail_url : ''
                   return (
                     <li key={key}>
                       <Tip
@@ -491,19 +495,7 @@ export function Daily() {
                           to={to}
                           className="block rounded-xl border border-bd hover:border-ac/40"
                         >
-                          {src ? (
-                            <img
-                              src={src}
-                              alt=""
-                              loading="lazy"
-                              onError={() => setBrokenThumbs((m) => ({ ...m, [key]: true }))}
-                              className="h-16 w-16 rounded-xl object-cover"
-                            />
-                          ) : (
-                            <span className="grid h-16 w-16 place-items-center rounded-xl text-[12px] text-tx3">
-                              no thumb
-                            </span>
-                          )}
+                          <InsightPostThumb post={p} thumbKey={key} />
                         </Link>
                       </Tip>
                     </li>
@@ -518,10 +510,10 @@ export function Daily() {
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">Shortcuts</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <IconTile href="/?page=socials" icon={Share2} label="Socials" hint="What’s live for this brand" />
-          <IconTile href="/?page=gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
-          <IconTile href="/?page=buildpost" icon={Sparkles} label="Build a post" hint="Jump straight into studio" />
-          <IconTile href="/results/week" icon={CheckCircle2} label="This week" hint="Weekly report" />
+          <IconTile to="/publish/socials" icon={Share2} label="Socials" hint="What’s live for this brand" />
+          <IconTile to="/publish/gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
+          <IconTile to="/create/post" icon={Sparkles} label="Build a post" hint="Jump straight into studio" />
+          <IconTile to="/results/week" icon={CheckCircle2} label="This week" hint="Weekly report" />
         </div>
       </section>
     </div>

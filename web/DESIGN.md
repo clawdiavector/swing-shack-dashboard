@@ -108,6 +108,9 @@ page carries a ClassicLink raw anchor to its classic page.
 
 ## Review
 
+Pending unified inbox rows sort **newest first** by `created_at` (stale still badges on
+the row; sort order does not pin old holidays above fresh work).
+
 Review names the thing in human words. `calendar_candidate` → "Proposed calendar
 moment", `draft_asset` → "Draft post", `publish_request` → "Ready to queue",
 `proposal` → "Proposal"; an unknown type degrades to its Title-Cased raw value.
@@ -189,8 +192,12 @@ Leftover HTML and standalone pages (`image-lab.html`, `visualizer.html`, `meme-l
 2. Do this now (one sentence + primary button)
 3. Waiting on you (count → Review)
 4. This week / Today reports (two panels)
-5. Queue cards from `/api/today/panel`
-6. What’s live → `/app/publish/socials` (native Socials)
+5. Today ticker lists the brand’s **pending unified inbox** (same queue as Review), not
+   morning-brief cards alone. Counts/summary still come from `/api/today/panel?brand=`.
+6. “What worked” thumbs: `thumbnail_url`, then `media_url` (not VIDEO), then oEmbed
+   recovery on image error via `/api/socials/oembed`.
+7. Shortcuts use native Heroes routes (`/publish/socials`, `/publish/gbp`, `/create/post`,
+   `/results/week`).
 
 ## Other
 
