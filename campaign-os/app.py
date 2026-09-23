@@ -14556,7 +14556,7 @@ def gsc_debug_resolve_route():
 
 
 @app.route('/api/gsc/per-brand-data', methods=['GET'])
-def gsc_per_brand_data_route():
+def gsc_per_brand_data_route():  # 2026-09-23-v2
     """GET /api/gsc/per-brand-data?brand=<id> — read the per-brand
     search-console.json file directly (DATA_DIR/brands/<brand>/search-console.json)
     and return its contents. Falls back to the flat file with a clear
