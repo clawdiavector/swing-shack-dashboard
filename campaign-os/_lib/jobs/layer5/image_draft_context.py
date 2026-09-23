@@ -424,6 +424,20 @@ def _compose_cd(
         return {"sections": [], "negative_prompt": "", "model_routing": {}}
 
 
+def calendar_title_for_item(brand_id: str, inbox_item_id: str) -> str:
+    """Best-effort calendar title for an inbox item. Never raises, never writes."""
+    item_type, item_brand, cal_id = _parse_item_id(inbox_item_id)
+    if item_type != "calendar_candidate" or not cal_id:
+        return ""
+    try:
+        record = _resolve_calendar_record(item_brand or brand_id, cal_id)
+    except Exception:  # noqa: BLE001
+        return ""
+    if not isinstance(record, dict):
+        return ""
+    return _first_str(record, "title", "event_key")
+
+
 def image_url_for(brand_id: str, saved_path: str | None) -> str | None:
     """/brand-images/<brand>/<basename> — mirrors app.py image generate preview_url."""
     if not saved_path:
