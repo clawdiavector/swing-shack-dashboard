@@ -334,8 +334,10 @@ export async function unscheduleAsset(assetId: string) {
   return res.json() as Promise<ScheduleResult>
 }
 
-export function fetchInbox(status = 'pending') {
-  return getJson<InboxPayload>(`/api/inbox/unified?status=${encodeURIComponent(status)}`)
+export function fetchInbox(status = 'pending', brand?: string) {
+  const q = new URLSearchParams({ status })
+  if (brand) q.set('brand', brand)
+  return getJson<InboxPayload>(`/api/inbox/unified?${q}`)
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {

@@ -147,7 +147,8 @@ export function ReviewPiece() {
           {assetLoading && !asset ? (
             <div className="mb-4 h-48 animate-pulse rounded-2xl bg-bg3" />
           ) : visualUrl && !imgBroken ? (
-            <Tip text="Open the full-size image in a new tab." className="mb-4 block">
+            <div className="mb-4">
+            <Tip text="Open the full-size image in a new tab." block>
               <a href={visualUrl} target="_blank" rel="noreferrer" className="block">
                 <img
                   src={visualUrl}
@@ -157,6 +158,7 @@ export function ReviewPiece() {
                 />
               </a>
             </Tip>
+            </div>
           ) : imgBroken ? (
             <div className="mb-4 rounded-2xl border border-bd bg-bg2/50 px-4 py-3 text-sm text-tx3">
               <p>
