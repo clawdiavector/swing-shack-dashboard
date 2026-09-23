@@ -1,0 +1,109 @@
+{
+  "schema": "https://campaign-os/weekly-report/v3.1-snapshot",
+  "brand_id": "swing-shack",
+  "as_of": "2026-09-21",
+  "current_period": {
+    "start": "2026-09-15",
+    "end": "2026-09-21"
+  },
+  "previous_period": {
+    "start": "2026-09-08",
+    "end": "2026-09-14"
+  },
+  "data_complete_through": "2026-09-21",
+  "kpi_values": {
+    "Sessions": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Users": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Engaged sessions": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Engagement rate": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Pageviews": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "IG reach (28d)": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "IG interactions (28d)": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "Meta paid spend": {
+      "current": null,
+      "previous": null,
+      "data_status": "LIVE"
+    },
+    "Meta results": {
+      "current": null,
+      "previous": null,
+      "data_status": "LIVE"
+    }
+  },
+  "source_statuses": {
+    "/api/ga4/<brand>/v22/sessions": {
+      "status": null,
+      "fetched_at": null,
+      "data_as_of": null
+    },
+    "marketing_calendar.canonical_records": {
+      "status": null,
+      "fetched_at": null,
+      "data_as_of": "2026-09-22T07:52:03.203602+00:00"
+    },
+    "Step 4B pending — synthetic data quarantined": {
+      "status": null,
+      "fetched_at": null,
+      "data_as_of": null
+    }
+  },
+  "north_stars": [
+    {
+      "id": "ss-fitting",
+      "label": "Fitting",
+      "metric": "PENDING CHRISTELLE (K10)",
+      "objective": "PENDING CHRISTELLE (K10)",
+      "source": "PENDING — Christelle K10",
+      "source_provenance": "placeholder, scope=operating_target, canonical=false",
+      "pillar_priority": "high"
+    },
+    {
+      "id": "ss-coaching",
+      "label": "Coaching",
+      "metric": "PENDING CHRISTELLE (K10)",
+      "objective": "PENDING CHRISTELLE (K10)",
+      "source": "PENDING — Christelle K10",
+      "source_provenance": "placeholder, scope=operating_target, canonical=false",
+      "pillar_priority": "high"
+    },
+    {
+      "id": "ss-membership",
+      "label": "Membership",
+      "metric": "PENDING CHRISTELLE (K10)",
+      "objective": "PENDING CHRISTELLE (K10)",
+      "source": "PENDING — Christelle K10",
+      "source_provenance": "placeholder, scope=operating_target, canonical=false",
+      "pillar_priority": "high"
+    }
+  ],
+  "report_status": "OK",
+  "archived_at": "2026-09-22T07:52:03.205724+00:00"
+}
