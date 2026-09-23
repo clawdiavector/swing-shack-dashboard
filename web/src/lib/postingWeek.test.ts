@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   emptyWeekBuckets,
+  formatGoesOut,
   formatPostingDayHeader,
+  nextActionFromStages,
+  postingChannelLabel,
   POSTING_STAGE_ORDER,
   primaryStageFromStages,
 } from './postingWeek'
@@ -29,6 +32,83 @@ describe('primaryStageFromStages', () => {
 
   it('returns booked when only booked is set', () => {
     expect(primaryStageFromStages({ booked: true })).toBe('booked')
+  })
+})
+
+describe('nextActionFromStages', () => {
+  it('waiting on caption when only booked is done', () => {
+    expect(nextActionFromStages({ booked: true, caption: false })).toBe('Waiting on caption')
+  })
+
+  it('waiting on image when caption is done', () => {
+    expect(
+      nextActionFromStages({
+        booked: true,
+        caption: true,
+        image: false,
+      }),
+    ).toBe('Waiting on image')
+  })
+
+  it('ready to review when image is done', () => {
+    expect(
+      nextActionFromStages({
+        booked: true,
+        caption: true,
+        image: true,
+        in_review: false,
+      }),
+    ).toBe('Ready to review')
+  })
+
+  it('needs your look when in review is done', () => {
+    expect(
+      nextActionFromStages({
+        booked: true,
+        caption: true,
+        image: true,
+        in_review: true,
+        approved: false,
+      }),
+    ).toBe('Needs your look')
+  })
+
+  it('approved when approved stage is done but not queued', () => {
+    expect(
+      nextActionFromStages({
+        booked: true,
+        caption: true,
+        image: true,
+        in_review: true,
+        approved: true,
+        queued: false,
+      }),
+    ).toBe('Approved')
+  })
+
+  it('in the sandbox when queued is done', () => {
+    expect(
+      nextActionFromStages({
+        booked: true,
+        caption: true,
+        image: true,
+        in_review: true,
+        approved: true,
+        queued: true,
+      }),
+    ).toBe('In the sandbox')
+  })
+})
+
+describe('formatGoesOut', () => {
+  it('uses weekday hint from the API day object', () => {
+    expect(formatGoesOut('2026-09-24', 'Thu')).toBe('Goes out Thu 24 Sep')
+  })
+})
+
+describe('postingChannelLabel', () => {
+  it('maps facebook to Facebook', () => {
+    expect(postingChannelLabel('facebook')).toBe('Facebook')
   })
 })
 
