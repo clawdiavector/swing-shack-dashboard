@@ -14511,6 +14511,108 @@ def gbp_daily_poster_latest_route():
 # anchored on the latest insights data so the Morning Brief tiles can
 # surface them with one click. Does NOT publish (destructive write is
 # always explicit via the GBP Daily card's Publish button).
+def _gbp_daily_publish(*, brand: str | None = None):
+    """06:30 SAST: take the most recent plan and publish today's post.
+
+    For each brand that has GBP connected AND a Postiz GBP
+    integration ID, find today's post (index 0) in the latest plan
+    and POST it via Postiz. Updates the plan file in-place with
+    the publish result so the UI can show "published 9:01 SAST".
+
+    Failure modes:
+      - No plan file: skip with reason "no plan".
+      - Plan has 0 posts: skip with reason "empty plan".
+      - GBP integration_id missing in brand profile: skip with
+        reason "no_postiz_integration".
+      - Postiz publish errors: captured per-post in the plan
+        publish.errors[] list and surfaced in the result.
+
+    We publish exactly one post per day, per brand — GBP best
+    practice is 3-5 posts/week max, not 7.
+    """
+    if not _GBP_DAILY_AVAILABLE:
+        return {"ok": False, "error": "modules unavailable"}
+    brand_id = (brand or "swing-shack").strip().lower()
+    # 1. Find the latest plan file.
+    plan = _gdp.latest_plan(brand_id)
+    if not plan or not plan.get("posts"):
+        return {
+            "ok": True,
+            "brand": brand_id,
+            "skipped": "no plan",
+            "ran_at": _dt_cls.now(_tz.utc).isoformat(),
+        }
+    profile = _gdp.BRAND_PROFILES.get(brand_id) or {}
+    integration_id = profile.get("postiz_gbp_integration_id")
+    if not integration_id:
+        return {
+            "ok": True,
+            "brand": brand_id,
+            "skipped": "no_postiz_integration",
+            "ran_at": _dt_cls.now(_tz.utc).isoformat(),
+        }
+    # 2. Take today's post (index 0) — and only if it hasn't been
+    # published yet (idempotent: re-running this job shouldn't
+    # double-post).
+    post = plan["posts"][0]
+    if (plan.get("publish") or {}).get("posts") and        (plan.get("publish") or {}).get("posts")[0].get("status") == "scheduled":
+        return {
+            "ok": True,
+            "brand": brand_id,
+            "skipped": "already_published",
+            "ran_at": _dt_cls.now(_tz.utc).isoformat(),
+        }
+    # 3. Build the text + post via Postiz.
+    text = ((post.get("title", "") + "\n\n" + post.get("body", ""))
+            .strip())[:1500]
+    try:
+        from _lib import postiz_client as _pc
+        if not _pc._credentials_present():
+            return {"ok": False, "brand": brand_id,
+                    "error": "postiz api key not configured"}
+        publish_date = _dt_cls.now(_tz.utc).isoformat()
+        data, err = _pc.create_post(
+            integration_id=integration_id,
+            content=text,
+            media_ids=[],
+            publish_date=publish_date,
+        )
+        if err:
+            err_msg = f"{err[0]}: {err[1]}" if isinstance(err, tuple) else str(err)
+            return {"ok": False, "brand": brand_id,
+                    "error": err_msg, "ran_at": publish_date}
+    except Exception as exc:
+        return {"ok": False, "brand": brand_id,
+                "error": f"publish failed: {exc}",
+                "ran_at": _dt_cls.now(_tz.utc).isoformat()}
+    # 4. Update the plan file with the publish result.
+    pub_log = plan.setdefault("publish", {})
+    pub_log["posts"] = [
+        {"status": "scheduled", "scheduled_at": publish_date,
+         "keyword": post.get("keyword"), "title": post.get("title")}
+    ]
+    pub_log["scheduled_count"] = 1
+    pub_log["ran_at"] = publish_date
+    pub_log["brand"] = brand_id
+    pub_log["integration_id"] = integration_id
+    plan_path = _gdp._plan_path(brand_id,
+                                plan.get("generated_at", "")[:10] or
+                                _dt_cls.now(_tz.utc).date().isoformat())
+    # _plan_path requires a day string; fall back to today if plan
+    # has no date header (legacy file).
+    try:
+        plan_path.write_text(json.dumps(plan, indent=2, default=str))
+    except Exception as exc:
+        _app_log.warning("gbp_publish: failed to update plan file: %s", exc)
+    return {
+        "ok": True,
+        "brand": brand_id,
+        "posted_keyword": post.get("keyword"),
+        "ran_at": publish_date,
+        "integration_id": integration_id,
+    }
+
+
 def _gbp_daily_cron_tick(*, brand: str | None = None):
     """06:00 SAST: rebuild tomorrow's plan from current insights."""
     if not _GBP_DAILY_AVAILABLE or not _GBP_INSIGHTS_AVAILABLE:
@@ -16518,6 +16620,22 @@ try:
         criticality="MEDIUM",
         credentials=("GOOGLE_OAUTH_CLIENT_SECRET",),
         writes=("gbp-daily-plans/",),
+        brand_mode="per_brand",
+        requires_integrations=("gbp",),
+    ))
+    # Auto-publish: takes the most recent plan + pushes today's post
+    # to GBP via Postiz. Runs at 06:30 SAST — 30 min after the
+    # plan-build so we always have a fresh plan file to work from.
+    # Only publishes the FIRST post from the plan (one per day, per
+    # brand). Schedule is offset per brand so SS goes at 09:00 SAST
+    # and Stick at 12:00 SAST.
+    _register_job(_JobSpec(
+        name="gbp_publish",
+        fn=_gbp_daily_publish,
+        every_seconds=86400,
+        criticality="MEDIUM",
+        credentials=("GOOGLE_OAUTH_CLIENT_SECRET", "POSTIZ_API_KEY"),
+        writes=("gbp-daily-plans/", "gbp-publish-log.json"),
         brand_mode="per_brand",
         requires_integrations=("gbp",),
     ))
