@@ -28,7 +28,7 @@ export function Review() {
   const [filter, setFilter] = useState('all')
 
   function load() {
-    fetchInbox('pending', brandId)
+    fetchInbox('pending', brandId, 'draft_asset')
       .then((payload) => {
         setItems(payload.items || [])
         setPending(payload.counts?.pending ?? payload.items?.length ?? 0)
@@ -66,8 +66,8 @@ export function Review() {
 
   return (
     <div className="space-y-6">
-      <PageIntro here="/review" title="Waiting on you">
-        Open one piece. Approve here, or edit that draft in studio — not the whole wall.
+      <PageIntro here="/review" title="Drafts waiting on you">
+        Pending drafts only — calendar moments live on Calendar; approved work moves to the shelf.
       </PageIntro>
 
       {error ? <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p> : null}

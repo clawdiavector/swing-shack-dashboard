@@ -68,7 +68,7 @@ export type InboxItem = {
 export type InboxPayload = {
   ok: boolean
   items?: InboxItem[]
-  counts?: { pending?: number; stale?: number; approved_today?: number }
+  counts?: { pending?: number; stale?: number; approved_today?: number; approved?: number }
   error?: string
 }
 
@@ -364,9 +364,10 @@ export async function unscheduleAsset(assetId: string) {
   return res.json() as Promise<ScheduleResult>
 }
 
-export function fetchInbox(status = 'pending', brand?: string) {
+export function fetchInbox(status = 'pending', brand?: string, type?: string) {
   const q = new URLSearchParams({ status })
   if (brand) q.set('brand', brand)
+  if (type) q.set('type', type)
   return getJson<InboxPayload>(`/api/inbox/unified?${q}`)
 }
 
@@ -1072,6 +1073,36 @@ export function fetchPublishSandboxSummary() {
   return getJson<PublishSandboxSummary>('/api/publish/sandbox/summary')
 }
 
+export type SandboxQueueItem = {
+  queue_id?: string
+  idempotency_key?: string
+  brand_id?: string
+  platform?: string
+  channel?: string
+  caption?: string
+  caption_preview?: string
+  status?: string
+  human_approved?: boolean
+  created_at?: string
+  asset_id?: string
+  image_url?: string
+  image_path?: string
+}
+
+export type SandboxQueuePayload = {
+  ok?: boolean
+  mode?: string
+  items?: SandboxQueueItem[]
+  total_pending?: number
+}
+
+export function fetchSandboxQueue(brand?: string) {
+  const q = new URLSearchParams()
+  if (brand) q.set('brand', brand)
+  const suffix = q.toString() ? `?${q}` : ''
+  return getJson<SandboxQueuePayload>(`/api/publish/sandbox/queue${suffix}`)
+}
+
 export type PostizPostActionResult = {
   ok?: boolean
   partial?: boolean
@@ -1091,6 +1122,20 @@ async function postJsonWithStatus<T>(path: string, body: unknown): Promise<{ sta
   }
   const data = (await res.json().catch(() => ({}))) as T
   return { status: res.status, data }
+}
+
+export function enqueueSandboxItem(body: {
+  brand_id: string
+  asset_id?: string
+  platform?: string
+  caption_preview?: string
+  inbox_item_id?: string
+  idempotency_key?: string
+}) {
+  return postJsonWithStatus<{ ok?: boolean; item?: SandboxQueueItem; error?: string }>(
+    '/api/publish/sandbox/enqueue',
+    body,
+  )
 }
 
 export function cancelPostizPost(postId: string, reason: string) {

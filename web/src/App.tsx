@@ -9,6 +9,7 @@ import { Publish } from './pages/Publish'
 import { Results } from './pages/Results'
 import { Review } from './pages/Review'
 import { ReviewPiece } from './pages/ReviewPiece'
+import { Shelf } from './pages/Shelf'
 import { Ops } from './pages/Ops'
 import { Tool } from './pages/Tool'
 import { BuildPost } from './pages/studio/BuildPost'
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="daily" element={<Daily />} />
         <Route path="review" element={<Review />} />
         <Route path="review/:itemId" element={<ReviewPiece />} />
+        <Route path="shelf" element={<Shelf />} />
         <Route path="create" element={<Create />} />
         <Route path="create/post" element={<BuildPost />} />
         <Route path="create/captions" element={<Captions />} />

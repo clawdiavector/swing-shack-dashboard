@@ -342,6 +342,87 @@ def _update_mirror(receipt: dict[str, Any]) -> None:
     mp.write_text(json.dumps(mirror, indent=2), encoding="utf-8")
 
 
+def queued_asset_ids(*, brand: str | None = None) -> set[str]:
+    """Asset ids with a pending sandbox row (qc-* keys only)."""
+    from _lib.unified_inbox import asset_id_from_queue_row  # noqa: PLC0415
+
+    out: set[str] = set()
+    for row in _read_jsonl(_queue_path()):
+        if str(row.get("status") or "") != "pending":
+            continue
+        if brand:
+            row_brand = str(row.get("brand_id") or "")
+            if row_brand and row_brand != brand:
+                continue
+        asset_id = asset_id_from_queue_row(row)
+        if asset_id:
+            out.add(asset_id)
+    return out
+
+
+def list_queue(*, brand: str | None = None, limit: int = 50) -> dict[str, Any]:
+    """Pending sandbox rows (+ recent receipts) enriched with draft image_url."""
+    from _lib.unified_inbox import (  # noqa: PLC0415
+        _asset_image_meta,
+        _load_campaign_data,
+        asset_id_from_queue_row,
+        _campaign_asset_for_id,
+    )
+
+    ensure_sandbox_layout()
+    campaign_data = _load_campaign_data()
+    pending_rows: list[dict[str, Any]] = []
+    for row in _read_jsonl(_queue_path()):
+        if str(row.get("status") or "") != "pending":
+            continue
+        brand_id = str(row.get("brand_id") or "")
+        if brand and brand_id and brand_id != brand:
+            continue
+        asset_id = asset_id_from_queue_row(row)
+        campaign_id: str | None = None
+        image_path: Any = None
+        image_url: Any = None
+        if asset_id:
+            campaign_id, asset = _campaign_asset_for_id(campaign_data, asset_id)
+            image_path, image_url = _asset_image_meta(asset)
+        pending_rows.append(
+            {
+                "queue_id": row.get("queue_id"),
+                "idempotency_key": row.get("idempotency_key"),
+                "brand_id": brand_id,
+                "platform": row.get("platform"),
+                "channel": row.get("channel"),
+                "caption": row.get("caption_preview") or "",
+                "caption_preview": row.get("caption_preview") or "",
+                "status": row.get("status"),
+                "human_approved": bool(row.get("human_approved")),
+                "created_at": row.get("created_at"),
+                "would_publish_at": row.get("would_publish_at"),
+                "asset_id": asset_id,
+                "campaign_id": campaign_id,
+                "image_path": image_path,
+                "image_url": image_url,
+                "inbox_item_id": row.get("inbox_item_id"),
+            }
+        )
+    pending_rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+    total_pending = len(pending_rows)
+    pending_rows = pending_rows[: max(1, min(limit, 200))]
+
+    receipts = _read_jsonl(_receipts_path())
+    recent_receipts = receipts[-20:] if receipts else []
+    recent_receipts.reverse()
+
+    return {
+        "ok": True,
+        "mode": "sandbox",
+        "brand": brand,
+        "items": pending_rows,
+        "recent_receipts": recent_receipts,
+        "total_pending": total_pending,
+    }
+
+
 def summary() -> dict[str, Any]:
     ensure_sandbox_layout()
     queue = _read_jsonl(_queue_path())

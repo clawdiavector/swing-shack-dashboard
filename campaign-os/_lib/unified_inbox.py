@@ -15,6 +15,53 @@ HUMAN_EDIT_SCHEMA = "campaign-os/human-edit-signal/v1"
 SLA_STALE_HOURS = 24
 ITEM_TYPES = frozenset({"calendar_candidate", "proposal", "draft_asset", "publish_request"})
 _DRAFT_HEX_TITLE = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
+QC_KEY_PREFIX = "qc-"
+
+
+def asset_id_from_queue_row(row: dict[str, Any]) -> str | None:
+    """Parse qc-<asset_id>-<platform> idempotency keys (asset_id may contain hyphens)."""
+    key = str(row.get("idempotency_key") or "")
+    platform = str(row.get("platform") or "")
+    if not key.startswith(QC_KEY_PREFIX) or not platform:
+        return None
+    suffix = f"-{platform}"
+    if not key.endswith(suffix):
+        return None
+    asset_id = key[len(QC_KEY_PREFIX):-len(suffix)]
+    return asset_id or None
+
+
+def _campaign_asset_for_id(
+    campaign_data: dict[str, Any],
+    asset_id: str,
+) -> tuple[str | None, dict[str, Any]]:
+    campaigns = campaign_data.get("campaigns") if isinstance(campaign_data, dict) else None
+    if isinstance(campaigns, dict):
+        for cid, campaign in campaigns.items():
+            if not isinstance(campaign, dict):
+                continue
+            assets = campaign.get("assets")
+            if isinstance(assets, dict):
+                maybe = assets.get(asset_id)
+                if isinstance(maybe, dict):
+                    return str(cid), maybe
+    sidecar = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    if sidecar.is_file():
+        try:
+            doc = json.loads(sidecar.read_text(encoding="utf-8"))
+            if isinstance(doc, dict):
+                cid = str(doc.get("campaign_id") or "")
+                if cid and isinstance(campaigns, dict):
+                    campaign = campaigns.get(cid)
+                    if isinstance(campaign, dict):
+                        assets = campaign.get("assets")
+                        if isinstance(assets, dict):
+                            maybe = assets.get(asset_id)
+                            if isinstance(maybe, dict):
+                                return cid, maybe
+        except (OSError, json.JSONDecodeError):
+            pass
+    return None, {}
 
 
 def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
@@ -354,6 +401,7 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
 
     queue_path = publish_sandbox._queue_path()  # noqa: SLF001
     rows = _read_jsonl(queue_path)
+    campaign_data = _load_campaign_data()
     out: list[dict[str, Any]] = []
     for row in rows:
         if str(row.get("status") or "") != "pending":
@@ -382,13 +430,33 @@ def _publish_request_items(*, brand: str | None, status: str, now: datetime) -> 
             "sla_state": _sla_state(str(ts) if ts else None, now=now),
             "blocked_missing_oauth": blocked,
             "actions": ["approve", "edit", "reject"],
-            "meta": {
-                "idempotency_key": key,
-                "human_approved": bool(row.get("human_approved")),
-                "channel": row.get("channel"),
-            },
+            "meta": _publish_request_meta(row, key, campaign_data),
         })
     return out
+
+
+def _publish_request_meta(
+    row: dict[str, Any],
+    key: str,
+    campaign_data: dict[str, Any],
+) -> dict[str, Any]:
+    asset_id = asset_id_from_queue_row(row)
+    campaign_id: str | None = None
+    image_path: Any = None
+    image_url: Any = None
+    if asset_id:
+        campaign_id, asset = _campaign_asset_for_id(campaign_data, asset_id)
+        image_path, image_url = _asset_image_meta(asset)
+    return {
+        "idempotency_key": key,
+        "human_approved": bool(row.get("human_approved")),
+        "channel": row.get("channel"),
+        "asset_id": asset_id,
+        "campaign_id": campaign_id,
+        "inbox_item_id": row.get("inbox_item_id"),
+        "image_path": image_path,
+        "image_url": image_url,
+    }
 
 
 def list_items(
@@ -425,6 +493,9 @@ def list_items(
     items.sort(key=_created_desc_key, reverse=True)
 
     stale = sum(1 for i in items if i.get("sla_state") == "stale" and i.get("status") == "pending")
+    approved_on_shelf = 0
+    if status in ("approved", "all"):
+        approved_on_shelf = sum(1 for i in items if i.get("status") == "approved")
     return {
         "schema": SCHEMA,
         "generated_at": _utc_now_iso(),
@@ -436,8 +507,26 @@ def list_items(
             "pending": sum(1 for i in items if i.get("status") == "pending"),
             "stale": stale,
         },
+        "counts": {
+            "pending": sum(1 for i in items if i.get("status") == "pending"),
+            "stale": stale,
+            "approved_today": _approved_today_from_edits(),
+            "approved": approved_on_shelf,
+        },
         "items": items,
     }
+
+
+def _approved_today_from_edits() -> int:
+    today_iso_prefix = datetime.now(timezone.utc).date().isoformat()
+    approved_today = 0
+    for row in _read_jsonl(_human_edits_path()):
+        if str(row.get("action") or "") != "approve":
+            continue
+        ts = str(row.get("ts") or "")
+        if ts.startswith(today_iso_prefix):
+            approved_today += 1
+    return approved_today
 
 
 def inbox_counts(*, review_sla: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -446,15 +535,7 @@ def inbox_counts(*, review_sla: dict[str, Any] | None = None) -> dict[str, Any]:
     pending = int(payload["summary"]["pending"])
     stale = int(payload["summary"]["stale"])
 
-    approved_today = 0
-    edits_path = _human_edits_path()
-    today_iso_prefix = datetime.now(timezone.utc).date().isoformat()
-    for row in _read_jsonl(edits_path):
-        if str(row.get("action") or "") != "approve":
-            continue
-        ts = str(row.get("ts") or "")
-        if ts.startswith(today_iso_prefix):
-            approved_today += 1
+    approved_today = _approved_today_from_edits()
 
     if review_sla and isinstance(review_sla, dict):
         summary = review_sla.get("summary") or {}

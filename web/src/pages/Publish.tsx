@@ -5,23 +5,30 @@ import { useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { Badge, Button, ClassicLink, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
-  fetchPostizOverview,
   fetchPublishMode,
+  fetchSandboxQueue,
   fetchToday,
-  type PostizOverview,
+  resolveAssetUrl,
   type PublishMode,
+  type SandboxQueueItem,
   type TodayCounts,
   type TodayPanel,
 } from '../lib/api'
-import { pickQueueTitle } from '../lib/publishCaption'
 import { formatStamp } from '../lib/stamp'
+
+function sandboxTitle(row: SandboxQueueItem) {
+  const caption = String(row.caption || row.caption_preview || '').trim()
+  if (caption) return caption.slice(0, 120)
+  return `Sandbox ${row.platform || 'post'} — ${row.brand_id || 'brand'}`
+}
 
 export function Publish() {
   const { brandId } = useBrand()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [counts, setCounts] = useState<TodayCounts | null>(null)
   const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
-  const [overview, setOverview] = useState<PostizOverview | null>(null)
+  const [sandbox, setSandbox] = useState<SandboxQueueItem[]>([])
+  const [sandboxTotal, setSandboxTotal] = useState(0)
   const [queueErr, setQueueErr] = useState('')
 
   useEffect(() => {
@@ -43,46 +50,48 @@ export function Publish() {
   }, [brandId])
 
   useEffect(() => {
-    fetchPostizOverview()
-      .then((o) => {
-        setOverview(o)
+    fetchSandboxQueue(brandId)
+      .then((payload) => {
+        setSandbox(payload.items || [])
+        setSandboxTotal(payload.total_pending ?? payload.items?.length ?? 0)
         setQueueErr('')
       })
       .catch((e: Error) => {
-        setOverview(null)
-        setQueueErr(e.message || 'Could not load the publish queue')
+        setSandbox([])
+        setSandboxTotal(0)
+        setQueueErr(e.message || 'Could not load sandbox queue')
       })
-  }, [])
+  }, [brandId])
 
-  const drafts = overview?.queue || []
-  const scheduled = overview?.scheduled || []
-  const next = drafts[0] || scheduled[0]
-  const nextTitle = next ? pickQueueTitle(next) : counts?.approved ? 'Open the publish queue' : 'Nothing approved yet'
+  const next = sandbox[0]
+  const nextTitle = next ? sandboxTitle(next) : counts?.approved ? 'Queue from the shelf' : 'Nothing queued yet'
   const nextMeta = next
-    ? `${next.platform || 'post'}${next.scheduled_date ? ` · ${formatStamp(next.scheduled_date)}` : next.publish_timestamp ? ` · ${formatStamp(next.publish_timestamp)}` : ''}`
-    : 'Clear Review first, then this queue fills.'
+    ? `${next.platform || 'post'} · ${next.brand_id || brandId || 'brand'}${next.created_at ? ` · ${formatStamp(next.created_at)}` : ''}`
+    : 'Approve on Review, shelf it, then queue here — still sandbox only.'
 
   const queueCountLabel =
-    drafts.length > 0 && overview?.queue_total && overview.queue_total > drafts.length
-      ? `${drafts.length} of ${overview.queue_total}`
-      : String(drafts.length)
+    sandbox.length > 0 && sandboxTotal > sandbox.length
+      ? `${sandbox.length} of ${sandboxTotal}`
+      : String(sandbox.length)
 
   return (
     <div className="space-y-6">
       <PageIntro
         icon={Rocket}
-        badge="Go live"
+        badge="Sandbox queue"
         here="/publish"
         title="Queued to ship"
         actions={
           publishMode ? (
             <Badge tone={publishMode.mode === 'live' ? 'red' : 'gold'}>
-              {publishMode.label || publishMode.mode} — sandbox applies to dispatch job only
+              {publishMode.label || publishMode.mode || 'SANDBOX'}
             </Badge>
-          ) : null
+          ) : (
+            <Badge tone="gold">SANDBOX</Badge>
+          )
         }
       >
-        Approved work, GBP, Postiz, and accounts — one screen. Approve still does not publish.
+        Sandbox publish queue — image, caption, platform. Approve on Review does not publish live.
       </PageIntro>
 
       <p className="text-sm text-tx3">
@@ -101,9 +110,9 @@ export function Publish() {
         />
         <StatCard
           icon={Send}
-          label="Queued"
-          value={counts?.scheduled ?? '—'}
-          hint="On the calendar"
+          label="Sandbox queued"
+          value={sandboxTotal || '—'}
+          hint="Pending rows"
           tone="gold"
           stamp={data?.ts}
           stampKind="as_of"
@@ -121,9 +130,12 @@ export function Publish() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(380px,1fr)]">
-        <HeroPanel icon={Rocket} kicker="Next to ship" title={nextTitle} meta={nextMeta}>
-          <Button to="/publish/queue" icon={Send} tip="Open the publish queue. Approve still does not ship.">
-            Publish queue
+        <HeroPanel icon={Rocket} kicker="Next in sandbox" title={nextTitle} meta={nextMeta}>
+          <Button to="/shelf" icon={Send} tip="Approved drafts waiting to be queued.">
+            Shelf
+          </Button>
+          <Button to="/publish/queue" icon={Send} tone="ghost" tip="Legacy Postiz publish queue (flat files).">
+            Postiz queue
           </Button>
           <Button to="/publish/gbp" icon={MapPin} tone="ghost" tip="Open Google Business Profile drafts and listings.">
             GBP
@@ -131,49 +143,46 @@ export function Publish() {
         </HeroPanel>
         <section>
           <div className="mb-2 flex items-center gap-2">
-            <h2 className="font-display text-xl font-semibold">Ready lane</h2>
-            {overview && !queueErr ? <Badge tone="green">{queueCountLabel}</Badge> : null}
+            <h2 className="font-display text-xl font-semibold">Sandbox lane</h2>
+            {!queueErr ? <Badge tone="gold">{queueCountLabel}</Badge> : null}
           </div>
           <p className="mb-3 text-xs text-tx3">
-            All brands — the publish queue reads flat publish files and does not follow the brand switch.
+            Pending sandbox rows for {brandId || 'all brands'} — receipts only until dispatch runs.
           </p>
           <ul className="space-y-2">
-            {overview === null && !queueErr ? (
-              <>
-                <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
-                <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
-                <li className="h-16 animate-pulse rounded-2xl bg-bg3" />
-              </>
-            ) : null}
             {queueErr ? (
               <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-                Could not load the publish queue ({queueErr}) —{' '}
-                <Tip text="Open the full publish queue.">
-                  <Link to="/publish/queue" className="font-semibold text-ac">
-                    open it directly
-                  </Link>
-                </Tip>
-                .
+                Could not load sandbox queue ({queueErr}).
               </li>
             ) : null}
-            {!queueErr && overview
-              ? drafts.slice(0, 6).map((row) => {
-                  const id = String(row.publish_id || row.item_id || '')
+            {!queueErr
+              ? sandbox.slice(0, 8).map((row) => {
+                  const id = String(row.idempotency_key || row.queue_id || '')
+                  const thumb = resolveAssetUrl(row.image_url || row.image_path)
+                  const caption = String(row.caption || row.caption_preview || '').trim()
                   return (
                     <QueueItem
-                      key={id || pickQueueTitle(row)}
-                      to={`/publish/queue?tab=drafts&item=${encodeURIComponent(id)}`}
+                      key={id || sandboxTitle(row)}
                       badge={String(row.platform || 'post')}
-                      tone="green"
-                      title={pickQueueTitle(row)}
-                      stamp={row.scheduled_date || row.publish_timestamp}
+                      tone="gold"
+                      title={sandboxTitle(row)}
+                      meta={[row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+                      stamp={row.created_at}
+                      thumb={thumb || undefined}
+                      thumbAlt={caption.slice(0, 80) || id}
                     />
                   )
                 })
               : null}
-            {!queueErr && overview && drafts.length === 0 ? (
+            {!queueErr && sandbox.length === 0 ? (
               <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-                Nothing in the publish queue — approve something in Review, then push it to Postiz.
+                Sandbox queue is empty —{' '}
+                <Tip text="Approved drafts not yet queued.">
+                  <Link to="/shelf" className="font-semibold text-ac">
+                    check the shelf
+                  </Link>
+                </Tip>
+                .
               </li>
             ) : null}
           </ul>
@@ -183,7 +192,7 @@ export function Publish() {
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">Channels</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <IconTile href="/publish/queue" icon={Send} label="Publish queue" hint="What ships next" />
+          <IconTile href="/publish/queue" icon={Send} label="Postiz queue" hint="Legacy flat files" />
           <IconTile href="/?page=postiz" icon={Rocket} label="Postiz" hint="Scheduler" />
           <IconTile href="/publish/gbp" icon={MapPin} label="GBP" hint="Google Business Profile" />
           <IconTile href="/?page=gmb" icon={MapPin} label="GBP drafts" hint="Pending listings" />
