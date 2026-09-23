@@ -4968,3 +4968,4 @@ def generate_image(
             "note": "Swap provider_key in provider_templates to switch Ideogram/DALL-E/MJ/SD. Actual API call pending creds."
         },
     }
+
