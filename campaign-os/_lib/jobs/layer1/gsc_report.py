@@ -121,9 +121,21 @@ def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
 
 def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
     """Use the brand's stored OAuth refresh token to call
-    webmasters.v3.sites.list() and pick the first URL-prefix property
+    webmasters.v3.sites.list() and pick the best URL-prefix property
     the account has siteOwner / siteFullUser permission on.
-    Returns (site_url, None) on success or (None, error_str)."""
+
+    Selection priority (descending):
+      0. URL-prefix + siteOwner + matches the brand's domain (e.g.
+         https://stickgolf.co.za/ for brand=stick). This is the strong
+         preference — same domain, same brand.
+      1. URL-prefix + siteOwner + matches the brand's domain (e.g.
+         https://swingshack.co.za/ for brand=swing-shack).
+      2. URL-prefix + siteOwner on any other domain.
+      3. URL-prefix + siteFullUser on the brand's domain.
+      4. URL-prefix + siteUnverifiedUser on the brand's domain.
+      5. URL-prefix + anything else.
+      6. Domain-property + siteOwner.
+    """
     try:
         from _lib import gsc_oauth as _gsc_oauth
     except Exception as exc:
@@ -146,8 +158,29 @@ def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
     except Exception as exc:
         return None, f"sites.list failed: {exc}"
 
-    # Prefer URL-prefix with siteOwner, fall back to siteFullUser, then siteUnverifiedUser,
-    # then sc-domain with siteOwner.
+    # Resolve expected brand domain. The single source of truth is the
+    # operating brands registry (`data/brands.json`); we read that to
+    # pick the correct GSC property for the brand.
+    brand_domain = ""
+    try:
+        from _lib import brand_directory as _bd
+        # brand_directory.load_brand returns a dict; check for 'domain' / 'website'
+        bd_data = _bd.load_brand(brand)
+        brand_domain = (
+            bd_data.get("domain")
+            or bd_data.get("website")
+            or bd_data.get("site_url")
+            or ""
+        )
+    except Exception:
+        pass
+    # Allow ENV override (BRAND_DOMAIN_<BRAND> or BRAND_DOMAIN)
+    if not brand_domain:
+        brand_domain = (
+            os.environ.get(f"BRAND_DOMAIN_{brand.upper().replace('-', '_')}", "")
+            or os.environ.get("BRAND_DOMAIN", "")
+        )
+
     entries = payload.get("siteEntry") or []
     by_pref = []
     for e in entries:
@@ -155,16 +188,32 @@ def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
         perm = e.get("permissionLevel") or ""
         is_prefix = url.startswith("http")
         is_domain = url.startswith("sc-domain:")
-        if is_prefix and perm == "siteOwner":
+        url_host = url.split("//", 1)[-1].rstrip("/") if is_prefix else url.replace("sc-domain:", "")
+
+        # Strong match: same domain as the brand, URL-prefix, siteOwner
+        if is_prefix and perm == "siteOwner" and brand_domain and brand_domain in url_host:
             by_pref.append((0, url, perm))
-        elif is_prefix and perm == "siteFullUser":
-            by_pref.append((1, url, perm))
-        elif is_domain and perm == "siteOwner":
+        # Same domain, URL-prefix, any owner
+        elif is_prefix and brand_domain and brand_domain in url_host:
             by_pref.append((2, url, perm))
-        elif is_prefix and perm == "siteUnverifiedUser":
+        # URL-prefix, siteOwner on any domain
+        elif is_prefix and perm == "siteOwner":
             by_pref.append((3, url, perm))
-        else:
+        # URL-prefix, siteFullUser on any domain
+        elif is_prefix and perm == "siteFullUser":
             by_pref.append((4, url, perm))
+        # URL-prefix, siteUnverifiedUser on any domain
+        elif is_prefix and perm == "siteUnverifiedUser":
+            by_pref.append((5, url, perm))
+        # URL-prefix, anything else
+        elif is_prefix:
+            by_pref.append((6, url, perm))
+        # Domain-property, siteOwner
+        elif is_domain and perm == "siteOwner":
+            by_pref.append((7, url, perm))
+        # Domain-property, anything else
+        else:
+            by_pref.append((8, url, perm))
     by_pref.sort(key=lambda t: t[0])
     if not by_pref:
         return None, "sites.list returned no siteEntry items"
