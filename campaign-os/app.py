@@ -14022,6 +14022,28 @@ def publish_sandbox_summary_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/publish/sandbox/queue', methods=['GET'])
+def publish_sandbox_queue_route():
+    """GET /api/publish/sandbox/queue — pending sandbox rows for Heroes Publish."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.publish_sandbox import list_queue as sandbox_list_queue
+
+        brand = (request.args.get("brand") or request.args.get("brand_id") or "").strip() or None
+        limit_raw = request.args.get("limit")
+        limit = 50
+        if limit_raw:
+            try:
+                limit = int(limit_raw)
+            except ValueError:
+                limit = 50
+        return jsonify(sandbox_list_queue(brand=brand, limit=limit)), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox queue list failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @app.route('/api/publish/sandbox/enqueue', methods=['POST'])
 def publish_sandbox_enqueue_route():
     """POST body: brand_id, platform?, caption_preview?, human_approved?, idempotency_key?"""
@@ -14036,6 +14058,17 @@ def publish_sandbox_enqueue_route():
     except ValueError as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400
     try:
+        asset_id = (body.get("asset_id") or "").strip()
+        if asset_id:
+            from _lib.publish_sandbox import enqueue_for_intended_channels
+
+            items = enqueue_for_intended_channels(
+                brand_id=brand_id,
+                caption_preview=(body.get("caption_preview") or "").strip(),
+                inbox_item_id=body.get("inbox_item_id"),
+                asset_id=asset_id,
+            )
+            return jsonify({"ok": True, "items": items, "count": len(items)}), 200
         item = enqueue_item(
             brand_id=brand_id,
             platform=(body.get("platform") or "instagram").strip(),
