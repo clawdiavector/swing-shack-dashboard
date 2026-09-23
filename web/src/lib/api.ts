@@ -27,6 +27,9 @@ export type BriefAction = {
   brief_id?: string
   brief_status?: string
   gate?: string
+  creative_allowed?: boolean
+  brief_revision?: number
+  gate_confidence?: number
 }
 
 export type TodayPanel = {
@@ -347,11 +350,11 @@ export function matchInboxItem(item: InboxItem, id: string) {
   return item.id.endsWith(`:${id}`)
 }
 
-export async function fetchInboxItem(id: string) {
-  const pending = await fetchInbox('pending')
+export async function fetchInboxItem(id: string, brand?: string) {
+  const pending = await fetchInbox('pending', brand)
   const fromPending = (pending.items || []).find((item) => matchInboxItem(item, id))
   if (fromPending) return fromPending
-  const all = await fetchInbox('all')
+  const all = await fetchInbox('all', brand)
   return (all.items || []).find((item) => matchInboxItem(item, id)) || null
 }
 

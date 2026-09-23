@@ -15,12 +15,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandSwitch, useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
-import { Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
+import { Badge, Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
   fetchLayers,
   fetchLearn,
   fetchToday,
   fetchTopPosts,
+  type BriefAction,
   type InsightPost,
   type InsightsPosts,
   type LayerEntry,
@@ -36,6 +37,37 @@ function greeting() {
   if (h < 12) return 'Good morning'
   if (h < 17) return 'Good afternoon'
   return 'Good evening'
+}
+
+function briefLabel(a: BriefAction) {
+  const act = a.action || ''
+  if (act === 'create_brief') return 'Write brief'
+  if (act === 'review_brief') return 'Review brief'
+  if (act === 'view_brief') return 'Brief ready'
+  if (act.startsWith('watch_or_ignore:')) {
+    return (act.split(':')[1] || '').toUpperCase() === 'WATCH' ? 'Watching' : 'Parked'
+  }
+  return 'Brief'
+}
+
+function briefTone(a: BriefAction): 'gold' | 'green' | 'mute' {
+  const act = a.action || ''
+  if (act === 'create_brief' || act === 'review_brief') return 'gold'
+  if (act === 'view_brief') return 'green'
+  return 'mute'
+}
+
+function briefTip(a: BriefAction) {
+  const act = a.action || ''
+  if (act === 'create_brief') return 'This date cleared the gate and has no brief yet.'
+  if (act === 'review_brief') {
+    const rev =
+      a.brief_revision != null ? ` Revision ${a.brief_revision}.` : ''
+    return `A draft brief is waiting on your read.${rev}`
+  }
+  if (act === 'view_brief') return 'The brief for this date is written.'
+  if (act.startsWith('watch_or_ignore:')) return 'On the watchlist — not worth a brief yet.'
+  return 'Brief opportunity on the calendar.'
 }
 
 function kindTone(kind: string): 'gold' | 'green' | 'blue' | 'mute' {
@@ -128,6 +160,7 @@ export function Daily() {
   const l4 = layerOf(layers, 'L4')
   const l6 = layerOf(layers, 'L6')
   const l7 = layerOf(layers, 'L7')
+  const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
   const pulse = useMemo(() => {
     const rows: { label: string; value: string }[] = []
     if (best?.plain_english) {
@@ -340,6 +373,25 @@ export function Daily() {
                     </li>
                   ))}
                 </ul>
+                {briefActions.length ? (
+                  <div className="mt-3 border-t border-bd pt-3">
+                    <p className="mb-2 text-[12px] font-semibold tracking-wide text-tx3 uppercase">
+                      Briefs waiting
+                    </p>
+                    <ul className="flex flex-wrap gap-2">
+                      {briefActions.map((a, i) => (
+                        <li key={a.event_key || a.name || i}>
+                          <Tip text={briefTip(a)}>
+                            <span className="glass-pill inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5">
+                              <Badge tone={briefTone(a)}>{briefLabel(a)}</Badge>
+                              <span className="text-sm font-medium text-tx2">{a.name || a.event_key}</span>
+                            </span>
+                          </Tip>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
               <div>
                 <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
@@ -400,6 +452,7 @@ export function Daily() {
                 badge={card.label}
                 tone={kindTone(card.kind)}
                 title={card.title}
+                meta={card.why && card.why !== card.title ? card.why : undefined}
                 stamp={card.stamp || card.updatedAt || asOf}
                 stampKind={card.stampKind}
               />
