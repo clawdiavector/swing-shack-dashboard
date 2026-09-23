@@ -14518,6 +14518,11 @@ def gbp_daily_poster_pending_route():
     Returns the FIRST post in the latest plan that is NOT already scheduled,
     published, or removed. If no such post exists, returns ok=True with
     post=null (already actioned).
+
+    V3.8e note: also validates that the brand's postiz_gbp_integration_id
+    exists on the active Postiz API key. If the integration isn't reachable,
+    returns reason="integration_not_found_on_postiz_key" so the UI can
+    surface the gap instead of showing a publish button that will fail.
     """
     if not _GBP_DAILY_AVAILABLE or _gdp is None:
         return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
@@ -14525,15 +14530,43 @@ def gbp_daily_poster_pending_route():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     brand_id = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip().lower()
     plan = _gdp.latest_plan(brand_id)
+    profile = _gdp.BRAND_PROFILES.get(brand_id) or {}
+    configured_integration_id = profile.get("postiz_gbp_integration_id")
     if not plan or not plan.get("posts"):
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
-                        "reason": "no_plan"}), 200
-    profile = _gdp.BRAND_PROFILES.get(brand_id) or {}
-    integration_id = profile.get("postiz_gbp_integration_id")
-    if not integration_id:
+                        "reason": "no_plan",
+                        "configured_integration_id": configured_integration_id,
+                        "display_name": profile.get("display_name", brand_id)}), 200
+    if not configured_integration_id:
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
                         "reason": "no_postiz_integration",
                         "display_name": profile.get("display_name", brand_id)}), 200
+    # V3.8e: verify the integration actually exists on the active Postiz
+    # key. SS GMB moved to a new key (2026-09-23) — the hardcoded ID
+    # `cmmdgju7f00tppk0y6bne9zrk` was from the OLD key. Surface this gap
+    # rather than showing a broken Approve button.
+    integration_ok = True
+    integration_error = None
+    try:
+        from _lib import postiz_client as _pc
+        if _pc and _pc._credentials_present():
+            integrations, err = _pc.list_integrations()
+            if err:
+                integration_ok = False
+                integration_error = str(err)
+            elif integrations is None:
+                integration_ok = False
+                integration_error = "postiz returned no integrations list"
+            else:
+                items = integrations if isinstance(integrations, list) else (integrations.get("integrations") or [])
+                ids = {str(it.get("id")) for it in items if isinstance(it, dict)}
+                if configured_integration_id not in ids:
+                    integration_ok = False
+                    integration_error = f"integration {configured_integration_id} not present on active Postiz key"
+    except Exception as exc:
+        _app_log.warning("gbp_pending: postiz integration check failed: %s", exc)
+        # Don't block — let the publish endpoint fail with the upstream error
+        # if integration is genuinely missing.
     # Find the first post that's not yet actioned.
     pending = None
     for p in plan["posts"]:
@@ -14544,13 +14577,18 @@ def gbp_daily_poster_pending_route():
         break
     if not pending:
         return jsonify({"ok": True, "brand_id": brand_id, "post": None,
-                        "reason": "all_actioned"}), 200
+                        "reason": "all_actioned",
+                        "configured_integration_id": configured_integration_id,
+                        "display_name": profile.get("display_name", brand_id)}), 200
     # Re-run integrity check so the UI knows if the post is even publishable.
     integrity_ok, violations = _gdp.integrity_check(pending, brand_id)
-    return jsonify({
+    response = {
         "ok": True,
         "brand_id": brand_id,
         "display_name": profile.get("display_name", brand_id),
+        "configured_integration_id": configured_integration_id,
+        "integration_verified": integration_ok,
+        "integration_error": integration_error,
         "post": {
             "keyword": pending.get("keyword"),
             "title": pending.get("title"),
@@ -14565,7 +14603,12 @@ def gbp_daily_poster_pending_route():
         },
         "plan_id": plan.get("plan_id") or plan.get("build_started_at"),
         "plan_path": plan.get("file_path"),
-    }), 200
+    }
+    if not integration_ok:
+        # Don't return a publishable post when the integration is missing.
+        response["post"] = None
+        response["reason"] = "integration_not_found_on_postiz_key"
+    return jsonify(response), 200
 
 
 @app.route('/api/gbp/daily-poster/approve', methods=['POST'])

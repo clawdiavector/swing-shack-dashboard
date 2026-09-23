@@ -7971,13 +7971,23 @@ async function renderTodayRail(){
         const integrity = c.integrity_ok
           ? `<span style="color:#10b981;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:700">✓ Integrity passed</span>`
           : `<span style="color:#ef4444;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:700" title="${esc((c.integrity_violations||[]).join('; '))}">⚠ ${(c.integrity_violations||[]).length} integrity issue${(c.integrity_violations||[]).length===1?'':'s'}</span>`;
+        const integrationBadge = (c.integration_verified === false)
+          ? `<span style="color:#f59e0b;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:700" title="${esc(c.integration_error || 'integration not reachable')}">⚠ No Postiz integration</span>`
+          : '';
         const hashtagHtml = (c.hashtags && c.hashtags.length)
           ? `<div style="font-size:11px;color:#9aa0a6;margin-top:6px">${c.hashtags.map(esc).join(' ')}</div>`
           : '';
         const ctaLine = c.cta
           ? `<div style="font-size:12px;color:#0c0d10;background:rgba(15,118,110,0.08);padding:6px 10px;border-radius:6px;margin-top:8px;border-left:3px solid #0F766E"><strong>CTA:</strong> ${esc(c.cta)}</div>`
           : '';
-        const buttons = c.integrity_ok
+        // Buttons: when integration is missing OR integrity fails, show
+        // a clear message + Skip button only.
+        const buttons = (!c.integration_verified)
+          ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+              <div style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.08);padding:6px 8px;border-radius:4px;border:1px solid rgba(245,158,11,0.3)">⚠ Postiz integration <code style="background:rgba(0,0,0,0.2);padding:1px 4px;border-radius:3px">${esc((c.configured_integration_id||'').slice(0,12))}…</code> not found on the active Postiz API key. Re-add it on the new key to enable publishing.</div>
+              <button class="gbp-skip-btn" data-gbp-skip="${esc(c.brand_id || '')}" style="padding:8px 12px;background:transparent;color:#9aa0a6;border:1px solid #3a3d42;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">Skip today's post</button>
+            </div>`
+          : c.integrity_ok
           ? `<div style="display:flex;gap:6px;margin-top:10px">
               <button class="gbp-approve-btn" data-gbp-approve="${esc(c.brand_id || '')}" style="flex:1;padding:9px 10px;background:#10b981;color:#0c0d10;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">✓ Approve & publish</button>
               <button class="gbp-skip-btn" data-gbp-skip="${esc(c.brand_id || '')}" style="padding:9px 12px;background:transparent;color:#9aa0a6;border:1px solid #3a3d42;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">Skip</button>
@@ -7997,9 +8007,9 @@ async function renderTodayRail(){
         <div style="font-size:12px;color:#9aa0a6;margin-top:6px;white-space:pre-wrap;line-height:1.5">${esc(c.body || '')}</div>
         ${ctaLine}
         ${hashtagHtml}
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:#9aa0a6">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:#9aa0a6;flex-wrap:wrap;gap:4px">
           <span>Pillar: <strong style="color:#e8eaed">${esc(c.pillar || '—')}</strong> · Intent: <strong style="color:#e8eaed">${esc(c.intent || '—')}</strong></span>
-          ${integrity}
+          <span style="display:flex;gap:8px;align-items:center">${integrationBadge}${integrity}</span>
         </div>
         ${buttons}
       </div>`;
