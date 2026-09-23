@@ -77,13 +77,6 @@ function briefTip(a: BriefAction) {
   return 'Brief opportunity on the calendar.'
 }
 
-function kindTone(kind: string): 'gold' | 'green' | 'blue' | 'mute' {
-  if (kind === 'review' || kind === 'action') return 'gold'
-  if (kind === 'publish' || kind === 'post') return 'green'
-  if (kind === 'draft') return 'blue'
-  return 'mute'
-}
-
 function layerOf(layers: LayersPayload | null, id: string): LayerEntry {
   return (layers?.layers || {})[id] || {}
 }
