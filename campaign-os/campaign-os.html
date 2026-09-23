@@ -7961,12 +7961,119 @@ async function renderTodayRail(){
   el.innerHTML = `
       <div class="rail-meta">${r.count} live · updated ${esc(lastTs ? fmtSast(lastTs) : '—')}</div>
       ${recCardHtml}
-    ${(r.cards||[]).map((c,i) => `
+    ${(r.cards||[]).map((c,i) => {
+      // V3.8c: GBP post-pending card gets a full preview + Approve / Skip
+      // buttons. The body and CTA are rendered so the operator sees exactly
+      // what will hit GBP before approving. Approve → POST /api/gbp/daily-poster/approve
+      // (routes through integrity_check + Postiz). Skip → POST /api/gbp/daily-poster/dismiss
+      // (marks the post REMOVED in the plan file, preserves audit trail).
+      if (c.kind === 'gbp_post_pending') {
+        const integrity = c.integrity_ok
+          ? `<span style="color:#10b981;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:700">✓ Integrity passed</span>`
+          : `<span style="color:#ef4444;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:700" title="${esc((c.integrity_violations||[]).join('; '))}">⚠ ${(c.integrity_violations||[]).length} integrity issue${(c.integrity_violations||[]).length===1?'':'s'}</span>`;
+        const hashtagHtml = (c.hashtags && c.hashtags.length)
+          ? `<div style="font-size:11px;color:#9aa0a6;margin-top:6px">${c.hashtags.map(esc).join(' ')}</div>`
+          : '';
+        const ctaLine = c.cta
+          ? `<div style="font-size:12px;color:#0c0d10;background:rgba(15,118,110,0.08);padding:6px 10px;border-radius:6px;margin-top:8px;border-left:3px solid #0F766E"><strong>CTA:</strong> ${esc(c.cta)}</div>`
+          : '';
+        const buttons = c.integrity_ok
+          ? `<div style="display:flex;gap:6px;margin-top:10px">
+              <button class="gbp-approve-btn" data-gbp-approve="${esc(c.brand_id || '')}" style="flex:1;padding:9px 10px;background:#10b981;color:#0c0d10;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">✓ Approve & publish</button>
+              <button class="gbp-skip-btn" data-gbp-skip="${esc(c.brand_id || '')}" style="padding:9px 12px;background:transparent;color:#9aa0a6;border:1px solid #3a3d42;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">Skip</button>
+            </div>`
+          : `<div style="display:flex;gap:6px;margin-top:10px">
+              <button disabled title="Integrity check failed — see violation list" style="flex:1;padding:9px 10px;background:#3a3d42;color:#9aa0a6;border:none;border-radius:6px;font-weight:600;font-size:12px;cursor:not-allowed">Cannot publish (integrity)</button>
+              <button class="gbp-skip-btn" data-gbp-skip="${esc(c.brand_id || '')}" style="padding:9px 12px;background:transparent;color:#9aa0a6;border:1px solid #3a3d42;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">Skip</button>
+            </div>`;
+        return `
+      <div class="rail-card ${c.kind}" data-id="${esc(c.id)}" style="animation-delay:${i*60}ms;border-left:3px solid #F59E0B;background:rgba(245,158,11,0.05);padding:14px">
+        <div class="rail-cap">
+          <span class="rail-kind" style="color:#F59E0B">📍 Today's GBP post</span>
+          <span class="rail-x" data-dismiss-gbp="${esc(c.id)}" title="Hide this card">✕</span>
+        </div>
+        <div style="font-size:11px;color:#9aa0a6;letter-spacing:.05em;text-transform:uppercase;margin-top:2px">${esc(c.campaignId || '')}</div>
+        <div style="font-weight:700;font-size:14px;color:#e8eaed;margin-top:6px;line-height:1.35">${esc(c.title)}</div>
+        <div style="font-size:12px;color:#9aa0a6;margin-top:6px;white-space:pre-wrap;line-height:1.5">${esc(c.body || '')}</div>
+        ${ctaLine}
+        ${hashtagHtml}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:#9aa0a6">
+          <span>Pillar: <strong style="color:#e8eaed">${esc(c.pillar || '—')}</strong> · Intent: <strong style="color:#e8eaed">${esc(c.intent || '—')}</strong></span>
+          ${integrity}
+        </div>
+        ${buttons}
+      </div>`;
+      }
+      // Default compact card (everything else)
+      return `
       <div class="rail-card ${c.kind}" data-id="${esc(c.id)}" style="animation-delay:${i*60}ms">
         <div class="rail-cap"><span class="rail-kind">${esc(c.label)}</span><span class="rail-x" data-dismiss="${esc(c.id)}">✕</span></div>
         <div class="rail-title">${esc(c.title)}</div>
         <div class="rail-sub">${esc(c.campaignId || '')}</div>
-      </div>`).join('') || '<div class="muted rail-empty">All clear</div>'}`;
+      </div>`;
+    }).join('') || '<div class="muted rail-empty">All clear</div>'}`;
+  // ── V3.8c GBP approve + skip handlers ───────────────────────────
+  // Hide handler: just removes the card from the panel until next refresh.
+  $$('[data-dismiss-gbp]', el).forEach(b => b.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const card = b.closest('.rail-card');
+    if (card) card.remove();
+  }));
+  // Approve: POST /api/gbp/daily-poster/approve — integrity gate → Postiz.
+  $$('.gbp-approve-btn[data-gbp-approve]', el).forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const brand = btn.dataset.gbpApprove;
+    if (!brand) return;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Publishing...';
+    btn.style.background = '#3a3d42';
+    btn.style.color = '#9aa0a6';
+    try {
+      const res = await API.post('/api/gbp/daily-poster/approve?brand_id=' + encodeURIComponent(brand));
+      if (res && res.ok) {
+        btn.textContent = '✓ Published';
+        btn.style.background = '#10b981';
+        btn.style.color = '#0c0d10';
+        // Refresh the ticker after 1s so the next-pending card loads.
+        setTimeout(() => { S.todayRail = null; renderTodayRail(); }, 1200);
+      } else {
+        btn.textContent = '✕ Failed';
+        btn.style.background = '#ef4444';
+        btn.style.color = '#fff';
+        btn.title = res && res.error ? res.error : 'publish failed';
+        setTimeout(() => { btn.textContent = original; btn.disabled = false; btn.style.background = '#10b981'; btn.style.color = '#0c0d10'; }, 3000);
+      }
+    } catch (err) {
+      btn.textContent = '✕ Error';
+      btn.style.background = '#ef4444';
+      btn.style.color = '#fff';
+      setTimeout(() => { btn.textContent = original; btn.disabled = false; btn.style.background = '#10b981'; btn.style.color = '#0c0d10'; }, 3000);
+    }
+  }));
+  // Skip: POST /api/gbp/daily-poster/dismiss — marks REMOVED in plan file.
+  $$('.gbp-skip-btn[data-gbp-skip]', el).forEach(btn => btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const brand = btn.dataset.gbpSkip;
+    if (!brand) return;
+    const card = btn.closest('.rail-card');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Skipping...';
+    try {
+      await API.post('/api/gbp/daily-poster/dismiss?brand_id=' + encodeURIComponent(brand));
+      if (card) {
+        card.style.transition = 'opacity 0.3s';
+        card.style.opacity = '0.3';
+        card.querySelector('.gbp-approve-btn').disabled = true;
+        btn.textContent = '✓ Skipped';
+        setTimeout(() => { S.todayRail = null; renderTodayRail(); }, 1200);
+      }
+    } catch (err) {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  }));
   $$('[data-dismiss]', el).forEach(b => b.addEventListener('click', async (e) => {
     e.stopPropagation();
     const id = b.dataset.dismiss;

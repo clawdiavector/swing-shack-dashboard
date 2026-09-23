@@ -14510,6 +14510,185 @@ def gbp_daily_poster_latest_route():
     return jsonify(plan), 200
 
 
+@app.route('/api/gbp/daily-poster/pending', methods=['GET'])
+def gbp_daily_poster_pending_route():
+    """GET /api/gbp/daily-poster/pending?brand_id=<id> — today's post awaiting
+    approval, for the Today ticker GBP tile.
+
+    Returns the FIRST post in the latest plan that is NOT already scheduled,
+    published, or removed. If no such post exists, returns ok=True with
+    post=null (already actioned).
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip().lower()
+    plan = _gdp.latest_plan(brand_id)
+    if not plan or not plan.get("posts"):
+        return jsonify({"ok": True, "brand_id": brand_id, "post": None,
+                        "reason": "no_plan"}), 200
+    profile = _gdp.BRAND_PROFILES.get(brand_id) or {}
+    integration_id = profile.get("postiz_gbp_integration_id")
+    if not integration_id:
+        return jsonify({"ok": True, "brand_id": brand_id, "post": None,
+                        "reason": "no_postiz_integration",
+                        "display_name": profile.get("display_name", brand_id)}), 200
+    # Find the first post that's not yet actioned.
+    pending = None
+    for p in plan["posts"]:
+        status = (p.get("post_status") or "").upper()
+        if status in ("SCHEDULED", "PUBLISHED", "REMOVED"):
+            continue
+        pending = p
+        break
+    if not pending:
+        return jsonify({"ok": True, "brand_id": brand_id, "post": None,
+                        "reason": "all_actioned"}), 200
+    # Re-run integrity check so the UI knows if the post is even publishable.
+    integrity_ok, violations = _gdp.integrity_check(pending, brand_id)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "display_name": profile.get("display_name", brand_id),
+        "post": {
+            "keyword": pending.get("keyword"),
+            "title": pending.get("title"),
+            "body": pending.get("body"),
+            "cta": pending.get("cta"),
+            "cta_url": pending.get("cta_url"),
+            "hashtags": pending.get("hashtags", []),
+            "intent": pending.get("intent"),
+            "pillar": pending.get("pillar"),
+            "integrity_ok": integrity_ok,
+            "integrity_violations": violations,
+        },
+        "plan_id": plan.get("plan_id") or plan.get("build_started_at"),
+        "plan_path": plan.get("file_path"),
+    }), 200
+
+
+@app.route('/api/gbp/daily-poster/approve', methods=['POST'])
+def gbp_daily_poster_approve_route():
+    """POST /api/gbp/daily-poster/approve?brand_id=<id> — approve today's
+    pending post. Routes through `_gdp.publish_post()` which runs the
+    integrity gate (no em-dashes, no fabrication, no wrong locations, no
+    cross-brand URL leakage) BEFORE publishing to Postiz.
+
+    Failure modes:
+      - No pending post: returns ok=False with reason="all_actioned".
+      - Integrity gate fails: post is marked REMOVED in the plan file.
+      - Postiz publish error: post is marked ERROR in the plan file.
+      - Success: post is marked SCHEDULED with the upstream post id.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip().lower()
+    plan = _gdp.latest_plan(brand_id)
+    if not plan or not plan.get("posts"):
+        return jsonify({"ok": False, "brand_id": brand_id, "error": "no_plan"}), 404
+    profile = _gdp.BRAND_PROFILES.get(brand_id) or {}
+    if not profile.get("postiz_gbp_integration_id"):
+        return jsonify({"ok": False, "brand_id": brand_id,
+                        "error": "no_postiz_integration"}), 400
+    # Find the first post that's not yet actioned.
+    target = None
+    for p in plan["posts"]:
+        status = (p.get("post_status") or "").upper()
+        if status in ("SCHEDULED", "PUBLISHED", "REMOVED"):
+            continue
+        target = p
+        break
+    if target is None:
+        return jsonify({"ok": False, "brand_id": brand_id,
+                        "error": "all_actioned",
+                        "reason": "no pending post to approve"}), 409
+    # Publish via the integrity gate.
+    publish_date = _dt_cls.now(_tz.utc).isoformat()
+    try:
+        result = _gdp.publish_post(target)
+    except Exception as exc:
+        result = {"ok": False, "error": f"publish failed: {exc}",
+                  "post_status": "ERROR"}
+    # Update the plan file with the publish result.
+    target["post_status"] = result.get("post_status", "ERROR")
+    target["publish_result"] = result
+    plan.setdefault("publish", {})
+    plan["publish"]["brand"] = brand_id
+    plan["publish"]["integration_id"] = profile.get("postiz_gbp_integration_id")
+    plan["publish"]["ran_at"] = publish_date
+    plan["publish"]["scheduled_count"] = (
+        (plan["publish"].get("scheduled_count") or 0) + (1 if result.get("ok") else 0)
+    )
+    plan["publish"]["posts"] = plan["publish"].get("posts") or []
+    plan["publish"]["posts"].append({
+        "status": target["post_status"],
+        "scheduled_at": result.get("scheduled_at"),
+        "keyword": target.get("keyword"),
+        "title": target.get("title"),
+        "integrity_violations": result.get("violations", []),
+    })
+    try:
+        _gdp.save_plan(plan)
+    except Exception as exc:
+        _app_log.warning("gbp_approve: failed to save plan: %s", exc)
+    return jsonify({
+        "ok": bool(result.get("ok")),
+        "brand_id": brand_id,
+        "post_status": result.get("post_status"),
+        "integration_id": profile.get("postiz_gbp_integration_id"),
+        "posted_keyword": target.get("keyword"),
+        "ran_at": publish_date,
+        "error": result.get("error"),
+        "integrity_violations": result.get("violations", []),
+    }), 200
+
+
+@app.route('/api/gbp/daily-poster/dismiss', methods=['POST'])
+def gbp_daily_poster_dismiss_route():
+    """POST /api/gbp/daily-poster/dismiss?brand_id=<id> — mark today's
+    pending post as REMOVED so it never reaches GBP. Used by the Today
+    ticker 'skip' button when the operator doesn't want to publish.
+
+    The post is left in the plan file with post_status=REMOVED so audit
+    trail is preserved.
+    """
+    if not _GBP_DAILY_AVAILABLE or _gdp is None:
+        return jsonify({"ok": False, "error": "gbp_daily_poster unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand_id = (request.args.get("brand_id") or get_brand_id() or "swing-shack").strip().lower()
+    plan = _gdp.latest_plan(brand_id)
+    if not plan or not plan.get("posts"):
+        return jsonify({"ok": False, "brand_id": brand_id, "error": "no_plan"}), 404
+    target = None
+    for p in plan["posts"]:
+        status = (p.get("post_status") or "").upper()
+        if status in ("SCHEDULED", "PUBLISHED", "REMOVED"):
+            continue
+        target = p
+        break
+    if target is None:
+        return jsonify({"ok": False, "brand_id": brand_id,
+                        "error": "all_actioned"}), 409
+    target["post_status"] = "REMOVED"
+    target["publish_result"] = {"ok": False, "post_status": "REMOVED",
+                                 "reason": "operator_dismissed"}
+    try:
+        _gdp.save_plan(plan)
+    except Exception as exc:
+        _app_log.warning("gbp_dismiss: failed to save plan: %s", exc)
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "post_status": "REMOVED",
+        "dismissed_keyword": target.get("keyword"),
+        "ran_at": _dt_cls.now(_tz.utc).isoformat(),
+    }), 200
+
+
 # ── GBP Daily cron hook (built 2026-08-20) ────────────────────────────────
 # Fires at 06:00 SAST (04:00 UTC) every day. Previews tomorrow's 7 posts
 # anchored on the latest insights data so the Morning Brief tiles can
@@ -16268,6 +16447,57 @@ def today_panel():
         if not card.get('stamp'):
             card['stamp'] = panel_ts
             card['stampKind'] = 'as_of'
+
+    # V3.8c (2026-09-23): inject a GBP post-pending card at the TOP of the
+    # ticker for the active brand. The card carries the post preview
+    # (title + body + CTA) plus Approve + Skip buttons. Approve routes
+    # through the integrity gate + Postiz; Skip marks the post REMOVED
+    # so the audit trail shows it was deliberately not published.
+    gbp_card = None
+    if _GBP_DAILY_AVAILABLE and _gdp is not None:
+        try:
+            gbp_plan = _gdp.latest_plan(active_brand_id)
+            if gbp_plan and gbp_plan.get("posts"):
+                profile = _gdp.BRAND_PROFILES.get(active_brand_id) or {}
+                if profile.get("postiz_gbp_integration_id"):
+                    pending_post = None
+                    for p in gbp_plan["posts"]:
+                        st = (p.get("post_status") or "").upper()
+                        if st in ("SCHEDULED", "PUBLISHED", "REMOVED"):
+                            continue
+                        pending_post = p
+                        break
+                    if pending_post is not None:
+                        integrity_ok, violations = _gdp.integrity_check(
+                            pending_post, active_brand_id)
+                        status = (pending_post.get("post_status") or "PENDING").upper()
+                        gbp_card = {
+                            "id": f"gbp-post-{active_brand_id}-{panel_ts[:10]}",
+                            "label": "Today's GBP post",
+                            "kind": "gbp_post_pending",
+                            "title": pending_post.get("title") or pending_post.get("keyword") or "Untitled",
+                            "body": pending_post.get("body", ""),
+                            "cta": pending_post.get("cta", ""),
+                            "cta_url": pending_post.get("cta_url"),
+                            "hashtags": pending_post.get("hashtags", []),
+                            "pillar": pending_post.get("pillar"),
+                            "intent": pending_post.get("intent"),
+                            "keyword": pending_post.get("keyword"),
+                            "integrity_ok": integrity_ok,
+                            "integrity_violations": violations,
+                            "post_status": status,
+                            "campaignId": f"GBP · {profile.get('display_name', active_brand_id)}",
+                            "updatedAt": panel_ts,
+                            "stamp": panel_ts,
+                            "stampKind": "as_of",
+                            "brand_id": active_brand_id,
+                        }
+        except Exception as exc:
+            _app_log.warning("today_panel: gbp pending card build failed: %s", exc)
+
+    if gbp_card is not None:
+        cards.insert(0, gbp_card)
+
     return jsonify({
         'ok': True,
         'ts': panel_ts,
@@ -16291,6 +16521,8 @@ def today_panel():
         },
         # V1.1 §8: Brief opportunities + actions
         'brief_actions': brief_actions,
+        # V3.8c: GBP pending post card (single, top-of-ticker)
+        'gbp_post_pending': gbp_card,
     })
 
 

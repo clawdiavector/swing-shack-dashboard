@@ -71,22 +71,18 @@ BRAND_PROFILES = {
         "tagline": "Real Golf, Indoors.",
         "promise": "The ball speaks. Data confirms. Feel seals the deal.",
         "internal_mantra": "Real Golf. Real Data. Real Welcome.",
+        # Pillar rotation per Christelle (2026-09-23): Fitting / Coaching / Indoor Golf.
+        # The copy bank carries these pillars; the share targets feed the
+        # keyword anchor pool + the per-day rotation in build_daily_plan.
         "supported_pillars": [
-            "trackman_intelligence",
-            "fitting_education",
+            "fitting",
             "coaching",
-            "social_play",
-            "practice",
-            "membership",
-            "local",
+            "indoor_golf",
         ],
         "share_targets": {
-            "trackman_intelligence": 0.40,
-            "fitting_education": 0.25,
-            "coaching": 0.20,
-            "practice": 0.05,
-            "social_play": 0.05,
-            "membership": 0.05,
+            "fitting": 0.40,
+            "coaching": 0.30,
+            "indoor_golf": 0.30,
         },
         "postiz_gbp_integration_id": "cmmdgju7f00tppk0y6bne9zrk",
         "google_account": "verified",
@@ -109,20 +105,23 @@ BRAND_PROFILES = {
         "tagline": "Better Begins Here.",
         "strategic_belief": "Everything has to earn its place.",
         "trading_principles": "Fit First. Buy Second. Why It's Here. Respect the Player.",
+        # Pillar rotation per Christelle (2026-09-23): Fitting / Coaching / Retail.
+        # Retail covers products on the shelf + the "Why It's Here." editorial.
+        # Workshop + local are preserved as low-share auxiliary pillars so
+        # we still touch them occasionally without crowding the operator-
+        # specified rotation.
         "supported_pillars": [
-            "why_its_here",
             "fitting",
-            "workshop",
-            "culture",
             "coaching",
+            "retail",
+            "workshop",
             "local",
         ],
         "share_targets": {
-            "why_its_here": 0.40,
-            "fitting": 0.25,
-            "workshop": 0.20,
-            "culture": 0.10,
-            "coaching": 0.03,
+            "fitting": 0.40,
+            "coaching": 0.25,
+            "retail": 0.30,
+            "workshop": 0.03,
             "local": 0.02,
         },
         "postiz_gbp_integration_id": "cmu6pc3gp0btanl0yl50vl8pz",
@@ -251,45 +250,84 @@ def load_verified_facts(brand_id: str) -> dict:
 
 
 _KEYWORD_INTENT_BANK = {
-    # Informational: golfer is researching a concept.
-    "what is": ("informational", ["trackman_intelligence", "fitting"]),
-    "vs": ("informational", ["fitting", "why_its_here"]),
-    "versus": ("informational", ["fitting"]),
-    "explained": ("informational", ["trackman_intelligence", "fitting"]),
-    "how to": ("informational", ["trackman_intelligence", "fitting"]),
-    "how often": ("informational", ["workshop", "fitting"]),
-    "difference between": ("informational", ["fitting"]),
-    # Commercial: golfer is ready to buy or book.
-    "book": ("commercial", ["general"]),
-    "fitting": ("commercial", ["fitting"]),
+    # ── Topic-driven classification (most specific match wins) ──
+    # Coaching keywords take priority over generic location matches.
+    "golf lessons": ("commercial", ["coaching"]),
+    "golf coach": ("commercial", ["coaching"]),
     "coaching": ("commercial", ["coaching"]),
-    "membership": ("commercial", ["membership"]),
-    "buy": ("commercial", ["why_its_here"]),
-    "price": ("commercial", ["fitting"]),
-    "cost": ("commercial", ["fitting"]),
-    "near me": ("commercial", ["local"]),
-    "south africa": ("commercial", ["local"]),
-    "johannesburg": ("commercial", ["local"]),
+    "lessons": ("commercial", ["coaching"]),
+    "instructor": ("commercial", ["coaching"]),
+    # Fitting keywords (full list of variations).
+    "driver fitting": ("commercial", ["fitting"]),
+    "iron fitting": ("commercial", ["fitting"]),
+    "putter fitting": ("commercial", ["fitting"]),
+    "club fitting": ("commercial", ["fitting"]),
+    "wedge fitting": ("commercial", ["fitting"]),
+    "trackman fitting": ("commercial", ["fitting"]),
+    "fitting johannesburg": ("commercial", ["fitting"]),
+    "fitting randburg": ("commercial", ["fitting"]),
+    "fitting paarl": ("commercial", ["fitting"]),
+    "fitting western cape": ("commercial", ["fitting"]),
+    "fitting cape town": ("commercial", ["fitting"]),
+    # Workshop keywords.
+    "regrip": ("commercial", ["workshop"]),
+    "loft and lie": ("commercial", ["workshop"]),
+    "shaft work": ("commercial", ["workshop"]),
+    "club repair": ("commercial", ["workshop"]),
+    # Retail / Why It's Here keywords.
+    "takomo": ("commercial", ["retail"]),
+    "vice": ("commercial", ["retail"]),
+    "psycho bunny": ("commercial", ["retail"]),
+    "l.a.b": ("commercial", ["retail"]),
+    "lab golf": ("commercial", ["retail"]),
+    "avoda": ("commercial", ["retail"]),
+    "vessel": ("commercial", ["retail"]),
+    # Indoor golf / simulator keywords.
+    "indoor golf": ("commercial", ["indoor_golf"]),
+    "golf simulator": ("commercial", ["indoor_golf"]),
+    "trackman simulator": ("commercial", ["indoor_golf"]),
+    "simulator": ("commercial", ["indoor_golf"]),
+    "social play": ("commercial", ["indoor_golf"]),
+    "membership": ("commercial", ["indoor_golf"]),
+    # Informational / question keywords.
+    "what is": ("informational", ["coaching", "fitting"]),
+    "how to": ("informational", ["coaching", "fitting", "workshop"]),
+    "how often": ("informational", ["workshop", "fitting"]),
+    " vs ": ("informational", ["fitting", "retail"]),
+    " versus ": ("informational", ["fitting"]),
+    "explained": ("informational", ["coaching", "fitting"]),
+    "difference between": ("informational", ["fitting", "retail"]),
+    # Cheeky / challenge keywords.
+    "off-rack": ("challenge", ["fitting", "retail"]),
+    "off the rack": ("challenge", ["fitting", "retail"]),
+    "off-the-rack": ("challenge", ["fitting", "retail"]),
+    "myth": ("cheeky", ["retail", "fitting"]),
+    "lie": ("cheeky", ["fitting"]),
+    "hope": ("cheeky", ["fitting"]),
+    "denial": ("cheeky", ["fitting"]),
+    "slice": ("challenge", ["coaching", "fitting"]),
+    "hook": ("challenge", ["coaching"]),
+    "shank": ("challenge", ["coaching"]),
+    # Generic commercial / location fallback (matches last).
+    "near me": ("commercial", ["indoor_golf"]),
+    "south africa": ("commercial", ["indoor_golf"]),
+    "johannesburg": ("commercial", ["indoor_golf"]),
+    "randburg": ("commercial", ["indoor_golf"]),
     "paarl": ("commercial", ["local"]),
     "cape town": ("commercial", ["local"]),
     "winelands": ("commercial", ["local"]),
-    # Cheeky: golfer is in on the joke. Lead with setup:payoff.
-    "myth": ("cheeky", ["culture", "trackman_intelligence"]),
-    "lie": ("cheeky", ["trackman_intelligence"]),
-    "hope": ("cheeky", ["fitting"]),
-    "denial": ("cheeky", ["fitting"]),
-    # Challenge: golf habit that needs fixing.
-    "slice": ("challenge", ["trackman_intelligence", "fitting"]),
-    "hook": ("challenge", ["trackman_intelligence"]),
-    "shank": ("challenge", ["trackman_intelligence"]),
-    "off-rack": ("challenge", ["fitting", "why_its_here"]),
-    "off the rack": ("challenge", ["fitting", "why_its_here"]),
-    "off-the-rack": ("challenge", ["fitting", "why_its_here"]),
+    "book": ("commercial", ["coaching"]),
+    "price": ("commercial", ["fitting"]),
+    "cost": ("commercial", ["fitting"]),
+    "buy": ("commercial", ["retail"]),
 }
 
 
 def classify_keyword_intent(keyword: str) -> tuple[str, list[str]]:
-    """Returns (intent_label, pillar_hints). Falls back to (commercial, [])."""
+    """Returns (intent_label, pillar_hints). Topic-specific needles are
+    listed FIRST in _KEYWORD_INTENT_BANK so they win over generic
+    location matches like 'johannesburg'. Falls back to (commercial, []).
+    """
     kw_lower = keyword.lower()
     for needle, (intent, hints) in _KEYWORD_INTENT_BANK.items():
         if needle in kw_lower:
@@ -305,7 +343,8 @@ def pick_headline(
     rng: random.Random,
 ) -> Optional[dict]:
     """Pick a headline from the bank. Prefers intent+pillar match, falls back
-    to intent-only, then any. Returns None if the bank is empty."""
+    to pillar-only, then intent-only, then any. Returns None if the bank
+    is empty."""
     headlines = bank.get("headlines") or []
     if not headlines:
         return None
@@ -313,6 +352,11 @@ def pick_headline(
              if h.get("tone") == intent and pillar_hint in (h.get("pillar") or "")]
     if exact:
         return rng.choice(exact)
+    # Pillar-only match: same pillar, any tone. Keeps the pillar rotation
+    # even when intent+pillar exact doesn't hit.
+    by_pillar = [h for h in headlines if pillar_hint in (h.get("pillar") or "")]
+    if by_pillar:
+        return rng.choice(by_pillar)
     by_intent = [h for h in headlines if h.get("tone") == intent]
     if by_intent:
         return rng.choice(by_intent)
@@ -538,25 +582,100 @@ def build_daily_plan(
     if keywords:
         kw_list = list(keywords)
     else:
+        # Pillar-anchored keyword pool. The keyword anchors map to the
+        # brand's `pillar` field; the headline pool is selected by intent
+        # + pillar, so the anchor just steers WHICH pillar wins today.
+        # Christelle (2026-09-23): SS = Fitting / Coaching / Indoor Golf;
+        # Stick = Fitting / Coaching / Retail.
+        #
+        # Per-brand pools (NOT one shared dict) so SS doesn't accidentally
+        # pick up Stick's "paarl"-anchored keywords and vice versa. We
+        # previously had a single combined dict and the iterator order
+        # caused SS to draw "club fitting paarl" — a location violation.
+        brand_anchors = {
+            "swing-shack": {
+                "fitting": [
+                    "driver fitting johannesburg",
+                    "club fitting randburg",
+                    "iron fitting johannesburg",
+                    "putter fitting johannesburg",
+                    "trackman fitting randburg",
+                    "fitting johannesburg",
+                ],
+                "coaching": [
+                    "golf lessons johannesburg",
+                    "golf coach randburg",
+                    "trackman coaching johannesburg",
+                    "indoor golf lessons randburg",
+                    "golf coaching johannesburg",
+                ],
+                "indoor_golf": [
+                    "indoor golf johannesburg",
+                    "golf simulator randburg",
+                    "trackman simulator johannesburg",
+                    "indoor golf randburg",
+                    "indoor golf bay johannesburg",
+                    "indoor golf practice johannesburg",
+                    "social play randburg",
+                    "indoor golf membership johannesburg",
+                ],
+            },
+            "stick": {
+                "fitting": [
+                    "club fitting paarl",
+                    "putter fitting western cape",
+                    "putter fitting paarl",
+                    "iron fitting western cape",
+                    "trackman fitting paarl",
+                    "brand agnostic fitting paarl",
+                ],
+                "coaching": [
+                    "golf lessons paarl",
+                    "golf coach paarl",
+                    "golf coaching western cape",
+                    "coaching paarl",
+                ],
+                "retail": [
+                    "takomo paarl",
+                    "vice golf paarl",
+                    "psycho bunny paarl",
+                    "l.a.b golf paarl",
+                    "golf retail paarl",
+                    "avoda paarl",
+                ],
+                "workshop": [
+                    "regrip golf clubs paarl",
+                    "loft and lie paarl",
+                    "shaft work western cape",
+                    "club repair paarl",
+                ],
+                "local": [
+                    "indoor golf paarl",
+                    "stick golf paarl",
+                    "golf fitting western cape",
+                    "golf lessons paarl",
+                ],
+            },
+            "bag-drop": {
+                "general": [
+                    "golf bag storage johannesburg",
+                    "regrip golf clubs johannesburg",
+                ],
+            },
+        }
+        pillar_kw_anchors = brand_anchors.get(brand_id, {})
         pillar_shares = profile.get("share_targets") or {}
         pillars_sorted = sorted(pillar_shares.items(), key=lambda x: -x[1])
-        pillar_kw_anchors = {
-            "trackman_intelligence": ["trackman session johannesburg", "golf simulator randburg"],
-            "fitting_education": ["driver fitting johannesburg", "club fitting randburg"],
-            "coaching": ["golf lessons johannesburg", "golf coach randburg"],
-            "practice": ["indoor golf practice johannesburg", "trackman practice bay"],
-            "social_play": ["indoor golf social johannesburg", "golf party randburg"],
-            "membership": ["indoor golf membership johannesburg"],
-            "local": ["indoor golf randburg", "golf club randburg"],
-            "why_its_here": ["takomo paarl", "vice golf paarl", "psycho bunny paarl"],
-            "fitting": ["club fitting paarl", "putter fitting western cape"],
-            "workshop": ["regrip golf clubs paarl", "loft and lie paarl"],
-            "culture": ["modern golf paarl", "golf culture western cape"],
-            "general": ["indoor golf paarl", "golf fitting western cape"],
-        }
         kw_list = []
-        for pillar, _ in pillars_sorted:
-            kw_list.extend(pillar_kw_anchors.get(pillar, [])[:2])
+        # Pull keywords per pillar weighted by share target. Each pillar
+        # gets its top `ceil(3 * share)` anchor keywords; the rotation
+        # cycles through pillars in share-target order.
+        for pillar, share in pillars_sorted:
+            anchors = pillar_kw_anchors.get(pillar, [])
+            if not anchors:
+                continue
+            n = max(1, int(round(3 * share)))
+            kw_list.extend(anchors[:n])
 
     today = _dt.date.today()
     posts: list[dict] = []
