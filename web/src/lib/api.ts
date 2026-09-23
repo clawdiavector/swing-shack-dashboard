@@ -591,6 +591,9 @@ export type InsightPost = {
   timestamp?: string
   permalink?: string
   thumbnail_url?: string
+  media_url?: string
+  media_type?: string
+  oembed_thumbnail?: string
 }
 
 export type InsightsPosts = {

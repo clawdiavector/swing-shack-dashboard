@@ -145,3 +145,41 @@ def test_unified_inbox_module_counts():
     counts = inbox_counts()
     assert "pending" in counts
     assert counts["verdict"] in {"OK", "LATE", "NEVER"}
+
+
+def test_unified_inbox_sort_newest_first(inbox_app, tmp_path):
+    """P9: Review queue is newest-first by created_at; stale badge is separate."""
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {
+            "id": "old-stale",
+            "brand_id": "stick",
+            "title": "Old holiday",
+            "created_at": "2026-09-05T08:00:00Z",
+            "status": "pending",
+        },
+        {
+            "id": "fresh",
+            "brand_id": "stick",
+            "title": "Landed today",
+            "created_at": "2026-09-22T14:00:00+00:00",
+            "status": "pending",
+        },
+        {
+            "id": "undated",
+            "brand_id": "stick",
+            "title": "No timestamp",
+            "status": "pending",
+        },
+    ]
+    (proposals_dir / "pending.jsonl").write_text(
+        "\n".join(json.dumps(r) for r in rows) + "\n",
+        encoding="utf-8",
+    )
+    from _lib.unified_inbox import list_items
+
+    items = list_items(status="pending", brand="stick")["items"]
+    proposal_ids = [i["meta"]["proposal_id"] for i in items if i.get("type") == "proposal"]
+    assert proposal_ids.index("fresh") < proposal_ids.index("old-stale")
+    assert proposal_ids.index("undated") == len(proposal_ids) - 1
