@@ -16532,6 +16532,34 @@ def today_panel():
                     if pending_post is not None:
                         integrity_ok, violations = _gdp.integrity_check(
                             pending_post, active_brand_id)
+                        # V3.8f: also verify Postiz integration is reachable
+                        # on the active key. If not, surface the gap so the
+                        # ticker doesn't show a broken Approve button.
+                        integration_verified = True
+                        integration_error = None
+                        configured_int_id = profile.get("postiz_gbp_integration_id")
+                        try:
+                            from _lib import postiz_client as _pc
+                            if _pc and _pc._credentials_present():
+                                _ints, _err = _pc.list_integrations()
+                                if _err:
+                                    integration_verified = False
+                                    integration_error = str(_err)
+                                elif _ints is None:
+                                    integration_verified = False
+                                    integration_error = "postiz returned no integrations"
+                                else:
+                                    _items = _ints if isinstance(_ints, list) else (_ints.get("integrations") or [])
+                                    _ids = {str(it.get("id")) for it in _items if isinstance(it, dict)}
+                                    if configured_int_id not in _ids:
+                                        integration_verified = False
+                                        integration_error = (
+                                            f"integration {configured_int_id} not present "
+                                            f"on active Postiz key"
+                                        )
+                        except Exception as exc:
+                            _app_log.warning(
+                                "today_panel: postiz integration check failed: %s", exc)
                         status = (pending_post.get("post_status") or "PENDING").upper()
                         gbp_card = {
                             "id": f"gbp-post-{active_brand_id}-{panel_ts[:10]}",
@@ -16547,6 +16575,9 @@ def today_panel():
                             "keyword": pending_post.get("keyword"),
                             "integrity_ok": integrity_ok,
                             "integrity_violations": violations,
+                            "integration_verified": integration_verified,
+                            "integration_error": integration_error,
+                            "configured_integration_id": configured_int_id,
                             "post_status": status,
                             "campaignId": f"GBP · {profile.get('display_name', active_brand_id)}",
                             "updatedAt": panel_ts,
