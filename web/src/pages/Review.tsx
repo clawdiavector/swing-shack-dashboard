@@ -21,7 +21,7 @@ export function Review() {
   const [filter, setFilter] = useState('all')
 
   function load() {
-    fetchInbox('pending')
+    fetchInbox('pending', brandId)
       .then((payload) => {
         setItems(payload.items || [])
         setPending(payload.counts?.pending ?? payload.items?.length ?? 0)

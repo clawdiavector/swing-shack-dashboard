@@ -27,6 +27,9 @@ export type BriefAction = {
   brief_id?: string
   brief_status?: string
   gate?: string
+  creative_allowed?: boolean
+  brief_revision?: number
+  gate_confidence?: number
 }
 
 export type TodayPanel = {
@@ -56,6 +59,9 @@ export type InboxItem = {
     asset_id?: string
     platform?: string
     approval_status?: string
+    caption?: string
+    image_path?: string
+    image_url?: string
   }
 }
 
@@ -331,8 +337,10 @@ export async function unscheduleAsset(assetId: string) {
   return res.json() as Promise<ScheduleResult>
 }
 
-export function fetchInbox(status = 'pending') {
-  return getJson<InboxPayload>(`/api/inbox/unified?status=${encodeURIComponent(status)}`)
+export function fetchInbox(status = 'pending', brand?: string) {
+  const q = new URLSearchParams({ status })
+  if (brand) q.set('brand', brand)
+  return getJson<InboxPayload>(`/api/inbox/unified?${q}`)
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {
@@ -342,11 +350,11 @@ export function matchInboxItem(item: InboxItem, id: string) {
   return item.id.endsWith(`:${id}`)
 }
 
-export async function fetchInboxItem(id: string) {
-  const pending = await fetchInbox('pending')
+export async function fetchInboxItem(id: string, brand?: string) {
+  const pending = await fetchInbox('pending', brand)
   const fromPending = (pending.items || []).find((item) => matchInboxItem(item, id))
   if (fromPending) return fromPending
-  const all = await fetchInbox('all')
+  const all = await fetchInbox('all', brand)
   return (all.items || []).find((item) => matchInboxItem(item, id)) || null
 }
 
@@ -779,6 +787,55 @@ export function fetchAssetAiDraft(assetId: string, campaignId?: string) {
   if (campaignId) q.set('campaignId', campaignId)
   const suffix = q.toString() ? `?${q}` : ''
   return getJson<AssetAiDraft>(`/api/assets/${encodeURIComponent(assetId)}/ai-draft${suffix}`)
+}
+
+export type CampaignAsset = {
+  name?: string
+  kind?: string
+  platform?: string
+  caption?: string
+  description?: string
+  visualBrief?: string
+  realPhotoBrief?: string
+  approvalStatus?: string
+  publishStatus?: string
+  visualUrl?: string
+  imageUrl?: string
+  mediaUrl?: string
+  filePath?: string
+  publishingReferences?: Array<{ postizId?: string; mediaUrl?: string }>
+}
+
+export type Campaign = {
+  identity?: { name?: string }
+  assets?: Record<string, CampaignAsset>
+  error?: string
+}
+
+export function fetchCampaign(campaignId: string) {
+  return getJson<Campaign>(`/api/campaigns/${encodeURIComponent(campaignId)}`)
+}
+
+const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/']
+
+export function resolveAssetUrl(raw?: string | null): string {
+  const p = (raw || '').trim()
+  if (!p) return ''
+  if (/^(https?:|data:|blob:|file:)/i.test(p)) return p
+  let s = p.replace(/^\/+/, '')
+  while (s.startsWith('assets/assets/')) s = s.slice('assets/'.length)
+  if (MEDIA_ROOTS.some((root) => s.startsWith(root))) return `/${s}`
+  return `/assets/${s}`
+}
+
+export function assetVisualUrl(asset?: CampaignAsset | null): string {
+  if (!asset) return ''
+  return (
+    resolveAssetUrl(asset.visualUrl || asset.imageUrl || asset.mediaUrl) ||
+    resolveAssetUrl(asset.filePath) ||
+    resolveAssetUrl(asset.publishingReferences?.[0]?.mediaUrl) ||
+    ''
+  )
 }
 
 export type VisualLibraryPayload = {
