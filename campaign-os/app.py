@@ -14467,6 +14467,47 @@ def gsc_sites_list_route():
         })
 
 
+@app.route('/api/gsc/debug-resolve', methods=['GET'])
+def gsc_debug_resolve_route():
+    """GET /api/gsc/debug-resolve?brand=<id> — show what _resolve_site_url
+    would return for this brand, including any cached value and any
+    probe result. Read-only diag."""
+    from _lib.jobs.layer1 import gsc_report as _g
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    import os as _os
+    safe = brand.upper().replace("-", "_")
+    out = {
+        "ok": True,
+        "brand": brand,
+        "env": {
+            f"GSC_SITE_URL_{safe}": _os.environ.get(f"GSC_SITE_URL_{safe}", ""),
+            "GSC_SITE_URL": _os.environ.get("GSC_SITE_URL", ""),
+            "SEARCH_CONSOLE_SITE_URL": _os.environ.get("SEARCH_CONSOLE_SITE_URL", ""),
+            "DATA_DIR": _os.environ.get("DATA_DIR", ""),
+        },
+    }
+    # Cache
+    try:
+        cache_path = Path(_os.environ.get("DATA_DIR", "/data")) / f"gsc-site-url-{brand}.json"
+        if cache_path.is_file():
+            out["cache_file"] = str(cache_path)
+            out["cache"] = json.loads(cache_path.read_text(encoding="utf-8"))
+        else:
+            out["cache_file"] = str(cache_path) + " (not present)"
+    except Exception as exc:
+        out["cache_error"] = str(exc)
+    # Resolution
+    try:
+        url, err = _g._resolve_site_url(brand)
+        out["resolved_site_url"] = url
+        out["resolve_error"] = err
+    except Exception as exc:
+        out["resolve_exception"] = str(exc)
+    return jsonify(out), 200
+
+
 @app.route('/api/gsc/oauth/disconnect', methods=['POST'])
 def gsc_oauth_disconnect_route():
     """POST /api/gsc/oauth/disconnect — remove stored Search Console OAuth token."""
