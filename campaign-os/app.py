@@ -17093,7 +17093,8 @@ def jobs_run(name):
             from _lib.jobs.cooldown import check as _cd_check, mark as _cd_mark
             spec = _JOBS_REGISTRY.get(name)
             every = getattr(spec, 'every_seconds', None) if spec else None
-            allowed, retry_after = _cd_check(name, every)
+            cd_brand = None if fanout_all else brand_param
+            allowed, retry_after = _cd_check(name, every, brand=cd_brand)
             if not allowed:
                 resp = jsonify({
                     "ok": False,
@@ -17104,7 +17105,7 @@ def jobs_run(name):
                 resp.status_code = 429
                 resp.headers["Retry-After"] = str(int(max(1, retry_after)))
                 return resp
-            _cd_mark(name)
+            _cd_mark(name, brand=cd_brand)
         except Exception:
             _app_log.exception("manual cooldown check failed name=%s", name)
     try:
@@ -17347,6 +17348,13 @@ def ops_layers():
         return jsonify({"ok": False, "error": "job registry unavailable"}), 503
     try:
         from _lib import ops_layers as _ops_layers_mod
+        from _lib.jobs.brand_lanes import load_brands_registry
+
+        brand = (request.args.get("brand") or "").strip() or None
+        if brand is not None:
+            reg = load_brands_registry()
+            if brand not in (reg.get("brands") or {}):
+                return jsonify({"ok": False, "error": "invalid brand"}), 400
 
         jobs_status = _jobs_build_status()
         freshness_payload = None
@@ -17400,6 +17408,7 @@ def ops_layers():
             agents=agents_roster,
             inbox=inbox_counts,
             watch=watch_hb,
+            brand=brand,
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
@@ -24668,6 +24677,17 @@ def _boot_selfheal_windsor():
         t.start()
     except Exception as e:
         _app_log.warning('Boot self-heal dispatch failed: %s', e)
+
+
+from datetime import datetime as _job_boot_datetime, timezone as _job_boot_timezone
+
+_JOB_BOOT_AT = _job_boot_datetime.now(_job_boot_timezone.utc)
+
+
+def _boot_reap_orphan_jobs():
+    from _lib.jobs import runner as _jobs_runner
+
+    _jobs_runner.reap_orphan_runs(boot_at=_JOB_BOOT_AT)
 
 
 def _boot_seed_persistent_data():
@@ -46557,6 +46577,11 @@ if __name__ == '__main__':
         print(f'[boot] self-heal dispatched', flush=True, file=_sys.stderr)
     except Exception as _e:
         print(f'[boot] self-heal failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        _boot_reap_orphan_jobs()
+        print('[boot] orphan job runs reaped', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] orphan reap failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:

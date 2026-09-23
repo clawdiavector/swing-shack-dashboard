@@ -1,7 +1,7 @@
 """Per-job manual Run-now cooldown (t44) — independent of CAMPAIGN_OS_PRODUCTION.
 
 In-memory + lock. Resets on process restart (acceptable; stated in RFT).
-Window: min(every_seconds, 300) seconds per job name.
+Window: min(every_seconds, 300) seconds per (job name, brand lane).
 """
 
 from __future__ import annotations
@@ -11,8 +11,14 @@ import time
 from typing import Optional
 
 _LOCK = threading.Lock()
-_LAST: dict[str, float] = {}  # job_name -> monotonic ts of last manual mark
+_LAST: dict[tuple[str, str], float] = {}  # (job_name, brand or "") -> monotonic ts
 _DEFAULT_CAP_S = 300.0
+
+
+def _key(job_name: str, brand: str | None = None) -> tuple[str, str]:
+    name = (job_name or "").strip()
+    lane = (brand or "").strip()
+    return name, lane
 
 
 def window_s(every_seconds: Optional[float] = None) -> float:
@@ -25,13 +31,20 @@ def window_s(every_seconds: Optional[float] = None) -> float:
     return min(every, _DEFAULT_CAP_S)
 
 
-def check(job_name: str, every_seconds: Optional[float] = None) -> tuple[bool, float]:
+def check(
+    job_name: str,
+    every_seconds: Optional[float] = None,
+    *,
+    brand: str | None = None,
+) -> tuple[bool, float]:
     """Return (allowed, retry_after_s)."""
-    name = (job_name or "").strip()
+    key = _key(job_name, brand)
+    if not key[0]:
+        return True, 0.0
     win = window_s(every_seconds)
     now = time.monotonic()
     with _LOCK:
-        last = _LAST.get(name)
+        last = _LAST.get(key)
         if last is None:
             return True, 0.0
         elapsed = now - last
@@ -40,12 +53,12 @@ def check(job_name: str, every_seconds: Optional[float] = None) -> tuple[bool, f
         return False, round(win - elapsed, 3)
 
 
-def mark(job_name: str) -> None:
-    name = (job_name or "").strip()
-    if not name:
+def mark(job_name: str, *, brand: str | None = None) -> None:
+    key = _key(job_name, brand)
+    if not key[0]:
         return
     with _LOCK:
-        _LAST[name] = time.monotonic()
+        _LAST[key] = time.monotonic()
 
 
 def reset_for_tests() -> None:

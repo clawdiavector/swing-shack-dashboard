@@ -30,6 +30,7 @@ def summarize_result(result: Any) -> dict[str, Any]:
         "fb_posts",
         "fan_count",
         "partial",
+        "paid_media_ok",
         "total_files",
         "fresh_count",
         "stale_count",

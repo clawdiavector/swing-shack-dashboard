@@ -489,9 +489,16 @@ async function initBrandSwitcher() {
 
 function jobRunQuery(job) {
   if (!job || job.brand_mode !== 'per_brand') return '';
-  if (jobsBrandFilter === ALL_BRANDS) return '&all=1';
+  if (jobsBrandFilter === ALL_BRANDS) return '';
   const brand = jobsBrandFilter || activeBrand;
   return brand ? '&brand=' + encodeURIComponent(brand) : '';
+}
+
+function jobVerdictForFilter(j) {
+  if (j.brand_mode !== 'per_brand') return j.verdict || 'NEVER';
+  if (!jobsBrandFilter || jobsBrandFilter === ALL_BRANDS) return j.verdict || 'NEVER';
+  const row = (j.brands || []).find(b => b.brand === jobsBrandFilter);
+  return (row && row.verdict) || j.verdict || 'NEVER';
 }
 
 function brandVerdictChip(b) {
@@ -531,10 +538,6 @@ function renderBrandStrip(j) {
     const active = jobsBrandFilter !== ALL_BRANDS && b.brand === jobsBrandFilter;
     return '<span class="chip ' + esc(chip.cls) + (active ? ' brand-active' : '') + '">' + esc(b.brand) + ': ' + esc(chip.cls === 'SKIPPED' ? 'Not set up' : (b.verdict || 'NEVER')) + '</span>';
   }).join('') + '</div>';
-}
-
-function filterJobsForBrand(jobs) {
-  return jobs;
 }
 
 function readLayer() {
@@ -1025,8 +1028,9 @@ function infoBlock(j) {
 function jobCard(j) {
   const age = ageLabel(j.last_success_age_h);
   const dur = j.last_duration_s != null ? `${j.last_duration_s}s` : '—';
-  const v = j.verdict || 'NEVER';
+  const v = jobVerdictForFilter(j);
   const retries = Number(j.retries || 0);
+  // last_run_id is fleet-level; brands[] has no per-lane run id yet
   const timeout = Number(j.timeout_seconds || 60);
   const worst = Math.ceil((retries + 1) * timeout + 10);
   const worstLabel = worst >= 60 ? `up to ${Math.floor(worst/60)}m${worst%60?worst%60+'s':''}` : `up to ${worst}s`;
@@ -1218,7 +1222,7 @@ function renderSummary(jobs) {
   const tbody = $('summary-body');
   if (!jobs.length) { tbody.innerHTML = ''; return; }
   tbody.innerHTML = jobs.map((j, idx) => {
-    const v = j.verdict || 'NEVER';
+    const v = jobVerdictForFilter(j);
     const info = j.info || {};
     const title = info.title || j.name;
     const st = j.last_status || '—';
@@ -1266,7 +1270,7 @@ async function loadJobs() {
     return;
   }
   allJobsCache = (r.data && r.data.jobs) || [];
-  const jobs = filterJobsForBrand(allJobsCache);
+  const jobs = allJobsCache;
   if (!jobs.length) {
     list.innerHTML = '<div class="empty">No jobs registered.</div>';
     return;
@@ -1280,21 +1284,30 @@ async function runNow(name, btn) {
   btn.disabled = true;
   const prev = btn.textContent;
   btn.textContent = worst >= 120 ? `Running (may take ~${Math.ceil(worst/60)}m)…` : 'Running…';
-  const jobMeta = allJobsCache.find(j => j.name === name) || { brand_mode: 'per_brand' };
+  const jobMeta = allJobsCache.find(j => j.name === name) || {};
   try {
-    const runUrl = '/api/jobs/run/' + encodeURIComponent(name) + '?reason=manual' + jobRunQuery(jobMeta);
-    const r = await api(runUrl, { method: 'POST' });
-    if (r.status === 409) {
-      toast((r.data && r.data.error) || 'Brand not in resolved set for this job', true);
-    } else if (r.status === 429) {
-      toast(`Rate limited for ${name} — try again in ${(r.data && r.data.retry_after_s) || '?'}s`, true);
-    } else if (!r.ok) {
-      toast((r.data && r.data.error) || 'Run failed', true);
-      await loadJobs();
-    } else {
-      toast(`${name}: ${r.data.status || 'done'}`);
-      await loadJobs();
+    const laneBrands = (jobsBrandFilter === ALL_BRANDS && jobMeta.brand_mode === 'per_brand')
+      ? (jobMeta.brands || []).filter(b => b.applies !== false).map(b => b.brand)
+      : [];
+    const targets = laneBrands.length ? laneBrands : [null];
+    for (const laneBrand of targets) {
+      const q = laneBrand
+        ? ('?reason=manual&brand=' + encodeURIComponent(laneBrand))
+        : ('?reason=manual' + jobRunQuery(jobMeta));
+      const runUrl = '/api/jobs/run/' + encodeURIComponent(name) + q;
+      const r = await api(runUrl, { method: 'POST' });
+      const laneLabel = laneBrand ? `${name} (${laneBrand})` : name;
+      if (r.status === 409) {
+        toast((r.data && r.data.error) || 'Brand not in resolved set for this job', true);
+      } else if (r.status === 429) {
+        toast(`Rate limited for ${laneLabel} — try again in ${(r.data && r.data.retry_after_s) || '?'}s`, true);
+      } else if (!r.ok) {
+        toast((r.data && r.data.error) || 'Run failed', true);
+      } else {
+        toast(`${laneLabel}: ${r.data.status || 'done'}`);
+      }
     }
+    await loadJobs();
   } catch (e) {
     if (String(e.message) !== 'auth') {
       toast('Network blip — refreshing status…');

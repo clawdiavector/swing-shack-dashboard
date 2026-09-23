@@ -80,6 +80,20 @@ def test_assert_ok_is_per_brand_file():
     assert "/tmp/meta-fetch.json" not in text
 
 
+def test_workflow_waits_for_health_before_fanout():
+    text = _workflow_text()
+    health_idx = text.find("Preflight — wait for /api/health")
+    post_idx = text.find("name: POST /api/jobs/run/meta_refresh per brand")
+    assert health_idx != -1 and post_idx != -1
+    assert health_idx < post_idx
+
+
+def test_workflow_retries_a_lane_once():
+    text = _workflow_text()
+    assert "Retrying brand=" in text
+    assert "attempt 2" in text
+
+
 def test_workflow_brand_filter_matches_registry(job_env):
     from _lib.jobs.brand_lanes import resolve_brands, skipped_brands
     from _lib.jobs.registry import JOBS

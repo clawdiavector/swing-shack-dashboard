@@ -27,6 +27,7 @@ ERROR_CLASSES = (
     "empty_result",
     "missing_input",
     "disk",
+    "worker_death",
     "unknown",
 )
 

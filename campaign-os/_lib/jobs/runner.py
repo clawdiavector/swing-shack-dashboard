@@ -427,6 +427,60 @@ def _latest_finished_at(rows: list[dict]) -> Optional[datetime]:
     return None
 
 
+REAPED_ERROR_CLASS = "worker_death"
+_REAPED_ERROR_MSG = "no finished row — process died mid-run; reaped at boot"
+
+
+def reap_orphan_runs(*, boot_at: datetime, now: datetime | None = None) -> list[dict]:
+    """Append terminal rows for started runs whose worker died before finishing."""
+    appended: list[dict] = []
+    try:
+        now = now or _utc_now()
+        grouped = ledger.last_rows_per_job_brand(sorted(JOBS))
+        for (job_name, brand), rows in grouped.items():
+            spec = JOBS.get(job_name)
+            if spec is None:
+                continue
+            finished = _finished_by_run_id(rows)
+            for row in rows:
+                if row.get("phase") != "started":
+                    continue
+                rid = row.get("run_id")
+                if not rid or rid in finished:
+                    continue
+                started = _parse_iso(row.get("started"))
+                if started is None or started >= boot_at:
+                    continue
+                threshold = spec.timeout_seconds * 2
+                age = (now - started).total_seconds()
+                if age <= threshold:
+                    continue
+                error = _REAPED_ERROR_MSG
+                exit_row = {
+                    "job": job_name,
+                    "brand": brand,
+                    "run_id": rid,
+                    "phase": "finished",
+                    "started": row.get("started"),
+                    "finished": _iso(now),
+                    "status": "FAILED",
+                    "triggered_by": row.get("triggered_by") or "schedule",
+                    "error": error,
+                    "duration_s": None,
+                    "attempt": 1,
+                    "attempts": 1,
+                    "error_class": REAPED_ERROR_CLASS,
+                    "error_fingerprint": fingerprint(job_name, REAPED_ERROR_CLASS, error),
+                    "reaped": True,
+                }
+                ledger.append_row(exit_row)
+                appended.append(exit_row)
+                finished[rid] = exit_row
+    except Exception:
+        log.exception("reap_orphan_runs failed")
+    return appended
+
+
 def _stuck_started(rows: list[dict], spec: JobSpec, now: datetime) -> Optional[dict]:
     finished = _finished_by_run_id(rows)
     threshold = spec.timeout_seconds * 2
