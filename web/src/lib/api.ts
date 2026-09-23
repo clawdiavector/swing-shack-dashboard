@@ -324,6 +324,12 @@ export function fetchPlanningTimeline(brand: string, year: string) {
   )
 }
 
+export function fetchPlanningEvent(brand: string, eventId: string) {
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/event/${encodeURIComponent(eventId)}`,
+  )
+}
+
 export function fetchImportantDates(year: string) {
   const q = new URLSearchParams({ year })
   return getJson<Record<string, unknown>>(`/api/important-dates?${q}`)

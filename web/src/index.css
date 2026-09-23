@@ -21,6 +21,17 @@
   --color-yel: #fbbf24;
   --color-red: #f87171;
   --color-blu: #60a5fa;
+  --color-lane-product: #f0a030;
+  --color-lane-fitting: #14b8a6;
+  --color-lane-coaching: #d4af37;
+  --color-lane-workshop: #84cc16;
+  --color-lane-human: #f97316;
+  --color-lane-apparel: #ec4899;
+  --color-lane-campaign: #ef4444;
+  --color-lane-paid: #a855f7;
+  --color-lane-search: #3b82f6;
+  --color-lane-commercial: #06b6d4;
+  --color-lane-crm: #6b7280;
   --font-sans: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-display: Fraunces, Georgia, ui-serif, serif;
 }

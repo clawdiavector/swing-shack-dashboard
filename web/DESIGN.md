@@ -82,8 +82,9 @@ resolves against. `/api/lanes/products` is a different catalog and is not used h
 
 ## Calendar
 
-Native surfaces: `/app/calendar` (full month), `/app/calendar/ideas` (backlog),
-`/app/calendar/lanes` (themes · timeline · right-now).
+Native surfaces: `/app/calendar` (parked-posts month — P2 schedule grid),
+`/app/calendar/lanes` (Strategic Calendar — hero · right-now · event timeline · lane month grid),
+`/app/calendar/ideas` (backlog).
 
 `?date=YYYY-MM-DD` is the calendar's deep-link contract and is honoured on all three:
 it sets the visible month and the selected day, and it is the park target on Ideas.
