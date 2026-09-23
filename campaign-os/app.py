@@ -14541,12 +14541,54 @@ def gsc_debug_resolve_route():
     # Per-brand file existence
     try:
         data_dir = _os.environ.get("DATA_DIR", "/data")
+        file_results = {}
         for fn in ("search-console.json", "ga4-metrics.json", "seo-rankings.json"):
-            for sub in (Path(data_dir) / "brands" / brand / fn, Path(data_dir) / fn):
-                out[f"file:{fn}:{sub}"] = "PRESENT" if sub.is_file() else "MISSING"
+            file_results[fn] = {
+                "per_brand": str(Path(data_dir) / "brands" / brand / fn),
+                "flat": str(Path(data_dir) / fn),
+                "per_brand_exists": (Path(data_dir) / "brands" / brand / fn).is_file(),
+                "flat_exists": (Path(data_dir) / fn).is_file(),
+            }
+        out["files"] = file_results
     except Exception as exc:
         out["file_probe_error"] = str(exc)
     return jsonify(out), 200
+
+
+@app.route('/api/gsc/per-brand-data', methods=['GET'])
+def gsc_per_brand_data_route():
+    """GET /api/gsc/per-brand-data?brand=<id> — read the per-brand
+    search-console.json file directly (DATA_DIR/brands/<brand>/search-console.json)
+    and return its contents. Falls back to the flat file with a clear
+    note. Read-only diag."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    import os as _os
+    data_dir = _os.environ.get("DATA_DIR", "/data")
+    candidates = [
+        (str(Path(data_dir) / "brands" / brand / "search-console.json"), "per_brand"),
+        (str(Path(data_dir) / "search-console.json"), "flat_fallback"),
+    ]
+    for path, source in candidates:
+        if Path(path).is_file():
+            try:
+                data = json.loads(Path(path).read_text(encoding="utf-8"))
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand,
+                    "source": source,
+                    "path": path,
+                    "data": data,
+                })
+            except Exception as exc:
+                return jsonify({"ok": False, "brand_id": brand, "error": str(exc), "path": path})
+    return jsonify({
+        "ok": False,
+        "brand_id": brand,
+        "error": "no per-brand or flat search-console.json",
+        "tried": [c[0] for c in candidates],
+    })
 
 
 @app.route('/api/gsc/oauth/disconnect', methods=['POST'])
