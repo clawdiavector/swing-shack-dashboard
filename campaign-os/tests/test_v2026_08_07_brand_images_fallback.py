@@ -74,6 +74,25 @@ class BrandImagesFallbackTests(unittest.TestCase):
         self.assertIn(r.status_code, (302, 403, 404),
                       f"unexpected status {r.status_code}")
 
+    def test_runtime_data_dir_brand_image_serves(self):
+        """Files under DATA_DIR/brand-directory/<brand>/images/ are served."""
+        brand = "p10-runtime-brand"
+        img_dir = self.tmpdir / "brand-directory" / brand / "images"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        payload = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+        (img_dir / "gen-test.png").write_bytes(payload)
+        r = self.client.get(f"/brand-images/{brand}/gen-test.png")
+        self.assertEqual(r.status_code, 200, f"got {r.status_code} body={r.data[:120]!r}")
+        self.assertEqual(r.data, payload)
+
+    def test_traversal_blocked_against_runtime_root(self):
+        """Traversal is rejected when the primary hit would be under DATA_DIR."""
+        brand = "p10-traverse-brand"
+        img_dir = self.tmpdir / "brand-directory" / brand / "images"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        r = self.client.get(f"/brand-images/{brand}/..%2F..%2F..%2Fetc%2Fpasswd")
+        self.assertIn(r.status_code, (302, 403, 404), f"unexpected status {r.status_code}")
+
     def test_visual_library_index_intact(self):
         """The takomo record is still surfaced in the index — we are NOT
         silently dropping it, only healing the broken thumbnail URL."""

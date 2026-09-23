@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, StatCard, Tip } from '../components/ui'
-import { fetchInbox, inboxAction, type InboxItem } from '../lib/api'
+import { fetchInbox, inboxAction, inboxItemThumbUrl, type InboxItem } from '../lib/api'
 import { reviewType } from '../lib/reviewType'
 import { formatStamp } from '../lib/stamp'
 
@@ -133,7 +133,9 @@ export function Review() {
           <Badge tone="gold">{shown.length}</Badge>
         </div>
         <ul className="space-y-2">
-          {shown.map((item) => (
+          {shown.map((item) => {
+            const thumb = inboxItemThumbUrl(item)
+            return (
             <QueueItem
               key={item.id}
               to={`/review/${encodeURIComponent(item.id)}`}
@@ -145,6 +147,8 @@ export function Review() {
               meta={item.meta?.caption?.slice(0, 90) || item.brand_id}
               stamp={item.created_at}
               stampKind="created"
+              thumb={thumb || undefined}
+              thumbAlt={item.title || item.id}
               action={
                 <Tip text="Mark this approved. It will not go live.">
                 <button
@@ -163,7 +167,8 @@ export function Review() {
                 </Tip>
               }
             />
-          ))}
+            )
+          })}
           {shown.length === 0 ? (
             <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
               Nothing in this filter.

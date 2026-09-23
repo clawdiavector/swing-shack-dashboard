@@ -1964,39 +1964,58 @@ def brand_image_serve(brand_id, filename):
     Used by the Visual Library UI to display thumbnails. Safe: resolves to
     a path inside the brand-directory and rejects traversal attempts.
 
-    If the file is not found under the requested brand (e.g. a DNA record
-    indexed under swing-shack but the actual PNG lives under takomo/),
-    fall back to scanning every other brand directory for the same
-    filename. This stops the Visual Library from emitting broken-image
-    404s for orphan DNA records without changing the data.
+    Falls back from DATA_DIR/brand-directory/<brand>/images → bundled copy
+    (same pattern as /assets/). If the file is not found under the requested
+    brand (e.g. a DNA record indexed under swing-shack but the actual PNG lives
+    under takomo/), scan sibling brand directories under each root for the same
+    filename.
     """
     from pathlib import Path as _P
-    base = (_P(BUNDLED_DATA_DIR) / 'brand-directory' / brand_id / 'images').resolve()
-    target = (base / filename).resolve()
-    try:
-        target.relative_to(base)
-    except ValueError:
-        return jsonify({"error": "path traversal denied"}), 403
-    if target.exists() and target.is_file():
-        return send_from_directory(str(target.parent), target.name)
-    # Fallback: scan sibling brand directories for the same filename.
-    # Filenames are unique per file (no collisions across brands), and this
-    # keeps orphan DNA records rendering without surfacing a 404 to users.
-    try:
-        root = (_P(BUNDLED_DATA_DIR) / 'brand-directory').resolve()
-        for sibling in root.iterdir():
-            if not sibling.is_dir() or sibling.name == brand_id:
-                continue
-            cand = (sibling / 'images' / filename).resolve()
-            try:
-                cand.relative_to(root)
-            except ValueError:
-                continue
-            if cand.exists() and cand.is_file():
-                return send_from_directory(str(cand.parent), cand.name)
-    except Exception:
-        pass
-    return jsonify({"error": "not found", "path": str(target)}), 404
+
+    def _brand_image_bases(brand: str) -> list:
+        bases = []
+        runtime = _P(DATA_DIR) / 'brand-directory' / brand / 'images'
+        bundled = _P(BUNDLED_DATA_DIR) / 'brand-directory' / brand / 'images'
+        if runtime.exists():
+            bases.append(runtime.resolve())
+        bases.append(bundled.resolve())
+        return bases
+
+    def _brand_directory_roots() -> list:
+        roots = []
+        runtime_root = _P(DATA_DIR) / 'brand-directory'
+        bundled_root = _P(BUNDLED_DATA_DIR) / 'brand-directory'
+        if runtime_root.exists():
+            roots.append(runtime_root.resolve())
+        roots.append(bundled_root.resolve())
+        return roots
+
+    last_target = None
+    for base in _brand_image_bases(brand_id):
+        target = (base / filename).resolve()
+        last_target = target
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return jsonify({"error": "path traversal denied"}), 403
+        if target.exists() and target.is_file():
+            return send_from_directory(str(target.parent), target.name)
+
+    for root in _brand_directory_roots():
+        try:
+            for sibling in root.iterdir():
+                if not sibling.is_dir() or sibling.name == brand_id:
+                    continue
+                cand = (sibling / 'images' / filename).resolve()
+                try:
+                    cand.relative_to(root)
+                except ValueError:
+                    continue
+                if cand.exists() and cand.is_file():
+                    return send_from_directory(str(cand.parent), cand.name)
+        except Exception:
+            pass
+    return jsonify({"error": "not found", "path": str(last_target or filename)}), 404
 
 
 @app.route('/assets/<path:filename>', methods=['GET'])

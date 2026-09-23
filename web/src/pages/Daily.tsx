@@ -15,7 +15,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandSwitch, useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
-import { InsightPostThumb } from '../components/InsightPostThumb'
+import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
 import { Badge, Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
   fetchInbox,
@@ -23,6 +23,9 @@ import {
   fetchLearn,
   fetchToday,
   fetchTopPosts,
+  fetchVisualLibrary,
+  inboxItemThumbUrl,
+  resolveAssetUrl,
   type InboxItem,
   type InsightPost,
   type InsightsPosts,
@@ -121,6 +124,7 @@ export function Daily() {
   const [layers, setLayers] = useState<LayersPayload | null>(null)
   const [learn, setLearn] = useState<LearnSummary | null>(null)
   const [posts, setPosts] = useState<InsightPost[]>([])
+  const [libraryThumbs, setLibraryThumbs] = useState<Array<{ key: string; src: string }>>([])
   const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
   const [insightMeta, setInsightMeta] = useState<InsightsPosts['_meta']>()
   const [error, setError] = useState('')
@@ -148,6 +152,25 @@ export function Daily() {
     fetchInbox('pending', brand)
       .then((payload) => setInboxItems(payload.items || []))
       .catch(() => setInboxItems([]))
+    fetchVisualLibrary(brand || 'swing-shack')
+      .then((payload) => {
+        const rows = (payload.images || []) as Array<{
+          filename?: string
+          url?: string
+          thumbnail_data_url?: string
+        }>
+        const thumbs: Array<{ key: string; src: string }> = []
+        for (const row of rows) {
+          const src =
+            (row.thumbnail_data_url && String(row.thumbnail_data_url)) ||
+            resolveAssetUrl(row.url)
+          if (!src) continue
+          thumbs.push({ key: row.filename || src, src })
+          if (thumbs.length >= 6) break
+        }
+        setLibraryThumbs(thumbs)
+      })
+      .catch(() => setLibraryThumbs([]))
   }
 
   useEffect(() => {
@@ -158,6 +181,19 @@ export function Daily() {
   const waiting = counts?.review ?? 0
   const drafts = counts?.draft ?? 0
   const tickerItems = (inboxItems || []).slice(0, 7)
+  const igWorkedPosts = posts.slice(0, 3)
+  const igWithImmediateThumb = igWorkedPosts.filter((p) => Boolean(insightPostThumbSrc(p)))
+  const igWithPermalinkOnly = igWorkedPosts.filter(
+    (p) => !insightPostThumbSrc(p) && Boolean(p.permalink),
+  )
+  const libraryFillCount = Math.max(
+    0,
+    3 - igWithImmediateThumb.length - igWithPermalinkOnly.length,
+  )
+  const workedLibraryThumbs = libraryThumbs.slice(0, libraryFillCount)
+  const workedMixedCaption =
+    (igWithImmediateThumb.length > 0 || igWithPermalinkOnly.length > 0) &&
+    workedLibraryThumbs.length > 0
   const asOf = data?.ts
   const best = posts[0]
   const l1 = layerOf(layers, 'L1')
@@ -450,7 +486,9 @@ export function Daily() {
             </Tip>
           </div>
           <ul className="space-y-2">
-            {tickerItems.map((item) => (
+            {tickerItems.map((item) => {
+              const thumb = inboxItemThumbUrl(item)
+              return (
               <QueueItem
                 key={item.id}
                 to={`/review/${encodeURIComponent(item.id)}`}
@@ -460,8 +498,11 @@ export function Daily() {
                 meta={item.meta?.caption?.slice(0, 90) || item.brand_id}
                 stamp={item.created_at}
                 stampKind="created"
+                thumb={thumb || undefined}
+                thumbAlt={item.title || item.id}
               />
-            ))}
+              )
+            })}
             {inboxItems && tickerItems.length === 0 ? (
               <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
                 Nothing else waiting — go to Studio if you want a new draft.
@@ -475,13 +516,22 @@ export function Daily() {
               </>
             ) : null}
           </ul>
-          {posts.length ? (
+          {igWorkedPosts.length || workedLibraryThumbs.length ? (
             <div className="mt-4">
               <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
                 What worked
+                {workedMixedCaption ? (
+                  <span className="ml-2 font-normal normal-case tracking-normal text-tx3">
+                    Instagram + visual library
+                  </span>
+                ) : workedLibraryThumbs.length && !igWorkedPosts.length ? (
+                  <span className="ml-2 font-normal normal-case tracking-normal text-tx3">
+                    Visual library
+                  </span>
+                ) : null}
               </p>
               <ul className="flex flex-wrap gap-2">
-                {posts.slice(0, 3).map((p, i) => {
+                {igWorkedPosts.map((p, i) => {
                   const key = p.id || String(i)
                   const to = p.id
                     ? `/results/worked?tab=posts&post=${encodeURIComponent(p.id)}`
@@ -501,6 +551,23 @@ export function Daily() {
                     </li>
                   )
                 })}
+                {workedLibraryThumbs.map((row) => (
+                  <li key={`lib-${row.key}`}>
+                    <Tip text="Visual library photo — open the library in Studio.">
+                      <Link
+                        to="/create/images?tab=library"
+                        className="block overflow-hidden rounded-xl border border-bd hover:border-ac/40"
+                      >
+                        <img
+                          src={row.src}
+                          alt=""
+                          loading="lazy"
+                          className="h-16 w-16 object-cover"
+                        />
+                      </Link>
+                    </Tip>
+                  </li>
+                ))}
               </ul>
             </div>
           ) : null}

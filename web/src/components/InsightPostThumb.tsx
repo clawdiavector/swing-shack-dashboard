@@ -19,8 +19,9 @@ export function InsightPostThumb({
   post,
   thumbKey,
   className = 'h-16 w-16 rounded-xl object-cover',
-  placeholderClassName = 'grid h-16 w-16 place-items-center rounded-xl text-[12px] text-tx3',
+  placeholderClassName: _placeholderClassName = 'grid h-16 w-16 place-items-center rounded-xl text-[12px] text-tx3',
 }: InsightPostThumbProps) {
+  void _placeholderClassName
   const [brokenPrimary, setBrokenPrimary] = useState(false)
   const [oembedThumb, setOembedThumb] = useState('')
   const [oembedTried, setOembedTried] = useState(false)
@@ -60,5 +61,5 @@ export function InsightPostThumb({
     )
   }
 
-  return <span className={placeholderClassName}>no thumb</span>
+  return null
 }
