@@ -43,24 +43,33 @@ def _is_acl_denied(message: str) -> bool:
 def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
     """Return (site_url, error). Non-default brands require GSC_SITE_URL_<BRAND>.
 
-    Order of resolution:
-      1) GSC_SITE_URL_<BRAND> env var (explicit override).
-      2) Cache file at DATA_DIR/gsc-site-url-<brand>.json written by a previous
-         successful gsc_report run (auto-learned).
+    Order of resolution (and a SC safety net):
+      1) GSC_SITE_URL_<BRAND> env var (explicit override) — but if that
+         points at `sc-domain:…` AND the OAuth token can see a URL-prefix
+         property, prefer the URL-prefix form. The env var for Stick was
+         historically set to sc-domain (legacy); a URL-prefix property the
+         account actually owns is always a better primary.
+      2) Cache file at DATA_DIR/gsc-site-url-<brand>.json written by a
+         previous successful gsc_report run (auto-learned).
       3) For non-default brands: probe the brand's stored OAuth token via
          webmasters.sites.list() and pick the first URL-prefix property
          with `siteOwner` or `siteFullUser` permissionLevel.
       4) Default brand fall-through: GSC_SITE_URL / SEARCH_CONSOLE_SITE_URL /
          hard-coded `https://swingshack.co.za/`.
-
-    Returns the resolved site_url + a None error, or (None, error_msg).
     """
     bid = brand or _fallback_brand()
     safe = _brand_safe(bid)
 
-    # 1) Explicit override always wins.
+    # 1) Explicit override (with the SC safety net below).
     explicit = os.environ.get(f"GSC_SITE_URL_{safe}", "").strip()
     if explicit:
+        # SC safety net: if explicit points at sc-domain and the OAuth token
+        # actually owns a URL-prefix property, prefer the URL-prefix form.
+        if explicit.startswith("sc-domain:"):
+            better_url, _better_err = _probe_site_via_oauth(bid)
+            if better_url and not better_url.startswith("sc-domain:"):
+                # We have a URL-prefix form the account owns. Use it.
+                return better_url, None
         return explicit, None
 
     # 2) Auto-learned cache (sticky across restarts on DATA_DIR).
@@ -71,7 +80,6 @@ def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
             cached_url = cached.get("site_url")
             cached_at = cached.get("resolved_at", "")
             if cached_url:
-                # Refresh if > 7 days old OR explicit override not set
                 try:
                     age = (datetime.now(timezone.utc) - datetime.fromisoformat(cached_at.replace("Z", "+00:00"))).days
                 except Exception:
@@ -82,9 +90,8 @@ def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
         pass
 
     default_bid = _fallback_brand()
-    # If we're the default brand and no override is set, fall through.
     if bid != default_bid:
-        # 3) Probe the OAuth token's sites.list for an owned prefix property.
+        # 3) Probe via OAuth for a URL-prefix siteOwner property.
         probe_url, probe_err = _probe_site_via_oauth(bid)
         if probe_url:
             try:
