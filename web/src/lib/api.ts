@@ -134,12 +134,39 @@ export function fetchToday(brand?: string) {
 
 export type CalendarItem = {
   calendar_id?: string
+  brand_id?: string
   title?: string
   type?: string
   status?: string
   event_date?: string
+  event_end?: string
   campaign_start?: string
   campaign_end?: string
+  pillars?: string[]
+  colour?: string
+  relevance_score?: number
+  relevance_reason?: string
+  commercial_relevance?: number | string
+  audience_relevance?: number | string
+  brand_relevance?: number | string
+  timeliness?: number | string
+  confidence?: number | string
+  lead_time_days?: number
+  lead_time_schedule?: { planning_start?: string } & Record<string, unknown>
+  planning_start?: string
+  source_urls?: string[]
+  source_type?: string
+  source_domain?: string
+  source_title?: string
+  source_class?: string
+  suggested_angles?: string[]
+  verification_status?: string
+  trusted_for_planning?: boolean
+  event_lifecycle?: string
+  opportunity_mode?: string
+  date_confidence?: string
+  retrieved_at?: string
+  created_by?: string
 }
 
 export type CalendarView = {
@@ -793,17 +820,54 @@ export type CampaignAsset = {
   name?: string
   kind?: string
   platform?: string
+  integration?: string
   caption?: string
   description?: string
   visualBrief?: string
   realPhotoBrief?: string
   approvalStatus?: string
   publishStatus?: string
+  captionStatus?: string
+  visualStatus?: string
   visualUrl?: string
   imageUrl?: string
   mediaUrl?: string
   filePath?: string
   publishingReferences?: Array<{ postizId?: string; mediaUrl?: string }>
+}
+
+export type ProductLineItem = {
+  id?: string
+  name?: string
+  type?: string
+  category?: string
+  price_zar?: number
+  price_eur?: number
+  per?: string
+  duration_min?: number | null
+  verified?: boolean
+  source?: string
+  brand_id?: string
+  product_brand?: string
+  reference_image_ids?: string[]
+}
+
+export type ProductLineItemsPayload = {
+  ok?: boolean
+  brand_id?: string
+  currency?: string
+  market?: string
+  products?: ProductLineItem[]
+  count?: number
+  verified_count?: number
+  source?: string
+  error?: string
+}
+
+export function fetchProductLineItems(brandId: string) {
+  return getJson<ProductLineItemsPayload>(
+    `/api/products/line-items?brand_id=${encodeURIComponent(brandId)}`,
+  )
 }
 
 export type Campaign = {

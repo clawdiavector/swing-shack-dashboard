@@ -75,6 +75,11 @@ Tab strips use `FilterChips` like Ops. Every interactive
 control carries a `Tip`. Every cluster page includes a **ClassicLink** raw anchor to the matching
 `/?page=…` or standalone HTML — never route Classic URLs through `Button`/`IconTile` (native round trip).
 
+Build a post picks a **calendar moment** and a **product** from selects; operators do
+not type ids, and each select keeps a "type an id instead" escape. Products come from
+`/api/products/line-items?brand_id=` — the catalog `POST /api/build-post/draft`
+resolves against. `/api/lanes/products` is a different catalog and is not used here.
+
 ## Calendar
 
 Native surfaces: `/app/calendar` (full month), `/app/calendar/ideas` (backlog),
@@ -85,11 +90,30 @@ it sets the visible month and the selected day, and it is the park target on Ide
 Missing or malformed falls back to today, never an error. Every day-selection and
 month-step writes `?date=` back with `replace:true`.
 
+`?id=<calendar_id>` selects a moment and opens the moment panel on `/app/calendar`.
+Unlike the one-shot params (`?item=` `?asset=` `?post=` `?hook_id=`), **`?id=` is
+sticky** — it is the deep link to a moment. Closing the panel deletes `?id=` and keeps
+`?date=`, `replace:true`. An `?id=` that matches no moment in the loaded month renders
+no panel and no error. Moment rows link with a relative `?date=&id=` — they do not
+round-trip `/tool/calendar`.
+
+Moment stamps are **date-only** — "Public holiday · Thursday 24 September". A calendar
+record is not a scheduled post; `Goes live` and a midnight clock are wrong for it.
+
 Inside a page, `?tab=` selects the view (Ideas: ideas · today · week · missed · upsells ·
 bundles · leaks. Lanes: now · month · timeline), as in Ops and Studio.
 
 Classic `/?page=calendar`, `/?page=ideas` and `/?page=planning` stay live — each native
 page carries a ClassicLink raw anchor to its classic page.
+
+## Review
+
+Review names the thing in human words. `calendar_candidate` → "Proposed calendar
+moment", `draft_asset` → "Draft post", `publish_request` → "Ready to queue",
+`proposal` → "Proposal"; an unknown type degrades to its Title-Cased raw value.
+Every piece states what it is, for which brand, on which platform, and what Approve
+does — **Approve never publishes**. Raw ids (campaign, asset, item) live in a collapsed
+"Technical ids" block, never in the headline.
 
 ## Publish
 

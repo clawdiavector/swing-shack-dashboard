@@ -12,24 +12,31 @@ import type { LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, HeroPanel, PageIntro } from '../components/chrome'
-import { Button, IconTile, StatCard } from '../components/ui'
+import { Button, ClassicLink, IconTile, StatCard } from '../components/ui'
 import { fetchToday, type TodayPanel } from '../lib/api'
 
-const TOOLS: { id: string; href: string; label: string; hint: string; icon: LucideIcon; mode: string }[] =
-  [
-    { id: 'post', href: '/?page=buildpost', label: 'Build a post', hint: 'Full draft in one pass', icon: Sparkles, mode: 'copy' },
-    { id: 'captions', href: '/?page=captions', label: 'Captions', hint: 'IG / FB / LinkedIn lengths', icon: Type, mode: 'copy' },
-    { id: 'headlines', href: '/?page=headlines', label: 'Headlines', hint: 'Punchy titles', icon: Megaphone, mode: 'copy' },
-    { id: 'hooks', href: '/?page=hooks', label: 'Hook bank', hint: 'Openers that stop scroll', icon: Hash, mode: 'copy' },
-    { id: 'ctas', href: '/?page=ctas', label: 'CTAs', hint: 'Ask for the click', icon: Megaphone, mode: 'copy' },
-    { id: 'tags', href: '/?page=hashtagseo', label: 'Hashtags', hint: 'Discoverability', icon: Hash, mode: 'copy' },
-    { id: 'igen', href: '/?page=imagegen', label: 'Image gen', hint: 'Generate a still', icon: Image, mode: 'images' },
-    { id: 'ilab', href: '/image-lab', label: 'Image lab', hint: 'Iterate and crop', icon: Sparkles, mode: 'images' },
-    { id: 'viz', href: '/visualizer', label: 'Visual library', hint: 'Past assets', icon: Library, mode: 'images' },
-    { id: 'lord', href: '/?page=memes', label: 'Meme Lord', hint: 'Classic meme desk', icon: Laugh, mode: 'memes' },
-    { id: 'mlab', href: '/meme-lab', label: 'Meme lab', hint: 'Templates and remix', icon: Sparkles, mode: 'memes' },
-    { id: 'lib', href: '/?page=library', label: 'Copy library', hint: 'Reuse what worked', icon: Type, mode: 'library' },
-  ]
+const TOOLS: {
+  id: string
+  href?: string
+  to?: string
+  label: string
+  hint: string
+  icon: LucideIcon
+  mode: string
+}[] = [
+  { id: 'post', to: '/create/post', label: 'Build a post', hint: 'Full draft in one pass', icon: Sparkles, mode: 'copy' },
+  { id: 'captions', to: '/create/captions', label: 'Captions', hint: 'IG / FB / LinkedIn lengths', icon: Type, mode: 'copy' },
+  { id: 'headlines', to: '/create/copy?tab=headlines', label: 'Headlines', hint: 'Punchy titles', icon: Megaphone, mode: 'copy' },
+  { id: 'hooks', to: '/create/copy?tab=hooks', label: 'Hook bank', hint: 'Openers that stop scroll', icon: Hash, mode: 'copy' },
+  { id: 'ctas', to: '/create/copy?tab=ctas', label: 'CTAs', hint: 'Ask for the click', icon: Megaphone, mode: 'copy' },
+  { id: 'tags', to: '/create/copy?tab=hashtags', label: 'Hashtags', hint: 'Discoverability', icon: Hash, mode: 'copy' },
+  { id: 'igen', to: '/create/images?tab=generate', label: 'Image gen', hint: 'Generate a still', icon: Image, mode: 'images' },
+  { id: 'ilab', to: '/create/images?tab=lab', label: 'Image lab', hint: 'Iterate and crop', icon: Sparkles, mode: 'images' },
+  { id: 'viz', to: '/create/images?tab=library', label: 'Visual library', hint: 'Past assets', icon: Library, mode: 'images' },
+  { id: 'lord', to: '/create/memes?tab=lord', label: 'Meme Lord', hint: 'Classic meme desk', icon: Laugh, mode: 'memes' },
+  { id: 'mlab', to: '/create/memes?tab=lab', label: 'Meme lab', hint: 'Templates and remix', icon: Sparkles, mode: 'memes' },
+  { id: 'lib', to: '/create/copy?tab=library', label: 'Copy library', hint: 'Reuse what worked', icon: Type, mode: 'library' },
+]
 
 export function Create() {
   const { brandId } = useBrand()
@@ -49,6 +56,9 @@ export function Create() {
     <div className="space-y-6">
       <PageIntro icon={Sparkles} badge="Studio" here="/create" title="Make a draft">
         One studio. Copy, stills, and memes stay where they are — they open from here.
+        <span className="mt-2 block">
+          <ClassicLink href="/?page=buildpost" label="Build a post (classic)" />
+        </span>
       </PageIntro>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -69,7 +79,7 @@ export function Create() {
           tone="mute"
         />
         <StatCard
-          href="/?page=library"
+          to="/create/copy?tab=library"
           icon={Library}
           label="Library"
           value="Open"
@@ -85,10 +95,10 @@ export function Create() {
           title="Build a post"
           meta="Caption, visual, and hook in one pass — then it lands in Review."
         >
-          <Button href="/?page=buildpost" icon={Sparkles} tip="Open the full post builder. The draft lands in Review.">
+          <Button to="/create/post" icon={Sparkles} tip="Open the full post builder. The draft lands in Review.">
             Build a post
           </Button>
-          <Button href="/?page=captions" icon={Type} tone="ghost" tip="Open caption studio only — no visual yet.">
+          <Button to="/create/captions" icon={Type} tone="ghost" tip="Open caption studio only — no visual yet.">
             Just a caption
           </Button>
         </HeroPanel>
@@ -125,7 +135,7 @@ export function Create() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((tool) => (
-            <IconTile key={tool.id} href={tool.href} icon={tool.icon} label={tool.label} hint={tool.hint} />
+            <IconTile key={tool.id} to={tool.to} href={tool.href} icon={tool.icon} label={tool.label} hint={tool.hint} />
           ))}
         </div>
       </section>

@@ -3,7 +3,7 @@ import { ExternalLink } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { toDesk } from '../lib/desk'
-import { formatStamp, stampLabel } from '../lib/stamp'
+import { formatDateStamp, formatStamp, stampLabel } from '../lib/stamp'
 
 export function PressIcon({
   icon: Icon,
@@ -199,20 +199,23 @@ export function StatCard({
 
 export function IconTile({
   href,
+  to,
   icon: Icon,
   label,
   hint,
 }: {
-  href: string
+  href?: string
+  to?: string
   icon: LucideIcon
   label: string
   hint?: string
 }) {
   const tip = hint ? `Opens ${label}. ${hint}` : `Opens ${label}.`
+  const dest = to || toDesk(href || '/daily')
   return (
     <Tip text={tip} block>
     <Link
-      to={toDesk(href)}
+      to={dest}
       className="glass group flex items-start gap-2 rounded-2xl border-[1.5px] border-white/10 p-4 backdrop-blur-xl hover:border-ac/40"
     >
       <span className="glass-pill grid shrink-0 place-items-center rounded-xl p-2.5">
@@ -258,7 +261,9 @@ export function QueueItem({
   meta,
   stamp,
   stampKind,
+  dateOnly,
   action,
+  footer,
 }: {
   to?: string
   tip?: string
@@ -268,9 +273,11 @@ export function QueueItem({
   meta?: string
   stamp?: string | null
   stampKind?: string
+  dateOnly?: boolean
   action?: ReactNode
+  footer?: ReactNode
 }) {
-  const when = formatStamp(stamp)
+  const when = dateOnly ? formatDateStamp(stamp) : formatStamp(stamp)
   const body = (
     <>
       <div className="min-w-0">
@@ -300,6 +307,7 @@ export function QueueItem({
       ) : (
         <div className={cls}>{body}</div>
       )}
+      {footer ? <div className="mt-1">{footer}</div> : null}
     </li>
   )
 }
