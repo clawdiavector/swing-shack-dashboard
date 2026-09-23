@@ -7,7 +7,8 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from ._io import atomic_write, io_for_job, utc_now_iso, _fallback_brand
@@ -39,22 +40,129 @@ def _is_acl_denied(message: str) -> bool:
     return any(m in low for m in _ACL_DENIED_MARKERS)
 
 
-def _resolve_site_url(brand: str | None) -> tuple[str | None, str | None]:
-    """Return (site_url, error). Non-default brands require GSC_SITE_URL_<BRAND>."""
+def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
+    """Return (site_url, error). Non-default brands require GSC_SITE_URL_<BRAND>.
+
+    Order of resolution:
+      1) GSC_SITE_URL_<BRAND> env var (explicit override).
+      2) Cache file at DATA_DIR/gsc-site-url-<brand>.json written by a previous
+         successful gsc_report run (auto-learned).
+      3) For non-default brands: probe the brand's stored OAuth token via
+         webmasters.sites.list() and pick the first URL-prefix property
+         with `siteOwner` or `siteFullUser` permissionLevel.
+      4) Default brand fall-through: GSC_SITE_URL / SEARCH_CONSOLE_SITE_URL /
+         hard-coded `https://swingshack.co.za/`.
+
+    Returns the resolved site_url + a None error, or (None, error_msg).
+    """
     bid = brand or _fallback_brand()
     safe = _brand_safe(bid)
-    per_brand = os.environ.get(f"GSC_SITE_URL_{safe}", "").strip()
-    if per_brand:
-        return per_brand, None
+
+    # 1) Explicit override always wins.
+    explicit = os.environ.get(f"GSC_SITE_URL_{safe}", "").strip()
+    if explicit:
+        return explicit, None
+
+    # 2) Auto-learned cache (sticky across restarts on DATA_DIR).
+    try:
+        cache_path = Path(os.environ.get("DATA_DIR", "/data")) / f"gsc-site-url-{bid}.json"
+        if cache_path.is_file():
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            cached_url = cached.get("site_url")
+            cached_at = cached.get("resolved_at", "")
+            if cached_url:
+                # Refresh if > 7 days old OR explicit override not set
+                try:
+                    age = (datetime.now(timezone.utc) - datetime.fromisoformat(cached_at.replace("Z", "+00:00"))).days
+                except Exception:
+                    age = 999
+                if age < 7:
+                    return cached_url, None
+    except Exception:
+        pass
+
     default_bid = _fallback_brand()
+    # If we're the default brand and no override is set, fall through.
     if bid != default_bid:
-        return None, f"GSC_SITE_URL_{safe} not set"
+        # 3) Probe the OAuth token's sites.list for an owned prefix property.
+        probe_url, probe_err = _probe_site_via_oauth(bid)
+        if probe_url:
+            try:
+                cache_path = Path(os.environ.get("DATA_DIR", "/data")) / f"gsc-site-url-{bid}.json"
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                cache_path.write_text(
+                    json.dumps({
+                        "site_url": probe_url,
+                        "resolved_at": datetime.now(timezone.utc).isoformat(),
+                        "via": "oauth_sites_list_probed",
+                    }, indent=2),
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+            return probe_url, None
+        return None, probe_err or f"GSC_SITE_URL_{safe} not set and OAuth sites.list probe did not find a usable property"
+
+    # 4) Default brand fall-through.
     site = (
         os.environ.get("GSC_SITE_URL", "").strip()
         or os.environ.get("SEARCH_CONSOLE_SITE_URL", "").strip()
         or "https://swingshack.co.za/"
     )
     return site, None
+
+
+def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
+    """Use the brand's stored OAuth refresh token to call
+    webmasters.v3.sites.list() and pick the first URL-prefix property
+    the account has siteOwner / siteFullUser permission on.
+    Returns (site_url, None) on success or (None, error_str)."""
+    try:
+        from _lib import gsc_oauth as _gsc_oauth
+    except Exception as exc:
+        return None, f"gsc_oauth import failed: {exc}"
+    try:
+        access_token = _gsc_oauth.get_access_token(brand=brand)
+    except Exception as exc:
+        return None, f"get_access_token failed: {exc}"
+    if not access_token:
+        return None, "no access_token (refresh_token missing or expired)"
+    try:
+        req = urllib.request.Request(
+            "https://www.googleapis.com/webmasters/v3/sites",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        with urllib.request.urlopen(req, timeout=20) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return None, f"sites.list http {exc.code}: {exc.read().decode('utf-8', errors='replace')[:300]}"
+    except Exception as exc:
+        return None, f"sites.list failed: {exc}"
+
+    # Prefer URL-prefix with siteOwner, fall back to siteFullUser, then siteUnverifiedUser,
+    # then sc-domain with siteOwner.
+    entries = payload.get("siteEntry") or []
+    by_pref = []
+    for e in entries:
+        url = e.get("siteUrl") or ""
+        perm = e.get("permissionLevel") or ""
+        is_prefix = url.startswith("http")
+        is_domain = url.startswith("sc-domain:")
+        if is_prefix and perm == "siteOwner":
+            by_pref.append((0, url, perm))
+        elif is_prefix and perm == "siteFullUser":
+            by_pref.append((1, url, perm))
+        elif is_domain and perm == "siteOwner":
+            by_pref.append((2, url, perm))
+        elif is_prefix and perm == "siteUnverifiedUser":
+            by_pref.append((3, url, perm))
+        else:
+            by_pref.append((4, url, perm))
+    by_pref.sort(key=lambda t: t[0])
+    if not by_pref:
+        return None, "sites.list returned no siteEntry items"
+    chosen = by_pref[0][1]
+    return chosen, None
 
 
 def _get_search_console_bearer(*, brand: str | None = None) -> str:
