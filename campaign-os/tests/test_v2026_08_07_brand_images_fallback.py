@@ -93,6 +93,25 @@ class BrandImagesFallbackTests(unittest.TestCase):
         r = self.client.get(f"/brand-images/{brand}/..%2F..%2F..%2Fetc%2Fpasswd")
         self.assertIn(r.status_code, (302, 403, 404), f"unexpected status {r.status_code}")
 
+    def test_draft_assets_gen_image_serves(self):
+        """L5 draft_assets writes gens under draft-assets/images/<brand>/images/."""
+        brand = "stick"
+        img_dir = self.tmpdir / "draft-assets" / "images" / brand / "images"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        payload = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+        (img_dir / "gen-stick-test.png").write_bytes(payload)
+        r = self.client.get(f"/brand-images/{brand}/gen-stick-test.png")
+        self.assertEqual(r.status_code, 200, f"got {r.status_code} body={r.data[:120]!r}")
+        self.assertEqual(r.data, payload)
+
+    def test_traversal_blocked_against_draft_assets(self):
+        """Path traversal is rejected when resolving under draft-assets bases."""
+        brand = "stick"
+        img_dir = self.tmpdir / "draft-assets" / "images" / brand / "images"
+        img_dir.mkdir(parents=True, exist_ok=True)
+        r = self.client.get(f"/brand-images/{brand}/..%2F..%2F..%2Fetc%2Fpasswd")
+        self.assertIn(r.status_code, (302, 403, 404), f"unexpected status {r.status_code}")
+
     def test_visual_library_index_intact(self):
         """The takomo record is still surfaced in the index — we are NOT
         silently dropping it, only healing the broken thumbnail URL."""
