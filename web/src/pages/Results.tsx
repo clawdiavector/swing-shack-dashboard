@@ -1,10 +1,11 @@
 import { Activity, BookOpen, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
 import { HeroPanel, PageIntro } from '../components/chrome'
-import { Button, IconTile, StatCard } from '../components/ui'
-import { fetchToday, type TodayPanel } from '../lib/api'
+import { Badge, Button, IconTile, StatCard, Tip } from '../components/ui'
+import { fetchToday, fetchTopPosts, type InsightPost, type TodayPanel } from '../lib/api'
 
 const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = [
   { href: '/results/week', label: 'This week', hint: 'Weekly report', icon: LineChart },
@@ -18,11 +19,20 @@ const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = 
 export function Results() {
   const { brandId, brandLabel } = useBrand()
   const [data, setData] = useState<TodayPanel | null>(null)
+  const [posts, setPosts] = useState<InsightPost[]>([])
+  const [brokenThumbs, setBrokenThumbs] = useState<Record<string, true>>({})
 
   useEffect(() => {
     fetchToday(brandId)
       .then(setData)
       .catch(() => setData(null))
+  }, [brandId])
+
+  useEffect(() => {
+    setBrokenThumbs({})
+    fetchTopPosts(brandId, 3)
+      .then((p) => setPosts(p.posts || []))
+      .catch(() => setPosts([]))
   }, [brandId])
 
   const published = data?.counts?.published ?? 0
@@ -89,6 +99,58 @@ export function Results() {
           </ul>
         </section>
       </div>
+
+      <section>
+        <h2 className="mb-3 font-display text-xl font-semibold">What worked lately</h2>
+        {posts.length ? (
+          <ul className="space-y-2">
+            {posts.slice(0, 3).map((p, i) => {
+              const key = p.id || String(i)
+              const to = p.id
+                ? `/results/worked?tab=posts&post=${encodeURIComponent(p.id)}`
+                : '/results/worked?tab=posts'
+              const src = p.thumbnail_url && !brokenThumbs[key] ? p.thumbnail_url : ''
+              const line = p.plain_english || p.caption_excerpt || 'Recent post'
+              return (
+                <li key={key}>
+                  <Tip text={`${p.verdict || 'Post'} — open in What worked.`}>
+                    <Link
+                      to={to}
+                      className="glass flex items-center gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 hover:border-ac/40"
+                    >
+                      {src ? (
+                        <img
+                          src={src}
+                          alt=""
+                          loading="lazy"
+                          onError={() => setBrokenThumbs((m) => ({ ...m, [key]: true }))}
+                          className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-bd text-[12px] text-tx3">
+                          no thumb
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="line-clamp-2 text-sm font-medium">{line}</span>
+                        {p.verdict ? (
+                          <Badge tone="green" className="mt-1">
+                            {p.verdict}
+                          </Badge>
+                        ) : null}
+                      </span>
+                    </Link>
+                  </Tip>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
+            No scored posts yet — open What worked, or wait for interpret to rank last week&apos;s feed.
+          </p>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-3 font-display text-xl font-semibold">All reports</h2>

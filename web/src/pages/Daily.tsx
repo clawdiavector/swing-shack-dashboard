@@ -88,8 +88,10 @@ export function Daily() {
   const [posts, setPosts] = useState<InsightPost[]>([])
   const [insightMeta, setInsightMeta] = useState<InsightsPosts['_meta']>()
   const [error, setError] = useState('')
+  const [brokenThumbs, setBrokenThumbs] = useState<Record<string, true>>({})
 
   function load(brand?: string) {
+    setBrokenThumbs({})
     fetchToday(brand)
       .then(setData)
       .catch((err: Error) => setError(err.message))
@@ -415,6 +417,48 @@ export function Daily() {
               </>
             ) : null}
           </ul>
+          {posts.length ? (
+            <div className="mt-4">
+              <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
+                What worked
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {posts.slice(0, 3).map((p, i) => {
+                  const key = p.id || String(i)
+                  const to = p.id
+                    ? `/results/worked?tab=posts&post=${encodeURIComponent(p.id)}`
+                    : '/results/worked?tab=posts'
+                  const src = p.thumbnail_url && !brokenThumbs[key] ? p.thumbnail_url : ''
+                  return (
+                    <li key={key}>
+                      <Tip
+                        text={`${p.verdict || 'Recent post'}${p.engagementRate != null ? ` · ${p.engagementRate.toFixed(2)}% engagement` : ''} — open it in Results.`}
+                      >
+                        <Link
+                          to={to}
+                          className="block rounded-xl border border-bd hover:border-ac/40"
+                        >
+                          {src ? (
+                            <img
+                              src={src}
+                              alt=""
+                              loading="lazy"
+                              onError={() => setBrokenThumbs((m) => ({ ...m, [key]: true }))}
+                              className="h-16 w-16 rounded-xl object-cover"
+                            />
+                          ) : (
+                            <span className="grid h-16 w-16 place-items-center rounded-xl text-[12px] text-tx3">
+                              no thumb
+                            </span>
+                          )}
+                        </Link>
+                      </Tip>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ) : null}
         </section>
       </div>
 
