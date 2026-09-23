@@ -16,6 +16,8 @@ class SandboxQueueAssetJoinTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmpdir = Path(tempfile.mkdtemp(prefix="co-p12-sandbox-"))
+        cls._prev_data_dir = os.environ.get("DATA_DIR")
+        cls._prev_sandbox_dir = os.environ.get("PUBLISH_SANDBOX_DIR")
         os.environ["DATA_DIR"] = str(cls.tmpdir)
         os.environ["PUBLISH_SANDBOX_DIR"] = str(cls.tmpdir / "publish-sandbox")
         sys.path.insert(0, str(CAMPAIGN_OS))
@@ -24,6 +26,23 @@ class SandboxQueueAssetJoinTests(unittest.TestCase):
         cls.publish_sandbox = publish_sandbox
         cls.unified_inbox = unified_inbox
         publish_sandbox.ensure_sandbox_layout()
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            from _lib.intelligence import clear_request_brand
+
+            clear_request_brand()
+        except Exception:
+            pass
+        if cls._prev_data_dir is None:
+            os.environ.pop("DATA_DIR", None)
+        else:
+            os.environ["DATA_DIR"] = cls._prev_data_dir
+        if cls._prev_sandbox_dir is None:
+            os.environ.pop("PUBLISH_SANDBOX_DIR", None)
+        else:
+            os.environ["PUBLISH_SANDBOX_DIR"] = cls._prev_sandbox_dir
 
     def test_asset_id_from_queue_row_hyphen_safe(self):
         fn = self.unified_inbox.asset_id_from_queue_row

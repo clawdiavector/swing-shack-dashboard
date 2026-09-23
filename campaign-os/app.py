@@ -14448,6 +14448,99 @@ def gsc_status_route():
     return jsonify(out), 200
 
 
+@app.route('/api/gsc/sites-list', methods=['GET'])
+def gsc_sites_list_route():
+    """GET /api/gsc/sites-list?brand=<id> — list GSC properties accessible
+    to this brand's stored OAuth token. Uses webmasters.sites.list().
+    Returns the raw property list so the operator can confirm
+    `sc-domain:stickgolf.co.za` is actually visible."""
+    if not _GSC_OAUTH_AVAILABLE:
+        return jsonify({"ok": False, "error": "gsc_oauth unavailable"}), 503
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    tok = _gsc_lib.load_token(brand=brand)
+    if not tok:
+        return jsonify({
+            "ok": False,
+            "brand_id": brand,
+            "error": "no_oauth_token_stored",
+        }), 200
+    access_token = tok.get("access_token")
+    refresh_token = tok.get("refresh_token")
+    creds = _gsc_lib.gsc_oauth_credentials_present()
+    if not creds:
+        return jsonify({"ok": False, "brand_id": brand, "error": "no_oauth_client"}), 503
+    cid, _ = _gsc_lib._read_client_id_secret()
+    # Try to use access token first; fall back to refresh
+    used_token = access_token
+    import urllib.request as _ur
+    import urllib.error as _ue
+    sites_url = "https://www.googleapis.com/webmasters/v3/sites"
+    headers = {"Authorization": f"Bearer {used_token}"}
+    req = _ur.Request(sites_url, headers=headers)
+    try:
+        with _ur.urlopen(req, timeout=20) as r:
+            payload = json.loads(r.read().decode("utf-8"))
+            return jsonify({
+                "ok": True,
+                "brand_id": brand,
+                "google_account_email": tok.get("google_account_email"),
+                "site_entries": payload.get("siteEntry") or [],
+                "raw": payload,
+            })
+    except _ue.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")[:500]
+        return jsonify({
+            "ok": False,
+            "brand_id": brand,
+            "error": f"http_{e.code}",
+            "body": body,
+            "google_account_email": tok.get("google_account_email"),
+        })
+
+
+@app.route('/api/gsc/debug-resolve', methods=['GET'])
+def gsc_debug_resolve_route():
+    """GET /api/gsc/debug-resolve?brand=<id> — show what _resolve_site_url
+    would return for this brand, including any cached value and any
+    probe result. Read-only diag."""
+    from _lib.jobs.layer1 import gsc_report as _g
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    import os as _os
+    safe = brand.upper().replace("-", "_")
+    out = {
+        "ok": True,
+        "brand": brand,
+        "env": {
+            f"GSC_SITE_URL_{safe}": _os.environ.get(f"GSC_SITE_URL_{safe}", ""),
+            "GSC_SITE_URL": _os.environ.get("GSC_SITE_URL", ""),
+            "SEARCH_CONSOLE_SITE_URL": _os.environ.get("SEARCH_CONSOLE_SITE_URL", ""),
+            "DATA_DIR": _os.environ.get("DATA_DIR", ""),
+        },
+    }
+    # Cache
+    try:
+        cache_path = Path(_os.environ.get("DATA_DIR", "/data")) / f"gsc-site-url-{brand}.json"
+        if cache_path.is_file():
+            out["cache_file"] = str(cache_path)
+            out["cache"] = json.loads(cache_path.read_text(encoding="utf-8"))
+        else:
+            out["cache_file"] = str(cache_path) + " (not present)"
+    except Exception as exc:
+        out["cache_error"] = str(exc)
+    # Resolution
+    try:
+        url, err = _g._resolve_site_url(brand)
+        out["resolved_site_url"] = url
+        out["resolve_error"] = err
+    except Exception as exc:
+        out["resolve_exception"] = str(exc)
+    return jsonify(out), 200
+
+
 @app.route('/api/gsc/oauth/disconnect', methods=['POST'])
 def gsc_oauth_disconnect_route():
     """POST /api/gsc/oauth/disconnect — remove stored Search Console OAuth token."""
