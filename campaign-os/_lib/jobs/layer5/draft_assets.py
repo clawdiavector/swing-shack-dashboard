@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import traceback
 import uuid
 from datetime import datetime, timezone
@@ -14,7 +15,10 @@ from ..errors import describe_exception
 from ..layer1._io import atomic_write, read_json
 from _lib.brand_validate import validate_brand_id
 
-from .image_draft_context import image_url_for
+from .image_draft_context import calendar_title_for_item, image_url_for
+
+_DRAFT_HEX_NAME = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
+_CAPTION_NAME_MAX = 72
 
 CREATE_ACTIONS = frozenset({"draft_caption", "draft_image", "draft_gbp"})
 SLOT_ACTIONS = frozenset({"fill_slot"})
@@ -266,6 +270,95 @@ def _pick_caption(result: dict[str, Any]) -> str:
     return ""
 
 
+def caption_first_line_name(caption: str, *, max_len: int = _CAPTION_NAME_MAX) -> str:
+    """First line of caption trimmed for human draft titles."""
+    line = (caption or "").split("\n", 1)[0].strip()
+    line = re.sub(r"^[^\w#@]+", "", line, flags=re.UNICODE)
+    if not line:
+        return ""
+    if len(line) <= max_len:
+        return line
+    cut = line[:max_len]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    trimmed = cut.rstrip()
+    return f"{trimmed}…" if trimmed else line[:max_len]
+
+
+def _draft_name(
+    *,
+    brand_id: str,
+    item_id: str,
+    caption: str,
+    calendar_title: str = "",
+) -> str:
+    title = (calendar_title or "").strip()
+    if not title:
+        title = calendar_title_for_item(brand_id, item_id)
+    if title:
+        return title if len(title) <= _CAPTION_NAME_MAX else title[: _CAPTION_NAME_MAX - 1] + "…"
+    return caption_first_line_name(caption)
+
+
+def _backfill_draft_names(brand: str | None = None) -> int:
+    """Rename assets still using Draft <hex> from sidecar/calendar/caption. Idempotent."""
+    from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return 0
+
+    sidecars_by_asset: dict[str, dict[str, Any]] = {}
+    for path in draft_dir.glob("*.json"):
+        if path.parent.name != "draft-assets" or path.name.startswith("_"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        asset_id = str(sidecar.get("asset_id") or "")
+        if asset_id:
+            sidecars_by_asset[asset_id] = sidecar
+
+    data = _load_campaign_data()
+    campaigns = data.get("campaigns") if isinstance(data.get("campaigns"), dict) else {}
+    updated = 0
+    for campaign in campaigns.values():
+        if not isinstance(campaign, dict):
+            continue
+        identity = campaign.get("identity") if isinstance(campaign.get("identity"), dict) else {}
+        asset_brand = str(identity.get("brand") or "")
+        if brand and asset_brand != brand:
+            continue
+        assets = campaign.get("assets") if isinstance(campaign.get("assets"), dict) else {}
+        for asset_id, asset in assets.items():
+            if not isinstance(asset, dict):
+                continue
+            name = str(asset.get("name") or "")
+            if not _DRAFT_HEX_NAME.match(name):
+                continue
+            sidecar = sidecars_by_asset.get(str(asset_id), {})
+            calendar = sidecar.get("calendar") if isinstance(sidecar.get("calendar"), dict) else {}
+            cal_title = str(sidecar.get("title") or calendar.get("title") or "")
+            item_id = str(sidecar.get("source_inbox_item_id") or "")
+            caption = str(asset.get("caption") or "")
+            new_name = _draft_name(
+                brand_id=asset_brand,
+                item_id=item_id,
+                caption=caption,
+                calendar_title=cal_title,
+            )
+            if new_name and new_name != name:
+                asset["name"] = new_name
+                updated += 1
+
+    if updated:
+        _write_campaign_data(data)
+    return updated
+
+
 def _write_draft(
     *,
     brand_id: str,
@@ -364,6 +457,13 @@ def _process_caption_row(
     )
 
     obs = result.get("observability") or {}
+    cal_title = calendar_title_for_item(brand_id, item_id)
+    draft_title = _draft_name(
+        brand_id=brand_id,
+        item_id=item_id,
+        caption=caption,
+        calendar_title=cal_title,
+    )
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
@@ -376,6 +476,7 @@ def _process_caption_row(
             "provider": obs.get("provider"),
             "cost_estimate_usd": CAPTION_EST_USD,
             "queue_row_id": row.get("id"),
+            "title": draft_title or cal_title or None,
         },
     )
     return asset_id, None
@@ -506,7 +607,13 @@ def _process_image_row(
             "image_size": size,
             "cost_estimate_usd": est,
             "queue_row_id": row.get("id"),
-            "title": title or None,
+            "title": _draft_name(
+                brand_id=brand_id,
+                item_id=item_id,
+                caption=caption,
+                calendar_title=title,
+            )
+            or None,
             "prompt": ctx.job,
             "prompt_used": _result_str("prompt_used"),
             "sections": cd.get("sections") or [],
@@ -548,6 +655,7 @@ def _process_gbp_row(
     if not body:
         body = f"GBP draft for {brand_id} (dry-run plan {plan.get('plan_id') or ''})".strip()
 
+    gbp_title = _draft_name(brand_id=brand_id, item_id=item_id, caption=body)
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=body,
@@ -560,6 +668,7 @@ def _process_gbp_row(
             "gbp_publish_skipped": (plan.get("publish") or {}).get("skipped"),
             "cost_estimate_usd": GBP_EST_USD,
             "queue_row_id": row.get("id"),
+            "title": gbp_title or None,
         },
     )
     return asset_id, None
@@ -575,6 +684,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
 
     try:
+        _backfill_draft_names(brand)
         rows = _read_queue()
         pending = [
             r
