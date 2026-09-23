@@ -1,5 +1,5 @@
 {
-  "schema_version": "p11c-v1",
+  "schema_version": "p11c-v2",
   "brand_id": "swing-shack",
   "generated_at": "2026-09-10T16:20:00+00:00",
   "services": [
@@ -39,7 +39,13 @@
       "last_verified": "2026-09-10",
       "details": {
         "uses_trackman": true,
-        "subtypes": ["driver fitting", "iron fitting", "wedge fitting", "putter fitting", "full bag fitting"],
+        "subtypes": [
+          "driver fitting",
+          "iron fitting",
+          "wedge fitting",
+          "putter fitting",
+          "full bag fitting"
+        ],
         "booking_url": "swingshack.co.za"
       }
     },
@@ -59,7 +65,13 @@
       "last_verified": "2026-09-10",
       "details": {
         "uses_trackman": true,
-        "primary_variables": ["length", "lie angle", "grip size", "head weight", "stroke type match"],
+        "primary_variables": [
+          "length",
+          "lie angle",
+          "grip size",
+          "head weight",
+          "stroke type match"
+        ],
         "audience_tension": "miss pattern / alignment / short game consistency",
         "booking_url": "swingshack.co.za"
       }
@@ -80,7 +92,15 @@
       "last_verified": "2026-09-10",
       "details": {
         "uses_trackman": true,
-        "primary_variables": ["shaft flex", "shaft weight", "loft", "swing speed", "attack angle", "smash factor", "launch conditions"],
+        "primary_variables": [
+          "shaft flex",
+          "shaft weight",
+          "loft",
+          "swing speed",
+          "attack angle",
+          "smash factor",
+          "launch conditions"
+        ],
         "booking_url": "swingshack.co.za"
       }
     },
@@ -100,7 +120,13 @@
       "last_verified": "2026-09-10",
       "details": {
         "uses_trackman": true,
-        "primary_variables": ["shaft flex", "shaft weight", "lie angle", "loft", "set composition"],
+        "primary_variables": [
+          "shaft flex",
+          "shaft weight",
+          "lie angle",
+          "loft",
+          "set composition"
+        ],
         "booking_url": "swingshack.co.za"
       }
     },
@@ -120,7 +146,13 @@
       "last_verified": "2026-09-10",
       "details": {
         "uses_trackman": true,
-        "primary_variables": ["bounce", "grind", "loft", "shaft flex", "shaft weight"],
+        "primary_variables": [
+          "bounce",
+          "grind",
+          "loft",
+          "shaft flex",
+          "shaft weight"
+        ],
         "audience_tension": "scoring inside 100 yards / bunker / rough",
         "booking_url": "swingshack.co.za"
       }
@@ -227,7 +259,19 @@
     "source": "data/brand-directory/swing-shack/voice/do-say-dont-say.md",
     "source_class": "approved_internal",
     "authority_level": "high",
-    "do_say": ["TrackMan", "fitting", "club fitting", "custom fit", "shaft", "smash factor", "attack angle", "swing speed", "loft", "lie", "carry"],
+    "do_say": [
+      "TrackMan",
+      "fitting",
+      "club fitting",
+      "custom fit",
+      "shaft",
+      "smash factor",
+      "attack angle",
+      "swing speed",
+      "loft",
+      "lie",
+      "carry"
+    ],
     "dont_say": [
       "Unlock your potential",
       "Take your game to the next level",
@@ -244,6 +288,120 @@
     "source_class": "approved_internal",
     "authority_level": "high",
     "default_cta": "Book your session → swingshack.co.za",
-    "banned": ["Click here", "Learn more", "Sign up now", "Shop now", "Buy now"]
-  }
+    "banned": [
+      "Click here",
+      "Learn more",
+      "Sign up now",
+      "Shop now",
+      "Buy now"
+    ]
+  },
+  "verified_facts": {
+    "verified_location": {
+      "value": "Old Parktonian Sports Club, 1 Garden Rd, Bordeaux, Randburg, Johannesburg",
+      "source": "Swing Shack Brand Bible + swingshack.co.za",
+      "source_path": "data/brand-directory/swing-shack/bible-source.txt",
+      "verified_status": "verified_current",
+      "confidence": "high"
+    },
+    "verified_phone": {
+      "value": "066 542 1522",
+      "source": "swingshack.co.za",
+      "verified_status": "verified_current",
+      "confidence": "high"
+    },
+    "verified_owners": {
+      "value": "Hermanus Kriel (co-owner, Stick Golf Group)",
+      "source": "Campaign OS Brand Bible Workbook section A",
+      "source_path": "data/brand-directory/swing-shack/bible-source.txt",
+      "verified_status": "verified_current",
+      "confidence": "high"
+    },
+    "verified_bookings_url": {
+      "value": "swingshack.co.za/bookings/",
+      "source": "swingshack.co.za navigation",
+      "verified_status": "verified_current"
+    },
+    "verified_tagline": {
+      "value": "Real Golf, Indoors.",
+      "source": "Swing Shack Brand Bible section 1",
+      "verified_status": "verified_current"
+    },
+    "verified_promise": {
+      "value": "The ball speaks. Data confirms. Feel seals the deal.",
+      "source": "Swing Shack Brand Bible section 6",
+      "verified_status": "verified_current"
+    },
+    "verified_internal_mantra": {
+      "value": "Real Golf. Real Data. Real Welcome.",
+      "source": "Swing Shack Brand Essentials",
+      "verified_status": "verified_current"
+    },
+    "verified_quote": {
+      "value": "The swing may lie, but the ball tells the truth.",
+      "source": "swingshack.co.za + Swing Shack Brand Bible",
+      "verified_status": "verified_current"
+    },
+    "verified_one_line": {
+      "value": "South Africa's first and only true indoor golf club. TrackMan + Zen Swing Stage.",
+      "source": "Swing Shack Brand Bible",
+      "verified_status": "verified_current"
+    },
+    "verified_setup": {
+      "value": "4 TrackMan bays (including TrackMan iO), 400+ world courses, Zen Swing Stage for practice",
+      "source": "swingshack.co.za",
+      "verified_status": "verified_current"
+    },
+    "verified_brands_stocked": {
+      "value": "Takomo, Vice Golf, L.A.B Putters, LA Golf, Miura, Titleist, Callaway, Ping, Cobra, Mizuno, Avoda (arriving), Fujimoto (arriving), plus boutique and specialist brands",
+      "source": "swingshack.co.za FAQ",
+      "verified_status": "verified_current"
+    },
+    "verified_membership_benefits": {
+      "value": "4 free practice sessions/month, 25% off fittings, 15% off lessons",
+      "source": "Campaign OS Brand Bible Workbook section C",
+      "verified_status": "verified_current"
+    },
+    "verified_float_payment": {
+      "value": "Float payment option makes custom fitting accessible",
+      "source": "swingshack.co.za club-fitting section",
+      "verified_status": "verified_current"
+    },
+    "verified_clublab_builds": {
+      "value": "ClubLab handles the builds. Loft, lie, length, swing weight, shaft, grip — every detail matched to fitted spec.",
+      "source": "Swing Shack Brand Bible section 7.3",
+      "verified_status": "verified_current"
+    },
+    "verified_coaching_format": {
+      "value": "Limited to three key feels per coaching session for clarity and focus. Video analysis and TrackMan data available after each lesson.",
+      "source": "swingshack.co.za coaching section",
+      "verified_status": "verified_current"
+    },
+    "banned_fabrications": {
+      "value": "No '90% of golfers / 30-metre accuracy' stats. No fake TrackMan numbers. No fake fitting outcomes. No fake member counts. No fake '12-shot improvement' style claims. Any number not in this file is not allowed in copy.",
+      "source": "Swing Shack Brand Bible section 7 + Numbers discipline",
+      "verified_status": "verified_current"
+    },
+    "voice_constraints": {
+      "value": "Em dashes banned. Sentence case. TrackMan capitalised exactly. One sentence per beat. Never talk down to anyone. Never hide behind jargon. Never use 'unlock your potential' / 'take your game to the next level'.",
+      "source": "Swing Shack Brand Bible sections 11 + punctuation rules",
+      "verified_status": "verified_current"
+    },
+    "tone": {
+      "value": "Sharp performance coach who is also a great host. Clear, calm, confident, welcoming, precise, honest.",
+      "source": "Swing Shack Brand Bible sections 9-11",
+      "verified_status": "verified_current"
+    }
+  },
+  "bible_sources": {
+    "swing_shack_brand_bible": "data/brand-directory/swing-shack/bible-source.txt",
+    "swing_shack_brand_essentials": "data/brand-directory/swing-shack/essentials-source.txt",
+    "campaign_os_workbook": "data/brand-directory/swing-shack/workbook-source.txt"
+  },
+  "rules": {
+    "exact_only": "Only facts in verified_facts can appear in copy. All other claims need a verified source.",
+    "no_fabrication": "Never invent stats, member counts, distances, improvement percentages, or locations.",
+    "voice_only": "Use brand voice rules (em dash ban, sentence case, period as terminator, TrackMan casing) on every line."
+  },
+  "verified_at": "2026-09-23"
 }

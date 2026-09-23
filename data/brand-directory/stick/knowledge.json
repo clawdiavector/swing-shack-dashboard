@@ -1,5 +1,5 @@
 {
-  "schema_version": "p11c-v1",
+  "schema_version": "p11c-v2",
   "brand_id": "stick",
   "product_brands": {
     "takomo": {
@@ -80,7 +80,9 @@
         "specs_note": "Quarantined — do NOT generate product claims about this identity.",
         "do_not_use": true
       },
-      "migration_aliases": ["tk-product-101T-CB (deprecated)"]
+      "migration_aliases": [
+        "tk-product-101T-CB (deprecated)"
+      ]
     },
     {
       "fact_id": "tk-product-101T-MB",
@@ -105,7 +107,9 @@
         "specs_note": "Quarantined — do NOT generate product claims about this identity.",
         "do_not_use": true
       },
-      "migration_aliases": ["tk-product-101T-MB (deprecated)"]
+      "migration_aliases": [
+        "tk-product-101T-MB (deprecated)"
+      ]
     },
     {
       "fact_id": "tk-product-201T",
@@ -129,9 +133,15 @@
         "specs_known": false,
         "specs_note": "Quarantined — do NOT generate product claims about this identity.",
         "do_not_use": true,
-        "possible_canonical_matches": ["Iron 201", "Iron 201 MKII", "Iron 201T MKII"]
+        "possible_canonical_matches": [
+          "Iron 201",
+          "Iron 201 MKII",
+          "Iron 201T MKII"
+        ]
       },
-      "migration_aliases": ["tk-product-201T (deprecated)"]
+      "migration_aliases": [
+        "tk-product-201T (deprecated)"
+      ]
     },
     {
       "fact_id": "tk-product-101T-Pro",
@@ -156,7 +166,9 @@
         "specs_note": "Quarantined — do NOT generate product claims about this identity.",
         "do_not_use": true
       },
-      "migration_aliases": ["tk-product-101T-Pro (deprecated)"]
+      "migration_aliases": [
+        "tk-product-101T-Pro (deprecated)"
+      ]
     }
   ],
   "visual_references": [
@@ -262,5 +274,121 @@
       "The 101T sits at 7° of bounce.",
       "Nothing extra, nothing missing."
     ]
-  }
+  },
+  "verified_facts": {
+    "verified_location": {
+      "value": "Paarl, Western Cape (Stick's home market); Cape Town + Winelands is the broader customer footprint.",
+      "source": "Stick Golf Brand & Commercial Strategy 2026-2029, section 4 'Geographic position'",
+      "source_path": "data/brand-directory/stick/strategy-source.txt",
+      "verified_status": "verified_current",
+      "confidence": "high"
+    },
+    "verified_not_sub_brand": {
+      "value": "Stick is a sister brand to Swing Shack under Stick Golf Group (Hermanus Kriel co-owner). NOT a sub-brand. Stick has its own studio, its own brand identity, its own product curation.",
+      "source": "Stick Brand Bible section 1 + Strategy section 1",
+      "verified_status": "verified_current"
+    },
+    "verified_bookings_url": {
+      "value": "stickgolf.co.za/bookings/",
+      "source": "stickgolf.co.za navigation",
+      "verified_status": "verified_current"
+    },
+    "verified_tagline": {
+      "value": "Better Begins Here.",
+      "source": "Stick Brand Bible section 6",
+      "verified_status": "verified_current"
+    },
+    "verified_strategic_belief": {
+      "value": "Everything has to earn its place.",
+      "source": "Stick Brand Commercial Strategy section 3",
+      "verified_status": "verified_current"
+    },
+    "verified_trading_principles": {
+      "value": "Fit First. Buy Second. Why It's Here. Respect the Player.",
+      "source": "Stick Brand Commercial Strategy section 3",
+      "verified_status": "verified_current"
+    },
+    "verified_respect_the_player": {
+      "value": "Never use expertise to make the golfer feel stupid.",
+      "source": "Stick Brand Commercial Strategy section 3 + Christelle directive 2026-09-23",
+      "verified_status": "verified_current"
+    },
+    "verified_archetype": {
+      "value": "Smart Rebel — Rebel + Sage combined. Edge and brains. Not a punk brand. Not an engineering robot.",
+      "source": "Stick Brand Bible section 10",
+      "verified_status": "verified_current"
+    },
+    "verified_brands_stocked": {
+      "value": "Takomo, Vice, Psycho Bunny, L.A.B Golf, Avoda, Vessel, RipIt.",
+      "source": "stickgolf.co.za featured brands",
+      "verified_status": "verified_current"
+    },
+    "verified_business_mix": {
+      "value": "Part fitting studio, part workshop, part modern golf retailer, part editor.",
+      "source": "Stick Brand Commercial Strategy section 1",
+      "verified_status": "verified_current"
+    },
+    "verified_services": {
+      "value": "Brand-agnostic TrackMan fittings. Full shaft matrix. Precision workshop. Purpose-built equipment.",
+      "source": "stickgolf.co.za fitting section",
+      "verified_status": "verified_current"
+    },
+    "verified_fitting_philosophy": {
+      "value": "Stick matches equipment to the player, not the player to the equipment.",
+      "source": "Stick Brand Bible section 4",
+      "verified_status": "verified_current"
+    },
+    "verified_paarl_focus": {
+      "value": "The content should feel proudly Paarl without talking as though only Paarl golfers can buy, enquire or get fitted.",
+      "source": "Stick Brand Commercial Strategy section 4",
+      "verified_status": "verified_current"
+    },
+    "verified_why_its_here_format": {
+      "value": "Every priority product or partner brand gets the same editorial treatment: not a catalogue description, but Stick's reason for making space for it. Title frame: 'WHY IT'S HERE.'",
+      "source": "Stick Brand Commercial Strategy section 6",
+      "verified_status": "verified_current"
+    },
+    "verified_content_shares": {
+      "value": "Product & brands 40%, Fitting & proof 25%, Workshop & service 20%, Culture/style/people 15%. Starting shares, not quotas.",
+      "source": "Stick Brand Commercial Strategy section 7",
+      "verified_status": "verified_current"
+    },
+    "verified_meta_reach_data": {
+      "value": "Weekly Meta reach Aug 16-22: 87.1K (68.1K Facebook + 19.0K Instagram). Meta ad traffic Aug 11-24: 2,306 link clicks, blended CPC R0.42. GBP Mar-Aug: 1,161 interactions, 108 calls, 553 website clicks.",
+      "source": "Stick Brand Commercial Strategy section 1",
+      "verified_status": "verified_current"
+    },
+    "verified_history_evidence": {
+      "value": "Fit Fact 15 Jul-13 Aug: 44 leads at R20.10 each. Fit Fact 11-24 Aug: 24 lead-form results at R32.06 each. Takomo landing page avg engagement 2m08s. Search Console last 3 months: 1,079 impressions, 39 clicks.",
+      "source": "Stick Brand Commercial Strategy section 1",
+      "verified_status": "verified_current"
+    },
+    "banned_fabrications": {
+      "value": "No fake TrackMan numbers. No fake fitting outcomes. No fake '12-shot improvement' / 'two-week satisfaction guarantee' style claims. No fake member counts. No fake distance claims. Any number not in this file is not allowed in copy.",
+      "source": "Stick Brand Bible section 7 + Numbers discipline + Christelle directive 2026-09-23",
+      "verified_status": "verified_current"
+    },
+    "voice_constraints": {
+      "value": "Em dashes banned (use pipes, colons, commas, periods). One sentence per beat. Period as drumbeat. Sentence case. Cheeky AND helpful, never sarcasm-as-punchline. The joke is shared with the reader, never directed at them. Never use expertise to make the golfer feel stupid.",
+      "source": "Stick Brand Bible + Stick voice/tone-rules.md + Christelle directive 2026-09-23",
+      "verified_status": "verified_current"
+    },
+    "tone": {
+      "value": "Cheeky and helpful. Sharp, modern, confident, informed, energetic, selective, culturally awake. Smart Rebel: edge and brains.",
+      "source": "Stick Brand Bible sections 11 + Christelle directive 2026-09-23",
+      "verified_status": "verified_current"
+    }
+  },
+  "bible_sources": {
+    "stick_brand_bible": "data/brand-directory/stick/bible-source.txt",
+    "stick_commercial_strategy": "data/brand-directory/stick/strategy-source.txt",
+    "campaign_os_workbook": "data/brand-directory/swing-shack/workbook-source.txt"
+  },
+  "rules": {
+    "exact_only": "Only facts in verified_facts can appear in copy. All other claims need a verified source.",
+    "no_fabrication": "Never invent stats, member counts, distances, improvement percentages, satisfaction guarantees, or locations beyond Paarl/Cape Town/Winelands.",
+    "voice_only": "Cheeky and helpful, never sarcasm-as-punchline. Em dash ban. Period as drumbeat. Setup:payoff in two sentences max.",
+    "respect_the_player": "Every line lands on a thing we can help with. CTAs must be actionable."
+  },
+  "verified_at": "2026-09-23"
 }

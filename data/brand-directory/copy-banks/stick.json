@@ -1,0 +1,184 @@
+{
+  "version": "v2 (2026-09-23, brand-bible sourced)",
+  "source": "Stick Brand Bible + commercial strategy + website",
+  "rules": [
+    "Em dashes banned.",
+    "One sentence per beat. Two sentences max.",
+    "Period as drumbeat. Setup:payoff uses period, not comma.",
+    "Cheeky and helpful, never sarcasm-as-punchline.",
+    "The joke is shared with the golfer, never directed at them.",
+    "Every cheeky line lands on a thing we can help with (a CTA, an offering, a 'why it's here').",
+    "Never use expertise to make the golfer feel stupid.",
+    "Sentence case. Period as default terminator."
+  ],
+  "headlines": [
+    {
+      "text": "Takomo 101T. Forged once, normalised. The grain is the spec.",
+      "tone": "confident",
+      "pillar": "why_its_here",
+      "intent": "credibility"
+    },
+    {
+      "text": "Psycho Bunny. The polo that didn't come from a country club.",
+      "tone": "cheeky",
+      "pillar": "why_its_here",
+      "intent": "introduce"
+    },
+    {
+      "text": "Vice balls. Tested on TrackMan before they hit the shelf.",
+      "tone": "confident",
+      "pillar": "why_its_here",
+      "intent": "credibility"
+    },
+    {
+      "text": "L.A.B Golf. Lie angle balanced. The math finally makes sense.",
+      "tone": "confident",
+      "pillar": "why_its_here",
+      "intent": "educate"
+    },
+    {
+      "text": "Off-rack clubs. The budget option that costs you strokes.",
+      "tone": "cheeky",
+      "pillar": "fitting",
+      "intent": "challenge"
+    },
+    {
+      "text": "Hope isn't a fitting strategy. But we are.",
+      "tone": "cheeky",
+      "pillar": "fitting",
+      "intent": "challenge"
+    },
+    {
+      "text": "Range balls. The lie you keep telling yourself.",
+      "tone": "cheeky",
+      "pillar": "trackman",
+      "intent": "challenge"
+    },
+    {
+      "text": "Off-the-rack shoes? You wouldn't. So why your driver?",
+      "tone": "cheeky",
+      "pillar": "fitting",
+      "intent": "challenge"
+    },
+    {
+      "text": "You changed your grip. Twice. The slice didn't notice.",
+      "tone": "cheeky",
+      "pillar": "fitting",
+      "intent": "empathise"
+    },
+    {
+      "text": "Fit first. Buy second. A 30-min session that ends with the right club in your hand.",
+      "tone": "confident",
+      "pillar": "fitting",
+      "intent": "educate"
+    },
+    {
+      "text": "Everything has to earn its place. Including your next driver.",
+      "tone": "confident",
+      "pillar": "fitting",
+      "intent": "challenge"
+    },
+    {
+      "text": "Better begins here. We measure it.",
+      "tone": "confident",
+      "pillar": "general",
+      "intent": "credibility"
+    },
+    {
+      "text": "When your mate says 'I'll fix it myself'. We've all been there. Almost.",
+      "tone": "relatable",
+      "pillar": "culture",
+      "intent": "empathise"
+    },
+    {
+      "text": "Paarl mornings. The fitting studio stays open.",
+      "tone": "relatable",
+      "pillar": "local",
+      "intent": "warm"
+    },
+    {
+      "text": "Regrip. Reshaft. Replay. Workshop services that respect the club.",
+      "tone": "confident",
+      "pillar": "workshop",
+      "intent": "introduce"
+    },
+    {
+      "text": "Me: I'll fix my slice this winter. Also me: buys new driver. The fitting helps. Promise.",
+      "tone": "meme",
+      "pillar": "fitting",
+      "intent": "empathise"
+    },
+    {
+      "text": "Stick matches equipment to the player. Never the other way around.",
+      "tone": "confident",
+      "pillar": "fitting",
+      "intent": "credibility"
+    }
+  ],
+  "ctas": {
+    "hard": [
+      {
+        "text": "Book a fitting → stickgolf.co.za/club-fitting-at-stick",
+        "url": "https://stickgolf.co.za/club-fitting-at-stick/",
+        "pillar": "fitting"
+      },
+      {
+        "text": "Book coaching → stickgolf.co.za/coaching-at-stick",
+        "url": "https://stickgolf.co.za/coaching-at-stick/",
+        "pillar": "coaching"
+      },
+      {
+        "text": "See why Takomo earned its place → stickgolf.co.za/takomo-at-stick",
+        "url": "https://stickgolf.co.za/takomo-at-stick/",
+        "pillar": "why_its_here"
+      },
+      {
+        "text": "See why Vice earned its place → stickgolf.co.za/vice-golf-at-stick",
+        "url": "https://stickgolf.co.za/vice-golf-at-stick/",
+        "pillar": "why_its_here"
+      },
+      {
+        "text": "See why Psycho Bunny earned its place → stickgolf.co.za/psycho-bunny-at-stick",
+        "url": "https://stickgolf.co.za/psycho-bunny-at-stick/",
+        "pillar": "why_its_here"
+      },
+      {
+        "text": "See why L.A.B Golf earned its place → stickgolf.co.za/l-a-b-golf-at-stick",
+        "url": "https://stickgolf.co.za/l-a-b-golf-at-stick/",
+        "pillar": "why_its_here"
+      },
+      {
+        "text": "Workshop services → stickgolf.co.za/services",
+        "url": "https://stickgolf.co.za/services/",
+        "pillar": "workshop"
+      },
+      {
+        "text": "Book a session → stickgolf.co.za/bookings",
+        "url": "https://stickgolf.co.za/bookings/",
+        "pillar": "general"
+      }
+    ],
+    "soft": [
+      {
+        "text": "Better begins here.",
+        "pillar": "general"
+      },
+      {
+        "text": "Fit first. Buy second.",
+        "pillar": "fitting"
+      },
+      {
+        "text": "Everything has to earn its place.",
+        "pillar": "general"
+      },
+      {
+        "text": "Why it's here.",
+        "pillar": "why_its_here"
+      },
+      {
+        "text": "The studio stays open.",
+        "pillar": "local"
+      }
+    ]
+  }
+}

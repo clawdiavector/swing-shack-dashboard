@@ -1,0 +1,181 @@
+{
+  "version": "v2 (2026-09-23, brand-bible sourced)",
+  "source": "Swing Shack Brand Bible + website + workbook",
+  "rules": [
+    "Em dashes banned.",
+    "One sentence per beat. No exceptions.",
+    "Lead with the data, the truth, or the relatable situation. Never with 'we'.",
+    "Never talk down to anyone. Never use 'unlock your potential' / 'take your game to the next level'.",
+    "TrackMan capitalised exactly. Sentence case otherwise.",
+    "Every headline pairs with exactly one CTA per ctas.md."
+  ],
+  "headlines": [
+    {
+      "text": "TrackMan isolates 4 variables in a 30-min session. Here's what we usually find.",
+      "tone": "educational",
+      "pillar": "trackman_intelligence",
+      "intent": "teach"
+    },
+    {
+      "text": "Driver fitting isolates swing speed, attack angle, path, face. Then we match them to your numbers.",
+      "tone": "educational",
+      "pillar": "fitting_education",
+      "intent": "teach"
+    },
+    {
+      "text": "The swing may lie, but the ball tells the truth.",
+      "tone": "educational",
+      "pillar": "trackman_intelligence",
+      "intent": "teach"
+    },
+    {
+      "text": "Smash factor. Not swing speed.",
+      "tone": "educational",
+      "pillar": "trackman_intelligence",
+      "intent": "teach"
+    },
+    {
+      "text": "The 30-minute session shows what your coach can't see.",
+      "tone": "educational",
+      "pillar": "trackman_intelligence",
+      "intent": "teach"
+    },
+    {
+      "text": "Every TrackMan bay in JHB runs the same data. We use it.",
+      "tone": "confident",
+      "pillar": "trackman_intelligence",
+      "intent": "credibility"
+    },
+    {
+      "text": "Your driver isn't matched to your swing.",
+      "tone": "confident",
+      "pillar": "fitting_education",
+      "intent": "challenge"
+    },
+    {
+      "text": "Off-centre strikes cost you distance. The data proves it.",
+      "tone": "confident",
+      "pillar": "trackman_intelligence",
+      "intent": "challenge"
+    },
+    {
+      "text": "Your slice has a cause. TrackMan finds it.",
+      "tone": "confident",
+      "pillar": "trackman_intelligence",
+      "intent": "challenge"
+    },
+    {
+      "text": "We fit the data and the player's swing. Never the margin.",
+      "tone": "confident",
+      "pillar": "fitting_education",
+      "intent": "credibility"
+    },
+    {
+      "text": "Winter golf in JHB: the simulator is the only honest feedback you'll get.",
+      "tone": "relatable",
+      "pillar": "trackman_intelligence",
+      "intent": "empathise"
+    },
+    {
+      "text": "You've been fitted for shoes. Why not your driver?",
+      "tone": "relatable",
+      "pillar": "fitting_education",
+      "intent": "empathise"
+    },
+    {
+      "text": "You're not bad at golf. You're just not fitted for your swing.",
+      "tone": "relatable",
+      "pillar": "fitting_education",
+      "intent": "empathise"
+    },
+    {
+      "text": "Off-rack clubs. The cost-saving that costs you strokes.",
+      "tone": "provocative",
+      "pillar": "fitting_education",
+      "intent": "challenge"
+    },
+    {
+      "text": "Hope isn't a fitting strategy.",
+      "tone": "provocative",
+      "pillar": "trackman_intelligence",
+      "intent": "challenge"
+    },
+    {
+      "text": "4 free practice sessions a month, members. We said what we said.",
+      "tone": "confident",
+      "pillar": "membership",
+      "intent": "credibility"
+    },
+    {
+      "text": "Indoor golf at Old Parktonian, Randburg. Real data, real bays.",
+      "tone": "educational",
+      "pillar": "local",
+      "intent": "teach"
+    }
+  ],
+  "ctas": {
+    "hard": [
+      {
+        "text": "Book a TrackMan session → swingshack.co.za/bookings",
+        "url": "https://swingshack.co.za/bookings/",
+        "pillar": "trackman_intelligence"
+      },
+      {
+        "text": "Book a driver fitting → swingshack.co.za/club-fitting",
+        "url": "https://swingshack.co.za/club-fitting/",
+        "pillar": "fitting_education"
+      },
+      {
+        "text": "Book a coaching session → swingshack.co.za/bookings",
+        "url": "https://swingshack.co.za/bookings/",
+        "pillar": "coaching"
+      },
+      {
+        "text": "Book a practice bay → swingshack.co.za/bookings",
+        "url": "https://swingshack.co.za/bookings/",
+        "pillar": "practice"
+      },
+      {
+        "text": "Book social play → swingshack.co.za/bookings",
+        "url": "https://swingshack.co.za/bookings/",
+        "pillar": "social_play"
+      },
+      {
+        "text": "Find out more about membership → swingshack.co.za/membership",
+        "url": "https://swingshack.co.za/membership/",
+        "pillar": "membership"
+      },
+      {
+        "text": "Call the floor → 066 542 1522",
+        "url": "tel:0665421522",
+        "pillar": "general"
+      }
+    ],
+    "soft": [
+      {
+        "text": "TrackMan doesn't lie.",
+        "pillar": "trackman_intelligence"
+      },
+      {
+        "text": "The bay doesn't lie.",
+        "pillar": "trackman_intelligence"
+      },
+      {
+        "text": "Data over hope.",
+        "pillar": "fitting_education"
+      },
+      {
+        "text": "Fit first. Hit second.",
+        "pillar": "fitting_education"
+      },
+      {
+        "text": "Real golf. Real data. Real welcome.",
+        "pillar": "general"
+      },
+      {
+        "text": "Better begins here.",
+        "pillar": "general"
+      }
+    ]
+  }
+}
