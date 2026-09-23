@@ -31,7 +31,7 @@ export const RAIL: RailItem[] = [
   { to: '/review', label: 'Review', hint: 'Drafts', icon: Inbox },
   { to: '/shelf', label: 'Shelf', hint: 'Approved', icon: Library },
   { to: '/create', label: 'Create', hint: 'Studio', icon: Sparkles },
-  { to: '/calendar', label: 'Calendar', hint: 'Schedule', icon: CalendarDays },
+  { to: '/calendar/lanes', label: 'Calendar', hint: 'Strategic', icon: CalendarDays },
   { to: '/publish', label: 'Publish', hint: 'Go live', icon: Rocket },
   { to: '/results', label: 'Results', hint: 'What worked', icon: Activity },
   { to: '/ops', label: 'Ops', hint: 'Jobs · agents · accounts', icon: Bot },
@@ -84,6 +84,7 @@ export const OTHER_GROUPS = [
     title: 'Holding pen',
     icon: MoreHorizontal,
     items: [
+      { href: '/calendar', label: 'Month grid', icon: CalendarDays },
       { href: '/?page=herman', label: 'Herman demo', icon: CalendarDays },
       { href: '/?page=fleet', label: 'Fleet', icon: Bot },
       { href: '/?page=docs', label: 'Docs', icon: FileStack },
