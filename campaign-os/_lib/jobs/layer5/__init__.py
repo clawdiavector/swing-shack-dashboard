@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import asset_qc, draft_assets
+from . import asset_qc, draft_assets, retry_failed_images
 
 LAYER5_JOB_NAMES: tuple[str, ...] = (
+    "retry_failed_images",
     "draft_assets",
     "asset_qc",
 )
@@ -21,6 +22,21 @@ def layer5_specs() -> list[JobSpec]:
     """Return all Layer 5 JobSpecs."""
     return [
         JobSpec(
+            name="retry_failed_images",
+            fn=retry_failed_images.run,
+            every_seconds=LAYER5_DAILY,
+            timeout_seconds=90,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=0,
+            credentials=(),
+            reads=("agent-queue.json",),
+            writes=("agent-queue.json",),
+            upstream=("agent_queue_writer",),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
+        ),
+        JobSpec(
             name="draft_assets",
             fn=draft_assets.run,
             every_seconds=LAYER5_DAILY,
@@ -31,7 +47,7 @@ def layer5_specs() -> list[JobSpec]:
             credentials=("OPENAI_API_KEY",),
             reads=("agent-queue.json",),
             writes=("draft-assets/", "campaign-data.json"),
-            upstream=("agent_queue_writer",),
+            upstream=("retry_failed_images",),
             brand_mode="per_brand",
             brands=_ALL_ACTIVE_BRANDS,
         ),

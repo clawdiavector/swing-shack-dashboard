@@ -749,7 +749,8 @@ def _rollup_stages(
             stages["caption"] = True
         if draft.get("image_path") or draft.get("image_url"):
             stages["image"] = True
-        if draft.get("draft_bucket") == "pending":
+        has_reviewable_image = bool(draft.get("image_path") or draft.get("image_url"))
+        if draft.get("draft_bucket") == "pending" and has_reviewable_image:
             stages["in_review"] = True
         if draft.get("draft_bucket") == "approved":
             stages["approved"] = True

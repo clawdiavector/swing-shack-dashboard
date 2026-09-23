@@ -123,6 +123,7 @@ def _seed_queue_row(tmp_path: Path, *, action: str, item_id: str, brand: str = "
 def test_layer5_specs_registered(l5_app):
     from _lib.jobs.registry import JOBS
 
+    assert "retry_failed_images" in JOBS
     assert "draft_assets" in JOBS
     assert "asset_qc" in JOBS
     assert JOBS["draft_assets"].best_effort is True

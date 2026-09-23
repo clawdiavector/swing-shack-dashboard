@@ -843,7 +843,15 @@ def _process_image_row(
         return val if isinstance(val, str) else None
 
     primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
-    provider_job_id = getattr(result, "provider_job_id", None)
+    pj_raw = getattr(result, "provider_job_id", None)
+    provider_job_id = pj_raw.strip() if isinstance(pj_raw, str) and pj_raw.strip() else None
+    if provider_job_id and not has_bytes:
+        row["status"] = "waiting"
+        return None, None
+
+    if not has_bytes:
+        return None, None
+
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,

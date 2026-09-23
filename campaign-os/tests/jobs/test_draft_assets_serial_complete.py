@@ -104,6 +104,8 @@ def _image_mock(tmp_path: Path, name: str = "gen-a.png") -> MagicMock:
     mock_gen.model = "test-model"
     mock_gen.provider = "openrouter"
     mock_gen.saved_path = str(img_path)
+    mock_gen.provider_job_id = None
+    mock_gen.bytes = img_path.read_bytes()
     return mock_gen
 
 

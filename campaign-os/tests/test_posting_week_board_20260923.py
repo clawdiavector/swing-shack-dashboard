@@ -107,6 +107,14 @@ class PostingWeekBoardTests(unittest.TestCase):
         cls.app_module = app_module
         cls.client = app_module.app.test_client()
 
+    def setUp(self):
+        os.environ["DATA_DIR"] = str(self.tmpdir)
+        os.environ["PUBLISH_SANDBOX_DIR"] = str(self.tmpdir / "publish-sandbox")
+        self.app_module.DATA_DIR = str(self.tmpdir)
+        for name in list(sys.modules):
+            if name in ("_lib.marketing_calendar", "_lib.unified_inbox"):
+                del sys.modules[name]
+
     @classmethod
     def tearDownClass(cls):
         if cls._prev_data_dir is None:
@@ -134,7 +142,7 @@ class PostingWeekBoardTests(unittest.TestCase):
         stages = post["stages"]
         self.assertTrue(stages["booked"])
         self.assertTrue(stages["caption"])
-        self.assertTrue(stages["in_review"])
+        self.assertFalse(stages["in_review"])
         self.assertTrue(stages["queued"])
         self.assertEqual(post["stage"], "queued")
 

@@ -197,6 +197,16 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Feeds winner_promotion and the Learn ops tab."
         ),
     },
+    "retry_failed_images": {
+        "title": "Retry failed images",
+        "summary": "Auto-enqueue operator calendar pairs and reset empty image queue rows.",
+        "detail": (
+            "Scans approved operator moments in the next 14 days (skips holiday_inject / "
+            "deterministic sources), enqueues draft_caption + draft_image when no real PNG exists, "
+            "and re-pends draft_image rows that were marked done without bytes (max 3 retries, "
+            "respects daily LLM spend cap)."
+        ),
+    },
     "holiday_inject": {
         "title": "SA public holiday inject",
         "summary": "Upserts deterministic SA public holidays into each brand calendar.",
