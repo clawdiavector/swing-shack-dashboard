@@ -17786,6 +17786,41 @@ def inbox_unified_list():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/inbox/week', methods=['GET'])
+def inbox_week_board():
+    """GET /api/inbox/week — operator posting calendar joined to drafts + sandbox."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from datetime import date as _date_cls
+
+        from _lib import unified_inbox as _unified_inbox_mod
+        from _lib.marketing_calendar import VALID_BRAND_IDS
+
+        brand = (request.args.get("brand") or request.args.get("brand_id") or "swing-shack").strip()
+        if brand not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand}' is not an operating brand"}), 400
+        days_raw = request.args.get("days") or "7"
+        try:
+            days = int(days_raw)
+        except ValueError:
+            days = 7
+        start_raw = (request.args.get("start") or "").strip()
+        start: _date_cls | None = None
+        if start_raw:
+            try:
+                start = _date_cls.fromisoformat(start_raw[:10])
+            except ValueError:
+                return jsonify({"ok": False, "error": "invalid start date"}), 400
+        payload = _unified_inbox_mod.week_board(brand_id=brand, start=start, days=days)
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_week_board failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/inbox/unified/<path:item_id>/approve', methods=['POST'])
 def inbox_unified_approve(item_id: str):
     """POST /api/inbox/unified/<id>/approve — approve without publishing."""

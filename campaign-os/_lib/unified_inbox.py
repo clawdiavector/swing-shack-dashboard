@@ -6,7 +6,8 @@ import hashlib
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Optional
 
@@ -534,6 +535,247 @@ def list_items(
             "approved": approved_on_shelf,
         },
         "items": items,
+    }
+
+
+_WEEK_MOMENT_STATUSES = frozenset({"approved", "candidate", "active"})
+_WEEK_TZ = ZoneInfo("Africa/Johannesburg")
+_STAGE_ORDER = ("booked", "caption", "image", "in_review", "approved", "queued")
+
+
+def _calendar_id_from_inbox_ref(inbox_item_id: str) -> str | None:
+    """Parse calendar_id from calendar_candidate:<brand>:<calendar_id>."""
+    if not inbox_item_id.startswith("calendar_candidate:"):
+        return None
+    parts = inbox_item_id.split(":", 2)
+    if len(parts) < 3:
+        return None
+    cal_id = parts[2].strip()
+    return cal_id or None
+
+
+def _moment_go_live_date(record: dict[str, Any]) -> str | None:
+    for key in ("event_date", "event_start", "event_window_start"):
+        raw = record.get(key)
+        if raw and isinstance(raw, str):
+            return raw[:10]
+    return None
+
+
+def _index_draft_sidecars(*, brand_id: str) -> tuple[dict[str, dict[str, Any]], int]:
+    """Map calendar_id → draft join row; return (index, orphan_count)."""
+    sidecar_dir = _data_dir() / "draft-assets"
+    campaign_data = _load_campaign_data()
+    by_cal: dict[str, dict[str, Any]] = {}
+    orphans = 0
+    if not sidecar_dir.is_dir():
+        return by_cal, orphans
+    for path in sidecar_dir.glob("*.json"):
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(doc, dict):
+            continue
+        if str(doc.get("brand_id") or "") not in ("", brand_id):
+            if doc.get("brand_id") and str(doc.get("brand_id")) != brand_id:
+                continue
+        asset_id = str(doc.get("asset_id") or path.stem)
+        campaign_id = str(doc.get("campaign_id") or "")
+        source = str(doc.get("source_inbox_item_id") or "")
+        cal_id = _calendar_id_from_inbox_ref(source)
+        if not cal_id:
+            orphans += 1
+            continue
+        cid, asset = _campaign_asset_for_id(campaign_data, asset_id)
+        if not cid:
+            cid = campaign_id
+        approval = str(asset.get("approvalStatus") or asset.get("approval_status") or "draft").lower()
+        bucket = "approved" if approval == "approved" else "pending"
+        caption = str(asset.get("caption") or "")
+        image_path, image_url = _asset_image_meta(asset)
+        inbox_item_id = _item_id("draft_asset", f"{cid}:{asset_id}")
+        row = {
+            "calendar_id": cal_id,
+            "asset_id": asset_id,
+            "campaign_id": cid,
+            "inbox_item_id": inbox_item_id,
+            "caption": caption,
+            "image_path": image_path,
+            "image_url": image_url,
+            "draft_bucket": bucket,
+            "updated_at": asset.get("updatedAt") or doc.get("created_at"),
+        }
+        prev = by_cal.get(cal_id)
+        if prev is None or str(row.get("updated_at") or "") >= str(prev.get("updated_at") or ""):
+            by_cal[cal_id] = row
+    return by_cal, orphans
+
+
+def _index_sandbox_by_inbox(*, brand_id: str) -> dict[str, list[dict[str, Any]]]:
+    from _lib import publish_sandbox  # noqa: PLC0415
+
+    queue_path = publish_sandbox._queue_path()  # noqa: SLF001
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in _read_jsonl(queue_path):
+        if str(row.get("status") or "") != "pending":
+            continue
+        if str(row.get("brand_id") or "") != brand_id:
+            continue
+        inbox_ref = str(row.get("inbox_item_id") or "")
+        cal_id = _calendar_id_from_inbox_ref(inbox_ref)
+        if not cal_id:
+            continue
+        grouped.setdefault(cal_id, []).append(
+            {
+                "platform": row.get("platform"),
+                "idempotency_key": row.get("idempotency_key") or row.get("queue_id"),
+                "inbox_item_id": inbox_ref,
+            }
+        )
+    return grouped
+
+
+def _rollup_stages(
+    *,
+    has_moment: bool,
+    draft: dict[str, Any] | None,
+    sandbox_rows: list[dict[str, Any]],
+) -> tuple[dict[str, bool], str]:
+    stages: dict[str, bool] = {
+        "booked": has_moment,
+        "caption": False,
+        "image": False,
+        "in_review": False,
+        "approved": False,
+        "queued": bool(sandbox_rows),
+    }
+    if draft:
+        if draft.get("caption", "").strip():
+            stages["caption"] = True
+        if draft.get("image_path") or draft.get("image_url"):
+            stages["image"] = True
+        if draft.get("draft_bucket") == "pending":
+            stages["in_review"] = True
+        if draft.get("draft_bucket") == "approved":
+            stages["approved"] = True
+            stages["in_review"] = False
+    stage = "booked"
+    for name in _STAGE_ORDER:
+        if stages.get(name):
+            stage = name
+    return stages, stage
+
+
+def week_board(
+    *,
+    brand_id: str,
+    start: date | None = None,
+    days: int = 7,
+) -> dict[str, Any]:
+    """Operator posting calendar: moments in horizon joined to drafts + sandbox."""
+    from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
+
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand")
+    days = max(1, min(int(days), 31))
+    tz = _WEEK_TZ
+    today = datetime.now(tz).date()
+    window_start = start or today
+    window_end = window_start + timedelta(days=days - 1)
+
+    drafts_by_cal, sidecar_orphans = _index_draft_sidecars(brand_id=brand_id)
+    sandbox_by_cal = _index_sandbox_by_inbox(brand_id=brand_id)
+
+    moments_by_cal: dict[str, dict[str, Any]] = {}
+    for record in canonical_records(brand_id):
+        status = str(record.get("status") or "")
+        if status not in _WEEK_MOMENT_STATUSES:
+            continue
+        go_live = _moment_go_live_date(record)
+        if not go_live:
+            continue
+        try:
+            go_date = date.fromisoformat(go_live)
+        except ValueError:
+            continue
+        if go_date < window_start or go_date > window_end:
+            continue
+        cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+        if not cal_id:
+            continue
+        moments_by_cal[cal_id] = {**record, "_go_live": go_live}
+
+    orphan_drafts = sidecar_orphans
+    for cal_id, draft in drafts_by_cal.items():
+        if cal_id in moments_by_cal:
+            continue
+        orphan_drafts += 1
+
+    days_list: list[dict[str, Any]] = []
+    moment_count = 0
+    draft_count = 0
+    queued_count = 0
+    for offset in range(days):
+        day = window_start + timedelta(days=offset)
+        day_iso = day.isoformat()
+        posts: list[dict[str, Any]] = []
+        for cal_id, record in moments_by_cal.items():
+            if record.get("_go_live") != day_iso:
+                continue
+            moment_count += 1
+            draft = drafts_by_cal.get(cal_id)
+            if draft:
+                draft_count += 1
+            sandbox_rows = sandbox_by_cal.get(cal_id, [])
+            if sandbox_rows:
+                queued_count += 1
+            stages, stage = _rollup_stages(
+                has_moment=True,
+                draft=draft,
+                sandbox_rows=sandbox_rows,
+            )
+            image_url = None
+            if draft:
+                image_url = draft.get("image_url") or draft.get("image_path")
+            posts.append(
+                {
+                    "calendar_id": cal_id,
+                    "title": str(record.get("title") or record.get("event_key") or cal_id),
+                    "primary_channel": record.get("primary_channel"),
+                    "source_type": record.get("source_type"),
+                    "calendar_status": record.get("status"),
+                    "stages": stages,
+                    "stage": stage,
+                    "inbox_item_id": draft.get("inbox_item_id") if draft else None,
+                    "asset_id": draft.get("asset_id") if draft else None,
+                    "image_url": image_url,
+                    "sandbox": sandbox_rows,
+                }
+            )
+        posts.sort(key=lambda p: p.get("title") or "")
+        days_list.append(
+            {
+                "date": day_iso,
+                "weekday": day.strftime("%a"),
+                "is_today": day == today,
+                "posts": posts,
+            }
+        )
+
+    return {
+        "ok": True,
+        "brand": brand_id,
+        "timezone": str(tz),
+        "start": window_start.isoformat(),
+        "days": days,
+        "days_list": days_list,
+        "orphan_drafts": orphan_drafts,
+        "counts": {
+            "moments": moment_count,
+            "drafts": draft_count,
+            "queued": queued_count,
+        },
     }
 
 

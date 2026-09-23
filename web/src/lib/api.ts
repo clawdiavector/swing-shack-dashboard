@@ -1,3 +1,5 @@
+import type { PostingWeekPayload } from './postingWeek'
+
 export type TodayCounts = {
   review: number
   draft: number
@@ -375,6 +377,12 @@ export function fetchInbox(status = 'pending', brand?: string, type?: string) {
   if (brand) q.set('brand', brand)
   if (type) q.set('type', type)
   return getJson<InboxPayload>(`/api/inbox/unified?${q}`)
+}
+
+export function fetchPostingWeek(brand?: string) {
+  const q = new URLSearchParams()
+  if (brand) q.set('brand', brand)
+  return getJson<PostingWeekPayload>(`/api/inbox/week?${q}`)
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {
