@@ -56,6 +56,9 @@ export type InboxItem = {
     asset_id?: string
     platform?: string
     approval_status?: string
+    caption?: string
+    image_path?: string
+    image_url?: string
   }
 }
 
@@ -779,6 +782,55 @@ export function fetchAssetAiDraft(assetId: string, campaignId?: string) {
   if (campaignId) q.set('campaignId', campaignId)
   const suffix = q.toString() ? `?${q}` : ''
   return getJson<AssetAiDraft>(`/api/assets/${encodeURIComponent(assetId)}/ai-draft${suffix}`)
+}
+
+export type CampaignAsset = {
+  name?: string
+  kind?: string
+  platform?: string
+  caption?: string
+  description?: string
+  visualBrief?: string
+  realPhotoBrief?: string
+  approvalStatus?: string
+  publishStatus?: string
+  visualUrl?: string
+  imageUrl?: string
+  mediaUrl?: string
+  filePath?: string
+  publishingReferences?: Array<{ postizId?: string; mediaUrl?: string }>
+}
+
+export type Campaign = {
+  identity?: { name?: string }
+  assets?: Record<string, CampaignAsset>
+  error?: string
+}
+
+export function fetchCampaign(campaignId: string) {
+  return getJson<Campaign>(`/api/campaigns/${encodeURIComponent(campaignId)}`)
+}
+
+const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/']
+
+export function resolveAssetUrl(raw?: string | null): string {
+  const p = (raw || '').trim()
+  if (!p) return ''
+  if (/^(https?:|data:|blob:|file:)/i.test(p)) return p
+  let s = p.replace(/^\/+/, '')
+  while (s.startsWith('assets/assets/')) s = s.slice('assets/'.length)
+  if (MEDIA_ROOTS.some((root) => s.startsWith(root))) return `/${s}`
+  return `/assets/${s}`
+}
+
+export function assetVisualUrl(asset?: CampaignAsset | null): string {
+  if (!asset) return ''
+  return (
+    resolveAssetUrl(asset.visualUrl || asset.imageUrl || asset.mediaUrl) ||
+    resolveAssetUrl(asset.filePath) ||
+    resolveAssetUrl(asset.publishingReferences?.[0]?.mediaUrl) ||
+    ''
+  )
 }
 
 export type VisualLibraryPayload = {
