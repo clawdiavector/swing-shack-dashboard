@@ -569,10 +569,10 @@ export function Ops() {
   const [layers, setLayers] = useState<Record<string, LayerEntry> | undefined>()
 
   useEffect(() => {
-    fetchLayers()
+    fetchLayers(scopeBrand)
       .then((res) => setLayers(res.layers))
       .catch(() => setLayers(undefined))
-  }, [])
+  }, [scopeBrand])
 
   const setTab = useCallback(
     (next: OpsTab) => {

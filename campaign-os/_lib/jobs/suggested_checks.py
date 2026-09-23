@@ -43,6 +43,10 @@ _CLASS_DEFAULTS: dict[str, list[str]] = {
         "Open the Railway volume metrics for /data/campaign-os and free space or fix "
         "permissions before re-running."
     ],
+    "worker_death": [
+        "Open the Railway deploy log and confirm the worker restarted at the run timestamp, "
+        "then re-run this brand lane with POST /api/jobs/run/<job>?brand=<id>."
+    ],
     "unknown": [
         "Open GET /api/jobs/diagnostics/<run_id> for this failure, read suggested_checks and "
         "the redacted exception, then re-run once."

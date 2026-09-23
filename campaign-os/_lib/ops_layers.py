@@ -251,6 +251,17 @@ def queue_depth(queue: Optional[dict | list]) -> int:
     )
 
 
+def _job_verdict_for_brand(job: dict, brand: str | None) -> str:
+    """Mirror Heroes jobVerdictForBrand — lane verdict when brand is scoped."""
+    if brand:
+        if job.get("brand_mode") == "per_brand":
+            for row in job.get("brands") or []:
+                if row.get("brand") == brand and row.get("verdict"):
+                    return str(row["verdict"]).upper()
+        return str(job.get("verdict") or "NEVER").upper()
+    return str(job.get("verdict") or "NEVER").upper()
+
+
 def _health_verdict(job_worst: str, *, rotten: int, stale: int) -> str:
     """L2 verdict from job rollup plus freshness signals."""
     verdict = job_worst
@@ -269,10 +280,11 @@ def build_layers(
     agents: Optional[list[dict]] = None,
     inbox: Optional[dict] = None,
     watch: Optional[dict] = None,
+    brand: str | None = None,
 ) -> dict[str, Any]:
     """Build campaign-os/ops-layers/v1 payload."""
     jobs = (jobs_status or {}).get("jobs") or []
-    all_verdicts = [str(j.get("verdict") or "NEVER").upper() for j in jobs]
+    all_verdicts = [_job_verdict_for_brand(j, brand) for j in jobs]
     job_verdicts = [v for v in all_verdicts if v not in ROLLUP_EXCLUDED]
     counts = count_verdicts(jobs)
     if job_verdicts:

@@ -128,7 +128,7 @@ export function Daily() {
     fetchToday(brand)
       .then(setData)
       .catch((err: Error) => setError(err.message))
-    fetchLayers()
+    fetchLayers(brand)
       .then(setLayers)
       .catch(() => setLayers(null))
     fetchLearn()

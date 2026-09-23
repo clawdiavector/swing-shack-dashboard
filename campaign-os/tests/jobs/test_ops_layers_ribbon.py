@@ -199,6 +199,56 @@ def test_layers_freshness_counts(job_app, tmp_path):
     assert l2["stale"] == 3
 
 
+def _brand_lane_jobs_fixture():
+    return {
+        "jobs": [
+            {
+                "name": "layers_brand_probe",
+                "brand_mode": "per_brand",
+                "verdict": "STUCK",
+                "brands": [
+                    {"brand": "swing-shack", "verdict": "STUCK", "applies": True},
+                    {"brand": "stick", "verdict": "OK", "applies": True},
+                ],
+            }
+        ]
+    }
+
+
+def test_layers_brand_scope_picks_lane_verdict(job_app, monkeypatch):
+    client, app_module, _ = job_app
+    monkeypatch.setattr(app_module, "_jobs_build_status", lambda: _brand_lane_jobs_fixture())
+    ok_body = client.get("/api/ops/layers?brand=stick").get_json()
+    assert ok_body["layers"]["L1"]["verdict"] == "OK"
+    stuck_body = client.get("/api/ops/layers?brand=swing-shack").get_json()
+    assert stuck_body["layers"]["L1"]["verdict"] == "STUCK"
+
+
+def test_layers_no_brand_is_fleet_worst(job_app, monkeypatch):
+    client, app_module, _ = job_app
+    monkeypatch.setattr(app_module, "_jobs_build_status", lambda: _brand_lane_jobs_fixture())
+    fleet = client.get("/api/ops/layers").get_json()
+    assert fleet["layers"]["L1"]["verdict"] == "STUCK"
+    scoped = client.get("/api/ops/layers?brand=stick").get_json()
+    assert scoped["layers"]["L1"]["verdict"] == "OK"
+
+
+def test_layers_unknown_brand_400(job_app):
+    client, _, _ = job_app
+    resp = client.get("/api/ops/layers?brand=not-a-real-brand-id")
+    assert resp.status_code == 400
+
+
+def test_fetch_layers_passes_brand_in_sources():
+    repo_root = CAMPAIGN_OS.parent
+    api_ts = (repo_root / "web" / "src" / "lib" / "api.ts").read_text(encoding="utf-8")
+    ops_tsx = (repo_root / "web" / "src" / "pages" / "Ops.tsx").read_text(encoding="utf-8")
+    daily_tsx = (repo_root / "web" / "src" / "pages" / "Daily.tsx").read_text(encoding="utf-8")
+    assert "fetchLayers(brand" in api_ts or "fetchLayers(brand?" in api_ts
+    assert "fetchLayers(scopeBrand" in ops_tsx
+    assert "fetchLayers(brand)" in daily_tsx
+
+
 def test_build_layers_pure_function():
     from datetime import datetime, timezone
 

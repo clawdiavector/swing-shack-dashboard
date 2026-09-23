@@ -91,6 +91,7 @@ def test_manual_run_sets_triggered_by_and_duration(job_app):
             fn=lambda: {"ok": True},
             every_seconds=3600,
             criticality="LOW",
+            brand_mode="global",
             writes=("probe-manual.json",),
         )
     )
@@ -119,6 +120,7 @@ def test_manual_cooldown_per_job(job_app):
             fn=lambda: {"ok": True},
             every_seconds=3600,
             criticality="LOW",
+            brand_mode="global",
             writes=("cool-a.json",),
         )
     )
@@ -128,6 +130,7 @@ def test_manual_cooldown_per_job(job_app):
             fn=lambda: {"ok": True},
             every_seconds=3600,
             criticality="LOW",
+            brand_mode="global",
             writes=("cool-b.json",),
         )
     )
@@ -137,6 +140,46 @@ def test_manual_cooldown_per_job(job_app):
     assert r2.headers.get("Retry-After")
     # Different job not locked
     assert client.post("/api/jobs/run/cool_b?reason=manual", headers=_auth()).status_code == 200
+
+
+def test_manual_cooldown_is_per_brand(job_app, monkeypatch):
+    client, _, _ = job_app
+    from _lib.jobs.registry import register
+    from _lib.jobs.spec import JobSpec
+    from _lib.jobs import cooldown as cd
+
+    cd.reset_for_tests()
+    register(
+        JobSpec(
+            name="cool_per_brand",
+            fn=lambda brand=None: {"ok": True},
+            every_seconds=3600,
+            criticality="LOW",
+            brand_mode="per_brand",
+            brands=("swing-shack", "stick"),
+            writes=("cool-per-brand.json",),
+        )
+    )
+    assert (
+        client.post(
+            "/api/jobs/run/cool_per_brand?reason=manual&brand=swing-shack",
+            headers=_auth(),
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/jobs/run/cool_per_brand?reason=manual&brand=stick",
+            headers=_auth(),
+        ).status_code
+        == 200
+    )
+    r429 = client.post(
+        "/api/jobs/run/cool_per_brand?reason=manual&brand=swing-shack",
+        headers=_auth(),
+    )
+    assert r429.status_code == 429
+    assert r429.headers.get("Retry-After")
 
 
 def test_init_repo_not_on_request_path(job_app, monkeypatch):
