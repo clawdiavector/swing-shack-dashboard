@@ -385,8 +385,12 @@ export async function fetchInboxItem(id: string, brand?: string) {
   return (all.items || []).find((item) => matchInboxItem(item, id)) || null
 }
 
-export function fetchLayers() {
-  return getJson<LayersPayload>('/api/ops/layers')
+export function fetchLayers(brand?: string) {
+  const q =
+    brand && brand.trim()
+      ? `?brand=${encodeURIComponent(brand.trim())}`
+      : ''
+  return getJson<LayersPayload>(`/api/ops/layers${q}`)
 }
 
 export type JobBrandEntry = {

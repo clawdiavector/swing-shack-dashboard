@@ -879,6 +879,9 @@ def fetch_all_with_paid_media(*, brand: str | None = None) -> dict:
     base = fetch_all(brand=brand) or {"ok": True, "summary": "no-op"}
     paid = fetch_paid_media(brand_id=brand)
     base["paid_media"] = paid
+    base["paid_media_ok"] = bool(paid.get("ok"))
+    if not paid.get("ok"):
+        base["partial"] = True
     base["combined_ok"] = bool(base.get("ok")) and bool(paid.get("ok"))
     base["source"] = "extended meta_refresh job (V2.4.1 §1)"
     return base

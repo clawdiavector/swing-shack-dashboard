@@ -75,6 +75,24 @@ jobs:
           echo "Meta brand lanes: $BRANDS"
           echo "BRANDS=$BRANDS" >> "$GITHUB_ENV"
 
+      - name: Preflight — wait for /api/health
+        run: |
+          set -uo pipefail
+          ok=0
+          for i in $(seq 1 10); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health" || echo 000)"
+            echo "health attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              ok=1
+              break
+            fi
+            sleep 15
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::prod /api/health did not return 200 after 10 attempts"
+            exit 1
+          fi
+
       - name: POST /api/jobs/run/meta_refresh per brand
         run: |
           # No `set -e`: one bad lane must not hide the others. The gate step
@@ -91,7 +109,18 @@ jobs:
               --max-time 120 \
               -w '%{http_code}' \
               -o "$out")" || code="000"
-            echo "HTTP $code"
+            echo "HTTP $code (attempt 1)"
+            if [ "$code" != "200" ]; then
+              echo "Retrying brand=$b after 30s…"
+              sleep 30
+              code="$(curl -s -X POST "$BASE/api/jobs/run/meta_refresh?brand=$b" \
+                -H "$AUTH_H" \
+                -H "Content-Type: application/json" \
+                --max-time 120 \
+                -w '%{http_code}' \
+                -o "$out")" || code="000"
+              echo "HTTP $code (attempt 2)"
+            fi
             if [ "$code" != "200" ]; then
               echo "::error::meta_refresh brand=$b returned HTTP $code"
               head -c 400 "$out" || true
