@@ -25,6 +25,7 @@ import {
   fetchTopPosts,
   fetchVisualLibrary,
   inboxItemThumbUrl,
+  inboxMediaTag,
   resolveAssetUrl,
   type InboxItem,
   type InsightPost,
@@ -488,14 +489,17 @@ export function Daily() {
           <ul className="space-y-2">
             {tickerItems.map((item) => {
               const thumb = inboxItemThumbUrl(item)
+              const media = inboxMediaTag(item)
               return (
               <QueueItem
                 key={item.id}
                 to={`/review/${encodeURIComponent(item.id)}`}
-                badge={item.sla_state === 'stale' ? 'stale' : reviewType(item.type).label}
-                tone={kindTone(item.sla_state === 'stale' ? 'review' : 'draft')}
+                badge={item.sla_state === 'stale' ? 'stale' : media.label}
+                tone={item.sla_state === 'stale' ? 'gold' : media.tone}
                 title={item.title || item.summary || item.id}
-                meta={item.meta?.caption?.slice(0, 90) || item.brand_id}
+                meta={[reviewType(item.type).label, item.brand_id]
+                  .filter(Boolean)
+                  .join(' · ')}
                 stamp={item.created_at}
                 stampKind="created"
                 thumb={thumb || undefined}

@@ -3,7 +3,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, StatCard, Tip } from '../components/ui'
-import { fetchInbox, inboxAction, inboxItemThumbUrl, type InboxItem } from '../lib/api'
+import {
+  fetchInbox,
+  inboxAction,
+  inboxItemThumbUrl,
+  inboxMediaTag,
+  type InboxItem,
+} from '../lib/api'
 import { reviewType } from '../lib/reviewType'
 import { formatStamp } from '../lib/stamp'
 
@@ -47,10 +53,15 @@ export function Review() {
 
   const types = useMemo(() => {
     const set = new Set(items.map(itemType))
-    return ['all', ...Array.from(set).sort()]
+    return ['all', 'has-image', 'no-image', 'no-brief', ...Array.from(set).sort()]
   }, [items])
 
-  const shown = filter === 'all' ? items : items.filter((item) => itemType(item) === filter)
+  const shown =
+    filter === 'all'
+      ? items
+      : filter === 'has-image' || filter === 'no-image' || filter === 'no-brief'
+        ? items.filter((item) => inboxMediaTag(item).id === filter)
+        : items.filter((item) => itemType(item) === filter)
   const first = shown[0]
 
   return (
@@ -72,7 +83,16 @@ export function Review() {
         onChange={setFilter}
         options={types.map((id) => ({
           id,
-          label: id === 'all' ? 'All' : reviewType(id).label,
+          label:
+            id === 'all'
+              ? 'All'
+              : id === 'has-image'
+                ? 'Has image'
+                : id === 'no-image'
+                  ? 'No image'
+                  : id === 'no-brief'
+                    ? 'No brief'
+                    : reviewType(id).label,
         }))}
       />
 
@@ -135,16 +155,18 @@ export function Review() {
         <ul className="space-y-2">
           {shown.map((item) => {
             const thumb = inboxItemThumbUrl(item)
+            const media = inboxMediaTag(item)
+            const kind = reviewType(item.type).label
             return (
             <QueueItem
               key={item.id}
               to={`/review/${encodeURIComponent(item.id)}`}
-              badge={
-                item.sla_state === 'stale' ? 'stale' : reviewType(item.type).label
-              }
-              tone={item.sla_state === 'stale' ? 'gold' : 'gold'}
+              badge={item.sla_state === 'stale' ? 'stale' : media.label}
+              tone={item.sla_state === 'stale' ? 'gold' : media.tone}
               title={item.title || item.summary || item.id}
-              meta={item.meta?.caption?.slice(0, 90) || item.brand_id}
+              meta={[kind, item.brand_id, item.meta?.caption?.slice(0, 70)]
+                .filter(Boolean)
+                .join(' · ')}
               stamp={item.created_at}
               stampKind="created"
               thumb={thumb || undefined}

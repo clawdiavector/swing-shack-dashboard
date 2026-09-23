@@ -935,6 +935,21 @@ export function inboxItemThumbUrl(item?: InboxItem | null): string {
   return resolveAssetUrl(raw)
 }
 
+export type InboxMediaTag = {
+  id: 'has-image' | 'no-image' | 'no-brief'
+  label: string
+  tone: 'green' | 'mute' | 'gold'
+}
+
+export function inboxMediaTag(item?: InboxItem | null): InboxMediaTag {
+  if (inboxItemThumbUrl(item)) {
+    return { id: 'has-image', label: 'Has image', tone: 'green' }
+  }
+  const brief = String(item?.summary || item?.meta?.caption || '').trim()
+  if (!brief) return { id: 'no-brief', label: 'No brief', tone: 'gold' }
+  return { id: 'no-image', label: 'No image', tone: 'mute' }
+}
+
 export type VisualLibraryPayload = {
   ok?: boolean
   images?: unknown[]

@@ -11,6 +11,7 @@ import {
   fetchInboxItem,
   inboxAction,
   inboxItemThumbUrl,
+  inboxMediaTag,
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
@@ -198,6 +199,7 @@ export function ReviewPiece() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="gold">{typeInfo.label}</Badge>
+            <Badge tone={inboxMediaTag(item).tone}>{inboxMediaTag(item).label}</Badge>
             {item.sla_state === 'stale' ? <Badge tone="red">Stale</Badge> : null}
             {item.brand_id ? <Badge>{item.brand_id}</Badge> : null}
             {asset?.approvalStatus ? <Badge>{asset.approvalStatus}</Badge> : null}
@@ -292,14 +294,17 @@ export function ReviewPiece() {
           <ul className="space-y-2">
             {rest.map((row) => {
               const thumb = inboxItemThumbUrl(row)
+              const media = inboxMediaTag(row)
               return (
               <QueueItem
                 key={row.id}
                 to={`/review/${encodeURIComponent(row.id)}`}
-                badge={row.type || 'item'}
-                tone="gold"
+                badge={media.label}
+                tone={media.tone}
                 title={row.title || row.summary || row.id}
-                meta={row.brand_id}
+                meta={[reviewType(row.type).label, row.brand_id]
+                  .filter(Boolean)
+                  .join(' · ')}
                 stamp={row.created_at}
                 stampKind="created"
                 thumb={thumb || undefined}
