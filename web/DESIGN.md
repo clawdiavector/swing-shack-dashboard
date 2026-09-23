@@ -120,7 +120,8 @@ does — **Approve never publishes**. Raw ids (campaign, asset, item) live in a 
 
 ## Publish
 
-`/app/publish` is the hub (brand-scoped counts from `/api/today/panel`). Native surfaces:
+`/app/publish` is the hub (brand-scoped counts from `/api/today/panel`). Sandbox lane rows
+open `/app/publish/sandbox/:queueId` (IG/FB/GBP mock — not live). Native surfaces:
 `/app/publish/queue` (drafts · scheduled · published · failed), `/app/publish/postiz`
 (credentials · channels · mode), `/app/publish/gbp` (`?tab=plans|suggestions|drafts` — GBP
 plans and GMB drafts share one page because they are one surface).

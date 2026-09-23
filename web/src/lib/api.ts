@@ -1088,7 +1088,10 @@ export type SandboxQueueItem = {
   status?: string
   human_approved?: boolean
   created_at?: string
+  would_publish_at?: string
   asset_id?: string
+  campaign_id?: string
+  inbox_item_id?: string
   image_url?: string
   image_path?: string
 }
@@ -1100,9 +1103,10 @@ export type SandboxQueuePayload = {
   total_pending?: number
 }
 
-export function fetchSandboxQueue(brand?: string) {
+export function fetchSandboxQueue(brand?: string, limit?: number) {
   const q = new URLSearchParams()
   if (brand) q.set('brand', brand)
+  if (limit != null) q.set('limit', String(limit))
   const suffix = q.toString() ? `?${q}` : ''
   return getJson<SandboxQueuePayload>(`/api/publish/sandbox/queue${suffix}`)
 }

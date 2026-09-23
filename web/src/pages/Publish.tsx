@@ -14,13 +14,8 @@ import {
   type TodayCounts,
   type TodayPanel,
 } from '../lib/api'
+import { sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
-
-function sandboxTitle(row: SandboxQueueItem) {
-  const caption = String(row.caption || row.caption_preview || '').trim()
-  if (caption) return caption.slice(0, 120)
-  return `Sandbox ${row.platform || 'post'} — ${row.brand_id || 'brand'}`
-}
 
 export function Publish() {
   const { brandId } = useBrand()
@@ -156,13 +151,15 @@ export function Publish() {
               </li>
             ) : null}
             {!queueErr
-              ? sandbox.slice(0, 8).map((row) => {
-                  const id = String(row.idempotency_key || row.queue_id || '')
+              ? sandbox.map((row) => {
+                  const id = sandboxRowId(row)
                   const thumb = resolveAssetUrl(row.image_url || row.image_path)
                   const caption = String(row.caption || row.caption_preview || '').trim()
                   return (
                     <QueueItem
                       key={id || sandboxTitle(row)}
+                      to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
+                      tip="Open the sandbox preview — mock only, nothing goes live."
                       badge={String(row.platform || 'post')}
                       tone="gold"
                       title={sandboxTitle(row)}

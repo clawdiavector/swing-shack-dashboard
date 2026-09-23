@@ -22,6 +22,7 @@ import { Lanes } from './pages/calendar/Lanes'
 import { Gbp } from './pages/publish/Gbp'
 import { PostizPage } from './pages/publish/PostizPage'
 import { Queue } from './pages/publish/Queue'
+import { SandboxPreview } from './pages/publish/SandboxPreview'
 import { Socials } from './pages/publish/Socials'
 import { Week } from './pages/results/Week'
 import { Worked } from './pages/results/Worked'
@@ -49,6 +50,8 @@ export default function App() {
         <Route path="publish/postiz" element={<PostizPage />} />
         <Route path="publish/gbp" element={<Gbp />} />
         <Route path="publish/socials" element={<Socials />} />
+        <Route path="publish/sandbox" element={<Navigate to="/publish" replace />} />
+        <Route path="publish/sandbox/:queueId" element={<SandboxPreview />} />
         <Route path="results" element={<Results />} />
         <Route path="results/week" element={<Week />} />
         <Route path="results/worked" element={<Worked />} />
