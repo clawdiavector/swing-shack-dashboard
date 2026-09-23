@@ -4,6 +4,7 @@ import { useBrand } from '../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, StatCard, Tip } from '../components/ui'
 import { fetchInbox, inboxAction, type InboxItem } from '../lib/api'
+import { reviewType } from '../lib/reviewType'
 import { formatStamp } from '../lib/stamp'
 
 function itemType(item: InboxItem) {
@@ -69,7 +70,10 @@ export function Review() {
       <FilterChips
         value={filter}
         onChange={setFilter}
-        options={types.map((id) => ({ id, label: id === 'all' ? 'All' : id }))}
+        options={types.map((id) => ({
+          id,
+          label: id === 'all' ? 'All' : reviewType(id).label,
+        }))}
       />
 
       {first ? (
@@ -78,7 +82,8 @@ export function Review() {
             <p className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">Next up</p>
             <p className="font-display text-lg font-semibold leading-snug">{first.title || first.summary}</p>
             <p className="text-xs text-tx3">
-              {first.type || 'item'} · {first.brand_id || 'brand'} · {formatStamp(first.created_at)}
+              {reviewType(first.type).label} · {first.brand_id || 'brand'} ·{' '}
+              {formatStamp(first.created_at)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -132,10 +137,12 @@ export function Review() {
             <QueueItem
               key={item.id}
               to={`/review/${encodeURIComponent(item.id)}`}
-              badge={item.sla_state === 'stale' ? 'stale' : item.type || 'item'}
+              badge={
+                item.sla_state === 'stale' ? 'stale' : reviewType(item.type).label
+              }
               tone={item.sla_state === 'stale' ? 'gold' : 'gold'}
               title={item.title || item.summary || item.id}
-              meta={item.brand_id}
+              meta={item.meta?.caption?.slice(0, 90) || item.brand_id}
               stamp={item.created_at}
               stampKind="created"
               action={

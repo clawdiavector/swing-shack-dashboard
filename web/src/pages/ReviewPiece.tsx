@@ -13,6 +13,7 @@ import {
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
+import { reviewType } from '../lib/reviewType'
 import { formatStamp } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
 
@@ -101,6 +102,15 @@ export function ReviewPiece() {
     ''
   const visualBrief =
     asset?.visualBrief || asset?.description || asset?.realPhotoBrief || ''
+  const typeInfo = reviewType(item?.type)
+  const platform = asset?.platform || asset?.integration || item?.meta?.platform || ''
+  const captionUsedSummary =
+    !asset?.caption &&
+    !asset?.description &&
+    !item?.meta?.caption &&
+    Boolean(item?.summary) &&
+    caption === item?.summary
+  const showSummary = Boolean(item?.summary) && !captionUsedSummary
 
   const rest = useMemo(
     () => queue.filter((row) => row.id !== item?.id).slice(0, 6),
@@ -182,12 +192,30 @@ export function ReviewPiece() {
           ) : null}
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="gold">{item.type || 'item'}</Badge>
+            <Badge tone="gold">{typeInfo.label}</Badge>
             {item.sla_state === 'stale' ? <Badge tone="red">Stale</Badge> : null}
             {item.brand_id ? <Badge>{item.brand_id}</Badge> : null}
             {asset?.approvalStatus ? <Badge>{asset.approvalStatus}</Badge> : null}
             {asset?.publishStatus ? <Badge>{asset.publishStatus}</Badge> : null}
+            {asset?.captionStatus ? <Badge tone="mute">{asset.captionStatus}</Badge> : null}
+            {asset?.visualStatus ? <Badge tone="mute">{asset.visualStatus}</Badge> : null}
           </div>
+          <p className="mt-3 text-sm text-tx2">
+            This is a <span className="font-semibold text-tx">{typeInfo.noun}</span>
+            {item.brand_id ? (
+              <>
+                {' '}
+                for <span className="font-semibold text-tx">{item.brand_id}</span>
+              </>
+            ) : null}
+            {platform ? (
+              <>
+                {' '}
+                on <span className="font-semibold text-tx">{platform}</span>
+              </>
+            ) : null}
+            .
+          </p>
           <p className="mt-3 text-sm text-tx2">{caption || 'No brief on this card yet.'}</p>
           {visualBrief ? (
             <p className="mt-2 text-sm text-tx3">
@@ -196,11 +224,22 @@ export function ReviewPiece() {
               {visualBrief}
             </p>
           ) : null}
+          {showSummary && item.summary ? (
+            <p className="mt-2 text-sm text-tx2">{item.summary}</p>
+          ) : null}
+          <p className="mt-3 text-sm text-tx2">{typeInfo.approveMeans}</p>
           <p className="mt-2 text-[12px] font-semibold tracking-wide text-tx3 uppercase">
             Landed {formatStamp(item.created_at)}
-            {item.meta?.campaign_id ? ` · ${item.meta.campaign_id}` : ''}
-            {item.meta?.asset_id ? ` · ${item.meta.asset_id}` : ''}
           </p>
+          <details className="mt-3 text-xs text-tx3">
+            <summary className="cursor-pointer font-semibold text-tx2">Technical ids</summary>
+            <ul className="mt-2 space-y-1 font-mono">
+              {item.meta?.campaign_id ? <li>Campaign: {item.meta.campaign_id}</li> : null}
+              {item.meta?.asset_id ? <li>Asset: {item.meta.asset_id}</li> : null}
+              <li>Inbox item: {item.id}</li>
+              {item.sla_state ? <li>SLA: {item.sla_state}</li> : null}
+            </ul>
+          </details>
           <div className="mt-5 flex flex-wrap gap-2">
             <Tip text="Mark this approved. It will not go live.">
               <button

@@ -6,9 +6,14 @@ import { HeroPanel, PageIntro } from '../../components/chrome'
 import { Badge, Button, ClassicLink, Tip } from '../../components/ui'
 import {
   fetchAssetAiDraft,
+  fetchCalendarMonth,
   fetchInboxItem,
+  fetchProductLineItems,
   postJson,
+  type CalendarItem,
+  type ProductLineItem,
 } from '../../lib/api'
+import { isoDate, parseIsoDateParam } from '../../lib/stamp'
 import { parentLabel } from '../../lib/tools'
 
 type PreflightStage = {
@@ -118,12 +123,29 @@ export function BuildPost() {
   const assetParam = params.get('asset')
   const campaignParam = params.get('campaign')
   const titleParam = params.get('title')
+  const dateParam = params.get('date')
+  const calendarFromUrl = params.get('calendar_item_id') || ''
   const from = params.get('from') || '/create'
+
+  const anchorDate = useMemo(() => parseIsoDateParam(dateParam), [dateParam])
+  const monthStart = useMemo(
+    () => isoDate(new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1)),
+    [anchorDate],
+  )
+  const monthEnd = useMemo(
+    () =>
+      isoDate(new Date(anchorDate.getFullYear(), anchorDate.getMonth() + 1, 0)),
+    [anchorDate],
+  )
 
   const [lane, setLane] = useState('product')
   const [productBrand, setProductBrand] = useState('')
   const [productId, setProductId] = useState('')
-  const [calendarItemId, setCalendarItemId] = useState('')
+  const [calendarItemId, setCalendarItemId] = useState(calendarFromUrl)
+  const [calendarManual, setCalendarManual] = useState(false)
+  const [productManual, setProductManual] = useState(false)
+  const [calendarOptions, setCalendarOptions] = useState<CalendarItem[]>([])
+  const [products, setProducts] = useState<ProductLineItem[]>([])
   const [ideaText, setIdeaText] = useState('')
   const [hook, setHook] = useState('')
   const [campaignId, setCampaignId] = useState(campaignParam || '')
@@ -138,6 +160,56 @@ export function BuildPost() {
   const [queuePreview, setQueuePreview] = useState<QueuePreview | null>(null)
   const [queueConfirm, setQueueConfirm] = useState<QueueConfirm | null>(null)
   const [queueBusy, setQueueBusy] = useState(false)
+
+  useEffect(() => {
+    setCalendarItemId((prev) => prev || calendarFromUrl)
+  }, [calendarFromUrl])
+
+  useEffect(() => {
+    if (!scopeBrand) {
+      setCalendarOptions([])
+      return
+    }
+    let cancelled = false
+    fetchCalendarMonth(scopeBrand, monthStart, monthEnd)
+      .then((view) => {
+        if (cancelled) return
+        const items = [...(view.items || [])].sort((a, b) =>
+          (a.event_date || '').localeCompare(b.event_date || ''),
+        )
+        setCalendarOptions(items)
+      })
+      .catch(() => {
+        if (!cancelled) setCalendarOptions([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [scopeBrand, monthStart, monthEnd])
+
+  useEffect(() => {
+    if (!scopeBrand) {
+      setProducts([])
+      return
+    }
+    let cancelled = false
+    fetchProductLineItems(scopeBrand)
+      .then((payload) => {
+        if (cancelled) return
+        setProducts(payload.products || [])
+      })
+      .catch(() => {
+        if (!cancelled) setProducts([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [scopeBrand])
+
+  const selectedProduct = useMemo(
+    () => products.find((p) => p.id === productId) || null,
+    [products, productId],
+  )
 
   useEffect(() => {
     if (!scopeBrand) return
@@ -317,24 +389,101 @@ export function BuildPost() {
                 <option value="evergreen">Evergreen</option>
               </select>
             </Field>
-            <Field label="Calendar item id" tip="Optional calendar row to attach this draft.">
-              <input
-                className={inputCls}
-                value={calendarItemId}
-                onChange={(e) => setCalendarItemId(e.target.value)}
-                placeholder="calendar_item_id"
-              />
+            <Field
+              label="Calendar moment"
+              tip="Pick a moment id for this draft — stored on the package but does not change draft text yet."
+            >
+              {calendarManual ? (
+                <input
+                  className={inputCls}
+                  value={calendarItemId}
+                  onChange={(e) => setCalendarItemId(e.target.value)}
+                  placeholder="calendar_item_id"
+                />
+              ) : (
+                <select
+                  className={inputCls}
+                  value={calendarItemId}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '__manual__') {
+                      setCalendarManual(true)
+                      return
+                    }
+                    setCalendarItemId(v)
+                  }}
+                >
+                  <option value="">— None —</option>
+                  {calendarOptions.map((row) => (
+                    <option key={row.calendar_id || row.title} value={row.calendar_id || ''}>
+                      {row.title || 'Untitled'} — {row.event_date || '?'}
+                    </option>
+                  ))}
+                  <option value="__manual__">Type an id instead…</option>
+                </select>
+              )}
             </Field>
-            <Field label="Product brand" tip="Visual/product brand when different from store voice.">
-              <input
-                className={inputCls}
-                value={productBrand}
-                onChange={(e) => setProductBrand(e.target.value)}
-              />
+            <Field
+              label="Product"
+              tip="Catalog line item — POST /api/build-post/draft resolves this id via /api/products/line-items."
+            >
+              {productManual ? (
+                <div className="space-y-2">
+                  <input
+                    className={inputCls}
+                    value={productId}
+                    onChange={(e) => setProductId(e.target.value)}
+                    placeholder="product_id"
+                  />
+                  <input
+                    className={inputCls}
+                    value={productBrand}
+                    onChange={(e) => setProductBrand(e.target.value)}
+                    placeholder="product_brand (optional)"
+                  />
+                </div>
+              ) : (
+                <select
+                  className={inputCls}
+                  value={productId}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '__manual__') {
+                      setProductManual(true)
+                      return
+                    }
+                    setProductId(v)
+                    const picked = products.find((p) => p.id === v)
+                    if (picked) {
+                      const pb = picked.brand_id || picked.product_brand || ''
+                      setProductBrand(pb && pb !== scopeBrand ? pb : '')
+                    }
+                  }}
+                >
+                  <option value="">— Pick a product —</option>
+                  {products.map((p) => {
+                    const price =
+                      p.price_zar != null ? ` · R${p.price_zar}` : p.price_eur != null ? ` · €${p.price_eur}` : ''
+                    const verified = p.verified ? ' ✓' : ''
+                    return (
+                      <option key={p.id || p.name} value={p.id || ''}>
+                        {p.name || p.id}
+                        {price}
+                        {verified}
+                      </option>
+                    )
+                  })}
+                  <option value="__manual__">Type an id instead…</option>
+                </select>
+              )}
             </Field>
-            <Field label="Product id" tip="Catalog product id for verified reference.">
-              <input className={inputCls} value={productId} onChange={(e) => setProductId(e.target.value)} />
-            </Field>
+            {selectedProduct &&
+            (!selectedProduct.reference_image_ids ||
+              selectedProduct.reference_image_ids.length === 0) ? (
+              <p className="text-xs text-yel sm:col-span-2">
+                No reference image on file — the draft will come back reference_verified: NO.
+              </p>
+            ) : null}
           </div>
           <Field label="Idea" tip="Core idea or caption seed — prefilled from review hop when present.">
             <textarea
@@ -377,8 +526,8 @@ export function BuildPost() {
 
         <aside className="space-y-4">
           <section className="glass rounded-2xl border border-white/10 p-4">
-            <h2 className="text-sm font-semibold">Recommended slot</h2>
-            <p className="mt-1 text-xs text-tx3">Not optimal — heuristic only.</p>
+            <h2 className="text-sm font-semibold">Best IG window we have</h2>
+            <p className="mt-1 text-xs text-tx3">A guess from past posts, not a booking.</p>
             {slot?.ok && slot.recommended ? (
               <div className="mt-3 space-y-1 text-sm">
                 <p>

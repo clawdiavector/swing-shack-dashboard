@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
 import { HeroPanel, MonthGrid, PageIntro } from '../components/chrome'
-import { Button, ClassicLink, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
+import { Badge, Button, ClassicLink, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
   duplicateScheduledAsset,
   fetchCalendarMonth,
@@ -12,9 +12,10 @@ import {
   rescheduleAsset,
   transitionCalendarRecord,
   unscheduleAsset,
+  type CalendarItem,
   type TodayPanel,
 } from '../lib/api'
-import { dayInMonth, isoDate, parseIsoDateParam } from '../lib/stamp'
+import { dayInMonth, formatDateStamp, isoDate, parseIsoDateParam } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
 
 type Parked = {
@@ -31,6 +32,177 @@ type Parked = {
   campaignId?: string
   platform?: string
   calendarId?: string
+  item?: CalendarItem
+  meta?: string
+}
+
+function momentStampKind(type?: string): 'holiday' | 'moment' | 'campaign' {
+  if (/holiday/i.test(type || '')) return 'holiday'
+  if ((type || '').toLowerCase() === 'campaign') return 'campaign'
+  return 'moment'
+}
+
+function typeChipLabel(type?: string) {
+  const k = momentStampKind(type)
+  if (k === 'holiday') return 'Public holiday'
+  if (k === 'campaign') return 'Campaign'
+  return type ? type.replace(/_/g, ' ') : 'Moment'
+}
+
+function scoreLine(label: string, value?: number | string | null) {
+  if (value === undefined || value === null || value === '') return null
+  return (
+    <span key={label}>
+      {label}: {String(value)}
+    </span>
+  )
+}
+
+function MomentPanel({
+  item,
+  onClose,
+  onDismiss,
+}: {
+  item: CalendarItem
+  onClose: () => void
+  onDismiss: () => void
+}) {
+  const eventDate = item.event_date || item.campaign_start
+  const dateLine = eventDate
+    ? `${formatDateStamp(eventDate)}${item.event_end ? ` – ${formatDateStamp(item.event_end)}` : ''}`
+    : '—'
+  const planStart = item.planning_start || item.lead_time_schedule?.planning_start
+  const scores = [
+    scoreLine('Commercial', item.commercial_relevance),
+    scoreLine('Audience', item.audience_relevance),
+    scoreLine('Brand', item.brand_relevance),
+    scoreLine('Timeliness', item.timeliness),
+    scoreLine('Confidence', item.confidence),
+  ].filter(Boolean)
+  const sourceUrl = item.source_urls?.[0]
+  const buildDate = eventDate || isoDate(new Date())
+  const buildId = item.calendar_id || ''
+
+  return (
+    <aside className="glass sticky top-4 max-h-[calc(100vh-6rem)] space-y-4 overflow-y-auto rounded-2xl border border-white/10 p-4 lg:col-span-1">
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-display text-lg font-semibold leading-snug">{item.title || 'Untitled'}</h2>
+        <Tip text="Close the moment panel. Keeps the day you picked.">
+          <button type="button" className="text-xs text-tx3 hover:text-tx" onClick={onClose}>
+            Close
+          </button>
+        </Tip>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="mute">{typeChipLabel(item.type)}</Badge>
+        {item.status ? <Badge tone="gold">{item.status}</Badge> : null}
+      </div>
+      <p className="text-sm text-tx2">{dateLine}</p>
+      {item.relevance_reason ? (
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Why this brand</p>
+          <p className="mt-1 text-sm text-tx2">{item.relevance_reason}</p>
+          {scores.length ? (
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-tx3">{scores}</p>
+          ) : null}
+        </div>
+      ) : scores.length ? (
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Scores</p>
+          <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-tx3">{scores}</p>
+        </div>
+      ) : null}
+      {item.suggested_angles?.length ? (
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Suggested angles</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-tx2">
+            {item.suggested_angles.map((angle) => (
+              <li key={angle}>{angle}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {item.pillars?.length ? (
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Pillars</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.pillars.map((pillar) =>
+              item.colour ? (
+                <span
+                  key={pillar}
+                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-bg"
+                  style={{ backgroundColor: item.colour }}
+                >
+                  {pillar}
+                </span>
+              ) : (
+                <Badge key={pillar} tone="mute">
+                  {pillar}
+                </Badge>
+              ),
+            )}
+          </div>
+        </div>
+      ) : null}
+      {planStart || item.lead_time_days != null ? (
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Plan by</p>
+          <p className="mt-1 text-sm text-tx2">
+            {planStart
+              ? `Start planning by ${formatDateStamp(planStart)}`
+              : item.lead_time_days != null
+                ? `${item.lead_time_days} days lead time`
+                : ''}
+          </p>
+        </div>
+      ) : null}
+      {item.source_title || item.source_domain || sourceUrl ? (
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-tx3 uppercase">Source</p>
+          {item.source_title ? <p className="mt-1 text-sm font-semibold text-tx">{item.source_title}</p> : null}
+          {item.source_domain ? <p className="text-xs text-tx3">{item.source_domain}</p> : null}
+          {sourceUrl ? (
+            <Tip text="Open the source link in a new tab.">
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 block text-sm text-ac underline"
+              >
+                {sourceUrl}
+              </a>
+            </Tip>
+          ) : null}
+          <p className="mt-2 text-xs font-semibold">
+            {item.trusted_for_planning === true ? (
+              <span className="text-ac">Trusted for planning</span>
+            ) : (
+              <span className="text-yel">Watchlist — check before you build</span>
+            )}
+          </p>
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button
+          to={`/create/post?date=${encodeURIComponent(buildDate)}&calendar_item_id=${encodeURIComponent(buildId)}`}
+          icon={Send}
+          tip="Open Build a post with this day and calendar moment id prefilled."
+        >
+          Build a post for this day
+        </Button>
+        <Tip text="Remove this moment from the active calendar list.">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="rounded-full border border-bd px-3 py-1.5 text-sm font-semibold hover:border-red hover:text-red"
+          >
+            Dismiss
+          </button>
+        </Tip>
+        <ClassicLink href="/?page=calendar" label="calendar" />
+      </div>
+    </aside>
+  )
 }
 
 function daysInMonth(year: number, month0: number) {
@@ -71,10 +243,18 @@ export function CalendarPage() {
     (iso: string) => {
       const p = new URLSearchParams(params)
       p.set('date', iso)
+      p.delete('id')
       setParams(p, { replace: true })
     },
     [params, setParams],
   )
+
+  const selectedId = params.get('id') || ''
+  const closeMoment = useCallback(() => {
+    const p = new URLSearchParams(params)
+    p.delete('id')
+    setParams(p, { replace: true })
+  }, [params, setParams])
 
   const selectDay = useCallback(
     (day: number) => {
@@ -143,16 +323,18 @@ export function CalendarPage() {
               const day = dayInMonth(item.event_date || item.campaign_start, year, month0)
               if (!day) return null
               const date = item.event_date || item.campaign_start || selectedIso
+              const stampKind = momentStampKind(item.type)
               return {
                 key: `cal:${item.calendar_id || item.title}`,
                 day,
                 title: item.title || 'Untitled',
-                badge: item.type || item.status || 'moment',
-                to: toolTo('calendar', { id: item.calendar_id, date }),
+                badge: item.status || item.type || 'moment',
+                to: `?date=${date}&id=${encodeURIComponent(item.calendar_id || '')}`,
                 stamp: item.event_date || item.campaign_start,
-                stampKind: 'scheduled',
+                stampKind,
                 source: 'moment',
                 calendarId: item.calendar_id,
+                item,
               } satisfies Parked
             })
             .filter((row) => row != null) as Parked[]
@@ -184,6 +366,7 @@ export function CalendarPage() {
                 assetId: aid,
                 campaignId: slot.campaignId,
                 platform: slot.platform,
+                meta: [slot.platform, slot.caption?.slice(0, 90)].filter(Boolean).join(' · '),
               })
             }
           }
@@ -209,6 +392,11 @@ export function CalendarPage() {
   }, [parked])
 
   const onDay = parked.filter((row) => row.day === selected)
+  const selectedMoment = useMemo(
+    () =>
+      parked.find((r) => r.source === 'moment' && r.calendarId === selectedId)?.item ?? null,
+    [parked, selectedId],
+  )
   const scheduled = data?.counts?.scheduled ?? 0
   const monthTotal = parked.length
   const highlightToday =
@@ -393,83 +581,104 @@ export function CalendarPage() {
             Park an idea
           </Button>
         </HeroPanel>
-        <section>
+        <section
+          className={
+            selectedMoment
+              ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,1fr)]'
+              : undefined
+          }
+        >
+          <div>
           <h2 className="mb-3 font-display text-xl font-semibold">
             {selected === highlightToday && highlightToday != null ? 'Today' : `${selected} ${monthName}`}
           </h2>
           {actionMsg ? <p className="mb-2 text-sm text-ac">{actionMsg}</p> : null}
           <ul className="space-y-2">
-            {onDay.map((row) => (
-              <li key={row.key}>
+            {onDay.map((row) => {
+              const rowFooter = (
+                <>
+                  {row.assetId && ['campaign', 'calendar', 'queue', 'slot'].includes(row.source || '') ? (
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <button
+                        type="button"
+                        className="text-ac hover:text-yel"
+                        onClick={() => {
+                          setMoveFor(row.key)
+                          setMoveDate(selectedIso)
+                        }}
+                      >
+                        Move to…
+                      </button>
+                      <button type="button" className="text-ac hover:text-yel" onClick={() => handleDuplicate(row)}>
+                        Duplicate
+                      </button>
+                      <button type="button" className="text-ac hover:text-yel" onClick={() => handleUnschedule(row)}>
+                        Unschedule
+                      </button>
+                    </div>
+                  ) : null}
+                  {row.calendarId && row.source === 'moment' ? (
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <button
+                        type="button"
+                        className="text-ac hover:text-yel"
+                        onClick={() => handleTransition(row, 'ignored')}
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  ) : null}
+                  {moveFor === row.key ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <input
+                        type="date"
+                        value={moveDate}
+                        onChange={(e) => setMoveDate(e.target.value)}
+                        className="rounded-lg border border-white/10 bg-bg2 px-2 py-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        className="rounded-full bg-yel px-3 py-1 text-xs font-semibold text-bg"
+                        onClick={() => handleMove(row)}
+                      >
+                        Save
+                      </button>
+                      <button type="button" className="text-xs text-tx3" onClick={() => setMoveFor(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )
+              return (
                 <QueueItem
+                  key={row.key}
                   to={row.to}
                   badge={row.badge}
                   tone="green"
                   title={row.title}
+                  meta={row.meta}
                   stamp={row.stamp}
                   stampKind={row.stampKind}
-                  tip="Open this parked piece."
+                  dateOnly={row.source === 'moment'}
+                  tip={
+                    row.source === 'moment'
+                      ? 'Open this calendar moment — why, angles, and source.'
+                      : 'Open this parked piece.'
+                  }
+                  action={
+                    row.color ? (
+                      <span
+                        className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: row.color }}
+                        aria-hidden
+                      />
+                    ) : undefined
+                  }
+                  footer={rowFooter}
                 />
-                {row.color ? (
-                  <span
-                    className="ml-2 inline-block h-2 w-2 rounded-full"
-                    style={{ backgroundColor: row.color }}
-                    aria-hidden
-                  />
-                ) : null}
-                {row.assetId && ['campaign', 'calendar', 'queue', 'slot'].includes(row.source || '') ? (
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                    <button
-                      type="button"
-                      className="text-ac hover:text-yel"
-                      onClick={() => {
-                        setMoveFor(row.key)
-                        setMoveDate(selectedIso)
-                      }}
-                    >
-                      Move to…
-                    </button>
-                    <button type="button" className="text-ac hover:text-yel" onClick={() => handleDuplicate(row)}>
-                      Duplicate
-                    </button>
-                    <button type="button" className="text-ac hover:text-yel" onClick={() => handleUnschedule(row)}>
-                      Unschedule
-                    </button>
-                  </div>
-                ) : null}
-                {row.calendarId && row.source === 'moment' ? (
-                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                    <button
-                      type="button"
-                      className="text-ac hover:text-yel"
-                      onClick={() => handleTransition(row, 'ignored')}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                ) : null}
-                {moveFor === row.key ? (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <input
-                      type="date"
-                      value={moveDate}
-                      onChange={(e) => setMoveDate(e.target.value)}
-                      className="rounded-lg border border-white/10 bg-bg2 px-2 py-1 text-sm"
-                    />
-                    <button
-                      type="button"
-                      className="rounded-full bg-yel px-3 py-1 text-xs font-semibold text-bg"
-                      onClick={() => handleMove(row)}
-                    >
-                      Save
-                    </button>
-                    <button type="button" className="text-xs text-tx3" onClick={() => setMoveFor(null)}>
-                      Cancel
-                    </button>
-                  </div>
-                ) : null}
-              </li>
-            ))}
+              )
+            })}
             {data && onDay.length === 0 && emptyCopy ? (
               <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
                 {emptyCopy}
@@ -485,6 +694,20 @@ export function CalendarPage() {
             <IconTile href="/calendar/lanes" icon={Map} label="Planning" hint="Themes and lanes" />
             <IconTile href="/calendar/ideas" icon={Lightbulb} label="Ideas" hint="Backlog to schedule" />
           </div>
+          </div>
+          {selectedMoment ? (
+            <MomentPanel
+              item={selectedMoment}
+              onClose={closeMoment}
+              onDismiss={() => {
+                const row = parked.find(
+                  (r) => r.source === 'moment' && r.calendarId === selectedId,
+                )
+                if (row) handleTransition(row, 'ignored')
+                closeMoment()
+              }}
+            />
+          ) : null}
         </section>
       </div>
     </div>

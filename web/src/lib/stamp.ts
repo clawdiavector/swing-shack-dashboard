@@ -64,6 +64,30 @@ export function formatStamp(iso?: string | null, fallback?: string | null) {
   return `${weekday} ${d.getDate()} ${month}${yearBit} at ${time}`
 }
 
+/** Date-only stamp — no clock. "Thursday 24 September". */
+export function formatDateStamp(iso?: string | null, fallback?: string | null) {
+  const raw = iso ?? fallback
+  const trimmed = raw ? String(raw).trim() : ''
+  const d = parseDate(iso) || parseDate(fallback) || new Date()
+  const now = new Date()
+  const day = startOfDay(d)
+  const today = startOfDay(now)
+  const diffDays = Math.round((today - day) / 86400000)
+
+  const weekday = WEEKDAYS[d.getDay()]
+  const month = MONTHS[d.getMonth()]
+  const yearBit = d.getFullYear() === now.getFullYear() ? '' : ` ${d.getFullYear()}`
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays === -1) return 'Tomorrow'
+    return `${weekday} ${d.getDate()} ${month}${yearBit}`
+  }
+
+  return formatStamp(iso, fallback)
+}
+
 export function isoDate(d: Date) {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -89,6 +113,9 @@ export function dayInMonth(raw: string | null | undefined, year: number, month0:
 export function stampLabel(kind?: string) {
   if (kind === 'created') return 'Landed'
   if (kind === 'scheduled') return 'Goes live'
+  if (kind === 'holiday') return 'Public holiday'
+  if (kind === 'moment') return 'On the calendar'
+  if (kind === 'campaign') return 'Campaign runs'
   if (kind === 'as_of') return 'As of'
   return 'Updated'
 }
