@@ -1,0 +1,109 @@
+{
+  "schema": "https://campaign-os/weekly-report/v3.1-snapshot",
+  "brand_id": "stick",
+  "as_of": "2026-09-21",
+  "current_period": {
+    "start": "2026-09-15",
+    "end": "2026-09-21"
+  },
+  "previous_period": {
+    "start": "2026-09-08",
+    "end": "2026-09-14"
+  },
+  "data_complete_through": "2026-09-21",
+  "kpi_values": {
+    "Sessions": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Users": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Engaged sessions": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Engagement rate": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Pageviews": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "IG reach (28d)": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "IG interactions (28d)": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "Meta paid spend": {
+      "current": null,
+      "previous": null,
+      "data_status": "LIVE"
+    },
+    "Meta results": {
+      "current": null,
+      "previous": null,
+      "data_status": "LIVE"
+    }
+  },
+  "source_statuses": {
+    "/api/ga4/<brand>/v22/sessions": {
+      "status": null,
+      "fetched_at": null,
+      "data_as_of": null
+    },
+    "marketing_calendar.canonical_records": {
+      "status": null,
+      "fetched_at": null,
+      "data_as_of": "2026-09-22T07:52:03.195429+00:00"
+    },
+    "Step 4B pending — synthetic data quarantined": {
+      "status": null,
+      "fetched_at": null,
+      "data_as_of": null
+    }
+  },
+  "north_stars": [
+    {
+      "id": "stick-retail",
+      "label": "Retail",
+      "metric": "R350,000/month (Retail)",
+      "objective": "Drive Psycho Bunny sales in-store and online",
+      "source": "Christelle direct (September 2026 marketing directive)",
+      "source_provenance": "user_supplied, scope=operating_target, canonical=false",
+      "pillar_priority": "high"
+    },
+    {
+      "id": "stick-fitting",
+      "label": "Fitting",
+      "metric": "4 per day × 6 days/week = 24/week (Fitting)",
+      "objective": "4 fittings per day, 6 operating days per week (derived: 24/week)",
+      "source": "Christelle direct (September 2026 marketing directive)",
+      "source_provenance": "user_supplied, scope=operating_target, canonical=false",
+      "pillar_priority": "high"
+    },
+    {
+      "id": "stick-coaching",
+      "label": "Coaching",
+      "metric": "4 per day × 6 days/week = 24/week (Coaching)",
+      "objective": "4 coaching sessions per day, 6 operating days per week (derived: 24/week)",
+      "source": "Christelle direct (September 2026 marketing directive)",
+      "source_provenance": "user_supplied, scope=operating_target, canonical=false",
+      "pillar_priority": "high"
+    }
+  ],
+  "report_status": "OK",
+  "archived_at": "2026-09-22T07:52:03.198060+00:00"
+}

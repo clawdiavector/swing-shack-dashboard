@@ -1,0 +1,12 @@
+{
+  "brief_path": "/Users/fivefriday/.newsjack/monitors/swing-shack/brief.md",
+  "brief_present": true,
+  "candidates": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/candidates.json",
+  "feed_only": true,
+  "mock": false,
+  "report_target": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/run.md",
+  "run_dir": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z",
+  "slug": "swing-shack",
+  "summary": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/summary.json",
+  "test": false
+}

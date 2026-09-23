@@ -1,0 +1,1235 @@
+{
+  "artifacts": {
+    "candidates": {
+      "bytes": 51858,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/candidates.json"
+    },
+    "clustered_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/clustered_candidates.json"
+    },
+    "coarse_relevance_decisions": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/coarse_relevance_decisions.json"
+    },
+    "commands": {
+      "bytes": 190,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/commands.log"
+    },
+    "detector_stderr": {
+      "bytes": 0,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/detector.stderr.log"
+    },
+    "detector_summary": {
+      "bytes": 39165,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/summary.json"
+    },
+    "final_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/final_report.md"
+    },
+    "origin_findings": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/origin_findings.json"
+    },
+    "relevant_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/relevant_candidates.json"
+    },
+    "run_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/run.md"
+    },
+    "scored_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/scored_candidates.json"
+    },
+    "targeted_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/targeted_candidates.json"
+    },
+    "triaged_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/triaged_candidates.json"
+    }
+  },
+  "clustered_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/clustered_candidates.json"
+  },
+  "coarse_relevance": {},
+  "coarse_relevance_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/coarse_relevance_decisions.json"
+  },
+  "counts": {
+    "debug_all_scored_rows": 22,
+    "debug_duplicate_scored_rows": 0,
+    "debug_selected_rows": 0,
+    "debug_unique_scored_signal_ids": 22,
+    "debug_unselected_rows": 22,
+    "selected_unique_signals": 0,
+    "source_errors": 0,
+    "total_emitted_signals": 0,
+    "total_scored_signals": 22
+  },
+  "deterministic_exclusions": {
+    "coarse_rejected_in_input": 0,
+    "safety_flagged_in_input": 0
+  },
+  "final_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/final_report.md"
+  },
+  "generated_at": "2026-09-22T04:30:50.946104Z",
+  "hygiene_rejections": {
+    "seo_landing_page": 2
+  },
+  "input_path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/candidates.json",
+  "lanes": {
+    "dropped_debug": {
+      "major_news_unmatched": 22
+    },
+    "emitted": {},
+    "scored": {
+      "major_news_unmatched": 22
+    }
+  },
+  "monitor": {
+    "depth": "quick",
+    "feed_urls": [
+      "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+      "https://www.espn.com/espn/rss/golf/news",
+      "https://golf.com/feed",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "generated_at": "2026-09-22T04:30:47.323656Z",
+    "lookback_days": 1,
+    "max_age_hours": 24,
+    "mock": false,
+    "name": "swing-shack",
+    "profile_name": "map[brands:[swing-shack stick] geography:ZA name:Swing Shack one_sentence:TrackMan-powered indoor golf studio and custom-fitting shop — performance-led, measurement-first, in Paarl / Cape Town. website:https://swingshack.co.za]",
+    "queries": [],
+    "sources_requested": [],
+    "sources_used": [
+      "major_feed"
+    ]
+  },
+  "origin_findings_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/origin_findings.json"
+  },
+  "pipeline": [
+    {
+      "artifact": "candidates.json",
+      "stage": "detector",
+      "status": "done"
+    },
+    {
+      "artifact": "coarse_relevance_decisions.json",
+      "stage": "coarse_relevance",
+      "status": "pending"
+    },
+    {
+      "artifact": "relevant_candidates.json",
+      "stage": "relevance_apply",
+      "status": "pending"
+    },
+    {
+      "artifact": "clustered_candidates.json",
+      "stage": "clustering",
+      "status": "pending"
+    },
+    {
+      "artifact": "origin_findings.json",
+      "stage": "story_origin",
+      "status": "pending"
+    },
+    {
+      "artifact": "targeted_candidates.json",
+      "stage": "freshness_gate",
+      "status": "pending"
+    },
+    {
+      "artifact": "triaged_candidates.json",
+      "stage": "standing_triage",
+      "status": "pending"
+    },
+    {
+      "artifact": "final_report.md",
+      "stage": "final_report",
+      "status": "pending"
+    },
+    {
+      "artifact": "run.md",
+      "stage": "run_report",
+      "status": "pending"
+    }
+  ],
+  "relevant_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/relevant_candidates.json"
+  },
+  "run_dir": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z",
+  "run_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/run.md"
+  },
+  "selection": {
+    "limit": 20,
+    "min_major_news": 0.55,
+    "min_queue_priority": 40,
+    "mode": "mechanical_floor"
+  },
+  "sources": {
+    "evidence_by_source": {
+      "major_feed": 53
+    },
+    "source_errors": {},
+    "source_status": {
+      "major_feed": {
+        "attempted": true,
+        "available": true,
+        "evidence_count": 53,
+        "requested": true,
+        "status": "used"
+      }
+    }
+  },
+  "targeted_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/targeted_candidates.json"
+  },
+  "top_dropped_signals": [
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "BBC Sport",
+            "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Scotland's Scott promoted to PGA Tour with Ohio win",
+          "url": "https://www.bbc.co.uk/sport/golf/articles/cr93ex7vyd27o?at_medium=RSS\u0026at_campaign=rss"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "a9518f05e12062ac",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.01,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Scotland's Scott promoted to PGA Tour with Ohio win"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "How Jeremy Clarkson helped J.J. Spaun beat Rory McIlroy at the BMW Championship",
+          "url": "https://www.espn.com/golf/story/_/id/49997137/jeremy-clarkson-jj-spaun-rory-mcilroy-bmw-championship-wentworth-explained"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "6bbebe1d1e46c032",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "How Jeremy Clarkson helped J.J. Spaun beat Rory McIlroy at the BMW Championship"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Snedeker wary of U.S. dominance ahead of Presidents Cup",
+          "url": "https://www.espn.com/golf/story/_/id/50000935/brandt-snedeker-wary-us-dominance-ahead-presidents-cup"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "92ea0a9e7042d6d5",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Snedeker wary of U.S. dominance ahead of Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Golf’s next megastar? And Miracle memories: 18 Presidents Cup thoughts",
+          "url": "https://golf.com/news/golfs-megastar-miracle-presidents-cup/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "6b85f9510ea92a28",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.031,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Golf’s next megastar? And Miracle memories: 18 Presidents Cup thoughts"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Peyton Manning's $100 golf bet with Tiger Woods revealed much about Tiger",
+          "url": "https://golf.com/news/how-tough-tiger-match-peyton-manning-epic-story/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "bf8109de9b28d951",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Peyton Manning's $100 golf bet with Tiger Woods revealed much about Tiger"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Your frequently asked Presidents Cup questions (with answers!)",
+          "url": "https://golf.com/news/frequently-asked-presidents-cup-questions-answers/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "be89f5ff7ef79ae8",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Your frequently asked Presidents Cup questions (with answers!)"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Robert MacIntyre blasts ‘ridiculous’ rule that sent him spiraling",
+          "url": "https://golf.com/news/robert-macintyre-blasts-ridiculous-rule-that-sent-him-spiraling/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "e61346627a6142ea",
+      "lane": "major_news_unmatched",
+      "major_news": 0.489,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.489,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Robert MacIntyre blasts ‘ridiculous’ rule that sent him spiraling"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Muse, Meta's extraordinarily privileged AI assistant, has a serious 0-day",
+          "url": "https://arstechnica.com/security/2026/09/muse-metas-extraordinarily-privileged-ai-assistant-has-a-serious-0-day/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "39fd306b5d104519",
+      "lane": "major_news_unmatched",
+      "major_news": 0.546,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.546,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Muse, Meta's extraordinarily privileged AI assistant, has a serious 0-day"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Military milestone: Ukrainian naval drone sinks Russian kamikaze drone boat",
+          "url": "https://arstechnica.com/gadgets/2026/09/military-milestone-ukrainian-naval-drone-sinks-russian-kamikaze-drone-boat/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "fa6019e6923166c6",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Military milestone: Ukrainian naval drone sinks Russian kamikaze drone boat"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Saudi Arabia wants a car industry, launches Ceer with two EVs",
+          "url": "https://arstechnica.com/cars/2026/09/saudi-arabia-wants-a-car-industry-launches-ceer-with-two-evs/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "c4fa547489d05a0e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Saudi Arabia wants a car industry, launches Ceer with two EVs"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Google confirms Gemini models hacked three companies in May 2026",
+          "url": "https://arstechnica.com/google/2026/09/google-confirms-gemini-models-hacked-three-companies-in-may-2026/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "c391ba873ae4c590",
+      "lane": "major_news_unmatched",
+      "major_news": 0.466,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.466,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Google confirms Gemini models hacked three companies in May 2026"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "California settles lawsuit against Paramount/Warner merger, angering advocates",
+          "url": "https://arstechnica.com/tech-policy/2026/09/california-settles-lawsuit-against-paramount-warner-merger-angering-advocates/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "73746526d1044e14",
+      "lane": "major_news_unmatched",
+      "major_news": 0.533,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.533,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "California settles lawsuit against Paramount/Warner merger, angering advocates"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 9,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Apple Mac mini review: The new M6 impresses, but the price hike is rough",
+          "url": "https://arstechnica.com/gadgets/2026/09/apple-m6-mac-mini-review-300-price-hike-spoils-a-nice-upgrade/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "3975b3286bef4c3e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.466,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.466,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Apple Mac mini review: The new M6 impresses, but the price hike is rough"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 10,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Googlebooks launch October 4 starting at $899—here are the five models you can preorder today",
+          "url": "https://arstechnica.com/gadgets/2026/09/googlebook-laptops-launch-october-4-starting-at-899-preorders-for-five-models-live-today/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "4faa5820aba002f0",
+      "lane": "major_news_unmatched",
+      "major_news": 0.489,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.489,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Googlebooks launch October 4 starting at $899—here are the five models you can preorder today"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Masters sticking with plan to invite winners of 6 national opens",
+          "url": "https://www.espn.com/golf/story/_/id/49998409/masters-sticking-plan-invite-winners-6-national-opens"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "8bf03fb0ef286ef8",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Masters sticking with plan to invite winners of 6 national opens"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "American team golf is on a losing streak. 1 word explains why that won't continue at Presidents Cup",
+          "url": "https://golf.com/news/presidents-cup-american-dominance-depth/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "753174a09e726cdc",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "American team golf is on a losing streak. 1 word explains why that won't continue at Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Jack Nicklaus: 5 ways to perfect your aim and accuracy",
+          "url": "https://golf.com/instruction/jack-nicklaus-five-tips-aim-accuracy-timeless-tips/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "9f0158814fa2614d",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Jack Nicklaus: 5 ways to perfect your aim and accuracy"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 7,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "8 facts that make Trump Turnberry a bucket-list destination",
+          "url": "https://golf.com/travel/8-facts-trump-turnberry-bucket-list-destination/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "63987726ddaa5fd4",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "8 facts that make Trump Turnberry a bucket-list destination"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 9,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "2026 Presidents Cup: TV schedule, streaming, how to watch, team rosters",
+          "url": "https://golf.com/news/2026-presidents-cup-tv-streaming-watch-rosters/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "396f0e0ed4e4354c",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "2026 Presidents Cup: TV schedule, streaming, how to watch, team rosters"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Russel Vought will reportedly be given veto power over all NIH grants",
+          "url": "https://arstechnica.com/science/2026/09/trump-planning-to-hand-veto-power-over-nih-grants-to-political-appointee/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "2a08226e717993b1",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Russel Vought will reportedly be given veto power over all NIH grants"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 7,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Trump rejects AI slowdown calls, launches \"AI Force\" instead",
+          "url": "https://arstechnica.com/ai/2026/09/trump-rejects-ai-slowdown-calls-launches-ai-force-instead/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "3ffc589da880e029",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Trump rejects AI slowdown calls, launches \"AI Force\" instead"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Review: Neagley is a worthy spinoff to megahit Reacher",
+          "url": "https://arstechnica.com/culture/2026/09/review-neagley-is-a-worthy-spinoff-to-megahit-reacher/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "42074116cdc55024",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Review: Neagley is a worthy spinoff to megahit Reacher"
+    }
+  ],
+  "top_signals": null,
+  "triaged_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260922T043047Z/triaged_candidates.json"
+  }
+}

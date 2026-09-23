@@ -121,9 +121,21 @@ def _resolve_site_url(brand: str | None) -> tuple[str, str | None]:
 
 def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
     """Use the brand's stored OAuth refresh token to call
-    webmasters.v3.sites.list() and pick the first URL-prefix property
+    webmasters.v3.sites.list() and pick the best URL-prefix property
     the account has siteOwner / siteFullUser permission on.
-    Returns (site_url, None) on success or (None, error_str)."""
+
+    Selection priority (descending):
+      0. URL-prefix + siteOwner + matches the brand's domain (e.g.
+         https://stickgolf.co.za/ for brand=stick). This is the strong
+         preference — same domain, same brand.
+      1. URL-prefix + siteOwner + matches the brand's domain (e.g.
+         https://swingshack.co.za/ for brand=swing-shack).
+      2. URL-prefix + siteOwner on any other domain.
+      3. URL-prefix + siteFullUser on the brand's domain.
+      4. URL-prefix + siteUnverifiedUser on the brand's domain.
+      5. URL-prefix + anything else.
+      6. Domain-property + siteOwner.
+    """
     try:
         from _lib import gsc_oauth as _gsc_oauth
     except Exception as exc:
@@ -146,8 +158,29 @@ def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
     except Exception as exc:
         return None, f"sites.list failed: {exc}"
 
-    # Prefer URL-prefix with siteOwner, fall back to siteFullUser, then siteUnverifiedUser,
-    # then sc-domain with siteOwner.
+    # Resolve expected brand domain. The single source of truth is the
+    # operating brands registry (`data/brands.json`); we read that to
+    # pick the correct GSC property for the brand.
+    brand_domain = ""
+    try:
+        from _lib import brand_directory as _bd
+        # brand_directory.load_brand returns a dict; check for 'domain' / 'website'
+        bd_data = _bd.load_brand(brand)
+        brand_domain = (
+            bd_data.get("domain")
+            or bd_data.get("website")
+            or bd_data.get("site_url")
+            or ""
+        )
+    except Exception:
+        pass
+    # Allow ENV override (BRAND_DOMAIN_<BRAND> or BRAND_DOMAIN)
+    if not brand_domain:
+        brand_domain = (
+            os.environ.get(f"BRAND_DOMAIN_{brand.upper().replace('-', '_')}", "")
+            or os.environ.get("BRAND_DOMAIN", "")
+        )
+
     entries = payload.get("siteEntry") or []
     by_pref = []
     for e in entries:
@@ -155,16 +188,32 @@ def _probe_site_via_oauth(brand: str) -> tuple[str | None, str | None]:
         perm = e.get("permissionLevel") or ""
         is_prefix = url.startswith("http")
         is_domain = url.startswith("sc-domain:")
-        if is_prefix and perm == "siteOwner":
+        url_host = url.split("//", 1)[-1].rstrip("/") if is_prefix else url.replace("sc-domain:", "")
+
+        # Strong match: same domain as the brand, URL-prefix, siteOwner
+        if is_prefix and perm == "siteOwner" and brand_domain and brand_domain in url_host:
             by_pref.append((0, url, perm))
-        elif is_prefix and perm == "siteFullUser":
-            by_pref.append((1, url, perm))
-        elif is_domain and perm == "siteOwner":
+        # Same domain, URL-prefix, any owner
+        elif is_prefix and brand_domain and brand_domain in url_host:
             by_pref.append((2, url, perm))
-        elif is_prefix and perm == "siteUnverifiedUser":
+        # URL-prefix, siteOwner on any domain
+        elif is_prefix and perm == "siteOwner":
             by_pref.append((3, url, perm))
-        else:
+        # URL-prefix, siteFullUser on any domain
+        elif is_prefix and perm == "siteFullUser":
             by_pref.append((4, url, perm))
+        # URL-prefix, siteUnverifiedUser on any domain
+        elif is_prefix and perm == "siteUnverifiedUser":
+            by_pref.append((5, url, perm))
+        # URL-prefix, anything else
+        elif is_prefix:
+            by_pref.append((6, url, perm))
+        # Domain-property, siteOwner
+        elif is_domain and perm == "siteOwner":
+            by_pref.append((7, url, perm))
+        # Domain-property, anything else
+        else:
+            by_pref.append((8, url, perm))
     by_pref.sort(key=lambda t: t[0])
     if not by_pref:
         return None, "sites.list returned no siteEntry items"
@@ -206,15 +255,25 @@ def _search_analytics(
     end: str,
     dimensions: list[str],
     row_limit: int = 25,
+    page_filter: str | None = None,
 ) -> list[dict[str, Any]]:
     encoded_site = urllib.parse.quote(site, safe="")
     url = f"{API_BASE}/sites/{encoded_site}/searchAnalytics/query"
-    body = {
+    body: dict[str, Any] = {
         "startDate": start,
         "endDate": end,
         "dimensions": dimensions,
         "rowLimit": row_limit,
     }
+    if page_filter:
+        # Page filter uses GSC's `page` filter inside `dimensionFilterGroups`.
+        body["dimensionFilterGroups"] = [{
+            "filters": [{
+                "dimension": "page",
+                "operator": "equals",
+                "expression": page_filter,
+            }],
+        }]
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode("utf-8"),
@@ -244,6 +303,10 @@ def _search_analytics(
     return rows
 
 
+# Alias kept stable so app.py routes can use a separate name.
+_search_analytics_filtered = _search_analytics
+
+
 def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
     prev_map = {r["key"]: r for r in previous if r.get("key")}
     out: dict[str, dict] = {}
@@ -260,8 +323,15 @@ def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
     return out
 
 
-def run(*, brand: str | None = None) -> dict:
-    """Fetch Search Console stats and write search-console.json."""
+def run(*, brand: str | None = None, days: int = 28, max_queries: int = 50, max_pages: int = 25) -> dict:
+    """Fetch Search Console stats and write search-console.json.
+
+    Args:
+        brand: brand ID (defaults to the legacy/default brand).
+        days: window length. 28 is the standard; 90 supported for deeper analysis.
+        max_queries: how many queries to return (top-N by impressions).
+        max_pages: how many pages to return.
+    """
     io = io_for_job(JOB_NAME, brand)
     site, site_err = _resolve_site_url(brand)
     if site_err:
@@ -278,17 +348,19 @@ def run(*, brand: str | None = None) -> dict:
         if missing:
             return {"ok": False, "error": missing}
 
+    # Window: respect requested days but cap at 92 (GSC hard limit is 16 months)
+    days = min(int(days), 92)
     end = date.today() - timedelta(days=3)  # GSC data lag
-    start = end - timedelta(days=27)
+    start = end - timedelta(days=days - 1)
     prev_end = start - timedelta(days=1)
-    prev_start = prev_end - timedelta(days=27)
+    prev_start = prev_end - timedelta(days=days - 1)
 
     try:
         bearer = _get_search_console_bearer(brand=brand)
-        queries = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["query"], 50)
-        pages = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["page"], 25)
+        queries = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["query"], max_queries)
+        pages = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["page"], max_pages)
         prev_queries = _search_analytics(
-            site, bearer, prev_start.isoformat(), prev_end.isoformat(), ["query"], 50
+            site, bearer, prev_start.isoformat(), prev_end.isoformat(), ["query"], max_queries
         )
     except RuntimeError as exc:
         msg = str(exc)[:400]

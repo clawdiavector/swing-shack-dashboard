@@ -1,0 +1,1404 @@
+{
+  "artifacts": {
+    "candidates": {
+      "bytes": 64220,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/candidates.json"
+    },
+    "clustered_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/clustered_candidates.json"
+    },
+    "coarse_relevance_decisions": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/coarse_relevance_decisions.json"
+    },
+    "commands": {
+      "bytes": 190,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/commands.log"
+    },
+    "detector_stderr": {
+      "bytes": 0,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/detector.stderr.log"
+    },
+    "detector_summary": {
+      "bytes": 44710,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/summary.json"
+    },
+    "final_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/final_report.md"
+    },
+    "origin_findings": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/origin_findings.json"
+    },
+    "relevant_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/relevant_candidates.json"
+    },
+    "run_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/run.md"
+    },
+    "scored_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/scored_candidates.json"
+    },
+    "targeted_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/targeted_candidates.json"
+    },
+    "triaged_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/triaged_candidates.json"
+    }
+  },
+  "clustered_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/clustered_candidates.json"
+  },
+  "coarse_relevance": {},
+  "coarse_relevance_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/coarse_relevance_decisions.json"
+  },
+  "counts": {
+    "debug_all_scored_rows": 27,
+    "debug_duplicate_scored_rows": 0,
+    "debug_selected_rows": 0,
+    "debug_unique_scored_signal_ids": 27,
+    "debug_unselected_rows": 27,
+    "selected_unique_signals": 0,
+    "source_errors": 0,
+    "total_emitted_signals": 0,
+    "total_scored_signals": 27
+  },
+  "deterministic_exclusions": {
+    "coarse_rejected_in_input": 0,
+    "safety_flagged_in_input": 0
+  },
+  "final_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/final_report.md"
+  },
+  "generated_at": "2026-09-23T04:31:03.331022Z",
+  "hygiene_rejections": {},
+  "input_path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/candidates.json",
+  "lanes": {
+    "dropped_debug": {
+      "major_news_unmatched": 27
+    },
+    "emitted": {},
+    "scored": {
+      "major_news_unmatched": 27
+    }
+  },
+  "monitor": {
+    "depth": "quick",
+    "feed_urls": [
+      "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+      "https://www.espn.com/espn/rss/golf/news",
+      "https://golf.com/feed",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "generated_at": "2026-09-23T04:31:00.053549Z",
+    "lookback_days": 1,
+    "max_age_hours": 24,
+    "mock": false,
+    "name": "swing-shack",
+    "profile_name": "map[brands:[swing-shack stick] geography:ZA name:Swing Shack one_sentence:TrackMan-powered indoor golf studio and custom-fitting shop — performance-led, measurement-first, in Paarl / Cape Town. website:https://swingshack.co.za]",
+    "queries": [],
+    "sources_requested": [],
+    "sources_used": [
+      "major_feed"
+    ]
+  },
+  "origin_findings_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/origin_findings.json"
+  },
+  "pipeline": [
+    {
+      "artifact": "candidates.json",
+      "stage": "detector",
+      "status": "done"
+    },
+    {
+      "artifact": "coarse_relevance_decisions.json",
+      "stage": "coarse_relevance",
+      "status": "pending"
+    },
+    {
+      "artifact": "relevant_candidates.json",
+      "stage": "relevance_apply",
+      "status": "pending"
+    },
+    {
+      "artifact": "clustered_candidates.json",
+      "stage": "clustering",
+      "status": "pending"
+    },
+    {
+      "artifact": "origin_findings.json",
+      "stage": "story_origin",
+      "status": "pending"
+    },
+    {
+      "artifact": "targeted_candidates.json",
+      "stage": "freshness_gate",
+      "status": "pending"
+    },
+    {
+      "artifact": "triaged_candidates.json",
+      "stage": "standing_triage",
+      "status": "pending"
+    },
+    {
+      "artifact": "final_report.md",
+      "stage": "final_report",
+      "status": "pending"
+    },
+    {
+      "artifact": "run.md",
+      "stage": "run_report",
+      "status": "pending"
+    }
+  ],
+  "relevant_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/relevant_candidates.json"
+  },
+  "run_dir": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z",
+  "run_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/run.md"
+  },
+  "selection": {
+    "limit": 20,
+    "min_major_news": 0.55,
+    "min_queue_priority": 40,
+    "mode": "mechanical_floor"
+  },
+  "sources": {
+    "evidence_by_source": {
+      "major_feed": 55
+    },
+    "source_errors": {},
+    "source_status": {
+      "major_feed": {
+        "attempted": true,
+        "available": true,
+        "evidence_count": 55,
+        "requested": true,
+        "status": "used"
+      }
+    }
+  },
+  "targeted_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/targeted_candidates.json"
+  },
+  "top_dropped_signals": [
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "2026 Presidents Cup: Expert picks, players under pressure and rookies to watch",
+          "url": "https://www.espn.com/golf/story/_/page/ExpertPicks2026Presidentscup/2026-presidents-cup-expert-picks-players-pressure-rookies-watch"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "8f421c56fb90b8c4",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "2026 Presidents Cup: Expert picks, players under pressure and rookies to watch"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Scheffler's performance in team competition of little concern to him, Snedeker",
+          "url": "https://www.espn.com/golf/story/_/id/50008837/scottie-scheffler-performance-team-competition-little-concern-brandt-snedeker-ahead-presidents-cup"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "6cd809c56f6dbb16",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.031,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Scheffler's performance in team competition of little concern to him, Snedeker"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "‘Make me look stupid’: Presidents Cup snubs get message from U.S. captain",
+          "url": "https://golf.com/news/presidents-cup-snubs-message-captain/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "0dd285bce78680d5",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "‘Make me look stupid’: Presidents Cup snubs get message from U.S. captain"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "U.S. shines at Presidents Cup and is struggling at Ryder Cup. But why?",
+          "url": "https://golf.com/news/us-presidents-cup-ryder-cup-difference/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "cd62a94b87e74d11",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "U.S. shines at Presidents Cup and is struggling at Ryder Cup. But why?"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Scottie Scheffler airs frustration over U.S. team false 'narratives'",
+          "url": "https://golf.com/news/scottie-scheffler-presidents-cup-ryder-cup-narratives/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "774fa46137de172f",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Scottie Scheffler airs frustration over U.S. team false 'narratives'"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Woman's brain worm infection confirmed after eggs grow tails in lab test",
+          "url": "https://arstechnica.com/health/2026/09/womans-brain-worm-infection-confirmed-after-eggs-grow-tails-in-lab-test/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "07b6d0c6bd9d86e7",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Woman's brain worm infection confirmed after eggs grow tails in lab test"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "New Anthropic, OpenAI models make same promise: A little more for a lot less money",
+          "url": "https://arstechnica.com/ai/2026/09/new-anthropic-openai-models-make-same-promise-a-little-more-for-a-lot-less-money/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "18eba36af83fbe2b",
+      "lane": "major_news_unmatched",
+      "major_news": 0.567,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": {
+          "band": "high",
+          "basis": "source_attention_signals",
+          "components": {
+            "major_action_terms": 0,
+            "major_entity_terms": 2,
+            "major_news": 0.567,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "score": 56.7,
+          "signals": [
+            "major_feed_score=0.567",
+            "major_entity_terms=2"
+          ]
+        },
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.567,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "New Anthropic, OpenAI models make same promise: A little more for a lot less money"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Cities across US oppose Trump FCC plan to preempt local broadband rules",
+          "url": "https://arstechnica.com/tech-policy/2026/09/cities-across-us-oppose-trump-fcc-plan-to-preempt-local-broadband-rules/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "98896753ee893d0e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Cities across US oppose Trump FCC plan to preempt local broadband rules"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Microsoft disrupts AI-assisted platform that compromised 12,000 accounts",
+          "url": "https://arstechnica.com/security/2026/09/microsoft-disrupts-ai-assisted-platform-that-compromised-12000/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "6be1b525cc1879cb",
+      "lane": "major_news_unmatched",
+      "major_news": 0.466,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.466,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Microsoft disrupts AI-assisted platform that compromised 12,000 accounts"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Lawsuit demands OpenAI pay for new school after ChatGPT used in shooting",
+          "url": "https://arstechnica.com/tech-policy/2026/09/lawsuit-demands-openai-pay-for-new-school-after-chatgpt-used-in-shooting/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "d7e9141dfc041ada",
+      "lane": "major_news_unmatched",
+      "major_news": 0.554,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": {
+          "band": "high",
+          "basis": "source_attention_signals",
+          "components": {
+            "major_action_terms": 2,
+            "major_entity_terms": 1,
+            "major_news": 0.554,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "score": 55.4,
+          "signals": [
+            "major_feed_score=0.554",
+            "major_action_terms=2",
+            "major_entity_terms=1"
+          ]
+        },
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.554,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Lawsuit demands OpenAI pay for new school after ChatGPT used in shooting"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Karaoke and money games? 4 things we learned at the Presidents Cup",
+          "url": "https://golf.com/news/2026-presidents-cup-what-weve-learned/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "cf44ef5341d20159",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Karaoke and money games? 4 things we learned at the Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Save $50 on orders of $250 or more at PGA TOUR Superstore for a limited time",
+          "url": "https://golf.com/gear/save-50-orders-250-pga-tour-superstore/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "0ddcc910b94858a9",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Save $50 on orders of $250 or more at PGA TOUR Superstore for a limited time"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "5 players facing the most pressure at the Presidents Cup",
+          "url": "https://golf.com/news/5-players-facing-presidents-cup-pressure/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "3bbcb879e0afcf17",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "5 players facing the most pressure at the Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 7,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Presidents Cup preview: 7 things to know about Medinah Country Club",
+          "url": "https://golf.com/travel/presidents-cup-preview-7-things-medinah-course/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "f49671153b022765",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Presidents Cup preview: 7 things to know about Medinah Country Club"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Layer Up: 5 golf essentials for fall golf",
+          "url": "https://golf.com/gear/golf-apparel/layer-up-5-golf-essentials-for-fall-golf/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "9958f9b31771a5e4",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Layer Up: 5 golf essentials for fall golf"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 9,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Srixon rethought its whole process for new ZXi RKT metalwoods",
+          "url": "https://golf.com/gear/drivers/srixon-zxi-rkt-metalwoods-rethought-process/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "19e6a463a902a656",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Srixon rethought its whole process for new ZXi RKT metalwoods"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 10,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "2026 Presidents Cup rosters, records: Meet the U.S., International teams",
+          "url": "https://golf.com/news/2026-presidents-cup-rosters-records-us-international/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "ef24f35baa2405b7",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "2026 Presidents Cup rosters, records: Meet the U.S., International teams"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Adobe Premiere finally brings powerful video editing to Android, and it's free",
+          "url": "https://arstechnica.com/gadgets/2026/09/adobe-premiere-finally-brings-powerful-video-editing-to-android-and-its-free/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "51bbe836c22cee6e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Adobe Premiere finally brings powerful video editing to Android, and it's free"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 7,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Review: Resident Evil might just be the best gaming adaptation yet",
+          "url": "https://arstechnica.com/culture/2026/09/review-resident-evil-is-the-fresh-take-this-flagging-franchise-really-needed/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "8d3159b1cdb3bd6c",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Review: Resident Evil might just be the best gaming adaptation yet"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Toyota orders workers to train humanoid robots but says humans won't be replaced",
+          "url": "https://arstechnica.com/ai/2026/09/toyota-claims-plan-for-400000-factory-robots-wont-replace-human-workers/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "475236ecc081f9a4",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Toyota orders workers to train humanoid robots but says humans won't be replaced"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 9,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "IT mistake erases 11 years of viewing history for hospitals’ maternity records",
+          "url": "https://arstechnica.com/information-technology/2026/09/it-mistake-erases-11-years-of-viewing-history-for-hospitals-maternity-records/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "192f8777daba675a",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.011,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "IT mistake erases 11 years of viewing history for hospitals’ maternity records"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 10,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Effort begins to fill the void left by terminated US climate report",
+          "url": "https://arstechnica.com/science/2026/09/effort-begins-to-fill-the-void-left-by-terminated-us-climate-report/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "a8355da99b64f972",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Effort begins to fill the void left by terminated US climate report"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 11,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Shuffling the deck chairs: Xbox continues its \"reset\" with dramatic restructuring",
+          "url": "https://arstechnica.com/gaming/2026/09/shuffling-the-deck-chairs-xbox-continues-its-reset-with-dramatic-restructuring/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "9c8265d2449213ba",
+      "lane": "major_news_unmatched",
+      "major_news": 0.366,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 38.2,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.366,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Shuffling the deck chairs: Xbox continues its \"reset\" with dramatic restructuring"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 12,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Protests for Germany’s car industry as job losses loom",
+          "url": "https://arstechnica.com/cars/2026/09/protests-for-germanys-car-industry-as-job-losses-loom/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "10dadbb6248a7edc",
+      "lane": "major_news_unmatched",
+      "major_news": 0.366,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 38.2,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.366,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Protests for Germany’s car industry as job losses loom"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 13,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Trump’s sneaky plan to gut Endangered Species Act draws from 1995 Scalia dissent",
+          "url": "https://arstechnica.com/tech-policy/2026/09/trumps-sneaky-plan-to-gut-endangered-species-act-draws-from-1995-scalia-dissent/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "cc75c695e49cd3f2",
+      "lane": "major_news_unmatched",
+      "major_news": 0.366,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 38.2,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.366,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Trump’s sneaky plan to gut Endangered Species Act draws from 1995 Scalia dissent"
+    }
+  ],
+  "top_signals": null,
+  "triaged_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260923T043100Z/triaged_candidates.json"
+  }
+}

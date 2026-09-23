@@ -22,7 +22,7 @@ import time
 import threading
 import base64
 import urllib.request
-from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td
+from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td, date as _date_cls
 from pathlib import Path
 from typing import Optional, List
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort, session
@@ -14538,7 +14538,266 @@ def gsc_debug_resolve_route():
         out["resolve_error"] = err
     except Exception as exc:
         out["resolve_exception"] = str(exc)
+    # Per-brand file existence
+    try:
+        data_dir = _os.environ.get("DATA_DIR", "/data")
+        file_results = {}
+        for fn in ("search-console.json", "ga4-metrics.json", "seo-rankings.json"):
+            file_results[fn] = {
+                "per_brand": str(Path(data_dir) / "brands" / brand / fn),
+                "flat": str(Path(data_dir) / fn),
+                "per_brand_exists": (Path(data_dir) / "brands" / brand / fn).is_file(),
+                "flat_exists": (Path(data_dir) / fn).is_file(),
+            }
+        out["files"] = file_results
+    except Exception as exc:
+        out["file_probe_error"] = str(exc)
     return jsonify(out), 200
+
+
+@app.route('/api/gsc/per-brand-data', methods=['GET'])
+def gsc_per_brand_data_route():
+    """GET /api/gsc/per-brand-data?brand=<id>[&days=28|90]
+
+    Read the per-brand search-console.json file directly
+    (DATA_DIR/brands/<brand>/search-console.json) and return its contents.
+
+    The `days` parameter is informational only — the file on disk contains
+    whatever window gsc_report wrote (typically 28 days). If you want a
+    different window, use /api/gsc/run-once to regenerate.
+
+    Read-only diag.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    import os as _os
+    data_dir = _os.environ.get("DATA_DIR", "/data")
+    candidates = [
+        (str(Path(data_dir) / "brands" / brand / "search-console.json"), "per_brand"),
+        (str(Path(data_dir) / "search-console.json"), "flat_fallback"),
+    ]
+    for path, source in candidates:
+        if Path(path).is_file():
+            try:
+                data = json.loads(Path(path).read_text(encoding="utf-8"))
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand,
+                    "source": source,
+                    "path": path,
+                    "data": data,
+                })
+            except Exception as exc:
+                return jsonify({"ok": False, "brand_id": brand, "error": str(exc), "path": path})
+    return jsonify({
+        "ok": False,
+        "brand_id": brand,
+        "error": "no per-brand or flat search-console.json",
+        "tried": [c[0] for c in candidates],
+    })
+
+
+@app.route('/api/gsc/run-once', methods=['POST'])
+def gsc_run_once_route():
+    """POST /api/gsc/run-once?brand=<id>&days=28|90
+
+    Trigger a gsc_report run for the brand with the requested window
+    length. Use 90 for the longer-window operator-mandated checks.
+    Returns the same payload as /api/jobs/run/gsc_report.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    from _lib.jobs.layer1 import gsc_report as _gsc_job
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    days = int(request.args.get("days") or 28)
+    days = max(7, min(days, 92))  # GSC hard cap 16 months
+    try:
+        result = _gsc_job.run(brand=brand, days=days)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc), "brand": brand, "days": days}), 500
+    result["brand"] = brand
+    result["days"] = days
+    return jsonify(result)
+
+
+@app.route('/api/gsc/topic-queries', methods=['GET'])
+def gsc_topic_queries_route():
+    """GET /api/gsc/topic-queries?brand=<id>&terms=off-the-rack,off+the+rack,...
+
+    Run a targeted GSC search for the requested terms in the brand's
+    search console. Returns a list of matches across the requested
+    window. The terms are matched as case-insensitive substrings against
+    Google's query field. Up to 25 terms per request. Up to 25 results
+    per term.
+
+    Returns:
+        {
+          ok: true,
+          brand_id, terms, days,
+          window: {start, end},
+          matches: [
+            {term, query, clicks, impressions, ctr, position}
+          ],
+          match_count: N,
+          note: "<matches found>" or "no matching GSC queries returned for these terms in this period"
+        }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    raw_terms = request.args.get("terms") or ""
+    days = int(request.args.get("days") or 28)
+    days = max(7, min(days, 92))
+    if not raw_terms.strip():
+        return jsonify({"ok": False, "error": "terms query param required (comma-separated)"}), 400
+    terms = [t.strip().lower() for t in raw_terms.split(",") if t.strip()][:25]
+
+    from _lib.jobs.layer1 import gsc_report as _g
+    site, _ = _g._resolve_site_url(brand)
+    if not site:
+        return jsonify({"ok": False, "error": f"site_url not resolved for brand={brand}"}), 503
+
+    try:
+        bearer = _g._get_search_console_bearer(brand=brand)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"bearer: {exc}"}), 503
+    if not bearer:
+        return jsonify({"ok": False, "error": "no bearer available"}), 503
+
+    end = _date_cls.today() - _td(days=3)
+    start = end - _td(days=days - 1)
+    matches = []
+    try:
+        # Single bulk search with dimension=query; filter on the client side
+        rows = _g._search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["query"], 100)
+        for r in rows:
+            k = (r.get("key") or "").lower()
+            for t in terms:
+                if t in k:
+                    matches.append({
+                        "term_matched": t,
+                        "query": r.get("key"),
+                        "clicks": r.get("clicks", 0),
+                        "impressions": r.get("impressions", 0),
+                        "ctr": r.get("ctr", 0),
+                        "position": r.get("position", 0),
+                    })
+                    break
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+    if matches:
+        note = f"{len(matches)} matching GSC query rows returned for these terms in the last {days}d window"
+    else:
+        note = "no matching GSC queries returned for these terms in this period"
+    return jsonify({
+        "ok": True,
+        "brand_id": brand,
+        "site_url": site,
+        "terms": terms,
+        "days": days,
+        "window": {"start": start.isoformat(), "end": end.isoformat()},
+        "matches": matches,
+        "match_count": len(matches),
+        "note": note,
+    })
+
+
+@app.route('/api/gsc/article-queries', methods=['GET'])
+def gsc_article_queries_route():
+    """GET /api/gsc/article-queries?brand=<id>&url=<full+article+URL>[&days=28|90]
+
+    Query GSC searchanalytics for a single URL with dimension=query.
+    Returns the queries that drove impressions/clicks to that URL in the
+    requested window.
+
+    Returns:
+        {
+          ok: true,
+          brand_id, url, days,
+          window: {start, end},
+          page_metrics: {clicks, impressions, ctr, position},
+          queries: [
+            {query, clicks, impressions, ctr, position}
+          ],
+          note: "<queries found>" or "no GSC data returned for this URL during this period"
+        }
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brand = (request.args.get("brand") or "swing-shack").strip()
+    url = (request.args.get("url") or "").strip()
+    days = int(request.args.get("days") or 28)
+    days = max(7, min(days, 92))
+    if not url:
+        return jsonify({"ok": False, "error": "url query param required"}), 400
+
+    from _lib.jobs.layer1 import gsc_report as _g
+    site, _ = _g._resolve_site_url(brand)
+    if not site:
+        return jsonify({"ok": False, "error": f"site_url not resolved for brand={brand}"}), 503
+
+    try:
+        bearer = _g._get_search_console_bearer(brand=brand)
+    except Exception as exc:
+        return jsonify({"ok": False, "error": f"bearer: {exc}"}), 503
+    if not bearer:
+        return jsonify({"ok": False, "error": "no bearer available"}), 503
+
+    end = _date_cls.today() - _td(days=3)
+    start = end - _td(days=days - 1)
+
+    # Page-level aggregate
+    page_metric = {}
+    page_queries = []
+    try:
+        # Page metric
+        page_rows = _g._search_analytics_filtered(
+            site, bearer, start.isoformat(), end.isoformat(),
+            ["page"], 1, page_filter=url,
+        )
+        if page_rows:
+            p = page_rows[0]
+            page_metric = {
+                "clicks": p.get("clicks", 0),
+                "impressions": p.get("impressions", 0),
+                "ctr": p.get("ctr", 0),
+                "position": p.get("position", 0),
+            }
+        # Page-queries: dimension=page,query
+        pq_rows = _g._search_analytics_filtered(
+            site, bearer, start.isoformat(), end.isoformat(),
+            ["query"], 25, page_filter=url,
+        )
+        for r in pq_rows:
+            page_queries.append({
+                "query": r.get("key"),
+                "clicks": r.get("clicks", 0),
+                "impressions": r.get("impressions", 0),
+                "ctr": r.get("ctr", 0),
+                "position": r.get("position", 0),
+            })
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+    if page_metric and (page_metric.get("impressions", 0) > 0 or page_metric.get("clicks", 0) > 0):
+        note = f"GSC data returned for this URL during the last {days}d window"
+    elif page_queries:
+        note = f"GSC returned {len(page_queries)} query rows for this URL but zero aggregate impressions/clicks"
+    else:
+        note = "no GSC data returned for this URL during this period"
+    return jsonify({
+        "ok": True,
+        "brand_id": brand,
+        "site_url": site,
+        "url": url,
+        "days": days,
+        "window": {"start": start.isoformat(), "end": end.isoformat()},
+        "page_metrics": page_metric,
+        "queries": page_queries,
+        "note": note,
+    })
 
 
 @app.route('/api/gsc/oauth/disconnect', methods=['POST'])
@@ -43485,9 +43744,15 @@ def brief_v1_revalidate_approved(brand_id, brief_id):
 
 
 def _ga4_run_report(creds, dimensions, metrics, date_ranges,
-                    limit=200, debug=False):
+                    limit=200, debug=False, page_filter: Optional[str] = None):
     """Single shared GA4 runner used by all V2.1 enrichment
-    endpoints. Returns (status_code, dict)."""
+    endpoints. Returns (status_code, dict).
+
+    Args:
+        page_filter: when set, scopes the GA4 report to a single page
+            path. Adds a `dimensionFilter` for pagePath with operator
+            "exactlyMatches". Used by the article-session endpoint.
+    """
     if not creds["property_id"] or not creds["credentials_path"]             or not os.path.exists(creds["credentials_path"]):
         return 200, {"ok": False, "error": "GA4 not configured",
                       "rows": [], "checked_at": _now_iso()}
@@ -43495,10 +43760,11 @@ def _ga4_run_report(creds, dimensions, metrics, date_ranges,
         from google.analytics.data_v1beta import BetaAnalyticsDataClient
         from google.analytics.data_v1beta.types import (
             DateRange, Dimension, Metric, RunReportRequest,
+            Filter, FilterExpression, StringFilter,
         )
         client = BetaAnalyticsDataClient.from_service_account_file(
             creds["credentials_path"])
-        req = RunReportRequest(
+        kwargs: dict = dict(
             property=f"properties/{creds['property_id']}",
             dimensions=[Dimension(name=d) for d in dimensions],
             metrics=[Metric(name=m) for m in metrics],
@@ -43507,6 +43773,14 @@ def _ga4_run_report(creds, dimensions, metrics, date_ranges,
                          for dr in date_ranges],
             limit=limit,
         )
+        if page_filter:
+            kwargs["dimension_filter"] = FilterExpression(
+                filter=Filter(
+                    field_name="pagePath",
+                    string_filter=StringFilter(value=page_filter, match_type=1),
+                )
+            )
+        req = RunReportRequest(**kwargs)
         resp = client.run_report(req)
         rows = []
         for row in (resp.rows or []):
@@ -43930,6 +44204,69 @@ def ga4_pages_enriched(brand_id):
         "top_raw_paths": top_raw[:5],
         "checked_at": _now_iso(),
     }), 200
+
+
+@app.route("/api/ga4/<brand_id>/article-session", methods=["GET"])
+def ga4_article_session(brand_id):
+    """GET /api/ga4/<brand>/article-session?path=<article-path>[&days=31]
+
+    Targeted GA4 query for a single article path. Returns the article's
+    real sessions + engagement + users + conversions in the requested
+    window. If GA4 doesn't have data for the path, returns
+    `note: "no GA4 data returned for this article path"`.
+
+    Used by the SEO skill when evaluating the existing-article decision
+    so it doesn't have to rely on the top-200 landing pages proxy.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    bid = (brand_id or "swing-shack").strip()
+    creds = _ga4_credentials(bid)
+    path = (request.args.get("path") or "").strip()
+    days = int(request.args.get("days", 31))
+    days = max(7, min(days, 365))
+    if not path:
+        return jsonify({"ok": False, "error": "path query param required"}), 400
+    end_d = (datetime.date.today() - _td(days=1))
+    cur_start = end_d - _td(days=days - 1)
+    cur_dr = {"start_date": cur_start.isoformat(),
+              "end_date": end_d.isoformat()}
+    status_d, data = _ga4_run_report(
+        creds,
+        dimensions=["pagePath"],
+        metrics=["sessions", "totalUsers", "engagedSessions",
+                 "engagementRate", "conversions"],
+        date_ranges=[cur_dr],
+        limit=1,
+        page_filter=path,
+    )
+    if not data.get("ok"):
+        return jsonify(data), 200
+    rows = data.get("rows") or []
+    if not rows:
+        return jsonify({
+            "ok": True,
+            "brand_id": bid,
+            "path": path,
+            "window": {"start": cur_start.isoformat(), "end": end_d.isoformat(), "days": days},
+            "article_metrics": {},
+            "note": "no GA4 data returned for this article path",
+        })
+    article = rows[0]
+    return jsonify({
+        "ok": True,
+        "brand_id": bid,
+        "path": path,
+        "window": {"start": cur_start.isoformat(), "end": end_d.isoformat(), "days": days},
+        "article_metrics": {
+            "sessions": article.get("sessions"),
+            "users": article.get("totalUsers") or article.get("users"),
+            "engaged_sessions": article.get("engagedSessions") or article.get("engaged_sessions"),
+            "engagement_rate": article.get("engagementRate") or article.get("engagement_rate"),
+            "conversions": article.get("conversions"),
+        },
+        "note": "GA4 data returned for this article path",
+    })
 
 
 @app.route("/api/ga4/<brand_id>/event-audit", methods=["GET"])

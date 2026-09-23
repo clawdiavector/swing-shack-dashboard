@@ -1955,12 +1955,27 @@ def gbp_suggestions() -> Dict[str, Any]:
     }
 
 
+def _runtime_data_file_brand(name: str, brand: Optional[str] = None) -> str:
+    """Per-brand-aware runtime data lookup. Order:
+       1) DATA_DIR/brands/<brand>/<name> (per-brand JobSpec output)
+       2) DATA_DIR/<name> (flat fallback)
+       3) bundled data/<name>
+    """
+    runtime_dir = os.environ.get("DATA_DIR") or DATA_DIR
+    if brand:
+        cand = os.path.join(runtime_dir, "brands", brand, name)
+        if os.path.exists(cand):
+            return cand
+    return _runtime_data_file(name)
+
+
 def seo_assistant() -> Dict[str, Any]:
-    audit = _read_json(_runtime_data_file("seo-audit.json")) or {}
-    rank = _read_json(_runtime_data_file("seo-rankings.json")) or {}
-    gsc = _read_json(_runtime_data_file("search-console.json")) or {}
-    geo = _read_json(_runtime_data_file("geo-audit.json")) or {}
-    fixes = _read_json(_runtime_data_file("landing-page-fixes.json")) or {}
+    scoped_brand = get_request_brand()
+    audit = _read_json(_runtime_data_file_brand("seo-audit.json", scoped_brand)) or {}
+    rank = _read_json(_runtime_data_file_brand("seo-rankings.json", scoped_brand)) or {}
+    gsc = _read_json(_runtime_data_file_brand("search-console.json", scoped_brand)) or {}
+    geo = _read_json(_runtime_data_file_brand("geo-audit.json", scoped_brand)) or {}
+    fixes = _read_json(_runtime_data_file_brand("landing-page-fixes.json", scoped_brand)) or {}
 
     if isinstance(gsc, dict) and gsc.get("queries"):
         rank = dict(rank) if isinstance(rank, dict) else {}
@@ -4953,3 +4968,4 @@ def generate_image(
             "note": "Swap provider_key in provider_templates to switch Ideogram/DALL-E/MJ/SD. Actual API call pending creds."
         },
     }
+
