@@ -338,7 +338,7 @@ export function CalendarPage() {
           stampKind="as_of"
         />
         <StatCard
-          href="/?page=planning"
+          to={`/calendar/lanes?date=${selectedIso}`}
           icon={Map}
           label="Lanes"
           value="Open"
@@ -346,7 +346,7 @@ export function CalendarPage() {
           tone="mute"
         />
         <StatCard
-          href="/?page=ideas"
+          to={`/calendar/ideas?date=${selectedIso}`}
           icon={Lightbulb}
           label="Ideas"
           value="Open"
@@ -482,8 +482,8 @@ export function CalendarPage() {
             ) : null}
           </ul>
           <div className="mt-4 grid gap-2">
-            <IconTile href="/?page=planning" icon={Map} label="Planning" hint="Themes and lanes" />
-            <IconTile href="/?page=ideas" icon={Lightbulb} label="Ideas" hint="Backlog to schedule" />
+            <IconTile href="/calendar/lanes" icon={Map} label="Planning" hint="Themes and lanes" />
+            <IconTile href="/calendar/ideas" icon={Lightbulb} label="Ideas" hint="Backlog to schedule" />
           </div>
         </section>
       </div>
