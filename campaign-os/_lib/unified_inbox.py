@@ -64,6 +64,23 @@ def _campaign_asset_for_id(
     return None, {}
 
 
+def _is_caption_only_l5_draft(asset_id: str, asset: dict[str, Any]) -> bool:
+    """True for pending L5 caption sidecars without persisted image bytes."""
+    image_path, image_url = _asset_image_meta(asset)
+    if image_path or image_url:
+        return False
+    sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    if not sidecar_path.is_file():
+        return False
+    try:
+        sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(sidecar, dict):
+        return False
+    return str(sidecar.get("action") or "") in ("draft_caption", "fill_slot")
+
+
 def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
     """Resolve image_path / image_url from campaign assets (camelCase or snake_case)."""
     if not asset:
@@ -371,6 +388,9 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                         asset = maybe_asset
             full_caption = str(asset.get("caption") or row.get("caption") or "")
             image_path, image_url = _asset_image_meta(asset)
+            platform = str(row.get("platform") or asset.get("platform") or "")
+            if bucket_name == "pending" and platform != "gbp" and _is_caption_only_l5_draft(aid, asset):
+                continue
             out.append({
                 "id": _item_id("draft_asset", f"{cid}:{aid}"),
                 "type": "draft_asset",

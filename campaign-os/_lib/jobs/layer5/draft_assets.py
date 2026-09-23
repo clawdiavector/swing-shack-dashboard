@@ -27,6 +27,9 @@ CAPTION_EST_USD = 0.002
 IMAGE_EST_USD = 0.04
 GBP_EST_USD = 0.0
 VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1792", "1792x1024"})
+_CAPTION_ONLY_REJECT_REASON = "caption-only incomplete post; operator clear 2026-09-23"
+_CAPTION_SIDEcar_ACTIONS = frozenset({"draft_caption", "fill_slot"})
+_CAPTION_QUEUE_ACTIONS = frozenset({"draft_caption", "fill_slot"})
 
 
 def _utc_now_iso() -> str:
@@ -514,6 +517,245 @@ def _find_caption_draft_for_item(source_item_id: str) -> tuple[Optional[str], Op
     return None, None
 
 
+def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
+    from _lib.unified_inbox import _asset_image_meta  # noqa: PLC0415
+
+    image_path, image_url = _asset_image_meta(asset)
+    path_s = str(image_path or "").strip()
+    url_s = str(image_url or "").strip()
+    if path_s:
+        candidate = Path(path_s)
+        if not candidate.is_file():
+            alt = _data_dir() / path_s.lstrip("/")
+            if alt.is_file():
+                candidate = alt
+        return candidate.is_file() and candidate.stat().st_size > 0
+    return bool(url_s)
+
+
+def _moment_has_image(brand_id: str, item_id: str) -> bool:
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return False
+    from _lib.unified_inbox import _load_campaign_data  # noqa: PLC0415
+
+    data = _load_campaign_data()
+    campaigns = data.get("campaigns") if isinstance(data.get("campaigns"), dict) else {}
+    for path in sorted(draft_dir.glob("*.json")):
+        if path.name.startswith("_"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if sidecar.get("source_inbox_item_id") != item_id:
+            continue
+        asset_id = str(sidecar.get("asset_id") or "")
+        if not asset_id:
+            continue
+        for campaign in campaigns.values():
+            if not isinstance(campaign, dict):
+                continue
+            assets = campaign.get("assets")
+            if not isinstance(assets, dict):
+                continue
+            asset = assets.get(asset_id)
+            if isinstance(asset, dict) and _asset_has_persisted_image(asset):
+                return True
+    return False
+
+
+def _sidecars_by_asset_id() -> dict[str, dict[str, Any]]:
+    draft_dir = _data_dir() / "draft-assets"
+    out: dict[str, dict[str, Any]] = {}
+    if not draft_dir.is_dir():
+        return out
+    for path in draft_dir.glob("*.json"):
+        if path.name.startswith("_"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        asset_id = str(sidecar.get("asset_id") or "")
+        if asset_id:
+            out[asset_id] = sidecar
+    return out
+
+
+def _campaign_ids_for_brand(brand: str | None) -> set[str] | None:
+    if brand is None:
+        return None
+    reg = _load_brands_registry()
+    brands = reg.get("brands") if isinstance(reg.get("brands"), dict) else {}
+    entry = brands.get(brand) if isinstance(brands, dict) else None
+    if not isinstance(entry, dict):
+        return set()
+    cids = entry.get("campaign_ids")
+    if not isinstance(cids, list):
+        return set()
+    return {str(c) for c in cids if c}
+
+
+def _reject_caption_only_drafts(brand: str | None = None) -> int:
+    from _lib.unified_inbox import _asset_image_meta, _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    sidecars = _sidecars_by_asset_id()
+    data = _load_campaign_data()
+    campaigns = data.get("campaigns") if isinstance(data.get("campaigns"), dict) else {}
+    if not isinstance(campaigns, dict):
+        return 0
+    allowed = _campaign_ids_for_brand(brand)
+    now = _utc_now_iso()
+    rejected = 0
+    for cid, campaign in campaigns.items():
+        if not isinstance(campaign, dict):
+            continue
+        if allowed is not None and cid not in allowed:
+            continue
+        assets = campaign.get("assets")
+        if not isinstance(assets, dict):
+            continue
+        for aid, asset in assets.items():
+            if not isinstance(asset, dict):
+                continue
+            aps = str(asset.get("approvalStatus") or "draft").lower()
+            if aps not in ("draft", "pending", ""):
+                continue
+            if str(asset.get("platform") or "") == "gbp":
+                continue
+            sidecar = sidecars.get(str(aid))
+            if not sidecar:
+                continue
+            if str(sidecar.get("action") or "") not in _CAPTION_SIDEcar_ACTIONS:
+                continue
+            image_path, image_url = _asset_image_meta(asset)
+            if image_path or image_url:
+                continue
+            asset["approvalStatus"] = "rejected"
+            asset["rejectionReason"] = _CAPTION_ONLY_REJECT_REASON
+            asset["updatedAt"] = now
+            asset["reviewTs"] = now
+            campaign["updatedAt"] = now
+            rejected += 1
+    if rejected:
+        _write_campaign_data(data)
+    return rejected
+
+
+def _moment_rejected_caption_only(item_id: str) -> bool:
+    from _lib.unified_inbox import _load_campaign_data  # noqa: PLC0415
+
+    sidecars = _sidecars_by_asset_id()
+    data = _load_campaign_data()
+    campaigns = data.get("campaigns") if isinstance(data.get("campaigns"), dict) else {}
+    for campaign in (campaigns or {}).values():
+        if not isinstance(campaign, dict):
+            continue
+        assets = campaign.get("assets")
+        if not isinstance(assets, dict):
+            continue
+        for aid, asset in assets.items():
+            if not isinstance(asset, dict):
+                continue
+            sidecar = sidecars.get(str(aid))
+            if not sidecar or sidecar.get("source_inbox_item_id") != item_id:
+                continue
+            if str(sidecar.get("action") or "") not in _CAPTION_SIDEcar_ACTIONS:
+                continue
+            if str(asset.get("approvalStatus") or "").lower() != "rejected":
+                continue
+            if asset.get("rejectionReason") == _CAPTION_ONLY_REJECT_REASON:
+                return True
+    return False
+
+
+def _retire_orphan_queue_rows(rows: list[dict[str, Any]], brand: str | None) -> int:
+    retired = 0
+    moment_has_image_row: dict[str, bool] = {}
+    for row in rows:
+        if str(row.get("status") or "").lower() != "pending":
+            continue
+        if str(row.get("action") or "") == "draft_image":
+            resolved = _resolve_row_moment(row)
+            if resolved:
+                moment_has_image_row[resolved[1]] = True
+
+    for row in rows:
+        if str(row.get("status") or "").lower() != "pending":
+            continue
+        action = str(row.get("action") or "")
+        if action not in _CAPTION_QUEUE_ACTIONS:
+            continue
+        if brand is not None and str(row.get("brand") or "") != brand:
+            continue
+        resolved = _resolve_row_moment(row)
+        if not resolved:
+            continue
+        item_id = resolved[1]
+        if moment_has_image_row.get(item_id):
+            continue
+        if not _moment_rejected_caption_only(item_id):
+            continue
+        row["status"] = "skipped"
+        row["note"] = "ticket-20260923-cos-complete-post-create caption-only retired"
+        retired += 1
+    return retired
+
+
+def _resolve_row_moment(row: dict[str, Any]) -> Optional[tuple[str, str]]:
+    brand_raw = row.get("brand")
+    action = str(row.get("action") or "")
+    try:
+        brand_id = validate_brand_id(brand_raw)
+    except ValueError:
+        return None
+    item_id: Optional[str] = None
+    if action in SLOT_ACTIONS:
+        slot = _parse_slot_ref(str(row.get("payload_ref") or ""))
+        if not slot:
+            return None
+        slot_brand, slot_date, slot_pillar = slot
+        if slot_brand != brand_id:
+            return None
+        item_id = _resolve_slot_calendar_item(brand_id, slot_date, slot_pillar)
+    else:
+        item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
+    if not item_id or not _is_inbox_item_approved(item_id):
+        return None
+    return brand_id, item_id
+
+
+def _count_pending_rows(moment_items: list[tuple[tuple[str, str], list[tuple[dict[str, Any], str]]]], start: int) -> int:
+    total = 0
+    for _, rows_for_moment in moment_items[start:]:
+        for row, _action in rows_for_moment:
+            if str(row.get("status") or "").lower() == "pending":
+                total += 1
+    return total
+
+
+def _apply_stop_error(
+    err: str,
+    *,
+    errors: list[str],
+    stop_cap: bool,
+    stop_auth: bool,
+) -> tuple[bool, bool]:
+    if "daily LLM spend cap reached" in err:
+        errors.append(err)
+        return True, stop_auth
+    if "missing OPENAI_API_KEY" in err:
+        errors.append(err)
+        return stop_cap, True
+    errors.append(err)
+    return stop_cap, stop_auth
+
+
 def _process_image_row(
     row: dict[str, Any],
     *,
@@ -678,6 +920,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
     """Process pending L5 queue rows into draft_asset inbox rows."""
     drafted = 0
     skipped = 0
+    rejected = 0
     errors: list[str] = []
     stop_cap = False
     stop_auth = False
@@ -685,7 +928,10 @@ def run(brand: str | None = None) -> dict[str, Any]:
 
     try:
         _backfill_draft_names(brand)
+        rejected = _reject_caption_only_drafts(brand)
         rows = _read_queue()
+        _retire_orphan_queue_rows(rows, brand)
+
         pending = [
             r
             for r in rows
@@ -694,96 +940,169 @@ def run(brand: str | None = None) -> dict[str, Any]:
             and (brand is None or str(r.get("brand") or "") == brand)
         ]
 
+        moments: dict[tuple[str, str], list[tuple[dict[str, Any], str]]] = {}
         for row in pending:
-            try:
+            resolved = _resolve_row_moment(row)
+            if not resolved:
+                skipped += 1
+                continue
+            key = resolved
+            moments.setdefault(key, []).append((row, str(row.get("action") or "")))
+
+        moment_items = list(moments.items())
+        halted = False
+
+        for idx, ((brand_id, item_id), rows_for_moment) in enumerate(moment_items):
+            if halted or stop_cap or stop_auth:
+                skipped += _count_pending_rows(moment_items, idx)
+                break
+
+            if _moment_has_image(brand_id, item_id):
+                for row, action in rows_for_moment:
+                    if action != "draft_gbp":
+                        row["status"] = "done"
+                continue
+
+            for row, action in rows_for_moment:
+                if action != "draft_gbp":
+                    continue
                 if stop_cap or stop_auth:
-                    skipped += 1
-                    continue
-
-                brand_raw = row.get("brand")
-                action = str(row.get("action") or "")
-
+                    break
                 try:
-                    brand_id = validate_brand_id(brand_raw)
-                except ValueError:
-                    skipped += 1
-                    continue
-
-                item_id: Optional[str] = None
-                if action in SLOT_ACTIONS:
-                    slot = _parse_slot_ref(str(row.get("payload_ref") or ""))
-                    if not slot:
-                        skipped += 1
-                        continue
-                    slot_brand, slot_date, slot_pillar = slot
-                    if slot_brand != brand_id:
-                        skipped += 1
-                        continue
-                    item_id = _resolve_slot_calendar_item(brand_id, slot_date, slot_pillar)
-                    if not item_id:
-                        skipped += 1
-                        continue
-                else:
-                    item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
-                    if not item_id:
-                        skipped += 1
-                        continue
-
-                if not _is_inbox_item_approved(item_id):
-                    skipped += 1
-                    continue
-
-                asset_id: Optional[str] = None
-                err: Optional[str] = None
-
-                if action in SLOT_ACTIONS or action == "draft_caption":
-                    asset_id, err = _process_caption_row(row, item_id=item_id, brand_id=brand_id)
-                elif action == "draft_image":
-                    asset_id, err = _process_image_row(row, item_id=item_id, brand_id=brand_id)
-                elif action == "draft_gbp":
                     asset_id, err = _process_gbp_row(row, item_id=item_id, brand_id=brand_id)
-                else:
+                except Exception as exc:  # noqa: BLE001
                     skipped += 1
+                    errors.append(
+                        _record_error(
+                            exc,
+                            context={
+                                "row_id": row.get("id"),
+                                "action": row.get("action"),
+                                "brand": row.get("brand"),
+                                "payload_ref": row.get("payload_ref"),
+                            },
+                        )
+                    )
                     continue
-
                 if err:
-                    if "daily LLM spend cap reached" in err:
-                        stop_cap = True
-                        errors.append(err)
-                        skipped += 1
-                        continue
-                    if "missing OPENAI_API_KEY" in err:
-                        stop_auth = True
-                        errors.append(err)
-                        skipped += 1
-                        continue
+                    stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
                     skipped += 1
-                    errors.append(err)
+                    if stop_cap or stop_auth:
+                        halted = True
+                        skipped += _count_pending_rows(moment_items, idx)
+                        break
                     continue
-
                 if asset_id:
                     row["status"] = "done"
                     drafted += 1
                 else:
                     skipped += 1
-            except Exception as exc:  # noqa: BLE001
-                skipped += 1
-                errors.append(
-                    _record_error(
-                        exc,
-                        context={
-                            "row_id": row.get("id"),
-                            "action": row.get("action"),
-                            "brand": row.get("brand"),
-                            "payload_ref": row.get("payload_ref"),
-                        },
+
+            if halted or stop_cap or stop_auth:
+                break
+
+            caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
+            image_rows = [(r, a) for r, a in rows_for_moment if a == "draft_image"]
+
+            cap_asset_id, _cap_text = _find_caption_draft_for_item(item_id)
+            if cap_asset_id is None and caption_rows:
+                cap_row = caption_rows[0][0]
+                try:
+                    asset_id, err = _process_caption_row(cap_row, item_id=item_id, brand_id=brand_id)
+                except Exception as exc:  # noqa: BLE001
+                    skipped += 1
+                    errors.append(
+                        _record_error(
+                            exc,
+                            context={
+                                "row_id": cap_row.get("id"),
+                                "action": cap_row.get("action"),
+                                "brand": cap_row.get("brand"),
+                                "payload_ref": cap_row.get("payload_ref"),
+                            },
+                        )
                     )
-                )
-                continue
+                    asset_id, err = None, _exc_label(exc)
+                if err:
+                    stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
+                    skipped += 1
+                    if stop_cap or stop_auth:
+                        halted = True
+                        skipped += _count_pending_rows(moment_items, idx)
+                        break
+                elif asset_id:
+                    for row, action in rows_for_moment:
+                        if action in _CAPTION_QUEUE_ACTIONS:
+                            row["status"] = "done"
+                    drafted += 1
+                else:
+                    skipped += 1
+
+            if stop_cap or stop_auth:
+                halted = True
+                skipped += _count_pending_rows(moment_items, idx)
+                break
+
+            has_image_queue_row = bool(image_rows)
+            if not _moment_has_image(brand_id, item_id) and has_image_queue_row:
+                img_row = image_rows[0][0]
+                if img_row is not None:
+                    try:
+                        asset_id, err = _process_image_row(img_row, item_id=item_id, brand_id=brand_id)
+                    except Exception as exc:  # noqa: BLE001
+                        skipped += 1
+                        errors.append(
+                            _record_error(
+                                exc,
+                                context={
+                                    "row_id": img_row.get("id"),
+                                    "action": img_row.get("action"),
+                                    "brand": img_row.get("brand"),
+                                    "payload_ref": img_row.get("payload_ref"),
+                                },
+                            )
+                        )
+                        asset_id, err = None, _exc_label(exc)
+                    if err:
+                        if "missing OPENAI_API_KEY" in err and drafted > 0:
+                            errors.append(err)
+                            skipped += 1
+                        else:
+                            stop_cap, stop_auth = _apply_stop_error(
+                                err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth
+                            )
+                            skipped += 1
+                            if stop_cap or stop_auth:
+                                halted = True
+                                skipped += _count_pending_rows(moment_items, idx)
+                                break
+                    elif asset_id:
+                        image_rows[0][0]["status"] = "done"
+                        drafted += 1
+                    else:
+                        skipped += 1
+
+            if stop_cap or stop_auth:
+                break
+
+            if not _moment_has_image(brand_id, item_id):
+                skipped += _count_pending_rows(moment_items, idx)
+                halted = True
+                break
+
+            break
+
     except Exception as exc:  # noqa: BLE001
         label = _record_error(exc, context={"step": "run"})
-        return {"ok": False, "error": label, "drafted": drafted, "skipped": skipped}
+        return {
+            "ok": False,
+            "error": label,
+            "drafted": drafted,
+            "skipped": skipped,
+            "rejected": rejected,
+        }
     finally:
+        rejected += _reject_caption_only_drafts(brand)
         if rows:
             _write_queue(rows)
 
@@ -793,6 +1112,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
             "error": "missing OPENAI_API_KEY",
             "drafted": drafted,
             "skipped": skipped,
+            "rejected": rejected,
         }
     if stop_cap:
         return {
@@ -800,6 +1120,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
             "error": "daily LLM spend cap reached",
             "drafted": drafted,
             "skipped": skipped,
+            "rejected": rejected,
         }
     if errors and drafted == 0:
         return {
@@ -807,6 +1128,10 @@ def run(brand: str | None = None) -> dict[str, Any]:
             "error": errors[0],
             "drafted": drafted,
             "skipped": skipped,
+            "rejected": rejected,
         }
 
-    return {"ok": True, "drafted": drafted, "skipped": skipped, "rows": drafted}
+    out: dict[str, Any] = {"ok": True, "drafted": drafted, "skipped": skipped, "rows": drafted}
+    if rejected:
+        out["rejected"] = rejected
+    return out
