@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -13,6 +14,18 @@ SCHEMA = "campaign-os/unified-inbox/v1"
 HUMAN_EDIT_SCHEMA = "campaign-os/human-edit-signal/v1"
 SLA_STALE_HOURS = 24
 ITEM_TYPES = frozenset({"calendar_candidate", "proposal", "draft_asset", "publish_request"})
+_DRAFT_HEX_TITLE = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
+
+
+def _draft_item_title(row: dict[str, Any], asset: dict[str, Any], aid: str) -> str:
+    title = str(row.get("name") or aid)
+    if not _DRAFT_HEX_TITLE.match(title):
+        return title
+    from _lib.jobs.layer5.draft_assets import caption_first_line_name  # noqa: PLC0415
+
+    caption = str(asset.get("caption") or row.get("caption") or "")
+    fallback = caption_first_line_name(caption)
+    return fallback or title
 
 
 def _utc_now_iso() -> str:
@@ -299,7 +312,7 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 "id": _item_id("draft_asset", f"{cid}:{aid}"),
                 "type": "draft_asset",
                 "brand_id": brand_id,
-                "title": str(row.get("name") or aid),
+                "title": _draft_item_title(row, asset, aid),
                 "summary": str(row.get("caption") or "")[:240],
                 "evidence": [{"source": "review_inbox", "ref": f"{cid}/{aid}"}],
                 "created_at": ts,

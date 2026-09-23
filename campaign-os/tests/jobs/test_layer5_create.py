@@ -1207,6 +1207,141 @@ def test_intended_publish_channels_matches_auth_matrix(l5_app, tmp_path):
         assert set(channels).issubset(set(PUBLISHING_CHANNELS))
 
 
+def _first_draft_asset_name(tmp_path: Path) -> str:
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    for campaign in (data.get("campaigns") or {}).values():
+        for asset in (campaign.get("assets") or {}).values():
+            if isinstance(asset, dict) and asset.get("name"):
+                return str(asset["name"])
+    raise AssertionError("no draft asset name in campaign-data")
+
+
+def test_draft_caption_name_uses_calendar_title(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    cal_id = "cal-name-test"
+    _seed_brands(tmp_path, brand="stick", campaign_id="camp-stick")
+    item_id = _seed_approved_calendar(tmp_path, brand="stick", cal_id=cal_id)
+    _seed_queue_row(tmp_path, action="draft_caption", item_id=item_id)
+
+    mock_result = {
+        "ok": True,
+        "survivors": [{"body": "Caption body should not win when calendar has title"}],
+        "observability": {"provider": "openai", "model": "gpt-4o-mini"},
+    }
+    with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result):
+        assert draft_assets.run().get("drafted") == 1
+
+    assert _first_draft_asset_name(tmp_path) == "Approved slot day"
+    sidecar = json.loads(next((tmp_path / "draft-assets").glob("*.json")).read_text(encoding="utf-8"))
+    assert sidecar.get("title") == "Approved slot day"
+    assert not re.match(r"^Draft [0-9a-f]{6}$", _first_draft_asset_name(tmp_path))
+
+
+def test_draft_caption_name_uses_caption_when_no_calendar_title(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    item_id = _seed_approved_proposal(tmp_path)
+    _seed_queue_row(tmp_path, action="draft_caption", item_id=item_id)
+    mock_result = {
+        "ok": True,
+        "survivors": [{"body": "Opening line for the post\nMore detail below."}],
+        "observability": {"provider": "openai", "model": "gpt-4o-mini"},
+    }
+    with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result):
+        draft_assets.run()
+
+    assert _first_draft_asset_name(tmp_path) == "Opening line for the post"
+    assert not re.match(r"^Draft [0-9a-f]{6}$", _first_draft_asset_name(tmp_path))
+
+
+def test_gbp_draft_name_from_post_body(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    item_id = _seed_approved_proposal(tmp_path)
+    _seed_queue_row(tmp_path, action="draft_gbp", item_id=item_id)
+
+    with patch("_lib.gbp_daily_poster.build_daily_plan") as mock_plan:
+        mock_plan.return_value = {
+            "ok": True,
+            "plan_id": "plan-test",
+            "posts": [{"body": "GBP headline for the week"}],
+            "publish": {"skipped": "publish=False (dry-run)"},
+        }
+        draft_assets.run()
+
+    assert _first_draft_asset_name(tmp_path) == "GBP headline for the week"
+
+
+def test_backfill_renames_legacy_draft_hex_names(l5_app, tmp_path):
+    from _lib.jobs.layer5 import draft_assets
+
+    _seed_brands(tmp_path)
+    asset_id = "draft-backfill01"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    sidecar = {
+        "schema": "campaign-os/draft-asset/v1",
+        "asset_id": asset_id,
+        "campaign_id": "camp-stick",
+        "brand_id": "stick",
+        "source_inbox_item_id": "proposal:stick:prop-1",
+        "action": "draft_caption",
+        "created_at": "2026-09-17T12:00:00Z",
+    }
+    (tmp_path / "draft-assets" / f"{asset_id}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    data["campaigns"]["camp-stick"]["assets"][asset_id] = {
+        "name": "Draft bbffe7",
+        "caption": "Backfilled from this caption",
+        "approvalStatus": "draft",
+        "updatedAt": "2026-09-17T12:00:00Z",
+    }
+    (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+    (tmp_path / "agent-queue.json").write_text(
+        json.dumps({"schema": "campaign-os/agent-queue/v1", "generated_at": "2026-09-17T10:00:00Z", "rows": []}),
+        encoding="utf-8",
+    )
+
+    draft_assets.run()
+
+    saved = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    assert saved["campaigns"]["camp-stick"]["assets"][asset_id]["name"] == "Backfilled from this caption"
+
+
+def test_unified_inbox_draft_hex_title_uses_caption(l5_app, tmp_path):
+    from _lib import unified_inbox
+
+    _seed_brands(tmp_path)
+    data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
+    data["campaigns"]["camp-stick"]["assets"]["draft-hex"] = {
+        "name": "Draft a1b2c3",
+        "caption": "Unified inbox visible title",
+        "approvalStatus": "draft",
+        "platform": "instagram",
+        "updatedAt": "2026-09-17T12:00:00Z",
+    }
+    (tmp_path / "campaign-data.json").write_text(json.dumps(data), encoding="utf-8")
+
+    inbox_row = {
+        "campaignId": "camp-stick",
+        "assetId": "draft-hex",
+        "brand": "stick",
+        "name": "Draft a1b2c3",
+        "caption": "ignored",
+        "updatedAt": "2026-09-17T12:00:00Z",
+    }
+    with patch(
+        "_lib.intelligence.review_inbox",
+        return_value={"pending": [inbox_row], "approved": [], "rejected": []},
+    ):
+        payload = unified_inbox.list_items(status="all", item_type="draft_asset", brand="stick")
+
+    titles = [i["title"] for i in payload.get("items") or [] if i["meta"]["asset_id"] == "draft-hex"]
+    assert titles == ["Unified inbox visible title"]
+
+
 def test_draft_assets_diagnostics_path_allowed(l5_app):
     from _lib.jobs.output_file import is_path_allowed
     from _lib.jobs.registry import JOBS
