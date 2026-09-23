@@ -3,12 +3,24 @@ name: Meta Live Fetch (IG + FB analytics refresh)
 # Hits the live Railway job registry so analytics JSONs land on the
 # runtime volume (no git commit dance).
 #
-# POST /api/jobs/run/meta_refresh → _lib.meta_live_fetch.fetch_all()
-# writes (under $DATA_DIR):
+# POST /api/jobs/run/meta_refresh?brand=<id>
+#   → _lib.meta_live_fetch.fetch_all_with_paid_media()
+# writes (under $DATA_DIR/brands/<id>/):
 #   - ig-analytics.json
 #   - ig-business-analytics.json
 #   - facebook-analytics.json
 #   - facebook-business-analytics.json
+#
+# ONE HTTP REQUEST PER BRAND. Do not reintroduce ?all=1: that fans out to every
+# brand *inside a single synchronous request* (_lib/jobs/runner.py), and two
+# brands at ~37s each exceeds the Railway edge proxy's ~60s ceiling → 502, the
+# second lane's `finished` ledger row is never written, and the job goes STUCK
+# (spec.timeout_seconds=60 → _stuck_started threshold 120s).
+# Incident: GH run 35822905969, 2026-09-23.
+# Plan: handoffs/ticket-20260923-cos-jobs-restore-plan-20260923.md
+#
+# No push: trigger. A code push must not burn a live 12h-cadence Meta fetch, and
+# it races the Railway deploy it was pushed for. Use workflow_dispatch.
 #
 # Schedule:
 #   - 06:30 SAST (04:30 UTC) — before morning brief
@@ -18,42 +30,84 @@ name: Meta Live Fetch (IG + FB analytics refresh)
 on:
   schedule:
     - cron: '30 4,16 * * *'  # 06:30 SAST + 18:30 SAST
-  workflow_dispatch:           # manual trigger from /api/admin/meta/refresh-now
-  push:
-    branches: [main]
-    paths:
-      - 'campaign-os/app.py'
-      - 'campaign-os/_lib/meta_live_fetch.py'
-      - 'campaign-os/_lib/jobs/**'
-      - '.github/workflows/meta-live-fetch.yml'
+  workflow_dispatch:
 
 jobs:
   refresh-meta:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - name: POST /api/jobs/run/meta_refresh on Railway
-        env:
-          COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+      - name: Preflight — COS_JOB_TOKEN required
         run: |
           set -euo pipefail
           if [ -z "${COS_JOB_TOKEN:-}" ]; then
             echo "::error::COS_JOB_TOKEN secret is not set — refuse to fall back to password login"
             exit 1
           fi
+
+      - uses: actions/checkout@v4
+
+      - name: Resolve meta brand lanes from data/brands.json
+        run: |
+          set -euo pipefail
+          BRANDS="$(python3 - <<'PY'
+          import json
+
+          reg = json.load(open("data/brands.json", encoding="utf-8"))
+          out = []
+          for bid, brand in (reg.get("brands") or {}).items():
+              if not brand.get("active", True):
+                  continue
+              scope = (brand.get("integration_scope") or {}).get("meta")
+              if scope is None or scope.get("applies") is False:
+                  continue
+              out.append(bid)
+          print(" ".join(out))
+          PY
+          )"
+          if [ -z "$BRANDS" ]; then
+            echo "::error::no meta brand lanes resolved from data/brands.json"
+            exit 1
+          fi
+          echo "Meta brand lanes: $BRANDS"
+          echo "BRANDS=$BRANDS" >> "$GITHUB_ENV"
+
+      - name: POST /api/jobs/run/meta_refresh per brand
+        run: |
+          # No `set -e`: one bad lane must not hide the others. The gate step
+          # below is the authority on pass/fail.
+          set -uo pipefail
           AUTH_H="Authorization: Bearer ${COS_JOB_TOKEN}"
-          BASE="https://swing-shack-dashboard-production.up.railway.app"
+          : > /tmp/meta-refresh-http-failures.txt
+          for b in $BRANDS; do
+            out="/tmp/meta-refresh-$b.json"
+            echo "=== POST /api/jobs/run/meta_refresh?brand=$b ==="
+            code="$(curl -s -X POST "$BASE/api/jobs/run/meta_refresh?brand=$b" \
+              -H "$AUTH_H" \
+              -H "Content-Type: application/json" \
+              --max-time 120 \
+              -w '%{http_code}' \
+              -o "$out")" || code="000"
+            echo "HTTP $code"
+            if [ "$code" != "200" ]; then
+              echo "::error::meta_refresh brand=$b returned HTTP $code"
+              head -c 400 "$out" || true
+              echo
+              echo "$b" >> /tmp/meta-refresh-http-failures.txt
+              continue
+            fi
+            python3 scripts/cos_job_summary.py print "$out"
+          done
 
-          echo "=== POST /api/jobs/run/meta_refresh ==="
-          curl -sf -X POST "$BASE/api/jobs/run/meta_refresh?all=1" \
-            -H "$AUTH_H" \
-            -H "Content-Type: application/json" \
-            -w "\nHTTP %{http_code} in %{time_total}s\n" \
-            -o /tmp/meta-fetch.json
-          python3 scripts/cos_job_summary.py print /tmp/meta-fetch.json
+      - name: Freshness refresh + read
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          AUTH_H="Authorization: Bearer ${COS_JOB_TOKEN}"
 
-          echo
           echo "=== POST /api/freshness/refresh ==="
           curl -sf -X POST "$BASE/api/freshness/refresh" \
             -H "$AUTH_H" \
@@ -73,4 +127,21 @@ jobs:
           print(f'rotten={d.get(\"rotten_count\", \"?\")}')
           "
 
-          python3 scripts/cos_job_summary.py assert-ok /tmp/meta-fetch.json --hard-gate
+      - name: Gate — assert-ok per brand
+        run: |
+          set -uo pipefail
+          rc=0
+          for b in $BRANDS; do
+            out="/tmp/meta-refresh-$b.json"
+            if grep -qx "$b" /tmp/meta-refresh-http-failures.txt 2>/dev/null; then
+              echo "::error::brand=$b produced no usable response (HTTP failure above)"
+              rc=1
+              continue
+            fi
+            echo "--- assert-ok brand=$b"
+            if ! python3 scripts/cos_job_summary.py assert-ok "$out" --hard-gate; then
+              echo "::error::meta_refresh brand=$b did not return OK"
+              rc=1
+            fi
+          done
+          exit $rc
