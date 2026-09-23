@@ -4,6 +4,7 @@ import {
   filterMonthItemsByLane,
   formatLocalIso,
   localTodayIso,
+  monthlyThemeLabel,
 } from './planning'
 import type { PlanningMonthItem } from './planningTypes'
 
@@ -43,6 +44,28 @@ describe('localTodayIso B3', () => {
     vi.setSystemTime(new Date(2026, 0, 15, 23, 45, 0))
     expect(formatLocalIso(new Date())).toBe('2026-01-15')
     vi.useRealTimers()
+  })
+})
+
+describe('monthlyThemeLabel', () => {
+  it('returns string as-is', () => {
+    expect(monthlyThemeLabel('Hero month')).toBe('Hero month')
+  })
+
+  it('prefers theme then question on object', () => {
+    expect(
+      monthlyThemeLabel({
+        theme: 'What belongs in your bag?',
+        question: 'When every club…',
+      }),
+    ).toBe('What belongs in your bag?')
+    expect(monthlyThemeLabel({ question: 'Only question' })).toBe('Only question')
+  })
+
+  it('returns empty for null, empty string, or unusable object', () => {
+    expect(monthlyThemeLabel(null)).toBe('')
+    expect(monthlyThemeLabel('')).toBe('')
+    expect(monthlyThemeLabel({ lanes_emphasis: ['product'] })).toBe('')
   })
 })
 

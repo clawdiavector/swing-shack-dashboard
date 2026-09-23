@@ -8,6 +8,7 @@ import {
   LANE_FILTER_ORDER,
   localTodayIso,
   monthSummaryStats,
+  monthlyThemeLabel,
   shiftMonthParam,
   truncateChipTitle,
 } from '../../../lib/planning'
@@ -207,6 +208,11 @@ export function LaneMonthPanel({
     [monthView?.days, monthParam],
   )
 
+  const themeLabel = useMemo(
+    () => monthlyThemeLabel(monthView?.monthly_theme),
+    [monthView?.monthly_theme],
+  )
+
   const drawerItems = drawerIso ? monthView?.days?.[drawerIso] || [] : []
 
   const closeDrawer = useCallback(() => setDrawerIso(null), [])
@@ -263,8 +269,8 @@ export function LaneMonthPanel({
         </div>
       </div>
 
-      {monthView.monthly_theme ? (
-        <p className="text-sm font-semibold text-yel">{monthView.monthly_theme}</p>
+      {themeLabel ? (
+        <p className="text-sm font-semibold text-yel">{themeLabel}</p>
       ) : null}
 
       <div className="flex flex-wrap gap-1.5">

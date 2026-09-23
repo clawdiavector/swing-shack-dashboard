@@ -6,6 +6,17 @@ export type BigBrandIdea = {
   elevator?: string
 }
 
+export type MonthlyTheme = {
+  month?: string
+  theme?: string
+  question?: string
+  supported_bet?: string
+  what_we_prove?: string
+  what_changes_it?: string
+  lanes_emphasis?: string[]
+  set_at?: string
+}
+
 export type PlanningMonthItem = {
   title?: string
   subtitle?: string
@@ -22,7 +33,7 @@ export type PlanningMonthItem = {
 
 export type PlanningMonthView = {
   ok?: boolean
-  monthly_theme?: string
+  monthly_theme?: string | MonthlyTheme | null
   days?: Record<string, PlanningMonthItem[]>
   important_dates?: unknown
   lane_system?: unknown

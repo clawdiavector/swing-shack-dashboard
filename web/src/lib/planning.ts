@@ -223,3 +223,14 @@ export function setCachedPlanningEvent(key: string, data: unknown): void {
 export function planningEventCacheKey(brand: string, eventId: string): string {
   return `${brand}:${eventId}`
 }
+
+/** Display label for API `monthly_theme` (string legacy or full theme object). */
+export function monthlyThemeLabel(raw: unknown): string {
+  if (typeof raw === 'string') return raw
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, unknown>
+    if (typeof o.theme === 'string' && o.theme) return o.theme
+    if (typeof o.question === 'string' && o.question) return o.question
+  }
+  return ''
+}
