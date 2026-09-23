@@ -21,7 +21,6 @@ import {
   fetchLearn,
   fetchToday,
   fetchTopPosts,
-  type BriefAction,
   type InsightPost,
   type InsightsPosts,
   type LayerEntry,
@@ -30,6 +29,7 @@ import {
   type TodayCard,
   type TodayPanel,
 } from '../lib/api'
+import type { BriefAction } from '../lib/api'
 import { formatStamp } from '../lib/stamp'
 
 function greeting() {
