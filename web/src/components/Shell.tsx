@@ -5,6 +5,9 @@ import { formatStamp } from '../lib/stamp'
 import { RAIL } from '../lib/nav'
 import { TOOL_BY_SLUG, parentLabel } from '../lib/tools'
 
+const RAIL_ON =
+  'bg-yel/12 text-yel shadow-[inset_0_0_0_1.5px_rgba(251,191,36,.85)]'
+
 export function Shell() {
   const loc = useLocation()
   const toolSlug = loc.pathname.startsWith('/tool/') ? loc.pathname.split('/')[2] : ''
@@ -49,9 +52,7 @@ export function Shell() {
                   const on = isActive || item.to === tool?.from
                   return [
                     'group flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors duration-150',
-                    on
-                      ? 'bg-ac/12 text-yel shadow-[inset_0_0_0_1px_rgba(251,191,36,.28)]'
-                      : 'text-tx2 hover:bg-white/5 hover:text-tx',
+                    on ? RAIL_ON : 'text-tx2 hover:bg-white/5 hover:text-tx',
                   ].join(' ')
                 }}
               >
@@ -68,7 +69,11 @@ export function Shell() {
                     </span>
                     <span className="min-w-0">
                       <span className="block font-semibold">{item.label}</span>
-                      <span className="block text-[13px] text-tx3">{item.hint}</span>
+                      <span
+                        className={`block text-[13px] ${on ? 'text-yel/80' : 'text-tx3'}`}
+                      >
+                        {item.hint}
+                      </span>
                     </span>
                   </>
                   )
@@ -126,19 +131,23 @@ export function Shell() {
               key={item.to}
               to={item.to}
               title={tip}
-              className={({ isActive }) =>
-                [
+              className={({ isActive }) => {
+                const on = isActive || item.to === tool?.from
+                return [
                   'flex min-h-14 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[12px] font-medium leading-tight',
-                  isActive ? 'text-yel' : 'text-tx3',
+                  on ? RAIL_ON : 'text-tx3',
                 ].join(' ')
-              }
+              }}
             >
-              {({ isActive }) => (
-                <>
-                  <PressIcon icon={Icon} className="h-4 w-4" tone={isActive ? 'on' : 'mute'} />
-                  {item.label}
-                </>
-              )}
+              {({ isActive }) => {
+                const on = isActive || item.to === tool?.from
+                return (
+                  <>
+                    <PressIcon icon={Icon} className="h-4 w-4" tone={on ? 'on' : 'mute'} />
+                    {item.label}
+                  </>
+                )
+              }}
             </NavLink>
           )
         })}

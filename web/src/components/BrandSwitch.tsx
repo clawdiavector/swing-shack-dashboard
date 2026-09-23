@@ -153,10 +153,9 @@ export function BrandSwitch({ variant = 'bar' }: { variant?: 'bar' | 'inline' })
               : `inline-flex cursor-pointer items-baseline gap-1.5 border-0 bg-transparent p-0 font-display text-[length:inherit] leading-[inherit] font-semibold ${inlineTextTone} hover:opacity-90`
           }
         >
-          <span
-            aria-hidden
-            className={`rounded-full ${currentTone.swatch} ${bar ? 'h-2 w-2' : 'h-[0.42em] w-[0.42em] min-h-[10px] min-w-[10px]'}`}
-          />
+          {bar ? (
+            <span aria-hidden className={`h-2 w-2 rounded-full ${currentTone.swatch}`} />
+          ) : null}
           {label}
           <ChevronDown
             className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''} ${bar ? 'h-4 w-4' : 'h-[0.55em] w-[0.55em] min-h-[14px] min-w-[14px] opacity-85'}`}
