@@ -14518,6 +14518,11 @@ def gbp_daily_poster_latest_route():
 def _gbp_daily_publish(*, brand: str | None = None):
     """06:30 SAST: take the most recent plan and publish today's post.
 
+    Routes through `_gdp.publish_post()` which runs the integrity gate
+    (no em-dashes, no fabricated stats, no wrong-location mentions, no
+    wrong-direction CTA URLs) BEFORE calling Postiz. If the post fails
+    the gate it gets marked REMOVED and never reaches GBP.
+
     For each brand that has GBP connected AND a Postiz GBP
     integration ID, find today's post (index 0) in the latest plan
     and POST it via Postiz. Updates the plan file in-place with
@@ -14528,6 +14533,7 @@ def _gbp_daily_publish(*, brand: str | None = None):
       - Plan has 0 posts: skip with reason "empty plan".
       - GBP integration_id missing in brand profile: skip with
         reason "no_postiz_integration".
+      - Integrity gate fails: post is REMOVED, not published.
       - Postiz publish errors: captured per-post in the plan
         publish.errors[] list and surfaced in the result.
 
@@ -14536,6 +14542,8 @@ def _gbp_daily_publish(*, brand: str | None = None):
     """
     if not _GBP_DAILY_AVAILABLE:
         return {"ok": False, "error": "modules unavailable"}
+    if _gdp is None:
+        return {"ok": False, "error": "gbp_daily_poster not loaded"}
     brand_id = (brand or "swing-shack").strip().lower()
     # 1. Find the latest plan file.
     plan = _gdp.latest_plan(brand_id)
@@ -14566,59 +14574,54 @@ def _gbp_daily_publish(*, brand: str | None = None):
             "skipped": "already_published",
             "ran_at": _dt_cls.now(_tz.utc).isoformat(),
         }
-    # 3. Build the text + post via Postiz.
-    text = ((post.get("title", "") + "\n\n" + post.get("body", ""))
-            .strip())[:1500]
+    # 3. Run through the integrity gate + publish via _gdp.publish_post
+    # which handles Postiz auth, post creation, and result logging.
+    publish_date = _dt_cls.now(_tz.utc).isoformat()
     try:
-        from _lib import postiz_client as _pc
-        if not _pc._credentials_present():
-            return {"ok": False, "brand": brand_id,
-                    "error": "postiz api key not configured"}
-        publish_date = _dt_cls.now(_tz.utc).isoformat()
-        data, err = _pc.create_post(
-            integration_id=integration_id,
-            content=text,
-            media_ids=[],
-            publish_date=publish_date,
-        )
-        if err:
-            err_msg = f"{err[0]}: {err[1]}" if isinstance(err, tuple) else str(err)
-            return {"ok": False, "brand": brand_id,
-                    "error": err_msg, "ran_at": publish_date}
+        result = _gdp.publish_post(post)
     except Exception as exc:
-        return {"ok": False, "brand": brand_id,
-                "error": f"publish failed: {exc}",
-                "ran_at": _dt_cls.now(_tz.utc).isoformat()}
-    # 4. Update the plan file with the publish result.
+        result = {"ok": False, "error": f"publish failed: {exc}",
+                  "post_status": "ERROR"}
+    # 4. Update the plan file with the publish result so the UI shows
+    # "published 9:01 SAST" or "removed: integrity_violation".
     pub_log = plan.setdefault("publish", {})
     pub_log["posts"] = [
-        {"status": "scheduled", "scheduled_at": publish_date,
-         "keyword": post.get("keyword"), "title": post.get("title")}
+        {"status": result.get("post_status", "ERROR"),
+         "scheduled_at": result.get("scheduled_at"),
+         "keyword": post.get("keyword"),
+         "title": post.get("title"),
+         "integrity_violations": result.get("violations", [])}
     ]
-    pub_log["scheduled_count"] = 1
+    pub_log["scheduled_count"] = 1 if result.get("ok") else 0
     pub_log["ran_at"] = publish_date
     pub_log["brand"] = brand_id
     pub_log["integration_id"] = integration_id
-    plan_path = _gdp._plan_path(brand_id,
-                                plan.get("generated_at", "")[:10] or
-                                _dt_cls.now(_tz.utc).date().isoformat())
-    # _plan_path requires a day string; fall back to today if plan
-    # has no date header (legacy file).
+    # Persist via _gdp.save_plan which writes the canonical file path.
     try:
-        plan_path.write_text(json.dumps(plan, indent=2, default=str))
+        _gdp.save_plan(plan)
     except Exception as exc:
         _app_log.warning("gbp_publish: failed to update plan file: %s", exc)
     return {
-        "ok": True,
+        "ok": bool(result.get("ok")),
         "brand": brand_id,
         "posted_keyword": post.get("keyword"),
         "ran_at": publish_date,
         "integration_id": integration_id,
+        "post_status": result.get("post_status"),
+        "integrity_violations": result.get("violations", []),
+        "error": result.get("error"),
     }
 
 
 def _gbp_daily_cron_tick(*, brand: str | None = None):
-    """06:00 SAST: rebuild tomorrow's plan from current insights."""
+    """06:00 SAST: rebuild tomorrow's plan from current insights.
+
+    This wrapper calls `_gdp.build_daily_plan()` (the bible-grounded
+    generator from `gbp_daily_poster.py`), persists the plan via
+    `_gdp.save_plan()`, and refreshes GBP insights first so the boost
+    signal can apply. Integrity checking happens at the bank-pick
+    stage (no fabrication, no em-dashes, no wrong locations).
+    """
     if not _GBP_DAILY_AVAILABLE or not _GBP_INSIGHTS_AVAILABLE:
         return {"ok": False, "error": "modules unavailable"}
     brand_id = (brand or "swing-shack").strip()
@@ -14634,15 +14637,24 @@ def _gbp_daily_cron_tick(*, brand: str | None = None):
         plan = _gdp.build_daily_plan(brand_id, days=7, posts_per_day=1, publish=False)
     except Exception as exc:
         _app_log.warning("cron: plan build failed: %s", exc)
+    # 3. Persist the plan so latest_plan() / UI / publish job can read it
+    plan_path = None
+    if plan and plan.get("brand_id") and _gdp is not None:
+        try:
+            plan_path = str(_gdp.save_plan(plan))
+        except Exception as exc:
+            _app_log.warning("cron: plan save failed: %s", exc)
     return {
         "ok": True,
         "brand": brand_id,
         "ran_at": _dt_cls.now(_tz.utc).isoformat(),
         "insights_ok": insights.get("ok"),
         "insights_records": insights.get("insights_records", 0),
-        "plan_ok": plan.get("ok"),
-        "plan_id": plan.get("plan_id"),
-        "posts": len(plan.get("posts", [])),
+        "plan_ok": plan.get("ok") if plan else None,
+        "plan_path": plan_path,
+        "posts": len(plan.get("posts", [])) if plan else 0,
+        "gaps": len(plan.get("gaps", [])) if plan else 0,
+        "source_breakdown": plan.get("source_breakdown") if plan else None,
     }
 
 
