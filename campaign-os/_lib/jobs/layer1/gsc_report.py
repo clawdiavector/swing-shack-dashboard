@@ -255,15 +255,25 @@ def _search_analytics(
     end: str,
     dimensions: list[str],
     row_limit: int = 25,
+    page_filter: str | None = None,
 ) -> list[dict[str, Any]]:
     encoded_site = urllib.parse.quote(site, safe="")
     url = f"{API_BASE}/sites/{encoded_site}/searchAnalytics/query"
-    body = {
+    body: dict[str, Any] = {
         "startDate": start,
         "endDate": end,
         "dimensions": dimensions,
         "rowLimit": row_limit,
     }
+    if page_filter:
+        # Page filter uses GSC's `page` filter inside `dimensionFilterGroups`.
+        body["dimensionFilterGroups"] = [{
+            "filters": [{
+                "dimension": "page",
+                "operator": "equals",
+                "expression": page_filter,
+            }],
+        }]
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode("utf-8"),
@@ -293,6 +303,10 @@ def _search_analytics(
     return rows
 
 
+# Alias kept stable so app.py routes can use a separate name.
+_search_analytics_filtered = _search_analytics
+
+
 def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
     prev_map = {r["key"]: r for r in previous if r.get("key")}
     out: dict[str, dict] = {}
@@ -309,8 +323,15 @@ def _delta(current: list[dict], previous: list[dict]) -> dict[str, dict]:
     return out
 
 
-def run(*, brand: str | None = None) -> dict:
-    """Fetch Search Console stats and write search-console.json."""
+def run(*, brand: str | None = None, days: int = 28, max_queries: int = 50, max_pages: int = 25) -> dict:
+    """Fetch Search Console stats and write search-console.json.
+
+    Args:
+        brand: brand ID (defaults to the legacy/default brand).
+        days: window length. 28 is the standard; 90 supported for deeper analysis.
+        max_queries: how many queries to return (top-N by impressions).
+        max_pages: how many pages to return.
+    """
     io = io_for_job(JOB_NAME, brand)
     site, site_err = _resolve_site_url(brand)
     if site_err:
@@ -327,17 +348,19 @@ def run(*, brand: str | None = None) -> dict:
         if missing:
             return {"ok": False, "error": missing}
 
+    # Window: respect requested days but cap at 92 (GSC hard limit is 16 months)
+    days = min(int(days), 92)
     end = date.today() - timedelta(days=3)  # GSC data lag
-    start = end - timedelta(days=27)
+    start = end - timedelta(days=days - 1)
     prev_end = start - timedelta(days=1)
-    prev_start = prev_end - timedelta(days=27)
+    prev_start = prev_end - timedelta(days=days - 1)
 
     try:
         bearer = _get_search_console_bearer(brand=brand)
-        queries = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["query"], 50)
-        pages = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["page"], 25)
+        queries = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["query"], max_queries)
+        pages = _search_analytics(site, bearer, start.isoformat(), end.isoformat(), ["page"], max_pages)
         prev_queries = _search_analytics(
-            site, bearer, prev_start.isoformat(), prev_end.isoformat(), ["query"], 50
+            site, bearer, prev_start.isoformat(), prev_end.isoformat(), ["query"], max_queries
         )
     except RuntimeError as exc:
         msg = str(exc)[:400]
