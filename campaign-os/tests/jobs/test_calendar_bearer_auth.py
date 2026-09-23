@@ -114,3 +114,49 @@ def test_bearer_not_widened_to_sibling_calendar(job_app):
     client, _ = job_app
     resp = client.get("/api/calendar/path-debug", headers=_auth())
     assert resp.status_code == 401
+
+
+def test_v3_runs_post_bearer_not_401(job_app):
+    client, _ = job_app
+    resp = client.post(
+        "/api/calendar/v3/runs",
+        headers=_auth(),
+        json={"job_type": "scout"},
+    )
+    assert resp.status_code != 401
+
+
+def test_v3_runs_get_bearer_not_401(job_app):
+    client, _ = job_app
+    resp = client.get("/api/calendar/v3/runs?job_type=scout", headers=_auth())
+    assert resp.status_code != 401
+
+
+def test_v3_runs_anon_401(job_app):
+    client, _ = job_app
+    resp = client.post("/api/calendar/v3/runs", json={"job_type": "scout"})
+    assert resp.status_code == 401
+
+
+def test_v3_runs_is_exact_path_not_prefix(job_app):
+    _, app_module = job_app
+    assert "/api/calendar/v3/runs" in app_module.DUAL_AUTH_PATHS
+    assert not any(
+        p.startswith("/api/calendar/v3/") and p != "/api/calendar/v3/scout/"
+        for p in app_module.DUAL_AUTH_PREFIXES
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/calendar/v3/lead-time-watcher/run-all",
+        "/api/calendar/v3/jobs/control",
+        "/api/calendar/v3/job-manual-run/scout",
+        "/api/calendar/v3/alerts/stick/transition",
+    ],
+)
+def test_v3_siblings_still_session_only(job_app, path):
+    client, _ = job_app
+    resp = client.post(path, headers=_auth(), json={})
+    assert resp.status_code == 401

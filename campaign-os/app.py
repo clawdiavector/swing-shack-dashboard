@@ -97,6 +97,10 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/calendar/scout-health',
     '/api/calendar/v2/upsert',
     '/api/calendar/v2/watchlist-due',
+    # L3 automation audit log — cos-reactive / cos-scout append run rows with
+    # bearer only (no session). Exact path: a /api/calendar/v3/ prefix would
+    # open ~14 session-only siblings.
+    '/api/calendar/v3/runs',
     # L4 unified inbox list (Mac/foreman bearer approve flow)
     '/api/inbox/unified',
 })
