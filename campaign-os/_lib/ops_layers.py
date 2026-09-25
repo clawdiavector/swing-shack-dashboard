@@ -210,15 +210,50 @@ def load_create_stats() -> dict[str, Any]:
     except Exception:
         pass
 
-    images_submitted_today: dict[str, int] = {}
+    image_submits_today: dict[str, int] = {}
+    images_drafted_today: dict[str, int] = {}
     max_images_per_day = 2
     try:
         from _lib import image_submit_quota  # noqa: PLC0415
 
-        images_submitted_today = image_submit_quota.totals_today()
+        image_submits_today = image_submit_quota.totals_today()
         max_images_per_day = image_submit_quota.max_images_per_day()
     except Exception:
         pass
+
+    if draft_dir.is_dir():
+        from _lib.unified_inbox import _asset_image_meta, _load_campaign_data  # noqa: PLC0415
+
+        campaign_data = _load_campaign_data()
+        campaigns = campaign_data.get("campaigns") if isinstance(campaign_data, dict) else {}
+        if not isinstance(campaigns, dict):
+            campaigns = {}
+        for path in draft_dir.glob("*.json"):
+            try:
+                sidecar = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if not isinstance(sidecar, dict):
+                continue
+            if str(sidecar.get("action") or "") != "draft_image":
+                continue
+            created = str(sidecar.get("created_at") or "")
+            if not created.startswith(today):
+                continue
+            brand_key = str(sidecar.get("brand_id") or "")
+            asset_id = str(sidecar.get("asset_id") or "")
+            asset: dict = {}
+            cid = str(sidecar.get("campaign_id") or "")
+            camp = campaigns.get(cid)
+            if isinstance(camp, dict):
+                maybe = (camp.get("assets") or {}).get(asset_id)
+                if isinstance(maybe, dict):
+                    asset = maybe
+            image_path, image_url = _asset_image_meta(asset)
+            if not image_path and not image_url:
+                continue
+            if brand_key:
+                images_drafted_today[brand_key] = images_drafted_today.get(brand_key, 0) + 1
 
     verdict = "NEVER"
     if at_cap or qc_failed > 0:
@@ -234,7 +269,8 @@ def load_create_stats() -> dict[str, Any]:
         "cap_usd": cap_usd,
         "at_cap": at_cap,
         "near_cap": near_cap,
-        "images_submitted_today": images_submitted_today,
+        "image_submits_today": image_submits_today,
+        "images_drafted_today": images_drafted_today,
         "max_images_per_day": max_images_per_day,
         "verdict": verdict,
         "inbox_href": "/?page=review",
@@ -429,7 +465,8 @@ def build_layers(
         "cap_usd": create_stats.get("cap_usd", 5),
         "at_cap": create_stats.get("at_cap", False),
         "near_cap": create_stats.get("near_cap", False),
-        "images_submitted_today": create_stats.get("images_submitted_today", {}),
+        "image_submits_today": create_stats.get("image_submits_today", {}),
+        "images_drafted_today": create_stats.get("images_drafted_today", {}),
         "max_images_per_day": create_stats.get("max_images_per_day", 2),
         "inbox_href": create_stats.get("inbox_href", "/?page=review"),
     }

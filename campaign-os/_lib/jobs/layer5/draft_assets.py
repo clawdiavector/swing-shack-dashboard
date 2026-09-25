@@ -15,7 +15,13 @@ from ..errors import describe_exception
 from ..layer1._io import atomic_write, read_json
 from _lib.brand_validate import validate_brand_id
 
-from .image_draft_context import calendar_title_for_item, image_url_for, primary_channel_for_item
+from .image_draft_context import (
+    ImageDraftContext,
+    build_image_draft_context,
+    calendar_title_for_item,
+    image_url_for,
+    primary_channel_for_item,
+)
 
 _DRAFT_HEX_NAME = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
 _CAPTION_NAME_MAX = 72
@@ -415,28 +421,54 @@ def _write_draft(
     return asset_id
 
 
+def _caption_pipeline_payload(
+    *,
+    brand_id: str,
+    item_id: str,
+    ctx: ImageDraftContext,
+) -> dict[str, Any]:
+    product_id: str | None = None
+    service: str | None = None
+    if ctx.products:
+        first = ctx.products[0]
+        pid = str(first.get("id") or "")
+        if pid.startswith("product-"):
+            product_id = pid
+        else:
+            service = str(first.get("name") or first.get("category") or "").strip() or None
+    channel = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    payload: dict[str, Any] = {
+        "brand_id": brand_id,
+        "user_brief": ctx.job,
+        "channel": channel,
+        "n_survivors": 1,
+        "n_candidates": 12,
+    }
+    if product_id:
+        payload["product_id"] = product_id
+    if service:
+        payload["service"] = service
+    return payload
+
+
 def _process_caption_row(
     row: dict[str, Any],
     *,
     item_id: str,
     brand_id: str,
+    draft_ctx: ImageDraftContext | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
     from _lib.p11_context_engine import run_caption_pipeline  # noqa: PLC0415
+
+    ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
+    pipeline_in = _caption_pipeline_payload(brand_id=brand_id, item_id=item_id, ctx=ctx)
 
     allowed, reason = llm_spend.check("text", CAPTION_EST_USD)
     if not allowed:
         return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
 
-    result = run_caption_pipeline(
-        {
-            "brand_id": brand_id,
-            "user_brief": f"Draft from approved inbox item {item_id}",
-            "channel": "instagram",
-            "n_survivors": 1,
-            "n_candidates": 3,
-        }
-    )
+    result = run_caption_pipeline(pipeline_in)
     if not isinstance(result, dict) or not result.get("ok"):
         err = str(result.get("error") or "caption pipeline failed")
         if "key" in err.lower() or "auth" in err.lower():
@@ -469,7 +501,7 @@ def _process_caption_row(
         caption=caption,
         calendar_title=cal_title,
     )
-    primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
+    primary_platform = str(pipeline_in.get("channel") or "instagram")
     asset_id = _write_draft(
         brand_id=brand_id,
         caption=caption,
@@ -764,12 +796,12 @@ def _process_image_row(
     *,
     item_id: str,
     brand_id: str,
+    draft_ctx: ImageDraftContext | None = None,
 ) -> tuple[Optional[str], Optional[str]]:
     from _lib import llm_spend  # noqa: PLC0415
     from _lib.image_gen_router import ImageGenAuthError, generate_image_with_persistence  # noqa: PLC0415
-    from _lib.jobs.layer5.image_draft_context import build_image_draft_context  # noqa: PLC0415
 
-    ctx = build_image_draft_context(brand_id, item_id)
+    ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
     size = ctx.aspect
     est = llm_spend.modelled_image_cost(size)
     allowed, reason = llm_spend.check("image", est)
@@ -1065,12 +1097,18 @@ def run(brand: str | None = None) -> dict[str, Any]:
 
             caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
             image_rows = [(r, a) for r, a in rows_for_moment if a == "draft_image"]
+            draft_ctx = build_image_draft_context(brand_id, item_id)
 
             cap_asset_id, _cap_text = _find_caption_draft_for_item(item_id)
             if cap_asset_id is None and caption_rows:
                 cap_row = caption_rows[0][0]
                 try:
-                    asset_id, err = _process_caption_row(cap_row, item_id=item_id, brand_id=brand_id)
+                    asset_id, err = _process_caption_row(
+                        cap_row,
+                        item_id=item_id,
+                        brand_id=brand_id,
+                        draft_ctx=draft_ctx,
+                    )
                 except Exception as exc:  # noqa: BLE001
                     skipped += 1
                     errors.append(
@@ -1110,7 +1148,12 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 img_row = image_rows[0][0]
                 if img_row is not None:
                     try:
-                        asset_id, err = _process_image_row(img_row, item_id=item_id, brand_id=brand_id)
+                        asset_id, err = _process_image_row(
+                            img_row,
+                            item_id=item_id,
+                            brand_id=brand_id,
+                            draft_ctx=draft_ctx,
+                        )
                     except Exception as exc:  # noqa: BLE001
                         skipped += 1
                         errors.append(
