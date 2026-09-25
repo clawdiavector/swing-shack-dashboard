@@ -147,7 +147,6 @@ export function Daily() {
   const [posts, setPosts] = useState<InsightPost[]>([])
   const [libraryThumbs, setLibraryThumbs] = useState<Array<{ key: string; src: string }>>([])
   const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
-  const [insightMeta, setInsightMeta] = useState<InsightsPosts['_meta']>()
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
 
@@ -177,7 +176,6 @@ export function Daily() {
       setLayers(mergeLayersPayloads(layersFan.payloads.map((p) => p.payload)))
       const allPosts = postsFan.payloads.flatMap((p) => p.payload.posts || [])
       setPosts(allPosts)
-      setInsightMeta(postsFan.payloads[0]?.payload._meta)
       const inboxMerged = inboxFan.payloads.flatMap(({ brandId: bid, payload }) =>
         (payload.items || []).map((item) => ({
           ...item,
@@ -201,11 +199,9 @@ export function Daily() {
       fetchTopPosts(brand)
         .then((payload) => {
           setPosts(payload.posts || [])
-          setInsightMeta(payload._meta)
         })
         .catch(() => {
           setPosts([])
-          setInsightMeta(undefined)
         })
       fetchInbox('pending', brand)
         .then((payload) => setInboxItems(payload.items || []))
@@ -261,7 +257,6 @@ export function Daily() {
   const l3 = layerOf(layers, 'L3')
   const l4 = layerOf(layers, 'L4')
   const l6 = layerOf(layers, 'L6')
-  const l7 = layerOf(layers, 'L7')
   const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
   const socialRows = useMemo(() => {
     const byId = new Map(brandRows.map((row) => [row.id, row]))
