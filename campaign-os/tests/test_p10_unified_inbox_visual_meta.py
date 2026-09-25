@@ -38,6 +38,13 @@ class UnifiedInboxVisualMetaTests(unittest.TestCase):
         self.assertEqual(url, "/assets/campaigns/a.png")
         self.assertEqual(path, "assets/campaigns/b.png")
 
+    def test_asset_image_meta_remote_url_without_local_file(self):
+        path, url = self.unified_inbox._asset_image_meta(
+            {"image_url": "https://cdn.example.com/hero.png"},
+        )
+        self.assertIsNone(path)
+        self.assertEqual(url, "https://cdn.example.com/hero.png")
+
 
 if __name__ == "__main__":
     unittest.main()
