@@ -34,7 +34,6 @@ import {
   resolveAssetUrl,
   type InboxItem,
   type InsightPost,
-  type InsightsPosts,
   type LayerEntry,
   type LayersPayload,
   type LearnSummary,
