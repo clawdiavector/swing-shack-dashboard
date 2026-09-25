@@ -10,6 +10,7 @@ Design rules:
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import glob
@@ -97,7 +98,7 @@ def _campaign_data() -> Dict[str, Any]:
     # brand_id field, which is unreliable because data-delegation makes
     # every campaign's brand_id point to swing-shack even when it belongs
     # to a sub-brand like takomo).
-    brand_id = _REQUEST_BRAND_ID
+    brand_id = get_request_brand()
     if brand_id:
         filtered = {cid: c for cid, c in (d.get('campaigns') or {}).items() if _owns_campaign(cid, brand_id)}
         # If the active campaign id is in another brand, fall back to the first matching campaign
@@ -110,13 +111,15 @@ def _campaign_data() -> Dict[str, Any]:
     return d
 
 
-# Thread-local brand id (set by app.py for each request so intel functions can scope)
-_REQUEST_BRAND_ID = None
+# Per-request brand id (set by app.py for each request so intel functions can scope)
+_REQUEST_BRAND_ID: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "_REQUEST_BRAND_ID", default=None
+)
 
 
 def get_request_brand():
     """Return the brand_id currently scoped for this request, or None."""
-    return _REQUEST_BRAND_ID
+    return _REQUEST_BRAND_ID.get()
 
 
 # ─── Brand → campaign-id mapping ───────────────────────────────────
@@ -165,14 +168,12 @@ def _owns_campaign(campaign_id: str, brand_id: Optional[str]) -> bool:
 
 def set_request_brand(brand_id):
     """Called by app.py before invoking an intel function to scope its data."""
-    global _REQUEST_BRAND_ID
-    _REQUEST_BRAND_ID = brand_id or None
+    _REQUEST_BRAND_ID.set(brand_id or None)
 
 
 def clear_request_brand():
     """Called by app.py after the intel function returns."""
-    global _REQUEST_BRAND_ID
-    _REQUEST_BRAND_ID = None
+    _REQUEST_BRAND_ID.set(None)
 
 
 # ─── BRIEF / HOME ──────────────────────────────────────────────────────

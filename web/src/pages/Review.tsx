@@ -16,6 +16,7 @@ import {
   reviewPiecePath,
   type InboxItem,
 } from '../lib/api'
+import { dedupeById } from '../lib/dedupeById'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { reviewType } from '../lib/reviewType'
@@ -53,12 +54,13 @@ function ReviewInbox({
           fetchInbox('pending', bid, 'draft_asset'),
         )
         setFailures(fails)
-        const merged = payloads.flatMap(({ brandId: bid, payload }) =>
+        const mergedRaw = payloads.flatMap(({ brandId: bid, payload }) =>
           (payload.items || []).map((item) => ({
             ...item,
             brand_id: item.brand_id ?? bid,
           })),
         )
+        const merged = dedupeById(mergedRaw)
         merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
         setItems(merged)
         const counts = sumCounts(payloads.map((p) => p.payload.counts))
@@ -214,6 +216,7 @@ function ReviewInbox({
                 dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={item.title || item.id}
+                thumbClassName="h-20 w-20 shrink-0 rounded-xl border border-bd object-cover"
                 action={
                   <Tip text="Mark this approved. It will not go live.">
                     <button

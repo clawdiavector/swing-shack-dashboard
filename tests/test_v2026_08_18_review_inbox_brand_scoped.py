@@ -14,7 +14,7 @@ winter-golf, use-the-right-equipment-…) — same as before. The fix
 becomes visible only when a brand we DON'T own is added to the
 dataset, which is when the leak would start.
 
-The test stubs _REQUEST_BRAND_ID via set_request_brand() and asserts
+The test stubs request brand via set_request_brand() and asserts
 that campaigns not in the active brand's brands.json campaign_ids are
 NOT surfaced, while owned campaigns still are.
 
@@ -22,8 +22,10 @@ Static checks (1) review_inbox() reads get_request_brand(), and (2)
 applies `_owns_campaign(cid, scoped_brand)` to skip non-owned rows.
 """
 
+import concurrent.futures
 import json
 import sys
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -38,6 +40,29 @@ class ReviewInboxBrandScopedTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.src = INTELLIGENCE.read_text(encoding="utf-8")
+
+    def test_source_uses_contextvar_not_module_global(self):
+        self.assertIn("contextvars.ContextVar", self.src)
+        self.assertNotIn("global _REQUEST_BRAND_ID", self.src)
+
+    def test_request_brand_isolated_across_threads(self):
+        """Parallel fan-out must not clobber brand scope (process-global regression)."""
+        for mod_name in [k for k in sys.modules if k.startswith("_lib")]:
+            sys.modules.pop(mod_name, None)
+        sys.path.insert(0, str(REPO / "campaign-os"))
+        from _lib import intelligence as intel
+
+        def hold_brand(brand: str) -> str:
+            intel.set_request_brand(brand)
+            time.sleep(0.05)
+            seen = intel.get_request_brand()
+            intel.clear_request_brand()
+            return seen or ""
+
+        brands = ("swing-shack", "stick", "bag-drop")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            got = list(pool.map(hold_brand, brands))
+        self.assertEqual(sorted(got), sorted(brands))
 
     def test_source_reads_get_request_brand(self):
         # The fix calls get_request_brand() inside review_inbox() so the
