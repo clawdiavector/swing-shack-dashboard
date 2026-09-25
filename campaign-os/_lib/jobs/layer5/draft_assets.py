@@ -941,7 +941,16 @@ def _process_image_row(
     if not has_bytes:
         return None, None
 
-    billed = float(getattr(result, "cost_usd", 0) or getattr(result, "cost_estimate_usd", 0) or est)
+    def _numeric_cost(val: object) -> float | None:
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            return float(val)
+        return None
+
+    billed = _numeric_cost(getattr(result, "cost_usd", None))
+    if billed is None:
+        billed = _numeric_cost(getattr(result, "cost_estimate_usd", None))
+    if billed is None:
+        billed = est
     cost_source = str(getattr(result, "cost_source", "") or "estimate")
     provider_name = str(getattr(result, "provider", "") or "")
     if provider_name not in _ROUTER_SELF_RECORDING_PROVIDERS:
