@@ -52,13 +52,19 @@ Order in `.github/workflows/layer2-7-daily-cron.yml`:
 3. `krea_poll_draft_images` — poll Krea `waiting` rows; write PNG; record spend after bytes
 4. `asset_qc` — deterministic QC on draft sidecars
 
+Async Krea submits persist job metadata in `$DATA_DIR/draft-assets/_image-jobs.json` (keyed by inbox `item_id`, includes durable `retry_count`). Queue rows are stripped nightly by `agent_queue_writer` — do not store poll state on the row.
+
+Poller PNG path: `$DATA_DIR/draft-assets/images/<brand>/images/krea-<brand>-<job_id>.png` (served by `/brand-images`).
+
 Env:
 
 | Variable | Default | Role |
 |---|---|---|
 | `CAMPAIGN_OS_MAX_IMAGES_PER_DAY` | `2` | Per-brand image **submit** cap (enqueue + `draft_assets` cook) |
-| `KREA_POLL_BATCH_SIZE` | `10` | Max waiting rows per poll job pass |
-| `CAMPAIGN_OS_DAILY_LLM_CAP_USD` | `5` | Daily modelled spend cap (`llm_spend`) |
+| `KREA_POLL_MAX_ROWS` | `12` | Max waiting rows per poll pass |
+| `KREA_POLL_BUDGET_S` | `150` | Wall-clock budget per poll run (seconds) |
+| `KREA_POLL_STALE_HOURS` | `24` | Abandon `waiting` rows older than this |
+| `CAMPAIGN_OS_DAILY_LLM_CAP_USD` | `5` | Daily modelled spend cap (`llm_spend`; `by_brand` rollup on day ledger) |
 
 Read-only recovery (no submit): `scripts/cos_krea_recover_probe.py` — lists `provider_job_id` from `draft-assets/images/**/*.meta.json` and Krea status.
 
