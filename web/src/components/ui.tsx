@@ -256,10 +256,12 @@ function QueueItemThumb({
   src,
   alt,
   onBroken,
+  className,
 }: {
   src: string
   alt: string
   onBroken?: () => void
+  className?: string
 }) {
   const [hidden, setHidden] = useState(false)
   useEffect(() => {
@@ -275,7 +277,9 @@ function QueueItemThumb({
         setHidden(true)
         onBroken?.()
       }}
-      className="h-12 w-12 shrink-0 rounded-xl border border-bd object-cover"
+      className={
+        className ?? 'h-12 w-12 shrink-0 rounded-xl border border-bd object-cover'
+      }
     />
   )
 }
@@ -296,6 +300,7 @@ export function QueueItem({
   footer,
   thumb,
   thumbAlt,
+  thumbClassName,
 }: {
   to?: string
   tip?: string
@@ -312,6 +317,7 @@ export function QueueItem({
   footer?: ReactNode
   thumb?: string
   thumbAlt?: string
+  thumbClassName?: string
 }) {
   const [thumbBroken, setThumbBroken] = useState(false)
   useEffect(() => {
@@ -321,7 +327,12 @@ export function QueueItem({
   const showBadge = thumbBroken ? 'No image' : badge
   const showTone = thumbBroken ? ('mute' as const) : tone
   const thumbNode = thumb ? (
-    <QueueItemThumb src={thumb} alt={thumbAlt || title} onBroken={() => setThumbBroken(true)} />
+    <QueueItemThumb
+      src={thumb}
+      alt={thumbAlt || title}
+      onBroken={() => setThumbBroken(true)}
+      className={thumbClassName}
+    />
   ) : null
   const body = (
     <>
