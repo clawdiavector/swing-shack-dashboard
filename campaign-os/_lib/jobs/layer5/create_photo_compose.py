@@ -75,6 +75,51 @@ def process_draft_photo_row(
     from _lib.image_submit_quota import check_brand_image_submit, record_brand_image_submit  # noqa: PLC0415
 
     ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
+    regen_asset_id, regen_sidecar = _sidecar_for_item(item_id)
+    regen_note = str((regen_sidecar or {}).get("review_regenerate_note") or "").strip()
+    if regen_note and regen_sidecar and regen_sidecar.get("photo_candidates"):
+        candidates = regen_sidecar.get("photo_candidates") if isinstance(regen_sidecar.get("photo_candidates"), list) else []
+        qc = regen_sidecar.get("qc") if isinstance(regen_sidecar.get("qc"), dict) else {}
+        sel = qc.get("selected")
+        idx = int(sel if sel is not None else 0)
+        if candidates and 0 <= idx < len(candidates):
+            src_path = Path(str(candidates[idx].get("path") or ""))
+            if not src_path.is_file():
+                alt = _data_dir() / str(candidates[idx].get("path") or "").lstrip("/")
+                src_path = alt if alt.is_file() else src_path
+            if src_path.is_file():
+                instruction = f"{regen_note.strip()}. Do not add text, logos, or watermarks."
+                try:
+                    edited = edit_image(src_path.read_bytes(), instruction, brand_id=brand_id)
+                except Exception:
+                    edited = None
+                if edited and getattr(edited, "bytes", None):
+                    edit_path = src_path.with_name(src_path.stem + "-review-edit.png")
+                    edit_path.write_bytes(edited.bytes)
+                    regen_sidecar = dict(regen_sidecar)
+                    regen_sidecar.pop("review_regenerate_note", None)
+                    regen_sidecar.pop("composed", None)
+                    regen_sidecar["photo_candidates"] = [
+                        {
+                            **dict(candidates[idx]),
+                            "index": 0,
+                            "path": str(edit_path),
+                            "url": image_url_for(brand_id, str(edit_path)),
+                        }
+                    ]
+                    regen_sidecar["qc"] = {
+                        "verdict": "pass",
+                        "checked_at": _utc_now_iso(),
+                        "candidates": [{"index": 0, "path": str(edit_path), "verdict": "pass", "reasons": []}],
+                        "selected": 0,
+                        "edit_attempted": True,
+                        "human_reason": None,
+                    }
+                    aid = str(regen_asset_id or regen_sidecar.get("asset_id") or "")
+                    if aid:
+                        atomic_write(f"draft-assets/{aid}.json", regen_sidecar)
+                        return aid, None
+
     archetype = select_archetype(brand_id, item_id)
     archetype_id = str(archetype.get("id") or "")
     size = ctx.aspect

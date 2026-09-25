@@ -461,6 +461,32 @@ def _proposal_items(*, brand: str | None, status: str, now: datetime) -> list[di
 _DRAFT_INBOX_TOTALS: dict[str, int] = {"approved_total": 0, "rejected_total": 0}
 
 
+def _sibling_draft_has_composed_gbp(source_item_id: str, *, exclude_asset_id: str) -> bool:
+    """True when another draft for the same moment already carries composed.gbp."""
+    if not source_item_id:
+        return False
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return False
+    for path in draft_dir.glob("*.json"):
+        if path.name.endswith(".brief.json") or path.name.endswith(".qc.json"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if str(sidecar.get("source_inbox_item_id") or "") != source_item_id:
+            continue
+        if str(sidecar.get("asset_id") or path.stem) == exclude_asset_id:
+            continue
+        composed = sidecar.get("composed")
+        if isinstance(composed, dict) and composed.get("gbp"):
+            return True
+    return False
+
+
 def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
     from _lib import intelligence  # noqa: PLC0415
 
@@ -513,6 +539,8 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 except (OSError, json.JSONDecodeError):
                     pass
             source_item = str(sidecar.get("source_inbox_item_id") or "")
+            if platform == "gbp" and _sibling_draft_has_composed_gbp(source_item, exclude_asset_id=aid):
+                continue
             from _lib.jobs.layer5.image_draft_context import (  # noqa: PLC0415
                 calendar_event_date_for_item,
                 lodged_title_for_item,
@@ -1785,6 +1813,8 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
         return {"ok": True, "item_id": item_id}
 
     if item_type == "draft_asset":
+        if not (reason or "").strip():
+            return {"ok": False, "error": "reason is required for draft_asset reject", "code": "reason_required"}
         campaign_id, asset_id = key.split(":", 1)
         data = _load_campaign_data()
         campaign = (data.get("campaigns") or {}).get(campaign_id)
@@ -1793,14 +1823,31 @@ def reject_item(item_id: str, *, editor: str = "operator", reason: str = "") -> 
         asset = (campaign.get("assets") or {}).get(asset_id)
         if not asset:
             return {"ok": False, "error": "asset not found"}
+        sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+        sidecar: dict[str, Any] = {}
+        if sidecar_path.is_file():
+            try:
+                loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    sidecar = loaded
+            except (OSError, json.JSONDecodeError):
+                pass
         now = _utc_now_iso()
         asset["approvalStatus"] = "rejected"
-        asset["rejectionReason"] = reason or "Rejected from unified inbox"
+        asset["rejectionReason"] = reason.strip()
         asset["updatedAt"] = now
         asset["reviewTs"] = now
         campaign["updatedAt"] = now
         _write_campaign_data(data)
         brand_id = str(item.get("brand_id") or "")
+        from _lib.draft_review_actions import record_draft_reject_feedback  # noqa: PLC0415
+
+        record_draft_reject_feedback(
+            brand_id=brand_id,
+            asset_id=asset_id,
+            reason=reason.strip(),
+            sidecar=sidecar,
+        )
         _append_jsonl(_human_edits_path(), {
             "schema": HUMAN_EDIT_SCHEMA,
             "ts": now,

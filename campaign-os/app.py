@@ -17970,6 +17970,80 @@ def ops_queue_enqueue():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/drafts/<path:draft_id>/regenerate', methods=['POST'])
+def api_drafts_regenerate(draft_id: str):
+    """POST /api/drafts/<id>/regenerate — queue draft_photo with corrective note."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import draft_review_actions as _draft_actions
+
+        body = request.get_json(silent=True) or {}
+        note = str(body.get("note") or "").strip()
+        result = _draft_actions.regenerate_photo(draft_id, note=note)
+        if result.get("at_cap"):
+            return jsonify(result), 409
+        if not result.get("ok"):
+            return jsonify(result), 400
+        return jsonify(result), 200
+    except LookupError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("api_drafts_regenerate failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/drafts/<path:draft_id>/recompose', methods=['POST'])
+def api_drafts_recompose(draft_id: str):
+    """POST /api/drafts/<id>/recompose — synchronous compose_post only."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import draft_review_actions as _draft_actions
+
+        body = request.get_json(silent=True) or {}
+        result = _draft_actions.recompose_draft(
+            draft_id,
+            headline=body.get("headline"),
+            cta=body.get("cta"),
+            archetype_id=(body.get("archetype_id") or None),
+        )
+        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        return jsonify(result), code
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except LookupError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except Exception as e:
+        _app_log.exception("api_drafts_recompose failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/drafts/<path:draft_id>/swap', methods=['POST'])
+def api_drafts_swap(draft_id: str):
+    """POST /api/drafts/<id>/swap — recompose using another photo candidate."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import draft_review_actions as _draft_actions
+
+        body = request.get_json(silent=True) or {}
+        if body.get("candidate_index") is None:
+            return jsonify({"ok": False, "error": "candidate_index required"}), 400
+        result = _draft_actions.swap_candidate(draft_id, candidate_index=int(body["candidate_index"]))
+        code = 200 if result.get("ok") else 400
+        return jsonify(result), code
+    except (TypeError, ValueError) as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except LookupError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except Exception as e:
+        _app_log.exception("api_drafts_swap failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/api/inbox/unified', methods=['GET'])
 def inbox_unified_list():
     """GET /api/inbox/unified — L4 unified review inbox. Session or bearer."""
@@ -18118,6 +18192,8 @@ def inbox_unified_reject(item_id: str):
         editor = (body.get("editor") or "operator").strip()
         reason = (body.get("reason") or "").strip()
         result = _unified_inbox_mod.reject_item(item_id, editor=editor, reason=reason)
+        if result.get("code") == "reason_required":
+            return jsonify(result), 400
         code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
         return jsonify(result), code
     except ValueError as e:
