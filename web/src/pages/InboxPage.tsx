@@ -1,6 +1,8 @@
 import { BookMarked, Inbox, RotateCcw, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useBrand } from '../components/BrandSwitch'
+import { BrandChip } from '../components/BrandChip'
+import { useBrandScope } from '../components/BrandSwitch'
+import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, StatCard, Tip } from '../components/ui'
 import {
@@ -9,6 +11,7 @@ import {
   inboxEdit,
   type InboxItem,
 } from '../lib/api'
+import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import {
   candidateSourceTag,
   filterInboxCandidates,
@@ -16,6 +19,7 @@ import {
   type InboxDateFilter,
   type InboxSourceFilter,
 } from '../lib/inboxCandidates'
+import { sumCounts } from '../lib/mergeCounts'
 import { postFlagLabel } from '../lib/postingWeek'
 import { formatStamp } from '../lib/stamp'
 
@@ -30,10 +34,12 @@ function CandidateCard({
   item,
   busy,
   onDone,
+  showBrandChip,
 }: {
   item: InboxItem
   busy: string
   onDone: () => void
+  showBrandChip: boolean
 }) {
   const [dateVal, setDateVal] = useState(item.meta?.event_date || '')
   const [channel, setChannel] = useState(item.meta?.primary_channel || 'instagram')
@@ -75,7 +81,7 @@ function CandidateCard({
           <p className="font-display text-lg font-semibold leading-snug">{item.title}</p>
           <p className="text-sm text-tx2">{item.summary || '—'}</p>
           <div className="flex flex-wrap gap-2 text-xs">
-            <Badge tone="mute">{item.brand_id}</Badge>
+            <BrandChip brandId={item.brand_id} show={showBrandChip} />
             {item.meta?.event_date ? (
               <Badge tone="gold">{item.meta.event_date}</Badge>
             ) : (
@@ -156,8 +162,7 @@ function CandidateCard({
 }
 
 export function InboxPage() {
-  const { brandId: activeBrand } = useBrand()
-  const brandId = activeBrand ?? 'swing-shack'
+  const { isAll, brandIds, scope } = useBrandScope()
   const [items, setItems] = useState<InboxItem[]>([])
   const [pending, setPending] = useState<number | null>(null)
   const [stale, setStale] = useState<number | null>(null)
@@ -166,19 +171,45 @@ export function InboxPage() {
   const [dateFilter, setDateFilter] = useState<InboxDateFilter>('all')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
+  const [failures, setFailures] = useState<FanOutFailure[]>([])
 
   function load() {
-    fetchInbox('pending', brandId)
-      .then((payload) => {
-        setItems(payload.items || [])
-        setPending(payload.counts?.pending ?? 0)
-        setStale(payload.counts?.stale ?? 0)
-        setApprovedToday(payload.counts?.approved_today ?? 0)
-      })
-      .catch((err: Error) => setError(err.message))
+    const run = async () => {
+      setFailures([])
+      if (isAll) {
+        const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) =>
+          fetchInbox('pending', brandId),
+        )
+        setFailures(fails)
+        const merged = payloads.flatMap(({ brandId, payload }) =>
+          (payload.items || []).map((item) => ({
+            ...item,
+            brand_id: item.brand_id ?? brandId,
+          })),
+        )
+        merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        setItems(merged)
+        const counts = sumCounts(payloads.map((p) => p.payload.counts))
+        setPending(counts.pending ?? merged.length)
+        setStale(counts.stale ?? 0)
+        setApprovedToday(counts.approved_today ?? 0)
+        setError('')
+        return
+      }
+      const brandId = scope === 'all' ? 'swing-shack' : scope
+      fetchInbox('pending', brandId)
+        .then((payload) => {
+          setItems(payload.items || [])
+          setPending(payload.counts?.pending ?? 0)
+          setStale(payload.counts?.stale ?? 0)
+          setApprovedToday(payload.counts?.approved_today ?? 0)
+        })
+        .catch((err: Error) => setError(err.message))
+    }
+    void run()
   }
 
-  useEffect(load, [brandId])
+  useEffect(load, [isAll, brandIds, scope])
 
   const shown = useMemo(
     () => filterInboxCandidates(items, source, dateFilter),
@@ -190,6 +221,8 @@ export function InboxPage() {
       <PageIntro here="/inbox" title="Inbox">
         Candidates waiting for a decision — lodge, book only, or reject.
       </PageIntro>
+
+      <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
       {error ? (
         <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p>
@@ -228,6 +261,7 @@ export function InboxPage() {
             key={item.id}
             item={item}
             busy={busy}
+            showBrandChip={isAll}
             onDone={() => {
               setBusy('')
               load()

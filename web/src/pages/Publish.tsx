@@ -1,7 +1,9 @@
 import { CheckCircle2, Link2, MapPin, Rocket, Send, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useBrand } from '../components/BrandSwitch'
+import { BrandChip } from '../components/BrandChip'
+import { useBrandScope } from '../components/BrandSwitch'
+import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { Badge, Button, ClassicLink, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
 import {
@@ -14,17 +16,20 @@ import {
   type TodayCounts,
   type TodayPanel,
 } from '../lib/api'
+import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
+import { sumCounts } from '../lib/mergeCounts'
 import { sandboxGoesOutIso, sandboxRowId, sandboxTitle } from '../lib/sandboxRow'
 import { formatStamp } from '../lib/stamp'
 
 export function Publish() {
-  const { brandId } = useBrand()
+  const { isAll, brandIds, scope } = useBrandScope()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [counts, setCounts] = useState<TodayCounts | null>(null)
   const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
   const [sandbox, setSandbox] = useState<SandboxQueueItem[]>([])
   const [sandboxTotal, setSandboxTotal] = useState(0)
   const [queueErr, setQueueErr] = useState('')
+  const [failures, setFailures] = useState<FanOutFailure[]>([])
 
   useEffect(() => {
     fetchPublishMode()
@@ -32,36 +37,66 @@ export function Publish() {
       .catch(() => setPublishMode(null))
   }, [])
 
-  useEffect(() => {
-    fetchToday(brandId)
-      .then((panel) => {
-        setData(panel)
-        setCounts(panel.counts || null)
-      })
-      .catch(() => {
-        setData(null)
-        setCounts(null)
-      })
-  }, [brandId])
+  function loadPanelAndQueue() {
+    const run = async () => {
+      setFailures([])
+      if (isAll) {
+        const [todayFan, queueFan] = await Promise.all([
+          fanOutPayloads(brandIds, (bid) => fetchToday(bid)),
+          fanOutPayloads(brandIds, (bid) => fetchSandboxQueue(bid)),
+        ])
+        setFailures([...todayFan.failures, ...queueFan.failures])
+        const todayCounts = sumCounts(todayFan.payloads.map((p) => p.payload.counts))
+        setCounts(todayCounts as TodayCounts)
+        setData(todayFan.payloads[0]?.payload ?? null)
+        const items = queueFan.payloads.flatMap(({ brandId: bid, payload }) =>
+          (payload.items || []).map((row) => ({
+            ...row,
+            brand_id: row.brand_id ?? bid,
+          })),
+        )
+        setSandbox(items)
+        const totalPending = queueFan.payloads.reduce(
+          (n, p) => n + (p.payload.total_pending ?? p.payload.items?.length ?? 0),
+          0,
+        )
+        setSandboxTotal(totalPending)
+        setQueueErr('')
+        return
+      }
+      const brandId = scope === 'all' ? undefined : scope
+      fetchToday(brandId)
+        .then((panel) => {
+          setData(panel)
+          setCounts(panel.counts || null)
+        })
+        .catch(() => {
+          setData(null)
+          setCounts(null)
+        })
+      fetchSandboxQueue(brandId)
+        .then((payload) => {
+          setSandbox(payload.items || [])
+          setSandboxTotal(payload.total_pending ?? payload.items?.length ?? 0)
+          setQueueErr('')
+        })
+        .catch((e: Error) => {
+          setSandbox([])
+          setSandboxTotal(0)
+          setQueueErr(e.message || 'Could not load sandbox queue')
+        })
+    }
+    void run()
+  }
 
   useEffect(() => {
-    fetchSandboxQueue(brandId)
-      .then((payload) => {
-        setSandbox(payload.items || [])
-        setSandboxTotal(payload.total_pending ?? payload.items?.length ?? 0)
-        setQueueErr('')
-      })
-      .catch((e: Error) => {
-        setSandbox([])
-        setSandboxTotal(0)
-        setQueueErr(e.message || 'Could not load sandbox queue')
-      })
-  }, [brandId])
+    loadPanelAndQueue()
+  }, [isAll, brandIds, scope])
 
   const next = sandbox[0]
   const nextTitle = next ? sandboxTitle(next) : counts?.approved ? 'Queue from the shelf' : 'Nothing queued yet'
   const nextMeta = next
-    ? `${next.platform || 'post'} · ${next.brand_id || brandId || 'brand'}${next.created_at ? ` · ${formatStamp(next.created_at)}` : ''}`
+    ? `${next.platform || 'post'} · ${next.brand_id || 'brand'}${next.created_at ? ` · ${formatStamp(next.created_at)}` : ''}`
     : 'Approve on Review, shelf it, then queue here — still sandbox only.'
 
   const releasedWaiting = sandbox.filter((row) => row.human_approved)
@@ -95,6 +130,8 @@ export function Publish() {
       >
         Sandbox publish queue — image, caption, platform. Approve on Review does not publish live.
       </PageIntro>
+
+      <PartialBrandLoadStrip failures={failures} onRetry={loadPanelAndQueue} />
 
       <p className="text-sm text-tx3">
         <ClassicLink href="/?page=publish" label="publish" />
@@ -149,7 +186,7 @@ export function Publish() {
             {!queueErr ? <Badge tone="gold">{queueCountLabel}</Badge> : null}
           </div>
           <p className="mb-3 text-xs text-tx3">
-            Pending sandbox rows for {brandId || 'all brands'} — receipts only until dispatch runs.
+            Pending sandbox rows for {isAll ? 'all brands' : scope} — receipts only until dispatch runs.
           </p>
           {queueErr ? (
             <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
@@ -175,7 +212,8 @@ export function Publish() {
                       tone="green"
                       channelBadge={platform}
                       title={sandboxTitle(row)}
-                      meta={[row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+                      meta={[isAll ? null : row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+                      footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
                       stamp={goesOut || row.created_at}
                       stampKind={goesOut ? 'goes_out' : 'created'}
                       dateOnly={Boolean(goesOut)}
@@ -207,7 +245,8 @@ export function Publish() {
                       tone="gold"
                       channelBadge={platform}
                       title={sandboxTitle(row)}
-                      meta={[row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+                      meta={[isAll ? null : row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+                      footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
                       stamp={goesOut || row.created_at}
                       stampKind={goesOut ? 'goes_out' : 'created'}
                       dateOnly={Boolean(goesOut)}

@@ -1,7 +1,8 @@
 import { ArrowLeft, Check, Pencil, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useBrand } from '../components/BrandSwitch'
+import { BrandChip } from '../components/BrandChip'
+import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, Tip } from '../components/ui'
 import {
@@ -17,6 +18,7 @@ import {
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
+import { fanOutPayloads } from '../lib/fanOut'
 import { reviewType } from '../lib/reviewType'
 import { formatStamp } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
@@ -38,6 +40,7 @@ function studioTo(item: InboxItem) {
 
 export function ReviewPiece() {
   const { brandId } = useBrand()
+  const { isAll, brandIds, scope } = useBrandScope()
   const { itemId = '' } = useParams()
   const id = decodeURIComponent(itemId)
   const navigate = useNavigate()
@@ -65,12 +68,30 @@ export function ReviewPiece() {
         setError(err.message)
         setLoaded(true)
       })
-    fetchInbox('pending', brandId)
-      .then((payload) => setQueue(payload.items || []))
-      .catch(() => setQueue([]))
+    const loadQueue = async () => {
+      if (isAll) {
+        const { payloads } = await fanOutPayloads(brandIds, (bid) =>
+          fetchInbox('pending', bid, 'draft_asset'),
+        )
+        const merged = payloads.flatMap(({ brandId: bid, payload }) =>
+          (payload.items || []).map((item) => ({
+            ...item,
+            brand_id: item.brand_id ?? bid,
+          })),
+        )
+        merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        setQueue(merged)
+        return
+      }
+      const bid = scope === 'all' ? brandId : scope
+      fetchInbox('pending', bid, 'draft_asset')
+        .then((payload) => setQueue(payload.items || []))
+        .catch(() => setQueue([]))
+    }
+    void loadQueue()
   }
 
-  useEffect(load, [brandId, id])
+  useEffect(load, [brandId, id, isAll, brandIds, scope])
 
   useEffect(() => {
     setAsset(null)
@@ -307,9 +328,10 @@ export function ReviewPiece() {
                 tone={media.tone}
                 channelBadge={channel || undefined}
                 title={row.title || row.summary || row.id}
-                meta={[reviewType(row.type).label, row.brand_id]
+                meta={[reviewType(row.type).label, !isAll ? row.brand_id : null]
                   .filter(Boolean)
                   .join(' · ')}
+                footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
                 stamp={goesOut || row.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}

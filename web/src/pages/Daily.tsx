@@ -12,7 +12,9 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BrandSwitch, useBrand } from '../components/BrandSwitch'
+import { BrandChip } from '../components/BrandChip'
+import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
+import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
 import { Badge, Button, IconTile, QueueItem, StatCard, Tip } from '../components/ui'
@@ -38,6 +40,8 @@ import {
 } from '../lib/api'
 import { reviewType } from '../lib/reviewType'
 import type { BriefAction } from '../lib/api'
+import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
+import { sumCounts } from '../lib/mergeCounts'
 import { formatStamp } from '../lib/stamp'
 
 function greeting() {
@@ -113,8 +117,28 @@ function morningTitle(opts: {
   return 'Desk is quiet. Open Studio if you want a new draft.'
 }
 
+function mergeLayersPayloads(parts: LayersPayload[]): LayersPayload {
+  const merged: Record<string, LayerEntry> = {}
+  for (const part of parts) {
+    for (const [key, entry] of Object.entries(part.layers || {})) {
+      const prev = merged[key] || {}
+      const next: LayerEntry = { ...prev }
+      for (const [field, val] of Object.entries(entry)) {
+        if (typeof val === 'number' && typeof prev[field as keyof LayerEntry] === 'number') {
+          ;(next as Record<string, number>)[field] = (prev[field as keyof LayerEntry] as number) + val
+        } else if (prev[field as keyof LayerEntry] == null) {
+          ;(next as Record<string, unknown>)[field] = val
+        }
+      }
+      merged[key] = next
+    }
+  }
+  return { ok: true, layers: merged }
+}
+
 export function Daily() {
-  const { brandId } = useBrand()
+  const { brandId: focusBrandId } = useBrand()
+  const { isAll, brandIds, scope } = useBrandScope()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [layers, setLayers] = useState<LayersPayload | null>(null)
   const [learn, setLearn] = useState<LearnSummary | null>(null)
@@ -123,31 +147,73 @@ export function Daily() {
   const [inboxItems, setInboxItems] = useState<InboxItem[] | null>(null)
   const [insightMeta, setInsightMeta] = useState<InsightsPosts['_meta']>()
   const [error, setError] = useState('')
+  const [failures, setFailures] = useState<FanOutFailure[]>([])
 
-  function load(brand?: string) {
+  function load() {
     setInboxItems(null)
-    fetchToday(brand)
-      .then(setData)
-      .catch((err: Error) => setError(err.message))
-    fetchLayers(brand)
-      .then(setLayers)
-      .catch(() => setLayers(null))
+    const runAll = async () => {
+      setFailures([])
+      const [todayFan, layersFan, postsFan, inboxFan] = await Promise.all([
+        fanOutPayloads(brandIds, (bid) => fetchToday(bid)),
+        fanOutPayloads(brandIds, (bid) => fetchLayers(bid)),
+        fanOutPayloads(brandIds, (bid) => fetchTopPosts(bid)),
+        fanOutPayloads(brandIds, (bid) => fetchInbox('pending', bid)),
+      ])
+      setFailures([
+        ...todayFan.failures,
+        ...layersFan.failures,
+        ...postsFan.failures,
+        ...inboxFan.failures,
+      ])
+      const counts = sumCounts(todayFan.payloads.map((p) => p.payload.counts))
+      const cards = todayFan.payloads.flatMap((p) => p.payload.cards || [])
+      setData({
+        ok: true,
+        counts: counts as TodayPanel['counts'],
+        cards,
+        ts: todayFan.payloads[0]?.payload.ts,
+      })
+      setLayers(mergeLayersPayloads(layersFan.payloads.map((p) => p.payload)))
+      const allPosts = postsFan.payloads.flatMap((p) => p.payload.posts || [])
+      setPosts(allPosts)
+      setInsightMeta(postsFan.payloads[0]?.payload._meta)
+      const inboxMerged = inboxFan.payloads.flatMap(({ brandId: bid, payload }) =>
+        (payload.items || []).map((item) => ({
+          ...item,
+          brand_id: item.brand_id ?? bid,
+        })),
+      )
+      inboxMerged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+      setInboxItems(inboxMerged)
+    }
+
+    if (isAll) {
+      void runAll().catch((err: Error) => setError(err.message))
+    } else {
+      const brand = scope === 'all' ? undefined : scope
+      fetchToday(brand)
+        .then(setData)
+        .catch((err: Error) => setError(err.message))
+      fetchLayers(brand)
+        .then(setLayers)
+        .catch(() => setLayers(null))
+      fetchTopPosts(brand)
+        .then((payload) => {
+          setPosts(payload.posts || [])
+          setInsightMeta(payload._meta)
+        })
+        .catch(() => {
+          setPosts([])
+          setInsightMeta(undefined)
+        })
+      fetchInbox('pending', brand)
+        .then((payload) => setInboxItems(payload.items || []))
+        .catch(() => setInboxItems([]))
+    }
     fetchLearn()
       .then(setLearn)
       .catch(() => setLearn(null))
-    fetchTopPosts(brand)
-      .then((payload) => {
-        setPosts(payload.posts || [])
-        setInsightMeta(payload._meta)
-      })
-      .catch(() => {
-        setPosts([])
-        setInsightMeta(undefined)
-      })
-    fetchInbox('pending', brand)
-      .then((payload) => setInboxItems(payload.items || []))
-      .catch(() => setInboxItems([]))
-    fetchVisualLibrary(brand || 'swing-shack')
+    fetchVisualLibrary(focusBrandId || 'swing-shack')
       .then((payload) => {
         const rows = (payload.images || []) as Array<{
           filename?: string
@@ -169,8 +235,8 @@ export function Daily() {
   }
 
   useEffect(() => {
-    load(brandId)
-  }, [brandId])
+    load()
+  }, [isAll, brandIds, scope, focusBrandId])
 
   const counts = data?.counts
   const waiting = counts?.review ?? 0
@@ -325,6 +391,8 @@ export function Daily() {
       >
         {data?.summary || 'Loading your decisions for today…'}
       </PageIntro>
+
+      <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
       {error ? (
         <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">
@@ -501,9 +569,8 @@ export function Daily() {
                 tone={item.sla_state === 'stale' ? 'gold' : media.tone}
                 channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
-                meta={[reviewType(item.type).label, item.brand_id]
-                  .filter(Boolean)
-                  .join(' · ')}
+                meta={[reviewType(item.type).label].filter(Boolean).join(' · ')}
+                footer={isAll ? <BrandChip brandId={item.brand_id} show /> : undefined}
                 stamp={goesOut || item.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}
