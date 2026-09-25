@@ -49,6 +49,34 @@
           "size": "500144"
         }
       ]
+    },
+    {
+      "date": "2026-09-25",
+      "method": "public_folder_http",
+      "folder_id": "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG",
+      "files_downloaded": 40,
+      "files_skipped_dedupe": 0,
+      "files_skipped_non_image": 4,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "Other": 40
+      },
+      "dry_run": false
+    },
+    {
+      "date": "2026-09-25",
+      "method": "public_folder_http",
+      "folder_id": "1k5icaxY3AKBD9z2-oIO6i42PUnq1gYUG",
+      "files_downloaded": 230,
+      "files_skipped_dedupe": 40,
+      "files_skipped_non_image": 4,
+      "download_errors": 0,
+      "counts_by_folder": {
+        "Other": 14,
+        "Products": 182,
+        "Services": 34
+      },
+      "dry_run": false
     }
   ]
 }

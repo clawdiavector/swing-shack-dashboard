@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/takomo_post copy.jpg",
+  "layer1_metadata": {
+    "filename": "takomo_post copy.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1039393,
+    "modified": 1790344685.165874,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#c2d3d9",
+        "rgb": [
+          194,
+          211,
+          217
+        ],
+        "share": 0.2078
+      },
+      {
+        "hex": "#d2e0e5",
+        "rgb": [
+          210,
+          224,
+          229
+        ],
+        "share": 0.152
+      },
+      {
+        "hex": "#d8e5ea",
+        "rgb": [
+          216,
+          229,
+          234
+        ],
+        "share": 0.1468
+      },
+      {
+        "hex": "#d8e4ea",
+        "rgb": [
+          216,
+          228,
+          234
+        ],
+        "share": 0.132
+      },
+      {
+        "hex": "#cbd9e0",
+        "rgb": [
+          203,
+          217,
+          224
+        ],
+        "share": 0.1275
+      },
+      {
+        "hex": "#13334f",
+        "rgb": [
+          19,
+          51,
+          79
+        ],
+        "share": 0.1153
+      },
+      {
+        "hex": "#f0f5f7",
+        "rgb": [
+          240,
+          245,
+          247
+        ],
+        "share": 0.0809
+      },
+      {
+        "hex": "#b2c2cc",
+        "rgb": [
+          178,
+          194,
+          204
+        ],
+        "share": 0.0378
+      }
+    ],
+    "mean_brightness": 199.6,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 160.5,
+    "brightness_bottom": 227.3,
+    "edge_density_grid": [
+      [
+        2.55,
+        2.45,
+        6.68
+      ],
+      [
+        6.08,
+        2.97,
+        3.96
+      ],
+      [
+        2.01,
+        1.3,
+        2.19
+      ]
+    ],
+    "subject_estimate_position": "top-right"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#c2d3d9",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "top-right",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Takomo"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

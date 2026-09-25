@@ -124,8 +124,67 @@
   "by_orientation": {
     "portrait": 10
   },
-  "by_product": {},
+  "by_product": {
+    "Jordan Bag": [
+      "JORDAN_BAG copy 2.jpg",
+      "JORDAN_BAG copy.jpg",
+      "JORDAN_BAG.jpg"
+    ],
+    "Mileseey": [
+      "mileseey.jpg",
+      "mileseey2.jpg",
+      "mileseey3 copy.jpg",
+      "mileseey3.jpg",
+      "mileseey4.jpg"
+    ],
+    "Callaway Quantum": [
+      "Quantammini1 copy 2.jpg",
+      "Quantammini1 copy.jpg",
+      "Quantammini1.jpg"
+    ],
+    "Srixon Bag": [
+      "SRIXON_BAG copy.jpg",
+      "SRIXON_BAG.jpg"
+    ],
+    "GTS Putter": [
+      "stick_fitting_gts.jpg",
+      "stick_fitting_gts2.jpg",
+      "stick_fitting_gts3.jpg",
+      "stick_fitting_gts4.jpg",
+      "stick_fitting_gts_story.jpg",
+      "stick_fitting_gts_story2.jpg",
+      "stick_fitting_gts_story3.jpg",
+      "stick_fitting_gts_story4.jpg",
+      "stick_post_gts2.jpg",
+      "stick_post_gts2fw.jpg",
+      "stick_post_gts3.jpg",
+      "stick_post_gts3fw.jpg",
+      "stick_story_gts2.jpg",
+      "stick_story_gts2fw.jpg",
+      "stick_story_gts3.jpg",
+      "stick_story_gts3fw.jpg"
+    ],
+    "Takomo": [
+      "takomo1.jpg",
+      "takomo2.jpg",
+      "takomo_post copy 2.jpg",
+      "takomo_post copy 3.jpg",
+      "takomo_post copy 4.jpg",
+      "takomo_post copy.jpg",
+      "takomo_post.jpg"
+    ],
+    "Vessel Bag": [
+      "VESSEL_BAG copy.jpg",
+      "VESSEL_BAG.jpg",
+      "VESSELBAG_STAFF copy.jpg",
+      "VESSELBAG_STAFF.jpg"
+    ],
+    "Vice Bag": [
+      "VICEBAG copy.jpg",
+      "VICEBAG.jpg"
+    ]
+  },
   "errors": [],
-  "product_taxonomy_version": "1.0",
-  "tagged_count": 10
+  "product_taxonomy_version": "2026-07-29.1",
+  "tagged_count": 280
 }

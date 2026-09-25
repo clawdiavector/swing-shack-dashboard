@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/SRIXON_BAG.jpg",
+  "layer1_metadata": {
+    "filename": "SRIXON_BAG.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 956126,
+    "modified": 1790344598.03607,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#292a2c",
+        "rgb": [
+          41,
+          42,
+          44
+        ],
+        "share": 0.1567
+      },
+      {
+        "hex": "#6b676d",
+        "rgb": [
+          107,
+          103,
+          109
+        ],
+        "share": 0.1401
+      },
+      {
+        "hex": "#3f3538",
+        "rgb": [
+          63,
+          53,
+          56
+        ],
+        "share": 0.1387
+      },
+      {
+        "hex": "#585155",
+        "rgb": [
+          88,
+          81,
+          85
+        ],
+        "share": 0.1368
+      },
+      {
+        "hex": "#1a1a1a",
+        "rgb": [
+          26,
+          26,
+          26
+        ],
+        "share": 0.1306
+      },
+      {
+        "hex": "#c3c0b7",
+        "rgb": [
+          195,
+          192,
+          183
+        ],
+        "share": 0.1139
+      },
+      {
+        "hex": "#132e39",
+        "rgb": [
+          19,
+          46,
+          57
+        ],
+        "share": 0.1026
+      },
+      {
+        "hex": "#37424e",
+        "rgb": [
+          55,
+          66,
+          78
+        ],
+        "share": 0.0806
+      }
+    ],
+    "mean_brightness": 78.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 59.8,
+    "brightness_bottom": 87.2,
+    "edge_density_grid": [
+      [
+        6.34,
+        13.05,
+        18.77
+      ],
+      [
+        13.06,
+        33.83,
+        11.7
+      ],
+      [
+        23.91,
+        19.48,
+        14.95
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#292a2c",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Srixon Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

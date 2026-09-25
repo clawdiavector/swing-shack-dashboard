@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/JORDAN_BAG.jpg",
+  "layer1_metadata": {
+    "filename": "JORDAN_BAG.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1038009,
+    "modified": 1790344386.8357346,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#131617",
+        "rgb": [
+          19,
+          22,
+          23
+        ],
+        "share": 0.1816
+      },
+      {
+        "hex": "#7b7774",
+        "rgb": [
+          123,
+          119,
+          116
+        ],
+        "share": 0.1482
+      },
+      {
+        "hex": "#e3dece",
+        "rgb": [
+          227,
+          222,
+          206
+        ],
+        "share": 0.13
+      },
+      {
+        "hex": "#1a3843",
+        "rgb": [
+          26,
+          56,
+          67
+        ],
+        "share": 0.1201
+      },
+      {
+        "hex": "#aeafa9",
+        "rgb": [
+          174,
+          175,
+          169
+        ],
+        "share": 0.1159
+      },
+      {
+        "hex": "#1f2121",
+        "rgb": [
+          31,
+          33,
+          33
+        ],
+        "share": 0.112
+      },
+      {
+        "hex": "#565756",
+        "rgb": [
+          86,
+          87,
+          86
+        ],
+        "share": 0.1081
+      },
+      {
+        "hex": "#080c0d",
+        "rgb": [
+          8,
+          12,
+          13
+        ],
+        "share": 0.0842
+      }
+    ],
+    "mean_brightness": 90.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 79.5,
+    "brightness_bottom": 85.0,
+    "edge_density_grid": [
+      [
+        21.79,
+        14.88,
+        22.44
+      ],
+      [
+        29.49,
+        17.79,
+        20.85
+      ],
+      [
+        17.23,
+        27.73,
+        37.18
+      ]
+    ],
+    "subject_estimate_position": "bottom-right"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#131617",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-right",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Jordan Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

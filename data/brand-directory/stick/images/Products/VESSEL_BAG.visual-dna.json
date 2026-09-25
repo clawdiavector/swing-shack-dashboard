@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/VESSEL_BAG.jpg",
+  "layer1_metadata": {
+    "filename": "VESSEL_BAG.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 941909,
+    "modified": 1790344698.1732666,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#131616",
+        "rgb": [
+          19,
+          22,
+          22
+        ],
+        "share": 0.1878
+      },
+      {
+        "hex": "#879286",
+        "rgb": [
+          135,
+          146,
+          134
+        ],
+        "share": 0.1571
+      },
+      {
+        "hex": "#5a565c",
+        "rgb": [
+          90,
+          86,
+          92
+        ],
+        "share": 0.1561
+      },
+      {
+        "hex": "#252526",
+        "rgb": [
+          37,
+          37,
+          38
+        ],
+        "share": 0.1374
+      },
+      {
+        "hex": "#0c0e10",
+        "rgb": [
+          12,
+          14,
+          16
+        ],
+        "share": 0.1012
+      },
+      {
+        "hex": "#bbc0b4",
+        "rgb": [
+          187,
+          192,
+          180
+        ],
+        "share": 0.0884
+      },
+      {
+        "hex": "#112831",
+        "rgb": [
+          17,
+          40,
+          49
+        ],
+        "share": 0.0871
+      },
+      {
+        "hex": "#37444d",
+        "rgb": [
+          55,
+          68,
+          77
+        ],
+        "share": 0.0849
+      }
+    ],
+    "mean_brightness": 74.8,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 54.9,
+    "brightness_bottom": 91.5,
+    "edge_density_grid": [
+      [
+        7.72,
+        19.26,
+        14.71
+      ],
+      [
+        10.57,
+        21.21,
+        15.92
+      ],
+      [
+        42.2,
+        29.94,
+        17.33
+      ]
+    ],
+    "subject_estimate_position": "bottom-left"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#131616",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-left",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Vessel Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

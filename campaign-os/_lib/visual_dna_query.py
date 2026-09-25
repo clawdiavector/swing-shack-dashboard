@@ -107,7 +107,7 @@ def tag_directory(brand: str, base_dir: Path | None = None) -> dict[str, Any]:
     by_product: dict[str, list[str]] = defaultdict(list)
     tagged_count = 0
 
-    for dna_file in images_dir.glob("*.visual-dna.json"):
+    for dna_file in images_dir.rglob("*.visual-dna.json"):
         dna = tag_dna_file(dna_file)
         filename = dna.get("layer1_metadata", {}).get("filename", dna_file.stem)
         for product in dna.get("layer4_products", {}).get("detected_brands", []):

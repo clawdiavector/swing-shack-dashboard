@@ -1,0 +1,160 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/genepros1_2 copy.jpg",
+  "layer1_metadata": {
+    "filename": "genepros1_2 copy.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1921,
+    "aspect_ratio": 0.5627,
+    "orientation": "portrait",
+    "file_size_bytes": 1521557,
+    "modified": 1790344276.8552668,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#ffffff",
+        "rgb": [
+          255,
+          255,
+          255
+        ],
+        "share": 0.6523
+      },
+      {
+        "hex": "#192224",
+        "rgb": [
+          25,
+          34,
+          36
+        ],
+        "share": 0.0748
+      },
+      {
+        "hex": "#2e3b3b",
+        "rgb": [
+          46,
+          59,
+          59
+        ],
+        "share": 0.065
+      },
+      {
+        "hex": "#7b8c8c",
+        "rgb": [
+          123,
+          140,
+          140
+        ],
+        "share": 0.0592
+      },
+      {
+        "hex": "#9edbc9",
+        "rgb": [
+          158,
+          219,
+          201
+        ],
+        "share": 0.0522
+      },
+      {
+        "hex": "#53494d",
+        "rgb": [
+          83,
+          73,
+          77
+        ],
+        "share": 0.0471
+      },
+      {
+        "hex": "#e0e8e8",
+        "rgb": [
+          224,
+          232,
+          232
+        ],
+        "share": 0.0369
+      },
+      {
+        "hex": "#fcfffe",
+        "rgb": [
+          252,
+          255,
+          254
+        ],
+        "share": 0.0123
+      }
+    ],
+    "mean_brightness": 205.3,
+    "luminance_category": "light"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.563,
+    "gradient": "top-to-bottom darkening",
+    "brightness_top": 246.2,
+    "brightness_bottom": 180.2,
+    "edge_density_grid": [
+      [
+        3.1,
+        7.57,
+        3.14
+      ],
+      [
+        11.73,
+        11.72,
+        9.93
+      ],
+      [
+        10.15,
+        6.96,
+        3.2
+      ]
+    ],
+    "subject_estimate_position": "left"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "image_with_dark_overlay",
+      "background_colour_dominant": "#ffffff",
+      "gradient_direction": "top-to-bottom darkening",
+      "primary_subject_position": "left",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [],
+    "count": 0,
+    "source": "ocr+filename"
+  }
+}

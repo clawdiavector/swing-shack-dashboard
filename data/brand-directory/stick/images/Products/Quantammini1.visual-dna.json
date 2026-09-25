@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/Quantammini1.jpg",
+  "layer1_metadata": {
+    "filename": "Quantammini1.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 1513531,
+    "modified": 1790344560.4537592,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#090d0f",
+        "rgb": [
+          9,
+          13,
+          15
+        ],
+        "share": 0.2297
+      },
+      {
+        "hex": "#062f52",
+        "rgb": [
+          6,
+          47,
+          82
+        ],
+        "share": 0.1931
+      },
+      {
+        "hex": "#aebebf",
+        "rgb": [
+          174,
+          190,
+          191
+        ],
+        "share": 0.134
+      },
+      {
+        "hex": "#234a19",
+        "rgb": [
+          35,
+          74,
+          25
+        ],
+        "share": 0.1313
+      },
+      {
+        "hex": "#455557",
+        "rgb": [
+          69,
+          85,
+          87
+        ],
+        "share": 0.1157
+      },
+      {
+        "hex": "#828b90",
+        "rgb": [
+          130,
+          139,
+          144
+        ],
+        "share": 0.1142
+      },
+      {
+        "hex": "#13181d",
+        "rgb": [
+          19,
+          24,
+          29
+        ],
+        "share": 0.0718
+      },
+      {
+        "hex": "#061c2b",
+        "rgb": [
+          6,
+          28,
+          43
+        ],
+        "share": 0.0101
+      }
+    ],
+    "mean_brightness": 69.7,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 69.9,
+    "brightness_bottom": 70.7,
+    "edge_density_grid": [
+      [
+        6.25,
+        7.91,
+        6.96
+      ],
+      [
+        2.1,
+        7.33,
+        5.35
+      ],
+      [
+        4.04,
+        9.15,
+        5.38
+      ]
+    ],
+    "subject_estimate_position": "bottom"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#090d0f",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Callaway Quantum"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

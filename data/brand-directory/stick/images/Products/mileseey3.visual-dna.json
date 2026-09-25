@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/mileseey3.jpg",
+  "layer1_metadata": {
+    "filename": "mileseey3.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1201,
+    "aspect_ratio": 0.9001,
+    "orientation": "portrait",
+    "file_size_bytes": 1544127,
+    "modified": 1790344485.6529424,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#256e10",
+        "rgb": [
+          37,
+          110,
+          16
+        ],
+        "share": 0.3315
+      },
+      {
+        "hex": "#060f26",
+        "rgb": [
+          6,
+          15,
+          38
+        ],
+        "share": 0.1597
+      },
+      {
+        "hex": "#abccb6",
+        "rgb": [
+          171,
+          204,
+          182
+        ],
+        "share": 0.1404
+      },
+      {
+        "hex": "#8a9694",
+        "rgb": [
+          138,
+          150,
+          148
+        ],
+        "share": 0.1266
+      },
+      {
+        "hex": "#062746",
+        "rgb": [
+          6,
+          39,
+          70
+        ],
+        "share": 0.126
+      },
+      {
+        "hex": "#444f3d",
+        "rgb": [
+          68,
+          79,
+          61
+        ],
+        "share": 0.0624
+      },
+      {
+        "hex": "#1a4c16",
+        "rgb": [
+          26,
+          76,
+          22
+        ],
+        "share": 0.0418
+      },
+      {
+        "hex": "#487537",
+        "rgb": [
+          72,
+          117,
+          55
+        ],
+        "share": 0.0116
+      }
+    ],
+    "mean_brightness": 80.5,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.9,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 83.6,
+    "brightness_bottom": 93.3,
+    "edge_density_grid": [
+      [
+        3.63,
+        7.43,
+        3.97
+      ],
+      [
+        3.35,
+        11.87,
+        9.61
+      ],
+      [
+        7.95,
+        7.97,
+        6.46
+      ]
+    ],
+    "subject_estimate_position": "centre"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#256e10",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "centre",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Mileseey"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

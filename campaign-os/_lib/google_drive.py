@@ -26,10 +26,12 @@ Usage:
 from __future__ import annotations
 
 import functools
+import html as html_module
 import json
 import os
+import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 # Tell oauthlib to allow http://localhost redirects (installed-app flow).
 # Without this, fetch_token() raises InsecureTransportError even though the
@@ -383,6 +385,155 @@ def setup_interactive(port: int = 8765, method: str = "console") -> dict[str, An
     else:
         return {"ok": False, "error": f"unknown method: {method}",
                 "hint": "use method='console', 'local', or 'auto'"}
+
+
+# ─── Public folder ingest (no OAuth) ─────────────────────────────────────
+
+_PUBLIC_USER_AGENT = "Mozilla/5.0 (Campaign OS; public Drive folder ingest)"
+_EMBEDDED_FOLDER_URL = "https://drive.google.com/embeddedfolderview?id={folder_id}"
+_DRIVE_EXPORT_URL = "https://drive.google.com/uc?export=download&id={file_id}"
+
+_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
+
+
+def _embedded_folder_url(folder_id: str) -> str:
+    return _EMBEDDED_FOLDER_URL.format(folder_id=folder_id)
+
+
+def fetch_embedded_folder_html(folder_id: str, *, timeout: float = 120) -> str:
+    """Fetch raw HTML for a public folder embedded view."""
+    import requests
+
+    resp = requests.get(
+        _embedded_folder_url(folder_id),
+        headers={"User-Agent": _PUBLIC_USER_AGENT},
+        timeout=timeout,
+    )
+    resp.raise_for_status()
+    return resp.text
+
+
+def parse_embedded_folder_html(html: str) -> list[dict[str, Any]]:
+    """Parse one embeddedfolderview HTML page into raw flip entries."""
+    entries: list[dict[str, Any]] = []
+    for chunk in html.split('<div class="flip-entry"')[1:]:
+        id_m = re.search(r'id="entry-([^"]+)"', chunk)
+        href_m = re.search(r'href="(https://drive\.google\.com/[^"]+)"', chunk)
+        title_m = re.search(r'flip-entry-title">([^<]+)</div>', chunk)
+        mime_m = re.search(r"googleusercontent\.com/16/type/([^\"]+)\"", chunk)
+        if not (id_m and href_m and title_m):
+            continue
+        href = html_module.unescape(href_m.group(1))
+        name = html_module.unescape(title_m.group(1).strip())
+        mime = mime_m.group(1) if mime_m else "application/octet-stream"
+        is_folder = "/drive/folders/" in href
+        file_id = id_m.group(1)
+        if is_folder:
+            folder_m = re.search(r"/drive/folders/([a-zA-Z0-9_-]+)", href)
+            if folder_m:
+                file_id = folder_m.group(1)
+        entries.append(
+            {"id": file_id, "name": name, "mime": mime, "folder": is_folder}
+        )
+    return entries
+
+
+def list_public_folder(
+    folder_id: str,
+    *,
+    rel_folder: str = "",
+    _fetch_html: Callable[[str], str] | None = None,
+) -> list[dict[str, Any]]:
+    """List all files in a public Drive folder by parsing embeddedfolderview HTML.
+
+    Recurses into subfolders. Each file dict has keys: id, name, mime, folder
+    (top-level subfolder name such as Services / Products / Other).
+    """
+    fetch = _fetch_html or fetch_embedded_folder_html
+    html = fetch(folder_id)
+    out: list[dict[str, Any]] = []
+    for entry in parse_embedded_folder_html(html):
+        if entry["folder"]:
+            child_label = entry["name"]
+            nested_folder = (
+                child_label if not rel_folder else f"{rel_folder}/{child_label}"
+            )
+            out.extend(
+                list_public_folder(
+                    entry["id"],
+                    rel_folder=nested_folder,
+                    _fetch_html=_fetch_html,
+                )
+            )
+            continue
+        out.append(
+            {
+                "id": entry["id"],
+                "name": entry["name"],
+                "mime": entry["mime"],
+                "folder": rel_folder,
+            }
+        )
+    return out
+
+
+def is_public_drive_image(entry: dict[str, Any]) -> bool:
+    """True when the entry should be downloaded as a brand image."""
+    name = entry.get("name", "")
+    ext = Path(name).suffix.lower()
+    if ext == ".ai":
+        return False
+    mime = (entry.get("mime") or "").lower()
+    if mime.startswith("image/"):
+        return True
+    if ext in _IMAGE_EXTENSIONS:
+        return True
+    return False
+
+
+def download_public_file(
+    file_id: str,
+    dest: str | Path,
+    *,
+    session: Any | None = None,
+    timeout: float = 120,
+) -> Path:
+    """Download a public Drive file via uc?export=download (handles confirm token)."""
+    import requests
+
+    dest_path = Path(dest)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    sess = session or requests.Session()
+    sess.headers.setdefault("User-Agent", _PUBLIC_USER_AGENT)
+
+    url = _DRIVE_EXPORT_URL.format(file_id=file_id)
+    resp = sess.get(url, stream=True, timeout=timeout)
+    resp.raise_for_status()
+
+    content_type = (resp.headers.get("Content-Type") or "").lower()
+    if "text/html" in content_type:
+        body_preview = resp.content[:65536].decode("utf-8", errors="replace")
+        confirm_m = re.search(r"confirm=([0-9A-Za-z_]+)", body_preview)
+        if confirm_m:
+            url = f"{url}&confirm={confirm_m.group(1)}"
+            resp.close()
+            resp = sess.get(url, stream=True, timeout=timeout)
+            resp.raise_for_status()
+        else:
+            for key, value in resp.cookies.items():
+                if key.startswith("download_warning"):
+                    url = f"{url}&confirm={value}"
+                    resp.close()
+                    resp = sess.get(url, stream=True, timeout=timeout)
+                    resp.raise_for_status()
+                    break
+
+    with dest_path.open("wb") as fh:
+        for chunk in resp.iter_content(chunk_size=1024 * 256):
+            if chunk:
+                fh.write(chunk)
+    resp.close()
+    return dest_path
 
 
 def status() -> dict[str, Any]:

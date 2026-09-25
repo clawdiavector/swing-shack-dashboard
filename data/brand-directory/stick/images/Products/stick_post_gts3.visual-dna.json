@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/stick_post_gts3.jpg",
+  "layer1_metadata": {
+    "filename": "stick_post_gts3.jpg",
+    "format": "JPEG",
+    "mode": "CMYK",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 1148892,
+    "modified": 1790344628.3830824,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#07293d",
+        "rgb": [
+          7,
+          41,
+          61
+        ],
+        "share": 0.2545
+      },
+      {
+        "hex": "#afbdc7",
+        "rgb": [
+          175,
+          189,
+          199
+        ],
+        "share": 0.2184
+      },
+      {
+        "hex": "#2b485a",
+        "rgb": [
+          43,
+          72,
+          90
+        ],
+        "share": 0.2066
+      },
+      {
+        "hex": "#131a1e",
+        "rgb": [
+          19,
+          26,
+          30
+        ],
+        "share": 0.1171
+      },
+      {
+        "hex": "#072b3e",
+        "rgb": [
+          7,
+          43,
+          62
+        ],
+        "share": 0.0931
+      },
+      {
+        "hex": "#070d11",
+        "rgb": [
+          7,
+          13,
+          17
+        ],
+        "share": 0.0775
+      },
+      {
+        "hex": "#07293c",
+        "rgb": [
+          7,
+          41,
+          60
+        ],
+        "share": 0.0217
+      },
+      {
+        "hex": "#042437",
+        "rgb": [
+          4,
+          36,
+          55
+        ],
+        "share": 0.0112
+      }
+    ],
+    "mean_brightness": 80.1,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 40.7,
+    "brightness_bottom": 127.3,
+    "edge_density_grid": [
+      [
+        1.43,
+        9.88,
+        1.71
+      ],
+      [
+        3.54,
+        7.4,
+        3.33
+      ],
+      [
+        5.47,
+        7.21,
+        6.46
+      ]
+    ],
+    "subject_estimate_position": "top"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#07293d",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "top",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "GTS Putter"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}

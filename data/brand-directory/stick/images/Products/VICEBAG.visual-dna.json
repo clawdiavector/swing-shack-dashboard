@@ -1,0 +1,162 @@
+{
+  "schema_version": "0.1",
+  "image_path": "/home/kyle/Work/worktrees/swing-shack-dashboard-main/feat/cos-ip-p0-stick-drive-ingest/data/brand-directory/stick/images/Products/VICEBAG.jpg",
+  "layer1_metadata": {
+    "filename": "VICEBAG.jpg",
+    "format": "JPEG",
+    "mode": "RGB",
+    "width_px": 1081,
+    "height_px": 1351,
+    "aspect_ratio": 0.8001,
+    "orientation": "portrait",
+    "file_size_bytes": 932684,
+    "modified": 1790344840.6621938,
+    "exif": {}
+  },
+  "layer9_palette": {
+    "dominant_colors": [
+      {
+        "hex": "#262721",
+        "rgb": [
+          38,
+          39,
+          33
+        ],
+        "share": 0.2213
+      },
+      {
+        "hex": "#303129",
+        "rgb": [
+          48,
+          49,
+          41
+        ],
+        "share": 0.2014
+      },
+      {
+        "hex": "#4c4b42",
+        "rgb": [
+          76,
+          75,
+          66
+        ],
+        "share": 0.163
+      },
+      {
+        "hex": "#a19d90",
+        "rgb": [
+          161,
+          157,
+          144
+        ],
+        "share": 0.1291
+      },
+      {
+        "hex": "#6b6960",
+        "rgb": [
+          107,
+          105,
+          96
+        ],
+        "share": 0.1105
+      },
+      {
+        "hex": "#191b17",
+        "rgb": [
+          25,
+          27,
+          23
+        ],
+        "share": 0.0861
+      },
+      {
+        "hex": "#243c40",
+        "rgb": [
+          36,
+          60,
+          64
+        ],
+        "share": 0.083
+      },
+      {
+        "hex": "#202e2d",
+        "rgb": [
+          32,
+          46,
+          45
+        ],
+        "share": 0.0056
+      }
+    ],
+    "mean_brightness": 67.6,
+    "luminance_category": "mid"
+  },
+  "layer10_composition": {
+    "aspect_ratio": 0.8,
+    "gradient": "top-to-bottom lightening",
+    "brightness_top": 53.2,
+    "brightness_bottom": 89.5,
+    "edge_density_grid": [
+      [
+        11.82,
+        12.12,
+        6.77
+      ],
+      [
+        29.47,
+        17.17,
+        5.95
+      ],
+      [
+        43.68,
+        28.9,
+        30.15
+      ]
+    ],
+    "subject_estimate_position": "bottom-left"
+  },
+  "layer6_ocr": {
+    "available": false,
+    "word_count": 0,
+    "text_preview": ""
+  },
+  "layer7_typography": {
+    "detected": false
+  },
+  "layer17_recipe": {
+    "schema_version": "0.1",
+    "auto_extracted": {
+      "background_type": "unknown",
+      "background_colour_dominant": "#262721",
+      "gradient_direction": "top-to-bottom lightening",
+      "primary_subject_position": "bottom-left",
+      "ocr_text": "",
+      "all_caps_detected": null
+    },
+    "manual_fields_required": [
+      "headline",
+      "body_copy",
+      "cta",
+      "fonts_used (visual inspection needed)",
+      "designer",
+      "photographer",
+      "campaign_id",
+      "asset_class",
+      "date_used",
+      "platforms_used",
+      "performance_metrics"
+    ],
+    "reusability": {
+      "background_reusable": null,
+      "subject_cutout_possible": null,
+      "hero_club_extractable": null
+    }
+  },
+  "layer4_products": {
+    "detected_brands": [
+      "Vice Bag"
+    ],
+    "count": 1,
+    "source": "ocr+filename"
+  }
+}
