@@ -1,5 +1,5 @@
 import { BookMarked, Inbox, RotateCcw, X } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
@@ -30,32 +30,6 @@ function sourceLabel(tag: string): string {
   return 'Scout'
 }
 
-function displayField(value?: string | null): string {
-  const trimmed = value?.trim()
-  return trimmed ? trimmed : '—'
-}
-
-function CandidateLabelRow({
-  label,
-  children,
-  emphasizeValue,
-}: {
-  label: string
-  children: ReactNode
-  emphasizeValue?: boolean
-}) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-2 text-base">
-      <span className="shrink-0 font-display font-semibold text-ac">{label}:</span>
-      <span
-        className={`min-w-0 text-tx${emphasizeValue ? ' font-display font-semibold' : ''}`}
-      >
-        {children}
-      </span>
-    </div>
-  )
-}
-
 function CandidateCard({
   item,
   busy,
@@ -75,6 +49,9 @@ function CandidateCard({
   const flags = item.meta?.flags || []
   const noLodge = lodgeDisabled(flags)
   const source = candidateSourceTag(item)
+  const pillar = item.meta?.pillar?.trim()
+  const angle = item.meta?.angle?.trim()
+  const relevanceReason = item.meta?.relevance_reason?.trim()
 
   async function saveFields() {
     setErr('')
@@ -104,82 +81,80 @@ function CandidateCard({
   }
 
   return (
-    <li className="rounded-2xl border border-bd bg-bg-2/40 px-4 py-4">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-2">
-            <CandidateLabelRow label="Title" emphasizeValue>
-              {displayField(item.title)}
-            </CandidateLabelRow>
-            <CandidateLabelRow label="Pillar">{displayField(item.meta?.pillar)}</CandidateLabelRow>
-            <CandidateLabelRow label="Angle">{displayField(item.meta?.angle)}</CandidateLabelRow>
-            <CandidateLabelRow label="Why">
-              {displayField(item.meta?.relevance_reason)}
-            </CandidateLabelRow>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <BrandChip brandId={item.brand_id} show={showBrandChip} />
-              <Badge tone="mute">{sourceLabel(source)}</Badge>
-            </div>
-            <p className="text-right text-sm font-display font-semibold text-tx3">
-              Created {formatStamp(item.created_at)}
-            </p>
-          </div>
+    <li className="glass rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
+            {item.title?.trim() ?? ''}
+          </h3>
+          {pillar ? (
+            <p className="mt-1 text-xs text-tx3 line-clamp-1">{pillar}</p>
+          ) : null}
+          {angle ? (
+            <p className="mt-0.5 text-xs text-tx2 line-clamp-1">{angle}</p>
+          ) : null}
+          {relevanceReason ? (
+            <p className="mt-0.5 text-xs text-tx3 line-clamp-1">{relevanceReason}</p>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <CandidateLabelRow label="Go-live">
-            <input
-              type="date"
-              value={dateVal}
-              onChange={(e) => setDateVal(e.target.value)}
-              onBlur={() => void saveFields()}
-              className="rounded-lg border border-bd bg-bg px-2 py-1 text-base text-tx"
-            />
-          </CandidateLabelRow>
-          <CandidateLabelRow label="Channel">
-            <select
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              onBlur={() => void saveFields()}
-              className="rounded-lg border border-bd bg-bg px-2 py-1 text-base text-tx"
-            >
-              <option value="instagram">instagram</option>
-              <option value="facebook">facebook</option>
-              <option value="gbp">gbp</option>
-            </select>
-          </CandidateLabelRow>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Tip text={noLodge ? 'Set a go-live date before lodging.' : 'Book the moment and queue caption + image.'}>
-              <button
-                type="button"
-                disabled={busy === item.id || noLodge}
-                onClick={() => void act('lodge')}
-                className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-40"
-              >
-                <Inbox className="h-4 w-4" strokeWidth={2.5} />
-                Lodge
-              </button>
-            </Tip>
-            <button
-              type="button"
-              disabled={busy === item.id}
-              onClick={() => void act('book')}
-              className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
-            >
-              <BookMarked className="h-4 w-4" strokeWidth={2} />
-              Book only
-            </button>
-            <button
-              type="button"
-              disabled={busy === item.id}
-              onClick={() => void act('reject')}
-              className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
-            >
-              <X className="h-4 w-4" />
-              Reject
-            </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <BrandChip brandId={item.brand_id} show={showBrandChip} />
+            <Badge tone="mute">{sourceLabel(source)}</Badge>
           </div>
+          <p className="text-right text-xs text-tx3">Created {formatStamp(item.created_at)}</p>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-bd pt-2">
+        <input
+          type="date"
+          value={dateVal}
+          onChange={(e) => setDateVal(e.target.value)}
+          onBlur={() => void saveFields()}
+          className="rounded-full border border-bd bg-bg px-3 py-1 text-xs text-tx"
+          aria-label="Go-live date"
+        />
+        <select
+          value={channel}
+          onChange={(e) => setChannel(e.target.value)}
+          onBlur={() => void saveFields()}
+          className="rounded-full border border-bd bg-bg px-3 py-1 text-xs text-tx"
+          aria-label="Channel"
+        >
+          <option value="instagram">instagram</option>
+          <option value="facebook">facebook</option>
+          <option value="gbp">gbp</option>
+        </select>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Tip text={noLodge ? 'Set a go-live date before lodging.' : 'Book the moment and queue caption + image.'}>
+            <button
+              type="button"
+              disabled={busy === item.id || noLodge}
+              onClick={() => void act('lodge')}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-40"
+            >
+              <Inbox className="h-4 w-4" strokeWidth={2.5} />
+              Lodge
+            </button>
+          </Tip>
+          <button
+            type="button"
+            disabled={busy === item.id}
+            onClick={() => void act('book')}
+            className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
+          >
+            <BookMarked className="h-4 w-4" strokeWidth={2} />
+            Book only
+          </button>
+          <button
+            type="button"
+            disabled={busy === item.id}
+            onClick={() => void act('reject')}
+            className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
+          >
+            <X className="h-4 w-4" />
+            Reject
+          </button>
         </div>
       </div>
       {err ? <p className="mt-2 text-sm text-red">{err}</p> : null}

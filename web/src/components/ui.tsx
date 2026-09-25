@@ -301,11 +301,14 @@ export function QueueItem({
   thumb,
   thumbAlt,
   thumbClassName,
+  typeBadge,
+  stateBadge,
+  hideImageFallbackBadge,
 }: {
   to?: string
   tip?: string
-  badge: string
-  tone: 'gold' | 'green' | 'blue' | 'mute'
+  badge?: string
+  tone?: 'gold' | 'green' | 'blue' | 'mute'
   channelBadge?: string
   channelTone?: 'gold' | 'green' | 'blue' | 'mute'
   title: string
@@ -318,14 +321,19 @@ export function QueueItem({
   thumb?: string
   thumbAlt?: string
   thumbClassName?: string
+  typeBadge?: string
+  stateBadge?: string
+  /** When true, a broken thumb does not show a “No image” badge (Review queue). */
+  hideImageFallbackBadge?: boolean
 }) {
   const [thumbBroken, setThumbBroken] = useState(false)
   useEffect(() => {
     setThumbBroken(false)
   }, [thumb])
   const when = dateOnly ? formatDateStamp(stamp) : formatStamp(stamp)
-  const showBadge = thumbBroken ? 'No image' : badge
-  const showTone = thumbBroken ? ('mute' as const) : tone
+  const showBadge =
+    thumbBroken && !hideImageFallbackBadge ? 'No image' : badge || undefined
+  const showTone = thumbBroken && !hideImageFallbackBadge ? ('mute' as const) : tone || 'mute'
   const thumbNode = thumb ? (
     <QueueItemThumb
       src={thumb}
@@ -339,7 +347,13 @@ export function QueueItem({
       {thumbNode}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={showTone}>{showBadge}</Badge>
+          {typeBadge ? <Badge tone="mute">{typeBadge}</Badge> : null}
+          {stateBadge ? (
+            <Badge tone={stateBadge.toLowerCase() === 'stale' ? 'gold' : 'blue'}>
+              {stateBadge}
+            </Badge>
+          ) : null}
+          {showBadge ? <Badge tone={showTone}>{showBadge}</Badge> : null}
           {channelBadge ? (
             <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
           ) : null}

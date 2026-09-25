@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
+import { DailyBrandSocials } from '../components/DailyBrandSocials'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
@@ -138,7 +139,7 @@ function mergeLayersPayloads(parts: LayersPayload[]): LayersPayload {
 }
 
 export function Daily() {
-  const { brandId: focusBrandId } = useBrand()
+  const { brandId: focusBrandId, brands: brandRows } = useBrand()
   const { isAll, brandIds, scope } = useBrandScope()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [layers, setLayers] = useState<LayersPayload | null>(null)
@@ -257,83 +258,22 @@ export function Daily() {
     workedLibraryThumbs.length > 0
   const asOf = data?.ts
   const best = posts[0]
-  const l1 = layerOf(layers, 'L1')
   const l3 = layerOf(layers, 'L3')
   const l4 = layerOf(layers, 'L4')
   const l6 = layerOf(layers, 'L6')
   const l7 = layerOf(layers, 'L7')
   const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
-  const pulse = useMemo(() => {
-    const rows: { label: string; value: string }[] = []
-    if (best?.plain_english) {
-      const verdict = best.verdict || 'Best post'
-      const cleaned = best.plain_english
-        .replace(/^[^\dA-Za-z]+/, '')
-        .replace(/^(Top performer|Underperformer|Average)\.?\s*/i, '')
-      rows.push({
-        label: verdict,
-        value: cleaned || best.plain_english,
-      })
-    } else if (best?.caption_excerpt) {
-      rows.push({
-        label: 'Best post',
-        value: `“${best.caption_excerpt}”${best.engagementRate != null ? ` · ${best.engagementRate.toFixed(2)}% engagement` : ''}`,
-      })
-    } else if (insightMeta?.total_scanned) {
-      const avg = insightMeta.average_engagement
-      rows.push({
-        label: 'Instagram',
-        value: `Scanned ${insightMeta.total_scanned} posts${avg != null ? ` · ${avg.toFixed(2)}% average engagement` : ''}. Nothing is beating the pack yet.`,
-      })
-    } else {
-      rows.push({
-        label: 'Instagram',
-        value: insightMeta?.reason || 'No scored posts yet — interpret hasn’t ranked last week’s feed.',
-      })
-    }
-    const winners = learn?.headline?.winners ?? l7.winners ?? 0
-    const recipes = learn?.headline?.recipes ?? l7.recipes ?? 0
-    if (winners > 0 || recipes > 0) {
-      rows.push({
-        label: 'Learn',
-        value: `${winners} winner${winners === 1 ? '' : 's'}, ${recipes} recipe${recipes === 1 ? '' : 's'} the desk can spend against.`,
-      })
-    } else if (learn?.headline?.proposal_gate === 'insufficient_data') {
-      rows.push({
-        label: 'Learn',
-        value: 'Not enough scored posts to pick a recipe yet.',
-      })
-    } else {
-      rows.push({
-        label: 'Learn',
-        value: 'No scored winners yet — last week hasn’t been interpreted.',
-      })
-    }
-    const silent = l1.never ?? 0
-    const late = l1.late ?? 0
-    const stuck = l1.stuck ?? 0
-    const failed = l1.failed ?? 0
-    let overnight = 'Checking overnight jobs…'
-    if (layers) {
-      overnight = 'Overnight jobs landed. Figures are current.'
-      if (silent > 0) {
-        overnight = `${silent} jobs never reported. Treat today’s numbers as yesterday’s.`
-      } else if (failed > 0) {
-        overnight = `${failed} overnight job${failed === 1 ? '' : 's'} failed. Figures may be incomplete.`
-      } else if (stuck > 0 || late > 0) {
-        overnight = `${late + stuck} job${late + stuck === 1 ? '' : 's'} late or stuck. Refresh before you brief anyone.`
-      } else if ((l1.verdict || '').toUpperCase() === 'NEVER') {
-        overnight = 'Overnight jobs haven’t checked in. Treat today’s numbers as stale.'
-      } else if ((l1.verdict || 'OK').toUpperCase() !== 'OK') {
-        overnight = `Data layer is ${(l1.verdict || 'quiet').toLowerCase()}.`
+  const socialRows = useMemo(() => {
+    const byId = new Map(brandRows.map((row) => [row.id, row]))
+    return brandIds.map((id) => {
+      const row = byId.get(id)
+      return {
+        brandId: id,
+        brandLabel: row?.label || id,
+        socials: row?.socials || [],
       }
-    }
-    rows.push({
-      label: 'Data overnight',
-      value: overnight,
     })
-    return rows
-  }, [best, insightMeta, layers, learn, l1, l7])
+  }, [brandRows, brandIds])
   const calls = useMemo(() => {
     const rows: { label: string; value: string; to: string }[] = []
     const stale = l4.stale ?? 0
@@ -391,6 +331,8 @@ export function Daily() {
       >
         {data?.summary || 'Loading your decisions for today…'}
       </PageIntro>
+
+      <DailyBrandSocials rows={socialRows} />
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
@@ -460,69 +402,54 @@ export function Daily() {
           title={
             data
               ? morningTitle({ layers, learn, best, waiting })
-              : 'Reading last night’s numbers…'
+              : 'Loading today’s desk…'
           }
           meta={asOf ? `As of ${formatStamp(asOf)}` : undefined}
           extra={
-            <div className="grid gap-4 border-t border-bd pt-4 sm:grid-cols-2">
-              <div>
-                <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
-                  What the numbers say
-                </p>
-                <ul className="space-y-2">
-                  {pulse.map((f) => (
-                    <li key={f.label} className="glass rounded-xl border-[1.5px] border-white/10 px-3 py-2">
-                      <p className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">{f.label}</p>
-                      <p className="text-sm leading-snug font-medium">{f.value}</p>
-                    </li>
-                  ))}
-                </ul>
-                {briefActions.length ? (
-                  <div className="mt-3 border-t border-bd pt-3">
-                    <p className="mb-2 text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-                      Briefs waiting
-                    </p>
-                    <ul className="flex flex-wrap gap-2">
-                      {briefActions.map((a, i) => (
-                        <li key={a.event_key || a.name || i}>
-                          <Tip text={briefTip(a)}>
-                            <span className="glass-pill inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5">
-                              <Badge tone={briefTone(a)}>{briefLabel(a)}</Badge>
-                              <span className="text-sm font-medium text-tx2">{a.name || a.event_key}</span>
-                            </span>
-                          </Tip>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-              <div>
-                <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
-                  What needs a call
-                </p>
-                <ul className="space-y-2">
-                  {calls.map((row, i) => (
-                    <li key={row.label}>
-                      <Link
-                        to={row.to}
-                        title={`Open ${row.label}: ${row.value}`}
-                        className="glass flex items-start gap-2 rounded-xl border-[1.5px] border-white/10 px-3 py-2 hover:border-ac/40"
-                      >
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-yel/15 text-[13px] font-bold text-yel">
-                          {i + 1}
+            <div className="border-t border-bd pt-4">
+              <p className="mb-2 text-[13px] font-semibold tracking-[0.14em] text-tx3 uppercase">
+                What needs a call
+              </p>
+              <ul className="space-y-2">
+                {calls.map((row, i) => (
+                  <li key={row.label}>
+                    <Link
+                      to={row.to}
+                      title={`Open ${row.label}: ${row.value}`}
+                      className="glass flex items-start gap-2 rounded-xl border-[1.5px] border-white/10 px-3 py-2 hover:border-ac/40"
+                    >
+                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-yel/15 text-[13px] font-bold text-yel">
+                        {i + 1}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[12px] font-semibold tracking-wide text-tx3 uppercase">
+                          {row.label}
                         </span>
-                        <span className="min-w-0">
-                          <span className="block text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-                            {row.label}
+                        <span className="block text-sm leading-snug font-medium">{row.value}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {briefActions.length ? (
+                <div className="mt-4 border-t border-bd pt-3">
+                  <p className="mb-2 text-[12px] font-semibold tracking-wide text-tx3 uppercase">
+                    Briefs waiting
+                  </p>
+                  <ul className="flex flex-wrap gap-2">
+                    {briefActions.map((a, i) => (
+                      <li key={a.event_key || a.name || i}>
+                        <Tip text={briefTip(a)}>
+                          <span className="glass-pill inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1.5">
+                            <Badge tone={briefTone(a)}>{briefLabel(a)}</Badge>
+                            <span className="text-sm font-medium text-tx2">{a.name || a.event_key}</span>
                           </span>
-                          <span className="block text-sm leading-snug font-medium">{row.value}</span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                        </Tip>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           }
         >
