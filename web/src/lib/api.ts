@@ -562,6 +562,36 @@ export function fetchAgentQueue(opts?: {
   return getJson<QueuePayload>(`/api/ops/agent-queue${suffix}`)
 }
 
+export type BrandImagesToday = {
+  ok?: boolean
+  brand_id?: string
+  images_today: number
+  cap: number
+  at_cap: boolean
+  error?: string
+}
+
+export function fetchBrandImagesToday(brandId: string) {
+  return getJson<BrandImagesToday>(`/api/ops/images-today/${encodeURIComponent(brandId)}`)
+}
+
+export type OpsQueueResult = {
+  ok?: boolean
+  id?: string
+  pending?: number
+  action?: string
+  error?: string
+  at_cap?: boolean
+}
+
+export function enqueueOpsQueue(body: {
+  item_id: string
+  action: 'draft_image'
+  dedupe_key: string
+}) {
+  return postJson<OpsQueueResult>('/api/ops/queue', body)
+}
+
 export type AccountConnect = {
   type?: string
   url?: string

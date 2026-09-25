@@ -6,11 +6,14 @@ import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, Tip } from '../components/ui'
 import {
+  enqueueOpsQueue,
+  fetchBrandImagesToday,
   fetchCampaign,
   fetchInbox,
   fetchInboxItem,
   inboxAction,
   inboxChannelLabel,
+  inboxEdit,
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
@@ -19,6 +22,7 @@ import {
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
+import { ReviewPieceDetail } from './ReviewPieceDetail'
 import { fanOutPayloads } from '../lib/fanOut'
 import { reviewType } from '../lib/reviewType'
 import { useLoadGate } from '../lib/useLoadGate'
@@ -58,6 +62,11 @@ export function ReviewPiece() {
   const [assetErr, setAssetErr] = useState('')
   const [assetLoading, setAssetLoading] = useState(false)
   const [imgBroken, setImgBroken] = useState(false)
+  const [editingCaption, setEditingCaption] = useState(false)
+  const [captionDraft, setCaptionDraft] = useState('')
+  const [captionSaving, setCaptionSaving] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [imageCap, setImageCap] = useState<{ at_cap: boolean; cap: number } | null>(null)
   const { trackLoad, waitForLoad } = useLoadGate()
 
   const cid = item?.meta?.campaign_id
@@ -126,6 +135,24 @@ export function ReviewPiece() {
     }
   }, [cid, aid])
 
+  useEffect(() => {
+    setImageCap(null)
+    const bid = item?.brand_id
+    if (!bid) return
+    let live = true
+    fetchBrandImagesToday(bid)
+      .then((payload) => {
+        if (!live) return
+        setImageCap({ at_cap: Boolean(payload.at_cap), cap: payload.cap ?? 2 })
+      })
+      .catch(() => {
+        if (live) setImageCap(null)
+      })
+    return () => {
+      live = false
+    }
+  }, [item?.brand_id])
+
   const visualUrl = useMemo(() => resolvedInboxVisualUrl(item, asset), [asset, item])
   const mediaTag = useMemo(
     () => inboxMediaTag(item, { asset, visualBroken: imgBroken }),
@@ -168,6 +195,61 @@ export function ReviewPiece() {
     navigate(next ? reviewPiecePath(next.id, next.brand_id) : '/review')
   }
 
+  const brandLabel = item?.brand_id || 'brand'
+  const atImageCap = Boolean(imageCap?.at_cap)
+  const regenerateTip = atImageCap
+    ? `Daily image cap reached for ${brandLabel}`
+    : 'Queue a new draft image for this piece (does not call the router from the browser).'
+
+  function startEditCaption() {
+    setCaptionDraft(caption)
+    setEditingCaption(true)
+  }
+
+  async function saveCaption() {
+    if (!item) return
+    setCaptionSaving(true)
+    setError('')
+    const result = await inboxEdit(item.id, { caption: captionDraft })
+    setCaptionSaving(false)
+    if (!result.ok) {
+      setError(result.error || 'Could not save caption')
+      return
+    }
+    setEditingCaption(false)
+    if (asset) {
+      setAsset({ ...asset, caption: captionDraft })
+    } else if (item.meta) {
+      setItem({ ...item, meta: { ...item.meta, caption: captionDraft } })
+    }
+    load()
+  }
+
+  async function regenerateImage() {
+    if (!item || atImageCap || drafting) return
+    setDrafting(true)
+    setError('')
+    const dedupe_key = `draft_image-${item.id}-${Date.now()}`
+    try {
+      const result = await enqueueOpsQueue({
+        item_id: item.id,
+        action: 'draft_image',
+        dedupe_key,
+      })
+      if (!result.ok) {
+        setError(result.error || 'Could not queue image draft')
+        if (result.at_cap && item.brand_id) {
+          setImageCap({ at_cap: true, cap: imageCap?.cap ?? 2 })
+        }
+        setDrafting(false)
+        return
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setDrafting(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageIntro here="/review" title={item?.title || item?.summary || (loaded ? 'This piece is gone' : 'Opening…')}>
@@ -193,36 +275,6 @@ export function ReviewPiece() {
 
       {item ? (
         <section className="glass rounded-2xl border-[1.5px] border-ac/35 p-5 shadow-[0_0_0_3px_rgba(52,211,153,.08)] backdrop-blur-xl">
-          {assetLoading && !asset ? (
-            <div className="mb-4 h-48 animate-pulse rounded-2xl bg-bg3" />
-          ) : visualUrl && !imgBroken ? (
-            <div className="mb-4">
-            <Tip text="Open the full-size image in a new tab." block>
-              <a href={visualUrl} target="_blank" rel="noreferrer" className="block">
-                <img
-                  src={visualUrl}
-                  alt={asset?.name || 'Asset visual'}
-                  onError={() => setImgBroken(true)}
-                  className="max-h-80 w-auto rounded-2xl border border-bd object-contain"
-                />
-              </a>
-            </Tip>
-            </div>
-          ) : imgBroken ? (
-            <div className="mb-4 rounded-2xl border border-bd bg-bg2/50 px-4 py-3 text-sm text-tx3">
-              <p>
-                ⚠️ Image URL unreachable — <code className="text-xs break-all">{visualUrl}</code>
-              </p>
-              <p className="mt-1">The file may not be on this server.</p>
-              {visualBrief ? <p className="mt-1">Regenerate it in studio.</p> : null}
-            </div>
-          ) : !cid || !aid || (asset && !visualUrl) ? (
-            <div className="mb-4 rounded-2xl border border-dashed border-bd px-4 py-3 text-sm text-tx3">
-              <p>No visual on file.</p>
-              <p className="mt-1">Open studio for this draft to add or generate one.</p>
-            </div>
-          ) : null}
-
           {assetErr ? (
             <p className="mb-3 text-sm text-tx3">
               Could not load the campaign asset ({assetErr}). Caption and the actions below still work.
@@ -255,14 +307,31 @@ export function ReviewPiece() {
             ) : null}
             .
           </p>
-          <p className="mt-3 text-sm text-tx2">{caption || 'No brief on this card yet.'}</p>
-          {visualBrief ? (
-            <p className="mt-2 text-sm text-tx3">
-              <span className="font-semibold uppercase tracking-wide text-[12px]">Visual brief</span>
-              <br />
-              {visualBrief}
-            </p>
-          ) : null}
+          <div className="mt-4">
+            <ReviewPieceDetail
+              item={item}
+              caption={caption}
+              visualUrl={visualUrl}
+              visualBrief={visualBrief}
+              imgBroken={imgBroken}
+              asset={asset}
+              assetLoading={assetLoading}
+              cid={cid}
+              aid={aid}
+              editingCaption={editingCaption}
+              captionDraft={captionDraft}
+              captionSaving={captionSaving}
+              drafting={drafting}
+              regenerateDisabled={atImageCap}
+              regenerateTip={regenerateTip}
+              onStartEditCaption={startEditCaption}
+              onCancelEditCaption={() => setEditingCaption(false)}
+              onCaptionDraftChange={setCaptionDraft}
+              onSaveCaption={() => void saveCaption()}
+              onRegenerate={() => void regenerateImage()}
+              onImgBroken={() => setImgBroken(true)}
+            />
+          </div>
           {showSummary && item.summary ? (
             <p className="mt-2 text-sm text-tx2">{item.summary}</p>
           ) : null}

@@ -277,6 +277,24 @@ def load_create_stats() -> dict[str, Any]:
     }
 
 
+def brand_images_today(brand_id: str) -> dict[str, Any]:
+    """Per-brand persisted-image count vs global daily cap (UI regenerate gate)."""
+    stats = load_create_stats()
+    drafted = stats.get("images_drafted_today")
+    if not isinstance(drafted, dict):
+        drafted = {}
+    try:
+        cap = max(0, int(stats.get("max_images_per_day") or 2))
+    except (TypeError, ValueError):
+        cap = 2
+    try:
+        count = max(0, int(drafted.get(brand_id) or 0))
+    except (TypeError, ValueError):
+        count = 0
+    at_cap = cap > 0 and count >= cap
+    return {"images_today": count, "cap": cap, "at_cap": at_cap}
+
+
 def queue_depth(queue: Optional[dict | list]) -> int:
     """Count pending rows in agent-queue.json; missing file → 0."""
     if queue is None:
