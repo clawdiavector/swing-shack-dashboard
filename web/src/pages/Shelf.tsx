@@ -1,177 +1,162 @@
-import { Check, Library, Rocket, Send } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { Calendar, Library, Rocket } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useBrand } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
-import { Badge, Button, QueueItem, StatCard, Tip } from '../components/ui'
-import {
-  enqueueSandboxItem,
-  fetchInbox,
-  fetchSandboxQueue,
-  inboxChannelLabel,
-  inboxGoesOutIso,
-  inboxItemThumbUrl,
-  inboxMediaTag,
-  type InboxItem,
-} from '../lib/api'
-import { reviewType } from '../lib/reviewType'
+import { PostCard } from '../components/posting/PostCard'
+import { Badge, Button, StatCard } from '../components/ui'
+import { fetchPublishMode, fetchShelf, type PublishMode } from '../lib/api'
+import { formatGoesOut, type ShelfPayload } from '../lib/postingWeek'
 
 export function Shelf() {
   const { brandId } = useBrand()
-  const [items, setItems] = useState<InboxItem[]>([])
-  const [queuedAssetIds, setQueuedAssetIds] = useState<Set<string>>(new Set())
-  const [approvedCount, setApprovedCount] = useState<number | null>(null)
-  const [clearedToday, setClearedToday] = useState<number | null>(null)
+  const [data, setData] = useState<ShelfPayload | null>(null)
+  const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState('')
 
-  function load() {
-    Promise.all([
-      fetchInbox('approved', brandId, 'draft_asset'),
-      fetchSandboxQueue(brandId),
-    ])
-      .then(([inbox, queue]) => {
-        const ids = new Set<string>()
-        for (const row of queue.items || []) {
-          if (row.asset_id) ids.add(row.asset_id)
-        }
-        setQueuedAssetIds(ids)
-        setItems(inbox.items || [])
-        setApprovedCount(inbox.counts?.approved ?? inbox.items?.length ?? 0)
-        setClearedToday(inbox.counts?.approved_today ?? null)
+  const load = useCallback(() => {
+    fetchShelf(brandId)
+      .then((payload) => {
+        setData(payload)
+        setError(payload.error || '')
       })
       .catch((err: Error) => setError(err.message))
-  }
+  }, [brandId])
 
-  useEffect(load, [brandId])
-
-  const onShelf = useMemo(
-    () =>
-      items.filter((item) => {
-        const assetId = String(item.meta?.asset_id || '')
-        return assetId && !queuedAssetIds.has(assetId)
-      }),
-    [items, queuedAssetIds],
-  )
-
-  async function handleQueue(item: InboxItem) {
-    const assetId = String(item.meta?.asset_id || '')
-    const brand = String(item.brand_id || brandId || '')
-    const caption = String(item.meta?.caption || item.summary || '')
-    if (!assetId || !brand) {
-      setError('Missing asset or brand for sandbox enqueue')
-      return
-    }
-    setBusy(item.id)
-    setError('')
-    const { status, data } = await enqueueSandboxItem({
-      brand_id: brand,
-      asset_id: assetId,
-      caption_preview: caption,
-      inbox_item_id: item.id,
-    })
-    setBusy('')
-    if (status >= 400 || !data.ok) {
-      setError(data.error || 'Could not queue to sandbox')
-      return
-    }
+  useEffect(() => {
     load()
-  }
+  }, [load])
+
+  useEffect(() => {
+    fetchPublishMode()
+      .then(setPublishMode)
+      .catch(() => setPublishMode(null))
+  }, [])
+
+  const counts = data?.counts
+  const autoOff = publishMode?.auto_release === false || publishMode?.auto_release == null
 
   return (
     <div className="space-y-6">
       <PageIntro
         icon={Library}
         here="/shelf"
-        title="On the shelf"
+        title="Scheduled"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {publishMode ? (
+              <Badge tone={publishMode.mode === 'live' ? 'red' : 'gold'}>
+                Mode: {publishMode.label || publishMode.mode || 'sandbox'}
+              </Badge>
+            ) : null}
+            <Badge tone={autoOff ? 'mute' : 'green'}>
+              Auto release: {publishMode?.auto_release ? 'on' : 'off'}
+            </Badge>
+          </div>
+        }
       >
-        Approved drafts sitting here — not queued, not live. Push to Publish when ready.
+        Approved posts with a go-live date — release when ready. Sandbox only until Kyle enables live.
       </PageIntro>
+
+      {autoOff ? (
+        <p className="text-xs text-tx3">Auto-release is off — Release now is the only way out today.</p>
+      ) : null}
 
       {error ? (
         <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          icon={Check}
-          label="Approved on shelf"
-          value={onShelf.length}
-          hint="Not in sandbox queue"
+          icon={Calendar}
+          label="Scheduled"
+          value={counts?.scheduled ?? '—'}
+          hint="Waiting for release"
           tone="green"
         />
         <StatCard
           icon={Rocket}
-          label="Cleared today"
-          value={clearedToday ?? '—'}
-          hint="Matches Review"
+          label="Releasable today"
+          value={counts?.releasable_today ?? '—'}
+          hint="Go-live is today"
+          tone="gold"
+        />
+        <StatCard
+          icon={Library}
+          label="Released waiting"
+          value={counts?.released ?? '—'}
+          hint="Awaiting dispatch"
+          tone="mute"
+        />
+        <StatCard
+          icon={Rocket}
+          label="Released today"
+          value={counts?.released_today ?? '—'}
+          hint="Human releases"
           tone="mute"
         />
       </div>
 
-      <p className="text-xs text-tx3">
-        Approved, not queued. Not live. {approvedCount != null ? `${approvedCount} approved draft(s) total.` : ''}
-      </p>
-
-      <section>
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-xl font-semibold">Shelf</h2>
-          <Badge tone="green">{onShelf.length}</Badge>
-        </div>
-        <ul className="space-y-2">
-          {onShelf.map((item) => {
-            const thumb = inboxItemThumbUrl(item)
-            const media = inboxMediaTag(item)
-            const kind = reviewType(item.type).label
-            const channel = inboxChannelLabel(item)
-            const goesOut = inboxGoesOutIso(item)
-            return (
-              <QueueItem
-                key={item.id}
-                to={`/review/${encodeURIComponent(item.id)}`}
-                badge={media.label}
-                tone={media.tone}
-                channelBadge={channel || undefined}
-                title={item.title || item.summary || item.id}
-                meta={[kind, item.brand_id, item.meta?.caption?.slice(0, 70)]
-                  .filter(Boolean)
-                  .join(' · ')}
-                stamp={goesOut || item.created_at}
-                stampKind={goesOut ? 'goes_out' : 'created'}
-                dateOnly={Boolean(goesOut)}
-                thumb={thumb || undefined}
-                thumbAlt={item.title || item.id}
-                action={
-                  <Tip text="Copy caption onto the sandbox publish queue. Does not go live.">
-                    <button
-                      type="button"
-                      title="Queue to sandbox publish"
-                      disabled={busy === item.id}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        handleQueue(item)
-                      }}
-                      className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-ac"
-                    >
-                      <Send className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      Queue
-                    </button>
-                  </Tip>
-                }
+      {data?.date_groups?.map((group) => (
+        <section key={group.date}>
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="font-display text-xl font-semibold">
+              {formatGoesOut(group.date)}
+            </h2>
+            <Badge tone="green">{group.posts.length}</Badge>
+          </div>
+          <ul className="space-y-2">
+            {group.posts.map((post) => (
+              <PostCard
+                key={post.calendar_id}
+                post={post}
+                dayDate={group.date}
+                weekday=""
+                onRefresh={load}
               />
-            )
-          })}
-          {onShelf.length === 0 ? (
-            <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-              Nothing on the shelf — approve drafts in Review first.
-            </li>
-          ) : null}
-        </ul>
-      </section>
+            ))}
+          </ul>
+        </section>
+      ))}
 
-      <Button to="/publish" icon={Send} tip="Open Publish to see the sandbox queue.">
+      {data?.undated && data.undated.length > 0 ? (
+        <section>
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="font-display text-xl font-semibold">No date</h2>
+            <Badge tone="gold">{data.undated.length}</Badge>
+          </div>
+          <ul className="space-y-2">
+            {data.undated.map((post) => (
+              <PostCard
+                key={post.calendar_id}
+                post={post}
+                dayDate=""
+                weekday=""
+                onRefresh={load}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {!error &&
+      (data?.date_groups?.every((g) => g.posts.length === 0) ?? true) &&
+      (data?.undated?.length ?? 0) === 0 ? (
+        <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
+          Nothing scheduled — approve drafts in Review first, then they land here.
+        </p>
+      ) : null}
+
+      <Button to="/publish" icon={Rocket} tip="Open Publish to see the sandbox queue.">
         Open publish
       </Button>
+      <p className="text-xs text-tx3">
+        View draft detail in{' '}
+        <Link to="/review" className="font-semibold text-ac">
+          Review
+        </Link>
+        .
+      </p>
     </div>
   )
 }

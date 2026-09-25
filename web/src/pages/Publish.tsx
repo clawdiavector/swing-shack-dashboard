@@ -64,6 +64,8 @@ export function Publish() {
     ? `${next.platform || 'post'} · ${next.brand_id || brandId || 'brand'}${next.created_at ? ` · ${formatStamp(next.created_at)}` : ''}`
     : 'Approve on Review, shelf it, then queue here — still sandbox only.'
 
+  const releasedWaiting = sandbox.filter((row) => row.human_approved)
+  const notReleased = sandbox.filter((row) => !row.human_approved)
   const queueCountLabel =
     sandbox.length > 0 && sandboxTotal > sandbox.length
       ? `${sandbox.length} of ${sandboxTotal}`
@@ -77,13 +79,18 @@ export function Publish() {
         here="/publish"
         title="Queued to ship"
         actions={
-          publishMode ? (
-            <Badge tone={publishMode.mode === 'live' ? 'red' : 'gold'}>
-              {publishMode.label || publishMode.mode || 'SANDBOX'}
+          <div className="flex flex-wrap gap-2">
+            {publishMode ? (
+              <Badge tone={publishMode.mode === 'live' ? 'red' : 'gold'}>
+                Mode: {publishMode.label || publishMode.mode || 'SANDBOX'}
+              </Badge>
+            ) : (
+              <Badge tone="gold">Mode: SANDBOX</Badge>
+            )}
+            <Badge tone={publishMode?.auto_release ? 'green' : 'mute'}>
+              Auto release: {publishMode?.auto_release ? 'on' : 'off'}
             </Badge>
-          ) : (
-            <Badge tone="gold">SANDBOX</Badge>
-          )
+          </div>
         }
       >
         Sandbox publish queue — image, caption, platform. Approve on Review does not publish live.
@@ -144,14 +151,16 @@ export function Publish() {
           <p className="mb-3 text-xs text-tx3">
             Pending sandbox rows for {brandId || 'all brands'} — receipts only until dispatch runs.
           </p>
-          <ul className="space-y-2">
-            {queueErr ? (
-              <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-                Could not load sandbox queue ({queueErr}).
-              </li>
-            ) : null}
-            {!queueErr
-              ? sandbox.map((row) => {
+          {queueErr ? (
+            <p className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
+              Could not load sandbox queue ({queueErr}).
+            </p>
+          ) : null}
+          {!queueErr ? (
+            <>
+              <h3 className="mb-2 text-sm font-semibold text-tx2">Released, waiting to dispatch</h3>
+              <ul className="mb-4 space-y-2">
+                {releasedWaiting.map((row) => {
                   const id = sandboxRowId(row)
                   const thumb = resolveAssetUrl(row.image_url || row.image_path)
                   const caption = String(row.caption || row.caption_preview || '').trim()
@@ -159,9 +168,41 @@ export function Publish() {
                   const platform = String(row.platform || 'post')
                   return (
                     <QueueItem
-                      key={id || sandboxTitle(row)}
+                      key={`rel-${id || sandboxTitle(row)}`}
                       to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
-                      tip="Open the sandbox preview — mock only, nothing goes live."
+                      tip="Human-approved — dispatch job writes the receipt."
+                      badge="released"
+                      tone="green"
+                      channelBadge={platform}
+                      title={sandboxTitle(row)}
+                      meta={[row.brand_id, caption.slice(0, 80)].filter(Boolean).join(' · ')}
+                      stamp={goesOut || row.created_at}
+                      stampKind={goesOut ? 'goes_out' : 'created'}
+                      dateOnly={Boolean(goesOut)}
+                      thumb={thumb || undefined}
+                      thumbAlt={caption.slice(0, 80) || id}
+                    />
+                  )
+                })}
+                {releasedWaiting.length === 0 ? (
+                  <li className="rounded-2xl border border-dashed border-bd px-4 py-4 text-sm text-tx3">
+                    No released rows yet — use Release now on the Shelf.
+                  </li>
+                ) : null}
+              </ul>
+              <h3 className="mb-2 text-sm font-semibold text-tx2">Not released yet</h3>
+              <ul className="space-y-2">
+                {notReleased.map((row) => {
+                  const id = sandboxRowId(row)
+                  const thumb = resolveAssetUrl(row.image_url || row.image_path)
+                  const caption = String(row.caption || row.caption_preview || '').trim()
+                  const goesOut = sandboxGoesOutIso(row)
+                  const platform = String(row.platform || 'post')
+                  return (
+                    <QueueItem
+                      key={`nr-${id || sandboxTitle(row)}`}
+                      to={id ? `/publish/sandbox/${encodeURIComponent(id)}` : undefined}
+                      tip="QC passed but not human-released."
                       badge="sandbox"
                       tone="gold"
                       channelBadge={platform}
@@ -174,20 +215,21 @@ export function Publish() {
                       thumbAlt={caption.slice(0, 80) || id}
                     />
                   )
-                })
-              : null}
-            {!queueErr && sandbox.length === 0 ? (
-              <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
-                Sandbox queue is empty —{' '}
-                <Tip text="Approved drafts not yet queued.">
-                  <Link to="/shelf" className="font-semibold text-ac">
-                    check the shelf
-                  </Link>
-                </Tip>
-                .
-              </li>
-            ) : null}
-          </ul>
+                })}
+                {notReleased.length === 0 && releasedWaiting.length === 0 ? (
+                  <li className="rounded-2xl border border-dashed border-bd px-4 py-6 text-sm text-tx3">
+                    Sandbox queue is empty —{' '}
+                    <Tip text="Scheduled posts waiting for release.">
+                      <Link to="/shelf" className="font-semibold text-ac">
+                        check the shelf
+                      </Link>
+                    </Tip>
+                    .
+                  </li>
+                ) : null}
+              </ul>
+            </>
+          ) : null}
         </section>
       </div>
 

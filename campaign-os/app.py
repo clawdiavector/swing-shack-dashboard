@@ -14004,11 +14004,24 @@ def publish_mode_route():
         mode = get_publish_mode()
     except Exception as exc:
         return jsonify({"ok": False, "error": str(exc)}), 500
+    auto_raw = (os.environ.get("CAMPAIGN_OS_AUTO_RELEASE") or "").strip().lower()
+    auto_on = auto_raw in ("1", "true", "yes", "on")
+    hour_raw = (os.environ.get("CAMPAIGN_OS_AUTO_RELEASE_HOUR") or "0").strip()
+    try:
+        auto_hour = max(0, min(23, int(hour_raw)))
+    except ValueError:
+        auto_hour = 0
+    auto_source = "CAMPAIGN_OS_AUTO_RELEASE=1" if auto_on else (
+        "CAMPAIGN_OS_AUTO_RELEASE unset" if not auto_raw else f"CAMPAIGN_OS_AUTO_RELEASE={auto_raw!r} (not enabled)"
+    )
     return jsonify({
         "ok": True,
         "mode": mode,
         "label": "SANDBOX" if mode == "sandbox" else "LIVE",
         "hint": "sandbox writes receipts only — no Postiz/GBP HTTP",
+        "auto_release": auto_on,
+        "auto_release_hour": auto_hour,
+        "auto_release_source": auto_source,
     }), 200
 
 
@@ -14085,6 +14098,46 @@ def publish_sandbox_enqueue_route():
     except Exception as exc:
         _app_log.exception("publish sandbox enqueue failed")
         return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@app.route('/api/publish/release', methods=['POST'])
+def publish_release_route():
+    """POST /api/publish/release — release one scheduled moment (session or job bearer)."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    brand_id = (body.get("brand_id") or body.get("brand") or "").strip()
+    calendar_id = (body.get("calendar_id") or "").strip()
+    editor = (body.get("editor") or "operator").strip() or "operator"
+    if not brand_id or not calendar_id:
+        return jsonify({"ok": False, "error": "brand_id and calendar_id required", "code": "bad_request"}), 400
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib.publish_mode import is_sandbox_mode
+        from _lib.publish_sandbox import release_moment
+
+        brand_id = validate_brand_id(brand_id)
+        result = release_moment(
+            brand_id=brand_id,
+            calendar_id=calendar_id,
+            editor=editor,
+            dispatch=is_sandbox_mode(),
+        )
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc), "code": "bad_request"}), 400
+    except Exception as exc:
+        _app_log.exception("publish release failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+    if not result.get("ok"):
+        code = str(result.get("code") or "failed")
+        if code == "already_released":
+            status = 409
+        elif code == "not_found":
+            status = 404
+        else:
+            status = 400
+        return jsonify(result), status
+    return jsonify(result), 200
 
 
 @app.route('/api/publish/sandbox/approve', methods=['POST'])
@@ -17388,6 +17441,23 @@ try:
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
         return _publish_dispatch_run()
 
+    def _run_auto_release_job(brand=None):
+        from _lib.jobs.auto_release import run as _auto_release_run
+
+        return _auto_release_run(brand=brand)
+
+    _register_job(_JobSpec(
+        name="auto_release",
+        fn=_run_auto_release_job,
+        every_seconds=86400,
+        timeout_seconds=120,
+        criticality="MEDIUM",
+        best_effort=False,
+        writes=("publish-sandbox/",),
+        brand_mode="per_brand",
+        requires_integrations=("postiz",),
+    ))
+
     _register_job(_JobSpec(
         name="publish_dispatch",
         fn=_run_publish_dispatch_job,
@@ -17838,6 +17908,32 @@ def inbox_week_board():
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
         _app_log.exception("inbox_week_board failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/inbox/shelf', methods=['GET'])
+def inbox_shelf_board():
+    """GET /api/inbox/shelf — scheduled and released posts grouped by go-live date."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import unified_inbox as _unified_inbox_mod
+        from _lib.marketing_calendar import VALID_BRAND_IDS
+
+        brand = (request.args.get("brand") or request.args.get("brand_id") or "swing-shack").strip()
+        if brand not in VALID_BRAND_IDS:
+            return jsonify({"ok": False, "error": f"brand_id '{brand}' is not an operating brand"}), 400
+        include_released = request.args.get("include_released", "1").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+        }
+        payload = _unified_inbox_mod.shelf_board(brand_id=brand, include_released=include_released)
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("inbox_shelf_board failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

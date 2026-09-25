@@ -1,7 +1,8 @@
 import { ImageIcon } from 'lucide-react'
 import { useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { inboxAction } from '../../lib/api'
+import { inboxAction, releaseMoment } from '../../lib/api'
+import { useBrand } from '../BrandSwitch'
 import {
   formatGoesOut,
   linkForPostState,
@@ -53,11 +54,15 @@ export function PostCard({
   weekday: string
   onRefresh?: () => void
 }) {
+  const { brandId } = useBrand()
   const [lodging, setLodging] = useState(false)
+  const [releasing, setReleasing] = useState(false)
   const isCandidate = post.state === 'candidate'
+  const isScheduled = post.state === 'scheduled'
+  const isReleased = post.state === 'released'
   const isHoliday = post.flags?.includes('holiday')
   const noDate = post.flags?.includes('no_date')
-  const to = linkForPostState(post)
+  const to = isScheduled || isReleased ? undefined : linkForPostState(post)
   const clickable = Boolean(to) && !isHoliday
 
   async function handleLodge(event: MouseEvent) {
@@ -69,6 +74,18 @@ export function PostCard({
     setLodging(false)
     onRefresh?.()
   }
+
+  async function handleRelease(event: MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!post.calendar_id) return
+    const brand = brandId || 'swing-shack'
+    setReleasing(true)
+    await releaseMoment(brand, post.calendar_id)
+    setReleasing(false)
+    onRefresh?.()
+  }
+
   const channel = postingChannelLabel(post.primary_channel)
   const nextAction = post.next_action || nextActionFromStages(post.stages)
   const factLine = `${formatGoesOut(dayDate, weekday)} · ${nextAction}`
@@ -122,6 +139,31 @@ export function PostCard({
               Lodge
             </button>
           </div>
+        ) : null}
+        {isScheduled ? (
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <button
+              type="button"
+              disabled={releasing}
+              title="Release now — sandbox writes a receipt immediately"
+              onClick={(e) => void handleRelease(e)}
+              className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
+            >
+              Release now
+            </button>
+            {post.inbox_item_id ? (
+              <Link
+                to={`/review/${encodeURIComponent(String(post.inbox_item_id))}`}
+                className="text-xs font-semibold text-ac"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View draft
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+        {isReleased ? (
+          <p className="pt-2 text-xs font-medium text-tx2">Waiting to go out — dispatch runs on the daily cron.</p>
         ) : null}
       </div>
     </div>

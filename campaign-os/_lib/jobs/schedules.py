@@ -44,6 +44,7 @@ JOB_SCHEDULES: dict[str, dict[str, Any]] = {
     "draft_assets": _LAYER2_7_DAILY,
     "krea_poll_draft_images": _LAYER2_7_DAILY,
     "asset_qc": _LAYER2_7_DAILY,
+    "auto_release": _LAYER2_7_DAILY,
     "publish_dispatch": _LAYER2_7_DAILY,
     "post_outcomes": _LAYER2_7_DAILY,
     "winner_promotion": _LAYER2_7_DAILY,

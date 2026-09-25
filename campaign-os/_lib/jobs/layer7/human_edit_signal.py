@@ -36,7 +36,7 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def _normalise_action(row: dict[str, Any]) -> str:
     action = str(row.get("action") or "").lower()
-    if action in ("approve", "reject", "edit"):
+    if action in ("approve", "reject", "edit", "release"):
         return action
     if row.get("fields"):
         return "edit"

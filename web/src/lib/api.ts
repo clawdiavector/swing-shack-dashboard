@@ -1,4 +1,4 @@
-import type { PostingWeekPayload } from './postingWeek'
+import type { PostingWeekPayload, ShelfPayload } from './postingWeek'
 
 export type TodayCounts = {
   review: number
@@ -398,6 +398,24 @@ export function fetchPostingWeek(
   if (opts?.start) q.set('start', opts.start)
   if (opts?.includeCandidates === false) q.set('include_candidates', '0')
   return getJson<PostingWeekPayload>(`/api/inbox/week?${q}`)
+}
+
+export function fetchShelf(brand?: string) {
+  const q = new URLSearchParams()
+  if (brand) q.set('brand', brand)
+  return getJson<ShelfPayload>(`/api/inbox/shelf?${q}`)
+}
+
+export function releaseMoment(brandId: string, calendarId: string, editor = 'christelle') {
+  return postJsonWithStatus<{
+    ok?: boolean
+    error?: string
+    code?: string
+    state?: string
+    released?: string[]
+    dispatched?: string[]
+    would_publish_at?: string
+  }>('/api/publish/release', { brand_id: brandId, calendar_id: calendarId, editor })
 }
 
 export function matchInboxItem(item: InboxItem, id: string) {
@@ -1130,6 +1148,9 @@ export type PublishMode = {
   mode?: string
   label?: string
   hint?: string
+  auto_release?: boolean
+  auto_release_hour?: number
+  auto_release_source?: string
 }
 
 export function fetchPublishMode() {

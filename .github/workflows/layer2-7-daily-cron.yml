@@ -119,6 +119,15 @@ jobs:
             -o /tmp/asset_qc.json
           python3 scripts/cos_job_summary.py print /tmp/asset_qc.json
 
+      - name: L6 — auto_release
+        continue-on-error: true
+        run: |
+          curl -sf -X POST "$BASE/api/jobs/run/auto_release?all=1" \
+            -H "Authorization: Bearer $COS_JOB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -o /tmp/auto_release.json
+          python3 scripts/cos_job_summary.py print /tmp/auto_release.json
+
       - name: L6 — publish_dispatch
         continue-on-error: true
         run: |
@@ -179,7 +188,7 @@ jobs:
           import json
           names = [
               'slot_planner','agent_queue_writer','review_sla','holiday_inject','data_archive',
-              'retry_failed_images','draft_assets','krea_poll_draft_images','asset_qc','publish_dispatch',
+              'retry_failed_images','draft_assets','krea_poll_draft_images','asset_qc','auto_release','publish_dispatch',
               'post_outcomes','winner_promotion','proposal_outcome','human_edit_signal',
           ]
           d = json.load(open('/tmp/digest.json'))

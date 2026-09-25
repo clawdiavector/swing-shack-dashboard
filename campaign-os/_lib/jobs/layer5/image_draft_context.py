@@ -482,7 +482,8 @@ def calendar_event_date_for_item(brand_id: str, inbox_item_id: str) -> str:
     record = calendar_record_for_item(brand_id, inbox_item_id)
     if not record:
         return ""
-    return _first_str(record, "event_date", "event_start", "event_window_start")
+    raw = _first_str(record, "event_date", "event_start", "event_window_start")
+    return raw[:10] if raw else ""
 
 
 def lodged_title_for_item(

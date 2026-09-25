@@ -236,6 +236,24 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Updates archive/manifest.json. Does not touch stale-only files."
         ),
     },
+    "auto_release": {
+        "title": "Auto release scheduled posts",
+        "summary": "On go-live day (SAST), mark today's scheduled posts human-approved before dispatch.",
+        "detail": (
+            "Gated by CAMPAIGN_OS_AUTO_RELEASE (default off). When off, reports candidates only. "
+            "Never selects undated or future posts. Runs in the Layer 2–7 daily cron immediately "
+            "before publish_dispatch."
+        ),
+    },
+    "publish_dispatch": {
+        "title": "Publish dispatch",
+        "summary": "Ship human-approved sandbox queue rows (receipts in sandbox mode).",
+        "detail": (
+            "Processes pending queue rows with human_approved=true. In sandbox mode writes "
+            "local receipts only; live mode is Kyle-gated via PUBLISH_MODE. Follows auto_release "
+            "in the daily cron."
+        ),
+    },
 }
 
 

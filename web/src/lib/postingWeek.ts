@@ -108,6 +108,28 @@ const POSTING_CHANNEL_LABELS: Record<string, string> = {
   gbp: 'GBP',
 }
 
+export type ShelfDateGroup = {
+  date: string
+  posts: PostingWeekPost[]
+}
+
+export type ShelfPayload = {
+  ok?: boolean
+  brand?: string
+  timezone?: string
+  today?: string
+  date_groups?: ShelfDateGroup[]
+  undated?: PostingWeekPost[]
+  counts?: {
+    scheduled?: number
+    released?: number
+    undated?: number
+    releasable_today?: number
+    released_today?: number
+  }
+  error?: string
+}
+
 export type PostingWeekPayload = {
   ok: boolean
   brand?: string

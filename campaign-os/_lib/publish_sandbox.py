@@ -102,13 +102,21 @@ def platform_allowed(brand_id: str, platform: str) -> bool:
     return want in allowed
 
 
-def _would_publish_at_from_event_date(event_date: str) -> Optional[str]:
+def _would_publish_at_from_event_date(
+    event_date: str,
+    *,
+    release_time_sast: str = "09:00",
+) -> Optional[str]:
     raw = (event_date or "").strip()
     if not raw:
         return None
-    if "T" in raw:
-        return raw if raw.endswith("Z") else f"{raw}Z"
-    return f"{raw}T09:00:00Z"
+    day = raw[:10]
+    if len(day) != 10 or day[4] != "-" or day[7] != "-":
+        return None
+    time_part = (release_time_sast or "09:00").strip() or "09:00"
+    if len(time_part) == 5:
+        time_part = f"{time_part}:00"
+    return f"{day}T{time_part}Z"
 
 
 def enqueue_for_primary_channel(
@@ -336,6 +344,149 @@ def dispatch_item(item: dict[str, Any]) -> tuple[dict[str, Any], Optional[str]]:
     return receipt, None
 
 
+def _stamp_queue_row_dispatched(row: dict[str, Any], receipt: dict[str, Any]) -> None:
+    row["status"] = "dispatched"
+    row["dispatched_at"] = receipt.get("dispatched_at")
+    row["sandbox_post_id"] = receipt.get("sandbox_post_id")
+
+
+def dispatch_one(idempotency_key: str) -> tuple[dict[str, Any], Optional[str]]:
+    """Dispatch exactly one pending + human_approved row. Idempotent on the key."""
+    ensure_sandbox_layout()
+    key = str(idempotency_key or "").strip()
+    if not key:
+        return {}, "idempotency_key required"
+    rows = _read_jsonl(_queue_path())
+    target: dict[str, Any] | None = None
+    for row in rows:
+        if row.get("idempotency_key") == key and row.get("status") == "pending":
+            target = row
+            break
+    if not target:
+        existing = _receipt_index().get(key)
+        if existing:
+            return existing, None
+        return {}, "queue item not found or not pending"
+    if not target.get("human_approved"):
+        return {}, "human_approved required"
+    receipts_index = _receipt_index()
+    if key in receipts_index:
+        receipt = receipts_index[key]
+    else:
+        receipt, err = dispatch_item(target)
+        if err:
+            return {}, err
+    for row in rows:
+        if row.get("idempotency_key") == key and row.get("status") == "pending":
+            _stamp_queue_row_dispatched(row, receipt)
+            break
+    _rewrite_jsonl(_queue_path(), rows)
+    return receipt, None
+
+
+def release_moment(
+    *,
+    brand_id: str,
+    calendar_id: str,
+    editor: str = "operator",
+    dispatch: bool,
+) -> dict[str, Any]:
+    """Set human_approved on this moment's pending rows. Scheduled → Released."""
+    from _lib.unified_inbox import post_state_for  # noqa: PLC0415
+
+    brand_id = validate_brand_id(brand_id)
+    cal_id = str(calendar_id or "").strip()
+    if not cal_id:
+        return {"ok": False, "error": "calendar_id required", "code": "bad_request"}
+
+    state_doc = post_state_for(brand_id, cal_id)
+    if not state_doc:
+        return {"ok": False, "error": "calendar record not found", "code": "not_found"}
+
+    state = str(state_doc.get("state") or "")
+    sandbox = state_doc.get("sandbox") or []
+    go_live = state_doc.get("go_live_date")
+    would_publish_at = _would_publish_at_from_event_date(str(go_live or ""))
+
+    if state in ("released", "posted"):
+        return {
+            "ok": False,
+            "error": "already released",
+            "code": "already_released",
+            "state": state,
+            "would_publish_at": would_publish_at,
+        }
+    if state != "scheduled":
+        return {
+            "ok": False,
+            "error": f"not scheduled (state={state})",
+            "code": "not_scheduled",
+            "state": state,
+        }
+    if not sandbox:
+        return {
+            "ok": False,
+            "error": "no publish channel queue row",
+            "code": "no_channel",
+            "state": state,
+        }
+
+    released: list[str] = []
+    for row in sandbox:
+        if str(row.get("status") or "") != "pending":
+            continue
+        key = str(row.get("idempotency_key") or "")
+        if not key:
+            continue
+        if row.get("human_approved"):
+            released.append(key)
+            continue
+        updated, err = approve_item(key)
+        if err:
+            return {"ok": False, "error": err, "code": "approve_failed", "state": state}
+        if updated:
+            released.append(key)
+
+    if not released:
+        return {
+            "ok": False,
+            "error": "no pending queue rows to release",
+            "code": "no_channel",
+            "state": state,
+        }
+
+    inbox_ref = str(state_doc.get("inbox_item_id") or "")
+    _append_jsonl(
+        _data_dir() / "human-edits.jsonl",
+        {
+            "schema": "campaign-os/human-edit-signal/v1",
+            "ts": _utc_now_iso(),
+            "action": "release",
+            "editor": editor,
+            "inbox_item_id": inbox_ref,
+            "item_type": "draft_asset",
+            "brand_id": brand_id,
+            "calendar_id": cal_id,
+        },
+    )
+
+    dispatched: list[str] = []
+    if dispatch:
+        for key in released:
+            _, err = dispatch_one(key)
+            if not err:
+                dispatched.append(key)
+
+    after = post_state_for(brand_id, cal_id) or state_doc
+    return {
+        "ok": True,
+        "released": released,
+        "dispatched": dispatched,
+        "state": str(after.get("state") or state),
+        "would_publish_at": would_publish_at,
+    }
+
+
 def dispatch_pending() -> dict[str, Any]:
     """Process all pending + human_approved queue rows. Job entrypoint helper."""
     ensure_sandbox_layout()
@@ -357,8 +508,7 @@ def dispatch_pending() -> dict[str, Any]:
             continue
         key = str(row.get("idempotency_key") or "")
         if key in receipts_index:
-            row["status"] = "dispatched"
-            row["dispatched_at"] = receipts_index[key].get("dispatched_at")
+            _stamp_queue_row_dispatched(row, receipts_index[key])
             dispatched += 1
             updated_rows.append(row)
             continue
@@ -368,9 +518,7 @@ def dispatch_pending() -> dict[str, Any]:
             errors.append(f"{key}: {err}")
             updated_rows.append(row)
             continue
-        row["status"] = "dispatched"
-        row["dispatched_at"] = receipt.get("dispatched_at")
-        row["sandbox_post_id"] = receipt.get("sandbox_post_id")
+        _stamp_queue_row_dispatched(row, receipt)
         dispatched += 1
         updated_rows.append(row)
 

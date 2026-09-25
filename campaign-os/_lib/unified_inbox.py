@@ -1261,6 +1261,85 @@ def week_board(
     }
 
 
+def shelf_board(*, brand_id: str, include_released: bool = True) -> dict[str, Any]:
+    """Committed posts grouped by go-live date: scheduled and released awaiting dispatch."""
+    from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
+
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand")
+    tz = _WEEK_TZ
+    today = datetime.now(tz).date()
+    now = datetime.now(timezone.utc)
+    index = build_post_index(brand_id=brand_id)
+
+    by_date: dict[str, list[dict[str, Any]]] = {}
+    undated: list[dict[str, Any]] = []
+    counts = {
+        "scheduled": 0,
+        "released": 0,
+        "undated": 0,
+        "releasable_today": 0,
+        "released_today": _released_today_from_edits(),
+    }
+
+    for record in canonical_records(brand_id):
+        status = str(record.get("status") or "")
+        if status not in _WEEK_MOMENT_STATUSES:
+            continue
+        row = _post_row_from_record(record, index=index, now=now)
+        st = str(row.get("state") or "")
+        if st == "posted":
+            continue
+        if st == "scheduled":
+            counts["scheduled"] += 1
+        elif st == "released":
+            if not include_released:
+                continue
+            counts["released"] += 1
+        else:
+            continue
+
+        go_live = row.get("go_live_date")
+        if not go_live:
+            undated.append(row)
+            counts["undated"] += 1
+            continue
+        if st == "scheduled" and go_live == today.isoformat():
+            counts["releasable_today"] += 1
+        by_date.setdefault(str(go_live), []).append(row)
+
+    date_groups: list[dict[str, Any]] = []
+    for day_iso in sorted(by_date.keys()):
+        posts = by_date[day_iso]
+        posts.sort(key=lambda p: p.get("title") or "")
+        date_groups.append({"date": day_iso, "posts": posts})
+
+    undated.sort(key=lambda p: p.get("title") or "")
+    undated = undated[:UNDATED_CAP]
+
+    return {
+        "ok": True,
+        "brand": brand_id,
+        "timezone": str(tz),
+        "today": today.isoformat(),
+        "date_groups": date_groups,
+        "undated": undated,
+        "counts": counts,
+    }
+
+
+def _released_today_from_edits() -> int:
+    today_iso_prefix = datetime.now(timezone.utc).date().isoformat()
+    released_today = 0
+    for row in _read_jsonl(_human_edits_path()):
+        if str(row.get("action") or "") != "release":
+            continue
+        ts = str(row.get("ts") or "")
+        if ts.startswith(today_iso_prefix):
+            released_today += 1
+    return released_today
+
+
 def _approved_today_from_edits() -> int:
     today_iso_prefix = datetime.now(timezone.utc).date().isoformat()
     approved_today = 0
