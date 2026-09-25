@@ -75,6 +75,28 @@ export type InboxItem = {
     pillar?: string
     angle?: string
     relevance_reason?: string
+    photo_candidates?: Array<{ index?: number; path?: string; url?: string }>
+    qc?: {
+      verdict?: string
+      selected?: number
+      reasons?: string[]
+      scores?: Record<string, number | string>
+      candidates?: Array<{ index?: number; verdict?: string; reasons?: string[]; scores?: Record<string, unknown> }>
+    }
+    composed?: Record<string, string>
+    brief?: {
+      sections?: Array<string | { title?: string; name?: string; body?: string; content?: string }>
+      negative_prompt?: string
+      platform_spec?: Record<string, unknown>
+      brief_ref?: string
+    }
+    reference_used?: {
+      ref_id?: string
+      url?: string
+      source?: string
+      platform?: string
+      selected_because?: string
+    }
   }
 }
 
@@ -593,6 +615,69 @@ export function enqueueOpsQueue(body: {
   dedupe_key: string
 }) {
   return postJson<OpsQueueResult>('/api/ops/queue', body)
+}
+
+export type DraftRegenerateResult = {
+  ok?: boolean
+  error?: string
+  at_cap?: boolean
+  brand_id?: string
+  enqueued?: string[]
+}
+
+export async function draftRegeneratePhoto(draftId: string, note: string) {
+  const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}/regenerate`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note }),
+  })
+  const data = (await res.json()) as DraftRegenerateResult
+  if (!res.ok && !data.error) {
+    data.error = `regenerate ${res.status}`
+  }
+  return { ...data, status: res.status }
+}
+
+export type DraftRecomposeResult = {
+  ok?: boolean
+  error?: string
+  composed?: Record<string, string>
+  primary_channel?: string
+  asset_id?: string
+}
+
+export async function draftRecompose(
+  draftId: string,
+  fields: { headline?: string; cta?: string },
+) {
+  const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}/recompose`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  })
+  const data = (await res.json()) as DraftRecomposeResult
+  if (!res.ok && !data.error) {
+    data.error = `recompose ${res.status}`
+  }
+  return { ...data, status: res.status }
+}
+
+export type DraftSwapResult = DraftRecomposeResult
+
+export async function draftSwapCandidate(draftId: string, candidateIndex: number) {
+  const res = await fetch(`/api/drafts/${encodeURIComponent(draftId)}/swap`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ candidate_index: candidateIndex }),
+  })
+  const data = (await res.json()) as DraftSwapResult
+  if (!res.ok && !data.error) {
+    data.error = `swap ${res.status}`
+  }
+  return { ...data, status: res.status }
 }
 
 export type AccountConnect = {
