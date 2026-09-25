@@ -51,6 +51,18 @@ VALID_BRAND_IDS = ["swing-shack", "stick", "bag-drop"]
 VALID_PRODUCT_BRANDS = {"takomo": "stick"}  # product_brand → parent brand
 VALID_RECORD_TYPES = ["campaign", "content", "moment", "reminder", "watchlist"]
 VALID_STATUSES = ["candidate", "watchlist", "approved", "ignored", "active", "completed"]
+VALID_ORIGIN_KINDS = [
+    "scout",
+    "cadence",
+    "moment",
+    "product_rotation",
+    "holiday",
+    "meme_lord",
+    "operator",
+    "plan_file",
+    "legacy",
+]
+VALID_PROCESSES = ["standard", "strict", "humour"]
 
 # Slice 0.2 — extended event_lifecycle enum (brief §13).
 VALID_EVENT_LIFECYCLE = (
@@ -224,9 +236,42 @@ def load_brand_config(brand_id: str) -> Dict[str, Any]:
     cfg.setdefault("scouting_profile", {})
     cfg.setdefault("lead_time_rules", {})
     cfg.setdefault("calendar_preferences", {})
+    _validate_pillar_config(cfg.get("pillars") or [])
     cfg["configured"] = True
     cfg["config_path"] = str(path)
     return cfg
+
+
+def _validate_pillar_config(pillars: List[Any]) -> None:
+    from _lib.campaigns import VALID_PROCESSES  # noqa: PLC0415
+
+    for pillar in pillars:
+        if not isinstance(pillar, dict):
+            continue
+        proc = pillar.get("process")
+        if proc is not None and str(proc) not in VALID_PROCESSES:
+            raise ValueError(
+                f"pillar process '{proc}' invalid. Valid: {sorted(VALID_PROCESSES)}"
+            )
+        enabled = pillar.get("enabled")
+        if enabled is not None and not isinstance(enabled, bool):
+            raise ValueError("pillar enabled must be boolean when set")
+        lanes = pillar.get("lanes")
+        if lanes is not None and not isinstance(lanes, list):
+            raise ValueError("pillar lanes must be a list when set")
+        default_cid = pillar.get("default_campaign_id")
+        if default_cid is not None and not isinstance(default_cid, str):
+            raise ValueError("pillar default_campaign_id must be a string when set")
+
+
+def write_brand_config(brand_id: str, cfg: Dict[str, Any]) -> Path:
+    """Persist calendar_config.json after validation."""
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand.")
+    normalised = dict(cfg)
+    normalised["brand_id"] = brand_id
+    _validate_pillar_config(normalised.get("pillars") or [])
+    return _persist_brand_config(brand_id, normalised)
 
 
 def _persist_brand_config(brand_id: str, cfg: Dict[str, Any]) -> Path:
@@ -418,6 +463,11 @@ def add_candidate(
     enriched.setdefault("created_by", "manual")
     enriched.setdefault("created_at", _now_iso())
     enriched.setdefault("last_verified", _now_iso())
+
+    from _lib.campaigns import enrich_record_provenance, validate_record_campaign_fields  # noqa: PLC0415
+
+    enriched = enrich_record_provenance(enriched, brand_id)
+    validate_record_campaign_fields(enriched)
 
     # Source verification contract — every externally-sourced record must
     # declare its source URL(s) and verification status. Without these

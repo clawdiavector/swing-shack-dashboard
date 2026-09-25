@@ -35,6 +35,11 @@ def enqueue_create_actions(
     rows: list[dict[str, Any]] | None = None,
 ) -> list[str]:
     from _lib import ops_agents
+    from _lib.campaigns import provenance_for_inbox_item, write_create_payload  # noqa: PLC0415
+
+    payload_fields = provenance_for_inbox_item(brand_id, item_id)
+    if payload_fields:
+        write_create_payload(item_id=item_id, fields=payload_fields)
 
     enqueued: list[str] = []
     item_hash = hashlib.sha1(item_id.encode()).hexdigest()[:12]

@@ -391,6 +391,9 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
             cand_state = "candidate"
             flags = _compute_flags(record, state=cand_state, now=now)
             go_live = _moment_go_live_date(record)
+            from _lib.campaigns import meta_slim_from_record  # noqa: PLC0415
+
+            meta_slim = meta_slim_from_record(record)
             out.append({
                 "id": _item_id("calendar_candidate", f"{brand_id}:{cal_id}"),
                 "type": "calendar_candidate",
@@ -405,6 +408,7 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                 "status": item_status,
                 "sla_state": "ok",
                 "actions": _actions_for_candidate(flags),
+                "meta_slim": meta_slim,
                 "meta": {
                     "calendar_id": cal_id,
                     "pillar": record.get("pillar"),
@@ -417,6 +421,7 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                     "flags": flags,
                     "source_type": record.get("source_type"),
                     "created_by": record.get("created_by"),
+                    "meta_slim": meta_slim,
                 },
             })
     return out
@@ -1176,6 +1181,9 @@ def post_state(
         }
         for r in queue_rows
     ]
+    from _lib.campaigns import provenance_fields_from_record  # noqa: PLC0415
+
+    prov = provenance_fields_from_record(record)
     out: dict[str, Any] = {
         "calendar_id": cal_id,
         "state": state,
@@ -1194,6 +1202,11 @@ def post_state(
         "sandbox": sandbox_slim,
         "receipts": receipts,
         "next_action": _next_action_for_state(state, needs_fix_reason=needs_fix_reason),
+        "pillar_id": prov.get("pillar_id"),
+        "campaign_id": prov.get("campaign_id"),
+        "lane": prov.get("lane"),
+        "origin": prov.get("origin"),
+        "process": prov.get("process"),
     }
     if needs_fix_reason:
         out["needs_fix_reason"] = needs_fix_reason

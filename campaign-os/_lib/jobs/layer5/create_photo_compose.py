@@ -311,12 +311,15 @@ def process_draft_photo_row(
     )
     atomic_write(f"draft-assets/{asset_id}.json", merged)
     atomic_write(f"draft-assets/{asset_id}.qc.json", qc_payload)
+    from _lib.campaigns import read_create_payload  # noqa: PLC0415
+
     _write_image_brief(
         asset_id,
         sections=list(cd.get("sections") or []),
         platform_spec=dict(ctx.platform_spec or {}),
         reference_id=None,
         product_id=None,
+        provenance=read_create_payload(item_id),
     )
     return asset_id, None
 

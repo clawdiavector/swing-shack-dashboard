@@ -160,6 +160,7 @@ def enqueue_for_primary_channel(
         idempotency_key=f"qc-{asset_id}-{platform}",
         lodged_title=title or None,
         event_date=event_date or None,
+        provenance=_provenance_from_draft_asset(asset_id),
     )
     return [item]
 
@@ -250,6 +251,23 @@ def _queue_index_by_idempotency() -> dict[str, dict[str, Any]]:
     return out
 
 
+def _provenance_from_draft_asset(asset_id: str) -> dict[str, Any]:
+    path = _data_dir() / "draft-assets" / f"{asset_id}.json"
+    if not path.is_file():
+        return {}
+    try:
+        sidecar = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(sidecar, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key in ("pillar_id", "campaign_id", "lane", "origin", "process"):
+        if sidecar.get(key) is not None:
+            out[key] = sidecar[key]
+    return out
+
+
 def enqueue_item(
     *,
     brand_id: str,
@@ -262,6 +280,7 @@ def enqueue_item(
     idempotency_key: Optional[str] = None,
     lodged_title: Optional[str] = None,
     event_date: Optional[str] = None,
+    provenance: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Append a pending queue row (no network)."""
     ensure_sandbox_layout()
@@ -287,6 +306,14 @@ def enqueue_item(
         "would_publish_at": would_publish_at,
         "created_at": _utc_now_iso(),
     }
+    prov = provenance or {}
+    if inbox_item_id and not prov:
+        from _lib.campaigns import read_create_payload  # noqa: PLC0415
+
+        prov = read_create_payload(str(inbox_item_id))
+    for key in ("pillar_id", "campaign_id", "lane", "origin", "process"):
+        if prov.get(key) is not None:
+            item[key] = prov[key]
     _append_jsonl(_queue_path(), item)
     return item
 
@@ -339,6 +366,9 @@ def dispatch_item(item: dict[str, Any]) -> tuple[dict[str, Any], Optional[str]]:
         "caption_preview": (item.get("caption_preview") or "")[:120],
         "would_publish_at": item.get("would_publish_at"),
     }
+    for key in ("pillar_id", "campaign_id", "lane", "origin", "process"):
+        if item.get(key) is not None:
+            receipt[key] = item[key]
     _append_jsonl(_receipts_path(), receipt)
     _update_mirror(receipt)
     return receipt, None

@@ -233,9 +233,17 @@ def _write_brands_registry(data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
-def _resolve_campaign_id(brand_id: str) -> str:
-    """Return an owned campaign id for brand; register cos-drafts-* if needed."""
+def _resolve_campaign_id(brand_id: str, *, source_item_id: str | None = None) -> str:
+    """Bucket key: record campaign_id, unassigned, or legacy cos-drafts-*."""
+    from _lib.campaigns import UNASSIGNED_BUCKET, inbox_bucket_campaign_id, read_create_payload  # noqa: PLC0415
     from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
+
+    if source_item_id:
+        payload = read_create_payload(source_item_id)
+        bucket = inbox_bucket_campaign_id(brand_id=brand_id, sidecar=payload)
+        if bucket != UNASSIGNED_BUCKET:
+            _ensure_campaign_bucket(brand_id, bucket)
+            return bucket
 
     reg = _load_brands_registry()
     brands = reg.setdefault("brands", {})
@@ -245,23 +253,30 @@ def _resolve_campaign_id(brand_id: str) -> str:
         cids = []
         brand_entry["campaign_ids"] = cids
     if cids:
-        return str(cids[0])
+        bucket = str(cids[0])
+        _ensure_campaign_bucket(brand_id, bucket)
+        return bucket
 
-    campaign_id = f"cos-drafts-{brand_id}"
-    if campaign_id not in cids:
-        cids.append(campaign_id)
-    _write_brands_registry(reg)
+    legacy = f"cos-drafts-{brand_id}"
+    _ensure_campaign_bucket(brand_id, legacy)
+    if legacy not in cids:
+        cids.append(legacy)
+        _write_brands_registry(reg)
+    return legacy
+
+
+def _ensure_campaign_bucket(brand_id: str, campaign_id: str) -> None:
+    from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
 
     data = _load_campaign_data()
     campaigns = data.setdefault("campaigns", {})
     if campaign_id not in campaigns:
         campaigns[campaign_id] = {
-            "identity": {"name": f"L5 drafts ({brand_id})", "brand": brand_id},
+            "identity": {"name": campaign_id, "brand": brand_id},
             "assets": {},
             "updatedAt": _utc_now_iso(),
         }
         _write_campaign_data(data)
-    return campaign_id
 
 
 def _caption_unavailable(result: dict[str, Any]) -> bool:
@@ -382,15 +397,18 @@ def _write_draft(
     image_path: str | None = None,
     image_url: str | None = None,
 ) -> str:
+    from _lib.campaigns import merge_provenance_into_sidecar, read_create_payload, stamp_provenance_on_asset  # noqa: PLC0415
     from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
 
-    campaign_id = _resolve_campaign_id(brand_id)
+    prov = read_create_payload(source_item_id)
+    sidecar = merge_provenance_into_sidecar(sidecar, prov)
+    campaign_id = _resolve_campaign_id(brand_id, source_item_id=source_item_id)
     asset_id = f"draft-{uuid.uuid4().hex[:12]}"
     now = _utc_now_iso()
 
     data = _load_campaign_data()
     campaign = data.setdefault("campaigns", {}).setdefault(campaign_id, {})
-    campaign.setdefault("identity", {"name": f"L5 drafts ({brand_id})", "brand": brand_id})
+    campaign.setdefault("identity", {"name": campaign_id, "brand": brand_id})
     assets = campaign.setdefault("assets", {})
     asset_row: dict[str, Any] = {
         "name": sidecar.get("title") or f"Draft {asset_id[-6:]}",
@@ -400,6 +418,7 @@ def _write_draft(
         "updatedAt": now,
         "draft_ref": f"draft-assets/{asset_id}.json",
     }
+    stamp_provenance_on_asset(asset_row, prov)
     if image_path:
         asset_row["image_path"] = image_path
     if image_url:
@@ -846,6 +865,7 @@ def _write_image_brief(
     platform_spec: dict[str, Any],
     reference_id: str | None,
     product_id: str | None,
+    provenance: dict[str, Any] | None = None,
 ) -> None:
     payload = {
         "schema": "campaign-os/draft-image-brief/v1",
@@ -854,6 +874,10 @@ def _write_image_brief(
         "reference_id": reference_id,
         "product_id": product_id,
     }
+    if provenance:
+        for key in ("pillar_id", "campaign_id", "lane", "origin", "process", "product_brand", "reference_images"):
+            if provenance.get(key) is not None:
+                payload[key] = provenance[key]
     atomic_write(f"draft-assets/{asset_id}.brief.json", payload)
 
 
@@ -1061,12 +1085,15 @@ def _process_image_row(
         product_id = None
         if ctx.products and isinstance(ctx.products[0], dict):
             product_id = ctx.products[0].get("id")
+        from _lib.campaigns import read_create_payload  # noqa: PLC0415
+
         _write_image_brief(
             asset_id,
             sections=list(cd.get("sections") or []),
             platform_spec=dict(ctx.platform_spec or {}),
             reference_id=reference_id if reference_id else None,
             product_id=product_id if product_id else None,
+            provenance=read_create_payload(item_id),
         )
     return asset_id, None
 
