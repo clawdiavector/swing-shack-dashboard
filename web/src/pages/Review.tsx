@@ -96,12 +96,12 @@ function ReviewInbox({
     load()
   }
 
-  const types = useMemo(() => ['all', 'has-image', 'no-image', 'no-brief'], [])
+  const types = useMemo(() => ['all', 'no-brief'], [])
 
   const shown =
     filter === 'all'
       ? items
-      : filter === 'has-image' || filter === 'no-image' || filter === 'no-brief'
+      : filter === 'no-brief'
         ? items.filter((item) => inboxMediaTag(item).id === filter)
         : items.filter((item) => itemType(item) === filter)
   const first = shown[0]
@@ -123,15 +123,7 @@ function ReviewInbox({
         options={types.map((id) => ({
           id,
           label:
-            id === 'all'
-              ? 'All'
-              : id === 'has-image'
-                ? 'Has image'
-                : id === 'no-image'
-                  ? 'No image'
-                  : id === 'no-brief'
-                    ? 'No brief'
-                    : reviewType(id).label,
+            id === 'all' ? 'All' : id === 'no-brief' ? 'No brief' : reviewType(id).label,
         }))}
       />
 
@@ -195,34 +187,32 @@ function ReviewInbox({
         <ul className="space-y-2">
           {shown.map((item) => {
             const thumb = inboxItemThumbUrl(item)
-            const media = inboxMediaTag(item)
             const kind = reviewType(item.type).label
             const channel = inboxChannelLabel(item)
             const goesOut = inboxGoesOutIso(item)
-            const queueBadge =
+            const stateChip =
               item.sla_state === 'stale'
-                ? { badge: 'stale' as const, tone: 'gold' as const }
-                : media.id === 'has-image'
-                  ? { badge: undefined, tone: 'mute' as const }
-                  : { badge: media.label, tone: media.tone }
+                ? 'Stale'
+                : item.status
+                  ? item.status.replace(/_/g, ' ')
+                  : item.meta?.approval_status || 'Pending'
             return (
               <QueueItem
                 key={item.id}
                 to={reviewPiecePath(item.id, item.brand_id)}
-                badge={queueBadge.badge}
-                tone={queueBadge.tone}
+                typeBadge={kind}
+                stateBadge={stateChip}
+                hideImageFallbackBadge
                 channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
-                meta={[kind, !isAll ? item.brand_id : null, item.meta?.caption?.slice(0, 70)]
-                  .filter(Boolean)
-                  .join(' · ')}
+                meta={[item.meta?.caption?.slice(0, 70)].filter(Boolean).join(' · ')}
                 footer={isAll ? <BrandChip brandId={item.brand_id} show /> : undefined}
                 stamp={goesOut || item.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={item.title || item.id}
-                thumbClassName="h-32 w-32 shrink-0 rounded-xl border border-bd object-cover"
+                thumbClassName="h-[120px] w-[120px] shrink-0 rounded-xl border border-bd object-cover"
                 action={
                   <Tip text="Mark this approved. It will not go live.">
                     <button

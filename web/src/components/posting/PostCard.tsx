@@ -23,7 +23,7 @@ function PostCardThumb({ imageUrl, title }: { imageUrl?: string | null; title: s
   const showImage = Boolean(src) && !broken
   return (
     <div
-      className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border md:h-[4.5rem] md:w-[4.5rem] ${
+      className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border ${
         showImage ? 'border-bd bg-bg-2' : 'border-dashed border-bd bg-bg-2/50'
       }`}
     >
@@ -107,78 +107,82 @@ export function PostCard({
           : 'border-bd text-tx2'
 
   const inner = (
-    <div className="flex gap-3 md:items-start md:gap-4">
+    <div className="flex gap-3 md:gap-4">
       <PostCardThumb imageUrl={post.image_url} title={post.title} />
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <BrandChip brandId={rowBrandId} show={isAll} />
-          <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
-            {postStateLabel(post.state)}
-          </span>
-          {post.flags?.map((flag) => (
-            <span key={flag} className="text-xs text-tx3">
-              {postFlagLabel(flag)}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 xl:flex-row xl:items-start xl:justify-between xl:gap-4">
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <BrandChip brandId={rowBrandId} show={isAll} />
+            <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
+              {postStateLabel(post.state)}
             </span>
-          ))}
-          {isCandidate ? (
-            <span className="text-xs font-medium text-tx3">Candidate · no image yet</span>
-          ) : null}
-          {post.state === 'needs_fix' && post.needs_fix_reason ? (
-            <span className="text-xs font-semibold text-red">{post.needs_fix_reason}</span>
-          ) : null}
-        </div>
-        <div className="flex flex-col gap-0.5 md:flex-row md:items-start md:justify-between md:gap-3">
-          <p className="truncate font-display text-base font-semibold leading-snug">{post.title}</p>
-          {channel ? (
-            <span className="shrink-0 text-xs font-medium text-tx2 md:text-right">{channel}</span>
-          ) : null}
-        </div>
-        <p className="text-xs text-tx3">{factLine}</p>
-        {!isHoliday ? <StageStepper stages={post.stages} /> : null}
-        {isCandidate && !isHoliday ? (
-          <div className="pt-2">
-            <button
-              type="button"
-              disabled={lodging || noDate}
-              title={noDate ? 'Set a date on Inbox before lodging' : 'Lodge this candidate'}
-              onClick={(e) => void handleLodge(e)}
-              className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
-            >
-              Lodge
-            </button>
-          </div>
-        ) : null}
-        {isScheduled ? (
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <button
-              type="button"
-              disabled={releasing}
-              title="Release now — sandbox writes a receipt immediately"
-              onClick={(e) => void handleRelease(e)}
-              className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
-            >
-              Release now
-            </button>
-            {post.inbox_item_id ? (
-              <Link
-                to={`/review/${encodeURIComponent(String(post.inbox_item_id))}`}
-                className="text-xs font-semibold text-ac"
-                onClick={(e) => e.stopPropagation()}
-              >
-                View draft
-              </Link>
+            {post.flags?.map((flag) => (
+              <span key={flag} className="text-xs text-tx3">
+                {postFlagLabel(flag)}
+              </span>
+            ))}
+            {isCandidate ? (
+              <span className="text-xs font-medium text-tx3">Candidate · no image yet</span>
+            ) : null}
+            {post.state === 'needs_fix' && post.needs_fix_reason ? (
+              <span className="text-xs font-semibold text-red">{post.needs_fix_reason}</span>
             ) : null}
           </div>
-        ) : null}
-        {isReleased ? (
-          <p className="pt-2 text-xs font-medium text-tx2">Waiting to go out — dispatch runs on the daily cron.</p>
+          <p className="font-display text-base font-semibold leading-snug">{post.title}</p>
+          <p className="text-xs text-tx3">{factLine}</p>
+          {channel ? <p className="text-xs font-medium text-tx2">{channel}</p> : null}
+          {isCandidate && !isHoliday ? (
+            <div className="pt-1">
+              <button
+                type="button"
+                disabled={lodging || noDate}
+                title={noDate ? 'Set a date on Inbox before lodging' : 'Lodge this candidate'}
+                onClick={(e) => void handleLodge(e)}
+                className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
+              >
+                Lodge
+              </button>
+            </div>
+          ) : null}
+          {isScheduled ? (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                disabled={releasing}
+                title="Release now — sandbox writes a receipt immediately"
+                onClick={(e) => void handleRelease(e)}
+                className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
+              >
+                Release now
+              </button>
+              {post.inbox_item_id ? (
+                <Link
+                  to={`/review/${encodeURIComponent(String(post.inbox_item_id))}`}
+                  className="text-xs font-semibold text-ac"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View draft
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+          {isReleased ? (
+            <p className="pt-1 text-xs font-medium text-tx2">
+              Waiting to go out — dispatch runs on the daily cron.
+            </p>
+          ) : null}
+        </div>
+        {!isHoliday ? (
+          <div className="shrink-0 xl:max-w-[min(100%,28rem)] xl:pt-1">
+            <StageStepper stages={post.stages} />
+          </div>
         ) : null}
       </div>
     </div>
   )
 
-  const shell = `rounded-2xl border bg-bg-2 px-3 py-3 md:px-4 ${
-    isCandidate ? 'border-dashed border-bd' : 'border-bd'
+  const shell = `glass rounded-2xl border-[1.5px] px-3 py-3 backdrop-blur-xl md:px-4 ${
+    isCandidate ? 'border-dashed border-white/10' : 'border-white/10'
   } ${isHoliday ? 'opacity-75' : ''}`
 
   if (!clickable) {

@@ -81,22 +81,20 @@ function CandidateCard({
   }
 
   return (
-    <li className="rounded-2xl border border-bd bg-bg-2 px-4 py-3">
+    <li className="glass rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
             {item.title?.trim() ?? ''}
           </h3>
           {pillar ? (
-            <div className="mt-1">
-              <Badge tone="mute">{pillar}</Badge>
-            </div>
+            <p className="mt-1 text-xs text-tx3 line-clamp-1">{pillar}</p>
           ) : null}
           {angle ? (
-            <p className="mt-1 text-xs text-tx3 line-clamp-1">{angle}</p>
+            <p className="mt-0.5 text-xs text-tx2 line-clamp-1">{angle}</p>
           ) : null}
           {relevanceReason ? (
-            <p className="mt-0.5 text-xs text-tx3 line-clamp-2">{relevanceReason}</p>
+            <p className="mt-0.5 text-xs text-tx3 line-clamp-1">{relevanceReason}</p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
