@@ -186,13 +186,16 @@ def _tiktok_credentials_missing_reason(brand_id: str) -> Optional[str]:
 def ingest_social_history(
     brand_id: str,
     *,
+    platforms: tuple[str, ...] | None = None,
     download_thumbnails: bool = True,
 ) -> dict[str, Any]:
     """Pull instagram / facebook / tiktok into brand social history when creds allow."""
     summary: dict[str, Any] = {"brand_id": brand_id, "platforms": {}}
+    target_platforms = platforms or ("instagram", "facebook", "tiktok")
     meta_reason = _meta_credentials_missing_reason(brand_id)
     meta_fetched = False
-    if meta_reason is None:
+    needs_meta = any(p in ("instagram", "facebook") for p in target_platforms)
+    if needs_meta and meta_reason is None:
         from _lib.meta_live_fetch import fetch_all
 
         fetch_result = fetch_all(brand=brand_id)
@@ -201,7 +204,13 @@ def ingest_social_history(
         else:
             meta_fetched = True
 
-    for plat in ("instagram", "facebook", "tiktok"):
+    for plat in target_platforms:
+        if plat not in ("instagram", "facebook", "tiktok"):
+            summary["platforms"][plat] = {
+                "status": "skipped",
+                "reason": f"unsupported platform {plat!r}",
+            }
+            continue
         if plat in ("instagram", "facebook"):
             if meta_reason:
                 summary["platforms"][plat] = {
@@ -237,6 +246,10 @@ def ingest_social_history(
             "meta_fetch": meta_fetched if plat in ("instagram", "facebook") else None,
         }
     return summary
+
+
+# Job/API alias (P1 social ingest).
+ingest = ingest_social_history
 
 
 def _normalise_tiktok_posts(posts: list, brand_id: str) -> list:

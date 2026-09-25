@@ -48,7 +48,10 @@ def test_a2_all_jobs_explicit_brand_mode(job_env):
 
     for name, spec in app_module._JOBS_REGISTRY.items():
         assert spec.brand_mode != BRAND_MODE_UNSET, f"{name} missing explicit brand_mode"
-    assert len(app_module._JOBS_REGISTRY) == 28
+    from _lib.jobs.registry import JOBS
+
+    assert "social_ingest" in app_module._JOBS_REGISTRY
+    assert len(app_module._JOBS_REGISTRY) == len(JOBS)
 
 
 def test_a3_import_invariants_raise(job_env):

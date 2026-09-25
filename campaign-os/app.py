@@ -6906,7 +6906,57 @@ def lanes_queue_for_postiz():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# ── Existing social_ingest below this line (added earlier in session) ──
+# ── Brand Visuals + reference curation (P1) ─────────────────────────────
+from _lib import brand_visuals as _brand_visuals  # noqa: E402
+
+
+@app.route('/api/brand/<brand_id>/references', methods=['GET', 'POST'])
+def brand_references(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        if request.method == 'GET':
+            refs = _brand_visuals.list_references(brand_id)
+            return jsonify({"ok": True, "brand": brand_id, "references": refs}), 200
+        body = request.get_json(silent=True) or {}
+        summary = _brand_visuals.mark_reference(brand_id, body)
+        root = _brand_visuals.brand_directory_root()
+        row = _brand_visuals._reference_index(brand_id, root).get(str(body.get("id") or ""), summary)
+        return jsonify({"ok": True, "dna": _brand_visuals.dna_summary(row)}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except FileNotFoundError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except Exception as e:
+        _app_log.exception("brand_references failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/brand/<brand_id>/references/<ref_id>', methods=['DELETE'])
+def brand_reference_delete(brand_id, ref_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        ok = _brand_visuals.unmark_reference(brand_id, ref_id)
+        if not ok:
+            return jsonify({"ok": False, "error": "reference not found"}), 404
+        return jsonify({"ok": True}), 200
+    except Exception as e:
+        _app_log.exception("brand_reference_delete failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/brand/<brand_id>/visuals', methods=['GET'])
+def brand_visuals_get(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        platform = request.args.get("platform", "").strip()
+        payload = _brand_visuals.list_visuals_payload(brand_id, platform=platform)
+        return jsonify({"ok": True, "brand": brand_id, **payload}), 200
+    except Exception as e:
+        _app_log.exception("brand_visuals_get failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ── PHASE L-1 endpoints (Postiz / Social split) ──────────────────────

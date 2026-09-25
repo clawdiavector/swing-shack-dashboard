@@ -14,16 +14,16 @@ _GENERIC_JOB = "Social image for approved inbox item"
 
 
 def _brand_root() -> Path:
-    """Resolve brand-directory root from DATA_DIR / BUNDLED_DATA_DIR only."""
-    candidates: list[Path] = []
+    """Resolve brand-directory root — DATA_DIR wins when set (runtime volume)."""
+    runtime = os.environ.get("DATA_DIR")
+    if runtime:
+        root = Path(runtime) / "brand-directory"
+        root.mkdir(parents=True, exist_ok=True)
+        return root
     bundled = os.environ.get("BUNDLED_DATA_DIR")
     if bundled:
-        candidates.append(Path(bundled))
-    candidates.append(Path(os.environ.get("DATA_DIR") or "/data/campaign-os"))
-    for base in candidates:
-        if base.exists():
-            return base / "brand-directory"
-    return candidates[-1] / "brand-directory"
+        return Path(bundled) / "brand-directory"
+    return Path("/data/campaign-os") / "brand-directory"
 
 
 def _parse_item_id(item_id: str) -> tuple[str, Optional[str], Optional[str]]:
@@ -168,69 +168,116 @@ def _load_product_library(brand_id: str, root: Path) -> dict[str, Any]:
     return {"products": [], "services": []}
 
 
+def _reference_rank_key(
+    row: dict[str, Any],
+    *,
+    platform: str,
+    pillar: str,
+) -> tuple[int, int, float]:
+    plat = str(row.get("platform") or "").lower()
+    pil = str(row.get("pillar") or "").lower()
+    platform_match = 1 if platform and plat == platform.lower() else 0
+    pillar_match = 1 if pillar and pil == pillar.lower() else 0
+    created = float(row.get("created") or 0)
+    return (platform_match, pillar_match, created)
+
+
+def _drive_fallback_reference(
+    brand_id: str,
+    *,
+    pillar: str,
+    root: Path,
+) -> Optional[dict[str, Any]]:
+    if not pillar:
+        return None
+    pillar_l = pillar.lower()
+    images_dir = root / brand_id / "images"
+    if not images_dir.is_dir():
+        return None
+    best: tuple[tuple[int, float], Path, dict[str, Any]] | None = None
+    for dna_path in images_dir.glob("*.visual-dna.json"):
+        try:
+            import json
+
+            dna = json.loads(dna_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(dna, dict):
+            continue
+        tags = dna.get("product_tags") or dna.get("tags") or []
+        tag_blob = " ".join(str(t) for t in tags).lower()
+        pillar_tags = dna.get("pillar") or dna.get("pillars") or ""
+        if isinstance(pillar_tags, list):
+            pillar_tags = " ".join(str(p) for p in pillar_tags)
+        match = pillar_l in tag_blob or pillar_l in str(pillar_tags).lower()
+        if not match:
+            continue
+        stem = dna_path.name.replace(".visual-dna.json", "")
+        image_path = images_dir / stem
+        if not image_path.is_file():
+            for cand in images_dir.glob(f"{Path(stem).stem}.*"):
+                if cand.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
+                    image_path = cand
+                    break
+        if not image_path.is_file():
+            continue
+        score = (1, float(dna.get("created") or 0))
+        if best is None or score > best[0]:
+            best = (score, image_path, dna)
+    if best is None:
+        return None
+    _, image_path, dna = best
+    return {
+        "id": image_path.stem,
+        "dna": dna,
+        "bytes_path": str(image_path),
+        "source": "drive",
+    }
+
+
 def _select_reference(
     brand_id: str,
     *,
-    query: str,
+    platform: str = "",
+    pillar: str = "",
+    query: str = "",
     root: Path,
     degraded: list[dict[str, str]],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], Optional[dict[str, Any]]]:
-    from _lib import social_history  # noqa: PLC0415
-
-    meta: list[dict[str, Any]] = []
+) -> Optional[dict[str, Any]]:
+    """Pick a learnable reference DNA row, then optional Drive visual-dna fallback."""
+    del query  # retained for call-site compatibility
     try:
-        hits = social_history.search_creative(
-            brand_id,
-            query,
-            sources=["curated", "published"],
-            limit=10,
-        )
-        results = hits.get("results") if isinstance(hits, dict) else []
-        if not isinstance(results, list):
-            results = []
-        learnable = [
-            hit
-            for hit in results
-            if isinstance(hit, dict)
-            and social_history.is_learnable(
-                brand_id,
-                str(hit.get("source") or ""),
-                str(hit.get("asset_id") or ""),
-            )
+        candidates = [
+            row
+            for row in _load_reference_records(brand_id, root)
+            if row.get("is_learnable") is True
         ]
-        if not learnable:
-            degraded.append({"source": "reference", "reason": "no learnable curated/published match"})
-            return [], meta, {"selected": None, "reason": "no learnable curated/published match"}
-
-        top = max(learnable, key=lambda h: float(h.get("score") or 0))
-        asset_id = str(top.get("asset_id") or "")
-        dna_records = _load_reference_records(brand_id, root)
-        matched = next(
-            (row for row in dna_records if str(row.get("source_filename") or "") == asset_id),
-            None,
-        )
-        if not matched:
-            degraded.append({"source": "reference", "reason": "learnable hit without matching reference DNA"})
-            return [], meta, {
-                "selected": None,
-                "reason": "learnable hit without matching reference DNA",
-                "asset_id": asset_id,
+        if candidates:
+            best = max(
+                candidates,
+                key=lambda row: _reference_rank_key(row, platform=platform, pillar=pillar),
+            )
+            bytes_path = str(best.get("source_path") or "")
+            if not bytes_path:
+                fn = best.get("source_filename")
+                if isinstance(fn, str) and fn.strip():
+                    bytes_path = str(root / brand_id / "references" / "sources" / fn)
+            return {
+                "id": str(best.get("ref_id") or best.get("curator_id") or ""),
+                "dna": best,
+                "bytes_path": bytes_path,
+                "source": str(best.get("source") or "reference"),
             }
 
-        meta.append(
-            {
-                "ref_id": matched.get("ref_id"),
-                "source_filename": matched.get("source_filename") or asset_id,
-                "label": matched.get("label") or matched.get("filename") or asset_id,
-                "score": top.get("score"),
-                "classification": top.get("classification"),
-                "match_reason": top.get("match_reason"),
-            }
-        )
-        return [matched], meta, {"selected": matched.get("ref_id"), "asset_id": asset_id}
+        drive = _drive_fallback_reference(brand_id, pillar=pillar, root=root)
+        if drive:
+            return drive
+
+        degraded.append({"source": "reference", "reason": "no learnable reference or drive match"})
+        return None
     except Exception as exc:
         degraded.append({"source": "reference", "reason": str(exc)[:120]})
-        return [], meta, {"selected": None, "reason": "reference lookup failed"}
+        return None
 
 
 def _item_matches_calendar_product(item: dict[str, Any], token: str) -> bool:
@@ -379,8 +426,35 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
     if aspect not in VALID_ASPECTS:
         aspect = "1024x1024"
 
+    channel = primary_channel_for_item(brand, inbox_item_id, fallback="instagram")
     query = " ".join(w for w in re.split(r"[^a-zA-Z0-9]+", f"{angle} {title}") if w).strip()
-    refs, ref_meta, ref_info = _select_reference(brand, query=query or title, root=root, degraded=degraded)
+    selected_ref = _select_reference(
+        brand,
+        platform=channel,
+        pillar=pillar_name or pillar_id,
+        query=query or title,
+        root=root,
+        degraded=degraded,
+    )
+    refs: list[dict[str, Any]] = []
+    ref_meta: list[dict[str, Any]] = []
+    ref_info: Optional[dict[str, Any]] = {"selected": None}
+    if selected_ref:
+        dna = selected_ref.get("dna")
+        if isinstance(dna, dict):
+            refs = [dna]
+            ref_meta.append(
+                {
+                    "ref_id": dna.get("ref_id"),
+                    "source": selected_ref.get("source"),
+                    "bytes_path": selected_ref.get("bytes_path"),
+                }
+            )
+        ref_info = {
+            "selected": selected_ref.get("id"),
+            "source": selected_ref.get("source"),
+            "bytes_path": selected_ref.get("bytes_path"),
+        }
     products, product_meta = _select_products(
         brand,
         record=record,
@@ -390,7 +464,6 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         degraded=degraded,
     )
     brand_bible = _brand_bible_lineage(brand, products, degraded)
-    channel = primary_channel_for_item(brand, inbox_item_id, fallback="instagram")
     platform_spec = build_platform_spec(brand, channel, pillar_id=pillar_id, root=root)
     calendar_lineage = {
         "calendar_id": cal_id,
@@ -410,7 +483,14 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         calendar=calendar_lineage,
     )
     ref_bytes: list[bytes] = []
-    if refs and isinstance(refs[0], dict):
+    if selected_ref and selected_ref.get("bytes_path"):
+        bp = Path(str(selected_ref["bytes_path"]))
+        if bp.is_file():
+            try:
+                ref_bytes = [bp.read_bytes()]
+            except OSError:
+                pass
+    if not ref_bytes and refs and isinstance(refs[0], dict):
         ref_bytes = _load_reference_image_bytes(refs[0], brand_id=brand, root=root)
 
     return ImageDraftContext(

@@ -14,6 +14,16 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "to $DATA_DIR. Powers intel views and downstream insights_hooks."
         ),
     },
+    "social_ingest": {
+        "title": "Social history ingest",
+        "summary": "Caches IG/FB posts under brand-directory for Visuals + reference pickers.",
+        "detail": (
+            "For each brand, runs social_history.ingest on intended_publish_channels "
+            "intersect {instagram, facebook}. Persists posts.json, thumbnails, and metrics "
+            "under brand-directory/<brand>/social/<platform>/. Skips cleanly when Meta token "
+            "is missing."
+        ),
+    },
     "gbp_tick": {
         "title": "Google Business Profile daily tick",
         "summary": "Generates today's GBP posting plan files.",

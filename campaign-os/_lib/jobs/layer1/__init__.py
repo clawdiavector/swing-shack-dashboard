@@ -22,6 +22,7 @@ from . import (
     reddit_trends,
     seo_rankings,
     site_audit,
+    social_ingest,
     windsor_refresh,
     youtube_trends,
 )
@@ -41,6 +42,7 @@ LAYER1_JOB_NAMES: tuple[str, ...] = (
     "post_conversion_score",
     "content_ideas_refresh",
     "insights_reco",
+    "social_ingest",
 )
 
 _ALL_ACTIVE_BRANDS = ("swing-shack", "stick", "bag-drop")
@@ -222,6 +224,29 @@ def layer1_specs() -> list[JobSpec]:
                 "golf-news.json",
                 "reddit-trends.json",
                 "ab-tests.json",
+            ),
+        ),
+        JobSpec(
+            name="social_ingest",
+            fn=social_ingest.run,
+            every_seconds=604800,
+            timeout_seconds=300,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=1,
+            writes=("brand-directory/social/posts.json",),
+            shared_writes=("brand-directory/social/posts.json",),
+            reads=(
+                "ig-business-analytics.json",
+                "facebook-business-analytics.json",
+            ),
+            upstream=("meta_refresh",),
+            brand_mode="per_brand",
+            requires_integrations=("meta",),
+            credentials=(
+                "META_SYSTEM_USER_TOKEN",
+                "META_SYSTEM_USER_TOKEN_STICK",
+                "META_SYSTEM_USER_TOKEN_STICK_PAARL",
             ),
         ),
         JobSpec(

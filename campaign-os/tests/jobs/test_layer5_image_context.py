@@ -118,40 +118,31 @@ def test_context_selects_learnable_reference_only(l5_app, tmp_path):
 
     brand = "stick"
     item_id = _seed_approved_calendar(tmp_path, brand=brand, title="Trackman hero")
-    images_dir = tmp_path / "brand-directory" / brand / "images"
-    images_dir.mkdir(parents=True)
-    (images_dir / "alpha.jpg").write_bytes(b"fake-alpha")
-    (images_dir / "beta.jpg").write_bytes(b"fake-beta")
-
     refs_dir = tmp_path / "brand-directory" / brand / "references"
     refs_dir.mkdir(parents=True)
     alpha_dna = {
         "ref_id": "ref-alpha123456",
         "source_filename": "alpha.jpg",
         "label": "Alpha",
-        "filename": "alpha.jpg",
+        "is_learnable": False,
+        "platform": "instagram",
+        "created": 1.0,
     }
     beta_dna = {
         "ref_id": "ref-beta1234567",
         "source_filename": "beta.jpg",
         "label": "Beta",
-        "filename": "beta.jpg",
+        "is_learnable": True,
+        "platform": "instagram",
+        "created": 2.0,
     }
     (refs_dir / "ref-alpha123456.reference-dna.json").write_text(json.dumps(alpha_dna), encoding="utf-8")
     (refs_dir / "ref-beta1234567.reference-dna.json").write_text(json.dumps(beta_dna), encoding="utf-8")
 
-    social_dir = tmp_path / "brand-directory" / brand / "social"
-    social_dir.mkdir(parents=True)
-    (social_dir / "asset-classifications.json").write_text(
-        json.dumps({"curated::alpha.jpg": {"classification": "rejected"}}),
-        encoding="utf-8",
-    )
-
     ctx = build_image_draft_context(brand, item_id)
 
-    assert len(ctx.refs) <= 1
-    if ctx.refs:
-        assert ctx.refs[0]["source_filename"] == "beta.jpg"
+    assert len(ctx.refs) == 1
+    assert ctx.refs[0]["ref_id"] == "ref-beta1234567"
 
 
 def test_context_no_reference_degrades_cleanly(l5_app, tmp_path):

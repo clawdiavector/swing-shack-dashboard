@@ -1,0 +1,131 @@
+name: Social history ingest (IG + FB)
+
+# POST /api/jobs/run/social_ingest?brand=<id>
+#   → _lib.jobs.layer1.social_ingest.run()
+# writes under $DATA_DIR/brand-directory/<brand>/social/<platform>/
+#
+# ONE HTTP REQUEST PER BRAND (same Railway proxy ceiling as meta_refresh).
+#
+# Schedule: Monday 05:00 SAST (03:00 UTC)
+# Auth: COS_JOB_TOKEN bearer
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  social-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE: https://swing-shack-dashboard-production.up.railway.app
+      COS_JOB_TOKEN: ${{ secrets.COS_JOB_TOKEN }}
+    steps:
+      - name: Preflight — COS_JOB_TOKEN required
+        run: |
+          set -euo pipefail
+          if [ -z "${COS_JOB_TOKEN:-}" ]; then
+            echo "::error::COS_JOB_TOKEN secret is not set"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Resolve meta brand lanes from data/brands.json
+        run: |
+          set -euo pipefail
+          BRANDS="$(python3 - <<'PY'
+          import json
+
+          reg = json.load(open("data/brands.json", encoding="utf-8"))
+          out = []
+          for bid, brand in (reg.get("brands") or {}).items():
+              if not brand.get("active", True):
+                  continue
+              scope = (brand.get("integration_scope") or {}).get("meta")
+              if scope is None or scope.get("applies") is False:
+                  continue
+              out.append(bid)
+          print(" ".join(out))
+          PY
+          )"
+          if [ -z "$BRANDS" ]; then
+            echo "::error::no meta brand lanes resolved from data/brands.json"
+            exit 1
+          fi
+          echo "Meta brand lanes: $BRANDS"
+          echo "BRANDS=$BRANDS" >> "$GITHUB_ENV"
+
+      - name: Preflight — wait for /api/health
+        run: |
+          set -uo pipefail
+          ok=0
+          for i in $(seq 1 10); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health" || echo 000)"
+            echo "health attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              ok=1
+              break
+            fi
+            sleep 15
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::error::prod /api/health did not return 200 after 10 attempts"
+            exit 1
+          fi
+
+      - name: POST /api/jobs/run/social_ingest per brand
+        run: |
+          set -uo pipefail
+          AUTH_H="Authorization: Bearer ${COS_JOB_TOKEN}"
+          : > /tmp/social-ingest-http-failures.txt
+          for b in $BRANDS; do
+            out="/tmp/social-ingest-$b.json"
+            echo "=== POST /api/jobs/run/social_ingest?brand=$b ==="
+            code="$(curl -s -X POST "$BASE/api/jobs/run/social_ingest?brand=$b" \
+              -H "$AUTH_H" \
+              -H "Content-Type: application/json" \
+              --max-time 180 \
+              -w '%{http_code}' \
+              -o "$out")" || code="000"
+            echo "HTTP $code (attempt 1)"
+            if [ "$code" != "200" ]; then
+              echo "Retrying brand=$b after 30s…"
+              sleep 30
+              code="$(curl -s -X POST "$BASE/api/jobs/run/social_ingest?brand=$b" \
+                -H "$AUTH_H" \
+                -H "Content-Type: application/json" \
+                --max-time 180 \
+                -w '%{http_code}' \
+                -o "$out")" || code="000"
+              echo "HTTP $code (attempt 2)"
+            fi
+            if [ "$code" != "200" ]; then
+              echo "::error::social_ingest brand=$b returned HTTP $code"
+              head -c 400 "$out" || true
+              echo
+              echo "$b" >> /tmp/social-ingest-http-failures.txt
+              continue
+            fi
+            python3 scripts/cos_job_summary.py print "$out"
+          done
+
+      - name: Gate — assert-ok per brand
+        run: |
+          set -uo pipefail
+          rc=0
+          for b in $BRANDS; do
+            out="/tmp/social-ingest-$b.json"
+            if grep -qx "$b" /tmp/social-ingest-http-failures.txt 2>/dev/null; then
+              echo "::error::brand=$b produced no usable response (HTTP failure above)"
+              rc=1
+              continue
+            fi
+            echo "--- assert-ok brand=$b"
+            if ! python3 scripts/cos_job_summary.py assert-ok "$out" --hard-gate; then
+              echo "::error::social_ingest brand=$b did not return OK"
+              rc=1
+            fi
+          done
+          exit $rc
