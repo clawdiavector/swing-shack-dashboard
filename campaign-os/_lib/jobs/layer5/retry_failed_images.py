@@ -81,11 +81,17 @@ def _rows_for_item(rows: list[dict[str, Any]], item_id: str) -> list[dict[str, A
     return out
 
 
-def _retry_count(row: dict[str, Any]) -> int:
+def _retry_count(row: dict[str, Any], *, item_id: str | None = None) -> int:
+    from . import image_jobs_state  # noqa: PLC0415
+
+    row_fallback: int | None = None
     try:
-        return max(0, int(row.get(_RETRY_COUNT_KEY) or 0))
+        row_fallback = max(0, int(row.get(_RETRY_COUNT_KEY) or 0))
     except (TypeError, ValueError):
-        return 0
+        row_fallback = 0
+    if item_id:
+        return image_jobs_state.retry_count(item_id, row_fallback=row_fallback)
+    return row_fallback or 0
 
 
 def _spend_cap_blocks_enqueue(*, include_image: bool) -> bool:
@@ -109,32 +115,16 @@ def _image_daily_cap_blocks(brand_id: str) -> bool:
     return not allowed
 
 
-def _pollable_provider_job_id(row: dict[str, Any]) -> str | None:
-    raw = row.get("provider_job_id")
-    if isinstance(raw, str) and raw.strip():
-        return raw.strip()
-    sidecar_path = row.get("router_sidecar_path")
-    if not isinstance(sidecar_path, str) or not sidecar_path.strip():
-        return None
-    try:
-        import json
-        from pathlib import Path
+def _waiting_owned_by_poller(item_id: str, row: dict[str, Any]) -> bool:
+    from . import image_jobs_state  # noqa: PLC0415
 
-        meta = json.loads(Path(sidecar_path).read_text(encoding="utf-8"))
-        pj = meta.get("provider_job_id") if isinstance(meta, dict) else None
-        if isinstance(pj, str) and pj.strip():
-            return pj.strip()
-    except (OSError, json.JSONDecodeError):
-        return None
-    return None
-
-
-def _waiting_row_pollable(row: dict[str, Any]) -> bool:
     if str(row.get("status") or "").lower() != "waiting":
         return False
-    if row.get("krea_poll_failed"):
+    entry = image_jobs_state.get_entry(item_id)
+    if not entry:
         return False
-    return _pollable_provider_job_id(row) is not None
+    last = str(entry.get("last_status") or "running").lower()
+    return last not in ("failed", "stale")
 
 
 def _enqueue_actions_for_item(
@@ -198,12 +188,12 @@ def _reset_bad_image_rows(
         if brand is not None and str(row.get("brand") or "") != brand:
             continue
         status = str(row.get("status") or "").lower()
-        if status == "waiting" and _waiting_row_pollable(row):
-            continue
-        if status not in ("done", "waiting"):
-            continue
         item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
         if not item_id:
+            continue
+        if status == "waiting" and _waiting_owned_by_poller(item_id, row):
+            continue
+        if status not in ("done", "waiting"):
             continue
         try:
             brand_id = validate_brand_id(row.get("brand"))
@@ -211,9 +201,13 @@ def _reset_bad_image_rows(
             continue
         if _moment_has_image(brand_id, item_id):
             continue
-        if _retry_count(row) >= MAX_IMAGE_RETRIES:
+        if _retry_count(row, item_id=item_id) >= MAX_IMAGE_RETRIES:
             continue
-        row[_RETRY_COUNT_KEY] = _retry_count(row) + 1
+        from . import image_jobs_state  # noqa: PLC0415
+
+        row_fallback = row.get(_RETRY_COUNT_KEY)
+        image_jobs_state.increment_retry(item_id, row_fallback=row_fallback)
+        row.pop(_RETRY_COUNT_KEY, None)
         row["status"] = "pending"
         row.pop("note", None)
         reset += 1

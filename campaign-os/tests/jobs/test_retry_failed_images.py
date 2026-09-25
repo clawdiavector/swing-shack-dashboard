@@ -136,12 +136,23 @@ def test_retry_empty_done_image_row(retry_env):
     rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
     img = next(r for r in rows if r.get("action") == "draft_image")
     assert img.get("status") == "pending"
-    assert img.get("image_retry_count") == 1
+    jobs = json.loads((tmp_path / "draft-assets" / "_image-jobs.json").read_text(encoding="utf-8"))
+    assert jobs["jobs"][item_id]["retry_count"] == 1
 
 
 def test_max_three_retries(retry_env):
     tmp_path, _ = retry_env
     item_id = "calendar_candidate:swing-shack:cal-max"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "draft-assets" / "_image-jobs.json").write_text(
+        json.dumps(
+            {
+                "schema": "campaign-os/image-jobs/v1",
+                "jobs": {item_id: {"job_id": "", "brand": "swing-shack", "retry_count": 3, "last_status": "failed"}},
+            }
+        ),
+        encoding="utf-8",
+    )
     queue = {
         "schema": "campaign-os/agent-queue/v1",
         "generated_at": "2026-09-24T00:00:00Z",
@@ -154,7 +165,6 @@ def test_max_three_retries(retry_env):
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_id}",
                 "status": "done",
-                "image_retry_count": 3,
             }
         ],
     }
@@ -170,6 +180,23 @@ def test_max_three_retries(retry_env):
 def test_waiting_pollable_not_reset(retry_env):
     tmp_path, _ = retry_env
     item_id = "calendar_candidate:swing-shack:cal-wait-poll"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "draft-assets" / "_image-jobs.json").write_text(
+        json.dumps(
+            {
+                "schema": "campaign-os/image-jobs/v1",
+                "jobs": {
+                    item_id: {
+                        "job_id": "krea-live-123",
+                        "brand": "swing-shack",
+                        "last_status": "running",
+                        "retry_count": 0,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
     queue = {
         "schema": "campaign-os/agent-queue/v1",
         "generated_at": "2026-09-24T00:00:00Z",
@@ -182,7 +209,6 @@ def test_waiting_pollable_not_reset(retry_env):
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_id}",
                 "status": "waiting",
-                "provider_job_id": "krea-live-123",
             }
         ],
     }
@@ -193,7 +219,48 @@ def test_waiting_pollable_not_reset(retry_env):
     assert result.get("reset_pending") == 0
     rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
     assert rows[0].get("status") == "waiting"
-    assert rows[0].get("image_retry_count") is None
+    jobs = json.loads((tmp_path / "draft-assets" / "_image-jobs.json").read_text(encoding="utf-8"))
+    assert jobs["jobs"][item_id]["retry_count"] == 0
+
+
+def test_retry_count_survives_agent_queue_writer(retry_env):
+    tmp_path, _ = retry_env
+    item_id = "calendar_candidate:swing-shack:cal-merge"
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "draft-assets" / "_image-jobs.json").write_text(
+        json.dumps(
+            {
+                "schema": "campaign-os/image-jobs/v1",
+                "jobs": {item_id: {"job_id": "j", "brand": "swing-shack", "retry_count": 2, "last_status": "running"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    queue = {
+        "schema": "campaign-os/agent-queue/v1",
+        "generated_at": "2026-09-24T00:00:00Z",
+        "rows": [
+            {
+                "id": "waiting-pollable",
+                "layer": "L5",
+                "agent": "cos-image",
+                "brand": "swing-shack",
+                "action": "draft_image",
+                "payload_ref": f"inbox/{item_id}",
+                "status": "waiting",
+            }
+        ],
+    }
+    (tmp_path / "agent-queue.json").write_text(json.dumps(queue), encoding="utf-8")
+    (tmp_path / "slot-planner.json").write_text(json.dumps({"empty_slots": []}), encoding="utf-8")
+    (tmp_path / "freshness.json").write_text(json.dumps({"rotten_files": [], "stale_files": []}), encoding="utf-8")
+    from _lib.jobs.layer2 import agent_queue_writer
+    from _lib.jobs.layer5 import retry_failed_images
+
+    agent_queue_writer.run()
+    retry_failed_images.run(brand="swing-shack")
+    jobs = json.loads((tmp_path / "draft-assets" / "_image-jobs.json").read_text(encoding="utf-8"))
+    assert jobs["jobs"][item_id]["retry_count"] == 2
 
 
 def test_spend_cap_no_enqueue(retry_env, monkeypatch):

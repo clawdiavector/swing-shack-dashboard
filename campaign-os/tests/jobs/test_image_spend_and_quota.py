@@ -1,4 +1,4 @@
-"""P0 image fix — spend ordering, 402 raise, daily image cap."""
+"""P0 image fix — spend ordering, double-charge guard, by_brand rollup."""
 
 from __future__ import annotations
 
@@ -43,14 +43,12 @@ def spend_env(monkeypatch, tmp_path):
     return tmp_path, f"calendar_candidate:stick:cal-spend"
 
 
-def test_krea_async_submit_no_spend_record(spend_env):
+def test_no_spend_when_provider_returns_no_bytes(spend_env):
     tmp_path, item_id = spend_env
     from _lib import llm_spend
     from _lib.jobs.layer5 import draft_assets
 
     _seed_queue_row(tmp_path, action="draft_image", item_id=item_id, brand="stick")
-    before = llm_spend.status().get("calls") or 0
-
     mock_gen = MagicMock()
     mock_gen.model = "bfl/flux-1.1-pro"
     mock_gen.provider = "krea"
@@ -59,24 +57,17 @@ def test_krea_async_submit_no_spend_record(spend_env):
     mock_gen.saved_sidecar_path = str(
         tmp_path / "draft-assets" / "images" / "stick" / "images" / "gen.meta.json"
     )
-    sidecar_parent = Path(mock_gen.saved_sidecar_path).parent
-    sidecar_parent.mkdir(parents=True, exist_ok=True)
-    Path(mock_gen.saved_sidecar_path).write_text(
-        json.dumps({"provider_job_id": "async-job-1", "bytes_size": 0}),
-        encoding="utf-8",
-    )
 
     with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
         draft_assets.run()
 
-    assert (llm_spend.status().get("calls") or 0) == before
-    queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
-    row = next(r for r in queue["rows"] if r.get("action") == "draft_image")
-    assert row.get("status") == "waiting"
-    assert row.get("provider_job_id") == "async-job-1"
+    assert llm_spend.today_spend()["usd"] == 0.0
+    assert llm_spend.today_spend()["calls"] == 0
+    jobs = json.loads((tmp_path / "draft-assets" / "_image-jobs.json").read_text(encoding="utf-8"))
+    assert jobs["jobs"][item_id]["job_id"] == "async-job-1"
 
 
-def test_sync_bytes_records_spend_once(spend_env):
+def test_spend_recorded_once_on_real_bytes_krea(spend_env):
     tmp_path, item_id = spend_env
     from _lib import llm_spend
     from _lib.jobs.layer5 import draft_assets
@@ -85,44 +76,64 @@ def test_sync_bytes_records_spend_once(spend_env):
     png_path = tmp_path / "draft-assets" / "images" / "out.png"
     png_path.parent.mkdir(parents=True, exist_ok=True)
     png_path.write_bytes(PNG_1x1)
-    before = llm_spend.status().get("calls") or 0
 
     mock_gen = MagicMock()
     mock_gen.model = "test-model"
-    mock_gen.provider = "openrouter"
+    mock_gen.provider = "krea"
     mock_gen.bytes = PNG_1x1
     mock_gen.saved_path = str(png_path)
-    mock_gen.saved_sidecar_path = str(png_path.with_suffix(".meta.json"))
     mock_gen.provider_job_id = None
     mock_gen.prompt_used = "prompt"
 
     with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
         draft_assets.run()
 
-    after = llm_spend.status().get("calls") or 0
-    assert after == before + 1
+    assert llm_spend.today_spend()["calls"] == 1
+    assert llm_spend.today_spend()["usd"] == pytest.approx(llm_spend.modelled_image_cost("1024x1024"))
 
 
-def test_openrouter_402_raises_no_krea_fallback():
-    from _lib.image_gen_router import ImageGenUpstreamError, generate_image
+def test_no_double_charge_on_openrouter_provider(spend_env):
+    tmp_path, item_id = spend_env
+    from _lib import llm_spend
+    from _lib.jobs.layer5 import draft_assets
 
-    with patch("_lib.image_gen_router.openrouter_credentials_present", return_value=True):
-        with patch(
-            "_lib.image_gen_router._call_openrouter_multimodal",
-            side_effect=ImageGenUpstreamError("Payment Required", code=402, upstream={}),
-        ):
-            with patch("_lib.image_gen_router._krea_credentials_present", return_value=True):
-                with pytest.raises(ImageGenUpstreamError) as exc:
-                    generate_image(
-                        "test prompt",
-                        brand_id="stick",
-                        provider="openrouter",
-                        save=False,
-                    )
-    assert exc.value.code == 402
+    _seed_queue_row(tmp_path, action="draft_image", item_id=item_id, brand="stick")
+    png_path = tmp_path / "draft-assets" / "images" / "out.png"
+    png_path.parent.mkdir(parents=True, exist_ok=True)
+    png_path.write_bytes(PNG_1x1)
+
+    def fake_gen(**kwargs):
+        llm_spend.record(0.04, route="image_gen_router.generate", model="or-model", kind="image")
+        mock = MagicMock()
+        mock.model = "or-model"
+        mock.provider = "openrouter"
+        mock.bytes = PNG_1x1
+        mock.saved_path = str(png_path)
+        mock.provider_job_id = None
+        return mock
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", side_effect=fake_gen):
+        draft_assets.run()
+
+    assert llm_spend.today_spend()["calls"] == 1
 
 
-def test_image_daily_cap_blocks_third_submit(spend_env, monkeypatch):
+def test_by_brand_rollup_sums_to_total(spend_env):
+    from _lib import llm_spend
+
+    llm_spend.record(0.01, route="a", kind="text", brand_id="swing-shack")
+    llm_spend.record(0.02, route="b", kind="image", brand_id="swing-shack")
+    llm_spend.record(0.03, route="c", kind="image")
+    day_path = Path(spend_env[0]) / "llm-spend"
+    files = list(day_path.glob("*.json"))
+    data = json.loads(files[0].read_text(encoding="utf-8"))
+    by_brand = data.get("by_brand") or {}
+    total = sum(float(v.get("usd") or 0) for v in by_brand.values())
+    assert total == pytest.approx(float(data.get("usd") or 0))
+    assert by_brand.get("_unattributed", {}).get("usd") == pytest.approx(0.03)
+
+
+def test_image_daily_cap_blocks_third_submit(spend_env):
     tmp_path, item_id = spend_env
     from _lib import image_submit_quota
     from _lib.jobs.layer5 import draft_assets

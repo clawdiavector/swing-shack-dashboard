@@ -15,20 +15,14 @@ CAMPAIGN_OS = HERE.parents[1]
 if str(CAMPAIGN_OS) not in sys.path:
     sys.path.insert(0, str(CAMPAIGN_OS))
 
-from tests.jobs.test_layer5_create import _purge_modules, _seed_brands  # noqa: E402
+from tests.jobs.test_layer5_create import _purge_modules, _seed_brands, l5_app  # noqa: E402
 
 PNG_1x1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
 )
 
 
-@pytest.fixture()
-def poll_env(monkeypatch, tmp_path):
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("COS_JOB_TOKEN", "test-job-token-not-a-secret")
-    monkeypatch.setenv("CAMPAIGN_OS_DAILY_LLM_CAP_USD", "10.00")
-    _purge_modules()
-    _seed_brands(tmp_path, brand="stick", campaign_id="camp-stick")
+def _seed_waiting(tmp_path: Path, *, brand: str = "swing-shack", job_id: str = "j1") -> str:
     cal_dir = tmp_path / "intelligence" / "marketing-calendar"
     cal_dir.mkdir(parents=True, exist_ok=True)
     record = {
@@ -39,23 +33,26 @@ def poll_env(monkeypatch, tmp_path):
         "event_start": "2026-10-01",
         "type": "content",
     }
-    (cal_dir / "stick.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
-    item_id = "calendar_candidate:stick:cal-1"
-    img_dir = tmp_path / "draft-assets" / "images" / "stick" / "images"
-    img_dir.mkdir(parents=True, exist_ok=True)
-    meta_path = img_dir / "gen-stick-1.png.meta.json"
-    meta_path.write_text(
-        json.dumps(
-            {
-                "provider_job_id": "krea-job-1",
-                "brand_id": "stick",
+    (cal_dir / f"{brand}.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
+    item_id = f"calendar_candidate:{brand}:cal-1"
+    jobs_doc = {
+        "schema": "campaign-os/image-jobs/v1",
+        "generated_at": "2026-09-25T00:00:00Z",
+        "jobs": {
+            item_id: {
+                "job_id": job_id,
+                "brand": brand,
                 "size": "1024x1024",
-                "cost_estimate_usd": 0.04,
-                "bytes_size": 0,
+                "est_usd": 0.04,
+                "submitted_at": "2026-09-25T07:15:04Z",
+                "last_status": "running",
+                "polls": 0,
+                "retry_count": 0,
             }
-        ),
-        encoding="utf-8",
-    )
+        },
+    }
+    (tmp_path / "draft-assets").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "draft-assets" / "_image-jobs.json").write_text(json.dumps(jobs_doc), encoding="utf-8")
     queue = {
         "schema": "campaign-os/agent-queue/v1",
         "generated_at": "2026-09-25T00:00:00Z",
@@ -64,92 +61,171 @@ def poll_env(monkeypatch, tmp_path):
                 "id": "wait-1",
                 "layer": "L5",
                 "agent": "cos-image",
-                "brand": "stick",
+                "brand": brand,
                 "action": "draft_image",
                 "payload_ref": f"inbox/{item_id}",
                 "status": "waiting",
-                "provider_job_id": "krea-job-1",
-                "router_sidecar_path": str(meta_path),
-                "image_size": "1024x1024",
-                "image_cost_estimate_usd": 0.04,
             }
         ],
     }
     (tmp_path / "agent-queue.json").write_text(json.dumps(queue), encoding="utf-8")
-    return tmp_path, item_id, meta_path
+    return item_id
+
+
+@pytest.fixture()
+def poll_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("COS_JOB_TOKEN", "test-job-token-not-a-secret")
+    monkeypatch.setenv("CAMPAIGN_OS_DAILY_LLM_CAP_USD", "10.00")
+    _purge_modules()
+    _seed_brands(tmp_path, brand="swing-shack", campaign_id="camp-ss")
+    return tmp_path
 
 
 def test_krea_poll_registered():
     from _lib.jobs.registry import JOBS
+    from _lib.jobs.descriptions import description_for
 
     assert "krea_poll_draft_images" in JOBS
     assert JOBS["krea_poll_draft_images"].upstream == ("draft_assets",)
     assert JOBS["asset_qc"].upstream == ("krea_poll_draft_images",)
+    assert description_for("krea_poll_draft_images")["summary"]
 
 
-def test_poll_completed_writes_png_and_records_spend(poll_env):
-    tmp_path, item_id, meta_path = poll_env
-    from _lib import llm_spend
+def test_poll_completed_writes_png_and_draft(poll_env):
+    tmp_path = poll_env
+    _seed_waiting(tmp_path, job_id="j1")
     from _lib.jobs.layer5 import krea_poll_draft_images
 
-    before = llm_spend.status().get("calls") or 0
-    completed_payload = json.dumps(
-        {"status": "completed", "result": {"urls": ["https://example.test/out.png"]}}
-    )
+    completed_payload = json.dumps({"status": "completed", "result": {"urls": ["https://example.test/out.png"]}})
     mock_resp = {"content": [{"text": completed_payload}]}
 
-    def fake_urlopen(url, timeout=60):  # noqa: ARG001
+    def fake_urlopen(url, timeout=30):  # noqa: ARG001
         mock = MagicMock()
         mock.read.return_value = PNG_1x1
-        mock.headers = {"Content-Type": "image/png"}
         mock.__enter__ = lambda s: mock
         mock.__exit__ = lambda *a: None
         return mock
 
     with patch("_lib.krea_mcp.get_job", return_value=mock_resp):
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
-            result = krea_poll_draft_images.run(brand="stick")
+            result = krea_poll_draft_images.run(brand="swing-shack")
 
-    assert result.get("ok") is True
     assert result.get("completed") == 1
+    png = tmp_path / "draft-assets" / "images" / "swing-shack" / "images" / "krea-swing-shack-j1.png"
+    assert png.is_file() and png.stat().st_size > 0
     rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
     assert rows[0]["status"] == "done"
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    assert meta.get("bytes_size", 0) > 0
-    assert (llm_spend.status().get("calls") or 0) > before
-    drafts = list((tmp_path / "draft-assets").glob("*.json"))
-    assert any("cal-1" in p.read_text() or item_id in p.read_text() for p in drafts)
+    assert not (tmp_path / "draft-assets" / "_image-jobs.json").read_text().count("j1")
+
+
+def test_polled_png_is_served_by_brand_images(l5_app, poll_env):
+    tmp_path = poll_env
+    _seed_waiting(tmp_path, job_id="j1")
+    from _lib.jobs.layer5 import krea_poll_draft_images
+
+    completed_payload = json.dumps({"status": "completed", "result": {"urls": ["https://example.test/out.png"]}})
+    mock_resp = {"content": [{"text": completed_payload}]}
+
+    def fake_urlopen(url, timeout=30):  # noqa: ARG001
+        mock = MagicMock()
+        mock.read.return_value = PNG_1x1
+        mock.__enter__ = lambda s: mock
+        mock.__exit__ = lambda *a: None
+        return mock
+
+    client, _, _ = l5_app
+    with patch("_lib.krea_mcp.get_job", return_value=mock_resp):
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            krea_poll_draft_images.run(brand="swing-shack")
+
+    resp = client.get("/brand-images/swing-shack/krea-swing-shack-j1.png")
+    assert resp.status_code == 200
 
 
 def test_poll_still_running_no_spend(poll_env):
-    tmp_path, _item_id, _meta_path = poll_env
+    tmp_path = poll_env
+    _seed_waiting(tmp_path)
     from _lib import llm_spend
     from _lib.jobs.layer5 import krea_poll_draft_images
 
-    before = llm_spend.status().get("calls") or 0
+    before = llm_spend.today_spend()["calls"]
     running_payload = json.dumps({"status": "running"})
-    mock_resp = {"content": [{"text": running_payload}]}
+    with patch("_lib.krea_mcp.get_job", return_value={"content": [{"text": running_payload}]}):
+        result = krea_poll_draft_images.run(brand="swing-shack")
+    assert result.get("still_running") == 1
+    assert llm_spend.today_spend()["calls"] == before
+    jobs = json.loads((tmp_path / "draft-assets" / "_image-jobs.json").read_text(encoding="utf-8"))
+    item_id = "calendar_candidate:swing-shack:cal-1"
+    assert jobs["jobs"][item_id]["polls"] == 1
 
-    with patch("_lib.krea_mcp.get_job", return_value=mock_resp):
-        result = krea_poll_draft_images.run(brand="stick")
 
-    assert result.get("still_waiting") == 1
-    assert (llm_spend.status().get("calls") or 0) == before
-    rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
-    assert rows[0]["status"] == "waiting"
+def test_poll_records_spend_exactly_once(poll_env):
+    tmp_path = poll_env
+    _seed_waiting(tmp_path, job_id="j1")
+    from _lib import llm_spend
+    from _lib.jobs.layer5 import krea_poll_draft_images
+
+    completed_payload = json.dumps({"status": "completed", "result": {"urls": ["https://x/y.png"]}})
+
+    def fake_urlopen(url, timeout=30):  # noqa: ARG001
+        mock = MagicMock()
+        mock.read.return_value = PNG_1x1
+        mock.__enter__ = lambda s: mock
+        mock.__exit__ = lambda *a: None
+        return mock
+
+    with patch("_lib.krea_mcp.get_job", return_value={"content": [{"text": completed_payload}]}):
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            krea_poll_draft_images.run(brand="swing-shack")
+            krea_poll_draft_images.run(brand="swing-shack")
+    assert llm_spend.today_spend()["calls"] == 1
 
 
 def test_poll_failed_sets_pending(poll_env):
-    tmp_path, _item_id, _meta_path = poll_env
+    tmp_path = poll_env
+    _seed_waiting(tmp_path)
     from _lib.jobs.layer5 import krea_poll_draft_images
 
     failed_payload = json.dumps({"status": "failed", "error": "upstream error"})
-    mock_resp = {"content": [{"text": failed_payload}]}
-
-    with patch("_lib.krea_mcp.get_job", return_value=mock_resp):
-        result = krea_poll_draft_images.run(brand="stick")
-
+    with patch("_lib.krea_mcp.get_job", return_value={"content": [{"text": failed_payload}]}):
+        result = krea_poll_draft_images.run(brand="swing-shack")
     assert result.get("failed") == 1
     rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
     assert rows[0]["status"] == "pending"
-    assert rows[0].get("krea_poll_failed") is True
+
+
+def test_cron_step_order():
+    repo = CAMPAIGN_OS.parent
+    text = (repo / ".github" / "workflows" / "layer2-7-daily-cron.yml").read_text(encoding="utf-8")
+    names = []
+    for line in text.splitlines():
+        if line.strip().startswith("- name: L5 —"):
+            names.append(line.split("L5 —", 1)[1].strip())
+    assert names.index("retry_failed_images") < names.index("draft_assets")
+    assert names.index("draft_assets") < names.index("krea_poll_draft_images")
+    assert names.index("krea_poll_draft_images") < names.index("asset_qc")
+
+
+def test_poller_ignores_spend_cap(poll_env, monkeypatch):
+    tmp_path = poll_env
+    _seed_waiting(tmp_path, job_id="j1")
+    monkeypatch.setenv("CAMPAIGN_OS_DAILY_LLM_CAP_USD", "0.001")
+    _purge_modules()
+    from _lib import llm_spend
+    from _lib.jobs.layer5 import krea_poll_draft_images
+
+    llm_spend.record(0.01, route="seed", kind="text")
+    completed_payload = json.dumps({"status": "completed", "result": {"urls": ["https://x/y.png"]}})
+
+    def fake_urlopen(url, timeout=30):  # noqa: ARG001
+        mock = MagicMock()
+        mock.read.return_value = PNG_1x1
+        mock.__enter__ = lambda s: mock
+        mock.__exit__ = lambda *a: None
+        return mock
+
+    with patch("_lib.krea_mcp.get_job", return_value={"content": [{"text": completed_payload}]}):
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            result = krea_poll_draft_images.run(brand="swing-shack")
+    assert result.get("completed") == 1

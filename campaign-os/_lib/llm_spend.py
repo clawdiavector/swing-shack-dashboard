@@ -195,7 +195,35 @@ def can_afford(estimate_usd: float = 0.0) -> bool:
     return ok
 
 
-def record(usd: float, *, route: str, model: Optional[str] = None, kind: str = "image") -> dict[str, Any]:
+def _rollup_brand(
+    data: dict[str, Any],
+    *,
+    brand_key: str,
+    amount: float,
+    kind: str,
+) -> None:
+    by_brand = data.get("by_brand")
+    if not isinstance(by_brand, dict):
+        by_brand = {}
+        data["by_brand"] = by_brand
+    row = by_brand.get(brand_key)
+    if not isinstance(row, dict):
+        row = {"usd": 0.0, "calls": 0, "images": 0}
+        by_brand[brand_key] = row
+    row["usd"] = round(float(row.get("usd") or 0.0) + amount, 6)
+    row["calls"] = int(row.get("calls") or 0) + 1
+    if (kind or "image") == "image":
+        row["images"] = int(row.get("images") or 0) + 1
+
+
+def record(
+    usd: float,
+    *,
+    route: str,
+    model: Optional[str] = None,
+    kind: str = "image",
+    brand_id: Optional[str] = None,
+) -> dict[str, Any]:
     """Post-flight accounting. Returns updated status()."""
     try:
         amount = max(0.0, float(usd or 0.0))
@@ -205,6 +233,7 @@ def record(usd: float, *, route: str, model: Optional[str] = None, kind: str = "
         # Still count the call with modelled floor so OpenAI 0.0 is not free (t50-I).
         amount = MODELLED_IMAGE_DEFAULT
     day = _utc_day()
+    brand_key = (brand_id or "").strip() or "_unattributed"
     with _LOCK:
         data = _load_day(day)
         if data.get("broken"):
@@ -221,10 +250,12 @@ def record(usd: float, *, route: str, model: Optional[str] = None, kind: str = "
                 "route": (route or "")[:120],
                 "model": (model or "")[:80] or None,
                 "kind": (kind or "image")[:40],
+                "brand_id": brand_id,
             }
         )
         data["events"] = events[-200:]
         data["calls"] = int(data.get("calls") or 0) + 1
+        _rollup_brand(data, brand_key=brand_key, amount=amount, kind=kind or "image")
         data["date"] = day
         try:
             _save_day(data)

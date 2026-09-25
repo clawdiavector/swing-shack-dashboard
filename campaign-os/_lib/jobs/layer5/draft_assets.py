@@ -27,6 +27,8 @@ CAPTION_EST_USD = 0.002
 IMAGE_EST_USD = 0.04
 GBP_EST_USD = 0.0
 VALID_IMAGE_SIZES = frozenset({"1024x1024", "1024x1792", "1792x1024"})
+# image_gen_router.py:810-811 openai, :1013-1014 openrouter — already record spend.
+_ROUTER_SELF_RECORDING_PROVIDERS = frozenset({"openai", "openrouter"})
 _CAPTION_ONLY_REJECT_REASON = "caption-only incomplete post; operator clear 2026-09-23"
 _CAPTION_SIDEcar_ACTIONS = frozenset({"draft_caption", "fill_slot"})
 _CAPTION_QUEUE_ACTIONS = frozenset({"draft_caption", "fill_slot"})
@@ -792,6 +794,11 @@ def _process_image_row(
     if ctx.products:
         gen_kwargs["product_service_items"] = ctx.products
 
+    llm_spend.write_approval_receipt(
+        route="job:draft_assets",
+        estimate_usd=est,
+        brand_id=brand_id,
+    )
     record_brand_image_submit(brand_id)
 
     try:
@@ -843,28 +850,36 @@ def _process_image_row(
     provider_job_id = pj_raw.strip() if isinstance(pj_raw, str) and pj_raw.strip() else None
     sidecar_path = _result_str("saved_sidecar_path")
     if provider_job_id and not has_bytes:
+        from . import image_jobs_state  # noqa: PLC0415
+
+        row_fallback = row.get("image_retry_count")
+        try:
+            rc = max(0, int(row_fallback or 0))
+        except (TypeError, ValueError):
+            rc = 0
+        image_jobs_state.upsert_submit(
+            item_id,
+            job_id=provider_job_id,
+            brand=brand_id,
+            size=size,
+            est_usd=est,
+            retry_count=rc,
+        )
         row["status"] = "waiting"
-        row["provider_job_id"] = provider_job_id
-        if sidecar_path:
-            row["router_sidecar_path"] = sidecar_path
-        row["image_size"] = size
-        row["image_cost_estimate_usd"] = est
         return None, None
 
     if not has_bytes:
         return None, None
 
-    llm_spend.write_approval_receipt(
-        route="job:draft_assets",
-        estimate_usd=est,
-        brand_id=brand_id,
-    )
-    llm_spend.record(
-        est,
-        route="job:draft_assets/image",
-        model=getattr(result, "model", None),
-        kind="image",
-    )
+    provider_name = str(getattr(result, "provider", "") or "")
+    if provider_name not in _ROUTER_SELF_RECORDING_PROVIDERS:
+        llm_spend.record(
+            est,
+            route="job:draft_assets/image",
+            model=getattr(result, "model", None),
+            kind="image",
+            brand_id=brand_id,
+        )
 
     asset_id = _write_draft(
         brand_id=brand_id,
