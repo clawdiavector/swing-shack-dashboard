@@ -24,6 +24,20 @@ from tests.jobs.test_layer5_create import (  # noqa: E402
 )
 
 
+def _draft_asset_sidecar_path(tmp_path: Path) -> Path:
+    """Main draft-asset sidecar — excludes *.brief.json from P0 brief sidecars."""
+    for path in sorted((tmp_path / "draft-assets").glob("*.json")):
+        if path.name.endswith(".brief.json"):
+            continue
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if row.get("schema") == "campaign-os/draft-asset/v1":
+            return path
+    raise AssertionError("no draft-asset sidecar under draft-assets/")
+
+
 def _seed_approved_calendar(
     tmp_path: Path,
     *,
@@ -189,10 +203,12 @@ def test_sidecar_lineage_populated(l5_app, tmp_path):
     with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
         draft_assets.run()
 
-    sidecar_path = next((tmp_path / "draft-assets").glob("*.json"))
+    sidecar_path = _draft_asset_sidecar_path(tmp_path)
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     assert sidecar.get("sections")
     assert sidecar.get("negative_prompt")
+    brief_path = tmp_path / "draft-assets" / f"{sidecar['asset_id']}.brief.json"
+    assert brief_path.is_file()
     assert sidecar.get("model_routing")
     assert sidecar.get("calendar", {}).get("calendar_id") == "cal-1"
     assert sidecar.get("image_size") in asset_qc.VALID_IMAGE_SIZES
@@ -275,11 +291,7 @@ def test_image_cross_links_caption_draft(l5_app, tmp_path):
     with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
         draft_assets.run()
 
-    image_sidecar = json.loads(
-        next(p for p in (tmp_path / "draft-assets").glob("*.json") if "caption123" not in p.name).read_text(
-            encoding="utf-8"
-        )
-    )
+    image_sidecar = json.loads(_draft_asset_sidecar_path(tmp_path).read_text(encoding="utf-8"))
     assert image_sidecar.get("caption_asset_id") == caption_asset_id
     saved = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
     image_assets = [
@@ -338,7 +350,7 @@ def test_asset_qc_passes_rich_image_sidecar(l5_app, tmp_path):
     with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
         draft_assets.run()
 
-    sidecar_path = next((tmp_path / "draft-assets").glob("*.json"))
+    sidecar_path = _draft_asset_sidecar_path(tmp_path)
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
     asset_id = sidecar["asset_id"]
     data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))

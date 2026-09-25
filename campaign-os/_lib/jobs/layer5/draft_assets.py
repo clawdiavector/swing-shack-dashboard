@@ -791,6 +791,24 @@ def _apply_stop_error(
     return stop_cap, stop_auth
 
 
+def _write_image_brief(
+    asset_id: str,
+    *,
+    sections: list[Any],
+    platform_spec: dict[str, Any],
+    reference_id: str | None,
+    product_id: str | None,
+) -> None:
+    payload = {
+        "schema": "campaign-os/draft-image-brief/v1",
+        "sections": sections,
+        "platform_spec": platform_spec,
+        "reference_id": reference_id,
+        "product_id": product_id,
+    }
+    atomic_write(f"draft-assets/{asset_id}.brief.json", payload)
+
+
 def _process_image_row(
     row: dict[str, Any],
     *,
@@ -952,6 +970,23 @@ def _process_image_row(
             "context_degraded": ctx.lineage.get("degraded") or [],
         },
     )
+    if asset_id:
+        ref_selected = ctx.lineage.get("reference") if isinstance(ctx.lineage.get("reference"), dict) else {}
+        reference_id = None
+        if ctx.refs and isinstance(ctx.refs[0], dict):
+            reference_id = ctx.refs[0].get("ref_id")
+        if reference_id is None and ref_selected:
+            reference_id = ref_selected.get("selected")
+        product_id = None
+        if ctx.products and isinstance(ctx.products[0], dict):
+            product_id = ctx.products[0].get("id")
+        _write_image_brief(
+            asset_id,
+            sections=list(cd.get("sections") or []),
+            platform_spec=dict(ctx.platform_spec or {}),
+            reference_id=reference_id if reference_id else None,
+            product_id=product_id if product_id else None,
+        )
     return asset_id, None
 
 
