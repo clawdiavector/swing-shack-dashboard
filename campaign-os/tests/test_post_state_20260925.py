@@ -169,6 +169,27 @@ class PostStateTests(unittest.TestCase):
         self.assertIn("holiday", out["flags"])
         self.assertNotIn("stale", out["flags"])
 
+    def test_publish_index_includes_non_pending_queue_row(self):
+        """Regression: _index_publish_by_cal must not drop dispatched rows."""
+        from _lib import publish_sandbox, unified_inbox
+
+        cal_id = "cal-index-dispatched"
+        inbox_ref = f"calendar_candidate:{self.brand}:{cal_id}"
+        queue_path = publish_sandbox.sandbox_dir() / "queue.jsonl"
+        row = {
+            "brand_id": self.brand,
+            "inbox_item_id": inbox_ref,
+            "status": "dispatched",
+            "human_approved": True,
+            "idempotency_key": "qc-index-dispatched-instagram",
+            "platform": "instagram",
+        }
+        queue_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+        index = unified_inbox.build_post_index(brand_id=self.brand)
+        self.assertIn(cal_id, index.queue)
+        self.assertEqual(index.queue[cal_id][0].get("status"), "dispatched")
+
     def test_dispatched_queue_row_keeps_queued_stage(self):
         from _lib import publish_sandbox, unified_inbox
 

@@ -110,6 +110,11 @@ export function WeekBoard() {
               {undatedTotal > undated.length ? ` of ${undatedTotal}` : ''}
             </Badge>
           </div>
+          {undatedTotal > undated.length ? (
+            <p className="mb-3 text-sm text-tx3">
+              Showing {undated.length} of {undatedTotal} undated posts — open Calendar to date the rest.
+            </p>
+          ) : null}
           <ul className="space-y-2">
             {undated.map((post) => (
               <PostCard
