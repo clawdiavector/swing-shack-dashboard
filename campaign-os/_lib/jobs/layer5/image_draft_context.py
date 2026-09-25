@@ -101,6 +101,41 @@ def _select_aspect(record: dict[str, Any], *, title: str, angle: str) -> str:
     return "1024x1024"
 
 
+def _load_reference_image_bytes(
+    ref_dna: dict[str, Any],
+    *,
+    brand_id: str,
+    root: Path,
+) -> list[bytes]:
+    """Read PNG/JPEG bytes for a reference DNA row when the file exists locally."""
+    candidates: list[Path] = []
+    raw_path = ref_dna.get("source_path")
+    if isinstance(raw_path, str) and raw_path.strip():
+        candidates.append(Path(raw_path))
+    fn = ref_dna.get("source_filename") or ref_dna.get("filename")
+    if isinstance(fn, str) and fn.strip():
+        base = root / brand_id / "images"
+        candidates.append(base / fn)
+        candidates.append(base / Path(fn).name)
+    out: list[bytes] = []
+    seen: set[str] = set()
+    for path in candidates:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        if not path.is_file():
+            continue
+        try:
+            data = path.read_bytes()
+        except OSError:
+            continue
+        if data:
+            out.append(data)
+            break
+    return out
+
+
 def _load_reference_records(brand_id: str, root: Path) -> list[dict[str, Any]]:
     refs_dir = root / brand_id / "references"
     if not refs_dir.is_dir():
@@ -274,6 +309,7 @@ def _resolve_calendar_record(brand_id: str, cal_id: str) -> Optional[dict[str, A
 class ImageDraftContext:
     job: str
     refs: list[dict[str, Any]] = field(default_factory=list)
+    reference_bytes: list[bytes] = field(default_factory=list)
     products: list[dict[str, Any]] = field(default_factory=list)
     aspect: str = "1024x1024"
     platform_spec: dict[str, Any] = field(default_factory=dict)
@@ -373,10 +409,14 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         degraded,
         calendar=calendar_lineage,
     )
+    ref_bytes: list[bytes] = []
+    if refs and isinstance(refs[0], dict):
+        ref_bytes = _load_reference_image_bytes(refs[0], brand_id=brand, root=root)
 
     return ImageDraftContext(
         job=job,
         refs=refs,
+        reference_bytes=ref_bytes,
         products=products,
         aspect=aspect,
         platform_spec=platform_spec,

@@ -45,6 +45,10 @@ data/freshness-detail.json
 # runtime writes.
 campaign-os/data/
 
+# P2 smoke artifacts (real provider spend; keep runner script tracked)
+campaign-os/tests/artifacts/p1-smoke/*
+!campaign-os/tests/artifacts/p1-smoke/run_p1_smoke.py
+
 
 # V1.7 §4: approval verifiers are security-sensitive
 # configuration. They must never be version-controlled.

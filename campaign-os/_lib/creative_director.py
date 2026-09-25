@@ -64,7 +64,8 @@ _MODEL_CAPABILITIES = {
     "bfl/flux-1.1-pro":         {"category": "image", "fidelity": 0.85, "photorealism": 0.85, "speed": 0.7, "typography": 0.4, "ref_image": False, "edit": False, "verified": True, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.75},
     "bfl/flux-1.1-pro-ultra":   {"category": "image", "fidelity": 0.9, "photorealism": 0.92, "speed": 0.5, "typography": 0.5, "ref_image": False, "edit": False, "verified": True, "material": 0.9, "lighting": 0.9, "composition": 0.9, "human": 0.85},
     "bfl/flux-1-kontext-dev":   {"category": "image", "fidelity": 0.9, "photorealism": 0.7, "speed": 0.5, "typography": 0.4, "ref_image": False, "edit": True, "edit_only": True, "verified": True, "material": 0.7, "lighting": 0.7, "composition": 0.75, "human": 0.65},
-    "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False, "verified": False, "material": 0.7, "lighting": 0.7, "composition": 0.7, "human": 0.6},
+    # Not wired in Campaign OS — scored for future A/B only; pick_model never returns this.
+    "xai/grok-imagine-2":       {"category": "image", "fidelity": 0.7, "photorealism": 0.75, "speed": 0.8, "typography": 0.4, "ref_image": False, "verified": False, "wired": False, "material": 0.7, "lighting": 0.7, "composition": 0.7, "human": 0.6},
     "openai/gpt-image-2":       {"category": "image", "fidelity": 0.8, "photorealism": 0.85, "speed": 0.6, "typography": 0.85, "ref_image": True, "edit": True, "verified": False, "material": 0.8, "lighting": 0.85, "composition": 0.85, "human": 0.8},
     "openai/gpt-image":         {"category": "image", "fidelity": 0.75, "photorealism": 0.8, "speed": 0.6, "typography": 0.8, "ref_image": True, "edit": True, "verified": False, "material": 0.75, "lighting": 0.8, "composition": 0.8, "human": 0.75},
     "ideogram/ideogram-3":      {"category": "image", "fidelity": 0.75, "photorealism": 0.7, "speed": 0.7, "typography": 0.95, "ref_image": True, "verified": True, "material": 0.7, "lighting": 0.75, "composition": 0.8, "human": 0.65},
@@ -319,6 +320,103 @@ def build_negative_prompt(
             "do not change handedness",
         ])
     return ", ".join(parts)
+
+
+_GEMINI_FLASH_IMAGE = "google/gemini-2.5-flash-image"
+_FLUX_ULTRA = "bfl/flux-1.1-pro-ultra"
+_IDEOGRAM_3 = "ideogram/ideogram-3"
+
+
+def _krea_connected() -> bool:
+    try:
+        from _lib.image_gen_router import _krea_credentials_present
+
+        return bool(_krea_credentials_present())
+    except Exception:
+        return False
+
+
+def _model_allowed(model: str) -> bool:
+    if model in (_GEMINI_FLASH_IMAGE, "google/gemini-3-pro-image"):
+        return True
+    caps = _MODEL_CAPABILITIES.get(model)
+    if not caps or caps.get("category") != "image":
+        return False
+    if caps.get("wired") is False:
+        return False
+    if caps.get("edit_only"):
+        return False
+    return bool(caps.get("verified", False))
+
+
+def pick_model(requirements: dict) -> dict[str, str]:
+    """Requirement router for image generation (P2).
+
+    Returns {model, provider, reason}. Honors CAMPAIGN_OS_IMAGE_MODEL_FORCE.
+    """
+    force = (os.environ.get("CAMPAIGN_OS_IMAGE_MODEL_FORCE") or "").strip()
+    if force and ":" in force:
+        prov, model = force.split(":", 1)
+        prov = prov.strip().lower()
+        model = model.strip()
+        if _model_allowed(model):
+            return {
+                "model": model,
+                "provider": prov,
+                "reason": f"CAMPAIGN_OS_IMAGE_MODEL_FORCE={prov}:{model}",
+            }
+        _LOG.warning("forced model not allowed, falling back: %s", model)
+
+    needs_reference = bool(requirements.get("needs_reference"))
+    photoreal = bool(requirements.get("photoreal"))
+    typography = bool(requirements.get("typography"))
+    edit = bool(requirements.get("edit"))
+
+    if needs_reference or edit:
+        return {
+            "model": _GEMINI_FLASH_IMAGE,
+            "provider": "openrouter",
+            "reason": "reference or edit requires OpenRouter multimodal (gemini-2.5-flash-image)",
+        }
+
+    if typography:
+        if _krea_connected():
+            return {
+                "model": _IDEOGRAM_3,
+                "provider": "krea",
+                "reason": "typography job → ideogram-3 on Krea",
+            }
+        return {
+            "model": _GEMINI_FLASH_IMAGE,
+            "provider": "openrouter",
+            "reason": "typography job but Krea not connected → gemini fallback",
+        }
+
+    if photoreal and not needs_reference:
+        if _krea_connected():
+            return {
+                "model": _FLUX_ULTRA,
+                "provider": "krea",
+                "reason": "photoreal without reference → flux-1.1-pro-ultra on Krea",
+            }
+        return {
+            "model": _GEMINI_FLASH_IMAGE,
+            "provider": "openrouter",
+            "reason": "photoreal without reference but Krea not connected → gemini fallback",
+        }
+
+    from _lib import image_gen_router as igr
+
+    model = igr.DEFAULT_MODEL_GEN
+    provider = "krea" if _krea_connected() else igr.DEFAULT_PROVIDER
+    if not _model_allowed(model):
+        model = _GEMINI_FLASH_IMAGE
+        provider = "openrouter"
+    return {
+        "model": model,
+        "provider": provider,
+        "reason": "default CAMPAIGN_OS image provider/model",
+    }
 
 
 def recommend_model(requirements: Dict[str, Any]) -> Dict[str, Any]:

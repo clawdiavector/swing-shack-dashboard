@@ -198,6 +198,9 @@ class GenResult:
     # NEW (2026-08-31): Provider-issued async job id (e.g. Krea). Routes
     # the caller to /api/krea/job-status?id=... for follow-up polling.
     provider_job_id: Optional[str] = None
+    cost_usd: float = 0.0
+    cost_source: str = "estimate"
+    reference_dropped: bool = False
 
 
 @dataclass
@@ -609,7 +612,106 @@ def _cost_from_usage(usage: dict) -> float:
             return float(cost)
         except (TypeError, ValueError):
             pass
+    receipt = usage.get("receipt")
+    if isinstance(receipt, dict) and receipt.get("cost") is not None:
+        try:
+            return float(receipt["cost"])
+        except (TypeError, ValueError):
+            pass
     return 0.0
+
+
+_REFERENCE_TAIL = (
+    " Match the framing, lighting and palette of the attached reference. "
+    "Do not copy its text or logo."
+)
+
+
+def _resolve_image_cost(
+    *,
+    provider: str,
+    usage: dict,
+    size: str,
+    n: int,
+) -> tuple[float, str]:
+    """Bill from upstream usage when present, else modelled estimate."""
+    if provider == "openrouter":
+        billed = _cost_from_usage(usage)
+        if billed > 0:
+            return billed, "openrouter"
+    if provider == "krea":
+        billed = _cost_from_usage(usage)
+        if billed > 0:
+            return billed, "krea"
+        for key in ("cost_usd", "price_usd", "amount_usd"):
+            raw = usage.get(key)
+            if raw is not None:
+                try:
+                    val = float(raw)
+                    if val > 0:
+                        return val, "krea"
+                except (TypeError, ValueError):
+                    pass
+    try:
+        from _lib.llm_spend import modelled_image_cost
+
+        est = modelled_image_cost(size=size, n=n)
+    except Exception:
+        est = 0.04
+    return est, "estimate"
+
+
+def _inject_openrouter_references(
+    messages: list,
+    *,
+    reference_bytes: list[bytes],
+    reference_note: str,
+) -> list:
+    """Append reference image_url chunks to the last user message."""
+    if not reference_bytes:
+        return messages
+    tail = (reference_note or "").strip() or _REFERENCE_TAIL.strip()
+    out = []
+    for msg in messages:
+        if not isinstance(msg, dict):
+            out.append(msg)
+            continue
+        if msg.get("role") != "user":
+            out.append(msg)
+            continue
+        content = msg.get("content")
+        chunks: list[dict] = []
+        if isinstance(content, str):
+            text = content.rstrip()
+            if tail and not text.endswith(tail):
+                text = f"{text} {tail}"
+            chunks.append({"type": "text", "text": text})
+        elif isinstance(content, list):
+            chunks = [c for c in content if isinstance(c, dict)]
+            if chunks and chunks[0].get("type") == "text":
+                text = str(chunks[0].get("text") or "").rstrip()
+                if tail and not text.endswith(tail):
+                    text = f"{text} {tail}"
+                chunks[0] = {"type": "text", "text": text}
+            else:
+                chunks.insert(0, {"type": "text", "text": tail})
+        else:
+            chunks.append({"type": "text", "text": tail})
+        for ref in reference_bytes:
+            if ref:
+                chunks.append(
+                    {"type": "image_url", "image_url": {"url": _data_url(ref)}}
+                )
+        out.append({**msg, "content": chunks})
+    return out
+
+
+def _finish_gen_result(result: GenResult, *, provider: str, usage: dict, size: str, n: int) -> GenResult:
+    cost, source = _resolve_image_cost(provider=provider, usage=usage, size=size, n=n)
+    result.cost_usd = cost
+    result.cost_source = source
+    result.cost_estimate_usd = cost
+    return result
 
 
 # ── Persistence (save to brand directory + sidecar) ──────────────────
@@ -676,6 +778,8 @@ def generate_image(
     output_base: str = DEFAULT_OUTPUT_BASE,
     max_cost_usd: float = DEFAULT_MAX_COST_USD,
     timeout_s: int = 120,
+    reference_bytes: Optional[list[bytes]] = None,
+    reference_note: str = "",
 ) -> GenResult:
     """Generate an image. Brand-aware (recipe-injected) when brand_recipe supplied.
 
@@ -728,6 +832,15 @@ def generate_image(
         or os.environ.get("CAMPAIGN_OS_IMAGE_PROVIDER")
         or DEFAULT_PROVIDER
     ).strip().lower()
+
+    ref_list = [b for b in (reference_bytes or []) if b]
+    reference_dropped = False
+    if ref_list and provider in ("krea", "openai"):
+        _LOG.warning(
+            "reference_dropped provider=%s count=%s", provider, len(ref_list)
+        )
+        reference_dropped = True
+        ref_list = []
 
     if provider == "openai":
         model = model or "gpt-image-1"
@@ -805,10 +918,12 @@ def generate_image(
             warning="cost_estimate_usd modelled (OpenAI path; not billed usage)",
             usage=usage,
             brand_recipe=recipe_summary or None,
+            reference_dropped=reference_dropped,
         )
+        result = _finish_gen_result(result, provider=provider, usage=usage, size=size, n=n)
         try:
             from _lib import llm_spend as _ls
-            _ls.record(result.cost_estimate_usd, route="image_gen_router.generate", model=model)
+            _ls.record(result.cost_usd, route="image_gen_router.generate", model=model)
         except Exception:
             pass
         return result
@@ -831,6 +946,7 @@ def generate_image(
             product_service_items=product_service_items,
             learned_signals=learned_signals,
         )
+        recipe_summary: dict = {}
         # Add brand context if available
         if brand_id:
             try:
@@ -862,7 +978,8 @@ def generate_image(
             or kresp.get("job", {}).get("job_id")
             or ""
         )
-        return GenResult(
+        usage = {"krea_job_id": job_id, "krea_response": kresp}
+        result = GenResult(
             bytes=b"",
             mime="image/png",
             model=model,
@@ -871,10 +988,12 @@ def generate_image(
             prompt_used=enhanced,
             revised_prompt=None,
             warning=None,
-            usage={"krea_job_id": job_id, "krea_response": kresp},
+            usage=usage,
             brand_recipe=recipe_summary or None,
             provider_job_id=job_id,
+            reference_dropped=reference_dropped,
         )
+        return _finish_gen_result(result, provider="krea", usage=usage, size=size, n=n)
 
     elif provider == "openrouter":
         model = model or os.environ.get("CAMPAIGN_OS_IMAGE_MODEL") or DEFAULT_MODEL_GEN
@@ -936,6 +1055,13 @@ def generate_image(
             # Legacy path: single text content chunk, no system message
             messages = [{"role": "user", "content": enhanced.strip()}]
 
+        if ref_list:
+            messages = _inject_openrouter_references(
+                messages,
+                reference_bytes=ref_list,
+                reference_note=reference_note,
+            )
+
         try:
             api_resp = _call_openrouter_multimodal(
                 content_chunks=None,
@@ -949,13 +1075,9 @@ def generate_image(
             raise
         raw, mime = _extract_image_from_openrouter_response(api_resp)
         usage = api_resp.get("usage") or {}
-        cost = _cost_from_usage(usage)
-        if not cost or cost <= 0:
-            try:
-                from _lib.llm_spend import modelled_image_cost
-                cost = modelled_image_cost(size=size, n=n)
-            except Exception:
-                cost = 0.04
+        cost, _src = _resolve_image_cost(
+            provider="openrouter", usage=usage, size=size, n=n
+        )
         if cost > max_cost_usd:
             _LOG.warning(
                 "openrouter generate cost $%.4f exceeded max_cost_usd $%.4f for %s",
@@ -976,10 +1098,14 @@ def generate_image(
             ),
             usage=usage,
             brand_recipe=recipe_summary or None,
+            reference_dropped=False,
+        )
+        result = _finish_gen_result(
+            result, provider="openrouter", usage=usage, size=size, n=n
         )
         try:
             from _lib import llm_spend as _ls
-            _ls.record(result.cost_estimate_usd, route="image_gen_router.generate", model=model)
+            _ls.record(result.cost_usd, route="image_gen_router.generate", model=model)
         except Exception:
             pass
         return result
@@ -1044,7 +1170,10 @@ def generate_image_with_persistence(
         "model": result.model,
         "provider": result.provider,
         "cost_estimate_usd": result.cost_estimate_usd,
+        "cost_usd": result.cost_usd,
+        "source": result.cost_source,
         "usage": result.usage,
+        "reference_dropped": result.reference_dropped,
         "warning": result.warning,
         "size": kwargs.get("size", "1024x1024"),
         "provider_job_id": result.provider_job_id,

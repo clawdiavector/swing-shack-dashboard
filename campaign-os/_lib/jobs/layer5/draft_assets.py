@@ -830,7 +830,22 @@ def _process_image_row(
 
     img_ok, img_reason = check_brand_image_submit(brand_id)
     if not img_ok:
+        if "cap" in img_reason.lower():
+            return None, "cap_reached"
         return None, img_reason
+
+    from _lib.creative_director import pick_model  # noqa: PLC0415
+
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    record_type = str(calendar.get("type") or "").lower()
+    routing = pick_model(
+        {
+            "needs_reference": bool(ctx.reference_bytes),
+            "photoreal": record_type == "moment",
+            "typography": False,
+            "edit": False,
+        }
+    )
 
     output_base = str(_data_dir() / "draft-assets" / "images")
     gen_kwargs: dict[str, Any] = {
@@ -838,9 +853,13 @@ def _process_image_row(
         "prompt": ctx.job,
         "size": size,
         "output_base": output_base,
+        "provider": routing.get("provider"),
+        "model": routing.get("model"),
     }
     if ctx.refs:
         gen_kwargs["reference_dnas"] = ctx.refs
+    if ctx.reference_bytes:
+        gen_kwargs["reference_bytes"] = ctx.reference_bytes
     if ctx.products:
         gen_kwargs["product_service_items"] = ctx.products
 
@@ -877,6 +896,7 @@ def _process_image_row(
 
     cd = ctx.lineage.get("creative_director") if isinstance(ctx.lineage.get("creative_director"), dict) else {}
     model_routing = dict(cd.get("model_routing") or {})
+    model_routing["pick_model"] = routing
     if cd.get("requirements"):
         model_routing["requirements"] = cd["requirements"]
 
@@ -921,10 +941,12 @@ def _process_image_row(
     if not has_bytes:
         return None, None
 
+    billed = float(getattr(result, "cost_usd", 0) or getattr(result, "cost_estimate_usd", 0) or est)
+    cost_source = str(getattr(result, "cost_source", "") or "estimate")
     provider_name = str(getattr(result, "provider", "") or "")
     if provider_name not in _ROUTER_SELF_RECORDING_PROVIDERS:
         llm_spend.record(
-            est,
+            billed,
             route="job:draft_assets/image",
             model=getattr(result, "model", None),
             kind="image",
@@ -947,7 +969,9 @@ def _process_image_row(
             "image_url": image_url,
             "provider_job_id": provider_job_id,
             "image_size": size,
-            "cost_estimate_usd": est,
+            "cost_estimate_usd": billed,
+            "cost_usd": billed,
+            "source": cost_source,
             "queue_row_id": row.get("id"),
             "title": _draft_name(
                 brand_id=brand_id,
