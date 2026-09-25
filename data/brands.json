@@ -31,6 +31,13 @@
       "logo_url": null,
       "website": "https://swingshack.co.za",
       "instagram_handle": "@swingshack",
+      "image_rules": {
+        "people_allowed": true
+      },
+      "socials": [
+        {"platform": "instagram", "label": "Instagram", "url": "https://www.instagram.com/swingshack/"},
+        {"platform": "youtube", "label": "YouTube", "url": "https://www.youtube.com/@SwingShackSA"}
+      ],
       "facebook_page": null,
       "gbp_location_id": null,
       "voice_bible_ref": "data/voice_bible.json#voices/swing-shack",
@@ -86,6 +93,16 @@
       "logo_url": null,
       "website": "https://stickgolf.co.za",
       "instagram_handle": "@stick.paarl",
+      "image_rules": {
+        "people_allowed": true
+      },
+      "socials": [
+        {"platform": "instagram", "label": "Instagram", "url": "https://www.instagram.com/stick.paarl/"},
+        {"platform": "facebook", "label": "Facebook", "url": "https://www.facebook.com/profile.php?id=61585032821622"},
+        {"platform": "youtube", "label": "YouTube", "url": "https://www.youtube.com/@stickSouthAfrica"},
+        {"platform": "tiktok", "label": "TikTok", "url": "https://www.tiktok.com/@stick.paarl"},
+        {"platform": "google", "label": "Google", "url": "https://share.google/FatzTjieRqyHejL1z"}
+      ],
       "facebook_page": null,
       "gbp_location_id": null,
       "voice_bible_ref": "data/voice_bible.json#voices/stick",

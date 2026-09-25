@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { BrandSwitch, useBrand, useBrandScope } from '../components/BrandSwitch'
+import { DailyBrandSocials } from '../components/DailyBrandSocials'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { HeroPanel, PageIntro } from '../components/chrome'
 import { InsightPostThumb, insightPostThumbSrc } from '../components/InsightPostThumb'
@@ -138,7 +139,7 @@ function mergeLayersPayloads(parts: LayersPayload[]): LayersPayload {
 }
 
 export function Daily() {
-  const { brandId: focusBrandId } = useBrand()
+  const { brandId: focusBrandId, brands: brandRows } = useBrand()
   const { isAll, brandIds, scope } = useBrandScope()
   const [data, setData] = useState<TodayPanel | null>(null)
   const [layers, setLayers] = useState<LayersPayload | null>(null)
@@ -263,6 +264,17 @@ export function Daily() {
   const l6 = layerOf(layers, 'L6')
   const l7 = layerOf(layers, 'L7')
   const briefActions = (data?.brief_actions?.actions || []).slice(0, 4)
+  const socialRows = useMemo(() => {
+    const byId = new Map(brandRows.map((row) => [row.id, row]))
+    return brandIds.map((id) => {
+      const row = byId.get(id)
+      return {
+        brandId: id,
+        brandLabel: row?.label || id,
+        socials: row?.socials || [],
+      }
+    })
+  }, [brandRows, brandIds])
   const pulse = useMemo(() => {
     const rows: { label: string; value: string }[] = []
     if (best?.plain_english) {
@@ -391,6 +403,8 @@ export function Daily() {
       >
         {data?.summary || 'Loading your decisions for today…'}
       </PageIntro>
+
+      <DailyBrandSocials rows={socialRows} />
 
       <PartialBrandLoadStrip failures={failures} onRetry={load} />
 

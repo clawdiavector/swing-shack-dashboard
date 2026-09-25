@@ -850,6 +850,12 @@ export function fetchAdCorrelation() {
   return getJson<AdCorrelation>('/api/insights/ad-correlation')
 }
 
+export type BrandSocialLink = {
+  platform: string
+  label: string
+  url: string
+}
+
 export type BrandRecord = {
   id?: string
   display_name?: string
@@ -859,6 +865,8 @@ export type BrandRecord = {
   icon?: string
   active?: boolean
   order?: number
+  socials?: BrandSocialLink[]
+  image_rules?: { people_allowed?: boolean }
 }
 
 export function fetchBrands() {

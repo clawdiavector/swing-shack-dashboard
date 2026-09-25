@@ -124,24 +124,144 @@ def load_ig_history(brand_id: str = "swing-shack") -> list:
 
 def load_fb_history(brand_id: str = "swing-shack") -> list:
     """Load FB page analytics + return as social-history records."""
+    from _lib.brand_data_paths import read_brand_data_json
+
+    for fname in ("fb-page-analytics.json", "facebook-analytics.json", "facebook-business-analytics.json"):
+        d = read_brand_data_json(fname, brand_id)
+        if not isinstance(d, dict):
+            continue
+        posts = d.get("media") or d.get("posts") or []
+        if posts:
+            return _normalise_fb_posts(posts, brand_id)
     candidates = [
         _data_root(brand_id) / "fb-page-analytics.json",
         _data_root(brand_id).parent / "fb-page-analytics.json",
         Path("/data/campaign-os/fb-page-analytics.json"),
-        Path(
-            "/Users/fivefriday/.openclaw-instance2/workspace/"
-            "swing-shack-dashboard/data/fb-page-analytics.json"
-        ),
     ]
     for c in candidates:
         if c.exists():
             try:
                 d = json.loads(c.read_text())
-                return _normalise_fb_posts(d.get("media") or [], brand_id)
+                posts = d.get("media") or d.get("posts") or []
+                if posts:
+                    return _normalise_fb_posts(posts, brand_id)
             except Exception as e:
                 _LOG.warning(f"failed to read {c}: {e}")
                 continue
     return []
+
+
+def load_tiktok_history(brand_id: str = "swing-shack") -> list:
+    """Load TikTok analytics JSON when present (no live fetch in this module)."""
+    from _lib.brand_data_paths import read_brand_data_json
+
+    d = read_brand_data_json("tiktok-analytics.json", brand_id)
+    if not isinstance(d, dict) or d.get("data_pending") is True:
+        return []
+    posts = d.get("posts") or d.get("media") or []
+    return _normalise_tiktok_posts(posts, brand_id)
+
+
+def _brand_env_suffix(brand_id: str) -> str:
+    return brand_id.upper().replace("-", "_")
+
+
+def _meta_credentials_missing_reason(brand_id: str) -> Optional[str]:
+    from _lib.meta_live_fetch import _load_token
+
+    creds = _load_token(brand_id)
+    if creds.get("ok"):
+        return None
+    return str(creds.get("error") or "Meta credentials not configured")
+
+
+def _tiktok_credentials_missing_reason(brand_id: str) -> Optional[str]:
+    suffix = _brand_env_suffix(brand_id)
+    for name in (f"TIKTOK_ACCESS_TOKEN_{suffix}", "TIKTOK_ACCESS_TOKEN"):
+        if (os.environ.get(name) or "").strip():
+            return None
+    return "TIKTOK_ACCESS_TOKEN not set"
+
+
+def ingest_social_history(
+    brand_id: str,
+    *,
+    download_thumbnails: bool = True,
+) -> dict[str, Any]:
+    """Pull instagram / facebook / tiktok into brand social history when creds allow."""
+    summary: dict[str, Any] = {"brand_id": brand_id, "platforms": {}}
+    meta_reason = _meta_credentials_missing_reason(brand_id)
+    meta_fetched = False
+    if meta_reason is None:
+        from _lib.meta_live_fetch import fetch_all
+
+        fetch_result = fetch_all(brand=brand_id)
+        if fetch_result.get("ok") is False:
+            meta_reason = str(fetch_result.get("error") or "Meta fetch failed")
+        else:
+            meta_fetched = True
+
+    for plat in ("instagram", "facebook", "tiktok"):
+        if plat in ("instagram", "facebook"):
+            if meta_reason:
+                summary["platforms"][plat] = {
+                    "status": "skipped",
+                    "reason": meta_reason,
+                }
+                continue
+            posts = load_ig_history(brand_id) if plat == "instagram" else load_fb_history(brand_id)
+        else:
+            tt_reason = _tiktok_credentials_missing_reason(brand_id)
+            if tt_reason:
+                summary["platforms"][plat] = {
+                    "status": "skipped",
+                    "reason": tt_reason,
+                }
+                continue
+            posts = load_tiktok_history(brand_id)
+
+        if not posts:
+            summary["platforms"][plat] = {
+                "status": "ok",
+                "count": 0,
+                "meta_fetch": meta_fetched if plat in ("instagram", "facebook") else None,
+            }
+            continue
+
+        persist_social_history(brand_id, posts, platform=plat)
+        if download_thumbnails:
+            download_thumbnails_parallel(brand_id, posts)
+        summary["platforms"][plat] = {
+            "status": "ok",
+            "count": len(posts),
+            "meta_fetch": meta_fetched if plat in ("instagram", "facebook") else None,
+        }
+    return summary
+
+
+def _normalise_tiktok_posts(posts: list, brand_id: str) -> list:
+    out = []
+    for p in posts:
+        cap = p.get("caption_full") or p.get("captionPreview") or p.get("caption") or ""
+        out.append({
+            "source": "tiktok",
+            "source_id": p.get("id") or p.get("postId"),
+            "permalink": p.get("permalink") or p.get("share_url"),
+            "platform": "tiktok",
+            "brand_id": brand_id,
+            "publish_date": p.get("timestamp") or p.get("create_time"),
+            "media_type": p.get("format_type") or "video",
+            "orientation": "portrait",
+            "media_url": p.get("media_url") or p.get("video_url"),
+            "thumbnail_url": p.get("thumbnail_url") or p.get("cover_image_url"),
+            "caption_preview": cap[:200] if cap else "",
+            "caption_full": cap,
+            "hashtags": p.get("hashtags") or [],
+            "linked_url": p.get("linked_url"),
+            "performance": p.get("metrics") or {},
+            "engagement_rate_pct": p.get("engagement_rate_pct") or p.get("engagementRate"),
+        })
+    return out
 
 
 def _normalise_ig_posts(posts: list, brand_id: str) -> list:

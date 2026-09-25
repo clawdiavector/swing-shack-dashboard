@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react'
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { fetchBrands, selectBrand } from '../lib/api'
+import { fetchBrands, selectBrand, type BrandSocialLink } from '../lib/api'
 import { filterOperatingBrandIds } from '../lib/brands'
 import {
   readStoredScope,
@@ -12,7 +12,13 @@ import {
 import { prettyBrand, toneFor, TONE_CLS, type BrandTone } from '../lib/brandTone'
 import { Tip } from './ui'
 
-type BrandRow = { id: string; label: string; icon?: string; tone: BrandTone }
+type BrandRow = {
+  id: string
+  label: string
+  icon?: string
+  tone: BrandTone
+  socials?: BrandSocialLink[]
+}
 
 type BrandCtx = {
   brandId?: string
@@ -69,6 +75,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
             id,
             label: prettyBrand(id, rec),
             icon: rec.icon,
+            socials: rec.socials,
             tone: toneFor(id, prettyBrand(id, rec), index),
             order: typeof rec.order === 'number' ? rec.order : 99,
           }))
