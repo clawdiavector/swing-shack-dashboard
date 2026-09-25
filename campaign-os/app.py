@@ -17852,8 +17852,25 @@ def inbox_unified_approve(item_id: str):
         body = request.get_json(silent=True) or {}
         editor = (body.get("editor") or "operator").strip()
         reason = (body.get("reason") or "").strip()
-        result = _unified_inbox_mod.approve_item(item_id, editor=editor, reason=reason)
-        code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
+        mode = (body.get("mode") or "lodge").strip()
+        event_date = body.get("event_date")
+        primary_channel = body.get("primary_channel")
+        result = _unified_inbox_mod.approve_item(
+            item_id,
+            editor=editor,
+            reason=reason,
+            mode=mode,
+            event_date=str(event_date) if event_date else None,
+            primary_channel=str(primary_channel) if primary_channel else None,
+        )
+        if result.get("ok"):
+            code = 200
+        elif result.get("code") == "no_date":
+            code = 400
+        elif "not found" in str(result.get("error", "")).lower():
+            code = 404
+        else:
+            code = 400
         return jsonify(result), code
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
@@ -17883,7 +17900,7 @@ def inbox_unified_reject(item_id: str):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route('/api/inbox/unified/<path:item_id>/edit', methods=['POST'])
+@app.route('/api/inbox/unified/<path:item_id>/edit', methods=['POST', 'PATCH'])
 def inbox_unified_edit(item_id: str):
     """POST /api/inbox/unified/<id>/edit — edit + human_edit_signal for L7."""
     if not _is_job_authed():

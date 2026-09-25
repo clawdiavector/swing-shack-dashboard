@@ -320,7 +320,31 @@ def _current_field_values(
                 previous["title"] = asset.get("name")
             elif name in asset:
                 previous[name] = asset.get(name)
+    if item_type == "calendar_candidate" and names:
+        try:
+            brand_id, cal_id = key.split(":", 1)
+        except ValueError:
+            return previous
+        from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+        for record in canonical_records(brand_id):
+            rid = str(record.get("calendar_id") or record.get("event_key") or "")
+            if rid != cal_id:
+                continue
+            for name in names:
+                if name == "event_date":
+                    previous["event_date"] = _moment_go_live_date(record)
+                elif name in record:
+                    previous[name] = record.get(name)
+            break
     return previous
+
+
+def _actions_for_candidate(flags: list[str]) -> list[str]:
+    actions = ["book", "edit", "reject"]
+    if "no_date" not in flags:
+        actions.insert(0, "lodge")
+    return actions
 
 
 def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
@@ -334,11 +358,14 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
         for record in canonical_records(brand_id):
             if record.get("status") != "candidate":
                 continue
-            ts = record.get("last_verified") or record.get("created_at")
+            ts = record.get("created_at") or record.get("last_verified")
             item_status = "pending"
             if status != "all" and item_status != status:
                 continue
             cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+            cand_state = "candidate"
+            flags = _compute_flags(record, state=cand_state, now=now)
+            go_live = _moment_go_live_date(record)
             out.append({
                 "id": _item_id("calendar_candidate", f"{brand_id}:{cal_id}"),
                 "type": "calendar_candidate",
@@ -351,12 +378,18 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                 "created_at": ts,
                 "updated_at": ts,
                 "status": item_status,
-                "sla_state": _sla_state(ts, now=now),
-                "actions": ["approve", "edit", "reject"],
+                "sla_state": "ok",
+                "actions": _actions_for_candidate(flags),
                 "meta": {
                     "calendar_id": cal_id,
                     "pillar": record.get("pillar"),
                     "event_start": record.get("event_start") or record.get("event_window_start"),
+                    "event_date": go_live,
+                    "primary_channel": record.get("primary_channel"),
+                    "state": cand_state,
+                    "flags": flags,
+                    "source_type": record.get("source_type"),
+                    "created_by": record.get("created_by"),
                 },
             })
     return out
@@ -608,7 +641,15 @@ def list_items(
 
     items.sort(key=_created_desc_key, reverse=True)
 
-    stale = sum(1 for i in items if i.get("sla_state") == "stale" and i.get("status") == "pending")
+    def _pending_stale(item: dict[str, Any]) -> bool:
+        if item.get("status") != "pending":
+            return False
+        if item.get("type") == "calendar_candidate":
+            flags = (item.get("meta") or {}).get("flags") or []
+            return "stale" in flags
+        return item.get("sla_state") == "stale"
+
+    stale = sum(1 for i in items if _pending_stale(i))
     approved_on_shelf = 0
     if status in ("approved", "all"):
         approved_on_shelf = sum(1 for i in items if i.get("status") == "approved")
@@ -778,7 +819,7 @@ def _stale_candidate_days() -> int:
 def _is_holiday_record(record: dict[str, Any]) -> bool:
     if str(record.get("created_by") or "") == "holiday_inject":
         return True
-    return str(record.get("source_type") or "") == "deterministic"
+    return str(record.get("source_type") or "") in ("deterministic", "holiday")
 
 
 def _inbox_ref_for_cal(*, brand_id: str, cal_id: str) -> str:
@@ -1042,7 +1083,11 @@ def post_state(
         "stages": stages,
         "stage": stage,
         "go_live_date": go_live,
-        "inbox_item_id": draft.get("inbox_item_id") if draft else None,
+        "inbox_item_id": (
+            draft.get("inbox_item_id")
+            if draft
+            else _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
+        ),
         "asset_id": draft.get("asset_id") if draft else None,
         "image_url": image_url,
         "retry_count": retry_count,
@@ -1254,17 +1299,21 @@ def inbox_counts(*, review_sla: dict[str, Any] | None = None) -> dict[str, Any]:
     }
 
 
-def _l5_enqueue_enabled() -> bool:
-    raw = (os.environ.get("CAMPAIGN_OS_L5_ENQUEUE") or "").strip().lower()
-    return raw in ("1", "true", "yes", "on")
+def _l5_enqueue_suppressed() -> bool:
+    """Explicit falsey CAMPAIGN_OS_L5_ENQUEUE suppresses enqueue; unset allows it."""
+    raw = os.environ.get("CAMPAIGN_OS_L5_ENQUEUE")
+    if raw is None or not str(raw).strip():
+        return False
+    return str(raw).strip().lower() not in ("1", "true", "yes", "on")
 
 
-def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> None:
-    """Enqueue draft_caption + draft_image (+ draft_gbp when intended) after L4 approve."""
-    if not _l5_enqueue_enabled():
-        return
+def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> list[str]:
+    """Enqueue draft_caption + draft_image (+ draft_gbp when intended) after lodge."""
+    enqueued: list[str] = []
+    if _l5_enqueue_suppressed():
+        return enqueued
     if item_type not in ("proposal", "calendar_candidate"):
-        return
+        return enqueued
     try:
         from _lib import ops_agents  # noqa: PLC0415
         from _lib.publish_sandbox import intended_publish_channels  # noqa: PLC0415
@@ -1293,8 +1342,47 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
                 }
             )
             ops_agents.append_enqueue_row(_data_dir(), row)
+            enqueued.append(action)
     except Exception:
         pass
+    return enqueued
+
+
+def _calendar_record_for_key(brand_id: str, cal_id: str) -> dict[str, Any] | None:
+    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+    for record in canonical_records(brand_id):
+        rid = str(record.get("calendar_id") or record.get("event_key") or "")
+        if rid == cal_id:
+            return record
+    return None
+
+
+def _promote_proposal_to_moment(
+    row: dict[str, Any],
+    *,
+    brand_id: str,
+    event_date: str,
+    primary_channel: str | None = None,
+) -> str:
+    from _lib.marketing_calendar import add_candidate  # noqa: PLC0415
+
+    day = str(event_date)[:10]
+    payload: dict[str, Any] = {
+        "type": "moment",
+        "title": str(row.get("title") or row.get("headline") or "Proposal"),
+        "angle": row.get("summary") or row.get("rationale") or "",
+        "source_type": "interpreter",
+        "created_by": "proposal_promote",
+        "event_date": day,
+        "event_start": day,
+        "event_end": day,
+        "verification_status": "unverified",
+    }
+    if primary_channel:
+        payload["primary_channel"] = primary_channel
+    created = add_candidate(brand_id, payload, initial_status="candidate")
+    return str(created.get("calendar_id") or "")
 
 
 def find_item(item_id: str) -> Optional[dict[str, Any]]:
@@ -1306,17 +1394,43 @@ def find_item(item_id: str) -> Optional[dict[str, Any]]:
     return None
 
 
-def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") -> dict[str, Any]:
+def approve_item(
+    item_id: str,
+    *,
+    editor: str = "operator",
+    reason: str = "",
+    mode: str = "lodge",
+    event_date: str | None = None,
+    primary_channel: str | None = None,
+) -> dict[str, Any]:
     item = find_item(item_id)
     if not item:
         return {"ok": False, "error": "inbox item not found"}
     item_type, key = _parse_item_id(item_id)
+    mode_norm = (mode or "lodge").strip().lower()
+    if mode_norm not in ("lodge", "book"):
+        mode_norm = "lodge"
 
     if item_type == "calendar_candidate":
         brand_id, cal_id = key.split(":", 1)
-        from _lib.marketing_calendar import transition_status  # noqa: PLC0415
+        from _lib.marketing_calendar import set_fields, transition_status  # noqa: PLC0415
 
-        updated = transition_status(brand_id, cal_id, "approved", reason=reason or "L4 approve")
+        record = _calendar_record_for_key(brand_id, cal_id)
+        if not record:
+            return {"ok": False, "error": "calendar record not found"}
+        if mode_norm == "lodge" and not _moment_go_live_date(record):
+            return {"ok": False, "error": "no_date", "code": "no_date"}
+        if not str(record.get("primary_channel") or "").strip():
+            ch = (primary_channel or "instagram").strip().lower()
+            set_fields(brand_id, cal_id, {"primary_channel": ch}, reason="default channel on lodge")
+            item_id = _item_id("calendar_candidate", f"{brand_id}:{cal_id}")
+
+        updated = transition_status(
+            brand_id,
+            cal_id,
+            "approved",
+            reason=reason or ("Lodge" if mode_norm == "lodge" else "Book only"),
+        )
         if not updated:
             return {"ok": False, "error": "calendar record not found"}
         record_human_edit(
@@ -1324,7 +1438,7 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             item_type=item_type,
             brand_id=brand_id,
             editor=editor,
-            fields={"new_status": "approved", "calendar_id": cal_id},
+            fields={"new_status": "approved", "calendar_id": cal_id, "mode": mode_norm},
             note=reason,
         )
         _append_jsonl(_human_edits_path(), {
@@ -1336,26 +1450,77 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             "item_type": item_type,
             "brand_id": brand_id,
         })
-        _maybe_enqueue_l5_create(item_id, brand_id, item_type)
-        return {"ok": True, "item_id": item_id, "record": updated}
+        enqueued: list[str] = []
+        result: dict[str, Any] = {
+            "ok": True,
+            "item_id": item_id,
+            "record": updated,
+            "mode": mode_norm,
+            "enqueued": enqueued,
+        }
+        if mode_norm == "lodge":
+            enqueued.extend(_maybe_enqueue_l5_create(item_id, brand_id, item_type))
+            result["enqueued"] = enqueued
+            if _l5_enqueue_suppressed():
+                result["enqueue_suppressed"] = "CAMPAIGN_OS_L5_ENQUEUE=0"
+        return result
 
     if item_type == "proposal":
         brand_id, pid = key.split(":", 1)
         rows = _read_jsonl(_proposals_path())
-        found = False
+        prop_row: dict[str, Any] | None = None
+        for row in rows:
+            if str(row.get("id") or row.get("proposal_id")) == pid:
+                prop_row = row
+                break
+        if prop_row is None:
+            return {"ok": False, "error": "proposal not found"}
+        lodge_date = event_date
+        if mode_norm == "lodge" and not lodge_date:
+            return {"ok": False, "error": "no_date", "code": "no_date"}
+        cal_id = ""
+        if lodge_date:
+            cal_id = _promote_proposal_to_moment(
+                prop_row,
+                brand_id=brand_id,
+                event_date=lodge_date,
+                primary_channel=primary_channel,
+            )
+        elif mode_norm == "book":
+            from _lib.marketing_calendar import add_candidate  # noqa: PLC0415
+
+            created = add_candidate(
+                brand_id,
+                {
+                    "type": "moment",
+                    "title": str(prop_row.get("title") or prop_row.get("headline") or "Proposal"),
+                    "angle": prop_row.get("summary") or prop_row.get("rationale") or "",
+                    "source_type": "interpreter",
+                    "created_by": "proposal_promote",
+                    "verification_status": "unverified",
+                },
+                initial_status="candidate",
+            )
+            cal_id = str(created.get("calendar_id") or "")
+        if cal_id:
+            item_id = _item_id("calendar_candidate", f"{brand_id}:{cal_id}")
         for row in rows:
             if str(row.get("id") or row.get("proposal_id")) == pid:
                 row["status"] = "approved"
                 row["approved_at"] = _utc_now_iso()
                 row["approved_by"] = editor
-                found = True
-        if not found:
-            return {"ok": False, "error": "proposal not found"}
+                if cal_id:
+                    row["promoted_calendar_id"] = cal_id
+                    row["promoted_at"] = _utc_now_iso()
         _proposals_path().parent.mkdir(parents=True, exist_ok=True)
         _proposals_path().write_text(
             "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
             encoding="utf-8",
         )
+        if cal_id:
+            from _lib.marketing_calendar import transition_status  # noqa: PLC0415
+
+            transition_status(brand_id, cal_id, "approved", reason=reason or "proposal lodge")
         _append_jsonl(_human_edits_path(), {
             "schema": HUMAN_EDIT_SCHEMA,
             "ts": _utc_now_iso(),
@@ -1365,8 +1530,14 @@ def approve_item(item_id: str, *, editor: str = "operator", reason: str = "") ->
             "item_type": item_type,
             "brand_id": brand_id,
         })
-        _maybe_enqueue_l5_create(item_id, brand_id, item_type)
-        return {"ok": True, "item_id": item_id}
+        enqueued = []
+        result = {"ok": True, "item_id": item_id, "mode": mode_norm, "enqueued": enqueued}
+        if cal_id and mode_norm == "lodge":
+            enqueued.extend(_maybe_enqueue_l5_create(item_id, brand_id, "calendar_candidate"))
+            result["enqueued"] = enqueued
+            if _l5_enqueue_suppressed():
+                result["enqueue_suppressed"] = "CAMPAIGN_OS_L5_ENQUEUE=0"
+        return result
 
     if item_type == "draft_asset":
         campaign_id, asset_id = key.split(":", 1)
@@ -1558,6 +1729,40 @@ def edit_item(
         previous=previous or None,
     )
 
+    changed: list[str] = []
+
+    if item_type == "calendar_candidate":
+        brand_id, cal_id = key.split(":", 1)
+        from _lib.marketing_calendar import set_fields  # noqa: PLC0415
+        from zoneinfo import ZoneInfo
+
+        editable = {
+            k: fields[k]
+            for k in ("event_date", "primary_channel", "title", "angle")
+            if k in fields
+        }
+        if "event_date" in editable:
+            day = str(editable["event_date"])[:10]
+            try:
+                picked = date.fromisoformat(day)
+            except ValueError as exc:
+                raise ValueError("event_date must be YYYY-MM-DD") from exc
+            today_sast = datetime.now(ZoneInfo("Africa/Johannesburg")).date()
+            if picked < today_sast:
+                raise ValueError("event_date cannot be in the past")
+            editable["event_date"] = day
+        if editable:
+            before = _calendar_record_for_key(brand_id, cal_id) or {}
+            updated = set_fields(brand_id, cal_id, editable, reason="inbox edit")
+            if not updated:
+                return {"ok": False, "error": "calendar record not found"}
+            after = _calendar_record_for_key(brand_id, cal_id) or {}
+            for fname in editable:
+                if before.get(fname) != after.get(fname) or (
+                    fname == "event_date" and _moment_go_live_date(before) != _moment_go_live_date(after)
+                ):
+                    changed.append(fname)
+
     if item_type == "draft_asset" and ("caption" in fields or "title" in fields):
         campaign_id, asset_id = key.split(":", 1)
         data = _load_campaign_data()
@@ -1567,10 +1772,21 @@ def edit_item(
             if asset:
                 if "caption" in fields:
                     asset["caption"] = fields["caption"]
+                    changed.append("caption")
                 if "title" in fields:
                     asset["name"] = fields["title"]
+                    changed.append("title")
                 asset["updatedAt"] = _utc_now_iso()
                 campaign["updatedAt"] = asset["updatedAt"]
                 _write_campaign_data(data)
 
-    return {"ok": True, "item_id": item_id, "human_edit": True}
+    refreshed = find_item(item_id)
+    out: dict[str, Any] = {
+        "ok": True,
+        "item_id": item_id,
+        "human_edit": True,
+        "changed": changed,
+    }
+    if refreshed:
+        out["item"] = refreshed
+    return out

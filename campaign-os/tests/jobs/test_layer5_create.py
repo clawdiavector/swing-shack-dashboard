@@ -394,6 +394,8 @@ def test_enqueue_on_calendar_approve(l5_app, tmp_path, monkeypatch):
         "event_key": "cal-enq",
         "status": "candidate",
         "title": "Enqueue calendar",
+        "event_date": "2026-10-01",
+        "primary_channel": "instagram",
     }
     (cal_dir / "stick.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
 
@@ -417,7 +419,13 @@ def test_enqueue_on_proposal_approve(l5_app, tmp_path, monkeypatch):
 
     from _lib import unified_inbox
 
-    unified_inbox.approve_item("proposal:stick:prop-e", editor="test")
+    unified_inbox.approve_item(
+        "proposal:stick:prop-e",
+        editor="test",
+        mode="lodge",
+        event_date="2026-10-02",
+        primary_channel="instagram",
+    )
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
     assert len(pending) == 2

@@ -67,6 +67,11 @@ export type InboxItem = {
     caption?: string
     image_path?: string
     image_url?: string
+    state?: string
+    flags?: string[]
+    source_type?: string
+    created_by?: string
+    calendar_id?: string
   }
 }
 
@@ -821,14 +826,41 @@ export async function selectBrand(brandId: string) {
   return res.json() as Promise<{ ok?: boolean; brand_id?: string }>
 }
 
-export async function inboxAction(id: string, action: 'approve' | 'reject', reason = '') {
+export async function inboxAction(
+  id: string,
+  action: 'approve' | 'reject',
+  reason = '',
+  mode?: 'lodge' | 'book',
+) {
+  const body: Record<string, string> = { editor: 'operator', reason }
+  if (action === 'approve' && mode) body.mode = mode
   const res = await fetch(`/api/inbox/unified/${encodeURIComponent(id)}/${action}`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ editor: 'operator', reason }),
+    body: JSON.stringify(body),
   })
-  return res.json() as Promise<{ ok?: boolean; error?: string }>
+  return res.json() as Promise<{ ok?: boolean; error?: string; code?: string }>
+}
+
+export async function inboxEdit(id: string, fields: Record<string, string>, editor = 'christelle') {
+  const res = await fetch(`/api/inbox/unified/${encodeURIComponent(id)}/edit`, {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ editor, ...fields }),
+  })
+  const data = (await res.json()) as {
+    ok?: boolean
+    error?: string
+    code?: string
+    changed?: string[]
+    item?: InboxItem
+  }
+  if (!res.ok && !data.error) {
+    data.error = `edit ${res.status}`
+  }
+  return data
 }
 
 export type AssetAiDraft = {

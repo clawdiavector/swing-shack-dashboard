@@ -3,6 +3,7 @@ import {
   emptyWeekBuckets,
   formatGoesOut,
   formatPostingDayHeader,
+  linkForPostState,
   nextActionFromStages,
   postingChannelLabel,
   POSTING_STAGE_ORDER,
@@ -111,6 +112,31 @@ describe('formatGoesOut', () => {
 describe('postingChannelLabel', () => {
   it('maps facebook to Facebook', () => {
     expect(postingChannelLabel('facebook')).toBe('Facebook')
+  })
+})
+
+describe('linkForPostState', () => {
+  const stages = { booked: true, caption: false, image: false, in_review: false, approved: false, queued: false, released: false, posted: false }
+
+  it('sends candidates to inbox', () => {
+    expect(
+      linkForPostState({ state: 'candidate', calendar_id: 'c1', title: 'T', stages }),
+    ).toBe('/inbox')
+  })
+
+  it('sends draft_ready to review piece or review root', () => {
+    expect(
+      linkForPostState({
+        state: 'draft_ready',
+        calendar_id: 'c1',
+        title: 'T',
+        stages,
+        inbox_item_id: 'draft_asset:a:b',
+      }),
+    ).toBe('/review/draft_asset%3Aa%3Ab')
+    expect(linkForPostState({ state: 'draft_ready', calendar_id: 'c1', title: 'T', stages })).toBe(
+      '/review',
+    )
   })
 })
 

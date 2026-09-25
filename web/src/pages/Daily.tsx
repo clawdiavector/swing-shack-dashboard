@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Inbox,
   MapPin,
-  PenLine,
   Rocket,
   Send,
   Share2,
@@ -335,21 +334,21 @@ export function Daily() {
 
       <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
-          to="/review"
+          to="/inbox"
           icon={Inbox}
-          label="Waiting on you"
+          label="Candidates"
           value={data ? waiting : '—'}
-          hint="Approve, edit, or send back"
+          hint="Lodge or book moments"
           tone="gold"
           stamp={asOf}
           stampKind="as_of"
         />
         <StatCard
-          to="/create"
-          icon={PenLine}
-          label="Drafts"
+          to="/review"
+          icon={Inbox}
+          label="Drafts waiting"
           value={data ? drafts : '—'}
-          hint="In studio, not reviewed yet"
+          hint="Approve draft-ready posts"
           tone="mute"
           stamp={asOf}
           stampKind="as_of"
@@ -472,11 +471,11 @@ export function Daily() {
             <h2 className="font-display text-xl font-semibold">Today ticker</h2>
             <Tip text="See every piece waiting on you.">
             <Link
-              to="/review"
-              title="See every piece waiting on you."
+              to="/inbox"
+              title="See every candidate waiting on you."
               className="inline-flex items-center gap-0.5 text-sm font-semibold text-ac"
             >
-              All waiting
+              All candidates
               <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
             </Link>
             </Tip>
@@ -487,10 +486,17 @@ export function Daily() {
               const media = inboxMediaTag(item)
               const channel = inboxChannelLabel(item)
               const goesOut = inboxGoesOutIso(item)
+              const t = (item.type || '').toLowerCase()
+              const dest =
+                t === 'draft_asset'
+                  ? `/review/${encodeURIComponent(item.id)}`
+                  : t === 'calendar_candidate' || t === 'proposal'
+                    ? '/inbox'
+                    : `/review/${encodeURIComponent(item.id)}`
               return (
               <QueueItem
                 key={item.id}
-                to={`/review/${encodeURIComponent(item.id)}`}
+                to={dest}
                 badge={item.sla_state === 'stale' ? 'stale' : media.label}
                 tone={item.sla_state === 'stale' ? 'gold' : media.tone}
                 channelBadge={channel || undefined}

@@ -53,10 +53,7 @@ function ReviewInbox({ brandId }: { brandId: string }) {
     load()
   }
 
-  const types = useMemo(() => {
-    const set = new Set(items.map(itemType))
-    return ['all', 'has-image', 'no-image', 'no-brief', ...Array.from(set).sort()]
-  }, [items])
+  const types = useMemo(() => ['all', 'has-image', 'no-image', 'no-brief'], [])
 
   const shown =
     filter === 'all'
@@ -211,15 +208,22 @@ export function Review() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (searchParams.get('view') === 'week') {
+    const view = searchParams.get('view')
+    if (view === 'week') {
       navigate('/week', { replace: true })
+    } else if (view === 'inbox') {
+      navigate('/inbox', { replace: true })
     }
   }, [searchParams, navigate])
 
   return (
     <div className="space-y-6">
-      <PageIntro here="/review" title="Review">
-        Pending drafts on your desk. The full posting week lives on{' '}
+      <PageIntro here="/review" title="Review — drafts">
+        Draft-ready posts on your desk. Candidates live on{' '}
+        <Link to="/inbox" className="font-semibold text-ac hover:underline">
+          Inbox
+        </Link>
+        ; the posting week is on{' '}
         <Link to="/week" className="font-semibold text-ac hover:underline">
           This week
         </Link>

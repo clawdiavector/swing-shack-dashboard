@@ -1,6 +1,7 @@
 import { ImageIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { inboxAction } from '../../lib/api'
 import {
   formatGoesOut,
   linkForPostState,
@@ -45,15 +46,29 @@ export function PostCard({
   post,
   dayDate,
   weekday,
+  onRefresh,
 }: {
   post: PostingWeekPost
   dayDate: string
   weekday: string
+  onRefresh?: () => void
 }) {
+  const [lodging, setLodging] = useState(false)
   const isCandidate = post.state === 'candidate'
   const isHoliday = post.flags?.includes('holiday')
+  const noDate = post.flags?.includes('no_date')
   const to = linkForPostState(post)
   const clickable = Boolean(to) && !isHoliday
+
+  async function handleLodge(event: MouseEvent) {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!post.inbox_item_id || noDate) return
+    setLodging(true)
+    await inboxAction(post.inbox_item_id, 'approve', '', 'lodge')
+    setLodging(false)
+    onRefresh?.()
+  }
   const channel = postingChannelLabel(post.primary_channel)
   const nextAction = post.next_action || nextActionFromStages(post.stages)
   const factLine = `${formatGoesOut(dayDate, weekday)} · ${nextAction}`
@@ -95,6 +110,19 @@ export function PostCard({
         </div>
         <p className="text-xs text-tx3">{factLine}</p>
         {!isHoliday ? <StageStepper stages={post.stages} /> : null}
+        {isCandidate && !isHoliday ? (
+          <div className="pt-2">
+            <button
+              type="button"
+              disabled={lodging || noDate}
+              title={noDate ? 'Set a date on Inbox before lodging' : 'Lodge this candidate'}
+              onClick={(e) => void handleLodge(e)}
+              className="rounded-full bg-ac px-3 py-1 text-xs font-semibold text-bg disabled:opacity-40"
+            >
+              Lodge
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   )

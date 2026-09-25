@@ -582,6 +582,64 @@ def transition_status(
     return updated
 
 
+_EDITABLE_MOMENT_FIELDS = frozenset(
+    {"event_date", "event_start", "event_end", "primary_channel", "title", "angle"}
+)
+
+
+def set_fields(
+    brand_id: str,
+    calendar_id: str,
+    fields: Dict[str, Any],
+    *,
+    reason: str = "",
+) -> Optional[Dict[str, Any]]:
+    """Append a revision with editable fields applied; status and event_key unchanged."""
+    if brand_id not in VALID_BRAND_IDS:
+        raise ValueError(f"brand_id '{brand_id}' is not an operating brand")
+    allowed = {k: v for k, v in fields.items() if k in _EDITABLE_MOMENT_FIELDS}
+    if not allowed:
+        return None
+    all_records = list_records(brand_id)
+    target = next(
+        (
+            r for r in all_records
+            if r.get("calendar_id") == calendar_id or r.get("event_key") == calendar_id
+        ),
+        None,
+    )
+    if not target:
+        return None
+    updated = dict(target)
+    if "event_date" in allowed:
+        day = str(allowed["event_date"])[:10]
+        allowed["event_date"] = day
+        allowed.setdefault("event_start", day)
+        allowed.setdefault("event_end", day)
+    if "primary_channel" in allowed:
+        from _lib.publish_sandbox import intended_publish_channels  # noqa: PLC0415
+
+        ch = str(allowed["primary_channel"] or "").strip().lower()
+        valid = {c.lower() for c in intended_publish_channels(brand_id)}
+        if ch and valid and ch not in valid:
+            raise ValueError(f"primary_channel '{ch}' not valid for brand")
+        allowed["primary_channel"] = ch or allowed["primary_channel"]
+    for key, val in allowed.items():
+        updated[key] = val
+    if reason:
+        updated["edit_reason"] = reason
+    updated["revision"] = int(target.get("revision") or 1) + 1
+    updated["last_verified"] = _now_iso()
+    target_path = (
+        _watchlist_path(brand_id)
+        if str(updated.get("status") or "") == "watchlist"
+        else _calendar_path(brand_id)
+    )
+    with target_path.open("a") as f:
+        f.write(json.dumps(updated, ensure_ascii=False) + "\n")
+    return updated
+
+
 # ─── Calendar View Assembly ─────────────────────────────────────────────────
 
 def get_calendar_view(

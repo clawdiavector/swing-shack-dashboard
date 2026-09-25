@@ -24,6 +24,7 @@ import { PostizPage } from './pages/publish/PostizPage'
 import { Queue } from './pages/publish/Queue'
 import { SandboxPreview } from './pages/publish/SandboxPreview'
 import { Socials } from './pages/publish/Socials'
+import { InboxPage } from './pages/InboxPage'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
 import { Worked } from './pages/results/Worked'
@@ -34,6 +35,7 @@ export default function App() {
       <Route element={<Shell />}>
         <Route index element={<Navigate to="/daily" replace />} />
         <Route path="daily" element={<Daily />} />
+        <Route path="inbox" element={<InboxPage />} />
         <Route path="week" element={<WeekBoard />} />
         <Route path="review" element={<Review />} />
         <Route path="review/:itemId" element={<ReviewPiece />} />

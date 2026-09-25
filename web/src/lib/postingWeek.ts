@@ -243,11 +243,11 @@ export function linkForPostState(post: PostingWeekPost): string | null {
   switch (post.state) {
     case 'draft_ready':
       if (post.inbox_item_id) return `/review/${encodeURIComponent(post.inbox_item_id)}`
-      return '/review?view=inbox'
+      return '/review'
     case 'scheduled':
       return '/shelf'
     case 'candidate':
-      return '/review?view=inbox'
+      return '/inbox'
     default:
       if (post.inbox_item_id) return `/review/${encodeURIComponent(post.inbox_item_id)}`
       return null

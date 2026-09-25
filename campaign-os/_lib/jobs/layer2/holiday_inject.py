@@ -138,7 +138,7 @@ def _build_record(
         "status": "candidate",
         "pillars": [pillar_id],
         "source_urls": [],
-        "source_type": "deterministic",
+        "source_type": "holiday",
         "created_by": "holiday_inject",
         "brand_id": brand_id,
     }
