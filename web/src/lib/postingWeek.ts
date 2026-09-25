@@ -5,6 +5,20 @@ export type PostingStageKey =
   | 'in_review'
   | 'approved'
   | 'queued'
+  | 'released'
+  | 'posted'
+
+export type PostState =
+  | 'candidate'
+  | 'booked'
+  | 'drafting'
+  | 'needs_fix'
+  | 'draft_ready'
+  | 'scheduled'
+  | 'released'
+  | 'posted'
+
+export type PostFlag = 'no_date' | 'no_channel' | 'stale' | 'holiday' | 'operator'
 
 export const POSTING_STAGE_ORDER: PostingStageKey[] = [
   'booked',
@@ -13,6 +27,8 @@ export const POSTING_STAGE_ORDER: PostingStageKey[] = [
   'in_review',
   'approved',
   'queued',
+  'released',
+  'posted',
 ]
 
 export const POSTING_STAGE_LABELS: Record<PostingStageKey, string> = {
@@ -22,24 +38,53 @@ export const POSTING_STAGE_LABELS: Record<PostingStageKey, string> = {
   in_review: 'In review',
   approved: 'Approved',
   queued: 'Queued',
+  released: 'Released',
+  posted: 'Posted',
+}
+
+export const POST_STATE_LABELS: Record<PostState, string> = {
+  candidate: 'Candidate',
+  booked: 'Booked',
+  drafting: 'Drafting',
+  needs_fix: 'Needs fix',
+  draft_ready: 'Draft ready',
+  scheduled: 'Scheduled',
+  released: 'Released',
+  posted: 'Posted',
+}
+
+export const POST_FLAG_LABELS: Record<PostFlag, string> = {
+  no_date: 'No date',
+  no_channel: 'No channel',
+  stale: 'Stale',
+  holiday: 'Holiday',
+  operator: 'Operator',
 }
 
 export type PostingWeekPost = {
   calendar_id: string
   title: string
   primary_channel?: string | null
+  source_type?: string | null
+  calendar_status?: string | null
+  state?: PostState
+  flags?: PostFlag[]
   stages: Record<string, boolean>
   stage?: string
   inbox_item_id?: string | null
   asset_id?: string | null
   image_url?: string | null
+  next_action?: string
+  needs_fix_reason?: string
 }
 
 export type PostingWeekDay = {
   date: string
   weekday: string
   is_today?: boolean
+  is_past?: boolean
   posts: PostingWeekPost[]
+  holidays?: { title?: string }[]
 }
 
 const GOES_OUT_MONTHS_SHORT = [
@@ -69,9 +114,21 @@ export type PostingWeekPayload = {
   timezone?: string
   start?: string
   days?: number
+  past_days?: number
   days_list?: PostingWeekDay[]
+  undated?: PostingWeekPost[]
+  undated_total?: number
   orphan_drafts?: number
-  counts?: { moments?: number; drafts?: number; queued?: number }
+  counts?: {
+    moments?: number
+    drafts?: number
+    queued?: number
+    released?: number
+    posted?: number
+    candidates?: number
+    needs_fix?: number
+    stale?: number
+  }
   error?: string
 }
 
@@ -106,12 +163,14 @@ const NEXT_ACTION_BY_INCOMPLETE: Record<PostingStageKey, string> = {
   in_review: 'Ready to review',
   approved: 'Needs your look',
   queued: 'Approved',
+  released: 'Waiting to go out',
+  posted: 'Posted',
 }
 
 /** Human next-step copy from lodge row stage flags. */
 export function nextActionFromStages(stages: Record<string, boolean>): string {
   const incomplete = firstIncompleteStageFromStages(stages)
-  if (!incomplete) return 'In the sandbox'
+  if (!incomplete) return 'Posted'
   return NEXT_ACTION_BY_INCOMPLETE[incomplete]
 }
 
@@ -151,4 +210,46 @@ export function emptyWeekBuckets(startIso: string, days: number): string[] {
     out.push(d.toISOString().slice(0, 10))
   }
   return out
+}
+
+export function postStateLabel(state?: PostState | string | null): string {
+  const key = String(state ?? '') as PostState
+  return POST_STATE_LABELS[key] ?? String(state ?? '—')
+}
+
+export function postFlagLabel(flag: PostFlag | string): string {
+  const key = flag as PostFlag
+  return POST_FLAG_LABELS[key] ?? flag
+}
+
+export function postStateTone(state?: PostState | string | null): 'mute' | 'warn' | 'ok' | 'bad' {
+  switch (state) {
+    case 'needs_fix':
+      return 'bad'
+    case 'candidate':
+    case 'drafting':
+      return 'warn'
+    case 'posted':
+    case 'released':
+    case 'scheduled':
+    case 'draft_ready':
+      return 'ok'
+    default:
+      return 'mute'
+  }
+}
+
+export function linkForPostState(post: PostingWeekPost): string | null {
+  switch (post.state) {
+    case 'draft_ready':
+      if (post.inbox_item_id) return `/review/${encodeURIComponent(post.inbox_item_id)}`
+      return '/review?view=inbox'
+    case 'scheduled':
+      return '/shelf'
+    case 'candidate':
+      return '/review?view=inbox'
+    default:
+      if (post.inbox_item_id) return `/review/${encodeURIComponent(post.inbox_item_id)}`
+      return null
+  }
 }

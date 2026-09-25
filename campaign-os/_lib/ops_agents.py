@@ -475,6 +475,27 @@ def list_queue_rows(
     }
 
 
+def rows_for_brand(data_dir: Path, brand_id: str) -> list[dict[str, str]]:
+    """Agent-queue rows for one brand (all statuses)."""
+    brand_id = validate_brand_id(brand_id)
+    queue_path = data_dir / "agent-queue.json"
+    doc = _read_queue_doc(queue_path)
+    rows = doc.get("rows") or []
+    if not isinstance(rows, list):
+        return []
+    out: list[dict[str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            clean = _validate_queue_row(row)
+        except ValueError:
+            continue
+        if clean.get("brand") == brand_id:
+            out.append(clean)
+    return out
+
+
 def mark_row_done(
     data_dir: Path,
     row_id: str,

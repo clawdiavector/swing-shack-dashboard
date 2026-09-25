@@ -86,7 +86,7 @@ describe('nextActionFromStages', () => {
     ).toBe('Approved')
   })
 
-  it('in the sandbox when queued is done', () => {
+  it('posted when all pipeline stages are done', () => {
     expect(
       nextActionFromStages({
         booked: true,
@@ -95,8 +95,10 @@ describe('nextActionFromStages', () => {
         in_review: true,
         approved: true,
         queued: true,
+        released: true,
+        posted: true,
       }),
-    ).toBe('In the sandbox')
+    ).toBe('Posted')
   })
 })
 
@@ -121,6 +123,6 @@ describe('emptyWeekBuckets', () => {
   })
 
   it('empty day posts array is valid', () => {
-    expect(POSTING_STAGE_ORDER.length).toBe(6)
+    expect(POSTING_STAGE_ORDER.length).toBe(8)
   })
 })

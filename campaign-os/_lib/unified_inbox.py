@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
@@ -632,9 +633,32 @@ def list_items(
     }
 
 
-_WEEK_MOMENT_STATUSES = frozenset({"approved", "candidate", "active"})
+_WEEK_MOMENT_STATUSES = frozenset({"approved", "candidate", "active", "completed"})
 _WEEK_TZ = ZoneInfo("Africa/Johannesburg")
-_STAGE_ORDER = ("booked", "caption", "image", "in_review", "approved", "queued")
+_STAGE_ORDER = (
+    "booked",
+    "caption",
+    "image",
+    "in_review",
+    "approved",
+    "queued",
+    "released",
+    "posted",
+)
+_STALE_CANDIDATE_DAYS = 7
+UNDATED_CAP = 50
+POST_STATES = frozenset(
+    {
+        "candidate",
+        "booked",
+        "drafting",
+        "needs_fix",
+        "draft_ready",
+        "scheduled",
+        "released",
+        "posted",
+    }
+)
 
 
 def _calendar_id_from_inbox_ref(inbox_item_id: str) -> str | None:
@@ -706,28 +730,59 @@ def _index_draft_sidecars(*, brand_id: str) -> tuple[dict[str, dict[str, Any]], 
     return by_cal, orphans
 
 
-def _index_sandbox_by_inbox(*, brand_id: str) -> dict[str, list[dict[str, Any]]]:
+def _index_publish_by_cal(
+    *, brand_id: str
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, list[dict[str, Any]]]]:
     from _lib import publish_sandbox  # noqa: PLC0415
 
-    queue_path = publish_sandbox._queue_path()  # noqa: SLF001
-    grouped: dict[str, list[dict[str, Any]]] = {}
-    for row in _read_jsonl(queue_path):
-        if str(row.get("status") or "") != "pending":
-            continue
-        if str(row.get("brand_id") or "") != brand_id:
-            continue
+    queue_by: dict[str, list[dict[str, Any]]] = {}
+    for row in publish_sandbox.queue_rows_for_brand(brand_id):
         inbox_ref = str(row.get("inbox_item_id") or "")
         cal_id = _calendar_id_from_inbox_ref(inbox_ref)
         if not cal_id:
             continue
-        grouped.setdefault(cal_id, []).append(
+        queue_by.setdefault(cal_id, []).append(
             {
                 "platform": row.get("platform"),
                 "idempotency_key": row.get("idempotency_key") or row.get("queue_id"),
                 "inbox_item_id": inbox_ref,
+                "status": row.get("status"),
+                "human_approved": bool(row.get("human_approved")),
             }
         )
-    return grouped
+    receipts_by: dict[str, list[dict[str, Any]]] = {}
+    for rec in publish_sandbox.receipts_for_brand(brand_id):
+        inbox_ref = str(rec.get("inbox_item_id") or "")
+        cal_id = _calendar_id_from_inbox_ref(inbox_ref)
+        if not cal_id:
+            continue
+        receipts_by.setdefault(cal_id, []).append(
+            {
+                "platform": rec.get("platform"),
+                "sandbox_post_id": rec.get("sandbox_post_id"),
+                "dispatched_at": rec.get("dispatched_at"),
+                "inbox_item_id": inbox_ref,
+            }
+        )
+    return queue_by, receipts_by
+
+
+def _stale_candidate_days() -> int:
+    raw = os.environ.get("CAMPAIGN_OS_STALE_CANDIDATE_DAYS", str(_STALE_CANDIDATE_DAYS))
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return _STALE_CANDIDATE_DAYS
+
+
+def _is_holiday_record(record: dict[str, Any]) -> bool:
+    if str(record.get("created_by") or "") == "holiday_inject":
+        return True
+    return str(record.get("source_type") or "") == "deterministic"
+
+
+def _inbox_ref_for_cal(*, brand_id: str, cal_id: str) -> str:
+    return f"calendar_candidate:{brand_id}:{cal_id}"
 
 
 def _rollup_stages(
@@ -735,7 +790,9 @@ def _rollup_stages(
     has_moment: bool,
     draft: dict[str, Any] | None,
     sandbox_rows: list[dict[str, Any]],
+    receipts: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, bool], str]:
+    receipts = receipts or []
     stages: dict[str, bool] = {
         "booked": has_moment,
         "caption": False,
@@ -743,6 +800,8 @@ def _rollup_stages(
         "in_review": False,
         "approved": False,
         "queued": bool(sandbox_rows),
+        "released": any(bool(r.get("human_approved")) for r in sandbox_rows),
+        "posted": bool(receipts),
     }
     if draft:
         if draft.get("caption", "").strip():
@@ -762,33 +821,308 @@ def _rollup_stages(
     return stages, stage
 
 
+@dataclass(frozen=True)
+class PostIndex:
+    brand_id: str
+    drafts: dict[str, dict[str, Any]]
+    queue: dict[str, list[dict[str, Any]]]
+    receipts: dict[str, list[dict[str, Any]]]
+    work_orders: dict[str, list[dict[str, Any]]]
+    image_jobs: dict[str, dict[str, Any]]
+    sidecar_orphans: int
+
+
+def build_post_index(*, brand_id: str) -> PostIndex:
+    from _lib import ops_agents  # noqa: PLC0415
+    from _lib.jobs.layer5 import image_jobs_state  # noqa: PLC0415
+
+    drafts, orphans = _index_draft_sidecars(brand_id=brand_id)
+    queue_by, receipts_by = _index_publish_by_cal(brand_id=brand_id)
+    work_by_cal: dict[str, list[dict[str, Any]]] = {}
+    for row in ops_agents.rows_for_brand(_data_dir(), brand_id):
+        if str(row.get("layer") or "") != "L5":
+            continue
+        pref = str(row.get("payload_ref") or "")
+        if not pref.startswith("inbox/"):
+            continue
+        inbox_id = pref[len("inbox/") :]
+        cal_id = _calendar_id_from_inbox_ref(inbox_id)
+        if not cal_id:
+            continue
+        work_by_cal.setdefault(cal_id, []).append(dict(row))
+
+    jobs_raw = image_jobs_state.load_doc().get("jobs")
+    image_jobs: dict[str, dict[str, Any]] = {}
+    if isinstance(jobs_raw, dict):
+        for key, entry in jobs_raw.items():
+            if isinstance(entry, dict):
+                image_jobs[str(key)] = entry
+
+    return PostIndex(
+        brand_id=brand_id,
+        drafts=drafts,
+        queue=queue_by,
+        receipts=receipts_by,
+        work_orders=work_by_cal,
+        image_jobs=image_jobs,
+        sidecar_orphans=orphans,
+    )
+
+
+def _draft_has_image(draft: dict[str, Any] | None) -> bool:
+    if not draft:
+        return False
+    return bool(draft.get("image_path") or draft.get("image_url"))
+
+
+def _retry_count_for_inbox(index: PostIndex, inbox_item_id: str) -> int:
+    entry = index.image_jobs.get(inbox_item_id)
+    if not isinstance(entry, dict):
+        return 0
+    try:
+        return int(entry.get("retry_count") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _image_job_failed(index: PostIndex, inbox_item_id: str) -> bool:
+    entry = index.image_jobs.get(inbox_item_id)
+    if not isinstance(entry, dict):
+        return False
+    return str(entry.get("last_status") or "") == "failed"
+
+
+def _work_orders_active(work_rows: list[dict[str, Any]]) -> bool:
+    for row in work_rows:
+        status = str(row.get("status") or "")
+        if status in {"pending", "waiting"}:
+            return True
+    return False
+
+
+def _work_orders_done_no_image(
+    work_rows: list[dict[str, Any]], *, has_image: bool
+) -> bool:
+    if has_image:
+        return False
+    return any(str(row.get("status") or "") == "done" for row in work_rows)
+
+
+def _derive_post_state(
+    record: dict[str, Any],
+    *,
+    index: PostIndex,
+    draft: dict[str, Any] | None,
+    queue_rows: list[dict[str, Any]],
+    receipts: list[dict[str, Any]],
+    work_rows: list[dict[str, Any]],
+    inbox_item_id: str,
+) -> tuple[str, str | None]:
+    from _lib.jobs.layer5.retry_failed_images import MAX_IMAGE_RETRIES  # noqa: PLC0415
+
+    cal_status = str(record.get("status") or "")
+    has_image = _draft_has_image(draft)
+    caption_ok = bool((draft or {}).get("caption", "").strip())
+    retry_count = _retry_count_for_inbox(index, inbox_item_id)
+
+    if receipts:
+        return "posted", None
+    if any(bool(r.get("human_approved")) for r in queue_rows):
+        return "released", None
+    if draft and draft.get("draft_bucket") == "approved":
+        return "scheduled", None
+    if draft and caption_ok and has_image:
+        return "draft_ready", None
+    if _image_job_failed(index, inbox_item_id):
+        return "needs_fix", "image job failed"
+    if _work_orders_done_no_image(work_rows, has_image=has_image) and retry_count >= MAX_IMAGE_RETRIES:
+        return "needs_fix", "no image"
+    if draft and caption_ok and not has_image:
+        return "needs_fix", "no image"
+    if _work_orders_active(work_rows):
+        return "drafting", None
+    if _work_orders_done_no_image(work_rows, has_image=has_image) and retry_count < MAX_IMAGE_RETRIES:
+        return "drafting", None
+    if cal_status in {"approved", "active", "completed"}:
+        return "booked", None
+    return "candidate", None
+
+
+def _compute_flags(
+    record: dict[str, Any],
+    *,
+    state: str,
+    now: datetime,
+) -> list[str]:
+    flags: list[str] = []
+    if not _moment_go_live_date(record):
+        flags.append("no_date")
+    if not str(record.get("primary_channel") or "").strip():
+        flags.append("no_channel")
+    if _is_holiday_record(record):
+        flags.append("holiday")
+    if str(record.get("source_type") or "") == "operator":
+        flags.append("operator")
+    if state == "candidate" and "holiday" not in flags:
+        ts = record.get("created_at") or record.get("last_verified")
+        age = _age_hours(str(ts) if ts else None, now=now)
+        if age is not None and age >= 24.0 * _stale_candidate_days():
+            flags.append("stale")
+    return flags
+
+
+def _next_action_for_state(state: str, *, needs_fix_reason: str | None) -> str:
+    if state == "needs_fix" and needs_fix_reason:
+        return needs_fix_reason
+    mapping = {
+        "candidate": "Lodge or book",
+        "booked": "Waiting on caption",
+        "drafting": "Draft in progress",
+        "needs_fix": "Needs fix",
+        "draft_ready": "Ready to review",
+        "scheduled": "On the shelf",
+        "released": "Waiting to go out",
+        "posted": "Posted",
+    }
+    return mapping.get(state, "—")
+
+
+def post_state(
+    record: dict[str, Any],
+    *,
+    index: PostIndex,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Single calendar moment joined to drafts, sandbox, and work orders."""
+    now = now or datetime.now(timezone.utc)
+    cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+    draft = index.drafts.get(cal_id)
+    queue_rows = index.queue.get(cal_id, [])
+    receipts = index.receipts.get(cal_id, [])
+    work_rows = index.work_orders.get(cal_id, [])
+    inbox_item_id = (
+        str(draft.get("inbox_item_id") or "")
+        if draft
+        else _inbox_ref_for_cal(brand_id=index.brand_id, cal_id=cal_id)
+    )
+    state, needs_fix_reason = _derive_post_state(
+        record,
+        index=index,
+        draft=draft,
+        queue_rows=queue_rows,
+        receipts=receipts,
+        work_rows=work_rows,
+        inbox_item_id=inbox_item_id,
+    )
+    flags = _compute_flags(record, state=state, now=now)
+    stages, stage = _rollup_stages(
+        has_moment=True,
+        draft=draft,
+        sandbox_rows=queue_rows,
+        receipts=receipts,
+    )
+    go_live = _moment_go_live_date(record)
+    image_url = None
+    if draft:
+        image_url = draft.get("image_url") or draft.get("image_path")
+    retry_count = _retry_count_for_inbox(index, inbox_item_id)
+    sandbox_slim = [
+        {
+            "platform": r.get("platform"),
+            "idempotency_key": r.get("idempotency_key"),
+            "status": r.get("status"),
+            "human_approved": r.get("human_approved"),
+        }
+        for r in queue_rows
+    ]
+    out: dict[str, Any] = {
+        "calendar_id": cal_id,
+        "state": state,
+        "flags": flags,
+        "stages": stages,
+        "stage": stage,
+        "go_live_date": go_live,
+        "inbox_item_id": draft.get("inbox_item_id") if draft else None,
+        "asset_id": draft.get("asset_id") if draft else None,
+        "image_url": image_url,
+        "retry_count": retry_count,
+        "sandbox": sandbox_slim,
+        "receipts": receipts,
+        "next_action": _next_action_for_state(state, needs_fix_reason=needs_fix_reason),
+    }
+    if needs_fix_reason:
+        out["needs_fix_reason"] = needs_fix_reason
+    return out
+
+
+def post_state_for(brand_id: str, calendar_id: str) -> dict[str, Any] | None:
+    from _lib.marketing_calendar import canonical_records  # noqa: PLC0415
+
+    index = build_post_index(brand_id=brand_id)
+    for record in canonical_records(brand_id):
+        cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+        if cal_id == calendar_id:
+            return post_state(record, index=index)
+    return None
+
+
+def _post_row_from_record(
+    record: dict[str, Any],
+    *,
+    index: PostIndex,
+    now: datetime,
+) -> dict[str, Any]:
+    joined = post_state(record, index=index, now=now)
+    title = str(record.get("title") or record.get("event_key") or joined["calendar_id"])
+    return {
+        **joined,
+        "title": title,
+        "primary_channel": record.get("primary_channel"),
+        "source_type": record.get("source_type"),
+        "calendar_status": record.get("status"),
+    }
+
+
 def week_board(
     *,
     brand_id: str,
     start: date | None = None,
     days: int = 7,
+    past_days: int = 0,
+    include_candidates: bool = True,
+    include_undated: bool = True,
 ) -> dict[str, Any]:
-    """Operator posting calendar: moments in horizon joined to drafts + sandbox."""
+    """Operator posting calendar: moments in horizon joined via post_state."""
     from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
 
     if brand_id not in VALID_BRAND_IDS:
         raise ValueError(f"brand_id '{brand_id}' is not an operating brand")
     days = max(1, min(int(days), 31))
+    past_days = max(0, min(int(past_days), 7))
     tz = _WEEK_TZ
     today = datetime.now(tz).date()
-    window_start = start or today
-    window_end = window_start + timedelta(days=days - 1)
+    anchor = start or today
+    window_start = anchor - timedelta(days=past_days)
+    window_end = anchor + timedelta(days=days - 1)
+    now = datetime.now(timezone.utc)
 
-    drafts_by_cal, sidecar_orphans = _index_draft_sidecars(brand_id=brand_id)
-    sandbox_by_cal = _index_sandbox_by_inbox(brand_id=brand_id)
-
+    index = build_post_index(brand_id=brand_id)
     moments_by_cal: dict[str, dict[str, Any]] = {}
+    undated_records: list[dict[str, Any]] = []
+
     for record in canonical_records(brand_id):
         status = str(record.get("status") or "")
         if status not in _WEEK_MOMENT_STATUSES:
             continue
+        cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
+        if not cal_id:
+            continue
         go_live = _moment_go_live_date(record)
         if not go_live:
+            if include_undated:
+                undated_records.append(record)
+            continue
+        if not include_candidates and status == "candidate" and not _is_holiday_record(record):
             continue
         try:
             go_date = date.fromisoformat(go_live)
@@ -796,80 +1130,88 @@ def week_board(
             continue
         if go_date < window_start or go_date > window_end:
             continue
-        cal_id = str(record.get("calendar_id") or record.get("event_key") or "")
-        if not cal_id:
-            continue
         moments_by_cal[cal_id] = {**record, "_go_live": go_live}
 
-    orphan_drafts = sidecar_orphans
-    for cal_id, draft in drafts_by_cal.items():
-        if cal_id in moments_by_cal:
-            continue
-        orphan_drafts += 1
+    orphan_drafts = index.sidecar_orphans
+    for cal_id in index.drafts:
+        if cal_id not in moments_by_cal:
+            orphan_drafts += 1
+
+    undated_records.sort(
+        key=lambda r: str(r.get("created_at") or r.get("last_verified") or ""),
+        reverse=True,
+    )
+    undated_total = len(undated_records)
+    undated_slice = undated_records[:UNDATED_CAP] if include_undated else []
+    undated_posts = [
+        _post_row_from_record(rec, index=index, now=now) for rec in undated_slice
+    ]
 
     days_list: list[dict[str, Any]] = []
+    state_counts: dict[str, int] = {s: 0 for s in POST_STATES}
     moment_count = 0
     draft_count = 0
     queued_count = 0
-    for offset in range(days):
-        day = window_start + timedelta(days=offset)
-        day_iso = day.isoformat()
+    day_cursor = window_start
+    while day_cursor <= window_end:
+        day_iso = day_cursor.isoformat()
         posts: list[dict[str, Any]] = []
         for cal_id, record in moments_by_cal.items():
             if record.get("_go_live") != day_iso:
                 continue
             moment_count += 1
-            draft = drafts_by_cal.get(cal_id)
-            if draft:
+            row = _post_row_from_record(record, index=index, now=now)
+            if row.get("asset_id"):
                 draft_count += 1
-            sandbox_rows = sandbox_by_cal.get(cal_id, [])
-            if sandbox_rows:
+            if row.get("sandbox"):
                 queued_count += 1
-            stages, stage = _rollup_stages(
-                has_moment=True,
-                draft=draft,
-                sandbox_rows=sandbox_rows,
-            )
-            image_url = None
-            if draft:
-                image_url = draft.get("image_url") or draft.get("image_path")
-            posts.append(
-                {
-                    "calendar_id": cal_id,
-                    "title": str(record.get("title") or record.get("event_key") or cal_id),
-                    "primary_channel": record.get("primary_channel"),
-                    "source_type": record.get("source_type"),
-                    "calendar_status": record.get("status"),
-                    "stages": stages,
-                    "stage": stage,
-                    "inbox_item_id": draft.get("inbox_item_id") if draft else None,
-                    "asset_id": draft.get("asset_id") if draft else None,
-                    "image_url": image_url,
-                    "sandbox": sandbox_rows,
-                }
-            )
+            st = str(row.get("state") or "")
+            if st in state_counts:
+                state_counts[st] += 1
+            posts.append(row)
         posts.sort(key=lambda p: p.get("title") or "")
+        holidays = [
+            {"title": p.get("title")}
+            for p in posts
+            if "holiday" in (p.get("flags") or [])
+        ]
         days_list.append(
             {
                 "date": day_iso,
-                "weekday": day.strftime("%a"),
-                "is_today": day == today,
+                "weekday": day_cursor.strftime("%a"),
+                "is_today": day_cursor == today,
+                "is_past": day_cursor < today,
                 "posts": posts,
+                "holidays": holidays,
             }
         )
+        day_cursor += timedelta(days=1)
+
+    for row in undated_posts:
+        st = str(row.get("state") or "")
+        if st in state_counts:
+            state_counts[st] += 1
 
     return {
         "ok": True,
         "brand": brand_id,
         "timezone": str(tz),
-        "start": window_start.isoformat(),
+        "start": anchor.isoformat(),
         "days": days,
+        "past_days": past_days,
         "days_list": days_list,
+        "undated": undated_posts,
+        "undated_total": undated_total,
         "orphan_drafts": orphan_drafts,
         "counts": {
             "moments": moment_count,
             "drafts": draft_count,
             "queued": queued_count,
+            "released": state_counts.get("released", 0),
+            "posted": state_counts.get("posted", 0),
+            "candidates": state_counts.get("candidate", 0),
+            "needs_fix": state_counts.get("needs_fix", 0),
+            "stale": sum(1 for d in days_list for p in d["posts"] if "stale" in (p.get("flags") or [])),
         },
     }
 

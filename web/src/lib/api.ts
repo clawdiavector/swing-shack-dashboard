@@ -382,9 +382,16 @@ export function fetchInbox(status = 'pending', brand?: string, type?: string) {
   return getJson<InboxPayload>(`/api/inbox/unified?${q}`)
 }
 
-export function fetchPostingWeek(brand?: string) {
+export function fetchPostingWeek(
+  brand?: string,
+  opts?: { past?: number; days?: number; start?: string; includeCandidates?: boolean },
+) {
   const q = new URLSearchParams()
   if (brand) q.set('brand', brand)
+  if (opts?.past != null) q.set('past', String(opts.past))
+  if (opts?.days != null) q.set('days', String(opts.days))
+  if (opts?.start) q.set('start', opts.start)
+  if (opts?.includeCandidates === false) q.set('include_candidates', '0')
   return getJson<PostingWeekPayload>(`/api/inbox/week?${q}`)
 }
 

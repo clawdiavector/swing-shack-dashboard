@@ -4,6 +4,7 @@ import {
   Bot,
   Building2,
   CalendarDays,
+  CalendarRange,
   ClipboardCheck,
   FileStack,
   Flag,
@@ -29,6 +30,7 @@ export type RailItem = {
 export const RAIL: RailItem[] = [
   { to: '/daily', label: 'Daily', hint: 'Today', icon: Sun },
   { to: '/review', label: 'Review', hint: 'Drafts', icon: Inbox },
+  { to: '/week', label: 'This week', hint: 'Schedule', icon: CalendarRange },
   { to: '/shelf', label: 'Shelf', hint: 'Approved', icon: Library },
   { to: '/create', label: 'Create', hint: 'Studio', icon: Sparkles },
   { to: '/calendar/lanes', label: 'Calendar', hint: 'Strategic', icon: CalendarDays },

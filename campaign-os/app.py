@@ -17807,6 +17807,17 @@ def inbox_week_board():
             days = int(days_raw)
         except ValueError:
             days = 7
+        past_raw = request.args.get("past") or "0"
+        try:
+            past_days = int(past_raw)
+        except ValueError:
+            past_days = 0
+        include_candidates = request.args.get("include_candidates", "1").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+        }
+        include_undated = request.args.get("undated", "1").strip().lower() not in {"0", "false", "no"}
         start_raw = (request.args.get("start") or "").strip()
         start: _date_cls | None = None
         if start_raw:
@@ -17814,7 +17825,14 @@ def inbox_week_board():
                 start = _date_cls.fromisoformat(start_raw[:10])
             except ValueError:
                 return jsonify({"ok": False, "error": "invalid start date"}), 400
-        payload = _unified_inbox_mod.week_board(brand_id=brand, start=start, days=days)
+        payload = _unified_inbox_mod.week_board(
+            brand_id=brand,
+            start=start,
+            days=days,
+            past_days=past_days,
+            include_candidates=include_candidates,
+            include_undated=include_undated,
+        )
         return jsonify(payload), 200
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400

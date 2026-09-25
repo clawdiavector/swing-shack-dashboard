@@ -495,6 +495,48 @@ def list_queue(*, brand: str | None = None, limit: int = 50) -> dict[str, Any]:
     }
 
 
+RECEIPTS_SCAN_CAP = 5000
+
+
+def queue_rows_for_brand(brand_id: str) -> list[dict[str, Any]]:
+    """All sandbox queue rows for a brand (every status)."""
+    ensure_sandbox_layout()
+    brand_id = validate_brand_id(brand_id)
+    out: list[dict[str, Any]] = []
+    for row in _read_jsonl(_queue_path()):
+        if str(row.get("brand_id") or "") != brand_id:
+            continue
+        out.append(row)
+    return out
+
+
+def receipts_for_brand(brand_id: str) -> list[dict[str, Any]]:
+    """Receipt rows for a brand (tail-capped scan)."""
+    ensure_sandbox_layout()
+    brand_id = validate_brand_id(brand_id)
+    path = _receipts_path()
+    if not path.is_file():
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if len(lines) > RECEIPTS_SCAN_CAP:
+        lines = lines[-RECEIPTS_SCAN_CAP:]
+    out: list[dict[str, Any]] = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(rec, dict):
+            continue
+        if str(rec.get("brand_id") or "") != brand_id:
+            continue
+        out.append(rec)
+    return out
+
+
 def summary() -> dict[str, Any]:
     ensure_sandbox_layout()
     queue = _read_jsonl(_queue_path())
