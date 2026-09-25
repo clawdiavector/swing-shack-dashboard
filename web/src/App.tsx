@@ -28,6 +28,7 @@ import { InboxPage } from './pages/InboxPage'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
 import { Worked } from './pages/results/Worked'
+import { BrandVisuals } from './pages/BrandVisuals'
 
 export default function App() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="ops" element={<Ops />} />
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />
+        <Route path="brand/visuals" element={<BrandVisuals />} />
         <Route path="tool/:slug" element={<Tool />} />
         <Route path="*" element={<Navigate to="/daily" replace />} />
       </Route>

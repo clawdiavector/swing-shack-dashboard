@@ -866,6 +866,7 @@ export type BrandRecord = {
   active?: boolean
   order?: number
   socials?: BrandSocialLink[]
+  publish_channels?: string[]
   image_rules?: { people_allowed?: boolean }
 }
 
@@ -1513,4 +1514,90 @@ export async function scheduleGmbDraft(id: string) {
   }
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
   return { status: res.status, data }
+}
+
+export type BrandVisualSocialItem = {
+  id: string
+  platform: string
+  thumb_url: string
+  caption?: string
+  posted_at?: string | null
+  metrics?: Record<string, unknown>
+  is_reference?: boolean
+}
+
+export type BrandVisualDriveItem = {
+  id: string
+  folder: string
+  thumb_url: string
+  is_reference?: boolean
+}
+
+export type BrandVisualReferenceItem = {
+  id: string
+  curator_id?: string
+  platform?: string
+  pillar?: string
+  source?: string
+  label?: string
+  thumb_url: string
+  palette?: string[]
+  created?: number
+}
+
+export type BrandVisualsPayload = {
+  ok?: boolean
+  brand?: string
+  social?: BrandVisualSocialItem[]
+  drive?: BrandVisualDriveItem[]
+  references?: BrandVisualReferenceItem[]
+  error?: string
+}
+
+export function fetchBrandVisuals(brandId: string, platform?: string) {
+  const q = platform ? `?platform=${encodeURIComponent(platform)}` : ''
+  return getJson<BrandVisualsPayload>(`/api/brand/${encodeURIComponent(brandId)}/visuals${q}`)
+}
+
+export type BrandReferenceBody = {
+  source: 'social' | 'drive'
+  id: string
+  platform?: string
+  pillar?: string
+  note?: string
+}
+
+export function postBrandReference(brandId: string, body: BrandReferenceBody) {
+  return postJson<{ ok?: boolean; dna?: Record<string, unknown>; error?: string }>(
+    `/api/brand/${encodeURIComponent(brandId)}/references`,
+    body,
+  )
+}
+
+export async function deleteBrandReference(brandId: string, refOrAssetId: string) {
+  const res = await fetch(
+    `/api/brand/${encodeURIComponent(brandId)}/references/${encodeURIComponent(refOrAssetId)}`,
+    { method: 'DELETE', credentials: 'same-origin' },
+  )
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  if (!res.ok) {
+    throw new Error(`delete reference ${res.status}`)
+  }
+  return res.json() as Promise<{ ok?: boolean; error?: string }>
+}
+
+export async function runSocialIngest(brandId: string) {
+  const res = await fetch(
+    `/api/jobs/run/social_ingest?brand=${encodeURIComponent(brandId)}`,
+    { method: 'POST', credentials: 'same-origin' },
+  )
+  if (res.status === 401) {
+    window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+    throw new Error('auth required')
+  }
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>
+  return { ok: res.ok, status: res.status, data }
 }

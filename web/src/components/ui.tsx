@@ -252,7 +252,7 @@ export function PageHeader({
   )
 }
 
-function QueueItemThumb({
+export function QueueItemThumb({
   src,
   alt,
   onBroken,
