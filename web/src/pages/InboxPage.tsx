@@ -1,5 +1,5 @@
 import { BookMarked, Inbox, RotateCcw, X } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
@@ -30,32 +30,6 @@ function sourceLabel(tag: string): string {
   return 'Scout'
 }
 
-function displayField(value?: string | null): string {
-  const trimmed = value?.trim()
-  return trimmed ? trimmed : '—'
-}
-
-function CandidateLabelRow({
-  label,
-  children,
-  emphasizeValue,
-}: {
-  label: string
-  children: ReactNode
-  emphasizeValue?: boolean
-}) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-2 text-base">
-      <span className="shrink-0 font-display font-semibold text-ac">{label}:</span>
-      <span
-        className={`min-w-0 text-tx${emphasizeValue ? ' font-display font-semibold' : ''}`}
-      >
-        {children}
-      </span>
-    </div>
-  )
-}
-
 function CandidateCard({
   item,
   busy,
@@ -75,6 +49,9 @@ function CandidateCard({
   const flags = item.meta?.flags || []
   const noLodge = lodgeDisabled(flags)
   const source = candidateSourceTag(item)
+  const pillar = item.meta?.pillar?.trim()
+  const angle = item.meta?.angle?.trim()
+  const relevanceReason = item.meta?.relevance_reason?.trim()
 
   async function saveFields() {
     setErr('')
@@ -104,51 +81,55 @@ function CandidateCard({
   }
 
   return (
-    <li className="rounded-2xl border border-bd bg-bg-2/40 px-4 py-4">
-      <div className="space-y-3">
+    <li className="rounded-2xl border border-bd bg-bg-2/40 px-4 py-3">
+      <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-2">
-            <CandidateLabelRow label="Title" emphasizeValue>
-              {displayField(item.title)}
-            </CandidateLabelRow>
-            <CandidateLabelRow label="Pillar">{displayField(item.meta?.pillar)}</CandidateLabelRow>
-            <CandidateLabelRow label="Angle">{displayField(item.meta?.angle)}</CandidateLabelRow>
-            <CandidateLabelRow label="Why">
-              {displayField(item.meta?.relevance_reason)}
-            </CandidateLabelRow>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
+              {item.title?.trim() ?? ''}
+            </h3>
+            {angle ? (
+              <p className="mt-0.5 text-sm text-tx2 line-clamp-1">{angle}</p>
+            ) : null}
+            {relevanceReason ? (
+              <p className="mt-0.5 text-sm text-tx3 line-clamp-2">{relevanceReason}</p>
+            ) : null}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <div className="flex flex-wrap items-center justify-end gap-2">
               <BrandChip brandId={item.brand_id} show={showBrandChip} />
+              {pillar ? <Badge tone="mute">{pillar}</Badge> : null}
               <Badge tone="mute">{sourceLabel(source)}</Badge>
             </div>
-            <p className="text-right text-sm font-display font-semibold text-tx3">
+            <p className="text-right text-xs text-tx3">
               Created {formatStamp(item.created_at)}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <CandidateLabelRow label="Go-live">
+          <label className="flex items-center gap-2">
+            <span className="text-xs text-tx3">Go-live</span>
             <input
               type="date"
               value={dateVal}
               onChange={(e) => setDateVal(e.target.value)}
               onBlur={() => void saveFields()}
-              className="rounded-lg border border-bd bg-bg px-2 py-1 text-base text-tx"
+              className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
             />
-          </CandidateLabelRow>
-          <CandidateLabelRow label="Channel">
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="text-xs text-tx3">Channel</span>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
               onBlur={() => void saveFields()}
-              className="rounded-lg border border-bd bg-bg px-2 py-1 text-base text-tx"
+              className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
             >
               <option value="instagram">instagram</option>
               <option value="facebook">facebook</option>
               <option value="gbp">gbp</option>
             </select>
-          </CandidateLabelRow>
+          </label>
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Tip text={noLodge ? 'Set a go-live date before lodging.' : 'Book the moment and queue caption + image.'}>
               <button
