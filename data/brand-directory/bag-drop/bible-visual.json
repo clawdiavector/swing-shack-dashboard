@@ -1,0 +1,56 @@
+{
+  "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
+  "brand_id": "bag-drop",
+  "version": "0.1.0-draft",
+  "updated": "2026-09-25T00:00:00Z",
+  "confidence": "draft",
+  "voice": "Community-first, member-energy; fun, supportive, relatable; warmth over hard sell.",
+  "philosophy": "Shared golfer social warmth — orange-forward backgrounds with deep teal-navy contrast; vibe matters as much as data.",
+  "visual_philosophy": "Warm orange (#F4A261) fields with deep teal-navy (#264653) text zones; candid member moments and social energy, not sales-y promo or sarcasm.",
+  "composition_rules": [
+    "Warm orange dominant backgrounds with teal-navy headline contrast",
+    "Candid member social moments — celebration and connection",
+    "Inviting venue or sim social spaces; never pristine showroom luxury",
+    "One clear community focal group or shared moment",
+    "Readable at feed scale; generous space for overlay headline later"
+  ],
+  "anti_patterns": [
+    "Hard-sell promo and fake scarcity language",
+    "Stick-style sarcasm or punchy black-red meme frames",
+    "Unboxing luxury or thrift-store poverty aesthetic",
+    "Stock-photo loneliness or bargain-bin framing",
+    "Model-rendered text and invented prices",
+    "Breaking the community frame for a product hard sell"
+  ],
+  "people_policy": "Real-feeling members socialising; diverse group energy; warm not posed stock smiles.",
+  "text_policy": "no model-rendered text",
+  "look_and_feel_keywords": [
+    "warm orange",
+    "deep teal-navy",
+    "member social",
+    "community joy",
+    "Johannesburg golf social",
+    "supportive relatable"
+  ],
+  "negative_prompts": [
+    "sarcastic meme aesthetic",
+    "luxury showroom pristine",
+    "bargain-bin thrift cues",
+    "model-rendered text overlays"
+  ],
+  "archetype_preference": {
+    "primary": "venue-post",
+    "secondary": "community-story"
+  },
+  "subject_bias": {
+    "lean_toward": [
+      "Thursday member social energy",
+      "group celebration at the sim",
+      "warm venue candid moments"
+    ],
+    "lean_away": [
+      "solo performance coaching seriousness",
+      "ironic Stick-style callouts"
+    ]
+  }
+}

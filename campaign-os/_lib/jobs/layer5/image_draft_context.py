@@ -276,6 +276,7 @@ class ImageDraftContext:
     refs: list[dict[str, Any]] = field(default_factory=list)
     products: list[dict[str, Any]] = field(default_factory=list)
     aspect: str = "1024x1024"
+    platform_spec: dict[str, Any] = field(default_factory=dict)
     lineage: dict[str, Any] = field(default_factory=dict)
 
 
@@ -288,15 +289,19 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
 
     if item_type != "calendar_candidate" or not cal_id:
         job = f"{_GENERIC_JOB} {inbox_item_id}".strip()
-        cd = _compose_cd(brand, job, None, None, degraded)
+        channel = primary_channel_for_item(brand, inbox_item_id)
+        platform_spec = build_platform_spec(brand, channel, root=root)
+        cd = _compose_cd(brand, job, None, None, degraded, calendar={})
         return ImageDraftContext(
             job=job,
             aspect="1024x1024",
+            platform_spec=platform_spec,
             lineage={
                 "source": "proposal" if item_type == "proposal" else item_type,
                 "degraded": degraded,
                 "creative_director": cd,
                 "calendar": {},
+                "platform_spec": platform_spec,
                 "reference": {"selected": None},
                 "reference_meta": [],
                 "product_meta": [],
@@ -308,15 +313,19 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
     if not record:
         job = f"{_GENERIC_JOB} {inbox_item_id}".strip()
         degraded.append({"source": "calendar", "reason": "no matching calendar record"})
-        cd = _compose_cd(brand, job, None, None, degraded)
+        channel = primary_channel_for_item(brand, inbox_item_id)
+        platform_spec = build_platform_spec(brand, channel, root=root)
+        cd = _compose_cd(brand, job, None, None, degraded, calendar={"calendar_id": cal_id})
         return ImageDraftContext(
             job=job,
             aspect="1024x1024",
+            platform_spec=platform_spec,
             lineage={
                 "source": "calendar_candidate",
                 "degraded": degraded,
                 "creative_director": cd,
                 "calendar": {"calendar_id": cal_id},
+                "platform_spec": platform_spec,
                 "reference": {"selected": None},
                 "reference_meta": [],
                 "product_meta": [],
@@ -345,8 +354,8 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         degraded=degraded,
     )
     brand_bible = _brand_bible_lineage(brand, products, degraded)
-    cd = _compose_cd(brand, job, refs[0] if refs else None, products[0] if products else None, degraded)
-
+    channel = primary_channel_for_item(brand, inbox_item_id, fallback="instagram")
+    platform_spec = build_platform_spec(brand, channel, pillar_id=pillar_id, root=root)
     calendar_lineage = {
         "calendar_id": cal_id,
         "title": title,
@@ -356,12 +365,21 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         "event_lifecycle": record.get("event_lifecycle"),
         "type": record.get("type"),
     }
+    cd = _compose_cd(
+        brand,
+        job,
+        refs[0] if refs else None,
+        products[0] if products else None,
+        degraded,
+        calendar=calendar_lineage,
+    )
 
     return ImageDraftContext(
         job=job,
         refs=refs,
         products=products,
         aspect=aspect,
+        platform_spec=platform_spec,
         lineage={
             "source": "calendar_candidate",
             "calendar": calendar_lineage,
@@ -372,6 +390,7 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
             "reference_meta": ref_meta,
             "product_meta": product_meta,
             "brand_bible": brand_bible,
+            "platform_spec": platform_spec,
         },
     )
 
@@ -409,15 +428,21 @@ def _compose_cd(
     reference_dna: Optional[dict[str, Any]],
     product: Optional[dict[str, Any]],
     degraded: list[dict[str, str]],
+    *,
+    calendar: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     try:
         from _lib.creative_director import compose_prompt  # noqa: PLC0415
 
+        cal = calendar or {}
         return compose_prompt(
             brand_id=brand_id,
             job=job,
             reference_dna=reference_dna,
             product_service_item=product,
+            angle=str(cal.get("angle") or "") or None,
+            pillar_name=str(cal.get("pillar") or "") or None,
+            calendar_title=str(cal.get("title") or "") or None,
         )
     except Exception as exc:
         degraded.append({"source": "creative_director", "reason": str(exc)[:120]})
@@ -446,8 +471,54 @@ def _normalize_platform(raw: str) -> str:
         "google": "gbp",
         "google_business": "gbp",
         "google-business": "gbp",
+        "gmb": "gbp",
     }
     return aliases.get(p, p)
+
+
+def _load_platforms_doc(brand_id: str, root: Path) -> dict[str, Any]:
+    path = root / brand_id / "visual-spec" / "platforms.json"
+    if not path.is_file():
+        return {}
+    try:
+        import json
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def build_platform_spec(
+    brand_id: str,
+    channel: str,
+    *,
+    pillar_id: str = "",
+    root: Path | None = None,
+) -> dict[str, Any]:
+    """Platform geometry + hints from brand-directory/visual-spec/platforms.json."""
+    base = root or _brand_root()
+    doc = _load_platforms_doc(brand_id, base)
+    platforms = doc.get("platforms") if isinstance(doc.get("platforms"), dict) else {}
+    ch = _normalize_platform(channel)
+    plat = platforms.get(ch) or platforms.get("instagram") or {}
+    hints: list[str] = []
+    raw_hints = plat.get("model_hints")
+    if isinstance(raw_hints, list):
+        hints.extend(str(h) for h in raw_hints if h)
+    pillars = doc.get("pillars") if isinstance(doc.get("pillars"), dict) else {}
+    pillar_key = pillar_id or ""
+    if pillar_key and pillar_key in pillars:
+        p_hints = pillars[pillar_key].get("model_hints")
+        if isinstance(p_hints, list):
+            hints.extend(str(h) for h in p_hints[:2] if h)
+    return {
+        "aspect_ratio": plat.get("aspect_ratio") or "1:1",
+        "aspect_px": plat.get("aspect_px") or "1080x1080",
+        "text_safety_zone": plat.get("text_safety_zone") or "",
+        "model_hints": hints[:6],
+        "channel": ch,
+    }
 
 
 def calendar_record_for_item(brand_id: str, inbox_item_id: str) -> Optional[dict[str, Any]]:

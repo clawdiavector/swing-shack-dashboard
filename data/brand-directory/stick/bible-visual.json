@@ -1,0 +1,56 @@
+{
+  "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
+  "brand_id": "stick",
+  "version": "0.1.0-draft",
+  "updated": "2026-09-25T00:00:00Z",
+  "confidence": "draft",
+  "voice": "Sarcastic golf-insider voice; meme-aware; provokes thought with irony; shared joke with the reader, not at them.",
+  "philosophy": "High-contrast insider commentary — black field, signal-red accent, bold type energy without luxury softness or sentimentality.",
+  "visual_philosophy": "True black backgrounds (#1B1B1B), signal red (#FF3D00) accents, punchy graphic social frames; never soft pastel editorial family photography.",
+  "composition_rules": [
+    "Dominant true-black field with high-contrast subject or type-safe negative space",
+    "Signal-red accent used sparingly for emphasis lines or CTA zones",
+    "One bold focal idea — meme-readable at phone scale",
+    "Insider golf context without country-club luxury staging",
+    "Crisp edges; avoid muddy gradients and fitness-magazine colour grading"
+  ],
+  "anti_patterns": [
+    "Luxury aesthetic and soft pastel lifestyle",
+    "Sentimental family golf photography",
+    "Stadium-style hype and mockery aimed at the reader",
+    "Golf-cliché sunsets and stock grins",
+    "Punching at handicap, age, gender, or income",
+    "Model-rendered text, watermarks, or competitor logos"
+  ],
+  "people_policy": "Golfers as insiders in on the joke; candid or graphic framing; never cruel or punching down.",
+  "text_policy": "no model-rendered text",
+  "look_and_feel_keywords": [
+    "true black",
+    "signal red accent",
+    "sarcastic insider",
+    "high contrast",
+    "meme-aware",
+    "bold graphic social"
+  ],
+  "negative_prompts": [
+    "soft pastel palettes",
+    "luxury lifestyle golf",
+    "sentimental family portraits",
+    "model-rendered headline text"
+  ],
+  "archetype_preference": {
+    "primary": "product-post",
+    "secondary": "service-frame"
+  },
+  "subject_bias": {
+    "lean_toward": [
+      "ironic golf habit callouts",
+      "TrackMan or fitting truth bombs",
+      "bold product frames on black"
+    ],
+    "lean_away": [
+      "generic inspirational golf posters",
+      "warm community hug energy"
+    ]
+  }
+}

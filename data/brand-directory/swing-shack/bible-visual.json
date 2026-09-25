@@ -1,59 +1,69 @@
 {
-  "_placeholder": true,
   "_schema": "https://campaign-os/brand-directory/bible-visual/v1",
-  "_instructions": "PLACEHOLDER bible-visual.json for swing-shack. Fill in the TODO fields below to give the image gen layer real creative direction. The brand_dna.py module loads this file automatically — once you save changes, the next generation picks them up. See the TODO comments and structure of the example fields for what to write.",
-
   "brand_id": "swing-shack",
-  "version": "0.1-placeholder",
-  "updated": "2026-08-12T12:00:00Z",
-
-  "voice": "Premium, confident, data-driven. Confident without being cocky. TrackMan-confident. JHB-original.",
-
-  "visual_philosophy": "Moody indoor studio over flat studio white. In-the-moment swing/launch feels over posed product photography. Data overlays (TrackMan trail, club head, ball flight) over generic copy. Real Swing Shack energy over stock-photo golf energy.",
-
+  "version": "1.0.0",
+  "updated": "2026-09-25T00:00:00Z",
+  "confidence": "source",
+  "voice": "Premium, confident, data-driven. TrackMan-confident. JHB-original.",
+  "philosophy": "Performance golf, TrackMan truth, coaching and fitting seriousness — where good golfers get better. Restraint over entertainment-bar golf cliches.",
+  "visual_philosophy": "Moody indoor studio over flat studio white. In-the-moment swing and launch-monitor truth over posed stock golf. Premium sports-apparel campaign feel; photo-real people and simulators.",
+  "composition_rules": [
+    "Restraint over decoration; generous negative space",
+    "One clear focal subject per frame",
+    "Shadows and silhouette for depth",
+    "Premium sports-apparel campaign framing",
+    "Photo-real or near photo-real for people and TrackMan bays"
+  ],
+  "anti_patterns": [
+    "Entertainment-bar golf cliches and neon cyber-golf",
+    "Stock golfer-grin energy and Canva-style template slideshows",
+    "Oversaturated HDR and default-gradient looks",
+    "Six fonts or busy type stacks in the image",
+    "Obviously AI-rendered faces or plastic skin",
+    "Invented prices, yards instead of metres, or fake offers"
+  ],
+  "people_policy": "Photo-real golfers and coaches in sim bays; candid mid-action preferred over posed grins; no caricature or uncanny AI faces.",
+  "text_policy": "no model-rendered text",
   "look_and_feel_keywords": [
-    "TODO: 5-10 adjectives that describe the Swing Shack look",
-    "Examples (delete and replace): moody, indoor, low-key lighting, deep teal, amber accent, motion blur, mid-swing, launch monitor glow, club-head detail, premium, JHB"
+    "moody indoor studio",
+    "TrackMan glow",
+    "mid-swing motion",
+    "deep teal and amber accent",
+    "Johannesburg premium golf",
+    "data-led coaching",
+    "restrained negative space"
   ],
-
   "negative_prompts": [
-    "TODO: list of things the model must never produce for this brand",
-    "Examples (delete and replace): white seamless backgrounds, stock-photo smiles, generic golf landscape, cartoon illustration, watermarks, AI-fingerprint artefacts"
+    "white seamless backgrounds",
+    "stock-photo smiles",
+    "generic golf landscape",
+    "neon cyber-golf",
+    "Canva template aesthetic",
+    "watermarks and model-rendered text"
   ],
-
-  "archetype_preference": {
-    "_note": "Which archetypes the brand leans into most. The image gen will prefer these when no archetype is specified. Keys are archetype IDs from visual-spec/archetypes.json.",
-    "primary": "TODO: archetype_id (e.g. 'square-post-v1')",
-    "secondary": "TODO: archetype_id (e.g. 'story-banner')"
+  "copy_split": {
+    "on_image": "hook, stat, or proof — numbers-led only",
+    "caption": "written separately; must not duplicate overlay copy"
   },
-
+  "market": {
+    "distance_units": "metres",
+    "pricing": "never invent prices or offers in generated imagery"
+  },
+  "archetype_preference": {
+    "primary": "square-post-v1",
+    "secondary": "story-banner"
+  },
   "subject_bias": {
-    "_note": "Bias the model toward certain subjects (golf clubs, swing, sim bay, member moments, data) over others.",
     "lean_toward": [
-      "TODO: 3-5 subjects to lean toward",
-      "Examples: TrackMan launch monitor, mid-swing, club head close-up, sim bay, JHB skyline"
+      "TrackMan launch monitor and bay",
+      "mid-swing and coach beside screen",
+      "club-head detail with side light",
+      "sim bay interior Johannesburg"
     ],
     "lean_away": [
-      "TODO: 3-5 subjects to avoid",
-      "Examples: generic golf course landscape, lone golfer posed at sunset, stock-photo studio"
+      "generic sunset course landscape",
+      "posed trophy shots",
+      "entertainment-bar neon golf"
     ]
-  },
-
-  "typography_in_image": {
-    "_note": "How text appears IN generated images (NOT in posts — that's a separate layer).",
-    "all_caps_headings": "TODO: true / false",
-    "heading_weight": "TODO: e.g. 'bold' / 'heavy' / 'black'",
-    "preferred_fonts": "TODO: e.g. 'Avenir Next Heavy Italic, GT Walsheim'",
-    "rule": "TODO: e.g. 'amber thin rule above quote text'"
-  },
-
-  "_todos_for_christelle": [
-    "1. Replace the TODO values in 'look_and_feel_keywords' with the real 5-10 adjectives that describe Swing Shack imagery",
-    "2. Replace TODO in 'negative_prompts' with the real list of things the model should never produce",
-    "3. Set 'archetype_preference.primary' and 'secondary' to the IDs of the 2 archetypes you use most (look in visual-spec/archetypes.json)",
-    "4. Fill in 'subject_bias.lean_toward' and 'lean_away' — what we want more of, what we want less of",
-    "5. Set 'typography_in_image' rules so the model knows how to lay out text when it includes any",
-    "6. Set '_placeholder' to false when done. Once false, the brand_dna layer will use the bible as the hard creative direction",
-    "7. Bump 'version' (e.g. to '1.0' or '1.0.0') so the nightshift knows to re-validate"
-  ]
+  }
 }

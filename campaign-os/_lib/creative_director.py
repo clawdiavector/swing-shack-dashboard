@@ -44,6 +44,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -121,6 +123,25 @@ BRAND_EXCLUSIONS = {
 }
 
 
+_PROMPT_MIN_CHARS = 400
+_PROMPT_MAX_CHARS = 1200
+_SECTION_ORDER = (
+    "JOB",
+    "BRAND",
+    "SUBJECT",
+    "REFERENCE",
+    "PRODUCT",
+    "COMPOSITION",
+    "LIGHTING",
+    "CAMERA",
+    "OUTPUT STYLE",
+    "NEGATIVE",
+)
+_OUTPUT_STYLE_DEFAULT = (
+    "photograph, no text, no logo, no watermark, no UI"
+)
+
+
 def compose_prompt(
     *,
     brand_id: str,
@@ -136,6 +157,9 @@ def compose_prompt(
     camera: Optional[str] = None,
     output_style: Optional[str] = None,
     format_aspect: Optional[str] = None,
+    angle: Optional[str] = None,
+    pillar_name: Optional[str] = None,
+    calendar_title: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Compose a structured master prompt + negative from brand context.
 
@@ -149,67 +173,67 @@ def compose_prompt(
     # 1) Brand context — read the bible + palette + archetypes
     brand_ctx = _load_brand_context(brand_id)
 
-    # 2) Section assembly — each block contributes only if non-empty
-    sections = []
+    sections: list[dict[str, str]] = []
 
-    # Section 1: Job
-    if job:
+    if job and job.strip():
         sections.append({"key": "JOB", "content": f"You are creating: {job.strip()}"})
-    # Section 2: Brand
+
     brand_block = _build_brand_block(brand_ctx, brand_id)
-    if brand_block:
+    if brand_block.strip():
         sections.append({"key": "BRAND", "content": brand_block})
-    # Section 3: Subject
-    if subject:
-        sections.append({"key": "SUBJECT", "content": f"Hero subject: {subject.strip()}"})
-    # Section 4: Reference relationship
+
+    subject_block = _build_subject_block(
+        subject=subject,
+        angle=angle,
+        pillar_name=pillar_name,
+        calendar_title=calendar_title,
+        brand_ctx=brand_ctx,
+        human_direction=human_direction,
+        environment=environment,
+        material_texture=material_texture,
+    )
+    if subject_block.strip():
+        sections.append({"key": "SUBJECT", "content": subject_block})
+
     if reference_dna:
         ref_block = _build_reference_block(reference_dna)
-        if ref_block:
-            sections.append({"key": "REFERENCE_RELATIONSHIP", "content": ref_block})
-    # Section 5: Preserve block (product fidelity)
+        if ref_block.strip():
+            sections.append({"key": "REFERENCE", "content": ref_block})
+
     if product_service_item:
-        preserve_block = build_preserve_block(product_service_item)
-        sections.append({"key": "PRESERVE", "content": preserve_block})
-    # Section 6: Composition
+        product_block = build_preserve_block(product_service_item)
+        if product_block.strip():
+            sections.append({"key": "PRODUCT", "content": product_block})
+
+    comp_content = ""
     if composition:
-        comp = "; ".join(f"{k}: {v}" for k, v in composition.items() if v)
-        if comp:
-            sections.append({"key": "COMPOSITION", "content": comp})
-    elif not composition:
-        sections.append({"key": "COMPOSITION", "content": _default_composition(brand_ctx)})
-    # Section 7: Environment
-    if environment:
-        sections.append({"key": "ENVIRONMENT", "content": environment.strip()})
-    # Section 8: Lighting
-    if lighting:
-        sections.append({"key": "LIGHTING", "content": lighting.strip()})
-    else:
-        sections.append({"key": "LIGHTING", "content": _default_lighting(brand_ctx)})
-    # Section 9: Material/texture
-    if material_texture:
-        sections.append({"key": "MATERIAL", "content": material_texture.strip()})
-    # Section 10: Human direction
-    if human_direction:
-        sections.append({"key": "HUMAN", "content": human_direction.strip()})
-    # Section 11: Camera
-    if camera:
+        comp_content = "; ".join(f"{k}: {v}" for k, v in composition.items() if v)
+    if not comp_content:
+        comp_content = _default_composition(brand_ctx)
+    if comp_content.strip():
+        sections.append({"key": "COMPOSITION", "content": comp_content})
+
+    light_content = (lighting or "").strip() or _default_lighting(brand_ctx)
+    if light_content:
+        sections.append({"key": "LIGHTING", "content": light_content})
+
+    if camera and camera.strip():
         sections.append({"key": "CAMERA", "content": camera.strip()})
-    # Section 12: Output style
-    if output_style:
-        sections.append({"key": "OUTPUT STYLE", "content": output_style.strip()})
-    # Section 13: Format
-    if format_aspect:
-        sections.append({"key": "FORMAT", "content": format_aspect.strip()})
 
-    master_prompt = "\n\n".join(f"[{s['key']}]\n{s['content']}" for s in sections)
+    out_style = (output_style or _OUTPUT_STYLE_DEFAULT).strip()
+    sections.append({"key": "OUTPUT STYLE", "content": out_style})
 
-    # Build negative prompt
     negative_prompt = build_negative_prompt(
         brand_id=brand_id,
         reference_dna=reference_dna,
         product_service_item=product_service_item,
+        brand_ctx=brand_ctx,
     )
+    if negative_prompt.strip():
+        sections.append({"key": "NEGATIVE", "content": negative_prompt})
+
+    sections = _order_sections(sections)
+    master_prompt, sections = _fit_master_prompt_length(sections, brand_ctx)
 
     # Model routing — pick based on the job's capability requirements
     requirements = _infer_requirements(
@@ -267,6 +291,7 @@ def build_negative_prompt(
     brand_id: str,
     reference_dna: Optional[dict] = None,
     product_service_item: Optional[dict] = None,
+    brand_ctx: Optional[dict] = None,
 ) -> str:
     """Compose the negative prompt from global + brand + product + reference rules.
 
@@ -277,6 +302,10 @@ def build_negative_prompt(
     """
     parts = list(GLOBAL_NEGATIVES) + list(GOLF_NEGATIVES)
     parts.extend(BRAND_EXCLUSIONS.get(brand_id, []))
+    bible = (brand_ctx or {}).get("bible") or {}
+    for item in bible.get("anti_patterns") or bible.get("negative_prompts") or []:
+        if isinstance(item, str) and item.strip():
+            parts.append(item.strip())
     if reference_dna:
         parts.append("do not copy the exact reference pixel-for-pixel")
         parts.append("do not reuse the exact same composition as the reference")
@@ -495,25 +524,35 @@ def _infer_requirements(
 
 
 # ── Brand context loader (filesystem, read-only) ────────────────────
+def _data_root() -> Path:
+    candidates: list[Path] = []
+    bundled = os.environ.get("BUNDLED_DATA_DIR")
+    if bundled:
+        candidates.append(Path(bundled))
+    candidates.append(Path(os.environ.get("DATA_DIR") or "/data/campaign-os"))
+    repo_data = Path(__file__).resolve().parents[2] / "data"
+    candidates.append(repo_data)
+    for base in candidates:
+        if base.exists():
+            return base
+    return candidates[0]
+
+
 def _load_brand_context(brand_id: str) -> dict:
-    """Load brand bible + palette + archetypes from data/brand-directory."""
-    candidates = [
-        Path(f"/data/campaign-os/brand-directory/{brand_id}/bible-visual.json"),
-        Path(f"/data/campaign-os/brand-directory/{brand_id}/palette/brand.json"),
-        Path(f"/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/brand-directory/{brand_id}/bible-visual.json"),
-    ]
+    """Load brand bible + palette from data/brand-directory (no placeholder skip)."""
+    root = _data_root() / "brand-directory" / brand_id
     ctx: dict = {"brand_id": brand_id, "bible": {}, "palette": {}, "archetypes": []}
-    for path in candidates:
-        if path.exists() and "bible" in path.name:
-            try:
-                ctx["bible"] = json.loads(path.read_text())
-                break
-            except Exception:
-                continue
-    palette_path = next((c for c in candidates if "palette" in c.name), None)
-    if palette_path and palette_path.exists():
+    bible_path = root / "bible-visual.json"
+    if bible_path.is_file():
         try:
-            ctx["palette"] = json.loads(palette_path.read_text())
+            ctx["bible"] = json.loads(bible_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    palette_path = root / "palette" / "brand.json"
+    if palette_path.is_file():
+        try:
+            raw = json.loads(palette_path.read_text(encoding="utf-8"))
+            ctx["palette"] = raw.get("palette", raw) if isinstance(raw, dict) else {}
         except Exception:
             pass
     return ctx
@@ -524,14 +563,23 @@ def _build_brand_block(brand_ctx: dict, brand_id: str) -> str:
     parts = []
     bible = brand_ctx.get("bible", {})
     palette = brand_ctx.get("palette", {})
-    if not bible.get("_placeholder"):
-        vp = bible.get("visual_philosophy", "")
-        if vp:
-            parts.append(f"Visual philosophy: {vp}")
-        kw = bible.get("look_and_feel_keywords", [])
-        kw_real = [k for k in kw if not str(k).lower().startswith("todo")]
-        if kw_real:
-            parts.append(f"Look + feel: {', '.join(kw_real[:10])}")
+    phil = bible.get("philosophy") or bible.get("visual_philosophy") or ""
+    if phil:
+        parts.append(f"Philosophy: {phil}")
+    rules = bible.get("composition_rules") or []
+    rule_lines = [r for r in rules if isinstance(r, str) and r.strip()]
+    if rule_lines:
+        parts.append("Composition rules: " + "; ".join(rule_lines[:6]))
+    people = bible.get("people_policy")
+    if isinstance(people, str) and people.strip():
+        parts.append(f"People: {people.strip()}")
+    text_pol = bible.get("text_policy")
+    if isinstance(text_pol, str) and text_pol.strip():
+        parts.append(f"Text: {text_pol.strip()}")
+    kw = bible.get("look_and_feel_keywords", [])
+    kw_real = [k for k in kw if not str(k).lower().startswith("todo")]
+    if kw_real:
+        parts.append(f"Look + feel: {', '.join(kw_real[:10])}")
     # palette
     colors = []
     if isinstance(palette, dict):
@@ -561,6 +609,140 @@ def _default_lighting(brand_ctx: dict) -> str:
         "Single overhead light or soft directional side-light. "
         "No flat studio white, no harsh blown highlights."
     )
+
+
+def _build_subject_block(
+    *,
+    subject: Optional[str],
+    angle: Optional[str],
+    pillar_name: Optional[str],
+    calendar_title: Optional[str],
+    brand_ctx: dict,
+    human_direction: Optional[str],
+    environment: Optional[str],
+    material_texture: Optional[str],
+) -> str:
+    """Expand calendar angle into who / action / gear / setting."""
+    lines: list[str] = []
+    if subject and subject.strip():
+        lines.append(f"Hero: {subject.strip()}")
+    who = _infer_subject_field(angle, ("golfer", "coach", "member", "player", "fitter", "instructor"))
+    action = _infer_subject_field(angle, ("mid-swing", "swing", "session", "fitting", "coaching", "celebrating"))
+    gear = _infer_subject_field(angle, ("TrackMan", "driver", "iron", "club", "monitor", "simulator", "bay"))
+    setting = _infer_subject_field(angle, ("indoor", "studio", "bay", "sim", "Johannesburg", "venue"))
+    if calendar_title:
+        lines.append(f"Moment: {calendar_title.strip()}")
+    if pillar_name:
+        lines.append(f"Pillar: {pillar_name.strip()}")
+    if angle and angle.strip():
+        lines.append(f"Angle: {angle.strip()}")
+    if who:
+        lines.append(f"Who: {who}")
+    if action:
+        lines.append(f"Action: {action}")
+    if gear:
+        lines.append(f"Gear: {gear}")
+    if setting:
+        lines.append(f"Setting: {setting}")
+    if environment and environment.strip():
+        lines.append(f"Environment: {environment.strip()}")
+    if material_texture and material_texture.strip():
+        lines.append(f"Materials: {material_texture.strip()}")
+    if human_direction and human_direction.strip():
+        lines.append(f"Human direction: {human_direction.strip()}")
+    bible = brand_ctx.get("bible") or {}
+    bias = bible.get("subject_bias") or {}
+    toward = bias.get("lean_toward") or []
+    if isinstance(toward, list) and toward:
+        lines.append("Lean toward: " + ", ".join(str(t) for t in toward[:4]))
+    return "\n".join(lines)
+
+
+def _infer_subject_field(angle: Optional[str], keywords: tuple[str, ...]) -> str:
+    if not angle:
+        return ""
+    low = angle.lower()
+    hits = [k for k in keywords if k.lower() in low]
+    if hits:
+        return ", ".join(hits[:4])
+    return ""
+
+
+def _order_sections(sections: list[dict[str, str]]) -> list[dict[str, str]]:
+    order_index = {k: i for i, k in enumerate(_SECTION_ORDER)}
+    return sorted(sections, key=lambda s: order_index.get(s["key"], 99))
+
+
+def _assemble_master_prompt(sections: list[dict[str, str]]) -> str:
+    blocks = []
+    for sec in sections:
+        content = (sec.get("content") or "").strip()
+        if content:
+            blocks.append(f"[{sec['key']}]\n{content}")
+    return "\n\n".join(blocks)
+
+
+def _sections_from_master(master_prompt: str) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    for chunk in re.split(r"\n\n(?=\[)", master_prompt.strip()):
+        chunk = chunk.strip()
+        if not chunk.startswith("["):
+            continue
+        m = re.match(r"\[([^\]]+)\]\n(.*)", chunk, re.DOTALL)
+        if m:
+            out.append({"key": m.group(1), "content": m.group(2).strip()})
+    return _order_sections(out)
+
+
+def _fit_master_prompt_length(
+    sections: list[dict[str, str]],
+    brand_ctx: dict,
+) -> tuple[str, list[dict[str, str]]]:
+    working = _order_sections([dict(s) for s in sections])
+
+    def _rebuild() -> str:
+        return _assemble_master_prompt(working)
+
+    master = _rebuild()
+
+    if len(master) < _PROMPT_MIN_CHARS:
+        pad = (
+            "35mm prime lens, shallow depth of field, subtle grain, "
+            "premium sports campaign framing, overlay-safe margins."
+        )
+        cam = next((s for s in working if s["key"] == "CAMERA"), None)
+        if cam:
+            cam["content"] = f"{cam['content']} {pad}".strip()
+        else:
+            working.append({"key": "CAMERA", "content": pad})
+        comp = next((s for s in working if s["key"] == "COMPOSITION"), None)
+        if comp:
+            comp["content"] = (
+                f"{comp['content']} Reserve upper third for headline overlay; "
+                "subject in lower two-thirds."
+            )
+        working = _order_sections(working)
+        master = _rebuild()
+
+    trim_targets = ("NEGATIVE", "SUBJECT", "BRAND", "COMPOSITION", "LIGHTING")
+    while len(master) > _PROMPT_MAX_CHARS:
+        trimmed = False
+        for key in trim_targets:
+            sec = next((s for s in working if s["key"] == key), None)
+            if not sec or len(sec["content"]) <= 80:
+                continue
+            sec["content"] = sec["content"][: max(80, len(sec["content"]) * 2 // 3)].rstrip(" ,;")
+            trimmed = True
+            break
+        if not trimmed:
+            break
+        working = _order_sections(working)
+        master = _rebuild()
+
+    if len(master) > _PROMPT_MAX_CHARS:
+        master = master[:_PROMPT_MAX_CHARS].rstrip()
+
+    return master, working
 
 
 def _build_reference_block(reference_dna: dict) -> str:
