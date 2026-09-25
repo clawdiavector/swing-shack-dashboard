@@ -1,5 +1,5 @@
 import { BookMarked, Inbox, RotateCcw, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { BrandChip } from '../components/BrandChip'
 import { useBrandScope } from '../components/BrandSwitch'
 import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
@@ -21,7 +21,6 @@ import {
 } from '../lib/inboxCandidates'
 import { sumCounts } from '../lib/mergeCounts'
 import { useLoadGate } from '../lib/useLoadGate'
-import { postFlagLabel } from '../lib/postingWeek'
 import { formatStamp } from '../lib/stamp'
 
 function sourceLabel(tag: string): string {
@@ -29,6 +28,26 @@ function sourceLabel(tag: string): string {
   if (tag === 'operator') return 'Operator'
   if (tag === 'interpreter') return 'Interpreter'
   return 'Scout'
+}
+
+function displayField(value?: string | null): string {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : '—'
+}
+
+function CandidateLabelRow({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
+      <span className="shrink-0 text-tx3">{label}:</span>
+      <span className="min-w-0 text-tx">{children}</span>
+    </div>
+  )
 }
 
 function CandidateCard({
@@ -81,53 +100,42 @@ function CandidateCard({
   return (
     <li className="rounded-2xl border border-bd bg-bg-2/40 px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="font-display text-lg font-semibold leading-snug">{item.title}</p>
-          <p className="text-sm text-tx2">{item.summary || '—'}</p>
+        <div className="min-w-0 space-y-2">
+          <div className="space-y-1">
+            <CandidateLabelRow label="Title">{displayField(item.title)}</CandidateLabelRow>
+            <CandidateLabelRow label="Pillar">{displayField(item.meta?.pillar)}</CandidateLabelRow>
+            <CandidateLabelRow label="Angle">{displayField(item.meta?.angle)}</CandidateLabelRow>
+            <CandidateLabelRow label="Why">
+              {displayField(item.meta?.relevance_reason)}
+            </CandidateLabelRow>
+            <CandidateLabelRow label="Go-live">
+              <input
+                type="date"
+                value={dateVal}
+                onChange={(e) => setDateVal(e.target.value)}
+                onBlur={() => void saveFields()}
+                className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
+              />
+            </CandidateLabelRow>
+            <CandidateLabelRow label="Channel">
+              <select
+                value={channel}
+                onChange={(e) => setChannel(e.target.value)}
+                onBlur={() => void saveFields()}
+                className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
+              >
+                <option value="instagram">instagram</option>
+                <option value="facebook">facebook</option>
+                <option value="gbp">gbp</option>
+              </select>
+            </CandidateLabelRow>
+          </div>
           <div className="flex flex-wrap gap-2 text-xs">
             <BrandChip brandId={item.brand_id} show={showBrandChip} />
-            {item.meta?.event_date ? (
-              <Badge tone="gold">{item.meta.event_date}</Badge>
-            ) : (
-              <Badge tone="gold">No date</Badge>
-            )}
-            {item.meta?.primary_channel ? (
-              <Badge tone="mute">{item.meta.primary_channel}</Badge>
-            ) : null}
             <Badge tone="mute">{sourceLabel(source)}</Badge>
-            {flags.map((f) => (
-              <span key={f} className="text-tx3">
-                {postFlagLabel(f)}
-              </span>
-            ))}
           </div>
           <p className="text-xs text-tx3">Created {formatStamp(item.created_at)}</p>
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-bd pt-3">
-        <label className="text-xs text-tx3">
-          Go-live
-          <input
-            type="date"
-            value={dateVal}
-            onChange={(e) => setDateVal(e.target.value)}
-            onBlur={() => void saveFields()}
-            className="ml-1 rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
-          />
-        </label>
-        <label className="text-xs text-tx3">
-          Channel
-          <select
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
-            onBlur={() => void saveFields()}
-            className="ml-1 rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
-          >
-            <option value="instagram">instagram</option>
-            <option value="facebook">facebook</option>
-            <option value="gbp">gbp</option>
-          </select>
-        </label>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <Tip text={noLodge ? 'Set a go-live date before lodging.' : 'Book the moment and queue caption + image.'}>

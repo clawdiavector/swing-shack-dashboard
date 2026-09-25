@@ -72,6 +72,9 @@ export type InboxItem = {
     source_type?: string
     created_by?: string
     calendar_id?: string
+    pillar?: string
+    angle?: string
+    relevance_reason?: string
   }
 }
 

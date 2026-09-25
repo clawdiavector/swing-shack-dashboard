@@ -358,6 +358,18 @@ def _actions_for_candidate(flags: list[str]) -> list[str]:
     return actions
 
 
+def _calendar_record_angle(record: dict[str, Any]) -> str | None:
+    angle = record.get("angle")
+    if angle is not None and str(angle).strip():
+        return str(angle).strip()
+    suggested = record.get("suggested_angles")
+    if isinstance(suggested, list):
+        for item in suggested:
+            if item is not None and str(item).strip():
+                return str(item).strip()
+    return None
+
+
 def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
     from _lib.marketing_calendar import VALID_BRAND_IDS, canonical_records  # noqa: PLC0415
 
@@ -394,6 +406,8 @@ def _calendar_items(*, brand: str | None, status: str, now: datetime) -> list[di
                 "meta": {
                     "calendar_id": cal_id,
                     "pillar": record.get("pillar"),
+                    "angle": _calendar_record_angle(record),
+                    "relevance_reason": record.get("relevance_reason"),
                     "event_start": record.get("event_start") or record.get("event_window_start"),
                     "event_date": go_live,
                     "primary_channel": record.get("primary_channel"),
