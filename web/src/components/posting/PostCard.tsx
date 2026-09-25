@@ -177,7 +177,7 @@ export function PostCard({
     </div>
   )
 
-  const shell = `rounded-2xl border bg-bg-2/40 px-3 py-3 md:px-4 ${
+  const shell = `rounded-2xl border bg-bg-2 px-3 py-3 md:px-4 ${
     isCandidate ? 'border-dashed border-bd' : 'border-bd'
   } ${isHoliday ? 'opacity-75' : ''}`
 

@@ -304,8 +304,8 @@ export function QueueItem({
 }: {
   to?: string
   tip?: string
-  badge: string
-  tone: 'gold' | 'green' | 'blue' | 'mute'
+  badge?: string
+  tone?: 'gold' | 'green' | 'blue' | 'mute'
   channelBadge?: string
   channelTone?: 'gold' | 'green' | 'blue' | 'mute'
   title: string
@@ -324,8 +324,8 @@ export function QueueItem({
     setThumbBroken(false)
   }, [thumb])
   const when = dateOnly ? formatDateStamp(stamp) : formatStamp(stamp)
-  const showBadge = thumbBroken ? 'No image' : badge
-  const showTone = thumbBroken ? ('mute' as const) : tone
+  const showBadge = thumbBroken ? 'No image' : badge || undefined
+  const showTone = thumbBroken ? ('mute' as const) : tone || 'mute'
   const thumbNode = thumb ? (
     <QueueItemThumb
       src={thumb}
@@ -339,7 +339,7 @@ export function QueueItem({
       {thumbNode}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={showTone}>{showBadge}</Badge>
+          {showBadge ? <Badge tone={showTone}>{showBadge}</Badge> : null}
           {channelBadge ? (
             <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
           ) : null}

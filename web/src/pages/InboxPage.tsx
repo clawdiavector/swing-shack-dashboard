@@ -81,86 +81,82 @@ function CandidateCard({
   }
 
   return (
-    <li className="rounded-2xl border border-bd bg-bg-2/40 px-4 py-3">
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
-              {item.title?.trim() ?? ''}
-            </h3>
-            {angle ? (
-              <p className="mt-0.5 text-sm text-tx2 line-clamp-1">{angle}</p>
-            ) : null}
-            {relevanceReason ? (
-              <p className="mt-0.5 text-sm text-tx3 line-clamp-2">{relevanceReason}</p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <BrandChip brandId={item.brand_id} show={showBrandChip} />
-              {pillar ? <Badge tone="mute">{pillar}</Badge> : null}
-              <Badge tone="mute">{sourceLabel(source)}</Badge>
+    <li className="rounded-2xl border border-bd bg-bg-2 px-4 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-base font-semibold text-tx line-clamp-2">
+            {item.title?.trim() ?? ''}
+          </h3>
+          {pillar ? (
+            <div className="mt-1">
+              <Badge tone="mute">{pillar}</Badge>
             </div>
-            <p className="text-right text-xs text-tx3">
-              Created {formatStamp(item.created_at)}
-            </p>
-          </div>
+          ) : null}
+          {angle ? (
+            <p className="mt-1 text-xs text-tx3 line-clamp-1">{angle}</p>
+          ) : null}
+          {relevanceReason ? (
+            <p className="mt-0.5 text-xs text-tx3 line-clamp-2">{relevanceReason}</p>
+          ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <label className="flex items-center gap-2">
-            <span className="text-xs text-tx3">Go-live</span>
-            <input
-              type="date"
-              value={dateVal}
-              onChange={(e) => setDateVal(e.target.value)}
-              onBlur={() => void saveFields()}
-              className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            <span className="text-xs text-tx3">Channel</span>
-            <select
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              onBlur={() => void saveFields()}
-              className="rounded-lg border border-bd bg-bg px-2 py-1 text-sm text-tx"
-            >
-              <option value="instagram">instagram</option>
-              <option value="facebook">facebook</option>
-              <option value="gbp">gbp</option>
-            </select>
-          </label>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Tip text={noLodge ? 'Set a go-live date before lodging.' : 'Book the moment and queue caption + image.'}>
-              <button
-                type="button"
-                disabled={busy === item.id || noLodge}
-                onClick={() => void act('lodge')}
-                className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-40"
-              >
-                <Inbox className="h-4 w-4" strokeWidth={2.5} />
-                Lodge
-              </button>
-            </Tip>
-            <button
-              type="button"
-              disabled={busy === item.id}
-              onClick={() => void act('book')}
-              className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
-            >
-              <BookMarked className="h-4 w-4" strokeWidth={2} />
-              Book only
-            </button>
-            <button
-              type="button"
-              disabled={busy === item.id}
-              onClick={() => void act('reject')}
-              className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
-            >
-              <X className="h-4 w-4" />
-              Reject
-            </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <BrandChip brandId={item.brand_id} show={showBrandChip} />
+            <Badge tone="mute">{sourceLabel(source)}</Badge>
           </div>
+          <p className="text-right text-xs text-tx3">Created {formatStamp(item.created_at)}</p>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-bd pt-2">
+        <input
+          type="date"
+          value={dateVal}
+          onChange={(e) => setDateVal(e.target.value)}
+          onBlur={() => void saveFields()}
+          className="rounded-full border border-bd bg-bg px-3 py-1 text-xs text-tx"
+          aria-label="Go-live date"
+        />
+        <select
+          value={channel}
+          onChange={(e) => setChannel(e.target.value)}
+          onBlur={() => void saveFields()}
+          className="rounded-full border border-bd bg-bg px-3 py-1 text-xs text-tx"
+          aria-label="Channel"
+        >
+          <option value="instagram">instagram</option>
+          <option value="facebook">facebook</option>
+          <option value="gbp">gbp</option>
+        </select>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Tip text={noLodge ? 'Set a go-live date before lodging.' : 'Book the moment and queue caption + image.'}>
+            <button
+              type="button"
+              disabled={busy === item.id || noLodge}
+              onClick={() => void act('lodge')}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ac px-3 py-1.5 text-sm font-semibold text-bg disabled:opacity-40"
+            >
+              <Inbox className="h-4 w-4" strokeWidth={2.5} />
+              Lodge
+            </button>
+          </Tip>
+          <button
+            type="button"
+            disabled={busy === item.id}
+            onClick={() => void act('book')}
+            className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
+          >
+            <BookMarked className="h-4 w-4" strokeWidth={2} />
+            Book only
+          </button>
+          <button
+            type="button"
+            disabled={busy === item.id}
+            onClick={() => void act('reject')}
+            className="inline-flex items-center gap-1 rounded-full border border-bd px-3 py-1.5 text-sm font-semibold text-tx2"
+          >
+            <X className="h-4 w-4" />
+            Reject
+          </button>
         </div>
       </div>
       {err ? <p className="mt-2 text-sm text-red">{err}</p> : null}

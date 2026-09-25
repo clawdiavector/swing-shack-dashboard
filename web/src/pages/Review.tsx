@@ -199,12 +199,18 @@ function ReviewInbox({
             const kind = reviewType(item.type).label
             const channel = inboxChannelLabel(item)
             const goesOut = inboxGoesOutIso(item)
+            const queueBadge =
+              item.sla_state === 'stale'
+                ? { badge: 'stale' as const, tone: 'gold' as const }
+                : media.id === 'has-image'
+                  ? { badge: undefined, tone: 'mute' as const }
+                  : { badge: media.label, tone: media.tone }
             return (
               <QueueItem
                 key={item.id}
                 to={reviewPiecePath(item.id, item.brand_id)}
-                badge={item.sla_state === 'stale' ? 'stale' : media.label}
-                tone={item.sla_state === 'stale' ? 'gold' : media.tone}
+                badge={queueBadge.badge}
+                tone={queueBadge.tone}
                 channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
                 meta={[kind, !isAll ? item.brand_id : null, item.meta?.caption?.slice(0, 70)]
@@ -216,7 +222,7 @@ function ReviewInbox({
                 dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={item.title || item.id}
-                thumbClassName="h-20 w-20 shrink-0 rounded-xl border border-bd object-cover"
+                thumbClassName="h-32 w-32 shrink-0 rounded-xl border border-bd object-cover"
                 action={
                   <Tip text="Mark this approved. It will not go live.">
                     <button
