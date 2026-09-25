@@ -63,6 +63,7 @@ export const POST_FLAG_LABELS: Record<PostFlag, string> = {
 
 export type PostingWeekPost = {
   calendar_id: string
+  brand_id?: string
   title: string
   primary_channel?: string | null
   source_type?: string | null

@@ -9,6 +9,7 @@ import {
   fetchCalendarMonth,
   fetchInboxItem,
   fetchProductLineItems,
+  reviewPiecePath,
   postJson,
   type CalendarItem,
   type ProductLineItem,
@@ -228,7 +229,7 @@ export function BuildPost() {
       let resolvedAsset = assetParam || ''
       if (titleParam) setIdeaText((prev) => prev || titleParam)
       if (itemId) {
-        const item = await fetchInboxItem(itemId)
+        const item = await fetchInboxItem(itemId, scopeBrand || undefined)
         if (cancelled) return
         if (item) {
           if (item.meta?.campaign_id) resolvedCampaign = item.meta.campaign_id
@@ -503,7 +504,7 @@ export function BuildPost() {
           {itemId ? (
             <p className="text-xs text-tx3">
               Inbox item:{' '}
-              <Link to={`/review/${encodeURIComponent(itemId)}`} className="text-ac hover:text-yel">
+              <Link to={reviewPiecePath(itemId, scopeBrand || undefined)} className="text-ac hover:text-yel">
                 {itemId}
               </Link>
             </p>

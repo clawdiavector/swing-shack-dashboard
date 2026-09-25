@@ -429,11 +429,16 @@ export function matchInboxItem(item: InboxItem, id: string) {
 }
 
 export async function fetchInboxItem(id: string, brand?: string) {
-  const pending = await fetchInbox('pending', brand)
-  const fromPending = (pending.items || []).find((item) => matchInboxItem(item, id))
-  if (fromPending) return fromPending
   const all = await fetchInbox('all', brand)
   return (all.items || []).find((item) => matchInboxItem(item, id)) || null
+}
+
+/** Review piece route — carry brand so all-brands inbox lookups stay scoped. */
+export function reviewPiecePath(itemId: string, brandId?: string | null): string {
+  const base = `/review/${encodeURIComponent(itemId)}`
+  const brand = (brandId || '').trim()
+  if (!brand) return base
+  return `${base}?brand=${encodeURIComponent(brand)}`
 }
 
 export function fetchLayers(brand?: string) {
@@ -558,6 +563,36 @@ export function fetchAgentQueue(opts?: {
   if (opts?.limit != null) q.set('limit', String(opts.limit))
   const suffix = q.toString() ? `?${q}` : ''
   return getJson<QueuePayload>(`/api/ops/agent-queue${suffix}`)
+}
+
+export type BrandImagesToday = {
+  ok?: boolean
+  brand_id?: string
+  images_today: number
+  cap: number
+  at_cap: boolean
+  error?: string
+}
+
+export function fetchBrandImagesToday(brandId: string) {
+  return getJson<BrandImagesToday>(`/api/ops/images-today/${encodeURIComponent(brandId)}`)
+}
+
+export type OpsQueueResult = {
+  ok?: boolean
+  id?: string
+  pending?: number
+  action?: string
+  error?: string
+  at_cap?: boolean
+}
+
+export function enqueueOpsQueue(body: {
+  item_id: string
+  action: 'draft_image'
+  dedupe_key: string
+}) {
+  return postJson<OpsQueueResult>('/api/ops/queue', body)
 }
 
 export type AccountConnect = {
@@ -1017,6 +1052,16 @@ export function inboxItemThumbUrl(item?: InboxItem | null): string {
   return resolveAssetUrl(raw)
 }
 
+/** Shared visual URL for inbox rows and the review piece hero. */
+export function resolvedInboxVisualUrl(
+  item?: InboxItem | null,
+  asset?: CampaignAsset | null,
+): string {
+  const fromAsset = assetVisualUrl(asset)
+  if (fromAsset) return fromAsset
+  return inboxItemThumbUrl(item)
+}
+
 export type InboxMediaTag = {
   id: 'has-image' | 'no-image' | 'no-brief'
   label: string
@@ -1038,8 +1083,16 @@ export function inboxGoesOutIso(item?: InboxItem | null): string | null {
   return s || null
 }
 
-export function inboxMediaTag(item?: InboxItem | null): InboxMediaTag {
-  if (inboxItemThumbUrl(item)) {
+export type InboxMediaTagOpts = {
+  asset?: CampaignAsset | null
+  visualBroken?: boolean
+}
+
+export function inboxMediaTag(item?: InboxItem | null, opts?: InboxMediaTagOpts): InboxMediaTag {
+  if (opts?.visualBroken) {
+    return { id: 'no-image', label: 'No image', tone: 'mute' }
+  }
+  if (resolvedInboxVisualUrl(item, opts?.asset)) {
     return { id: 'has-image', label: 'Has image', tone: 'green' }
   }
   const brief = String(item?.summary || item?.meta?.caption || '').trim()

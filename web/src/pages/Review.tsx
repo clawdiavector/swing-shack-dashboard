@@ -1,7 +1,9 @@
 import { Check, Inbox, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useBrand } from '../components/BrandSwitch'
+import { BrandChip } from '../components/BrandChip'
+import { useBrandScope } from '../components/BrandSwitch'
+import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { FilterChips, PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, StatCard, Tip } from '../components/ui'
 import {
@@ -11,16 +13,28 @@ import {
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
+  reviewPiecePath,
   type InboxItem,
 } from '../lib/api'
+import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
+import { sumCounts } from '../lib/mergeCounts'
 import { reviewType } from '../lib/reviewType'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
 
 function itemType(item: InboxItem) {
   return (item.type || 'item').toLowerCase()
 }
 
-function ReviewInbox({ brandId }: { brandId: string }) {
+function ReviewInbox({
+  brandId,
+  isAll,
+  brandIds,
+}: {
+  brandId: string
+  isAll: boolean
+  brandIds: string[]
+}) {
   const [items, setItems] = useState<InboxItem[]>([])
   const [pending, setPending] = useState<number | null>(null)
   const [stale, setStale] = useState<number | null>(null)
@@ -28,22 +42,49 @@ function ReviewInbox({ brandId }: { brandId: string }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
   const [filter, setFilter] = useState('all')
+  const [failures, setFailures] = useState<FanOutFailure[]>([])
+  const { trackLoad, waitForLoad } = useLoadGate()
 
   function load() {
-    fetchInbox('pending', brandId, 'draft_asset')
-      .then((payload) => {
-        setItems(payload.items || [])
-        setPending(payload.counts?.pending ?? payload.items?.length ?? 0)
-        setStale(payload.counts?.stale ?? 0)
-        setApproved(payload.counts?.approved_today ?? 0)
-      })
-      .catch((err: Error) => setError(err.message))
+    const run = async (): Promise<void> => {
+      setFailures([])
+      if (isAll) {
+        const { payloads, failures: fails } = await fanOutPayloads(brandIds, (bid) =>
+          fetchInbox('pending', bid, 'draft_asset'),
+        )
+        setFailures(fails)
+        const merged = payloads.flatMap(({ brandId: bid, payload }) =>
+          (payload.items || []).map((item) => ({
+            ...item,
+            brand_id: item.brand_id ?? bid,
+          })),
+        )
+        merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        setItems(merged)
+        const counts = sumCounts(payloads.map((p) => p.payload.counts))
+        setPending(counts.pending ?? merged.length)
+        setStale(counts.stale ?? 0)
+        setApproved(counts.approved_today ?? 0)
+        setError('')
+        return
+      }
+      fetchInbox('pending', brandId, 'draft_asset')
+        .then((payload) => {
+          setItems(payload.items || [])
+          setPending(payload.counts?.pending ?? payload.items?.length ?? 0)
+          setStale(payload.counts?.stale ?? 0)
+          setApproved(payload.counts?.approved_today ?? 0)
+        })
+        .catch((err: Error) => setError(err.message))
+    }
+    trackLoad(run())
   }
 
-  useEffect(load, [brandId])
+  useEffect(load, [brandId, isAll, brandIds, trackLoad])
 
   async function act(id: string, action: 'approve' | 'reject') {
     setBusy(id)
+    await waitForLoad()
     const result = await inboxAction(id, action)
     setBusy('')
     if (!result.ok) {
@@ -65,6 +106,7 @@ function ReviewInbox({ brandId }: { brandId: string }) {
 
   return (
     <div className="space-y-6">
+      <PartialBrandLoadStrip failures={failures} onRetry={load} />
       {error ? <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -96,8 +138,9 @@ function ReviewInbox({ brandId }: { brandId: string }) {
           <div className="min-w-0">
             <p className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">Next up</p>
             <p className="font-display text-lg font-semibold leading-snug">{first.title || first.summary}</p>
-            <p className="text-xs text-tx3">
-              {reviewType(first.type).label} · {first.brand_id || 'brand'} ·{' '}
+            <p className="flex flex-wrap items-center gap-2 text-xs text-tx3">
+              {reviewType(first.type).label}
+              <BrandChip brandId={first.brand_id} show={isAll} />
               {formatStamp(first.created_at)}
             </p>
           </div>
@@ -127,7 +170,7 @@ function ReviewInbox({ brandId }: { brandId: string }) {
               </button>
             </Tip>
             <Button
-              to={`/review/${encodeURIComponent(first.id)}`}
+              to={reviewPiecePath(first.id, first.brand_id)}
               icon={Inbox}
               tone="ghost"
               tip="Open this draft on its own page."
@@ -157,14 +200,15 @@ function ReviewInbox({ brandId }: { brandId: string }) {
             return (
               <QueueItem
                 key={item.id}
-                to={`/review/${encodeURIComponent(item.id)}`}
+                to={reviewPiecePath(item.id, item.brand_id)}
                 badge={item.sla_state === 'stale' ? 'stale' : media.label}
                 tone={item.sla_state === 'stale' ? 'gold' : media.tone}
                 channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
-                meta={[kind, item.brand_id, item.meta?.caption?.slice(0, 70)]
+                meta={[kind, !isAll ? item.brand_id : null, item.meta?.caption?.slice(0, 70)]
                   .filter(Boolean)
                   .join(' · ')}
+                footer={isAll ? <BrandChip brandId={item.brand_id} show /> : undefined}
                 stamp={goesOut || item.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}
@@ -202,8 +246,8 @@ function ReviewInbox({ brandId }: { brandId: string }) {
 }
 
 export function Review() {
-  const { brandId: activeBrand } = useBrand()
-  const brandId = activeBrand ?? 'swing-shack'
+  const { isAll, brandIds, scope } = useBrandScope()
+  const brandId = scope === 'all' ? 'swing-shack' : scope
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
@@ -230,7 +274,7 @@ export function Review() {
         .
       </PageIntro>
 
-      <ReviewInbox brandId={brandId} />
+      <ReviewInbox brandId={brandId} isAll={isAll} brandIds={brandIds} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { ExternalLink } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { toDesk } from '../lib/desk'
 import { formatDateStamp, formatStamp, stampLabel } from '../lib/stamp'
@@ -252,15 +252,29 @@ export function PageHeader({
   )
 }
 
-function QueueItemThumb({ src, alt }: { src: string; alt: string }) {
+function QueueItemThumb({
+  src,
+  alt,
+  onBroken,
+}: {
+  src: string
+  alt: string
+  onBroken?: () => void
+}) {
   const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    setHidden(false)
+  }, [src])
   if (hidden) return null
   return (
     <img
       src={src}
       alt={alt}
       loading="lazy"
-      onError={() => setHidden(true)}
+      onError={() => {
+        setHidden(true)
+        onBroken?.()
+      }}
       className="h-12 w-12 shrink-0 rounded-xl border border-bd object-cover"
     />
   )
@@ -299,14 +313,22 @@ export function QueueItem({
   thumb?: string
   thumbAlt?: string
 }) {
+  const [thumbBroken, setThumbBroken] = useState(false)
+  useEffect(() => {
+    setThumbBroken(false)
+  }, [thumb])
   const when = dateOnly ? formatDateStamp(stamp) : formatStamp(stamp)
-  const thumbNode = thumb ? <QueueItemThumb src={thumb} alt={thumbAlt || title} /> : null
+  const showBadge = thumbBroken ? 'No image' : badge
+  const showTone = thumbBroken ? ('mute' as const) : tone
+  const thumbNode = thumb ? (
+    <QueueItemThumb src={thumb} alt={thumbAlt || title} onBroken={() => setThumbBroken(true)} />
+  ) : null
   const body = (
     <>
       {thumbNode}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={tone}>{badge}</Badge>
+          <Badge tone={showTone}>{showBadge}</Badge>
           {channelBadge ? (
             <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
           ) : null}

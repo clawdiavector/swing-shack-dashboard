@@ -2,7 +2,8 @@ import { ImageIcon } from 'lucide-react'
 import { useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { inboxAction, releaseMoment } from '../../lib/api'
-import { useBrand } from '../BrandSwitch'
+import { BrandChip } from '../BrandChip'
+import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
   formatGoesOut,
   linkForPostState,
@@ -48,13 +49,18 @@ export function PostCard({
   dayDate,
   weekday,
   onRefresh,
+  waitForReads,
 }: {
   post: PostingWeekPost
   dayDate: string
   weekday: string
   onRefresh?: () => void
+  /** Plan §3.5 — await parent fan-out before lodge/release writes. */
+  waitForReads?: () => Promise<void>
 }) {
-  const { brandId } = useBrand()
+  const { brandId: focusBrandId } = useBrand()
+  const { isAll } = useBrandScope()
+  const rowBrandId = post.brand_id ?? focusBrandId ?? 'swing-shack'
   const [lodging, setLodging] = useState(false)
   const [releasing, setReleasing] = useState(false)
   const isCandidate = post.state === 'candidate'
@@ -70,6 +76,7 @@ export function PostCard({
     event.stopPropagation()
     if (!post.inbox_item_id || noDate) return
     setLodging(true)
+    await waitForReads?.()
     await inboxAction(post.inbox_item_id, 'approve', '', 'lodge')
     setLodging(false)
     onRefresh?.()
@@ -79,9 +86,9 @@ export function PostCard({
     event.preventDefault()
     event.stopPropagation()
     if (!post.calendar_id) return
-    const brand = brandId || 'swing-shack'
     setReleasing(true)
-    await releaseMoment(brand, post.calendar_id)
+    await waitForReads?.()
+    await releaseMoment(rowBrandId, post.calendar_id)
     setReleasing(false)
     onRefresh?.()
   }
@@ -104,6 +111,7 @@ export function PostCard({
       <PostCardThumb imageUrl={post.image_url} title={post.title} />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
+          <BrandChip brandId={rowBrandId} show={isAll} />
           <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
             {postStateLabel(post.state)}
           </span>

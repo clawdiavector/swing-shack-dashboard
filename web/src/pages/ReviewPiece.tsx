@@ -1,23 +1,31 @@
 import { ArrowLeft, Check, Pencil, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useBrand } from '../components/BrandSwitch'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BrandChip } from '../components/BrandChip'
+import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, Tip } from '../components/ui'
 import {
-  assetVisualUrl,
+  enqueueOpsQueue,
+  fetchBrandImagesToday,
   fetchCampaign,
   fetchInbox,
   fetchInboxItem,
   inboxAction,
   inboxChannelLabel,
+  inboxEdit,
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
+  resolvedInboxVisualUrl,
+  reviewPiecePath,
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
+import { ReviewPieceDetail } from './ReviewPieceDetail'
+import { fanOutPayloads } from '../lib/fanOut'
 import { reviewType } from '../lib/reviewType'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
 
@@ -29,7 +37,7 @@ function studioTo(item: InboxItem) {
     asset,
     campaign,
     title: item.title || item.summary,
-    from: `/review/${encodeURIComponent(item.id)}`,
+    from: reviewPiecePath(item.id, item.brand_id),
   }
   if (item.type === 'publish_request') return toolTo('publish', extra)
   if (item.type === 'calendar_candidate') return toolTo('calendar', extra)
@@ -38,9 +46,13 @@ function studioTo(item: InboxItem) {
 
 export function ReviewPiece() {
   const { brandId } = useBrand()
+  const { isAll, brandIds, scope } = useBrandScope()
   const { itemId = '' } = useParams()
   const id = decodeURIComponent(itemId)
+  const [searchParams] = useSearchParams()
+  const routeBrand = searchParams.get('brand')?.trim() || undefined
   const navigate = useNavigate()
+  const brandIdsKey = brandIds.join(',')
   const [item, setItem] = useState<InboxItem | null>(null)
   const [queue, setQueue] = useState<InboxItem[]>([])
   const [error, setError] = useState('')
@@ -50,27 +62,53 @@ export function ReviewPiece() {
   const [assetErr, setAssetErr] = useState('')
   const [assetLoading, setAssetLoading] = useState(false)
   const [imgBroken, setImgBroken] = useState(false)
+  const [editingCaption, setEditingCaption] = useState(false)
+  const [captionDraft, setCaptionDraft] = useState('')
+  const [captionSaving, setCaptionSaving] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [imageCap, setImageCap] = useState<{ at_cap: boolean; cap: number } | null>(null)
+  const { trackLoad, waitForLoad } = useLoadGate()
 
   const cid = item?.meta?.campaign_id
   const aid = item?.meta?.asset_id
 
   function load() {
-    fetchInboxItem(id, brandId)
-      .then((found) => found ?? fetchInboxItem(id))
-      .then((found) => {
+    const run = async (): Promise<void> => {
+      try {
+        const lookupBrand = routeBrand || (isAll ? undefined : brandId)
+        const found = await fetchInboxItem(id, lookupBrand)
         setItem(found)
         setLoaded(true)
-      })
-      .catch((err: Error) => {
-        setError(err.message)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
         setLoaded(true)
-      })
-    fetchInbox('pending', brandId)
-      .then((payload) => setQueue(payload.items || []))
-      .catch(() => setQueue([]))
+      }
+      if (isAll) {
+        const { payloads } = await fanOutPayloads(brandIds, (bid) =>
+          fetchInbox('pending', bid, 'draft_asset'),
+        )
+        const merged = payloads.flatMap(({ brandId: bid, payload }) =>
+          (payload.items || []).map((row) => ({
+            ...row,
+            brand_id: row.brand_id ?? bid,
+          })),
+        )
+        merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        setQueue(merged)
+        return
+      }
+      const bid = scope === 'all' ? brandId : scope
+      try {
+        const payload = await fetchInbox('pending', bid, 'draft_asset')
+        setQueue(payload.items || [])
+      } catch {
+        setQueue([])
+      }
+    }
+    trackLoad(run())
   }
 
-  useEffect(load, [brandId, id])
+  useEffect(load, [brandId, id, isAll, brandIdsKey, scope, trackLoad, routeBrand])
 
   useEffect(() => {
     setAsset(null)
@@ -97,11 +135,29 @@ export function ReviewPiece() {
     }
   }, [cid, aid])
 
-  const visualUrl = useMemo(() => {
-    const fromAsset = assetVisualUrl(asset)
-    if (fromAsset) return fromAsset
-    return inboxItemThumbUrl(item)
-  }, [asset, item])
+  useEffect(() => {
+    setImageCap(null)
+    const bid = item?.brand_id
+    if (!bid) return
+    let live = true
+    fetchBrandImagesToday(bid)
+      .then((payload) => {
+        if (!live) return
+        setImageCap({ at_cap: Boolean(payload.at_cap), cap: payload.cap ?? 2 })
+      })
+      .catch(() => {
+        if (live) setImageCap(null)
+      })
+    return () => {
+      live = false
+    }
+  }, [item?.brand_id])
+
+  const visualUrl = useMemo(() => resolvedInboxVisualUrl(item, asset), [asset, item])
+  const mediaTag = useMemo(
+    () => inboxMediaTag(item, { asset, visualBroken: imgBroken }),
+    [item, asset, imgBroken],
+  )
   const caption =
     asset?.caption ||
     asset?.description ||
@@ -128,6 +184,7 @@ export function ReviewPiece() {
   async function act(action: 'approve' | 'reject') {
     if (!item) return
     setBusy(true)
+    await waitForLoad()
     const result = await inboxAction(item.id, action)
     setBusy(false)
     if (!result.ok) {
@@ -135,7 +192,62 @@ export function ReviewPiece() {
       return
     }
     const next = rest[0]
-    navigate(next ? `/review/${encodeURIComponent(next.id)}` : '/review')
+    navigate(next ? reviewPiecePath(next.id, next.brand_id) : '/review')
+  }
+
+  const brandLabel = item?.brand_id || 'brand'
+  const atImageCap = Boolean(imageCap?.at_cap)
+  const regenerateTip = atImageCap
+    ? `Daily image cap reached for ${brandLabel}`
+    : 'Queue a new draft image for this piece (does not call the router from the browser).'
+
+  function startEditCaption() {
+    setCaptionDraft(caption)
+    setEditingCaption(true)
+  }
+
+  async function saveCaption() {
+    if (!item) return
+    setCaptionSaving(true)
+    setError('')
+    const result = await inboxEdit(item.id, { caption: captionDraft })
+    setCaptionSaving(false)
+    if (!result.ok) {
+      setError(result.error || 'Could not save caption')
+      return
+    }
+    setEditingCaption(false)
+    if (asset) {
+      setAsset({ ...asset, caption: captionDraft })
+    } else if (item.meta) {
+      setItem({ ...item, meta: { ...item.meta, caption: captionDraft } })
+    }
+    load()
+  }
+
+  async function regenerateImage() {
+    if (!item || atImageCap || drafting) return
+    setDrafting(true)
+    setError('')
+    const dedupe_key = `draft_image-${item.id}-${Date.now()}`
+    try {
+      const result = await enqueueOpsQueue({
+        item_id: item.id,
+        action: 'draft_image',
+        dedupe_key,
+      })
+      if (!result.ok) {
+        setError(result.error || 'Could not queue image draft')
+        if (result.at_cap && item.brand_id) {
+          setImageCap({ at_cap: true, cap: imageCap?.cap ?? 2 })
+        }
+        setDrafting(false)
+        return
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setDrafting(false)
+    }
   }
 
   return (
@@ -163,36 +275,6 @@ export function ReviewPiece() {
 
       {item ? (
         <section className="glass rounded-2xl border-[1.5px] border-ac/35 p-5 shadow-[0_0_0_3px_rgba(52,211,153,.08)] backdrop-blur-xl">
-          {assetLoading && !asset ? (
-            <div className="mb-4 h-48 animate-pulse rounded-2xl bg-bg3" />
-          ) : visualUrl && !imgBroken ? (
-            <div className="mb-4">
-            <Tip text="Open the full-size image in a new tab." block>
-              <a href={visualUrl} target="_blank" rel="noreferrer" className="block">
-                <img
-                  src={visualUrl}
-                  alt={asset?.name || 'Asset visual'}
-                  onError={() => setImgBroken(true)}
-                  className="max-h-80 w-auto rounded-2xl border border-bd object-contain"
-                />
-              </a>
-            </Tip>
-            </div>
-          ) : imgBroken ? (
-            <div className="mb-4 rounded-2xl border border-bd bg-bg2/50 px-4 py-3 text-sm text-tx3">
-              <p>
-                ⚠️ Image URL unreachable — <code className="text-xs break-all">{visualUrl}</code>
-              </p>
-              <p className="mt-1">The file may not be on this server.</p>
-              {visualBrief ? <p className="mt-1">Regenerate it in studio.</p> : null}
-            </div>
-          ) : !cid || !aid || (asset && !visualUrl) ? (
-            <div className="mb-4 rounded-2xl border border-dashed border-bd px-4 py-3 text-sm text-tx3">
-              <p>No visual on file.</p>
-              <p className="mt-1">Open studio for this draft to add or generate one.</p>
-            </div>
-          ) : null}
-
           {assetErr ? (
             <p className="mb-3 text-sm text-tx3">
               Could not load the campaign asset ({assetErr}). Caption and the actions below still work.
@@ -201,7 +283,7 @@ export function ReviewPiece() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="gold">{typeInfo.label}</Badge>
-            <Badge tone={inboxMediaTag(item).tone}>{inboxMediaTag(item).label}</Badge>
+            <Badge tone={mediaTag.tone}>{mediaTag.label}</Badge>
             {item.sla_state === 'stale' ? <Badge tone="red">Stale</Badge> : null}
             {item.brand_id ? <Badge>{item.brand_id}</Badge> : null}
             {asset?.approvalStatus ? <Badge>{asset.approvalStatus}</Badge> : null}
@@ -225,14 +307,31 @@ export function ReviewPiece() {
             ) : null}
             .
           </p>
-          <p className="mt-3 text-sm text-tx2">{caption || 'No brief on this card yet.'}</p>
-          {visualBrief ? (
-            <p className="mt-2 text-sm text-tx3">
-              <span className="font-semibold uppercase tracking-wide text-[12px]">Visual brief</span>
-              <br />
-              {visualBrief}
-            </p>
-          ) : null}
+          <div className="mt-4">
+            <ReviewPieceDetail
+              item={item}
+              caption={caption}
+              visualUrl={visualUrl}
+              visualBrief={visualBrief}
+              imgBroken={imgBroken}
+              asset={asset}
+              assetLoading={assetLoading}
+              cid={cid}
+              aid={aid}
+              editingCaption={editingCaption}
+              captionDraft={captionDraft}
+              captionSaving={captionSaving}
+              drafting={drafting}
+              regenerateDisabled={atImageCap}
+              regenerateTip={regenerateTip}
+              onStartEditCaption={startEditCaption}
+              onCancelEditCaption={() => setEditingCaption(false)}
+              onCaptionDraftChange={setCaptionDraft}
+              onSaveCaption={() => void saveCaption()}
+              onRegenerate={() => void regenerateImage()}
+              onImgBroken={() => setImgBroken(true)}
+            />
+          </div>
           {showSummary && item.summary ? (
             <p className="mt-2 text-sm text-tx2">{item.summary}</p>
           ) : null}
@@ -302,14 +401,15 @@ export function ReviewPiece() {
               return (
               <QueueItem
                 key={row.id}
-                to={`/review/${encodeURIComponent(row.id)}`}
+                to={reviewPiecePath(row.id, row.brand_id)}
                 badge={media.label}
                 tone={media.tone}
                 channelBadge={channel || undefined}
                 title={row.title || row.summary || row.id}
-                meta={[reviewType(row.type).label, row.brand_id]
+                meta={[reviewType(row.type).label, !isAll ? row.brand_id : null]
                   .filter(Boolean)
                   .join(' · ')}
+                footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
                 stamp={goesOut || row.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}

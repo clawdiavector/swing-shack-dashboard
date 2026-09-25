@@ -1,13 +1,22 @@
 import { CalendarDays, ChevronDown } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useBrand } from '../components/BrandSwitch'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useBrandScope } from '../components/BrandSwitch'
+import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
 import { Badge } from '../components/ui'
 import { fetchPostingWeek } from '../lib/api'
+import { fanOutPayloads, mergePostingWeekPayloads, type FanOutFailure } from '../lib/fanOut'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatPostingDayHeader, type PostingWeekDay } from '../lib/postingWeek'
 
-function DaySection({ day }: { day: PostingWeekDay }) {
+function DaySection({
+  day,
+  waitForReads,
+}: {
+  day: PostingWeekDay
+  waitForReads?: () => Promise<void>
+}) {
   return (
     <section key={day.date}>
       <div className="mb-2 flex items-center gap-2">
@@ -27,7 +36,13 @@ function DaySection({ day }: { day: PostingWeekDay }) {
       ) : (
         <ul className="space-y-2">
           {day.posts.map((post) => (
-            <PostCard key={post.calendar_id} post={post} dayDate={day.date} weekday={day.weekday} />
+            <PostCard
+              key={`${post.brand_id ?? ''}:${post.calendar_id}`}
+              post={post}
+              dayDate={day.date}
+              weekday={day.weekday}
+              waitForReads={waitForReads}
+            />
           ))}
         </ul>
       )}
@@ -36,27 +51,52 @@ function DaySection({ day }: { day: PostingWeekDay }) {
 }
 
 export function WeekBoard() {
-  const { brandId: activeBrand } = useBrand()
-  const brandId = activeBrand ?? 'swing-shack'
+  const { isAll, brandIds, scope } = useBrandScope()
+  const { trackLoad, waitForLoad } = useLoadGate()
   const [days, setDays] = useState<PostingWeekDay[]>([])
   const [undated, setUndated] = useState<PostingWeekDay['posts']>([])
   const [undatedTotal, setUndatedTotal] = useState(0)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    fetchPostingWeek(brandId, { past: 3, days: 7 })
-      .then((payload) => {
-        if (!payload.ok) {
-          setError(payload.error || 'Failed to load week board')
+  const [failures, setFailures] = useState<FanOutFailure[]>([])
+  const load = useCallback(() => {
+    const run = async (): Promise<void> => {
+      setFailures([])
+      if (isAll) {
+        const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) =>
+          fetchPostingWeek(brandId, { past: 3, days: 7 }),
+        )
+        setFailures(fails)
+        const merged = mergePostingWeekPayloads(payloads, brandIds)
+        if (!merged.ok) {
+          setError(merged.error || 'Failed to load week board')
           return
         }
-        setDays(payload.days_list || [])
-        setUndated(payload.undated || [])
-        setUndatedTotal(payload.undated_total ?? payload.undated?.length ?? 0)
+        setDays(merged.days_list || [])
+        setUndated(merged.undated || [])
+        setUndatedTotal(merged.undated_total ?? merged.undated?.length ?? 0)
         setError('')
-      })
-      .catch((err: Error) => setError(err.message))
-  }, [brandId])
+        return
+      }
+      const brandId = scope === 'all' ? 'swing-shack' : scope
+      fetchPostingWeek(brandId, { past: 3, days: 7 })
+        .then((payload) => {
+          if (!payload.ok) {
+            setError(payload.error || 'Failed to load week board')
+            return
+          }
+          setDays(payload.days_list || [])
+          setUndated(payload.undated || [])
+          setUndatedTotal(payload.undated_total ?? payload.undated?.length ?? 0)
+          setError('')
+        })
+        .catch((err: Error) => setError(err.message))
+    }
+    trackLoad(run())
+  }, [isAll, brandIds, scope, trackLoad])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const { pastDays, futureDays } = useMemo(() => {
     const past = days.filter((d) => d.is_past)
@@ -66,7 +106,7 @@ export function WeekBoard() {
 
   const pastCount = pastDays.reduce((n, d) => n + d.posts.length, 0)
 
-  if (error) {
+  if (error && days.length === 0) {
     return (
       <p className="rounded-2xl border border-red/40 bg-red/10 px-4 py-3 text-sm text-red">{error}</p>
     )
@@ -75,8 +115,12 @@ export function WeekBoard() {
   return (
     <div className="space-y-6">
       <PageIntro here="/week" title="This week">
-        Every post for this brand — past three days, today through the next six, and undated backlog.
+        {isAll
+          ? 'Every post across operating brands — past three days, today through the next six, and undated backlog.'
+          : 'Every post for this brand — past three days, today through the next six, and undated backlog.'}
       </PageIntro>
+
+      <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
       {pastDays.length > 0 ? (
         <details className="group rounded-2xl border border-bd bg-bg-2/30 px-4 py-3">
@@ -89,7 +133,7 @@ export function WeekBoard() {
           </summary>
           <div className="mt-4 space-y-5">
             {pastDays.map((day) => (
-              <DaySection key={day.date} day={day} />
+              <DaySection key={day.date} day={day} waitForReads={waitForLoad} />
             ))}
           </div>
         </details>
@@ -97,7 +141,7 @@ export function WeekBoard() {
 
       <div className="space-y-5">
         {futureDays.map((day) => (
-          <DaySection key={day.date} day={day} />
+          <DaySection key={day.date} day={day} waitForReads={waitForLoad} />
         ))}
       </div>
 
@@ -118,10 +162,11 @@ export function WeekBoard() {
           <ul className="space-y-2">
             {undated.map((post) => (
               <PostCard
-                key={post.calendar_id}
+                key={`${post.brand_id ?? ''}:${post.calendar_id}`}
                 post={post}
                 dayDate=""
                 weekday=""
+                waitForReads={waitForLoad}
               />
             ))}
           </ul>

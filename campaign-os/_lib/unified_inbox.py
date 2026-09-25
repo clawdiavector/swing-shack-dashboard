@@ -122,15 +122,24 @@ def _asset_image_file_size(asset: dict[str, Any]) -> int | None:
 
 
 def _asset_has_reviewable_image(asset: dict[str, Any]) -> bool:
+    """True when this server can read non-empty image bytes from disk."""
     size = _asset_image_file_size(asset)
     return size is not None and size > 0
 
 
-def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
-    """Resolve image_path / image_url from campaign assets (camelCase or snake_case)."""
-    if not asset:
-        return None, None
+def _asset_image_local(asset: dict[str, Any]) -> Path | None:
+    """Resolved local path when bytes exist on this server; None for remote-only refs."""
     if not _asset_has_reviewable_image(asset):
+        return None
+    return _resolve_image_path(asset)
+
+
+def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
+    """Resolve image_path / image_url from campaign assets (camelCase or snake_case).
+
+    Does not require the file to exist locally — remote URLs are valid visuals.
+    """
+    if not asset:
         return None, None
     image_url = (
         asset.get("creative_url")
@@ -142,6 +151,8 @@ def _asset_image_meta(asset: dict[str, Any]) -> tuple[Any, Any]:
     image_path = asset.get("image_path") or asset.get("filePath")
     if not image_url and image_path:
         image_url = image_path
+    if not image_path and not image_url:
+        return None, None
     return image_path, image_url
 
 
@@ -445,12 +456,17 @@ def _proposal_items(*, brand: str | None, status: str, now: datetime) -> list[di
     return out
 
 
+_DRAFT_INBOX_TOTALS: dict[str, int] = {"approved_total": 0, "rejected_total": 0}
+
+
 def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[str, Any]]:
     from _lib import intelligence  # noqa: PLC0415
 
     if brand:
         intelligence.set_request_brand(brand)
     inbox = intelligence.review_inbox()
+    _DRAFT_INBOX_TOTALS["approved_total"] = int(inbox.get("approved_total") or len(inbox.get("approved") or []))
+    _DRAFT_INBOX_TOTALS["rejected_total"] = int(inbox.get("rejected_total") or len(inbox.get("rejected") or []))
     campaign_data = _load_campaign_data()
     campaigns = campaign_data.get("campaigns") if isinstance(campaign_data, dict) else {}
     if not isinstance(campaigns, dict):
@@ -519,7 +535,7 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 "type": "draft_asset",
                 "brand_id": brand_id,
                 "title": display_title,
-                "summary": str(row.get("caption") or "")[:240],
+                "summary": full_caption[:240],
                 "evidence": [{"source": "review_inbox", "ref": f"{cid}/{aid}"}],
                 "created_at": ts,
                 "updated_at": ts,
@@ -630,6 +646,8 @@ def list_items(
 ) -> dict[str, Any]:
     """Build unified inbox list payload."""
     now = datetime.now(timezone.utc)
+    _DRAFT_INBOX_TOTALS["approved_total"] = 0
+    _DRAFT_INBOX_TOTALS["rejected_total"] = 0
     status = (status or "pending").lower()
     if status not in ("pending", "approved", "rejected", "all"):
         status = "pending"
@@ -666,7 +684,16 @@ def list_items(
     stale = sum(1 for i in items if _pending_stale(i))
     approved_on_shelf = 0
     if status in ("approved", "all"):
-        approved_on_shelf = sum(1 for i in items if i.get("status") == "approved")
+        draft_approved = _DRAFT_INBOX_TOTALS.get("approved_total", 0)
+        non_draft_approved = sum(
+            1 for i in items if i.get("status") == "approved" and i.get("type") != "draft_asset"
+        )
+        if item_type == "draft_asset":
+            approved_on_shelf = draft_approved
+        elif item_type is None:
+            approved_on_shelf = non_draft_approved + draft_approved
+        else:
+            approved_on_shelf = sum(1 for i in items if i.get("status") == "approved")
     return {
         "schema": SCHEMA,
         "generated_at": _utc_now_iso(),

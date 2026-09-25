@@ -91,6 +91,7 @@ DUAL_AUTH_PATHS = frozenset({
     '/api/ops/agents/heartbeat',
     '/api/ops/watch/heartbeat',
     '/api/ops/agents/enqueue',
+    '/api/ops/queue',
     '/api/ops/agent-queue',
     '/api/ops/agent-queue/mark-done',
     # L3 calendar scout (cos-scout runs from Mac with bearer only)
@@ -109,6 +110,7 @@ DUAL_AUTH_PATHS = frozenset({
 DUAL_AUTH_PREFIXES = (
     '/api/calendar/context/',
     '/api/calendar/v3/scout/',
+    '/api/ops/images-today/',
 )
 
 # L4 inbox item actions — approve/reject/edit only (not stub siblings).
@@ -17836,6 +17838,85 @@ def ops_layers():
         )), 200
     except Exception as e:
         _app_log.exception("ops_layers failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/images-today/<brand_id>', methods=['GET'])
+def ops_images_today(brand_id: str):
+    """GET /api/ops/images-today/<brand> — persisted-image count vs daily cap."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib.brand_validate import validate_brand_id
+        from _lib import ops_layers as _ops_layers_mod
+
+        bid = validate_brand_id(brand_id)
+        payload = _ops_layers_mod.brand_images_today(bid)
+        return jsonify({"ok": True, "brand_id": bid, **payload}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_images_today failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/queue', methods=['POST'])
+def ops_queue_enqueue():
+    """POST /api/ops/queue — enqueue L5 work (e.g. draft_image) without calling the image router."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        import hashlib
+        from pathlib import Path
+
+        from _lib import ops_agents as _ops_agents_mod
+        from _lib import ops_layers as _ops_layers_mod
+        from _lib import unified_inbox as _unified_inbox_mod
+
+        body = request.get_json(silent=True) or {}
+        item_id = str(body.get("item_id") or "").strip()
+        action = str(body.get("action") or "").strip()
+        if not item_id or not action:
+            return jsonify({"ok": False, "error": "item_id and action required"}), 400
+        if action != "draft_image":
+            return jsonify({"ok": False, "error": f"unsupported action: {action}"}), 400
+
+        item = _unified_inbox_mod.find_item(item_id)
+        if not item:
+            return jsonify({"ok": False, "error": "inbox item not found"}), 404
+        brand_id = str(item.get("brand_id") or "").strip()
+        if not brand_id:
+            return jsonify({"ok": False, "error": "item has no brand_id"}), 400
+
+        cap_info = _ops_layers_mod.brand_images_today(brand_id)
+        if cap_info.get("at_cap"):
+            return jsonify({
+                "ok": False,
+                "error": f"Daily image cap reached for {brand_id}",
+                "at_cap": True,
+                **cap_info,
+            }), 429
+
+        dedupe_raw = body.get("dedupe_key")
+        item_hash = hashlib.sha1(item_id.encode()).hexdigest()[:12]
+        dedupe_key = str(dedupe_raw).strip() if dedupe_raw else f"{action}-{item_hash}"
+        row = _ops_agents_mod.normalise_enqueue(
+            {
+                "agent": "cos-image",
+                "brand": brand_id,
+                "reason": "review-regenerate",
+                "action": action,
+                "payload_ref": f"inbox/{item_id}",
+                "dedupe_key": dedupe_key,
+            }
+        )
+        data_dir = Path(_data_paths()['data_dir'])
+        row_id, pending = _ops_agents_mod.append_enqueue_row(data_dir, row)
+        return jsonify({"ok": True, "id": row_id, "pending": pending, "action": action}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_queue_enqueue failed")
         return jsonify({"ok": False, "error": str(e)}), 500
 
 

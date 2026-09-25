@@ -1,27 +1,45 @@
 import { Calendar, Library, Rocket } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useBrand } from '../components/BrandSwitch'
+import { useBrandScope } from '../components/BrandSwitch'
+import { PartialBrandLoadStrip } from '../components/PartialBrandLoadStrip'
 import { PageIntro } from '../components/chrome'
 import { PostCard } from '../components/posting/PostCard'
 import { Badge, Button, StatCard } from '../components/ui'
 import { fetchPublishMode, fetchShelf, type PublishMode } from '../lib/api'
+import { fanOutPayloads, mergeShelfPayloads, type FanOutFailure } from '../lib/fanOut'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatGoesOut, type ShelfPayload } from '../lib/postingWeek'
 
 export function Shelf() {
-  const { brandId } = useBrand()
+  const { isAll, brandIds, scope } = useBrandScope()
+  const { trackLoad, waitForLoad } = useLoadGate()
   const [data, setData] = useState<ShelfPayload | null>(null)
   const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
   const [error, setError] = useState('')
+  const [failures, setFailures] = useState<FanOutFailure[]>([])
 
   const load = useCallback(() => {
-    fetchShelf(brandId)
-      .then((payload) => {
-        setData(payload)
-        setError(payload.error || '')
-      })
-      .catch((err: Error) => setError(err.message))
-  }, [brandId])
+    const run = async (): Promise<void> => {
+      setFailures([])
+      if (isAll) {
+        const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) => fetchShelf(brandId))
+        setFailures(fails)
+        const merged = mergeShelfPayloads(payloads, brandIds)
+        setData(merged)
+        setError(merged.error || '')
+        return
+      }
+      const brandId = scope === 'all' ? undefined : scope
+      fetchShelf(brandId)
+        .then((payload) => {
+          setData(payload)
+          setError(payload.error || '')
+        })
+        .catch((err: Error) => setError(err.message))
+    }
+    trackLoad(run())
+  }, [isAll, brandIds, scope, trackLoad])
 
   useEffect(() => {
     load()
@@ -57,6 +75,8 @@ export function Shelf() {
       >
         Approved posts with a go-live date — release when ready. Sandbox only until Kyle enables live.
       </PageIntro>
+
+      <PartialBrandLoadStrip failures={failures} onRetry={load} />
 
       {autoOff ? (
         <p className="text-xs text-tx3">Auto-release is off — Release now is the only way out today.</p>
@@ -108,11 +128,12 @@ export function Shelf() {
           <ul className="space-y-2">
             {group.posts.map((post) => (
               <PostCard
-                key={post.calendar_id}
+                key={`${post.brand_id ?? ''}:${post.calendar_id}`}
                 post={post}
                 dayDate={group.date}
                 weekday=""
                 onRefresh={load}
+                waitForReads={waitForLoad}
               />
             ))}
           </ul>
@@ -128,11 +149,12 @@ export function Shelf() {
           <ul className="space-y-2">
             {data.undated.map((post) => (
               <PostCard
-                key={post.calendar_id}
+                key={`${post.brand_id ?? ''}:${post.calendar_id}`}
                 post={post}
                 dayDate=""
                 weekday=""
                 onRefresh={load}
+                waitForReads={waitForLoad}
               />
             ))}
           </ul>

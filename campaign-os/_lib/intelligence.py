@@ -769,6 +769,8 @@ def review_inbox() -> Dict[str, Any]:
         "pending": pending,
         "approved": approved[:20],
         "rejected": rejected[:10],
+        "approved_total": len(approved),
+        "rejected_total": len(rejected),
     }
 
 
