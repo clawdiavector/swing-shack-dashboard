@@ -29,6 +29,7 @@ import {
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
+  reviewPiecePath,
   resolveAssetUrl,
   type InboxItem,
   type InsightPost,
@@ -556,10 +557,10 @@ export function Daily() {
               const t = (item.type || '').toLowerCase()
               const dest =
                 t === 'draft_asset'
-                  ? `/review/${encodeURIComponent(item.id)}`
+                  ? reviewPiecePath(item.id, item.brand_id)
                   : t === 'calendar_candidate' || t === 'proposal'
                     ? '/inbox'
-                    : `/review/${encodeURIComponent(item.id)}`
+                    : reviewPiecePath(item.id, item.brand_id)
               return (
               <QueueItem
                 key={item.id}

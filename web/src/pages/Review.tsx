@@ -13,6 +13,7 @@ import {
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
+  reviewPiecePath,
   type InboxItem,
 } from '../lib/api'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
@@ -169,7 +170,7 @@ function ReviewInbox({
               </button>
             </Tip>
             <Button
-              to={`/review/${encodeURIComponent(first.id)}`}
+              to={reviewPiecePath(first.id, first.brand_id)}
               icon={Inbox}
               tone="ghost"
               tip="Open this draft on its own page."
@@ -199,7 +200,7 @@ function ReviewInbox({
             return (
               <QueueItem
                 key={item.id}
-                to={`/review/${encodeURIComponent(item.id)}`}
+                to={reviewPiecePath(item.id, item.brand_id)}
                 badge={item.sla_state === 'stale' ? 'stale' : media.label}
                 tone={item.sla_state === 'stale' ? 'gold' : media.tone}
                 channelBadge={channel || undefined}

@@ -1,12 +1,11 @@
 import { ArrowLeft, Check, Pencil, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { BrandChip } from '../components/BrandChip'
 import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, Tip } from '../components/ui'
 import {
-  assetVisualUrl,
   fetchCampaign,
   fetchInbox,
   fetchInboxItem,
@@ -15,6 +14,8 @@ import {
   inboxGoesOutIso,
   inboxItemThumbUrl,
   inboxMediaTag,
+  resolvedInboxVisualUrl,
+  reviewPiecePath,
   type CampaignAsset,
   type InboxItem,
 } from '../lib/api'
@@ -32,7 +33,7 @@ function studioTo(item: InboxItem) {
     asset,
     campaign,
     title: item.title || item.summary,
-    from: `/review/${encodeURIComponent(item.id)}`,
+    from: reviewPiecePath(item.id, item.brand_id),
   }
   if (item.type === 'publish_request') return toolTo('publish', extra)
   if (item.type === 'calendar_candidate') return toolTo('calendar', extra)
@@ -44,7 +45,10 @@ export function ReviewPiece() {
   const { isAll, brandIds, scope } = useBrandScope()
   const { itemId = '' } = useParams()
   const id = decodeURIComponent(itemId)
+  const [searchParams] = useSearchParams()
+  const routeBrand = searchParams.get('brand')?.trim() || undefined
   const navigate = useNavigate()
+  const brandIdsKey = brandIds.join(',')
   const [item, setItem] = useState<InboxItem | null>(null)
   const [queue, setQueue] = useState<InboxItem[]>([])
   const [error, setError] = useState('')
@@ -62,7 +66,8 @@ export function ReviewPiece() {
   function load() {
     const run = async (): Promise<void> => {
       try {
-        const found = (await fetchInboxItem(id, brandId)) ?? (await fetchInboxItem(id))
+        const lookupBrand = routeBrand || (isAll ? undefined : brandId)
+        const found = await fetchInboxItem(id, lookupBrand)
         setItem(found)
         setLoaded(true)
       } catch (err) {
@@ -94,7 +99,7 @@ export function ReviewPiece() {
     trackLoad(run())
   }
 
-  useEffect(load, [brandId, id, isAll, brandIds, scope, trackLoad])
+  useEffect(load, [brandId, id, isAll, brandIdsKey, scope, trackLoad, routeBrand])
 
   useEffect(() => {
     setAsset(null)
@@ -121,11 +126,11 @@ export function ReviewPiece() {
     }
   }, [cid, aid])
 
-  const visualUrl = useMemo(() => {
-    const fromAsset = assetVisualUrl(asset)
-    if (fromAsset) return fromAsset
-    return inboxItemThumbUrl(item)
-  }, [asset, item])
+  const visualUrl = useMemo(() => resolvedInboxVisualUrl(item, asset), [asset, item])
+  const mediaTag = useMemo(
+    () => inboxMediaTag(item, { asset, visualBroken: imgBroken }),
+    [item, asset, imgBroken],
+  )
   const caption =
     asset?.caption ||
     asset?.description ||
@@ -160,7 +165,7 @@ export function ReviewPiece() {
       return
     }
     const next = rest[0]
-    navigate(next ? `/review/${encodeURIComponent(next.id)}` : '/review')
+    navigate(next ? reviewPiecePath(next.id, next.brand_id) : '/review')
   }
 
   return (
@@ -226,7 +231,7 @@ export function ReviewPiece() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="gold">{typeInfo.label}</Badge>
-            <Badge tone={inboxMediaTag(item).tone}>{inboxMediaTag(item).label}</Badge>
+            <Badge tone={mediaTag.tone}>{mediaTag.label}</Badge>
             {item.sla_state === 'stale' ? <Badge tone="red">Stale</Badge> : null}
             {item.brand_id ? <Badge>{item.brand_id}</Badge> : null}
             {asset?.approvalStatus ? <Badge>{asset.approvalStatus}</Badge> : null}
@@ -327,7 +332,7 @@ export function ReviewPiece() {
               return (
               <QueueItem
                 key={row.id}
-                to={`/review/${encodeURIComponent(row.id)}`}
+                to={reviewPiecePath(row.id, row.brand_id)}
                 badge={media.label}
                 tone={media.tone}
                 channelBadge={channel || undefined}
