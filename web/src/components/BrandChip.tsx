@@ -2,8 +2,8 @@ import { useBrand } from './BrandSwitch'
 import { prettyBrand, toneFor, TONE_CLS } from '../lib/brandTone'
 
 export function BrandChip({ brandId, show = true }: { brandId?: string; show?: boolean }) {
-  if (!show || !brandId) return null
   const { brands } = useBrand()
+  if (!show || !brandId) return null
   const row = brands.find((b) => b.id === brandId)
   const label = row?.label || prettyBrand(brandId)
   const tone = row?.tone ?? toneFor(brandId, label, 0)
