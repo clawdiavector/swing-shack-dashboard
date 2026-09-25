@@ -125,6 +125,7 @@ def test_layer5_specs_registered(l5_app):
 
     assert "retry_failed_images" in JOBS
     assert "draft_assets" in JOBS
+    assert "krea_poll_draft_images" in JOBS
     assert "asset_qc" in JOBS
     assert JOBS["draft_assets"].best_effort is True
     assert JOBS["asset_qc"].best_effort is False
@@ -181,11 +182,9 @@ def test_draft_assets_respects_cap(l5_app, tmp_path, monkeypatch):
         result = draft_assets.run()
         mock_cap.assert_not_called()
 
-    assert result.get("ok") is False
-    err = str(result.get("error") or "")
-    assert "daily LLM spend cap reached" in err
-    assert "quota" not in err.lower()
-    assert "rate limit" not in err.lower()
+    assert result.get("ok") is True
+    assert result.get("skipped_cap") is True
+    assert "daily LLM spend cap reached" in str(result.get("reason") or "")
 
 
 def test_draft_assets_skips_invalid_brand_row(l5_app, tmp_path):

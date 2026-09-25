@@ -210,6 +210,16 @@ def load_create_stats() -> dict[str, Any]:
     except Exception:
         pass
 
+    images_submitted_today: dict[str, int] = {}
+    max_images_per_day = 2
+    try:
+        from _lib import image_submit_quota  # noqa: PLC0415
+
+        images_submitted_today = image_submit_quota.totals_today()
+        max_images_per_day = image_submit_quota.max_images_per_day()
+    except Exception:
+        pass
+
     verdict = "NEVER"
     if at_cap or qc_failed > 0:
         verdict = "LATE"
@@ -224,6 +234,8 @@ def load_create_stats() -> dict[str, Any]:
         "cap_usd": cap_usd,
         "at_cap": at_cap,
         "near_cap": near_cap,
+        "images_submitted_today": images_submitted_today,
+        "max_images_per_day": max_images_per_day,
         "verdict": verdict,
         "inbox_href": "/?page=review",
     }
@@ -417,6 +429,8 @@ def build_layers(
         "cap_usd": create_stats.get("cap_usd", 5),
         "at_cap": create_stats.get("at_cap", False),
         "near_cap": create_stats.get("near_cap", False),
+        "images_submitted_today": create_stats.get("images_submitted_today", {}),
+        "max_images_per_day": create_stats.get("max_images_per_day", 2),
         "inbox_href": create_stats.get("inbox_href", "/?page=review"),
     }
 

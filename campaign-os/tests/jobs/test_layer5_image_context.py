@@ -68,12 +68,22 @@ def _seed_image_queue_row(tmp_path: Path, *, item_id: str, brand: str = "stick")
 
 
 def _mock_gen_result(tmp_path: Path) -> MagicMock:
+    import base64
+
+    png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+    )
+    png_path = tmp_path / "draft-assets" / "images" / "out.png"
+    png_path.parent.mkdir(parents=True, exist_ok=True)
+    png_path.write_bytes(png)
     mock_gen = MagicMock()
     mock_gen.model = "test-model"
     mock_gen.provider = "openrouter"
     mock_gen.prompt_used = "composed prompt used upstream"
-    mock_gen.saved_path = str(tmp_path / "draft-assets" / "images" / "out.png")
+    mock_gen.bytes = png
+    mock_gen.saved_path = str(png_path)
     mock_gen.saved_sidecar_path = str(tmp_path / "draft-assets" / "images" / "out.meta.json")
+    mock_gen.provider_job_id = None
     return mock_gen
 
 

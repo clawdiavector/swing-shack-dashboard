@@ -167,6 +167,35 @@ def test_max_three_retries(retry_env):
     assert rows[0].get("status") == "done"
 
 
+def test_waiting_pollable_not_reset(retry_env):
+    tmp_path, _ = retry_env
+    item_id = "calendar_candidate:swing-shack:cal-wait-poll"
+    queue = {
+        "schema": "campaign-os/agent-queue/v1",
+        "generated_at": "2026-09-24T00:00:00Z",
+        "rows": [
+            {
+                "id": "waiting-pollable",
+                "layer": "L5",
+                "agent": "cos-image",
+                "brand": "swing-shack",
+                "action": "draft_image",
+                "payload_ref": f"inbox/{item_id}",
+                "status": "waiting",
+                "provider_job_id": "krea-live-123",
+            }
+        ],
+    }
+    (tmp_path / "agent-queue.json").write_text(json.dumps(queue), encoding="utf-8")
+    from _lib.jobs.layer5 import retry_failed_images
+
+    result = retry_failed_images.run(brand="swing-shack")
+    assert result.get("reset_pending") == 0
+    rows = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))["rows"]
+    assert rows[0].get("status") == "waiting"
+    assert rows[0].get("image_retry_count") is None
+
+
 def test_spend_cap_no_enqueue(retry_env, monkeypatch):
     tmp_path, cal_dir = retry_env
     fixed = date(2026, 9, 24)

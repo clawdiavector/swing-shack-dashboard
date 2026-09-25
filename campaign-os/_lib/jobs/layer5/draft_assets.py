@@ -774,6 +774,12 @@ def _process_image_row(
     if not allowed:
         return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
 
+    from _lib.image_submit_quota import check_brand_image_submit, record_brand_image_submit  # noqa: PLC0415
+
+    img_ok, img_reason = check_brand_image_submit(brand_id)
+    if not img_ok:
+        return None, img_reason
+
     output_base = str(_data_dir() / "draft-assets" / "images")
     gen_kwargs: dict[str, Any] = {
         "brand_id": brand_id,
@@ -786,6 +792,8 @@ def _process_image_row(
     if ctx.products:
         gen_kwargs["product_service_items"] = ctx.products
 
+    record_brand_image_submit(brand_id)
+
     try:
         result = generate_image_with_persistence(**gen_kwargs)
     except ImageGenAuthError:
@@ -795,18 +803,6 @@ def _process_image_row(
             exc,
             context={"brand": brand_id, "item": item_id, "step": "generate_image_with_persistence"},
         )
-
-    llm_spend.write_approval_receipt(
-        route="job:draft_assets",
-        estimate_usd=est,
-        brand_id=brand_id,
-    )
-    llm_spend.record(
-        est,
-        route="job:draft_assets/image",
-        model=getattr(result, "model", None),
-        kind="image",
-    )
 
     image_path = getattr(result, "saved_path", None) or getattr(result, "path", None)
     calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
@@ -845,12 +841,30 @@ def _process_image_row(
     primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     pj_raw = getattr(result, "provider_job_id", None)
     provider_job_id = pj_raw.strip() if isinstance(pj_raw, str) and pj_raw.strip() else None
+    sidecar_path = _result_str("saved_sidecar_path")
     if provider_job_id and not has_bytes:
         row["status"] = "waiting"
+        row["provider_job_id"] = provider_job_id
+        if sidecar_path:
+            row["router_sidecar_path"] = sidecar_path
+        row["image_size"] = size
+        row["image_cost_estimate_usd"] = est
         return None, None
 
     if not has_bytes:
         return None, None
+
+    llm_spend.write_approval_receipt(
+        route="job:draft_assets",
+        estimate_usd=est,
+        brand_id=brand_id,
+    )
+    llm_spend.record(
+        est,
+        route="job:draft_assets/image",
+        model=getattr(result, "model", None),
+        kind="image",
+    )
 
     asset_id = _write_draft(
         brand_id=brand_id,
@@ -939,6 +953,18 @@ def _process_gbp_row(
 
 def run(brand: str | None = None) -> dict[str, Any]:
     """Process pending L5 queue rows into draft_asset inbox rows."""
+    from _lib import llm_spend  # noqa: PLC0415
+
+    allowed, reason = llm_spend.check("image", IMAGE_EST_USD)
+    if not allowed and "cap" in reason.lower():
+        return {
+            "ok": True,
+            "skipped_cap": True,
+            "reason": "daily LLM spend cap reached",
+            "drafted": 0,
+            "skipped": 0,
+        }
+
     drafted = 0
     skipped = 0
     rejected = 0

@@ -102,6 +102,41 @@ def _spend_cap_blocks_enqueue(*, include_image: bool) -> bool:
     return False
 
 
+def _image_daily_cap_blocks(brand_id: str) -> bool:
+    from _lib.image_submit_quota import check_brand_image_submit  # noqa: PLC0415
+
+    allowed, _reason = check_brand_image_submit(brand_id)
+    return not allowed
+
+
+def _pollable_provider_job_id(row: dict[str, Any]) -> str | None:
+    raw = row.get("provider_job_id")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    sidecar_path = row.get("router_sidecar_path")
+    if not isinstance(sidecar_path, str) or not sidecar_path.strip():
+        return None
+    try:
+        import json
+        from pathlib import Path
+
+        meta = json.loads(Path(sidecar_path).read_text(encoding="utf-8"))
+        pj = meta.get("provider_job_id") if isinstance(meta, dict) else None
+        if isinstance(pj, str) and pj.strip():
+            return pj.strip()
+    except (OSError, json.JSONDecodeError):
+        return None
+    return None
+
+
+def _waiting_row_pollable(row: dict[str, Any]) -> bool:
+    if str(row.get("status") or "").lower() != "waiting":
+        return False
+    if row.get("krea_poll_failed"):
+        return False
+    return _pollable_provider_job_id(row) is not None
+
+
 def _enqueue_actions_for_item(
     rows: list[dict[str, Any]],
     *,
@@ -121,6 +156,8 @@ def _enqueue_actions_for_item(
         status_key = (action, "pending")
         waiting_key = (action, "waiting")
         if status_key in existing or waiting_key in existing:
+            continue
+        if action == "draft_image" and _image_daily_cap_blocks(brand_id):
             continue
         agent = "cos-image" if action == "draft_image" else "cos-caption"
         row = ops_agents.normalise_enqueue(
@@ -161,6 +198,8 @@ def _reset_bad_image_rows(
         if brand is not None and str(row.get("brand") or "") != brand:
             continue
         status = str(row.get("status") or "").lower()
+        if status == "waiting" and _waiting_row_pollable(row):
+            continue
         if status not in ("done", "waiting"):
             continue
         item_id = _parse_inbox_ref(str(row.get("payload_ref") or ""))
@@ -233,6 +272,15 @@ def run(brand: str | None = None) -> dict[str, Any]:
             brand = validate_brand_id(brand)
         except ValueError as exc:
             return {"ok": False, "error": str(exc)}
+
+    if _spend_cap_blocks_enqueue(include_image=True):
+        return {
+            "ok": True,
+            "skipped_cap": True,
+            "reason": "daily LLM spend cap reached",
+            "enqueued": 0,
+            "reset_pending": 0,
+        }
 
     rows = _read_queue()
     if not rows and not read_json("agent-queue.json"):

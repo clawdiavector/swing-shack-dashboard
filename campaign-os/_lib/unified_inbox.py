@@ -933,6 +933,12 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> Non
         if "gbp" in intended_publish_channels(brand_id):
             actions.append("draft_gbp")
         for action in actions:
+            if action == "draft_image":
+                from _lib.image_submit_quota import check_brand_image_submit  # noqa: PLC0415
+
+                ok, _reason = check_brand_image_submit(brand_id)
+                if not ok:
+                    continue
             agent = "cos-image" if action == "draft_image" else "cos-caption"
             row = ops_agents.normalise_enqueue(
                 {

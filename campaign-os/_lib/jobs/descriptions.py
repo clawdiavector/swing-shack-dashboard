@@ -204,7 +204,18 @@ JOB_DESCRIPTIONS: dict[str, dict[str, str]] = {
             "Scans approved operator moments in the next 14 days (skips holiday_inject / "
             "deterministic sources), enqueues draft_caption + draft_image when no real PNG exists, "
             "and re-pends draft_image rows that were marked done without bytes (max 3 retries, "
-            "respects daily LLM spend cap)."
+            "respects daily LLM spend cap). Does not reset waiting rows that still have a "
+            "pollable Krea provider_job_id."
+        ),
+    },
+    "krea_poll_draft_images": {
+        "title": "Poll Krea draft images",
+        "summary": "Drain waiting draft_image rows via Krea get_job; write PNG and draft asset on success.",
+        "detail": (
+            "Polls provider_job_id for queue rows in waiting status (async Krea submits from draft_assets). "
+            "Downloads completed jobs, persists PNG under $DATA_DIR/draft-assets/images/, records spend "
+            "only after bytes > 0, and marks rows done. Never submits new Krea jobs. Runs after draft_assets "
+            "and before asset_qc in the Layer 2–7 daily cron."
         ),
     },
     "holiday_inject": {

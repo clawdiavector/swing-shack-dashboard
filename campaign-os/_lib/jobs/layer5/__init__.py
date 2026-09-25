@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Callable
 
 from ..spec import JobSpec
-from . import asset_qc, draft_assets, retry_failed_images
+from . import asset_qc, draft_assets, krea_poll_draft_images, retry_failed_images
 
 LAYER5_JOB_NAMES: tuple[str, ...] = (
     "retry_failed_images",
     "draft_assets",
+    "krea_poll_draft_images",
     "asset_qc",
 )
 
@@ -52,6 +53,21 @@ def layer5_specs() -> list[JobSpec]:
             brands=_ALL_ACTIVE_BRANDS,
         ),
         JobSpec(
+            name="krea_poll_draft_images",
+            fn=krea_poll_draft_images.run,
+            every_seconds=LAYER5_DAILY,
+            timeout_seconds=120,
+            best_effort=True,
+            criticality="MEDIUM",
+            retries=0,
+            credentials=("KREA_MCP_TOKEN",),
+            reads=("agent-queue.json",),
+            writes=("draft-assets/", "campaign-data.json"),
+            upstream=("draft_assets",),
+            brand_mode="per_brand",
+            brands=_ALL_ACTIVE_BRANDS,
+        ),
+        JobSpec(
             name="asset_qc",
             fn=asset_qc.run,
             every_seconds=LAYER5_DAILY,
@@ -62,7 +78,7 @@ def layer5_specs() -> list[JobSpec]:
             credentials=(),
             reads=("draft-assets/",),
             writes=("asset-qc.json",),
-            upstream=("draft_assets",),
+            upstream=("krea_poll_draft_images",),
             brand_mode="per_brand",
             brands=_ALL_ACTIVE_BRANDS,
         ),

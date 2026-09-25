@@ -944,40 +944,8 @@ def generate_image(
                 timeout_s=timeout_s,
             )
         except ImageGenUpstreamError as e:
-            # Live-tested 2026-08-31: OR returned 402 Payment Required.
-            # If Krea is connected, transparently fall through to Krea so
-            # the caller never sees "your credits ran out".
-            if e.code == 402 and _krea_credentials_present():
-                _LOG.warning(
-                    "OpenRouter returned 402 — falling back to Krea for %s", brand_id
-                )
-                _fallback_brand = brand_id or "swing-shack"
-                _kresp = _call_krea_generate(
-                    prompt=_composed_for_or,
-                    model=os.environ.get("CAMPAIGN_OS_KREA_FALLBACK_MODEL", "bfl/flux-1.1-pro"),
-                    aspect_ratio=size.replace("x", ":"),
-                    timeout_s=timeout_s,
-                )
-                _sc = _kresp.get("structuredContent") or {}
-                _job_id = (
-                    _kresp.get("job_id")
-                    or _sc.get("job_id")
-                    or _kresp.get("job", {}).get("job_id")
-                    or ""
-                )
-                return GenResult(
-                    bytes=b"",
-                    mime="image/png",
-                    model=os.environ.get("CAMPAIGN_OS_KREA_FALLBACK_MODEL", "bfl/flux-1.1-pro"),
-                    provider="krea",
-                    cost_estimate_usd=0.0,
-                    prompt_used=_composed_for_or,
-                    revised_prompt=None,
-                    warning=f"OpenRouter 402 — fell through to Krea. job_id={_job_id}",
-                    usage={"krea_job_id": _job_id, "openrouter_error": e.upstream},
-                    brand_recipe=recipe_summary or None,
-                    provider_job_id=_job_id,
-                )
+            if e.code == 402:
+                raise
             raise
         raw, mime = _extract_image_from_openrouter_response(api_resp)
         usage = api_resp.get("usage") or {}
