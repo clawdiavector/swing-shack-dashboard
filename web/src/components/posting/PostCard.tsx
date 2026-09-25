@@ -49,11 +49,14 @@ export function PostCard({
   dayDate,
   weekday,
   onRefresh,
+  waitForReads,
 }: {
   post: PostingWeekPost
   dayDate: string
   weekday: string
   onRefresh?: () => void
+  /** Plan §3.5 — await parent fan-out before lodge/release writes. */
+  waitForReads?: () => Promise<void>
 }) {
   const { brandId: focusBrandId } = useBrand()
   const { isAll } = useBrandScope()
@@ -73,6 +76,7 @@ export function PostCard({
     event.stopPropagation()
     if (!post.inbox_item_id || noDate) return
     setLodging(true)
+    await waitForReads?.()
     await inboxAction(post.inbox_item_id, 'approve', '', 'lodge')
     setLodging(false)
     onRefresh?.()
@@ -83,6 +87,7 @@ export function PostCard({
     event.stopPropagation()
     if (!post.calendar_id) return
     setReleasing(true)
+    await waitForReads?.()
     await releaseMoment(rowBrandId, post.calendar_id)
     setReleasing(false)
     onRefresh?.()

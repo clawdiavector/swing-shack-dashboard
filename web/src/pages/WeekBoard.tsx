@@ -7,9 +7,16 @@ import { PostCard } from '../components/posting/PostCard'
 import { Badge } from '../components/ui'
 import { fetchPostingWeek } from '../lib/api'
 import { fanOutPayloads, mergePostingWeekPayloads, type FanOutFailure } from '../lib/fanOut'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatPostingDayHeader, type PostingWeekDay } from '../lib/postingWeek'
 
-function DaySection({ day }: { day: PostingWeekDay }) {
+function DaySection({
+  day,
+  waitForReads,
+}: {
+  day: PostingWeekDay
+  waitForReads?: () => Promise<void>
+}) {
   return (
     <section key={day.date}>
       <div className="mb-2 flex items-center gap-2">
@@ -34,6 +41,7 @@ function DaySection({ day }: { day: PostingWeekDay }) {
               post={post}
               dayDate={day.date}
               weekday={day.weekday}
+              waitForReads={waitForReads}
             />
           ))}
         </ul>
@@ -44,13 +52,14 @@ function DaySection({ day }: { day: PostingWeekDay }) {
 
 export function WeekBoard() {
   const { isAll, brandIds, scope } = useBrandScope()
+  const { trackLoad, waitForLoad } = useLoadGate()
   const [days, setDays] = useState<PostingWeekDay[]>([])
   const [undated, setUndated] = useState<PostingWeekDay['posts']>([])
   const [undatedTotal, setUndatedTotal] = useState(0)
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
   const load = useCallback(() => {
-    const run = async () => {
+    const run = async (): Promise<void> => {
       setFailures([])
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) =>
@@ -82,8 +91,8 @@ export function WeekBoard() {
         })
         .catch((err: Error) => setError(err.message))
     }
-    void run()
-  }, [isAll, brandIds, scope])
+    trackLoad(run())
+  }, [isAll, brandIds, scope, trackLoad])
 
   useEffect(() => {
     load()
@@ -124,7 +133,7 @@ export function WeekBoard() {
           </summary>
           <div className="mt-4 space-y-5">
             {pastDays.map((day) => (
-              <DaySection key={day.date} day={day} />
+              <DaySection key={day.date} day={day} waitForReads={waitForLoad} />
             ))}
           </div>
         </details>
@@ -132,7 +141,7 @@ export function WeekBoard() {
 
       <div className="space-y-5">
         {futureDays.map((day) => (
-          <DaySection key={day.date} day={day} />
+          <DaySection key={day.date} day={day} waitForReads={waitForLoad} />
         ))}
       </div>
 
@@ -157,6 +166,7 @@ export function WeekBoard() {
                 post={post}
                 dayDate=""
                 weekday=""
+                waitForReads={waitForLoad}
               />
             ))}
           </ul>

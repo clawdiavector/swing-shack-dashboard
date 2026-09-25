@@ -20,6 +20,7 @@ import {
   type InboxSourceFilter,
 } from '../lib/inboxCandidates'
 import { sumCounts } from '../lib/mergeCounts'
+import { useLoadGate } from '../lib/useLoadGate'
 import { postFlagLabel } from '../lib/postingWeek'
 import { formatStamp } from '../lib/stamp'
 
@@ -35,11 +36,13 @@ function CandidateCard({
   busy,
   onDone,
   showBrandChip,
+  waitForReads,
 }: {
   item: InboxItem
   busy: string
   onDone: () => void
   showBrandChip: boolean
+  waitForReads?: () => Promise<void>
 }) {
   const [dateVal, setDateVal] = useState(item.meta?.event_date || '')
   const [channel, setChannel] = useState(item.meta?.primary_channel || 'instagram')
@@ -63,6 +66,7 @@ function CandidateCard({
 
   async function act(mode: 'lodge' | 'book' | 'reject') {
     setErr('')
+    await waitForReads?.()
     if (mode === 'reject') {
       const result = await inboxAction(item.id, 'reject')
       if (!result.ok) setErr(result.error || 'Reject failed')
@@ -172,9 +176,10 @@ export function InboxPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
+  const { trackLoad, waitForLoad } = useLoadGate()
 
   function load() {
-    const run = async () => {
+    const run = async (): Promise<void> => {
       setFailures([])
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) =>
@@ -206,10 +211,10 @@ export function InboxPage() {
         })
         .catch((err: Error) => setError(err.message))
     }
-    void run()
+    trackLoad(run())
   }
 
-  useEffect(load, [isAll, brandIds, scope])
+  useEffect(load, [isAll, brandIds, scope, trackLoad])
 
   const shown = useMemo(
     () => filterInboxCandidates(items, source, dateFilter),
@@ -262,6 +267,7 @@ export function InboxPage() {
             item={item}
             busy={busy}
             showBrandChip={isAll}
+            waitForReads={waitForLoad}
             onDone={() => {
               setBusy('')
               load()

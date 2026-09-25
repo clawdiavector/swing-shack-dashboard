@@ -18,6 +18,7 @@ import {
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
 import { reviewType } from '../lib/reviewType'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
 
 function itemType(item: InboxItem) {
@@ -41,9 +42,10 @@ function ReviewInbox({
   const [busy, setBusy] = useState('')
   const [filter, setFilter] = useState('all')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
+  const { trackLoad, waitForLoad } = useLoadGate()
 
   function load() {
-    const run = async () => {
+    const run = async (): Promise<void> => {
       setFailures([])
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (bid) =>
@@ -74,13 +76,14 @@ function ReviewInbox({
         })
         .catch((err: Error) => setError(err.message))
     }
-    void run()
+    trackLoad(run())
   }
 
-  useEffect(load, [brandId, isAll, brandIds])
+  useEffect(load, [brandId, isAll, brandIds, trackLoad])
 
   async function act(id: string, action: 'approve' | 'reject') {
     setBusy(id)
+    await waitForLoad()
     const result = await inboxAction(id, action)
     setBusy('')
     if (!result.ok) {

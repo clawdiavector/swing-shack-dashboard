@@ -20,6 +20,7 @@ import {
 } from '../lib/api'
 import { fanOutPayloads } from '../lib/fanOut'
 import { reviewType } from '../lib/reviewType'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
 import { toolTo } from '../lib/tools'
 
@@ -53,30 +54,29 @@ export function ReviewPiece() {
   const [assetErr, setAssetErr] = useState('')
   const [assetLoading, setAssetLoading] = useState(false)
   const [imgBroken, setImgBroken] = useState(false)
+  const { trackLoad, waitForLoad } = useLoadGate()
 
   const cid = item?.meta?.campaign_id
   const aid = item?.meta?.asset_id
 
   function load() {
-    fetchInboxItem(id, brandId)
-      .then((found) => found ?? fetchInboxItem(id))
-      .then((found) => {
+    const run = async (): Promise<void> => {
+      try {
+        const found = (await fetchInboxItem(id, brandId)) ?? (await fetchInboxItem(id))
         setItem(found)
         setLoaded(true)
-      })
-      .catch((err: Error) => {
-        setError(err.message)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
         setLoaded(true)
-      })
-    const loadQueue = async () => {
+      }
       if (isAll) {
         const { payloads } = await fanOutPayloads(brandIds, (bid) =>
           fetchInbox('pending', bid, 'draft_asset'),
         )
         const merged = payloads.flatMap(({ brandId: bid, payload }) =>
-          (payload.items || []).map((item) => ({
-            ...item,
-            brand_id: item.brand_id ?? bid,
+          (payload.items || []).map((row) => ({
+            ...row,
+            brand_id: row.brand_id ?? bid,
           })),
         )
         merged.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
@@ -84,14 +84,17 @@ export function ReviewPiece() {
         return
       }
       const bid = scope === 'all' ? brandId : scope
-      fetchInbox('pending', bid, 'draft_asset')
-        .then((payload) => setQueue(payload.items || []))
-        .catch(() => setQueue([]))
+      try {
+        const payload = await fetchInbox('pending', bid, 'draft_asset')
+        setQueue(payload.items || [])
+      } catch {
+        setQueue([])
+      }
     }
-    void loadQueue()
+    trackLoad(run())
   }
 
-  useEffect(load, [brandId, id, isAll, brandIds, scope])
+  useEffect(load, [brandId, id, isAll, brandIds, scope, trackLoad])
 
   useEffect(() => {
     setAsset(null)
@@ -149,6 +152,7 @@ export function ReviewPiece() {
   async function act(action: 'approve' | 'reject') {
     if (!item) return
     setBusy(true)
+    await waitForLoad()
     const result = await inboxAction(item.id, action)
     setBusy(false)
     if (!result.ok) {

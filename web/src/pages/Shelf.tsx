@@ -8,17 +8,19 @@ import { PostCard } from '../components/posting/PostCard'
 import { Badge, Button, StatCard } from '../components/ui'
 import { fetchPublishMode, fetchShelf, type PublishMode } from '../lib/api'
 import { fanOutPayloads, mergeShelfPayloads, type FanOutFailure } from '../lib/fanOut'
+import { useLoadGate } from '../lib/useLoadGate'
 import { formatGoesOut, type ShelfPayload } from '../lib/postingWeek'
 
 export function Shelf() {
   const { isAll, brandIds, scope } = useBrandScope()
+  const { trackLoad, waitForLoad } = useLoadGate()
   const [data, setData] = useState<ShelfPayload | null>(null)
   const [publishMode, setPublishMode] = useState<PublishMode | null>(null)
   const [error, setError] = useState('')
   const [failures, setFailures] = useState<FanOutFailure[]>([])
 
   const load = useCallback(() => {
-    const run = async () => {
+    const run = async (): Promise<void> => {
       setFailures([])
       if (isAll) {
         const { payloads, failures: fails } = await fanOutPayloads(brandIds, (brandId) => fetchShelf(brandId))
@@ -36,8 +38,8 @@ export function Shelf() {
         })
         .catch((err: Error) => setError(err.message))
     }
-    void run()
-  }, [isAll, brandIds, scope])
+    trackLoad(run())
+  }, [isAll, brandIds, scope, trackLoad])
 
   useEffect(() => {
     load()
@@ -131,6 +133,7 @@ export function Shelf() {
                 dayDate={group.date}
                 weekday=""
                 onRefresh={load}
+                waitForReads={waitForLoad}
               />
             ))}
           </ul>
@@ -151,6 +154,7 @@ export function Shelf() {
                 dayDate=""
                 weekday=""
                 onRefresh={load}
+                waitForReads={waitForLoad}
               />
             ))}
           </ul>

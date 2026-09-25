@@ -153,12 +153,11 @@ export function Daily() {
     setInboxItems(null)
     const runAll = async () => {
       setFailures([])
-      const [todayFan, layersFan, postsFan, inboxFan] = await Promise.all([
-        fanOutPayloads(brandIds, (bid) => fetchToday(bid)),
-        fanOutPayloads(brandIds, (bid) => fetchLayers(bid)),
-        fanOutPayloads(brandIds, (bid) => fetchTopPosts(bid)),
-        fanOutPayloads(brandIds, (bid) => fetchInbox('pending', bid)),
-      ])
+      // Sequential fan-outs (plan §3.5) — at most one 3-brand wave at a time.
+      const todayFan = await fanOutPayloads(brandIds, (bid) => fetchToday(bid))
+      const layersFan = await fanOutPayloads(brandIds, (bid) => fetchLayers(bid))
+      const postsFan = await fanOutPayloads(brandIds, (bid) => fetchTopPosts(bid))
+      const inboxFan = await fanOutPayloads(brandIds, (bid) => fetchInbox('pending', bid))
       setFailures([
         ...todayFan.failures,
         ...layersFan.failures,
