@@ -86,7 +86,7 @@ def test_skip_holiday_inject_moment(retry_env):
     with patch.object(retry_failed_images, "_today_sast", return_value=fixed):
         result = retry_failed_images.run(brand="swing-shack")
     assert result.get("ok") is True
-    assert result.get("enqueued") == 2
+    assert result.get("enqueued") == 3
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     refs = {r.get("payload_ref") for r in queue.get("rows") or []}
     assert any("cal-operator-fitting" in (ref or "") for ref in refs)

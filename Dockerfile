@@ -14,7 +14,7 @@ FROM python:3.12-slim-bookworm
 # Without it: 'Git clone failed (non-fatal): [Errno 2] No such file or directory: git'
 # ffmpeg/ffprobe: required by P1.2 Slice D (adaptive VIDEO observation).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ffmpeg \
+      git curl ffmpeg tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

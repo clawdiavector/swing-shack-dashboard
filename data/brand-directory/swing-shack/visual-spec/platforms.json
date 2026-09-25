@@ -2,15 +2,15 @@
   "schema": "https://campaign-os/brand-directory/visual-spec/platforms/v1",
   "platforms": {
     "instagram": {
-      "aspect_ratio": "1:1",
-      "aspect_px": "1080x1080",
+      "aspect_ratio": "4:5",
+      "aspect_px": "1080x1350",
       "use_cases": [
         "single image post",
         "carousel card",
         "reel thumbnail",
         "story card"
       ],
-      "text_safety_zone": "center 70% of frame \u2014 no critical text in outer 15%",
+      "text_safety_zone": "x 0.05-0.95 y 0.04-0.96",
       "min_text_height_px": 40,
       "model_hints": [
         "square crop",
@@ -58,7 +58,7 @@
         "feed post",
         "event cover"
       ],
-      "text_safety_zone": "center \u2014 landscape framing with space for headline overlay",
+      "text_safety_zone": "x 0.05-0.95 y 0.08-0.92",
       "min_text_height_px": 38,
       "model_hints": [
         "landscape format",
@@ -99,18 +99,30 @@
       ]
     },
     "gbp": {
-      "aspect_ratio": "1.78:1",
-      "aspect_px": "720x405",
+      "aspect_ratio": "4:3",
+      "aspect_px": "1200x900",
       "use_cases": [
         "Google Business Profile post",
         "local post image"
       ],
-      "text_safety_zone": "full frame \u2014 prefer no overlaid text, let the image speak",
+      "text_safety_zone": "x 0.06-0.94 y 0.06-0.94",
       "min_text_height_px": 30,
       "model_hints": [
         "professional exterior/interior",
         "clear branding visible",
         "welcoming composition"
+      ]
+    },
+    "instagram_story": {
+      "aspect_ratio": "9:16",
+      "aspect_px": "1080x1920",
+      "use_cases": [
+        "instagram story"
+      ],
+      "text_safety_zone": "x 0.05-0.95 y 0.16-0.84",
+      "min_text_height_px": 50,
+      "model_hints": [
+        "vertical format"
       ]
     }
   },

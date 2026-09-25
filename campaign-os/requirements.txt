@@ -8,6 +8,8 @@ google-auth>=2.0
 google-api-python-client>=2.100.0
 requests>=2.28
 Pillow>=10.0  # brand overlay (deterministic post-composition)
+pytesseract>=0.3.10  # L5 visual QC — no-text gate on generated candidates
+jsonschema>=4.21.0  # archetype schema v2 validation
 
 # V2.1 — GA4 Data API client (BetaAnalyticsDataClient).
 # Required by /api/ga4/<brand>/pages,

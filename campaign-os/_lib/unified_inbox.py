@@ -12,6 +12,8 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any, Optional
 
+from _lib.jobs.layer1._io import read_json
+
 SCHEMA = "campaign-os/unified-inbox/v1"
 HUMAN_EDIT_SCHEMA = "campaign-os/human-edit-signal/v1"
 SLA_STALE_HOURS = 24
@@ -554,6 +556,35 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                     "image_url": image_url,
                 },
             })
+            meta = out[-1]["meta"]
+            if sidecar.get("photo_candidates"):
+                meta["photo_candidates"] = sidecar["photo_candidates"]
+            if sidecar.get("qc"):
+                meta["qc"] = sidecar["qc"]
+            if sidecar.get("composed"):
+                meta["composed"] = sidecar["composed"]
+            if sidecar.get("archetype"):
+                meta["archetype"] = sidecar["archetype"]
+            if sidecar.get("sections") or sidecar.get("negative_prompt"):
+                meta["brief"] = {
+                    "sections": sidecar.get("sections") or [],
+                    "negative_prompt": sidecar.get("negative_prompt") or "",
+                    "platform_spec": sidecar.get("platform_spec") or {},
+                    "brief_ref": f"draft-assets/{aid}.brief.json",
+                }
+            ref_meta = sidecar.get("reference_dnas")
+            if isinstance(ref_meta, list) and ref_meta:
+                first = ref_meta[0] if isinstance(ref_meta[0], dict) else {}
+                meta["reference_used"] = {
+                    "ref_id": first.get("ref_id"),
+                    "url": first.get("url"),
+                    "source": first.get("source"),
+                    "platform": first.get("platform"),
+                    "selected_because": first.get("selected_because"),
+                }
+            composed = meta.get("composed")
+            if isinstance(composed, dict) and meta.get("primary_channel") in composed:
+                meta["image_url"] = composed[meta["primary_channel"]]
     return out
 
 
@@ -1427,42 +1458,27 @@ def _l5_enqueue_suppressed() -> bool:
     return str(raw).strip().lower() not in ("1", "true", "yes", "on")
 
 
+def _photo_equiv_queued(existing: set[tuple[str, str]]) -> bool:
+    from _lib.jobs.layer5.draft_assets import _PHOTO_EQUIV  # noqa: PLC0415
+
+    for name in _PHOTO_EQUIV:
+        if (name, "pending") in existing or (name, "waiting") in existing:
+            return True
+    return False
+
+
 def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> list[str]:
-    """Enqueue draft_caption + draft_image (+ draft_gbp when intended) after lodge."""
+    """Enqueue draft_caption + draft_photo + compose_post (+ draft_gbp when intended) after lodge."""
     enqueued: list[str] = []
     if _l5_enqueue_suppressed():
         return enqueued
     if item_type not in ("proposal", "calendar_candidate"):
         return enqueued
     try:
-        from _lib import ops_agents  # noqa: PLC0415
-        from _lib.publish_sandbox import intended_publish_channels  # noqa: PLC0415
+        from _lib.l5_create_enqueue import enqueue_create_actions  # noqa: PLC0415
 
         reason = item_type.replace("_", "-")[:32]
-        item_hash = hashlib.sha1(item_id.encode()).hexdigest()[:12]
-        actions = ["draft_caption", "draft_image"]
-        if "gbp" in intended_publish_channels(brand_id):
-            actions.append("draft_gbp")
-        for action in actions:
-            if action == "draft_image":
-                from _lib.image_submit_quota import check_brand_image_submit  # noqa: PLC0415
-
-                ok, _reason = check_brand_image_submit(brand_id)
-                if not ok:
-                    continue
-            agent = "cos-image" if action == "draft_image" else "cos-caption"
-            row = ops_agents.normalise_enqueue(
-                {
-                    "agent": agent,
-                    "brand": brand_id,
-                    "reason": reason,
-                    "action": action,
-                    "payload_ref": f"inbox/{item_id}",
-                    "dedupe_key": f"{action}-{item_hash}",
-                }
-            )
-            ops_agents.append_enqueue_row(_data_dir(), row)
-            enqueued.append(action)
+        enqueued = enqueue_create_actions(item_id=item_id, brand_id=brand_id, reason=reason)
     except Exception:
         pass
     return enqueued

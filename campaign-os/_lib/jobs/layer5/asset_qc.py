@@ -91,13 +91,13 @@ def _check_sidecar(sidecar: dict[str, Any], caption: str) -> list[str]:
             issues.append(f"banned term: {term}")
 
     action = str(sidecar.get("action") or "")
-    if action == "draft_image":
+    if action in ("draft_image", "draft_photo"):
         size = str(sidecar.get("image_size") or "")
         if size and size not in VALID_IMAGE_SIZES:
             issues.append(f"invalid image aspect: {size}")
 
     cost = sidecar.get("cost_estimate_usd")
-    if cost is None and action in ("draft_caption", "draft_image"):
+    if cost is None and action in ("draft_caption", "draft_image", "draft_photo"):
         issues.append("cost_estimate_usd not recorded")
 
     return issues
@@ -146,6 +146,11 @@ def _maybe_enqueue_publish_request(
         inbox_item_id,
         fallback=asset_platform or "instagram",
     )
+    if str(asset.get("qcState") or "").lower() == "needs_human":
+        return
+    qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
+    if str(qc.get("verdict") or "").lower() == "needs_human":
+        return
     if not _enqueue_ready(caption=caption, asset=asset, sidecar=sidecar, platform=platform):
         return
     lodged_title = str(sidecar.get("title") or asset.get("name") or "")
@@ -183,7 +188,7 @@ def run() -> dict[str, Any]:
 
             issues = _check_sidecar(sidecar, caption)
             action = str(sidecar.get("action") or "")
-            if action == "draft_image":
+            if action in ("draft_image", "draft_photo", "compose_post"):
                 from _lib.jobs.layer5.image_draft_context import primary_channel_for_item  # noqa: PLC0415
 
                 inbox_item_id = str(sidecar.get("source_inbox_item_id") or "")

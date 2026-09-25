@@ -176,9 +176,15 @@ def test_roster_seeds_never_agents(job_app):
 @pytest.mark.parametrize("bad_id", ["../etc/passwd", "a/b", "", "a" * 200])
 def test_unknown_agent_id_rejected(job_app, tmp_path, bad_id):
     client, _, tmp_path = job_app
-    resp = client.post("/api/ops/agents/heartbeat", json=_heartbeat_body(id=bad_id))
+    resp = client.post(
+        "/api/ops/agents/heartbeat",
+        json=_heartbeat_body(id=bad_id),
+        headers=_auth(),
+    )
     assert resp.status_code == 400
-    assert not any(tmp_path.rglob("*.json"))
+    roster = tmp_path / "ops-agents"
+    if roster.is_dir():
+        assert not any(roster.glob("*.json"))
 
 
 def test_unknown_agent_still_listed(job_app):

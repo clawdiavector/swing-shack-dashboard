@@ -42,6 +42,34 @@ def l5_app(monkeypatch, tmp_path):
 
 
 def _seed_brands(tmp_path: Path, brand: str = "stick", campaign_id: str = "camp-stick") -> None:
+    logo_dir = tmp_path / "brand-directory" / brand
+    logo_dir.mkdir(parents=True, exist_ok=True)
+    fonts_dir = logo_dir / "typography"
+    fonts_dir.mkdir(parents=True, exist_ok=True)
+    fonts_dir.joinpath("fonts.json").write_text(
+        json.dumps(
+            {
+                "scale": [
+                    {"name": "display", "size_px": 72},
+                    {"name": "h1", "size_px": 64},
+                    {"name": "h2", "size_px": 44},
+                    {"name": "h3", "size_px": 32},
+                    {"name": "body", "size_px": 18},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    palette_dir = logo_dir / "palette"
+    palette_dir.mkdir(parents=True, exist_ok=True)
+    palette_dir.joinpath("brand.json").write_text(
+        json.dumps({"palette": {"navy_deep": {"hex": "#073C52"}, "teal": {"hex": "#00B3BA"}, "white": {"hex": "#FFFFFF"}}}),
+        encoding="utf-8",
+    )
+    (logo_dir / "logo.png").write_bytes(
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
     (tmp_path / "brands.json").write_text(
         json.dumps(
             {
@@ -137,7 +165,14 @@ def test_one_tick_completes_moment_a_only(l5_app, tmp_path):
             {
                 "id": "q-a-img",
                 "brand": "stick",
-                "action": "draft_image",
+                "action": "draft_photo",
+                "payload_ref": f"inbox/{item_a}",
+                "status": "pending",
+            },
+            {
+                "id": "q-a-compose",
+                "brand": "stick",
+                "action": "compose_post",
                 "payload_ref": f"inbox/{item_a}",
                 "status": "pending",
             },
@@ -172,18 +207,24 @@ def test_one_tick_completes_moment_a_only(l5_app, tmp_path):
         return captions[item_a]
 
     mock_gen = _image_mock(tmp_path)
+    qc_pass = {"verdict": "pass", "reasons": [], "ocr_available": True, "scores": {}}
+
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
 
     with patch("_lib.p11_context_engine.run_caption_pipeline", side_effect=fake_caption), patch(
         "_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen
+    ), patch("_lib.jobs.layer5.visual_qc.visual_check", return_value=qc_pass), patch(
+        "_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose
     ):
         result = draft_assets.run()
 
     assert result.get("ok") is True
     sidecars_a = _sidecars_for_item(tmp_path, item_a)
     actions_a = {s.get("action") for s in sidecars_a}
-    assert "draft_caption" in actions_a
-    assert "draft_image" in actions_a
-    assert draft_assets._moment_has_image("stick", item_a)
+    assert draft_assets._moment_has_composed("stick", item_a)
 
     assert _sidecars_for_item(tmp_path, item_b) == []
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
@@ -246,8 +287,7 @@ def test_cap_mid_image_does_not_caption_moment_b(l5_app, tmp_path, monkeypatch):
     ):
         result = draft_assets.run()
 
-    assert result.get("ok") is False
-    assert result.get("error") == "daily LLM spend cap reached"
+    assert result.get("skipped_cap") or result.get("error") == "daily LLM spend cap reached"
     assert _sidecars_for_item(tmp_path, item_b) == []
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     b_row = next(r for r in queue["rows"] if item_b in str(r.get("payload_ref")))

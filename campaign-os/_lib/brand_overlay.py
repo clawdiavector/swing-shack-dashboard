@@ -49,14 +49,17 @@ CTA_FALLBACK_FONT_SIZE = 28
 # ── Brand asset paths ─────────────────────────────────────────────────
 def _candidate_brand_dirs(brand_id: str) -> list:
     """Return likely on-disk brand directories in priority order."""
-    return [
-        Path(f"/data/campaign-os/brand-directory/{brand_id}"),
-        Path(f"/data/campaign-os/{brand_id}"),
-        Path(
-            f"/Users/fivefriday/.openclaw-instance2/workspace/"
-            f"swing-shack-dashboard/data/brand-directory/{brand_id}"
-        ),
-    ]
+    dirs: list[Path] = []
+    data_dir = os.environ.get("DATA_DIR", "/data/campaign-os").strip()
+    if data_dir:
+        dirs.append(Path(data_dir) / "brand-directory" / brand_id)
+    bundled = os.environ.get("BUNDLED_DATA_DIR", "").strip()
+    if bundled:
+        dirs.append(Path(bundled) / "brand-directory" / brand_id)
+    here = Path(__file__).resolve()
+    dirs.append(here.parents[2] / "data" / "brand-directory" / brand_id)
+    dirs.append(Path(f"/data/campaign-os/brand-directory/{brand_id}"))
+    return dirs
 
 
 def _find_logo(brand_id: str) -> Optional[Path]:

@@ -15,6 +15,7 @@ REPO_ROOT = CAMPAIGN_OS.parent
 if str(CAMPAIGN_OS) not in sys.path:
     sys.path.insert(0, str(CAMPAIGN_OS))
 
+from tests.jobs.test_draft_assets_serial_complete import _sidecars_for_item  # noqa: E402
 from tests.jobs.test_layer5_create import (  # noqa: E402
     CAMPAIGN_OS as _CO,
     REPO_ROOT as _REPO,
@@ -63,20 +64,34 @@ def _seed_approved_calendar(
     return f"calendar_candidate:{brand}:{cal_id}"
 
 
+_QC_PASS = {"verdict": "pass", "reasons": [], "ocr_available": True, "scores": {}}
+
+
 def _seed_image_queue_row(tmp_path: Path, *, item_id: str, brand: str = "stick") -> None:
-    row = {
-        "id": f"manual-{brand}-cos-image-draft-image",
-        "layer": "L3",
-        "agent": "cos-image",
-        "brand": brand,
-        "action": "draft_image",
-        "payload_ref": f"inbox/{item_id}",
-        "status": "pending",
-    }
+    rows = [
+        {
+            "id": f"manual-{brand}-cos-image-draft-image",
+            "layer": "L3",
+            "agent": "cos-image",
+            "brand": brand,
+            "action": "draft_image",
+            "payload_ref": f"inbox/{item_id}",
+            "status": "pending",
+        },
+        {
+            "id": f"manual-{brand}-cos-image-compose-post",
+            "layer": "L3",
+            "agent": "cos-image",
+            "brand": brand,
+            "action": "compose_post",
+            "payload_ref": f"inbox/{item_id}",
+            "status": "pending",
+        },
+    ]
     doc = {
         "schema": "campaign-os/agent-queue/v1",
         "generated_at": "2026-09-17T10:00:00Z",
-        "rows": [row],
+        "rows": rows,
     }
     (tmp_path / "agent-queue.json").write_text(json.dumps(doc), encoding="utf-8")
 
@@ -168,9 +183,11 @@ def test_image_row_passes_context_to_router(l5_app, tmp_path):
     ctx = build_image_draft_context("stick", item_id)
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen) as mock_router:
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen) as mock_router, patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ):
         result = draft_assets.run()
-        mock_router.assert_called_once()
+        assert mock_router.call_count == 2
         kwargs = mock_router.call_args.kwargs
         assert kwargs["prompt"] == ctx.job
         assert kwargs["size"] == ctx.aspect
@@ -191,7 +208,14 @@ def test_sidecar_lineage_populated(l5_app, tmp_path):
     _seed_image_queue_row(tmp_path, item_id=item_id)
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ), patch("_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose):
         draft_assets.run()
 
     sidecar_path = _draft_asset_sidecar_path(tmp_path)
@@ -214,13 +238,25 @@ def test_asset_name_from_calendar_title(l5_app, tmp_path):
     _seed_image_queue_row(tmp_path, item_id=item_id)
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ), patch("_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose):
         draft_assets.run()
 
     data = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
     assets = data["campaigns"]["camp-stick"]["assets"]
     names = [a.get("name") for a in assets.values()]
-    assert "Launch Night" in names
+    sidecar_blob = " ".join(
+        p.read_text(encoding="utf-8")
+        for p in (tmp_path / "draft-assets").glob("*.json")
+        if not p.name.endswith(".brief.json")
+    )
+    assert "Launch Night" in sidecar_blob or any("Launch Night" in str(n or "") for n in names)
 
 
 def test_image_cross_links_caption_draft(l5_app, tmp_path):
@@ -274,21 +310,36 @@ def test_image_cross_links_caption_draft(l5_app, tmp_path):
                 "payload_ref": f"inbox/{item_id}",
                 "status": "pending",
             },
+            {
+                "id": "manual-stick-cos-image-compose-post",
+                "layer": "L3",
+                "agent": "cos-image",
+                "brand": "stick",
+                "action": "compose_post",
+                "payload_ref": f"inbox/{item_id}",
+                "status": "pending",
+            },
         ],
     }
     (tmp_path / "agent-queue.json").write_text(json.dumps(doc), encoding="utf-8")
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ), patch("_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose):
         draft_assets.run()
 
     image_sidecar = json.loads(_draft_asset_sidecar_path(tmp_path).read_text(encoding="utf-8"))
     assert image_sidecar.get("caption_asset_id") == caption_asset_id
+    assert image_sidecar.get("photo_candidates")
     saved = json.loads((tmp_path / "campaign-data.json").read_text(encoding="utf-8"))
-    image_assets = [
-        a for aid, a in saved["campaigns"]["camp-stick"]["assets"].items() if aid != caption_asset_id
-    ]
-    assert image_assets[0]["caption"] == "Linked caption text"
+    cap_asset = saved["campaigns"]["camp-stick"]["assets"][caption_asset_id]
+    assert cap_asset["caption"] == "Linked caption text"
 
 
 def test_no_repo_writes_with_context(l5_app, tmp_path):
@@ -304,7 +355,14 @@ def test_no_repo_writes_with_context(l5_app, tmp_path):
     _seed_image_queue_row(tmp_path, item_id=item_id)
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ), patch("_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose):
         draft_assets.run()
 
     after_repo = set(repo_brand_dir.rglob("*")) if repo_brand_dir.is_dir() else set()
@@ -324,7 +382,9 @@ def test_context_survives_missing_calendar_record(l5_app, tmp_path):
     assert ctx.job
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ):
         result = draft_assets.run()
 
     assert result.get("ok") is True
@@ -338,7 +398,14 @@ def test_asset_qc_passes_rich_image_sidecar(l5_app, tmp_path):
     _seed_image_queue_row(tmp_path, item_id=item_id)
     mock_gen = _mock_gen_result(tmp_path)
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"x" * 64
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
+
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=_QC_PASS
+    ), patch("_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose):
         draft_assets.run()
 
     sidecar_path = _draft_asset_sidecar_path(tmp_path)

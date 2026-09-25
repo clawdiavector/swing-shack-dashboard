@@ -13,6 +13,8 @@ from _lib.brand_validate import validate_brand_id
 from .draft_assets import (
     CAPTION_EST_USD,
     IMAGE_EST_USD,
+    _PHOTO_EQUIV,
+    _moment_has_composed,
     _moment_has_image,
     _parse_inbox_ref,
     _read_queue,
@@ -147,9 +149,13 @@ def _enqueue_actions_for_item(
         waiting_key = (action, "waiting")
         if status_key in existing or waiting_key in existing:
             continue
-        if action == "draft_image" and _image_daily_cap_blocks(brand_id):
+        if action == "draft_photo" and _image_daily_cap_blocks(brand_id):
             continue
-        agent = "cos-image" if action == "draft_image" else "cos-caption"
+        if action == "draft_photo" and any(
+            (n, s) in existing for n in _PHOTO_EQUIV for s in ("pending", "waiting")
+        ):
+            continue
+        agent = "cos-image" if action in ("draft_photo", "compose_post") else "cos-caption"
         row = ops_agents.normalise_enqueue(
             {
                 "agent": agent,
@@ -168,12 +174,18 @@ def _enqueue_actions_for_item(
 
 
 def _actions_for_moment(brand_id: str, item_id: str) -> list[str]:
+    from _lib.archetypes_v2 import select_archetype  # noqa: PLC0415
     from _lib.jobs.layer5.image_draft_context import primary_channel_for_item  # noqa: PLC0415
 
     primary = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     if primary == "gbp":
         return ["draft_caption"]
-    return ["draft_caption", "draft_image"]
+    archetype = select_archetype(brand_id, item_id)
+    actions = ["draft_caption"]
+    if archetype.get("applies_to", {}).get("needs_photo", True):
+        actions.append("draft_photo")
+    actions.append("compose_post")
+    return actions
 
 
 def _reset_bad_image_rows(
@@ -183,7 +195,7 @@ def _reset_bad_image_rows(
 ) -> int:
     reset = 0
     for row in rows:
-        if str(row.get("action") or "") != "draft_image":
+        if str(row.get("action") or "") not in _PHOTO_EQUIV:
             continue
         if brand is not None and str(row.get("brand") or "") != brand:
             continue
@@ -199,7 +211,7 @@ def _reset_bad_image_rows(
             brand_id = validate_brand_id(row.get("brand"))
         except ValueError:
             continue
-        if _moment_has_image(brand_id, item_id):
+        if _moment_has_composed(brand_id, item_id):
             continue
         if _retry_count(row, item_id=item_id) >= MAX_IMAGE_RETRIES:
             continue
@@ -244,10 +256,10 @@ def _auto_enqueue_operator_moments(
             item_id = _calendar_item_id(brand_id, record)
             if not item_id:
                 continue
-            if _moment_has_image(brand_id, item_id):
+            if _moment_has_composed(brand_id, item_id):
                 continue
             actions = _actions_for_moment(brand_id, item_id)
-            include_image = "draft_image" in actions
+            include_image = "draft_photo" in actions
             if _spend_cap_blocks_enqueue(include_image=include_image):
                 continue
             enqueued += _enqueue_actions_for_item(

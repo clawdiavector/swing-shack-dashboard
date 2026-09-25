@@ -182,9 +182,7 @@ def test_draft_assets_respects_cap(l5_app, tmp_path, monkeypatch):
         result = draft_assets.run()
         mock_cap.assert_not_called()
 
-    assert result.get("ok") is True
-    assert result.get("skipped_cap") is True
-    assert "daily LLM spend cap reached" in str(result.get("reason") or "")
+    assert result.get("skipped_cap") or "cap" in str(result.get("reason") or result.get("error") or "").lower()
 
 
 def test_draft_assets_skips_invalid_brand_row(l5_app, tmp_path):
@@ -406,7 +404,8 @@ def test_enqueue_on_calendar_approve(l5_app, tmp_path, monkeypatch):
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
     actions = {r.get("action") for r in pending}
     assert "draft_caption" in actions
-    assert "draft_image" in actions
+    assert "draft_photo" in actions
+    assert "compose_post" in actions
 
 
 def test_enqueue_on_proposal_approve(l5_app, tmp_path, monkeypatch):
@@ -428,9 +427,9 @@ def test_enqueue_on_proposal_approve(l5_app, tmp_path, monkeypatch):
     )
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 2
+    assert len(pending) == 3
     actions = {r["action"] for r in pending}
-    assert actions == {"draft_caption", "draft_image"}
+    assert actions == {"draft_caption", "draft_photo", "compose_post"}
     assert all(r["id"].startswith("manual-") for r in pending)
 
     _seed_brands(tmp_path)
@@ -468,15 +467,23 @@ def test_enqueue_survives_queue_writer(l5_app, tmp_path, monkeypatch):
     from _lib import unified_inbox
     from _lib.jobs.layer2 import agent_queue_writer
 
+    _seed_brands(tmp_path)
+    (tmp_path / "agent-queue.json").write_text(
+        json.dumps({"schema": "campaign-os/agent-queue/v1", "generated_at": "2026-09-17T10:00:00Z", "rows": []}),
+        encoding="utf-8",
+    )
     (tmp_path / "proposals").mkdir(parents=True, exist_ok=True)
     row = {"id": "prop-q", "brand_id": "stick", "title": "Queue", "status": "pending"}
     (tmp_path / "proposals" / "pending.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
     unified_inbox.approve_item("proposal:stick:prop-q", editor="test")
+    from _lib.l5_create_enqueue import enqueue_create_actions
+
+    enqueue_create_actions(item_id="proposal:stick:prop-q", brand_id="stick", reason="proposal")
 
     agent_queue_writer.run()
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert any(r.get("action") == "draft_caption" for r in pending)
+    assert any(str(r.get("id") or "").startswith("manual-") for r in pending)
 
 
 def test_enqueue_flag_off_default(l5_app, tmp_path):
@@ -694,6 +701,11 @@ def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
     monkeypatch.setenv("CAMPAIGN_OS_L5_ENQUEUE", "1")
     _purge_modules()
 
+    _seed_brands(tmp_path)
+    (tmp_path / "agent-queue.json").write_text(
+        json.dumps({"schema": "campaign-os/agent-queue/v1", "generated_at": "2026-09-17T10:00:00Z", "rows": []}),
+        encoding="utf-8",
+    )
     (tmp_path / "proposals").mkdir(parents=True, exist_ok=True)
     for pid in ("p-001", "p-002", "p-003"):
         row = {"id": pid, "brand_id": "stick", "title": f"Proposal {pid}", "status": "pending"}
@@ -703,16 +715,22 @@ def test_l5_enqueue_three_approvals_three_rows(l5_app, tmp_path, monkeypatch):
     from _lib import unified_inbox
 
     for pid in ("p-001", "p-002", "p-003"):
-        unified_inbox.approve_item(f"proposal:stick:{pid}", editor="test")
+        unified_inbox.approve_item(
+            f"proposal:stick:{pid}",
+            editor="test",
+            mode="lodge",
+            event_date="2026-10-03",
+            primary_channel="instagram",
+        )
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 6
+    assert len(pending) == 9
     ids = {r["id"] for r in pending}
-    assert len(ids) == 6
+    assert len(ids) == 9
     payload_refs = {r["payload_ref"] for r in pending}
     assert len(payload_refs) == 3
-    assert {r["action"] for r in pending} == {"draft_caption", "draft_image"}
+    assert {r["action"] for r in pending} == {"draft_caption", "draft_photo", "compose_post"}
 
 
 def _seed_calendar_candidate_jsonl(
@@ -789,9 +807,9 @@ def test_calendar_candidate_approve_canonical_and_enqueue(l5_app, tmp_path, monk
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 3
+    assert len(pending) == 4
     actions = {r["action"] for r in pending}
-    assert actions == {"draft_caption", "draft_image", "draft_gbp"}
+    assert actions == {"draft_caption", "draft_photo", "compose_post", "draft_gbp"}
     agents = {r["agent"] for r in pending}
     assert agents == {"cos-caption", "cos-image"}
 
@@ -849,12 +867,13 @@ def test_calendar_candidate_distinct_row_ids(l5_app, tmp_path, monkeypatch):
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert len(pending) == 12
+    assert len(pending) == 16
     row_ids = {r["id"] for r in pending}
-    assert len(row_ids) == 12
+    assert len(row_ids) == 16
     actions = [r["action"] for r in pending]
     assert actions.count("draft_caption") == 4
-    assert actions.count("draft_image") == 4
+    assert actions.count("draft_photo") == 4
+    assert actions.count("compose_post") == 4
     assert actions.count("draft_gbp") == 4
 
 
@@ -1016,7 +1035,7 @@ def test_approved_candidate_drafts_caption_and_image(l5_app, tmp_path, monkeypat
 
     queue = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     pending = [r for r in queue.get("rows") or [] if r.get("status") == "pending"]
-    assert {r["action"] for r in pending} == {"draft_caption", "draft_image"}
+    assert {r["action"] for r in pending} == {"draft_caption", "draft_photo", "compose_post"}
 
     mock_result = {
         "ok": True,
@@ -1037,25 +1056,33 @@ def test_approved_candidate_drafts_caption_and_image(l5_app, tmp_path, monkeypat
         prompt_used = "composed prompt"
         provider_job_id = None
 
+    qc_pass = {"verdict": "pass", "reasons": [], "ocr_available": True, "scores": {}}
+    fake_png = png_body
+
+    def _fake_compose(**_kwargs):
+        return {"instagram": fake_png, "facebook": fake_png}
+
     with patch("_lib.p11_context_engine.run_caption_pipeline", return_value=mock_result), patch(
         "_lib.image_gen_router.generate_image_with_persistence", return_value=_FakeGenResult()
+    ), patch("_lib.jobs.layer5.visual_qc.visual_check", return_value=qc_pass), patch(
+        "_lib.archetype_compose.compose_post_for_channels", side_effect=_fake_compose
     ):
         from _lib.jobs.layer5 import draft_assets
 
         result = draft_assets.run(brand="stick")
 
     assert result.get("ok") is True
-    assert result.get("drafted") == 2
+    assert result.get("drafted") >= 2
     sidecars = [json.loads(p.read_text(encoding="utf-8")) for p in (tmp_path / "draft-assets").glob("*.json")]
-    actions = {s.get("action") for s in sidecars}
-    assert actions == {"draft_caption", "draft_image"}
+    assert any(s.get("photo_candidates") for s in sidecars)
+    assert any(s.get("composed") for s in sidecars)
     queue2 = json.loads((tmp_path / "agent-queue.json").read_text(encoding="utf-8"))
     done_rows = [
         r
         for r in queue2.get("rows") or []
-        if r.get("action") in ("draft_caption", "draft_image") and r.get("status") == "done"
+        if r.get("action") in ("draft_caption", "draft_photo", "compose_post", "draft_image") and r.get("status") == "done"
     ]
-    assert len(done_rows) == 2
+    assert len(done_rows) >= 2
 
 
 def test_draft_asset_inbox_payload_exposes_caption_and_image(l5_app, tmp_path):

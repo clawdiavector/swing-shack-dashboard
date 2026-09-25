@@ -85,11 +85,14 @@ def test_spend_recorded_once_on_real_bytes_krea(spend_env):
     mock_gen.provider_job_id = None
     mock_gen.prompt_used = "prompt"
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen):
+    qc_pass = {"verdict": "pass", "reasons": [], "ocr_available": True, "scores": {}}
+    with patch("_lib.image_gen_router.generate_image_with_persistence", return_value=mock_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=qc_pass
+    ):
         draft_assets.run()
 
-    assert llm_spend.today_spend()["calls"] == 1
-    assert llm_spend.today_spend()["usd"] == pytest.approx(llm_spend.modelled_image_cost("1024x1024"))
+    assert llm_spend.today_spend()["calls"] == 2
+    assert llm_spend.today_spend()["usd"] == pytest.approx(2 * llm_spend.modelled_image_cost("1024x1024"))
 
 
 def test_no_double_charge_on_openrouter_provider(spend_env):
@@ -112,10 +115,13 @@ def test_no_double_charge_on_openrouter_provider(spend_env):
         mock.provider_job_id = None
         return mock
 
-    with patch("_lib.image_gen_router.generate_image_with_persistence", side_effect=fake_gen):
+    qc_pass = {"verdict": "pass", "reasons": [], "ocr_available": True, "scores": {}}
+    with patch("_lib.image_gen_router.generate_image_with_persistence", side_effect=fake_gen), patch(
+        "_lib.jobs.layer5.visual_qc.visual_check", return_value=qc_pass
+    ):
         draft_assets.run()
 
-    assert llm_spend.today_spend()["calls"] == 1
+    assert llm_spend.today_spend()["calls"] == 2
 
 
 def test_by_brand_rollup_sums_to_total(spend_env):

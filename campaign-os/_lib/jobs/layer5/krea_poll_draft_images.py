@@ -330,7 +330,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
     waiting = [
         r
         for r in rows
-        if str(r.get("action") or "") == "draft_image"
+        if str(r.get("action") or "") in ("draft_photo", "draft_image")
         and str(r.get("status") or "").lower() == "waiting"
         and (brand is None or str(r.get("brand") or "") == brand)
     ]

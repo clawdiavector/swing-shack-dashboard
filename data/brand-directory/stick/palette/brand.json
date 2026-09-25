@@ -1,39 +1,32 @@
 {
   "schema": "https://campaign-os/brand-directory/palette/v1",
   "brand_id": "stick",
-  "version": "1.0",
-  "updated": "2026-07-28T20:10:00Z",
+  "version": "2.0",
+  "updated": "2026-09-25T00:00:00Z",
+  "source": "measured",
+  "tokens": {
+    "navy_deep": "#073C52",
+    "teal": "#00B3BA",
+    "mint": "#24FFAF",
+    "navy_alt": "#05325D",
+    "white": "#FFFFFF",
+    "grey_light": "#D1D1D1"
+  },
   "palette": {
     "primary": {
-      "hex": "#1B1B1B",
-      "name": "true black",
-      "usage": "backgrounds, dominant colour"
+      "hex": "#073C52",
+      "name": "navy deep",
+      "usage": "dominant backgrounds"
     },
     "accent": {
-      "hex": "#FF3D00",
-      "name": "signal red",
-      "usage": "emphasis, CTA pills, key callouts"
-    },
-    "neutral_dark": {
-      "hex": "#0A0A0A",
-      "name": "deep black",
-      "usage": "alternate backgrounds"
+      "hex": "#00B3BA",
+      "name": "teal",
+      "usage": "CTA bands, accent headlines"
     },
     "neutral_light": {
       "hex": "#FFFFFF",
-      "name": "paper white",
-      "usage": "text on black, headlines"
-    },
-    "neutral_mid": {
-      "hex": "#9CA3AF",
-      "name": "concrete",
-      "usage": "secondary text, captions"
+      "name": "white",
+      "usage": "text on dark fields"
     }
-  },
-  "contrast_checks": [
-    {"pair": ["primary", "neutral_light"], "ratio_estimate": 19.6, "wcag": "AAA pass"},
-    {"pair": ["accent", "primary"], "ratio_estimate": 5.1, "wcag": "AA pass"},
-    {"pair": ["accent", "neutral_light"], "ratio_estimate": 3.9, "wcag": "AA pass for large text"}
-  ],
-  "source": "best-guess — Stick voice reads as high-contrast / black / red / signal. Needs Drive validation once folders wired in."
+  }
 }

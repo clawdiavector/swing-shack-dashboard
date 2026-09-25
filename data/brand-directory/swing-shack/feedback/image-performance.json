@@ -76,9 +76,41 @@
       "platform_post_id": "17988987897030897",
       "score": 0.4068,
       "source": "ig"
+    },
+    {
+      "image_id": "ref-test",
+      "kind": "reference",
+      "source": "ig",
+      "captured_at": 1790355194.856351,
+      "platform_post_id": null,
+      "captured_signal": {
+        "bookings": 2,
+        "likes": 100,
+        "link_clicks": 50,
+        "reach": 1000
+      },
+      "score": 0.749,
+      "dna_snapshot": {},
+      "notes": ""
+    },
+    {
+      "image_id": "ref-test",
+      "kind": "reference",
+      "source": "ig",
+      "captured_at": 1790355677.8212218,
+      "platform_post_id": null,
+      "captured_signal": {
+        "bookings": 2,
+        "likes": 100,
+        "link_clicks": 50,
+        "reach": 1000
+      },
+      "score": 0.749,
+      "dna_snapshot": {},
+      "notes": ""
     }
   ],
-  "updated": 1789019431.471471,
+  "updated": 1790355677.8212612,
   "version": 1,
   "win_threshold": 0.65
 }

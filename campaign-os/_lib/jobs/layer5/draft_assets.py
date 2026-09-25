@@ -26,9 +26,11 @@ from .image_draft_context import (
 _DRAFT_HEX_NAME = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
 _CAPTION_NAME_MAX = 72
 
-CREATE_ACTIONS = frozenset({"draft_caption", "draft_image", "draft_gbp"})
+CREATE_ACTIONS = frozenset({"draft_caption", "draft_photo", "compose_post", "draft_gbp"})
+LEGACY_CREATE_ACTIONS = frozenset({"draft_image"})
 SLOT_ACTIONS = frozenset({"fill_slot"})
-PROCESS_ACTIONS = CREATE_ACTIONS | SLOT_ACTIONS
+PROCESS_ACTIONS = CREATE_ACTIONS | LEGACY_CREATE_ACTIONS | SLOT_ACTIONS
+_PHOTO_EQUIV = frozenset({"draft_photo", "draft_image"})
 CAPTION_EST_USD = 0.002
 IMAGE_EST_USD = 0.04
 GBP_EST_USD = 0.0
@@ -552,7 +554,16 @@ def _find_caption_draft_for_item(source_item_id: str) -> tuple[Optional[str], Op
     return None, None
 
 
+def _asset_has_composed(asset: dict[str, Any]) -> bool:
+    composed = asset.get("composed")
+    if isinstance(composed, dict) and composed:
+        return True
+    return False
+
+
 def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
+    if _asset_has_composed(asset):
+        return True
     from _lib.unified_inbox import _asset_image_meta  # noqa: PLC0415
 
     image_path, image_url = _asset_image_meta(asset)
@@ -566,6 +577,43 @@ def _asset_has_persisted_image(asset: dict[str, Any]) -> bool:
                 candidate = alt
         return candidate.is_file() and candidate.stat().st_size > 0
     return bool(url_s)
+
+
+def _moment_has_composed(brand_id: str, item_id: str) -> bool:
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return False
+    from _lib.unified_inbox import _load_campaign_data  # noqa: PLC0415
+
+    data = _load_campaign_data()
+    campaigns = data.get("campaigns") if isinstance(data.get("campaigns"), dict) else {}
+    for path in sorted(draft_dir.glob("*.json")):
+        if path.name.endswith(".brief.json") or path.name.endswith(".qc.json"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(sidecar, dict):
+            continue
+        if sidecar.get("source_inbox_item_id") != item_id:
+            continue
+        composed = sidecar.get("composed")
+        if isinstance(composed, dict) and composed:
+            return True
+        asset_id = str(sidecar.get("asset_id") or "")
+        if not asset_id:
+            continue
+        for campaign in campaigns.values():
+            if not isinstance(campaign, dict):
+                continue
+            assets = campaign.get("assets")
+            if not isinstance(assets, dict):
+                continue
+            asset = assets.get(asset_id)
+            if isinstance(asset, dict) and _asset_has_composed(asset):
+                return True
+    return False
 
 
 def _moment_has_image(brand_id: str, item_id: str) -> bool:
@@ -715,7 +763,7 @@ def _retire_orphan_queue_rows(rows: list[dict[str, Any]], brand: str | None) -> 
     for row in rows:
         if str(row.get("status") or "").lower() != "pending":
             continue
-        if str(row.get("action") or "") == "draft_image":
+        if str(row.get("action") or "") in _PHOTO_EQUIV | {"compose_post"}:
             resolved = _resolve_row_moment(row)
             if resolved:
                 moment_has_image_row[resolved[1]] = True
@@ -1070,16 +1118,6 @@ def run(brand: str | None = None) -> dict[str, Any]:
     """Process pending L5 queue rows into draft_asset inbox rows."""
     from _lib import llm_spend  # noqa: PLC0415
 
-    allowed, reason = llm_spend.check("image", IMAGE_EST_USD)
-    if not allowed and "cap" in reason.lower():
-        return {
-            "ok": True,
-            "skipped_cap": True,
-            "reason": "daily LLM spend cap reached",
-            "drafted": 0,
-            "skipped": 0,
-        }
-
     drafted = 0
     skipped = 0
     rejected = 0
@@ -1109,7 +1147,14 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 skipped += 1
                 continue
             key = resolved
-            moments.setdefault(key, []).append((row, str(row.get("action") or "")))
+            action = str(row.get("action") or "")
+            if action == "draft_image":
+                action = "draft_photo"
+            moments.setdefault(key, []).append((row, action))
+
+        only_item = (os.environ.get("CAMPAIGN_OS_L5_ONLY_ITEM") or "").strip()
+        if only_item:
+            moments = {k: v for k, v in moments.items() if k[1] == only_item}
 
         moment_items = list(moments.items())
         halted = False
@@ -1119,7 +1164,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 skipped += _count_pending_rows(moment_items, idx)
                 break
 
-            if _moment_has_image(brand_id, item_id):
+            if _moment_has_composed(brand_id, item_id):
                 for row, action in rows_for_moment:
                     if action != "draft_gbp":
                         row["status"] = "done"
@@ -1164,7 +1209,8 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 break
 
             caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
-            image_rows = [(r, a) for r, a in rows_for_moment if a == "draft_image"]
+            photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
+            compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
             draft_ctx = build_image_draft_context(brand_id, item_id)
 
             cap_asset_id, _cap_text = _find_caption_draft_for_item(item_id)
@@ -1211,54 +1257,57 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 skipped += _count_pending_rows(moment_items, idx)
                 break
 
-            has_image_queue_row = bool(image_rows)
-            if not _moment_has_image(brand_id, item_id) and has_image_queue_row:
-                img_row = image_rows[0][0]
-                if img_row is not None:
-                    try:
-                        asset_id, err = _process_image_row(
-                            img_row,
-                            item_id=item_id,
-                            brand_id=brand_id,
-                            draft_ctx=draft_ctx,
-                        )
-                    except Exception as exc:  # noqa: BLE001
-                        skipped += 1
-                        errors.append(
-                            _record_error(
-                                exc,
-                                context={
-                                    "row_id": img_row.get("id"),
-                                    "action": img_row.get("action"),
-                                    "brand": img_row.get("brand"),
-                                    "payload_ref": img_row.get("payload_ref"),
-                                },
-                            )
-                        )
-                        asset_id, err = None, _exc_label(exc)
-                    if err:
-                        if "missing OPENAI_API_KEY" in err and drafted > 0:
-                            errors.append(err)
-                            skipped += 1
-                        else:
-                            stop_cap, stop_auth = _apply_stop_error(
-                                err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth
-                            )
-                            skipped += 1
-                            if stop_cap or stop_auth:
-                                halted = True
-                                skipped += _count_pending_rows(moment_items, idx)
-                                break
-                    elif asset_id:
-                        image_rows[0][0]["status"] = "done"
-                        drafted += 1
-                    else:
-                        skipped += 1
+            from .create_photo_compose import process_compose_post_row, process_draft_photo_row  # noqa: PLC0415
+
+            if photo_rows and not _moment_has_composed(brand_id, item_id):
+                photo_row = photo_rows[0][0]
+                orig_action = str(photo_row.get("action") or "draft_photo")
+                try:
+                    asset_id, err = process_draft_photo_row(
+                        photo_row,
+                        item_id=item_id,
+                        brand_id=brand_id,
+                        draft_ctx=draft_ctx,
+                        action_label=orig_action if orig_action == "draft_image" else "draft_photo",
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    skipped += 1
+                    errors.append(_record_error(exc, context={"row_id": photo_row.get("id"), "action": "draft_photo"}))
+                    asset_id, err = None, _exc_label(exc)
+                if err:
+                    stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
+                    skipped += 1
+                    if stop_cap or stop_auth:
+                        halted = True
+                        skipped += _count_pending_rows(moment_items, idx)
+                        break
+                elif asset_id or str(photo_row.get("status") or "").lower() == "waiting":
+                    if str(photo_row.get("status") or "").lower() != "waiting":
+                        photo_row["status"] = "done"
+                    drafted += 1
 
             if stop_cap or stop_auth:
                 break
 
-            if not _moment_has_image(brand_id, item_id):
+            if compose_rows and not _moment_has_composed(brand_id, item_id):
+                compose_row = compose_rows[0][0]
+                try:
+                    asset_id, err = process_compose_post_row(
+                        compose_row,
+                        item_id=item_id,
+                        brand_id=brand_id,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    skipped += 1
+                    errors.append(_record_error(exc, context={"row_id": compose_row.get("id"), "action": "compose_post"}))
+                    asset_id, err = None, _exc_label(exc)
+                if err:
+                    skipped += 1
+                elif asset_id:
+                    compose_row["status"] = "done"
+                    drafted += 1
+
+            if not _moment_has_composed(brand_id, item_id):
                 skipped += _count_pending_rows(moment_items, idx)
                 halted = True
                 break

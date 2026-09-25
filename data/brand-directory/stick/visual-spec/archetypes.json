@@ -1,92 +1,663 @@
 {
-  "schema": "https://campaign-os/brand-directory/visual-archetypes/v1",
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
   "brand_id": "stick",
-  "version": "1.1",
-  "updated": "2026-07-30T01:45:00Z",
-  "canvas": {
-    "primary_unit": "instagram_square_1080",
-    "aspect": "1:1",
-    "safe_area": "central 90%"
+  "version": "2.0",
+  "updated": "2026-09-25T00:00:00Z",
+  "source": "measured",
+  "measured_from": [
+    "images/Products/stick_post_gts2.jpg",
+    "images/Products/stick_story_gts2.jpg",
+    "images/Products/stick_post_t250.jpg",
+    "images/Products/stick_post_vokey.jpg",
+    "images/Services/clubasses.jpg",
+    "images/Services/clubasses_story.jpg",
+    "images/Services/swingasses.jpg",
+    "images/stick_ballfittingpost.jpg",
+    "images/stick_ballfittingstory.jpg",
+    "images/Products/lab_post.jpg"
+  ],
+  "canvases": {
+    "ig_post": {
+      "w": 1080,
+      "h": 1350,
+      "aspect": "4:5",
+      "channels": [
+        "instagram"
+      ],
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      }
+    },
+    "ig_story": {
+      "w": 1080,
+      "h": 1920,
+      "aspect": "9:16",
+      "channels": [
+        "instagram_story"
+      ],
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.16,
+        "x1": 0.95,
+        "y1": 0.84
+      }
+    },
+    "fb_post": {
+      "w": 1200,
+      "h": 630,
+      "aspect": "1.91:1",
+      "channels": [
+        "facebook"
+      ],
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.08,
+        "x1": 0.95,
+        "y1": 0.92
+      }
+    },
+    "gbp_post": {
+      "w": 1200,
+      "h": 900,
+      "aspect": "4:3",
+      "channels": [
+        "gbp"
+      ],
+      "safe_zone": {
+        "x0": 0.06,
+        "y0": 0.06,
+        "x1": 0.94,
+        "y1": 0.94
+      }
+    }
   },
   "archetypes": [
     {
-      "id": "stick-callout",
-      "name": "Stick Callout — Bold One-Liner",
-      "description": "Black background, single bold statement in white, red CTA pill or no CTA.",
-      "canvas": "instagram_square_1080",
-      "layers": [
-        {"id": "background", "kind": "solid", "fill": "primary"},
-        {"id": "headline", "kind": "text", "position": "centre", "max_lines": 3, "weight": 900, "size_px": 72, "colour": "neutral_light", "alignment": "centre"},
-        {"id": "accent_rule", "kind": "decorative", "element": "thick red rule above or below headline", "position": "below headline", "width": 120, "height": 6, "colour": "accent"},
-        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_light"}
-      ],
-      "example_prompt_seed": "Stick callout: off-rack clubs line. Black background, white text, red rule.",
-      "use_cases": ["sarcastic", "confident", "provocative"]
+      "id": "stick-product-post",
+      "name": "Product post \u2014 vendor lockup over centred text stack, product photo below",
+      "description": "Gradient navy-to-light field. Vendor wordmark, product name, AVAILABLE, @, stick logo, CTA, then the cut-out product photo occupying the lower ~56%. Measured identical to 4 d.p. on stick_post_gts2 and stick_post_t250; stick_post_vokey is the same with a two-line vendor lockup.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "gradient",
+        "gradient": {
+          "from": "#07293D",
+          "to": "#F8F9FB",
+          "direction": "to-bottom"
+        }
+      },
+      "zones": {
+        "vendor_lockup": {
+          "rect": {
+            "x0": 0.3922,
+            "y0": 0.0733,
+            "x1": 0.6068,
+            "y1": 0.1214
+          },
+          "kind": "image",
+          "source": "vendor_name",
+          "align": "center",
+          "optional": true
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.2266,
+            "y0": 0.1525,
+            "x1": 0.9417,
+            "y1": 0.1865
+          },
+          "kind": "text",
+          "source": "product_name",
+          "font_role": "h1",
+          "max_lines": 1,
+          "max_chars_per_line": 22,
+          "line_height": 1.0,
+          "align": "center",
+          "colour": "white",
+          "min_font_px": 38
+        },
+        "subhead": {
+          "rect": {
+            "x0": 0.3802,
+            "y0": 0.2258,
+            "x1": 0.6438,
+            "y1": 0.2494
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "AVAILABLE",
+          "font_role": "h3",
+          "max_lines": 1,
+          "align": "center",
+          "colour": "white",
+          "min_font_px": 26
+        },
+        "at_mark": {
+          "rect": {
+            "x0": 0.4986,
+            "y0": 0.2702,
+            "x1": 0.5291,
+            "y1": 0.2946
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "@",
+          "font_role": "h3",
+          "max_lines": 1,
+          "align": "center",
+          "colour": "white"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.444,
+            "y0": 0.3116,
+            "x1": 0.5791,
+            "y1": 0.3479
+          },
+          "kind": "logo"
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.2692,
+            "y0": 0.3967,
+            "x1": 0.7225,
+            "y1": 0.4219
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h3",
+          "max_lines": 1,
+          "max_chars_per_line": 24,
+          "align": "center",
+          "colour": "white",
+          "min_font_px": 26
+        },
+        "photo": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.44,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "kind": "image",
+          "source": "photo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "center"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 70
     },
     {
-      "id": "stick-meme-3up",
-      "name": "Stick Meme 3-Up",
-      "description": "Same as Swing Shack meme grid but with Stick palette + harder captions.",
-      "canvas": "instagram_square_1080",
-      "layers": [
-        {"id": "panel_1", "kind": "solid", "fill": "primary", "caption_position": "top", "caption_weight": 700, "caption_size_px": 30, "caption_colour": "neutral_light"},
-        {"id": "panel_2", "kind": "solid", "fill": "primary", "caption_position": "middle", "caption_weight": 700, "caption_size_px": 30, "caption_colour": "neutral_light"},
-        {"id": "panel_3", "kind": "solid", "fill": "accent", "caption_position": "bottom", "caption_weight": 900, "caption_size_px": 34, "caption_colour": "neutral_light"}
-      ],
-      "caption_colour_default": "neutral_light",
-      "example_prompt_seed": "3-up meme: range balls denial. Setup | twist | punchline.",
-      "use_cases": ["meme_lord", "relatable", "funny"]
+      "id": "stick-service-frame",
+      "name": "Service frame \u2014 no photo, three-line headline, full-bleed teal CTA band, logo + tagline footer",
+      "description": "Solid navy field. Left-aligned white all-caps headline, 3 lines. Full-bleed teal band carries the two-line CTA. Footer row is stick logo left, tagline right. Measured identical to 4 d.p. on clubasses and swingasses; clubasses_story is the same block re-centred (+285px).",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "navy_deep"
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.1055,
+            "y0": 0.1681,
+            "x1": 0.9065,
+            "y1": 0.4304
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 3,
+          "max_chars_per_line": 12,
+          "line_height": 1.626,
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "min_font_px": 56
+        },
+        "cta_band": {
+          "rect": {
+            "x0": 0.0583,
+            "y0": 0.4948,
+            "x1": 1.0,
+            "y1": 0.7415
+          },
+          "kind": "band",
+          "fill": "teal"
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.1175,
+            "y0": 0.5615,
+            "x1": 0.8094,
+            "y1": 0.6681
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h2",
+          "max_lines": 2,
+          "max_chars_per_line": 18,
+          "line_height": 1.717,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 36
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.1286,
+            "y0": 0.8274,
+            "x1": 0.3441,
+            "y1": 0.8867
+          },
+          "kind": "logo"
+        },
+        "tagline": {
+          "rect": {
+            "x0": 0.4348,
+            "y0": 0.8437,
+            "x1": 0.8705,
+            "y1": 0.8793
+          },
+          "kind": "text",
+          "source": "brand_tagline",
+          "font_role": "body",
+          "max_lines": 1,
+          "align": "right",
+          "colour": "white",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 110
     },
     {
-      "id": "stick-tweet-card",
-      "name": "Stick Tweet Card",
-      "description": "Quote-tweet style. Single short statement, attribution at bottom.",
-      "canvas": "instagram_square_1080",
-      "layers": [
-        {"id": "background", "kind": "solid", "fill": "primary"},
-        {"id": "tweet_text", "kind": "text", "position": "centre", "max_lines": 4, "weight": 700, "size_px": 40, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 30},
-        {"id": "attribution", "kind": "text", "position": "bottom-left", "weight": 500, "size_px": 18, "colour": "accent", "alignment": "left"}
-      ],
-      "example_prompt_seed": "Stick tweet card: range balls denial. Black bg, white quote.",
-      "use_cases": ["sarcastic", "relatable"]
+      "id": "stick-photo-band-post",
+      "name": "Photo band \u2014 navy copy panel over a full-width photo band",
+      "description": "Navy panel fills the upper canvas; a photograph fills the lower band, full bleed. Teal all-caps headline (3 lines), white light subhead (2 lines), teal CTA. Partner logo bottom-left and stick logo bottom-right, both inside the photo band. The photo band is NOT a pure re-anchor between canvases \u2014 hence canvas_overrides.",
+      "canvas": "ig_post",
+      "block_anchor": "top",
+      "canvas_overrides": {
+        "ig_story": {
+          "photo": {
+            "rect": {
+              "x0": 0.0,
+              "y0": 0.6538,
+              "x1": 1.0,
+              "y1": 1.0
+            },
+            "kind": "image",
+            "source": "photo"
+          },
+          "headline": {
+            "rect": {
+              "x0": 0.0472,
+              "y0": 0.2348,
+              "x1": 0.9482,
+              "y1": 0.3545
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "h1",
+            "max_lines": 3,
+            "max_chars_per_line": 18,
+            "line_height": 1.393,
+            "align": "left",
+            "colour": "teal",
+            "min_font_px": 44
+          },
+          "subhead": {
+            "rect": {
+              "x0": 0.0472,
+              "y0": 0.3743,
+              "x1": 0.6549,
+              "y1": 0.4341
+            },
+            "kind": "text",
+            "source": "caption_body",
+            "font_role": "h2",
+            "max_lines": 2,
+            "max_chars_per_line": 20,
+            "line_height": 1.489,
+            "align": "left",
+            "colour": "white",
+            "min_font_px": 34
+          },
+          "cta": {
+            "rect": {
+              "x0": 0.0537,
+              "y0": 0.4534,
+              "x1": 0.5976,
+              "y1": 0.4732
+            },
+            "kind": "text",
+            "source": "cta",
+            "font_role": "h3",
+            "max_lines": 1,
+            "max_chars_per_line": 22,
+            "align": "left",
+            "colour": "teal",
+            "min_font_px": 26
+          },
+          "partner_logo": {
+            "rect": {
+              "x0": 0.0611,
+              "y0": 0.8256,
+              "x1": 0.2248,
+              "y1": 0.8782
+            },
+            "kind": "logo",
+            "optional": true
+          },
+          "logo": {
+            "rect": {
+              "x0": 0.7438,
+              "y0": 0.8282,
+              "x1": 0.9371,
+              "y1": 0.8647
+            },
+            "kind": "logo"
+          }
+        }
+      },
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_band",
+        "fill": "navy_deep"
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.0472,
+            "y0": 0.2274,
+            "x1": 0.9482,
+            "y1": 0.3978
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h1",
+          "max_lines": 3,
+          "max_chars_per_line": 18,
+          "line_height": 1.393,
+          "align": "left",
+          "colour": "teal",
+          "min_font_px": 44
+        },
+        "subhead": {
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.4267,
+            "x1": 0.6559,
+            "y1": 0.5115
+          },
+          "kind": "text",
+          "source": "caption_body",
+          "font_role": "h2",
+          "max_lines": 2,
+          "max_chars_per_line": 20,
+          "line_height": 1.489,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 34,
+          "optional": true
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.0546,
+            "y0": 0.5393,
+            "x1": 0.5985,
+            "y1": 0.5674
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h3",
+          "max_lines": 1,
+          "max_chars_per_line": 22,
+          "align": "left",
+          "colour": "teal",
+          "min_font_px": 26
+        },
+        "photo": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.7193,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "partner_logo": {
+          "rect": {
+            "x0": 0.062,
+            "y0": 0.8637,
+            "x1": 0.2248,
+            "y1": 0.9385
+          },
+          "kind": "logo",
+          "optional": true
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.7438,
+            "y0": 0.8674,
+            "x1": 0.9371,
+            "y1": 0.9193
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "safe_zone": {
+        "x0": 0.04,
+        "y0": 0.04,
+        "x1": 0.96,
+        "y1": 0.96
+      },
+      "max_total_chars": 120
     },
     {
-      "id": "stick-split-2up",
-      "name": "Stick Split 2-Up — Expectation vs Reality",
-      "description": "Two-panel side-by-side comparison. Left = the golfer's expectation (often naive), right = the sarcastic reality. Classic Stick irony format.",
-      "canvas": "instagram_square_1080",
-      "layers": [
-        {"id": "divider", "kind": "decorative", "element": "thick red vertical rule", "position": "centre", "width": 6, "height": "100%", "colour": "accent"},
-        {"id": "panel_left_label", "kind": "text", "position": "top-left", "max_lines": 1, "weight": 700, "size_px": 22, "colour": "accent", "alignment": "left", "padding": 24},
-        {"id": "panel_left_body", "kind": "text", "position": "centre-left", "max_lines": 4, "weight": 600, "size_px": 32, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 14},
-        {"id": "panel_right_label", "kind": "text", "position": "top-right", "max_lines": 1, "weight": 700, "size_px": 22, "colour": "accent", "alignment": "right", "padding": 24},
-        {"id": "panel_right_body", "kind": "text", "position": "centre-right", "max_lines": 4, "weight": 900, "size_px": 32, "colour": "neutral_light", "alignment": "centre", "max_chars_per_line": 14},
-        {"id": "logo_mark", "kind": "logo", "position": "bottom-centre", "size": "small (60px)", "colour_treatment": "mono_light"}
-      ],
-      "caption_colour_default": "neutral_light",
-      "example_prompt_seed": "Stick split 2-up: 'I warmed up' vs 'Topped 3 in a row'. Black bg, red divider, white text.",
-      "use_cases": ["sarcastic", "funny", "relatable"]
-    },
-    {
-      "id": "stick-thread-card",
-      "name": "Stick Thread Card — 4-Panel Build",
-      "description": "Vertical 4-line sequence. Each line is the next beat of the joke. Reads like a Twitter thread compressed into one image. Use when the sarcasm needs 2-3 lines to land.",
-      "canvas": "instagram_story_1080x1920",
-      "layers": [
-        {"id": "background", "kind": "solid", "fill": "primary"},
-        {"id": "thread_line_1", "kind": "text", "position": "top", "max_lines": 1, "weight": 600, "size_px": 36, "colour": "neutral_light", "alignment": "centre", "padding_top": 200},
-        {"id": "thread_separator_1", "kind": "decorative", "element": "thin red rule", "position": "below line 1", "width": 80, "height": 3, "colour": "accent"},
-        {"id": "thread_line_2", "kind": "text", "position": "upper-middle", "max_lines": 1, "weight": 600, "size_px": 36, "colour": "neutral_light", "alignment": "centre"},
-        {"id": "thread_separator_2", "kind": "decorative", "element": "thin red rule", "position": "below line 2", "width": 80, "height": 3, "colour": "accent"},
-        {"id": "thread_line_3", "kind": "text", "position": "lower-middle", "max_lines": 1, "weight": 700, "size_px": 38, "colour": "neutral_light", "alignment": "centre"},
-        {"id": "thread_separator_3", "kind": "decorative", "element": "thin red rule", "position": "below line 3", "width": 80, "height": 3, "colour": "accent"},
-        {"id": "thread_punchline", "kind": "text", "position": "bottom", "max_lines": 1, "weight": 900, "size_px": 44, "colour": "accent", "alignment": "centre", "padding_bottom": 240},
-        {"id": "logo_mark", "kind": "logo", "position": "bottom-right", "size": "small (60px)", "colour_treatment": "mono_light"}
-      ],
-      "example_prompt_seed": "Stick 4-panel thread: 'Bought new wedges' / 'Bucket of range balls' / 'Same swing thought' / 'Surprised face'. Black bg, red separators, white lines, red punchline.",
-      "use_cases": ["sarcastic", "relatable", "provocative"]
+      "id": "stick-venue-post",
+      "name": "Venue / lifestyle post \u2014 full-bleed photo, navy brand plate bottom-right",
+      "description": "The photograph owns the whole canvas. A navy plate in the lower right carries the partner or venue lockup, an @ and the stick logo. Minimal type, so it is the archetype for a generated venue or lifestyle photo where the image has to carry the post. Measured on lab_post.jpg.",
+      "canvas": "ig_post",
+      "block_anchor": "bottom",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "record_types": [
+          "moment",
+          "campaign"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_full_bleed"
+      },
+      "zones": {
+        "photo": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "plate": {
+          "rect": {
+            "x0": 0.5005,
+            "y0": 0.6869,
+            "x1": 1.0,
+            "y1": 0.8801
+          },
+          "kind": "band",
+          "fill": "navy_deep"
+        },
+        "partner_logo": {
+          "rect": {
+            "x0": 0.5745,
+            "y0": 0.7143,
+            "x1": 0.9056,
+            "y1": 0.7587
+          },
+          "kind": "logo",
+          "optional": true
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.6818,
+            "y0": 0.7246,
+            "x1": 0.9066,
+            "y1": 0.7491
+          },
+          "kind": "text",
+          "source": "vendor_name",
+          "font_role": "h3",
+          "max_lines": 1,
+          "max_chars_per_line": 16,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 24,
+          "optional": true
+        },
+        "at_mark": {
+          "rect": {
+            "x0": 0.7373,
+            "y0": 0.7794,
+            "x1": 0.7734,
+            "y1": 0.809
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "@",
+          "font_role": "h3",
+          "align": "center",
+          "colour": "white"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.6846,
+            "y0": 0.8216,
+            "x1": 0.8242,
+            "y1": 0.8594
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "center"
+      },
+      "safe_zone": {
+        "x0": 0.04,
+        "y0": 0.04,
+        "x1": 0.96,
+        "y1": 0.96
+      },
+      "max_total_chars": 30
     }
   ],
-  "fallback_when_no_image_gen": "produce copy-only deliverables (headline + caption + archetype spec). Image gen slot waits for Drive wiring.",
-  "source": "best-guess; needs Drive validation once folders wired in."
+  "selection": {
+    "default": "stick-photo-band-post",
+    "rules": [
+      {
+        "when": {
+          "has_product_item": true
+        },
+        "use": "stick-product-post"
+      },
+      {
+        "when": {
+          "pillar_in": [
+            "service",
+            "assessment",
+            "fitting",
+            "coaching"
+          ],
+          "has_product_item": false
+        },
+        "use": "stick-service-frame"
+      },
+      {
+        "when": {
+          "subject": "venue"
+        },
+        "use": "stick-venue-post"
+      }
+    ]
+  }
 }
