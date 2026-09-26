@@ -69,6 +69,19 @@ def _moment_context(brand_id: str, item_id: str) -> dict[str, Any]:
     return ctx
 
 
+def _pillar_match_tokens(pillar_id: str) -> set[str]:
+    """Tokens for selection rules — ``stick-coaching`` also matches rule ``coaching``."""
+    raw = str(pillar_id or "").strip().lower()
+    if not raw:
+        return set()
+    out = {raw}
+    if "-" in raw:
+        out.add(raw.split("-", 1)[-1])
+    if "_" in raw:
+        out.add(raw.split("_", 1)[-1])
+    return out
+
+
 def _rule_matches(when: dict[str, Any], ctx: dict[str, Any]) -> bool:
     if not isinstance(when, dict):
         return False
@@ -78,8 +91,11 @@ def _rule_matches(when: dict[str, Any], ctx: dict[str, Any]) -> bool:
         return False
     pillars = when.get("pillar_in")
     if isinstance(pillars, list) and pillars:
-        have = set(ctx.get("pillar_in") or [])
-        if not have.intersection({str(p) for p in pillars}):
+        have: set[str] = set()
+        for pid in ctx.get("pillar_in") or []:
+            have |= _pillar_match_tokens(str(pid))
+        want = {str(p).strip().lower() for p in pillars if p}
+        if not have.intersection(want):
             return False
     return True
 

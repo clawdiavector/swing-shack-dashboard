@@ -122,9 +122,45 @@ def process_draft_photo_row(
 
     archetype = select_archetype(brand_id, item_id)
     archetype_id = str(archetype.get("id") or "")
+    needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
+    if not needs_photo:
+        caption_asset_id, _caption_text = _find_caption_draft_for_item(item_id)
+        if not caption_asset_id:
+            return None, "compose-only archetype requires caption draft first"
+        sidecar_path = _data_dir() / "draft-assets" / f"{caption_asset_id}.json"
+        merged: dict[str, Any] = {}
+        if sidecar_path.is_file():
+            try:
+                loaded = json.loads(sidecar_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    merged = loaded
+            except (OSError, json.JSONDecodeError):
+                merged = {}
+        merged.update(
+            {
+                "action": action_label,
+                "asset_id": caption_asset_id,
+                "brand_id": brand_id,
+                "source_inbox_item_id": item_id,
+                "archetype": {
+                    "id": archetype_id,
+                    "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+                },
+                "qc": {
+                    "verdict": "pass",
+                    "checked_at": _utc_now_iso(),
+                    "candidates": [],
+                    "selected": None,
+                    "compose_only": True,
+                },
+            }
+        )
+        atomic_write(f"draft-assets/{caption_asset_id}.json", merged)
+        return caption_asset_id, None
+
     size = ctx.aspect
     est = llm_spend.modelled_image_cost(size)
-    allowed, reason = llm_spend.check("image", est * 2)
+    allowed, reason = llm_spend.check("image", est)
     if not allowed:
         return None, "daily LLM spend cap reached" if "cap" in reason.lower() else reason
 
@@ -138,7 +174,7 @@ def process_draft_photo_row(
     record_type = str(calendar.get("type") or "").lower()
     routing = pick_model(
         {
-            "needs_reference": bool(ctx.reference_bytes),
+            "needs_reference": False,
             "photoreal": record_type == "moment",
             "typography": False,
             "edit": False,
@@ -155,14 +191,13 @@ def process_draft_photo_row(
     }
     if ctx.refs:
         gen_kwargs["reference_dnas"] = ctx.refs
-    if ctx.reference_bytes:
-        gen_kwargs["reference_bytes"] = ctx.reference_bytes
+    # Photo layer: Flux photoreal only — never img2img from content-bank layout JPGs.
     if ctx.products:
         gen_kwargs["product_service_items"] = ctx.products
 
     candidates: list[dict[str, Any]] = []
     paths: list[Path] = []
-    for _ in range(2):
+    for _ in range(1):
         img_ok, _ = check_brand_image_submit(brand_id)
         if not img_ok:
             break

@@ -273,6 +273,19 @@
   ],
   "selection": {
     "default": "ss-photo-post",
-    "rules": []
+    "rules": [
+      {
+        "when": {
+          "pillar_in": [
+            "fitting",
+            "coaching",
+            "ss-fitting",
+            "ss-coaching"
+          ],
+          "has_product_item": false
+        },
+        "use": "ss-service-frame"
+      }
+    ]
   }
 }

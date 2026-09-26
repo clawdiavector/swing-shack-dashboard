@@ -646,7 +646,9 @@
             "service",
             "assessment",
             "fitting",
-            "coaching"
+            "coaching",
+            "stick-fitting",
+            "stick-coaching"
           ],
           "has_product_item": false
         },

@@ -124,6 +124,8 @@ def visual_check(
     aspect = float(meta.get("aspect_ratio") or _aspect_ratio(w, h))
     if abs(aspect - target_aspect) > 0.02:
         reasons.append("wrong_aspect")
+    if 0.92 <= aspect <= 1.08 and target_aspect < 0.85:
+        reasons.append("contact_sheet_grid")
 
     ocr = dna.get("layer6_ocr") if isinstance(dna.get("layer6_ocr"), dict) else {}
     photo_rect = _photo_zone_rect(archetype)
@@ -187,7 +189,7 @@ def visual_check(
             if not (photo_rect["y0"] <= y_frac <= photo_rect["y1"]):
                 reasons.append("subject_outside_photo_zone")
 
-    hard = {"wrong_aspect", "model_rendered_text", "hallucinated_logo", "off_brand_dominant"}
+    hard = {"wrong_aspect", "model_rendered_text", "hallucinated_logo", "off_brand_dominant", "contact_sheet_grid"}
     soft = {"off_brand_colour", "field_too_light"}
     if not reasons:
         verdict = "pass"

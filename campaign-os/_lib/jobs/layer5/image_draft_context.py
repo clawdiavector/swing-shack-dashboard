@@ -101,6 +101,24 @@ def _select_aspect(record: dict[str, Any], *, title: str, angle: str) -> str:
     return "1024x1024"
 
 
+def _path_is_layout_template(path: str) -> bool:
+    """Content-bank finished posts — use for compose measurement, not img2img reference."""
+    low = str(path or "").lower().replace("\\", "/")
+    if not low:
+        return False
+    if "artboard" in low:
+        return True
+    name = low.rsplit("/", 1)[-1]
+    if "_story" in name or "_post" in name:
+        return True
+    if name.endswith("story.jpg") or name.endswith("post.jpg"):
+        return True
+    for token in ("clubasses", "swingasses", "fitting_gts", "blackfriday", "coachinpackages"):
+        if token in name:
+            return True
+    return False
+
+
 def _load_reference_image_bytes(
     ref_dna: dict[str, Any],
     *,
@@ -262,6 +280,11 @@ def _select_reference(
                 fn = best.get("source_filename")
                 if isinstance(fn, str) and fn.strip():
                     bytes_path = str(root / brand_id / "references" / "sources" / fn)
+            if _path_is_layout_template(bytes_path):
+                degraded.append(
+                    {"source": "reference", "reason": "skipped layout template for img2img"}
+                )
+                return None
             return {
                 "id": str(best.get("ref_id") or best.get("curator_id") or ""),
                 "dna": best,
@@ -485,7 +508,7 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
     ref_bytes: list[bytes] = []
     if selected_ref and selected_ref.get("bytes_path"):
         bp = Path(str(selected_ref["bytes_path"]))
-        if bp.is_file():
+        if bp.is_file() and not _path_is_layout_template(str(bp)):
             try:
                 ref_bytes = [bp.read_bytes()]
             except OSError:
