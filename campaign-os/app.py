@@ -111,6 +111,7 @@ DUAL_AUTH_PREFIXES = (
     '/api/calendar/context/',
     '/api/calendar/v3/scout/',
     '/api/ops/images-today/',
+    '/api/drafts/',
 )
 
 # L4 inbox item actions — approve/reject/edit only (not stub siblings).
