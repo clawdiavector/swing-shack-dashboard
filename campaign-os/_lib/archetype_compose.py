@@ -6,16 +6,29 @@ import io
 from typing import Any
 
 from _lib import archetypes_v2 as archetypes
-from _lib.brand_overlay import _find_color_palette, _find_fonts, _find_logo, _hex_to_rgba, _load_font, _load_image
+from _lib.brand_overlay import (
+    _brand_dir,
+    _find_color_palette,
+    _find_fonts,
+    _find_logo,
+    _hex_to_rgba,
+    _load_brand_font,
+    _load_image,
+)
 
 try:
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont, features
 except Exception:  # noqa: BLE001
-    Image = ImageDraw = None  # type: ignore
+    Image = ImageDraw = ImageFont = features = None  # type: ignore
 
 
 class ComposeError(RuntimeError):
     """Non-recoverable compose failure (missing assets, overflow)."""
+
+
+def _require_raqm() -> None:
+    if features is None or not features.check("raqm"):
+        raise ComposeError("PIL raqm layout engine required for text compose")
 
 
 def _palette_colour(token: str, brand_id: str) -> tuple[int, int, int, int]:
@@ -35,16 +48,49 @@ def _palette_colour(token: str, brand_id: str) -> tuple[int, int, int, int]:
     return (255, 255, 255, 255)
 
 
-def _font_size_for_role(brand_id: str, role: str, zone_h_px: int) -> int:
+def _font_nominal_size(brand_id: str, role: str, zone_h_px: int) -> int:
     fonts = _find_fonts(brand_id)
-    scale = fonts.get("scale") if isinstance(fonts, dict) else []
     size = 32
+    roles = fonts.get("roles") if isinstance(fonts, dict) else None
+    if isinstance(roles, dict) and role in roles:
+        entry = roles.get(role)
+        if isinstance(entry, dict) and entry.get("size_px"):
+            size = int(entry["size_px"])
+    scale = fonts.get("scale") if isinstance(fonts, dict) else []
     if isinstance(scale, list):
         for row in scale:
             if isinstance(row, dict) and str(row.get("name") or "") == role:
                 size = int(row.get("size_px") or size)
                 break
     return max(12, min(size, zone_h_px))
+
+
+def _emphasis_role(zone: dict[str, Any]) -> str:
+    return str(zone.get("emphasis_font_role") or "cta_emphasis")
+
+
+def _tracking_px(zone: dict[str, Any], font_size: int) -> float:
+    em = zone.get("tracking_em")
+    if em is None:
+        return 0.0
+    try:
+        return float(em) * font_size
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _emphasis_words(zone: dict[str, Any]) -> set[str]:
+    raw = zone.get("emphasis_words")
+    if not isinstance(raw, list):
+        return set()
+    return {str(w).upper() for w in raw if str(w).strip()}
+
+
+def _apply_text_transform(text: str, zone: dict[str, Any]) -> str:
+    transform = str(zone.get("text_transform") or zone.get("transform") or "").lower()
+    if transform == "uppercase":
+        return text.upper()
+    return text
 
 
 def _rect_px(rect: dict[str, float], w: int, h: int) -> tuple[int, int, int, int]:
@@ -94,24 +140,181 @@ def _zones_for_canvas(archetype: dict[str, Any], canvas_id: str, base_canvas_id:
     return out
 
 
-def _wrap_text(text: str, font, max_width: int, max_lines: int, max_chars: int) -> list[str]:
+def _run_length(text: str, font, tracking_px: float) -> float:
+    if not text:
+        return 0.0
+    base = float(font.getlength(text))
+    if tracking_px and len(text) > 1:
+        base += tracking_px * (len(text) - 1)
+    return base
+
+
+def _word_font(word: str, body_font, emph_font, emphasis: set[str]):
+    if emph_font and word.upper() in emphasis:
+        return emph_font
+    return body_font
+
+
+def _line_width(words: list[str], body_font, emph_font, emphasis: set[str], tracking_px: float) -> float:
+    if not words:
+        return 0.0
+    total = 0.0
+    for i, word in enumerate(words):
+        font = _word_font(word, body_font, emph_font, emphasis)
+        total += _run_length(word, font, tracking_px)
+        if i < len(words) - 1:
+            total += _run_length(" ", body_font, 0.0)
+    return total
+
+
+def _wrap_text(
+    text: str,
+    body_font,
+    emph_font,
+    max_width: int,
+    max_lines: int,
+    max_chars: int,
+    emphasis: set[str],
+    tracking_px: float,
+) -> list[str]:
     words = (text or "").strip().split()
+    if not words:
+        return []
     lines: list[str] = []
-    current = ""
+    current: list[str] = []
     for word in words:
-        chunk = f"{current} {word}".strip() if current else word
-        if len(chunk) > max_chars and current:
-            lines.append(current)
-            current = word[:max_chars]
+        if len(word) > max_chars:
+            word = word[:max_chars]
+        trial = current + [word]
+        trial_text = " ".join(trial)
+        if len(trial_text) > max_chars * max_lines and current:
+            lines.append(" ".join(current))
+            current = [word]
+        elif _line_width(trial, body_font, emph_font, emphasis, tracking_px) <= max_width or not current:
+            current = trial
         else:
-            current = chunk[:max_chars]
-        if len(lines) >= max_lines:
-            break
-    if current and len(lines) < max_lines:
-        lines.append(current)
+            lines.append(" ".join(current))
+            current = [word]
+    if current:
+        lines.append(" ".join(current))
     if len(lines) > max_lines:
         raise ComposeError("text overflow")
     return lines
+
+
+def _cap_height(font) -> int:
+    bbox = font.getbbox("H")
+    return max(1, bbox[3] - bbox[1])
+
+
+def _block_height(num_lines: int, font_size: int, line_height: float, font) -> int:
+    if num_lines <= 0:
+        return 0
+    pitch = int(font_size * line_height)
+    return (num_lines - 1) * pitch + _cap_height(font)
+
+
+def _fit_font_size(
+    *,
+    brand_id: str,
+    role: str,
+    zone: dict[str, Any],
+    text: str,
+    zone_w: int,
+    zone_h: int,
+    min_px: int,
+) -> tuple[int, list[str], Any, Any]:
+    emph_role = _emphasis_role(zone)
+    emphasis = _emphasis_words(zone)
+    lh = float(zone.get("line_height") or 1.2)
+    max_lines = int(zone.get("max_lines") or 1)
+    max_chars = int(zone.get("max_chars_per_line") or 80)
+    nominal = _font_nominal_size(brand_id, role, zone_h)
+    lo, hi = min_px, nominal
+    best_size = min_px
+    best_lines: list[str] = []
+    best_body = None
+    best_emph = None
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        body = _load_brand_font(brand_id, role, mid)
+        if body is None:
+            raise ComposeError(f"unresolved font role {role}")
+        emph = _load_brand_font(brand_id, emph_role, mid) if emphasis else None
+        track = _tracking_px(zone, mid)
+        try:
+            lines = _wrap_text(text, body, emph, zone_w, max_lines, max_chars, emphasis, track)
+        except ComposeError:
+            hi = mid - 1
+            continue
+        if not lines:
+            hi = mid - 1
+            continue
+        too_wide = any(
+            _line_width(ln.split(), body, emph, emphasis, track) > zone_w for ln in lines
+        )
+        too_tall = _block_height(len(lines), mid, lh, body) > zone_h
+        if not too_wide and not too_tall:
+            best_size = mid
+            best_lines = lines
+            best_body = body
+            best_emph = emph
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    if not best_lines or best_body is None:
+        raise ComposeError("text overflow")
+    return best_size, best_lines, best_body, best_emph
+
+
+def _draw_tracked_run(
+    draw,
+    x: float,
+    baseline: float,
+    text: str,
+    font,
+    fill,
+    tracking_px: float,
+) -> float:
+    if not text:
+        return x
+    if tracking_px <= 0:
+        draw.text((x, baseline), text, font=font, fill=fill, anchor="ls")
+        return x + _run_length(text, font, 0.0)
+    cx = x
+    for i, ch in enumerate(text):
+        draw.text((cx, baseline), ch, font=font, fill=fill, anchor="ls")
+        cx += font.getlength(ch) + (tracking_px if i < len(text) - 1 else 0.0)
+    return cx
+
+
+def _draw_line_mixed(
+    draw,
+    x0: float,
+    baseline: float,
+    line: str,
+    body_font,
+    emph_font,
+    emphasis: set[str],
+    fill,
+    tracking_px: float,
+    align: str,
+    zone_x0: int,
+    zone_x1: int,
+) -> None:
+    words = line.split()
+    line_w = _line_width(words, body_font, emph_font, emphasis, tracking_px)
+    if align == "center":
+        x = zone_x0 + (zone_x1 - zone_x0 - line_w) / 2
+    elif align == "right":
+        x = zone_x1 - line_w
+    else:
+        x = float(x0)
+    for wi, word in enumerate(words):
+        font = _word_font(word, body_font, emph_font, emphasis)
+        x = _draw_tracked_run(draw, x, baseline, word, font, fill, tracking_px)
+        if wi < len(words) - 1:
+            x = _draw_tracked_run(draw, x, baseline, " ", body_font, fill, 0.0)
 
 
 def _draw_text_zone(
@@ -124,42 +327,58 @@ def _draw_text_zone(
     canvas_h: int,
     base_canvas_h: int = 1350,
 ) -> None:
+    _require_raqm()
     rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
     x0, y0, x1, y1 = _rect_px(rect, canvas_w, canvas_h)
     role = str(zone.get("font_role") or "body")
     min_px = int(zone.get("min_font_px") or 12)
     if base_canvas_h > 0 and canvas_h < base_canvas_h:
         min_px = max(10, int(min_px * canvas_h / base_canvas_h))
-    max_lines = int(zone.get("max_lines") or 1)
-    max_chars = int(zone.get("max_chars_per_line") or 40)
+    text = _apply_text_transform(text, zone)
     colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
-    zone_h_px = y1 - y0
-    size = _font_size_for_role(brand_id, role, zone_h_px)
-    if size < min_px:
-        if min_px <= zone_h_px:
-            size = min_px
-        else:
-            raise ComposeError("font below min_font_px")
-    font = _load_font(None, size)
-    lines = _wrap_text(text, font, x1 - x0, max_lines, max_chars)
-    if not lines:
-        if zone.get("optional"):
-            return
-        raise ComposeError("missing text")
+    zone_w = x1 - x0
+    zone_h = y1 - y0
+    origin_x = float(zone.get("text_origin_x") or x0)
+    wrap_x1 = zone.get("wrap_x1")
+    if wrap_x1 is not None:
+        wrap_w = max(zone_w, int(float(wrap_x1) * canvas_w) - int(origin_x))
+    else:
+        wrap_w = zone_w
+    size, lines, body_font, emph_font = _fit_font_size(
+        brand_id=brand_id,
+        role=role,
+        zone=zone,
+        text=text,
+        zone_w=wrap_w,
+        zone_h=zone_h,
+        min_px=min_px,
+    )
     lh = float(zone.get("line_height") or 1.2)
-    y = y0
-    for line in lines:
-        bbox = draw.textbbox((0, 0), line, font=font)
-        tw = bbox[2] - bbox[0]
-        align = str(zone.get("align") or "left")
-        if align == "center":
-            x = x0 + (x1 - x0 - tw) // 2
-        elif align == "right":
-            x = x1 - tw
-        else:
-            x = x0
-        draw.text((x, y), line, font=font, fill=colour[:3])
-        y += int(size * lh)
+    pitch = int(size * lh)
+    valign = str(zone.get("valign") or "top").lower()
+    cap = _cap_height(body_font)
+    block_h = (len(lines) - 1) * pitch + cap
+    y_base = y0
+    if valign == "center":
+        y_base = y0 + (zone_h - block_h) // 2
+    tracking_px = _tracking_px(zone, size)
+    emphasis = _emphasis_words(zone)
+    for i, line in enumerate(lines):
+        baseline = y_base + cap + i * pitch
+        _draw_line_mixed(
+            draw,
+            origin_x,
+            baseline,
+            line,
+            body_font,
+            emph_font,
+            emphasis,
+            colour[:3],
+            tracking_px,
+            str(zone.get("align") or "left"),
+            x0,
+            x1,
+        )
 
 
 def _paste_photo(base, photo_bytes: bytes | None, rect: dict[str, float]) -> None:
@@ -190,6 +409,49 @@ def _paste_logo(base, brand_id: str, rect: dict[str, float]) -> None:
     base.paste(logo, (x0, y0), logo if logo.mode == "RGBA" else None)
 
 
+def _paste_brand_asset(base, brand_id: str, zone: dict[str, Any]) -> None:
+    rel = zone.get("asset")
+    if not isinstance(rel, str) or not rel.strip():
+        raise ComposeError("missing zone asset")
+    base_dir = _brand_dir(brand_id)
+    if not base_dir:
+        raise ComposeError("missing brand directory")
+    path = base_dir / rel
+    if not path.exists():
+        raise ComposeError(f"missing asset {rel}")
+    img = _load_image(path)
+    if img is None:
+        raise ComposeError(f"missing asset {rel}")
+    rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
+    x0, y0, x1, y1 = _rect_px(rect, base.width, base.height)
+    zone_w = x1 - x0
+    zone_h = y1 - y0
+    fit = str(zone.get("fit") or "aspect_fit").lower()
+    align = str(zone.get("align") or "left").lower()
+    if fit == "aspect_fit":
+        scale = min(zone_w / max(1, img.width), zone_h / max(1, img.height))
+        tw = max(1, int(img.width * scale))
+        th = max(1, int(img.height * scale))
+        img = img.resize((tw, th), Image.LANCZOS)
+    else:
+        tw, th = zone_w, zone_h
+        img = img.resize((tw, th), Image.LANCZOS)
+    if align == "right":
+        px = x1 - tw
+    elif align == "center":
+        px = x0 + (zone_w - tw) // 2
+    else:
+        px = x0
+    valign = str(zone.get("valign") or "center").lower()
+    if valign == "bottom":
+        py = y1 - th
+    elif valign == "top":
+        py = y0
+    else:
+        py = y0 + (zone_h - th) // 2
+    base.paste(img, (px, py), img if img.mode == "RGBA" else None)
+
+
 def _background(base, archetype: dict[str, Any], brand_id: str) -> None:
     bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
     kind = str(bg.get("kind") or "solid")
@@ -197,14 +459,23 @@ def _background(base, archetype: dict[str, Any], brand_id: str) -> None:
     w, h = base.size
     if kind == "gradient":
         grad = bg.get("gradient") if isinstance(bg.get("gradient"), dict) else {}
+        direction = str(grad.get("direction") or bg.get("direction") or "vertical").lower()
         c0 = _hex_to_rgba(str(grad.get("from") or "#000000"), 255)
         c1 = _hex_to_rgba(str(grad.get("to") or "#FFFFFF"), 255)
-        for y in range(h):
-            t = y / max(1, h - 1)
-            r = int(c0[0] * (1 - t) + c1[0] * t)
-            g = int(c0[1] * (1 - t) + c1[1] * t)
-            b = int(c0[2] * (1 - t) + c1[2] * t)
-            draw.line([(0, y), (w, y)], fill=(r, g, b))
+        if direction == "horizontal":
+            for x in range(w):
+                t = x / max(1, w - 1)
+                r = int(c0[0] * (1 - t) + c1[0] * t)
+                g = int(c0[1] * (1 - t) + c1[1] * t)
+                b = int(c0[2] * (1 - t) + c1[2] * t)
+                draw.line([(x, 0), (x, h)], fill=(r, g, b))
+        else:
+            for y in range(h):
+                t = y / max(1, h - 1)
+                r = int(c0[0] * (1 - t) + c1[0] * t)
+                g = int(c0[1] * (1 - t) + c1[1] * t)
+                b = int(c0[2] * (1 - t) + c1[2] * t)
+                draw.line([(0, y), (w, y)], fill=(r, g, b))
     elif kind in ("solid", "photo_band"):
         fill = _palette_colour(str(bg.get("fill") or "navy_deep"), brand_id)
         draw.rectangle([0, 0, w, h], fill=fill[:3])
@@ -252,12 +523,23 @@ def compose_to_canvas(
             x0, y0, x1, y1 = _rect_px(rect, w, h)
             fill = _palette_colour(str(zone.get("fill") or "teal"), brand_id)
             draw.rectangle([x0, y0, x1, y1], fill=fill[:3])
-        elif kind == "image" and str(zone.get("source") or "") == "photo":
+        elif kind == "image":
+            source = str(zone.get("source") or "")
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
-            if photo_bytes:
-                _paste_photo(base, photo_bytes, rect)
+            if source == "photo":
+                if photo_bytes:
+                    _paste_photo(base, photo_bytes, rect)
+                elif not zone.get("optional"):
+                    raise ComposeError("missing photo")
+            elif source == "asset":
+                try:
+                    _paste_brand_asset(base, brand_id, zone)
+                except ComposeError:
+                    if zone.get("optional"):
+                        continue
+                    raise
             elif not zone.get("optional"):
-                raise ComposeError("missing photo")
+                raise ComposeError("unknown image source")
         elif kind == "logo":
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
             try:
@@ -327,5 +609,4 @@ def caption_fields_from_text(caption: str) -> dict[str, str]:
         "cta": lines[-1] if lines else "Learn more",
         "product_name": hook[:22],
         "vendor_name": "",
-        "brand_tagline": "Stick Golf",
     }

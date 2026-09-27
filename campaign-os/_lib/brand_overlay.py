@@ -122,14 +122,69 @@ def _hex_to_rgba(hexstr: str, alpha: int = 255):
         return (255, 255, 255, alpha)
 
 
-def _load_font(font_path: Optional[str], size: int):
-    if not font_path or ImageFont is None:
-        return ImageFont.load_default() if ImageFont else None
+def _brand_dir(brand_id: str) -> Optional[Path]:
+    for d in _candidate_brand_dirs(brand_id):
+        if d.exists():
+            return d
+    return None
+
+
+def _resolve_font_path(brand_id: str, role: str) -> Optional[Path]:
+    """Resolve typography role to an on-disk TTF under the brand directory."""
+    fonts = _find_fonts(brand_id)
+    if not isinstance(fonts, dict):
+        return None
+    roles = fonts.get("roles")
+    if isinstance(roles, dict) and role in roles:
+        entry = roles.get(role)
+        if isinstance(entry, dict):
+            rel = entry.get("file")
+            if isinstance(rel, str) and rel.strip():
+                base = _brand_dir(brand_id)
+                if base:
+                    p = base / rel
+                    if p.exists():
+                        return p
+    scale = fonts.get("scale")
+    if isinstance(scale, list):
+        for row in scale:
+            if isinstance(row, dict) and str(row.get("name") or "") == role:
+                rel = row.get("file")
+                if isinstance(rel, str) and rel.strip():
+                    base = _brand_dir(brand_id)
+                    if base:
+                        p = base / rel
+                        if p.exists():
+                            return p
+    return None
+
+
+def _load_brand_font(brand_id: str, role: str, size: int):
+    """Load a brand role font; never falls back to the bitmap default."""
+    if ImageFont is None:
+        return None
+    path = _resolve_font_path(brand_id, role)
+    if path is None:
+        return None
+    layout = getattr(ImageFont, "Layout", None)
+    engine = layout.RAQM if layout is not None else ImageFont.LAYOUT_BASIC
     try:
-        if Path(font_path).exists():
-            return ImageFont.truetype(font_path, size=size)
+        return ImageFont.truetype(str(path), size=size, layout_engine=engine)
     except Exception:
-        pass
+        return None
+
+
+def _load_font(font_path: Optional[str], size: int, *, allow_default: bool = True):
+    if ImageFont is None:
+        return None
+    if font_path:
+        try:
+            if Path(font_path).exists():
+                return ImageFont.truetype(font_path, size=size)
+        except Exception:
+            pass
+    if not allow_default:
+        return None
     for path in (
         "/System/Library/Fonts/Helvetica.ttc",
         "/Library/Fonts/Arial.ttf",
@@ -140,7 +195,7 @@ def _load_font(font_path: Optional[str], size: int):
             return ImageFont.truetype(path, size=size)
         except Exception:
             continue
-    return ImageFont.load_default() if ImageFont else None
+    return ImageFont.load_default() if allow_default else None
 
 
 def _load_image_from_bytes(image_bytes: bytes):

@@ -1,0 +1,127 @@
+{
+  "id": "stick-service-frame",
+  "name": "Service frame \u2014 no photo, three-line headline, full-bleed teal CTA band, logo + tagline footer",
+  "description": "Solid navy field. Left-aligned white all-caps headline, 3 lines. Full-bleed teal band carries the two-line CTA. Footer row is stick logo left, tagline right. Measured identical to 4 d.p. on clubasses and swingasses; clubasses_story is the same block re-centred (+285px).",
+  "canvas": "ig_post",
+  "block_anchor": "center",
+  "applies_to": {
+    "channels": [
+      "instagram",
+      "instagram_story",
+      "facebook",
+      "gbp"
+    ],
+    "record_types": [
+      "moment",
+      "evergreen"
+    ],
+    "needs_photo": false
+  },
+  "background": {
+    "kind": "gradient",
+    "gradient": {
+      "direction": "horizontal",
+      "from": "#073D55",
+      "to": "#063443"
+    }
+  },
+  "zones": {
+    "headline": {
+      "rect": {
+        "x0": 0.1055,
+        "y0": 0.1681,
+        "x1": 0.9065,
+        "y1": 0.4304
+      },
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_lines": 3,
+      "max_chars_per_line": 24,
+      "line_height": 1.2035,
+      "text_transform": "uppercase",
+      "text_origin_x": 116,
+      "align": "left",
+      "valign": "top",
+      "colour": "white",
+      "min_font_px": 56
+    },
+    "cta_band": {
+      "rect": {
+        "x0": 0.0583,
+        "y0": 0.4948,
+        "x1": 1.0,
+        "y1": 0.7415
+      },
+      "kind": "band",
+      "fill": "teal"
+    },
+    "cta": {
+      "rect": {
+        "x0": 0.1175,
+        "y0": 0.5615,
+        "x1": 0.8094,
+        "y1": 0.6681
+      },
+      "kind": "text",
+      "source": "cta",
+      "font_role": "h2",
+      "max_lines": 2,
+      "max_chars_per_line": 24,
+      "line_height": 1.2133,
+      "text_transform": "uppercase",
+      "emphasis_words": [
+        "FREE"
+      ],
+      "emphasis_font_role": "cta_emphasis",
+      "tracking_em": 0.008,
+      "text_origin_x": 123,
+      "wrap_x1": 0.861,
+      "align": "left",
+      "colour": "white",
+      "min_font_px": 36
+    },
+    "logo": {
+      "rect": {
+        "x0": 0.1286,
+        "y0": 0.8274,
+        "x1": 0.3441,
+        "y1": 0.8867
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "logo.png",
+      "fit": "aspect_fit",
+      "align": "left",
+      "valign": "bottom"
+    },
+    "tagline": {
+      "rect": {
+        "x0": 0.4348,
+        "y0": 0.8437,
+        "x1": 0.8705,
+        "y1": 0.8793
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "images/tagline-light.png",
+      "fit": "aspect_fit",
+      "align": "right",
+      "valign": "bottom",
+      "optional": true
+    }
+  },
+  "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "left"
+  },
+  "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+  },
+  "max_total_chars": 110
+}

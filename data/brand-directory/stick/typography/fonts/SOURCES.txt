@@ -1,0 +1,11 @@
+Montserrat static instances generated from google/fonts ofl/montserrat Montserrat[wght].ttf
+Upstream: https://github.com/google/fonts/tree/main/ofl/montserrat
+Commit pin: 8b5e058c8c (2026-09-27 fetch)
+Tool: fontTools varLib.instancer wght=300|800|900
+Files:
+  Montserrat-Light.ttf      wght=300
+  Montserrat-ExtraBold.ttf  wght=800
+  Montserrat-Black.ttf      wght=900
+License: OFL-1.1 (see OFL.txt)
+
+Provenance: stick-service-frame ref-01 (swingasses.jpg) glyph IoU measurements 2026-09-27 plan handoff.

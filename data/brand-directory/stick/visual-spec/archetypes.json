@@ -232,8 +232,12 @@
         "needs_photo": false
       },
       "background": {
-        "kind": "solid",
-        "fill": "navy_deep"
+        "kind": "gradient",
+        "gradient": {
+          "direction": "horizontal",
+          "from": "#073D55",
+          "to": "#063443"
+        }
       },
       "zones": {
         "headline": {
@@ -247,8 +251,10 @@
           "source": "caption_hook",
           "font_role": "display",
           "max_lines": 3,
-          "max_chars_per_line": 12,
-          "line_height": 1.626,
+          "max_chars_per_line": 24,
+          "line_height": 1.2035,
+          "text_transform": "uppercase",
+          "text_origin_x": 116,
           "align": "left",
           "valign": "top",
           "colour": "white",
@@ -275,8 +281,14 @@
           "source": "cta",
           "font_role": "h2",
           "max_lines": 2,
-          "max_chars_per_line": 18,
-          "line_height": 1.717,
+          "max_chars_per_line": 24,
+          "line_height": 1.2133,
+          "text_transform": "uppercase",
+          "emphasis_words": ["FREE"],
+          "emphasis_font_role": "cta_emphasis",
+          "tracking_em": 0.008,
+          "text_origin_x": 123,
+          "wrap_x1": 0.861,
           "align": "left",
           "colour": "white",
           "min_font_px": 36
@@ -288,7 +300,12 @@
             "x1": 0.3441,
             "y1": 0.8867
           },
-          "kind": "logo"
+          "kind": "image",
+          "source": "asset",
+          "asset": "logo.png",
+          "fit": "aspect_fit",
+          "align": "left",
+          "valign": "bottom"
         },
         "tagline": {
           "rect": {
@@ -297,12 +314,12 @@
             "x1": 0.8705,
             "y1": 0.8793
           },
-          "kind": "text",
-          "source": "brand_tagline",
-          "font_role": "body",
-          "max_lines": 1,
+          "kind": "image",
+          "source": "asset",
+          "asset": "images/tagline-light.png",
+          "fit": "aspect_fit",
           "align": "right",
-          "colour": "white",
+          "valign": "bottom",
           "optional": true
         }
       },

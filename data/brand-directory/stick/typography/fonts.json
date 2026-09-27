@@ -1,34 +1,95 @@
 {
   "schema": "https://campaign-os/brand-directory/typography/v1",
   "brand_id": "stick",
-  "version": "1.0",
-  "updated": "2026-07-30T23:10:00Z",
+  "version": "2.0",
+  "updated": "2026-09-27T00:00:00Z",
   "primary": {
-    "family": "Anton",
-    "source": "Google Fonts (free, web-safe)",
-    "weights_available": [400],
-    "use_for": ["headlines", "callout", "meme panels"]
+    "family": "Montserrat",
+    "source": "Google Fonts OFL (vendored static cuts)",
+    "weights_available": [300, 800, 900],
+    "use_for": ["headlines", "cta", "service-frame"]
   },
   "secondary": {
-    "family": "Inter",
-    "source": "Google Fonts (free, web-safe)",
-    "weights_available": [400, 500, 700, 800],
-    "use_for": ["body", "captions", "ui"]
+    "family": "Montserrat",
+    "source": "Google Fonts OFL (vendored static cuts)",
+    "weights_available": [300, 800, 900],
+    "use_for": ["cta emphasis"]
   },
-  "fallbacks": ["Impact", "system-ui", "-apple-system", "Helvetica Neue", "Arial"],
+  "fallbacks": ["DejaVu Sans", "Helvetica Neue", "Arial"],
+  "files": {
+    "300": "typography/fonts/Montserrat-Light.ttf",
+    "800": "typography/fonts/Montserrat-ExtraBold.ttf",
+    "900": "typography/fonts/Montserrat-Black.ttf"
+  },
+  "roles": {
+    "display": {
+      "file": "typography/fonts/Montserrat-Black.ttf",
+      "weight": 900,
+      "size_px": 113
+    },
+    "h2": {
+      "file": "typography/fonts/Montserrat-Light.ttf",
+      "weight": 300,
+      "size_px": 75
+    },
+    "cta_body": {
+      "file": "typography/fonts/Montserrat-Light.ttf",
+      "weight": 300,
+      "size_px": 75
+    },
+    "cta_emphasis": {
+      "file": "typography/fonts/Montserrat-ExtraBold.ttf",
+      "weight": 800,
+      "size_px": 75
+    }
+  },
   "scale": [
-    {"name": "display", "size_px": 96, "weight": 400, "use_for": ["meme top-line callout", "tweet-card banner"]},
-    {"name": "h1", "size_px": 72, "weight": 400, "use_for": ["callout headline", "split-2up headline"]},
-    {"name": "h2", "size_px": 48, "weight": 400, "use_for": ["meme-3up header", "thread-card title"]},
-    {"name": "h3", "size_px": 32, "weight": 700, "use_for": ["subhead on meme", "lower-third caption"]},
-    {"name": "body", "size_px": 18, "weight": 400, "use_for": ["caption copy", "supporting line"]},
-    {"name": "caption", "size_px": 14, "weight": 500, "use_for": ["footer punchline", "metadata"]}
+    {
+      "name": "display",
+      "size_px": 113,
+      "weight": 900,
+      "file": "typography/fonts/Montserrat-Black.ttf",
+      "use_for": ["stick-service-frame headline"]
+    },
+    {
+      "name": "h1",
+      "size_px": 72,
+      "weight": 900,
+      "file": "typography/fonts/Montserrat-Black.ttf",
+      "use_for": ["callout headline"]
+    },
+    {
+      "name": "h2",
+      "size_px": 75,
+      "weight": 300,
+      "file": "typography/fonts/Montserrat-Light.ttf",
+      "use_for": ["stick-service-frame cta body"]
+    },
+    {
+      "name": "h3",
+      "size_px": 32,
+      "weight": 800,
+      "file": "typography/fonts/Montserrat-ExtraBold.ttf",
+      "use_for": ["subhead emphasis"]
+    },
+    {
+      "name": "body",
+      "size_px": 18,
+      "weight": 300,
+      "file": "typography/fonts/Montserrat-Light.ttf",
+      "use_for": ["caption copy"]
+    },
+    {
+      "name": "caption",
+      "size_px": 14,
+      "weight": 300,
+      "file": "typography/fonts/Montserrat-Light.ttf",
+      "use_for": ["metadata"]
+    }
   ],
   "pairing_rules": {
-    "callout_headline": {"family": "Anton", "weight": 400, "size": 96},
-    "tweet_card_top": {"family": "Anton", "weight": 400, "size": 72},
-    "meme_punchline": {"family": "Anton", "weight": 400, "size": 32},
-    "cta_pill": {"family": "Inter", "weight": 800, "size": 20}
+    "callout_headline": {"family": "Montserrat", "weight": 900, "size": 113},
+    "cta_pill": {"family": "Montserrat", "weight": 300, "size": 75}
   },
-  "source": "best-guess — Stick voice is sarcastic, high-contrast, meme-aware. Anton is the canonical display font for the genre (Impact alternative that is Free for commercial use). Inter handles body+CTA. Needs Drive validation once folders wired in to confirm."
+  "source": "Measured from data/brand-directory/stick/images/Services/swingasses.jpg (ref-01), 2026-09-27."
 }
