@@ -22,6 +22,10 @@ def _palette_colour(token: str, brand_id: str) -> tuple[int, int, int, int]:
     if token.startswith("#"):
         return _hex_to_rgba(token, 255)
     palette_doc = _find_color_palette(brand_id)
+    tokens = palette_doc.get("tokens") if isinstance(palette_doc.get("tokens"), dict) else {}
+    raw_token = tokens.get(token) if isinstance(tokens, dict) else None
+    if isinstance(raw_token, str) and raw_token.startswith("#"):
+        return _hex_to_rgba(raw_token, 255)
     palette = palette_doc.get("palette") if isinstance(palette_doc, dict) else {}
     entry = palette.get(token) if isinstance(palette, dict) else None
     if isinstance(entry, dict) and entry.get("hex"):
