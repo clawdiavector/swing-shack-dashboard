@@ -65,6 +65,22 @@ def _pillar_id_from_context(ctx) -> str:
     return str(pid).strip() if pid else ""
 
 
+def _service_carousel_headline(*, brand_id: str, moment_id: str, caption: str) -> str:
+    ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
+    pillar = _pillar_id_from_context(ctx).lower()
+    cap = (caption or "").lower()
+    if "fitting" in pillar or "club fitting" in cap or "club assessment" in cap:
+        return "CLUB FITTING"
+    if "equipment" in pillar or "equipment" in cap:
+        return "EQUIPMENT"
+    if "apparel" in pillar or "apparel" in cap:
+        return "APPAREL"
+    if "coaching" in pillar or "trackman" in cap or "swing" in cap:
+        return "COACHING"
+    hook = _hook_from_caption(caption, max_chars=24).upper()
+    return hook or "COACHING"
+
+
 def _service_cta(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id)
     pillar = _pillar_id_from_context(ctx).lower()
@@ -89,6 +105,20 @@ def visual_copy_for_archetype(
     sidecar = sidecar or {}
     applies = archetype.get("applies_to") if isinstance(archetype.get("applies_to"), dict) else {}
     needs_photo = applies.get("needs_photo", True)
+    archetype_id = str(archetype.get("id") or "")
+    if needs_photo and archetype_id in ("stick-service-start", "stick-service-end"):
+        mid = moment_id or f"proposal:{brand_id}:compose"
+        headline = str(sidecar.get("compose_headline") or "").strip()
+        lockup = str(sidecar.get("compose_cta") or "").strip()
+        if not headline:
+            headline = _service_carousel_headline(brand_id=brand_id, moment_id=mid, caption=caption)
+        if not lockup:
+            lockup = "@ stick"
+        ctx = build_image_draft_context(brand_id, mid)
+        base = _content_from_caption(caption, ctx)
+        base["caption_hook"] = headline
+        base["cta"] = lockup
+        return {k: str(v) for k, v in base.items()}
     if needs_photo:
         ctx = build_image_draft_context(brand_id, moment_id or "proposal:stick:local")
         base = _content_from_caption(caption, ctx)
