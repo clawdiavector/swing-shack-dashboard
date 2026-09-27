@@ -6,7 +6,7 @@
   "primary": {
     "family": "Montserrat Italic",
     "source": "Google Fonts OFL (vendored static cuts) — matched to Content Bank did-you-know posts (cf1–cf6)",
-    "weights_available": [100, 200, 800, 900],
+    "weights_available": [100, 200, 300, 800, 900],
     "use_for": ["headlines", "kickers", "service posts"]
   },
   "fallbacks": ["DejaVu Sans", "Helvetica Neue", "Arial"],
@@ -14,7 +14,9 @@
     "100i": "typography/fonts/Montserrat-ThinItalic.ttf",
     "200i": "typography/fonts/Montserrat-ExtraLightItalic.ttf",
     "800i": "typography/fonts/Montserrat-ExtraBoldItalic.ttf",
-    "900i": "typography/fonts/Montserrat-BlackItalic.ttf"
+    "900i": "typography/fonts/Montserrat-BlackItalic.ttf",
+    "800": "typography/fonts/Montserrat-ExtraBold.ttf",
+    "300": "typography/fonts/Montserrat-Light.ttf"
   },
   "roles": {
     "display": {
@@ -22,6 +24,24 @@
       "weight": 900,
       "style": "italic",
       "size_px": 181
+    },
+    "h1": {
+      "file": "typography/fonts/Montserrat-BlackItalic.ttf",
+      "weight": 900,
+      "style": "italic",
+      "size_px": 60
+    },
+    "h2": {
+      "file": "typography/fonts/Montserrat-ExtraBold.ttf",
+      "weight": 800,
+      "style": "normal",
+      "size_px": 43
+    },
+    "cta": {
+      "file": "typography/fonts/Montserrat-Light.ttf",
+      "weight": 300,
+      "style": "normal",
+      "size_px": 59
     },
     "h3": {
       "file": "typography/fonts/Montserrat-ExtraLightItalic.ttf",

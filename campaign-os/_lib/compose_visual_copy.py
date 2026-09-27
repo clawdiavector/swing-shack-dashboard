@@ -8,6 +8,26 @@ from typing import Any
 from _lib.jobs.layer5.create_photo_compose import _content_from_caption
 from _lib.jobs.layer5.image_draft_context import build_image_draft_context
 
+_SS_SERVICE_LABELS = {
+    "ss-fitting": "CLUB FITTING",
+    "fitting": "CLUB FITTING",
+    "ss-coaching": "COACHING",
+    "coaching": "COACHING",
+    "ss-membership": "MEMBERSHIP",
+    "membership": "MEMBERSHIP",
+}
+
+
+def _service_label(*, brand_id: str, moment_id: str) -> str:
+    if brand_id != "swing-shack":
+        return ""
+    ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
+    pillar = _pillar_id_from_context(ctx).lower()
+    for key, label in _SS_SERVICE_LABELS.items():
+        if key in pillar or pillar == key:
+            return label
+    return ""
+
 
 def _first_line(text: str) -> str:
     for line in (text or "").splitlines():
@@ -113,5 +133,11 @@ def visual_copy_for_archetype(
     ctx = build_image_draft_context(brand_id, mid)
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
-    base["cta"] = cta
+    if str(archetype.get("id") or "") == "ss-service-promo":
+        lines = [ln.strip() for ln in (caption or "").splitlines() if ln.strip()]
+        subhead = lines[1] if len(lines) > 1 else cta
+        base["cta"] = subhead
+        base["service_label"] = _service_label(brand_id=brand_id, moment_id=mid)
+    else:
+        base["cta"] = cta
     return {k: str(v) for k, v in base.items()}

@@ -2,7 +2,7 @@
  "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
  "brand_id": "swing-shack",
  "version": "2.0",
- "updated": "2026-09-27T00:00:00Z",
+ "updated": "2026-09-27T21:05:00Z",
  "source": "draft",
  "canvases": {
   "ig_post": {
@@ -503,6 +503,279 @@
     "y1": 0.96
    },
    "max_total_chars": 56
+  },
+  {
+   "id": "ss-service-promo",
+   "name": "Service promo \u2014 framed venue photo, accent headline, lockup + BOOK ONLINE",
+   "description": "Measured from Content Bank Services coaching + fitting posts (1081\u00d71351).",
+   "canvas": "ig_post",
+   "applies_to": {
+    "channels": [
+     "instagram",
+     "instagram_story",
+     "facebook"
+    ],
+    "record_types": [
+     "moment",
+     "evergreen"
+    ],
+    "needs_photo": false
+   },
+   "channel_canvas": {
+    "facebook": "ig_post"
+   },
+   "template_pack": "templates/service-promo",
+   "background": {
+    "kind": "photo_full_bleed",
+    "cover": true,
+    "library": "templates/service-promo/photos",
+    "focus_y": 0.5,
+    "scrim": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.0,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "from_alpha": 0.78,
+     "to_alpha": 0.88
+    }
+   },
+   "zones": {
+    "frame": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.0,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "kind": "decorative",
+     "shape": "frame",
+     "inset_x_px": 33,
+     "inset_y_px": 42,
+     "stroke_px": 6,
+     "colour": "white",
+     "alpha": 1.0
+    },
+    "headline": {
+     "rect": {
+      "x0": 0.0953,
+      "y0": 0.135,
+      "x1": 0.9205,
+      "y1": 0.453
+     },
+     "kind": "text",
+     "source": "caption_hook",
+     "font_role": "display",
+     "max_font_px": 140,
+     "min_font_px": 92,
+     "max_lines": 4,
+     "max_chars_per_line": 16,
+     "line_height": 0.775,
+     "text_transform": "uppercase",
+     "text_origin_x": 100,
+     "align": "left",
+     "valign": "top",
+     "wrap": "balanced",
+     "colour_options": [
+      "ss_blue",
+      "ss_purple",
+      "ss_orange",
+      "ss_green"
+     ],
+     "h_scale": 0.88,
+     "attach_above": {
+      "zone": "subhead",
+      "gap_px": 30
+     }
+    },
+    "subhead": {
+     "rect": {
+      "x0": 0.0953,
+      "y0": 0.4715,
+      "x1": 0.7595,
+      "y1": 0.5359
+     },
+     "kind": "text",
+     "source": "cta",
+     "font_role": "h2",
+     "max_font_px": 43,
+     "min_font_px": 43,
+     "max_lines": 2,
+     "max_chars_per_line": 28,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "text_origin_x": 100,
+     "align": "left",
+     "valign": "top",
+     "colour": "white",
+     "h_scale": 0.87
+    },
+    "divider": {
+     "rect": {
+      "x0": 0.0981,
+      "y0": 0.5892,
+      "x1": 0.9039,
+      "y1": 0.5966
+     },
+     "kind": "decorative",
+     "shape": "rule",
+     "colour": "white",
+     "alpha": 0.3
+    },
+    "service_lockup": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.6447,
+      "x1": 1.0,
+      "y1": 0.6906
+     },
+     "kind": "text",
+     "source": "service_label",
+     "text_suffix": " @",
+     "font_role": "h1",
+     "max_font_px": 60,
+     "min_font_px": 60,
+     "max_lines": 1,
+     "max_chars_per_line": 20,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "top",
+     "colour": "white",
+     "h_scale": 0.86,
+     "inline_asset": {
+      "asset": "templates/service-promo/assets/logo-white.png",
+      "height_px": 63,
+      "gap_px": 42,
+      "position": "after"
+     }
+    },
+    "cta": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.7187,
+      "x1": 1.0,
+      "y1": 0.7498
+     },
+     "kind": "text",
+     "source": "static",
+     "text": "BOOK ONLINE",
+     "font_role": "cta",
+     "max_font_px": 59,
+     "min_font_px": 59,
+     "max_lines": 1,
+     "max_chars_per_line": 20,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "top",
+     "colour": "ss_green",
+     "h_scale": 0.87
+    },
+    "url": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.7831,
+      "x1": 1.0,
+      "y1": 0.8105
+     },
+     "kind": "text",
+     "source": "static",
+     "text": "WWW.SWINGSHACK.CO.ZA",
+     "font_role": "display",
+     "max_font_px": 51,
+     "min_font_px": 51,
+     "max_lines": 1,
+     "max_chars_per_line": 30,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "top",
+     "colour": "white",
+     "h_scale": 0.92
+    }
+   },
+   "canvas_overrides": {
+    "ig_story": {
+     "frame": {
+      "rect": {
+       "x0": 0.0,
+       "y0": 0.0,
+       "x1": 1.0,
+       "y1": 1.0
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_x_px": 33,
+      "inset_y_px": 44,
+      "stroke_px": 6,
+      "colour": "white",
+      "alpha": 1.0
+     },
+     "headline": {
+      "rect": {
+       "x0": 0.0953,
+       "y0": 0.2156,
+       "x1": 0.9205,
+       "y1": 0.4396
+      }
+     },
+     "subhead": {
+      "rect": {
+       "x0": 0.0953,
+       "y0": 0.4526,
+       "x1": 0.7595,
+       "y1": 0.4979
+      }
+     },
+     "divider": {
+      "rect": {
+       "x0": 0.0981,
+       "y0": 0.5354,
+       "x1": 0.9039,
+       "y1": 0.5406
+      }
+     },
+     "service_lockup": {
+      "rect": {
+       "x0": 0.0,
+       "y0": 0.5745,
+       "x1": 1.0,
+       "y1": 0.6068
+      }
+     },
+     "cta": {
+      "rect": {
+       "x0": 0.0,
+       "y0": 0.6266,
+       "x1": 1.0,
+       "y1": 0.6484
+      }
+     },
+     "url": {
+      "rect": {
+       "x0": 0.0,
+       "y0": 0.6719,
+       "x1": 1.0,
+       "y1": 0.6911
+      }
+     }
+    }
+   },
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   },
+   "max_total_chars": 96,
+   "logo_anchor": {
+    "zone": "service_lockup",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "center"
+   }
   }
  ],
  "selection": {
@@ -529,6 +802,14 @@
      ]
     },
     "use": "ss-did-you-know"
+   },
+   {
+    "when": {
+     "post_type_in": [
+      "service_promo"
+     ]
+    },
+    "use": "ss-service-promo"
    }
   ]
  }

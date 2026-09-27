@@ -21,7 +21,9 @@ def test_schema_validates_three_brands():
 
 
 def test_at_most_four_archetypes_per_brand():
+    caps = {"swing-shack": 6, "stick": 4, "bag-drop": 4}
     for brand in ("stick", "swing-shack", "bag-drop"):
         path = REPO / "data" / "brand-directory" / brand / "visual-spec" / "archetypes.json"
         doc = json.loads(path.read_text(encoding="utf-8"))
-        assert 1 <= len(doc.get("archetypes") or []) <= 4
+        cap = caps.get(brand, 4)
+        assert 1 <= len(doc.get("archetypes") or []) <= cap
