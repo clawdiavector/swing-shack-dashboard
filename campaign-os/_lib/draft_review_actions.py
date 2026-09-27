@@ -108,7 +108,9 @@ def _fields_for_compose(
     caption = str(asset.get("caption") or "")
     moment_id = str(sidecar.get("source_inbox_item_id") or "")
     asset_title = str(asset.get("name") or asset.get("title") or sidecar.get("title") or "")
-    if archetype and moment_id:
+    applies = archetype.get("applies_to") if isinstance(archetype, dict) else {}
+    compose_only = isinstance(applies, dict) and applies.get("needs_photo") is False
+    if archetype and (moment_id or compose_only):
         content = visual_copy_for_archetype(
             brand_id=brand_id,
             moment_id=moment_id,

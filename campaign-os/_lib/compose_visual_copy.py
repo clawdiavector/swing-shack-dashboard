@@ -44,7 +44,12 @@ def _hook_from_caption(caption: str, *, max_chars: int = 72) -> str:
             break
         out.append(w)
         n += len(w) + (1 if len(out) > 1 else 0)
-    return " ".join(out).strip() or line[:max_chars].strip()
+    trimmed = " ".join(out).strip() or line[:max_chars].strip()
+    # Service-frame zones: 3×24 chars — keep hooks short even before uppercase wrap.
+    short = trimmed.split()
+    if len(short) > 8:
+        trimmed = " ".join(short[:8])
+    return trimmed
 
 
 def _pillar_id_from_context(ctx) -> str:
@@ -85,10 +90,11 @@ def visual_copy_for_archetype(
     applies = archetype.get("applies_to") if isinstance(archetype.get("applies_to"), dict) else {}
     needs_photo = applies.get("needs_photo", True)
     if needs_photo:
-        ctx = build_image_draft_context(brand_id, moment_id)
+        ctx = build_image_draft_context(brand_id, moment_id or "proposal:stick:local")
         base = _content_from_caption(caption, ctx)
         return {k: str(v) for k, v in base.items()}
 
+    mid = moment_id or f"proposal:{brand_id}:compose"
     headline = str(sidecar.get("compose_headline") or "").strip()
     cta = str(sidecar.get("compose_cta") or "").strip()
     if not headline:
@@ -102,9 +108,9 @@ def visual_copy_for_archetype(
         if angle and len(angle) <= 72:
             headline = angle
     if not cta:
-        cta = _service_cta(brand_id=brand_id, moment_id=moment_id, caption=caption)
+        cta = _service_cta(brand_id=brand_id, moment_id=mid, caption=caption)
 
-    ctx = build_image_draft_context(brand_id, moment_id)
+    ctx = build_image_draft_context(brand_id, mid)
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
     base["cta"] = cta
