@@ -373,6 +373,7 @@ def process_compose_post_row(
     if not sidecar:
         return None, None
     archetype = select_archetype(brand_id, item_id)
+    archetype_id = str(archetype.get("id") or "")
     needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
     qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
     candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
@@ -431,7 +432,7 @@ def process_compose_post_row(
     out_dir.mkdir(parents=True, exist_ok=True)
     composed_urls: dict[str, str] = {}
     for ch, png in composed.items():
-        fname = f"composed-{ch}.png"
+        fname = f"composed-{asset_id}-{ch}.png" if asset_id else f"composed-{ch}.png"
         dest = out_dir / fname
         dest.write_bytes(png)
         composed_urls[ch] = image_url_for(brand_id, str(dest))
@@ -445,12 +446,27 @@ def process_compose_post_row(
         asset = (campaign.get("assets") or {}).get(asset_id or "")
         if isinstance(asset, dict):
             asset["image_url"] = primary_path
-            asset["image_path"] = str(out_dir / f"composed-{primary}.png")
+            primary_fname = (
+                f"composed-{asset_id}-{primary}.png" if asset_id else f"composed-{primary}.png"
+            )
+            asset["image_path"] = str(out_dir / primary_fname)
             asset["composed"] = composed_urls
             break
     _write_campaign_data(data)
 
+    archetype_meta: dict[str, Any] = {
+        "id": archetype_id,
+        "canvas": archetype.get("canvas"),
+        "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+    }
+    from _lib.archetypes import _moment_context  # noqa: PLC0415
+
+    template_id = str(_moment_context(brand_id, item_id).get("template_id") or "")
+    if template_id:
+        archetype_meta["template_id"] = template_id
+
     sidecar["composed"] = composed_urls
     sidecar["action"] = "compose_post"
+    sidecar["archetype"] = archetype_meta
     atomic_write(f"draft-assets/{asset_id}.json", sidecar)
     return asset_id, None
