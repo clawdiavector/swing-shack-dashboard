@@ -19,7 +19,13 @@ def _first_line(text: str) -> str:
 
 def _hook_from_caption(caption: str, *, max_chars: int = 72) -> str:
     """Short visual hook — matches Review default, then tightens long captions."""
-    line = _first_line(caption)
+    text = (caption or "").strip()
+    if not text:
+        return ""
+    q = text.find("?")
+    if 0 <= q <= max_chars + 24:
+        return text[: q + 1].strip()
+    line = _first_line(text)
     if not line:
         return ""
     if len(line) <= max_chars:
