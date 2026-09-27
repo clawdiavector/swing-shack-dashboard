@@ -2,7 +2,7 @@
  "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
  "brand_id": "swing-shack",
  "version": "2.0",
- "updated": "2026-09-27T00:00:00Z",
+ "updated": "2026-09-27T22:30:00Z",
  "source": "draft",
  "canvases": {
   "ig_post": {
@@ -503,6 +503,434 @@
     "y1": 0.96
    },
    "max_total_chars": 56
+  },
+  {
+   "id": "ss-discount-code",
+   "name": "Discount code \u2014 fitting promo lockup",
+   "description": "Measured from Content Bank fitting_discount_post/story (1081\u00d71301 / 1081\u00d71921). Near-black gradient, white frame, centred logo, hand-set left hero lines (percent / subject / expiry), rule + disclaimer, Inter upright CTA block.",
+   "canvas": "ig_post",
+   "block_anchor": "center",
+   "applies_to": {
+    "channels": [
+     "instagram",
+     "instagram_story",
+     "facebook"
+    ],
+    "record_types": [
+     "moment",
+     "evergreen"
+    ],
+    "needs_photo": false
+   },
+   "channel_canvas": {
+    "facebook": "ig_post"
+   },
+   "template_pack": "templates/discount-code",
+   "background": {
+    "kind": "gradient",
+    "gradient": {
+     "direction": "vertical",
+     "from": "#060808",
+     "to": "#0E1112"
+    }
+   },
+   "zones": {
+    "frame": {
+     "rect": {
+      "x0": 0,
+      "y0": 0,
+      "x1": 1,
+      "y1": 1
+     },
+     "kind": "decorative",
+     "shape": "frame",
+     "inset_px": 27,
+     "stroke_px": 6,
+     "colour": "white",
+     "alpha": 1.0
+    },
+    "logo": {
+     "rect": {
+      "x0": 0.3663,
+      "y0": 0.0905,
+      "x1": 0.6485,
+      "y1": 0.2339
+     },
+     "kind": "image",
+     "source": "asset",
+     "asset": "templates/discount-code/assets/logo-white.png",
+     "fit": "aspect_fit",
+     "align": "center",
+     "valign": "middle"
+    },
+    "headline": {
+     "rect": {
+      "x0": 0.1378,
+      "y0": 0.2856,
+      "x1": 0.6142,
+      "y1": 0.384
+     },
+     "kind": "text",
+     "source": "caption_hook",
+     "font_role": "display",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "left",
+     "valign": "middle",
+     "colour": "ss_orange_hot",
+     "max_font_px": 118,
+     "h_scale": 0.949,
+     "text_origin_x": 149
+    },
+    "subhead": {
+     "rect": {
+      "x0": 0.2368,
+      "y0": 0.3575,
+      "x1": 0.8908,
+      "y1": 0.4907
+     },
+     "kind": "text",
+     "source": "offer_subject",
+     "font_role": "h1",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "left",
+     "valign": "middle",
+     "colour": "white",
+     "max_font_px": 129,
+     "h_scale": 0.921,
+     "text_origin_x": 256
+    },
+    "tagline": {
+     "rect": {
+      "x0": 0.161,
+      "y0": 0.4903,
+      "x1": 0.6772,
+      "y1": 0.5416
+     },
+     "kind": "text",
+     "source": "offer_expiry",
+     "font_role": "h2",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "left",
+     "valign": "middle",
+     "colour": "ss_lime",
+     "max_font_px": 59,
+     "h_scale": 0.934,
+     "text_origin_x": 174,
+     "optional": true
+    },
+    "rule": {
+     "rect": {
+      "x0": 0.2294,
+      "y0": 0.5916,
+      "x1": 0.7863,
+      "y1": 0.598
+     },
+     "kind": "band",
+     "fill": "white"
+    },
+    "disclaimer": {
+     "rect": {
+      "x0": 0.1776,
+      "y0": 0.6377,
+      "x1": 0.8529,
+      "y1": 0.663
+     },
+     "kind": "text",
+     "source": "static",
+     "font_role": "caption",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "middle",
+     "colour": "white",
+     "max_font_px": 31,
+     "h_scale": 0.921,
+     "text": "*MEMBER DISCOUNT APPLIES ON TOP OF ABOVE"
+    },
+    "cta_kicker": {
+     "rect": {
+      "x0": 0.3599,
+      "y0": 0.7168,
+      "x1": 0.6577,
+      "y1": 0.7706
+     },
+     "kind": "text",
+     "source": "static",
+     "font_role": "body",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "middle",
+     "colour": "ss_orange_hot",
+     "max_font_px": 63,
+     "h_scale": 0.975,
+     "text": "USE CODE"
+    },
+    "cta": {
+     "rect": {
+      "x0": 0.3025,
+      "y0": 0.756,
+      "x1": 0.7132,
+      "y1": 0.8299
+     },
+     "kind": "text",
+     "source": "cta",
+     "font_role": "cta",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "middle",
+     "colour": "ss_lime",
+     "max_font_px": 86,
+     "h_scale": 0.998
+    },
+    "cta_tail": {
+     "rect": {
+      "x0": 0.2525,
+      "y0": 0.8198,
+      "x1": 0.7706,
+      "y1": 0.8736
+     },
+     "kind": "text",
+     "source": "static",
+     "font_role": "body",
+     "max_lines": 1,
+     "max_chars_per_line": 40,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "align": "center",
+     "valign": "middle",
+     "colour": "ss_orange_hot",
+     "max_font_px": 63,
+     "h_scale": 0.975,
+     "text": "ONLINE TO CLAIM"
+    }
+   },
+   "canvas_overrides": {
+    "ig_story": {
+     "frame": {
+      "rect": {
+       "x0": 0,
+       "y0": 0,
+       "x1": 1,
+       "y1": 1
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 27,
+      "stroke_px": 6,
+      "colour": "white",
+      "alpha": 1.0
+     },
+     "logo": {
+      "rect": {
+       "x0": 0.3469,
+       "y0": 0.1719,
+       "x1": 0.667,
+       "y1": 0.2869
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/discount-code/assets/logo-white.png",
+      "fit": "aspect_fit",
+      "align": "center",
+      "valign": "middle"
+     },
+     "headline": {
+      "rect": {
+       "x0": 0.087,
+       "y0": 0.3276,
+       "x1": 0.6272,
+       "y1": 0.4068
+      },
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "left",
+      "valign": "middle",
+      "colour": "ss_orange_hot",
+      "max_font_px": 135,
+      "h_scale": 0.968,
+      "text_origin_x": 94
+     },
+     "subhead": {
+      "rect": {
+       "x0": 0.1998,
+       "y0": 0.3853,
+       "x1": 0.9417,
+       "y1": 0.4923
+      },
+      "kind": "text",
+      "source": "offer_subject",
+      "font_role": "h1",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "left",
+      "valign": "middle",
+      "colour": "white",
+      "max_font_px": 149,
+      "h_scale": 0.905,
+      "text_origin_x": 216
+     },
+     "tagline": {
+      "rect": {
+       "x0": 0.1138,
+       "y0": 0.4921,
+       "x1": 0.7105,
+       "y1": 0.5334
+      },
+      "kind": "text",
+      "source": "offer_expiry",
+      "font_role": "h2",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "left",
+      "valign": "middle",
+      "colour": "ss_lime",
+      "max_font_px": 69,
+      "h_scale": 0.925,
+      "text_origin_x": 123,
+      "optional": true
+     },
+     "rule": {
+      "rect": {
+       "x0": 0.1906,
+       "y0": 0.5738,
+       "x1": 0.8233,
+       "y1": 0.5783
+      },
+      "kind": "band",
+      "fill": "white"
+     },
+     "disclaimer": {
+      "rect": {
+       "x0": 0.1304,
+       "y0": 0.6104,
+       "x1": 0.8992,
+       "y1": 0.6307
+      },
+      "kind": "text",
+      "source": "static",
+      "font_role": "caption",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "center",
+      "valign": "middle",
+      "colour": "white",
+      "max_font_px": 35,
+      "h_scale": 0.931,
+      "text": "*MEMBER DISCOUNT APPLIES ON TOP OF ABOVE"
+     },
+     "cta_kicker": {
+      "rect": {
+       "x0": 0.3395,
+       "y0": 0.6732,
+       "x1": 0.6772,
+       "y1": 0.7169
+      },
+      "kind": "text",
+      "source": "static",
+      "font_role": "body",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "center",
+      "valign": "middle",
+      "colour": "ss_orange_hot",
+      "max_font_px": 72,
+      "h_scale": 0.974,
+      "text": "USE CODE"
+     },
+     "cta": {
+      "rect": {
+       "x0": 0.2738,
+       "y0": 0.7046,
+       "x1": 0.741,
+       "y1": 0.7641
+      },
+      "kind": "text",
+      "source": "cta",
+      "font_role": "cta",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "center",
+      "valign": "middle",
+      "colour": "ss_lime",
+      "max_font_px": 99,
+      "h_scale": 0.998
+     },
+     "cta_tail": {
+      "rect": {
+       "x0": 0.2174,
+       "y0": 0.756,
+       "x1": 0.803,
+       "y1": 0.7997
+      },
+      "kind": "text",
+      "source": "static",
+      "font_role": "body",
+      "max_lines": 1,
+      "max_chars_per_line": 40,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "center",
+      "valign": "middle",
+      "colour": "ss_orange_hot",
+      "max_font_px": 72,
+      "h_scale": 0.974,
+      "text": "ONLINE TO CLAIM"
+     }
+    }
+   },
+   "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "center"
+   },
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   },
+   "max_total_chars": 120,
+   "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg"
+   ],
+   "reference_size": {
+    "w": 1081,
+    "h": 1301
+   }
   }
  ],
  "selection": {
@@ -529,6 +957,16 @@
      ]
     },
     "use": "ss-did-you-know"
+   },
+   {
+    "when": {
+     "post_type_in": [
+      "discount_code",
+      "promo_code",
+      "offer"
+     ]
+    },
+    "use": "ss-discount-code"
    }
   ]
  }
