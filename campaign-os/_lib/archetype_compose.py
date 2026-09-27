@@ -653,6 +653,23 @@ def compose_to_canvas(
 ) -> bytes:
     if Image is None:
         raise ComposeError("PIL unavailable")
+    if str(archetype.get("id") or "") == "stick-location-drive":
+        from _lib.stick_location_drive import compose_stick_location_drive  # noqa: PLC0415
+
+        canvases = doc.get("canvases") if isinstance(doc.get("canvases"), dict) else {}
+        spec = canvases.get(canvas_id)
+        if not isinstance(spec, dict):
+            raise ComposeError(f"unknown canvas {canvas_id}")
+        w = int(spec.get("w") or 1080)
+        h = int(spec.get("h") or 1350)
+        return compose_stick_location_drive(
+            brand_id=brand_id,
+            archetype=archetype,
+            canvas_w=w,
+            canvas_h=h,
+            fields=fields,
+            photo_bytes=photo_bytes,
+        )
     canvases = doc.get("canvases") if isinstance(doc.get("canvases"), dict) else {}
     spec = canvases.get(canvas_id)
     if not isinstance(spec, dict):

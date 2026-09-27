@@ -1,0 +1,17 @@
+[
+  {
+    "ref": "ref-01.jpg",
+    "style": "map-photo",
+    "vendor_name": "FRANSCHHOEK",
+    "caption_hook": "25 MINUTE TRIP SO YOU CAN HIT A 9-IRON WHILE THEY SWEAT OVER A 5",
+    "accent": "#3ee089"
+  },
+  {
+    "ref": "ref-02.jpg",
+    "style": "route-line",
+    "vendor_name": "GREEN POINT",
+    "caption_kicker": "A 46 MINUTE TRIP",
+    "caption_hook": "TO MAKE THEM HIT THEIR SECOND SHOT FIRST ALL DAY",
+    "accent": "#3ee089"
+  }
+]
