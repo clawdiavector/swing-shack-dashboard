@@ -401,8 +401,17 @@ def process_compose_post_row(
             if isinstance(asset, dict):
                 caption_text = str(asset.get("caption") or "") or caption_text
                 break
-    ctx = build_image_draft_context(brand_id, item_id)
-    content = _content_from_caption(caption_text or "", ctx)
+    from _lib.compose_visual_copy import visual_copy_for_archetype  # noqa: PLC0415
+
+    asset_title = str(sidecar.get("title") or "")
+    content = visual_copy_for_archetype(
+        brand_id=brand_id,
+        moment_id=item_id,
+        caption=caption_text or "",
+        archetype=archetype,
+        asset_title=asset_title or None,
+        sidecar=sidecar,
+    )
     channels = [c for c in intended_publish_channels(brand_id) if c != "gbp"]
     try:
         composed = compose_post_for_channels(

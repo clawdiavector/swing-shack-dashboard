@@ -98,15 +98,28 @@ def _fields_for_compose(
     brand_id: str,
     asset: dict[str, Any],
     sidecar: dict[str, Any],
+    archetype: dict[str, Any] | None = None,
     headline: str | None = None,
     cta: str | None = None,
 ) -> dict[str, str]:
     from _lib.archetype_compose import caption_fields_from_text
-    from _lib.jobs.layer5.create_photo_compose import _content_from_caption, build_image_draft_context
+    from _lib.compose_visual_copy import visual_copy_for_archetype
 
     caption = str(asset.get("caption") or "")
     moment_id = str(sidecar.get("source_inbox_item_id") or "")
-    if moment_id:
+    asset_title = str(asset.get("name") or asset.get("title") or sidecar.get("title") or "")
+    if archetype and moment_id:
+        content = visual_copy_for_archetype(
+            brand_id=brand_id,
+            moment_id=moment_id,
+            caption=caption,
+            archetype=archetype,
+            asset_title=asset_title or None,
+            sidecar=sidecar,
+        )
+    elif moment_id:
+        from _lib.jobs.layer5.create_photo_compose import _content_from_caption, build_image_draft_context
+
         ctx = build_image_draft_context(brand_id, moment_id)
         content = _content_from_caption(caption, ctx)
     else:
@@ -194,6 +207,7 @@ def recompose_draft(
         brand_id=brand_id,
         asset=asset,
         sidecar=sidecar,
+        archetype=archetype,
         headline=headline,
         cta=cta,
     )
