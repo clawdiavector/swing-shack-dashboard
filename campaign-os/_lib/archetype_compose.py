@@ -206,6 +206,15 @@ def _wrap_text(
     return lines
 
 
+def _wrap_explicit(text: str, max_lines: int) -> list[str]:
+    """Author-controlled breaks: one line per \\n (or |) item, never reflowed."""
+    raw = (text or "").replace("|", "\n")
+    lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    if len(lines) > max_lines:
+        raise ComposeError("text overflow")
+    return lines
+
+
 def _wrap_balanced(
     text: str,
     body_font,
@@ -270,8 +279,11 @@ def _fit_font_size(
         emph = _load_brand_font(brand_id, emph_role, mid) if emphasis else None
         track = _tracking_px(zone, mid)
         try:
-            if str(zone.get("wrap") or "") == "balanced":
+            wrap_mode = str(zone.get("wrap") or "")
+            if wrap_mode == "balanced":
                 lines = _wrap_balanced(text, body, emph, max_lines, emphasis, track)
+            elif wrap_mode == "explicit":
+                lines = _wrap_explicit(text, max_lines)
             else:
                 lines = _wrap_text(text, body, emph, zone_w, max_lines, max_chars, emphasis, track)
         except ComposeError:

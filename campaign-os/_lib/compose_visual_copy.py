@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import zlib
 from typing import Any
 
 from _lib.jobs.layer5.create_photo_compose import _content_from_caption
@@ -97,6 +98,12 @@ def visual_copy_for_archetype(
     mid = moment_id or f"proposal:{brand_id}:compose"
     headline = str(sidecar.get("compose_headline") or "").strip()
     cta = str(sidecar.get("compose_cta") or "").strip()
+    qualifier = str(sidecar.get("compose_qualifier") or "").strip()
+    price = str(sidecar.get("compose_price") or "").strip()
+    price_period = str(sidecar.get("compose_price_period") or "").strip()
+    price_labels = str(sidecar.get("compose_price_labels") or "").strip()
+    price_values = str(sidecar.get("compose_price_values") or "").strip()
+    accent = str(sidecar.get("compose_accent") or "").strip()
     if not headline:
         headline = _hook_from_caption(caption)
     if not headline and asset_title:
@@ -114,4 +121,19 @@ def visual_copy_for_archetype(
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
     base["cta"] = cta
+    if qualifier:
+        base["qualifier"] = qualifier
+    if price:
+        base["price"] = price
+    if price_period:
+        base["price_period"] = price_period
+    if price_labels:
+        base["price_labels"] = price_labels
+    if price_values:
+        base["price_values"] = price_values
+    if not accent and headline:
+        opts = ("ss_green", "ss_orange", "ss_blue", "ss_purple")
+        accent = opts[zlib.crc32(headline.upper().encode("utf-8")) % len(opts)]
+    if accent:
+        base["accent"] = accent
     return {k: str(v) for k, v in base.items()}
