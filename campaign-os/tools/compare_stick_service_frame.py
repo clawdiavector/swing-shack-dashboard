@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -38,19 +39,24 @@ def _zone_mean_delta(rend: np.ndarray, ref: np.ndarray, box: tuple[int, int, int
     return float(d.mean())
 
 
-def main() -> int:
-    if not GOLDEN.is_file():
-        print(f"missing golden {GOLDEN}", file=sys.stderr)
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--render", type=Path, default=GOLDEN, help="render PNG (default: golden)")
+    ap.add_argument("--ref", type=Path, default=REF, help="reference image (default: swingasses.jpg)")
+    args = ap.parse_args(argv)
+    render_path, ref_path = args.render, args.ref
+    if not render_path.is_file():
+        print(f"missing golden {render_path}", file=sys.stderr)
         return 1
-    if not REF.is_file():
-        print(f"missing reference {REF}", file=sys.stderr)
+    if not ref_path.is_file():
+        print(f"missing reference {ref_path}", file=sys.stderr)
         return 1
-    ref = Image.open(REF).convert("RGB")
-    rend = Image.open(GOLDEN).convert("RGB")
+    ref = Image.open(ref_path).convert("RGB")
+    rend = Image.open(render_path).convert("RGB")
     if ref.size != (1080, 1350):
         ref = ref.resize((1080, 1350), Image.LANCZOS)
     if rend.size != (1080, 1350):
-        print(f"golden size {rend.size}, expected 1080x1350", file=sys.stderr)
+        print(f"render size {rend.size}, expected 1080x1350", file=sys.stderr)
         return 1
     a = np.array(rend)
     b = np.array(ref)

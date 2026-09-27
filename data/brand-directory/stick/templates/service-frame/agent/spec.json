@@ -1,0 +1,137 @@
+{
+  "id": "stick-service-frame-agent",
+  "name": "Service frame (agent-authored, Track B)",
+  "description": "Pixel-measured from references/ref-01.jpg by template_smith; see agent/template.md.",
+  "canvas": "ig_post",
+  "block_anchor": "center",
+  "applies_to": {
+    "channels": [
+      "instagram",
+      "instagram_story",
+      "facebook",
+      "gbp"
+    ],
+    "record_types": [
+      "moment",
+      "evergreen"
+    ],
+    "needs_photo": false
+  },
+  "background": {
+    "kind": "gradient",
+    "gradient": {
+      "direction": "horizontal",
+      "from": "#083E56",
+      "to": "#063442"
+    }
+  },
+  "zones": {
+    "headline": {
+      "rect": {
+        "x0": 0.1099,
+        "y0": 0.1697,
+        "x1": 0.9338,
+        "y1": 0.4289
+      },
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_lines": 3,
+      "max_chars_per_line": 24,
+      "line_height": 1.2138,
+      "text_transform": "uppercase",
+      "text_origin_x": 116,
+      "align": "left",
+      "valign": "top",
+      "colour": "white",
+      "min_font_px": 72
+    },
+    "cta_band": {
+      "rect": {
+        "x0": 0.0574,
+        "y0": 0.4951,
+        "x1": 1.0,
+        "y1": 0.7412
+      },
+      "kind": "band",
+      "fill": "#00B3BA"
+    },
+    "cta": {
+      "rect": {
+        "x0": 0.1172,
+        "y0": 0.5612,
+        "x1": 0.8805,
+        "y1": 0.6679
+      },
+      "kind": "text",
+      "source": "cta",
+      "font_role": "h2",
+      "max_lines": 2,
+      "max_chars_per_line": 24,
+      "line_height": 1.2529,
+      "text_transform": "uppercase",
+      "emphasis_words": [
+        "FREE"
+      ],
+      "emphasis_font_role": "cta_emphasis",
+      "tracking_em": 0.0229,
+      "text_origin_x": 123,
+      "align": "left",
+      "colour": "white",
+      "min_font_px": 43
+    },
+    "logo": {
+      "rect": {
+        "x0": 0.1249,
+        "y0": 0.8251,
+        "x1": 0.3479,
+        "y1": 0.8885
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/service-frame/assets/logo-wordmark-white.png",
+      "fit": "aspect_fit",
+      "align": "left",
+      "valign": "bottom"
+    },
+    "tagline": {
+      "rect": {
+        "x0": 0.4313,
+        "y0": 0.8342,
+        "x1": 0.8783,
+        "y1": 0.8865
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/service-frame/assets/tagline-better-begins-here.png",
+      "fit": "aspect_fit",
+      "align": "left",
+      "valign": "bottom",
+      "optional": true
+    }
+  },
+  "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+  },
+  "max_total_chars": 110,
+  "_derivation": {
+    "measured": "agent/measured.json",
+    "headline_font_px": 112,
+    "headline_sizes_per_line": [
+      112,
+      111,
+      112
+    ],
+    "headline_pitch_px": 135.45,
+    "cta_font_px": 73,
+    "cta_sizes_per_line": [
+      73,
+      73
+    ],
+    "cta_pitch_px": 90.96,
+    "cta_tracking_px": 2.114
+  }
+}

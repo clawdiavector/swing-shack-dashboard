@@ -1,0 +1,44 @@
+{
+  "ref": "data/brand-directory/stick/templates/service-frame/references/ref-01.jpg",
+  "iterations": [
+    {
+      "iteration": 1,
+      "score": 84.6,
+      "corrections": {},
+      "report": [
+        "mean_delta_all=5.590/255 pct_diff_gt32=4.51% ssim=0.9168",
+        "  zone headline mean_delta=9.899",
+        "  zone cta_band mean_delta=9.417",
+        "  zone cta_text mean_delta=23.591",
+        "  zone footer mean_delta=16.314",
+        "score=84.6"
+      ]
+    },
+    {
+      "iteration": 2,
+      "score": 88.0,
+      "corrections": {
+        "headline_dx_dy": [
+          2.56,
+          -0.32
+        ],
+        "cta_dx_dy_dtrack_px": [
+          4.27,
+          0.46,
+          0.445
+        ],
+        "logo_scale": 1.0148,
+        "tagline_scale": 1.0146
+      },
+      "report": [
+        "mean_delta_all=4.823/255 pct_diff_gt32=3.80% ssim=0.9236",
+        "  zone headline mean_delta=14.719",
+        "  zone cta_band mean_delta=4.462",
+        "  zone cta_text mean_delta=10.926",
+        "  zone footer mean_delta=4.534",
+        "score=88.0"
+      ]
+    }
+  ],
+  "final_score": 88.0
+}
