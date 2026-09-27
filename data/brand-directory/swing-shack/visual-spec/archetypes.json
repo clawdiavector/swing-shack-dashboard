@@ -2557,4 +2557,33 @@
       }
     ]
   }
+ ],
+ "_selection_rules_note": "last-match-wins: explicit post_type rules MUST be appended AFTER pillar/product rules so a tagged record beats a pillar inference. New rules belong at the bottom.",
+ "selection": {
+  "default": "ss-photo-post",
+  "rules": [
+   {
+    "when": {
+     "pillar_in": [
+      "fitting",
+      "coaching",
+      "ss-fitting",
+      "ss-coaching"
+     ],
+     "has_product_item": false
+    },
+    "use": "ss-service-frame"
+   },
+   {
+    "when": {
+     "post_type_in": [
+      "tip",
+      "did_you_know",
+      "myth"
+     ]
+    },
+    "use": "ss-did-you-know"
+   }
+  ]
+ }
 }

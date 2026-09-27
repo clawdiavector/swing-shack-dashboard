@@ -1908,6 +1908,7 @@
       }
     }
   ],
+  "_selection_rules_note": "last-match-wins: explicit post_type rules MUST be appended AFTER pillar/product rules so a tagged record beats a pillar inference. New rules belong at the bottom.",
   "selection": {
     "default": "stick-photo-band-post",
     "rules": [
