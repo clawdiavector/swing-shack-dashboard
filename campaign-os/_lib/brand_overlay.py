@@ -129,6 +129,20 @@ def _brand_dir(brand_id: str) -> Optional[Path]:
     return None
 
 
+def _resolve_brand_relative(brand_id: str, rel: str) -> Optional[Path]:
+    """First existing path for a brand-relative file across DATA_DIR and bundled copies."""
+    rel = rel.strip().lstrip("/")
+    if not rel:
+        return None
+    for base in _candidate_brand_dirs(brand_id):
+        if not base.exists():
+            continue
+        p = base / rel
+        if p.is_file():
+            return p
+    return None
+
+
 def _resolve_font_path(brand_id: str, role: str) -> Optional[Path]:
     """Resolve typography role to an on-disk TTF under the brand directory."""
     fonts = _find_fonts(brand_id)
@@ -140,22 +154,18 @@ def _resolve_font_path(brand_id: str, role: str) -> Optional[Path]:
         if isinstance(entry, dict):
             rel = entry.get("file")
             if isinstance(rel, str) and rel.strip():
-                base = _brand_dir(brand_id)
-                if base:
-                    p = base / rel
-                    if p.exists():
-                        return p
+                found = _resolve_brand_relative(brand_id, rel)
+                if found:
+                    return found
     scale = fonts.get("scale")
     if isinstance(scale, list):
         for row in scale:
             if isinstance(row, dict) and str(row.get("name") or "") == role:
                 rel = row.get("file")
                 if isinstance(rel, str) and rel.strip():
-                    base = _brand_dir(brand_id)
-                    if base:
-                        p = base / rel
-                        if p.exists():
-                            return p
+                    found = _resolve_brand_relative(brand_id, rel)
+                    if found:
+                        return found
     return None
 
 
