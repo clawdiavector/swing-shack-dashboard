@@ -17,6 +17,18 @@
     "images/Products/lab_post.jpg"
   ],
   "canvases": {
+    "ig_square": {
+      "w": 1080,
+      "h": 1080,
+      "aspect": "1:1",
+      "channels": [],
+      "safe_zone": {
+        "x0": 0.07,
+        "y0": 0.06,
+        "x1": 0.93,
+        "y1": 0.94
+      }
+    },
     "ig_post": {
       "w": 1080,
       "h": 1350,
@@ -646,6 +658,162 @@
         "y1": 0.96
       },
       "max_total_chars": 30
+    },
+    {
+      "id": "stick-service-square",
+      "name": "Service square — chevrons + decorative frame, 1:1 navy text-only (centred or split lockup)",
+      "description": "1081×1081 square. Light blue→grey gradient field. Dark navy decorative chevrons (>>>) in one corner (top-left for lab/centred form, mirrored top-right for avoda/split lockup) and a thin navy rectangular frame at ~56px inset. Two compositional variants: lab — centred 4-line caption_hook; avoda — large UPPERCASE service word + faded @ + tail word. No photo.",
+      "canvas": "ig_square",
+      "block_anchor": "center",
+      "channel_canvas": {
+        "instagram": "ig_square",
+        "facebook": "ig_square"
+      },
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "gradient",
+        "gradient": {
+          "from": "gradient_sky",
+          "to": "gradient_fog",
+          "direction": "to-bottom"
+        }
+      },
+      "zones": {
+        "chevrons": {
+          "rect": {
+            "x0": 0.03,
+            "y0": 0.04,
+            "x1": 0.32,
+            "y1": 0.14
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/service-square/assets/chevrons.png",
+          "fit": "aspect_fit",
+          "align": "left",
+          "valign": "top",
+          "corner": "top_left",
+          "mirror_corners": [
+            "top_right"
+          ]
+        },
+        "frame": {
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.04,
+            "x1": 0.95,
+            "y1": 0.96
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 56,
+          "stroke_px": 4,
+          "colour": "navy_alt",
+          "alpha": 1.0
+        },
+        "headline_centre": {
+          "rect": {
+            "x0": 0.12,
+            "y0": 0.36,
+            "x1": 0.88,
+            "y1": 0.66
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 4,
+          "max_chars_per_line": 22,
+          "line_height": 1.1,
+          "text_transform": "none",
+          "align": "center",
+          "valign": "middle",
+          "colour": "navy_alt",
+          "variant": "lab",
+          "min_font_px": 56
+        },
+        "service_word": {
+          "rect": {
+            "x0": 0.05,
+            "y0": 0.32,
+            "x1": 0.95,
+            "y1": 0.5
+          },
+          "kind": "text",
+          "source": "caption_hook_first_word",
+          "font_role": "display",
+          "max_lines": 1,
+          "max_chars_per_line": 14,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "navy_alt",
+          "variant": "avoda",
+          "min_font_px": 160,
+          "max_font_px": 280
+        },
+        "at_glyph": {
+          "rect": {
+            "x0": 0.5,
+            "y0": 0.38,
+            "x1": 0.85,
+            "y1": 0.62
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "@",
+          "font_role": "h1",
+          "text_transform": "none",
+          "align": "center",
+          "valign": "middle",
+          "colour": "grey_light",
+          "variant": "avoda",
+          "min_font_px": 200,
+          "max_font_px": 260
+        },
+        "at_lockup": {
+          "rect": {
+            "x0": 0.3,
+            "y0": 0.55,
+            "x1": 0.95,
+            "y1": 0.86
+          },
+          "kind": "text",
+          "source": "caption_hook_tail",
+          "font_role": "h1",
+          "max_lines": 1,
+          "max_chars_per_line": 8,
+          "text_transform": "none",
+          "align": "right",
+          "valign": "bottom",
+          "colour": "navy_alt",
+          "variant": "avoda",
+          "min_font_px": 200,
+          "max_font_px": 280
+        }
+      },
+      "logo_anchor": {
+        "zone": "headline_centre",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.07,
+        "y0": 0.06,
+        "x1": 0.93,
+        "y1": 0.94
+      },
+      "max_total_chars": 80
     }
   ],
   "selection": {
@@ -676,6 +844,14 @@
           "subject": "venue"
         },
         "use": "stick-venue-post"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "service_square"
+          ]
+        },
+        "use": "stick-service-square"
       }
     ]
   }

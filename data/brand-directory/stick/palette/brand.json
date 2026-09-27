@@ -10,7 +10,9 @@
     "mint": "#24FFAF",
     "navy_alt": "#05325D",
     "white": "#FFFFFF",
-    "grey_light": "#D1D1D1"
+    "grey_light": "#D1D1D1",
+    "gradient_sky": "#D6E4EC",
+    "gradient_fog": "#EAEEF1"
   },
   "palette": {
     "primary": {
