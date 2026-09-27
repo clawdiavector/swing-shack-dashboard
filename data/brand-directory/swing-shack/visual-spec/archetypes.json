@@ -1,291 +1,535 @@
 {
-  "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
-  "brand_id": "swing-shack",
-  "version": "2.0",
-  "updated": "2026-09-25T00:00:00Z",
-  "source": "draft",
-  "canvases": {
-    "ig_post": {
-      "w": 1080,
-      "h": 1350,
-      "aspect": "4:5",
-      "channels": [
-        "instagram"
-      ],
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.04,
-        "x1": 0.95,
-        "y1": 0.96
-      }
-    },
-    "ig_story": {
-      "w": 1080,
-      "h": 1920,
-      "aspect": "9:16",
-      "channels": [
-        "instagram_story"
-      ],
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.16,
-        "x1": 0.95,
-        "y1": 0.84
-      }
-    },
-    "fb_post": {
-      "w": 1200,
-      "h": 630,
-      "aspect": "1.91:1",
-      "channels": [
-        "facebook"
-      ],
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.08,
-        "x1": 0.95,
-        "y1": 0.92
-      }
-    },
-    "gbp_post": {
-      "w": 1200,
-      "h": 900,
-      "aspect": "4:3",
-      "channels": [
-        "gbp"
-      ],
-      "safe_zone": {
-        "x0": 0.06,
-        "y0": 0.06,
-        "x1": 0.94,
-        "y1": 0.94
-      }
-    }
+ "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+ "brand_id": "swing-shack",
+ "version": "2.0",
+ "updated": "2026-09-27T00:00:00Z",
+ "source": "draft",
+ "canvases": {
+  "ig_post": {
+   "w": 1080,
+   "h": 1350,
+   "aspect": "4:5",
+   "channels": [
+    "instagram"
+   ],
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   }
   },
-  "archetypes": [
-    {
-      "id": "ss-photo-post",
-      "name": "Photo post",
-      "canvas": "ig_post",
-      "block_anchor": "center",
-      "applies_to": {
-        "channels": [
-          "instagram",
-          "instagram_story",
-          "facebook",
-          "gbp"
-        ],
-        "needs_photo": true
-      },
-      "background": {
-        "kind": "solid",
-        "fill": "primary"
-      },
-      "zones": {
-        "headline": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.2,
-            "x1": 0.9,
-            "y1": 0.35
-          },
-          "kind": "text",
-          "source": "caption_hook",
-          "font_role": "h1",
-          "max_lines": 2,
-          "max_chars_per_line": 24,
-          "colour": "neutral_light",
-          "min_font_px": 32
-        },
-        "photo": {
-          "rect": {
-            "x0": 0.0,
-            "y0": 0.4,
-            "x1": 1.0,
-            "y1": 1.0
-          },
-          "kind": "image",
-          "source": "photo",
-          "optional": false
-        },
-        "logo": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.85,
-            "x1": 0.3,
-            "y1": 0.95
-          },
-          "kind": "logo"
-        }
-      },
-      "logo_anchor": {
-        "zone": "logo",
-        "variant": "mono_light",
-        "fit": "height",
-        "align": "left"
-      },
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.04,
-        "x1": 0.95,
-        "y1": 0.96
-      },
-      "max_total_chars": 80
-    },
-    {
-      "id": "ss-service-frame",
-      "name": "Service frame",
-      "canvas": "ig_post",
-      "block_anchor": "center",
-      "applies_to": {
-        "channels": [
-          "instagram",
-          "instagram_story",
-          "facebook",
-          "gbp"
-        ],
-        "needs_photo": false
-      },
-      "background": {
-        "kind": "solid",
-        "fill": "primary"
-      },
-      "zones": {
-        "headline": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.2,
-            "x1": 0.9,
-            "y1": 0.35
-          },
-          "kind": "text",
-          "source": "caption_hook",
-          "font_role": "h1",
-          "max_lines": 2,
-          "max_chars_per_line": 24,
-          "colour": "neutral_light",
-          "min_font_px": 32
-        },
-        "photo": {
-          "rect": {
-            "x0": 0.0,
-            "y0": 0.4,
-            "x1": 1.0,
-            "y1": 1.0
-          },
-          "kind": "image",
-          "source": "photo",
-          "optional": true
-        },
-        "logo": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.85,
-            "x1": 0.3,
-            "y1": 0.95
-          },
-          "kind": "logo"
-        }
-      },
-      "logo_anchor": {
-        "zone": "logo",
-        "variant": "mono_light",
-        "fit": "height",
-        "align": "left"
-      },
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.04,
-        "x1": 0.95,
-        "y1": 0.96
-      },
-      "max_total_chars": 80
-    },
-    {
-      "id": "ss-story-banner",
-      "name": "Story banner",
-      "canvas": "ig_post",
-      "block_anchor": "center",
-      "applies_to": {
-        "channels": [
-          "instagram",
-          "instagram_story",
-          "facebook",
-          "gbp"
-        ],
-        "needs_photo": true
-      },
-      "background": {
-        "kind": "solid",
-        "fill": "primary"
-      },
-      "zones": {
-        "headline": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.2,
-            "x1": 0.9,
-            "y1": 0.35
-          },
-          "kind": "text",
-          "source": "caption_hook",
-          "font_role": "h1",
-          "max_lines": 2,
-          "max_chars_per_line": 24,
-          "colour": "neutral_light",
-          "min_font_px": 32
-        },
-        "photo": {
-          "rect": {
-            "x0": 0.0,
-            "y0": 0.4,
-            "x1": 1.0,
-            "y1": 1.0
-          },
-          "kind": "image",
-          "source": "photo",
-          "optional": false
-        },
-        "logo": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.85,
-            "x1": 0.3,
-            "y1": 0.95
-          },
-          "kind": "logo"
-        }
-      },
-      "logo_anchor": {
-        "zone": "logo",
-        "variant": "mono_light",
-        "fit": "height",
-        "align": "left"
-      },
-      "safe_zone": {
-        "x0": 0.05,
-        "y0": 0.04,
-        "x1": 0.95,
-        "y1": 0.96
-      },
-      "max_total_chars": 80
-    }
-  ],
-  "selection": {
-    "default": "ss-photo-post",
-    "rules": [
-      {
-        "when": {
-          "pillar_in": [
-            "fitting",
-            "coaching",
-            "ss-fitting",
-            "ss-coaching"
-          ],
-          "has_product_item": false
-        },
-        "use": "ss-service-frame"
-      }
-    ]
+  "ig_story": {
+   "w": 1080,
+   "h": 1920,
+   "aspect": "9:16",
+   "channels": [
+    "instagram_story"
+   ],
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.16,
+    "x1": 0.95,
+    "y1": 0.84
+   }
+  },
+  "fb_post": {
+   "w": 1200,
+   "h": 630,
+   "aspect": "1.91:1",
+   "channels": [
+    "facebook"
+   ],
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.08,
+    "x1": 0.95,
+    "y1": 0.92
+   }
+  },
+  "gbp_post": {
+   "w": 1200,
+   "h": 900,
+   "aspect": "4:3",
+   "channels": [
+    "gbp"
+   ],
+   "safe_zone": {
+    "x0": 0.06,
+    "y0": 0.06,
+    "x1": 0.94,
+    "y1": 0.94
+   }
   }
+ },
+ "archetypes": [
+  {
+   "id": "ss-photo-post",
+   "name": "Photo post",
+   "canvas": "ig_post",
+   "block_anchor": "center",
+   "applies_to": {
+    "channels": [
+     "instagram",
+     "instagram_story",
+     "facebook",
+     "gbp"
+    ],
+    "needs_photo": true
+   },
+   "background": {
+    "kind": "solid",
+    "fill": "primary"
+   },
+   "zones": {
+    "headline": {
+     "rect": {
+      "x0": 0.1,
+      "y0": 0.2,
+      "x1": 0.9,
+      "y1": 0.35
+     },
+     "kind": "text",
+     "source": "caption_hook",
+     "font_role": "h1",
+     "max_lines": 2,
+     "max_chars_per_line": 24,
+     "colour": "neutral_light",
+     "min_font_px": 32
+    },
+    "photo": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.4,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "kind": "image",
+     "source": "photo",
+     "optional": false
+    },
+    "logo": {
+     "rect": {
+      "x0": 0.1,
+      "y0": 0.85,
+      "x1": 0.3,
+      "y1": 0.95
+     },
+     "kind": "logo"
+    }
+   },
+   "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "left"
+   },
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   },
+   "max_total_chars": 80
+  },
+  {
+   "id": "ss-service-frame",
+   "name": "Service frame",
+   "canvas": "ig_post",
+   "block_anchor": "center",
+   "applies_to": {
+    "channels": [
+     "instagram",
+     "instagram_story",
+     "facebook",
+     "gbp"
+    ],
+    "needs_photo": false
+   },
+   "background": {
+    "kind": "solid",
+    "fill": "primary"
+   },
+   "zones": {
+    "headline": {
+     "rect": {
+      "x0": 0.1,
+      "y0": 0.2,
+      "x1": 0.9,
+      "y1": 0.35
+     },
+     "kind": "text",
+     "source": "caption_hook",
+     "font_role": "h1",
+     "max_lines": 2,
+     "max_chars_per_line": 24,
+     "colour": "neutral_light",
+     "min_font_px": 32
+    },
+    "photo": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.4,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "kind": "image",
+     "source": "photo",
+     "optional": true
+    },
+    "logo": {
+     "rect": {
+      "x0": 0.1,
+      "y0": 0.85,
+      "x1": 0.3,
+      "y1": 0.95
+     },
+     "kind": "logo"
+    }
+   },
+   "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "left"
+   },
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   },
+   "max_total_chars": 80
+  },
+  {
+   "id": "ss-story-banner",
+   "name": "Story banner",
+   "canvas": "ig_post",
+   "block_anchor": "center",
+   "applies_to": {
+    "channels": [
+     "instagram",
+     "instagram_story",
+     "facebook",
+     "gbp"
+    ],
+    "needs_photo": true
+   },
+   "background": {
+    "kind": "solid",
+    "fill": "primary"
+   },
+   "zones": {
+    "headline": {
+     "rect": {
+      "x0": 0.1,
+      "y0": 0.2,
+      "x1": 0.9,
+      "y1": 0.35
+     },
+     "kind": "text",
+     "source": "caption_hook",
+     "font_role": "h1",
+     "max_lines": 2,
+     "max_chars_per_line": 24,
+     "colour": "neutral_light",
+     "min_font_px": 32
+    },
+    "photo": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.4,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "kind": "image",
+     "source": "photo",
+     "optional": false
+    },
+    "logo": {
+     "rect": {
+      "x0": 0.1,
+      "y0": 0.85,
+      "x1": 0.3,
+      "y1": 0.95
+     },
+     "kind": "logo"
+    }
+   },
+   "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "left"
+   },
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   },
+   "max_total_chars": 80
+  },
+  {
+   "id": "ss-did-you-know",
+   "name": "Did you know? \u2014 dimmed venue photo, thin kicker, huge outlined italic question",
+   "description": "Measured from Content Bank Services/cf1\u2013cf6 (1081\u00d71201). Dimmed full-bleed venue photo, 8px 50% white frame inset 35px, logo top-right, thin italic 'DID YOU KNOW?' kicker 33px above a 3\u20134 line Montserrat Black Italic question (cap 127px, pitch 146px, 85% width) with an offset outline echo. Accent rotates green/orange/blue/purple.",
+   "canvas": "ig_post",
+   "block_anchor": "center",
+   "applies_to": {
+    "channels": [
+     "instagram",
+     "instagram_story",
+     "facebook"
+    ],
+    "record_types": [
+     "moment",
+     "evergreen"
+    ],
+    "needs_photo": false
+   },
+   "channel_canvas": {
+    "facebook": "ig_post"
+   },
+   "template_pack": "templates/did-you-know",
+   "background": {
+    "kind": "photo_full_bleed",
+    "cover": true,
+    "library": "templates/did-you-know/photos",
+    "focus_y": 0.5,
+    "scrim": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.0,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "from_alpha": 0.62,
+     "to_alpha": 0.72
+    }
+   },
+   "zones": {
+    "frame": {
+     "rect": {
+      "x0": 0.0,
+      "y0": 0.0,
+      "x1": 1.0,
+      "y1": 1.0
+     },
+     "kind": "decorative",
+     "shape": "frame",
+     "inset_px": 35,
+     "stroke_px": 8,
+     "colour": "white",
+     "alpha": 0.5
+    },
+    "logo": {
+     "rect": {
+      "x0": 0.8028,
+      "y0": 0.0681,
+      "x1": 0.925,
+      "y1": 0.1111
+     },
+     "kind": "image",
+     "source": "asset",
+     "asset": "templates/did-you-know/assets/logo-white.png",
+     "fit": "aspect_fit",
+     "align": "right",
+     "valign": "top"
+    },
+    "headline": {
+     "rect": {
+      "x0": 0.0861,
+      "y0": 0.3415,
+      "x1": 0.94,
+      "y1": 0.786
+     },
+     "kind": "text",
+     "source": "caption_hook",
+     "font_role": "display",
+     "max_font_px": 181,
+     "min_font_px": 120,
+     "max_lines": 4,
+     "max_chars_per_line": 14,
+     "line_height": 0.8066,
+     "text_transform": "uppercase",
+     "text_origin_x": 93,
+     "align": "left",
+     "valign": "middle",
+     "colour_options": [
+      "ss_green",
+      "ss_orange",
+      "ss_blue",
+      "ss_purple"
+     ],
+     "h_scale": 0.85,
+     "echo": {
+      "dx_em": 0.065,
+      "dy_em": -0.006,
+      "stroke_em": 0.011,
+      "shadow_alpha": 0.55
+     },
+     "wrap": "balanced"
+    },
+    "kicker": {
+     "rect": {
+      "x0": 0.0852,
+      "y0": 0.2,
+      "x1": 0.75,
+      "y1": 0.26
+     },
+     "kind": "text",
+     "source": "static",
+     "text": "Did you know?",
+     "font_role": "h3",
+     "max_font_px": 63,
+     "min_font_px": 40,
+     "max_lines": 1,
+     "max_chars_per_line": 20,
+     "line_height": 1.0,
+     "text_transform": "uppercase",
+     "text_origin_x": 92,
+     "align": "left",
+     "colour": "white",
+     "h_scale": 0.9,
+     "attach_above": {
+      "zone": "headline",
+      "gap_px": 33
+     }
+    }
+   },
+   "canvas_overrides": {
+    "ig_story": {
+     "frame": {
+      "rect": {
+       "x0": 0.0,
+       "y0": 0.0,
+       "x1": 1.0,
+       "y1": 1.0
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 35,
+      "stroke_px": 8,
+      "colour": "white",
+      "alpha": 0.5
+     },
+     "logo": {
+      "rect": {
+       "x0": 0.8028,
+       "y0": 0.1651,
+       "x1": 0.925,
+       "y1": 0.1953
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/did-you-know/assets/logo-white.png",
+      "fit": "aspect_fit",
+      "align": "right",
+      "valign": "top"
+     },
+     "headline": {
+      "rect": {
+       "x0": 0.0861,
+       "y0": 0.3438,
+       "x1": 0.94,
+       "y1": 0.6563
+      },
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_font_px": 181,
+      "min_font_px": 120,
+      "max_lines": 4,
+      "max_chars_per_line": 14,
+      "line_height": 0.8066,
+      "text_transform": "uppercase",
+      "text_origin_x": 93,
+      "align": "left",
+      "valign": "middle",
+      "colour_options": [
+       "ss_green",
+       "ss_orange",
+       "ss_blue",
+       "ss_purple"
+      ],
+      "h_scale": 0.85,
+      "echo": {
+       "dx_em": 0.065,
+       "dy_em": -0.006,
+       "stroke_em": 0.011,
+       "shadow_alpha": 0.55
+      },
+      "wrap": "balanced"
+     },
+     "kicker": {
+      "rect": {
+       "x0": 0.0852,
+       "y0": 0.2,
+       "x1": 0.75,
+       "y1": 0.26
+      },
+      "kind": "text",
+      "source": "static",
+      "text": "Did you know?",
+      "font_role": "h3",
+      "max_font_px": 63,
+      "min_font_px": 40,
+      "max_lines": 1,
+      "max_chars_per_line": 20,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 92,
+      "align": "left",
+      "colour": "white",
+      "h_scale": 0.9,
+      "attach_above": {
+       "zone": "headline",
+       "gap_px": 33
+      }
+     }
+    }
+   },
+   "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "right"
+   },
+   "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+   },
+   "max_total_chars": 56
+  }
+ ],
+ "selection": {
+  "default": "ss-photo-post",
+  "rules": [
+   {
+    "when": {
+     "pillar_in": [
+      "fitting",
+      "coaching",
+      "ss-fitting",
+      "ss-coaching"
+     ],
+     "has_product_item": false
+    },
+    "use": "ss-service-frame"
+   },
+   {
+    "when": {
+     "post_type_in": [
+      "tip",
+      "did_you_know",
+      "myth"
+     ]
+    },
+    "use": "ss-did-you-know"
+   }
+  ]
+ }
 }

@@ -1,15 +1,35 @@
 {
   "schema": "https://campaign-os/brand-directory/typography/v1",
   "brand_id": "swing-shack",
-  "version": "1.0",
-  "updated": "2026-07-28T20:10:00Z",
+  "version": "2.0",
+  "updated": "2026-09-27T00:00:00Z",
   "primary": {
-    "family": "Inter",
-    "source": "Google Fonts (free, web-safe)",
-    "weights_available": [400, 500, 600, 700, 800],
-    "use_for": ["headlines", "body", "ui"]
+    "family": "Montserrat Italic",
+    "source": "Google Fonts OFL (vendored static cuts) — matched to Content Bank did-you-know posts (cf1–cf6)",
+    "weights_available": [100, 200, 800, 900],
+    "use_for": ["headlines", "kickers", "service posts"]
   },
-  "fallbacks": ["system-ui", "-apple-system", "Helvetica Neue", "Arial"],
+  "fallbacks": ["DejaVu Sans", "Helvetica Neue", "Arial"],
+  "files": {
+    "100i": "typography/fonts/Montserrat-ThinItalic.ttf",
+    "200i": "typography/fonts/Montserrat-ExtraLightItalic.ttf",
+    "800i": "typography/fonts/Montserrat-ExtraBoldItalic.ttf",
+    "900i": "typography/fonts/Montserrat-BlackItalic.ttf"
+  },
+  "roles": {
+    "display": {
+      "file": "typography/fonts/Montserrat-BlackItalic.ttf",
+      "weight": 900,
+      "style": "italic",
+      "size_px": 181
+    },
+    "h3": {
+      "file": "typography/fonts/Montserrat-ExtraLightItalic.ttf",
+      "weight": 200,
+      "style": "italic",
+      "size_px": 63
+    }
+  },
   "scale": [
     {"name": "display", "size_px": 84, "weight": 800, "use_for": ["hero banners"]},
     {"name": "h1", "size_px": 64, "weight": 800, "use_for": ["square post headline"]},
@@ -18,11 +38,5 @@
     {"name": "body", "size_px": 18, "weight": 400, "use_for": ["body copy", "caption"]},
     {"name": "caption", "size_px": 14, "weight": 500, "use_for": ["metadata", "footer"]}
   ],
-  "pairing_rules": {
-    "banner_headline": {"family": "Inter", "weight": 800, "size": 84},
-    "banner_subhead": {"family": "Inter", "weight": 500, "size": 28},
-    "post_headline": {"family": "Inter", "weight": 700, "size": 64},
-    "cta_pill": {"family": "Inter", "weight": 700, "size": 20}
-  },
-  "source": "best-guess — needs Drive validation once folders are wired in to confirm what Swing Shack actually uses"
+  "source": "roles measured 2026-09-27 from Content Bank Services/cf*.jpg; scale rows are the older best-guess (no files)"
 }

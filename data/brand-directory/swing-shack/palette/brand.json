@@ -35,6 +35,14 @@
       {"hex": "#1E293B", "name": "ink", "usage": "deep backgrounds"}
     ]
   },
+  "tokens": {
+    "ss_green": "#74CB46",
+    "ss_orange": "#E27123",
+    "ss_blue": "#64A3F0",
+    "ss_purple": "#8F4BFA",
+    "white": "#FFFFFF"
+  },
+  "tokens_source": "measured 2026-09-27 from Content Bank Services/cf1–cf6 headline fills",
   "contrast_checks": [
     {"pair": ["primary", "neutral_light"], "ratio_estimate": 5.1, "wcag": "AA pass for large text"},
     {"pair": ["accent", "neutral_dark"], "ratio_estimate": 6.8, "wcag": "AA pass"},

@@ -48,6 +48,8 @@ def _moment_context(brand_id: str, item_id: str) -> dict[str, Any]:
         "has_product_item": False,
         "pillar_in": [],
         "subject": "",
+        "post_type": "",
+        "template_id": "",
     }
     if not item_id.startswith("calendar_candidate:"):
         return ctx
@@ -63,6 +65,8 @@ def _moment_context(brand_id: str, item_id: str) -> dict[str, Any]:
         if pillar:
             ctx["pillar_in"] = [pillar]
         ctx["subject"] = str(record.get("subject") or record.get("topic") or "")
+        ctx["post_type"] = str(record.get("post_type") or "").strip().lower()
+        ctx["template_id"] = str(record.get("template_id") or record.get("archetype_id") or "").strip()
         products = record.get("product_ids") or record.get("products") or []
         ctx["has_product_item"] = bool(products)
         break
@@ -89,6 +93,10 @@ def _rule_matches(when: dict[str, Any], ctx: dict[str, Any]) -> bool:
         return False
     if "subject" in when and str(when.get("subject") or "") != str(ctx.get("subject") or ""):
         return False
+    post_types = when.get("post_type_in")
+    if isinstance(post_types, list) and post_types:
+        if str(ctx.get("post_type") or "") not in {str(p).strip().lower() for p in post_types}:
+            return False
     pillars = when.get("pillar_in")
     if isinstance(pillars, list) and pillars:
         have: set[str] = set()
@@ -104,6 +112,12 @@ def select_archetype(brand_id: str, item_id: str) -> dict[str, Any]:
     doc = load_archetypes_doc(brand_id)
     selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
     ctx = _moment_context(brand_id, item_id)
+    archetypes = doc.get("archetypes") or []
+    pinned = str(ctx.get("template_id") or "")
+    if pinned:
+        for row in archetypes:
+            if isinstance(row, dict) and str(row.get("id") or "") == pinned:
+                return row
     chosen = str(selection.get("default") or "")
     for rule in selection.get("rules") or []:
         if not isinstance(rule, dict):
@@ -111,7 +125,6 @@ def select_archetype(brand_id: str, item_id: str) -> dict[str, Any]:
         when = rule.get("when") if isinstance(rule.get("when"), dict) else {}
         if _rule_matches(when, ctx):
             chosen = str(rule.get("use") or chosen)
-    archetypes = doc.get("archetypes") or []
     for row in archetypes:
         if isinstance(row, dict) and str(row.get("id") or "") == chosen:
             return row

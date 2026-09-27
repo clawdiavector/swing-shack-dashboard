@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 import io
+import zlib
+from itertools import combinations
 from typing import Any
 
 from _lib import archetypes_v2 as archetypes
 from _lib.brand_overlay import (
     _brand_dir,
+    _candidate_brand_dirs,
     _find_color_palette,
     _find_fonts,
     _find_logo,
     _hex_to_rgba,
     _load_brand_font,
     _load_image,
+    _load_image_from_bytes,
 )
 
 try:
@@ -202,6 +206,29 @@ def _wrap_text(
     return lines
 
 
+def _wrap_balanced(
+    text: str,
+    body_font,
+    emph_font,
+    max_lines: int,
+    emphasis: set[str],
+    tracking_px: float,
+) -> list[str]:
+    """Use as many lines as allowed (one word minimum each), minimising the widest line."""
+    words = (text or "").strip().split()
+    if not words:
+        return []
+    n_lines = min(max_lines, len(words))
+    best: tuple[float, list[str]] | None = None
+    for cuts in combinations(range(1, len(words)), n_lines - 1):
+        bounds = (0, *cuts, len(words))
+        lines = [words[bounds[i]:bounds[i + 1]] for i in range(n_lines)]
+        widest = max(_line_width(ln, body_font, emph_font, emphasis, tracking_px) for ln in lines)
+        if best is None or widest < best[0]:
+            best = (widest, [" ".join(ln) for ln in lines])
+    return best[1] if best else []
+
+
 def _cap_height(font) -> int:
     bbox = font.getbbox("H")
     return max(1, bbox[3] - bbox[1])
@@ -229,7 +256,7 @@ def _fit_font_size(
     lh = float(zone.get("line_height") or 1.2)
     max_lines = int(zone.get("max_lines") or 1)
     max_chars = int(zone.get("max_chars_per_line") or 80)
-    nominal = _font_nominal_size(brand_id, role, zone_h)
+    nominal = int(zone.get("max_font_px") or _font_nominal_size(brand_id, role, zone_h))
     lo, hi = min_px, nominal
     best_size = min_px
     best_lines: list[str] = []
@@ -243,7 +270,10 @@ def _fit_font_size(
         emph = _load_brand_font(brand_id, emph_role, mid) if emphasis else None
         track = _tracking_px(zone, mid)
         try:
-            lines = _wrap_text(text, body, emph, zone_w, max_lines, max_chars, emphasis, track)
+            if str(zone.get("wrap") or "") == "balanced":
+                lines = _wrap_balanced(text, body, emph, max_lines, emphasis, track)
+            else:
+                lines = _wrap_text(text, body, emph, zone_w, max_lines, max_chars, emphasis, track)
         except ComposeError:
             hi = mid - 1
             continue
@@ -275,15 +305,18 @@ def _draw_tracked_run(
     font,
     fill,
     tracking_px: float,
+    stroke_width: int = 0,
+    stroke_fill=None,
 ) -> float:
     if not text:
         return x
+    stroke = {"stroke_width": stroke_width, "stroke_fill": stroke_fill} if stroke_width > 0 else {}
     if tracking_px <= 0:
-        draw.text((x, baseline), text, font=font, fill=fill, anchor="ls")
+        draw.text((x, baseline), text, font=font, fill=fill, anchor="ls", **stroke)
         return x + _run_length(text, font, 0.0)
     cx = x
     for i, ch in enumerate(text):
-        draw.text((cx, baseline), ch, font=font, fill=fill, anchor="ls")
+        draw.text((cx, baseline), ch, font=font, fill=fill, anchor="ls", **stroke)
         cx += font.getlength(ch) + (tracking_px if i < len(text) - 1 else 0.0)
     return cx
 
@@ -301,6 +334,8 @@ def _draw_line_mixed(
     align: str,
     zone_x0: int,
     zone_x1: int,
+    stroke_width: int = 0,
+    stroke_fill=None,
 ) -> None:
     words = line.split()
     line_w = _line_width(words, body_font, emph_font, emphasis, tracking_px)
@@ -312,9 +347,19 @@ def _draw_line_mixed(
         x = float(x0)
     for wi, word in enumerate(words):
         font = _word_font(word, body_font, emph_font, emphasis)
-        x = _draw_tracked_run(draw, x, baseline, word, font, fill, tracking_px)
+        x = _draw_tracked_run(draw, x, baseline, word, font, fill, tracking_px, stroke_width, stroke_fill)
         if wi < len(words) - 1:
             x = _draw_tracked_run(draw, x, baseline, " ", body_font, fill, 0.0)
+
+
+def _zone_colour(zone: dict[str, Any], brand_id: str, text: str, fields: dict[str, str]) -> tuple[int, int, int, int]:
+    options = zone.get("colour_options")
+    if isinstance(options, list) and options:
+        picked = str(fields.get("accent") or "").strip()
+        if picked not in options:
+            picked = str(options[zlib.crc32(text.upper().encode("utf-8")) % len(options)])
+        return _palette_colour(picked, brand_id)
+    return _palette_colour(str(zone.get("colour") or "white"), brand_id)
 
 
 def _draw_text_zone(
@@ -326,7 +371,11 @@ def _draw_text_zone(
     canvas_w: int,
     canvas_h: int,
     base_canvas_h: int = 1350,
-) -> None:
+    base=None,
+    fields: dict[str, str] | None = None,
+    anchor_bottom: int | None = None,
+) -> tuple[int, int]:
+    """Draw a text zone; returns the (top, bottom) pixel rows of the drawn block."""
     _require_raqm()
     rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
     x0, y0, x1, y1 = _rect_px(rect, canvas_w, canvas_h)
@@ -335,7 +384,10 @@ def _draw_text_zone(
     if base_canvas_h > 0 and canvas_h < base_canvas_h:
         min_px = max(10, int(min_px * canvas_h / base_canvas_h))
     text = _apply_text_transform(text, zone)
-    colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
+    colour = _zone_colour(zone, brand_id, text, fields or {})
+    h_scale = float(zone.get("h_scale") or 1.0)
+    echo = zone.get("echo") if isinstance(zone.get("echo"), dict) else None
+    layered = base is not None and (h_scale != 1.0 or echo is not None)
     zone_w = x1 - x0
     zone_h = y1 - y0
     origin_x = float(zone.get("text_origin_x") or x0)
@@ -344,6 +396,11 @@ def _draw_text_zone(
         wrap_w = max(zone_w, int(float(wrap_x1) * canvas_w) - int(origin_x))
     else:
         wrap_w = zone_w
+    if layered:
+        wrap_w = int(wrap_w / h_scale)
+        if echo is not None:
+            nominal = int(zone.get("max_font_px") or _font_nominal_size(brand_id, role, zone_h))
+            wrap_w -= int(abs(float(echo.get("dx_em") or 0.0)) * nominal)
     size, lines, body_font, emph_font = _fit_font_size(
         brand_id=brand_id,
         role=role,
@@ -359,26 +416,60 @@ def _draw_text_zone(
     cap = _cap_height(body_font)
     block_h = (len(lines) - 1) * pitch + cap
     y_base = y0
-    if valign == "center":
+    if anchor_bottom is not None:
+        y_base = anchor_bottom - block_h
+    elif valign in ("center", "middle"):
         y_base = y0 + (zone_h - block_h) // 2
+    elif valign == "bottom":
+        y_base = y1 - block_h
     tracking_px = _tracking_px(zone, size)
     emphasis = _emphasis_words(zone)
+    align = str(zone.get("align") or "left")
+    layer_w = int(canvas_w / min(1.0, h_scale)) + 1
+    layer = Image.new("RGBA", (layer_w, canvas_h), (0, 0, 0, 0)) if layered else None
+    target = ImageDraw.Draw(layer) if layer is not None else draw
     for i, line in enumerate(lines):
         baseline = y_base + cap + i * pitch
+        if echo is not None and layer is not None:
+            shadow_a = int(float(echo.get("shadow_alpha", 0.6)) * 255)
+            _draw_line_mixed(
+                target,
+                origin_x + float(echo.get("dx_em") or 0.0) * size,
+                baseline + float(echo.get("dy_em") or 0.0) * size,
+                line,
+                body_font,
+                emph_font,
+                emphasis,
+                (0, 0, 0, shadow_a),
+                tracking_px,
+                align,
+                x0,
+                x1,
+                stroke_width=max(1, round(float(echo.get("stroke_em") or 0.01) * size)),
+                stroke_fill=colour,
+            )
         _draw_line_mixed(
-            draw,
+            target,
             origin_x,
             baseline,
             line,
             body_font,
             emph_font,
             emphasis,
-            colour[:3],
+            colour if layer is not None else colour[:3],
             tracking_px,
-            str(zone.get("align") or "left"),
+            align,
             x0,
             x1,
         )
+    if layer is not None:
+        if h_scale != 1.0:
+            pivot = origin_x if align == "left" else (x0 + x1) / 2
+            scaled = layer.resize((max(1, int(layer_w * h_scale)), canvas_h), Image.LANCZOS)
+            layer = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+            layer.paste(scaled, (int(round(pivot - pivot * h_scale)), 0))
+        base.paste(layer, (0, 0), layer.crop((0, 0, canvas_w, canvas_h)))
+    return int(y_base), int(y_base + block_h)
 
 
 def _paste_photo(base, photo_bytes: bytes | None, rect: dict[str, float]) -> None:
@@ -480,6 +571,70 @@ def _background(base, archetype: dict[str, Any], brand_id: str) -> None:
         draw.rectangle([0, 0, w, h], fill=fill[:3])
 
 
+_PHOTO_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp")
+
+
+def _library_photo(brand_id: str, rel_dir: str, seed: str):
+    rel = rel_dir.strip().strip("/")
+    for d in _candidate_brand_dirs(brand_id):
+        folder = d / rel
+        if not folder.is_dir():
+            continue
+        files = sorted(p for p in folder.iterdir() if p.suffix.lower() in _PHOTO_SUFFIXES)
+        if files:
+            return _load_image(files[zlib.crc32(seed.encode("utf-8")) % len(files)])
+    return None
+
+
+def _photo_cover_background(base, archetype: dict[str, Any], brand_id: str, photo_bytes: bytes | None, seed: str) -> None:
+    """Full-bleed photo, centre-cropped to cover the canvas, then the scrim darkening."""
+    bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
+    photo = _load_image_from_bytes(photo_bytes) if photo_bytes else None
+    library = bg.get("library")
+    if photo is None and isinstance(library, str) and library.strip():
+        photo = _library_photo(brand_id, library, seed)
+    if photo is None:
+        raise ComposeError("missing background photo")
+    w, h = base.size
+    scale = max(w / photo.width, h / photo.height)
+    pw, ph = max(w, round(photo.width * scale)), max(h, round(photo.height * scale))
+    photo = photo.convert("RGB").resize((pw, ph), Image.LANCZOS)
+    focus_y = float(bg.get("focus_y", 0.5))
+    left = (pw - w) // 2
+    top = int(round((ph - h) * min(1.0, max(0.0, focus_y))))
+    base.paste(photo.crop((left, top, left + w, top + h)), (0, 0))
+    scrim = bg.get("scrim") if isinstance(bg.get("scrim"), dict) else None
+    if scrim is None:
+        return
+    x0, y0, x1, y1 = _rect_px(scrim.get("rect") or {"x0": 0, "y0": 0, "x1": 1, "y1": 1}, w, h)
+    a0 = float(scrim.get("from_alpha", 0.6))
+    a1 = float(scrim.get("to_alpha", a0))
+    shade = Image.new("L", (1, max(1, y1 - y0)))
+    for y in range(shade.height):
+        t = y / max(1, shade.height - 1)
+        shade.putpixel((0, y), int(255 * (a0 * (1 - t) + a1 * t)))
+    mask = shade.resize((x1 - x0, y1 - y0))
+    base.paste((0, 0, 0), (x0, y0, x1, y1), mask)
+
+
+def _draw_frame(base, zone: dict[str, Any], brand_id: str) -> None:
+    w, h = base.size
+    inset = int(zone.get("inset_px") or 0)
+    stroke = int(zone.get("stroke_px") or 4)
+    colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
+    alpha = int(float(zone.get("alpha", 1.0)) * 255)
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).rectangle(
+        [inset, inset, w - 1 - inset, h - 1 - inset], outline=colour[:3] + (alpha,), width=stroke
+    )
+    base.paste(layer, (0, 0), layer)
+
+
+def _uses_photo_cover(archetype: dict[str, Any]) -> bool:
+    bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
+    return str(bg.get("kind") or "") == "photo_full_bleed" and bool(bg.get("cover"))
+
+
 def _content_for_source(source: str, fields: dict[str, str], zone: dict[str, Any]) -> str:
     if source == "static":
         return str(zone.get("text") or "")
@@ -510,14 +665,24 @@ def compose_to_canvas(
     zones = _zones_for_canvas(archetype, canvas_id, base_canvas_id, base_h, h)
     base = Image.new("RGB", (w, h), (7, 60, 82))
     bg_kind = str((archetype.get("background") or {}).get("kind") or "")
-    if bg_kind != "photo_full_bleed" or not photo_bytes:
+    photo_cover = _uses_photo_cover(archetype)
+    if photo_cover:
+        seed = str(fields.get("photo_seed") or fields.get("caption_hook") or "")
+        _photo_cover_background(base, archetype, brand_id, photo_bytes, seed)
+    elif bg_kind != "photo_full_bleed" or not photo_bytes:
         _background(base, archetype, brand_id)
     draw = ImageDraw.Draw(base)
-    for zid, zone in zones.items():
-        if not isinstance(zone, dict):
-            continue
+    text_blocks: dict[str, tuple[int, int]] = {}
+    ordered = sorted(
+        ((zid, z) for zid, z in zones.items() if isinstance(z, dict)),
+        key=lambda item: 1 if isinstance(item[1].get("attach_above"), dict) else 0,
+    )
+    for zid, zone in ordered:
         kind = str(zone.get("kind") or "")
-        if kind == "band":
+        if kind == "decorative" and str(zone.get("shape") or "") == "frame":
+            _draw_frame(base, zone, brand_id)
+            draw = ImageDraw.Draw(base)
+        elif kind == "band":
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
             x0, y0, x1, y1 = _rect_px(rect, w, h)
             fill = _palette_colour(str(zone.get("fill") or "teal"), brand_id)
@@ -525,6 +690,8 @@ def compose_to_canvas(
         elif kind == "image":
             source = str(zone.get("source") or "")
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
+            if source == "photo" and photo_cover:
+                continue
             if source == "photo":
                 if photo_bytes:
                     _paste_photo(base, photo_bytes, rect)
@@ -554,7 +721,14 @@ def compose_to_canvas(
                 if zone.get("optional"):
                     continue
                 raise ComposeError("missing text")
-            _draw_text_zone(
+            anchor_bottom = None
+            attach = zone.get("attach_above") if isinstance(zone.get("attach_above"), dict) else None
+            if attach is not None:
+                above = text_blocks.get(str(attach.get("zone") or ""))
+                if above is None:
+                    raise ComposeError(f"zone {zid} attaches to a missing text zone")
+                anchor_bottom = above[0] - int(attach.get("gap_px") or 0)
+            text_blocks[zid] = _draw_text_zone(
                 draw,
                 zone=zone,
                 text=text,
@@ -562,7 +736,11 @@ def compose_to_canvas(
                 canvas_w=w,
                 canvas_h=h,
                 base_canvas_h=base_h,
+                base=base,
+                fields=fields,
+                anchor_bottom=anchor_bottom,
             )
+            draw = ImageDraw.Draw(base)
     buf = io.BytesIO()
     base.save(buf, format="PNG", compress_level=6)
     return buf.getvalue()
@@ -580,11 +758,19 @@ def compose_post_for_channels(
     fields = fields or content or {}
     doc = archetypes.load_archetypes_doc(brand_id)
     out: dict[str, bytes] = {}
+    allowed = (archetype.get("applies_to") or {}).get("channels")
+    channel_canvas = archetype.get("channel_canvas") if isinstance(archetype.get("channel_canvas"), dict) else {}
+    canvases = doc.get("canvases") if isinstance(doc.get("canvases"), dict) else {}
     for channel in channels:
-        mapped = archetypes.canvas_for_channel(doc, channel)
-        if not mapped:
+        if isinstance(allowed, list) and allowed and channel not in allowed:
             continue
-        canvas_id, _spec = mapped
+        if channel in channel_canvas and channel_canvas[channel] in canvases:
+            canvas_id = str(channel_canvas[channel])
+        else:
+            mapped = archetypes.canvas_for_channel(doc, channel)
+            if not mapped:
+                continue
+            canvas_id, _spec = mapped
         out[channel] = compose_to_canvas(
             brand_id=brand_id,
             archetype=archetype,
