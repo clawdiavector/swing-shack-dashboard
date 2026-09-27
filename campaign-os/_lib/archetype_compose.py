@@ -410,14 +410,13 @@ def _paste_logo(base, brand_id: str, rect: dict[str, float]) -> None:
 
 
 def _paste_brand_asset(base, brand_id: str, zone: dict[str, Any]) -> None:
+    from _lib.brand_overlay import _resolve_brand_relative
+
     rel = zone.get("asset")
     if not isinstance(rel, str) or not rel.strip():
         raise ComposeError("missing zone asset")
-    base_dir = _brand_dir(brand_id)
-    if not base_dir:
-        raise ComposeError("missing brand directory")
-    path = base_dir / rel
-    if not path.exists():
+    path = _resolve_brand_relative(brand_id, rel)
+    if path is None:
         raise ComposeError(f"missing asset {rel}")
     img = _load_image(path)
     if img is None:
