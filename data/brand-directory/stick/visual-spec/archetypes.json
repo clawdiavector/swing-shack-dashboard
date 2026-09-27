@@ -646,6 +646,141 @@
         "y1": 0.96
       },
       "max_total_chars": 30
+    },
+    {
+      "id": "stick-service-start",
+      "name": "Service start card — venue photo, navy service title, @ stick lockup, mint bar",
+      "description": "Bright venue photo full bleed. Partial white frame (6px). Large navy uppercase service word, centred @ stick lockup, mint #24FFAF accent bar (~65% width). Measured from coachingstart copy.jpg / fittingstart copy.jpg; story refs recenter via block_anchor. needs_photo true.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/service-start",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/service-start/photos",
+        "focus_y": 0.45,
+        "scrim": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "from_alpha": 0.0,
+          "to_alpha": 0.18
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 45,
+          "stroke_px": 6,
+          "colour": "white",
+          "alpha": 0.95
+        },
+        "service_word": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.36,
+            "x1": 0.92,
+            "y1": 0.48
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 2,
+          "max_chars_per_line": 14,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "bottom",
+          "colour": "navy_deep",
+          "min_font_px": 48,
+          "wrap": "balanced"
+        },
+        "lockup": {
+          "rect": {
+            "x0": 0.12,
+            "y0": 0.5,
+            "x1": 0.88,
+            "y1": 0.64
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 12,
+          "line_height": 1.1,
+          "text_transform": "none",
+          "align": "center",
+          "valign": "middle",
+          "colour": "navy_deep",
+          "min_font_px": 40
+        },
+        "mint_bar": {
+          "rect": {
+            "x0": 0.051,
+            "y0": 0.659,
+            "x1": 0.652,
+            "y1": 0.680
+          },
+          "kind": "band",
+          "fill": "mint"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 0.001,
+            "y1": 0.001
+          },
+          "kind": "logo",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 40,
+      "measured_from": [
+        "templates/service-start/references/ref-01.jpg",
+        "templates/service-start/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1300
+      }
     }
   ],
   "selection": {
@@ -676,6 +811,14 @@
           "subject": "venue"
         },
         "use": "stick-venue-post"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "service_start"
+          ]
+        },
+        "use": "stick-service-start"
       }
     ]
   }
