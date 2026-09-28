@@ -207,8 +207,18 @@ def classify_record(rec: Dict[str, Any]) -> str:
     # are template/test pollution, NOT Main Calendar records. They
     # belong nowhere in production Calendar data.
     if cb in ("foreman-generative-replace", "foreman-template-test",
-              "foreman-template-demo", "foreman-template-demo-v2"):
+              "foreman-template-demo", "foreman-template-demo-v2",
+              "foreman-service-hero", "foreman-gen-unblock"):
         return "TEMPLATE_DEMO"
+
+    # V2.8 §6 — Stick has records with empty created_by +
+    # source_origin='deterministic_calendar' + empty transition_reason.
+    # These are deterministic dates (holidays, school terms) that
+    # the holiday_inject / term_inject pipelines should have tagged
+    # with created_by='holiday_inject' but didn't. The presence of
+    # 'deterministic_calendar' is the marker.
+    if so == "deterministic_calendar" and not cb:
+        return "DETERMINISTIC_HOLIDAY"
 
     # V2.7 §7 — cos-reactive-watch is a discovery monitor. The records
     # it produces are intelligence, NOT Main Calendar records. They
@@ -235,6 +245,18 @@ def classify_record(rec: Dict[str, Any]) -> str:
         "canonical status still candidate; lodge",
     }
     if tr_lower in AUTOMATION_LAUNDERED_REASONS:
+        return "REQUIRES_REAPPROVAL"
+
+    # V2.8 §6 — Stick L4/L5 integration test transition_reasons
+    # (L4 approve, L5 integration test approve, L5 closed-loop
+    # smoke YYYY-MM-DD) are automation-laundered approvals on
+    # the smoke-test integration runs. NOT human reapprovals.
+    L4_L5_AUTOMATION = {
+        "l4 approve",
+        "l5 integration test approve",
+        "l5 closed-loop smoke 2026-09-2",  # partial — see lower code
+    }
+    if tr_lower.startswith("l4 ") or tr_lower.startswith("l5 ") or tr_lower in L4_L5_AUTOMATION:
         return "REQUIRES_REAPPROVAL"
 
     # V2.7 §6 — foreman-gen-* (variants) are template/test pollution.
