@@ -48,6 +48,37 @@ function PaletteSwatches({
   )
 }
 
+function CoverageStatusBadge({ status }: { status?: TemplateGalleryTemplate['status'] }) {
+  if (!status) return null
+  const tone =
+    status === 'ready' ? 'green' : status === 'partial' ? 'gold' : ('mute' as const)
+  const label = status === 'ready' ? 'Ready' : status === 'partial' ? 'Partial' : 'Missing'
+  return <Badge tone={tone}>{label}</Badge>
+}
+
+function CoverageSummaryBar({
+  ready,
+  partial,
+  missing,
+}: {
+  ready: number
+  partial: number
+  missing: number
+}) {
+  return (
+    <div className="glass flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 px-5 py-3 text-sm">
+      <span className="font-semibold text-tx">Coverage</span>
+      <span className="text-tx2">
+        <span className="font-semibold text-green">{ready}</span> ready
+        <span className="mx-2 text-tx3">·</span>
+        <span className="font-semibold text-yel">{partial}</span> partial
+        <span className="mx-2 text-tx3">·</span>
+        <span className="font-semibold text-tx3">{missing}</span> missing
+      </span>
+    </div>
+  )
+}
+
 function TemplateCard({
   template,
   onSelect,
@@ -74,7 +105,10 @@ function TemplateCard({
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
-        <p className="font-semibold text-tx">{template.label}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold text-tx">{template.label}</p>
+          <CoverageStatusBadge status={template.status} />
+        </div>
         <div className="flex flex-wrap gap-1">
           {template.canvas ? <Badge tone="mute">{template.canvas}</Badge> : null}
           <Badge tone={template.needs_photo ? 'gold' : 'green'}>
@@ -104,6 +138,8 @@ function DetailDrawer({
     setSlide(0)
   }, [template.template_id])
 
+  const bodyText = template.description || template.notes || ''
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
@@ -114,8 +150,14 @@ function DetailDrawer({
       <div className="glass max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/15 p-5 shadow-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-semibold">{template.label}</h2>
-            <p className="mt-1 text-sm text-tx3">{template.name}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-xl font-semibold">{template.label}</h2>
+              <CoverageStatusBadge status={template.status} />
+            </div>
+            <p className="mt-1 text-sm text-tx3">{template.name || template.archetype_id}</p>
+            {template.archetype_id ? (
+              <p className="mt-1 font-mono text-xs text-tx3">{template.archetype_id}</p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -153,8 +195,15 @@ function DetailDrawer({
           </div>
         ) : null}
 
-        {template.description ? (
-          <p className="mb-4 text-sm text-tx2">{template.description}</p>
+        {bodyText ? <p className="mb-4 text-sm text-tx2">{bodyText}</p> : null}
+
+        {template.content_bank_hint ? (
+          <div className="mb-4 rounded-xl border border-white/10 bg-bg2/50 px-3 py-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-tx3">
+              Content bank
+            </h3>
+            <p className="mt-1 text-sm text-tx2">{template.content_bank_hint}</p>
+          </div>
         ) : null}
 
         {template.sections?.length ? (
@@ -189,12 +238,64 @@ function DetailDrawer({
   )
 }
 
+function RoadmapTable({
+  rows,
+  onSelect,
+}: {
+  rows: TemplateGalleryTemplate[]
+  onSelect: (t: TemplateGalleryTemplate) => void
+}) {
+  if (!rows.length) {
+    return <p className="text-sm text-tx3">No roadmap rows for this brand.</p>
+  }
+  return (
+    <div className="overflow-x-auto rounded-2xl border border-white/10">
+      <table className="w-full min-w-[32rem] text-left text-sm">
+        <thead className="border-b border-white/10 bg-bg2/60 text-xs uppercase text-tx3">
+          <tr>
+            <th className="px-4 py-3 font-semibold">Family</th>
+            <th className="px-4 py-3 font-semibold">Archetype</th>
+            <th className="px-4 py-3 font-semibold">Section</th>
+            <th className="px-4 py-3 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.archetype_id || row.template_id} className="border-b border-white/5">
+              <td className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => onSelect(row)}
+                  className="font-medium text-ac hover:underline text-left"
+                >
+                  {row.label}
+                  {row.wave === 2 ? (
+                    <span className="ml-2 text-xs text-tx3">wave 2</span>
+                  ) : null}
+                </button>
+              </td>
+              <td className="px-4 py-3 font-mono text-xs text-tx3">
+                {row.archetype_id || row.template_id}
+              </td>
+              <td className="px-4 py-3 text-tx2">{row.section}</td>
+              <td className="px-4 py-3">
+                <CoverageStatusBadge status={row.status} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export function Templates() {
   const { brandId: rawBrandId, brandLabel } = useBrand()
   const brandId = rawBrandId || 'swing-shack'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [bibleOpen, setBibleOpen] = useState(true)
+  const [view, setView] = useState<'catalog' | 'roadmap'>('catalog')
   const [selected, setSelected] = useState<TemplateGalleryTemplate | null>(null)
   const [gallery, setGallery] = useState<Awaited<ReturnType<typeof fetchTemplateGallery>> | null>(
     null,
@@ -219,7 +320,57 @@ export function Templates() {
   }, [load])
 
   const bible = gallery?.brand_bible
-  const sections = gallery?.sections || []
+  const coverage = gallery?.coverage
+  const summary = coverage?.summary
+
+  const statusById = useMemo(() => {
+    const map = new Map<string, TemplateGalleryTemplate['status']>()
+    for (const row of coverage?.rows || []) {
+      const id = row.archetype_id || row.template_id
+      if (id) map.set(id, row.status)
+    }
+    return map
+  }, [coverage?.rows])
+
+  const catalogSections = useMemo(() => {
+    const templates = (gallery?.templates || []).map((t) => ({
+      ...t,
+      status: statusById.get(t.template_id) ?? ('ready' as const),
+    }))
+    const allowed = templates.filter(
+      (t) => t.status === 'ready' || t.status === 'partial' || !t.status,
+    )
+    const bySec: Record<string, TemplateGalleryTemplate[]> = {}
+    for (const t of allowed) {
+      const sec = t.section || 'Other'
+      bySec[sec] = bySec[sec] || []
+      bySec[sec].push(t)
+    }
+    const order = [
+      'Services',
+      'Promo',
+      'Brand',
+      'Shop',
+      'Coaching',
+      'Location',
+      'Education',
+      'Other',
+    ]
+    const out: { section: string; templates: TemplateGalleryTemplate[] }[] = []
+    const seen = new Set<string>()
+    for (const sec of order) {
+      if (bySec[sec]?.length) {
+        out.push({ section: sec, templates: bySec[sec] })
+        seen.add(sec)
+      }
+    }
+    for (const [sec, rows] of Object.entries(bySec).sort(([a], [b]) => a.localeCompare(b))) {
+      if (!seen.has(sec)) out.push({ section: sec, templates: rows })
+    }
+    return out
+  }, [gallery?.templates, statusById])
+
+  const roadmapRows = coverage?.rows || []
 
   return (
     <div className="space-y-6">
@@ -239,6 +390,14 @@ export function Templates() {
         <p className="rounded-2xl border border-red/30 bg-red/5 px-4 py-3 text-sm text-red">
           {error}
         </p>
+      ) : null}
+
+      {!loading && summary ? (
+        <CoverageSummaryBar
+          ready={summary.ready}
+          partial={summary.partial}
+          missing={summary.missing}
+        />
       ) : null}
 
       {!loading && bible ? (
@@ -283,17 +442,56 @@ export function Templates() {
         </section>
       ) : null}
 
-      {!loading &&
-        sections.map((sec) => (
-          <section key={sec.section}>
-            <h2 className="mb-3 font-display text-xl font-semibold">{sec.section}</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {sec.templates.map((t) => (
-                <TemplateCard key={t.template_id} template={t} onSelect={setSelected} />
-              ))}
-            </div>
-          </section>
-        ))}
+      {!loading ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setView('catalog')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              view === 'catalog'
+                ? 'bg-ac text-bg'
+                : 'border border-white/15 text-tx2 hover:bg-white/5'
+            }`}
+          >
+            Catalog
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('roadmap')}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+              view === 'roadmap'
+                ? 'bg-ac text-bg'
+                : 'border border-white/15 text-tx2 hover:bg-white/5'
+            }`}
+          >
+            Full roadmap
+          </button>
+        </div>
+      ) : null}
+
+      {!loading && view === 'catalog'
+        ? catalogSections.map((sec) => (
+            <section key={sec.section}>
+              <h2 className="mb-3 font-display text-xl font-semibold">{sec.section}</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {sec.templates.map((t) => (
+                  <TemplateCard key={t.template_id} template={t} onSelect={setSelected} />
+                ))}
+              </div>
+            </section>
+          ))
+        : null}
+
+      {!loading && view === 'roadmap' ? (
+        <section>
+          <h2 className="mb-3 font-display text-xl font-semibold">Service template roadmap</h2>
+          <p className="mb-4 text-sm text-tx3">
+            7×7 Content Bank families plus wave-2 extras. Click any row for detail — including
+            gaps not yet on disk.
+          </p>
+          <RoadmapTable rows={roadmapRows} onSelect={setSelected} />
+        </section>
+      ) : null}
 
       {selected ? <DetailDrawer template={selected} onClose={() => setSelected(null)} /> : null}
     </div>
