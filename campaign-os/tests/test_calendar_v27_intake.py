@@ -173,6 +173,10 @@ class V26ClassifierV27RulesTests(unittest.TestCase):
             # REQUIRES_REAPPROVAL (not KEEP). The dedup rule keeps
             # only the variant with a human-action transition_reason.
             ("REQUIRES_REAPPROVAL", {"created_by": "kyle-desk"}),
+            # V2.8 §6 — Stick/Bag-Drop unknown-provenance records
+            # (empty cb + empty so + empty tr) → REQUIRES_REAPPROVAL.
+            ("REQUIRES_REAPPROVAL", {"event_key": "stick:nedbank-golf-challenge:2026", "created_by": "", "source_origin": "", "status": "", "transition_reason": ""}),
+            ("REQUIRES_REAPPROVAL", {"event_key": "stick:presidents-cup:2026", "created_by": "", "source_origin": "", "status": "candidate", "transition_reason": ""}),
         ]
         for expected_category, record in corpus_categories:
             actual = v26.classify_record(record)

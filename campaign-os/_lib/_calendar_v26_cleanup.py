@@ -255,6 +255,18 @@ def classify_record(rec: Dict[str, Any]) -> str:
         if status == "approved":
             return "REQUIRES_REAPPROVAL"
 
+    # V2.8 §6 — Stick and Bag-Drop production stores contain
+    # records with empty created_by + empty source_origin + empty
+    # status. These have no human approval provenance and no
+    # automation creator either. They are unknown-provenance
+    # records. Route to REQUIRES_REAPPROVAL so an actual human
+    # must re-confirm before they enter the Main Calendar.
+    if not cb and not so and not tr:
+        if status in ("candidate", "watchlist", ""):
+            return "REQUIRES_REAPPROVAL"
+        if status == "approved":
+            return "REQUIRES_REAPPROVAL"
+
     # Fall-through — anything not classified is flagged for human review
     return "UNCLASSIFIED"
 

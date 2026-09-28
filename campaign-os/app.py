@@ -3592,12 +3592,31 @@ def calendar_candidates_post():
         # never fires for these writers because we don't call
         # add_candidate at all.
         if _v27.is_automation_writer(record):
-            intake_record = _v27.write_intake_record(brand_id, record)
+            # V2.8 §3/§4 — scout / heidi / reactive-watch are
+            # intelligence writers. They go to the intake store.
+            if record.get("created_by") in ("hermes-scout", "heidi-ingest", "cos-reactive-watch") or \
+               record.get("source_type") in ("scout", "reactive-watch"):
+                intake_record = _v27.write_intake_record(brand_id, record)
+                return jsonify({
+                    "ok": True,
+                    "store": "intake",
+                    "record": intake_record,
+                }), 201
+            # V2.8 §5 — template / demo / foreman-generative-replace
+            # remain BLOCKED. They cannot go to the intake store
+            # either (that would mix real intelligence with test
+            # previews). Use 422 — a deliberate client/policy
+            # response — not 500.
             return jsonify({
-                "ok": True,
-                "store": "intake",
-                "record": intake_record,
-            }), 201
+                "ok": False,
+                "error": f"V2.8 write-gate: template/demo writer "
+                         f"created_by={record.get('created_by')!r} "
+                         f"source_type={record.get('source_type')!r} "
+                         "cannot write to the operator/Main Calendar "
+                         "store. Keep test/template data in isolated "
+                         "storage; this endpoint is not a fixture store.",
+                "policy_block": True,
+            }), 422
 
         # Otherwise (human, qualified, etc.) — operator-store write.
         persisted = add_candidate(brand_id, record, initial_status=status)
@@ -3981,13 +4000,28 @@ def calendar_v2_upsert():
     # V2.8 — automation writers go to intake, not operator.
     from _lib import _calendar_v27_intake as _v27_upsert
     if _v27_upsert.is_automation_writer(record):
-        intake_record = _v27_upsert.write_intake_record(brand_id, record)
+        # V2.8 §3/§4 — scout / heidi / reactive-watch are
+        # intelligence writers. They go to the intake store.
+        if record.get("created_by") in ("hermes-scout", "heidi-ingest", "cos-reactive-watch") or \
+           record.get("source_type") in ("scout", "reactive-watch"):
+            intake_record = _v27_upsert.write_intake_record(brand_id, record)
+            return jsonify({
+                "ok": True,
+                "store": "intake",
+                "action": "intake_recorded",
+                "record": intake_record,
+            }), 201
+        # V2.8 §5 — template / demo / foreman-generative-replace
+        # remain BLOCKED. Return 422 — not 500.
         return jsonify({
-            "ok": True,
-            "store": "intake",
-            "action": "intake_recorded",
-            "record": intake_record,
-        }), 201
+            "ok": False,
+            "error": f"V2.8 write-gate: template/demo writer "
+                     f"created_by={record.get('created_by')!r} "
+                     f"source_type={record.get('source_type')!r} "
+                     "cannot write to the operator/Main Calendar store. "
+                     "Keep test/template data in isolated storage.",
+            "policy_block": True,
+        }), 422
     try:
         result = upsert_event(brand_id, record)
         return jsonify({
