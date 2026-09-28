@@ -44377,6 +44377,25 @@ def planning_timeline(brand_id):
                 ek = record.get("event_key")
                 if not ek:
                     continue
+                # V2.6 — write-gate defence-in-depth.
+                #
+                # The operator-store is the human-approved Main Calendar
+                # store. Records with status != "approved" are NOT on the
+                # Main Calendar — they belong to candidates or watchlist.
+                # This filter guarantees that even if a future scout /
+                # template / bulk-inject path sneaks a record with
+                # status=candidate or status=watchlist into the operator
+                # store, the timeline merge will not surface it.
+                #
+                # The single allowed status for the Main Calendar is
+                # "approved". Records with no status field (legacy V2.3
+                # data, no human decision) are also excluded.
+                record_status = record.get("status")
+                if record_status != "approved":
+                    # Skip — this record is intelligence, not a Main
+                    # Calendar event. It surfaces via the candidates /
+                    # watchlist endpoints.
+                    continue
                 try:
                     r_start = _dt.date.fromisoformat(record.get("event_start") or "")
                     r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
@@ -45234,6 +45253,230 @@ def planning_revert_test_approval(brand_id):
         )
         return jsonify(result), 200
     return jsonify({"ok": False, "error": "must supply event_key or event_keys or since_iso"}), 400
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Calendar V2.6 — production store cleanup admin endpoints
+# ─────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/_internal/backup-calendar", methods=["POST"])
+def planning_backup_calendar(brand_id):
+    """POST /api/planning/<brand>/_internal/backup-calendar
+
+    V2.6 — write a timestamped, sha256-verified copy of the
+    marketing-calendar jsonl to <DATA_DIR>/calendar-audit-backups/.
+
+    Returns: {ok, brand_id, source, backup, backup_lines, sha256, ts}
+
+    This MUST be called before /dry-run-cleanup and /execute-cleanup.
+    The cleanup endpoint will refuse to run unless a backup exists for
+    the current dry-run signature.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_backup
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    try:
+        result = _v26_backup.backup_calendar(brand_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/dry-run-cleanup", methods=["GET"])
+def planning_dry_run_cleanup(brand_id):
+    """GET /api/planning/<brand>/_internal/dry-run-cleanup
+
+    V2.6 — read the current marketing-calendar jsonl, classify every
+    record, and return the planned cleanup action. NO writes.
+
+    The plan_signature is required as a confirm guard on the
+    /execute-cleanup endpoint. Re-run this endpoint before /execute
+    to get a fresh signature; the cleanup will refuse to run if the
+    state has changed since the dry-run was reviewed.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_dry
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    try:
+        result = _v26_dry.dry_run_cleanup(brand_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/execute-cleanup", methods=["POST"])
+def planning_execute_cleanup(brand_id):
+    """POST /api/planning/<brand>/_internal/execute-cleanup
+
+    V2.6 — execute the production store cleanup. Body:
+      {
+        "plan_signature": "<sha256>",
+        "confirm": true
+      }
+
+    Refuses to run if confirm != true or plan_signature mismatches the
+    current dry-run.
+
+    Effects per category:
+      TEST_ACCEPTANCE_ARTIFACT  → remove_from_operator_store
+      TEMPLATE_DEMO             → remove_from_operator_store
+      DETERMINISTIC_HOLIDAY     → remove_from_operator_store
+      SCOUT_CANDIDATE           → move_to_candidates
+      SCOUT_WATCHLIST           → move_to_watchlist
+      SCOUT_MASS_PROMOTED_CEO_DEMO → move_to_candidates_with_legacy_note
+      LEGACY_UNVERIFIED_APPROVAL → move_to_candidates_requires_reapproval
+      KEEP                      → no change
+
+    Every action appends an immutable audit row to the calendar-audit
+    jsonl. Original audit history is NEVER mutated.
+
+    Returns: {ok, brand_id, backup, actions, failures, audit_rows_written,
+              operator_store_lines_before, operator_store_lines_after,
+              candidates_mirror_path, watchlist_path}
+    """
+    from _lib import _calendar_v26_cleanup as _v26_exec
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    body = request.get_json(silent=True) or {}
+    plan_signature = body.get("plan_signature")
+    if not plan_signature or not isinstance(plan_signature, str):
+        return jsonify({"ok": False, "error": "plan_signature required"}), 400
+    confirm = body.get("confirm") is True
+    actor = _resolve_v23_actor()
+    # Tag the actor with the migration_id for traceability
+    migration_id = f"v26-cleanup-{brand_id}-{int(__import__('time').time())}"
+    actor = dict(actor)
+    actor["migration_id"] = migration_id
+    actor["migration_source"] = "calendar_v26_production_cleanup"
+    try:
+        result, code = _v26_exec.execute_cleanup(
+            brand_id=brand_id,
+            plan_signature=plan_signature,
+            actor=actor,
+            confirm=confirm,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), code
+
+
+@app.route("/api/planning/<brand_id>/_internal/cleanup-status", methods=["GET"])
+def planning_cleanup_status(brand_id):
+    """GET /api/planning/<brand>/_internal/cleanup-status
+
+    V2.6 — post-cleanup state. Independent of dry-run. Used to verify
+    the operator store now contains only genuine records.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_status
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    try:
+        result = _v26_status.cleanup_status(brand_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
+# ─────────────────────────────────────────────────────────────────────
+# V2.6 — write-gate defence: marketing-calendar.append-guard
+# ─────────────────────────────────────────────────────────────────────
+#
+# Direct writes to <DATA_DIR>/intelligence/marketing-calendar/<brand>.jsonl
+# must go through the canonical approval path. Scout / template / bulk
+# inject / migration tools may NOT set status="approved" by themselves
+# — that requires an authenticated actor + transition_reason.
+#
+# Implemented as a module-level hook on upsert_event / add_candidate.
+# Migration tools (provenance_type == "migration") are the only exception.
+import _lib.marketing_calendar as _v26_mc  # noqa: E402
+
+_V26_PROTECTED_FUNCS = ("add_candidate", "upsert_event")
+
+
+def _v26_actor_qualified() -> bool:
+    """Decide whether the current request context is allowed to write
+    a record with status='approved' to the operator-store.
+
+    Returns True if:
+      - the request is authed AND
+      - it carries an X-Actor-Display-Name OR X-Migration-Id header
+        (the canonical approval interfaces always set one of these)
+      - AND the actor_id is a real fingerprint (not None)
+
+    Returns False for every other case (scout, template-demo, bulk
+    inject without a migration_id, anonymous writes, etc.).
+    """
+    try:
+        actor = _resolve_v23_actor()
+    except Exception:
+        return False
+    actor_id = actor.get("actor_id") if isinstance(actor, dict) else None
+    if not actor_id or not actor_id.startswith("fp:"):
+        return False
+    # Either the actor explicitly self-declared a display name
+    # (the planning approve endpoint does this) OR the request is
+    # tagged with a migration_id (the cleanup tool does this).
+    has_display = bool(request.headers.get("X-Actor-Display-Name"))
+    has_migration = bool(request.headers.get("X-Migration-Id"))
+    return has_display or has_migration
+
+
+# Wrap the marketing_calendar write functions with a status=approved gate.
+_v26_mc_orig_add_candidate = _v26_mc.add_candidate
+_v26_mc_orig_upsert_event = _v26_mc.upsert_event
+
+
+def _v26_wrapped_add_candidate(brand_id, record, initial_status="candidate"):
+    """Wraps marketing_calendar.add_candidate — refuses to accept
+    status='approved' unless the call comes from an authenticated
+    request with an actor display name OR migration_id.
+    """
+    target_status = record.get("status") or initial_status
+    if target_status == "approved" and not _v26_actor_qualified():
+        # Reject: refuse to silently auto-approve
+        raise PermissionError(
+            "V2.6 write-gate: cannot write status='approved' to the "
+            "operator-store from this request context. The canonical "
+            "approval path (POST /api/planning/<brand>/candidates/"
+            "<id>/approve) is the only way to set status='approved'."
+        )
+    return _v26_mc_orig_add_candidate(brand_id, record, initial_status=initial_status)
+
+
+def _v26_wrapped_upsert_event(brand_id, record, skip_guards=False):
+    """Wraps marketing_calendar.upsert_event — same gate as add_candidate."""
+    target_status = record.get("status")
+    # If the new/updated record has status='approved' and the request
+    # is not a qualified approval or migration, reject.
+    if target_status == "approved" and not _v26_actor_qualified():
+        # Migration tools pass skip_guards=True; honour that escape hatch.
+        if not skip_guards:
+            raise PermissionError(
+                "V2.6 write-gate: cannot write status='approved' to the "
+                "operator-store from this request context. The canonical "
+                "approval path is the only way to set status='approved'."
+            )
+    return _v26_mc_orig_upsert_event(brand_id, record, skip_guards=skip_guards)
+
+
+_v26_mc.add_candidate = _v26_wrapped_add_candidate
+_v26_mc.upsert_event = _v26_wrapped_upsert_event
 
 
 @app.route("/api/planning/<brand_id>/_internal/audit-log", methods=["GET"])
