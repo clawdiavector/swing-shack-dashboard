@@ -14,7 +14,13 @@ STICK = ROOT / "data" / "brand-directory" / "stick"
 GOLDEN = (
     STICK / "templates/service-frame/golden/render-instagram.png"
 )
+GOLDEN_STORY = STICK / "templates/service-frame/golden/render-instagram-story.png"
 REF = STICK / "images/Services/swingasses.jpg"
+TEAL = np.array([0, 179, 186], dtype=np.int16)
+STORY_FIELDS = {
+    "caption_hook": "Consistency starts with data",
+    "cta": "Book your free swing assessment",
+}
 
 
 @pytest.fixture(scope="module")
@@ -117,3 +123,75 @@ def test_golden_file_matches_compose(golden_png: bytes):
     if GOLDEN.is_file():
         on_disk = GOLDEN.read_bytes()
         assert on_disk == golden_png
+
+
+@pytest.fixture(scope="module")
+def story_png() -> bytes:
+    from _lib.archetypes import archetype_by_id
+    from _lib.archetype_compose import compose_post_for_channels
+
+    arch = archetype_by_id("stick", "stick-service-frame")
+    assert arch
+    return compose_post_for_channels(
+        brand_id="stick",
+        archetype=arch,
+        channels=["instagram_story"],
+        fields=STORY_FIELDS,
+        photo_bytes=None,
+    )["instagram_story"]
+
+
+def test_story_render_dimensions(story_png: bytes):
+    im = Image.open(io.BytesIO(story_png))
+    assert im.size == (1080, 1920)
+
+
+def test_story_teal_band_vertical_position(story_png: bytes):
+    arr = np.asarray(Image.open(io.BytesIO(story_png)).convert("RGB"))
+    teal_rows = np.where(
+        np.abs(arr.astype(np.int16) - TEAL).sum(axis=2) < 45
+    )[0]
+    assert len(teal_rows) > 100
+    top = int(teal_rows.min())
+    bot = int(teal_rows.max())
+    assert abs(top - 952) <= 3, f"teal band top {top}, expected ~952"
+    assert abs(bot - 1285) <= 3, f"teal band bottom {bot}, expected ~1285"
+
+
+def test_story_headline_not_block_anchor_shift(story_png: bytes):
+    """Story overrides should place headline top ~511px, not block_anchor ~607px."""
+    arr = np.asarray(Image.open(io.BytesIO(story_png)).convert("RGB"))
+    white = arr.min(axis=2) > 240
+    headline_zone = white[int(0.25 * 1920) : int(0.35 * 1920), 100:980]
+    rows = np.where(headline_zone.any(axis=1))[0]
+    assert len(rows) > 0
+    headline_top = int(0.25 * 1920) + int(rows.min())
+    assert abs(headline_top - 511) <= 25, f"headline top {headline_top}, expected ~511 not ~607"
+    assert headline_top < 560
+
+
+def test_story_golden_file_matches_compose(story_png: bytes):
+    if GOLDEN_STORY.is_file():
+        assert GOLDEN_STORY.read_bytes() == story_png
+
+
+def test_story_deterministic_render(story_png: bytes):
+    from _lib.archetypes import archetype_by_id
+    from _lib.archetype_compose import compose_post_for_channels
+
+    arch = archetype_by_id("stick", "stick-service-frame")
+    a = compose_post_for_channels(
+        brand_id="stick",
+        archetype=arch,
+        channels=["instagram_story"],
+        fields=STORY_FIELDS,
+        photo_bytes=None,
+    )["instagram_story"]
+    b = compose_post_for_channels(
+        brand_id="stick",
+        archetype=arch,
+        channels=["instagram_story"],
+        fields=STORY_FIELDS,
+        photo_bytes=None,
+    )["instagram_story"]
+    assert a == b

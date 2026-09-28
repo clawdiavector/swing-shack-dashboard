@@ -16,6 +16,14 @@ Navy/teal service promo tile: uppercase headline, two-line CTA on a full-bleed t
 - Service moments and evergreen posts for fitting, coaching, lab, equipment
 - Channels: Instagram feed/story, Facebook, GBP
 
+## Platforms
+
+- **Instagram feed (`ig_post`)** — zones in base `spec.json` (1080×1350), measured from `ref-01`…`ref-04`.
+- **Instagram story (`ig_story`)** — uses `canvas_overrides.ig_story` with story-measured zone rects
+  (`ref-05` club assessment story, `ref-06` swing assessment story). Do not rely on `block_anchor`
+  auto-shift for story; overrides pin headline ≈ y0 0.266 and teal band ≈ y0 0.496 on 1080×1920.
+- **Facebook** — same 4:5 feed canvas as Instagram post (`channel_canvas` default).
+
 ## Character budgets
 
 - Headline (`caption_hook`): ~36 chars, 3 lines max

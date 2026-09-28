@@ -325,6 +325,94 @@
           "optional": true
         }
       },
+      "canvas_overrides": {
+        "ig_story": {
+          "headline": {
+            "rect": {
+              "x0": 0.1055,
+              "y0": 0.2661,
+              "x1": 0.9065,
+              "y1": 0.4505
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_lines": 3,
+            "max_chars_per_line": 24,
+            "line_height": 1.2035,
+            "text_transform": "uppercase",
+            "text_origin_x": 116,
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "min_font_px": 56
+          },
+          "cta_band": {
+            "rect": {
+              "x0": 0.0583,
+              "y0": 0.4958,
+              "x1": 1,
+              "y1": 0.6693
+            },
+            "kind": "band",
+            "fill": "teal"
+          },
+          "cta": {
+            "rect": {
+              "x0": 0.1175,
+              "y0": 0.5427,
+              "x1": 0.8094,
+              "y1": 0.6177
+            },
+            "kind": "text",
+            "source": "cta",
+            "font_role": "h2",
+            "max_lines": 2,
+            "max_chars_per_line": 24,
+            "line_height": 1.2133,
+            "text_transform": "uppercase",
+            "emphasis_words": [
+              "FREE"
+            ],
+            "emphasis_font_role": "cta_emphasis",
+            "tracking_em": 0.008,
+            "text_origin_x": 123,
+            "wrap_x1": 0.861,
+            "align": "left",
+            "colour": "white",
+            "min_font_px": 36
+          },
+          "logo": {
+            "rect": {
+              "x0": 0.1286,
+              "y0": 0.7302,
+              "x1": 0.3441,
+              "y1": 0.7842
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "logo.png",
+            "fit": "aspect_fit",
+            "align": "left",
+            "valign": "bottom"
+          },
+          "tagline": {
+            "rect": {
+              "x0": 0.4348,
+              "y0": 0.7465,
+              "x1": 0.8705,
+              "y1": 0.7818
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "images/tagline-light.png",
+            "fit": "aspect_fit",
+            "align": "right",
+            "valign": "bottom",
+            "optional": true
+          }
+        }
+      },
       "logo_anchor": {
         "zone": "logo",
         "variant": "mono_light",
@@ -337,7 +425,23 @@
         "x1": 0.95,
         "y1": 0.96
       },
-      "max_total_chars": 110
+      "max_total_chars": 110,
+      "measured_from": [
+        "templates/service-frame/references/ref-01.jpg",
+        "templates/service-frame/references/ref-02.jpg",
+        "templates/service-frame/references/ref-03.jpg",
+        "templates/service-frame/references/ref-04.jpg",
+        "templates/service-frame/references/ref-05.jpg",
+        "templates/service-frame/references/ref-06.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1350,
+        "ig_story": {
+          "w": 1080,
+          "h": 1920
+        }
+      }
     },
     {
       "id": "stick-photo-band-post",
