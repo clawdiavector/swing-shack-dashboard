@@ -598,6 +598,13 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 meta["composed"] = sidecar["composed"]
             if sidecar.get("archetype"):
                 meta["archetype"] = sidecar["archetype"]
+            arch_meta = sidecar.get("archetype") if isinstance(sidecar.get("archetype"), dict) else {}
+            is_v2_template = str(arch_meta.get("schema") or "").endswith("/v2")
+            has_composed = isinstance(meta.get("composed"), dict) and bool(meta.get("composed"))
+            if is_v2_template and arch_meta.get("id") and not has_composed:
+                meta["compose_pending"] = True
+                meta["image_url"] = None
+                meta["image_path"] = None
             if sidecar.get("sections") or sidecar.get("negative_prompt"):
                 meta["brief"] = {
                     "sections": sidecar.get("sections") or [],

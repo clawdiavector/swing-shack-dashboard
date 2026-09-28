@@ -18,9 +18,11 @@ from _lib.krea_job_parse import parse_get_job_payload
 
 from . import image_jobs_state
 from .draft_assets import (
+    _moment_has_composed,
     _moment_has_image,
     _parse_inbox_ref,
     _read_queue,
+    _utc_now_iso,
     _write_draft,
     _write_queue,
 )
@@ -134,12 +136,35 @@ def _finalize_draft_from_poll(
     if cd.get("requirements"):
         model_routing["requirements"] = cd["requirements"]
 
+    from _lib.archetypes import select_archetype  # noqa: PLC0415
+
     image_path_str = str(image_path)
     image_url = image_url_for(brand_id, image_path_str)
     primary_platform = primary_channel_for_item(brand_id, item_id, fallback="instagram")
     size = str(job_entry.get("size") or "1024x1024")
     est = float(job_entry.get("est_usd") or 0.04)
     job_id = str(job_entry.get("job_id") or "")
+    archetype = select_archetype(brand_id, item_id)
+    archetype_id = str(archetype.get("id") or "")
+    photo_candidates = [
+        {
+            "index": 0,
+            "path": image_path_str,
+            "url": image_url,
+            "provider": "krea",
+            "model": "krea",
+            "cost_usd": est,
+            "size": size,
+        }
+    ]
+    qc_payload = {
+        "verdict": "pass",
+        "checked_at": _utc_now_iso(),
+        "candidates": [{"index": 0, "path": image_path_str, "verdict": "pass", "reasons": []}],
+        "selected": 0,
+        "edit_attempted": False,
+        "human_reason": None,
+    }
 
     return _write_draft(
         brand_id=brand_id,
@@ -149,7 +174,7 @@ def _finalize_draft_from_poll(
         image_path=image_path_str,
         image_url=image_url,
         sidecar={
-            "action": "draft_image",
+            "action": "draft_photo",
             "route": "job:krea_poll_draft_images/image",
             "model": "krea",
             "provider": "krea",
@@ -169,6 +194,13 @@ def _finalize_draft_from_poll(
             "calendar": calendar,
             "caption_asset_id": caption_asset_id,
             "context_degraded": ctx.lineage.get("degraded") or [],
+            "photo_candidates": photo_candidates,
+            "qc": qc_payload,
+            "archetype": {
+                "id": archetype_id,
+                "canvas": archetype.get("canvas"),
+                "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+            },
         },
     )
 
@@ -213,6 +245,17 @@ def _complete_row(
     row["status"] = "done"
     row.pop("note", None)
     image_jobs_state.drop_entry(item_id)
+    if not _moment_has_composed(brand_id, item_id):
+        from _lib.l5_create_enqueue import enqueue_compose_post_for_moment  # noqa: PLC0415
+
+        rows = _read_queue()
+        enqueue_compose_post_for_moment(
+            item_id=item_id,
+            brand_id=brand_id,
+            reason="krea-poll-photo-ready",
+            rows=rows,
+        )
+        _write_queue(rows)
 
 
 def _is_stale(entry: dict[str, Any]) -> bool:

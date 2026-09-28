@@ -48,7 +48,10 @@ export function ReviewDraftDetail({
   const [activeChannel, setActiveChannel] = useState(
     () => channels[0] || item.meta?.primary_channel || 'instagram',
   )
-  const composedUrl = composedUrlForChannel(item, activeChannel) || resolveAssetUrl(item.meta?.image_url)
+  const composePending = Boolean(item.meta?.compose_pending)
+  const composedUrl =
+    composedUrlForChannel(item, activeChannel) ||
+    (composePending ? '' : resolveAssetUrl(item.meta?.image_url))
 
   const qc = item.meta?.qc
   const qcVerdict = (qc?.verdict || 'pending').replace(/_/g, ' ')
@@ -144,10 +147,17 @@ export function ReviewDraftDetail({
             />
           ) : (
             <div
-              className="flex min-h-[280px] items-center justify-center text-sm text-tx3 md:min-h-[480px]"
+              className="flex min-h-[280px] flex-col items-center justify-center gap-2 text-sm text-tx3 md:min-h-[480px]"
               data-testid="composed-preview-empty"
             >
-              No composed preview yet
+              {composePending ? (
+                <>
+                  <span className="font-semibold text-gold">Compose pending</span>
+                  <span className="text-xs">Background ready — waiting for composed layout.</span>
+                </>
+              ) : (
+                'No composed preview yet'
+              )}
             </div>
           )}
         </div>

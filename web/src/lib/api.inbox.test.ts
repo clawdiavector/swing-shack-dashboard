@@ -69,6 +69,30 @@ describe('resolvedInboxVisualUrl', () => {
     }
     expect(resolvedInboxVisualUrl(withMeta, null)).toBe('https://cdn.example/b.png')
   })
+
+  it('prefers composed channel URL over raw asset visual', () => {
+    const withComposed: InboxItem = {
+      ...item,
+      meta: {
+        primary_channel: 'instagram',
+        image_url: 'https://cdn.example/raw-gen.png',
+        composed: { instagram: 'https://cdn.example/composed.png' },
+      },
+    }
+    const asset: CampaignAsset = { visualUrl: 'https://cdn.example/raw-gen.png' }
+    expect(resolvedInboxVisualUrl(withComposed, asset)).toBe('https://cdn.example/composed.png')
+  })
+
+  it('hides raw gen when compose_pending', () => {
+    const pending: InboxItem = {
+      ...item,
+      meta: {
+        compose_pending: true,
+        image_url: 'https://cdn.example/raw-gen.png',
+      },
+    }
+    expect(resolvedInboxVisualUrl(pending, null)).toBe('')
+  })
 })
 
 describe('inboxMediaTag', () => {

@@ -6,6 +6,7 @@ import { useBrand, useBrandScope } from '../components/BrandSwitch'
 import { PageIntro } from '../components/chrome'
 import { Badge, Button, PressIcon, QueueItem, Tip } from '../components/ui'
 import {
+  draftRegeneratePhoto,
   enqueueOpsQueue,
   fetchBrandImagesToday,
   fetchCampaign,
@@ -229,11 +230,28 @@ export function ReviewPiece() {
     if (!item || atImageCap || drafting) return
     setDrafting(true)
     setError('')
-    const dedupe_key = `draft_image-${item.id}-${Date.now()}`
+    const note = 'Regenerate from review piece'
     try {
+      const assetId = item.meta?.asset_id
+      if (item.type === 'draft_asset' && assetId) {
+        const result = await draftRegeneratePhoto(assetId, note)
+        if (!result.ok) {
+          setError(result.error || 'Could not queue regenerate')
+          if (result.at_cap && item.brand_id) {
+            setImageCap({ at_cap: true, cap: imageCap?.cap ?? 2 })
+          }
+          setDrafting(false)
+          return
+        }
+        setDrafting(false)
+        load()
+        return
+      }
+      const momentId = String(item.meta?.source_inbox_item_id || item.id)
+      const dedupe_key = `draft_photo-${momentId}-${Date.now()}`
       const result = await enqueueOpsQueue({
-        item_id: item.id,
-        action: 'draft_image',
+        item_id: momentId,
+        action: 'draft_photo',
         dedupe_key,
       })
       if (!result.ok) {
@@ -244,6 +262,8 @@ export function ReviewPiece() {
         setDrafting(false)
         return
       }
+      setDrafting(false)
+      load()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setDrafting(false)

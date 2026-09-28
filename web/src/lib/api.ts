@@ -611,7 +611,7 @@ export type OpsQueueResult = {
 
 export function enqueueOpsQueue(body: {
   item_id: string
-  action: 'draft_image'
+  action: 'draft_image' | 'draft_photo' | 'draft_gen_slots' | 'compose_post'
   dedupe_key: string
 }) {
   return postJson<OpsQueueResult>('/api/ops/queue', body)
@@ -1151,6 +1151,19 @@ export function resolvedInboxVisualUrl(
   item?: InboxItem | null,
   asset?: CampaignAsset | null,
 ): string {
+  const meta = item?.meta
+  const composed = meta?.composed
+  const channel = String(meta?.primary_channel || meta?.platform || 'instagram')
+  if (composed && typeof composed === 'object') {
+    const fromComposed = composed[channel] || composed.instagram
+    if (fromComposed) {
+      const resolved = resolveAssetUrl(String(fromComposed))
+      if (resolved) return resolved
+    }
+  }
+  if (meta?.compose_pending) {
+    return ''
+  }
   const fromAsset = assetVisualUrl(asset)
   if (fromAsset) return fromAsset
   return inboxItemThumbUrl(item)

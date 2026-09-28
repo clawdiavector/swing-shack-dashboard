@@ -77,7 +77,7 @@
   "archetypes": [
     {
       "id": "stick-product-post",
-      "name": "Product post — vendor lockup over centred text stack, product photo below",
+      "name": "Product post \u2014 vendor lockup over centred text stack, product photo below",
       "description": "Gradient navy-to-light field. Vendor wordmark, product name, AVAILABLE, @, stick logo, CTA, then the cut-out product photo occupying the lower ~56%. Measured identical to 4 d.p. on stick_post_gts2 and stick_post_t250; stick_post_vokey is the same with a two-line vendor lockup.",
       "canvas": "ig_post",
       "block_anchor": "center",
@@ -214,7 +214,7 @@
     },
     {
       "id": "stick-service-frame",
-      "name": "Service frame — no photo, three-line headline, full-bleed teal CTA band, logo + tagline footer",
+      "name": "Service frame \u2014 no photo, three-line headline, full-bleed teal CTA band, logo + tagline footer",
       "description": "Solid navy field. Left-aligned white all-caps headline, 3 lines. Full-bleed teal band carries the two-line CTA. Footer row is stick logo left, tagline right. Measured identical to 4 d.p. on clubasses and swingasses; clubasses_story is the same block re-centred (+285px).",
       "canvas": "ig_post",
       "block_anchor": "center",
@@ -341,8 +341,8 @@
     },
     {
       "id": "stick-photo-band-post",
-      "name": "Photo band — navy copy panel over a full-width photo band",
-      "description": "Navy panel fills the upper canvas; a photograph fills the lower band, full bleed. Teal all-caps headline (3 lines), white light subhead (2 lines), teal CTA. Partner logo bottom-left and stick logo bottom-right, both inside the photo band. The photo band is NOT a pure re-anchor between canvases — hence canvas_overrides.",
+      "name": "Photo band \u2014 navy copy panel over a full-width photo band",
+      "description": "Navy panel fills the upper canvas; a photograph fills the lower band, full bleed. Teal all-caps headline (3 lines), white light subhead (2 lines), teal CTA. Partner logo bottom-left and stick logo bottom-right, both inside the photo band. The photo band is NOT a pure re-anchor between canvases \u2014 hence canvas_overrides.",
       "canvas": "ig_post",
       "block_anchor": "top",
       "canvas_overrides": {
@@ -543,7 +543,7 @@
     },
     {
       "id": "stick-venue-post",
-      "name": "Venue / lifestyle post — full-bleed photo, navy brand plate bottom-right",
+      "name": "Venue / lifestyle post \u2014 full-bleed photo, navy brand plate bottom-right",
       "description": "The photograph owns the whole canvas. A navy plate in the lower right carries the partner or venue lockup, an @ and the stick logo. Minimal type, so it is the archetype for a generated venue or lifestyle photo where the image has to carry the post. Measured on lab_post.jpg.",
       "canvas": "ig_post",
       "block_anchor": "bottom",
@@ -651,7 +651,7 @@
     },
     {
       "id": "stick-service-start",
-      "name": "Service start card — venue photo, navy service title, @ stick lockup, mint bar",
+      "name": "Service start card \u2014 venue photo, navy service title, @ stick lockup, mint bar",
       "description": "Bright venue photo full bleed. Partial white frame (6px). Large navy uppercase service word, centred @ stick lockup, mint #24FFAF accent bar (~65% width). Measured from coachingstart copy.jpg / fittingstart copy.jpg; story refs recenter via block_anchor. needs_photo true.",
       "canvas": "ig_post",
       "block_anchor": "center",
@@ -786,8 +786,8 @@
     },
     {
       "id": "stick-service-end",
-      "name": "Service end card — gradient, navy service word, @ stick lockup, mint tagline panel",
-      "description": "Light vertical gradient (#D4DEDD→#FFFFFF), partial white frame (top fade + right). Navy uppercase service word, white @ behind the navy stick wordmark, large mint #24FFAF panel carrying a service-specific tagline from the qualifier field. Measured coachingend/fittingend/equipmentend/apparelend. No photo.",
+      "name": "Service end card \u2014 gradient, navy service word, @ stick lockup, mint tagline panel",
+      "description": "Light vertical gradient (#D4DEDD\u2192#FFFFFF), partial white frame (top fade + right). Navy uppercase service word, white @ behind the navy stick wordmark, large mint #24FFAF panel carrying a service-specific tagline from the qualifier field. Measured coachingend/fittingend/equipmentend/apparelend. No photo.",
       "canvas": "ig_story",
       "channel_canvas": {
         "facebook": "ig_story"
@@ -937,8 +937,8 @@
     },
     {
       "id": "stick-service-square",
-      "name": "Service square — chevrons + decorative frame, 1:1 navy text-only (centred or split lockup)",
-      "description": "1081×1081 square. Light blue→grey gradient field. Dark navy decorative chevrons (>>>) in one corner (top-left for lab/centred form, mirrored top-right for avoda/split lockup) and a thin navy rectangular frame at ~56px inset. Two compositional variants: lab — centred 4-line caption_hook; avoda — large UPPERCASE service word + faded @ + tail word. No photo.",
+      "name": "Service square \u2014 chevrons + decorative frame, 1:1 navy text-only (centred or split lockup)",
+      "description": "1081\u00d71081 square. Light blue\u2192grey gradient field. Dark navy decorative chevrons (>>>) in one corner (top-left for lab/centred form, mirrored top-right for avoda/split lockup) and a thin navy rectangular frame at ~56px inset. Two compositional variants: lab \u2014 centred 4-line caption_hook; avoda \u2014 large UPPERCASE service word + faded @ + tail word. No photo.",
       "canvas": "ig_square",
       "block_anchor": "center",
       "channel_canvas": {
@@ -1093,7 +1093,7 @@
     },
     {
       "id": "stick-location-drive",
-      "name": "Location drive — short-trip map pin post, navy + green accent, locked headline",
+      "name": "Location drive \u2014 short-trip map pin post, navy + green accent, locked headline",
       "description": "Western-Cape golf-course drive posts. Styles map-photo (franschoek) and route-line (greenpoint). Locked headline A SHORT TRIP / FOR A LONG DRIVE with green accent on LONG DRIVE.",
       "canvas": "ig_post",
       "block_anchor": "center",
@@ -1366,8 +1366,8 @@
     },
     {
       "id": "stick-brand-statement",
-      "name": "Brand statement — centred mint headline, white stick logo, white rules, italic tagline",
-      "description": "Solid navy field with white stick logo top-centre, thin white rule below logo, centred mint (#24FFAF) Montserrat Black uppercase headline 4–5 lines (caption_hook split on '\\n'), thin white rule above the italic 'better begins here' tagline. No photo. Used for category-list statements (FITTINGS / COACHING / EQUIPMENT / APPAREL) and brand-manifesto sentences.",
+      "name": "Brand statement \u2014 centred mint headline, white stick logo, white rules, italic tagline",
+      "description": "Solid navy field with white stick logo top-centre, thin white rule below logo, centred mint (#24FFAF) Montserrat Black uppercase headline 4\u20135 lines (caption_hook split on '\\n'), thin white rule above the italic 'better begins here' tagline. No photo. Used for category-list statements (FITTINGS / COACHING / EQUIPMENT / APPAREL) and brand-manifesto sentences.",
       "canvas": "ig_post",
       "block_anchor": "center",
       "channel_canvas": {
@@ -1573,8 +1573,8 @@
     },
     {
       "id": "stick-coach-profile",
-      "name": "Coach profile — portrait, teal name band, navy credentials, stick footer",
-      "description": "Staff introduction card measured from Content Bank Stick/Other dave_post + dave_story (1080×1350 / 1080×1920). Grey-top portrait, teal name band, navy credential stack, light footer lockup. Story extends photo upward via canvas_overrides.",
+      "name": "Coach profile \u2014 portrait, teal name band, navy credentials, stick footer",
+      "description": "Staff introduction card measured from Content Bank Stick/Other dave_post + dave_story (1080\u00d71350 / 1080\u00d71920). Grey-top portrait, teal name band, navy credential stack, light footer lockup. Story extends photo upward via canvas_overrides.",
       "canvas": "ig_post",
       "block_anchor": "bottom",
       "channel_canvas": {
@@ -1906,6 +1906,274 @@
         "w": 1080,
         "h": 1350
       }
+    },
+    {
+      "id": "stick-coaching-poster-v1",
+      "name": "Service start card \u2014 venue photo, navy service title, @ stick lockup, mint bar (generative bg)",
+      "description": "Bright venue photo full bleed. Partial white frame (6px). Large navy uppercase service word, centred @ stick lockup, mint #24FFAF accent bar (~65% width). Measured from coachingstart copy.jpg / fittingstart copy.jpg; story refs recenter via block_anchor. needs_photo true.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/coaching-poster-v1",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "focus_y": 0.45,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0,
+          "to_alpha": 0.18
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 45,
+          "stroke_px": 6,
+          "colour": "white",
+          "alpha": 0.95
+        },
+        "service_word": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.36,
+            "x1": 0.92,
+            "y1": 0.48
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 2,
+          "max_chars_per_line": 14,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "bottom",
+          "colour": "navy_deep",
+          "min_font_px": 48,
+          "wrap": "balanced"
+        },
+        "lockup": {
+          "rect": {
+            "x0": 0.12,
+            "y0": 0.5,
+            "x1": 0.88,
+            "y1": 0.64
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 12,
+          "line_height": 1.1,
+          "text_transform": "none",
+          "align": "center",
+          "valign": "middle",
+          "colour": "navy_deep",
+          "min_font_px": 40
+        },
+        "mint_bar": {
+          "rect": {
+            "x0": 0.051,
+            "y0": 0.659,
+            "x1": 0.652,
+            "y1": 0.68
+          },
+          "kind": "band",
+          "fill": "mint"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 0.001,
+            "y1": 0.001
+          },
+          "kind": "logo",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 40,
+      "measured_from": [
+        "templates/service-start/references/ref-01.jpg",
+        "templates/service-start/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1300
+      }
+    },
+    {
+      "id": "stick-service-hero-v1",
+      "name": "Service start card \u2014 venue photo, navy service title, @ stick lockup, mint bar (generative hero bg)",
+      "description": "Bright venue photo full bleed. Partial white frame (6px). Large navy uppercase service word, centred @ stick lockup, mint #24FFAF accent bar (~65% width). Measured from coachingstart copy.jpg / fittingstart copy.jpg; story refs recenter via block_anchor. needs_photo true.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/service-hero-v1",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "focus_y": 0.45,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0,
+          "to_alpha": 0.18
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 45,
+          "stroke_px": 6,
+          "colour": "white",
+          "alpha": 0.95
+        },
+        "service_word": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.36,
+            "x1": 0.92,
+            "y1": 0.48
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 2,
+          "max_chars_per_line": 14,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "bottom",
+          "colour": "navy_deep",
+          "min_font_px": 48,
+          "wrap": "balanced"
+        },
+        "lockup": {
+          "rect": {
+            "x0": 0.12,
+            "y0": 0.5,
+            "x1": 0.88,
+            "y1": 0.64
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 12,
+          "line_height": 1.1,
+          "text_transform": "none",
+          "align": "center",
+          "valign": "middle",
+          "colour": "navy_deep",
+          "min_font_px": 40
+        },
+        "mint_bar": {
+          "rect": {
+            "x0": 0.051,
+            "y0": 0.659,
+            "x1": 0.652,
+            "y1": 0.68
+          },
+          "kind": "band",
+          "fill": "mint"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 0.001,
+            "y1": 0.001
+          },
+          "kind": "logo",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 40,
+      "measured_from": [
+        "templates/service-start/references/ref-01.jpg",
+        "templates/service-start/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1300
+      }
     }
   ],
   "selection": {
@@ -1984,6 +2252,22 @@
           ]
         },
         "use": "stick-coach-profile"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "coaching_promo"
+          ]
+        },
+        "use": "stick-coaching-poster-v1"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "service_hero"
+          ]
+        },
+        "use": "stick-service-hero-v1"
       }
     ]
   }

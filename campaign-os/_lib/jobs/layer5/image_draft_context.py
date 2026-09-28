@@ -63,6 +63,34 @@ def _resolve_pillar_name(brand_id: str, pillar_id: str) -> str:
     return pillar_id
 
 
+def _photo_job_for_moment(
+    *,
+    title: str,
+    pillar_name: str,
+    post_type: str,
+) -> str:
+    subject = title or "golf coaching venue"
+    pillar = pillar_name or "coaching"
+    base = (
+        f"Photoreal {subject} at a premium indoor golf studio ({pillar}). "
+        "Natural lighting, clean environment, no people required unless portrait coaching. "
+        "NO text, NO logos, NO typography, NO poster layout, NO watermarks, NO UI."
+    )
+    pt = (post_type or "").strip().lower()
+    if pt == "service_hero":
+        base = (
+            f"Photoreal wide venue mood shot for {subject} — Stick Golf studio atmosphere. "
+            "NO text, NO logos, NO typography, NO layout frames."
+        )
+    elif pt == "coaching_promo":
+        base = (
+            f"Photoreal coaching environment for {subject}. "
+            "Portrait or bay angle, energetic but calm. "
+            "NO text, NO logos, NO typography, NO brochure layout."
+        )
+    return base[:400]
+
+
 def _build_job_line(
     *,
     title: str,
@@ -444,7 +472,16 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
     pillar_id = _first_str(record, "pillar", "pillars")
     pillar_name = _resolve_pillar_name(brand, pillar_id)
     event_start = _first_str(record, "event_start", "event_window_start", "event_date")
+    post_type = str(record.get("post_type") or "").strip().lower()
     job = _build_job_line(title=title, pillar_name=pillar_name, angle=angle, event_start=event_start)
+    try:
+        from _lib.archetypes import select_archetype  # noqa: PLC0415
+
+        archetype = select_archetype(brand, inbox_item_id)
+        if archetype.get("applies_to", {}).get("needs_photo", True):
+            job = _photo_job_for_moment(title=title, pillar_name=pillar_name, post_type=post_type)
+    except Exception:
+        pass
     aspect = _select_aspect(record, title=title, angle=angle)
     if aspect not in VALID_ASPECTS:
         aspect = "1024x1024"

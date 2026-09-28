@@ -1,0 +1,24 @@
+{
+  "schema": "campaign-os/template-recipe/v1",
+  "id": "stick-coaching-poster-v1",
+  "archetype_id": "stick-coaching-poster-v1",
+  "cache_policy": "coaching_service_7d",
+  "gen_slots": [
+    {
+      "id": "background",
+      "role": "full_bleed",
+      "prompt_template": "Photoreal indoor golf studio mood for {title}. NO text NO logos NO typography NO poster layout NO UI.",
+      "negative": [
+        "typography",
+        "poster layout",
+        "brochure",
+        "watermark"
+      ],
+      "optional": false
+    }
+  ],
+  "compose": {
+    "uses_archetype_zones": true
+  },
+  "text_policy": "compose_only"
+}
