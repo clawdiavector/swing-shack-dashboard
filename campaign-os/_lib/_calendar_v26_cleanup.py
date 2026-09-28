@@ -167,8 +167,52 @@ def classify_record(rec: Dict[str, Any]) -> str:
         return "DETERMINISTIC_HOLIDAY"
 
     # 6. Genuine operator approvals
-    if cb in ("kyle-desk", "foreman") or (cb and tr and tr != "CEO demo — land stale calendar candidates" and st != "scout"):
+    # V2.7 §4 — "foreman DOES NOT AUTOMATICALLY MEAN HUMAN"
+    # Real human approvals must come from authenticated human identity
+    # (actor_id starts with fp:) AND have an action-driven approval
+    # transition_reason (e.g. "Lodge", "Book", "L4 approve") — NOT a
+    # generation/migration/automation reason.
+    if cb in ("kyle-desk",):
+        # kyle-desk has historically been the human-approval actor.
         return "KEEP"
+
+    if cb == "foreman":
+        # Distinguish HUMAN foreman (approval/lodge transition_reason)
+        # from FOREMAN-TEMPLATE-* / FOREMAN-GENERATIVE-REPLACE automation.
+        tr_norm = tr.lower().strip() if tr else ""
+        human_transition_reasons = {"lodge", "book", "l4 approve", "approve"}
+        if tr_norm in human_transition_reasons:
+            return "KEEP"
+        # Empty / ambiguous / automated transition_reason — REQUIRES REAPPROVAL
+        return "REQUIRES_REAPPROVAL"
+
+    # Catch automation-by-disguise: empty created_by or ambiguous source
+    # — these need human review before becoming Main Calendar events.
+    if cb == "foreman-template-test":
+        # Specific case for the test record's created_by (might be empty
+        # but source_type=template). We classify as REMOVE_TEMPLATE_DEMO.
+        if st == "operator" or tr == "ss-did-you-know template test":
+            return "TEMPLATE_DEMO"
+        return "TEMPLATE_DEMO"
+
+    # V2.7 §6 — foreman-generative-replace / foreman-template-* records
+    # are template/test pollution, NOT Main Calendar records. They
+    # belong nowhere in production Calendar data.
+    if cb in ("foreman-generative-replace", "foreman-template-test",
+              "foreman-template-demo", "foreman-template-demo-v2"):
+        return "TEMPLATE_DEMO"
+
+    # V2.7 §7 — cos-reactive-watch is a discovery monitor. The records
+    # it produces are intelligence, NOT Main Calendar records. They
+    # go to the intake store (candidates/watchlist) only after a human
+    # approves them.
+    if cb == "cos-reactive-watch":
+        return "SCOUT_CANDIDATE"
+
+    # Catch automation-only `source_type` matches when created_by is
+    # empty / non-canonical (e.g. legacy 2026-09-17 mass-inject).
+    if st in ("scout", "template", "template-demo", "holiday", "reactive-watch"):
+        return "SCOUT_CANDIDATE"
 
     # Fall-through — anything not classified is flagged for human review
     return "UNCLASSIFIED"
@@ -214,13 +258,15 @@ def dry_run_cleanup(brand_id: str) -> Dict[str, Any]:
             elif cat in ("TEST_ACCEPTANCE_ARTIFACT", "TEMPLATE_DEMO", "DETERMINISTIC_HOLIDAY"):
                 action = "remove_from_operator_store"
             elif cat == "SCOUT_CANDIDATE":
-                action = "move_to_candidates"
+                action = "move_to_intake_as_candidate"
             elif cat == "SCOUT_WATCHLIST":
-                action = "move_to_watchlist"
+                action = "move_to_intake_as_watchlist"
             elif cat == "SCOUT_MASS_PROMOTED_CEO_DEMO":
-                action = "move_to_candidates_with_legacy_note"
+                action = "move_to_intake_as_candidate_with_legacy_note"
             elif cat == "LEGACY_UNVERIFIED_APPROVAL":
-                action = "move_to_candidates_requires_reapproval"
+                action = "move_to_intake_requires_reapproval"
+            elif cat == "REQUIRES_REAPPROVAL":
+                action = "move_to_intake_requires_reapproval"
             else:
                 action = "halt_unclassified"
             plan.append({
@@ -317,20 +363,20 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
     actions: Dict[str, int] = {}
     failures: List[str] = []
 
-    # Watchlist and candidates files (created on demand)
-    watchlist_file = _watchlist_path(brand_id)
-    candidates_mirror: Dict[str, Dict[str, Any]] = {}  # in-memory idempotency guard
-    if watchlist_file.exists():
-        with open(watchlist_file, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    r = json.loads(line)
-                    candidates_mirror[r.get("event_key", "")] = r
-                except Exception:
-                    continue
+    # Idempotency mirror: scan the intake store for existing event_keys
+    from _lib import _calendar_v27_intake as _v27
+    intake_path = _v27._intake_calendar_path(brand_id)
+    intake_mirror: Dict[str, Dict[str, Any]] = {}
+    if intake_path.exists():
+        for line in intake_path.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                r = json.loads(line)
+                if r.get("event_key"):
+                    intake_mirror[r["event_key"]] = r
+            except Exception:
+                continue
 
     for line in raw_lines:
         if not line.strip():
@@ -377,42 +423,36 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
             audit_rows.append(audit)
             actions[action] = actions.get(action, 0) + 1
             # do NOT append to kept_lines
-        elif action in ("move_to_candidates", "move_to_candidates_with_legacy_note",
-                        "move_to_candidates_requires_reapproval"):
-            # Idempotent: if the event_key is already in the candidates mirror,
-            # don't re-insert. Otherwise tag the record and append to a
-            # candidates mirror file.
+        elif action in ("move_to_intake_as_candidate",
+                        "move_to_intake_as_candidate_with_legacy_note",
+                        "move_to_intake_requires_reapproval"):
+            # Idempotent: if the event_key is already in the intake
+            # mirror, don't re-insert.
             tag_record = dict(rec)
             tag_record["status"] = "candidate"
             tag_record["migrated_from_operator_store"] = True
             tag_record["migration_reason"] = "no_human_approval_provenance"
             tag_record["migrated_at"] = datetime.now(timezone.utc).isoformat()
             tag_record["migrated_event_key"] = ek
-            if action == "move_to_candidates_with_legacy_note":
+            if action == "move_to_intake_as_candidate_with_legacy_note":
                 tag_record["legacy_provenance_note"] = (
                     "Mass-promoted during 2026-09-17 'CEO demo — land stale "
                     "calendar candidates'. Original approval is not "
-                    "considered legitimate for V2.6 architecture; needs "
+                    "considered legitimate for V2.7 architecture; needs "
                     "individual re-approval by an authenticated operator."
                 )
-            if action == "move_to_candidates_requires_reapproval":
-                tag_record["provenance_status"] = "LEGACY_UNVERIFIED_APPROVAL"
+            if action == "move_to_intake_requires_reapproval":
+                tag_record["provenance_status"] = "REQUIRES_REAPPROVAL"
                 tag_record["requires_human_reapproval"] = True
-            # Append to candidates mirror jsonl
-            mirror_path = _calendar_dir() / f"{brand_id}__candidates_mirror.jsonl"
-            _calendar_dir().mkdir(parents=True, exist_ok=True)
-            if ek in candidates_mirror:
-                # Idempotent noop
+            if ek in intake_mirror:
                 actions[f"{action}_noop"] = actions.get(f"{action}_noop", 0) + 1
             else:
-                with open(mirror_path, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(tag_record, ensure_ascii=False) + "\n")
-                candidates_mirror[ek] = tag_record
+                _v27.write_intake_record(brand_id, tag_record)
+                intake_mirror[ek] = tag_record
                 actions[action] = actions.get(action, 0) + 1
-            # Drop from operator store
             audit = _write_audit(
                 brand_id=brand_id,
-                action="move_to_candidates",
+                action="move_to_intake",
                 actor=actor,
                 source_id=ek,
                 before={
@@ -426,35 +466,37 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
                 after={
                     "event_key": ek,
                     "new_status": "candidate",
-                    "mirror": str(mirror_path),
+                    "intake_path": str(intake_path),
                 },
                 extra={
                     "cleanup_step": _step_for_category(p["classification"]),
                     "classification": p["classification"],
-                    "cleanup_reason": "v26_production_data_cleanup",
+                    "cleanup_reason": "v27_production_data_cleanup",
                     "backup_ref": backup["backup"],
                     "backup_sha256": backup["sha256"],
                 },
             )
             audit_rows.append(audit)
             # do NOT append to kept_lines
-        elif action == "move_to_watchlist":
+        elif action == "move_to_intake_as_watchlist":
             tag_record = dict(rec)
             tag_record["status"] = "watchlist"
             tag_record["migrated_from_operator_store"] = True
-            tag_record["migration_reason"] = "scout_watchlist_relocation"
+            tag_record["migration_reason"] = "no_human_approval_provenance"
             tag_record["migrated_at"] = datetime.now(timezone.utc).isoformat()
-            watchlist_file.parent.mkdir(parents=True, exist_ok=True)
-            if ek in candidates_mirror:
-                actions[f"{action}_noop"] = actions.get(f"{action}_noop", 0) + 1
+            if ek in intake_mirror:
+                actions["move_to_intake_as_watchlist_noop"] = actions.get(
+                    "move_to_intake_as_watchlist_noop", 0
+                ) + 1
             else:
-                with open(watchlist_file, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(tag_record, ensure_ascii=False) + "\n")
-                candidates_mirror[ek] = tag_record
-                actions[action] = actions.get(action, 0) + 1
+                _v27.write_intake_record(brand_id, tag_record)
+                intake_mirror[ek] = tag_record
+                actions["move_to_intake_as_watchlist"] = actions.get(
+                    "move_to_intake_as_watchlist", 0
+                ) + 1
             audit = _write_audit(
                 brand_id=brand_id,
-                action="move_to_watchlist",
+                action="move_to_intake_as_watchlist",
                 actor=actor,
                 source_id=ek,
                 before={
@@ -466,7 +508,7 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
                 extra={
                     "cleanup_step": _step_for_category(p["classification"]),
                     "classification": p["classification"],
-                    "cleanup_reason": "v26_production_data_cleanup",
+                    "cleanup_reason": "v27_production_data_cleanup",
                     "backup_ref": backup["backup"],
                     "backup_sha256": backup["sha256"],
                 },
@@ -493,8 +535,7 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
         "audit_rows_written": len(audit_rows),
         "operator_store_lines_before": len(raw_lines),
         "operator_store_lines_after": sum(1 for ln in kept_lines if ln.strip()),
-        "candidates_mirror_path": str(_calendar_dir() / f"{brand_id}__candidates_mirror.jsonl"),
-        "watchlist_path": str(watchlist_file),
+        "intake_path": str(intake_path),
     }, 200
 
 
@@ -504,8 +545,8 @@ def _step_for_category(cat: str) -> str:
     if cat == "TEMPLATE_DEMO":
         return "step_4_remove_template_demo"
     if cat in ("SCOUT_CANDIDATE", "SCOUT_WATCHLIST", "SCOUT_MASS_PROMOTED_CEO_DEMO"):
-        return "step_5_move_scout_to_candidates"
-    if cat == "LEGACY_UNVERIFIED_APPROVAL":
+        return "step_5_move_scout_to_intake"
+    if cat in ("LEGACY_UNVERIFIED_APPROVAL", "REQUIRES_REAPPROVAL"):
         return "step_6_move_unknown_provenance_to_reapproval"
     if cat == "DETERMINISTIC_HOLIDAY":
         return "step_7_move_holidays_to_strategic_moments"

@@ -45475,19 +45475,80 @@ def _v26_actor_qualified() -> bool:
     return has_display or has_migration
 
 
-# Wrap the marketing_calendar write functions with a status=approved gate.
+def _v27_automation_writer(record: Dict[str, Any]) -> bool:
+    """V2.7 — return True if a record's `created_by` / `source_type`
+    identifies it as automation that must NOT touch the operator-store.
+
+    Per directive §3 + §5, automation must use intake / important-dates.
+    """
+    cb = (record.get("created_by") or "").strip().lower()
+    st = (record.get("source_type") or "").strip().lower()
+    # Direct automation identities
+    AUTOMATION_AUTHORS = {
+        "hermes-scout", "hermes-scout-simulation", "heidi-ingest",
+        "holiday_inject", "cos-reactive-watch",
+        "foreman-template-test", "foreman-template-demo",
+        "foreman-template-demo-v2", "foreman-generative-replace",
+        "proposal_promote", "interpreter",
+    }
+    AUTOMATION_SOURCE_TYPES = {
+        "scout", "template", "template-demo", "holiday", "reactive-watch",
+        "interpreter",
+    }
+    if cb in AUTOMATION_AUTHORS:
+        return True
+    if st in AUTOMATION_SOURCE_TYPES:
+        return True
+    return False
+
+
+def _v27_actor_in_request() -> bool:
+    """Return True if we are inside a Flask request context."""
+    try:
+        from flask import has_request_context
+        return has_request_context()
+    except Exception:
+        return False
+
+
+# Wrap the marketing_calendar write functions with a stricter V2.7 gate.
 _v26_mc_orig_add_candidate = _v26_mc.add_candidate
 _v26_mc_orig_upsert_event = _v26_mc.upsert_event
 
 
 def _v26_wrapped_add_candidate(brand_id, record, initial_status="candidate"):
-    """Wraps marketing_calendar.add_candidate — refuses to accept
-    status='approved' unless the call comes from an authenticated
-    request with an actor display name OR migration_id.
+    """Wraps marketing_calendar.add_candidate — V2.6 + V2.7 gates.
+
+    V2.7 §3 — automation writers (hermes-scout, heidi-ingest,
+    holiday_inject, cos-reactive-watch, foreman-template-*,
+    foreman-generative-replace) MUST use the intake or important-dates
+    stores. They may NOT write to the operator/Main Calendar store
+    regardless of status.
+
+    V2.6 — status='approved' additionally requires a qualified actor.
     """
     target_status = record.get("status") or initial_status
-    if target_status == "approved" and not _v26_actor_qualified():
-        # Reject: refuse to silently auto-approve
+    in_request = _v27_actor_in_request()
+    is_automation = _v27_automation_writer(record)
+    qualified = _v26_actor_qualified()
+    # V2.7 §3: automation writers are forbidden from operator-store
+    # writes regardless of status. The migration tool is the only
+    # exception and explicitly tags requests with X-Migration-Id.
+    if is_automation and not qualified:
+        # Holiday injection is now redirected to the important-dates store
+        # by V2.7 holiday_inject.py. Other automation must use intake.
+        raise PermissionError(
+            "V2.7 write-gate: automation writer "
+            f"created_by={record.get('created_by')!r} "
+            f"source_type={record.get('source_type')!r} "
+            "cannot write to the operator/Main Calendar store. "
+            "Use the intake store (candidates/watchlist via "
+            "_calendar_v27_intake.write_intake_record) or the "
+            "important-dates store (Strategic Moments). The migration "
+            "tool may use X-Migration-Id."
+        )
+    # V2.6: approved writes still require qualified actor.
+    if target_status == "approved" and not qualified:
         raise PermissionError(
             "V2.6 write-gate: cannot write status='approved' to the "
             "operator-store from this request context. The canonical "
@@ -45498,12 +45559,20 @@ def _v26_wrapped_add_candidate(brand_id, record, initial_status="candidate"):
 
 
 def _v26_wrapped_upsert_event(brand_id, record, skip_guards=False):
-    """Wraps marketing_calendar.upsert_event — same gate as add_candidate."""
+    """Wraps marketing_calendar.upsert_event — same V2.6 + V2.7 gates."""
     target_status = record.get("status")
-    # If the new/updated record has status='approved' and the request
-    # is not a qualified approval or migration, reject.
-    if target_status == "approved" and not _v26_actor_qualified():
-        # Migration tools pass skip_guards=True; honour that escape hatch.
+    is_automation = _v27_automation_writer(record)
+    qualified = _v26_actor_qualified()
+    if is_automation and not qualified:
+        if not skip_guards:
+            raise PermissionError(
+                "V2.7 write-gate: automation writer "
+                f"created_by={record.get('created_by')!r} "
+                f"source_type={record.get('source_type')!r} "
+                "cannot write to the operator/Main Calendar store. "
+                "Use the intake or important-dates store instead."
+            )
+    if target_status == "approved" and not qualified:
         if not skip_guards:
             raise PermissionError(
                 "V2.6 write-gate: cannot write status='approved' to the "
