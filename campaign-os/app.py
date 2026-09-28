@@ -45230,6 +45230,29 @@ def planning_diagnose_serialize(brand_id):
         # Locate the offender in the payload tree
         offender_full, path_full = _find_json_offender(timeline_payload, sort_keys=True)
 
+    # V2.4 — exhaustively scan every record for any nested dict that
+    # has mixed key types. If found, dump the offender.
+    nested_issues = []
+    for i, rec in enumerate(records[:134]):
+        def walk(o, path_str):
+            if isinstance(o, dict):
+                key_types = {type(k).__name__ for k in o.keys()}
+                if len(key_types) > 1:
+                    sample = list(o.keys())[:5]
+                    nested_issues.append({
+                        "record_index": i,
+                        "event_key": rec.get("event_key"),
+                        "path": path_str,
+                        "key_types": sorted(key_types),
+                        "sample_keys": [repr(k)[:60] for k in sample],
+                    })
+                for k, v in o.items():
+                    walk(v, f"{path_str}.{k}")
+            elif isinstance(o, (list, tuple)):
+                for idx, v in enumerate(o):
+                    walk(v, f"{path_str}[{idx}]")
+        walk(rec, "")
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
@@ -45248,6 +45271,8 @@ def planning_diagnose_serialize(brand_id):
         "full_payload_err": full_payload_err,
         "full_payload_offender": offender_full if not full_payload_ok else None,
         "full_payload_offender_path": path_full if not full_payload_ok else None,
+        "nested_mixed_key_dict_issues_found": len(nested_issues),
+        "nested_mixed_key_dict_issues_first3": nested_issues[:3],
     }), 200
 
 
