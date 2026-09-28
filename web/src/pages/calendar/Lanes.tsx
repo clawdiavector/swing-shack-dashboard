@@ -77,6 +77,8 @@ export function Lanes() {
     candidates?: Array<Record<string, unknown>>
     candidate_count?: number
     confidence_breakdown?: Record<string, number>
+    research_leads?: Array<Record<string, unknown>>
+    research_lead_count?: number
   } | null>(null)
   const [loading, setLoading] = useState(false)
   const [eventDetail, setEventDetail] = useState<PlanningEventDetail | null>(null)
@@ -238,6 +240,8 @@ export function Lanes() {
           candidates={candidates.candidates || []}
           candidateCount={candidates.candidate_count || 0}
           confidenceBreakdown={candidates.confidence_breakdown || {}}
+          researchLeads={candidates.research_leads || []}
+          researchLeadCount={candidates.research_lead_count || 0}
           horizon={horizon}
         />
       ) : null}

@@ -42116,15 +42116,30 @@ def planning_big_idea(brand_id):
     """GET /api/planning/<brand>/big-idea — the big brand idea that
     sits ABOVE the calendar (per heidi.txt #2).
 
+    Resolution order for north_star and operating_goals (V2.1 — single
+    canonical source per brand):
+      1. data/strategy/<brand>.json#north_star + #operating_goals — canonical
+         for the brand, written first.
+      2. data/brand-planning/<brand>.json#north_star + #operating_goals —
+         backward-compat fallback for surfaces that haven't been re-pointed.
+      3. data/brand-directory/<brand>/north_stars.json — secondary fallback
+         for Stick (which already has canonical north_stars.json separate
+         from the strategy file). Surfaced to the SPA as operating_goals.
+    Operating areas always come from data/brand-planning/<brand>.json
+    (they're Calendar-only — they don't belong in the strategy doc).
+
+    Big brand idea + lane system + monthly themes + active campaigns all
+    come from data/brand-planning/<brand>.json (existing behaviour).
+
     Response:
       {
         ok, brand_id,
         big_brand_idea: {name, belief, elevator},
-        north_star: {statement, source, ...}   # NEW: separate from big_brand_idea
+        north_star: {statement, source, set_at, do_not_merge_with_big_brand_idea}
+        north_star_source: 'strategy' | 'brand-directory' | 'brand-planning' | null
         operating_goals: [{label, metric, outcome_measurement, ...}]
         operating_areas: [{key, lane, tagline}]
-        monthly_themes: [{month, theme, lanes_emphasis}],
-        active_campaigns, lane_system
+        monthly_themes, active_campaigns, lane_system
       }
     """
     if not _is_authed():
@@ -42132,12 +42147,106 @@ def planning_big_idea(brand_id):
     data = _read_planning(brand_id)
     if not data:
         return jsonify({"ok": False, "error": "no planning data", "brand_id": brand_id}), 404
+
+    # Resolve canonical north_star / operating_goals — try sources in priority order.
+    # Returns (north_star, operating_goals, source_label) where source_label
+    # identifies which file produced the values (for debugging + audit).
+    bp_root = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        (
+            os.path.join(bp_root, "..", "data", "strategy", f"{brand_id}.json"),
+            "strategy",
+        ),
+        (
+            os.path.join(bp_root, "..", "data", "brand-planning", "strategy", f"{brand_id}.json"),
+            "strategy",
+        ),
+        (
+            os.path.join(bp_root, "..", "data", "brand-directory", brand_id, "north_stars.json"),
+            "brand-directory",
+        ),
+    ]
+
+    north_star = None
+    operating_goals = []
+    north_star_source = None
+    for candidate_path, source_label in candidates:
+        try:
+            if not os.path.exists(candidate_path):
+                continue
+            with open(candidate_path, "r", encoding="utf-8") as _sf:
+                payload = json.load(_sf)
+            # North star from strategy-file shape: dict OR legacy string
+            ns = payload.get("north_star")
+            if isinstance(ns, dict) and ns.get("statement"):
+                if north_star is None:
+                    north_star = ns
+                    north_star_source = source_label
+            elif isinstance(ns, str) and ns.strip():
+                if north_star is None:
+                    north_star = {"statement": ns, "source": f"{source_label} legacy form"}
+                    north_star_source = f"{source_label}-legacy-string"
+            # Operating goals from strategy shape OR from brand-directory north_stars list
+            og = payload.get("operating_goals") or []
+            if og and not operating_goals:
+                operating_goals = og
+                north_star_source = north_star_source or source_label
+            nd = payload.get("north_stars") or []
+            if nd and not operating_goals:
+                # Adapt brand-directory north_stars schema to the standard operating_goals shape
+                operating_goals = [
+                    {
+                        "id": s.get("id", s.get("label", "").lower().replace(" ", "_")),
+                        "label": s.get("label"),
+                        "metric": s.get("metric"),
+                        "category": s.get("category"),
+                        "outcome_measurement": s.get("outcome_measurement"),
+                        "connector_status": s.get("connector_status"),
+                        "missing_connector": s.get("missing_connector"),
+                        "marketing_support_signal": s.get("marketing_support_signal"),
+                        "do_not_fabricate_progress": s.get("do_not_fabricate_progress"),
+                        "source": s.get("source"),
+                    }
+                    for s in nd
+                ]
+                north_star_source = north_star_source or source_label
+            if north_star and operating_goals:
+                break
+        except Exception:
+            continue
+
+    # Final fallback for north_star if no strategy-level source had one.
+    if not north_star:
+        bp_ns = data.get("north_star")
+        if bp_ns:
+            north_star = bp_ns
+            north_star_source = "brand-planning"
+    if not operating_goals:
+        bp_og = data.get("operating_goals") or []
+        if bp_og:
+            operating_goals = bp_og
+            north_star_source = north_star_source or "brand-planning"
+
+    # If we still have no big_brand_idea (e.g. Bag Drop — no rich planning data),
+    # fall back to the brand-directory knowledge.json's brand_purpose or the
+    # brand-planning file's tagline-like fields. But never fabricate.
+    big_brand_idea = data.get("big_brand_idea") or {}
+    if not big_brand_idea or not (big_brand_idea.get("name") or big_brand_idea.get("tagline")):
+        # Last-resort fallback so the React hero never crashes on undefined.
+        # Use the brand_id itself as a sentence-cased label.
+        big_brand_idea = {
+            "name": data.get("brand_promise") or data.get("master_brand_line") or brand_id.replace("-", " ").title(),
+            "belief": data.get("brand_purpose") or "",
+            "elevator": "",
+        }
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
-        "big_brand_idea": data.get("big_brand_idea"),
-        "north_star": data.get("north_star"),
-        "operating_goals": data.get("operating_goals") or [],
+        "big_brand_idea": big_brand_idea,
+        "north_star": north_star,
+        "north_star_source": north_star_source,
+        "operating_goals": operating_goals,
         "operating_areas": data.get("operating_areas") or [],
         "monthly_themes": data.get("monthly_themes") or [],
         "active_campaigns": data.get("active_campaigns") or [],
@@ -43783,17 +43892,33 @@ def planning_timeline(brand_id):
 def planning_candidates(brand_id):
     """GET /api/planning/<brand>/candidates?start=…&end=…
 
-    Returns the broader intelligence universe — evidence-backed, scored,
-    NOT on the approved spine. Christelle decides what enters the spine.
+    Returns the broader intelligence universe — split into two layers per
+    Calendar V2.1 — Research & Source-of-Truth patch:
 
-    Sourced from data/brand-planning/<brand>-candidates-YYYY-YYYY.json when
-    present; otherwise 404.
+      candidates[]     — Evidence-backed, dated opportunities. Displayed as
+                         dated "Calendar candidate" rows. Require verified
+                         event date + reachable source URL + venue. May be
+                         promoted to the spine by Christelle.
+      research_leads[] — Opportunities without verified dates. Displayed
+                         in a separate "Needs Verification" section. Cannot
+                         be promoted to spine — only after their date is
+                         verified do they graduate to candidates[].
 
-    Each candidate carries:
-      id, name, category, start, end, public_peak, geography,
-      source, source_date, relevance_to_swing_shack, opportunity,
-      suggested_tier, confidence, recommended_lead_time_weeks,
-      why_it_matters, added_to_spine, spine_event_id?, verify_before_spine?
+    Sourced from data/brand-planning/<brand>-candidates-YYYY[-YYYY].json
+    when present; otherwise 404.
+
+    Each row carries at minimum:
+      candidates[]:     id, name, category, start, end, public_peak,
+                        geography, source, source_date, relevance_to_<brand>,
+                        opportunity, suggested_tier, confidence,
+                        recommended_lead_time_weeks, why_it_matters,
+                        added_to_spine, spine_event_id?, verification_status
+      research_leads[]: id, name, category, geography, inferred_pattern,
+                        verification_action_needed,
+                        relevance_to_<brand>, opportunity_if_promoted,
+                        suggested_tier_if_promoted,
+                        recommended_lead_time_weeks, why_in_research,
+                        confidence
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
@@ -43824,6 +43949,7 @@ def planning_candidates(brand_id):
             return jsonify({"ok": False, "error": f"invalid end: {end_str}"}), 400
 
     all_candidates = []
+    all_research_leads = []
     schema = None
     rules = None
     sources = []
@@ -43839,8 +43965,11 @@ def planning_candidates(brand_id):
         sources.append(cf)
         for c in (payload.get("candidates") or []):
             all_candidates.append(c)
+        for c in (payload.get("research_leads") or []):
+            all_research_leads.append(c)
 
-    # Date-filter
+    # Date-filter candidates[] by date range. research_leads[] NEVER carry
+    # specific dates and are returned as-is.
     if start_d or end_d:
         filtered = []
         for c in all_candidates:
@@ -43856,7 +43985,7 @@ def planning_candidates(brand_id):
             filtered.append(c)
         all_candidates = filtered
 
-    # Score tiers by confidence
+    # Confidence breakdown
     confidence_count = {"high": 0, "medium": 0, "low": 0}
     for c in all_candidates:
         conf = c.get("confidence")
@@ -43864,7 +43993,6 @@ def planning_candidates(brand_id):
             confidence_count[conf] += 1
     spine_added = sum(1 for c in all_candidates if c.get("added_to_spine"))
 
-    # Sort by public_peak / start date
     all_candidates.sort(key=lambda c: (c.get("public_peak") or c.get("start") or ""))
 
     return jsonify({
@@ -43872,6 +44000,8 @@ def planning_candidates(brand_id):
         "brand_id": brand_id,
         "candidates": all_candidates,
         "candidate_count": len(all_candidates),
+        "research_leads": all_research_leads,
+        "research_lead_count": len(all_research_leads),
         "spine_added_count": spine_added,
         "confidence_breakdown": confidence_count,
         "rules": rules,

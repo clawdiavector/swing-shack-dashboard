@@ -20,6 +20,25 @@ type Candidate = {
   added_to_spine?: boolean
   spine_event_id?: string
   verify_before_spine?: boolean
+  verification_status?: string
+}
+
+// Calendar V2.1 — research_leads[] are a separate tier from candidates[].
+// They are NOT dated and CANNOT be added to the spine. Operators must verify
+// the date with the source/contact before graduating them to a candidate.
+type ResearchLead = {
+  id?: string
+  name?: string
+  category?: string
+  geography?: string
+  inferred_pattern?: string
+  verification_action_needed?: string
+  relevance_to_swing_shack?: string
+  opportunity_if_promoted?: string
+  suggested_tier_if_promoted?: string
+  recommended_lead_time_weeks?: number
+  why_in_research?: string
+  confidence?: string
 }
 
 function confidenceTone(c?: string): { bg: string; fg: string; label: string } {
@@ -51,12 +70,16 @@ export function PlanningCandidatesPanel({
   candidates,
   candidateCount,
   confidenceBreakdown,
+  researchLeads,
+  researchLeadCount,
   horizon,
 }: {
   brand: string
   candidates: Candidate[]
   candidateCount: number
   confidenceBreakdown: Record<string, number>
+  researchLeads: ResearchLead[]
+  researchLeadCount: number
   horizon: { start: string; end: string }
 }) {
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all')
@@ -235,6 +258,53 @@ export function PlanningCandidatesPanel({
           </li>
         ) : null}
       </ul>
+
+      {/* Calendar V2.1 — Research leads. NOT dated. Cannot be promoted to the spine
+          until the operator verifies the date with the listed source/contact. */}
+      {researchLeadCount > 0 ? (
+        <div className="border-t border-bd pt-3" data-testid="research-leads-section">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold tracking-widest text-tx3 uppercase">
+                Needs Verification · Research leads
+              </p>
+              <p className="mt-0.5 text-[10px] text-tx3">
+                {researchLeadCount} leads · no confirmed dates ·{' '}
+                <span className="text-tx2">Christelle: confirm date with the source before promoting.</span>
+              </p>
+            </div>
+            <span className="rounded bg-tx3/15 px-2 py-0.5 text-[10px] font-bold tracking-wider text-tx3 uppercase">
+              research only
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {researchLeads.map((rl) => (
+              <li
+                key={rl.id}
+                data-testid="research-lead-row"
+                className="rounded-md border border-dashed border-bd bg-bg2/30 p-2.5"
+              >
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-sm font-bold text-tx">{rl.name}</span>
+                  <span className="rounded bg-tx3/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-tx3 uppercase">
+                    {rl.category?.replace(/-/g, ' ') || '—'}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] text-tx2">
+                  <span className="font-bold">Why:</span> {rl.relevance_to_swing_shack}
+                </p>
+                <p className="mt-0.5 text-[11px] text-tx3">
+                  <span className="font-bold">Inferred pattern:</span> {rl.inferred_pattern}
+                </p>
+                <p className="mt-0.5 text-[11px] text-tx3">
+                  <span className="font-bold text-yel">Verify:</span>{' '}
+                  {rl.verification_action_needed}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   )
 }
