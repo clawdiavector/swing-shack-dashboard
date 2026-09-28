@@ -45253,6 +45253,37 @@ def planning_diagnose_serialize(brand_id):
                     walk(v, f"{path_str}[{idx}]")
         walk(rec, "")
 
+    # Also scan the ENRICHED + V2.3-coerced version of every record.
+    enriched_nested_issues = []
+    for i, rec in enumerate(records[:134]):
+        try:
+            enr = _enrich_event(rec)
+        except Exception:
+            continue
+        if not enr.get("start"):
+            enr["start"] = enr.get("event_start") or ""
+        if not enr.get("end"):
+            enr["end"] = enr.get("event_end") or enr.get("public_peak") or ""
+
+        def walk2(o, path_str):
+            if isinstance(o, dict):
+                key_types = {type(k).__name__ for k in o.keys()}
+                if len(key_types) > 1:
+                    sample = list(o.keys())[:5]
+                    enriched_nested_issues.append({
+                        "record_index": i,
+                        "event_key": rec.get("event_key"),
+                        "path": path_str,
+                        "key_types": sorted(key_types),
+                        "sample_keys": [repr(k)[:60] for k in sample],
+                    })
+                for k, v in o.items():
+                    walk2(v, f"{path_str}.{k}")
+            elif isinstance(o, (list, tuple)):
+                for idx, v in enumerate(o):
+                    walk2(v, f"{path_str}[{idx}]")
+        walk2(enr, "")
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
@@ -45273,6 +45304,8 @@ def planning_diagnose_serialize(brand_id):
         "full_payload_offender_path": path_full if not full_payload_ok else None,
         "nested_mixed_key_dict_issues_found": len(nested_issues),
         "nested_mixed_key_dict_issues_first3": nested_issues[:3],
+        "enriched_nested_mixed_key_dict_issues_found": len(enriched_nested_issues),
+        "enriched_nested_mixed_key_dict_issues_first3": enriched_nested_issues[:3],
     }), 200
 
 
