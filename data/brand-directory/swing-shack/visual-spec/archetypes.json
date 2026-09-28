@@ -135,7 +135,9 @@
     {
       "id": "ss-service-frame",
       "name": "Service frame",
+      "description": "Generic service tile (stub geometry, not reference-measured). Solid brand field, optional lower photo, headline + logo. Distinct from stick-service-frame CTA-band family and from ss-discount-code measured frame promos.",
       "canvas": "ig_post",
+      "template_pack": "templates/service-frame",
       "block_anchor": "center",
       "applies_to": {
         "channels": [

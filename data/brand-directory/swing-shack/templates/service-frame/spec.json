@@ -1,0 +1,35 @@
+{
+  "archetype_id": "ss-service-frame",
+  "brand_id": "swing-shack",
+  "measured_from": null,
+  "measurement_note": "Stub geometry only — no Content Bank refs for a distinct SS service-frame family (see plan cos-tpl2-ss-service-frame-pack).",
+  "reference_size": null,
+  "post_type_proposed": "service_frame",
+  "canvas": "ig_post",
+  "background": {
+    "kind": "solid",
+    "fill": "primary"
+  },
+  "zones": {
+    "headline": {
+      "rect": {"x0": 0.1, "y0": 0.2, "x1": 0.9, "y1": 0.35},
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "h1",
+      "max_lines": 2,
+      "max_chars_per_line": 24,
+      "colour": "neutral_light",
+      "min_font_px": 32
+    },
+    "photo": {
+      "rect": {"x0": 0, "y0": 0.4, "x1": 1, "y1": 1},
+      "kind": "image",
+      "source": "photo",
+      "optional": true
+    },
+    "logo": {
+      "rect": {"x0": 0.1, "y0": 0.85, "x1": 0.3, "y1": 0.95},
+      "kind": "logo"
+    }
+  }
+}

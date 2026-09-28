@@ -204,3 +204,89 @@ def font_size_for_role(brand_id: str, role: str) -> int:
             except (TypeError, ValueError):
                 break
     return default.get(role, 32)
+
+
+def _record_to_selection_ctx(record: dict[str, Any]) -> dict[str, Any]:
+    pillar = str(record.get("pillar_id") or record.get("pillar") or "").strip()
+    products = record.get("product_ids") or record.get("products") or []
+    has_product = record.get("has_product_item")
+    if has_product is None:
+        has_product = bool(products)
+    return {
+        "has_product_item": bool(has_product),
+        "pillar_in": [pillar] if pillar else [],
+        "subject": str(record.get("subject") or record.get("topic") or ""),
+        "post_type": str(record.get("post_type") or "").strip().lower(),
+        "template_id": str(record.get("template_id") or record.get("archetype_id") or "").strip(),
+    }
+
+
+def _resolve_template_from_ctx(brand_id: str, ctx: dict[str, Any]) -> tuple[str, str]:
+    pinned = str(ctx.get("template_id") or "")
+    if pinned and archetype_by_id(brand_id, pinned):
+        return pinned, "pinned"
+    doc = load_archetypes_doc(brand_id)
+    selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
+    chosen = str(selection.get("default") or "")
+    resolution = "default"
+    for rule in selection.get("rules") or []:
+        if not isinstance(rule, dict):
+            continue
+        when = rule.get("when") if isinstance(rule.get("when"), dict) else {}
+        if _rule_matches(when, ctx):
+            chosen = str(rule.get("use") or chosen)
+            resolution = "rule"
+    if resolution == "default" and chosen and chosen != str(selection.get("default") or ""):
+        resolution = "fallback"
+    return chosen, resolution
+
+
+def resolve_archetype_choice(brand_id: str, ctx: dict[str, Any]) -> tuple[str, str]:
+    return _resolve_template_from_ctx(brand_id, ctx)
+
+
+def suggest_template_for_record(brand_id: str, record: dict[str, Any]) -> dict[str, Any]:
+    tid, resolution = _resolve_template_from_ctx(brand_id, _record_to_selection_ctx(record))
+    return {"template_id": tid, "resolution": resolution}
+
+
+def enrich_compose_template_fields(brand_id: str, record: dict[str, Any]) -> dict[str, Any]:
+    out = dict(record)
+    ctx = _record_to_selection_ctx(record)
+    pinned = str(ctx.get("template_id") or "")
+    if pinned:
+        out["template_id"] = pinned
+        out["template_resolution"] = "explicit"
+        return out
+    tid, resolution = _resolve_template_from_ctx(brand_id, ctx)
+    out["template_id"] = tid
+    out["template_resolution"] = resolution
+    return out
+
+
+def list_compose_templates(brand_id: str) -> list[dict[str, Any]]:
+    doc = load_archetypes_doc(brand_id)
+    rows: list[dict[str, Any]] = []
+    for row in doc.get("archetypes") or []:
+        if not isinstance(row, dict):
+            continue
+        aid = str(row.get("id") or "").strip()
+        if not aid:
+            continue
+        entry: dict[str, Any] = {"id": aid, "name": str(row.get("name") or aid)}
+        pack = row.get("template_pack")
+        if isinstance(pack, str) and pack.strip():
+            entry["template_pack"] = pack.strip()
+        rows.append(entry)
+    return rows
+
+
+def validate_template_id(brand_id: str, template_id: str) -> bool:
+    return archetype_by_id(brand_id, str(template_id or "").strip()) is not None
+
+
+def infer_post_type(record: dict[str, Any]) -> str:
+    title = str(record.get("title") or "").strip().lower()
+    if title.startswith("did you know"):
+        return "did_you_know"
+    return str(record.get("post_type") or "").strip().lower()
