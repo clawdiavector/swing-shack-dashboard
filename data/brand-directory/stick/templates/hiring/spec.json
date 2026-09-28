@@ -1,0 +1,10 @@
+{
+  "id": "stick-hiring",
+  "measured_from": [
+    "templates/hiring/references/ref-01.jpg"
+  ],
+  "reference_size": {
+    "w": 1081,
+    "h": 1351
+  }
+}

@@ -1906,6 +1906,222 @@
         "w": 1080,
         "h": 1350
       }
+    },
+    {
+      "id": "stick-hiring",
+      "name": "Hiring card — grey wordmark header, teal WE'RE HIRING, role band, navy brief, swipe footer",
+      "description": "Staff hiring / vacancy carousel cover slide measured from Content Bank Stick/Other job_carousel1.jpg (1081x1351). Five stacked full-width bands plus a white swipe footer. No photo. Carousel-pager affordance (chevron + 'SWIPE FOR MORE DETAILS').",
+      "canvas": "ig_post",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/hiring",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "white"
+      },
+      "zones": {
+        "header_band": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 1.0,
+            "y1": 0.15914
+          },
+          "kind": "band",
+          "fill": "grey_light"
+        },
+        "headline_band": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.15914,
+            "x1": 1.0,
+            "y1": 0.25907
+          },
+          "kind": "band",
+          "fill": "navy_deep"
+        },
+        "role_band": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.25907,
+            "x1": 1.0,
+            "y1": 0.34419
+          },
+          "kind": "band",
+          "fill": "teal"
+        },
+        "divider_band": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.34419,
+            "x1": 1.0,
+            "y1": 0.396
+          },
+          "kind": "band",
+          "fill": "#E1E1E1"
+        },
+        "brief_band": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.396,
+            "x1": 1.0,
+            "y1": 0.9134
+          },
+          "kind": "band",
+          "fill": "navy_deep"
+        },
+        "wordmark": {
+          "rect": {
+            "x0": 0.40479,
+            "y0": 0.06473,
+            "x1": 0.59272,
+            "y1": 0.11821
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "logo.png",
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "middle"
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.0555,
+            "y0": 0.15914,
+            "x1": 0.9445,
+            "y1": 0.22428
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h1",
+          "max_lines": 1,
+          "max_chars_per_line": 18,
+          "line_height": 1.0,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "bottom",
+          "colour": "teal",
+          "min_font_px": 44,
+          "max_font_px": 73
+        },
+        "role": {
+          "rect": {
+            "x0": 0.0555,
+            "y0": 0.25907,
+            "x1": 0.9445,
+            "y1": 0.31162
+          },
+          "kind": "text",
+          "source": "qualifier",
+          "font_role": "display",
+          "max_lines": 1,
+          "max_chars_per_line": 30,
+          "line_height": 1.0,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "bottom",
+          "colour": "white",
+          "min_font_px": 30,
+          "max_font_px": 55,
+          "h_scale": 0.96
+        },
+        "brief": {
+          "rect": {
+            "x0": 0.04348,
+            "y0": 0.396,
+            "x1": 0.92692,
+            "y1": 0.89563
+          },
+          "kind": "text",
+          "source": "caption_body",
+          "font_role": "body",
+          "max_lines": 8,
+          "max_chars_per_line": 34,
+          "line_height": 1.205,
+          "align": "left",
+          "valign": "middle",
+          "colour": "white",
+          "min_font_px": 38,
+          "max_font_px": 59,
+          "h_scale": 1.0
+        },
+        "swipe": {
+          "rect": {
+            "x0": 0.46253,
+            "y0": 0.9134,
+            "x1": 0.9371,
+            "y1": 0.96077
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "display",
+          "max_lines": 1,
+          "max_chars_per_line": 30,
+          "line_height": 1.0,
+          "text_transform": "uppercase",
+          "align": "right",
+          "valign": "bottom",
+          "colour": "navy_deep",
+          "min_font_px": 16,
+          "max_font_px": 25
+        },
+        "chevron": {
+          "rect": {
+            "x0": 0.95282,
+            "y0": 0.9282,
+            "x1": 1.0,
+            "y1": 0.9815
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/hiring/assets/chevron-swipe-navy.png",
+          "fit": "aspect_fit",
+          "align": "right",
+          "valign": "middle"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 0.001,
+            "y1": 0.001
+          },
+          "kind": "logo",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 240,
+      "measured_from": [
+        "templates/hiring/references/ref-01.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1351
+      }
     }
   ],
   "selection": {
@@ -1984,6 +2200,14 @@
           ]
         },
         "use": "stick-coach-profile"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "hiring"
+          ]
+        },
+        "use": "stick-hiring"
       }
     ]
   }
