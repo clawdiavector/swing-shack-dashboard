@@ -2028,6 +2028,33 @@ def brand_image_serve(brand_id, filename):
     return jsonify({"error": "not found", "path": str(last_target or filename)}), 404
 
 
+@app.route('/brand-directory/<brand_id>/<path:relpath>', methods=['GET'])
+def brand_directory_serve(brand_id, relpath):
+    """Serve template reference photos and other brand-directory assets (non-/images paths)."""
+    from pathlib import Path as _P
+
+    rel = str(relpath or "").replace("\\", "/").lstrip("/")
+    if not rel or ".." in rel.split("/"):
+        return jsonify({"error": "path traversal denied"}), 403
+    last_target = None
+    for root in (
+        _P(DATA_DIR) / "brand-directory" / brand_id,
+        _P(BUNDLED_DATA_DIR) / "brand-directory" / brand_id,
+    ):
+        if not root.is_dir():
+            continue
+        base = root.resolve()
+        target = (base / rel).resolve()
+        last_target = target
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return jsonify({"error": "path traversal denied"}), 403
+        if target.is_file():
+            return send_from_directory(str(target.parent), target.name)
+    return jsonify({"error": "not found", "path": str(last_target or rel)}), 404
+
+
 @app.route('/assets/<path:filename>', methods=['GET'])
 def asset_serve(filename):
     """GET /assets/<path:...> — serve a repo-root asset (campaign visuals, etc.).

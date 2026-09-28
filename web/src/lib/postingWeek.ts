@@ -77,6 +77,10 @@ export type PostingWeekPost = {
   image_url?: string | null
   next_action?: string
   needs_fix_reason?: string
+  template_id?: string
+  template_name?: string
+  template_label?: string
+  template_reference_urls?: string[]
 }
 
 export type PostingWeekDay = {

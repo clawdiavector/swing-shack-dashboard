@@ -24,6 +24,8 @@ import {
 import { dedupeById } from '../lib/dedupeById'
 import { fanOutPayloads, type FanOutFailure } from '../lib/fanOut'
 import { sumCounts } from '../lib/mergeCounts'
+import { TemplateReferenceTag } from '../components/TemplateReferenceTag'
+import { templateMetaFromInbox } from '../lib/templateMeta'
 import { reviewType } from '../lib/reviewType'
 import { useLoadGate } from '../lib/useLoadGate'
 function itemType(item: InboxItem) {
@@ -273,7 +275,15 @@ function ReviewInbox({
                 key={item.id}
                 to={reviewPiecePath(item.id, item.brand_id)}
                 layout="vertical"
-                brandSlot={<BrandChip brandId={item.brand_id} show />}
+                brandSlot={
+                  <>
+                    <BrandChip brandId={item.brand_id} show />
+                    <TemplateReferenceTag
+                      meta={templateMetaFromInbox(item)}
+                      onClickCapture={(e) => e.stopPropagation()}
+                    />
+                  </>
+                }
                 typeBadge={kind}
                 stateBadge={stateChip}
                 hideImageFallbackBadge

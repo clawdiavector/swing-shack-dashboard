@@ -24,6 +24,8 @@ import {
 } from '../lib/api'
 import { ReviewPieceDetail } from './ReviewPieceDetail'
 import { fanOutPayloads } from '../lib/fanOut'
+import { TemplateReferenceTag } from '../components/TemplateReferenceTag'
+import { templateMetaFromInbox } from '../lib/templateMeta'
 import { reviewType } from '../lib/reviewType'
 import { useLoadGate } from '../lib/useLoadGate'
 import { formatStamp } from '../lib/stamp'
@@ -403,7 +405,15 @@ export function ReviewPiece() {
                 key={row.id}
                 to={reviewPiecePath(row.id, row.brand_id)}
                 layout="vertical"
-                brandSlot={<BrandChip brandId={row.brand_id} show />}
+                brandSlot={
+                  <>
+                    <BrandChip brandId={row.brand_id} show />
+                    <TemplateReferenceTag
+                      meta={templateMetaFromInbox(row)}
+                      onClickCapture={(e) => e.stopPropagation()}
+                    />
+                  </>
+                }
                 badge={media.label}
                 tone={media.tone}
                 channelBadge={channel || undefined}

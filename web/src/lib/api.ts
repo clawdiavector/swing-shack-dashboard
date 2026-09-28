@@ -97,6 +97,11 @@ export type InboxItem = {
       platform?: string
       selected_because?: string
     }
+    template_id?: string
+    template_name?: string
+    template_label?: string
+    template_reference_urls?: string[]
+    archetype?: { id?: string; canvas?: string; schema?: string }
   }
 }
 

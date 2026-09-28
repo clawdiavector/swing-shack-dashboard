@@ -15,6 +15,8 @@ import {
   postStateTone,
   type PostingWeekPost,
 } from '../../lib/postingWeek'
+import { TemplateReferenceTag } from '../TemplateReferenceTag'
+import { templateMetaFromPost } from '../../lib/templateMeta'
 import { StageStepper } from './StageStepper'
 
 function PostCardThumb({ imageUrl, title }: { imageUrl?: string | null; title: string }) {
@@ -118,6 +120,7 @@ export function PostCard({
       : null
   const factLine = `${formatGoesOut(dayDate, weekday)} · ${nextAction}`
   const tone = postStateTone(post.state)
+  const templateMeta = templateMetaFromPost(post)
   const toneClass =
     tone === 'bad'
       ? 'border-red/40 text-red'
@@ -134,6 +137,7 @@ export function PostCard({
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <BrandChip brandId={rowBrandId} show={isAll} />
+            <TemplateReferenceTag meta={templateMeta} onClickCapture={(e) => e.stopPropagation()} />
             <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
               {postStateLabel(post.state)}
             </span>

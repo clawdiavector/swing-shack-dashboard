@@ -10,7 +10,9 @@ import {
   qcDisplayScore,
   qcReasonsList,
 } from '../lib/reviewDraftMeta'
+import { templateMetaFromInbox } from '../lib/templateMeta'
 import { BrandChip } from './BrandChip'
+import { TemplateReferenceTag } from './TemplateReferenceTag'
 import { Badge, PressIcon, Tip } from './ui'
 
 export type ReviewDraftDetailProps = {
@@ -58,6 +60,7 @@ export function ReviewDraftDetail({
   const candidates = item.meta?.photo_candidates || []
   const briefSections = briefSectionEntries(item.meta?.brief?.sections)
   const refUsed = item.meta?.reference_used
+  const templateMeta = templateMetaFromInbox(item)
 
   const [regenOpen, setRegenOpen] = useState(false)
   const [regenNote, setRegenNote] = useState('')
@@ -106,6 +109,7 @@ export function ReviewDraftDetail({
           <p className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">Next up</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <BrandChip brandId={item.brand_id} show={showBrandChip} />
+            <TemplateReferenceTag meta={templateMeta} />
             <h2 className="font-display text-xl font-semibold leading-snug text-tx">
               {item.title || item.summary || item.id}
             </h2>
