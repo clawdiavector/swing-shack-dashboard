@@ -128,7 +128,20 @@ def _zones_for_canvas(archetype: dict[str, Any], canvas_id: str, base_canvas_id:
     overrides = archetype.get("canvas_overrides") if isinstance(archetype.get("canvas_overrides"), dict) else {}
     if canvas_id in overrides and isinstance(overrides[canvas_id], dict):
         merged = dict(zones)
-        merged.update(overrides[canvas_id])
+        for zid, patch in overrides[canvas_id].items():
+            if not isinstance(patch, dict):
+                merged[zid] = patch
+                continue
+            base_z = merged.get(zid)
+            if isinstance(base_z, dict):
+                zcopy = dict(base_z)
+                if set(patch.keys()) <= {"rect"} and isinstance(patch.get("rect"), dict):
+                    zcopy["rect"] = patch["rect"]
+                else:
+                    zcopy.update(patch)
+                merged[zid] = zcopy
+            else:
+                merged[zid] = patch
         return merged
     if canvas_id == base_canvas_id:
         return zones
@@ -437,6 +450,73 @@ def _draw_text_zone(
     tracking_px = _tracking_px(zone, size)
     emphasis = _emphasis_words(zone)
     align = str(zone.get("align") or "left")
+    inline = zone.get("inline_asset") if isinstance(zone.get("inline_asset"), dict) else None
+    if inline is not None and align == "center" and len(lines) == 1:
+        line_w = _line_width(lines[0].split(), body_font, emph_font, emphasis, tracking_px)
+        th = int(inline.get("height_px") or 63)
+        gap = int(inline.get("gap_px") or 0)
+        from _lib.brand_overlay import _resolve_brand_relative
+
+        path = _resolve_brand_relative(brand_id, str(inline.get("asset") or ""))
+        asset_w = 0
+        if path is not None:
+            probe = _load_image(path)
+            if probe is not None:
+                asset_w = max(1, int(probe.width * th / max(1, probe.height)))
+        scaled_text_w = int(line_w * h_scale)
+        total = scaled_text_w + gap + asset_w
+        start_x = int((canvas_w - total) / 2)
+        baseline = y_base + cap
+        if layered and base is not None:
+            layer_w = int(canvas_w / min(1.0, h_scale)) + 1
+            layer = Image.new("RGBA", (layer_w, canvas_h), (0, 0, 0, 0))
+            target = ImageDraw.Draw(layer)
+            _draw_line_mixed(
+                target,
+                float(start_x),
+                baseline,
+                lines[0],
+                body_font,
+                emph_font,
+                emphasis,
+                colour,
+                tracking_px,
+                "left",
+                start_x,
+                start_x + int(line_w),
+            )
+            if h_scale != 1.0:
+                scaled = layer.resize((max(1, int(layer_w * h_scale)), canvas_h), Image.LANCZOS)
+                layer = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
+                layer.paste(scaled, (0, 0))
+            else:
+                layer = layer.crop((0, 0, canvas_w, canvas_h))
+            base.paste(layer, (0, 0), layer)
+        else:
+            _draw_line_mixed(
+                draw,
+                start_x,
+                baseline,
+                lines[0],
+                body_font,
+                emph_font,
+                emphasis,
+                colour[:3],
+                tracking_px,
+                "left",
+                start_x,
+                start_x + int(line_w),
+            )
+        _paste_inline_asset(
+            base,
+            brand_id=brand_id,
+            zone=zone,
+            x=start_x + scaled_text_w,
+            text_cap_y=y_base,
+            text_cap_h=cap,
+        )
+        return int(y_base), int(y_base + block_h)
+
     layer_w = int(canvas_w / min(1.0, h_scale)) + 1
     layer = Image.new("RGBA", (layer_w, canvas_h), (0, 0, 0, 0)) if layered else None
     target = ImageDraw.Draw(layer) if layer is not None else draw
@@ -641,13 +721,28 @@ def _photo_cover_background(base, archetype: dict[str, Any], brand_id: str, phot
 def _draw_frame(base, zone: dict[str, Any], brand_id: str) -> None:
     w, h = base.size
     inset = int(zone.get("inset_px") or 0)
+    inset_x = int(zone.get("inset_x_px") if zone.get("inset_x_px") is not None else inset)
+    inset_y = int(zone.get("inset_y_px") if zone.get("inset_y_px") is not None else inset)
     stroke = int(zone.get("stroke_px") or 4)
     colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
     alpha = int(float(zone.get("alpha", 1.0)) * 255)
     layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
     ImageDraw.Draw(layer).rectangle(
-        [inset, inset, w - 1 - inset, h - 1 - inset], outline=colour[:3] + (alpha,), width=stroke
+        [inset_x, inset_y, w - 1 - inset_x, h - 1 - inset_y],
+        outline=colour[:3] + (alpha,),
+        width=stroke,
     )
+    base.paste(layer, (0, 0), layer)
+
+
+def _draw_rule(base, zone: dict[str, Any], brand_id: str) -> None:
+    w, h = base.size
+    rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
+    x0, y0, x1, y1 = _rect_px(rect, w, h)
+    colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
+    alpha = int(float(zone.get("alpha", 1.0)) * 255)
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).rectangle([x0, y0, x1, y1], fill=colour[:3] + (alpha,))
     base.paste(layer, (0, 0), layer)
 
 
@@ -667,7 +762,43 @@ def _content_for_source(source: str, fields: dict[str, str], zone: dict[str, Any
         parts = hook.split(None, 1)
         return parts[1] if len(parts) > 1 else ""
     val = fields.get(source) or ""
-    return str(val)
+    text = str(val)
+    suffix = zone.get("text_suffix")
+    if suffix is not None and str(suffix):
+        text = f"{text}{suffix}"
+    return text
+
+
+def _paste_inline_asset(
+    base,
+    *,
+    brand_id: str,
+    zone: dict[str, Any],
+    x: int,
+    text_cap_y: int,
+    text_cap_h: int,
+) -> None:
+    inline = zone.get("inline_asset") if isinstance(zone.get("inline_asset"), dict) else None
+    if inline is None:
+        return
+    from _lib.brand_overlay import _resolve_brand_relative
+
+    rel = inline.get("asset")
+    if not isinstance(rel, str) or not rel.strip():
+        return
+    path = _resolve_brand_relative(brand_id, rel)
+    if path is None:
+        raise ComposeError(f"missing inline asset {rel}")
+    img = _load_image(path)
+    if img is None:
+        raise ComposeError(f"missing inline asset {rel}")
+    gap = int(inline.get("gap_px") or 0)
+    th = int(inline.get("height_px") or img.height)
+    scale = th / max(1, img.height)
+    tw = max(1, int(img.width * scale))
+    img = img.resize((tw, th), Image.LANCZOS)
+    py = text_cap_y + (text_cap_h - th) // 2
+    base.paste(img, (x + gap, py), img if img.mode == "RGBA" else None)
 
 
 def _compose_variant(fields: dict[str, str]) -> str:
@@ -744,8 +875,12 @@ def compose_to_canvas(
         if not _zone_variant_ok(zone, variant):
             continue
         kind = str(zone.get("kind") or "")
-        if kind == "decorative" and str(zone.get("shape") or "") == "frame":
-            _draw_frame(base, zone, brand_id)
+        if kind == "decorative":
+            shape = str(zone.get("shape") or "")
+            if shape == "frame":
+                _draw_frame(base, zone, brand_id)
+            elif shape == "rule":
+                _draw_rule(base, zone, brand_id)
             draw = ImageDraw.Draw(base)
         elif kind == "band":
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}

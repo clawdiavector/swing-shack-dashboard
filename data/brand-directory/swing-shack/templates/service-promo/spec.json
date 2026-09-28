@@ -1,0 +1,14 @@
+{
+  "archetype_id": "ss-service-promo",
+  "brand_id": "swing-shack",
+  "measured_from": [
+    "templates/service-promo/references/ref-01.jpg",
+    "templates/service-promo/references/ref-02.jpg",
+    "templates/service-promo/references/ref-03.jpg",
+    "templates/service-promo/references/ref-04.jpg",
+    "templates/service-promo/references/ref-05.jpg",
+    "templates/service-promo/references/ref-06.jpg"
+  ],
+  "reference_size": {"w": 1081, "h": 1351},
+  "post_type_proposed": "service_promo"
+}
