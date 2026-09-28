@@ -409,8 +409,9 @@ def upload_media(
 def create_post(
     integration_id: str,
     content: str,
-    media_ids: list[str],
+    media: list[dict[str, str]] | None = None,
     *,
+    media_ids: list[str] | None = None,
     brand_id: str | None = None,
     publish_date: Optional[str] = None,
     tiktok_privacy_level: str = "SELF_ONLY",
@@ -430,8 +431,15 @@ def create_post(
     """
     import datetime as _dt
     effective_date = publish_date or _dt.datetime.now(_dt.timezone.utc).isoformat()
-    value = [{"content": content, "image": [{"id": m} for m in media_ids], "shortLink": False, "tags": []}]
-    settings = platform_settings or {}
+    images: list[dict[str, str]] = []
+    if media:
+        for item in media:
+            if isinstance(item, dict) and item.get("id") and item.get("path"):
+                images.append({"id": str(item["id"]), "path": str(item["path"])})
+    elif media_ids:
+        images = [{"id": str(m)} for m in media_ids]
+    value = [{"content": content, "image": images, "shortLink": False, "tags": []}]
+    settings = platform_settings or {"post_type": "post"}
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
