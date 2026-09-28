@@ -718,7 +718,7 @@ def _maybe_enqueue_image_pipeline_after_caption(
         if str(row.get("status") or "").lower() != "pending":
             continue
         action = str(row.get("action") or "")
-        if action in ("draft_gen_slots", "draft_photo", "draft_image", "compose_post"):
+        if action in ("draft_gen_slots", "draft_photo", "draft_image"):
             pending_image = True
             break
     if pending_image:
