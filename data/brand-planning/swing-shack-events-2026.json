@@ -1,0 +1,338 @@
+{
+  "brand": "swing-shack",
+  "coverage_year": 2026,
+  "version": "1.0",
+  "status": "ACTIVE",
+  "active_campaigns": [],
+  "always_on_pillars": [
+    {
+      "lane": "swing-truth",
+      "name": "What Does Your Swing Say?",
+      "always_active": true,
+      "description": "TrackMan data + swing analysis. swing-shack has 4 TrackMan 4 bays + the first TrackMan iO in SA."
+    },
+    {
+      "lane": "truth-about",
+      "name": "The Truth About",
+      "always_active": true,
+      "description": "Myth-busting golf content."
+    },
+    {
+      "lane": "10-ball-truth",
+      "name": "10-Ball Truth",
+      "always_active": true,
+      "description": "Pressure-test claims via the iO. Does it actually work?"
+    },
+    {
+      "lane": "shack-sessions",
+      "name": "Shack Sessions",
+      "always_active": true,
+      "description": "Member / lesson / studio experiences."
+    },
+    {
+      "lane": "fitting",
+      "name": "Fitting",
+      "always_active": true,
+      "description": "Custom TrackMan fitting — Takomo, Vice, L.A.B., LA Golf, Miura in-store."
+    },
+    {
+      "lane": "coaching",
+      "name": "Coaching",
+      "always_active": true,
+      "description": "Lessons + playing-coach sessions."
+    }
+  ],
+  "events": [
+    {
+      "id": "saints-festival-2026",
+      "name": "Saints Sports Festival @ St Stithians (Randburg)",
+      "tier": "B-PIN",
+      "category": "regional-local inter-school-sport",
+      "start": "2026-04-04",
+      "end": "2026-04-06",
+      "public_peak": "2026-04-05",
+      "planning_start": "2026-03-15",
+      "commercial_push": "St Stithians College (Randburg) hosts the annual Saints Sports Festival — six sporting codes. Inter-school competition weekend. swing-shack is a 5-min drive from the campus. Family / spectator footfall day — TrackMan iO demo for parents while kids play.",
+      "pillars": {
+        "fitting": "TrackMan iO 30-min parent-demo slots.",
+        "coaching": "Junior coaching sign-on coupon for festival families.",
+        "retail": "Golf-shaped festival gift packs (caps, balls)."
+      },
+      "lanes": {
+        "swing-truth": "Free swing-analysis at swing-shack for any parent whose kid is in a sport.",
+        "shack-sessions": "Spectator-with-shack-session combo ticket.",
+        "campaign": "Co-branded social with St Stithians golf team."
+      },
+      "verification_sources": [
+        "https://www.citizen.co.za/rosebank-killarney-gazette/sports-news/2026/04/01/saints-festival-2026-kicks-off-with-packed-programme/",
+        "https://www.citizen.co.za/randburg-sun/sports-news/local-sports/2026/04/06/saints-festival-2026-closes-with-action-packed-monday-programme/"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "joburg-ladies-open-2026",
+      "name": "Joburg Ladies Open @ Randpark",
+      "tier": "A-PIN",
+      "category": "shopping-moment regional-local",
+      "start": "2026-04-06",
+      "end": "2026-04-19",
+      "public_peak": "2026-04-15",
+      "planning_start": "2026-02-23",
+      "commercial_push": "Premier women's golf tournament on our doorstep. Randpark Firethorn course is closed 12-19 Apr; members and visitors get redirected to Old Parktonian (our home). A-PIN: fitting push + TrackMan iO demo + family spectator slot.",
+      "pillars": {
+        "fitting": "TrackMan iO demo window — book a fitting during tournament week.",
+        "coaching": "Junior girls demo on weekend mornings.",
+        "retail": "Takomo + Vice + Miura fitting-day bundles."
+      },
+      "lanes": {
+        "swing-truth": "TrackMan iO live demo data streamed in-store.",
+        "truth-about": "Women's golf counter-myth content.",
+        "shack-sessions": "Spectator-with-shack-session combo tickets.",
+        "paid": "Boosted posts within 5km radius of Randpark.",
+        "crm": "Pre-event waitlist email to existing female members."
+      },
+      "verification_sources": [
+        "https://www.golfpost.com/randpark-golf-club-to-host-joburg-ladies-open-2026-888202000/",
+        "https://www.golfpost.com/randpark-golf-club-firethorn-course-closed-for-jhb-ladies-open-888201999/",
+        "https://randpark.co.za/blog/"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "heritage-day-2026",
+      "name": "Heritage Day",
+      "tier": "C-PIN",
+      "category": "sa-cultural sa-public-holiday",
+      "start": "2026-09-24",
+      "end": "2026-09-25",
+      "public_peak": "2026-09-24",
+      "planning_start": "2026-09-10",
+      "commercial_push": "SA public holiday, Thursday. swing-shack open Wednesday-Friday 09:00-21:00. No retail push — presence moment. Real heritage content via swing-shack's Truth-About / 10-Ball lanes.",
+      "pillars": {
+        "retail": "Open door. No offer. Heritage-month storytelling through Truth-About lane."
+      },
+      "lanes": {
+        "campaign": "Heritage-Month Truth-About frame.",
+        "search": "Long-tail 'golf indoor JHB' social proof peak."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "presidents-cup-2026",
+      "name": "Presidents Cup",
+      "tier": "C-PIN",
+      "category": "golf-moment international-content",
+      "start": "2026-09-25",
+      "end": "2026-09-28",
+      "public_peak": "2026-09-26",
+      "planning_start": "2026-09-14",
+      "commercial_push": "Team-golf social play. swing-shack does not own this; no commercial arc. Light content beat via swing-truth lane. Downgraded from B-PIN: SA consumers respond weakly to non-SA team events.",
+      "pillars": {
+        "retail": "TrackMan team-format sim rounds — 'Pick your Presidents Cup team from the simulator' weekend."
+      },
+      "lanes": {
+        "swing-truth": "Matchplay-format simulator rounds (best-ball, foursomes) over Presidents-Cup weekend.",
+        "campaign": "Low-key 'follow it on the bay' remarketing."
+      },
+      "verification_sources": [
+        "stick-events-2026.json (kept, downgraded tier)"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "lge-election-day-2026",
+      "name": "Local Government Election Day",
+      "tier": "B-PIN",
+      "category": "sa-public-moment non-golf",
+      "start": "2026-11-04",
+      "end": "2026-11-04",
+      "public_peak": "2026-11-04",
+      "planning_start": "2026-10-19",
+      "commercial_push": "Wed 4 Nov 2026 LGE. Real SA public moment — non-golf. swing-shack stays open, foot traffic likely RE-DUCED Wed daytime. Engagement angle: voter-education + 'what's happening in our community' content parallel to the election. For Randburg single-store this matters more than for Paarl-Winelands. Hook: how decisions about local parks/public land shape urban golf access; relevant for swing-shack members.",
+      "pillars": {
+        "retail": "Open door. No offer. 'Get out and vote, then come improve your game' social frame.",
+        "coaching": "Wed afternoon discounted slot (post-vote recovery pitch)."
+      },
+      "lanes": {
+        "campaign": "Civic-engagement content — swing-shack as part of community, not purely transactional.",
+        "search": "'indoor golf near Randburg' SEO uplift on nearby civic moments."
+      },
+      "verification_sources": [
+        "https://www.elections.org.za/pw/News-And-Media/News-List/News/News-Article/Electoral-Commission-publishes-the-2026-LGE-Election-Timetable",
+        "https://www.elections.org.za/pw/News-And-Media/Calendar"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "singles-day-2026",
+      "name": "Singles' Day",
+      "tier": "C-PIN",
+      "category": "test-moment international-content",
+      "start": "2026-11-11",
+      "end": "2026-11-11",
+      "public_peak": "2026-11-11",
+      "planning_start": "2026-10-20",
+      "commercial_push": "Chinese-origin e-commerce holiday. Stick classifies this as test-only. swing-shack mirrors: small retail hook ONLY if useful. No full push. Treat as experiment slot.",
+      "pillars": {
+        "retail": "Single-person fitting slot — 'fit yourself a gift' midweek window."
+      },
+      "lanes": {
+        "crm": "Solo-golfer re-engagement email."
+      },
+      "verification_sources": [
+        "stick-events-2026.json (kept, C-PIN test)"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "black-friday-2026",
+      "name": "Black Friday + Cyber Monday",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2026-10-12",
+      "end": "2026-11-30",
+      "public_peak": "2026-11-27",
+      "planning_start": "2026-10-05",
+      "commercial_push": "Single biggest commercial moment of the SA retail calendar. 6-week runway. swing-shack retails premium brand kit (Takomo, Vice, L.A.B., LA Golf, Miura). Real retail moment — promote early and honestly. Each shopping moment carries: offer lock 10-16, creative briefs due 10-30, paid setup complete 11-13, warm-up 11-16, peak 11-27, follow-up 11-30.",
+      "pillars": {
+        "retail": "Premium-kit feature cards + fitting-bundle offers.",
+        "fitting": "BFCM fitting discounts — bookable 6-week arc.",
+        "coaching": "BFCM coaching gift certificates."
+      },
+      "lanes": {
+        "paid": "Boosted posts across the 6-week runway.",
+        "crm": "Waitlist + 'preview' drip to existing list.",
+        "campaign": "BFCM creative pack — 4 variants.",
+        "search": "Long-tail 'Cyber Monday golf' SEO."
+      },
+      "verification_sources": [
+        "stick-events-2026.json (kept, A-PIN unchanged)",
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "december-school-holiday-family-golf-2026",
+      "name": "December School Holiday / Family Golf",
+      "tier": "B-PIN",
+      "category": "always-on-window sa-cultural",
+      "start": "2026-12-06",
+      "end": "2026-12-09",
+      "public_peak": "2026-12-09",
+      "planning_start": "2026-11-15",
+      "commercial_push": "Last day of Term 4 (gov.za — 2026 Gauteng school calendar). Family / junior / parent-child golf window. Pushed from Stick's mid-Dec peak to mid-Dec Term-4-end peak so it cleanly sits before the SA-public-holiday arc. Junior coaching + parent-child session + gifting arc.",
+      "pillars": {
+        "coaching": "Junior last-day-of-term slots.",
+        "fitting": "'Family-fit' bundle: junior fitting + adult fitting in same morning.",
+        "retail": "Golf-shaped December gifting starter pack."
+      },
+      "lanes": {
+        "shack-sessions": "Family coach-led session weekend.",
+        "campaign": "Co-marketing with local schools (Hoërskool Randburg / Bryanston High / etc.)."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/school-calendar",
+        "https://www.education.gov.za/portals/0/documents/publications/2025/Published%202026%20School%20Calendar.pdf"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "day-of-reconciliation-2026",
+      "name": "Day of Reconciliation",
+      "tier": "C-PIN",
+      "category": "sa-holiday sa-public-holiday",
+      "start": "2026-12-16",
+      "end": "2026-12-16",
+      "public_peak": "2026-12-16",
+      "planning_start": "2026-12-01",
+      "commercial_push": "Real SA public holiday. Open door, presence only. No commercial push.",
+      "pillars": {
+        "retail": "Open door, no offer.",
+        "coaching": "Mid-week Reconnection drop-in simulator session."
+      },
+      "lanes": {
+        "campaign": "Reconciliation-day content beat (Story/Carousel only).",
+        "shack-sessions": "Drop-in solo session."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "festive-gifting-2026",
+      "name": "Festive Gifting",
+      "tier": "A-PIN",
+      "category": "shopping-moment",
+      "start": "2026-11-16",
+      "end": "2026-12-24",
+      "public_peak": "2026-12-22",
+      "planning_start": "2026-11-01",
+      "commercial_push": "Major retail arc. Builds BEFORE Christmas, not on the day. Overlaps Black Friday — that is intentional. Vouchers + giftable apparel + end-of-year tax-reset fit appointments + 'New Year New Bag' pitch.",
+      "pillars": {
+        "retail": "Apparel drop (caps, polos, socks), giftable bundles, voucher scheme.",
+        "fitting": "Year-end tax-reset fit appointments."
+      },
+      "lanes": {
+        "campaign": "Festive 6-week content arc.",
+        "crm": "Voucher-holder re-engagement.",
+        "paid": "Retargeting + lookalikes from previous gift buyers."
+      },
+      "verification_sources": [
+        "stick-events-2026.json (kept, A-PIN unchanged)"
+      ],
+      "shopping_moment": true
+    },
+    {
+      "id": "christmas-2026",
+      "name": "Christmas",
+      "tier": "A-PIN",
+      "category": "endpoint sa-public-holiday",
+      "start": "2026-12-24",
+      "end": "2026-12-25",
+      "public_peak": "2026-12-25",
+      "planning_start": "2026-12-01",
+      "commercial_push": "A-PIN END POINT. The campaign happens BEFORE this date. Christmas day itself is the close.",
+      "pillars": {
+        "retail": "Store closed 25 Dec; gifting arc ends 24 Dec."
+      },
+      "lanes": {
+        "campaign": "Closing remarketing + 'see you 26 Dec' travel window ad."
+      },
+      "verification_sources": [
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": false
+    },
+    {
+      "id": "new-year-new-bag-2026",
+      "name": "New Year / New Bag",
+      "tier": "A-PIN",
+      "category": "sustained-arc shopping-moment",
+      "start": "2026-12-27",
+      "end": "2027-01-31",
+      "public_peak": "2027-01-10",
+      "planning_start": "2026-12-10",
+      "commercial_push": "Sustained A/B arc. Fitting + new-equipment + coaching goals + voucher redemption + new-season golf. For swing-shack this is the 'New Year, New Swing' arc — fitting-first, equipment as the result.",
+      "pillars": {
+        "fitting": "Full-bag fitting surge. Putter then iron then driver — gate them in lanes, don't push them all at once.",
+        "coaching": "New-year coaching packages. Beginner-friendly + 5-lesson pack.",
+        "retail": "New-season apparel drop."
+      },
+      "lanes": {
+        "paid": "New-year resolution-style retargeting.",
+        "search": "Long-tail 'golf lessons JHB new year' SEO uplift.",
+        "crm": "Voucher-holder re-engagement.",
+        "shack-sessions": "'Start the year swinging' open-day once a week."
+      },
+      "verification_sources": [
+        "stick-events-2026.json (kept, A-PIN unchanged)",
+        "https://www.gov.za/about-sa/public-holidays"
+      ],
+      "shopping_moment": true
+    }
+  ]
+}
