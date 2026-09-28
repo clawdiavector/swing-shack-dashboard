@@ -318,6 +318,7 @@ def image_generate(
     model: str = "flux-fast",
     aspect_ratio: str = "1:1",
     extra: Optional[dict] = None,
+    background_plate: bool = False,
 ) -> dict:
     """Generate an image via Krea's MCP `generate_image` tool, brand-aware.
 
@@ -330,16 +331,19 @@ def image_generate(
     Real Krea tool name is `generate_image` (verified 2026-08-28 against
     https://api.krea.ai/mcp tools/list — 32 tools available).
     """
-    bible = _brand_bible_context(brand)
-    belief = bible.get("belief", "Golf is more fun when it makes sense.")
-    feel = ", ".join(bible.get("values", {}).get("should_feel", [])[:5])
-    voice_summary = bible.get("voice_summary", "Know the numbers. Speak like a golfer.")
-    enriched_prompt = (
-        f"{prompt}. "
-        f"Brand context: {belief}. "
-        f"Tone: {voice_summary}. "
-        f"Visual feel: {feel}."
-    ).strip()
+    if background_plate:
+        enriched_prompt = prompt.strip()
+    else:
+        bible = _brand_bible_context(brand)
+        belief = bible.get("belief", "Golf is more fun when it makes sense.")
+        feel = ", ".join(bible.get("values", {}).get("should_feel", [])[:5])
+        voice_summary = bible.get("voice_summary", "Know the numbers. Speak like a golfer.")
+        enriched_prompt = (
+            f"{prompt}. "
+            f"Brand context: {belief}. "
+            f"Tone: {voice_summary}. "
+            f"Visual feel: {feel}."
+        ).strip()
     # Krea API expects `image_input` shape; the public tool signature uses
     # `prompt` + `model` + optional inputs. Pass through any extras.
     # Krea MCP expects the model at the envelope level, prompt + options

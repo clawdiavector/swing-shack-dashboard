@@ -23,16 +23,27 @@ from .draft_assets import (
     _write_draft,
     _write_image_brief,
 )
-from .image_draft_context import ImageDraftContext, build_image_draft_context, image_url_for, primary_channel_for_item
+from .image_draft_context import (
+    ImageDraftContext,
+    background_plate_scene_prompt,
+    build_image_draft_context,
+    image_url_for,
+    primary_channel_for_item,
+)
 from .visual_qc import visual_check
 
 
 def _resolve_prompt(template: str, ctx: ImageDraftContext, *, brand_id: str, item_id: str) -> str:
+    scene = background_plate_scene_prompt(brand_id, item_id, ctx)
     calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
-    title = str(calendar.get("title") or "venue")
-    pillar = str(calendar.get("pillar") or "coaching")
+    pillar = str(calendar.get("pillar") or calendar.get("pillar_id") or "coaching")
+    pillars = calendar.get("pillars")
+    if isinstance(pillars, list) and pillars:
+        pillar = str(pillars[0] or pillar)
+    title = scene
     out = (
-        template.replace("{title}", title)
+        template.replace("{scene}", scene)
+        .replace("{title}", title)
         .replace("{pillar}", pillar)
         .replace("{brand_id}", brand_id)
     )
@@ -85,6 +96,7 @@ def process_draft_gen_slots_row(
     )
 
     gen_paths: dict[str, str] = {}
+    gen_prompt_used = background_plate_scene_prompt(brand_id, item_id, ctx)
     output_base = str(_data_dir() / "draft-assets" / "images")
 
     for slot in slots:
@@ -110,8 +122,9 @@ def process_draft_gen_slots_row(
                 continue
             return None, "cap_reached" if "cap" in img_reason.lower() else img_reason
 
-        prompt_template = str(slot.get("prompt_template") or ctx.job)
+        prompt_template = str(slot.get("prompt_template") or "{scene}")
         prompt = _resolve_prompt(prompt_template, ctx, brand_id=brand_id, item_id=item_id)
+        gen_prompt_used = prompt
         negative = slot.get("negative")
         negative_s = ", ".join(str(x) for x in negative) if isinstance(negative, list) else ""
 
@@ -123,9 +136,11 @@ def process_draft_gen_slots_row(
             "prompt": prompt,
             "size": size,
             "output_base": output_base,
+            "background_plate": True,
+            "negative_prompt": negative_s,
+            "inbox_item_id": item_id,
+            "cost_action": "draft_gen_slots",
         }
-        if negative_s:
-            gen_kwargs["negative_prompt"] = negative_s
 
         try:
             result = generate_image_with_persistence(**gen_kwargs)
@@ -169,13 +184,13 @@ def process_draft_gen_slots_row(
             return None, "gen slot produced no image"
 
         qc = visual_check(Path(path), brand_id=brand_id, archetype_id=archetype_id)
-        ocr_text = ""
-        scores = qc.get("scores") if isinstance(qc.get("scores"), dict) else {}
-        ocr_text = str(scores.get("ocr_text") or scores.get("ocr") or "")
-        if ocr_text.strip():
+        verdict = str(qc.get("verdict") or "")
+        reasons = qc.get("reasons") if isinstance(qc.get("reasons"), list) else []
+        if verdict in ("fail", "needs_human"):
             if optional:
                 continue
-            return None, f"gen slot {slot_id} failed OCR text check"
+            reason_s = ", ".join(str(r) for r in reasons[:4]) or verdict
+            return None, f"gen slot {slot_id} QC {verdict}: {reason_s}"
 
         write_cache_entry(
             Path(path),
@@ -201,10 +216,19 @@ def process_draft_gen_slots_row(
             "size": size,
         }
     ]
+    last_qc = visual_check(Path(bg_path), brand_id=brand_id, archetype_id=archetype_id)
     qc_payload = {
-        "verdict": "pass",
-        "checked_at": _utc_now_iso(),
-        "candidates": [{"index": 0, "path": bg_path, "verdict": "pass", "reasons": []}],
+        "verdict": str(last_qc.get("verdict") or "pass"),
+        "checked_at": last_qc.get("checked_at") or _utc_now_iso(),
+        "reasons": last_qc.get("reasons") or [],
+        "candidates": [
+            {
+                "index": 0,
+                "path": bg_path,
+                "verdict": str(last_qc.get("verdict") or "pass"),
+                "reasons": last_qc.get("reasons") or [],
+            }
+        ],
         "selected": 0,
         "edit_attempted": False,
         "human_reason": None,
@@ -254,6 +278,7 @@ def process_draft_gen_slots_row(
             "text_policy": recipe.get("text_policy") or "compose_only",
             "calendar": calendar,
             "prompt": ctx.job,
+            "gen_prompt": gen_prompt_used,
             "image_size": size,
         }
     )

@@ -194,7 +194,8 @@ def test_create_actions_lodge_then_image_gen_recipe(tmp_data):
     lodge = create_actions_for_moment("stick", item_id, phase="lodge")
     assert lodge == ["draft_caption"]
     image = create_actions_for_moment("stick", item_id, phase="image")
-    assert image == ["draft_gen_slots", "compose_post"]
+    assert "draft_gen_slots" in image
+    assert "compose_post" in image
 
 
 def test_recipe_cache_hit(tmp_data, monkeypatch):

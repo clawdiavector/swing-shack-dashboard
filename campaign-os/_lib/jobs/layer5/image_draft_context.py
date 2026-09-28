@@ -91,6 +91,42 @@ def _photo_job_for_moment(
     return base[:400]
 
 
+_BACKGROUND_PLATE_SUFFIX = (
+    " Single unified photograph, not a collage, not split panels, not a poster or brochure layout. "
+    "No people required. No text, no letters, no logos, no typography, no UI overlays, "
+    "no watermarks, no infographic elements."
+)
+
+
+def background_plate_scene_prompt(brand_id: str, item_id: str, ctx: ImageDraftContext) -> str:
+    """Visual scene for gen_slots — never inject marketing titles or names."""
+    del item_id
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    post_type = str(calendar.get("post_type") or "").strip().lower()
+    pillar_id = _first_str(calendar, "pillar_id", "pillar")
+    pillars = calendar.get("pillars")
+    if isinstance(pillars, list) and pillars:
+        pillar_id = str(pillars[0] or pillar_id)
+    pillar_name = _resolve_pillar_name(brand_id, pillar_id) or pillar_id
+
+    if post_type == "coaching_promo":
+        scene = (
+            "Photoreal empty premium indoor golf coaching bay, TrackMan launch monitor glow, "
+            "green turf mat, soft moody studio lighting"
+        )
+        if pillar_name:
+            scene = f"{scene} ({pillar_name} lane)"
+    elif post_type == "service_hero":
+        scene = (
+            "Photoreal wide-angle indoor golf fitting studio atmosphere, clean bays, "
+            "warm ambient light, subtle depth of field"
+        )
+    else:
+        scene = "Photoreal premium indoor golf studio mood, clean bays, natural soft lighting"
+
+    return (scene + _BACKGROUND_PLATE_SUFFIX)[:900]
+
+
 def _build_job_line(
     *,
     title: str,
@@ -469,7 +505,11 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
 
     title = _first_str(record, "title", "event_key", "calendar_id")
     angle = _first_str(record, "angle", "suggested_angles", "relevance_reason")
-    pillar_id = _first_str(record, "pillar", "pillars")
+    pillars_raw = record.get("pillars")
+    if isinstance(pillars_raw, list) and pillars_raw:
+        pillar_id = str(pillars_raw[0] or "")
+    else:
+        pillar_id = _first_str(record, "pillar", "pillar_id")
     pillar_name = _resolve_pillar_name(brand, pillar_id)
     event_start = _first_str(record, "event_start", "event_window_start", "event_date")
     post_type = str(record.get("post_type") or "").strip().lower()
@@ -529,6 +569,9 @@ def build_image_draft_context(brand_id: str, inbox_item_id: str) -> ImageDraftCo
         "calendar_id": cal_id,
         "title": title,
         "pillar": pillar_name or pillar_id,
+        "pillar_id": pillar_id,
+        "pillars": record.get("pillars") if isinstance(record.get("pillars"), list) else [],
+        "post_type": post_type,
         "angle": angle,
         "event_start": event_start,
         "event_lifecycle": record.get("event_lifecycle"),
