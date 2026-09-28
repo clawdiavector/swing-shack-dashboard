@@ -44049,112 +44049,125 @@ def planning_timeline(brand_id):
             return jsonify({"ok": False, "error": f"invalid date range: {e}"}), 400
         if end_d < start_d:
             return jsonify({"ok": False, "error": "end must be >= start"}), 400
-        years = list(range(start_d.year, end_d.year + 1))
-        combined_events: Dict[str, Any] = {}  # event_key -> event
-        seed_always_on: List[Dict[str, Any]] = []
-        sources: List[str] = []
+        # V2.3 — wrap the entire pipeline in try/except so a 500 stops
+        # returning {"error":"internal server error"} with NO debugging
+        # signal. We log tracebacks to stderr and return a JSON trace.
+        import sys as _sys_main
+        import traceback as _tb_main
+        try:
+            years = list(range(start_d.year, end_d.year + 1))
+            combined_events: Dict[str, Any] = {}
+            seed_always_on: List[Dict[str, Any]] = []
+            sources: List[str] = []
+            print(f"[v23-timeline] start={start_str} end={end_str} years={years}", file=_sys_main.stderr, flush=True)
 
-        # 1. Read the spine seed files (curated Christelle-listed events)
-        for yr in years:
-            spine, src = _load_events_for_year(brand_id, yr)
-            if not spine:
-                continue
-            if not seed_always_on:
-                seed_always_on = spine.get("always_on_pillars") or []
-            sources.append(src)
-            for ev in (spine.get("events") or []):
+            # 1. Spine seed
+            for yr in years:
                 try:
-                    ev_start = _dt.date.fromisoformat(ev.get("start") or "")
-                    ev_end = _dt.date.fromisoformat(ev.get("end") or ev.get("public_peak") or "")
+                    spine, src = _load_events_for_year(brand_id, yr)
+                except Exception as sp_err:
+                    spine, src = None, None
+                    print(f"[v23-timeline] _load_events_for_year({yr}) EXC: {type(sp_err).__name__}: {sp_err}", file=_sys_main.stderr, flush=True)
+                if not spine:
+                    continue
+                if not seed_always_on:
+                    seed_always_on = spine.get("always_on_pillars") or []
+                try:
+                    sources.append(src)
+                except Exception:
+                    pass
+                for ev in (spine.get("events") or []):
+                    try:
+                        ev_start = _dt.date.fromisoformat(ev.get("start") or "")
+                        ev_end = _dt.date.fromisoformat(ev.get("end") or ev.get("public_peak") or "")
+                    except Exception:
+                        continue
+                    if ev_end >= start_d and ev_start <= end_d:
+                        ek_src = ev.get("event_key") or ev.get("id") or ev.get("name")
+                        ek = ek_src if isinstance(ek_src, str) and ek_src else None
+                        if ek:
+                            combined_events[ek] = ev
+            print(f"[v23-timeline] seed-events={len(combined_events)} sources={sources}", file=_sys_main.stderr, flush=True)
+
+            # 2. Operator approvals
+            mc_read_error = None
+            try:
+                mc_records = _mc_timeline_v23.list_records(brand_id) or []
+            except Exception as mc_err:
+                mc_records = []
+                mc_read_error = f"{type(mc_err).__name__}: {mc_err}"
+                print(f"[v23-timeline] list_records failed: {mc_read_error}", file=_sys_main.stderr, flush=True)
+            for record in mc_records:
+                ek = record.get("event_key")
+                if not ek:
+                    continue
+                try:
+                    r_start = _dt.date.fromisoformat(record.get("event_start") or "")
+                    r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
                 except Exception:
                     continue
-                if ev_end >= start_d and ev_start <= end_d:
-                    ek_src = ev.get("event_key") or ev.get("id") or ev.get("name")
-                    ek = ek_src if isinstance(ek_src, str) and ek_src else None
-                    if ek:
-                        combined_events[ek] = ev
-        # 2. Read the operator-approval store (Add to Main Calendar writes land here).
-        #    WRAP everything in a try/except so a bad jsonl file can NEVER
-        #    take the timeline endpoint down — production data drift this
-        #    matters for is (1) V2.2 smoke-test records from earlier today
-        #    and (2) any operator_record persisted before V2.3 cleaned the
-        #    schema. Worst case: return the seed-only view + surface a
-        #    warning in the response payload.
-        mc_read_error = None
-        try:
-            mc_records = _mc_timeline_v23.list_records(brand_id) or []
-        except Exception as mc_err:
-            mc_records = []
-            mc_read_error = f"{type(mc_err).__name__}: {mc_err}"
-            import sys as _sys_tl
-            print(
-                f"[v23-timeline] list_records failed: {mc_read_error}",
-                file=_sys_tl.stderr,
-                flush=True,
-            )
-        for record in mc_records:
-            ek = record.get("event_key")
-            if not ek:
-                continue
+                if r_end >= start_d and r_start <= end_d:
+                    combined_events[ek] = record
             try:
-                r_start = _dt.date.fromisoformat(record.get("event_start") or "")
-                r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
+                sources.append(f"marketing_calendar[{brand_id}].jsonl")
             except Exception:
-                continue
-            if r_end >= start_d and r_start <= end_d:
-                # Operator record wins on conflict (V2.3 rule)
-                combined_events[ek] = record
-                # Always-on pillars from operator records are not surfaced in this layer —
-                # the curated seed owns always-on (those are infrastructure, not campaigns).
-        sources.append(f"marketing_calendar[{brand_id}].jsonl")
+                pass
+            print(f"[v23-timeline] after-merge events={len(combined_events)}", file=_sys_main.stderr, flush=True)
 
-        ordered: List[Dict[str, Any]] = []
-        for e in combined_events.values():
-            try:
-                ordered.append(_enrich_event(e))
-            except Exception as enrich_err:
-                # Don't let one bad operator-record suppress the rest of
-                # the timeline. V2.3 operator records come from marketing_calendar
-                # jsonl and may not perfectly match the spine-file shape.
-                import sys as _sys
-                print(
-                    f"[v23-timeline] _enrich_event failed for ek={e.get('event_key')}; "
-                    f"passthrough: {enrich_err}",
-                    file=_sys.stderr,
-                    flush=True,
-                )
-                # Passthrough record with minimal derived dates so the SPA
-                # can still render the row.
-                passthrough = dict(e)
-                passthrough["start"] = passthrough.get("start") or passthrough.get("event_start") or ""
-                passthrough["end"] = passthrough.get("end") or passthrough.get("event_end") or passthrough.get("public_peak") or ""
-                passthrough["phases"] = []
-                passthrough.setdefault("planning_state", "operator_record_no_phases")
-                ordered.append(passthrough)
-        ordered.sort(key=lambda e: e.get("start") or "")
-        counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
-        for e in ordered:
-            counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
-        return jsonify({
-            "ok": True,
-            "brand_id": brand_id,
-            "start": start_str,
-            "end": end_str,
-            "years": years,
-            "always_on_pillars": seed_always_on,
-            "events": ordered,
-            "tier_counts": counts,
-            "source": sources[0] if sources else None,
-            "sources": sources,
-            "canonical_store": {
-                "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
-                "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl (via marketing_calendar.list_records)",
-                "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
-            },
-            "event_count": len(ordered),
-            "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
-            "mode": "range",
-        }), 200
+            # 3. Enrichment (per-record fail-safe)
+            ordered: List[Dict[str, Any]] = []
+            for e in combined_events.values():
+                try:
+                    ordered.append(_enrich_event(e))
+                except Exception as enrich_err:
+                    print(
+                        f"[v23-timeline] _enrich_event failed for ek={e.get('event_key')}; passthrough: {enrich_err}",
+                        file=_sys_main.stderr, flush=True,
+                    )
+                    passthrough = dict(e)
+                    passthrough["start"] = passthrough.get("start") or passthrough.get("event_start") or ""
+                    passthrough["end"] = passthrough.get("end") or passthrough.get("event_end") or passthrough.get("public_peak") or ""
+                    passthrough["phases"] = []
+                    passthrough.setdefault("planning_state", "operator_record_no_phases")
+                    ordered.append(passthrough)
+            ordered.sort(key=lambda e: e.get("start") or "")
+
+            counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
+            for e in ordered:
+                counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
+            return jsonify({
+                "ok": True,
+                "brand_id": brand_id,
+                "start": start_str,
+                "end": end_str,
+                "years": years,
+                "always_on_pillars": seed_always_on,
+                "events": ordered,
+                "tier_counts": counts,
+                "source": sources[0] if sources else None,
+                "sources": sources,
+                "canonical_store": {
+                    "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
+                    "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl (via marketing_calendar.list_records)",
+                    "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
+                },
+                "event_count": len(ordered),
+                "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
+                "mode": "range",
+                "mc_read_error": mc_read_error,
+            }), 200
+        except Exception as outer_err:
+            tb = _tb_main.format_exc()
+            print(
+                f"[v23-timeline] OUTER EXC: {type(outer_err).__name__}: {outer_err}\n{tb[-2000:]}",
+                file=_sys_main.stderr, flush=True,
+            )
+            return jsonify({
+                "ok": False,
+                "error": "internal server error",
+                "type": type(outer_err).__name__,
+                "trace": tb[-1500:],
+            }), 500
 
     # Single-year mode (legacy) — also includes operator-approved records for
     # the year so the year-mode timeline (used by the calendar SPA when the
