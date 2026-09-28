@@ -630,6 +630,20 @@ def _draw_frame(base, zone: dict[str, Any], brand_id: str) -> None:
     base.paste(layer, (0, 0), layer)
 
 
+def _draw_rule(base, zone: dict[str, Any], brand_id: str) -> None:
+    rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
+    x0, y0, x1, y1 = _rect_px(rect, *base.size)
+    stroke = int(zone.get("stroke_px") or 2)
+    colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
+    alpha = int(float(zone.get("alpha", 1.0)) * 255)
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).rectangle(
+        [x0, y0, x1 - 1, y0 + stroke - 1],
+        fill=colour[:3] + (alpha,),
+    )
+    base.paste(layer, (0, 0), layer)
+
+
 def _uses_photo_cover(archetype: dict[str, Any]) -> bool:
     bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
     return str(bg.get("kind") or "") == "photo_full_bleed" and bool(bg.get("cover"))
@@ -681,6 +695,9 @@ def compose_to_canvas(
         kind = str(zone.get("kind") or "")
         if kind == "decorative" and str(zone.get("shape") or "") == "frame":
             _draw_frame(base, zone, brand_id)
+            draw = ImageDraw.Draw(base)
+        elif kind == "decorative" and str(zone.get("shape") or "") == "rule":
+            _draw_rule(base, zone, brand_id)
             draw = ImageDraw.Draw(base)
         elif kind == "band":
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}

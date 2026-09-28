@@ -646,6 +646,213 @@
         "y1": 0.96
       },
       "max_total_chars": 30
+    },
+    {
+      "id": "stick-brand-statement",
+      "name": "Brand statement \u2014 centred mint headline, white stick logo, white rules, italic tagline",
+      "description": "Solid navy field with white stick logo top-centre, thin white rule below logo, centred mint (#24FFAF) Montserrat Black uppercase headline 4\u20135 lines (caption_hook split on '\\n'), thin white rule above the italic 'better begins here' tagline. No photo. Used for category-list statements (FITTINGS / COACHING / EQUIPMENT / APPAREL) and brand-manifesto sentences.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "navy_deep"
+      },
+      "zones": {
+        "logo": {
+          "rect": {
+            "x0": 0.3056,
+            "y0": 0.12,
+            "x1": 0.6944,
+            "y1": 0.2375
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "logo.png",
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "middle",
+          "optional": false
+        },
+        "rule_top": {
+          "rect": {
+            "x0": 0.18,
+            "y0": 0.301,
+            "x1": 0.82,
+            "y1": 0.304
+          },
+          "kind": "decorative",
+          "shape": "rule",
+          "stroke_px": 2,
+          "colour": "white",
+          "alpha": 0.85
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.0833,
+            "y0": 0.355,
+            "x1": 0.9167,
+            "y1": 0.745
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 5,
+          "max_chars_per_line": 16,
+          "line_height": 1.30,
+          "text_transform": "uppercase",
+          "text_origin_x": 0,
+          "align": "center",
+          "valign": "middle",
+          "colour": "mint",
+          "min_font_px": 56,
+          "wrap": "balanced"
+        },
+        "rule_bottom": {
+          "rect": {
+            "x0": 0.18,
+            "y0": 0.832,
+            "x1": 0.82,
+            "y1": 0.835
+          },
+          "kind": "decorative",
+          "shape": "rule",
+          "stroke_px": 2,
+          "colour": "white",
+          "alpha": 0.85
+        },
+        "tagline": {
+          "rect": {
+            "x0": 0.10,
+            "y0": 0.857,
+            "x1": 0.90,
+            "y1": 0.895
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "images/tagline-light.png",
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "middle",
+          "optional": false
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "center"
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "logo": {
+            "rect": {
+              "x0": 0.3056,
+              "y0": 0.16,
+              "x1": 0.6944,
+              "y1": 0.245
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "logo.png",
+            "fit": "aspect_fit",
+            "align": "center",
+            "valign": "middle",
+            "optional": false
+          },
+          "rule_top": {
+            "rect": {
+              "x0": 0.18,
+              "y0": 0.275,
+              "x1": 0.82,
+              "y1": 0.278
+            },
+            "kind": "decorative",
+            "shape": "rule",
+            "stroke_px": 2,
+            "colour": "white",
+            "alpha": 0.85
+          },
+          "headline": {
+            "rect": {
+              "x0": 0.0833,
+              "y0": 0.30,
+              "x1": 0.9167,
+              "y1": 0.78
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_lines": 5,
+            "max_chars_per_line": 16,
+            "line_height": 1.30,
+            "text_transform": "uppercase",
+            "text_origin_x": 0,
+            "align": "center",
+            "valign": "middle",
+            "colour": "mint",
+            "min_font_px": 56,
+            "wrap": "balanced"
+          },
+          "rule_bottom": {
+            "rect": {
+              "x0": 0.18,
+              "y0": 0.81,
+              "x1": 0.82,
+              "y1": 0.813
+            },
+            "kind": "decorative",
+            "shape": "rule",
+            "stroke_px": 2,
+            "colour": "white",
+            "alpha": 0.85
+          },
+          "tagline": {
+            "rect": {
+              "x0": 0.10,
+              "y0": 0.825,
+              "x1": 0.90,
+              "y1": 0.86
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "images/tagline-light.png",
+            "fit": "aspect_fit",
+            "align": "center",
+            "valign": "middle",
+            "optional": false
+          }
+        }
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 80,
+      "measured_from": [
+        "references/ref-01.jpg",
+        "references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1201
+      }
     }
   ],
   "selection": {
@@ -676,6 +883,14 @@
           "subject": "venue"
         },
         "use": "stick-venue-post"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "brand_statement"
+          ]
+        },
+        "use": "stick-brand-statement"
       }
     ]
   }
