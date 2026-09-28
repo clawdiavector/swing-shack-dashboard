@@ -272,8 +272,8 @@
     },
     {
       "id": "ss-did-you-know",
-      "name": "Did you know? — dimmed venue photo, thin kicker, huge outlined italic question",
-      "description": "Measured from Content Bank Services/cf1–cf6 (1081×1201). Dimmed full-bleed venue photo, 8px 50% white frame inset 35px, logo top-right, thin italic 'DID YOU KNOW?' kicker 33px above a 3–4 line Montserrat Black Italic question (cap 127px, pitch 146px, 85% width) with an offset outline echo. Accent rotates green/orange/blue/purple.",
+      "name": "Did you know? \u2014 dimmed venue photo, thin kicker, huge outlined italic question",
+      "description": "Measured from Content Bank Services/cf1\u2013cf6 (1081\u00d71201). Dimmed full-bleed venue photo, 8px 50% white frame inset 35px, logo top-right, thin italic 'DID YOU KNOW?' kicker 33px above a 3\u20134 line Montserrat Black Italic question (cap 127px, pitch 146px, 85% width) with an offset outline echo. Accent rotates green/orange/blue/purple.",
       "canvas": "ig_post",
       "block_anchor": "center",
       "applies_to": {
@@ -506,8 +506,8 @@
     },
     {
       "id": "ss-price-package",
-      "name": "Monthly package — hero price on dimmed venue photo",
-      "description": "Measured from Content Bank Services/package1_* (1081×1351). Full-bleed venue photo, white frame, logo top-left, kicker + package name + qualifier, divider rules, centred price + period, CTA + URL. Accent on name/price/cta via colour_options.",
+      "name": "Monthly package \u2014 hero price on dimmed venue photo",
+      "description": "Measured from Content Bank Services/package1_* (1081\u00d71351). Full-bleed venue photo, white frame, logo top-left, kicker + package name + qualifier, divider rules, centred price + period, CTA + URL. Accent on name/price/cta via colour_options.",
       "canvas": "ig_post",
       "block_anchor": "center",
       "applies_to": {
@@ -773,8 +773,8 @@
     },
     {
       "id": "ss-price-list",
-      "name": "Coaching packages — rate list on dimmed venue photo",
-      "description": "Measured from Content Bank Services/coachinpackages_* (1081×1351). Same chrome as ss-price-package; two-column explicit-wrap price rows.",
+      "name": "Coaching packages \u2014 rate list on dimmed venue photo",
+      "description": "Measured from Content Bank Services/coachinpackages_* (1081\u00d71351). Same chrome as ss-price-package; two-column explicit-wrap price rows.",
       "canvas": "ig_post",
       "block_anchor": "center",
       "applies_to": {
@@ -999,8 +999,8 @@
     },
     {
       "id": "ss-sale-offer",
-      "name": "Sale offer — story-native Black Friday / promo lockup",
-      "description": "Measured from Content Bank blackfriday copy 1–5 (1081×1920 story). Charcoal/near-black field, white frame inset 33px, logo top-right, white kicker, huge ss_blue headline from caption_hook, optional body subline, orange CTA. Primary canvas ig_story; 4:5 feed via channel_canvas.",
+      "name": "Sale offer \u2014 story-native Black Friday / promo lockup",
+      "description": "Measured from Content Bank blackfriday copy 1\u20135 (1081\u00d71920 story). Charcoal/near-black field, white frame inset 33px, logo top-right, white kicker, huge ss_blue headline from caption_hook, optional body subline, orange CTA. Primary canvas ig_story; 4:5 feed via channel_canvas.",
       "canvas": "ig_story",
       "block_anchor": "center",
       "applies_to": {
@@ -1254,8 +1254,8 @@
     },
     {
       "id": "ss-discount-code",
-      "name": "Discount code — fitting promo lockup",
-      "description": "Measured from Content Bank fitting_discount_post/story (1081×1301 / 1081×1921). Near-black gradient, white frame, centred logo, hand-set left hero lines (percent / subject / expiry), rule + disclaimer, Inter upright CTA block.",
+      "name": "Discount code \u2014 fitting promo lockup",
+      "description": "Measured from Content Bank fitting_discount_post/story (1081\u00d71301 / 1081\u00d71921). Near-black gradient, white frame, centred logo, hand-set left hero lines (percent / subject / expiry), rule + disclaimer, Inter upright CTA block.",
       "canvas": "ig_post",
       "block_anchor": "center",
       "applies_to": {
@@ -1682,8 +1682,8 @@
     },
     {
       "id": "ss-fitting-headline",
-      "name": "Fitting headline — dark venue photo, thin benefit line, huge accent service lockup",
-      "description": "Measured from Content Bank Services/ironfitting-100 + puttefitting-100 (1080×1200). Dark full-bleed venue photo, 4px 22% white frame inset 33px, centred Montserrat Light Italic benefit line (cap 42px) 18px above a single-line Montserrat Black Italic service lockup (cap 85px, 121px, 88.6% width). Accent blue/orange. No logo.",
+      "name": "Fitting headline \u2014 dark venue photo, thin benefit line, huge accent service lockup",
+      "description": "Measured from Content Bank Services/ironfitting-100 + puttefitting-100 (1080\u00d71200). Dark full-bleed venue photo, 4px 22% white frame inset 33px, centred Montserrat Light Italic benefit line (cap 42px) 18px above a single-line Montserrat Black Italic service lockup (cap 85px, 121px, 88.6% width). Accent blue/orange. No logo.",
       "canvas": "ig_post",
       "block_anchor": "center",
       "applies_to": {
@@ -1868,8 +1868,8 @@
     },
     {
       "id": "ss-service-promo",
-      "name": "Service promo — framed venue photo, accent headline, lockup + BOOK ONLINE",
-      "description": "Measured from Content Bank Services coaching + fitting posts (1081×1351).",
+      "name": "Service promo \u2014 framed venue photo, accent headline, lockup + BOOK ONLINE",
+      "description": "Measured from Content Bank Services coaching + fitting posts (1081\u00d71351).",
       "canvas": "ig_post",
       "applies_to": {
         "channels": [
@@ -2081,6 +2081,30 @@
               "y0": 0.2156,
               "x1": 0.9205,
               "y1": 0.4396
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_font_px": 140,
+            "min_font_px": 92,
+            "max_lines": 4,
+            "max_chars_per_line": 16,
+            "line_height": 0.775,
+            "text_transform": "uppercase",
+            "text_origin_x": 100,
+            "align": "left",
+            "valign": "top",
+            "wrap": "balanced",
+            "colour_options": [
+              "ss_blue",
+              "ss_purple",
+              "ss_orange",
+              "ss_green"
+            ],
+            "h_scale": 0.88,
+            "attach_above": {
+              "zone": "subhead",
+              "gap_px": 30
             }
           },
           "subhead": {
@@ -2089,7 +2113,21 @@
               "y0": 0.4526,
               "x1": 0.7595,
               "y1": 0.4979
-            }
+            },
+            "kind": "text",
+            "source": "cta",
+            "font_role": "h2",
+            "max_font_px": 43,
+            "min_font_px": 43,
+            "max_lines": 2,
+            "max_chars_per_line": 28,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "text_origin_x": 100,
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.87
           },
           "divider": {
             "rect": {
@@ -2097,7 +2135,11 @@
               "y0": 0.5354,
               "x1": 0.9039,
               "y1": 0.5406
-            }
+            },
+            "kind": "decorative",
+            "shape": "rule",
+            "colour": "white",
+            "alpha": 0.3
           },
           "service_lockup": {
             "rect": {
@@ -2105,6 +2147,26 @@
               "y0": 0.5745,
               "x1": 1,
               "y1": 0.6068
+            },
+            "kind": "text",
+            "source": "service_label",
+            "text_suffix": " @",
+            "font_role": "h1",
+            "max_font_px": 60,
+            "min_font_px": 60,
+            "max_lines": 1,
+            "max_chars_per_line": 20,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "center",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.86,
+            "inline_asset": {
+              "asset": "templates/service-promo/assets/logo-white.png",
+              "height_px": 63,
+              "gap_px": 42,
+              "position": "after"
             }
           },
           "cta": {
@@ -2113,7 +2175,21 @@
               "y0": 0.6266,
               "x1": 1,
               "y1": 0.6484
-            }
+            },
+            "kind": "text",
+            "source": "static",
+            "text": "BOOK ONLINE",
+            "font_role": "cta",
+            "max_font_px": 59,
+            "min_font_px": 59,
+            "max_lines": 1,
+            "max_chars_per_line": 20,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "center",
+            "valign": "top",
+            "colour": "ss_green",
+            "h_scale": 0.87
           },
           "url": {
             "rect": {
@@ -2155,8 +2231,8 @@
     },
     {
       "id": "ss-lesson-corner",
-      "name": "Lesson corner — venue photo, dark panel, lesson headline + services",
-      "description": "Measured from Content Bank Services beginner/junior/ladies lessons (1081×1201). Full-bleed venue photo, 3px white frame inset 34px at 21% alpha, logo top-right, opaque #070707 panel bottom-right, right-aligned Montserrat stack: 2-line lesson headline, coach kicker, three accent service lines (colour rotates with headline), 3-line CTA.",
+      "name": "Lesson corner \u2014 venue photo, dark panel, lesson headline + services",
+      "description": "Measured from Content Bank Services beginner/junior/ladies lessons (1081\u00d71201). Full-bleed venue photo, 3px white frame inset 34px at 21% alpha, logo top-right, opaque #070707 panel bottom-right, right-aligned Montserrat stack: 2-line lesson headline, coach kicker, three accent service lines (colour rotates with headline), 3-line CTA.",
       "canvas": "ig_post",
       "applies_to": {
         "channels": [
