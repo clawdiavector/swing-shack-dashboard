@@ -18131,8 +18131,11 @@ def ops_queue_enqueue():
         action = str(body.get("action") or "").strip()
         if not item_id or not action:
             return jsonify({"ok": False, "error": "item_id and action required"}), 400
-        if action != "draft_image":
+        allowed_actions = {"draft_image", "draft_photo", "draft_gen_slots", "compose_post"}
+        if action not in allowed_actions:
             return jsonify({"ok": False, "error": f"unsupported action: {action}"}), 400
+        if action == "draft_image":
+            action = "draft_photo"
 
         item = _unified_inbox_mod.find_item(item_id)
         if not item:
@@ -18165,7 +18168,25 @@ def ops_queue_enqueue():
         )
         data_dir = Path(_data_paths()['data_dir'])
         row_id, pending = _ops_agents_mod.append_enqueue_row(data_dir, row)
-        return jsonify({"ok": True, "id": row_id, "pending": pending, "action": action}), 200
+        enqueued = [action]
+        if action in ("draft_photo", "draft_gen_slots"):
+            from _lib.l5_create_enqueue import enqueue_compose_post_for_moment  # noqa: PLC0415
+
+            item_hash = hashlib.sha1(item_id.encode()).hexdigest()[:12]
+            compose_row = _ops_agents_mod.normalise_enqueue(
+                {
+                    "agent": "cos-image",
+                    "brand": brand_id,
+                    "reason": "review-regenerate",
+                    "action": "compose_post",
+                    "payload_ref": f"inbox/{item_id}",
+                    "dedupe_key": f"compose_post-{item_hash}-{dedupe_key[-8:]}",
+                }
+            )
+            _ops_agents_mod.append_enqueue_row(data_dir, compose_row)
+            enqueued.append("compose_post")
+            pending += 1
+        return jsonify({"ok": True, "id": row_id, "pending": pending, "action": action, "enqueued": enqueued}), 200
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:

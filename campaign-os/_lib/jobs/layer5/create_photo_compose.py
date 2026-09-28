@@ -383,18 +383,28 @@ def process_compose_post_row(
     candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
     photo_bytes: bytes | None = None
     if needs_photo:
-        if qc.get("verdict") not in ("pass",) and qc.get("selected") is None:
-            return None, None
-        sel = qc.get("selected")
-        if sel is None and candidates:
-            return None, None
-        if candidates:
-            idx = int(sel if sel is not None else 0)
-            path = Path(candidates[idx]["path"])
+        gen_slots = sidecar.get("gen_slots") if isinstance(sidecar.get("gen_slots"), dict) else {}
+        bg_path = gen_slots.get("background") or (next(iter(gen_slots.values()), None) if gen_slots else None)
+        if bg_path:
+            path = Path(str(bg_path))
+            if not path.is_file():
+                alt = _data_dir() / str(bg_path).lstrip("/")
+                path = alt if alt.is_file() else path
             if path.is_file():
                 photo_bytes = path.read_bytes()
-            else:
+        if photo_bytes is None:
+            if qc.get("verdict") not in ("pass",) and qc.get("selected") is None:
                 return None, None
+            sel = qc.get("selected")
+            if sel is None and candidates:
+                return None, None
+            if candidates:
+                idx = int(sel if sel is not None else 0)
+                path = Path(candidates[idx]["path"])
+                if path.is_file():
+                    photo_bytes = path.read_bytes()
+                else:
+                    return None, None
 
     _, caption_text = _find_caption_draft_for_item(item_id)
     if not caption_text and asset_id:

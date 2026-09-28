@@ -26,7 +26,7 @@ from .image_draft_context import (
 _DRAFT_HEX_NAME = re.compile(r"^Draft [0-9a-f]{6}$", re.IGNORECASE)
 _CAPTION_NAME_MAX = 72
 
-CREATE_ACTIONS = frozenset({"draft_caption", "draft_photo", "compose_post", "draft_gbp"})
+CREATE_ACTIONS = frozenset({"draft_caption", "draft_photo", "draft_gen_slots", "compose_post", "draft_gbp"})
 LEGACY_CREATE_ACTIONS = frozenset({"draft_image"})
 SLOT_ACTIONS = frozenset({"fill_slot"})
 PROCESS_ACTIONS = CREATE_ACTIONS | LEGACY_CREATE_ACTIONS | SLOT_ACTIONS
@@ -635,6 +635,43 @@ def _moment_has_composed(brand_id: str, item_id: str) -> bool:
     return False
 
 
+def _sidecar_for_moment(item_id: str) -> dict[str, Any] | None:
+    draft_dir = _data_dir() / "draft-assets"
+    if not draft_dir.is_dir():
+        return None
+    for path in sorted(draft_dir.glob("*.json"), reverse=True):
+        if path.name.endswith(".brief.json") or path.name.endswith(".qc.json") or path.name.startswith("_"):
+            continue
+        try:
+            sidecar = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(sidecar, dict) and sidecar.get("source_inbox_item_id") == item_id:
+            return sidecar
+    return None
+
+
+def _moment_photo_ready_for_compose(brand_id: str, item_id: str) -> bool:
+    from _lib.archetypes import select_archetype  # noqa: PLC0415
+
+    archetype = select_archetype(brand_id, item_id)
+    if not archetype.get("applies_to", {}).get("needs_photo", True):
+        return True
+    sidecar = _sidecar_for_moment(item_id)
+    if not sidecar:
+        return False
+    gen_slots = sidecar.get("gen_slots")
+    if isinstance(gen_slots, dict) and gen_slots:
+        return True
+    qc = sidecar.get("qc") if isinstance(sidecar.get("qc"), dict) else {}
+    candidates = sidecar.get("photo_candidates") if isinstance(sidecar.get("photo_candidates"), list) else []
+    if not candidates:
+        return False
+    if qc.get("verdict") == "pass":
+        return True
+    return qc.get("selected") is not None
+
+
 def _moment_has_image(brand_id: str, item_id: str) -> bool:
     draft_dir = _data_dir() / "draft-assets"
     if not draft_dir.is_dir():
@@ -1234,6 +1271,7 @@ def run(brand: str | None = None) -> dict[str, Any]:
 
             caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
             photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
+            gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
             compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
             draft_ctx = build_image_draft_context(brand_id, item_id)
 
@@ -1282,6 +1320,35 @@ def run(brand: str | None = None) -> dict[str, Any]:
                 break
 
             from .create_photo_compose import process_compose_post_row, process_draft_photo_row  # noqa: PLC0415
+            from .draft_gen_slots import process_draft_gen_slots_row  # noqa: PLC0415
+
+            if gen_rows and not _moment_has_composed(brand_id, item_id):
+                gen_row = gen_rows[0][0]
+                try:
+                    asset_id, err = process_draft_gen_slots_row(
+                        gen_row,
+                        item_id=item_id,
+                        brand_id=brand_id,
+                        draft_ctx=draft_ctx,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    skipped += 1
+                    errors.append(_record_error(exc, context={"row_id": gen_row.get("id"), "action": "draft_gen_slots"}))
+                    asset_id, err = None, _exc_label(exc)
+                if err:
+                    stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
+                    skipped += 1
+                    if stop_cap or stop_auth:
+                        halted = True
+                        skipped += _count_pending_rows(moment_items, idx)
+                        break
+                elif asset_id or str(gen_row.get("status") or "").lower() == "waiting":
+                    if str(gen_row.get("status") or "").lower() != "waiting":
+                        gen_row["status"] = "done"
+                    drafted += 1
+
+            if stop_cap or stop_auth:
+                break
 
             if photo_rows and not _moment_has_composed(brand_id, item_id):
                 photo_row = photo_rows[0][0]
@@ -1313,7 +1380,11 @@ def run(brand: str | None = None) -> dict[str, Any]:
             if stop_cap or stop_auth:
                 break
 
-            if compose_rows and not _moment_has_composed(brand_id, item_id):
+            photo_waiting = photo_rows and str(photo_rows[0][0].get("status") or "").lower() == "waiting"
+            gen_waiting = gen_rows and str(gen_rows[0][0].get("status") or "").lower() == "waiting"
+            photo_ready = _moment_photo_ready_for_compose(brand_id, item_id)
+
+            if compose_rows and not _moment_has_composed(brand_id, item_id) and not photo_waiting and not gen_waiting and photo_ready:
                 compose_row = compose_rows[0][0]
                 try:
                     asset_id, err = process_compose_post_row(

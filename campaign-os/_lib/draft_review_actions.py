@@ -303,9 +303,15 @@ def regenerate_photo(draft_id: str, *, note: str) -> dict[str, Any]:
             row.pop("composed", None)
     ui._write_campaign_data(data)  # noqa: SLF001
 
+    from _lib.template_recipe import load_recipe_for_moment  # noqa: PLC0415
+
+    recipe = load_recipe_for_moment(brand_id, moment_id)
+    gen_slots = recipe.get("gen_slots") if isinstance(recipe, dict) else None
+    photo_action = "draft_gen_slots" if isinstance(gen_slots, list) and gen_slots else "draft_photo"
+
     item_hash = hashlib.sha1(moment_id.encode()).hexdigest()[:12]
     enqueued: list[str] = []
-    for action in ("draft_photo", "compose_post"):
+    for action in (photo_action, "compose_post"):
         row = ops_agents.normalise_enqueue(
             {
                 "agent": "cos-image",
