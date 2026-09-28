@@ -780,6 +780,14 @@ def generate_image(
     timeout_s: int = 120,
     reference_bytes: Optional[list[bytes]] = None,
     reference_note: str = "",
+    inbox_item_id: Optional[str] = None,
+    draft_asset_id: Optional[str] = None,
+    event_key: Optional[str] = None,
+    cost_action: Optional[str] = None,
+    cost_source: Optional[str] = None,
+    queue_row_id: Optional[str] = None,
+    retry_of: Optional[str] = None,
+    post_cost_key: Optional[str] = None,
 ) -> GenResult:
     """Generate an image. Brand-aware (recipe-injected) when brand_recipe supplied.
 
@@ -923,7 +931,23 @@ def generate_image(
         result = _finish_gen_result(result, provider=provider, usage=usage, size=size, n=n)
         try:
             from _lib import llm_spend as _ls
-            _ls.record(result.cost_usd, route="image_gen_router.generate", model=model)
+
+            _ls.record(
+                result.cost_usd,
+                route="image_gen_router.generate",
+                model=model,
+                kind="image",
+                brand_id=brand_id,
+                inbox_item_id=inbox_item_id,
+                draft_asset_id=draft_asset_id,
+                event_key=event_key,
+                action=cost_action or "draft_image",
+                provider=provider,
+                cost_source=cost_source or "estimate",
+                queue_row_id=queue_row_id,
+                retry_of=retry_of,
+                post_cost_key=post_cost_key,
+            )
         except Exception:
             pass
         return result
@@ -1105,7 +1129,23 @@ def generate_image(
         )
         try:
             from _lib import llm_spend as _ls
-            _ls.record(result.cost_usd, route="image_gen_router.generate", model=model)
+
+            _ls.record(
+                result.cost_usd,
+                route="image_gen_router.generate",
+                model=model,
+                kind="image",
+                brand_id=brand_id,
+                inbox_item_id=inbox_item_id,
+                draft_asset_id=draft_asset_id,
+                event_key=event_key,
+                action=cost_action or "draft_image",
+                provider=provider,
+                cost_source=cost_source or "openrouter",
+                queue_row_id=queue_row_id,
+                retry_of=retry_of,
+                post_cost_key=post_cost_key,
+            )
         except Exception:
             pass
         return result
@@ -1208,6 +1248,14 @@ def edit_image(
     output_base: str = DEFAULT_OUTPUT_BASE,
     max_cost_usd: float = DEFAULT_MAX_COST_USD,
     timeout_s: int = 120,
+    inbox_item_id: Optional[str] = None,
+    draft_asset_id: Optional[str] = None,
+    event_key: Optional[str] = None,
+    cost_action: Optional[str] = None,
+    cost_source: Optional[str] = None,
+    queue_row_id: Optional[str] = None,
+    retry_of: Optional[str] = None,
+    post_cost_key: Optional[str] = None,
 ) -> EditResult:
     """Edit `source_bytes` per `instruction`. Returns raw output PNG bytes.
 
@@ -1315,7 +1363,23 @@ def edit_image(
     )
     try:
         from _lib import llm_spend as _ls
-        _ls.record(result.cost_estimate_usd, route="image_gen_router.edit", model=model)
+
+        _ls.record(
+            result.cost_estimate_usd,
+            route="image_gen_router.edit",
+            model=model,
+            kind="edit",
+            brand_id=brand_id,
+            inbox_item_id=inbox_item_id,
+            draft_asset_id=draft_asset_id,
+            event_key=event_key,
+            action=cost_action or "draft_photo",
+            provider=provider,
+            cost_source=cost_source or "openrouter",
+            queue_row_id=queue_row_id,
+            retry_of=retry_of,
+            post_cost_key=post_cost_key,
+        )
     except Exception:
         pass
     if save and brand_id:

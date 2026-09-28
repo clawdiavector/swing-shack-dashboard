@@ -46,6 +46,16 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _event_key_from_calendar(calendar: dict[str, Any] | None) -> str | None:
+    if not isinstance(calendar, dict):
+        return None
+    ek = calendar.get("event_key")
+    if ek is None:
+        return None
+    s = str(ek).strip()
+    return s or None
+
+
 def _exc_label(exc: BaseException) -> str:
     frames = traceback.extract_tb(exc.__traceback__)
     if not frames:
@@ -396,6 +406,7 @@ def _write_draft(
     sidecar: dict[str, Any],
     image_path: str | None = None,
     image_url: str | None = None,
+    asset_id: str | None = None,
 ) -> str:
     from _lib.campaigns import merge_provenance_into_sidecar, read_create_payload, stamp_provenance_on_asset  # noqa: PLC0415
     from _lib.unified_inbox import _load_campaign_data, _write_campaign_data  # noqa: PLC0415
@@ -403,7 +414,7 @@ def _write_draft(
     prov = read_create_payload(source_item_id)
     sidecar = merge_provenance_into_sidecar(sidecar, prov)
     campaign_id = _resolve_campaign_id(brand_id, source_item_id=source_item_id)
-    asset_id = f"draft-{uuid.uuid4().hex[:12]}"
+    asset_id = asset_id or f"draft-{uuid.uuid4().hex[:12]}"
     now = _utc_now_iso()
 
     data = _load_campaign_data()
@@ -507,15 +518,11 @@ def _process_caption_row(
         estimate_usd=CAPTION_EST_USD,
         brand_id=brand_id,
     )
-    llm_spend.record(
-        CAPTION_EST_USD,
-        route="job:draft_assets/caption",
-        model=str((result.get("observability") or {}).get("model") or "gpt-4o-mini"),
-        kind="text",
-    )
 
     obs = result.get("observability") or {}
     cal_title = calendar_title_for_item(brand_id, item_id)
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    event_key = _event_key_from_calendar(calendar)
     draft_title = _draft_name(
         brand_id=brand_id,
         item_id=item_id,
@@ -536,7 +543,22 @@ def _process_caption_row(
             "cost_estimate_usd": CAPTION_EST_USD,
             "queue_row_id": row.get("id"),
             "title": draft_title or cal_title or None,
+            "event_key": event_key,
         },
+    )
+    llm_spend.record(
+        CAPTION_EST_USD,
+        route="job:draft_assets/caption",
+        model=str(obs.get("model") or "gpt-4o-mini"),
+        kind="text",
+        brand_id=brand_id,
+        inbox_item_id=item_id,
+        draft_asset_id=asset_id,
+        event_key=event_key,
+        action="draft_caption",
+        provider=str(obs.get("provider") or "") or None,
+        cost_source="modelled",
+        queue_row_id=str(row.get("id") or "") or None,
     )
     return asset_id, None
 
@@ -920,6 +942,9 @@ def _process_image_row(
     )
 
     output_base = str(_data_dir() / "draft-assets" / "images")
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    event_key = _event_key_from_calendar(calendar)
+    pending_asset_id = f"draft-{uuid.uuid4().hex[:12]}"
     gen_kwargs: dict[str, Any] = {
         "brand_id": brand_id,
         "prompt": ctx.job,
@@ -927,6 +952,10 @@ def _process_image_row(
         "output_base": output_base,
         "provider": routing.get("provider"),
         "model": routing.get("model"),
+        "inbox_item_id": item_id,
+        "event_key": event_key,
+        "draft_asset_id": pending_asset_id,
+        "cost_action": "draft_image",
     }
     if ctx.refs:
         gen_kwargs["reference_dnas"] = ctx.refs
@@ -953,7 +982,6 @@ def _process_image_row(
         )
 
     image_path = getattr(result, "saved_path", None) or getattr(result, "path", None)
-    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     title = str(calendar.get("title") or "")
     angle = str(calendar.get("angle") or "")
     caption_asset_id, caption_text = _find_caption_draft_for_item(item_id)
@@ -1032,6 +1060,13 @@ def _process_image_row(
             model=getattr(result, "model", None),
             kind="image",
             brand_id=brand_id,
+            inbox_item_id=item_id,
+            draft_asset_id=pending_asset_id,
+            event_key=event_key,
+            action="draft_image",
+            provider=provider_name or None,
+            cost_source=cost_source,
+            queue_row_id=str(row.get("id") or "") or None,
         )
 
     asset_id = _write_draft(
@@ -1041,6 +1076,7 @@ def _process_image_row(
         source_item_id=item_id,
         image_path=image_path_str if has_bytes else None,
         image_url=image_url,
+        asset_id=pending_asset_id,
         sidecar={
             "action": "draft_image",
             "route": "job:draft_assets/image",
@@ -1054,6 +1090,7 @@ def _process_image_row(
             "cost_usd": billed,
             "source": cost_source,
             "queue_row_id": row.get("id"),
+            "event_key": event_key,
             "title": _draft_name(
                 brand_id=brand_id,
                 item_id=item_id,

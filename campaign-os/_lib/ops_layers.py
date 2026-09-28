@@ -367,6 +367,18 @@ def build_layers(
 
     watch_verdict, watch_age_s = derive_watch_verdict(watch)
 
+    cost_today_usd: float | None = None
+    cost_cap_usd: float | None = None
+    try:
+        from _lib import llm_spend
+
+        spend = llm_spend.status()
+        cost_today_usd = float(spend.get("spent_usd") or 0.0)
+        cost_cap_usd = float(spend.get("cap_usd") or 0.0)
+    except Exception:
+        cost_today_usd = None
+        cost_cap_usd = None
+
     l4_counts = inbox or {}
     l4_pending = int(l4_counts.get("pending") or 0)
     l4_stale = int(l4_counts.get("stale") or 0)
@@ -412,6 +424,8 @@ def build_layers(
             "rotten": rotten,
             "stale": stale,
             "queue_depth": depth,
+            "cost_today_usd": cost_today_usd,
+            "cost_cap_usd": cost_cap_usd,
             "href": "/ops?layer=health",
         },
     }

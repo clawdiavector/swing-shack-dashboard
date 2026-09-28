@@ -12,6 +12,7 @@ from .draft_assets import (
     IMAGE_EST_USD,
     _ROUTER_SELF_RECORDING_PROVIDERS,
     _data_dir,
+    _event_key_from_calendar,
     _find_caption_draft_for_item,
     _utc_now_iso,
     _write_draft,
@@ -75,6 +76,8 @@ def process_draft_photo_row(
     from _lib.image_submit_quota import check_brand_image_submit, record_brand_image_submit  # noqa: PLC0415
 
     ctx = draft_ctx or build_image_draft_context(brand_id, item_id)
+    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    event_key = _event_key_from_calendar(calendar)
     regen_asset_id, regen_sidecar = _sidecar_for_item(item_id)
     regen_note = str((regen_sidecar or {}).get("review_regenerate_note") or "").strip()
     if regen_note and regen_sidecar and regen_sidecar.get("photo_candidates"):
@@ -90,7 +93,17 @@ def process_draft_photo_row(
             if src_path.is_file():
                 instruction = f"{regen_note.strip()}. Do not add text, logos, or watermarks."
                 try:
-                    edited = edit_image(src_path.read_bytes(), instruction, brand_id=brand_id)
+                    edited = edit_image(
+                        src_path.read_bytes(),
+                        instruction,
+                        brand_id=brand_id,
+                        inbox_item_id=item_id,
+                        draft_asset_id=str(regen_asset_id or "") or None,
+                        event_key=event_key,
+                        cost_action="draft_photo",
+                        cost_source="openrouter",
+                        queue_row_id=str(row.get("id") or "") or None,
+                    )
                 except Exception:
                     edited = None
                 if edited and getattr(edited, "bytes", None):
@@ -170,7 +183,6 @@ def process_draft_photo_row(
 
     from _lib.creative_director import pick_model  # noqa: PLC0415
 
-    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     record_type = str(calendar.get("type") or "").lower()
     routing = pick_model(
         {
@@ -181,6 +193,7 @@ def process_draft_photo_row(
         }
     )
     output_base = str(_data_dir() / "draft-assets" / "images")
+    pending_asset_id = f"draft-{uuid.uuid4().hex[:12]}"
     gen_kwargs: dict[str, Any] = {
         "brand_id": brand_id,
         "prompt": ctx.job,
@@ -188,6 +201,10 @@ def process_draft_photo_row(
         "output_base": output_base,
         "provider": routing.get("provider"),
         "model": routing.get("model"),
+        "inbox_item_id": item_id,
+        "event_key": event_key,
+        "draft_asset_id": pending_asset_id,
+        "cost_action": action_label,
     }
     if ctx.refs:
         gen_kwargs["reference_dnas"] = ctx.refs
@@ -234,7 +251,19 @@ def process_draft_photo_row(
             paths.append(Path(path))
         provider = str(getattr(result, "provider", "") or "")
         if provider not in _ROUTER_SELF_RECORDING_PROVIDERS:
-            llm_spend.record(est, route="job:draft_assets/photo", kind="image", brand_id=brand_id)
+            llm_spend.record(
+                est,
+                route="job:draft_assets/photo",
+                kind="image",
+                brand_id=brand_id,
+                inbox_item_id=item_id,
+                draft_asset_id=pending_asset_id,
+                event_key=event_key,
+                action=action_label,
+                provider=provider or None,
+                cost_source=str(getattr(result, "cost_source", "") or "estimate"),
+                queue_row_id=str(row.get("id") or "") or None,
+            )
 
     if not paths:
         return None, None
@@ -252,7 +281,17 @@ def process_draft_photo_row(
             instruction = build_edit_instruction(failed=best.get("reasons") or [], brand_id=brand_id)
             src = Path(best["path"])
             try:
-                edited = edit_image(src.read_bytes(), instruction, brand_id=brand_id)
+                edited = edit_image(
+                    src.read_bytes(),
+                    instruction,
+                    brand_id=brand_id,
+                    inbox_item_id=item_id,
+                    draft_asset_id=pending_asset_id,
+                    event_key=event_key,
+                    cost_action=action_label,
+                    cost_source="openrouter",
+                    queue_row_id=str(row.get("id") or "") or None,
+                )
             except Exception:
                 edited = None
             if edited and getattr(edited, "bytes", None):
@@ -296,14 +335,19 @@ def process_draft_photo_row(
         "human_reason": None if selected is not None else "QC did not pass after edit",
     }
 
-    asset_id = caption_asset_id
-    if not asset_id:
+    asset_id = caption_asset_id or pending_asset_id
+    if not caption_asset_id:
         asset_id = _write_draft(
             brand_id=brand_id,
             caption=caption,
             platform=primary_platform,
             source_item_id=item_id,
-            sidecar={"action": action_label, "queue_row_id": row.get("id")},
+            asset_id=pending_asset_id,
+            sidecar={
+                "action": action_label,
+                "queue_row_id": row.get("id"),
+                "event_key": event_key,
+            },
         )
 
     sidecar_path = _data_dir() / "draft-assets" / f"{asset_id}.json"
@@ -315,7 +359,6 @@ def process_draft_photo_row(
                 merged = loaded
         except (OSError, json.JSONDecodeError):
             merged = {}
-    calendar = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
     model_routing = dict(cd.get("model_routing") or {})
     model_routing["pick_model"] = routing
     merged.update(
@@ -339,6 +382,7 @@ def process_draft_photo_row(
             "product_service_items": ctx.lineage.get("product_meta") or [],
             "brand_bible": ctx.lineage.get("brand_bible") or {},
             "calendar": calendar,
+            "event_key": event_key,
             "context_degraded": ctx.lineage.get("degraded") or [],
             "image_size": size,
             "prompt": ctx.job,
