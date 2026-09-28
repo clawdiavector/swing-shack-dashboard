@@ -44118,18 +44118,24 @@ def planning_timeline(brand_id):
             ordered: List[Dict[str, Any]] = []
             for e in combined_events.values():
                 try:
-                    ordered.append(_enrich_event(e))
+                    enriched = _enrich_event(e)
                 except Exception as enrich_err:
                     print(
                         f"[v23-timeline] _enrich_event failed for ek={e.get('event_key')}; passthrough: {enrich_err}",
                         file=_sys_main.stderr, flush=True,
                     )
-                    passthrough = dict(e)
-                    passthrough["start"] = passthrough.get("start") or passthrough.get("event_start") or ""
-                    passthrough["end"] = passthrough.get("end") or passthrough.get("event_end") or passthrough.get("public_peak") or ""
-                    passthrough["phases"] = []
-                    passthrough.setdefault("planning_state", "operator_record_no_phases")
-                    ordered.append(passthrough)
+                    enriched = dict(e)
+                    enriched["phases"] = []
+                    enriched.setdefault("planning_state", "operator_record_no_phases")
+                # V2.3 — coerce start/end for both shapes (spine uses 'start'/'end',
+                # operator-store uses 'event_start'/'event_end'). Without this,
+                # ordered.sort(key=...) raises TypeError ('<' not supported
+                # between NoneType and str) when a mixed-shape corpus is present.
+                if not enriched.get("start"):
+                    enriched["start"] = enriched.get("event_start") or ""
+                if not enriched.get("end"):
+                    enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
+                ordered.append(enriched)
             ordered.sort(key=lambda e: e.get("start") or "")
 
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
@@ -44218,7 +44224,7 @@ def planning_timeline(brand_id):
     events_year: List[Dict[str, Any]] = []
     for e in combined_events.values():
         try:
-            events_year.append(_enrich_event(e))
+            enriched = _enrich_event(e)
         except Exception as enrich_err:
             import sys as _sys2
             print(
@@ -44227,12 +44233,15 @@ def planning_timeline(brand_id):
                 file=_sys2.stderr,
                 flush=True,
             )
-            passthrough = dict(e)
-            passthrough.setdefault("start", e.get("event_start") or "")
-            passthrough.setdefault("end", e.get("event_end") or e.get("public_peak") or "")
-            passthrough.setdefault("phases", [])
-            passthrough.setdefault("planning_state", "operator_record_no_phases")
-            events_year.append(passthrough)
+            enriched = dict(e)
+            enriched["phases"] = []
+            enriched.setdefault("planning_state", "operator_record_no_phases")
+        # V2.3 — same coercion as the range-mode branch.
+        if not enriched.get("start"):
+            enriched["start"] = enriched.get("event_start") or ""
+        if not enriched.get("end"):
+            enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
+        events_year.append(enriched)
     events_year.sort(key=lambda e: e.get("start") or "")
     events = events_year
 
