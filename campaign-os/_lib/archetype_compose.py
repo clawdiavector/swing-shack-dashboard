@@ -682,6 +682,18 @@ def _library_photo(brand_id: str, rel_dir: str, seed: str):
         if not folder.is_dir():
             continue
         files = sorted(p for p in folder.iterdir() if p.suffix.lower() in _PHOTO_SUFFIXES)
+        if rel.endswith("/photos"):
+            ref_rel = rel[: -len("photos")] + "references"
+            ref_folder = d / ref_rel.strip("/")
+            ref_files = (
+                sorted(p for p in ref_folder.iterdir() if p.suffix.lower() in _PHOTO_SUFFIXES)
+                if ref_folder.is_dir()
+                else []
+            )
+            if not files and ref_files:
+                files = ref_files
+            elif files and ref_files and all(p.name.startswith("standin-") for p in files):
+                files = ref_files
         if files:
             return _load_image(files[zlib.crc32(seed.encode("utf-8")) % len(files)])
     return None
