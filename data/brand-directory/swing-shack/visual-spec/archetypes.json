@@ -1,1049 +1,1312 @@
 {
- "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
- "brand_id": "swing-shack",
- "version": "2.0",
- "updated": "2026-09-27T00:00:00Z",
- "source": "draft",
- "canvases": {
-  "ig_post": {
-   "w": 1080,
-   "h": 1350,
-   "aspect": "4:5",
-   "channels": [
-    "instagram"
-   ],
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   }
-  },
-  "ig_story": {
-   "w": 1080,
-   "h": 1920,
-   "aspect": "9:16",
-   "channels": [
-    "instagram_story"
-   ],
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.16,
-    "x1": 0.95,
-    "y1": 0.84
-   }
-  },
-  "fb_post": {
-   "w": 1200,
-   "h": 630,
-   "aspect": "1.91:1",
-   "channels": [
-    "facebook"
-   ],
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.08,
-    "x1": 0.95,
-    "y1": 0.92
-   }
-  },
-  "gbp_post": {
-   "w": 1200,
-   "h": 900,
-   "aspect": "4:3",
-   "channels": [
-    "gbp"
-   ],
-   "safe_zone": {
-    "x0": 0.06,
-    "y0": 0.06,
-    "x1": 0.94,
-    "y1": 0.94
-   }
-  }
- },
- "archetypes": [
-  {
-   "id": "ss-photo-post",
-   "name": "Photo post",
-   "canvas": "ig_post",
-   "block_anchor": "center",
-   "applies_to": {
-    "channels": [
-     "instagram",
-     "instagram_story",
-     "facebook",
-     "gbp"
-    ],
-    "needs_photo": true
-   },
-   "background": {
-    "kind": "solid",
-    "fill": "primary"
-   },
-   "zones": {
-    "headline": {
-     "rect": {
-      "x0": 0.1,
-      "y0": 0.2,
-      "x1": 0.9,
-      "y1": 0.35
-     },
-     "kind": "text",
-     "source": "caption_hook",
-     "font_role": "h1",
-     "max_lines": 2,
-     "max_chars_per_line": 24,
-     "colour": "neutral_light",
-     "min_font_px": 32
-    },
-    "photo": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.4,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "kind": "image",
-     "source": "photo",
-     "optional": false
-    },
-    "logo": {
-     "rect": {
-      "x0": 0.1,
-      "y0": 0.85,
-      "x1": 0.3,
-      "y1": 0.95
-     },
-     "kind": "logo"
-    }
-   },
-   "logo_anchor": {
-    "zone": "logo",
-    "variant": "mono_light",
-    "fit": "height",
-    "align": "left"
-   },
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   },
-   "max_total_chars": 80
-  },
-  {
-   "id": "ss-service-frame",
-   "name": "Service frame",
-   "canvas": "ig_post",
-   "block_anchor": "center",
-   "applies_to": {
-    "channels": [
-     "instagram",
-     "instagram_story",
-     "facebook",
-     "gbp"
-    ],
-    "needs_photo": false
-   },
-   "background": {
-    "kind": "solid",
-    "fill": "primary"
-   },
-   "zones": {
-    "headline": {
-     "rect": {
-      "x0": 0.1,
-      "y0": 0.2,
-      "x1": 0.9,
-      "y1": 0.35
-     },
-     "kind": "text",
-     "source": "caption_hook",
-     "font_role": "h1",
-     "max_lines": 2,
-     "max_chars_per_line": 24,
-     "colour": "neutral_light",
-     "min_font_px": 32
-    },
-    "photo": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.4,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "kind": "image",
-     "source": "photo",
-     "optional": true
-    },
-    "logo": {
-     "rect": {
-      "x0": 0.1,
-      "y0": 0.85,
-      "x1": 0.3,
-      "y1": 0.95
-     },
-     "kind": "logo"
-    }
-   },
-   "logo_anchor": {
-    "zone": "logo",
-    "variant": "mono_light",
-    "fit": "height",
-    "align": "left"
-   },
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   },
-   "max_total_chars": 80
-  },
-  {
-   "id": "ss-story-banner",
-   "name": "Story banner",
-   "canvas": "ig_post",
-   "block_anchor": "center",
-   "applies_to": {
-    "channels": [
-     "instagram",
-     "instagram_story",
-     "facebook",
-     "gbp"
-    ],
-    "needs_photo": true
-   },
-   "background": {
-    "kind": "solid",
-    "fill": "primary"
-   },
-   "zones": {
-    "headline": {
-     "rect": {
-      "x0": 0.1,
-      "y0": 0.2,
-      "x1": 0.9,
-      "y1": 0.35
-     },
-     "kind": "text",
-     "source": "caption_hook",
-     "font_role": "h1",
-     "max_lines": 2,
-     "max_chars_per_line": 24,
-     "colour": "neutral_light",
-     "min_font_px": 32
-    },
-    "photo": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.4,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "kind": "image",
-     "source": "photo",
-     "optional": false
-    },
-    "logo": {
-     "rect": {
-      "x0": 0.1,
-      "y0": 0.85,
-      "x1": 0.3,
-      "y1": 0.95
-     },
-     "kind": "logo"
-    }
-   },
-   "logo_anchor": {
-    "zone": "logo",
-    "variant": "mono_light",
-    "fit": "height",
-    "align": "left"
-   },
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   },
-   "max_total_chars": 80
-  },
-  {
-   "id": "ss-did-you-know",
-   "name": "Did you know? \u2014 dimmed venue photo, thin kicker, huge outlined italic question",
-   "description": "Measured from Content Bank Services/cf1\u2013cf6 (1081\u00d71201). Dimmed full-bleed venue photo, 8px 50% white frame inset 35px, logo top-right, thin italic 'DID YOU KNOW?' kicker 33px above a 3\u20134 line Montserrat Black Italic question (cap 127px, pitch 146px, 85% width) with an offset outline echo. Accent rotates green/orange/blue/purple.",
-   "canvas": "ig_post",
-   "block_anchor": "center",
-   "applies_to": {
-    "channels": [
-     "instagram",
-     "instagram_story",
-     "facebook"
-    ],
-    "record_types": [
-     "moment",
-     "evergreen"
-    ],
-    "needs_photo": false
-   },
-   "channel_canvas": {
-    "facebook": "ig_post"
-   },
-   "template_pack": "templates/did-you-know",
-   "background": {
-    "kind": "photo_full_bleed",
-    "cover": true,
-    "library": "templates/did-you-know/photos",
-    "focus_y": 0.5,
-    "scrim": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.0,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "from_alpha": 0.62,
-     "to_alpha": 0.72
-    }
-   },
-   "zones": {
-    "frame": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.0,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "kind": "decorative",
-     "shape": "frame",
-     "inset_px": 35,
-     "stroke_px": 8,
-     "colour": "white",
-     "alpha": 0.5
-    },
-    "logo": {
-     "rect": {
-      "x0": 0.8028,
-      "y0": 0.0681,
-      "x1": 0.925,
-      "y1": 0.1111
-     },
-     "kind": "image",
-     "source": "asset",
-     "asset": "templates/did-you-know/assets/logo-white.png",
-     "fit": "aspect_fit",
-     "align": "right",
-     "valign": "top"
-    },
-    "headline": {
-     "rect": {
-      "x0": 0.0861,
-      "y0": 0.3415,
-      "x1": 0.94,
-      "y1": 0.786
-     },
-     "kind": "text",
-     "source": "caption_hook",
-     "font_role": "display",
-     "max_font_px": 181,
-     "min_font_px": 120,
-     "max_lines": 4,
-     "max_chars_per_line": 14,
-     "line_height": 0.8066,
-     "text_transform": "uppercase",
-     "text_origin_x": 93,
-     "align": "left",
-     "valign": "middle",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.85,
-     "echo": {
-      "dx_em": 0.065,
-      "dy_em": -0.006,
-      "stroke_em": 0.011,
-      "shadow_alpha": 0.55
-     },
-     "wrap": "balanced"
-    },
-    "kicker": {
-     "rect": {
-      "x0": 0.0852,
-      "y0": 0.2,
-      "x1": 0.75,
-      "y1": 0.26
-     },
-     "kind": "text",
-     "source": "static",
-     "text": "Did you know?",
-     "font_role": "h3",
-     "max_font_px": 63,
-     "min_font_px": 40,
-     "max_lines": 1,
-     "max_chars_per_line": 20,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "text_origin_x": 92,
-     "align": "left",
-     "colour": "white",
-     "h_scale": 0.9,
-     "attach_above": {
-      "zone": "headline",
-      "gap_px": 33
-     }
-    }
-   },
-   "canvas_overrides": {
-    "ig_story": {
-     "frame": {
-      "rect": {
-       "x0": 0.0,
-       "y0": 0.0,
-       "x1": 1.0,
-       "y1": 1.0
-      },
-      "kind": "decorative",
-      "shape": "frame",
-      "inset_px": 35,
-      "stroke_px": 8,
-      "colour": "white",
-      "alpha": 0.5
-     },
-     "logo": {
-      "rect": {
-       "x0": 0.8028,
-       "y0": 0.1651,
-       "x1": 0.925,
-       "y1": 0.1953
-      },
-      "kind": "image",
-      "source": "asset",
-      "asset": "templates/did-you-know/assets/logo-white.png",
-      "fit": "aspect_fit",
-      "align": "right",
-      "valign": "top"
-     },
-     "headline": {
-      "rect": {
-       "x0": 0.0861,
-       "y0": 0.3438,
-       "x1": 0.94,
-       "y1": 0.6563
-      },
-      "kind": "text",
-      "source": "caption_hook",
-      "font_role": "display",
-      "max_font_px": 181,
-      "min_font_px": 120,
-      "max_lines": 4,
-      "max_chars_per_line": 14,
-      "line_height": 0.8066,
-      "text_transform": "uppercase",
-      "text_origin_x": 93,
-      "align": "left",
-      "valign": "middle",
-      "colour_options": [
-       "ss_green",
-       "ss_orange",
-       "ss_blue",
-       "ss_purple"
+  "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
+  "brand_id": "swing-shack",
+  "version": "2.0",
+  "updated": "2026-09-27T00:00:00Z",
+  "source": "draft",
+  "canvases": {
+    "ig_post": {
+      "w": 1080,
+      "h": 1350,
+      "aspect": "4:5",
+      "channels": [
+        "instagram"
       ],
-      "h_scale": 0.85,
-      "echo": {
-       "dx_em": 0.065,
-       "dy_em": -0.006,
-       "stroke_em": 0.011,
-       "shadow_alpha": 0.55
-      },
-      "wrap": "balanced"
-     },
-     "kicker": {
-      "rect": {
-       "x0": 0.0852,
-       "y0": 0.2,
-       "x1": 0.75,
-       "y1": 0.26
-      },
-      "kind": "text",
-      "source": "static",
-      "text": "Did you know?",
-      "font_role": "h3",
-      "max_font_px": 63,
-      "min_font_px": 40,
-      "max_lines": 1,
-      "max_chars_per_line": 20,
-      "line_height": 1.0,
-      "text_transform": "uppercase",
-      "text_origin_x": 92,
-      "align": "left",
-      "colour": "white",
-      "h_scale": 0.9,
-      "attach_above": {
-       "zone": "headline",
-       "gap_px": 33
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
       }
-     }
+    },
+    "ig_story": {
+      "w": 1080,
+      "h": 1920,
+      "aspect": "9:16",
+      "channels": [
+        "instagram_story"
+      ],
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.16,
+        "x1": 0.95,
+        "y1": 0.84
+      }
+    },
+    "fb_post": {
+      "w": 1200,
+      "h": 630,
+      "aspect": "1.91:1",
+      "channels": [
+        "facebook"
+      ],
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.08,
+        "x1": 0.95,
+        "y1": 0.92
+      }
+    },
+    "gbp_post": {
+      "w": 1200,
+      "h": 900,
+      "aspect": "4:3",
+      "channels": [
+        "gbp"
+      ],
+      "safe_zone": {
+        "x0": 0.06,
+        "y0": 0.06,
+        "x1": 0.94,
+        "y1": 0.94
+      }
     }
-   },
-   "logo_anchor": {
-    "zone": "logo",
-    "variant": "mono_light",
-    "fit": "height",
-    "align": "right"
-   },
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   },
-   "max_total_chars": 56
   },
-  {
-   "id": "ss-price-package",
-   "name": "Monthly package \u2014 hero price on dimmed venue photo",
-   "description": "Measured from Content Bank Services/package1_* (1081\u00d71351). Full-bleed venue photo, white frame, logo top-left, kicker + package name + qualifier, divider rules, centred price + period, CTA + URL. Accent on name/price/cta via colour_options.",
-   "canvas": "ig_post",
-   "block_anchor": "center",
-   "applies_to": {
-    "channels": [
-     "instagram",
-     "instagram_story",
-     "facebook"
-    ],
-    "record_types": [
-     "moment",
-     "evergreen"
-    ],
-    "needs_photo": false
-   },
-   "channel_canvas": {
-    "facebook": "ig_post"
-   },
-   "template_pack": "templates/price-package",
-   "background": {
-    "kind": "photo_full_bleed",
-    "cover": true,
-    "library": "templates/did-you-know/photos",
-    "focus_y": 0.5,
-    "scrim": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.0,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "from_alpha": 0.78,
-     "to_alpha": 0.82
+  "archetypes": [
+    {
+      "id": "ss-photo-post",
+      "name": "Photo post",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "primary"
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.2,
+            "x1": 0.9,
+            "y1": 0.35
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 24,
+          "colour": "neutral_light",
+          "min_font_px": 32
+        },
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.4,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo",
+          "optional": false
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.85,
+            "x1": 0.3,
+            "y1": 0.95
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 80
+    },
+    {
+      "id": "ss-service-frame",
+      "name": "Service frame",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "needs_photo": false
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "primary"
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.2,
+            "x1": 0.9,
+            "y1": 0.35
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 24,
+          "colour": "neutral_light",
+          "min_font_px": 32
+        },
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.4,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo",
+          "optional": true
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.85,
+            "x1": 0.3,
+            "y1": 0.95
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 80
+    },
+    {
+      "id": "ss-story-banner",
+      "name": "Story banner",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "primary"
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.2,
+            "x1": 0.9,
+            "y1": 0.35
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 24,
+          "colour": "neutral_light",
+          "min_font_px": 32
+        },
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.4,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "image",
+          "source": "photo",
+          "optional": false
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.85,
+            "x1": 0.3,
+            "y1": 0.95
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 80
+    },
+    {
+      "id": "ss-did-you-know",
+      "name": "Did you know? — dimmed venue photo, thin kicker, huge outlined italic question",
+      "description": "Measured from Content Bank Services/cf1–cf6 (1081×1201). Dimmed full-bleed venue photo, 8px 50% white frame inset 35px, logo top-right, thin italic 'DID YOU KNOW?' kicker 33px above a 3–4 line Montserrat Black Italic question (cap 127px, pitch 146px, 85% width) with an offset outline echo. Accent rotates green/orange/blue/purple.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/did-you-know",
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/did-you-know/photos",
+        "focus_y": 0.5,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0.62,
+          "to_alpha": 0.72
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 35,
+          "stroke_px": 8,
+          "colour": "white",
+          "alpha": 0.5
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.8028,
+            "y0": 0.0681,
+            "x1": 0.925,
+            "y1": 0.1111
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/did-you-know/assets/logo-white.png",
+          "fit": "aspect_fit",
+          "align": "right",
+          "valign": "top"
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.0861,
+            "y0": 0.3415,
+            "x1": 0.94,
+            "y1": 0.786
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_font_px": 181,
+          "min_font_px": 120,
+          "max_lines": 4,
+          "max_chars_per_line": 14,
+          "line_height": 0.8066,
+          "text_transform": "uppercase",
+          "text_origin_x": 93,
+          "align": "left",
+          "valign": "middle",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.85,
+          "echo": {
+            "dx_em": 0.065,
+            "dy_em": -0.006,
+            "stroke_em": 0.011,
+            "shadow_alpha": 0.55
+          },
+          "wrap": "balanced"
+        },
+        "kicker": {
+          "rect": {
+            "x0": 0.0852,
+            "y0": 0.2,
+            "x1": 0.75,
+            "y1": 0.26
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "Did you know?",
+          "font_role": "h3",
+          "max_font_px": 63,
+          "min_font_px": 40,
+          "max_lines": 1,
+          "max_chars_per_line": 20,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "text_origin_x": 92,
+          "align": "left",
+          "colour": "white",
+          "h_scale": 0.9,
+          "attach_above": {
+            "zone": "headline",
+            "gap_px": 33
+          }
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "frame": {
+            "rect": {
+              "x0": 0,
+              "y0": 0,
+              "x1": 1,
+              "y1": 1
+            },
+            "kind": "decorative",
+            "shape": "frame",
+            "inset_px": 35,
+            "stroke_px": 8,
+            "colour": "white",
+            "alpha": 0.5
+          },
+          "logo": {
+            "rect": {
+              "x0": 0.8028,
+              "y0": 0.1651,
+              "x1": 0.925,
+              "y1": 0.1953
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "templates/did-you-know/assets/logo-white.png",
+            "fit": "aspect_fit",
+            "align": "right",
+            "valign": "top"
+          },
+          "headline": {
+            "rect": {
+              "x0": 0.0861,
+              "y0": 0.3438,
+              "x1": 0.94,
+              "y1": 0.6563
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_font_px": 181,
+            "min_font_px": 120,
+            "max_lines": 4,
+            "max_chars_per_line": 14,
+            "line_height": 0.8066,
+            "text_transform": "uppercase",
+            "text_origin_x": 93,
+            "align": "left",
+            "valign": "middle",
+            "colour_options": [
+              "ss_green",
+              "ss_orange",
+              "ss_blue",
+              "ss_purple"
+            ],
+            "h_scale": 0.85,
+            "echo": {
+              "dx_em": 0.065,
+              "dy_em": -0.006,
+              "stroke_em": 0.011,
+              "shadow_alpha": 0.55
+            },
+            "wrap": "balanced"
+          },
+          "kicker": {
+            "rect": {
+              "x0": 0.0852,
+              "y0": 0.2,
+              "x1": 0.75,
+              "y1": 0.26
+            },
+            "kind": "text",
+            "source": "static",
+            "text": "Did you know?",
+            "font_role": "h3",
+            "max_font_px": 63,
+            "min_font_px": 40,
+            "max_lines": 1,
+            "max_chars_per_line": 20,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "text_origin_x": 92,
+            "align": "left",
+            "colour": "white",
+            "h_scale": 0.9,
+            "attach_above": {
+              "zone": "headline",
+              "gap_px": 33
+            }
+          }
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 56
+    },
+    {
+      "id": "ss-price-package",
+      "name": "Monthly package — hero price on dimmed venue photo",
+      "description": "Measured from Content Bank Services/package1_* (1081×1351). Full-bleed venue photo, white frame, logo top-left, kicker + package name + qualifier, divider rules, centred price + period, CTA + URL. Accent on name/price/cta via colour_options.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/price-package",
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/did-you-know/photos",
+        "focus_y": 0.5,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0.78,
+          "to_alpha": 0.82
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 34,
+          "stroke_px": 6,
+          "colour": "white",
+          "alpha": 1
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.0972,
+            "y0": 0.1236,
+            "x1": 0.2609,
+            "y1": 0.1902
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/did-you-know/assets/logo-white.png",
+          "fit": "aspect_fit",
+          "align": "left",
+          "valign": "top"
+        },
+        "kicker": {
+          "rect": {
+            "x0": 0.0805,
+            "y0": 0.2191,
+            "x1": 0.6605,
+            "y1": 0.2546
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "Monthly packages",
+          "font_role": "h3",
+          "max_font_px": 68,
+          "min_font_px": 68,
+          "max_lines": 1,
+          "max_chars_per_line": 32,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.85
+        },
+        "name": {
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.2739,
+            "x1": 0.9223,
+            "y1": 0.3375
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_font_px": 119,
+          "min_font_px": 80,
+          "max_lines": 2,
+          "max_chars_per_line": 24,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.9
+        },
+        "qualifier": {
+          "rect": {
+            "x0": 0.0786,
+            "y0": 0.3553,
+            "x1": 0.6605,
+            "y1": 0.4197
+          },
+          "kind": "text",
+          "source": "qualifier",
+          "font_role": "display",
+          "max_font_px": 58,
+          "min_font_px": 58,
+          "max_lines": 2,
+          "max_chars_per_line": 40,
+          "line_height": 0.793,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.88
+        },
+        "rule_top": {
+          "kind": "band",
+          "fill": "#585858",
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.4567,
+            "x1": 0.8844,
+            "y1": 0.4626
+          }
+        },
+        "price": {
+          "rect": {
+            "x0": 0.2516,
+            "y0": 0.5152,
+            "x1": 0.7556,
+            "y1": 0.622
+          },
+          "kind": "text",
+          "source": "price",
+          "font_role": "display",
+          "max_font_px": 143,
+          "min_font_px": 143,
+          "max_lines": 1,
+          "max_chars_per_line": 24,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "top",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.95
+        },
+        "period": {
+          "rect": {
+            "x0": 0.28,
+            "y0": 0.6173,
+            "x1": 0.72,
+            "y1": 0.672
+          },
+          "kind": "text",
+          "source": "price_period",
+          "font_role": "h3",
+          "max_font_px": 72,
+          "min_font_px": 72,
+          "max_lines": 1,
+          "max_chars_per_line": 24,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.86,
+          "optional": true
+        },
+        "rule_bottom": {
+          "kind": "band",
+          "fill": "#585858",
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.7069,
+            "x1": 0.8844,
+            "y1": 0.7128
+          }
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.775,
+            "x1": 0.7354,
+            "y1": 0.8061
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "display",
+          "max_font_px": 59,
+          "min_font_px": 59,
+          "max_lines": 1,
+          "max_chars_per_line": 40,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.9
+        },
+        "url": {
+          "rect": {
+            "x0": 0.0796,
+            "y0": 0.8386,
+            "x1": 0.7327,
+            "y1": 0.866
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "www.swingshack.co.za",
+          "font_role": "display",
+          "max_font_px": 52,
+          "min_font_px": 52,
+          "max_lines": 1,
+          "max_chars_per_line": 40,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.9
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 64
+    },
+    {
+      "id": "ss-price-list",
+      "name": "Coaching packages — rate list on dimmed venue photo",
+      "description": "Measured from Content Bank Services/coachinpackages_* (1081×1351). Same chrome as ss-price-package; two-column explicit-wrap price rows.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/price-list",
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/did-you-know/photos",
+        "focus_y": 0.5,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0.78,
+          "to_alpha": 0.82
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 34,
+          "stroke_px": 6,
+          "colour": "white",
+          "alpha": 1
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.0972,
+            "y0": 0.1236,
+            "x1": 0.2609,
+            "y1": 0.1902
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/did-you-know/assets/logo-white.png",
+          "fit": "aspect_fit",
+          "align": "left",
+          "valign": "top"
+        },
+        "title": {
+          "rect": {
+            "x0": 0.0796,
+            "y0": 0.2154,
+            "x1": 0.6725,
+            "y1": 0.3494
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_font_px": 119,
+          "min_font_px": 80,
+          "max_lines": 2,
+          "max_chars_per_line": 24,
+          "line_height": 0.798,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.91,
+          "wrap": "balanced"
+        },
+        "rule_top": {
+          "kind": "band",
+          "fill": "#585858",
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.3893,
+            "x1": 0.8844,
+            "y1": 0.3953
+          }
+        },
+        "list_labels": {
+          "rect": {
+            "x0": 0.0777,
+            "y0": 0.4619,
+            "x1": 0.5014,
+            "y1": 0.6573
+          },
+          "kind": "text",
+          "source": "price_labels",
+          "font_role": "h3",
+          "max_font_px": 72,
+          "min_font_px": 72,
+          "max_lines": 4,
+          "max_chars_per_line": 32,
+          "line_height": 0.986,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.9,
+          "wrap": "explicit"
+        },
+        "list_values": {
+          "rect": {
+            "x0": 0.629,
+            "y0": 0.4619,
+            "x1": 0.88,
+            "y1": 0.6573
+          },
+          "kind": "text",
+          "source": "price_values",
+          "font_role": "display",
+          "max_font_px": 72,
+          "min_font_px": 72,
+          "max_lines": 4,
+          "max_chars_per_line": 24,
+          "line_height": 0.986,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.97,
+          "wrap": "explicit"
+        },
+        "rule_bottom": {
+          "kind": "band",
+          "fill": "#585858",
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.7143,
+            "x1": 0.8844,
+            "y1": 0.7202
+          }
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.0768,
+            "y0": 0.775,
+            "x1": 0.7354,
+            "y1": 0.8061
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "display",
+          "max_font_px": 59,
+          "min_font_px": 59,
+          "max_lines": 1,
+          "max_chars_per_line": 40,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour_options": [
+            "ss_green",
+            "ss_orange",
+            "ss_blue",
+            "ss_purple"
+          ],
+          "h_scale": 0.9
+        },
+        "url": {
+          "rect": {
+            "x0": 0.0796,
+            "y0": 0.8386,
+            "x1": 0.7327,
+            "y1": 0.866
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "www.swingshack.co.za",
+          "font_role": "display",
+          "max_font_px": 52,
+          "min_font_px": 52,
+          "max_lines": 1,
+          "max_chars_per_line": 40,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.9
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 120
+    },
+    {
+      "id": "ss-sale-offer",
+      "name": "Sale offer — story-native Black Friday / promo lockup",
+      "description": "Measured from Content Bank blackfriday copy 1–5 (1081×1920 story). Charcoal/near-black field, white frame inset 33px, logo top-right, white kicker, huge ss_blue headline from caption_hook, optional body subline, orange CTA. Primary canvas ig_story; 4:5 feed via channel_canvas.",
+      "canvas": "ig_story",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "instagram": "ig_post",
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/sale-offer",
+      "background": {
+        "kind": "solid",
+        "fill": "ss_charcoal"
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 33,
+          "stroke_px": 5,
+          "colour": "white",
+          "alpha": 0.5
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.538,
+            "y0": 0.148,
+            "x1": 0.936,
+            "y1": 0.282
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/sale-offer/assets/logo-white.png",
+          "fit": "aspect_fit",
+          "align": "right",
+          "valign": "top"
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.094,
+            "y0": 0.128,
+            "x1": 0.904,
+            "y1": 0.344
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_font_px": 240,
+          "min_font_px": 72,
+          "max_lines": 3,
+          "max_chars_per_line": 18,
+          "line_height": 0.92,
+          "text_transform": "uppercase",
+          "text_origin_x": 102,
+          "align": "left",
+          "valign": "middle",
+          "colour": "ss_blue",
+          "h_scale": 0.88
+        },
+        "kicker": {
+          "rect": {
+            "x0": 0.079,
+            "y0": 0.088,
+            "x1": 0.853,
+            "y1": 0.145
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "BLACK FRIDAY SALE",
+          "font_role": "h3",
+          "max_font_px": 72,
+          "min_font_px": 48,
+          "max_lines": 1,
+          "max_chars_per_line": 22,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "text_origin_x": 85,
+          "align": "left",
+          "colour": "white",
+          "h_scale": 0.9,
+          "attach_above": {
+            "zone": "headline",
+            "gap_px": 24
+          }
+        },
+        "subline": {
+          "rect": {
+            "x0": 0.08,
+            "y0": 0.554,
+            "x1": 0.92,
+            "y1": 0.62
+          },
+          "kind": "text",
+          "source": "caption_body",
+          "font_role": "h3",
+          "max_font_px": 48,
+          "min_font_px": 28,
+          "max_lines": 2,
+          "max_chars_per_line": 36,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "colour": "white",
+          "optional": true
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.08,
+            "y0": 0.88,
+            "x1": 0.92,
+            "y1": 0.95
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h3",
+          "max_font_px": 44,
+          "min_font_px": 28,
+          "max_lines": 1,
+          "max_chars_per_line": 28,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "colour": "ss_orange"
+        }
+      },
+      "canvas_overrides": {
+        "ig_post": {
+          "logo": {
+            "rect": {
+              "x0": 0.72,
+              "y0": 0.06,
+              "x1": 0.94,
+              "y1": 0.12
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "templates/sale-offer/assets/logo-white.png",
+            "fit": "aspect_fit",
+            "align": "right",
+            "valign": "top"
+          },
+          "headline": {
+            "rect": {
+              "x0": 0.08,
+              "y0": 0.22,
+              "x1": 0.92,
+              "y1": 0.48
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_font_px": 160,
+            "min_font_px": 64,
+            "max_lines": 2,
+            "max_chars_per_line": 16,
+            "line_height": 0.92,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "middle",
+            "colour": "ss_blue",
+            "h_scale": 0.88
+          },
+          "kicker": {
+            "rect": {
+              "x0": 0.08,
+              "y0": 0.12,
+              "x1": 0.75,
+              "y1": 0.18
+            },
+            "kind": "text",
+            "source": "static",
+            "text": "BLACK FRIDAY SALE",
+            "font_role": "h3",
+            "max_font_px": 56,
+            "min_font_px": 36,
+            "max_lines": 1,
+            "max_chars_per_line": 22,
+            "text_transform": "uppercase",
+            "align": "left",
+            "colour": "white",
+            "attach_above": {
+              "zone": "headline",
+              "gap_px": 20
+            }
+          },
+          "subline": {
+            "rect": {
+              "x0": 0.08,
+              "y0": 0.52,
+              "x1": 0.92,
+              "y1": 0.6
+            },
+            "kind": "text",
+            "source": "caption_body",
+            "font_role": "h3",
+            "max_font_px": 40,
+            "min_font_px": 24,
+            "max_lines": 2,
+            "optional": true,
+            "text_transform": "uppercase",
+            "align": "left",
+            "colour": "white"
+          },
+          "cta": {
+            "rect": {
+              "x0": 0.08,
+              "y0": 0.86,
+              "x1": 0.92,
+              "y1": 0.94
+            },
+            "kind": "text",
+            "source": "cta",
+            "font_role": "h3",
+            "max_font_px": 40,
+            "min_font_px": 26,
+            "max_lines": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "colour": "ss_orange"
+          }
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.13,
+        "x1": 0.95,
+        "y1": 0.87
+      },
+      "max_total_chars": 120
     }
-   },
-   "zones": {
-    "frame": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.0,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "kind": "decorative",
-     "shape": "frame",
-     "inset_px": 34,
-     "stroke_px": 6,
-     "colour": "white",
-     "alpha": 1.0
-    },
-    "logo": {
-     "rect": {
-      "x0": 0.0972,
-      "y0": 0.1236,
-      "x1": 0.2609,
-      "y1": 0.1902
-     },
-     "kind": "image",
-     "source": "asset",
-     "asset": "templates/did-you-know/assets/logo-white.png",
-     "fit": "aspect_fit",
-     "align": "left",
-     "valign": "top"
-    },
-    "kicker": {
-     "rect": {
-      "x0": 0.0805,
-      "y0": 0.2191,
-      "x1": 0.6605,
-      "y1": 0.2546
-     },
-     "kind": "text",
-     "source": "static",
-     "text": "Monthly packages",
-     "font_role": "h3",
-     "max_font_px": 68,
-     "min_font_px": 68,
-     "max_lines": 1,
-     "max_chars_per_line": 32,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour": "white",
-     "h_scale": 0.85
-    },
-    "name": {
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.2739,
-      "x1": 0.9223,
-      "y1": 0.3375
-     },
-     "kind": "text",
-     "source": "caption_hook",
-     "font_role": "display",
-     "max_font_px": 119,
-     "min_font_px": 80,
-     "max_lines": 2,
-     "max_chars_per_line": 24,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.9
-    },
-    "qualifier": {
-     "rect": {
-      "x0": 0.0786,
-      "y0": 0.3553,
-      "x1": 0.6605,
-      "y1": 0.4197
-     },
-     "kind": "text",
-     "source": "qualifier",
-     "font_role": "display",
-     "max_font_px": 58,
-     "min_font_px": 58,
-     "max_lines": 2,
-     "max_chars_per_line": 40,
-     "line_height": 0.793,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour": "white",
-     "h_scale": 0.88
-    },
-    "rule_top": {
-     "kind": "band",
-     "fill": "#585858",
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.4567,
-      "x1": 0.8844,
-      "y1": 0.4626
-     }
-    },
-    "price": {
-     "rect": {
-      "x0": 0.2516,
-      "y0": 0.5152,
-      "x1": 0.7556,
-      "y1": 0.6220
-     },
-     "kind": "text",
-     "source": "price",
-     "font_role": "display",
-     "max_font_px": 143,
-     "min_font_px": 143,
-     "max_lines": 1,
-     "max_chars_per_line": 24,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "center",
-     "valign": "top",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.95
-    },
-    "period": {
-     "rect": {
-      "x0": 0.2800,
-      "y0": 0.6173,
-      "x1": 0.7200,
-      "y1": 0.6720
-     },
-     "kind": "text",
-     "source": "price_period",
-     "font_role": "h3",
-     "max_font_px": 72,
-     "min_font_px": 72,
-     "max_lines": 1,
-     "max_chars_per_line": 24,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "center",
-     "valign": "top",
-     "colour": "white",
-     "h_scale": 0.86,
-     "optional": true
-    },
-    "rule_bottom": {
-     "kind": "band",
-     "fill": "#585858",
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.7069,
-      "x1": 0.8844,
-      "y1": 0.7128
-     }
-    },
-    "cta": {
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.775,
-      "x1": 0.7354,
-      "y1": 0.8061
-     },
-     "kind": "text",
-     "source": "cta",
-     "font_role": "display",
-     "max_font_px": 59,
-     "min_font_px": 59,
-     "max_lines": 1,
-     "max_chars_per_line": 40,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.9
-    },
-    "url": {
-     "rect": {
-      "x0": 0.0796,
-      "y0": 0.8386,
-      "x1": 0.7327,
-      "y1": 0.866
-     },
-     "kind": "text",
-     "source": "static",
-     "text": "www.swingshack.co.za",
-     "font_role": "display",
-     "max_font_px": 52,
-     "min_font_px": 52,
-     "max_lines": 1,
-     "max_chars_per_line": 40,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour": "white",
-     "h_scale": 0.9
-    }
-   },
-   "logo_anchor": {
-    "zone": "logo",
-    "variant": "mono_light",
-    "fit": "height",
-    "align": "left"
-   },
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   },
-   "max_total_chars": 64
-  },
-  {
-   "id": "ss-price-list",
-   "name": "Coaching packages \u2014 rate list on dimmed venue photo",
-   "description": "Measured from Content Bank Services/coachinpackages_* (1081\u00d71351). Same chrome as ss-price-package; two-column explicit-wrap price rows.",
-   "canvas": "ig_post",
-   "block_anchor": "center",
-   "applies_to": {
-    "channels": [
-     "instagram",
-     "instagram_story",
-     "facebook"
-    ],
-    "record_types": [
-     "moment",
-     "evergreen"
-    ],
-    "needs_photo": false
-   },
-   "channel_canvas": {
-    "facebook": "ig_post"
-   },
-   "template_pack": "templates/price-list",
-   "background": {
-    "kind": "photo_full_bleed",
-    "cover": true,
-    "library": "templates/did-you-know/photos",
-    "focus_y": 0.5,
-    "scrim": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.0,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "from_alpha": 0.78,
-     "to_alpha": 0.82
-    }
-   },
-   "zones": {
-    "frame": {
-     "rect": {
-      "x0": 0.0,
-      "y0": 0.0,
-      "x1": 1.0,
-      "y1": 1.0
-     },
-     "kind": "decorative",
-     "shape": "frame",
-     "inset_px": 34,
-     "stroke_px": 6,
-     "colour": "white",
-     "alpha": 1.0
-    },
-    "logo": {
-     "rect": {
-      "x0": 0.0972,
-      "y0": 0.1236,
-      "x1": 0.2609,
-      "y1": 0.1902
-     },
-     "kind": "image",
-     "source": "asset",
-     "asset": "templates/did-you-know/assets/logo-white.png",
-     "fit": "aspect_fit",
-     "align": "left",
-     "valign": "top"
-    },
-    "title": {
-     "rect": {
-      "x0": 0.0796,
-      "y0": 0.2154,
-      "x1": 0.6725,
-      "y1": 0.3494
-     },
-     "kind": "text",
-     "source": "caption_hook",
-     "font_role": "display",
-     "max_font_px": 119,
-     "min_font_px": 80,
-     "max_lines": 2,
-     "max_chars_per_line": 24,
-     "line_height": 0.798,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.91,
-     "wrap": "balanced"
-    },
-    "rule_top": {
-     "kind": "band",
-     "fill": "#585858",
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.3893,
-      "x1": 0.8844,
-      "y1": 0.3953
-     }
-    },
-    "list_labels": {
-     "rect": {
-      "x0": 0.0777,
-      "y0": 0.4619,
-      "x1": 0.5014,
-      "y1": 0.6573
-     },
-     "kind": "text",
-     "source": "price_labels",
-     "font_role": "h3",
-     "max_font_px": 72,
-     "min_font_px": 72,
-     "max_lines": 4,
-     "max_chars_per_line": 32,
-     "line_height": 0.986,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour": "white",
-     "h_scale": 0.9,
-     "wrap": "explicit"
-    },
-    "list_values": {
-     "rect": {
-      "x0": 0.629,
-      "y0": 0.4619,
-      "x1": 0.88,
-      "y1": 0.6573
-     },
-     "kind": "text",
-     "source": "price_values",
-     "font_role": "display",
-     "max_font_px": 72,
-     "min_font_px": 72,
-     "max_lines": 4,
-     "max_chars_per_line": 24,
-     "line_height": 0.986,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.97,
-     "wrap": "explicit"
-    },
-    "rule_bottom": {
-     "kind": "band",
-     "fill": "#585858",
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.7143,
-      "x1": 0.8844,
-      "y1": 0.7202
-     }
-    },
-    "cta": {
-     "rect": {
-      "x0": 0.0768,
-      "y0": 0.775,
-      "x1": 0.7354,
-      "y1": 0.8061
-     },
-     "kind": "text",
-     "source": "cta",
-     "font_role": "display",
-     "max_font_px": 59,
-     "min_font_px": 59,
-     "max_lines": 1,
-     "max_chars_per_line": 40,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour_options": [
-      "ss_green",
-      "ss_orange",
-      "ss_blue",
-      "ss_purple"
-     ],
-     "h_scale": 0.9
-    },
-    "url": {
-     "rect": {
-      "x0": 0.0796,
-      "y0": 0.8386,
-      "x1": 0.7327,
-      "y1": 0.866
-     },
-     "kind": "text",
-     "source": "static",
-     "text": "www.swingshack.co.za",
-     "font_role": "display",
-     "max_font_px": 52,
-     "min_font_px": 52,
-     "max_lines": 1,
-     "max_chars_per_line": 40,
-     "line_height": 1.0,
-     "text_transform": "uppercase",
-     "align": "left",
-     "valign": "top",
-     "colour": "white",
-     "h_scale": 0.9
-    }
-   },
-   "logo_anchor": {
-    "zone": "logo",
-    "variant": "mono_light",
-    "fit": "height",
-    "align": "left"
-   },
-   "safe_zone": {
-    "x0": 0.05,
-    "y0": 0.04,
-    "x1": 0.95,
-    "y1": 0.96
-   },
-   "max_total_chars": 120
+  ],
+  "selection": {
+    "default": "ss-photo-post",
+    "rules": [
+      {
+        "when": {
+          "pillar_in": [
+            "fitting",
+            "coaching",
+            "ss-fitting",
+            "ss-coaching"
+          ],
+          "has_product_item": false
+        },
+        "use": "ss-service-frame"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "tip",
+            "did_you_know",
+            "myth"
+          ]
+        },
+        "use": "ss-did-you-know"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "price_package",
+            "package",
+            "packages",
+            "pricing"
+          ]
+        },
+        "use": "ss-price-package"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "price_list",
+            "package_list",
+            "rate_card"
+          ]
+        },
+        "use": "ss-price-list"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "sale_offer"
+          ]
+        },
+        "use": "ss-sale-offer"
+      }
+    ]
   }
- ],
- "selection": {
-  "default": "ss-photo-post",
-  "rules": [
-   {
-    "when": {
-     "pillar_in": [
-      "fitting",
-      "coaching",
-      "ss-fitting",
-      "ss-coaching"
-     ],
-     "has_product_item": false
-    },
-    "use": "ss-service-frame"
-   },
-   {
-    "when": {
-     "post_type_in": [
-      "tip",
-      "did_you_know",
-      "myth"
-     ]
-    },
-    "use": "ss-did-you-know"
-   },
-   {
-    "when": {
-     "post_type_in": [
-      "price_package",
-      "package",
-      "packages",
-      "pricing"
-     ]
-    },
-    "use": "ss-price-package"
-   },
-   {
-    "when": {
-     "post_type_in": [
-      "price_list",
-      "package_list",
-      "rate_card"
-     ]
-    },
-    "use": "ss-price-list"
-   }
-  ]
- }
 }

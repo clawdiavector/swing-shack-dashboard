@@ -1,0 +1,266 @@
+{
+  "id": "ss-sale-offer",
+  "name": "Sale offer \u2014 story-native Black Friday / promo lockup",
+  "description": "Measured from Content Bank blackfriday copy 1\u20135 (1081\u00d71920 story). Charcoal/near-black field, white frame inset 33px, logo top-right, white kicker, huge ss_blue headline from caption_hook, optional body subline, orange CTA. Primary canvas ig_story; 4:5 feed via channel_canvas.",
+  "canvas": "ig_story",
+  "block_anchor": "center",
+  "applies_to": {
+    "channels": [
+      "instagram",
+      "instagram_story",
+      "facebook"
+    ],
+    "record_types": [
+      "moment",
+      "evergreen"
+    ],
+    "needs_photo": false
+  },
+  "channel_canvas": {
+    "instagram": "ig_post",
+    "facebook": "ig_post"
+  },
+  "template_pack": "templates/sale-offer",
+  "background": {
+    "kind": "solid",
+    "fill": "ss_charcoal"
+  },
+  "zones": {
+    "frame": {
+      "rect": {
+        "x0": 0.0,
+        "y0": 0.0,
+        "x1": 1.0,
+        "y1": 1.0
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 33,
+      "stroke_px": 5,
+      "colour": "white",
+      "alpha": 0.5
+    },
+    "logo": {
+      "rect": {
+        "x0": 0.538,
+        "y0": 0.148,
+        "x1": 0.936,
+        "y1": 0.282
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/sale-offer/assets/logo-white.png",
+      "fit": "aspect_fit",
+      "align": "right",
+      "valign": "top"
+    },
+    "headline": {
+      "rect": {
+        "x0": 0.094,
+        "y0": 0.128,
+        "x1": 0.904,
+        "y1": 0.344
+      },
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_font_px": 240,
+      "min_font_px": 72,
+      "max_lines": 3,
+      "max_chars_per_line": 18,
+      "line_height": 0.92,
+      "text_transform": "uppercase",
+      "text_origin_x": 102,
+      "align": "left",
+      "valign": "middle",
+      "colour": "ss_blue",
+      "h_scale": 0.88
+    },
+    "kicker": {
+      "rect": {
+        "x0": 0.079,
+        "y0": 0.088,
+        "x1": 0.853,
+        "y1": 0.145
+      },
+      "kind": "text",
+      "source": "static",
+      "text": "BLACK FRIDAY SALE",
+      "font_role": "h3",
+      "max_font_px": 72,
+      "min_font_px": 48,
+      "max_lines": 1,
+      "max_chars_per_line": 22,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 85,
+      "align": "left",
+      "colour": "white",
+      "h_scale": 0.9,
+      "attach_above": {
+        "zone": "headline",
+        "gap_px": 24
+      }
+    },
+    "subline": {
+      "rect": {
+        "x0": 0.08,
+        "y0": 0.554,
+        "x1": 0.92,
+        "y1": 0.62
+      },
+      "kind": "text",
+      "source": "caption_body",
+      "font_role": "h3",
+      "max_font_px": 48,
+      "min_font_px": 28,
+      "max_lines": 2,
+      "max_chars_per_line": 36,
+      "line_height": 1.05,
+      "text_transform": "uppercase",
+      "align": "left",
+      "colour": "white",
+      "optional": true
+    },
+    "cta": {
+      "rect": {
+        "x0": 0.08,
+        "y0": 0.88,
+        "x1": 0.92,
+        "y1": 0.95
+      },
+      "kind": "text",
+      "source": "cta",
+      "font_role": "h3",
+      "max_font_px": 44,
+      "min_font_px": 28,
+      "max_lines": 1,
+      "max_chars_per_line": 28,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "align": "left",
+      "colour": "ss_orange"
+    }
+  },
+  "canvas_overrides": {
+    "ig_post": {
+      "logo": {
+        "rect": {
+          "x0": 0.72,
+          "y0": 0.06,
+          "x1": 0.94,
+          "y1": 0.12
+        },
+        "kind": "image",
+        "source": "asset",
+        "asset": "templates/sale-offer/assets/logo-white.png",
+        "fit": "aspect_fit",
+        "align": "right",
+        "valign": "top"
+      },
+      "headline": {
+        "rect": {
+          "x0": 0.08,
+          "y0": 0.22,
+          "x1": 0.92,
+          "y1": 0.48
+        },
+        "kind": "text",
+        "source": "caption_hook",
+        "font_role": "display",
+        "max_font_px": 160,
+        "min_font_px": 64,
+        "max_lines": 2,
+        "max_chars_per_line": 16,
+        "line_height": 0.92,
+        "text_transform": "uppercase",
+        "align": "left",
+        "valign": "middle",
+        "colour": "ss_blue",
+        "h_scale": 0.88
+      },
+      "kicker": {
+        "rect": {
+          "x0": 0.08,
+          "y0": 0.12,
+          "x1": 0.75,
+          "y1": 0.18
+        },
+        "kind": "text",
+        "source": "static",
+        "text": "BLACK FRIDAY SALE",
+        "font_role": "h3",
+        "max_font_px": 56,
+        "min_font_px": 36,
+        "max_lines": 1,
+        "max_chars_per_line": 22,
+        "text_transform": "uppercase",
+        "align": "left",
+        "colour": "white",
+        "attach_above": {
+          "zone": "headline",
+          "gap_px": 20
+        }
+      },
+      "subline": {
+        "rect": {
+          "x0": 0.08,
+          "y0": 0.52,
+          "x1": 0.92,
+          "y1": 0.6
+        },
+        "kind": "text",
+        "source": "caption_body",
+        "font_role": "h3",
+        "max_font_px": 40,
+        "min_font_px": 24,
+        "max_lines": 2,
+        "optional": true,
+        "text_transform": "uppercase",
+        "align": "left",
+        "colour": "white"
+      },
+      "cta": {
+        "rect": {
+          "x0": 0.08,
+          "y0": 0.86,
+          "x1": 0.92,
+          "y1": 0.94
+        },
+        "kind": "text",
+        "source": "cta",
+        "font_role": "h3",
+        "max_font_px": 40,
+        "min_font_px": 26,
+        "max_lines": 1,
+        "text_transform": "uppercase",
+        "align": "left",
+        "colour": "ss_orange"
+      }
+    }
+  },
+  "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "right"
+  },
+  "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.13,
+    "x1": 0.95,
+    "y1": 0.87
+  },
+  "max_total_chars": 120,
+  "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg",
+    "references/ref-03.jpg",
+    "references/ref-04.jpg",
+    "references/ref-05.jpg"
+  ],
+  "reference_size": {
+    "w": 1081,
+    "h": 1920
+  }
+}
