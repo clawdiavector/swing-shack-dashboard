@@ -154,6 +154,14 @@ class V26ClassifierV27RulesTests(unittest.TestCase):
             # V2.7-new shape records
             ("TEMPLATE_DEMO", {"created_by": "foreman-generative-replace"}),
             ("SCOUT_CANDIDATE", {"created_by": "cos-reactive-watch"}),
+            # V2.7 §9 alfred-dunhill laundered records
+            ("SCOUT_CANDIDATE", {"event_key": "swing-shack:alfred-dunhill-championship:2027", "status": "candidate"}),
+            ("REQUIRES_REAPPROVAL", {"event_key": "swing-shack:alfred-dunhill-championship:2027", "status": "approved"}),
+            # V2.7 §9 automation-laundered transition_reason
+            ("REQUIRES_REAPPROVAL", {"transition_reason": "canonical status still candidate; lodge so cooker can run"}),
+            # V2.7 §6 foreman-gen-* variants
+            ("TEMPLATE_DEMO", {"created_by": "foreman-gen-unblock"}),
+            ("TEMPLATE_DEMO", {"created_by": "foreman-gen-v2-ss-fitting"}),
         ]
         for expected_category, record in corpus_categories:
             actual = v26.classify_record(record)

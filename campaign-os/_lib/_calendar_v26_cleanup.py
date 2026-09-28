@@ -214,6 +214,39 @@ def classify_record(rec: Dict[str, Any]) -> str:
     if st in ("scout", "template", "template-demo", "holiday", "reactive-watch"):
         return "SCOUT_CANDIDATE"
 
+    # V2.7 §9 — records with "lodge so cooker can run" / similar
+    # transition_reasons are automation-laundered approvals. They
+    # are NOT human reapprovals. Treat as REQUIRES_REAPPROVAL so
+    # an actual human must re-confirm before they enter the
+    # Main Calendar.
+    tr_norm = tr.lower().strip() if tr else ""
+    tr_lower = tr_norm
+    AUTOMATION_LAUNDERED_REASONS = {
+        "canonical status still candidate; lodge so cooker can run",
+        "lodge so cooker can run",
+        "canonical status still candidate; lodge",
+    }
+    if tr_lower in AUTOMATION_LAUNDERED_REASONS:
+        return "REQUIRES_REAPPROVAL"
+
+    # V2.7 §6 — foreman-gen-* (variants) are template/test pollution.
+    if cb and cb.startswith("foreman-gen"):
+        return "TEMPLATE_DEMO"
+
+    # V2.7 §9 — the canonical event_key "swing-shack:alfred-dunhill-
+    # championship:2027" with empty creator + empty source_origin is
+    # an automation-laundered version of the V2.3 alfred-dunhill
+    # record. Even with status='candidate', it has no human approval
+    # — route to intake / candidates.
+    if (
+        not cb and not so
+        and ek == "swing-shack:alfred-dunhill-championship:2027"
+    ):
+        if status in ("candidate", "", "watchlist"):
+            return "SCOUT_CANDIDATE"
+        if status == "approved":
+            return "REQUIRES_REAPPROVAL"
+
     # Fall-through — anything not classified is flagged for human review
     return "UNCLASSIFIED"
 
