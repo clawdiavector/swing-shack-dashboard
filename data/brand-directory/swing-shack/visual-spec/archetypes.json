@@ -2,7 +2,7 @@
   "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
   "brand_id": "swing-shack",
   "version": "2.0",
-  "updated": "2026-09-27T22:30:00Z",
+  "updated": "2026-09-27T00:00:00Z",
   "source": "draft",
   "canvases": {
     "ig_post": {
@@ -1679,6 +1679,192 @@
         "w": 1081,
         "h": 1301
       }
+    },
+    {
+      "id": "ss-fitting-headline",
+      "name": "Fitting headline — dark venue photo, thin benefit line, huge accent service lockup",
+      "description": "Measured from Content Bank Services/ironfitting-100 + puttefitting-100 (1080×1200). Dark full-bleed venue photo, 4px 22% white frame inset 33px, centred Montserrat Light Italic benefit line (cap 42px) 18px above a single-line Montserrat Black Italic service lockup (cap 85px, 121px, 88.6% width). Accent blue/orange. No logo.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/fitting-headline",
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/fitting-headline/photos",
+        "focus_y": 0.5,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0.72,
+          "to_alpha": 0.28
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 33,
+          "stroke_px": 4,
+          "colour": "white",
+          "alpha": 0.22
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.037,
+            "y0": 0.1711,
+            "x1": 0.963,
+            "y1": 0.34
+          },
+          "kind": "text",
+          "source": "service_lockup",
+          "font_role": "display",
+          "max_font_px": 121,
+          "min_font_px": 68,
+          "max_lines": 2,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "top",
+          "colour_options": [
+            "ss_fit_blue",
+            "ss_fit_orange"
+          ],
+          "h_scale": 0.886
+        },
+        "kicker": {
+          "rect": {
+            "x0": 0.0833,
+            "y0": 0.1267,
+            "x1": 0.9167,
+            "y1": 0.1622
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h2",
+          "max_font_px": 59,
+          "min_font_px": 32,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "center",
+          "colour": "white",
+          "h_scale": 0.845,
+          "attach_above": {
+            "zone": "headline",
+            "gap_px": 18
+          }
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "frame": {
+            "rect": {
+              "x0": 0,
+              "y0": 0,
+              "x1": 1,
+              "y1": 1
+            },
+            "kind": "decorative",
+            "shape": "frame",
+            "inset_px": 33,
+            "stroke_px": 4,
+            "colour": "white",
+            "alpha": 0.22
+          },
+          "headline": {
+            "rect": {
+              "x0": 0.037,
+              "y0": 0.1979,
+              "x1": 0.963,
+              "y1": 0.31
+            },
+            "kind": "text",
+            "source": "service_lockup",
+            "font_role": "display",
+            "max_font_px": 121,
+            "min_font_px": 68,
+            "max_lines": 2,
+            "line_height": 1.05,
+            "text_transform": "uppercase",
+            "align": "center",
+            "valign": "top",
+            "colour_options": [
+              "ss_fit_blue",
+              "ss_fit_orange"
+            ],
+            "h_scale": 0.886
+          },
+          "kicker": {
+            "rect": {
+              "x0": 0.0833,
+              "y0": 0.1667,
+              "x1": 0.9167,
+              "y1": 0.2
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "h2",
+            "max_font_px": 59,
+            "min_font_px": 32,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "center",
+            "colour": "white",
+            "h_scale": 0.845,
+            "attach_above": {
+              "zone": "headline",
+              "gap_px": 18
+            }
+          }
+        }
+      },
+      "logo_anchor": {
+        "zone": "headline",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "center"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 60,
+      "measured_from": [
+        "references/ref-01.jpg",
+        "references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1200
+      }
     }
   ],
   "selection": {
@@ -1744,6 +1930,14 @@
           ]
         },
         "use": "ss-discount-code"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "fitting_headline"
+          ]
+        },
+        "use": "ss-fitting-headline"
       }
     ]
   }

@@ -82,6 +82,35 @@ def _service_carousel_headline(*, brand_id: str, moment_id: str, caption: str) -
     return hook or "COACHING"
 
 
+def _derive_service_lockup(
+    *,
+    brand_id: str,
+    moment_id: str,
+    caption: str,
+    sidecar: dict[str, Any],
+    headline: str,
+) -> str:
+    lock = str(sidecar.get("compose_service_lockup") or "").strip()
+    if lock:
+        return lock
+    ctx = build_image_draft_context(brand_id, moment_id)
+    cal = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    subject = str(cal.get("subject") or cal.get("service") or cal.get("angle") or "").strip()
+    if subject and len(subject) <= 32:
+        return subject.upper()
+    cap = (caption or "").lower()
+    pillar = _pillar_id_from_context(ctx).lower()
+    if "putter" in pillar or "putter" in cap:
+        return "PUTTER FITTING"
+    if "iron" in pillar or "iron" in cap or "fitting" in pillar:
+        return "IRON FITTING"
+    words = (headline or caption or "").upper().split()
+    if len(words) >= 2:
+        return " ".join(words[-2:])
+    return words[-1] if words else "CLUB FITTING"
+>>>>>>> origin/feat/ss-fitting-headline-template
+
+
 def _service_cta(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id)
     pillar = _pillar_id_from_context(ctx).lower()
@@ -154,6 +183,7 @@ def visual_copy_for_archetype(
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
     base["cta"] = cta
+<<<<<<< HEAD
     if qualifier:
         base["qualifier"] = qualifier
     if price:
@@ -173,4 +203,13 @@ def visual_copy_for_archetype(
         base["offer_subject"] = subject
     if expiry:
         base["offer_expiry"] = expiry
+=======
+    base["service_lockup"] = _derive_service_lockup(
+        brand_id=brand_id,
+        moment_id=mid,
+        caption=caption,
+        sidecar=sidecar,
+        headline=headline,
+    )
+>>>>>>> origin/feat/ss-fitting-headline-template
     return {k: str(v) for k, v in base.items()}
