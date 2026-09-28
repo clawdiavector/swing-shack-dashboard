@@ -1,0 +1,1 @@
+{"job_type": "scout", "brand_id": "stick", "status": "no_discovery", "research_health": "unknown", "sources_checked": 0, "events_created": 0, "events_updated": 0, "events_unchanged": 0, "alerts_created": 0, "errors": ["candidate_producer returned 0 candidates and 0 sources_researched"], "started_at": "2026-09-22T19:12:25.671019+00:00", "run_id": "run-scout-1790104345"}

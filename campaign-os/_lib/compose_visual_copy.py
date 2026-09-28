@@ -65,7 +65,7 @@ def _pillar_id_from_context(ctx) -> str:
     return str(pid).strip() if pid else ""
 
 
-def _service_start_headline(*, brand_id: str, moment_id: str, caption: str) -> str:
+def _service_carousel_headline(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
     pillar = _pillar_id_from_context(ctx).lower()
     cap = (caption or "").lower()
@@ -106,12 +106,12 @@ def visual_copy_for_archetype(
     applies = archetype.get("applies_to") if isinstance(archetype.get("applies_to"), dict) else {}
     needs_photo = applies.get("needs_photo", True)
     archetype_id = str(archetype.get("id") or "")
-    if needs_photo and archetype_id == "stick-service-start":
+    if needs_photo and archetype_id in ("stick-service-start", "stick-service-end"):
         mid = moment_id or f"proposal:{brand_id}:compose"
         headline = str(sidecar.get("compose_headline") or "").strip()
         lockup = str(sidecar.get("compose_cta") or "").strip()
         if not headline:
-            headline = _service_start_headline(brand_id=brand_id, moment_id=mid, caption=caption)
+            headline = _service_carousel_headline(brand_id=brand_id, moment_id=mid, caption=caption)
         if not lockup:
             lockup = "@ stick"
         ctx = build_image_draft_context(brand_id, mid)

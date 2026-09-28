@@ -1,0 +1,95 @@
+{
+  "schema": "https://campaign-os/weekly-report/v3.6-snapshot",
+  "brand_id": "swing-shack",
+  "as_of": "2026-09-22",
+  "current_period": {
+    "start": "2026-09-16",
+    "end": "2026-09-22"
+  },
+  "previous_period": {
+    "start": "2026-09-09",
+    "end": "2026-09-15"
+  },
+  "data_complete_through": "2026-09-22",
+  "kpi_values": {
+    "Sessions": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Users": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Engaged sessions": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Engagement rate": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Pageviews": {
+      "current": null,
+      "previous": null,
+      "data_status": "UNAVAILABLE"
+    },
+    "Conversions": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "Paid Spend": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "Verified Leads": {
+      "current": null,
+      "previous": null,
+      "data_status": null
+    },
+    "paid_media_v24": {
+      "data_status": "LIVE",
+      "freshness": {
+        "status": "no_data",
+        "fetched_at": null
+      },
+      "data_as_of": null,
+      "current_period": {
+        "total_spend": 0.0,
+        "total_impressions": 0.0,
+        "total_reach": 0.0,
+        "total_clicks": 0.0,
+        "total_results": 0.0
+      },
+      "previous_period": {
+        "total_spend": 0.0,
+        "total_impressions": 0.0,
+        "total_reach": 0.0,
+        "total_clicks": 0.0,
+        "total_results": 0.0
+      }
+    }
+  },
+  "seo": {
+    "status": "LIVE",
+    "domain_authority": 11,
+    "backlinks": 28,
+    "ref_domains": 13,
+    "top_3": null,
+    "top_10": null,
+    "weekly_change": {},
+    "fetched_at": "2026-09-18",
+    "manager_read": null
+  },
+  "organic_status": {
+    "instagram": "LIVE",
+    "facebook": "PARTIAL"
+  },
+  "report_status": "OK",
+  "archived_at": "2026-09-23T07:35:39.792857+00:00"
+}

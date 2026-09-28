@@ -77,7 +77,7 @@
   "archetypes": [
     {
       "id": "stick-product-post",
-      "name": "Product post \u2014 vendor lockup over centred text stack, product photo below",
+      "name": "Product post — vendor lockup over centred text stack, product photo below",
       "description": "Gradient navy-to-light field. Vendor wordmark, product name, AVAILABLE, @, stick logo, CTA, then the cut-out product photo occupying the lower ~56%. Measured identical to 4 d.p. on stick_post_gts2 and stick_post_t250; stick_post_vokey is the same with a two-line vendor lockup.",
       "canvas": "ig_post",
       "block_anchor": "center",
@@ -126,7 +126,7 @@
           "font_role": "h1",
           "max_lines": 1,
           "max_chars_per_line": 22,
-          "line_height": 1.0,
+          "line_height": 1,
           "align": "center",
           "colour": "white",
           "min_font_px": 38
@@ -189,10 +189,10 @@
         },
         "photo": {
           "rect": {
-            "x0": 0.0,
+            "x0": 0,
             "y0": 0.44,
-            "x1": 1.0,
-            "y1": 1.0
+            "x1": 1,
+            "y1": 1
           },
           "kind": "image",
           "source": "photo"
@@ -214,7 +214,7 @@
     },
     {
       "id": "stick-service-frame",
-      "name": "Service frame \u2014 no photo, three-line headline, full-bleed teal CTA band, logo + tagline footer",
+      "name": "Service frame — no photo, three-line headline, full-bleed teal CTA band, logo + tagline footer",
       "description": "Solid navy field. Left-aligned white all-caps headline, 3 lines. Full-bleed teal band carries the two-line CTA. Footer row is stick logo left, tagline right. Measured identical to 4 d.p. on clubasses and swingasses; clubasses_story is the same block re-centred (+285px).",
       "canvas": "ig_post",
       "block_anchor": "center",
@@ -264,7 +264,7 @@
           "rect": {
             "x0": 0.0583,
             "y0": 0.4948,
-            "x1": 1.0,
+            "x1": 1,
             "y1": 0.7415
           },
           "kind": "band",
@@ -284,7 +284,9 @@
           "max_chars_per_line": 24,
           "line_height": 1.2133,
           "text_transform": "uppercase",
-          "emphasis_words": ["FREE"],
+          "emphasis_words": [
+            "FREE"
+          ],
           "emphasis_font_role": "cta_emphasis",
           "tracking_em": 0.008,
           "text_origin_x": 123,
@@ -339,18 +341,18 @@
     },
     {
       "id": "stick-photo-band-post",
-      "name": "Photo band \u2014 navy copy panel over a full-width photo band",
-      "description": "Navy panel fills the upper canvas; a photograph fills the lower band, full bleed. Teal all-caps headline (3 lines), white light subhead (2 lines), teal CTA. Partner logo bottom-left and stick logo bottom-right, both inside the photo band. The photo band is NOT a pure re-anchor between canvases \u2014 hence canvas_overrides.",
+      "name": "Photo band — navy copy panel over a full-width photo band",
+      "description": "Navy panel fills the upper canvas; a photograph fills the lower band, full bleed. Teal all-caps headline (3 lines), white light subhead (2 lines), teal CTA. Partner logo bottom-left and stick logo bottom-right, both inside the photo band. The photo band is NOT a pure re-anchor between canvases — hence canvas_overrides.",
       "canvas": "ig_post",
       "block_anchor": "top",
       "canvas_overrides": {
         "ig_story": {
           "photo": {
             "rect": {
-              "x0": 0.0,
+              "x0": 0,
               "y0": 0.6538,
-              "x1": 1.0,
-              "y1": 1.0
+              "x1": 1,
+              "y1": 1
             },
             "kind": "image",
             "source": "photo"
@@ -497,10 +499,10 @@
         },
         "photo": {
           "rect": {
-            "x0": 0.0,
+            "x0": 0,
             "y0": 0.7193,
-            "x1": 1.0,
-            "y1": 1.0
+            "x1": 1,
+            "y1": 1
           },
           "kind": "image",
           "source": "photo"
@@ -541,7 +543,7 @@
     },
     {
       "id": "stick-venue-post",
-      "name": "Venue / lifestyle post \u2014 full-bleed photo, navy brand plate bottom-right",
+      "name": "Venue / lifestyle post — full-bleed photo, navy brand plate bottom-right",
       "description": "The photograph owns the whole canvas. A navy plate in the lower right carries the partner or venue lockup, an @ and the stick logo. Minimal type, so it is the archetype for a generated venue or lifestyle photo where the image has to carry the post. Measured on lab_post.jpg.",
       "canvas": "ig_post",
       "block_anchor": "bottom",
@@ -564,10 +566,10 @@
       "zones": {
         "photo": {
           "rect": {
-            "x0": 0.0,
-            "y0": 0.0,
-            "x1": 1.0,
-            "y1": 1.0
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
           },
           "kind": "image",
           "source": "photo"
@@ -576,7 +578,7 @@
           "rect": {
             "x0": 0.5005,
             "y0": 0.6869,
-            "x1": 1.0,
+            "x1": 1,
             "y1": 0.8801
           },
           "kind": "band",
@@ -676,22 +678,22 @@
         "focus_y": 0.45,
         "scrim": {
           "rect": {
-            "x0": 0.0,
-            "y0": 0.0,
-            "x1": 1.0,
-            "y1": 1.0
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
           },
-          "from_alpha": 0.0,
+          "from_alpha": 0,
           "to_alpha": 0.18
         }
       },
       "zones": {
         "frame": {
           "rect": {
-            "x0": 0.0,
-            "y0": 0.0,
-            "x1": 1.0,
-            "y1": 1.0
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
           },
           "kind": "decorative",
           "shape": "frame",
@@ -744,15 +746,15 @@
             "x0": 0.051,
             "y0": 0.659,
             "x1": 0.652,
-            "y1": 0.680
+            "y1": 0.68
           },
           "kind": "band",
           "fill": "mint"
         },
         "logo": {
           "rect": {
-            "x0": 0.0,
-            "y0": 0.0,
+            "x0": 0,
+            "y0": 0,
             "x1": 0.001,
             "y1": 0.001
           },
@@ -780,6 +782,169 @@
       "reference_size": {
         "w": 1081,
         "h": 1300
+      }
+    },
+    {
+      "id": "stick-service-end",
+      "name": "Service end card — venue photo, navy service + @ stick, mint END panel",
+      "description": "Light venue photo full bleed upper frame. Navy uppercase service word and @ stick lockup. Large mint #24FFAF panel with static END display. Partial white frame (right + bottom). Measured coachingend.jpg / fittingend.jpg; equipment/apparel are layout copies. needs_photo true.",
+      "canvas": "ig_story",
+      "channel_canvas": {
+        "facebook": "ig_story"
+      },
+      "template_pack": "templates/service-end",
+      "applies_to": {
+        "channels": [
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/service-end/photos",
+        "focus_y": 0.28,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 0.55
+          },
+          "from_alpha": 0,
+          "to_alpha": 0.12
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_px": 35,
+          "stroke_px": 6,
+          "colour": "white",
+          "alpha": 0.95
+        },
+        "service_word": {
+          "rect": {
+            "x0": 0.08,
+            "y0": 0.22,
+            "x1": 0.92,
+            "y1": 0.32
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 2,
+          "max_chars_per_line": 14,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "bottom",
+          "colour": "navy_deep",
+          "min_font_px": 48,
+          "wrap": "balanced",
+          "optional": true
+        },
+        "lockup": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.34,
+            "x1": 0.92,
+            "y1": 0.46
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "h1",
+          "max_lines": 2,
+          "max_chars_per_line": 12,
+          "line_height": 1.1,
+          "text_transform": "none",
+          "align": "center",
+          "valign": "middle",
+          "colour": "navy_deep",
+          "min_font_px": 40
+        },
+        "mint_panel": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.518,
+            "x1": 0.914,
+            "y1": 0.834
+          },
+          "kind": "band",
+          "fill": "mint"
+        },
+        "end_word": {
+          "rect": {
+            "x0": 0.12,
+            "y0": 0.58,
+            "x1": 0.82,
+            "y1": 0.78
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "END",
+          "font_role": "display",
+          "max_lines": 1,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "middle",
+          "colour": "navy_deep",
+          "min_font_px": 72,
+          "max_font_px": 130
+        },
+        "footer": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.835,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "band",
+          "fill": "white"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 0.001,
+            "y1": 0.001
+          },
+          "kind": "logo",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 48,
+      "measured_from": [
+        "templates/service-end/references/ref-01.jpg",
+        "templates/service-end/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1920
       }
     }
   ],
@@ -819,6 +984,14 @@
           ]
         },
         "use": "stick-service-start"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "service_end"
+          ]
+        },
+        "use": "stick-service-end"
       }
     ]
   }
