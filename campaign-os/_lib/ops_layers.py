@@ -369,15 +369,23 @@ def build_layers(
 
     cost_today_usd: float | None = None
     cost_cap_usd: float | None = None
+    cost_mtd_usd: float | None = None
+    cost_cap_pct: float | None = None
     try:
-        from _lib import llm_spend
+        from _lib import cost_ledger, llm_spend
 
         spend = llm_spend.status()
         cost_today_usd = float(spend.get("spent_usd") or 0.0)
         cost_cap_usd = float(spend.get("cap_usd") or 0.0)
+        if cost_cap_usd > 0:
+            cost_cap_pct = round(cost_today_usd / cost_cap_usd * 100.0, 1)
+        mtd = cost_ledger.window_rollup(window="month", brand=brand)
+        cost_mtd_usd = float(mtd.get("total_usd") or 0.0)
     except Exception:
         cost_today_usd = None
         cost_cap_usd = None
+        cost_mtd_usd = None
+        cost_cap_pct = None
 
     l4_counts = inbox or {}
     l4_pending = int(l4_counts.get("pending") or 0)
@@ -426,6 +434,8 @@ def build_layers(
             "queue_depth": depth,
             "cost_today_usd": cost_today_usd,
             "cost_cap_usd": cost_cap_usd,
+            "cost_mtd_usd": cost_mtd_usd,
+            "cost_cap_pct": cost_cap_pct,
             "href": "/ops?layer=health",
         },
     }

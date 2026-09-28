@@ -17805,12 +17805,18 @@ def ops_cost_today():
             brand = validate_brand_id(brand)
         spend = llm_spend.status()
         roll = cost_ledger.today_rollup(brand=brand)
+        mtd = cost_ledger.window_rollup(window="month", brand=brand)
+        cap = float(spend.get("cap_usd") or 0.0)
+        spent = float(spend.get("spent_usd") or 0.0)
+        cap_pct = round((spent / cap * 100.0), 1) if cap > 0 else 0.0
         payload = {
             "ok": True,
             "day": roll.get("day") or spend.get("day"),
-            "spent_usd": float(spend.get("spent_usd") or 0.0),
-            "cap_usd": float(spend.get("cap_usd") or 0.0),
+            "spent_usd": spent,
+            "cap_usd": cap,
             "remaining_usd": float(spend.get("remaining_usd") or 0.0),
+            "cap_pct": cap_pct,
+            "mtd_usd": float(mtd.get("total_usd") or 0.0),
             "by_kind": roll.get("by_kind") or {},
             "by_brand": roll.get("by_brand") or {},
             "call_count": int(roll.get("call_count") or 0),
@@ -17826,18 +17832,53 @@ def ops_cost_today():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-@app.route('/api/ops/cost/post/<path:inbox_item_id>', methods=['GET'])
-def ops_cost_post(inbox_item_id: str):
+@app.route('/api/ops/cost/summary', methods=['GET'])
+def ops_cost_summary():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import cost_ledger, llm_spend
+        from _lib.brand_validate import validate_brand_id
+
+        window = (request.args.get("window") or "day").strip().lower()
+        if window not in ("day", "week", "month"):
+            return jsonify({"ok": False, "error": "window must be day, week, or month"}), 400
+        brand = (request.args.get("brand") or "").strip() or None
+        if brand is not None:
+            brand = validate_brand_id(brand)
+        try:
+            min_usd = float(request.args.get("min_usd") or 0.0)
+        except (TypeError, ValueError):
+            min_usd = 0.0
+        roll = cost_ledger.window_rollup(window=window, brand=brand, min_usd=min_usd)
+        spend = llm_spend.status()
+        roll["ok"] = True
+        roll["ledger_total_usd"] = float(roll.get("total_usd") or 0.0)
+        if window == "day":
+            roll["spend_counter_usd"] = float(spend.get("spent_usd") or 0.0)
+        return jsonify(roll), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_cost_summary failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/cost/post/<path:post_cost_key>', methods=['GET'])
+def ops_cost_post(post_cost_key: str):
     if not _is_job_authed():
         return jsonify({"ok": False, "error": "authentication required"}), 401
     try:
         from _lib import cost_ledger
         from urllib.parse import unquote
 
-        iid = unquote(inbox_item_id or "").strip()
-        if not iid:
-            return jsonify({"ok": False, "error": "inbox_item_id required"}), 400
-        summary = cost_ledger.summary_for_inbox_item(iid)
+        key = unquote(post_cost_key or "").strip()
+        if not key:
+            return jsonify({"ok": False, "error": "post_cost_key required"}), 400
+        if key.startswith("pck-"):
+            summary = cost_ledger.summary_for_post_cost_key(key)
+        else:
+            summary = cost_ledger.summary_for_inbox_item(key)
         if int(summary.get("call_count") or 0) <= 0:
             return jsonify({"ok": False, "error": "no cost lines found for this post"}), 404
         summary["ok"] = True
@@ -17917,7 +17958,13 @@ def ops_cost_range():
         to_day = (request.args.get("to") or "").strip()
         if not from_day or not to_day:
             return jsonify({"ok": False, "error": "from and to required (YYYY-MM-DD)"}), 400
-        roll = cost_ledger.range_rollup(brand=brand, from_day=from_day, to_day=to_day)
+        try:
+            min_usd = float(request.args.get("min_usd") or 0.0)
+        except (TypeError, ValueError):
+            min_usd = 0.0
+        roll = cost_ledger.range_rollup(
+            brand=brand, from_day=from_day, to_day=to_day, min_usd=min_usd
+        )
         roll["ok"] = True
         return jsonify(roll), 200
     except ValueError as e:

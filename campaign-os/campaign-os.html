@@ -9435,7 +9435,12 @@ window.openReview = async (cid, aid) => {
       if ((bk.edit || 0) > 0) kindBits.push('1 edit');
       const detail = kindBits.length ? kindBits.join(' + ') : `${r.call_count || 0} call(s)`;
       const regenNote = regens > 0 ? ` · ${regens} regen` : '';
-      costEl.textContent = `💰 $${Number(r.total_usd).toFixed(4)} · ${detail}${regenNote}`;
+      const recent = (r.recent_lines || []).slice(-3).map((ln) => {
+        const act = ln.action || ln.kind || 'line';
+        return `${act} $${Number(ln.usd || 0).toFixed(4)}`;
+      }).join(' · ');
+      const recentNote = recent ? ` · ${recent}` : '';
+      costEl.textContent = `💰 $${Number(r.total_usd).toFixed(4)} · ${detail}${regenNote}${recentNote}`;
       costEl.style.display = 'block';
     } catch (_e) {
       /* omit line on 404 / network errors */

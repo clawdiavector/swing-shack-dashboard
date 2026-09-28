@@ -169,6 +169,20 @@ def process_draft_photo_row(
             }
         )
         atomic_write(f"draft-assets/{caption_asset_id}.json", merged)
+        from _lib import post_cost  # noqa: PLC0415
+
+        post_cost.record_line(
+            usd=0.0,
+            brand_id=brand_id,
+            kind="image",
+            route="job:draft_assets/photo",
+            inbox_item_id=item_id,
+            action="compose_post",
+            cost_source="estimate",
+            draft_asset_id=caption_asset_id,
+            event_key=event_key,
+            queue_row_id=str(row.get("id") or "") or None,
+        )
         return caption_asset_id, None
 
     size = ctx.aspect
@@ -251,7 +265,9 @@ def process_draft_photo_row(
             paths.append(Path(path))
         provider = str(getattr(result, "provider", "") or "")
         if provider not in _ROUTER_SELF_RECORDING_PROVIDERS:
-            llm_spend.record(
+            from _lib import post_cost  # noqa: PLC0415
+
+            post_cost.record_spend_and_line(
                 est,
                 route="job:draft_assets/photo",
                 kind="image",
@@ -260,9 +276,9 @@ def process_draft_photo_row(
                 draft_asset_id=pending_asset_id,
                 event_key=event_key,
                 action=action_label,
-                provider=provider or None,
                 cost_source=str(getattr(result, "cost_source", "") or "estimate"),
                 queue_row_id=str(row.get("id") or "") or None,
+                provider_job_id=str(pj) if pj else None,
             )
 
     if not paths:
@@ -513,4 +529,20 @@ def process_compose_post_row(
     sidecar["action"] = "compose_post"
     sidecar["archetype"] = archetype_meta
     atomic_write(f"draft-assets/{asset_id}.json", sidecar)
+    from _lib import post_cost  # noqa: PLC0415
+
+    cal = sidecar.get("calendar") if isinstance(sidecar.get("calendar"), dict) else {}
+    ek = str(sidecar.get("event_key") or cal.get("event_key") or "").strip() or None
+    post_cost.record_line(
+        usd=0.0,
+        brand_id=brand_id,
+        kind="image",
+        route="job:draft_assets/compose",
+        inbox_item_id=item_id,
+        action="compose_post",
+        cost_source="estimate",
+        draft_asset_id=str(asset_id or "") or None,
+        event_key=ek,
+        queue_row_id=str(row.get("id") or "") or None,
+    )
     return asset_id, None

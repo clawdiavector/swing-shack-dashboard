@@ -223,16 +223,6 @@ def record(
     model: Optional[str] = None,
     kind: str = "image",
     brand_id: Optional[str] = None,
-    inbox_item_id: Optional[str] = None,
-    draft_asset_id: Optional[str] = None,
-    event_key: Optional[str] = None,
-    action: Optional[str] = None,
-    provider: Optional[str] = None,
-    cost_source: Optional[str] = None,
-    campaign_id: Optional[str] = None,
-    queue_row_id: Optional[str] = None,
-    retry_of: Optional[str] = None,
-    post_cost_key: Optional[str] = None,
 ) -> dict[str, Any]:
     """Post-flight accounting. Returns updated status()."""
     try:
@@ -270,30 +260,6 @@ def record(
         try:
             _save_day(data)
         except OSError:
-            pass
-    if brand_id and inbox_item_id and action:
-        try:
-            from _lib import cost_ledger as _cl
-
-            _cl.append_line(
-                usd=amount,
-                brand_id=brand_id,
-                kind=kind or "image",
-                route=route,
-                inbox_item_id=inbox_item_id,
-                action=action,
-                cost_source=cost_source or "estimate",
-                model=model,
-                provider=provider,
-                event_key=event_key,
-                draft_asset_id=draft_asset_id,
-                campaign_id=campaign_id,
-                queue_row_id=queue_row_id,
-                retry_of=retry_of,
-                post_cost_key=post_cost_key,
-                day=day,
-            )
-        except Exception:
             pass
     return status()
 

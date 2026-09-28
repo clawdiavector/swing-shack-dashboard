@@ -546,7 +546,9 @@ def _process_caption_row(
             "event_key": event_key,
         },
     )
-    llm_spend.record(
+    from _lib import post_cost  # noqa: PLC0415
+
+    post_cost.record_spend_and_line(
         CAPTION_EST_USD,
         route="job:draft_assets/caption",
         model=str(obs.get("model") or "gpt-4o-mini"),
@@ -556,7 +558,6 @@ def _process_caption_row(
         draft_asset_id=asset_id,
         event_key=event_key,
         action="draft_caption",
-        provider=str(obs.get("provider") or "") or None,
         cost_source="modelled",
         queue_row_id=str(row.get("id") or "") or None,
     )
@@ -1054,7 +1055,9 @@ def _process_image_row(
     cost_source = str(getattr(result, "cost_source", "") or "estimate")
     provider_name = str(getattr(result, "provider", "") or "")
     if provider_name not in _ROUTER_SELF_RECORDING_PROVIDERS:
-        llm_spend.record(
+        from _lib import post_cost  # noqa: PLC0415
+
+        post_cost.record_spend_and_line(
             billed,
             route="job:draft_assets/image",
             model=getattr(result, "model", None),
@@ -1064,9 +1067,9 @@ def _process_image_row(
             draft_asset_id=pending_asset_id,
             event_key=event_key,
             action="draft_image",
-            provider=provider_name or None,
             cost_source=cost_source,
             queue_row_id=str(row.get("id") or "") or None,
+            provider_job_id=provider_job_id,
         )
 
     asset_id = _write_draft(

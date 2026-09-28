@@ -76,7 +76,12 @@ def _read_lines_for_days(days: list[str]) -> tuple[list[dict[str, Any]], bool]:
     return rows, degraded
 
 
-def _existing_keys(day: Optional[str] = None) -> set[str]:
+def _post_summary_path(post_cost_key: str) -> Path:
+    safe = (post_cost_key or "").strip().replace("/", "_")
+    return Path(_data_dir()) / "cost-ledger" / "posts" / f"{safe}.json"
+
+
+def _existing_line_ids(day: Optional[str] = None) -> set[str]:
     path = _ledger_path(day)
     keys: set[str] = set()
     if not path.is_file():
@@ -86,13 +91,23 @@ def _existing_keys(day: Optional[str] = None) -> set[str]:
             row = _parse_line(raw)
             if not row:
                 continue
-            for k in ("post_cost_key", "id"):
+            for k in ("id", "line_id"):
                 v = row.get(k)
                 if isinstance(v, str) and v.strip():
                     keys.add(v.strip())
     except OSError:
         pass
     return keys
+
+
+def _provider_job_already_billed(provider_job_id: str, *, lookback_days: int = 30) -> bool:
+    pid = (provider_job_id or "").strip()
+    if not pid:
+        return False
+    end = datetime.now(timezone.utc).date()
+    start = end - timedelta(days=max(1, lookback_days) - 1)
+    rows, _ = _read_lines_for_days(_iter_days(start.isoformat(), end.isoformat()))
+    return any(str(r.get("provider_job_id") or "") == pid for r in rows)
 
 
 def append_line(
@@ -111,10 +126,12 @@ def append_line(
     campaign_id: Optional[str] = None,
     queue_row_id: Optional[str] = None,
     retry_of: Optional[str] = None,
+    provider_job_id: Optional[str] = None,
+    line_id: Optional[str] = None,
     post_cost_key: Optional[str] = None,
     day: Optional[str] = None,
 ) -> Optional[str]:
-    """Append one cost line. Returns post_cost_key or None if skipped (duplicate key)."""
+    """Append one cost line. Returns line id or None if skipped (duplicate)."""
     try:
         amount = round(max(0.0, float(usd or 0.0)), 6)
     except (TypeError, ValueError):
@@ -126,15 +143,22 @@ def append_line(
     if not iid:
         return None
 
+    if provider_job_id and _provider_job_already_billed(provider_job_id):
+        return None
+
     d = _utc_day(day)
-    key = (post_cost_key or "").strip() or f"pcl-{uuid.uuid4().hex[:12]}"
-    if key in _existing_keys(d):
+    pck = (post_cost_key or "").strip()
+    if not pck:
+        return None
+    lid = (line_id or "").strip() or f"pcl-{uuid.uuid4().hex[:12]}"
+    if lid in _existing_line_ids(d):
         return None
 
     row: dict[str, Any] = {
         "schema": SCHEMA_LINE,
-        "post_cost_key": key,
-        "id": key,
+        "post_cost_key": pck,
+        "id": lid,
+        "line_id": lid,
         "ts": _utc_now_iso(),
         "brand_id": bid,
         "event_key": (event_key or "").strip() or None,
@@ -150,6 +174,7 @@ def append_line(
         "cost_source": (cost_source or "estimate")[:40],
         "queue_row_id": (queue_row_id or "").strip() or None,
         "retry_of": (retry_of or "").strip() or None,
+        "provider_job_id": (provider_job_id or "").strip() or None,
     }
     path = _ledger_path(d)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -158,7 +183,7 @@ def append_line(
             f.write(json.dumps(row, sort_keys=True) + "\n")
     except OSError:
         return None
-    return key
+    return lid
 
 
 def _sum_by_kind(rows: list[dict[str, Any]]) -> dict[str, float]:
@@ -228,8 +253,21 @@ def _build_summary(
 
     ts_vals = [str(r.get("ts") or "") for r in rows if r.get("ts")]
     ts_vals.sort()
+    recent = sorted(rows, key=lambda r: str(r.get("ts") or ""))[-5:]
+    recent_lines = [
+        {
+            "line_id": r.get("id"),
+            "action": r.get("action"),
+            "kind": r.get("kind"),
+            "usd": r.get("usd"),
+            "ts": r.get("ts"),
+        }
+        for r in recent
+    ]
+    pck = str(rows[0].get("post_cost_key") or "") if rows else ""
     summary: dict[str, Any] = {
         "schema": SCHEMA_SUMMARY,
+        "post_cost_key": pck or None,
         "brand_id": brand_id,
         "event_key": event_key,
         "inbox_item_id": inbox_item_id,
@@ -239,6 +277,7 @@ def _build_summary(
         "first_ts": ts_vals[0] if ts_vals else None,
         "last_ts": ts_vals[-1] if ts_vals else None,
         "call_count": len(rows),
+        "recent_lines": recent_lines,
     }
     if degraded:
         summary["degraded"] = True
@@ -304,11 +343,70 @@ def summary_for_event_key(event_key: str, *, lookback_days: int = 14) -> dict[st
     )
 
 
-def range_rollup(*, brand: Optional[str], from_day: str, to_day: str) -> dict[str, Any]:
+def refresh_post_summary_cache(post_cost_key: str, *, lookback_days: int = 14) -> None:
+    summary = summary_for_post_cost_key(post_cost_key, lookback_days=lookback_days)
+    path = _post_summary_path(post_cost_key)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2, sort_keys=True)
+            f.write("\n")
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
+def summary_for_post_cost_key(post_cost_key: str, *, lookback_days: int = 14) -> dict[str, Any]:
+    pck = (post_cost_key or "").strip()
+    cached = _post_summary_path(pck)
+    end = datetime.now(timezone.utc).date()
+    start = end - timedelta(days=max(1, lookback_days) - 1)
+    days = _iter_days(start.isoformat(), end.isoformat())
+    rows, degraded = _read_lines_for_days(days)
+    matched = [r for r in rows if str(r.get("post_cost_key") or "") == pck]
+    if not matched and cached.is_file():
+        try:
+            loaded = json.loads(cached.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict) and loaded.get("post_cost_key") == pck:
+                return loaded
+        except (OSError, json.JSONDecodeError):
+            pass
+    return _build_summary(matched, degraded=degraded)
+
+
+def window_bounds(window: str) -> tuple[str, str]:
+    w = (window or "day").strip().lower()
+    today = datetime.now(timezone.utc).date()
+    if w == "week":
+        start = today - timedelta(days=today.weekday())
+    elif w == "month":
+        start = today.replace(day=1)
+    else:
+        start = today
+    return start.isoformat(), today.isoformat()
+
+
+def window_rollup(*, window: str = "day", brand: Optional[str] = None, min_usd: float = 0.0) -> dict[str, Any]:
+    from_day, to_day = window_bounds(window)
+    roll = range_rollup(brand=brand, from_day=from_day, to_day=to_day, min_usd=min_usd)
+    roll["window"] = (window or "day").strip().lower()
+    return roll
+
+
+def range_rollup(
+    *,
+    brand: Optional[str],
+    from_day: str,
+    to_day: str,
+    min_usd: float = 0.0,
+) -> dict[str, Any]:
     days = _iter_days(from_day, to_day)
     rows, degraded = _read_lines_for_days(days)
     if brand:
         rows = [r for r in rows if str(r.get("brand_id") or "") == brand]
+    if min_usd > 0:
+        rows = [r for r in rows if float(r.get("usd") or 0.0) >= min_usd]
     by_day: dict[str, float] = {}
     posts: set[str] = set()
     for row in rows:

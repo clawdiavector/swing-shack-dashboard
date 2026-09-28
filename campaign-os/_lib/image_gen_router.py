@@ -759,6 +759,52 @@ def _persist(
     return str(fpath), str(sidecar_path)
 
 
+def _mirror_post_cost_line(
+    amount: float,
+    *,
+    route: str,
+    model: Optional[str],
+    kind: str,
+    brand_id: Optional[str],
+    provider: Optional[str],
+    cost_source: Optional[str],
+    inbox_item_id: Optional[str],
+    draft_asset_id: Optional[str],
+    event_key: Optional[str],
+    cost_action: Optional[str],
+    queue_row_id: Optional[str],
+    retry_of: Optional[str],
+    provider_job_id: Optional[str],
+    line_id: Optional[str],
+    post_cost_key: Optional[str],
+) -> None:
+    if not (brand_id and inbox_item_id and cost_action):
+        return
+    try:
+        from _lib import post_cost
+
+        post_cost.record_line(
+            usd=amount,
+            brand_id=brand_id,
+            kind=kind,
+            route=route,
+            inbox_item_id=inbox_item_id,
+            action=cost_action,
+            cost_source=cost_source or "estimate",
+            model=model,
+            provider=provider,
+            event_key=event_key,
+            draft_asset_id=draft_asset_id,
+            queue_row_id=queue_row_id,
+            retry_of=retry_of,
+            provider_job_id=provider_job_id,
+            line_id=line_id,
+            post_cost_key=post_cost_key,
+        )
+    except Exception:
+        pass
+
+
 # ── Public API: generate_image ────────────────────────────────────────
 
 
@@ -788,6 +834,8 @@ def generate_image(
     queue_row_id: Optional[str] = None,
     retry_of: Optional[str] = None,
     post_cost_key: Optional[str] = None,
+    line_id: Optional[str] = None,
+    provider_job_id: Optional[str] = None,
 ) -> GenResult:
     """Generate an image. Brand-aware (recipe-injected) when brand_recipe supplied.
 
@@ -938,14 +986,23 @@ def generate_image(
                 model=model,
                 kind="image",
                 brand_id=brand_id,
+            )
+            _mirror_post_cost_line(
+                result.cost_usd,
+                route="image_gen_router.generate",
+                model=model,
+                kind="image",
+                brand_id=brand_id,
+                provider=provider,
+                cost_source=cost_source or "estimate",
                 inbox_item_id=inbox_item_id,
                 draft_asset_id=draft_asset_id,
                 event_key=event_key,
-                action=cost_action or "draft_image",
-                provider=provider,
-                cost_source=cost_source or "estimate",
+                cost_action=cost_action or "draft_image",
                 queue_row_id=queue_row_id,
                 retry_of=retry_of,
+                provider_job_id=None,
+                line_id=line_id,
                 post_cost_key=post_cost_key,
             )
         except Exception:
@@ -1136,14 +1193,23 @@ def generate_image(
                 model=model,
                 kind="image",
                 brand_id=brand_id,
+            )
+            _mirror_post_cost_line(
+                result.cost_usd,
+                route="image_gen_router.generate",
+                model=model,
+                kind="image",
+                brand_id=brand_id,
+                provider=provider,
+                cost_source=cost_source or "openrouter",
                 inbox_item_id=inbox_item_id,
                 draft_asset_id=draft_asset_id,
                 event_key=event_key,
-                action=cost_action or "draft_image",
-                provider=provider,
-                cost_source=cost_source or "openrouter",
+                cost_action=cost_action or "draft_image",
                 queue_row_id=queue_row_id,
                 retry_of=retry_of,
+                provider_job_id=provider_job_id,
+                line_id=line_id,
                 post_cost_key=post_cost_key,
             )
         except Exception:
@@ -1256,6 +1322,7 @@ def edit_image(
     queue_row_id: Optional[str] = None,
     retry_of: Optional[str] = None,
     post_cost_key: Optional[str] = None,
+    line_id: Optional[str] = None,
 ) -> EditResult:
     """Edit `source_bytes` per `instruction`. Returns raw output PNG bytes.
 
@@ -1370,14 +1437,23 @@ def edit_image(
             model=model,
             kind="edit",
             brand_id=brand_id,
+        )
+        _mirror_post_cost_line(
+            result.cost_estimate_usd,
+            route="image_gen_router.edit",
+            model=model,
+            kind="edit",
+            brand_id=brand_id,
+            provider=provider,
+            cost_source=cost_source or "openrouter",
             inbox_item_id=inbox_item_id,
             draft_asset_id=draft_asset_id,
             event_key=event_key,
-            action=cost_action or "draft_photo",
-            provider=provider,
-            cost_source=cost_source or "openrouter",
+            cost_action=cost_action or "draft_photo",
             queue_row_id=queue_row_id,
             retry_of=retry_of,
+            provider_job_id=None,
+            line_id=line_id,
             post_cost_key=post_cost_key,
         )
     except Exception:

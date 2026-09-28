@@ -34,6 +34,10 @@ These live on the **Railway service**, not in `railway.json`.
 | `COS_JOB_TOKEN` | long random string | **yes** for jobs / Hermes | Railway service variables — never print the value |
 | `CAMPAIGN_OS_DAILY_LLM_CAP_USD` | e.g. `5` (default) | no | Hard daily cap for image generate routes |
 | `COS_LLM_DAILY_CAP_USD` | alias for the above | no | Accepted if the longer name unset |
+
+Post-level cost lines live under `$DATA_DIR/cost-ledger/` (JSONL day shards + optional
+`posts/<post_cost_key>.json` summaries). This ledger is **reporting only** — it does not
+change the daily cap env vars above or `llm_spend` enforcement.
 | `CAMPAIGN_OS_PASSWORD` | shared login | yes in prod | Railway service variables |
 | `HEROES_CUTOVER` | `true` / `1` / `yes` | no (default **off**) | When on, mapped `/?page=` slugs 302 to native `/app/…` routes. Unmapped pages (Reach, Trends, SEO, etc.) stay Classic. **`/home.html?page=…` never redirects** — ToolFrame embeds depend on it. Rollback: unset or set `false`; no redeploy required. |
 
