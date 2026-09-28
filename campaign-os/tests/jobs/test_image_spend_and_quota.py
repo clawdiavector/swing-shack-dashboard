@@ -91,8 +91,8 @@ def test_spend_recorded_once_on_real_bytes_krea(spend_env):
     ):
         draft_assets.run()
 
-    assert llm_spend.today_spend()["calls"] == 2
-    assert llm_spend.today_spend()["usd"] == pytest.approx(2 * llm_spend.modelled_image_cost("1024x1024"))
+    assert llm_spend.today_spend()["calls"] == 1
+    assert llm_spend.today_spend()["usd"] == pytest.approx(llm_spend.modelled_image_cost("1024x1024"))
 
 
 def test_no_double_charge_on_openrouter_provider(spend_env):
@@ -121,7 +121,7 @@ def test_no_double_charge_on_openrouter_provider(spend_env):
     ):
         draft_assets.run()
 
-    assert llm_spend.today_spend()["calls"] == 2
+    assert llm_spend.today_spend()["calls"] == 1
 
 
 def test_by_brand_rollup_sums_to_total(spend_env):

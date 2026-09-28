@@ -66,6 +66,11 @@ Env:
 | `KREA_POLL_STALE_HOURS` | `24` | Abandon `waiting` rows older than this |
 | `CAMPAIGN_OS_DAILY_LLM_CAP_USD` | `5` | Daily modelled spend cap (`llm_spend`; `by_brand` rollup on day ledger) |
 
+**Post cost ledger (additive):** `$DATA_DIR/cost-ledger/<YYYY-MM-DD>.jsonl` plus cached
+`$DATA_DIR/cost-ledger/posts/<post_cost_key>.json` per-post rollups. Written by
+`_lib/post_cost.record_line()` in parallel with `llm_spend.record()` — cap enforcement
+still uses only `llm_spend.check()` / `status()`. Ops: `GET /api/ops/cost/*`.
+
 Read-only recovery (no submit): `scripts/cos_krea_recover_probe.py` — lists `provider_job_id` from `draft-assets/images/**/*.meta.json` and Krea status.
 
 ## Adding a job

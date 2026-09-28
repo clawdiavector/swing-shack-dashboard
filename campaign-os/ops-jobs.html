@@ -898,7 +898,10 @@ async function loadHealth() {
     watchDetail.textContent = `Last Mac heartbeat ${watchMin}m ago${jobsNote}. Cron every 15m on fives-mac-mini.`;
   }
   setChip(digestChip, l2.verdict || 'NEVER');
-  digestDetail.textContent = `OK ${l2.ok || 0} · LATE ${l2.late || 0} · STUCK ${l2.stuck || 0} · FAILED ${l2.failed || 0} · NEVER ${l2.never || 0} · DISABLED ${l2.disabled || 0} (derived from job ledger, same as 07:00 digest)`;
+  const costLine = (l2.cost_today_usd != null && l2.cost_cap_usd != null)
+    ? ` · $${Number(l2.cost_today_usd).toFixed(2)} today · MTD $${Number(l2.cost_mtd_usd || 0).toFixed(2)} · cap ${Number(l2.cost_cap_pct || 0).toFixed(0)}%`
+    : '';
+  digestDetail.textContent = `OK ${l2.ok || 0} · LATE ${l2.late || 0} · STUCK ${l2.stuck || 0} · FAILED ${l2.failed || 0} · NEVER ${l2.never || 0} · DISABLED ${l2.disabled || 0}${costLine} (derived from job ledger, same as 07:00 digest)`;
   const rotten = Number(l2.rotten || 0);
   const stale = Number(l2.stale || 0);
   const freshVerdict = rotten > 0 ? 'FAILED' : (stale > 0 ? 'LATE' : 'OK');

@@ -17994,6 +17994,188 @@ def ops_llm_spend():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route('/api/ops/cost/today', methods=['GET'])
+def ops_cost_today():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import cost_ledger, llm_spend
+        from _lib.brand_validate import validate_brand_id
+
+        brand = (request.args.get("brand") or "").strip() or None
+        if brand is not None:
+            brand = validate_brand_id(brand)
+        spend = llm_spend.status()
+        roll = cost_ledger.today_rollup(brand=brand)
+        mtd = cost_ledger.window_rollup(window="month", brand=brand)
+        cap = float(spend.get("cap_usd") or 0.0)
+        spent = float(spend.get("spent_usd") or 0.0)
+        cap_pct = round((spent / cap * 100.0), 1) if cap > 0 else 0.0
+        payload = {
+            "ok": True,
+            "day": roll.get("day") or spend.get("day"),
+            "spent_usd": spent,
+            "cap_usd": cap,
+            "remaining_usd": float(spend.get("remaining_usd") or 0.0),
+            "cap_pct": cap_pct,
+            "mtd_usd": float(mtd.get("total_usd") or 0.0),
+            "by_kind": roll.get("by_kind") or {},
+            "by_brand": roll.get("by_brand") or {},
+            "call_count": int(roll.get("call_count") or 0),
+            "posts_today": int(roll.get("posts_today") or 0),
+        }
+        if roll.get("degraded"):
+            payload["degraded"] = True
+        return jsonify(payload), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_cost_today failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/cost/summary', methods=['GET'])
+def ops_cost_summary():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import cost_ledger, llm_spend
+        from _lib.brand_validate import validate_brand_id
+
+        window = (request.args.get("window") or "day").strip().lower()
+        if window not in ("day", "week", "month"):
+            return jsonify({"ok": False, "error": "window must be day, week, or month"}), 400
+        brand = (request.args.get("brand") or "").strip() or None
+        if brand is not None:
+            brand = validate_brand_id(brand)
+        try:
+            min_usd = float(request.args.get("min_usd") or 0.0)
+        except (TypeError, ValueError):
+            min_usd = 0.0
+        roll = cost_ledger.window_rollup(window=window, brand=brand, min_usd=min_usd)
+        spend = llm_spend.status()
+        roll["ok"] = True
+        roll["ledger_total_usd"] = float(roll.get("total_usd") or 0.0)
+        if window == "day":
+            roll["spend_counter_usd"] = float(spend.get("spent_usd") or 0.0)
+        return jsonify(roll), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_cost_summary failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/cost/post/<path:post_cost_key>', methods=['GET'])
+def ops_cost_post(post_cost_key: str):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import cost_ledger
+        from urllib.parse import unquote
+
+        key = unquote(post_cost_key or "").strip()
+        if not key:
+            return jsonify({"ok": False, "error": "post_cost_key required"}), 400
+        if key.startswith("pck-"):
+            summary = cost_ledger.summary_for_post_cost_key(key)
+        else:
+            summary = cost_ledger.summary_for_inbox_item(key)
+        if int(summary.get("call_count") or 0) <= 0:
+            return jsonify({"ok": False, "error": "no cost lines found for this post"}), 404
+        summary["ok"] = True
+        return jsonify(summary), 200
+    except Exception as e:
+        _app_log.exception("ops_cost_post failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/cost/event/<path:event_key>', methods=['GET'])
+def ops_cost_event(event_key: str):
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import cost_ledger
+        from urllib.parse import unquote
+
+        ek = unquote(event_key or "").strip()
+        if not ek:
+            return jsonify({"ok": False, "error": "event_key required"}), 400
+        summary = cost_ledger.summary_for_event_key(ek)
+        if int(summary.get("call_count") or 0) <= 0:
+            return jsonify({"ok": False, "error": "no cost lines found for this post"}), 404
+        summary["ok"] = True
+        return jsonify(summary), 200
+    except Exception as e:
+        _app_log.exception("ops_cost_event failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/assets/<asset_id>/post-cost-summary", methods=["GET"])
+def asset_post_cost_summary(asset_id):
+    """Session-friendly post cost rollup for review modal (reads draft sidecar)."""
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    aid = (asset_id or "").strip()
+    if not aid:
+        return jsonify({"ok": False, "error": "asset_id required"}), 400
+    try:
+        from _lib import cost_ledger
+
+        sidecar_path = os.path.join(_data_paths()["data_dir"], "draft-assets", f"{aid}.json")
+        event_key = None
+        inbox_item_id = None
+        if os.path.isfile(sidecar_path):
+            sidecar = _read_json_file(sidecar_path) or {}
+            if isinstance(sidecar, dict):
+                event_key = (sidecar.get("event_key") or "").strip() or None
+                inbox_item_id = (sidecar.get("source_inbox_item_id") or "").strip() or None
+        if event_key:
+            summary = cost_ledger.summary_for_event_key(event_key)
+        elif inbox_item_id:
+            summary = cost_ledger.summary_for_inbox_item(inbox_item_id)
+        else:
+            return jsonify({"ok": False, "error": "no cost context for asset"}), 404
+        if int(summary.get("call_count") or 0) <= 0:
+            return jsonify({"ok": False, "error": "no cost lines found for this post"}), 404
+        summary["ok"] = True
+        return jsonify(summary), 200
+    except Exception as e:
+        _app_log.exception("asset_post_cost_summary failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/api/ops/cost/range', methods=['GET'])
+def ops_cost_range():
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    try:
+        from _lib import cost_ledger
+        from _lib.brand_validate import validate_brand_id
+
+        brand = (request.args.get("brand") or "").strip() or None
+        if brand is not None:
+            brand = validate_brand_id(brand)
+        from_day = (request.args.get("from") or "").strip()
+        to_day = (request.args.get("to") or "").strip()
+        if not from_day or not to_day:
+            return jsonify({"ok": False, "error": "from and to required (YYYY-MM-DD)"}), 400
+        try:
+            min_usd = float(request.args.get("min_usd") or 0.0)
+        except (TypeError, ValueError):
+            min_usd = 0.0
+        roll = cost_ledger.range_rollup(
+            brand=brand, from_day=from_day, to_day=to_day, min_usd=min_usd
+        )
+        roll["ok"] = True
+        return jsonify(roll), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        _app_log.exception("ops_cost_range failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route('/ops', methods=['GET'])
 @app.route('/ops/jobs', methods=['GET'])
 def ops_jobs_page():

@@ -206,7 +206,7 @@ def _finalize_draft_from_poll(
 
 
 def _record_poll_spend(item_id: str, job_entry: dict[str, Any], *, brand_id: str) -> None:
-    from _lib import llm_spend  # noqa: PLC0415
+    from _lib import llm_spend, post_cost  # noqa: PLC0415
 
     if image_jobs_state.is_settled(item_id):
         return
@@ -217,6 +217,19 @@ def _record_poll_spend(item_id: str, job_entry: dict[str, Any], *, brand_id: str
         model="krea",
         kind="image",
         brand_id=brand_id,
+    )
+    job_id = str(job_entry.get("job_id") or "").strip() or None
+    post_cost.record_line(
+        usd=est,
+        brand_id=brand_id,
+        kind="image",
+        route="job:krea_poll_draft_images/image",
+        inbox_item_id=item_id,
+        action="draft_photo",
+        cost_source="krea",
+        model="krea",
+        provider="krea",
+        provider_job_id=job_id,
     )
     image_jobs_state.mark_settled(item_id)
 

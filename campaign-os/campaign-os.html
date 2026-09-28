@@ -9280,6 +9280,7 @@ window.openReview = async (cid, aid) => {
     <span id="rv-upload-status" class="muted" style="font-size:11px;margin-left:.5rem"></span>
 
     ${a.publishingReferences?.length ? `<h4 data-help="${rvPublishingRefsHelp}" data-help-title="Publishing references" style="font-size:13px;margin:1rem 0 .4rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.04em;cursor:help;border-bottom:1px dotted var(--tx-3)">Publishing references</h4><ul class="list">${a.publishingReferences.map(p=>`<li class="li"><div class="li-body"><div class="li-title">${esc(p.postizId || '—')}</div><div class="li-meta">${esc(p.platform || '')} · ${esc(p.publishStatus || '')}</div></div></li>`).join('')}</ul>` : ''}
+    <div id="rv-post-cost-line" class="muted" style="font-size:12px;margin-top:.75rem;display:none"></div>
     <div class="modal-actions" style="flex-wrap:wrap">
       <button class="btn ghost" onclick="closeModal()">Close</button>
       <button class="btn" onclick="goToSection('captions');closeModal();setTimeout(()=>{const sel=document.getElementById('cap-asset-select');if(sel){sel.value='${aid}';document.getElementById('cap-gen').click();}},300)">⚡ Generate captions</button>
@@ -9418,6 +9419,32 @@ window.openReview = async (cid, aid) => {
       }).join('');
     } catch (e) {
       strip.innerHTML = `<div class="muted" style="font-size:11px;padding:.5rem">Couldn't load socials: ${esc(String(e))}</div>`;
+    }
+  })();
+
+  (async () => {
+    const costEl = document.getElementById('rv-post-cost-line');
+    if (!costEl) return;
+    try {
+      const r = await API.get('/api/assets/' + encodeURIComponent(aid) + '/post-cost-summary');
+      if (!r || !r.ok || r.total_usd == null) return;
+      const bk = r.by_kind || {};
+      const regens = (r.by_draft_asset || []).reduce((n, row) => n + (row.retries || 0), 0);
+      const kindBits = [];
+      if ((bk.text || 0) > 0) kindBits.push('1 caption');
+      if ((bk.image || 0) > 0) kindBits.push('1 photo');
+      if ((bk.edit || 0) > 0) kindBits.push('1 edit');
+      const detail = kindBits.length ? kindBits.join(' + ') : `${r.call_count || 0} call(s)`;
+      const regenNote = regens > 0 ? ` · ${regens} regen` : '';
+      const recent = (r.recent_lines || []).slice(-3).map((ln) => {
+        const act = ln.action || ln.kind || 'line';
+        return `${act} $${Number(ln.usd || 0).toFixed(4)}`;
+      }).join(' · ');
+      const recentNote = recent ? ` · ${recent}` : '';
+      costEl.textContent = `💰 $${Number(r.total_usd).toFixed(4)} · ${detail}${regenNote}${recentNote}`;
+      costEl.style.display = 'block';
+    } catch (_e) {
+      /* omit line on 404 / network errors */
     }
   })();
 
