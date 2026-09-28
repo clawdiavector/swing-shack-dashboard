@@ -500,7 +500,14 @@ def _paste_logo(base, brand_id: str, rect: dict[str, float]) -> None:
     base.paste(logo, (x0, y0), logo if logo.mode == "RGBA" else None)
 
 
-def _paste_brand_asset(base, brand_id: str, zone: dict[str, Any]) -> None:
+def _paste_brand_asset(
+    base,
+    brand_id: str,
+    zone: dict[str, Any],
+    *,
+    mirror_x: bool = False,
+    align_override: str | None = None,
+) -> None:
     from _lib.brand_overlay import _resolve_brand_relative
 
     rel = zone.get("asset")
@@ -517,7 +524,9 @@ def _paste_brand_asset(base, brand_id: str, zone: dict[str, Any]) -> None:
     zone_w = x1 - x0
     zone_h = y1 - y0
     fit = str(zone.get("fit") or "aspect_fit").lower()
-    align = str(zone.get("align") or "left").lower()
+    align = str(align_override or zone.get("align") or "left").lower()
+    if mirror_x:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
     if fit == "aspect_fit":
         scale = min(zone_w / max(1, img.width), zone_h / max(1, img.height))
         tw = max(1, int(img.width * scale))
@@ -550,8 +559,8 @@ def _background(base, archetype: dict[str, Any], brand_id: str) -> None:
     if kind == "gradient":
         grad = bg.get("gradient") if isinstance(bg.get("gradient"), dict) else {}
         direction = str(grad.get("direction") or bg.get("direction") or "vertical").lower()
-        c0 = _hex_to_rgba(str(grad.get("from") or "#000000"), 255)
-        c1 = _hex_to_rgba(str(grad.get("to") or "#FFFFFF"), 255)
+        c0 = _palette_colour(str(grad.get("from") or "#000000"), brand_id)
+        c1 = _palette_colour(str(grad.get("to") or "#FFFFFF"), brand_id)
         if direction == "horizontal":
             for x in range(w):
                 t = x / max(1, w - 1)
@@ -638,8 +647,32 @@ def _uses_photo_cover(archetype: dict[str, Any]) -> bool:
 def _content_for_source(source: str, fields: dict[str, str], zone: dict[str, Any]) -> str:
     if source == "static":
         return str(zone.get("text") or "")
+    if source == "caption_hook_first_word":
+        hook = str(fields.get("caption_hook") or "").strip()
+        return hook.split(None, 1)[0] if hook else ""
+    if source == "caption_hook_tail":
+        hook = str(fields.get("caption_hook") or "").strip()
+        parts = hook.split(None, 1)
+        return parts[1] if len(parts) > 1 else ""
     val = fields.get(source) or ""
     return str(val)
+
+
+def _compose_variant(fields: dict[str, str]) -> str:
+    explicit = str(fields.get("variant") or "").strip().lower()
+    if explicit in ("lab", "avoda"):
+        return explicit
+    cat = str(fields.get("service_category") or "").upper()
+    if cat in ("AVODA", "WORKSHOP"):
+        return "avoda"
+    return "lab"
+
+
+def _zone_variant_ok(zone: dict[str, Any], variant: str) -> bool:
+    want = zone.get("variant")
+    if want is None or want == "":
+        return True
+    return str(want).strip().lower() == variant
 
 
 def compose_to_canvas(
@@ -663,6 +696,7 @@ def compose_to_canvas(
     base_spec = canvases.get(base_canvas_id) if isinstance(canvases.get(base_canvas_id), dict) else spec
     base_h = int(base_spec.get("h") or h)
     zones = _zones_for_canvas(archetype, canvas_id, base_canvas_id, base_h, h)
+    variant = _compose_variant(fields)
     base = Image.new("RGB", (w, h), (7, 60, 82))
     bg_kind = str((archetype.get("background") or {}).get("kind") or "")
     photo_cover = _uses_photo_cover(archetype)
@@ -678,6 +712,8 @@ def compose_to_canvas(
         key=lambda item: 1 if isinstance(item[1].get("attach_above"), dict) else 0,
     )
     for zid, zone in ordered:
+        if not _zone_variant_ok(zone, variant):
+            continue
         kind = str(zone.get("kind") or "")
         if kind == "decorative" and str(zone.get("shape") or "") == "frame":
             _draw_frame(base, zone, brand_id)
@@ -699,7 +735,23 @@ def compose_to_canvas(
                     raise ComposeError("missing photo")
             elif source == "asset":
                 try:
-                    _paste_brand_asset(base, brand_id, zone)
+                    paste_zone = zone
+                    mirror = variant == "avoda" and isinstance(zone.get("mirror_corners"), list)
+                    if mirror and isinstance(rect, dict):
+                        paste_zone = dict(zone)
+                        paste_zone["rect"] = {
+                            "x0": 1.0 - float(rect["x1"]),
+                            "y0": float(rect["y0"]),
+                            "x1": 1.0 - float(rect["x0"]),
+                            "y1": float(rect["y1"]),
+                        }
+                    _paste_brand_asset(
+                        base,
+                        brand_id,
+                        paste_zone,
+                        mirror_x=mirror,
+                        align_override="right" if mirror else None,
+                    )
                 except ComposeError:
                     if zone.get("optional"):
                         continue
