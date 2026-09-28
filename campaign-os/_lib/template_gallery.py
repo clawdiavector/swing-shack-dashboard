@@ -369,10 +369,14 @@ def build_template_gallery(brand_id: str) -> dict[str, Any]:
         if sec not in seen_secs:
             sections_out.append({"section": sec, "templates": rows})
 
-    return {
+    from _lib import template_roadmap as _roadmap_mod
+
+    payload: dict[str, Any] = {
         "brand_id": bid,
         "brand_bible": _condensed_bible(bible, brand_record),
         "templates": templates,
         "sections": sections_out,
         "template_count": len(templates),
     }
+    payload["coverage"] = _roadmap_mod.build_template_coverage(bid)
+    return payload

@@ -1712,6 +1712,26 @@ export type TemplateGalleryTemplate = {
   template_md_excerpt: string
   section: string
   template_pack?: string
+  /** Coverage roadmap fields (missing / partial rows). */
+  status?: 'ready' | 'partial' | 'missing'
+  notes?: string
+  content_bank_hint?: string
+  family_key?: string
+  archetype_id?: string
+  wave?: number
+}
+
+export type TemplateCoverageSummary = {
+  ready: number
+  partial: number
+  missing: number
+  total: number
+}
+
+export type TemplateCoveragePayload = {
+  brand_id: string
+  rows: TemplateGalleryTemplate[]
+  summary: TemplateCoverageSummary
 }
 
 export type TemplateGallerySection = {
@@ -1732,6 +1752,7 @@ export type TemplateGalleryPayload = {
   templates?: TemplateGalleryTemplate[]
   sections?: TemplateGallerySection[]
   template_count?: number
+  coverage?: TemplateCoveragePayload
   error?: string
 }
 

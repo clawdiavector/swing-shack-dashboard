@@ -1,0 +1,120 @@
+version: 1
+updated: "2026-09-28"
+source: campaign-os-content-bank-services-templates.md
+
+brands:
+  swing-shack:
+    rows:
+      - family_key: service-promo
+        label: Service promo
+        archetype_id: ss-service-promo
+        section: Services
+        notes: Shared coaching / fitting frame; lockup + copy differ by post_type.
+        content_bank_hint: coaching_post.jpg, fitting_post1.jpg, fitting_post2.jpg
+      - family_key: did-you-know
+        label: Did you know
+        archetype_id: ss-did-you-know
+        section: Education
+        notes: Tip / myth cards (cf1–cf6 Content Bank set).
+        content_bank_hint: cf1 copy 3.jpg … cf6 copy.jpg
+      - family_key: price-package
+        label: Price / package
+        archetype_id: ss-price-package
+        section: Promo
+        notes: Monthly hero price card and package tables.
+        content_bank_hint: package1_post.jpg, coachinpackages_post.jpg, membership_post.jpg
+      - family_key: sale-offer
+        label: Sale offer
+        archetype_id: ss-sale-offer
+        section: Promo
+        notes: Seasonal sale lockups (e.g. Black Friday).
+        content_bank_hint: blackfriday copy.jpg + story variants
+      - family_key: discount-code
+        label: Discount code
+        archetype_id: ss-discount-code
+        section: Promo
+        notes: Fitting discount + frame promo codes.
+        content_bank_hint: fitting_discount_post.jpg, frame1.jpg
+      - family_key: lesson-corner
+        label: Lesson corner
+        archetype_id: ss-lesson-corner
+        section: Education
+        notes: Beginner / junior / ladies lesson single-feed cards.
+        content_bank_hint: beginnerlessons-100.jpg, juniorlessons-100.jpg, ladieslessons-100.jpg
+      - family_key: fitting-headline
+        label: Fitting headline
+        archetype_id: ss-fitting-headline
+        section: Education
+        notes: Iron / putter fitting headline layouts (distinct from service promo).
+        content_bank_hint: ironfitting-100.jpg, puttefitting-100.jpg
+      - family_key: zen-venue-promo
+        label: Zen venue promo
+        archetype_id: ss-zen-venue-promo
+        section: Brand
+        wave: 2
+        notes: Venue hero / zen stage — not a Services-folder family; wave-2 extra archetype.
+        content_bank_hint: zenstage-100.jpg (Other / venue art)
+      - family_key: tournament-news
+        label: Tournament news
+        archetype_id: ss-tournament-news
+        section: News
+        notes: Recap + sign-up cards for upcoming events.
+        content_bank_hint: events_*.jpg
+
+  stick:
+    rows:
+      - family_key: service-frame
+        label: Service frame
+        archetype_id: stick-service-frame
+        section: Services
+        notes: Primary service offer frame (club / swing assessments).
+        content_bank_hint: clubasses.jpg, swingasses.jpg
+      - family_key: service-start
+        label: Service start
+        archetype_id: stick-service-start
+        section: Services
+        notes: Start cards for coaching, fitting, equipment, apparel.
+        content_bank_hint: coachingstart.jpg, fittingstart.jpg, equipment_start.jpg
+      - family_key: service-end
+        label: Service end
+        archetype_id: stick-service-end
+        section: Services
+        notes: End / outro cards paired with start family.
+        content_bank_hint: coachingend.jpg, fittingend.jpg, equipmentend.jpg
+      - family_key: service-square
+        label: Service square
+        archetype_id: stick-service-square
+        section: Services
+        notes: 1:1 lab@stick / avoda@stick square service layouts.
+        content_bank_hint: lab@stick copy 4.jpg, avoda@stick copy 2.jpg
+      - family_key: brand-statement
+        label: Brand statement
+        archetype_id: stick-brand-statement
+        section: Brand
+        notes: Static services brand statement grid from Services folder.
+        content_bank_hint: static_services.jpg + copies
+      - family_key: location-drive
+        label: Location drive
+        archetype_id: stick-location-drive
+        section: Location
+        notes: Row 6 in 7×7; reference art often under Stick/Other/, not Services.
+        content_bank_hint: franschoek, greenpoint (Other folder)
+      - family_key: coach-profile
+        label: Coach profile
+        archetype_id: stick-coach-profile
+        section: Coaching
+        notes: Row 7 in 7×7; coach portrait promos (e.g. dave_post in Other).
+        content_bank_hint: dave_post and coach art in Stick/Other/
+      - family_key: shop-corner
+        label: Shop corner
+        archetype_id: stick-shop-corner
+        section: Shop
+        wave: 2
+        notes: Retail / shop corner promo — wave-2 extra beyond Services 7×7.
+        content_bank_hint: lab_post.jpg (Products)
+      - family_key: events-calendar
+        label: Events calendar
+        archetype_id: stick-events-calendar
+        section: Events
+        notes: Tournament + clinic schedule cards; future wave.
+        content_bank_hint: events_hero.jpg
