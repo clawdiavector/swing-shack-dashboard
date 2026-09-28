@@ -2373,6 +2373,22 @@
           ]
         },
         "use": "stick-shop-corner"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "coaching_promo"
+          ]
+        },
+        "use": "stick-coaching-poster-v1"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "service_hero"
+          ]
+        },
+        "use": "stick-service-hero-v1"
       }
     ]
   }
