@@ -1,0 +1,19 @@
+{
+  "id": "stick-open-sign",
+  "name": "Open sign — full-bleed shop photo, navy gradient corner block, mint WE ARE OPEN",
+  "description": "Full-bleed venue photo with half-width navy gradient block flush right, white stick wordmark, mint open-status line.",
+  "canvas": "ig_post",
+  "channel_canvas": {
+    "facebook": "ig_post"
+  },
+  "template_pack": "templates/open-sign",
+  "measured_from": [
+    "templates/open-sign/references/ref-01.jpg",
+    "templates/open-sign/references/ref-02.jpg",
+    "templates/open-sign/references/ref-03.jpg"
+  ],
+  "reference_size": {
+    "w": 1081,
+    "h": 1351
+  }
+}

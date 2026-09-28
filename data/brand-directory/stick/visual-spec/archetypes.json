@@ -1906,6 +1906,119 @@
         "w": 1080,
         "h": 1350
       }
+    },
+    {
+      "id": "stick-open-sign",
+      "name": "Open sign — full-bleed shop photo, navy gradient corner block, mint WE ARE OPEN",
+      "description": "Full-bleed venue photo. Half-width navy gradient block (#05325D→#072A40) flush right, floating above the bottom edge, carrying the white stick wordmark over a mint uppercase open-status line. Measured from 3 pixel-identical Stick/Other artboards. No frame, no scrim.",
+      "canvas": "ig_post",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "block_anchor": "bottom",
+      "template_pack": "templates/open-sign",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "facebook",
+          "gbp"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/open-sign/photos",
+        "focus_y": 0.45
+      },
+      "zones": {
+        "block": {
+          "rect": {
+            "x0": 0.5005,
+            "y0": 0.7128,
+            "x1": 1.0,
+            "y1": 0.906
+          },
+          "kind": "band",
+          "fill": "navy_alt",
+          "gradient": {
+            "direction": "horizontal",
+            "from": "navy_alt",
+            "to": "navy_deep_edge"
+          }
+        },
+        "wordmark": {
+          "rect": {
+            "x0": 0.6864,
+            "y0": 0.7572,
+            "x1": 0.8279,
+            "y1": 0.7972
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/open-sign/assets/logo-wordmark-white.png",
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "middle"
+        },
+        "open_line": {
+          "rect": {
+            "x0": 0.5606,
+            "y0": 0.8149,
+            "x1": 0.9528,
+            "y1": 0.8453
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 1,
+          "max_chars_per_line": 18,
+          "line_height": 1.0,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "middle",
+          "colour": "mint",
+          "min_font_px": 34,
+          "max_font_px": 58,
+          "h_scale": 0.95
+        },
+        "logo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 0.001,
+            "y1": 0.001
+          },
+          "kind": "logo",
+          "optional": true
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 18,
+      "measured_from": [
+        "templates/open-sign/references/ref-01.jpg",
+        "templates/open-sign/references/ref-02.jpg",
+        "templates/open-sign/references/ref-03.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1351
+      }
     }
   ],
   "selection": {
@@ -1984,6 +2097,14 @@
           ]
         },
         "use": "stick-coach-profile"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "open_sign"
+          ]
+        },
+        "use": "stick-open-sign"
       }
     ]
   }

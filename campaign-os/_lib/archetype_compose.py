@@ -904,8 +904,32 @@ def compose_to_canvas(
         elif kind == "band":
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
             x0, y0, x1, y1 = _rect_px(rect, w, h)
-            fill = _palette_colour(str(zone.get("fill") or "teal"), brand_id)
-            draw.rectangle([x0, y0, x1, y1], fill=fill[:3])
+            grad = zone.get("gradient") if isinstance(zone.get("gradient"), dict) else None
+            if grad:
+                direction = str(grad.get("direction") or "horizontal").lower()
+                c0 = _palette_colour(str(grad.get("from") or zone.get("fill") or "teal"), brand_id)
+                c1 = _palette_colour(str(grad.get("to") or zone.get("fill") or "teal"), brand_id)
+                bw, bh = max(1, x1 - x0), max(1, y1 - y0)
+                band = Image.new("RGB", (bw, bh))
+                band_draw = ImageDraw.Draw(band)
+                if direction == "horizontal":
+                    for x in range(bw):
+                        t = x / max(1, bw - 1)
+                        r = int(c0[0] * (1 - t) + c1[0] * t)
+                        g = int(c0[1] * (1 - t) + c1[1] * t)
+                        b = int(c0[2] * (1 - t) + c1[2] * t)
+                        band_draw.line([(x, 0), (x, bh)], fill=(r, g, b))
+                else:
+                    for y in range(bh):
+                        t = y / max(1, bh - 1)
+                        r = int(c0[0] * (1 - t) + c1[0] * t)
+                        g = int(c0[1] * (1 - t) + c1[1] * t)
+                        b = int(c0[2] * (1 - t) + c1[2] * t)
+                        band_draw.line([(0, y), (bw, y)], fill=(r, g, b))
+                base.paste(band, (x0, y0))
+            else:
+                fill = _palette_colour(str(zone.get("fill") or "teal"), brand_id)
+                draw.rectangle([x0, y0, x1, y1], fill=fill[:3])
         elif kind == "image":
             source = str(zone.get("source") or "")
             rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
