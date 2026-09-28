@@ -44094,7 +44094,27 @@ def planning_timeline(brand_id):
             # Read failure must NEVER make the timeline empty
             pass
 
-        ordered = [_enrich_event(e) for e in combined_events.values()]
+        ordered: List[Dict[str, Any]] = []
+        for e in combined_events.values():
+            try:
+                ordered.append(_enrich_event(e))
+            except Exception as enrich_err:
+                # Don't let one bad operator-record suppress the rest of
+                # the timeline. V2.3 operator records come from marketing_calendar
+                # jsonl and may not perfectly match the spine-file shape.
+                import sys as _sys
+                print(
+                    f"[v23-timeline] _enrich_event failed for ek={e.get('event_key')}; "
+                    f"passthrough: {enrich_err}",
+                    file=_sys.stderr,
+                    flush=True,
+                )
+                passthrough = dict(e)
+                passthrough.setdefault("start", e.get("event_start") or "")
+                passthrough.setdefault("end", e.get("event_end") or e.get("public_peak") or "")
+                passthrough.setdefault("phases", [])
+                passthrough.setdefault("planning_state", "operator_record_no_phases")
+                ordered.append(passthrough)
         ordered.sort(key=lambda e: e.get("start") or "")
         counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
         for e in ordered:
@@ -44159,8 +44179,26 @@ def planning_timeline(brand_id):
             combined_events[ek] = record  # operator wins on conflict
     except Exception:
         pass
-    events = [_enrich_event(e) for e in combined_events.values()]
-    events.sort(key=lambda e: e.get("start") or "")
+    events_year: List[Dict[str, Any]] = []
+    for e in combined_events.values():
+        try:
+            events_year.append(_enrich_event(e))
+        except Exception as enrich_err:
+            import sys as _sys2
+            print(
+                f"[v23-timeline-year] _enrich_event failed for ek={e.get('event_key')}; "
+                f"passthrough: {enrich_err}",
+                file=_sys2.stderr,
+                flush=True,
+            )
+            passthrough = dict(e)
+            passthrough.setdefault("start", e.get("event_start") or "")
+            passthrough.setdefault("end", e.get("event_end") or e.get("public_peak") or "")
+            passthrough.setdefault("phases", [])
+            passthrough.setdefault("planning_state", "operator_record_no_phases")
+            events_year.append(passthrough)
+    events_year.sort(key=lambda e: e.get("start") or "")
+    events = events_year
 
     counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
     for e in events:
