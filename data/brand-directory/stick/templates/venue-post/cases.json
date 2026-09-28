@@ -1,0 +1,20 @@
+[
+  {
+    "ref": "ref-01.jpg",
+    "vendor_name": "",
+    "photo_seed": "7",
+    "partner_logo_asset": ""
+  },
+  {
+    "ref": "ref-02.jpg",
+    "vendor_name": "",
+    "photo_seed": "2",
+    "partner_logo_asset": "templates/venue-post/assets/partner-psycho-bunny.png"
+  },
+  {
+    "ref": "ref-03.jpg",
+    "vendor_name": "",
+    "photo_seed": "0",
+    "partner_logo_asset": ""
+  }
+]

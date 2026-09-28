@@ -919,6 +919,15 @@ def compose_to_canvas(
             elif source == "asset":
                 try:
                     paste_zone = zone
+                    asset_field = zone.get("asset_field")
+                    if isinstance(asset_field, str) and asset_field.strip():
+                        rel = str(fields.get(asset_field) or "").strip()
+                        if not rel:
+                            if zone.get("optional"):
+                                continue
+                            raise ComposeError(f"missing field {asset_field}")
+                        paste_zone = dict(zone)
+                        paste_zone["asset"] = rel
                     mirror = variant == "avoda" and isinstance(zone.get("mirror_corners"), list)
                     if mirror and isinstance(rect, dict):
                         paste_zone = dict(zone)

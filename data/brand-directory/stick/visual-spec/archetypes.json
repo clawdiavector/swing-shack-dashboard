@@ -547,6 +547,19 @@
       "description": "The photograph owns the whole canvas. A navy plate in the lower right carries the partner or venue lockup, an @ and the stick logo. Minimal type, so it is the archetype for a generated venue or lifestyle photo where the image has to carry the post. Measured on lab_post.jpg.",
       "canvas": "ig_post",
       "block_anchor": "bottom",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/venue-post",
+      "measured_from": [
+        "templates/venue-post/references/ref-01.jpg",
+        "templates/venue-post/references/ref-02.jpg",
+        "templates/venue-post/references/ref-03.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1351
+      },
       "applies_to": {
         "channels": [
           "instagram",
@@ -561,7 +574,10 @@
         "needs_photo": true
       },
       "background": {
-        "kind": "photo_full_bleed"
+        "kind": "photo_full_bleed",
+        "library": "templates/venue-post/photos",
+        "cover": true,
+        "focus_y": 0.5
       },
       "zones": {
         "photo": {
@@ -591,7 +607,12 @@
             "x1": 0.9056,
             "y1": 0.7587
           },
-          "kind": "logo",
+          "kind": "image",
+          "source": "asset",
+          "asset_field": "partner_logo_asset",
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "middle",
           "optional": true
         },
         "headline": {
@@ -1984,6 +2005,14 @@
           ]
         },
         "use": "stick-coach-profile"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "venue_post"
+          ]
+        },
+        "use": "stick-venue-post"
       }
     ]
   }

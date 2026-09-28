@@ -1,0 +1,21 @@
+{
+  "id": "stick-venue-post",
+  "brand_id": "stick",
+  "pack": "templates/venue-post",
+  "archetype_id": "stick-venue-post",
+  "post_type": "venue_post",
+  "reference_size": {"w": 1081, "h": 1351},
+  "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg",
+    "references/ref-03.jpg"
+  ],
+  "palette_tokens": {
+    "navy_deep": "#07465f",
+    "white": "#FFFFFF"
+  },
+  "copy_fields": {
+    "vendor_name": {"max_chars": 16, "optional": true},
+    "partner_logo_asset": {"optional": true}
+  }
+}
