@@ -109,6 +109,25 @@ def test_optional_subline_dropped_without_qualifier(zen_promo: dict):
     assert wq.sum() > wo.sum(), "subline white text should drop when qualifier omitted"
 
 
+def test_story_no_ig_post_scaled_headline(zen_promo: dict):
+    """AC10: no second headline stack at ig_post y-fractions scaled onto 1920."""
+    arr = np.asarray(_render(zen_promo, _fields(), ["instagram_story"])["instagram_story"]).astype(int)
+    green = np.abs(arr - GREEN).sum(axis=2) < 60
+    for y in range(240, 450):
+        if np.count_nonzero(green[y]) > 400:
+            pytest.fail(f"unexpected headline-width green band at y={y} (scaled ig_post duplicate)")
+
+
+def test_kicker_thinner_than_headline(zen_promo: dict):
+    """AC9: h3 kicker must not match display headline stroke mass."""
+    arr = np.asarray(_render(zen_promo, _fields(), ["instagram"])["instagram"]).astype(int)
+    white = arr.min(axis=2) > WHITE_LO
+    kicker_h = int(np.count_nonzero(white[95:135].any(axis=1)))
+    green_head = np.abs(arr[175:275] - GREEN).sum(axis=2) < 60
+    headline_h = int(np.count_nonzero(green_head.any(axis=1)))
+    assert kicker_h < headline_h, "kicker vertical ink span should be thinner than display headline"
+
+
 def test_story_single_headline_band(zen_promo: dict):
     """Headline accent on story must appear once in the ig_story override band only."""
     arr = np.asarray(_render(zen_promo, _fields(), ["instagram_story"])["instagram_story"]).astype(int)

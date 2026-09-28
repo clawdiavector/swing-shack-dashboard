@@ -2556,7 +2556,6 @@
           "text_origin_x": 67,
           "align": "left",
           "colour": "white",
-          "h_scale": 0.863,
           "attach_above": {
             "zone": "headline",
             "gap_px": 21
@@ -2581,7 +2580,6 @@
           "text_origin_x": 67,
           "align": "left",
           "colour": "white",
-          "h_scale": 0.863,
           "optional": true
         }
       },
@@ -2648,7 +2646,6 @@
             "text_origin_x": 67,
             "align": "left",
             "colour": "white",
-            "h_scale": 0.863,
             "attach_above": {
               "zone": "headline",
               "gap_px": 21
@@ -2673,7 +2670,6 @@
             "text_origin_x": 67,
             "align": "left",
             "colour": "white",
-            "h_scale": 0.863,
             "optional": true
           }
         }
