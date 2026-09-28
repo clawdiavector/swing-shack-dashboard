@@ -1,21 +1,23 @@
 import { Map } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
 import { ClassicLink, Tip } from '../../components/ui'
 import {
   fetchPlanningBigIdea,
+  fetchPlanningCandidates,
   fetchPlanningEvent,
   fetchPlanningMonth,
   fetchPlanningRightNow,
-  fetchPlanningTimeline,
+  fetchPlanningTimelineRange,
 } from '../../lib/api'
 import {
   getCachedPlanningEvent,
   planningEventCacheKey,
   setCachedPlanningEvent,
 } from '../../lib/planning'
+import { localTodayIso } from '../../lib/planning'
 import type {
   PlanningBigIdeaResponse,
   PlanningEventDetail,
@@ -26,6 +28,7 @@ import type {
 import { EventDetail } from './planning/EventDetail'
 import { EventTimelinePanel } from './planning/EventTimelinePanel'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
+import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
 import { PlanningHero } from './planning/PlanningHero'
 import { RightNowStrip } from './planning/RightNowStrip'
 
@@ -70,8 +73,28 @@ export function Lanes() {
   const [rightNow, setRightNow] = useState<PlanningRightNow | null>(null)
   const [monthView, setMonthView] = useState<PlanningMonthView | null>(null)
   const [timeline, setTimeline] = useState<PlanningTimeline | null>(null)
+  const [candidates, setCandidates] = useState<{
+    candidates?: Array<Record<string, unknown>>
+    candidate_count?: number
+    confidence_breakdown?: Record<string, number>
+  } | null>(null)
   const [loading, setLoading] = useState(false)
   const [eventDetail, setEventDetail] = useState<PlanningEventDetail | null>(null)
+
+  // Calendar V2: rolling date-range horizon anchored on today.
+  // Span = the visible 12-month window. The cross-year endpoint dedupes events
+  // across multiple spine year files, which is essential because the year
+  // boundary falls inside the visible window (e.g. today=28 Sep 2026, 12M → 28 Sep 2027).
+  const horizon = useMemo(() => {
+    const today = new Date(`${localTodayIso()}T00:00:00`)
+    const startD = today
+    const endD = new Date(today)
+    endD.setFullYear(endD.getFullYear() + 1)
+    return {
+      start: startD.toISOString().slice(0, 10),
+      end: endD.toISOString().slice(0, 10),
+    }
+  }, [])
 
   const setTab = useCallback(
     (id: string) => {
@@ -100,19 +123,21 @@ export function Lanes() {
       safeLoad(() => fetchPlanningBigIdea(scopeBrand)),
       safeLoad(() => fetchPlanningRightNow(scopeBrand)),
       safeLoad(() => fetchPlanningMonth(scopeBrand, monthParam)),
-      safeLoad(() => fetchPlanningTimeline(scopeBrand, yearParam)),
-    ]).then(([bi, rn, mo, tl]) => {
+      safeLoad(() => fetchPlanningTimelineRange(scopeBrand, horizon.start, horizon.end)),
+      safeLoad(() => fetchPlanningCandidates(scopeBrand, { start: horizon.start, end: horizon.end })),
+    ]).then(([bi, rn, mo, tl, cand]) => {
       if (gone) return
       setBigIdea(bi as PlanningBigIdeaResponse)
       setRightNow(rn as PlanningRightNow)
       setMonthView(mo as PlanningMonthView)
       setTimeline(tl as PlanningTimeline)
+      setCandidates(cand as { candidates?: Array<Record<string, unknown>>; candidate_count?: number; confidence_breakdown?: Record<string, number> } | null)
       setLoading(false)
     })
     return () => {
       gone = true
     }
-  }, [scopeBrand, monthParam, yearParam])
+  }, [scopeBrand, monthParam, horizon.start, horizon.end])
 
   const openEvent = useCallback(
     async (eventId: string) => {
@@ -202,6 +227,18 @@ export function Lanes() {
           eventDetail={eventDetail}
           onOpenEvent={openEvent}
           onCloseEvent={closeEvent}
+        />
+      ) : null}
+
+      {/* Calendar V2 — Slice 6: rolling intelligence candidates.
+          Sits beneath the timeline as a "watchlist" — separate from the approved spine. */}
+      {tab === 'timeline' && scopeBrand && candidates ? (
+        <PlanningCandidatesPanel
+          brand={brandLabel}
+          candidates={candidates.candidates || []}
+          candidateCount={candidates.candidate_count || 0}
+          confidenceBreakdown={candidates.confidence_breakdown || {}}
+          horizon={horizon}
         />
       ) : null}
 

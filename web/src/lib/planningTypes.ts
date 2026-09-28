@@ -59,8 +59,11 @@ export type PlanningTimelineEvent = {
     task?: string
     start?: string
     weeks_before_peak?: number
+    verified?: boolean
+    kind?: 'verified' | 'suggested_planning_date'
   }[]
   deadlines?: { label?: string; due?: string }[]
+  planning_state?: 'not_planned' | 'in_flight' | 'suggested_only' | 'completed' | null
 }
 
 export type PlanningTimeline = {
@@ -86,6 +89,23 @@ export type PlanningRightNow = {
 export type PlanningBigIdeaResponse = {
   ok?: boolean
   big_brand_idea?: BigBrandIdea
+  north_star?: { statement?: string; source?: string } | null
+  operating_goals?: Array<{
+    id: string
+    label: string
+    metric: string
+    category?: string
+    outcome_measurement?: string
+    connector_status?: string
+    marketing_support_signal?: string
+    do_not_fabricate_progress?: boolean
+    source?: string
+  }>
+  operating_areas?: Array<{ key: string; lane?: string; tagline?: string }>
+  monthly_themes?: unknown[]
+  active_campaigns?: unknown[]
+  lane_system?: unknown[]
+  brand_id?: string
 }
 
 export type PlanningEventDetail = {

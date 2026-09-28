@@ -364,6 +364,36 @@ export function fetchPlanningTimeline(brand: string, year: string) {
   )
 }
 
+/**
+ * Rolling cross-year timeline (Calendar V2 — Slice 6).
+ * Loads spine files for every year the range intersects and dedupes by event id.
+ * Required for 12M / 6M zooms where today crosses a year boundary.
+ */
+export function fetchPlanningTimelineRange(brand: string, startIso: string, endIso: string) {
+  const q = new URLSearchParams({ start: startIso, end: endIso })
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/timeline?${q}`,
+  )
+}
+
+/**
+ * Intelligence candidates (Calendar V2 — Slice 6).
+ * Evidence-backed, scored, NOT on the approved spine.
+ * Christelle decides what enters the spine.
+ */
+export function fetchPlanningCandidates(
+  brand: string,
+  opts?: { start?: string; end?: string },
+) {
+  const q = new URLSearchParams()
+  if (opts?.start) q.set('start', opts.start)
+  if (opts?.end) q.set('end', opts.end)
+  const suffix = q.toString() ? `?${q}` : ''
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/candidates${suffix}`,
+  )
+}
+
 export function fetchPlanningEvent(brand: string, eventId: string) {
   return getJson<Record<string, unknown>>(
     `/api/planning/${encodeURIComponent(brand)}/event/${encodeURIComponent(eventId)}`,

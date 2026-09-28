@@ -7,6 +7,7 @@ from __future__ import annotations  # noqa: F401
 
 import os
 import sys
+import glob
 import json
 import copy
 import datetime
@@ -42117,9 +42118,13 @@ def planning_big_idea(brand_id):
 
     Response:
       {
-        ok, brand_id, big_brand_idea: {
-          name, belief, elevator
-        }, monthly_themes: [{month, theme, lanes_emphasis}], active_campaigns
+        ok, brand_id,
+        big_brand_idea: {name, belief, elevator},
+        north_star: {statement, source, ...}   # NEW: separate from big_brand_idea
+        operating_goals: [{label, metric, outcome_measurement, ...}]
+        operating_areas: [{key, lane, tagline}]
+        monthly_themes: [{month, theme, lanes_emphasis}],
+        active_campaigns, lane_system
       }
     """
     if not _is_authed():
@@ -42131,6 +42136,9 @@ def planning_big_idea(brand_id):
         "ok": True,
         "brand_id": brand_id,
         "big_brand_idea": data.get("big_brand_idea"),
+        "north_star": data.get("north_star"),
+        "operating_goals": data.get("operating_goals") or [],
+        "operating_areas": data.get("operating_areas") or [],
         "monthly_themes": data.get("monthly_themes") or [],
         "active_campaigns": data.get("active_campaigns") or [],
         "lane_system": data.get("lane_system") or [],
@@ -43534,6 +43542,11 @@ def _enrich_event(event):
 
     Post-peak phases: phase_start = peak + abs(weeks_before_peak) * 7
                       phase_end   = next phase's start (or + 7 days if last)
+
+    If the event has no phases[] (the common case for brand-new spine rows),
+    derive a default tier-based runway. Derived phases are flagged
+    verified=false so the SPA can render them as SUGGESTED PLANNING DATE
+    vs the event public_peak which is verified=true.
     """
     enriched = dict(event)
     peak_str = event.get("public_peak")
@@ -43543,7 +43556,36 @@ def _enrich_event(event):
             peak = _dt.date.fromisoformat(peak_str)
         except Exception:
             pass
+
+    # Build phase skeleton — either from event.phases (verified) or from tier default (suggested)
     raw_phases = list(event.get("phases") or [])
+    verified_phases = bool(raw_phases) and peak is not None
+    if not raw_phases:
+        tier = event.get("tier")
+        if tier == "A-PIN":
+            raw_phases = [
+                {"label": "PLAN",     "task": "Lock the angle + which lanes express it",          "weeks_before_peak": 8},
+                {"label": "BRIEF",    "task": "Brief ready — copy + creative + hooks aligned",    "weeks_before_peak": 6},
+                {"label": "CREATE",   "task": "Asset production — copy + design + video",          "weeks_before_peak": 4},
+                {"label": "REVIEW",   "task": "Internal review + operator approval",              "weeks_before_peak": 2},
+                {"label": "LIVE",     "task": "Campaign live — organic + paid windows open",      "weeks_before_peak": 1},
+                {"label": "★ PEAK",   "task": "Public peak",                                       "weeks_before_peak": 0},
+                {"label": "REPORT",   "task": "Post-campaign read — what moved, what to keep",   "weeks_before_peak": -1},
+            ]
+        elif tier == "B-PIN":
+            raw_phases = [
+                {"label": "PLAN",     "task": "Brief + which lanes to push",                       "weeks_before_peak": 4},
+                {"label": "BRIEF",    "task": "Copy + hook + CTA locked",                          "weeks_before_peak": 2},
+                {"label": "CREATE",   "task": "Production",                                        "weeks_before_peak": 1},
+                {"label": "★ PEAK",   "task": "Public peak",                                       "weeks_before_peak": 0},
+                {"label": "REPORT",   "task": "Post-peak read",                                    "weeks_before_peak": -1},
+            ]
+        elif tier == "C-PIN":
+            raw_phases = [
+                {"label": "PLAN",     "task": "Light hook, light prep",                            "weeks_before_peak": 1},
+                {"label": "★ PEAK",   "task": "Public peak",                                       "weeks_before_peak": 0},
+            ]
+
     # Sort by weeks_before_peak DESCENDING — so phases CLOSEST to peak come first
     # Pre-peak with positive w: smallest first (earliest)
     # Post-peak with negative w: largest first (closest after peak)
@@ -43582,6 +43624,8 @@ def _enrich_event(event):
             "start": phase_start,
             "end": phase_end,
             "weeks_before_peak": w,
+            "verified": verified_phases,
+            "kind": "verified" if verified_phases else "suggested_planning_date",
         })
     # Return in chronological order: pre-peak (largest w first = earliest first),
     # then peak, then post-peak (most negative first = earliest after peak first).
@@ -43589,20 +43633,117 @@ def _enrich_event(event):
     # Actually simplest: sort ascending by start date
     phases_out.sort(key=lambda p: p.get("start") or "")
     enriched["phases"] = phases_out
+
+    # planning_state — derived from today's date vs the verified public_peak + phases.
+    # Operator-facing field. UI should render "NOT PLANNED" when this is "not_planned"
+    # and the runway is full of suggested phases.
+    if peak is None:
+        planning_state = "not_planned"
+    else:
+        today = _dt.date.today()
+        # Find earliest phase start + last phase end
+        first_start = None
+        last_end = None
+        for ph in phases_out:
+            if ph.get("start") and (first_start is None or ph["start"] < first_start):
+                first_start = ph["start"]
+            if ph.get("end") and (last_end is None or ph["end"] > last_end):
+                last_end = ph["end"]
+        if first_start and today < _dt.date.fromisoformat(first_start):
+            planning_state = "not_planned"  # planning hasn't started
+        elif last_end and today > _dt.date.fromisoformat(last_end):
+            planning_state = "completed"
+        else:
+            # In the planning / live window
+            if verified_phases:
+                planning_state = "in_flight"
+            else:
+                planning_state = "suggested_only"
+    enriched["planning_state"] = planning_state
+
     return enriched
 
 
 @app.route("/api/planning/<brand_id>/timeline", methods=["GET"])
 def planning_timeline(brand_id):
     """GET /api/planning/<brand>/timeline?year=2026
+                                  ?start=2026-09-28&end=2027-09-28
 
-    Returns the event spine (always-on pillars + A/B/C events) for the year.
+    Returns the event spine (always-on pillars + A/B/C events) for the year
+    (or a date range spanning multiple years).
+
+    Date-range mode (start + end) loads every spine file for the years that
+    the range intersects and dedupes events by id. This is the rolling
+    12M mode — required because the year boundary can sit inside the visible
+    window (e.g. today=28 Sep 2026, 12M horizon = 28 Sep 2027).
+
     Sorted by start date. Each event includes enriched phase dates so the
     SPA can render horizontal bars.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+
+    start_str = (request.args.get("start") or "").strip()
+    end_str = (request.args.get("end") or "").strip()
     year_str = (request.args.get("year") or "").strip()
+
+    # Cross-year range mode
+    if start_str and end_str:
+        try:
+            start_d = _dt.date.fromisoformat(start_str)
+            end_d = _dt.date.fromisoformat(end_str)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"invalid date range: {e}"}), 400
+        if end_d < start_d:
+            return jsonify({"ok": False, "error": "end must be >= start"}), 400
+        years = list(range(start_d.year, end_d.year + 1))
+        combined_events = []
+        always_on = []
+        seen_ids = set()
+        sources = []
+        for yr in years:
+            spine, src = _load_events_for_year(brand_id, yr)
+            if not spine:
+                continue
+            if not always_on:
+                always_on = spine.get("always_on_pillars") or []
+            sources.append(src)
+            for ev in (spine.get("events") or []):
+                ev_id = ev.get("id") or ev.get("name")
+                if ev_id in seen_ids:
+                    continue
+                # Only include events whose window intersects the requested range
+                try:
+                    ev_start = _dt.date.fromisoformat(ev.get("start") or "")
+                    ev_end = _dt.date.fromisoformat(ev.get("end") or ev.get("public_peak") or "")
+                except Exception:
+                    # No date info — skip
+                    continue
+                if ev_end >= start_d and ev_start <= end_d:
+                    seen_ids.add(ev_id)
+                    combined_events.append(ev)
+        combined_events = [_enrich_event(e) for e in combined_events]
+        combined_events.sort(key=lambda e: e.get("start") or "")
+        counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
+        for e in combined_events:
+            counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
+        return jsonify({
+            "ok": True,
+            "brand_id": brand_id,
+            "start": start_str,
+            "end": end_str,
+            "years": years,
+            "always_on_pillars": always_on,
+            "events": combined_events,
+            "tier_counts": counts,
+            "source": sources[0] if sources else None,
+            "sources": sources,
+            "event_count": len(combined_events),
+            "shopping_moment_count": sum(1 for e in combined_events if e.get("shopping_moment")),
+            "mode": "range",
+        }), 200
+
+    # Single-year mode (legacy)
     if not year_str:
         year_str = str(_dt.date.today().year)
     try:
@@ -43634,6 +43775,110 @@ def planning_timeline(brand_id):
         "source": source,
         "event_count": len(events),
         "shopping_moment_count": sum(1 for e in events if e.get("shopping_moment")),
+        "mode": "year",
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/candidates", methods=["GET"])
+def planning_candidates(brand_id):
+    """GET /api/planning/<brand>/candidates?start=…&end=…
+
+    Returns the broader intelligence universe — evidence-backed, scored,
+    NOT on the approved spine. Christelle decides what enters the spine.
+
+    Sourced from data/brand-planning/<brand>-candidates-YYYY-YYYY.json when
+    present; otherwise 404.
+
+    Each candidate carries:
+      id, name, category, start, end, public_peak, geography,
+      source, source_date, relevance_to_swing_shack, opportunity,
+      suggested_tier, confidence, recommended_lead_time_weeks,
+      why_it_matters, added_to_spine, spine_event_id?, verify_before_spine?
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    start_str = (request.args.get("start") or "").strip()
+    end_str = (request.args.get("end") or "").strip()
+
+    # Find candidate files for this brand
+    planning = _planning_dir()
+    candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+    if not candidates_files:
+        return jsonify({
+            "ok": False, "brand_id": brand_id, "error": "no candidates file for this brand",
+            "expected": f"data/brand-planning/{brand_id}-candidates-YYYY[-YYYY].json",
+        }), 404
+
+    # Optional date filtering
+    start_d = None
+    end_d = None
+    if start_str:
+        try:
+            start_d = _dt.date.fromisoformat(start_str)
+        except Exception:
+            return jsonify({"ok": False, "error": f"invalid start: {start_str}"}), 400
+    if end_str:
+        try:
+            end_d = _dt.date.fromisoformat(end_str)
+        except Exception:
+            return jsonify({"ok": False, "error": f"invalid end: {end_str}"}), 400
+
+    all_candidates = []
+    schema = None
+    rules = None
+    sources = []
+    for cf in candidates_files:
+        try:
+            with open(cf, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except Exception:
+            continue
+        if not schema:
+            schema = payload.get("schema")
+            rules = payload.get("rules")
+        sources.append(cf)
+        for c in (payload.get("candidates") or []):
+            all_candidates.append(c)
+
+    # Date-filter
+    if start_d or end_d:
+        filtered = []
+        for c in all_candidates:
+            try:
+                c_start = _dt.date.fromisoformat(c.get("start") or "")
+                c_end = _dt.date.fromisoformat(c.get("end") or c.get("public_peak") or c.get("start") or "")
+            except Exception:
+                continue
+            if start_d and c_end < start_d:
+                continue
+            if end_d and c_start > end_d:
+                continue
+            filtered.append(c)
+        all_candidates = filtered
+
+    # Score tiers by confidence
+    confidence_count = {"high": 0, "medium": 0, "low": 0}
+    for c in all_candidates:
+        conf = c.get("confidence")
+        if conf in confidence_count:
+            confidence_count[conf] += 1
+    spine_added = sum(1 for c in all_candidates if c.get("added_to_spine"))
+
+    # Sort by public_peak / start date
+    all_candidates.sort(key=lambda c: (c.get("public_peak") or c.get("start") or ""))
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "candidates": all_candidates,
+        "candidate_count": len(all_candidates),
+        "spine_added_count": spine_added,
+        "confidence_breakdown": confidence_count,
+        "rules": rules,
+        "schema": schema,
+        "sources": sources,
+        "start": start_str or None,
+        "end": end_str or None,
     }), 200
 
 
