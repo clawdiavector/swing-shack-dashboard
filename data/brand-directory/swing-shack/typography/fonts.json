@@ -28,6 +28,36 @@
       "weight": 200,
       "style": "italic",
       "size_px": 63
+    },
+    "h1": {
+      "file": "typography/fonts/Knewave-Regular.ttf",
+      "weight": 400,
+      "style": "normal",
+      "size_px": 129
+    },
+    "h2": {
+      "file": "typography/fonts/Montserrat-ThinItalic.ttf",
+      "weight": 100,
+      "style": "italic",
+      "size_px": 59
+    },
+    "caption": {
+      "file": "typography/fonts/Montserrat-ThinItalic.ttf",
+      "weight": 100,
+      "style": "italic",
+      "size_px": 31
+    },
+    "body": {
+      "file": "typography/fonts/Inter-Regular.ttf",
+      "weight": 400,
+      "style": "normal",
+      "size_px": 63
+    },
+    "cta": {
+      "file": "typography/fonts/Inter-Bold.ttf",
+      "weight": 700,
+      "style": "normal",
+      "size_px": 86
     }
   },
   "scale": [

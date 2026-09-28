@@ -42,6 +42,8 @@
     "ss_purple": "#8F4BFA",
     "ss_charcoal": "#3A3A3A",
     "ss_near_black": "#0C0A0B",
+    "ss_orange_hot": "#E95105",
+    "ss_lime": "#70FF0F",
     "white": "#FFFFFF"
   },
   "tokens_source": "measured 2026-09-27 from Content Bank Services/cf1–cf6 headline fills",

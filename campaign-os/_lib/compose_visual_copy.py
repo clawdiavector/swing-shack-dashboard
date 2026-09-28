@@ -147,6 +147,9 @@ def visual_copy_for_archetype(
     if not cta:
         cta = _service_cta(brand_id=brand_id, moment_id=mid, caption=caption)
 
+    subject = str(sidecar.get("compose_subject") or "").strip()
+    expiry = str(sidecar.get("compose_expiry") or "").strip()
+
     ctx = build_image_draft_context(brand_id, mid)
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
@@ -166,4 +169,8 @@ def visual_copy_for_archetype(
         accent = opts[zlib.crc32(headline.upper().encode("utf-8")) % len(opts)]
     if accent:
         base["accent"] = accent
+    if subject:
+        base["offer_subject"] = subject
+    if expiry:
+        base["offer_expiry"] = expiry
     return {k: str(v) for k, v in base.items()}
