@@ -44141,27 +44141,68 @@ def planning_timeline(brand_id):
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
             for e in ordered:
                 counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
-            return jsonify({
-                "ok": True,
-                "brand_id": brand_id,
-                "start": start_str,
-                "end": end_str,
-                "years": years,
-                "always_on_pillars": seed_always_on,
-                "events": ordered,
-                "tier_counts": counts,
-                "source": sources[0] if sources else None,
-                "sources": sources,
-                "canonical_store": {
-                    "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
-                    "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl (via marketing_calendar.list_records)",
-                    "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
-                },
-                "event_count": len(ordered),
-                "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
-                "mode": "range",
-                "mc_read_error": mc_read_error,
-            }), 200
+            try:
+                import json as _json
+                payload = {
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "start": start_str,
+                    "end": end_str,
+                    "years": years,
+                    "always_on_pillars": seed_always_on,
+                    "events": ordered,
+                    "tier_counts": counts,
+                    "source": sources[0] if sources else None,
+                    "sources": sources,
+                    "canonical_store": {
+                        "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
+                        "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl (via marketing_calendar.list_records)",
+                        "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
+                    },
+                    "event_count": len(ordered),
+                    "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
+                    "mode": "range",
+                    "mc_read_error": mc_read_error,
+                }
+                # default=str ensures any leftover None or unknown types
+                # become readable strings instead of crashing JSON encoder.
+                body = _json.dumps(payload, default=str, ensure_ascii=False)
+                from flask import Response as _Resp
+                return _Resp(body, status=200, mimetype="application/json")
+            except Exception as inner_serial_err:
+                # If serialization still fails, return a degraded payload
+                # so the SPA at least renders the spine-only view.
+                import sys as _sys_se
+                import traceback as _tb_se
+                tb_se = _tb_se.format_exc()
+                print(
+                    f"[v23-timeline] serialize EXC: {type(inner_serial_err).__name__}: {inner_serial_err}\n{tb_se[-2000:]}",
+                    file=_sys_se.stderr, flush=True,
+                )
+                # Degraded payload — events list with only bare fields
+                # (no phases, no complex operators).
+                events_bare = []
+                for e in ordered:
+                    events_bare.append({
+                        "event_key": str(e.get("event_key") or ""),
+                        "title": str(e.get("title") or e.get("name") or ""),
+                        "tier": str(e.get("tier") or ""),
+                        "start": str(e.get("start") or e.get("event_start") or ""),
+                        "end": str(e.get("end") or e.get("event_end") or e.get("public_peak") or ""),
+                        "phases": [],
+                        "planning_state": "serialize_fallback",
+                    })
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "start": start_str,
+                    "end": end_str,
+                    "events": events_bare,
+                    "event_count": len(events_bare),
+                    "mode": "range",
+                    "serialize_warning": f"{type(inner_serial_err).__name__}: {inner_serial_err}",
+                    "mc_read_error": mc_read_error,
+                }), 200
         except Exception as outer_err:
             tb = _tb_main.format_exc()
             print(
