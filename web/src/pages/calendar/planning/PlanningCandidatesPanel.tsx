@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronUp, ExternalLink, Loader2 } from 'lucide-react'
+import { PlanningContextModal } from './PlanningContextModal'
 
 type Candidate = {
   id?: string
@@ -109,6 +110,10 @@ export function PlanningCandidatesPanel({
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [approvalStates, setApprovalStates] = useState<Record<string, ApprovalState>>({})
+  // Calendar V2.3 — Slice 3 OPEN PLANNING modal state. When set, the
+  // modal renders with full planning context for the candidate and
+  // reuses an existing brief instead of creating a new one.
+  const [openPlanningFor, setOpenPlanningFor] = useState<{ brandId: string; candidateId: string } | null>(null)
 
   const sorted = useMemo(() => {
     return [...candidates].sort((a, b) => {
@@ -203,14 +208,14 @@ export function PlanningCandidatesPanel({
   }
 
   const openPlanning = (candidate: Candidate) => {
-    // Slice 3 directive: do NOT create a second planning system. Opens
-    // /app/calendar/lanes scoped to the candidate (filter by name in the
-    // timeline).
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams()
-      params.set('tab', 'timeline')
-      params.set('focus_event', candidate.id || '')
-      window.location.href = `/app/calendar/lanes?${params.toString()}`
+    // Slice 3 directive: do NOT create a second planning system. The
+    // modal surfaces the planning context for the candidate (event,
+    // brand, dates, tier, runway, North Star, ops goals, lanes,
+    // evidence, planning_state, existing_brief). The OPEN EXISTING BRIEF
+    // action inside the modal navigates to the existing Brief system —
+    // never creates a duplicate.
+    if (candidate.id) {
+      setOpenPlanningFor({ brandId, candidateId: candidate.id })
     }
   }
 
@@ -515,6 +520,20 @@ export function PlanningCandidatesPanel({
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {/* Calendar V2.3 — Slice 3 OPEN PLANNING modal. Renders full planning
+          context (event, brand, dates, tier, runway, North Star, ops goals,
+          lanes, evidence, planning_state, existing_brief reuse). The modal
+          uses existing /api/planning/<brand>/candidates/<id>/planning-context
+          which reads the existing campaign_brief storage for reuse. NEVER
+          creates a duplicate brief. */}
+      {openPlanningFor ? (
+        <PlanningContextModal
+          brandId={openPlanningFor.brandId}
+          candidateId={openPlanningFor.candidateId}
+          onClose={() => setOpenPlanningFor(null)}
+        />
       ) : null}
     </section>
   )

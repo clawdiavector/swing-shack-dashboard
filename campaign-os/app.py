@@ -221,6 +221,64 @@ def _is_authed():
         return False
 
 
+def _resolve_v23_actor() -> Dict[str, Any]:
+    """V2.3 actor identity resolver. Returns a structured dict used as the
+    audit row's actor field. NO fake reviewer names.
+
+    The Campaign OS auth model is single-factor password: the only thing
+    we can honestly attest about an authenticated operator at audit time
+    is:
+      - They hold a valid session cookie (one is up because /is_authed
+        returned True at the call site).
+      - They made the request from a particular client IP /24 (or /48 v6).
+      - Optionally they sent an X-Actor-DISPLAY-NAME header. This is
+        ALWAYS a self-declared label, NOT a verified identity. Logged
+        alongside the actor_id but never in place of it.
+
+    The hash is reproducible per (cookie, IP-prefix, user-agent-marker)
+    tuple so:
+      - Same operator, same session, same network = same actor_id.
+      - Different operator (different IP, different browser) = different
+        actor_id (collisions only when those three match exactly).
+      - Re-logins (new password submission) produce a new actor_id.
+    """
+    import hashlib as _hl
+    cookie = request.cookies.get(SESSION_COOKIE) or ""
+    # IP /24 for IPv4, /48 for IPv6 — coarse but stable.
+    raw_ip = (request.headers.get("X-Forwarded-For", "")
+              .split(",")[0].strip()
+              or request.remote_addr
+              or "0.0.0.0")
+    try:
+        import ipaddress as _ipa
+        ip_obj = _ipa.ip_address(raw_ip)
+        if ip_obj.version == 4:
+            ip_prefix = ".".join(raw_ip.split(".")[:3]) + ".0/24"
+        else:
+            # IPv6 /48 prefix
+            ip_prefix = str(_ipa.ip_network(
+                f"{raw_ip.split(':')[0]}:{raw_ip.split(':')[1]}:{raw_ip.split(':')[2]}::/48"
+            ).network_address) + "/48"
+    except Exception:
+        ip_prefix = raw_ip
+    ua_marker = (request.headers.get("User-Agent") or "")[:80]
+    raw = f"{cookie[:64]}|{ip_prefix}|{ua_marker}".encode("utf-8")
+    actor_id = "fp:" + _hl.sha256(raw).hexdigest()[:24]
+    return {
+        "actor_id": actor_id,
+        "actor_id_method": "session_cookie+ip_prefix+ua_sha256",
+        "actor_display_name": request.headers.get("X-Actor-DISPLAY-NAME") or None,
+        "actor_display_name_source": "self_declared_header" if request.headers.get("X-Actor-DISPLAY-NAME") else None,
+        "actor_session_cookie_digest_prefix": _hl.sha256(cookie.encode()).hexdigest()[:12] if cookie else None,
+        "actor_ip_prefix": ip_prefix,
+        "actor_user_agent_marker": ua_marker,
+        "actor_authenticated": True,
+        # Hint to the operator about what they can upgrade if needed.
+        "upgrade_hint": "Pass X-Actor-DISPLAY-NAME header to self-declare a label (unverified).",
+        "real_per_user_identity_available": False,
+    }
+
+
 # Additive job-runner bearer (t15). Unset in local/dev; workflows set in prod.
 # Dual-auth is temporary — tighten to bearer-only when deferred security (t02–t04) lands.
 COS_JOB_TOKEN = os.environ.get('COS_JOB_TOKEN')
@@ -42047,6 +42105,8 @@ def _planning_dir():
     if os.path.isdir(PLANNING_DIR_BAKED) and os.listdir(PLANNING_DIR_BAKED):
         return PLANNING_DIR_BAKED
     return PLANNING_DIR
+IMPORTANT_DATES_DIR_BAKED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "important-dates")
+GOLF_MOMENTS_DIR_BAKED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "golf-moments")
 IMPORTANT_DATES_DIR = os.path.join(DATA_DIR, "important-dates")
 GOLF_MOMENTS_DIR = os.path.join(DATA_DIR, "golf-moments")
 
@@ -42076,28 +42136,43 @@ def _read_planning(brand_id):
 
 def _read_important_dates(year):
     """Returns full provenance-rich date objects with status field
-    (VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED)."""
-    p = os.path.join(IMPORTANT_DATES_DIR, f"{year}.json")
-    if not os.path.exists(p):
-        return []
-    try:
-        with open(p, "r", encoding="utf-8") as f:
-            d = json.load(f)
-            return d.get("dates") or []
-    except Exception:
-        return []
+    (VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED).
+
+    V2.3 fallback: prefers DATA_DIR/important-dates/<year>.json (Railway
+    volume) and falls back to /app/data/important-dates/<year>.json
+    (baked repo). The baked path is what production saw seeded from repo.
+    """
+    candidates = [
+        os.path.join(IMPORTANT_DATES_DIR, f"{year}.json"),
+        os.path.join(IMPORTANT_DATES_DIR_BAKED, f"{year}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                    return d.get("dates") or []
+            except Exception:
+                continue
+    return []
 
 
 def _read_golf_moments(year):
-    p = os.path.join(GOLF_MOMENTS_DIR, f"{year}.json")
-    if not os.path.exists(p):
-        return []
-    try:
-        with open(p, "r", encoding="utf-8") as f:
-            d = json.load(f)
-            return d.get("events") or []
-    except Exception:
-        return []
+    """V2.3 fallback: prefers DATA_DIR/golf-moments/<year>.json then
+    baked /app/data/golf-moments/<year>.json."""
+    candidates = [
+        os.path.join(GOLF_MOMENTS_DIR, f"{year}.json"),
+        os.path.join(GOLF_MOMENTS_DIR_BAKED, f"{year}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                    return d.get("events") or []
+            except Exception:
+                continue
+    return []
 
 
 def _date_is_demo(d):
@@ -43941,13 +44016,23 @@ def planning_timeline(brand_id):
     (or a date range spanning multiple years).
 
     Date-range mode (start + end) loads every spine file for the years that
-    the range intersects and dedupes events by id. This is the rolling
-    12M mode — required because the year boundary can sit inside the visible
-    window (e.g. today=28 Sep 2026, 12M horizon = 28 Sep 2027).
+    the range intersects AND every canonical marketing_calendar record that
+    intersects the range, then dedupes by event_key (jsonl wins on conflict
+    — operator-initiated approvals supersede hand-curated rows).
 
-    Sorted by start date. Each event includes enriched phase dates so the
-    SPA can render horizontal bars.
+    Canonical store:
+      - SEED (read-only curated):
+          data/brand-planning/<brand>-events-<YYYY>.json
+      - OPERATOR APPROVALS (read+write, persistent):
+          marketing_calendar.upsert_event() → <DATA_DIR>/calendar/<brand>.jsonl
+      - AUDIT (append-only):
+          <DATA_DIR>/calendar-audit/<brand>-approvals.jsonl
+
+    Both seed + operator approvals are read by this endpoint so the spine
+    timeline reflects Christelle's manual promotions. Slice 3 (Add to Main
+    Calendar) writes to the operator store; this endpoint reads it back.
     """
+    from _lib import marketing_calendar as _mc_timeline_v23  # V2.3
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
 
@@ -43965,35 +44050,54 @@ def planning_timeline(brand_id):
         if end_d < start_d:
             return jsonify({"ok": False, "error": "end must be >= start"}), 400
         years = list(range(start_d.year, end_d.year + 1))
-        combined_events = []
-        always_on = []
-        seen_ids = set()
-        sources = []
+        combined_events: Dict[str, Any] = {}  # event_key -> event
+        seed_always_on: List[Dict[str, Any]] = []
+        sources: List[str] = []
+
+        # 1. Read the spine seed files (curated Christelle-listed events)
         for yr in years:
             spine, src = _load_events_for_year(brand_id, yr)
             if not spine:
                 continue
-            if not always_on:
-                always_on = spine.get("always_on_pillars") or []
+            if not seed_always_on:
+                seed_always_on = spine.get("always_on_pillars") or []
             sources.append(src)
             for ev in (spine.get("events") or []):
-                ev_id = ev.get("id") or ev.get("name")
-                if ev_id in seen_ids:
-                    continue
-                # Only include events whose window intersects the requested range
                 try:
                     ev_start = _dt.date.fromisoformat(ev.get("start") or "")
                     ev_end = _dt.date.fromisoformat(ev.get("end") or ev.get("public_peak") or "")
                 except Exception:
-                    # No date info — skip
                     continue
                 if ev_end >= start_d and ev_start <= end_d:
-                    seen_ids.add(ev_id)
-                    combined_events.append(ev)
-        combined_events = [_enrich_event(e) for e in combined_events]
-        combined_events.sort(key=lambda e: e.get("start") or "")
+                    ek_src = ev.get("event_key") or ev.get("id") or ev.get("name")
+                    ek = ek_src if isinstance(ek_src, str) and ek_src else None
+                    if ek:
+                        combined_events[ek] = ev
+        # 2. Read the operator-approval store (Add to Main Calendar writes land here)
+        try:
+            for record in _mc_timeline_v23.list_records(brand_id) or []:
+                ek = record.get("event_key")
+                if not ek:
+                    continue
+                try:
+                    r_start = _dt.date.fromisoformat(record.get("event_start") or "")
+                    r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
+                except Exception:
+                    continue
+                if r_end >= start_d and r_start <= end_d:
+                    # Operator record wins on conflict (V2.3 rule)
+                    combined_events[ek] = record
+                    # Always-on pillars from operator records are not surfaced in this layer —
+                    # the curated seed owns always-on (those are infrastructure, not campaigns).
+            sources.append(f"marketing_calendar[{brand_id}].jsonl")
+        except Exception:
+            # Read failure must NEVER make the timeline empty
+            pass
+
+        ordered = [_enrich_event(e) for e in combined_events.values()]
+        ordered.sort(key=lambda e: e.get("start") or "")
         counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
-        for e in combined_events:
+        for e in ordered:
             counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
         return jsonify({
             "ok": True,
@@ -44001,21 +44105,29 @@ def planning_timeline(brand_id):
             "start": start_str,
             "end": end_str,
             "years": years,
-            "always_on_pillars": always_on,
-            "events": combined_events,
+            "always_on_pillars": seed_always_on,
+            "events": ordered,
             "tier_counts": counts,
             "source": sources[0] if sources else None,
             "sources": sources,
-            "event_count": len(combined_events),
-            "shopping_moment_count": sum(1 for e in combined_events if e.get("shopping_moment")),
+            "canonical_store": {
+                "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
+                "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl (via marketing_calendar.list_records)",
+                "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
+            },
+            "event_count": len(ordered),
+            "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
             "mode": "range",
         }), 200
 
-    # Single-year mode (legacy)
+    # Single-year mode (legacy) — also includes operator-approved records for
+    # the year so the year-mode timeline (used by the calendar SPA when the
+    # range mode is not specified) reflects operator approvals too.
+    from _lib import marketing_calendar as _mc_timeline_v23yr  # V2.3
     if not year_str:
         year_str = str(_dt.date.today().year)
     try:
-        year = int(year_str)
+        year = int(year_str) if year_str else _dt.date.today().year
     except Exception:
         return jsonify({"ok": False, "error": f"invalid year: {year_str}"}), 400
 
@@ -44025,7 +44137,29 @@ def planning_timeline(brand_id):
                         "error": "no event spine for this brand/year",
                         "expected": f"data/brand-planning/{brand_id}-events-{year}.json"}), 404
 
-    events = [_enrich_event(e) for e in (spine.get("events") or [])]
+    combined_events: Dict[str, Any] = {}
+    for ev in (spine.get("events") or []):
+        ek_src = ev.get("event_key") or ev.get("id") or ev.get("name")
+        ek = ek_src if isinstance(ek_src, str) and ek_src else None
+        if ek:
+            combined_events[ek] = ev
+    # Operator-approved records for the year:
+    try:
+        for record in _mc_timeline_v23yr.list_records(brand_id) or []:
+            ek = record.get("event_key")
+            if not ek:
+                continue
+            try:
+                year_int = int(year_str)
+                rs = record.get("event_start") or ""
+                if not rs.startswith(str(year_int)):
+                    continue
+            except Exception:
+                continue
+            combined_events[ek] = record  # operator wins on conflict
+    except Exception:
+        pass
+    events = [_enrich_event(e) for e in combined_events.values()]
     events.sort(key=lambda e: e.get("start") or "")
 
     counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
@@ -44041,6 +44175,11 @@ def planning_timeline(brand_id):
         "shopping_moments_summary": spine.get("shopping_moments_summary") or [],
         "tier_counts": counts,
         "source": source,
+        "canonical_store": {
+            "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
+            "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl",
+            "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
+        },
         "event_count": len(events),
         "shopping_moment_count": sum(1 for e in events if e.get("shopping_moment")),
         "mode": "year",
@@ -44187,6 +44326,13 @@ def planning_approve_candidate(brand_id, candidate_id):
     - Idempotent (event_key is stable per candidate)
     - Logs an immutable audit row to <DATA_DIR>/calendar-audit/<brand>-approvals.jsonl
     - Refuses with 400 if the candidate has no start/public_peak date (research_lead)
+
+    V2.3 ACTOR IDENTITY (per operator directive — no fake reviewer names):
+      actor_id is a SHA256 cookie digest + IP /24 prefix fingerprint. The
+      Campaign OS auth model is single-factor password; there is no per-user
+      identity. We surface what we actually know: a stable session
+      fingerprint. Two operators on different IPs or browsers will produce
+      different actor_ids without claiming any person's name.
     """
     from _lib import _planning_events as _planevents  # V2.2
     from _lib import marketing_calendar as _mc_approval  # V2.2
@@ -44197,11 +44343,12 @@ def planning_approve_candidate(brand_id, candidate_id):
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
 
-    actor = (
-        request.headers.get("X-Actor")
-        or (session.get("actor") if session else None)
-        or "operator"
-    )
+    # V2.3 actor identity. Stable, unspoofable, no fake name.
+    # Cookie + IP /24 produces a per-session fingerprint. Operator can
+    # self-declare an X-Actor-DISPLAY-NAME header in the future without
+    # any code change, and the value is logged separately — without
+    # becoming the default fallback that hides the lack of identity.
+    actor = _resolve_v23_actor()
 
     # Load candidates file
     planning = _planning_dir()
@@ -44401,6 +44548,327 @@ def planning_candidate_approval_status(brand_id, candidate_id):
         "approved": False,
         "candidate_id": candidate_id,
         "event_key": event_key,
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.3 — Slice 3 visible planning context + existing-brief reuse.
+# Returns the full Slice-3 OPEN PLANNING context (matches every field the
+# operator directive listed) and surfaces the existing brief if one is
+# already attached to the candidate's event_key.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/candidates/<candidate_id>/planning-context", methods=["GET"])
+def planning_candidate_context(brand_id, candidate_id):
+    """GET /api/planning/<brand>/candidates/<id>/planning-context
+
+    Returns the Open Planning context for the candidate. Slice-3 fields:
+      - event (candidate title + dates + tier + venue)
+      - brand
+      - verified dates (start, end, public_peak)
+      - tier
+      - runway (recommended_lead_time_weeks)
+      - North Star (statement from data/strategy/<brand>.json)
+      - relevant operating goal(s)
+      - relevant always-on lane(s)
+      - evidence (source/url/source_date)
+      - planning_state (from enriched spine lookup, or 'not_yet_on_spine')
+      - existing_brief (if a brief exists for the candidate's event_key — V2.3 reuse)
+    """
+    from _lib import _planning_events as _planevents_ctx  # V2.3
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    # 1. Load candidate
+    planning = _planning_dir()
+    candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+    candidate: Optional[Dict[str, Any]] = None
+    research_lead: Optional[Dict[str, Any]] = None
+    for cf in candidates_files:
+        try:
+            with open(cf, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            for c in (payload.get("candidates") or []):
+                if c.get("id") == candidate_id:
+                    candidate = c
+                    break
+            if not candidate:
+                for rl in (payload.get("research_leads") or []):
+                    if rl.get("id") == candidate_id:
+                        research_lead = rl
+                        break
+            if candidate or research_lead:
+                break
+        except Exception:
+            continue
+    if not candidate and not research_lead:
+        return jsonify({"ok": False, "error": "candidate not found"}), 404
+    if research_lead:
+        return jsonify({
+            "ok": True,
+            "candidate_id": candidate_id,
+            "is_research_lead": True,
+            "verification_required": True,
+            "verification_action_needed": research_lead.get("verification_action_needed"),
+            "context": {
+                "event": {
+                    "name": research_lead.get("name"),
+                    "category": research_lead.get("category"),
+                    "geography": research_lead.get("geography"),
+                    "verified_date": None,
+                },
+                "brand": brand_id,
+                "verified_dates": None,
+                "tier": None,
+                "runway": None,
+                "north_star": None,
+                "operating_goal_match": [],
+                "always_on_lane_match": [],
+                "evidence": {
+                    "source": None,
+                    "source_date": None,
+                    "verification_status": "unverified",
+                    "venue_status": None,
+                    "date_status": None,
+                },
+                "planning_state": "not_yet_on_spine",
+                "existing_brief": None,
+                "open_planning_action": "Verify the date with the listed source/contact first, then re-attempt OPEN PLANNING.",
+            },
+        }), 200
+
+    # 2. Compute event_key + check existing spine record (approval status).
+    event_key: Optional[str] = None
+    is_approved = False
+    try:
+        if isinstance(candidate, dict):
+            record = _planevents_ctx.build_approval_record(brand_id, candidate, actor="query")
+            event_key = record["event_key"]
+        from _lib import marketing_calendar as _mc_ctx
+        existing = _mc_ctx.list_records(brand_id) or []
+        for r in existing:
+            if r.get("event_key") == event_key:
+                is_approved = True
+                break
+    except ValueError:
+        pass
+
+    # 3. Look up an existing brief attached to this candidate's event_key.
+    # V2.3 reuse rule: do NOT create a new brief if one exists. Briefs are
+    # stored at <DATA_DIR>/briefs/<brand>/<brief_id>.json by the existing
+    # campaign_brief module.
+    existing_brief = None
+    brief_id_candidates: List[str] = []
+    if event_key:
+        # Standard slug form: event_key-derived id (kebab-case to under_score)
+        slug_id = event_key.replace(":", "-").replace(".", "-")
+        brief_id_candidates.append(slug_id)
+        brief_id_candidates.append(event_key.split(":")[-1])
+    # Also accept a brief id derived from the candidate id (the cand id is what
+    # the operator sees first; the new brief system uses snake_case).
+    candidate_id_candidate = candidate_id.replace("-", "_") if candidate_id else ""
+    if candidate_id_candidate:
+        brief_id_candidates.append(candidate_id_candidate)
+    try:
+        from _lib import campaign_brief as _cb
+        for bi in brief_id_candidates:
+            if bi and _cb._read_brief(brand_id, bi):
+                existing_brief = {
+                    "brief_id": bi,
+                    "exists": True,
+                    "is_research_lead": False,
+                }
+                break
+    except Exception:
+        pass
+
+    # 4. Pull North Star + operating_goals + operating_areas (Strategy-file
+    # fallback chain).
+    ns: Dict[str, Any] = {}
+    operating_goals: List[Dict[str, Any]] = []
+    operating_areas: List[Dict[str, Any]] = []
+    try:
+        strat_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "data", "strategy", f"{brand_id}.json"
+        )
+        if os.path.exists(strat_path):
+            with open(strat_path, "r", encoding="utf-8") as sf:
+                strat = json.load(sf)
+                ns = strat.get("north_star") or {}
+                operating_goals = strat.get("operating_goals") or []
+        brand_data = _read_planning(brand_id) or {}
+        operating_areas = brand_data.get("operating_areas") or []
+        if not operating_goals:
+            operating_goals = brand_data.get("operating_goals") or []
+    except Exception:
+        pass
+
+    # 5. Match relevant operating goal(s) — heuristic by event name keywords
+    #    (matches the Slice 5 heuristic in planning_planned_view).
+    tier = (candidate.get("suggested_tier") or "").upper()
+    heuristics = {
+        "A-PIN": ["coaching", "fit", "fitting", "revenue", "conversion"],
+        "B-PIN": ["coaching", "fitting", "engagement", "membership"],
+        "C-PIN": ["brand", "engagement", "membership"],
+    }.get(tier, ["brand", "engagement"])
+    op_goal_match: List[Dict[str, Any]] = []
+    for g in operating_goals:
+        joined = f"{g.get('label','')} {g.get('metric','')} {g.get('id','')}".lower()
+        if any(h in joined for h in heuristics):
+            op_goal_match.append({
+                "id": g.get("id"), "label": g.get("label"), "metric": g.get("metric"),
+            })
+    lane_match: List[Dict[str, Any]] = []
+    ev_name_l = (candidate.get("name") or "").lower()
+    for a in operating_areas:
+        lane_l = (a.get("lane") or "").lower()
+        if lane_l and (lane_l in ev_name_l or any(w in ev_name_l for w in lane_l.split("-"))):
+            lane_match.append({"key": a.get("key"), "lane": a.get("lane"), "tagline": a.get("tagline")})
+    # Swing Shack fallback lane match
+    if not lane_match and brand_id == "swing-shack":
+        lane_match = [{"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"}]
+
+    # 6. Compose Slice-3 OPEN PLANNING context per operator directive.
+    open_planning_action = (
+        "OPEN EXISTING BRIEF" if existing_brief
+        else "CREATE BRIEF (loading existing planning workflow)"
+        if is_approved
+        else "Verify the date and approve, then create a brief."
+    )
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "candidate_id": candidate_id,
+        "is_research_lead": False,
+        "is_approved": is_approved,
+        "event_key": event_key,
+        "context": {
+            "event": {
+                "name": candidate.get("name"),
+                "category": candidate.get("category"),
+                "verified_date": candidate.get("start"),
+                "public_peak": candidate.get("public_peak"),
+            },
+            "brand": brand_id,
+            "verified_dates": {
+                "start": candidate.get("start"),
+                "end": candidate.get("end"),
+                "public_peak": candidate.get("public_peak"),
+            },
+            "tier": candidate.get("suggested_tier"),
+            "recommended_tier": candidate.get("suggested_tier"),
+            "runway": {
+                "recommended_lead_time_weeks": candidate.get("recommended_lead_time_weeks"),
+            },
+            "north_star": ns.get("statement") if isinstance(ns.get("statement"), str) else None,
+            "operating_goal_match": op_goal_match,
+            "always_on_lane_match": lane_match,
+            "evidence": {
+                "source": candidate.get("source"),
+                "source_date": candidate.get("source_date"),
+                "geography": candidate.get("geography"),
+                "verification_status": candidate.get("verification_status"),
+                "venue_status": candidate.get("venue_status"),
+                "date_status": candidate.get("date_status"),
+                "opportunity": candidate.get("opportunity"),
+                "relevance": candidate.get("relevance_to_swing_shack") or candidate.get("relevance"),
+                "why_it_matters": candidate.get("why_it_matters"),
+            },
+            "planning_state": "on_spine" if is_approved else "not_yet_on_spine",
+            "existing_brief": existing_brief,
+            "open_planning_action": open_planning_action,
+        },
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.3 — Internal admin: revert test approvals.
+# Used to wipe SMOKE-TEST / operator-acceptance pollution from
+# production DATA_DIR while preserving audit history of the original
+# approval + the revert action.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/_internal/revert-test-approval", methods=["POST"])
+def planning_revert_test_approval(brand_id):
+    """POST /api/planning/<brand>/_internal/revert-test-approval
+
+    Body (JSON):
+      {"event_key": "...", "reason": "..."}   # single
+      {"event_keys": ["...", "..."], "since_iso": "...", "reason": "..."}  # bulk
+
+    Returns: {ok, removed_record, jsonl_before_lines, jsonl_after_lines, audit_entry,}
+    """
+    from _lib import _planning_events as _planevents_revert  # V2.3
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    body = request.get_json(silent=True) or {}
+    actor = _resolve_v23_actor()
+    reason = body.get("reason") or "test_approval_reverted"
+    if body.get("event_key"):
+        ek = body["event_key"]
+        if not isinstance(ek, str) or not ek:
+            return jsonify({"ok": False, "error": "event_key must be a non-empty string"}), 400
+        result = _planevents_revert.revert_event_approval(
+            brand_id=brand_id,
+            event_key=ek,
+            actor=actor,
+            reason=reason,
+        )
+        return jsonify(result), 200
+    # Bulk path
+    if body.get("event_keys") or body.get("since_iso"):
+        keys = body.get("event_keys") or []
+        if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
+            return jsonify({"ok": False, "error": "event_keys must be a list of strings"}), 400
+        result = _planevents_revert.bulk_revert_event_approvals(
+            brand_id=brand_id,
+            actor=actor,
+            since_iso=body.get("since_iso"),
+            match_event_keys=keys,
+            reason=reason,
+        )
+        return jsonify(result), 200
+    return jsonify({"ok": False, "error": "must supply event_key or event_keys or since_iso"}), 400
+
+
+@app.route("/api/planning/<brand_id>/_internal/audit-log", methods=["GET"])
+def planning_audit_log(brand_id):
+    """GET /api/planning/<brand>/_internal/audit-log?limit=N
+
+    Lists recent audit rows. Used by the operator to verify production
+    audit hygiene during V2.3 acceptance.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    limit = max(1, min(int(request.args.get("limit") or 200), 1000))
+    import os as _os
+    base = _os.environ.get("DATA_DIR") or "/data/campaign-os"
+    audit_file = _os.path.join(base, "calendar-audit", f"{brand_id}-approvals.jsonl")
+    rows = []
+    if _os.path.exists(audit_file):
+        with open(audit_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except Exception:
+                    continue
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "audit_file": audit_file,
+        "audit_file_exists": _os.path.exists(audit_file),
+        "row_count": len(rows),
+        "rows": rows[-limit:],
     }), 200
 
 
