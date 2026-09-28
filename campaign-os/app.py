@@ -3544,8 +3544,15 @@ def calendar_candidates_post():
     reminder / watchlist record. Brand isolation enforced.
 
     Reject brand_id='takomo' (product_brand under stick, not operating brand).
+
+    V2.8 — V2.7 store-ownership routing: if the writer is an automation
+    process (hermes-scout, heidi-ingest, cos-reactive-watch), the record
+    goes to the INTAKE store, not the operator/Main Calendar store. The
+    status=approved gate at the operator-store write boundary stays
+    enforced, but automation intake always succeeds at 2xx.
     """
     try:
+        from _lib import _calendar_v27_intake as _v27
         from _lib.marketing_calendar import add_candidate, VALID_RECORD_TYPES, VALID_STATUSES
         body = request.get_json(force=True, silent=True) or {}
         brand_id = body.get("brand_id")
@@ -3577,10 +3584,34 @@ def calendar_candidates_post():
                 "error": f"status '{status}' invalid. Valid: {VALID_STATUSES}",
             }), 400
         record = {k: v for k, v in body.items() if k != "brand_id"}
+
+        # V2.8 — automation-writer routing. If the record is from a
+        # scout / heidi / reactive-watch writer, route to the INTAKE
+        # store (candidate / watchlist intelligence), not the operator
+        # store. The operator store stays untouched. The write-gate
+        # never fires for these writers because we don't call
+        # add_candidate at all.
+        if _v27.is_automation_writer(record):
+            intake_record = _v27.write_intake_record(brand_id, record)
+            return jsonify({
+                "ok": True,
+                "store": "intake",
+                "record": intake_record,
+            }), 201
+
+        # Otherwise (human, qualified, etc.) — operator-store write.
         persisted = add_candidate(brand_id, record, initial_status=status)
-        return jsonify({"ok": True, "record": persisted}), 200
+        return jsonify({"ok": True, "store": "operator", "record": persisted}), 200
     except ValueError as e:
         return jsonify({"ok": False, "error": str(e)}), 400
+    except PermissionError as e:
+        # V2.8 — the V2.6/V2.7 write-gate raises PermissionError when
+        # the caller is automation targeting the operator store. The
+        # candidates endpoint already routes automation to intake, so
+        # a PermissionError here means a NON-automation caller tried
+        # status=approved without the qualified headers. Return 422
+        # (Unprocessable Entity) — clear policy-block signal — not 500.
+        return jsonify({"ok": False, "error": str(e), "policy_block": True}), 422
     except Exception as e:
         _app_log.exception("calendar_candidates_post failed")
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500
@@ -3944,7 +3975,19 @@ def calendar_v2_upsert():
         return jsonify({"ok": False, "error": f"brand_id '{brand_id}' is not an operating brand"}), 400
     # Allow both {brand_id, record} and {brand_id, ...record_fields}
     record = body.get("record") if isinstance(body.get("record"), dict) else {k: v for k, v in body.items() if k != "brand_id"}
+    if not isinstance(record, dict):
+        record = {}
     from _lib.marketing_calendar import upsert_event
+    # V2.8 — automation writers go to intake, not operator.
+    from _lib import _calendar_v27_intake as _v27_upsert
+    if _v27_upsert.is_automation_writer(record):
+        intake_record = _v27_upsert.write_intake_record(brand_id, record)
+        return jsonify({
+            "ok": True,
+            "store": "intake",
+            "action": "intake_recorded",
+            "record": intake_record,
+        }), 201
     try:
         result = upsert_event(brand_id, record)
         return jsonify({
@@ -3957,6 +4000,9 @@ def calendar_v2_upsert():
             "record_revision": result["record"].get("revision"),
             "record_calendar_id": result["record"].get("calendar_id"),
         }), 200
+    except PermissionError as e:
+        # V2.8 — policy block, not internal error. 422.
+        return jsonify({"ok": False, "error": str(e), "policy_block": True}), 422
     except Exception as e:
         _app_log.exception("calendar_v2_upsert failed")
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 500

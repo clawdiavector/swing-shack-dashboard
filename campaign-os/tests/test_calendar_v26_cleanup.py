@@ -186,6 +186,11 @@ class V26CleanupTests(unittest.TestCase):
         os.environ.pop("DATA_DIR", None)
         shutil.rmtree(self.tmpdir, ignore_errors=True)
 
+    def _write_calendar(self, records):
+        """V2.8 — helper for tests that need to write a custom
+        operator-store corpus (e.g. duplicate event_key cases)."""
+        _write_calendar(self.tmpdir, "swing-shack", records)
+
     def test_classify_count(self):
         from collections import Counter
         cats = Counter(v26.classify_record(r) for r in self.records)
@@ -263,6 +268,122 @@ class V26CleanupTests(unittest.TestCase):
         status = v26.cleanup_status("swing-shack")
         self.assertTrue(status["is_clean"])
         self.assertEqual(status["operator_store_line_count"], 1)
+        # V2.8 — duplicate_event_key_count must be 0 after cleanup
+        self.assertEqual(status["duplicate_event_key_count"], 0)
+        self.assertEqual(status["unique_event_keys"], 1)
+
+    def test_v28_dedup_keeps_strongest_when_duplicates(self):
+        """V2.8 — when two KEEP records share an event_key, the
+        variant with the strongest human-action transition_reason
+        (Lodge/Book/L4 approve/approve) wins. The other is removed
+        with a v28_dedup audit row."""
+        # Set up: 2 KEEP records sharing the same event_key.
+        # Both are foreman with a human-action transition_reason,
+        # so both are KEEP. The weaker (Book) is at file position 0;
+        # the stronger (Lodge) is at file position 1.
+        self._write_calendar(
+            [
+                {
+                    "brand_id": "swing-shack",
+                    "event_key": "swing-shack:test-dup:2026",
+                    "title": "Test dup (Book)",
+                    "status": "approved",
+                    "event_start": "2026-12-31",
+                    "event_end": "2026-12-31",
+                    "source_origin": "internal_strategy",
+                    "created_by": "foreman",
+                    "transition_reason": "Book",
+                },
+                {
+                    "brand_id": "swing-shack",
+                    "event_key": "swing-shack:test-dup:2026",
+                    "title": "Test dup (Lodge)",
+                    "status": "approved",
+                    "event_start": "2026-12-31",
+                    "event_end": "2026-12-31",
+                    "source_origin": "internal_strategy",
+                    "created_by": "foreman",
+                    "transition_reason": "Lodge",
+                },
+            ]
+        )
+        dry = v26.dry_run_cleanup("swing-shack")
+        sig = dry["plan_signature"]
+        actor = {
+            "actor_id": "fp:test",
+            "actor_id_method": "test",
+            "actor_display_name": "v28-test",
+        }
+        result, code = v26.execute_cleanup(
+            "swing-shack", sig, actor, confirm=True,
+        )
+        self.assertEqual(code, 200)
+        self.assertTrue(result["ok"])
+        # Verify: only 1 record, the one with transition_reason=Lodge
+        post = v26.cleanup_status("swing-shack")
+        self.assertEqual(post["operator_store_line_count"], 1)
+        self.assertEqual(post["duplicate_event_key_count"], 0)
+        # Audit row was written for the dedup event. The stronger
+        # record (Lodge) is at file position 1, the weaker (Book)
+        # at position 0. The dedup kept the later / stronger one.
+        self.assertEqual(
+            result["actions"].get("v28_dedup_kept_later", 0), 1,
+            f"expected 1 v28_dedup_kept_later, got {result['actions']}"
+        )
+
+    def test_v28_dedup_handles_duplicate_kept_later(self):
+        """V2.8 — when the LATER record (file order) is the stronger
+        one, the earlier gets removed and the later survives."""
+        # Set up: 2 KEEP records sharing the same event_key.
+        # The earlier (Lodge) is stronger than the later (Book) — but
+        # both are KEEP and both score equally on human-action tr.
+        # In a true tie, the LATER record wins (its file position is
+        # newer). The dedup should remove the earlier (Lodge).
+        self._write_calendar(
+            [
+                {
+                    "brand_id": "swing-shack",
+                    "event_key": "swing-shack:test-dup2:2026",
+                    "title": "Test dup2 (Lodge) — earlier",
+                    "status": "approved",
+                    "event_start": "2026-12-31",
+                    "event_end": "2026-12-31",
+                    "source_origin": "internal_strategy",
+                    "created_by": "foreman",
+                    "transition_reason": "Lodge",
+                },
+                {
+                    "brand_id": "swing-shack",
+                    "event_key": "swing-shack:test-dup2:2026",
+                    "title": "Test dup2 (Lodge) — later",
+                    "status": "approved",
+                    "event_start": "2026-12-31",
+                    "event_end": "2026-12-31",
+                    "source_origin": "internal_strategy",
+                    "created_by": "foreman",
+                    "transition_reason": "Lodge",
+                },
+            ]
+        )
+        dry = v26.dry_run_cleanup("swing-shack")
+        sig = dry["plan_signature"]
+        actor = {
+            "actor_id": "fp:test",
+            "actor_id_method": "test",
+            "actor_display_name": "v28-test",
+        }
+        result, code = v26.execute_cleanup(
+            "swing-shack", sig, actor, confirm=True,
+        )
+        self.assertEqual(code, 200)
+        post = v26.cleanup_status("swing-shack")
+        self.assertEqual(post["operator_store_line_count"], 1)
+        self.assertEqual(post["duplicate_event_key_count"], 0)
+        # Tie goes to the later file position
+        self.assertEqual(
+            result["actions"].get("v28_dedup_kept_later", 0), 1,
+            f"expected 1 v28_dedup_kept_later, got {result['actions']}"
+        )
 
 
 if __name__ == "__main__":

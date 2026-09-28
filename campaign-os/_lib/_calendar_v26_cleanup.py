@@ -174,7 +174,15 @@ def classify_record(rec: Dict[str, Any]) -> str:
     # generation/migration/automation reason.
     if cb in ("kyle-desk",):
         # kyle-desk has historically been the human-approval actor.
-        return "KEEP"
+        # V2.8 — the trackman-coaching-session record dedup: only the
+        # variant with a meaningful transition_reason (Lodge/Book/
+        # L4 approve/approve) is KEEP. The empty-tr variant is
+        # REQUIRES_REAPPROVAL.
+        tr_norm = tr.lower().strip() if tr else ""
+        human_transition_reasons = {"lodge", "book", "l4 approve", "approve"}
+        if tr_norm in human_transition_reasons:
+            return "KEEP"
+        return "REQUIRES_REAPPROVAL"
 
     if cb == "foreman":
         # Distinguish HUMAN foreman (approval/lodge transition_reason)
@@ -391,7 +399,21 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
     with open(cal_file, "r", encoding="utf-8") as f:
         raw_lines = f.readlines()
     kept_lines: List[str] = []
-    plan_by_ek = {p["event_key"]: p for p in plan if p["event_key"]}
+    # V2.8 — plan must be 1:1 with records (NOT deduped by event_key).
+    # Earlier versions deduped plans, which caused the last record's
+    # plan to win — moving the FIRST (Lodge) record to intake instead
+    # of keeping it. We now walk records in file order and look up
+    # the plan by (line_index, event_key).
+    plan_by_idx: Dict[int, Dict[str, Any]] = {
+        i: p for i, p in enumerate(plan) if p.get("event_key")
+    }
+    # Also keep a backup by event_key for the rare case where the
+    # plan is missing an event_key (e.g. records with no event_key,
+    # which are still kept).
+    plan_by_ek: Dict[str, Dict[str, Any]] = {}
+    for p in plan:
+        if p.get("event_key"):
+            plan_by_ek.setdefault(p["event_key"], p)  # first wins, not last
     audit_rows: List[Dict[str, Any]] = []
     actions: Dict[str, int] = {}
     failures: List[str] = []
@@ -411,7 +433,12 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
             except Exception:
                 continue
 
-    for line in raw_lines:
+    # V2.8 dedup: track event_keys already kept, prefer the
+    # variant with the strongest human action when duplicates exist.
+    kept_event_keys: Dict[str, Dict[str, Any]] = {}  # ek -> rec
+    removed_for_dedup: List[Dict[str, Any]] = []  # audit
+
+    for idx, line in enumerate(raw_lines):
         if not line.strip():
             continue
         try:
@@ -420,15 +447,100 @@ def execute_cleanup(brand_id: str, plan_signature: str, actor: Dict[str, Any],
             kept_lines.append(line)  # preserve unparseable lines as-is
             continue
         ek = rec.get("event_key", "")
-        p = plan_by_ek.get(ek)
+        # V2.8 — lookup plan by (idx, event_key) — 1:1 with records
+        p = plan_by_idx.get(idx) or plan_by_ek.get(ek)
         if not p:
             # Unclassified or unknown — preserve as-is
             kept_lines.append(line)
             continue
         action = p["action"]
         if action == "keep":
-            kept_lines.append(line)
-            actions["keep"] = actions.get("keep", 0) + 1
+            # V2.8 dedup: if this event_key was already kept, only one
+            # survives. The variant with the strongest human-action
+            # transition_reason (Lodge/Book/L4 approve/approve) wins.
+            # On a tie, the LATER (newer, file-position-later) record
+            # wins — the earlier one is dropped with a v28_dedup
+            # audit row.
+            if ek in kept_event_keys:
+                existing = kept_event_keys[ek]
+                HUMAN_TR = {"lodge", "book", "l4 approve", "approve"}
+                existing_tr = (existing.get("transition_reason") or "").lower().strip()
+                this_tr = (rec.get("transition_reason") or "").lower().strip()
+                existing_score = 2 if existing_tr in HUMAN_TR else 0
+                this_score = 2 if this_tr in HUMAN_TR else 0
+                # Strict > means the existing wins; otherwise the
+                # later (this) wins. Tie goes to the later record,
+                # which is what makes V2.8 idempotent in operator
+                # re-deploys.
+                if existing_score > this_score:
+                    # Existing wins — drop this one with audit
+                    audit = _write_audit(
+                        brand_id=brand_id,
+                        action="v28_dedup_removed_duplicate",
+                        actor=actor,
+                        source_id=ek,
+                        before={
+                            "event_key": ek,
+                            "title": rec.get("title"),
+                            "transition_reason": rec.get("transition_reason"),
+                            "status": rec.get("status"),
+                            "created_by": rec.get("created_by"),
+                        },
+                        after=None,
+                        extra={
+                            "cleanup_reason": "v28_dedup_duplicate_event_key",
+                            "kept_record": {
+                                "title": existing.get("title"),
+                                "transition_reason": existing.get("transition_reason"),
+                            },
+                            "backup_ref": backup["backup"],
+                            "backup_sha256": backup["sha256"],
+                        },
+                    )
+                    audit_rows.append(audit)
+                    actions["v28_dedup_removed_duplicate"] = actions.get("v28_dedup_removed_duplicate", 0) + 1
+                else:
+                    # This wins (stronger OR tie → later). Drop the
+                    # existing record with audit.
+                    kept_lines = [
+                        ln for ln in kept_lines
+                        if not (ln.strip().startswith("{")
+                                and ek in ln
+                                and json.loads(ln).get("event_key") == ek)
+                    ]
+                    kept_event_keys[ek] = rec
+                    kept_lines.append(line)
+                    audit = _write_audit(
+                        brand_id=brand_id,
+                        action="v28_dedup_kept_later",
+                        actor=actor,
+                        source_id=ek,
+                        before={
+                            "event_key": ek,
+                            "title": existing.get("title"),
+                            "transition_reason": existing.get("transition_reason"),
+                            "status": existing.get("status"),
+                            "created_by": existing.get("created_by"),
+                        },
+                        after={
+                            "event_key": ek,
+                            "title": rec.get("title"),
+                            "transition_reason": rec.get("transition_reason"),
+                            "status": rec.get("status"),
+                            "created_by": rec.get("created_by"),
+                        },
+                        extra={
+                            "cleanup_reason": "v28_dedup_duplicate_event_key",
+                            "backup_ref": backup["backup"],
+                            "backup_sha256": backup["sha256"],
+                        },
+                    )
+                    audit_rows.append(audit)
+                    actions["v28_dedup_kept_later"] = actions.get("v28_dedup_kept_later", 0) + 1
+            else:
+                kept_event_keys[ek] = rec
+                kept_lines.append(line)
+                actions["keep"] = actions.get("keep", 0) + 1
         elif action == "remove_from_operator_store":
             # Drop from operator store; audit
             audit = _write_audit(
@@ -671,14 +783,29 @@ def cleanup_status(brand_id: str) -> Dict[str, Any]:
                 except Exception:
                     continue
     groups = classify_all(records)
+    # V2.8 — duplicate event_key check. The operator store must have
+    # at most one active record per event_key after cleanup.
+    ekey_counts: Dict[str, int] = {}
+    for r in records:
+        ek = r.get("event_key")
+        if not ek:
+            continue
+        ekey_counts[ek] = ekey_counts.get(ek, 0) + 1
+    duplicate_event_keys = [ek for ek, c in ekey_counts.items() if c > 1]
     return {
         "ok": True,
         "brand_id": brand_id,
         "operator_store_line_count": len(records),
+        "unique_event_keys": len(ekey_counts),
+        "duplicate_event_keys": duplicate_event_keys,
+        "duplicate_event_key_count": len(duplicate_event_keys),
         "classification_summary": {cat: len(recs) for cat, recs in groups.items()},
-        "is_clean": all(
-            cat == "KEEP" or len(recs) == 0
-            for cat, recs in groups.items()
-            if cat != "KEEP"
+        "is_clean": (
+            all(
+                cat == "KEEP" or len(recs) == 0
+                for cat, recs in groups.items()
+                if cat != "KEEP"
+            )
+            and len(duplicate_event_keys) == 0
         ),
     }

@@ -74,6 +74,13 @@ class V26ClassifierV27RulesTests(unittest.TestCase):
         rec = {"created_by": "kyle-desk", "transition_reason": "Lodge"}
         self.assertEqual(v26.classify_record(rec), "KEEP")
 
+    def test_kyle_desk_no_transition_reason_is_REQUIRES_REAPPROVAL(self):
+        """V2.8 dedup — kyle-desk without a human transition_reason
+        is REQUIRES_REAPPROVAL (the dedup picks the strongest
+        variant)."""
+        rec = {"created_by": "kyle-desk"}  # no transition_reason
+        self.assertEqual(v26.classify_record(rec), "REQUIRES_REAPPROVAL")
+
     def test_foreman_with_lodge_is_KEEP(self):
         rec = {"created_by": "foreman", "transition_reason": "Lodge"}
         self.assertEqual(v26.classify_record(rec), "KEEP")
@@ -150,7 +157,7 @@ class V26ClassifierV27RulesTests(unittest.TestCase):
             ("SCOUT_WATCHLIST", {"created_by": "heidi-ingest", "status": "watchlist"}),
             ("LEGACY_UNVERIFIED_APPROVAL", {"created_by": "", "transition_reason": "CEO demo — land stale calendar candidates"}),
             ("REQUIRES_REAPPROVAL", {"created_by": "foreman"}),
-            ("KEEP", {"created_by": "kyle-desk"}),
+            ("KEEP", {"created_by": "kyle-desk", "transition_reason": "Lodge"}),
             # V2.7-new shape records
             ("TEMPLATE_DEMO", {"created_by": "foreman-generative-replace"}),
             ("SCOUT_CANDIDATE", {"created_by": "cos-reactive-watch"}),
@@ -162,6 +169,10 @@ class V26ClassifierV27RulesTests(unittest.TestCase):
             # V2.7 §6 foreman-gen-* variants
             ("TEMPLATE_DEMO", {"created_by": "foreman-gen-unblock"}),
             ("TEMPLATE_DEMO", {"created_by": "foreman-gen-v2-ss-fitting"}),
+            # V2.8 dedup: kyle-desk without transition_reason is now
+            # REQUIRES_REAPPROVAL (not KEEP). The dedup rule keeps
+            # only the variant with a human-action transition_reason.
+            ("REQUIRES_REAPPROVAL", {"created_by": "kyle-desk"}),
         ]
         for expected_category, record in corpus_categories:
             actual = v26.classify_record(record)
