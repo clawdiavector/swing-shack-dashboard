@@ -2465,6 +2465,653 @@
         "y1": 0.98
       },
       "max_total_chars": 120
+    },
+    {
+      "id": "ss-event-poster",
+      "name": "Event poster \u2014 schedule on flag backdrop",
+      "description": "Layout A from Content Bank RC static family (rc_static / rc_story). Two-word accent title, date line, stacked schedule rows with attach_above rhythm.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/event-poster",
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/event-poster/photos",
+        "focus_y": 0.5,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "from_alpha": 0.78,
+          "to_alpha": 0.86
+        }
+      },
+      "zones": {
+        "frame": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "decorative",
+          "shape": "frame",
+          "inset_x_px": 21,
+          "inset_y_px": 34,
+          "stroke_px": 10,
+          "colour": "white",
+          "alpha": 1
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.0749,
+            "y0": 0.1515,
+            "x1": 0.2174,
+            "y1": 0.1996
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/event-poster/assets/logo-white.png",
+          "fit": "aspect_fit",
+          "align": "left",
+          "valign": "top"
+        },
+        "title_a": {
+          "rect": {
+            "x0": 0.2766,
+            "y0": 0.1448,
+            "x1": 0.6559,
+            "y1": 0.21
+          },
+          "kind": "text",
+          "source": "caption_hook_first_word",
+          "font_role": "display",
+          "max_font_px": 121,
+          "min_font_px": 84,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "ss_event_red",
+          "h_scale": 0.919
+        },
+        "title_b": {
+          "rect": {
+            "x0": 0.691,
+            "y0": 0.1448,
+            "x1": 0.9232,
+            "y1": 0.21
+          },
+          "kind": "text",
+          "source": "caption_hook_tail",
+          "font_role": "display",
+          "max_font_px": 121,
+          "min_font_px": 84,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "ss_event_blue",
+          "h_scale": 0.919
+        },
+        "title_date": {
+          "rect": {
+            "x0": 0.4958,
+            "y0": 0.23,
+            "x1": 0.9251,
+            "y1": 0.2581
+          },
+          "kind": "text",
+          "source": "offer_subject",
+          "font_role": "h3",
+          "max_font_px": 54,
+          "min_font_px": 40,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.88,
+          "echo": {
+            "dx_em": 0,
+            "dy_em": 0,
+            "stroke_em": 0.018,
+            "shadow_alpha": 0.5
+          }
+        },
+        "e4": {
+          "rect": {
+            "x0": 0.0842,
+            "y0": 0.8078,
+            "x1": 0.8973,
+            "y1": 0.855
+          },
+          "kind": "text",
+          "source": "price",
+          "font_role": "h3",
+          "emphasis_font_role": "h2",
+          "emphasis_words": [
+            "R250",
+            "ENTRY"
+          ],
+          "emphasis_colour": "ss_event_blue",
+          "max_font_px": 76,
+          "min_font_px": 58,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.882,
+          "echo": {
+            "dx_em": 0,
+            "dy_em": 0,
+            "stroke_em": 0.018,
+            "shadow_alpha": 0.5
+          }
+        },
+        "e3b": {
+          "rect": {
+            "x0": 0.086,
+            "y0": 0.7122,
+            "x1": 0.92,
+            "y1": 0.76
+          },
+          "kind": "text",
+          "source": "caption_body",
+          "font_role": "display",
+          "max_font_px": 76,
+          "min_font_px": 58,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "ss_event_red",
+          "h_scale": 0.92,
+          "attach_above": {
+            "zone": "e4",
+            "gap_px": 76
+          }
+        },
+        "e3a": {
+          "rect": {
+            "x0": 0.0842,
+            "y0": 0.6463,
+            "x1": 0.9362,
+            "y1": 0.695
+          },
+          "kind": "text",
+          "source": "bio_3",
+          "font_role": "h3",
+          "emphasis_font_role": "h2",
+          "emphasis_words": [
+            "SUNDAY"
+          ],
+          "max_font_px": 76,
+          "min_font_px": 58,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.882,
+          "attach_above": {
+            "zone": "e3b",
+            "gap_px": 36
+          },
+          "echo": {
+            "dx_em": 0,
+            "dy_em": 0,
+            "stroke_em": 0.018,
+            "shadow_alpha": 0.5
+          }
+        },
+        "e2b": {
+          "rect": {
+            "x0": 0.0786,
+            "y0": 0.5159,
+            "x1": 0.6364,
+            "y1": 0.61
+          },
+          "kind": "text",
+          "source": "benefits",
+          "font_role": "display",
+          "max_font_px": 76,
+          "min_font_px": 58,
+          "max_lines": 2,
+          "line_height": 0.81,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "ss_event_red",
+          "h_scale": 0.92,
+          "wrap": "explicit",
+          "attach_above": {
+            "zone": "e3a",
+            "gap_px": 62
+          }
+        },
+        "e2a": {
+          "rect": {
+            "x0": 0.0842,
+            "y0": 0.453,
+            "x1": 0.9362,
+            "y1": 0.502
+          },
+          "kind": "text",
+          "source": "bio_2",
+          "font_role": "h3",
+          "emphasis_font_role": "h2",
+          "emphasis_words": [
+            "SATURDAY"
+          ],
+          "max_font_px": 76,
+          "min_font_px": 58,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.882,
+          "attach_above": {
+            "zone": "e2b",
+            "gap_px": 32
+          },
+          "echo": {
+            "dx_em": 0,
+            "dy_em": 0,
+            "stroke_em": 0.018,
+            "shadow_alpha": 0.5
+          }
+        },
+        "e1": {
+          "rect": {
+            "x0": 0.0842,
+            "y0": 0.3604,
+            "x1": 0.9362,
+            "y1": 0.41
+          },
+          "kind": "text",
+          "source": "bio_1",
+          "font_role": "h3",
+          "emphasis_font_role": "h2",
+          "emphasis_words": [
+            "10",
+            "PLAYERS"
+          ],
+          "emphasis_colour": "ss_event_blue",
+          "max_font_px": 76,
+          "min_font_px": 58,
+          "max_lines": 1,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.882,
+          "attach_above": {
+            "zone": "e2a",
+            "gap_px": 72
+          },
+          "echo": {
+            "dx_em": 0,
+            "dy_em": 0,
+            "stroke_em": 0.018,
+            "shadow_alpha": 0.5
+          }
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "frame": {
+            "rect": {
+              "x0": 0,
+              "y0": 0,
+              "x1": 1,
+              "y1": 1
+            },
+            "kind": "decorative",
+            "shape": "frame",
+            "inset_x_px": 34,
+            "inset_y_px": 23,
+            "stroke_px": 10,
+            "colour": "white",
+            "alpha": 1
+          },
+          "logo": {
+            "rect": {
+              "x0": 0.0759,
+              "y0": 0.2551,
+              "x1": 0.2174,
+              "y1": 0.2889
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "templates/event-poster/assets/logo-white.png",
+            "fit": "aspect_fit",
+            "align": "left",
+            "valign": "top"
+          },
+          "title_a": {
+            "rect": {
+              "x0": 0.2766,
+              "y0": 0.2504,
+              "x1": 0.6559,
+              "y1": 0.2967
+            },
+            "kind": "text",
+            "source": "caption_hook_first_word",
+            "font_role": "display",
+            "max_font_px": 121,
+            "min_font_px": 84,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "ss_event_red",
+            "h_scale": 0.919
+          },
+          "title_b": {
+            "rect": {
+              "x0": 0.691,
+              "y0": 0.2504,
+              "x1": 0.9241,
+              "y1": 0.2967
+            },
+            "kind": "text",
+            "source": "caption_hook_tail",
+            "font_role": "display",
+            "max_font_px": 121,
+            "min_font_px": 84,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "ss_event_blue",
+            "h_scale": 0.919
+          },
+          "title_date": {
+            "rect": {
+              "x0": 0.4894,
+              "y0": 0.3103,
+              "x1": 0.9251,
+              "y1": 0.33
+            },
+            "kind": "text",
+            "source": "offer_subject",
+            "font_role": "h3",
+            "max_font_px": 54,
+            "min_font_px": 40,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.88,
+            "echo": {
+              "dx_em": 0,
+              "dy_em": 0,
+              "stroke_em": 0.018,
+              "shadow_alpha": 0.5
+            }
+          },
+          "e5": {
+            "rect": {
+              "x0": 0.0897,
+              "y0": 0.7798,
+              "x1": 0.92,
+              "y1": 0.815
+            },
+            "kind": "text",
+            "source": "cta",
+            "font_role": "h3",
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.882,
+            "optional": true
+          },
+          "e4": {
+            "rect": {
+              "x0": 0.0851,
+              "y0": 0.6939,
+              "x1": 0.8973,
+              "y1": 0.728
+            },
+            "kind": "text",
+            "source": "price",
+            "font_role": "h3",
+            "emphasis_font_role": "h2",
+            "emphasis_words": [
+              "R250",
+              "ENTRY"
+            ],
+            "emphasis_colour": "ss_event_blue",
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.882,
+            "echo": {
+              "dx_em": 0,
+              "dy_em": 0,
+              "stroke_em": 0.018,
+              "shadow_alpha": 0.5
+            }
+          },
+          "e3b": {
+            "rect": {
+              "x0": 0.087,
+              "y0": 0.6268,
+              "x1": 0.92,
+              "y1": 0.662
+            },
+            "kind": "text",
+            "source": "caption_body",
+            "font_role": "display",
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "ss_event_red",
+            "h_scale": 0.92,
+            "attach_above": {
+              "zone": "e4",
+              "gap_px": 76
+            }
+          },
+          "e3a": {
+            "rect": {
+              "x0": 0.0851,
+              "y0": 0.5809,
+              "x1": 0.9371,
+              "y1": 0.618
+            },
+            "kind": "text",
+            "source": "bio_3",
+            "font_role": "h3",
+            "emphasis_font_role": "h2",
+            "emphasis_words": [
+              "SUNDAY"
+            ],
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.882,
+            "attach_above": {
+              "zone": "e3b",
+              "gap_px": 36
+            },
+            "echo": {
+              "dx_em": 0,
+              "dy_em": 0,
+              "stroke_em": 0.018,
+              "shadow_alpha": 0.5
+            }
+          },
+          "e2b": {
+            "rect": {
+              "x0": 0.0796,
+              "y0": 0.4888,
+              "x1": 0.6374,
+              "y1": 0.558
+            },
+            "kind": "text",
+            "source": "benefits",
+            "font_role": "display",
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 2,
+            "line_height": 0.81,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "ss_event_red",
+            "h_scale": 0.92,
+            "wrap": "explicit",
+            "attach_above": {
+              "zone": "e3a",
+              "gap_px": 62
+            }
+          },
+          "e2a": {
+            "rect": {
+              "x0": 0.0851,
+              "y0": 0.4446,
+              "x1": 0.9371,
+              "y1": 0.482
+            },
+            "kind": "text",
+            "source": "bio_2",
+            "font_role": "h3",
+            "emphasis_font_role": "h2",
+            "emphasis_words": [
+              "SATURDAY"
+            ],
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.882,
+            "attach_above": {
+              "zone": "e2b",
+              "gap_px": 32
+            },
+            "echo": {
+              "dx_em": 0,
+              "dy_em": 0,
+              "stroke_em": 0.018,
+              "shadow_alpha": 0.5
+            }
+          },
+          "e1": {
+            "rect": {
+              "x0": 0.0851,
+              "y0": 0.38,
+              "x1": 0.9371,
+              "y1": 0.418
+            },
+            "kind": "text",
+            "source": "bio_1",
+            "font_role": "h3",
+            "emphasis_font_role": "h2",
+            "emphasis_words": [
+              "10",
+              "PLAYERS"
+            ],
+            "emphasis_colour": "ss_event_blue",
+            "max_font_px": 76,
+            "min_font_px": 58,
+            "max_lines": 1,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.882,
+            "attach_above": {
+              "zone": "e2a",
+              "gap_px": 72
+            },
+            "echo": {
+              "dx_em": 0,
+              "dy_em": 0,
+              "stroke_em": 0.018,
+              "shadow_alpha": 0.5
+            }
+          }
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 220,
+      "measured_from": [
+        "references/ref-01.jpg",
+        "references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1201
+      }
     }
   ],
   "selection": {
@@ -2554,6 +3201,17 @@
           ]
         },
         "use": "ss-lesson-corner"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "event_poster",
+            "event",
+            "tournament",
+            "comp"
+          ]
+        },
+        "use": "ss-event-poster"
       }
     ]
   }

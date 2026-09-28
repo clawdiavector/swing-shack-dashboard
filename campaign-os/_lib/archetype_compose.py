@@ -346,6 +346,20 @@ def _draw_tracked_run(
     return cx
 
 
+def _word_fill(
+    word: str,
+    emphasis: set[str],
+    fill,
+    emphasis_colour: str | None,
+    brand_id: str,
+):
+    if emphasis_colour and word.upper() in emphasis:
+        return _palette_colour(emphasis_colour, brand_id)
+    if isinstance(fill, tuple) and len(fill) >= 3:
+        return fill[:3] if len(fill) == 3 else fill
+    return fill
+
+
 def _draw_line_mixed(
     draw,
     x0: float,
@@ -361,6 +375,9 @@ def _draw_line_mixed(
     zone_x1: int,
     stroke_width: int = 0,
     stroke_fill=None,
+    *,
+    brand_id: str = "",
+    emphasis_colour: str | None = None,
 ) -> None:
     words = line.split()
     line_w = _line_width(words, body_font, emph_font, emphasis, tracking_px)
@@ -372,9 +389,12 @@ def _draw_line_mixed(
         x = float(x0)
     for wi, word in enumerate(words):
         font = _word_font(word, body_font, emph_font, emphasis)
-        x = _draw_tracked_run(draw, x, baseline, word, font, fill, tracking_px, stroke_width, stroke_fill)
+        word_fill = _word_fill(word, emphasis, fill, emphasis_colour, brand_id)
+        x = _draw_tracked_run(
+            draw, x, baseline, word, font, word_fill, tracking_px, stroke_width, stroke_fill
+        )
         if wi < len(words) - 1:
-            x = _draw_tracked_run(draw, x, baseline, " ", body_font, fill, 0.0)
+            x = _draw_tracked_run(draw, x, baseline, " ", body_font, fill[:3] if isinstance(fill, tuple) else fill, 0.0)
 
 
 def _zone_colour(zone: dict[str, Any], brand_id: str, text: str, fields: dict[str, str]) -> tuple[int, int, int, int]:
@@ -449,6 +469,9 @@ def _draw_text_zone(
         y_base = y1 - block_h
     tracking_px = _tracking_px(zone, size)
     emphasis = _emphasis_words(zone)
+    raw_emph_colour = zone.get("emphasis_colour")
+    emphasis_colour = str(raw_emph_colour).strip() if raw_emph_colour else None
+    mixed_kw = {"brand_id": brand_id, "emphasis_colour": emphasis_colour}
     align = str(zone.get("align") or "left")
     inline = zone.get("inline_asset") if isinstance(zone.get("inline_asset"), dict) else None
     if inline is not None and align == "center" and len(lines) == 1:
@@ -484,6 +507,7 @@ def _draw_text_zone(
                 "left",
                 start_x,
                 start_x + int(line_w),
+                **mixed_kw,
             )
             if h_scale != 1.0:
                 scaled = layer.resize((max(1, int(layer_w * h_scale)), canvas_h), Image.LANCZOS)
@@ -506,6 +530,7 @@ def _draw_text_zone(
                 "left",
                 start_x,
                 start_x + int(line_w),
+                **mixed_kw,
             )
         _paste_inline_asset(
             base,
@@ -539,6 +564,7 @@ def _draw_text_zone(
                 x1,
                 stroke_width=max(1, round(float(echo.get("stroke_em") or 0.01) * size)),
                 stroke_fill=colour,
+                **mixed_kw,
             )
         _draw_line_mixed(
             target,
@@ -553,6 +579,7 @@ def _draw_text_zone(
             align,
             x0,
             x1,
+            **mixed_kw,
         )
     if layer is not None:
         if h_scale != 1.0:

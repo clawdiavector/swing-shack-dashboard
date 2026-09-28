@@ -1,0 +1,7 @@
+{
+  "id": "ss-event-poster",
+  "brand_id": "swing-shack",
+  "measured_from": ["references/ref-01.jpg", "references/ref-02.jpg"],
+  "reference_size": {"w": 1081, "h": 1201},
+  "story_reference_size": {"w": 1081, "h": 1921}
+}

@@ -442,6 +442,17 @@
             "center",
             "right"
           ]
+        },
+        "emphasis_words": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "emphasis_font_role": {
+          "type": "string"
+        },
+        "emphasis_colour": {
+          "type": "string",
+          "description": "Palette token for emphasis_words (optional per-word colour)."
         }
       }
     }
