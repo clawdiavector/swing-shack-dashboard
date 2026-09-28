@@ -387,6 +387,15 @@ def _zone_colour(zone: dict[str, Any], brand_id: str, text: str, fields: dict[st
     return _palette_colour(str(zone.get("colour") or "white"), brand_id)
 
 
+def _paste_rgba_text_layer(base, layer, *, canvas_w: int, canvas_h: int) -> None:
+    """Composite an RGBA text layer onto an RGB canvas (alpha channel only)."""
+    visible = layer.crop((0, 0, canvas_w, canvas_h))
+    if visible.mode == "RGBA":
+        base.paste(visible, (0, 0), visible.getchannel("A"))
+    else:
+        base.paste(visible, (0, 0))
+
+
 def _draw_text_zone(
     draw,
     *,
@@ -491,7 +500,7 @@ def _draw_text_zone(
                 layer.paste(scaled, (0, 0))
             else:
                 layer = layer.crop((0, 0, canvas_w, canvas_h))
-            base.paste(layer, (0, 0), layer)
+            _paste_rgba_text_layer(base, layer, canvas_w=canvas_w, canvas_h=canvas_h)
         else:
             _draw_line_mixed(
                 draw,
@@ -557,10 +566,14 @@ def _draw_text_zone(
     if layer is not None:
         if h_scale != 1.0:
             pivot = origin_x if align == "left" else (x0 + x1) / 2
-            scaled = layer.resize((max(1, int(layer_w * h_scale)), canvas_h), Image.LANCZOS)
+            pad = 2
+            y_top = max(0, int(y_base) - pad)
+            y_bot = min(canvas_h, int(y_base + block_h) + pad)
+            band = layer.crop((0, y_top, layer_w, y_bot))
+            scaled = band.resize((max(1, int(layer_w * h_scale)), y_bot - y_top), Image.LANCZOS)
             layer = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
-            layer.paste(scaled, (int(round(pivot - pivot * h_scale)), 0))
-        base.paste(layer, (0, 0), layer.crop((0, 0, canvas_w, canvas_h)))
+            layer.paste(scaled, (int(round(pivot - pivot * h_scale)), y_top))
+        _paste_rgba_text_layer(base, layer, canvas_w=canvas_w, canvas_h=canvas_h)
     return int(y_base), int(y_base + block_h)
 
 
