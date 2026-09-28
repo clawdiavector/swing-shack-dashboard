@@ -45393,6 +45393,44 @@ def planning_cleanup_status(brand_id):
     return jsonify(result), 200
 
 
+@app.route("/api/planning/<brand_id>/_internal/remove-by-calendar-id", methods=["POST"])
+def planning_remove_by_calendar_id(brand_id):
+    """POST /api/planning/<brand>/_internal/remove-by-calendar-id
+
+    V2.6 — emergency-only surgical removal of a single record by
+    calendar_id. Used to clean up ad-hoc test writes (e.g. a Scout
+    status=candidate write that the dry-run's event_key-based cleanup
+    cannot target because add_candidate doesn't always set event_key).
+
+    Body: {"calendar_id": "...", "reason": "..."}
+
+    Appends an immutable audit row. Does NOT modify any other records.
+    """
+    from _lib import _calendar_v26_cleanup as _v26_remove
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    body = request.get_json(silent=True) or {}
+    calendar_id = body.get("calendar_id")
+    if not calendar_id or not isinstance(calendar_id, str):
+        return jsonify({"ok": False, "error": "calendar_id required"}), 400
+    reason = body.get("reason") or "test_or_emergency_removal"
+    actor = _resolve_v23_actor()
+    try:
+        result = _v26_remove.remove_by_calendar_id(
+            brand_id=brand_id,
+            calendar_id=calendar_id,
+            actor=actor,
+            reason=reason,
+        )
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    return jsonify(result), 200
+
+
 # ─────────────────────────────────────────────────────────────────────
 # V2.6 — write-gate defence: marketing-calendar.append-guard
 # ─────────────────────────────────────────────────────────────────────

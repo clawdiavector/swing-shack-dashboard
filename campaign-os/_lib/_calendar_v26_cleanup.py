@@ -514,6 +514,70 @@ def _step_for_category(cat: str) -> str:
 
 # ─── Post-cleanup status ──────────────────────────────────────────────────
 
+def remove_by_calendar_id(brand_id: str, calendar_id: str, actor: Dict[str, Any],
+                          reason: str = "test_or_emergency_removal") -> Dict[str, Any]:
+    """V2.6 — emergency-only surgical removal of a single record by
+    calendar_id. Used to clean up ad-hoc test writes (e.g. a Scout
+    status=candidate write that the dry-run's event_key-based cleanup
+    cannot target because add_candidate doesn't always set event_key).
+
+    Appends an immutable audit row. Does NOT modify any other records.
+    """
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        raise ValueError(f"invalid brand_id: {brand_id}")
+    cal_file = _calendar_path(brand_id)
+    if not cal_file.exists():
+        return {"ok": False, "error": f"calendar file not found: {cal_file}"}
+    with open(cal_file, "r", encoding="utf-8") as f:
+        raw_lines = f.readlines()
+    kept_lines = []
+    removed = None
+    for line in raw_lines:
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            kept_lines.append(line)
+            continue
+        if rec.get("calendar_id") == calendar_id and removed is None:
+            removed = rec
+            continue
+        kept_lines.append(line)
+    if removed is None:
+        return {"ok": False, "error": f"no record found with calendar_id={calendar_id}"}
+    tmp = cal_file.with_suffix(cal_file.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.writelines(kept_lines)
+    tmp.replace(cal_file)
+    audit_entry = _write_audit(
+        brand_id=brand_id,
+        action="emergency_remove_by_calendar_id",
+        actor=actor,
+        source_id=removed.get("event_key") or removed.get("calendar_id"),
+        before={
+            "calendar_id": removed.get("calendar_id"),
+            "event_key": removed.get("event_key"),
+            "title": removed.get("title"),
+            "created_by": removed.get("created_by"),
+            "status": removed.get("status"),
+        },
+        after=None,
+        extra={
+            "cleanup_reason": reason,
+            "lines_before": len(raw_lines),
+            "lines_after": sum(1 for ln in kept_lines if ln.strip()),
+        },
+    )
+    return {
+        "ok": True,
+        "removed_calendar_id": calendar_id,
+        "lines_before": len(raw_lines),
+        "lines_after": sum(1 for ln in kept_lines if ln.strip()),
+        "audit_entry": audit_entry,
+    }
+
+
 def cleanup_status(brand_id: str) -> Dict[str, Any]:
     """After the cleanup, return the post-state. Independent of dry-run.
     Used to verify the operator-store now contains only genuine records.
