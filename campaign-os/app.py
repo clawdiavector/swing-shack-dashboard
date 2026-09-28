@@ -6850,7 +6850,22 @@ def lanes_queue_for_postiz():
                 "queued": 0,
             }), 400
 
-        integrations = list_integrations() or []
+        raw_integrations, int_err = list_integrations()
+        if int_err:
+            return jsonify({"ok": False, "error": f"list_integrations: {int_err[0]}"}), 400
+        if isinstance(raw_integrations, list):
+            integrations = [i for i in raw_integrations if isinstance(i, dict)]
+        elif isinstance(raw_integrations, dict):
+            integrations = [
+                i for i in (
+                    raw_integrations.get("integrations")
+                    or raw_integrations.get("identities")
+                    or []
+                )
+                if isinstance(i, dict)
+            ]
+        else:
+            integrations = []
         if not integrations:
             return jsonify({"ok": False, "error": "no Postiz integrations"}), 400
 
@@ -6860,10 +6875,10 @@ def lanes_queue_for_postiz():
             try:
                 platform = it.get("platform") or "instagram"
                 integration_id = next(
-                    (i["id"] for i in integrations
-                     if platform.lower() in i.get("name", "").lower()
-                     or i.get("type", "").lower() == platform.lower()),
-                    integrations[0]["id"] if integrations else None,
+                    (i.get("id") or i.get("_id") for i in integrations
+                     if platform.lower() in str(i.get("name", "")).lower()
+                     or str(i.get("providerIdentifier") or i.get("type") or "").lower() == platform.lower()),
+                    integrations[0].get("id") or integrations[0].get("_id") if integrations else None,
                 )
                 if not integration_id:
                     failed.append({"item_id": it.get("id"), "error": "no integration"})
@@ -6876,13 +6891,18 @@ def lanes_queue_for_postiz():
                     caption = caption + chr(10) + chr(10) + " ".join("#" + h for h in it.get("hashtags"))
 
                 sched = it.get("publish_date", "") + "T" + it.get("publish_time", "09:00") + ":00Z"
-                result = create_post(
-                    integration_id=integration_id,
+                result, post_err = create_post(
+                    integration_id=str(integration_id),
                     content=caption,
                     media_ids=[],
-                    scheduled_for=sched,
+                    publish_date=sched,
                 )
-                postiz_id = (result or {}).get("id") or (result or {}).get("post", {}).get("id")
+                if post_err:
+                    failed.append({"item_id": it.get("id"), "error": post_err[0]})
+                    continue
+                postiz_id = (result or {}).get("id") if isinstance(result, dict) else None
+                if not postiz_id and isinstance(result, dict):
+                    postiz_id = (result.get("post") or {}).get("id")
                 if postiz_id:
                     update_content_item_status(
                         brand_id, it["id"], "queued",

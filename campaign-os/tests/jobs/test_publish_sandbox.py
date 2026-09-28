@@ -102,6 +102,30 @@ class PublishSandboxTests(unittest.TestCase):
         self.assertEqual(first["idempotency_key"], second["idempotency_key"])
         self.assertEqual(first["queue_id"], second["queue_id"])
 
+    def test_live_dispatch_calls_postiz_when_configured(self) -> None:
+        os.environ["PUBLISH_MODE"] = "live"
+        publish_sandbox.enqueue_item(
+            brand_id="stick",
+            platform="instagram",
+            caption_preview="Live caption",
+            human_approved=True,
+        )
+        fake_integrations = [{"id": "ig-1", "providerIdentifier": "instagram", "name": "Instagram"}]
+        with patch("urllib.request.urlopen") as mock_urlopen:
+            with patch("_lib.publish_live.postiz_status", return_value={"configured": True}):
+                with patch("_lib.publish_live.list_integrations", return_value=(fake_integrations, None)):
+                    with patch(
+                        "_lib.publish_live.create_post",
+                        return_value=({"id": "postiz-123"}, None),
+                    ):
+                        result = publish_dispatch_job.run()
+            mock_urlopen.assert_not_called()
+        self.assertTrue(result.get("ok"))
+        self.assertEqual(result.get("mode"), "live")
+        self.assertEqual(result.get("dispatched"), 1)
+        receipts = publish_sandbox._read_jsonl(publish_sandbox._receipts_path())
+        self.assertEqual(receipts[0].get("postiz_post_id"), "postiz-123")
+
 
 if __name__ == "__main__":
     unittest.main()
