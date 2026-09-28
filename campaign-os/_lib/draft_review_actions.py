@@ -230,9 +230,12 @@ def recompose_draft(
     out_dir = _data_dir() / "draft-assets" / "images" / brand_id
     out_dir.mkdir(parents=True, exist_ok=True)
     composed_urls: dict[str, str] = {}
+    from _lib.publish_image import publish_jpeg_name_for_png, write_publish_jpeg_from_png_bytes
+
     for ch, png in composed.items():
         dest = out_dir / f"composed-{asset_id}-{ch}.png"
         dest.write_bytes(png)
+        write_publish_jpeg_from_png_bytes(png, out_dir / publish_jpeg_name_for_png(dest.name))
         composed_urls[ch] = image_url_for(brand_id, str(dest))
 
     primary = primary_channel_for_item(brand_id, moment_id, fallback="instagram")

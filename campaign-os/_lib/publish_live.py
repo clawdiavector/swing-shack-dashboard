@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from _lib import publish_sandbox as sandbox
 from _lib.postiz_client import create_post, list_integrations, postiz_status, upload_media
+from _lib.publish_image import resolve_queue_upload_path
 
 
 def _integration_for_platform(integrations: list[dict[str, Any]], platform: str) -> Optional[str]:
@@ -38,21 +39,23 @@ def _normalize_integrations(raw: Any) -> list[dict[str, Any]]:
 
 def _media_ids_for_row(row: dict[str, Any]) -> list[str]:
     media_ids: list[str] = []
-    upload_path = row.get("image_path") or row.get("image_url") or ""
-    if not upload_path:
+    resolved = resolve_queue_upload_path(row)
+    if resolved is None:
+        upload_path = str(row.get("image_path") or row.get("image_url") or "")
+        if upload_path.startswith("/uploads/"):
+            base = os.environ.get("ASSET_MEDIA_DIR") or str(sandbox._data_dir() / "uploads")
+            upload_path = os.path.join(base, os.path.basename(upload_path))
+        elif upload_path.startswith("http://") or upload_path.startswith("https://"):
+            return media_ids
+        if upload_path and os.path.isfile(upload_path):
+            resolved = Path(upload_path)
+    if resolved is None or not resolved.is_file():
         return media_ids
-    path = str(upload_path)
-    if path.startswith("/uploads/"):
-        base = os.environ.get("ASSET_MEDIA_DIR") or str(sandbox._data_dir() / "uploads")
-        path = os.path.join(base, os.path.basename(path))
-    elif path.startswith("http://") or path.startswith("https://"):
-        return media_ids
-    if os.path.isfile(path):
-        data, err = upload_media(path)
-        if not err and isinstance(data, dict):
-            mid = data.get("id") or data.get("mediaId")
-            if mid:
-                media_ids.append(str(mid))
+    data, err = upload_media(str(resolved))
+    if not err and isinstance(data, dict):
+        mid = data.get("id") or data.get("mediaId")
+        if mid:
+            media_ids.append(str(mid))
     return media_ids
 
 
