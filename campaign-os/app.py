@@ -44933,6 +44933,79 @@ def planning_audit_log(brand_id):
     }), 200
 
 
+@app.route("/api/planning/<brand_id>/_internal/diagnose-timeline", methods=["GET"])
+def planning_diagnose_timeline(brand_id):
+    """GET /api/planning/<brand>/_internal/diagnose-timeline
+
+    V2.3 operator diagnostic for the timeline 500 incident on production.
+    Reports every step of the canonical-store read pipeline WITHOUT
+    raising an unhandled Exception — returns the actual exception text
+    so the operator can read it from a JSON payload.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    diag: Dict[str, Any] = {"brand_id": brand_id}
+    # 1. _read_brand_planning
+    try:
+        bp = _read_planning(brand_id)
+        diag["brand_planning_keys"] = list(bp.keys()) if isinstance(bp, dict) else None
+        diag["brand_planning_ok"] = True
+    except Exception as e:
+        diag["brand_planning_ok"] = False
+        diag["brand_planning_err"] = f"{type(e).__name__}: {e}"
+    # 2. spine seed per year (2026, 2027)
+    for yr in (2026, 2027):
+        try:
+            spine, src = _load_events_for_year(brand_id, yr)
+            diag[f"spine_{yr}"] = {
+                "ok": spine is not None,
+                "events": len((spine or {}).get("events") or []),
+                "source": src,
+            }
+        except Exception as e:
+            diag[f"spine_{yr}_err"] = f"{type(e).__name__}: {e}"
+    # 3. marketing_calendar.list_records
+    try:
+        from _lib import marketing_calendar as _mc_diag
+        records = _mc_diag.list_records(brand_id) or []
+        diag["marketing_calendar_records"] = len(records)
+        diag["marketing_calendar_first"] = records[0] if records else None
+        diag["marketing_calendar_ok"] = True
+    except Exception as e:
+        diag["marketing_calendar_ok"] = False
+        diag["marketing_calendar_err"] = f"{type(e).__name__}: {e}"
+    # 4. _enrich_event on each candidate (truncate at 3)
+    try:
+        from _lib import marketing_calendar as _mc_diag2
+        records = _mc_diag2.list_records(brand_id) or []
+        results = []
+        for r in records[:3]:
+            try:
+                enriched = _enrich_event(r)
+                results.append({
+                    "event_key": r.get("event_key"),
+                    "ok": True,
+                    "phase_count": len(enriched.get("phases") or []),
+                    "start": enriched.get("start"),
+                    "end": enriched.get("end"),
+                })
+            except Exception as e:
+                results.append({
+                    "event_key": r.get("event_key"),
+                    "ok": False,
+                    "err": f"{type(e).__name__}: {e}",
+                })
+        diag["enrich_event_first3"] = results
+    except Exception as e:
+        diag["enrich_event_err"] = f"{type(e).__name__}: {e}"
+    # 5. What's the working DATA_DIR right now?
+    diag["data_dir_env"] = os.environ.get("DATA_DIR")
+    diag["data_dir_default"] = DATA_DIR if "DATA_DIR" in globals() else None
+    return jsonify({"ok": True, "diag": diag}), 200
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Calendar V2.2 — Slice 5: Today-integration summary.
 # Reads the planned view and surfaces counts into a Today-friendly shape.
