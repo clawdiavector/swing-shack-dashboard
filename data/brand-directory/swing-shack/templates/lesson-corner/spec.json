@@ -1,0 +1,246 @@
+{
+  "id": "ss-lesson-corner",
+  "name": "Lesson corner \u2014 venue photo, dark panel, lesson headline + services",
+  "description": "Measured from Content Bank Services beginner/junior/ladies lessons (1081\u00d71201). Full-bleed venue photo, 3px white frame inset 34px at 21% alpha, logo top-right, opaque #070707 panel bottom-right, right-aligned Montserrat stack: 2-line lesson headline, coach kicker, three accent service lines (colour rotates with headline), 3-line CTA.",
+  "canvas": "ig_post",
+  "applies_to": {
+    "channels": [
+      "instagram",
+      "facebook"
+    ],
+    "record_types": [
+      "moment",
+      "evergreen"
+    ],
+    "needs_photo": false
+  },
+  "channel_canvas": {
+    "facebook": "ig_post"
+  },
+  "template_pack": "templates/lesson-corner",
+  "background": {
+    "kind": "photo_full_bleed",
+    "cover": true,
+    "library": "templates/lesson-corner/photos",
+    "focus_y": 0.42,
+    "scrim": {
+      "rect": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 1,
+        "y1": 1
+      },
+      "from_alpha": 0.35,
+      "to_alpha": 0.35
+    }
+  },
+  "zones": {
+    "frame": {
+      "rect": {
+        "x0": 0.0,
+        "y0": 0.0,
+        "x1": 1.0,
+        "y1": 1.0
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 34,
+      "stroke_px": 3,
+      "colour": "white",
+      "alpha": 0.21
+    },
+    "panel": {
+      "rect": {
+        "x0": 0.2664,
+        "y0": 0.5104,
+        "x1": 1.0,
+        "y1": 1.0
+      },
+      "kind": "band",
+      "fill": "ss_panel_black"
+    },
+    "logo": {
+      "rect": {
+        "x0": 0.802,
+        "y0": 0.1607,
+        "x1": 0.9371,
+        "y1": 0.2074
+      },
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/lesson-corner/assets/logo-white.png",
+      "fit": "aspect_fit",
+      "align": "right",
+      "valign": "top"
+    },
+    "headline": {
+      "kind": "text",
+      "align": "right",
+      "valign": "bottom",
+      "text_transform": "uppercase",
+      "h_scale_pivot": "right",
+      "rect": {
+        "x0": 0.4098,
+        "y0": 0.5089,
+        "x1": 0.9501,
+        "y1": 0.6704
+      },
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_font_px": 105,
+      "min_font_px": 64,
+      "max_lines": 2,
+      "line_height": 0.8,
+      "h_scale": 0.884,
+      "colour": "white",
+      "wrap": "balanced"
+    },
+    "kicker": {
+      "kind": "text",
+      "align": "right",
+      "valign": "bottom",
+      "text_transform": "uppercase",
+      "h_scale_pivot": "right",
+      "rect": {
+        "x0": 0.278,
+        "y0": 0.6585,
+        "x1": 0.9501,
+        "y1": 0.7222
+      },
+      "source": "static",
+      "text": "CATHERINE LAU PGA PROFESSIONAL",
+      "font_role": "display",
+      "max_font_px": 36,
+      "min_font_px": 28,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "h_scale": 0.958,
+      "colour": "white"
+    },
+    "service_1": {
+      "kind": "text",
+      "align": "right",
+      "valign": "bottom",
+      "text_transform": "uppercase",
+      "h_scale_pivot": "right",
+      "rect": {
+        "x0": 0.2774,
+        "y0": 0.7104,
+        "x1": 0.9501,
+        "y1": 0.7785
+      },
+      "source": "static",
+      "text": "TRACKMAN LAUNCH MONITORS",
+      "font_role": "h3",
+      "max_font_px": 45,
+      "min_font_px": 32,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "h_scale": 0.911,
+      "colour_options": [
+        "ss_orange_bright",
+        "ss_blue_bright",
+        "ss_green"
+      ],
+      "colour_seed": "caption_hook"
+    },
+    "service_2": {
+      "kind": "text",
+      "align": "right",
+      "valign": "bottom",
+      "text_transform": "uppercase",
+      "h_scale_pivot": "right",
+      "rect": {
+        "x0": 0.2774,
+        "y0": 0.7393,
+        "x1": 0.9501,
+        "y1": 0.8074
+      },
+      "source": "static",
+      "text": "ZEN SWING STAGE",
+      "font_role": "h3",
+      "max_font_px": 45,
+      "min_font_px": 32,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "h_scale": 0.911,
+      "colour_options": [
+        "ss_orange_bright",
+        "ss_blue_bright",
+        "ss_green"
+      ],
+      "colour_seed": "caption_hook"
+    },
+    "service_3": {
+      "kind": "text",
+      "align": "right",
+      "valign": "bottom",
+      "text_transform": "uppercase",
+      "h_scale_pivot": "right",
+      "rect": {
+        "x0": 0.2774,
+        "y0": 0.7674,
+        "x1": 0.9501,
+        "y1": 0.8356
+      },
+      "source": "static",
+      "text": "CLUB FITTING",
+      "font_role": "h3",
+      "max_font_px": 45,
+      "min_font_px": 32,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "h_scale": 0.911,
+      "colour_options": [
+        "ss_orange_bright",
+        "ss_blue_bright",
+        "ss_green"
+      ],
+      "colour_seed": "caption_hook"
+    },
+    "cta": {
+      "kind": "text",
+      "align": "right",
+      "valign": "bottom",
+      "text_transform": "uppercase",
+      "h_scale_pivot": "right",
+      "rect": {
+        "x0": 0.4598,
+        "y0": 0.8193,
+        "x1": 0.9501,
+        "y1": 0.9637
+      },
+      "source": "cta",
+      "font_role": "display",
+      "max_font_px": 58,
+      "min_font_px": 40,
+      "max_lines": 3,
+      "line_height": 0.8104,
+      "h_scale": 0.889,
+      "colour": "white",
+      "wrap": "balanced"
+    }
+  },
+  "logo_anchor": {
+    "zone": "logo",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "right"
+  },
+  "safe_zone": {
+    "x0": 0.03,
+    "y0": 0.03,
+    "x1": 0.99,
+    "y1": 0.98
+  },
+  "max_total_chars": 120,
+  "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg",
+    "references/ref-03.jpg"
+  ],
+  "reference_size": {
+    "w": 1081,
+    "h": 1201
+  }
+}

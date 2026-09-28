@@ -736,15 +736,6 @@ def _draw_frame(base, zone: dict[str, Any], brand_id: str) -> None:
 
 
 def _draw_rule(base, zone: dict[str, Any], brand_id: str) -> None:
-<<<<<<< HEAD
-    w, h = base.size
-    rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
-    x0, y0, x1, y1 = _rect_px(rect, w, h)
-    colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
-    alpha = int(float(zone.get("alpha", 1.0)) * 255)
-    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    ImageDraw.Draw(layer).rectangle([x0, y0, x1, y1], fill=colour[:3] + (alpha,))
-=======
     rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
     x0, y0, x1, y1 = _rect_px(rect, *base.size)
     stroke = int(zone.get("stroke_px") or 2)
@@ -755,7 +746,6 @@ def _draw_rule(base, zone: dict[str, Any], brand_id: str) -> None:
         [x0, y0, x1 - 1, y0 + stroke - 1],
         fill=colour[:3] + (alpha,),
     )
->>>>>>> origin/feat/stick-statement-template
     base.paste(layer, (0, 0), layer)
 
 
