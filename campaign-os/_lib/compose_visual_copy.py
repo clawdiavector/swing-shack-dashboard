@@ -108,7 +108,6 @@ def _derive_service_lockup(
     if len(words) >= 2:
         return " ".join(words[-2:])
     return words[-1] if words else "CLUB FITTING"
->>>>>>> origin/feat/ss-fitting-headline-template
 
 
 def _service_cta(*, brand_id: str, moment_id: str, caption: str) -> str:
@@ -183,7 +182,6 @@ def visual_copy_for_archetype(
     base = _content_from_caption(caption, ctx)
     base["caption_hook"] = headline
     base["cta"] = cta
-<<<<<<< HEAD
     if qualifier:
         base["qualifier"] = qualifier
     if price:
@@ -203,7 +201,6 @@ def visual_copy_for_archetype(
         base["offer_subject"] = subject
     if expiry:
         base["offer_expiry"] = expiry
-=======
     base["service_lockup"] = _derive_service_lockup(
         brand_id=brand_id,
         moment_id=mid,
@@ -211,5 +208,4 @@ def visual_copy_for_archetype(
         sidecar=sidecar,
         headline=headline,
     )
->>>>>>> origin/feat/ss-fitting-headline-template
     return {k: str(v) for k, v in base.items()}
