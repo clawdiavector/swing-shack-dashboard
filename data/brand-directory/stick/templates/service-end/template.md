@@ -3,25 +3,24 @@
 ## Intent
 
 Carousel **closing** tile for service lanes (coaching, fitting, equipment, apparel).
-One layout: light venue photo, navy service word, `@ stick` lockup, large mint panel with static **END**.
+Gradient field, navy service word, composited `@ stick` lockup, mint panel with a service tagline.
 
 ## Anatomy
 
-- Full-bleed venue photo (upper frame, light scrim optional)
-- Partial white frame: 6px inset ~35px
-- Service word: Montserrat Black, navy `#073C52`, uppercase, 1–2 balanced lines
-- Lockup: `@ stick`, centred, same navy
-- Mint panel: token `mint` `#24FFAF`, ~91% width, static **END** centred on panel
-- White footer band below mint block
+- Vertical gradient `#D4DEDD` → `#FFFFFF` (no photo)
+- Partial white frame: top bar (alpha fade left→right) + right bar
+- Service word: Montserrat Black, `navy_alt`, uppercase, one line shrink-to-fit
+- Lockup: PNG asset (`assets/lockup-at-stick.png`) — white `@` + navy wordmark
+- Mint panel: token `mint` `#24FFAF`, tagline in `qualifier` (1–4 lines, sentence case)
 
 ## Platforms
 
 | Channel | Canvas | Notes |
 |---|---|---|
-| Instagram story | `ig_story` 1080×1920 | native refs 1081×1920 |
+| Instagram story | `ig_story` 1080×1920 | native |
 | Facebook | `ig_story` 1080×1920 | `channel_canvas`; story-shaped end slide |
-| Instagram feed 4:5 | — | no refs — skip v1 |
-| Google Business | — | skip (portrait END block) |
+
+No feed 4:5 or GBP refs — do not guess.
 
 ## When to use
 
@@ -30,11 +29,8 @@ One layout: light venue photo, navy service word, `@ stick` lockup, large mint p
 
 ## Copy budget
 
-- `caption_hook` → service word (e.g. COACHING, CLUB FITTING)
-- `cta` → `@ stick` lockup (not booking CTA copy)
-- **END** is static in the archetype — not LLM body copy
-- Max ~48 chars across dynamic zones
-
-## Photos
-
-`photos/` supplies stand-ins when the post has no draft photo. Replace with raw venue shots when available.
+- `caption_hook` → service word: **one word**, ≤ 16 chars
+- `qualifier` → tagline: ≤ 4 lines, ~24 chars per line, ~90 chars total, sentence case, ends with `.`
+- `compose_qualifier` on the sidecar overrides; `_service_end_tagline()` fills defaults per pillar
+- `cta` is unused (lockup is an asset)
+- `max_total_chars`: 140
