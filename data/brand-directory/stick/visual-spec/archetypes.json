@@ -279,15 +279,11 @@
           },
           "kind": "text",
           "source": "cta",
-          "font_role": "h2",
+          "font_role": "cta_emphasis",
           "max_lines": 2,
           "max_chars_per_line": 24,
           "line_height": 1.2133,
           "text_transform": "uppercase",
-          "emphasis_words": [
-            "FREE"
-          ],
-          "emphasis_font_role": "cta_emphasis",
           "tracking_em": 0.008,
           "text_origin_x": 123,
           "wrap_x1": 0.861,
