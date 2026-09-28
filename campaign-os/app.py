@@ -44073,26 +44073,40 @@ def planning_timeline(brand_id):
                     ek = ek_src if isinstance(ek_src, str) and ek_src else None
                     if ek:
                         combined_events[ek] = ev
-        # 2. Read the operator-approval store (Add to Main Calendar writes land here)
+        # 2. Read the operator-approval store (Add to Main Calendar writes land here).
+        #    WRAP everything in a try/except so a bad jsonl file can NEVER
+        #    take the timeline endpoint down — production data drift this
+        #    matters for is (1) V2.2 smoke-test records from earlier today
+        #    and (2) any operator_record persisted before V2.3 cleaned the
+        #    schema. Worst case: return the seed-only view + surface a
+        #    warning in the response payload.
+        mc_read_error = None
         try:
-            for record in _mc_timeline_v23.list_records(brand_id) or []:
-                ek = record.get("event_key")
-                if not ek:
-                    continue
-                try:
-                    r_start = _dt.date.fromisoformat(record.get("event_start") or "")
-                    r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
-                except Exception:
-                    continue
-                if r_end >= start_d and r_start <= end_d:
-                    # Operator record wins on conflict (V2.3 rule)
-                    combined_events[ek] = record
-                    # Always-on pillars from operator records are not surfaced in this layer —
-                    # the curated seed owns always-on (those are infrastructure, not campaigns).
-            sources.append(f"marketing_calendar[{brand_id}].jsonl")
-        except Exception:
-            # Read failure must NEVER make the timeline empty
-            pass
+            mc_records = _mc_timeline_v23.list_records(brand_id) or []
+        except Exception as mc_err:
+            mc_records = []
+            mc_read_error = f"{type(mc_err).__name__}: {mc_err}"
+            import sys as _sys_tl
+            print(
+                f"[v23-timeline] list_records failed: {mc_read_error}",
+                file=_sys_tl.stderr,
+                flush=True,
+            )
+        for record in mc_records:
+            ek = record.get("event_key")
+            if not ek:
+                continue
+            try:
+                r_start = _dt.date.fromisoformat(record.get("event_start") or "")
+                r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
+            except Exception:
+                continue
+            if r_end >= start_d and r_start <= end_d:
+                # Operator record wins on conflict (V2.3 rule)
+                combined_events[ek] = record
+                # Always-on pillars from operator records are not surfaced in this layer —
+                # the curated seed owns always-on (those are infrastructure, not campaigns).
+        sources.append(f"marketing_calendar[{brand_id}].jsonl")
 
         ordered: List[Dict[str, Any]] = []
         for e in combined_events.values():
@@ -44109,10 +44123,12 @@ def planning_timeline(brand_id):
                     file=_sys.stderr,
                     flush=True,
                 )
+                # Passthrough record with minimal derived dates so the SPA
+                # can still render the row.
                 passthrough = dict(e)
-                passthrough.setdefault("start", e.get("event_start") or "")
-                passthrough.setdefault("end", e.get("event_end") or e.get("public_peak") or "")
-                passthrough.setdefault("phases", [])
+                passthrough["start"] = passthrough.get("start") or passthrough.get("event_start") or ""
+                passthrough["end"] = passthrough.get("end") or passthrough.get("event_end") or passthrough.get("public_peak") or ""
+                passthrough["phases"] = []
                 passthrough.setdefault("planning_state", "operator_record_no_phases")
                 ordered.append(passthrough)
         ordered.sort(key=lambda e: e.get("start") or "")
@@ -44165,20 +44181,27 @@ def planning_timeline(brand_id):
             combined_events[ek] = ev
     # Operator-approved records for the year:
     try:
-        for record in _mc_timeline_v23yr.list_records(brand_id) or []:
-            ek = record.get("event_key")
-            if not ek:
+        mc_records_year = _mc_timeline_v23yr.list_records(brand_id) or []
+    except Exception as mc_err_yr:
+        mc_records_year = []
+        import sys as _sys_yr
+        print(
+            f"[v23-timeline-year] list_records failed: {type(mc_err_yr).__name__}: {mc_err_yr}",
+            file=_sys_yr.stderr,
+            flush=True,
+        )
+    for record in mc_records_year:
+        ek = record.get("event_key")
+        if not ek:
+            continue
+        try:
+            year_int = int(year_str)
+            rs = record.get("event_start") or ""
+            if not rs.startswith(str(year_int)):
                 continue
-            try:
-                year_int = int(year_str)
-                rs = record.get("event_start") or ""
-                if not rs.startswith(str(year_int)):
-                    continue
-            except Exception:
-                continue
-            combined_events[ek] = record  # operator wins on conflict
-    except Exception:
-        pass
+        except Exception:
+            continue
+        combined_events[ek] = record  # operator wins on conflict
     events_year: List[Dict[str, Any]] = []
     for e in combined_events.values():
         try:
