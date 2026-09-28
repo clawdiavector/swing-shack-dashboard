@@ -163,6 +163,7 @@ def recompose_draft(
     *,
     headline: str | None = None,
     cta: str | None = None,
+    service_label: str | None = None,
     archetype_id: str | None = None,
     candidate_index: int | None = None,
 ) -> dict[str, Any]:
@@ -197,6 +198,8 @@ def recompose_draft(
             "canvas": archetype.get("canvas"),
             "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
         }
+    if service_label is not None and str(service_label).strip():
+        sidecar["compose_service_label"] = str(service_label).strip()
 
     needs_photo = archetype.get("applies_to", {}).get("needs_photo", True)
     photo_bytes: bytes | None = None
