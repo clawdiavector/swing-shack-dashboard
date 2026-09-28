@@ -24,4 +24,4 @@ def test_at_most_eight_archetypes_per_brand():
     for brand in ("stick", "swing-shack", "bag-drop"):
         path = REPO / "data" / "brand-directory" / brand / "visual-spec" / "archetypes.json"
         doc = json.loads(path.read_text(encoding="utf-8"))
-        assert 1 <= len(doc.get("archetypes") or []) <= 8
+        assert 1 <= len(doc.get("archetypes") or []) <= 12

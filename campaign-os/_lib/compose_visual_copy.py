@@ -135,6 +135,15 @@ def visual_copy_for_archetype(
     applies = archetype.get("applies_to") if isinstance(archetype.get("applies_to"), dict) else {}
     needs_photo = applies.get("needs_photo", True)
     archetype_id = str(archetype.get("id") or "")
+
+    def _coach_profile_fields(base: dict[str, str], body: str) -> dict[str, str]:
+        lines = [ln.strip() for ln in (body or "").splitlines() if ln.strip()]
+        if lines:
+            base["kicker"] = lines[0]
+        for idx, line in enumerate(lines[1:4], start=1):
+            base[f"bio_{idx}"] = line
+        return {k: str(v) for k, v in base.items()}
+
     if needs_photo and archetype_id in ("stick-service-start", "stick-service-end"):
         mid = moment_id or f"proposal:{brand_id}:compose"
         headline = str(sidecar.get("compose_headline") or "").strip()
@@ -148,6 +157,19 @@ def visual_copy_for_archetype(
         base["caption_hook"] = headline
         base["cta"] = lockup
         return {k: str(v) for k, v in base.items()}
+
+    if needs_photo and archetype_id == "stick-coach-profile":
+        mid = moment_id or f"proposal:{brand_id}:compose"
+        name = str(sidecar.get("compose_headline") or "").strip()
+        body = str(sidecar.get("compose_body") or "").strip()
+        ctx = build_image_draft_context(brand_id, mid)
+        base = _content_from_caption(caption, ctx)
+        if not name:
+            name = str(base.get("caption_hook") or "").strip()
+        if not body:
+            body = str(base.get("caption_body") or "").strip()
+        base["caption_hook"] = name
+        return _coach_profile_fields(base, body)
     if needs_photo:
         ctx = build_image_draft_context(brand_id, moment_id or "proposal:stick:local")
         base = _content_from_caption(caption, ctx)

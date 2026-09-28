@@ -1582,6 +1582,342 @@
         "w": 1081,
         "h": 1201
       }
+    },
+    {
+      "id": "stick-coach-profile",
+      "name": "Coach profile — portrait, teal name band, navy credentials, stick footer",
+      "description": "Staff introduction card measured from Content Bank Stick/Other dave_post + dave_story (1080×1350 / 1080×1920). Grey-top portrait, teal name band, navy credential stack, light footer lockup. Story extends photo upward via canvas_overrides.",
+      "canvas": "ig_post",
+      "block_anchor": "bottom",
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/coach-profile",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "grey_light"
+      },
+      "zones": {
+        "footer_band": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.782,
+            "x1": 1,
+            "y1": 1
+          },
+          "kind": "band",
+          "fill": "#F9F9F9"
+        },
+        "navy_panel": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.518,
+            "x1": 1,
+            "y1": 0.778
+          },
+          "kind": "band",
+          "fill": "navy_deep"
+        },
+        "name_band": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.222,
+            "x1": 1,
+            "y1": 0.504
+          },
+          "kind": "band",
+          "fill": "teal"
+        },
+        "photo": {
+          "rect": {
+            "x0": 0,
+            "y0": 0.006,
+            "x1": 1,
+            "y1": 0.36
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "name": {
+          "rect": {
+            "x0": 0.06,
+            "y0": 0.24,
+            "x1": 0.99,
+            "y1": 0.48
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 2,
+          "max_chars_per_line": 16,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "min_font_px": 56
+        },
+        "kicker": {
+          "rect": {
+            "x0": 0.115,
+            "y0": 0.39,
+            "x1": 0.869,
+            "y1": 0.46
+          },
+          "kind": "text",
+          "source": "kicker",
+          "font_role": "h2",
+          "max_lines": 1,
+          "max_chars_per_line": 42,
+          "line_height": 1,
+          "align": "left",
+          "valign": "bottom",
+          "colour": "white",
+          "min_font_px": 28,
+          "optional": true
+        },
+        "bio_1": {
+          "rect": {
+            "x0": 0.115,
+            "y0": 0.556,
+            "x1": 0.9,
+            "y1": 0.594
+          },
+          "kind": "text",
+          "source": "bio_1",
+          "font_role": "h3",
+          "max_lines": 1,
+          "max_chars_per_line": 36,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 24
+        },
+        "bio_2": {
+          "rect": {
+            "x0": 0.115,
+            "y0": 0.621,
+            "x1": 0.9,
+            "y1": 0.667
+          },
+          "kind": "text",
+          "source": "bio_2",
+          "font_role": "h3",
+          "max_lines": 1,
+          "max_chars_per_line": 36,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 24
+        },
+        "bio_3": {
+          "rect": {
+            "x0": 0.115,
+            "y0": 0.686,
+            "x1": 0.9,
+            "y1": 0.724
+          },
+          "kind": "text",
+          "source": "bio_3",
+          "font_role": "h3",
+          "max_lines": 1,
+          "max_chars_per_line": 36,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 24,
+          "optional": true
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.32,
+            "y0": 0.84,
+            "x1": 0.68,
+            "y1": 0.97
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/coach-profile/assets/logo.png",
+          "fit": "aspect_fit",
+          "align": "center",
+          "valign": "middle"
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "footer_band": {
+            "rect": {
+              "x0": 0,
+              "y0": 0.676,
+              "x1": 1,
+              "y1": 0.996
+            },
+            "kind": "band",
+            "fill": "#F9F9F9"
+          },
+          "navy_panel": {
+            "rect": {
+              "x0": 0,
+              "y0": 0.481,
+              "x1": 1,
+              "y1": 0.676
+            },
+            "kind": "band",
+            "fill": "navy_deep"
+          },
+          "name_band": {
+            "rect": {
+              "x0": 0,
+              "y0": 0.282,
+              "x1": 1,
+              "y1": 0.481
+            },
+            "kind": "band",
+            "fill": "teal"
+          },
+          "photo": {
+            "rect": {
+              "x0": 0,
+              "y0": 0.004,
+              "x1": 1,
+              "y1": 0.379
+            },
+            "kind": "image",
+            "source": "photo"
+          },
+          "name": {
+            "rect": {
+              "x0": 0.06,
+              "y0": 0.3,
+              "x1": 0.99,
+              "y1": 0.46
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_lines": 2,
+            "max_chars_per_line": 16,
+            "line_height": 1.05,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "min_font_px": 56
+          },
+          "kicker": {
+            "rect": {
+              "x0": 0.115,
+              "y0": 0.401,
+              "x1": 0.869,
+              "y1": 0.448
+            },
+            "kind": "text",
+            "source": "kicker",
+            "font_role": "h2",
+            "max_lines": 1,
+            "max_chars_per_line": 42,
+            "line_height": 1,
+            "align": "left",
+            "valign": "bottom",
+            "colour": "white",
+            "min_font_px": 28,
+            "optional": true
+          },
+          "bio_1": {
+            "rect": {
+              "x0": 0.115,
+              "y0": 0.517,
+              "x1": 0.9,
+              "y1": 0.544
+            },
+            "kind": "text",
+            "source": "bio_1",
+            "font_role": "h3",
+            "max_lines": 1,
+            "max_chars_per_line": 36,
+            "align": "left",
+            "colour": "white",
+            "min_font_px": 24
+          },
+          "bio_2": {
+            "rect": {
+              "x0": 0.115,
+              "y0": 0.563,
+              "x1": 0.9,
+              "y1": 0.595
+            },
+            "kind": "text",
+            "source": "bio_2",
+            "font_role": "h3",
+            "max_lines": 1,
+            "max_chars_per_line": 36,
+            "align": "left",
+            "colour": "white",
+            "min_font_px": 24
+          },
+          "bio_3": {
+            "rect": {
+              "x0": 0.115,
+              "y0": 0.609,
+              "x1": 0.9,
+              "y1": 0.635
+            },
+            "kind": "text",
+            "source": "bio_3",
+            "font_role": "h3",
+            "max_lines": 1,
+            "max_chars_per_line": 36,
+            "align": "left",
+            "colour": "white",
+            "min_font_px": 24,
+            "optional": true
+          },
+          "logo": {
+            "rect": {
+              "x0": 0.32,
+              "y0": 0.72,
+              "x1": 0.68,
+              "y1": 0.88
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "templates/coach-profile/assets/logo.png",
+            "fit": "aspect_fit",
+            "align": "center",
+            "valign": "middle"
+          }
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "center"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 120,
+      "measured_from": [
+        "templates/coach-profile/references/ref-01.jpg",
+        "templates/coach-profile/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1350
+      }
     }
   ],
   "selection": {
@@ -1652,6 +1988,14 @@
           ]
         },
         "use": "stick-brand-statement"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "staff_profile"
+          ]
+        },
+        "use": "stick-coach-profile"
       }
     ]
   }

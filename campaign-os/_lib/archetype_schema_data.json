@@ -83,7 +83,7 @@
     "archetypes": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 8,
+      "maxItems": 12,
       "items": {
         "type": "object",
         "required": [
@@ -364,7 +364,11 @@
             "service_label",
             "service_lockup",
             "static",
-            "vendor_name"
+            "vendor_name",
+            "kicker",
+            "bio_1",
+            "bio_2",
+            "bio_3"
           ],
           "description": "Where compose_post gets the content. static means the literal in `text`."
         },
