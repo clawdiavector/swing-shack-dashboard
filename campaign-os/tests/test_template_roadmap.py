@@ -19,9 +19,10 @@ def test_stick_coverage_row_count_and_ready():
     cov = build_template_coverage("stick")
     assert cov["brand_id"] == "stick"
     rows = cov.get("rows") or []
-    assert len(rows) == 8
+    assert len(rows) == 9
     summary = cov.get("summary") or {}
-    assert summary.get("total") == 8
+    assert summary.get("total") == 9
+    assert summary.get("missing", 0) >= 1
     ready_ids = [r["archetype_id"] for r in rows if r.get("status") == "ready"]
     assert "stick-service-frame" in ready_ids
 
@@ -29,8 +30,10 @@ def test_stick_coverage_row_count_and_ready():
 def test_swing_shack_coverage_row_count():
     cov = build_template_coverage("swing-shack")
     rows = cov.get("rows") or []
-    assert len(rows) == 8
-    assert (cov.get("summary") or {}).get("total") == 8
+    assert len(rows) == 9
+    summary = cov.get("summary") or {}
+    assert summary.get("total") == 9
+    assert summary.get("missing", 0) >= 1
 
 
 def test_missing_rows_have_no_previews():
@@ -45,7 +48,7 @@ def test_gallery_includes_coverage_key():
     gallery = build_template_gallery("stick")
     cov = gallery.get("coverage")
     assert cov is not None
-    assert cov.get("summary", {}).get("total") == 8
+    assert cov.get("summary", {}).get("total") == 9
 
 
 def test_unknown_brand_coverage_raises():

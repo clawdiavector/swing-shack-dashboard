@@ -54,6 +54,12 @@ brands:
         wave: 2
         notes: Venue hero / zen stage — not a Services-folder family; wave-2 extra archetype.
         content_bank_hint: zenstage-100.jpg (Other / venue art)
+      - family_key: tournament-news
+        label: Tournament news
+        archetype_id: ss-tournament-news
+        section: News
+        notes: Recap + sign-up cards for upcoming events.
+        content_bank_hint: events_*.jpg
 
   stick:
     rows:
@@ -106,3 +112,9 @@ brands:
         wave: 2
         notes: Retail / shop corner promo — wave-2 extra beyond Services 7×7.
         content_bank_hint: lab_post.jpg (Products)
+      - family_key: events-calendar
+        label: Events calendar
+        archetype_id: stick-events-calendar
+        section: Events
+        notes: Tournament + clinic schedule cards; future wave.
+        content_bank_hint: events_hero.jpg
