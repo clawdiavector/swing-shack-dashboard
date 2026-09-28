@@ -203,8 +203,10 @@ def postiz_status(brand_id: str | None = None) -> dict:
     key = _read_api_key(brand_id=brand_id)
     cid = _read_oauth_client_id()
     secret = _read_oauth_client_secret()
+    configured = bool(key)
     return {
-        "ok": bool(key),
+        "ok": configured,
+        "configured": configured,
         "api_key_present": bool(key),
         "api_key_length": len(key) if key else 0,
         "api_key_prefix": (key[:6] + "…") if key else None,
