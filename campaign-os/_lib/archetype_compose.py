@@ -806,7 +806,7 @@ def _paste_inline_asset(
 
 def _compose_variant(fields: dict[str, str]) -> str:
     explicit = str(fields.get("variant") or "").strip().lower()
-    if explicit in ("lab", "avoda"):
+    if explicit in ("lab", "avoda", "invite", "detail"):
         return explicit
     cat = str(fields.get("service_category") or "").upper()
     if cat in ("AVODA", "WORKSHOP"):
