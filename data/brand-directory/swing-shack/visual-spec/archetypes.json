@@ -2121,7 +2121,21 @@
               "y0": 0.6719,
               "x1": 1,
               "y1": 0.6911
-            }
+            },
+            "kind": "text",
+            "source": "static",
+            "text": "WWW.SWINGSHACK.CO.ZA",
+            "font_role": "display",
+            "max_font_px": 51,
+            "min_font_px": 51,
+            "max_lines": 1,
+            "max_chars_per_line": 30,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "center",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.92
           }
         }
       },
