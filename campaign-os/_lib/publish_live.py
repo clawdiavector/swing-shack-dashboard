@@ -38,8 +38,9 @@ def _normalize_integrations(raw: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _media_ids_for_row(row: dict[str, Any], *, brand_id: str) -> list[str]:
-    media_ids: list[str] = []
+def _media_for_row(row: dict[str, Any], *, brand_id: str) -> list[dict[str, str]]:
+    """Upload queue image to Postiz; return [{id, path}, …] for create_post."""
+    out: list[dict[str, str]] = []
     resolved = resolve_queue_upload_path(row)
     if resolved is None:
         upload_path = str(row.get("image_path") or row.get("image_url") or "")
@@ -47,17 +48,19 @@ def _media_ids_for_row(row: dict[str, Any], *, brand_id: str) -> list[str]:
             base = os.environ.get("ASSET_MEDIA_DIR") or str(sandbox._data_dir() / "uploads")
             upload_path = os.path.join(base, os.path.basename(upload_path))
         elif upload_path.startswith("http://") or upload_path.startswith("https://"):
-            return media_ids
+            return out
         if upload_path and os.path.isfile(upload_path):
             resolved = Path(upload_path)
     if resolved is None or not resolved.is_file():
-        return media_ids
+        return out
     data, err = upload_media(str(resolved), brand_id=brand_id)
-    if not err and isinstance(data, dict):
-        mid = data.get("id") or data.get("mediaId")
-        if mid:
-            media_ids.append(str(mid))
-    return media_ids
+    if err or not isinstance(data, dict):
+        return out
+    mid = data.get("id") or data.get("mediaId")
+    path = data.get("path")
+    if mid and path:
+        out.append({"id": str(mid), "path": str(path)})
+    return out
 
 
 def _integrations_for_brand(
@@ -107,7 +110,7 @@ def _dispatch_row_live(
     if not caption:
         return {}, "empty caption"
 
-    media_ids = _media_ids_for_row(row, brand_id=brand_id)
+    media = _media_for_row(row, brand_id=brand_id)
     publish_date = row.get("would_publish_at")
     if publish_date and not str(publish_date).endswith("Z"):
         publish_date = str(publish_date)
@@ -115,16 +118,23 @@ def _dispatch_row_live(
     result, err = create_post(
         integration_id=integration_id,
         content=caption,
-        media_ids=media_ids,
+        media=media,
         brand_id=brand_id,
         publish_date=str(publish_date) if publish_date else None,
+        platform_settings={"post_type": "post"},
     )
     if err:
         return {}, f"postiz create_post: {err[0]} {err[1][:200] if err[1] else ''}"
 
     postiz_id = None
+    if isinstance(result, list) and result:
+        result = result[0]
     if isinstance(result, dict):
-        postiz_id = result.get("id") or (result.get("post") or {}).get("id")
+        postiz_id = (
+            result.get("id")
+            or result.get("postId")
+            or (result.get("post") or {}).get("id")
+        )
     if not postiz_id:
         return {}, "no postiz id returned"
 

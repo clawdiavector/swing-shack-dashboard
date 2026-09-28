@@ -17561,9 +17561,9 @@ try:
         brand_mode="global",
     ))
 
-    def _run_publish_dispatch_job():
+    def _run_publish_dispatch_job(brand=None):
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
-        return _publish_dispatch_run()
+        return _publish_dispatch_run(brand=brand)
 
     def _run_auto_release_job(brand=None):
         from _lib.jobs.auto_release import run as _auto_release_run
