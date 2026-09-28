@@ -26,13 +26,28 @@ One layout: venue photo, navy service word, `@ stick` lockup, mint accent bar.
 
 - Tag carousel **start** rows with `post_type: service_start`
 - Or pin `template_id` / `archetype_id: stick-service-start` on the calendar post
+- One archetype covers all four service words on the refs: **COACHING**, **FITTINGS**,
+  **APPAREL**, **EQUIPMENT** (see `cases.json` / compare golden)
+
+## Headline routing (production copy)
+
+`compose_visual_copy._service_carousel_headline()` picks the service word from pillar id or
+caption keywords (`coaching` / `trackman` / `swing`, `fitting`, `apparel`, `equipment`).
+There is no dedicated `stick-apparel` / `stick-equipment` pillar — retail carousels often sit
+under `stick-retail`, so the **caption must mention "apparel" or "equipment"** (or set a
+`compose_headline` sidecar) for the correct word. Archetype **selection** is unaffected:
+`post_type: service_start` always selects this template.
+
+Golden/compare fixtures use explicit `caption_hook` values (e.g. `FITTINGS` on the fitting ref);
+that can differ from the brand-voice default (`CLUB FITTING` for fitting pillar posts).
 
 ## Copy budget
 
-- `caption_hook` → service word (e.g. COACHING, CLUB FITTING)
+- `caption_hook` → service word (COACHING, FITTINGS, APPAREL, EQUIPMENT)
 - `cta` → `@ stick` lockup (static; not the teal CTA band copy)
 - Max ~40 chars total across zones
 
 ## Photos
 
-`photos/` supplies stand-ins when the post has no draft photo. Replace with raw venue shots when available.
+`photos/stand-in-01..04.jpg` supplies stand-ins when the post has no draft photo (coaching,
+fitting, apparel, equipment crops from refs). Replace with raw venue shots when available.

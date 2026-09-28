@@ -5,8 +5,18 @@
     "photo_seed": "coaching"
   },
   {
-    "caption_hook": "CLUB FITTING",
+    "caption_hook": "FITTINGS",
     "cta": "@ stick",
     "photo_seed": "fitting"
+  },
+  {
+    "caption_hook": "APPAREL",
+    "cta": "@ stick",
+    "photo_seed": "apparel"
+  },
+  {
+    "caption_hook": "EQUIPMENT",
+    "cta": "@ stick",
+    "photo_seed": "equipment"
   }
 ]

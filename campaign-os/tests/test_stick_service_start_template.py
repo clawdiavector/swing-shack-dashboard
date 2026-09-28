@@ -129,10 +129,19 @@ def test_fitting_without_post_type_keeps_service_frame(monkeypatch):
     assert arch_lib.select_archetype(BRAND, item)["id"] == "stick-service-frame"
 
 
+def test_apparel_and_equipment_render_navy_glyphs(start_arch: dict):
+    for word in ("APPAREL", "EQUIPMENT"):
+        img = np.asarray(_render(start_arch, ["instagram"], caption_hook=word)["instagram"])
+        h, w = img.shape[:2]
+        svc = img[int(0.36 * h) : int(0.48 * h), int(0.1 * w) : int(0.92 * w)]
+        navy = np.abs(svc.astype(int) - NAVY).sum(axis=2) < 45
+        assert navy.sum() > 200, f"{word} navy glyphs expected in service zone"
+
+
 def test_pack_cases_match_archetype(start_arch: dict):
     cases = json.loads((PACK / "cases.json").read_text(encoding="utf-8"))
-    assert len(cases) >= 2
-    for case in cases[:2]:
+    assert len(cases) >= 4
+    for case in cases:
         out = compose_post_for_channels(
             brand_id=BRAND,
             archetype=start_arch,

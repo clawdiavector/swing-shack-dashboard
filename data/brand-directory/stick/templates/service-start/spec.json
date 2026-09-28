@@ -126,7 +126,9 @@
   "max_total_chars": 40,
   "measured_from": [
     "templates/service-start/references/ref-01.jpg",
-    "templates/service-start/references/ref-02.jpg"
+    "templates/service-start/references/ref-02.jpg",
+    "templates/service-start/references/ref-05.jpg",
+    "templates/service-start/references/ref-07.jpg"
   ],
   "reference_size": {
     "w": 1081,
