@@ -45118,18 +45118,15 @@ def planning_diagnose_serialize(brand_id):
     default=str. Identifies the FIRST record whose enriched + serialized
     payload would crash json.dumps().
 
-    Returns:
-        ok=true,
-        record_count: N,
-        failing_index: K or null,
-        failing_event_key: <event_key> or null,
-        failing_enriched_keys: [...],
-        failure_kind: TypeError | ValueError | KeyError | ...,
-        failure_path: "<dotted.path>",
-        failure_message: "<exception text>",
-        offending_subtree: <the value at failure_path>,
-        summary: ...,
-        sample_pass_record_keys: [...],
+    Reports per-record:
+      failing_index (or null if all pass)
+      failing_event_key
+      failure_kind (TypeError | ValueError | KeyError | …)
+      failure_path (e.g. ".phases[3].weeks_before_peak")
+      failure_message
+      offending_subtree
+      sort_test_ok (sort_keys=True across the merged enriched list)
+      sort_test_err
 
     V2.4 — admin-only. The serializer never uses default=str so this
     endpoint measures the actual failure a normal Flask jsonify() call
@@ -45195,8 +45192,8 @@ def planning_diagnose_serialize(brand_id):
     # Also test sorting the full enriched list as the timeline does
     sort_ok = True
     sort_err = None
+    enriched_all: List[Dict[str, Any]] = []
     try:
-        enriched_all = []
         for rec in records:
             try:
                 enriched_all.append(_enrich_event(rec))
@@ -45206,6 +45203,32 @@ def planning_diagnose_serialize(brand_id):
     except Exception as sort_exc:
         sort_ok = False
         sort_err = f"{type(sort_exc).__name__}: {sort_exc}"
+
+    # V2.4 — the timeline endpoint actually wraps the sorted events
+    # into a payload like:
+    #   { ok: True, brand_id, events: ordered, ... }
+    # and Flask's json.dumps then sort_keys=True walks THAT dict tree.
+    # Test the WHOLE payload here, not just individual records.
+    timeline_payload = {
+        "ok": True,
+        "brand_id": brand_id,
+        "events": enriched_all,
+        "event_count": len(enriched_all),
+        # Intentionally include a None-str mix to spot-check sort_keys.
+    }
+    full_payload_ok = True
+    full_payload_err = None
+    offender_full = None
+    path_full = None
+    try:
+        # Use Python stdlib json.dumps with sort_keys=True, identical
+        # to Flask's default behavior on this Provider.
+        _json_diag.dumps(timeline_payload, sort_keys=True)
+    except Exception as full_exc:
+        full_payload_ok = False
+        full_payload_err = f"{type(full_exc).__name__}: {full_exc}"
+        # Locate the offender in the payload tree
+        offender_full, path_full = _find_json_offender(timeline_payload, sort_keys=True)
 
     return jsonify({
         "ok": True,
@@ -45221,6 +45244,10 @@ def planning_diagnose_serialize(brand_id):
         "sample_pass_record_keys": sample_pass_record_keys,
         "sort_test_ok": sort_ok,
         "sort_test_err": sort_err,
+        "full_payload_dumps_ok": full_payload_ok,
+        "full_payload_err": full_payload_err,
+        "full_payload_offender": offender_full if not full_payload_ok else None,
+        "full_payload_offender_path": path_full if not full_payload_ok else None,
     }), 200
 
 
