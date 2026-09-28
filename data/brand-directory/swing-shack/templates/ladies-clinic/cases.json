@@ -1,15 +1,14 @@
 [
   {
-    "variant": "invite",
-    "caption_hook": "LADIES CLINIC",
-    "qualifier": "FRIDAY, 12 SEPTEMBER - 18:00",
-    "cta": "HOSTED BY CATHERINE LAU",
-    "accent": "ss_clinic_magenta"
+    "render_page": "page1",
+    "headline": "LADIES CLINIC",
+    "event_date": "FRIDAY, 12 SEPTEMBER - 18:00",
+    "event_host": "HOSTED BY CATHERINE LAU"
   },
   {
-    "variant": "detail",
-    "caption_hook": "IT'S THE PERFECT CHANCE TO LEARN, CONNECT, AND HAVE FUN ON THE RANGE.",
-    "qualifier": "SPOTS ARE LIMITED. BOOK YOURS TODAY!",
-    "cta": "BOOK ONLINE @ SWINGSHACK.CO.ZA OR DM US"
+    "render_page": "page2",
+    "body_text": "IT'S THE PERFECT CHANCE TO\nLEARN, CONNECT, AND HAVE\nFUN ON THE RANGE.",
+    "cta_lockup": "SPOTS ARE LIMITED.\nBOOK YOURS TODAY!",
+    "booking_url": "BOOK ONLINE @\nSWINGSHACK.CO.ZA\nOR DM US"
   }
 ]

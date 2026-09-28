@@ -83,7 +83,7 @@
     "archetypes": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 12,
+      "maxItems": 24,
       "items": {
         "type": "object",
         "required": [
@@ -368,7 +368,13 @@
             "kicker",
             "bio_1",
             "bio_2",
-            "bio_3"
+            "bio_3",
+            "headline",
+            "event_date",
+            "event_host",
+            "body_text",
+            "cta_lockup",
+            "booking_url"
           ],
           "description": "Where compose_post gets the content. static means the literal in `text`."
         },

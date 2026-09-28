@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import zlib
+from datetime import datetime
 from typing import Any
 
 from _lib.jobs.layer5.create_photo_compose import _content_from_caption
@@ -110,6 +111,88 @@ def _derive_service_lockup(
     return words[-1] if words else "CLUB FITTING"
 
 
+def _calendar_row(brand_id: str, moment_id: str) -> dict[str, Any]:
+    ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
+    cal = ctx.lineage.get("calendar") if isinstance(ctx.lineage.get("calendar"), dict) else {}
+    return cal if isinstance(cal, dict) else {}
+
+
+def _format_event_date(raw: str) -> str:
+    text = (raw or "").strip()
+    if not text:
+        return ""
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text.upper()
+    month = dt.strftime("%B").upper()
+    weekday = dt.strftime("%A").upper()
+    return f"{weekday}, {dt.day} {month} - {dt.strftime('%H:%M')}"
+
+
+def _event_headline(*, brand_id: str, moment_id: str, caption: str, sidecar: dict[str, Any]) -> str:
+    cal = _calendar_row(brand_id, moment_id)
+    for key in ("compose_headline", "event_name", "event_headline", "headline"):
+        val = str(sidecar.get(key) or cal.get(key) or "").strip()
+        if val:
+            return val.upper()
+    hook = _hook_from_caption(caption, max_chars=32).upper()
+    return hook
+
+
+def _event_date(*, brand_id: str, moment_id: str, sidecar: dict[str, Any]) -> str:
+    cal = _calendar_row(brand_id, moment_id)
+    for key in ("compose_event_date", "event_date", "starts_at", "event_starts_at"):
+        val = str(sidecar.get(key) or cal.get(key) or "").strip()
+        if val:
+            return _format_event_date(val)
+    return ""
+
+
+def _event_host(*, brand_id: str, moment_id: str, sidecar: dict[str, Any]) -> str:
+    cal = _calendar_row(brand_id, moment_id)
+    for key in ("compose_event_host", "event_host", "host"):
+        val = str(sidecar.get(key) or cal.get(key) or "").strip()
+        if val:
+            return val.upper()
+    return ""
+
+
+def _body_text(*, brand_id: str, moment_id: str, caption: str, sidecar: dict[str, Any]) -> str:
+    cal = _calendar_row(brand_id, moment_id)
+    val = str(sidecar.get("compose_body") or cal.get("body") or cal.get("body_text") or "").strip()
+    if val:
+        return val.upper()
+    lines = [ln.strip() for ln in (caption or "").splitlines() if ln.strip()]
+    if len(lines) > 1:
+        return "\n".join(ln.upper() for ln in lines[1:4])
+    return ""
+
+
+def _cta_lockup(*, brand_id: str, moment_id: str, caption: str, sidecar: dict[str, Any]) -> str:
+    cal = _calendar_row(brand_id, moment_id)
+    val = str(sidecar.get("compose_cta_lockup") or cal.get("cta_lockup") or cal.get("cta_headline") or "").strip()
+    if val:
+        return val.upper()
+    cta = str(sidecar.get("compose_cta") or cal.get("cta") or "").strip()
+    return cta.upper() if cta else ""
+
+
+def _booking_url(*, brand_id: str, moment_id: str, sidecar: dict[str, Any]) -> str:
+    cal = _calendar_row(brand_id, moment_id)
+    url = str(sidecar.get("compose_booking_url") or cal.get("booking_url") or "").strip()
+    alt = str(sidecar.get("compose_booking_alt") or cal.get("booking_alt") or "").strip()
+    lines: list[str] = []
+    if url:
+        lines.append(url.upper())
+    if alt:
+        lines.append(alt.upper())
+    booking = str(cal.get("booking_instruction") or "").strip()
+    if booking:
+        return booking.upper()
+    return "\n".join(lines)
+
+
 def _service_cta(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id)
     pillar = _pillar_id_from_context(ctx).lower()
@@ -157,6 +240,29 @@ def visual_copy_for_archetype(
         base["caption_hook"] = headline
         base["cta"] = lockup
         return {k: str(v) for k, v in base.items()}
+
+    if archetype_id == "ss-ladies-clinic":
+        mid = moment_id or f"proposal:{brand_id}:compose"
+        base: dict[str, str] = {}
+        headline = _event_headline(brand_id=brand_id, moment_id=mid, caption=caption, sidecar=sidecar)
+        if headline:
+            base["headline"] = headline
+        event_date = _event_date(brand_id=brand_id, moment_id=mid, sidecar=sidecar)
+        if event_date:
+            base["event_date"] = event_date
+        host = _event_host(brand_id=brand_id, moment_id=mid, sidecar=sidecar)
+        if host:
+            base["event_host"] = host
+        body = _body_text(brand_id=brand_id, moment_id=mid, caption=caption, sidecar=sidecar)
+        if body:
+            base["body_text"] = body
+        lockup = _cta_lockup(brand_id=brand_id, moment_id=mid, caption=caption, sidecar=sidecar)
+        if lockup:
+            base["cta_lockup"] = lockup
+        booking = _booking_url(brand_id=brand_id, moment_id=mid, sidecar=sidecar)
+        if booking:
+            base["booking_url"] = booking
+        return base
 
     if needs_photo and archetype_id == "stick-coach-profile":
         mid = moment_id or f"proposal:{brand_id}:compose"

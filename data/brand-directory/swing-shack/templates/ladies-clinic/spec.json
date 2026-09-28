@@ -1,12 +1,22 @@
 {
   "id": "ss-ladies-clinic",
-  "name": "Ladies clinic — invite + detail carousel slides",
-  "description": "Measured from Content Bank Services ladiesclinic_* (1081×1201). Slide 1: logo, invite kicker, magenta clinic title, date/time, host. Slide 2: body copy, magenta urgency, booking lines. Full-bleed venue photo, 4px white frame inset ~33px.",
+  "name": "Clinic invite card \u2014 two-page event invite, magenta accent, fringed frame",
+  "description": "Measured from Content Bank Services/ladiesclinic-100 (page 1) and ladiesclinic2-100 (page 2). Two-page card via multi_render.",
   "canvas": "ig_post",
   "block_anchor": "center",
+  "multi_render": [
+    "page1",
+    "page2"
+  ],
   "applies_to": {
-    "channels": ["instagram", "facebook"],
-    "record_types": ["moment", "evergreen"],
+    "channels": [
+      "instagram",
+      "facebook"
+    ],
+    "record_types": [
+      "moment",
+      "evergreen"
+    ],
     "needs_photo": false
   },
   "channel_canvas": {
@@ -17,27 +27,56 @@
     "kind": "photo_full_bleed",
     "cover": true,
     "library": "templates/ladies-clinic/photos",
-    "focus_y": 0.45,
+    "focus_y": 0.5,
     "scrim": {
-      "rect": {"x0": 0, "y0": 0, "x1": 1, "y1": 1},
-      "from_alpha": 0.55,
+      "rect": {
+        "x0": 0,
+        "y0": 0,
+        "x1": 1,
+        "y1": 1
+      },
+      "from_alpha": 0.62,
       "to_alpha": 0.72
     }
   },
   "zones": {
     "frame": {
-      "rect": {"x0": 0, "y0": 0, "x1": 1, "y1": 1},
+      "rect": {
+        "x0": 0.0,
+        "y0": 0.0,
+        "x1": 1.0,
+        "y1": 1.0
+      },
       "kind": "decorative",
       "shape": "frame",
-      "inset_x_px": 33,
-      "inset_y_px": 33,
-      "stroke_px": 4,
+      "inset_px": 34,
+      "stroke_px": 3,
       "colour": "white",
-      "alpha": 1
+      "alpha": 0.55
+    }
+  },
+  "zones_page1": {
+    "frame": {
+      "rect": {
+        "x0": 0.0,
+        "y0": 0.0,
+        "x1": 1.0,
+        "y1": 1.0
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 34,
+      "stroke_px": 3,
+      "colour": "white",
+      "alpha": 0.55
     },
     "logo": {
-      "variant": "invite",
-      "rect": {"x0": 0.0888, "y0": 0.1707, "x1": 0.326, "y1": 0.264},
+      "rect": {
+        "x0": 0.06,
+        "y0": 0.17,
+        "x1": 0.22,
+        "y1": 0.25
+      },
       "kind": "image",
       "source": "asset",
       "asset": "templates/ladies-clinic/assets/logo-white.png",
@@ -45,139 +84,236 @@
       "align": "left",
       "valign": "top"
     },
-    "invite_kicker": {
-      "variant": "invite",
-      "rect": {"x0": 0.0805, "y0": 0.314, "x1": 0.72, "y1": 0.352},
+    "kicker": {
+      "rect": {
+        "x0": 0.0888,
+        "y0": 0.314,
+        "x1": 0.72,
+        "y1": 0.352
+      },
       "kind": "text",
       "source": "static",
       "text": "INVITES YOU TO OUR",
       "font_role": "h3",
-      "max_font_px": 46,
-      "min_font_px": 46,
+      "max_font_px": 60,
+      "min_font_px": 40,
       "max_lines": 1,
-      "line_height": 1,
+      "line_height": 1.0,
       "text_transform": "uppercase",
+      "text_origin_x": 96,
       "align": "left",
-      "valign": "top",
       "colour": "white",
       "h_scale": 0.9
     },
-    "title": {
-      "variant": "invite",
-      "rect": {"x0": 0.078, "y0": 0.395, "x1": 0.78, "y1": 0.635},
+    "headline": {
+      "rect": {
+        "x0": 0.0777,
+        "y0": 0.395,
+        "x1": 0.78,
+        "y1": 0.6345
+      },
       "kind": "text",
-      "source": "caption_hook",
+      "source": "headline",
+      "optional": true,
       "font_role": "display",
-      "max_font_px": 136,
-      "min_font_px": 100,
+      "max_font_px": 193,
+      "min_font_px": 120,
       "max_lines": 2,
-      "max_chars_per_line": 14,
-      "line_height": 0.82,
+      "max_chars_per_line": 8,
+      "line_height": 0.85,
       "text_transform": "uppercase",
-      "align": "left",
-      "valign": "top",
-      "colour_options": ["ss_clinic_magenta"],
-      "h_scale": 0.88,
-      "echo": {"dx_em": 0.04, "dy_em": 0.04, "stroke_em": 0.012, "shadow_alpha": 0.85},
-      "wrap": "balanced"
-    },
-    "datetime": {
-      "variant": "invite",
-      "rect": {"x0": 0.078, "y0": 0.655, "x1": 0.95, "y1": 0.728},
-      "kind": "text",
-      "source": "qualifier",
-      "font_role": "display",
-      "max_font_px": 52,
-      "min_font_px": 44,
-      "max_lines": 2,
-      "line_height": 1,
-      "text_transform": "uppercase",
-      "align": "left",
-      "valign": "top",
-      "colour": "white",
-      "h_scale": 0.9
-    },
-    "host": {
-      "variant": "invite",
-      "rect": {"x0": 0.078, "y0": 0.735, "x1": 0.85, "y1": 0.78},
-      "kind": "text",
-      "source": "cta",
-      "font_role": "h3",
-      "max_font_px": 46,
-      "min_font_px": 38,
-      "max_lines": 1,
-      "line_height": 1,
-      "text_transform": "uppercase",
+      "text_origin_x": 84,
       "align": "left",
       "valign": "top",
       "colour": "ss_clinic_magenta",
-      "h_scale": 0.92
+      "h_scale": 0.907,
+      "wrap": "balanced",
+      "echo": {
+        "dx_em": 0.065,
+        "dy_em": -0.006,
+        "stroke_em": 0.011,
+        "shadow_alpha": 0.55
+      }
+    },
+    "subline_date": {
+      "rect": {
+        "x0": 0.0777,
+        "y0": 0.6828,
+        "x1": 0.9473,
+        "y1": 0.7244
+      },
+      "kind": "text",
+      "source": "event_date",
+      "optional": true,
+      "font_role": "h3",
+      "max_font_px": 65,
+      "min_font_px": 40,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 84,
+      "align": "left",
+      "colour": "white",
+      "h_scale": 0.9
+    },
+    "subline_host": {
+      "rect": {
+        "x0": 0.0804,
+        "y0": 0.7648,
+        "x1": 0.8204,
+        "y1": 0.8035
+      },
+      "kind": "text",
+      "source": "event_host",
+      "optional": true,
+      "font_role": "h3",
+      "max_font_px": 60,
+      "min_font_px": 40,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 87,
+      "align": "left",
+      "colour": "ss_clinic_magenta",
+      "h_scale": 0.9,
+      "stroke_only": true,
+      "stroke_px": 2
+    },
+    "chevron": {
+      "rect": {
+        "x0": 0.88,
+        "y0": 0.83,
+        "x1": 0.98,
+        "y1": 0.95
+      },
+      "kind": "decorative",
+      "shape": "chevron",
+      "direction": "right",
+      "colour": "white",
+      "stroke_px": 3,
+      "alpha": 0.7
+    }
+  },
+  "zones_page2": {
+    "frame": {
+      "rect": {
+        "x0": 0.0,
+        "y0": 0.0,
+        "x1": 1.0,
+        "y1": 1.0
+      },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 34,
+      "stroke_px": 3,
+      "colour": "white",
+      "alpha": 0.55
     },
     "body": {
-      "variant": "detail",
-      "rect": {"x0": 0.08, "y0": 0.23, "x1": 0.92, "y1": 0.42},
+      "rect": {
+        "x0": 0.0786,
+        "y0": 0.2298,
+        "x1": 0.8677,
+        "y1": 0.3922
+      },
       "kind": "text",
-      "source": "caption_hook",
+      "source": "body_text",
+      "optional": true,
       "font_role": "h3",
-      "max_font_px": 46,
+      "max_font_px": 66,
       "min_font_px": 40,
       "max_lines": 3,
       "max_chars_per_line": 42,
-      "line_height": 1.05,
+      "line_height": 1.0,
       "text_transform": "uppercase",
-      "align": "center",
-      "valign": "top",
+      "text_origin_x": 85,
+      "align": "left",
       "colour": "white",
       "h_scale": 0.9,
       "wrap": "balanced"
     },
-    "urgency": {
-      "variant": "detail",
-      "rect": {"x0": 0.08, "y0": 0.44, "x1": 0.92, "y1": 0.54},
+    "cta": {
+      "rect": {
+        "x0": 0.0721,
+        "y0": 0.4371,
+        "x1": 0.7114,
+        "y1": 0.5379
+      },
       "kind": "text",
-      "source": "qualifier",
+      "source": "cta_lockup",
+      "optional": true,
       "font_role": "display",
-      "max_font_px": 46,
-      "min_font_px": 46,
+      "max_font_px": 66,
+      "min_font_px": 50,
       "max_lines": 2,
-      "line_height": 1.08,
+      "max_chars_per_line": 22,
+      "line_height": 1.0,
       "text_transform": "uppercase",
-      "align": "center",
+      "text_origin_x": 78,
+      "align": "left",
       "valign": "top",
       "colour": "ss_clinic_magenta",
-      "h_scale": 0.92,
+      "h_scale": 0.946,
       "wrap": "balanced"
     },
-    "booking": {
-      "variant": "detail",
-      "rect": {"x0": 0.08, "y0": 0.61, "x1": 0.92, "y1": 0.78},
+    "cta_detail": {
+      "rect": {
+        "x0": 0.0786,
+        "y0": 0.6112,
+        "x1": 0.5264,
+        "y1": 0.7735
+      },
       "kind": "text",
-      "source": "cta",
+      "source": "booking_url",
+      "optional": true,
       "font_role": "h3",
-      "max_font_px": 46,
+      "max_font_px": 66,
       "min_font_px": 40,
       "max_lines": 3,
-      "line_height": 1.05,
+      "line_height": 1.0,
       "text_transform": "uppercase",
-      "align": "center",
-      "valign": "top",
+      "text_origin_x": 85,
+      "align": "left",
       "colour": "white",
-      "h_scale": 0.9,
-      "wrap": "balanced"
+      "h_scale": 0.9
+    },
+    "chevron": {
+      "rect": {
+        "x0": 0.02,
+        "y0": 0.83,
+        "x1": 0.12,
+        "y1": 0.95
+      },
+      "kind": "decorative",
+      "shape": "chevron",
+      "direction": "left",
+      "colour": "white",
+      "stroke_px": 3,
+      "alpha": 0.7
     }
   },
-  "safe_zone": {"x0": 0.05, "y0": 0.04, "x1": 0.95, "y1": 0.96},
-  "max_total_chars": 220,
   "logo_anchor": {
     "zone": "logo",
     "variant": "mono_light",
     "fit": "height",
     "align": "left"
   },
+  "safe_zone": {
+    "x0": 0.05,
+    "y0": 0.04,
+    "x1": 0.95,
+    "y1": 0.96
+  },
+  "max_total_chars": 130,
   "measured_from": [
     "references/ref-01.jpg",
     "references/ref-02.jpg"
   ],
-  "reference_size": {"w": 1081, "h": 1201},
-  "post_type_proposed": "clinic_invite"
+  "reference_size": {
+    "w": 1081,
+    "h": 1201
+  },
+  "post_type_proposed": "clinic_invite",
+  "brand_id": "swing-shack",
+  "archetype_id": "ss-ladies-clinic"
 }

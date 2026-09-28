@@ -33,6 +33,7 @@ def main() -> int:
     sheet = Image.new("RGB", (len(cases) * tw, 2 * th), "white")
     for i, case in enumerate(cases):
         fields = {k: str(v) for k, v in case.items()}
+        page = fields.get("render_page", "page1")
         out = compose_post_for_channels(
             brand_id="swing-shack",
             archetype=arch,
@@ -40,12 +41,13 @@ def main() -> int:
             fields=fields,
             photo_bytes=None,
         )
-        if i == 0:
-            (golden / "render-invite.png").write_bytes(out["instagram"])
-        if i == 1:
-            (golden / "render-detail.png").write_bytes(out["instagram"])
+        png = out["instagram"] if page == "page1" else out.get("instagram__page2") or out["instagram"]
+        if page == "page1":
+            (golden / "render-page1.png").write_bytes(png)
+        else:
+            (golden / "render-page2.png").write_bytes(png)
         ref = Image.open(PACK / f"references/ref-0{i + 1}.jpg").convert("RGB")
-        ours = Image.open(io.BytesIO(out["instagram"])).convert("RGB")
+        ours = Image.open(io.BytesIO(png)).convert("RGB")
         for row, im in enumerate((ref, ours)):
             im.thumbnail((tw - 6, th - 6))
             sheet.paste(im, (i * tw + 3, row * th + 3))

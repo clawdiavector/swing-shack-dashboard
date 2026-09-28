@@ -412,7 +412,8 @@ def _draw_text_zone(
     colour = _zone_colour(zone, brand_id, text, fields or {})
     h_scale = float(zone.get("h_scale") or 1.0)
     echo = zone.get("echo") if isinstance(zone.get("echo"), dict) else None
-    layered = base is not None and (h_scale != 1.0 or echo is not None)
+    stroke_only = bool(zone.get("stroke_only"))
+    layered = base is not None and (h_scale != 1.0 or echo is not None or stroke_only)
     zone_w = x1 - x0
     zone_h = y1 - y0
     origin_x = float(zone.get("text_origin_x") or x0)
@@ -540,6 +541,11 @@ def _draw_text_zone(
                 stroke_width=max(1, round(float(echo.get("stroke_em") or 0.01) * size)),
                 stroke_fill=colour,
             )
+        stroke_only = bool(zone.get("stroke_only"))
+        stroke_px = int(zone.get("stroke_px") or 2) if stroke_only else 0
+        main_fill = (0, 0, 0, 0) if stroke_only and layer is not None else colour
+        if stroke_only and layer is None:
+            main_fill = (0, 0, 0)
         _draw_line_mixed(
             target,
             origin_x,
@@ -548,11 +554,13 @@ def _draw_text_zone(
             body_font,
             emph_font,
             emphasis,
-            colour if layer is not None else colour[:3],
+            main_fill if layer is not None else (main_fill[:3] if isinstance(main_fill, tuple) else main_fill),
             tracking_px,
             align,
             x0,
             x1,
+            stroke_width=stroke_px if stroke_only else 0,
+            stroke_fill=colour[:3] if stroke_only else None,
         )
     if layer is not None:
         if h_scale != 1.0:
@@ -821,6 +829,46 @@ def _zone_variant_ok(zone: dict[str, Any], variant: str) -> bool:
     return str(want).strip().lower() == variant
 
 
+def _archetype_for_render(archetype: dict[str, Any], fields: dict[str, str]) -> dict[str, Any]:
+    pages = archetype.get("multi_render")
+    page = str(fields.get("render_page") or "").strip()
+    if isinstance(pages, list) and page:
+        key = f"zones_{page}"
+        page_zones = archetype.get(key)
+        if isinstance(page_zones, dict):
+            merged = dict(archetype)
+            merged["zones"] = page_zones
+            return merged
+    return archetype
+
+
+def _draw_chevron(base, zone: dict[str, Any], brand_id: str) -> None:
+    rect = zone.get("rect") if isinstance(zone.get("rect"), dict) else {}
+    x0, y0, x1, y1 = _rect_px(rect, base.width, base.height)
+    stroke = max(1, int(zone.get("stroke_px") or 3))
+    colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
+    alpha = int(float(zone.get("alpha", 1.0)) * 255)
+    direction = str(zone.get("direction") or "right").lower()
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(layer)
+    rgb = colour[:3] + (alpha,)
+    h = y1 - y0
+    w = x1 - x0
+    step = max(8, w // 5)
+    mid_y = (y0 + y1) // 2
+    if direction == "left":
+        cx = x1 - step
+        for _ in range(2):
+            draw.line([(cx, y0), (cx - step, mid_y), (cx, y1)], fill=rgb, width=stroke)
+            cx -= step
+    else:
+        cx = x0 + step
+        for _ in range(2):
+            draw.line([(cx, y0), (cx + step, mid_y), (cx, y1)], fill=rgb, width=stroke)
+            cx += step
+    base.paste(layer, (0, 0), layer)
+
+
 def compose_to_canvas(
     *,
     brand_id: str,
@@ -855,6 +903,7 @@ def compose_to_canvas(
         raise ComposeError(f"unknown canvas {canvas_id}")
     w = int(spec.get("w") or 1080)
     h = int(spec.get("h") or 1350)
+    archetype = _archetype_for_render(archetype, fields)
     base_canvas_id = str(archetype.get("canvas") or "ig_post")
     base_spec = canvases.get(base_canvas_id) if isinstance(canvases.get(base_canvas_id), dict) else spec
     base_h = int(base_spec.get("h") or h)
@@ -884,6 +933,8 @@ def compose_to_canvas(
                 _draw_frame(base, zone, brand_id)
             elif shape == "rule":
                 _draw_rule(base, zone, brand_id)
+            elif shape == "chevron":
+                _draw_chevron(base, zone, brand_id)
             draw = ImageDraw.Draw(base)
         elif kind == "decorative" and str(zone.get("shape") or "") == "rule":
             _draw_rule(base, zone, brand_id)
@@ -983,6 +1034,8 @@ def compose_post_for_channels(
     allowed = (archetype.get("applies_to") or {}).get("channels")
     channel_canvas = archetype.get("channel_canvas") if isinstance(archetype.get("channel_canvas"), dict) else {}
     canvases = doc.get("canvases") if isinstance(doc.get("canvases"), dict) else {}
+    pages = archetype.get("multi_render")
+    page_list = [str(p) for p in pages] if isinstance(pages, list) and pages else []
     for channel in channels:
         if isinstance(allowed, list) and allowed and channel not in allowed:
             continue
@@ -993,14 +1046,28 @@ def compose_post_for_channels(
             if not mapped:
                 continue
             canvas_id, _spec = mapped
-        out[channel] = compose_to_canvas(
-            brand_id=brand_id,
-            archetype=archetype,
-            doc=doc,
-            canvas_id=canvas_id,
-            fields=fields,
-            photo_bytes=photo_bytes,
-        )
+        if page_list:
+            for i, page in enumerate(page_list):
+                pf = {**fields, "render_page": page}
+                png = compose_to_canvas(
+                    brand_id=brand_id,
+                    archetype=archetype,
+                    doc=doc,
+                    canvas_id=canvas_id,
+                    fields=pf,
+                    photo_bytes=photo_bytes,
+                )
+                key = channel if i == 0 else f"{channel}__{page}"
+                out[key] = png
+        else:
+            out[channel] = compose_to_canvas(
+                brand_id=brand_id,
+                archetype=archetype,
+                doc=doc,
+                canvas_id=canvas_id,
+                fields=fields,
+                photo_bytes=photo_bytes,
+            )
     if not out:
         raise ComposeError("no channels composed")
     return out
