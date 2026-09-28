@@ -1,0 +1,49 @@
+{
+  "archetype_id": "ss-story-banner",
+  "brand_id": "swing-shack",
+  "measured_from": [],
+  "measurement_note": "Legacy bootstrap archetype — no Content Bank reference group (plan cos-tpl2-ss-story-banner-pack §0). Pack wraps existing zone geometry + story logo fix.",
+  "reference_size": null,
+  "post_type_proposed": "story_banner",
+  "canvas": "ig_post",
+  "background": {
+    "kind": "solid",
+    "fill": "ss_charcoal"
+  },
+  "zones": {
+    "headline": {
+      "rect": {"x0": 0.1, "y0": 0.2, "x1": 0.9, "y1": 0.35},
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "h1",
+      "max_lines": 2,
+      "max_chars_per_line": 24,
+      "colour": "neutral_light",
+      "min_font_px": 32
+    },
+    "photo": {
+      "rect": {"x0": 0, "y0": 0.4, "x1": 1, "y1": 1},
+      "kind": "image",
+      "source": "photo",
+      "optional": false
+    },
+    "logo": {
+      "rect": {"x0": 0.1, "y0": 0.85, "x1": 0.3, "y1": 0.95},
+      "kind": "image",
+      "source": "asset",
+      "asset": "templates/story-banner/assets/logo-white.png",
+      "fit": "aspect_fit"
+    }
+  },
+  "canvas_overrides": {
+    "ig_story": {
+      "logo": {
+        "rect": {"x0": 0.1, "y0": 0.74, "x1": 0.3, "y1": 0.84},
+        "kind": "image",
+        "source": "asset",
+        "asset": "templates/story-banner/assets/logo-white.png",
+        "fit": "aspect_fit"
+      }
+    }
+  }
+}

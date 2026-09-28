@@ -204,7 +204,9 @@
     {
       "id": "ss-story-banner",
       "name": "Story banner",
+      "description": "Generic photo + headline + logo fallback (bootstrap scaffold, not Content-Bank-measured). Charcoal field, optional lower hero photo from caller, Montserrat h1 headline, extracted white logo mark.",
       "canvas": "ig_post",
+      "template_pack": "templates/story-banner",
       "block_anchor": "center",
       "applies_to": {
         "channels": [
@@ -217,7 +219,7 @@
       },
       "background": {
         "kind": "solid",
-        "fill": "primary"
+        "fill": "ss_charcoal"
       },
       "zones": {
         "headline": {
@@ -253,7 +255,26 @@
             "x1": 0.3,
             "y1": 0.95
           },
-          "kind": "logo"
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/story-banner/assets/logo-white.png",
+          "fit": "aspect_fit"
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "logo": {
+            "rect": {
+              "x0": 0.1,
+              "y0": 0.74,
+              "x1": 0.3,
+              "y1": 0.84
+            },
+            "kind": "image",
+            "source": "asset",
+            "asset": "templates/story-banner/assets/logo-white.png",
+            "fit": "aspect_fit"
+          }
         }
       },
       "logo_anchor": {
@@ -2554,6 +2575,14 @@
           ]
         },
         "use": "ss-lesson-corner"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "story_banner"
+          ]
+        },
+        "use": "ss-story-banner"
       }
     ]
   }
