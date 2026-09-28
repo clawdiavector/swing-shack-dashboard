@@ -1056,9 +1056,9 @@ def generate_image(
                 except Exception as e:
                     _LOG.warning("brand_dna wiring failed for Krea path %s: %s", brand_id, e)
         aspect_ratio = size.replace("x", ":")
-        krea_extra: dict = {}
-        if negative_prompt and background_plate:
-            krea_extra["negative_prompt"] = negative_prompt
+        # Flux models reject MCP input key negative_prompt (422). Negatives are
+        # already folded into enhanced prompt as "Avoid: …" for background_plate.
+        krea_extra: dict | None = None
         kresp = _call_krea_generate(
             prompt=enhanced,
             model=model,

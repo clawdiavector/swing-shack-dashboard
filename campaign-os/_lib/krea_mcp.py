@@ -247,6 +247,32 @@ def _ensure_initialized() -> None:
         _INIT_LOCK = False
 
 
+def _mcp_tool_error_message(result: dict) -> str:
+    """Best-effort human message from MCP tools/call isError payloads."""
+    sc = result.get("structuredContent")
+    if isinstance(sc, dict):
+        err = sc.get("error")
+        if isinstance(err, str) and err.strip():
+            return err.strip()
+        if isinstance(err, dict):
+            details = err.get("details") or err.get("message")
+            if details:
+                return str(details)[:400]
+    content = result.get("content")
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                text = (block.get("text") or "").strip()
+                if text:
+                    try:
+                        parsed = json.loads(text)
+                        if isinstance(parsed, dict):
+                            return str(parsed.get("error") or parsed.get("message") or text)[:400]
+                    except json.JSONDecodeError:
+                        return text[:400]
+    return str(result.get("message") or "Krea tool error")[:400]
+
+
 # ── Core JSON-RPC call ─────────────────────────────────────────────
 def mcp_call(method: str, params: Optional[dict] = None, *, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """Send a JSON-RPC method call to the Krea MCP server.
@@ -275,7 +301,11 @@ def mcp_call(method: str, params: Optional[dict] = None, *, timeout: int = DEFAU
             status=400,
             upstream=err,
         )
-    return resp.get("result", {})
+    result = resp.get("result", {})
+    if isinstance(result, dict) and result.get("isError"):
+        msg = _mcp_tool_error_message(result)
+        raise KreaUpstreamError(msg or "Krea tool call failed", status=422, upstream=result)
+    return result
 
 
 # ── Tool discovery ──────────────────────────────────────────────────
@@ -370,7 +400,9 @@ def image_generate(
     if ar != "1:1":
         inner["aspect_ratio"] = ar
     if extra:
-        inner.update(extra)
+        # Flux image models do not accept negative_prompt on MCP input.
+        filtered = {k: v for k, v in extra.items() if k != "negative_prompt"}
+        inner.update(filtered)
     return mcp_call("tools/call", {
         "name": "generate_image",
         "arguments": {"input": inner, "model": model},

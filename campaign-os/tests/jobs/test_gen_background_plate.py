@@ -81,3 +81,29 @@ def test_recipe_image_phase_uses_gen_slots(tmp_data):
     )
     actions = create_actions_for_moment("stick", item_id, phase="image")
     assert actions == ["draft_gen_slots", "compose_post"]
+
+
+def test_krea_image_generate_strips_negative_prompt_extra(monkeypatch):
+    from _lib import krea_mcp
+
+    captured: dict = {}
+
+    def fake_mcp_call(method, params=None, *, timeout=120):
+        captured["params"] = params
+        return {"structuredContent": {"job_id": "test-job", "status": "queued"}}
+
+    monkeypatch.setattr(krea_mcp, "mcp_call", fake_mcp_call)
+    monkeypatch.setattr(krea_mcp, "_ensure_initialized", lambda: None)
+    monkeypatch.setattr(krea_mcp, "_read_token_from_env", lambda: "tok")
+    monkeypatch.setattr(krea_mcp, "_read_token_from_disk", lambda: None)
+
+    krea_mcp.image_generate(
+        "scene only",
+        brand="stick",
+        model="bfl/flux-1.1-pro",
+        extra={"negative_prompt": "no text", "seed": 1},
+        background_plate=True,
+    )
+    inner = captured["params"]["arguments"]["input"]
+    assert "negative_prompt" not in inner
+    assert inner.get("seed") == 1
