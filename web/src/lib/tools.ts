@@ -193,6 +193,14 @@ export const TOOLS: ToolDef[] = [
     from: '/results',
     native: '/results/worked?tab=posts',
   },
+  {
+    slug: 'templates',
+    path: '/results/templates',
+    label: 'Templates',
+    hint: 'Brand bible + compose layouts',
+    from: '/results',
+    native: '/results/templates',
+  },
   { slug: 'performance', page: 'performance', label: 'Reach', hint: 'Performance', from: '/results' },
   {
     slug: 'learning',

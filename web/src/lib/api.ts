@@ -1100,7 +1100,7 @@ export function fetchCampaign(campaignId: string) {
   return getJson<Campaign>(`/api/campaigns/${encodeURIComponent(campaignId)}`)
 }
 
-const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/']
+const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/', 'brand-directory-media/']
 
 export function resolveAssetUrl(raw?: string | null): string {
   const p = (raw || '').trim()
@@ -1642,6 +1642,48 @@ export type BrandVisualsPayload = {
 export function fetchBrandVisuals(brandId: string, platform?: string) {
   const q = platform ? `?platform=${encodeURIComponent(platform)}` : ''
   return getJson<BrandVisualsPayload>(`/api/brand/${encodeURIComponent(brandId)}/visuals${q}`)
+}
+
+export type TemplateGalleryTemplate = {
+  template_id: string
+  name: string
+  label: string
+  description: string
+  canvas: string
+  needs_photo: boolean
+  post_type_hints: string[]
+  sections: string[]
+  preview_urls: string[]
+  template_md_excerpt: string
+  section: string
+  template_pack?: string
+}
+
+export type TemplateGallerySection = {
+  section: string
+  templates: TemplateGalleryTemplate[]
+}
+
+export type TemplateGalleryPayload = {
+  ok?: boolean
+  brand_id?: string
+  brand_bible?: {
+    voice?: string
+    philosophy?: string
+    composition_rules?: string[]
+    anti_patterns?: string[]
+    palette_summary?: { role: string; name: string; hex: string }[]
+  }
+  templates?: TemplateGalleryTemplate[]
+  sections?: TemplateGallerySection[]
+  template_count?: number
+  error?: string
+}
+
+export function fetchTemplateGallery(brandId: string) {
+  return getJson<TemplateGalleryPayload>(
+    `/api/brands/${encodeURIComponent(brandId)}/template-gallery`,
+  )
 }
 
 export type BrandReferenceBody = {

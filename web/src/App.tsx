@@ -27,6 +27,7 @@ import { Socials } from './pages/publish/Socials'
 import { InboxPage } from './pages/InboxPage'
 import { WeekBoard } from './pages/WeekBoard'
 import { Week } from './pages/results/Week'
+import { Templates } from './pages/results/Templates'
 import { Worked } from './pages/results/Worked'
 import { BrandVisuals } from './pages/BrandVisuals'
 
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="results" element={<Results />} />
         <Route path="results/week" element={<Week />} />
         <Route path="results/worked" element={<Worked />} />
+        <Route path="results/templates" element={<Templates />} />
         <Route path="ops" element={<Ops />} />
         <Route path="other" element={<Other />} />
         <Route path="desk" element={<Desk />} />
