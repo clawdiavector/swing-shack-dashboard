@@ -6960,6 +6960,43 @@ def brand_visuals_get(brand_id):
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+from _lib import template_gallery as _template_gallery  # noqa: E402
+
+
+@app.route('/api/brands/<brand_id>/template-gallery', methods=['GET'])
+def brand_template_gallery(brand_id):
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    try:
+        payload = _template_gallery.build_template_gallery(brand_id)
+        return jsonify({"ok": True, **payload}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 404
+    except Exception as e:
+        _app_log.exception("brand_template_gallery failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/brand-directory-media/<brand_id>/<path:relpath>', methods=['GET'])
+def brand_directory_media(brand_id, relpath):
+    """Serve brand-directory assets (template refs, goldens) with traversal guard."""
+    from pathlib import Path as _P
+
+    rel = str(relpath or "").replace("\\", "/").lstrip("/")
+    if ".." in rel.split("/"):
+        return jsonify({"error": "path traversal denied"}), 403
+    for root in _template_gallery.brand_directory_roots():
+        base = (root / brand_id).resolve()
+        target = (base / rel).resolve()
+        try:
+            target.relative_to(base)
+        except ValueError:
+            continue
+        if target.is_file():
+            return send_from_directory(str(target.parent), target.name)
+    return jsonify({"error": "not found"}), 404
+
+
 # ── PHASE L-1 endpoints (Postiz / Social split) ──────────────────────
 @app.route('/api/connection/status', methods=['GET'])
 def connection_status():

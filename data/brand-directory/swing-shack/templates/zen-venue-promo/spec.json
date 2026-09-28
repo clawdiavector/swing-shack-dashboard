@@ -1,0 +1,154 @@
+{
+  "id": "ss-zen-venue-promo",
+  "name": "Venue feature promo — dark venue photo, kicker + accent question + benefit subline",
+  "description": "Measured from Content Bank Services/zenstage-100 (1081x1201, single ref). Thin white 3px frame inset 34px. Left-aligned 3-line stack: thin italic kicker, bold italic accent-fill question headline (no echo), thin italic benefit subline. No logo. No scrim in source photo.",
+  "canvas": "ig_post",
+  "block_anchor": "center",
+  "applies_to": {
+    "channels": ["instagram", "instagram_story", "facebook"],
+    "record_types": ["moment", "evergreen"],
+    "needs_photo": false
+  },
+  "channel_canvas": { "facebook": "ig_post" },
+  "template_pack": "templates/zen-venue-promo",
+  "background": {
+    "kind": "photo_full_bleed",
+    "cover": true,
+    "library": "templates/zen-venue-promo/photos",
+    "focus_y": 0.5
+  },
+  "zones": {
+    "frame": {
+      "rect": { "x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0 },
+      "kind": "decorative",
+      "shape": "frame",
+      "inset_px": 34,
+      "stroke_px": 3,
+      "colour": "white",
+      "alpha": 0.55
+    },
+    "headline": {
+      "rect": { "x0": 0.061, "y0": 0.1457, "x1": 0.95, "y1": 0.31 },
+      "kind": "text",
+      "source": "caption_hook",
+      "font_role": "display",
+      "max_font_px": 109,
+      "min_font_px": 80,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 66,
+      "align": "left",
+      "valign": "top",
+      "colour_options": ["ss_green", "ss_orange", "ss_blue", "ss_purple"],
+      "h_scale": 0.823,
+      "wrap": "balanced"
+    },
+    "kicker": {
+      "rect": { "x0": 0.0629, "y0": 0.0933, "x1": 0.9, "y1": 0.1282 },
+      "kind": "text",
+      "source": "static",
+      "text": "HAVE YOU TRIED THE",
+      "font_role": "h3",
+      "max_font_px": 59,
+      "min_font_px": 40,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 67,
+      "align": "left",
+      "colour": "white",
+      "h_scale": 0.863,
+      "attach_above": { "zone": "headline", "gap_px": 21 }
+    },
+    "subline": {
+      "rect": { "x0": 0.062, "y0": 0.2265, "x1": 0.9, "y1": 0.2614 },
+      "kind": "text",
+      "source": "qualifier",
+      "font_role": "h3",
+      "max_font_px": 59,
+      "min_font_px": 40,
+      "max_lines": 1,
+      "line_height": 1.0,
+      "text_transform": "uppercase",
+      "text_origin_x": 67,
+      "align": "left",
+      "colour": "white",
+      "h_scale": 0.863,
+      "optional": true
+    }
+  },
+  "canvas_overrides": {
+    "ig_story": {
+      "frame": {
+        "rect": { "x0": 0.0, "y0": 0.0, "x1": 1.0, "y1": 1.0 },
+        "kind": "decorative",
+        "shape": "frame",
+        "inset_px": 34,
+        "stroke_px": 3,
+        "colour": "white",
+        "alpha": 0.55
+      },
+      "headline": {
+        "rect": { "x0": 0.061, "y0": 0.3329, "x1": 0.95, "y1": 0.4972 },
+        "kind": "text",
+        "source": "caption_hook",
+        "font_role": "display",
+        "max_font_px": 109,
+        "min_font_px": 80,
+        "max_lines": 1,
+        "line_height": 1.0,
+        "text_transform": "uppercase",
+        "text_origin_x": 66,
+        "align": "left",
+        "valign": "top",
+        "colour_options": ["ss_green", "ss_orange", "ss_blue", "ss_purple"],
+        "h_scale": 0.823,
+        "wrap": "balanced"
+      },
+      "kicker": {
+        "rect": { "x0": 0.0629, "y0": 0.2805, "x1": 0.9, "y1": 0.3154 },
+        "kind": "text",
+        "source": "static",
+        "text": "HAVE YOU TRIED THE",
+        "font_role": "h3",
+        "max_font_px": 59,
+        "min_font_px": 40,
+        "max_lines": 1,
+        "line_height": 1.0,
+        "text_transform": "uppercase",
+        "text_origin_x": 67,
+        "align": "left",
+        "colour": "white",
+        "h_scale": 0.863,
+        "attach_above": { "zone": "headline", "gap_px": 21 }
+      },
+      "subline": {
+        "rect": { "x0": 0.062, "y0": 0.4137, "x1": 0.9, "y1": 0.4486 },
+        "kind": "text",
+        "source": "qualifier",
+        "font_role": "h3",
+        "max_font_px": 59,
+        "min_font_px": 40,
+        "max_lines": 1,
+        "line_height": 1.0,
+        "text_transform": "uppercase",
+        "text_origin_x": 67,
+        "align": "left",
+        "colour": "white",
+        "h_scale": 0.863,
+        "optional": true
+      }
+    }
+  },
+  "logo_anchor": {
+    "zone": "headline",
+    "variant": "mono_light",
+    "fit": "height",
+    "align": "center"
+  },
+  "safe_zone": { "x0": 0.05, "y0": 0.04, "x1": 0.95, "y1": 0.96 },
+  "max_total_chars": 56,
+  "measured_from": ["references/ref-01.jpg"],
+  "reference_size": { "w": 1081, "h": 1201 }
+}

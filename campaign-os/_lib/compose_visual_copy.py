@@ -175,7 +175,7 @@ def visual_copy_for_archetype(
         base["qualifier"] = tagline
         return {k: str(v) for k, v in base.items()}
 
-    if needs_photo and archetype_id == "stick-service-start":
+    if needs_photo and archetype_id in ("stick-service-start", "stick-shop-corner"):
         mid = moment_id or f"proposal:{brand_id}:compose"
         headline = str(sidecar.get("compose_headline") or "").strip()
         lockup = str(sidecar.get("compose_cta") or "").strip()

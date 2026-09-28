@@ -1,4 +1,4 @@
-import { Activity, BookOpen, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
+import { Activity, BookOpen, Layers, LineChart, Search, Sparkles, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -11,6 +11,12 @@ import { fetchToday, fetchTopPosts, type InsightPost, type TodayPanel } from '..
 const TABS: { href: string; label: string; hint: string; icon: LucideIcon }[] = [
   { href: '/results/week', label: 'This week', hint: 'Weekly report', icon: LineChart },
   { href: '/results/worked?tab=posts', label: 'What worked', hint: 'Insights', icon: Sparkles },
+  {
+    href: '/results/templates',
+    label: 'Templates',
+    hint: 'Brand bible + compose layouts',
+    icon: Layers,
+  },
   { href: '/?page=performance', label: 'Reach', hint: 'Performance', icon: Activity },
   { href: '/results/worked?tab=recipes', label: 'Learnings', hint: 'Recipes', icon: BookOpen },
   { href: '/?page=trends', label: 'Trends', hint: 'What is moving', icon: TrendingUp },

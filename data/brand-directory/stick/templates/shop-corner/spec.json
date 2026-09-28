@@ -1,0 +1,14 @@
+{
+  "id": "stick-shop-corner",
+  "brand_id": "stick",
+  "pack": "templates/shop-corner",
+  "archetype_id": "stick-shop-corner",
+  "post_type": "shop_corner",
+  "reference_size": { "w": 1081, "h": 1351 },
+  "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg",
+    "references/ref-03.jpg",
+    "references/ref-04.jpg"
+  ]
+}

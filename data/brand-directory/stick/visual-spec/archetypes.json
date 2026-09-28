@@ -1906,6 +1906,123 @@
         "w": 1080,
         "h": 1350
       }
+    },
+    {
+      "id": "stick-shop-corner",
+      "name": "Shop corner — full-bleed shop photo, navy corner plate, mint service-category word",
+      "description": "The photograph owns the whole canvas (shop interior/product shelf). A half-width navy gradient plate in the bottom-left carries a large mint uppercase service-category word, a white @, and the white stick wordmark, stacked. Sibling of stick-venue-post (same plate size/shape, opposite corner, no partner co-branding). Measured on Stick/Other Artboard 1 copy 2/3/4/5.jpg.",
+      "canvas": "ig_post",
+      "block_anchor": "bottom",
+      "template_pack": "templates/shop-corner",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook",
+          "gbp"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": true
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true
+      },
+      "zones": {
+        "photo": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.0,
+            "x1": 1.0,
+            "y1": 1.0
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "plate": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.7661,
+            "x1": 0.5,
+            "y1": 0.9593
+          },
+          "kind": "band",
+          "fill": "navy_alt"
+        },
+        "service_word": {
+          "rect": {
+            "x0": 0.037,
+            "y0": 0.798,
+            "x1": 0.463,
+            "y1": 0.8342
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 1,
+          "max_chars_per_line": 16,
+          "line_height": 1.0,
+          "text_transform": "uppercase",
+          "align": "center",
+          "valign": "middle",
+          "colour": "mint",
+          "min_font_px": 32,
+          "max_font_px": 56
+        },
+        "at_mark": {
+          "rect": {
+            "x0": 0.233,
+            "y0": 0.8505,
+            "x1": 0.267,
+            "y1": 0.8801
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "@",
+          "font_role": "h3",
+          "align": "center",
+          "valign": "middle",
+          "colour": "white"
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.1815,
+            "y0": 0.9008,
+            "x1": 0.3185,
+            "y1": 0.9371
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "center"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 20,
+      "measured_from": [
+        "templates/shop-corner/references/ref-01.jpg",
+        "templates/shop-corner/references/ref-02.jpg",
+        "templates/shop-corner/references/ref-03.jpg",
+        "templates/shop-corner/references/ref-04.jpg"
+      ],
+      "reference_size": {
+        "w": 1081,
+        "h": 1351
+      }
     }
   ],
   "selection": {
@@ -1984,6 +2101,14 @@
           ]
         },
         "use": "stick-coach-profile"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "shop_corner"
+          ]
+        },
+        "use": "stick-shop-corner"
       }
     ]
   }
