@@ -45002,9 +45002,14 @@ def planning_audit_log(brand_id):
 
     Lists recent audit rows. Used by the operator to verify production
     audit hygiene during V2.3 acceptance.
+
+    V2.4 — admin-only. The audit log contains actor identities and
+    timestamps; non-admin operators do not need to see it.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": "invalid brand_id"}), 400
     limit = max(1, min(int(request.args.get("limit") or 200), 1000))
