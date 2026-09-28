@@ -35,18 +35,30 @@ def _load_spec_at(brand_id: str, rel_dir: str) -> dict[str, Any]:
     return {}
 
 
-def _reference_paths_from_doc(*docs: dict[str, Any]) -> list[str]:
+def _resolve_reference_path(rel: str, template_pack: str) -> str:
+    """Map spec-relative refs (references/ref-01.jpg) to brand-directory paths."""
+    path = str(rel or "").strip().lstrip("/").replace("\\", "/")
+    if not path or path.startswith("templates/"):
+        return path
+    pack = str(template_pack or "").strip().strip("/")
+    if pack:
+        return f"{pack}/{path}"
+    return path
+
+
+def _reference_paths_from_doc(*docs: dict[str, Any], template_pack: str = "") -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
     for doc in docs:
         if not isinstance(doc, dict):
             continue
+        pack = str(doc.get("template_pack") or template_pack or "").strip().strip("/")
         for key in ("measured_from", "references"):
             rows = doc.get(key)
             if not isinstance(rows, list):
                 continue
             for row in rows:
-                rel = str(row or "").strip().replace("\\", "/")
+                rel = _resolve_reference_path(str(row or ""), pack)
                 if not rel or rel in seen:
                     continue
                 seen.add(rel)
@@ -84,7 +96,8 @@ def template_display_meta(brand_id: str, template_id: str) -> dict[str, Any]:
     if not spec:
         slug = template_label(tid).replace(" ", "-")
         spec = _load_spec_at(brand_id, f"templates/{slug}")
-    refs = _reference_paths_from_doc(arch, spec)
+    pack = str(arch.get("template_pack") or spec.get("template_pack") or "").strip().strip("/")
+    refs = _reference_paths_from_doc(arch, spec, template_pack=pack)
     name = str(arch.get("name") or spec.get("name") or tid).strip()
     label = template_label(tid) or name.split("—")[0].strip()[:48]
     return {
