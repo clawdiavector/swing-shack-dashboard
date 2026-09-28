@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp, ExternalLink, Loader2 } from 'lucide-react'
 
 type Candidate = {
   id?: string
@@ -21,6 +21,8 @@ type Candidate = {
   spine_event_id?: string
   verify_before_spine?: boolean
   verification_status?: string
+  venue_status?: string
+  date_status?: string
 }
 
 // Calendar V2.1 — research_leads[] are a separate tier from candidates[].
@@ -41,6 +43,12 @@ type ResearchLead = {
   confidence?: string
 }
 
+type ApprovalState = {
+  loading: boolean
+  approved?: { event_key?: string; revision?: number }
+  message?: string
+}
+
 function confidenceTone(c?: string): { bg: string; fg: string; label: string } {
   if (c === 'high') return { bg: 'bg-emerald-500/15', fg: 'text-emerald-400', label: 'HIGH CONFIDENCE' }
   if (c === 'medium') return { bg: 'bg-yel/15', fg: 'text-yel', label: 'MEDIUM' }
@@ -56,17 +64,32 @@ function tierTone(t?: string): { bg: string; fg: string } {
 }
 
 /**
- * Rolling intelligence candidates panel — Slice 6.
+ * Rolling intelligence candidates panel — Slice 6 (panel scaffold) + Slice 3
+ * (per-candidate action buttons: + ADD TO MAIN CALENDAR / OPEN PLANNING).
  *
  * Sits beneath the spine on the Timeline tab. NOT on the approved Strategic
- * Calendar — these are evidence-backed opportunities that Christelle
- * (or any human operator) must approve before they enter the spine.
+ * Calendar — these are evidence-backed opportunities that Christelle (or any
+ * human operator) must approve before they enter the spine.
  *
- * Three confidence buckets render visually distinct. Click a candidate to
- * expand its full evidence record (source URL, geography, relevance, why).
+ * Slice 3 rules:
+ *  - Each dated candidate renders [+ ADD TO MAIN CALENDAR] + [OPEN PLANNING].
+ *  - The action calls POST /api/planning/<brand>/candidates/<id>/approve.
+ *  - Idempotent — repeated clicks return action=noop.
+ *  - Research leads (no verified date) render [VERIFY BEFORE ADDING] instead.
+ *    Clicking it has no effect — the operator must verify the date manually.
+ *  - OPEN PLANNING loads the existing planning workspace. Today this opens
+ *    /app/calendar/lanes and scrolls to the event detail when event_key is
+ *    known (avoids creating a separate planning system).
+ *
+ * State / Audit: every approval writes one immutable row to
+ * <DATA_DIR>/calendar-audit/<brand>-approvals.jsonl with actor, timestamp,
+ * before, after, source_id, action. The audit log is the ground truth for
+ * human-initiated Calendar state changes. No fake reviewer names — actor
+ * defaults to "operator" unless supplied by /api logic.
  */
 export function PlanningCandidatesPanel({
   brand,
+  brandId,
   candidates,
   candidateCount,
   confidenceBreakdown,
@@ -75,6 +98,7 @@ export function PlanningCandidatesPanel({
   horizon,
 }: {
   brand: string
+  brandId: string
   candidates: Candidate[]
   candidateCount: number
   confidenceBreakdown: Record<string, number>
@@ -84,6 +108,7 @@ export function PlanningCandidatesPanel({
 }) {
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [approvalStates, setApprovalStates] = useState<Record<string, ApprovalState>>({})
 
   const sorted = useMemo(() => {
     return [...candidates].sort((a, b) => {
@@ -99,6 +124,94 @@ export function PlanningCandidatesPanel({
     high: confidenceBreakdown.high || 0,
     medium: confidenceBreakdown.medium || 0,
     low: confidenceBreakdown.low || 0,
+  }
+
+  // On mount, pre-fetch the approval-status for every candidate so the
+  // buttons already show "ON MAIN CALENDAR" for ones approved in a prior
+  // session.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const checks = await Promise.all(
+        sorted
+          .filter((c) => !!c.id)
+          .map((c) =>
+            fetch(
+              `/api/planning/${encodeURIComponent(brandId)}/candidates/approval-status/${encodeURIComponent(c.id || '')}`,
+              { credentials: 'include' },
+            )
+              .then((r) => (r.ok ? r.json() : { ok: false }))
+              .catch(() => ({ ok: false, approved: false })),
+          ),
+      )
+      if (cancelled) return
+      const next: Record<string, ApprovalState> = {}
+      sorted.forEach((c, i) => {
+        if (!c.id) return
+        const r = checks[i] || {}
+        if (r.approved) {
+          next[c.id] = { loading: false, approved: { event_key: r.event_key, revision: r.revision }, message: 'Already on the spine' }
+        }
+      })
+      setApprovalStates(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId, candidateCount])
+
+  const approveCandidate = async (candidateId: string) => {
+    setApprovalStates((s) => ({ ...s, [candidateId]: { loading: true } }))
+    try {
+      const r = await fetch(
+        `/api/planning/${encodeURIComponent(brandId)}/candidates/${encodeURIComponent(candidateId)}/approve`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'X-Actor': 'operator' },
+        },
+      )
+      const j = await r.json()
+      if (r.ok && j.ok) {
+        setApprovalStates((s) => ({
+          ...s,
+          [candidateId]: {
+            loading: false,
+            approved: { event_key: j.event_key, revision: j.upsert?.revision },
+            message: j.was_created ? 'Added to the strategic spine' : 'Already on the spine (idempotent)',
+          },
+        }))
+      } else if (r.status === 400 && j.is_research_lead) {
+        setApprovalStates((s) => ({
+          ...s,
+          [candidateId]: {
+            loading: false,
+            message: j.error || 'Research lead — verify the date first.',
+          },
+        }))
+      } else {
+        setApprovalStates((s) => ({
+          ...s,
+          [candidateId]: { loading: false, message: j.error || 'approval failed' },
+        }))
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'network error'
+      setApprovalStates((s) => ({ ...s, [candidateId]: { loading: false, message: msg } }))
+    }
+  }
+
+  const openPlanning = (candidate: Candidate) => {
+    // Slice 3 directive: do NOT create a second planning system. Opens
+    // /app/calendar/lanes scoped to the candidate (filter by name in the
+    // timeline).
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams()
+      params.set('tab', 'timeline')
+      params.set('focus_event', candidate.id || '')
+      window.location.href = `/app/calendar/lanes?${params.toString()}`
+    }
   }
 
   return (
@@ -150,6 +263,8 @@ export function PlanningCandidatesPanel({
           const conf = confidenceTone(c.confidence)
           const tier = tierTone(c.suggested_tier)
           const expanded = expandedId === c.id
+          const ap = approvalStates[c.id || ''] || {}
+          const isApproved = !!ap.approved
           return (
             <li
               key={c.id}
@@ -172,12 +287,18 @@ export function PlanningCandidatesPanel({
                   <p className="truncate text-[11px] text-tx3">{c.geography}</p>
                 </div>
                 <div className="hidden items-center gap-1.5 sm:flex">
-                  {c.added_to_spine ? (
+                  {isApproved ? (
+                    <span
+                      data-testid="candidate-on-spine"
+                      className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-400 uppercase"
+                    >
+                      ✓ ON MAIN CALENDAR
+                    </span>
+                  ) : c.added_to_spine ? (
                     <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-400 uppercase">
                       ON SPINE
                     </span>
-                  ) : null}
-                  {c.verify_before_spine ? (
+                  ) : c.verify_before_spine ? (
                     <span className="rounded bg-tx3/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-tx3 uppercase">
                       VERIFY
                     </span>
@@ -200,7 +321,7 @@ export function PlanningCandidatesPanel({
               </button>
 
               {expanded ? (
-                <div className="space-y-2.5 border-t border-bd px-4 py-3 text-xs">
+                <div className="space-y-3 border-t border-bd px-4 py-3 text-xs">
                   <div className="grid gap-2 sm:grid-cols-2">
                     {c.relevance_to_swing_shack ? (
                       <div className="rounded-md bg-bg/60 p-2.5">
@@ -227,6 +348,7 @@ export function PlanningCandidatesPanel({
                       </div>
                     ) : null}
                   </div>
+
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-bd pt-2 text-[10px] text-tx3">
                     {c.recommended_lead_time_weeks != null ? (
                       <span>
@@ -235,6 +357,24 @@ export function PlanningCandidatesPanel({
                     ) : null}
                     {c.source_date ? (
                       <span>Source date: {c.source_date}</span>
+                    ) : null}
+                    {c.verification_status ? (
+                      <span>
+                        Status:{' '}
+                        <strong className={c.verification_status === 'verified' ? 'text-emerald-400' : ''}>
+                          {c.verification_status}
+                        </strong>
+                      </span>
+                    ) : null}
+                    {c.venue_status ? (
+                      <span>
+                        Venue: <strong>{c.venue_status}</strong>
+                      </span>
+                    ) : null}
+                    {c.date_status ? (
+                      <span>
+                        Date: <strong>{c.date_status}</strong>
+                      </span>
                     ) : null}
                     {c.source ? (
                       <a
@@ -245,6 +385,60 @@ export function PlanningCandidatesPanel({
                       >
                         Source <ExternalLink className="h-3 w-3" />
                       </a>
+                    ) : null}
+                  </div>
+
+                  {/* Calendar V2.2 Slice 3 — Event Actions */}
+                  <div
+                    className="flex flex-wrap items-center gap-2 border-t border-bd pt-2"
+                    data-testid="candidate-actions"
+                  >
+                    {isApproved ? (
+                      <>
+                        <span
+                          data-testid="candidate-on-main-calendar"
+                          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-[10px] font-bold tracking-wider text-emerald-400 uppercase"
+                        >
+                          ✓ ON MAIN CALENDAR
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openPlanning(c)}
+                          data-testid="open-planning-btn"
+                          className="inline-flex items-center gap-1 rounded-md border border-bd bg-bg/60 px-3 py-1.5 text-[10px] font-bold tracking-wider text-tx2 uppercase hover:border-yel/60 hover:text-yel"
+                        >
+                          Open Planning
+                        </button>
+                        {ap.approved?.event_key ? (
+                          <span className="ml-2 text-[10px] text-tx3">
+                            <span className="font-mono">event_key: {ap.approved.event_key}</span>
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => c.id && approveCandidate(c.id)}
+                          disabled={ap.loading}
+                          data-testid="add-to-main-calendar-btn"
+                          className="inline-flex items-center gap-1 rounded-md border border-yel/40 bg-yel/15 px-3 py-1.5 text-[10px] font-bold tracking-wider text-yel uppercase hover:bg-yel/25 disabled:opacity-50"
+                        >
+                          {ap.loading ? <Loader2 className="h-3 w-3 animate-spin" /> : '+'}
+                          {ap.loading ? 'Adding…' : 'Add to Main Calendar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPlanning(c)}
+                          data-testid="open-planning-btn"
+                          className="inline-flex items-center gap-1 rounded-md border border-bd bg-bg/60 px-3 py-1.5 text-[10px] font-bold tracking-wider text-tx2 uppercase hover:border-yel/60 hover:text-yel"
+                        >
+                          Open Planning
+                        </button>
+                      </>
+                    )}
+                    {ap.message && !isApproved && ap.message !== 'Adding…' && !ap.loading ? (
+                      <span className="ml-1 text-[10px] text-yel">{ap.message}</span>
                     ) : null}
                   </div>
                 </div>
@@ -260,7 +454,10 @@ export function PlanningCandidatesPanel({
       </ul>
 
       {/* Calendar V2.1 — Research leads. NOT dated. Cannot be promoted to the spine
-          until the operator verifies the date with the listed source/contact. */}
+          until the operator verifies the date with the listed source/contact.
+          V2.2 — each row now renders [VERIFY BEFORE ADDING] (disabled) instead
+          of an Add button, plus a [OPEN PLANNING] link that opens the calendar
+          in evidence-only mode. */}
       {researchLeadCount > 0 ? (
         <div className="border-t border-bd pt-3" data-testid="research-leads-section">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -300,6 +497,20 @@ export function PlanningCandidatesPanel({
                   <span className="font-bold text-yel">Verify:</span>{' '}
                   {rl.verification_action_needed}
                 </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled
+                    data-testid="verify-before-adding-btn"
+                    className="inline-flex items-center gap-1 rounded-md border border-tx3/30 bg-tx3/10 px-3 py-1.5 text-[10px] font-bold tracking-wider text-tx3 uppercase disabled:cursor-not-allowed"
+                    title="Verify the date with the source first, then move this entry into candidates[] before Add to Main Calendar becomes enabled."
+                  >
+                    Verify Before Adding
+                  </button>
+                  <span className="ml-1 text-[10px] text-tx3">
+                    (Research lead — date must be confirmed before approval is enabled.)
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

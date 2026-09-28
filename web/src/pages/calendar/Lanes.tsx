@@ -29,15 +29,17 @@ import { EventDetail } from './planning/EventDetail'
 import { EventTimelinePanel } from './planning/EventTimelinePanel'
 import { LaneMonthPanel } from './planning/LaneMonthPanel'
 import { PlanningCandidatesPanel } from './planning/PlanningCandidatesPanel'
+import { PlannedPanel } from './planning/PlannedPanel'
 import { PlanningHero } from './planning/PlanningHero'
 import { RightNowStrip } from './planning/RightNowStrip'
 
-type LanesTab = 'strategy' | 'timeline' | 'month' | 'parked'
+type LanesTab = 'strategy' | 'timeline' | 'month' | 'planned' | 'parked'
 
 const TAB_OPTIONS = [
   { id: 'strategy', label: 'Strategy' },
   { id: 'timeline', label: 'Timeline' },
   { id: 'month', label: 'Month' },
+  { id: 'planned', label: 'Planned' },
   { id: 'parked', label: 'Parked posts' },
 ]
 
@@ -237,6 +239,7 @@ export function Lanes() {
       {tab === 'timeline' && scopeBrand && candidates ? (
         <PlanningCandidatesPanel
           brand={brandLabel}
+          brandId={scopeBrand}
           candidates={candidates.candidates || []}
           candidateCount={candidates.candidate_count || 0}
           confidenceBreakdown={candidates.confidence_breakdown || {}}
@@ -253,6 +256,10 @@ export function Lanes() {
           monthView={monthView}
           onMonthChange={setMonthParam}
         />
+      ) : null}
+
+      {tab === 'planned' && scopeBrand ? (
+        <PlannedPanel brand={brandLabel} brandId={scopeBrand} />
       ) : null}
 
       {tab === 'parked' ? (

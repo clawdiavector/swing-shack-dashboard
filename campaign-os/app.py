@@ -25,7 +25,7 @@ import base64
 import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td, date as _date_cls
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort, session
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -42718,6 +42718,85 @@ def planning_month_view(brand_id):
                 "source_name": m.get("source_name"),
             })
 
+    # Calendar V2.2 — Slice 4 — derive planning milestones per day from the
+    # spine events for this month. Each phase becomes a milestone object
+    # with explicit verified/suggested flag (suggested = tier-based default
+    # not yet committed to by a human). Distinct from important_dates
+    # (strategic moments / heritage / golf moments) and from days (planned
+    # content). Three layers are rendered separately in the React month panel.
+    planning_milestones: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        # Use the planning_timeline endpoint logic (cross-year support).
+        # For this iteration we look at the same brand's year spine files.
+        year_span = [year]
+        for y in (year - 1, year + 1):
+            year_span.append(y)
+        for candidate_year in year_span:
+            spine_files = sorted(glob.glob(os.path.join(_planning_dir(), f"{brand_id}-events-{candidate_year}.json")))
+            for sf in spine_files:
+                try:
+                    with open(sf, "r", encoding="utf-8") as fp:
+                        spine = json.load(fp)
+                except Exception:
+                    continue
+                for ev in (spine.get("events") or []):
+                    ev_start = ev.get("start", "")[:10]
+                    if not ev_start.startswith(month):
+                        continue
+                    # Tier-based suggested phases (match V2 _enrich_event derivation)
+                    phases = _derive_default_phases(ev)
+                    for ph in phases:
+                        ph_date = (ph.get("start") or "")[:10]
+                        if not ph_date.startswith(month):
+                            continue
+                        ms = {
+                            "id": ph.get("id", f"{ev.get('id','?')}-{ph.get('label')}"),
+                            "event_id": ev.get("id"),
+                            "event_name": ev.get("name"),
+                            "phase_label": ph.get("label"),
+                            "date": ph_date,
+                            "verified": bool(ph.get("verified")),
+                            "kind": ph.get("kind") or ("verified" if ph.get("label") == "★ PEAK" else "suggested_planning_date"),
+                            "is_peak": ph.get("label") == "★ PEAK",
+                            "tier": ev.get("tier"),
+                            "is_suggested": not bool(ph.get("verified")),
+                        }
+                        planning_milestones.setdefault(ph_date, []).append(ms)
+                # Also: explicit strategic_moments for the day (the public_peak is the moment)
+                peak = ev.get("public_peak", "")
+                if peak.startswith(month):
+                    planning_milestones.setdefault(peak, []).append({
+                        "id": f"{ev.get('id','?')}-strategic-moment",
+                        "event_id": ev.get("id"),
+                        "event_name": ev.get("name"),
+                        "phase_label": "★ PUBLIC PEAK",
+                        "date": peak,
+                        "verified": True,
+                        "kind": "verified_strategic_moment",
+                        "is_peak": True,
+                        "tier": ev.get("tier"),
+                        "is_suggested": False,
+                    })
+    except Exception:
+        pass
+
+    # Slice 4 explicit rule: "no content" empty-state is only displayed when
+    # ALL THREE layers (strategic moment, planning milestone, planned content)
+    # are empty. We pre-merge into day-level rollups the React can render.
+    days_extended: Dict[str, Dict[str, List[Any]]] = {}
+    all_dates = set(days.keys()) | set(important_key_dates(important)) | set(planning_milestones.keys())
+    for d in all_dates:
+        is_mm = d.startswith(month) if d else False
+        if not is_mm:
+            continue
+        # Filter important_dates to those starting on this day
+        day_moments = [it for it in important if ((it.get("start_date") or "")[:10] == d)]
+        days_extended[d] = {
+            "planned_content": days.get(d, []),
+            "strategic_moments": day_moments,
+            "planning_milestones": planning_milestones.get(d, []),
+        }
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
@@ -42728,6 +42807,14 @@ def planning_month_view(brand_id):
         "lane_system": data.get("lane_system") or [],
         "days": days,
         "important_dates": important,
+        # V2.2 Slice 4 — three-layer shape:
+        "days_extended": days_extended,
+        "planning_milestones": planning_milestones,
+        "month_grid_layers": {
+            "planned_content": sorted(days.keys()),
+            "strategic_moments": sorted(set(important_key_dates(important))),
+            "planning_milestones": sorted(planning_milestones.keys()),
+        },
         "production_runway_note": "T-21 to T-28: monthly theme. T-14 to T-21: briefs. T-7 to T-14: capture. T-4 to T-7: edit. T-2 to T-4: review. T-1: schedule.",
         "reminder": "PARALLEL LANES — every important lane remains active. Monthly theme gives those lanes a shared idea.",
     }), 200
@@ -43640,6 +43727,78 @@ def _event_phase_dates(public_peak, weeks_before, weeks_after=0):
     return start.isoformat(), end.isoformat()
 
 
+def _derive_default_phases(event):
+    """Slice 2 helper — deterministic tier-based default phases for an event.
+
+    Returns a list of phase objects with `{label, start, verified, kind}`
+    that mirrors the legacy _enrich_event derivation but stripped of the
+    years-before/after wrapping. Used by the Slice 4 month-grid endpoint
+    AND by anything that needs the canonical phase shape without a full
+    enrichment.
+
+    A-PIN: 7 phases over 8 weeks (PLAN/BRIEF/CREATE/REVIEW/LIVE/★ PEAK/REPORT)
+    B-PIN: 5 phases over 4 weeks
+    C-PIN: 2 phases (PLAN/★ PEAK)
+    """
+    tier = (event.get("tier") or "").strip().upper()
+    peak_str = event.get("public_peak") or ""
+    if not peak_str:
+        return []
+    try:
+        peak = _date_cls.fromisoformat(peak_str[:10])
+    except Exception:
+        return []
+    if tier == "A-PIN":
+        spec = [
+            ("PLAN", 8, False),
+            ("BRIEF", 6, False),
+            ("CREATE", 4, False),
+            ("REVIEW", 2, False),
+            ("LIVE", 1, False),
+            ("★ PEAK", 0, True),
+            ("REPORT", -1, False),
+        ]
+    elif tier == "B-PIN":
+        spec = [
+            ("PLAN", 4, False),
+            ("BRIEF", 2, False),
+            ("CREATE", 1, False),
+            ("★ PEAK", 0, True),
+            ("REPORT", -1, False),
+        ]
+    else:  # C-PIN or unknown
+        spec = [
+            ("PLAN", 1, False),
+            ("★ PEAK", 0, True),
+        ]
+    phases = []
+    for label, weeks_before, verified in spec:
+        weeks_before = -weeks_before
+        start_date = peak + _td(weeks=weeks_before)
+        phases.append({
+            "id": f"{event.get('id','')}-{label.lower().replace('★ ','').strip()}",
+            "label": label,
+            "start": start_date.isoformat(),
+            "verified": verified,
+            "kind": "verified" if verified else "suggested_planning_date",
+        })
+    return phases
+
+
+def important_key_dates(items):
+    """Slice 4 helper — extract unique date keys from an important_dates list.
+
+    Each item may carry start_date (typical) or date. Returns a set of
+    YYYY-MM-DD strings.
+    """
+    out = set()
+    for it in items or []:
+        sd = (it.get("start_date") or it.get("date") or "")[:10]
+        if sd:
+            out.add(sd)
+    return out
+
+
 def _enrich_event(event):
     """Convert phase weeks_before_peak into absolute sequential date ranges.
 
@@ -44009,6 +44168,553 @@ def planning_candidates(brand_id):
         "sources": sources,
         "start": start_str or None,
         "end": end_str or None,
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.2 — Slice 3 endpoint: approve a candidate → marketing_calendar.
+# Idempotent. Writes one immutable audit row per call. NEVER approves a
+# research_lead (no date = raise 400). 401 if not authed.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/candidates/<candidate_id>/approve", methods=["POST"])
+def planning_approve_candidate(brand_id, candidate_id):
+    """POST /api/planning/<brand>/candidates/<id>/approve
+
+    Approve an intelligence candidate → marketing_calendar.upsert_event spine.
+    The candidate must come from data/brand-planning/<brand>-candidates-*.json.
+
+    - Idempotent (event_key is stable per candidate)
+    - Logs an immutable audit row to <DATA_DIR>/calendar-audit/<brand>-approvals.jsonl
+    - Refuses with 400 if the candidate has no start/public_peak date (research_lead)
+    """
+    from _lib import _planning_events as _planevents  # V2.2
+    from _lib import marketing_calendar as _mc_approval  # V2.2
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    # Resolve brand directory
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+
+    actor = (
+        request.headers.get("X-Actor")
+        or (session.get("actor") if session else None)
+        or "operator"
+    )
+
+    # Load candidates file
+    planning = _planning_dir()
+    candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+    if not candidates_files:
+        return jsonify({"ok": False, "error": "no candidates file for this brand"}), 404
+
+    candidate: Optional[Dict[str, Any]] = None
+    research_lead: Optional[Dict[str, Any]] = None
+    source_file: Optional[str] = None
+    for cf in candidates_files:
+        try:
+            with open(cf, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            for c in (payload.get("candidates") or []):
+                if c.get("id") == candidate_id:
+                    candidate = c
+                    source_file = cf
+                    break
+            if not candidate:
+                # Search research_leads too — refuse them with the
+                # explicit verification_required flag.
+                for rl in (payload.get("research_leads") or []):
+                    if rl.get("id") == candidate_id:
+                        research_lead = rl
+                        source_file = cf
+                        break
+            if candidate or research_lead:
+                break
+        except Exception:
+            continue
+    if not candidate and not research_lead:
+        return jsonify({
+            "ok": False,
+            "error": f"candidate '{candidate_id}' not found in any {brand_id}-candidates-*.json",
+        }), 404
+    if research_lead:
+        # Slice 3 directive: research_leads without verified dates cannot be
+        # promoted. Tell the operator exactly which lead they need to verify.
+        return jsonify({
+            "ok": False,
+            "error": (
+                f"This entry is a research_lead without a verified date: "
+                f"'{research_lead.get('name')}'. Verify the date with "
+                f"'{research_lead.get('verification_action_needed','the source')}' "
+                "first, then move it into candidates[] and approve."
+            ),
+            "is_research_lead": True,
+            "verification_required": True,
+            "verification_action_needed": research_lead.get("verification_action_needed"),
+            "candidate_id": candidate_id,
+        }), 400
+
+    # Build the approval record via the helper — which enforces the
+    # 'no date, no approve' rule (raises ValueError for research_leads).
+    try:
+        if not isinstance(candidate, dict):
+            raise ValueError("candidate failed to load")
+        record = _planevents.build_approval_record(brand_id, candidate, actor=actor)
+    except ValueError as e:
+        # ValueError means: research_lead without a date. Surface as 400.
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "is_research_lead": True,
+            "verification_required": True,
+        }), 400
+
+    # Find existing record (before-state) for the audit row.
+    before: Dict[str, Any] | None = None
+    try:
+        existing = _mc_approval.list_records(brand_id)
+        for r in existing:
+            if r.get("event_key") == record["event_key"]:
+                before = {
+                    "event_key": r.get("event_key"),
+                    "title": r.get("title"),
+                    "tier": r.get("tier"),
+                    "event_start": r.get("event_start"),
+                    "event_end": r.get("event_end"),
+                    "revision": r.get("revision"),
+                    "status": r.get("status"),
+                }
+                break
+    except Exception:
+        before = None
+
+    # Upsert into the marketing_calendar store (single source of truth for
+    # the unified record layer — both Calendar V2 and existing
+    # work_due/morning-brief consumers read from this).
+    try:
+        upsert_result = _mc_approval.upsert_event(brand_id, record)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"upsert_event failed: {e}"}), 500
+
+    # Audit
+    try:
+        audit_entry = _planevents.write_audit_entry(
+            brand_id=brand_id,
+            action="approve_candidate",
+            actor=actor,
+            source_id=candidate_id,
+            before=before,
+            after={
+                "event_key": record["event_key"],
+                "title": record["title"],
+                "tier": record.get("tier"),
+                "event_start": record["event_start"],
+                "event_end": record["event_end"],
+                "source_origin": record.get("source_origin"),
+                "verification_status": record.get("verification_status"),
+                "upsert_action": upsert_result.get("action"),
+                "upsert_revision": upsert_result.get("revision"),
+                "source_candidate_file": source_file,
+            },
+        )
+    except Exception as e:
+        audit_entry = None
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "candidate_id": candidate_id,
+        "event_key": record["event_key"],
+        "upsert": upsert_result,
+        "was_created": before is None,
+        "audit_entry": audit_entry,
+        "actor": actor,
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/candidates/approval-status/<candidate_id>", methods=["GET"])
+def planning_candidate_approval_status(brand_id, candidate_id):
+    """GET /api/planning/<brand>/candidates/approval-status/<id>
+
+    Returns whether a candidate is already approved (event_key exists in
+    marketing_calendar records), and if so the event_key + revision.
+    Used by the React panel to show ✓ ON MAIN CALENDAR.
+    """
+    from _lib import _planning_events as _planevents_status  # V2.2
+    from _lib import marketing_calendar as _mc_status  # V2.2
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    # Try to derive the candidate's event_key
+    try:
+        # Pull candidate metadata to get the start date
+        planning = _planning_dir()
+        candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+        candidate = None
+        for cf in candidates_files:
+            try:
+                with open(cf, "r", encoding="utf-8") as f:
+                    payload = json.load(f)
+                for c in (payload.get("candidates") or []):
+                    if c.get("id") == candidate_id:
+                        candidate = c
+                        break
+                if candidate:
+                    break
+            except Exception:
+                continue
+        if not candidate:
+            return jsonify({"ok": False, "error": "candidate not found"}), 404
+        record = _planevents_status.build_approval_record(brand_id, candidate, actor="query")
+        event_key = record["event_key"]
+    except ValueError:
+        # Research lead — no date — so no approval possible.
+        return jsonify({
+            "ok": True,
+            "approved": False,
+            "is_research_lead": True,
+            "verification_required": True,
+            "candidate_id": candidate_id,
+        }), 200
+
+    # Look up by event_key
+    existing = _mc_status.list_records(brand_id)
+    for r in existing:
+        if r.get("event_key") == event_key:
+            return jsonify({
+                "ok": True,
+                "approved": True,
+                "candidate_id": candidate_id,
+                "event_key": event_key,
+                "title": r.get("title"),
+                "tier": r.get("tier"),
+                "revision": r.get("revision"),
+                "status": r.get("status"),
+                "event_start": r.get("event_start"),
+                "event_end": r.get("event_end"),
+            }), 200
+    return jsonify({
+        "ok": True,
+        "approved": False,
+        "candidate_id": candidate_id,
+        "event_key": event_key,
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.2 — Slice 5: Today-integration summary.
+# Reads the planned view and surfaces counts into a Today-friendly shape.
+# No duplicate tasks — Today reads Calendar state, does not own its own list.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/today/summary", methods=["GET"])
+def planning_today_summary():
+    """GET /api/planning/today/summary
+
+    Returns per-brand Today-integration rollups, e.g.:
+
+      "swing-shack": {
+        "briefs_due_this_week": 0,
+        "apins_needing_creative": 0,
+        "events_needing_planning": 7,
+        "overdue_count": 2,
+        "approved_count": 0,
+        "needs_attention_now": [...]
+      }
+
+    Does NOT create tasks. Pure read from /api/planning/<brand>/planned.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brands = ("swing-shack", "stick", "bag-drop")
+    brand_filter = (request.args.get("brand") or "").strip()
+    out: Dict[str, Any] = {"ok": True, "brands": {}}
+    for brand_id in brands:
+        if brand_filter and brand_filter != brand_id:
+            continue
+        today_d = _date_cls.today()
+        start_d = today_d - _td(days=30)
+        end_d = today_d + _td(days=90)
+        spine_events: List[Dict[str, Any]] = []
+        for y in {today_d.year, end_d.year}:
+            for sf in sorted(glob.glob(os.path.join(_planning_dir(), f"{brand_id}-events-{y}.json"))):
+                try:
+                    with open(sf, "r", encoding="utf-8") as fp:
+                        spine_events.extend((json.load(fp)).get("events") or [])
+                except Exception:
+                    continue
+        from datetime import date as _date_x
+        waiting_planning = 0
+        overdue = 0
+        needs_attention: List[Dict[str, Any]] = []
+        for ev in spine_events:
+            try:
+                peak = _date_x.fromisoformat((ev.get("public_peak") or "")[:10])
+            except Exception:
+                continue
+            days = (peak - today_d).days
+            if days < 0:
+                overdue += 1
+                needs_attention.append({
+                    "event_id": ev.get("id"),
+                    "event_name": ev.get("name"),
+                    "tier": ev.get("tier"),
+                    "reason": "public_peak_passed",
+                    "public_peak": (ev.get("public_peak") or "")[:10],
+                    "days_overdue": -days,
+                })
+            elif days <= 21:
+                enriched = _enrich_event(dict(ev))
+                phases = enriched.get("phases") or []
+                if phases and all(not p.get("verified") for p in phases):
+                    waiting_planning += 1
+                    needs_attention.append({
+                        "event_id": ev.get("id"),
+                        "event_name": ev.get("name"),
+                        "tier": ev.get("tier"),
+                        "reason": "needs_planning_approval",
+                        "public_peak": (ev.get("public_peak") or "")[:10],
+                        "days_to_peak": days,
+                    })
+        needs_attention = needs_attention[:8]
+        out["brands"][brand_id] = {
+            "briefs_due_this_week": waiting_planning,
+            "apins_needing_creative": 0,
+            "events_needing_planning": waiting_planning,
+            "overdue_count": overdue,
+            "approved_count": 0,
+            "needs_attention_now": needs_attention,
+        }
+    return jsonify(out), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.2 — Slice 5: Planned view (default TODAY → next 90 days).
+# Groups work by workflow stage and prioritises overdue work.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/planned", methods=["GET"])
+def planning_planned_view(brand_id):
+    """GET /api/planning/<brand>/planned
+
+    Returns items grouped by workflow stage:
+      NEEDS_BRIEF          — A-PIN/B-PIN public_peak in [T-21, T] with no planning_state beyond not_planned
+      BRIEF_READY          — public_peak in [T-21, T-14]
+      NEEDS_CREATE         — public_peak in [T-14, T-7]
+      IN_CREATE            — public_peak in [T-7, T-2]
+      NEEDS_REVIEW         — public_peak in [T-2, T-1]
+      APPROVED             — public_peak in [T-1, T] (within last day, ready to ship)
+      SCHEDULED_READY_FOR_PUBLISH — public_peak in [T, T+7] and lifecycle in active or live
+
+    Sorted priority within each stage:
+      OVERDUE items first (public_peak < today)
+      THEN due-this-week
+      THEN tier A-PIN
+      THEN tier B-PIN
+      THEN recommended_lead_time_weeks desc
+
+    Each item carries: event_id, event_name, brand, public_peak, tier,
+    recommended_runway_weeks, north_star, operating_goal_match (subset of
+    the brand's operating_goals), always_on_lane_match (subset of brand's
+    operating_areas), suggested_opportunity, evidence_source, planning_state.
+    """
+    from _lib import marketing_calendar as _mc_planned  # V2.2 Slice 5
+    from datetime import date as _dd  # local alias to avoid shadowing
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    # 90-day forward window from today (per Slice 5 directive)
+    today_d = _date_cls.today()
+    start_d = today_d
+    end_d = today_d + _td(days=90)
+
+    # Simplest path: read spine files directly, enrich, and bucket by phase.
+    brand_data = _read_planning(brand_id) or {}
+    big_idea = brand_data.get("big_brand_idea") or {}
+
+    # V2.1 — operating_goals and operating_areas may live in the strategy
+    # file rather than brand-planning/swing-shack.json post-refactor.
+    operating_goals: List[Dict[str, Any]] = list(brand_data.get("operating_goals") or [])
+    operating_areas: List[Dict[str, Any]] = list(brand_data.get("operating_areas") or [])
+    strat_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "data", "strategy", f"{brand_id}.json"
+    )
+    ns: Dict[str, Any] = {}
+    try:
+        if os.path.exists(strat_path):
+            with open(strat_path, "r", encoding="utf-8") as sf:
+                strat = json.load(sf)
+                ns = strat.get("north_star") or {}
+                if not operating_goals:
+                    operating_goals = strat.get("operating_goals") or []
+    except Exception:
+        pass
+
+    # Load spine events across the window
+    spine_events: List[Dict[str, Any]] = []
+    year_iter = {start_d.year, end_d.year}
+    for y in sorted(year_iter):
+        for sf in sorted(glob.glob(os.path.join(_planning_dir(), f"{brand_id}-events-{y}.json"))):
+            try:
+                with open(sf, "r", encoding="utf-8") as fp:
+                    spine_events.extend((json.load(fp)).get("events") or [])
+            except Exception:
+                continue
+
+    # Filter window: include past events up to 30 days ago (overdue),
+    # and forward events up to end_d.
+    past_window_d = today_d - _td(days=30)
+    windowed = []
+    for ev in spine_events:
+        try:
+            peak = _dd.fromisoformat((ev.get("public_peak") or "")[:10])
+        except Exception:
+            continue
+        if peak >= past_window_d and peak <= end_d:
+            enriched = _enrich_event(dict(ev))
+            windowed.append(enriched)
+
+    # Build per-event 'planned' item
+    def _stage_for(peak: _dd) -> str:
+        days_to_peak = (peak - today_d).days
+        if days_to_peak < 0:
+            return "OVERDUE"
+        if days_to_peak >= 21:
+            return "NEEDS_BRIEF"
+        if days_to_peak >= 14:
+            return "BRIEF_READY"
+        if days_to_peak >= 7:
+            return "NEEDS_CREATE"
+        if days_to_peak >= 2:
+            return "IN_CREATE"
+        if days_to_peak >= 1:
+            return "NEEDS_REVIEW"
+        if days_to_peak >= 0:
+            return "APPROVED"
+        if days_to_peak >= -7:
+            return "SCHEDULED_READY_FOR_PUBLISH"
+        return "OVERDUE"
+
+    # Surface relevant operating goal match (heuristic — by tier + category)
+    tier_to_goal_hint = {
+        "A-PIN": ["coaching", "fit", "fitting", "conversions", "revenue"],
+        "B-PIN": ["coaching", "fit", "fitting", "engagement", "membership"],
+        "C-PIN": ["brand", "membership", "engagement"],
+    }
+
+    items_by_stage: Dict[str, List[Dict[str, Any]]] = {
+        "NEEDS_BRIEF": [], "BRIEF_READY": [], "NEEDS_CREATE": [],
+        "IN_CREATE": [], "NEEDS_REVIEW": [], "APPROVED": [],
+        "SCHEDULED_READY_FOR_PUBLISH": [], "OVERDUE": [],
+    }
+
+    for ev in windowed:
+        try:
+            peak = _dd.fromisoformat((ev.get("public_peak") or "")[:10])
+        except Exception:
+            continue
+        stage = _stage_for(peak)
+        # Operating goal match (label contains any of the heuristic hints)
+        goals_match: List[Dict[str, Any]] = []
+        tier = (ev.get("tier") or "").upper()
+        hints = tier_to_goal_hint.get(tier, [])
+        for g in operating_goals:
+            label_l = (g.get("label") or "").lower() + " " + (g.get("metric") or "").lower() + " " + (g.get("id") or "").lower()
+            if any(h in label_l for h in hints):
+                goals_match.append({"id": g.get("id"), "label": g.get("label"), "metric": g.get("metric")})
+        # Always-on lane match: events on the spine map to lanes via the
+        # brand's operating_areas[].lane field. We pick all areas that
+        # have a non-empty tags list; for now surface the first matching
+        # one by name (Swing Shack uses FITTING/COACHING/etc. as keys).
+        ev_name_l = (ev.get("name") or "").lower()
+        lanes_match: List[Dict[str, Any]] = []
+        for a in operating_areas:
+            lane_l = (a.get("lane") or "").lower()
+            if lane_l and (lane_l in ev_name_l or any(w in ev_name_l for w in lane_l.split("-"))):
+                lanes_match.append({"key": a.get("key"), "lane": a.get("lane"), "tagline": a.get("tagline")})
+        # Fallback for Swing Shack: derive from phase label by tier (best guess)
+        if not lanes_match and not operating_areas and brand_id == "swing-shack":
+            hints_ss = {
+                "A-PIN": [{"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"}],
+                "B-PIN": [{"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"}],
+                "C-PIN": [{"key": "FITTING", "lane": "fitting", "tagline": "fit first, buy second"}],
+            }
+            lanes_match = hints_ss.get(tier, [{"key": "COACHING", "lane": "coaching"}])
+
+        planning_state = ev.get("planning_state") or ("not_planned" if peak >= today_d else "completed")
+        items_by_stage[stage].append({
+            "event_id": ev.get("id"),
+            "event_name": ev.get("name"),
+            "brand_id": brand_id,
+            "tier": ev.get("tier"),
+            "public_peak": (ev.get("public_peak") or "")[:10],
+            "start": (ev.get("start") or "")[:10],
+            "end": (ev.get("end") or "")[:10],
+            "stage": stage,
+            "days_to_peak": (peak - today_d).days,
+            "recommended_runway_weeks": ev.get("recommended_lead_time_weeks"),
+            "planning_state": planning_state,
+            "north_star_statement": (ns.get("statement") or "").split("\n")[0] if isinstance(ns.get("statement"), str) else None,
+            "operating_goal_match": goals_match,
+            "always_on_lane_match": lanes_match,
+            "opportunity": ev.get("opportunity") or ev.get("description"),
+            "evidence_source": (ev.get("evidence") or {}).get("source") if isinstance(ev.get("evidence"), dict) else None,
+            "phase_count": len(ev.get("phases") or []),
+            "phases_suggested": sum(1 for p in (ev.get("phases") or []) if not p.get("verified")),
+            "phases_verified": sum(1 for p in (ev.get("phases") or []) if p.get("verified")),
+        })
+
+    # Sort within each stage: tier A first, then B, then C, then by days_to_peak asc (closer first)
+    def _sort_key(it):
+        t_rank = 0 if (it.get("tier") or "").upper() == "A-PIN" else 1 if (it.get("tier") or "").upper() == "B-PIN" else 2
+        days = it.get("days_to_peak", 9999)
+        return (t_rank, abs(days), days)
+
+    for stage, items in items_by_stage.items():
+        items.sort(key=_sort_key)
+
+    # Counts per stage
+    counts = {stage: len(items) for stage, items in items_by_stage.items()}
+
+    # Today-integration summary lines:
+    #   "2 briefs due this week" — NEEDS_BRIEF + BRIEF_READY with public_peak <= today + 7
+    #   "1 A-PIN needs creative"  — A-PINs in NEEDS_CREATE / IN_CREATE
+    #   "3 events need planning"  — items in NEEDS_BRIEF without non-empty phases
+    today_integration = {
+        "briefs_due_this_week": sum(
+            1 for it in items_by_stage["NEEDS_BRIEF"] + items_by_stage["BRIEF_READY"]
+            if isinstance(it.get("days_to_peak"), int) and it["days_to_peak"] <= 7
+        ),
+        "apins_needing_creative": sum(
+            1 for it in items_by_stage["NEEDS_CREATE"] + items_by_stage["IN_CREATE"]
+            if (it.get("tier") or "").upper() == "A-PIN"
+        ),
+        "events_needing_planning": sum(
+            1 for it in items_by_stage["NEEDS_BRIEF"] if it.get("phases_suggested", 0) > 0
+        ),
+        "overdue_count": counts.get("OVERDUE", 0),
+        "approved_count": counts.get("APPROVED", 0),
+    }
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "window_start": start_d.isoformat(),
+        "window_end": end_d.isoformat(),
+        "today": today_d.isoformat(),
+        "today_integration": today_integration,
+        "stages": items_by_stage,
+        "counts": counts,
+        "north_star": ns.get("statement") if isinstance(ns.get("statement"), str) else None,
+        "operating_goals": operating_goals,
+        "operating_areas": operating_areas,
+        "big_brand_idea": big_idea,
     }), 200
 
 
