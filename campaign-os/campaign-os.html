@@ -6048,6 +6048,7 @@ const _GENERATORS = [
   // ── External apps (full-page) — show as quick-access cards inside Create grid ──
   {id: 'visualizer', icon: '🎨', label: 'Visual Library', desc: 'Browse 122+ brand images. Discover by colour, brand, mood. Generate new images with the recipe pipeline.', sec: '/visualizer', external: true, count: '122 images'},
   {id: 'memelab', icon: '😂', label: 'Meme Lab', desc: 'Browse existing meme templates + remix with brand voice.', sec: '/meme-lab', external: true, count: 'templates'},
+  {id: 'inspiration', icon: '🔍', label: 'Inspiration Intelligence', desc: 'Watch social accounts, save posts that worked, tag why, feed into Create.', sec: '/inspiration-lab', external: true, count: 'watchlist'},
   {id: 'imagegen', icon: '🖼️', label: 'Generate Image', desc: 'Live renders via gpt-image-1, recipe-informed. Saving to visual library automatically.', sec: 'imagegen', count: 'live'},
   // ── Generators (in-shell) ──
   {id: 'captions', icon: '✍️', label: 'Caption Studio', desc: 'Voice-aware captions. Pick voice + tone + asset.', sec: 'captions', count: 'voice bible'},
@@ -19660,6 +19661,14 @@ function _shiftMonth(month, delta) {
 
 function _plBrand() { return document.getElementById('pl-brand')?.value || 'stick'; }
 function _plMonth() { return document.getElementById('pl-month')?.value || '2026-10'; }
+function _urlParam(name) {
+  try { return new URLSearchParams(location.search).get(name); }
+  catch (e) { return null; }
+}
+function _monthShort(d) {
+  const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return m[d.getMonth()] + ' ' + d.getDate() + (d.getFullYear() !== new Date().getFullYear() ? ' \'' + String(d.getFullYear()).slice(-2) : '');
+}
 
 // ─── TIER 3.18 — EVENT-FOCUSED CALENDAR (per heidi.txt 2026-09-08) ────────
 // Strategy above the calendar comes from EVENTS / COMMERCIAL PUSHES, not
@@ -19761,9 +19770,71 @@ function renderActiveNow(rn) {
   }
 }
 
+// ---- Timeline zoom + horizon state ----
+// _plZoom is in days. Default 90. Valid: 30, 90, 182, 365.
+// URL param ?view=30|90|6m|12m is honoured on initial load + on click.
+let _plZoom = 90;
+let _plZoomInitialised = false;
+let _plTimelineOffsetDays = 0;   // 0 means "anchored on today". Negative = past, positive = future.
+function _plZoomFromUrl() {
+  const v = _urlParam('view') || '90';
+  const map = { '30': 30, '90': 90, '6m': 182, '12m': 365 };
+  return map[String(v).toLowerCase()] || 90;
+}
+function _plZoomLabel(days) {
+  if (days <= 30) return '30D';
+  if (days <= 90) return '90D';
+  if (days <= 182) return '6M';
+  return '12M';
+}
+function plSetZoom(daysOrLabel) {
+  const map = { '30': 30, '90': 90, '182': 182, '365': 365, '6m': 182, '12m': 365, '30d': 30, '90d': 90, '6M': 182, '12M': 365 };
+  const d = map[String(daysOrLabel)] ?? 90;
+  _plZoom = d;
+  _plTimelineOffsetDays = 0;     // returning to "today" anchor when zoom changes
+  // Mirror to URL
+  try {
+    const url = new URL(location.href);
+    url.searchParams.set('view', _plZoomLabel(d).toLowerCase());
+    url.searchParams.set('brand', _plBrand());
+    history.replaceState(null, '', url.toString());
+  } catch (e) { /* no-op */ }
+  // Highlight the right button
+  document.querySelectorAll('.pl-zoom-btn').forEach(b => {
+    const v = b.getAttribute('data-pl-zoom');
+    const active = (v == String(d)) || (_plZoomLabel(d) === b.textContent.trim().toUpperCase().replace('D','').replace('M','M'));
+    const isSelected = (v == String(d)) || (String(d) === '182' && b.textContent.trim() === '6M') || (String(d) === '365' && b.textContent.trim() === '12M');
+    b.style.background = isSelected ? '#f0a030' : 'var(--bg-2)';
+    b.style.color = isSelected ? '#0d0d0d' : 'var(--tx)';
+    b.style.borderColor = isSelected ? '#f0a030' : 'var(--bd)';
+  });
+  renderTimeline(_planningTimelineData, _plYear());
+}
+function plTimelineNav(deltaDays) {
+  _plTimelineOffsetDays += deltaDays;
+  renderTimeline(_planningTimelineData, _plYear());
+}
+function plTimelineToday() {
+  _plTimelineOffsetDays = 0;
+  renderTimeline(_planningTimelineData, _plYear());
+}
+
 function renderTimeline(timeline, year) {
   const body = document.getElementById('pl-timeline-body');
   if (!body) return;
+  // Initialise zoom from URL once (only if not yet overridden)
+  if (_plZoom === 90 && !_plZoomInitialised) {
+    _plZoom = _plZoomFromUrl();
+    _plZoomInitialised = true;
+    // Highlight the active button
+    document.querySelectorAll('.pl-zoom-btn').forEach(b => {
+      const v = b.getAttribute('data-pl-zoom');
+      const isSelected = (v == String(_plZoom)) || (String(_plZoom) === '182' && b.textContent.trim() === '6M') || (String(_plZoom) === '365' && b.textContent.trim() === '12M');
+      b.style.background = isSelected ? '#f0a030' : 'var(--bg-2)';
+      b.style.color = isSelected ? '#0d0d0d' : 'var(--tx)';
+      b.style.borderColor = isSelected ? '#f0a030' : 'var(--bd)';
+    });
+  }
   if (!timeline?.ok) {
     body.innerHTML = '<div class="muted" style="padding:1rem">No event spine loaded for ' + year + '.</div>';
     return;
@@ -19788,7 +19859,49 @@ function renderTimeline(timeline, year) {
   // Always-on pillars row (always visible)
   const pillars = timeline.always_on_pillars || [];
 
+  // ---- Compute visible window from today + zoom + offset ----
+  // The "canvas" the timeline is drawn on is the full year. The "viewport" the user
+  // sees is the slice [today + offset, today + offset + zoom]. We render the full
+  // year canvas, then clip via a horizontal-scroll container whose scrollLeft is set
+  // so the visible window is centred/anchored correctly.
+  const todayMs = Date.now();
+  const today = new Date(todayMs);
+  today.setHours(0,0,0,0);
+  const visibleStart = new Date(today);
+  visibleStart.setDate(visibleStart.getDate() + _plTimelineOffsetDays);
+  const visibleEnd = new Date(visibleStart);
+  visibleEnd.setDate(visibleEnd.getDate() + _plZoom);
+
   let html = '';
+
+  // ---- Navigation + zoom header (compact) ----
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.5rem;padding:.5rem .75rem;background:var(--bg-2);border-radius:8px;border:1px solid var(--bd)">';
+  html += '<div style="display:flex;align-items:center;gap:.4rem">';
+  html += '<button onclick="plTimelineNav(-' + _plZoom + ')" style="font-size:14px;padding:4px 10px;border-radius:4px;background:var(--bg-1);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:600">‹ Prev</button>';
+  html += '<button onclick="plTimelineToday()" style="font-size:11px;padding:4px 10px;border-radius:4px;background:var(--bg-1);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:700;letter-spacing:.04em">⊕ TODAY</button>';
+  html += '<button onclick="plTimelineNav(' + _plZoom + ')" style="font-size:14px;padding:4px 10px;border-radius:4px;background:var(--bg-1);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:600">Next ›</button>';
+  html += '</div>';
+  const winLabel = _monthShort(visibleStart) + ' → ' + _monthShort(visibleEnd);
+  html += '<div style="font-size:11px;color:var(--tx-2);font-weight:600;letter-spacing:.04em;text-transform:uppercase">';
+  html += 'Window: ' + winLabel + ' <span style="color:var(--tx-3);font-weight:400">· ' + _plZoom + ' days</span>';
+  html += '</div>';
+  html += '</div>';
+
+  // ---- Track label column width based on zoom (more space for fuller info at 30/90, less at 12M) ----
+  const zoom = _plZoom;
+  const compact = zoom >= 182;        // 6M, 12M
+  const ultraCompact = zoom >= 365;   // 12M
+  const rowH = ultraCompact ? 22 : (compact ? 28 : 32);
+  const labelW = ultraCompact ? 0 : (compact ? 100 : 140);
+
+  // ---- Open scrollable viewport ----
+  // The timeline canvas is scaled wider than the viewport for narrow zooms
+  // (30D / 90D / 6M) so that the visible window fills the screen and scrollLeft
+  // can position "today" at the left edge. At 12M (full year), canvas = viewport.
+  const yearDayCount = 365;
+  const canvasWidthPct = (yearDayCount / _plZoom) * 100;  // 30D = 1217%, 90D = 405%, 6M = 200%, 12M = 100%
+  html += '<div id="pl-timeline-viewport" style="overflow-x:auto;overflow-y:visible;position:relative;-webkit-overflow-scrolling:touch">';
+  html += '<div id="pl-timeline-canvas" style="position:relative;width:' + canvasWidthPct.toFixed(2) + '%;padding-bottom:8px">';
 
   // Month axis
   html += '<div style="position:relative;height:18px;margin-bottom:8px;border-bottom:1px solid var(--bd)">';
@@ -19853,11 +19966,13 @@ function renderTimeline(timeline, year) {
       const peakPct = peakDate ? (peakDate - yearStart) / yearMs * 100 : null;
       const isShopping = ev.shopping_moment ? ' 🛍' : '';
       html += '<div class="pl-timeline-row" data-event-id="' + esc(ev.id) + '" onclick="plOpenEvent(\'' + ev.id + '\')" '
-        + 'style="position:relative;height:32px;background:var(--bg-2);border-radius:6px;margin-bottom:4px;cursor:pointer;overflow:hidden;border:1px solid transparent;transition:all .15s" '
+        + 'style="position:relative;height:' + rowH + 'px;background:var(--bg-2);border-radius:6px;margin-bottom:4px;cursor:pointer;overflow:hidden;border:1px solid transparent;transition:all .15s" '
         + 'onmouseover="this.style.borderColor=\'' + c.bar + '\'" onmouseout="this.style.borderColor=\'transparent\'">';
       // Track label (left)
-      html += '<div style="position:absolute;left:.5rem;top:0;bottom:0;display:flex;align-items:center;z-index:2;pointer-events:none;max-width:140px">';
-      html += '<div style="font-size:11px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(ev.name) + isShopping + '</div>';
+      html += '<div style="position:absolute;left:.5rem;top:0;bottom:0;display:flex;align-items:center;z-index:2;pointer-events:none;max-width:' + labelW + 'px">';
+      if (!ultraCompact) {
+        html += '<div style="font-size:11px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(ev.name) + isShopping + '</div>';
+      }
       html += '</div>';
       // Bar
       html += '<div style="position:absolute;left:' + sPct + '%;width:' + widthPct + '%;top:6px;bottom:6px;background:' + c.barBg + ';border-left:3px solid ' + c.bar + ';border-radius:4px;display:flex;align-items:center;padding:0 8px">';
@@ -19882,13 +19997,59 @@ function renderTimeline(timeline, year) {
   html += '<div><span style="display:inline-block;width:14px;height:8px;background:transparent;border:1px solid #94a3b8;border-radius:2px;margin-right:4px;vertical-align:middle"></span>C-PIN light hook (&lt;2wk)</div>';
   html += '</div>';
 
+  // ---- Close canvas + viewport wrappers ----
+  html += '</div>';   // close #pl-timeline-canvas
+  html += '</div>';   // close #pl-timeline-viewport
+
   body.innerHTML = html;
+
+  // ---- Anchor viewport scrollLeft so today is at the visible window's start ----
+  // The viewport is the wrapper. Canvas width >= viewport width (full year). We
+  // position scrollLeft so that the visible window [today+offset, +zoom] starts at
+  // the left edge. This shows upcoming events dominant when zoom < 365.
+  (function() {
+    const vp = document.getElementById('pl-timeline-viewport');
+    if (!vp) return;
+    // Force a layout so scrollWidth reflects actual canvas size.
+    const canvas = document.getElementById('pl-timeline-canvas');
+    const canvasW = canvas ? canvas.scrollWidth : 0;
+    const viewportW = vp.clientWidth;
+    // Compute the scrollLeft that places "today" at the left edge of the viewport.
+    // visibleStart in yearMs fraction.
+    const todayPct = Math.max(0, Math.min(1, (today - yearStart) / yearMs));
+    // The canvas's scrollWidth represents the full year. We want the scrollLeft
+    // such that todayPct * canvasW - scrollLeft = 0, i.e. scrollLeft = todayPct * canvasW.
+    // But canvas is min-width:100% so it equals viewportW; if it's wider, scale.
+    let targetScroll = todayPct * canvasW;
+    // If canvas is narrower than viewport (12M zoom? unlikely), pin to 0.
+    if (canvasW <= viewportW) targetScroll = 0;
+    vp.scrollLeft = Math.round(targetScroll);
+  })();
+
+  // ---- Render TODAY marker overlay ----
+  // After scroll is positioned, place a vertical "TODAY" line at today's position
+  // inside the canvas, which is now visible at the left of the viewport.
+  (function() {
+    const canvas = document.getElementById('pl-timeline-canvas');
+    const vp = document.getElementById('pl-timeline-viewport');
+    if (!canvas || !vp) return;
+    const todayPct = Math.max(0, Math.min(1, (today - yearStart) / yearMs));
+    const marker = document.createElement('div');
+    marker.id = 'pl-today-marker';
+    marker.style.cssText = 'position:absolute;top:0;bottom:0;left:' + todayPct + '%;width:2px;background:#ef4444;z-index:5;pointer-events:none;box-shadow:0 0 0 1px rgba(239,68,68,.3)';
+    const label = document.createElement('div');
+    label.style.cssText = 'position:absolute;top:-22px;left:' + todayPct + '%;transform:translateX(-50%);background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.04em;white-space:nowrap;z-index:5;pointer-events:none';
+    label.textContent = '⊕ TODAY';
+    canvas.appendChild(marker);
+    canvas.appendChild(label);
+  })();
 }
 
 async function plOpenEvent(eventId) {
   const brand = _plBrand();
   // Check cache
   if (_planningEventCache[eventId]) {
+    plSetCurrentEvent(_planningEventCache[eventId]);   // Fix §C — remember for Apply-all
     plRenderEventDetail(_planningEventCache[eventId]);
     return;
   }
@@ -19896,6 +20057,7 @@ async function plOpenEvent(eventId) {
     const r = await API.get('/api/planning/' + brand + '/event/' + eventId);
     if (r?.ok) {
       _planningEventCache[eventId] = r;
+      plSetCurrentEvent(r);                              // Fix §C — remember for Apply-all
       plRenderEventDetail(r);
     } else {
       console.warn('Event detail failed', r);
@@ -20009,6 +20171,68 @@ function plRenderEventDetail(data) {
     html += '</div></div>';
   }
 
+  // ── Calendar Planning Fix §B+C — Suggested dates heading + Apply all CTA.
+  // Wraps the existing RUNWAY PHASES + DECISION DEADLINES in a single
+  // "Suggested dates" section so the operator can find them by intent, then
+  // appends an "Add all suggested dates to my calendar" CTA that bulk-creates
+  // every phase + deadline as an independent event record.
+  if (phases.length > 0 || deadlines.length > 0) {
+    html += '<div id="pl-suggested-dates" style="margin-top:1.25rem;padding:1rem;background:linear-gradient(180deg,rgba(240,160,48,0.06) 0%,rgba(240,160,48,0.02) 100%);border:1px solid rgba(240,160,48,0.25);border-radius:10px">';
+    html += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">';
+    html += '<span style="font-size:14px">📅</span>';
+    html += '<span style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#f0a030">Suggested dates</span>';
+    html += '<span style="font-size:11px;color:var(--tx-3);margin-left:auto">adjusted relative to public peak</span>';
+    html += '</div>';
+    html += '<div style="font-size:12px;color:var(--tx-2);margin-bottom:.75rem">Runway phases + decision deadlines suggested for this shopping moment. Click <b>Apply all</b> to write them into your calendar in one click — every date becomes its own event so they show up on the day grid and in the right-now strip.</div>';
+
+    // Move phases + deadlines inline under the same wrapper
+    if (phases.length > 0) {
+      html += '<div style="margin-bottom:1rem">';
+      html += '<div style="font-size:10px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem">RUNWAY PHASES</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:.25rem">';
+      phases.forEach((ph, i) => {
+        const isPeak = ph.weeks_before_peak === 0;
+        const isPre = ph.weeks_before_peak > 0;
+        const arrow = isPre ? '↓' : '↑';
+        html += '<div style="display:flex;align-items:center;gap:.75rem;padding:.5rem .75rem;background:var(--bg-1);border-radius:6px;border-left:3px solid ' + (isPeak ? c.fg : isPre ? 'var(--tx-3)' : 'rgba(20,184,166,0.5)') + '">';
+        html += '<div style="font-size:14px;color:' + (isPeak ? c.fg : 'var(--tx-3)') + ';font-weight:700;min-width:30px">' + (i + 1) + '.</div>';
+        html += '<div style="flex:1">';
+        html += '<div style="font-size:12px;font-weight:700;color:var(--tx)">' + esc(ph.label) + (isPeak ? ' ⭐' : '') + '</div>';
+        html += '<div style="font-size:11px;color:var(--tx-3);margin-top:.15rem">' + esc(ph.task || '') + '</div>';
+        html += '</div>';
+        html += '<div style="font-size:10px;color:var(--tx-3);text-align:right">';
+        html += '<div>' + esc(ph.start || '') + '</div>';
+        html += '<div style="font-size:9px;margin-top:.15rem">' + (ph.weeks_before_peak >= 0 ? ph.weeks_before_peak + 'w before' : Math.abs(ph.weeks_before_peak) + 'w after') + '</div>';
+        html += '</div></div>';
+      });
+      html += '</div></div>';
+    }
+
+    if (deadlines.length > 0) {
+      html += '<div style="margin-bottom:1rem">';
+      html += '<div style="font-size:10px;color:#f0a030;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.5rem">DECISION DEADLINES</div>';
+      html += '<div style="display:flex;flex-direction:column;gap:.25rem">';
+      deadlines.forEach(d => {
+        html += '<div style="display:flex;justify-content:space-between;padding:.5rem .75rem;background:rgba(240,160,48,0.08);border-left:2px solid #f0a030;border-radius:4px">';
+        html += '<div style="font-size:12px;color:var(--tx)">' + esc(d.label) + '</div>';
+        html += '<div style="font-size:12px;color:#f0a030;font-weight:700">' + esc(d.due) + '</div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    // Apply-all CTA footer
+    const count = (phases.length || 0) + (deadlines.length || 0) + 1; // +1 for the moment itself
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding-top:.75rem;border-top:1px dashed rgba(240,160,48,0.3)">';
+    html += '<div style="font-size:11px;color:var(--tx-3)">' + count + ' date' + (count === 1 ? '' : 's') + ' will be added to your calendar.</div>';
+    html += '<div style="display:flex;gap:.5rem">';
+    html += '<button onclick="plApplyShoppingMoment()" style="background:#f0a030;color:#0d0d0d;border:1px solid #f0a030;padding:.55rem 1rem;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">📅 Add all suggested dates to my calendar</button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</div>';  // close suggested-dates wrapper
+  }
+
   detail.innerHTML = html;
   detail.style.display = 'block';
   detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -20017,6 +20241,74 @@ function plRenderEventDetail(data) {
 function plCloseEventDetail() {
   const d = document.getElementById('pl-event-detail');
   if (d) d.style.display = 'none';
+}
+
+// ── Calendar Planning Fix §C — Apply-all-suggested-dates handler.
+let _plCurrentEvent = null;  // last event rendered into pl-event-detail
+function plSetCurrentEvent(data) { _plCurrentEvent = data; }
+
+async function plApplyShoppingMoment() {
+  if (!_plCurrentEvent) {
+    alert('No shopping moment is currently open. Click a shopping moment again.');
+    return;
+  }
+  const ev = _plCurrentEvent.event || {};
+  const brand = _plBrand();
+  const moment = {
+    id: ev.id || ev.event_id || null,
+    name: ev.name || ev.title,
+    public_peak: ev.public_peak || (ev.start && ev.start.length === 10 ? ev.start : null),
+    planning_start: ev.planning_start || null,
+    campaign_window_start: ev.start || null,
+    campaign_window_end: ev.end || null,
+    deadlines: (ev.deadlines || []).map(d => ({ label: d.label, due: d.due || d.date })),
+    phases: (ev.phases || []).map(p => ({ label: p.label, start: p.start })),
+  };
+  if (!confirm(`Apply ${moment.name}? This will write ${(moment.deadlines.length || 0) + (moment.phases.length || 0) + 1} date(s) into the ${brand} calendar.`)) {
+    return;
+  }
+  let resp;
+  try {
+    resp = await fetch(`/api/planning/v1/${brand}/apply-shopping-moment`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moment }),
+    });
+  } catch (e) {
+    alert('Network error: ' + e);
+    return;
+  }
+  const j = await resp.json();
+  if (resp.ok && j.ok !== false) {
+    alert(`Applied ${j.created || 0} new + ${j.updated || 0} updated + ${j.noop || 0} no-op records to the ${brand} calendar. The next page reload will show them on the day grid.`);
+    plCloseEventDetail();
+  } else {
+    alert('Apply failed: ' + JSON.stringify(j, null, 2));
+  }
+}
+
+function plAddSingleEvent(iso, lane) {
+  const title = prompt(`Add an event to ${iso} on the ${_plBrand()} calendar. Enter a short title:`);
+  if (!title) return;
+  fetch(`/api/planning/v1/${_plBrand()}/add-event`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: title,
+      date: iso,
+      type: 'content',
+      pillar: lane || null,
+    }),
+  }).then(r => r.json()).then(j => {
+    if (j.ok) {
+      alert(`Added: ${j.event_key} (${j.action})`);
+      closeDayDrawer();
+    } else {
+      alert('Add failed: ' + (j.error || JSON.stringify(j)));
+    }
+  }).catch(e => alert('Network error: ' + e));
 }
 
 function plToggleShoppingMoments() {
@@ -20295,7 +20587,15 @@ function renderPlanningCalendar(mv) {
     const totalItems = Object.values(byDay).filter((_, i) => Object.keys(byDay)[i].startsWith(month)).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0);
     const activeDays = Object.entries(byDay).filter(([d]) => d.startsWith(month)).length;
     summaryEl.innerHTML = '<div class="pl-featured-banner">⭐ Featured day: <b>' + (featuredDate || '—') + '</b> with the highest lane density. Click any day to see all items.</div>'
-      + '<div style="margin-top:.75rem">' + totalItems + ' items across ' + activeDays + ' active days in this month.</div>';
+      + '<div style="margin-top:.75rem">' + totalItems + ' items across ' + activeDays + ' active days in this month.</div>'
+      + (totalItems === 0
+        ? '<div style="margin-top:.75rem;padding:.75rem .9rem;background:rgba(240,160,48,0.08);border:1px dashed rgba(240,160,48,0.4);border-radius:8px;font-size:12px;color:var(--tx-2)">'
+            + '<b style="color:#f0a030">This month is empty for ' + esc(_plBrand()) + '.</b><br>'
+            + 'Tip: switch to <b>🛍 Shopping Moments</b> at the top to see what\'s planned at a brand level, '
+            + 'then click a shopping moment and use <b>📅 Add all suggested dates to my calendar</b> to seed this month.<br>'
+            + 'Or click any day and choose <b>+ Add to calendar</b> to drop a single event in.'
+          + '</div>'
+        : '');
   }
 }
 
@@ -20315,6 +20615,7 @@ function openDayDrawer(iso) {
   html += '</div>';
   if (items.length === 0) {
     html += '<div class="muted">No items scheduled for this day.</div>';
+    html += '<div style="margin-top:1rem;display:flex;gap:.5rem"><button onclick="plAddSingleEvent(\'' + iso + '\', null)" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);padding:.5rem .9rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px">+ Add to calendar</button></div>';
   } else {
     items.forEach(it => {
       const meta = LANE_META[it.lane] || { color: 'var(--tx-3)', label: it.lane };
@@ -20355,6 +20656,38 @@ document.addEventListener('click', (e) => {
 
 // Wire prev/next month + brand + month change
 document.addEventListener('DOMContentLoaded', () => {
+  // ── Calendar Planning Fix §A — read ?brand / ?month / ?year / ?page from URL on load.
+  // Deep-link friendly: `?page=planning&brand=swing-shack&month=2026-10&year=2026`
+  // opens the Strategic Calendar with the brand + month pre-selected.
+  try {
+    const _qp = new URLSearchParams(window.location.search);
+    const qBrand  = _qp.get('brand');
+    const qMonth  = _qp.get('month');
+    const qYear   = _qp.get('year');
+    const qPage   = _qp.get('page');
+    if (qPage === 'planning' || qPage === 'calendar') {
+      // Try to jump to the Strategic Calendar section by simulating a nav click.
+      const navEl = document.querySelector('[data-go="planning"]');
+      if (navEl) navEl.click();
+    }
+    if (qBrand) {
+      const sel = document.getElementById('pl-brand');
+      if (sel && Array.from(sel.options).some(o => o.value === qBrand)) {
+        sel.value = qBrand;
+      }
+    }
+    if (qYear) {
+      const sel = document.getElementById('pl-year');
+      if (sel && Array.from(sel.options).some(o => o.value === qYear)) {
+        sel.value = qYear;
+      }
+    }
+    if (qMonth && /^\d{4}-\d{2}$/.test(qMonth)) {
+      const inp = document.getElementById('pl-month');
+      if (inp) inp.value = qMonth;
+    }
+  } catch (e) { /* ignore — treat as no deep link */ }
+
   document.getElementById('pl-brand')?.addEventListener('change', () => {
     _planningLaneFilter = '';
     renderPlanning();
@@ -21159,6 +21492,12 @@ document.addEventListener('DOMContentLoaded', () => {
           </select>
           <button id="pl-view-timeline" onclick="plSwitchView('timeline')" class="btn-mini" style="background:#f0a030;color:#0d0d0d;border:1px solid #f0a030;padding:6px 12px;border-radius:6px;font-weight:600">📅 Timeline</button>
           <button id="pl-view-year" onclick="plSwitchView('year')" class="btn-mini" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);padding:6px 12px;border-radius:6px;font-weight:600">🗓 Year</button>
+          <span id="pl-zoom-controls" style="display:inline-flex;gap:4px;align-items:center;margin:0 4px;padding:4px;border-radius:6px;background:var(--bg-1);border:1px solid var(--bd)" title="Zoom horizon for the timeline. 90 days is the default planning view.">
+            <button data-pl-zoom="30" onclick="plSetZoom('30')" class="pl-zoom-btn" style="font-size:11px;padding:4px 8px;border-radius:4px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:600">30D</button>
+            <button data-pl-zoom="90" onclick="plSetZoom('90')" class="pl-zoom-btn" style="font-size:11px;padding:4px 8px;border-radius:4px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:600">90D</button>
+            <button data-pl-zoom="182" onclick="plSetZoom('182')" class="pl-zoom-btn" style="font-size:11px;padding:4px 8px;border-radius:4px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:600">6M</button>
+            <button data-pl-zoom="365" onclick="plSetZoom('365')" class="pl-zoom-btn" style="font-size:11px;padding:4px 8px;border-radius:4px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);cursor:pointer;font-weight:600">12M</button>
+          </span>
           <button id="pl-filter-shopping" onclick="plToggleShoppingMoments()" class="btn-mini" style="background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);padding:6px 12px;border-radius:6px;font-weight:600">🛍 Shopping Moments</button>
           <select id="pl-year" onchange="renderPlanning()" style="font-size:12px;padding:6px 10px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-weight:600">
             <option value="2026">2026</option>

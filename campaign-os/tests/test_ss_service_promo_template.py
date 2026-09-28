@@ -140,3 +140,17 @@ def test_service_promo_post_type_selects_archetype(monkeypatch):
 def test_fitting_without_post_type_keeps_service_frame(monkeypatch):
     item = _ctx(monkeypatch, pillar_id="ss-fitting")
     assert arch_lib.select_archetype(BRAND, item)["id"] == "ss-service-frame"
+
+
+def test_visual_copy_sets_service_label_for_fitting_promo(monkeypatch):
+    from _lib.compose_visual_copy import visual_copy_for_archetype
+
+    item = _ctx(monkeypatch, pillar_id="ss-fitting", post_type="service_promo")
+    arch = arch_lib.select_archetype(BRAND, item)
+    fields = visual_copy_for_archetype(
+        brand_id=BRAND,
+        moment_id=item,
+        caption="Book a fitting this week.",
+        archetype=arch,
+    )
+    assert fields.get("service_label") == "CLUB FITTING"

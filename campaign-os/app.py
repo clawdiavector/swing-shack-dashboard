@@ -7,6 +7,7 @@ from __future__ import annotations  # noqa: F401
 
 import os
 import sys
+import glob
 import json
 import copy
 import datetime
@@ -24,7 +25,7 @@ import base64
 import urllib.request
 from datetime import datetime as _dt_cls, timezone as _tz, timedelta as _td, date as _date_cls
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from flask import Flask, jsonify, request, send_from_directory, g, Response, redirect, url_for, make_response, render_template_string, abort, session
 from werkzeug.utils import secure_filename
 from flask_cors import CORS
@@ -218,6 +219,100 @@ def _is_authed():
         return True
     except (BadSignature, SignatureExpired):
         return False
+
+
+def _is_admin() -> bool:
+    """V2.4 — admin gate for diagnostic endpoints (audit-log, diagnose-timeline).
+
+    The Campaign OS uses a single-factor password model — there is no
+    distinct admin user. The admin gate is therefore:
+      1. Authenticated (cookie valid)
+      2. The request was sent with X-Admin-Session header set to the value
+         of the CAMPAIGN_OS_ADMIN_TOKEN env var (read from data/secrets.
+         config.json at boot). This token is rotated per deploy.
+      3. OR the request originates from a privileged local IP (/24=127.0.0,
+         /24=10.0.0, /24=192.168.0).
+
+    Failure to satisfy any of these returns False — endpoint then 403s.
+    """
+    if not _is_authed():
+        return False
+    # Token check
+    admin_token = os.environ.get("CAMPAIGN_OS_ADMIN_TOKEN", "").strip()
+    if admin_token:
+        sent = request.headers.get("X-Admin-Session", "").strip()
+        if sent and sent == admin_token:
+            return True
+    # IP-prefix privileged (local LAN/VPN)
+    raw_ip = (request.headers.get("X-Forwarded-For", "")
+              .split(",")[0].strip()
+              or request.remote_addr
+              or "")
+    if raw_ip.startswith("127.") or raw_ip.startswith("::1"):
+        return True
+    if raw_ip.startswith("10."):
+        return True
+    if raw_ip.startswith("192.168."):
+        return True
+    return False
+
+
+def _resolve_v23_actor() -> Dict[str, Any]:
+    """V2.3 actor identity resolver. Returns a structured dict used as the
+    audit row's actor field. NO fake reviewer names.
+
+    The Campaign OS auth model is single-factor password: the only thing
+    we can honestly attest about an authenticated operator at audit time
+    is:
+      - They hold a valid session cookie (one is up because /is_authed
+        returned True at the call site).
+      - They made the request from a particular client IP /24 (or /48 v6).
+      - Optionally they sent an X-Actor-DISPLAY-NAME header. This is
+        ALWAYS a self-declared label, NOT a verified identity. Logged
+        alongside the actor_id but never in place of it.
+
+    The hash is reproducible per (cookie, IP-prefix, user-agent-marker)
+    tuple so:
+      - Same operator, same session, same network = same actor_id.
+      - Different operator (different IP, different browser) = different
+        actor_id (collisions only when those three match exactly).
+      - Re-logins (new password submission) produce a new actor_id.
+    """
+    import hashlib as _hl
+    cookie = request.cookies.get(SESSION_COOKIE) or ""
+    # IP /24 for IPv4, /48 for IPv6 — coarse but stable.
+    raw_ip = (request.headers.get("X-Forwarded-For", "")
+              .split(",")[0].strip()
+              or request.remote_addr
+              or "0.0.0.0")
+    try:
+        import ipaddress as _ipa
+        ip_obj = _ipa.ip_address(raw_ip)
+        if ip_obj.version == 4:
+            ip_prefix = ".".join(raw_ip.split(".")[:3]) + ".0/24"
+        else:
+            # IPv6 /48 prefix
+            ip_prefix = str(_ipa.ip_network(
+                f"{raw_ip.split(':')[0]}:{raw_ip.split(':')[1]}:{raw_ip.split(':')[2]}::/48"
+            ).network_address) + "/48"
+    except Exception:
+        ip_prefix = raw_ip
+    ua_marker = (request.headers.get("User-Agent") or "")[:80]
+    raw = f"{cookie[:64]}|{ip_prefix}|{ua_marker}".encode("utf-8")
+    actor_id = "fp:" + _hl.sha256(raw).hexdigest()[:24]
+    return {
+        "actor_id": actor_id,
+        "actor_id_method": "session_cookie+ip_prefix+ua_sha256",
+        "actor_display_name": request.headers.get("X-Actor-DISPLAY-NAME") or None,
+        "actor_display_name_source": "self_declared_header" if request.headers.get("X-Actor-DISPLAY-NAME") else None,
+        "actor_session_cookie_digest_prefix": _hl.sha256(cookie.encode()).hexdigest()[:12] if cookie else None,
+        "actor_ip_prefix": ip_prefix,
+        "actor_user_agent_marker": ua_marker,
+        "actor_authenticated": True,
+        # Hint to the operator about what they can upgrade if needed.
+        "upgrade_hint": "Pass X-Actor-DISPLAY-NAME header to self-declare a label (unverified).",
+        "real_per_user_identity_available": False,
+    }
 
 
 # Additive job-runner bearer (t15). Unset in local/dev; workflows set in prod.
@@ -2026,6 +2121,33 @@ def brand_image_serve(brand_id, filename):
         except Exception:
             pass
     return jsonify({"error": "not found", "path": str(last_target or filename)}), 404
+
+
+@app.route('/brand-directory/<brand_id>/<path:relpath>', methods=['GET'])
+def brand_directory_serve(brand_id, relpath):
+    """Serve template reference photos and other brand-directory assets (non-/images paths)."""
+    from pathlib import Path as _P
+
+    rel = str(relpath or "").replace("\\", "/").lstrip("/")
+    if not rel or ".." in rel.split("/"):
+        return jsonify({"error": "path traversal denied"}), 403
+    last_target = None
+    for root in (
+        _P(DATA_DIR) / "brand-directory" / brand_id,
+        _P(BUNDLED_DATA_DIR) / "brand-directory" / brand_id,
+    ):
+        if not root.is_dir():
+            continue
+        base = root.resolve()
+        target = (base / rel).resolve()
+        last_target = target
+        try:
+            target.relative_to(base)
+        except ValueError:
+            return jsonify({"error": "path traversal denied"}), 403
+        if target.is_file():
+            return send_from_directory(str(target.parent), target.name)
+    return jsonify({"error": "not found", "path": str(last_target or rel)}), 404
 
 
 @app.route('/assets/<path:filename>', methods=['GET'])
@@ -6850,7 +6972,22 @@ def lanes_queue_for_postiz():
                 "queued": 0,
             }), 400
 
-        integrations = list_integrations() or []
+        raw_integrations, int_err = list_integrations()
+        if int_err:
+            return jsonify({"ok": False, "error": f"list_integrations: {int_err[0]}"}), 400
+        if isinstance(raw_integrations, list):
+            integrations = [i for i in raw_integrations if isinstance(i, dict)]
+        elif isinstance(raw_integrations, dict):
+            integrations = [
+                i for i in (
+                    raw_integrations.get("integrations")
+                    or raw_integrations.get("identities")
+                    or []
+                )
+                if isinstance(i, dict)
+            ]
+        else:
+            integrations = []
         if not integrations:
             return jsonify({"ok": False, "error": "no Postiz integrations"}), 400
 
@@ -6860,10 +6997,10 @@ def lanes_queue_for_postiz():
             try:
                 platform = it.get("platform") or "instagram"
                 integration_id = next(
-                    (i["id"] for i in integrations
-                     if platform.lower() in i.get("name", "").lower()
-                     or i.get("type", "").lower() == platform.lower()),
-                    integrations[0]["id"] if integrations else None,
+                    (i.get("id") or i.get("_id") for i in integrations
+                     if platform.lower() in str(i.get("name", "")).lower()
+                     or str(i.get("providerIdentifier") or i.get("type") or "").lower() == platform.lower()),
+                    integrations[0].get("id") or integrations[0].get("_id") if integrations else None,
                 )
                 if not integration_id:
                     failed.append({"item_id": it.get("id"), "error": "no integration"})
@@ -6876,13 +7013,18 @@ def lanes_queue_for_postiz():
                     caption = caption + chr(10) + chr(10) + " ".join("#" + h for h in it.get("hashtags"))
 
                 sched = it.get("publish_date", "") + "T" + it.get("publish_time", "09:00") + ":00Z"
-                result = create_post(
-                    integration_id=integration_id,
+                result, post_err = create_post(
+                    integration_id=str(integration_id),
                     content=caption,
                     media_ids=[],
-                    scheduled_for=sched,
+                    publish_date=sched,
                 )
-                postiz_id = (result or {}).get("id") or (result or {}).get("post", {}).get("id")
+                if post_err:
+                    failed.append({"item_id": it.get("id"), "error": post_err[0]})
+                    continue
+                postiz_id = (result or {}).get("id") if isinstance(result, dict) else None
+                if not postiz_id and isinstance(result, dict):
+                    postiz_id = (result.get("post") or {}).get("id")
                 if postiz_id:
                     update_content_item_status(
                         brand_id, it["id"], "queued",
@@ -14249,6 +14391,29 @@ def publish_sandbox_approve_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/publish/sandbox/reschedule', methods=['POST'])
+def publish_sandbox_reschedule_route():
+    """POST body: idempotency_key, would_publish_at (ISO), optional event_date YYYY-MM-DD."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    key = (body.get("idempotency_key") or "").strip()
+    when = (body.get("would_publish_at") or "").strip()
+    event_date = (body.get("event_date") or "").strip() or None
+    if not key or not when:
+        return jsonify({"ok": False, "error": "idempotency_key and would_publish_at required"}), 400
+    try:
+        from _lib.publish_sandbox import reschedule_item
+
+        item, err = reschedule_item(key, would_publish_at=when, event_date=event_date)
+        if err:
+            return jsonify({"ok": False, "error": err}), 404
+        return jsonify({"ok": True, "item": item}), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox reschedule failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 def _safe_read_json(path: Path) -> Optional[dict]:
     try:
         return json.loads(path.read_text())
@@ -17527,9 +17692,9 @@ try:
         brand_mode="global",
     ))
 
-    def _run_publish_dispatch_job():
+    def _run_publish_dispatch_job(brand=None):
         from _lib.jobs.publish_dispatch import run as _publish_dispatch_run
-        return _publish_dispatch_run()
+        return _publish_dispatch_run(brand=brand)
 
     def _run_auto_release_job(brand=None):
         from _lib.jobs.auto_release import run as _auto_release_run
@@ -18046,6 +18211,7 @@ def api_drafts_recompose(draft_id: str):
             draft_id,
             headline=body.get("headline"),
             cta=body.get("cta"),
+            service_label=body.get("service_label"),
             archetype_id=(body.get("archetype_id") or None),
         )
         code = 200 if result.get("ok") else 404 if "not found" in str(result.get("error", "")).lower() else 400
@@ -42012,6 +42178,8 @@ def _planning_dir():
     if os.path.isdir(PLANNING_DIR_BAKED) and os.listdir(PLANNING_DIR_BAKED):
         return PLANNING_DIR_BAKED
     return PLANNING_DIR
+IMPORTANT_DATES_DIR_BAKED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "important-dates")
+GOLF_MOMENTS_DIR_BAKED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "golf-moments")
 IMPORTANT_DATES_DIR = os.path.join(DATA_DIR, "important-dates")
 GOLF_MOMENTS_DIR = os.path.join(DATA_DIR, "golf-moments")
 
@@ -42041,28 +42209,43 @@ def _read_planning(brand_id):
 
 def _read_important_dates(year):
     """Returns full provenance-rich date objects with status field
-    (VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED)."""
-    p = os.path.join(IMPORTANT_DATES_DIR, f"{year}.json")
-    if not os.path.exists(p):
-        return []
-    try:
-        with open(p, "r", encoding="utf-8") as f:
-            d = json.load(f)
-            return d.get("dates") or []
-    except Exception:
-        return []
+    (VERIFIED | PROVISIONAL | MANUAL | DEMO | EXPIRED).
+
+    V2.3 fallback: prefers DATA_DIR/important-dates/<year>.json (Railway
+    volume) and falls back to /app/data/important-dates/<year>.json
+    (baked repo). The baked path is what production saw seeded from repo.
+    """
+    candidates = [
+        os.path.join(IMPORTANT_DATES_DIR, f"{year}.json"),
+        os.path.join(IMPORTANT_DATES_DIR_BAKED, f"{year}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                    return d.get("dates") or []
+            except Exception:
+                continue
+    return []
 
 
 def _read_golf_moments(year):
-    p = os.path.join(GOLF_MOMENTS_DIR, f"{year}.json")
-    if not os.path.exists(p):
-        return []
-    try:
-        with open(p, "r", encoding="utf-8") as f:
-            d = json.load(f)
-            return d.get("events") or []
-    except Exception:
-        return []
+    """V2.3 fallback: prefers DATA_DIR/golf-moments/<year>.json then
+    baked /app/data/golf-moments/<year>.json."""
+    candidates = [
+        os.path.join(GOLF_MOMENTS_DIR, f"{year}.json"),
+        os.path.join(GOLF_MOMENTS_DIR_BAKED, f"{year}.json"),
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                    return d.get("events") or []
+            except Exception:
+                continue
+    return []
 
 
 def _date_is_demo(d):
@@ -42081,11 +42264,30 @@ def planning_big_idea(brand_id):
     """GET /api/planning/<brand>/big-idea — the big brand idea that
     sits ABOVE the calendar (per heidi.txt #2).
 
+    Resolution order for north_star and operating_goals (V2.1 — single
+    canonical source per brand):
+      1. data/strategy/<brand>.json#north_star + #operating_goals — canonical
+         for the brand, written first.
+      2. data/brand-planning/<brand>.json#north_star + #operating_goals —
+         backward-compat fallback for surfaces that haven't been re-pointed.
+      3. data/brand-directory/<brand>/north_stars.json — secondary fallback
+         for Stick (which already has canonical north_stars.json separate
+         from the strategy file). Surfaced to the SPA as operating_goals.
+    Operating areas always come from data/brand-planning/<brand>.json
+    (they're Calendar-only — they don't belong in the strategy doc).
+
+    Big brand idea + lane system + monthly themes + active campaigns all
+    come from data/brand-planning/<brand>.json (existing behaviour).
+
     Response:
       {
-        ok, brand_id, big_brand_idea: {
-          name, belief, elevator
-        }, monthly_themes: [{month, theme, lanes_emphasis}], active_campaigns
+        ok, brand_id,
+        big_brand_idea: {name, belief, elevator},
+        north_star: {statement, source, set_at, do_not_merge_with_big_brand_idea}
+        north_star_source: 'strategy' | 'brand-directory' | 'brand-planning' | null
+        operating_goals: [{label, metric, outcome_measurement, ...}]
+        operating_areas: [{key, lane, tagline}]
+        monthly_themes, active_campaigns, lane_system
       }
     """
     if not _is_authed():
@@ -42093,10 +42295,107 @@ def planning_big_idea(brand_id):
     data = _read_planning(brand_id)
     if not data:
         return jsonify({"ok": False, "error": "no planning data", "brand_id": brand_id}), 404
+
+    # Resolve canonical north_star / operating_goals — try sources in priority order.
+    # Returns (north_star, operating_goals, source_label) where source_label
+    # identifies which file produced the values (for debugging + audit).
+    bp_root = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        (
+            os.path.join(bp_root, "..", "data", "strategy", f"{brand_id}.json"),
+            "strategy",
+        ),
+        (
+            os.path.join(bp_root, "..", "data", "brand-planning", "strategy", f"{brand_id}.json"),
+            "strategy",
+        ),
+        (
+            os.path.join(bp_root, "..", "data", "brand-directory", brand_id, "north_stars.json"),
+            "brand-directory",
+        ),
+    ]
+
+    north_star = None
+    operating_goals = []
+    north_star_source = None
+    for candidate_path, source_label in candidates:
+        try:
+            if not os.path.exists(candidate_path):
+                continue
+            with open(candidate_path, "r", encoding="utf-8") as _sf:
+                payload = json.load(_sf)
+            # North star from strategy-file shape: dict OR legacy string
+            ns = payload.get("north_star")
+            if isinstance(ns, dict) and ns.get("statement"):
+                if north_star is None:
+                    north_star = ns
+                    north_star_source = source_label
+            elif isinstance(ns, str) and ns.strip():
+                if north_star is None:
+                    north_star = {"statement": ns, "source": f"{source_label} legacy form"}
+                    north_star_source = f"{source_label}-legacy-string"
+            # Operating goals from strategy shape OR from brand-directory north_stars list
+            og = payload.get("operating_goals") or []
+            if og and not operating_goals:
+                operating_goals = og
+                north_star_source = north_star_source or source_label
+            nd = payload.get("north_stars") or []
+            if nd and not operating_goals:
+                # Adapt brand-directory north_stars schema to the standard operating_goals shape
+                operating_goals = [
+                    {
+                        "id": s.get("id", s.get("label", "").lower().replace(" ", "_")),
+                        "label": s.get("label"),
+                        "metric": s.get("metric"),
+                        "category": s.get("category"),
+                        "outcome_measurement": s.get("outcome_measurement"),
+                        "connector_status": s.get("connector_status"),
+                        "missing_connector": s.get("missing_connector"),
+                        "marketing_support_signal": s.get("marketing_support_signal"),
+                        "do_not_fabricate_progress": s.get("do_not_fabricate_progress"),
+                        "source": s.get("source"),
+                    }
+                    for s in nd
+                ]
+                north_star_source = north_star_source or source_label
+            if north_star and operating_goals:
+                break
+        except Exception:
+            continue
+
+    # Final fallback for north_star if no strategy-level source had one.
+    if not north_star:
+        bp_ns = data.get("north_star")
+        if bp_ns:
+            north_star = bp_ns
+            north_star_source = "brand-planning"
+    if not operating_goals:
+        bp_og = data.get("operating_goals") or []
+        if bp_og:
+            operating_goals = bp_og
+            north_star_source = north_star_source or "brand-planning"
+
+    # If we still have no big_brand_idea (e.g. Bag Drop — no rich planning data),
+    # fall back to the brand-directory knowledge.json's brand_purpose or the
+    # brand-planning file's tagline-like fields. But never fabricate.
+    big_brand_idea = data.get("big_brand_idea") or {}
+    if not big_brand_idea or not (big_brand_idea.get("name") or big_brand_idea.get("tagline")):
+        # Last-resort fallback so the React hero never crashes on undefined.
+        # Use the brand_id itself as a sentence-cased label.
+        big_brand_idea = {
+            "name": data.get("brand_promise") or data.get("master_brand_line") or brand_id.replace("-", " ").title(),
+            "belief": data.get("brand_purpose") or "",
+            "elevator": "",
+        }
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
-        "big_brand_idea": data.get("big_brand_idea"),
+        "big_brand_idea": big_brand_idea,
+        "north_star": north_star,
+        "north_star_source": north_star_source,
+        "operating_goals": operating_goals,
+        "operating_areas": data.get("operating_areas") or [],
         "monthly_themes": data.get("monthly_themes") or [],
         "active_campaigns": data.get("active_campaigns") or [],
         "lane_system": data.get("lane_system") or [],
@@ -42567,6 +42866,85 @@ def planning_month_view(brand_id):
                 "source_name": m.get("source_name"),
             })
 
+    # Calendar V2.2 — Slice 4 — derive planning milestones per day from the
+    # spine events for this month. Each phase becomes a milestone object
+    # with explicit verified/suggested flag (suggested = tier-based default
+    # not yet committed to by a human). Distinct from important_dates
+    # (strategic moments / heritage / golf moments) and from days (planned
+    # content). Three layers are rendered separately in the React month panel.
+    planning_milestones: Dict[str, List[Dict[str, Any]]] = {}
+    try:
+        # Use the planning_timeline endpoint logic (cross-year support).
+        # For this iteration we look at the same brand's year spine files.
+        year_span = [year]
+        for y in (year - 1, year + 1):
+            year_span.append(y)
+        for candidate_year in year_span:
+            spine_files = sorted(glob.glob(os.path.join(_planning_dir(), f"{brand_id}-events-{candidate_year}.json")))
+            for sf in spine_files:
+                try:
+                    with open(sf, "r", encoding="utf-8") as fp:
+                        spine = json.load(fp)
+                except Exception:
+                    continue
+                for ev in (spine.get("events") or []):
+                    ev_start = ev.get("start", "")[:10]
+                    if not ev_start.startswith(month):
+                        continue
+                    # Tier-based suggested phases (match V2 _enrich_event derivation)
+                    phases = _derive_default_phases(ev)
+                    for ph in phases:
+                        ph_date = (ph.get("start") or "")[:10]
+                        if not ph_date.startswith(month):
+                            continue
+                        ms = {
+                            "id": ph.get("id", f"{ev.get('id','?')}-{ph.get('label')}"),
+                            "event_id": ev.get("id"),
+                            "event_name": ev.get("name"),
+                            "phase_label": ph.get("label"),
+                            "date": ph_date,
+                            "verified": bool(ph.get("verified")),
+                            "kind": ph.get("kind") or ("verified" if ph.get("label") == "★ PEAK" else "suggested_planning_date"),
+                            "is_peak": ph.get("label") == "★ PEAK",
+                            "tier": ev.get("tier"),
+                            "is_suggested": not bool(ph.get("verified")),
+                        }
+                        planning_milestones.setdefault(ph_date, []).append(ms)
+                # Also: explicit strategic_moments for the day (the public_peak is the moment)
+                peak = ev.get("public_peak", "")
+                if peak.startswith(month):
+                    planning_milestones.setdefault(peak, []).append({
+                        "id": f"{ev.get('id','?')}-strategic-moment",
+                        "event_id": ev.get("id"),
+                        "event_name": ev.get("name"),
+                        "phase_label": "★ PUBLIC PEAK",
+                        "date": peak,
+                        "verified": True,
+                        "kind": "verified_strategic_moment",
+                        "is_peak": True,
+                        "tier": ev.get("tier"),
+                        "is_suggested": False,
+                    })
+    except Exception:
+        pass
+
+    # Slice 4 explicit rule: "no content" empty-state is only displayed when
+    # ALL THREE layers (strategic moment, planning milestone, planned content)
+    # are empty. We pre-merge into day-level rollups the React can render.
+    days_extended: Dict[str, Dict[str, List[Any]]] = {}
+    all_dates = set(days.keys()) | set(important_key_dates(important)) | set(planning_milestones.keys())
+    for d in all_dates:
+        is_mm = d.startswith(month) if d else False
+        if not is_mm:
+            continue
+        # Filter important_dates to those starting on this day
+        day_moments = [it for it in important if ((it.get("start_date") or "")[:10] == d)]
+        days_extended[d] = {
+            "planned_content": days.get(d, []),
+            "strategic_moments": day_moments,
+            "planning_milestones": planning_milestones.get(d, []),
+        }
+
     return jsonify({
         "ok": True,
         "brand_id": brand_id,
@@ -42577,6 +42955,14 @@ def planning_month_view(brand_id):
         "lane_system": data.get("lane_system") or [],
         "days": days,
         "important_dates": important,
+        # V2.2 Slice 4 — three-layer shape:
+        "days_extended": days_extended,
+        "planning_milestones": planning_milestones,
+        "month_grid_layers": {
+            "planned_content": sorted(days.keys()),
+            "strategic_moments": sorted(set(important_key_dates(important))),
+            "planning_milestones": sorted(planning_milestones.keys()),
+        },
         "production_runway_note": "T-21 to T-28: monthly theme. T-14 to T-21: briefs. T-7 to T-14: capture. T-4 to T-7: edit. T-2 to T-4: review. T-1: schedule.",
         "reminder": "PARALLEL LANES — every important lane remains active. Monthly theme gives those lanes a shared idea.",
     }), 200
@@ -43489,6 +43875,78 @@ def _event_phase_dates(public_peak, weeks_before, weeks_after=0):
     return start.isoformat(), end.isoformat()
 
 
+def _derive_default_phases(event):
+    """Slice 2 helper — deterministic tier-based default phases for an event.
+
+    Returns a list of phase objects with `{label, start, verified, kind}`
+    that mirrors the legacy _enrich_event derivation but stripped of the
+    years-before/after wrapping. Used by the Slice 4 month-grid endpoint
+    AND by anything that needs the canonical phase shape without a full
+    enrichment.
+
+    A-PIN: 7 phases over 8 weeks (PLAN/BRIEF/CREATE/REVIEW/LIVE/★ PEAK/REPORT)
+    B-PIN: 5 phases over 4 weeks
+    C-PIN: 2 phases (PLAN/★ PEAK)
+    """
+    tier = (event.get("tier") or "").strip().upper()
+    peak_str = event.get("public_peak") or ""
+    if not peak_str:
+        return []
+    try:
+        peak = _date_cls.fromisoformat(peak_str[:10])
+    except Exception:
+        return []
+    if tier == "A-PIN":
+        spec = [
+            ("PLAN", 8, False),
+            ("BRIEF", 6, False),
+            ("CREATE", 4, False),
+            ("REVIEW", 2, False),
+            ("LIVE", 1, False),
+            ("★ PEAK", 0, True),
+            ("REPORT", -1, False),
+        ]
+    elif tier == "B-PIN":
+        spec = [
+            ("PLAN", 4, False),
+            ("BRIEF", 2, False),
+            ("CREATE", 1, False),
+            ("★ PEAK", 0, True),
+            ("REPORT", -1, False),
+        ]
+    else:  # C-PIN or unknown
+        spec = [
+            ("PLAN", 1, False),
+            ("★ PEAK", 0, True),
+        ]
+    phases = []
+    for label, weeks_before, verified in spec:
+        weeks_before = -weeks_before
+        start_date = peak + _td(weeks=weeks_before)
+        phases.append({
+            "id": f"{event.get('id','')}-{label.lower().replace('★ ','').strip()}",
+            "label": label,
+            "start": start_date.isoformat(),
+            "verified": verified,
+            "kind": "verified" if verified else "suggested_planning_date",
+        })
+    return phases
+
+
+def important_key_dates(items):
+    """Slice 4 helper — extract unique date keys from an important_dates list.
+
+    Each item may carry start_date (typical) or date. Returns a set of
+    YYYY-MM-DD strings.
+    """
+    out = set()
+    for it in items or []:
+        sd = (it.get("start_date") or it.get("date") or "")[:10]
+        if sd:
+            out.add(sd)
+    return out
+
+
 def _enrich_event(event):
     """Convert phase weeks_before_peak into absolute sequential date ranges.
 
@@ -43500,6 +43958,11 @@ def _enrich_event(event):
 
     Post-peak phases: phase_start = peak + abs(weeks_before_peak) * 7
                       phase_end   = next phase's start (or + 7 days if last)
+
+    If the event has no phases[] (the common case for brand-new spine rows),
+    derive a default tier-based runway. Derived phases are flagged
+    verified=false so the SPA can render them as SUGGESTED PLANNING DATE
+    vs the event public_peak which is verified=true.
     """
     enriched = dict(event)
     peak_str = event.get("public_peak")
@@ -43509,7 +43972,36 @@ def _enrich_event(event):
             peak = _dt.date.fromisoformat(peak_str)
         except Exception:
             pass
+
+    # Build phase skeleton — either from event.phases (verified) or from tier default (suggested)
     raw_phases = list(event.get("phases") or [])
+    verified_phases = bool(raw_phases) and peak is not None
+    if not raw_phases:
+        tier = event.get("tier")
+        if tier == "A-PIN":
+            raw_phases = [
+                {"label": "PLAN",     "task": "Lock the angle + which lanes express it",          "weeks_before_peak": 8},
+                {"label": "BRIEF",    "task": "Brief ready — copy + creative + hooks aligned",    "weeks_before_peak": 6},
+                {"label": "CREATE",   "task": "Asset production — copy + design + video",          "weeks_before_peak": 4},
+                {"label": "REVIEW",   "task": "Internal review + operator approval",              "weeks_before_peak": 2},
+                {"label": "LIVE",     "task": "Campaign live — organic + paid windows open",      "weeks_before_peak": 1},
+                {"label": "★ PEAK",   "task": "Public peak",                                       "weeks_before_peak": 0},
+                {"label": "REPORT",   "task": "Post-campaign read — what moved, what to keep",   "weeks_before_peak": -1},
+            ]
+        elif tier == "B-PIN":
+            raw_phases = [
+                {"label": "PLAN",     "task": "Brief + which lanes to push",                       "weeks_before_peak": 4},
+                {"label": "BRIEF",    "task": "Copy + hook + CTA locked",                          "weeks_before_peak": 2},
+                {"label": "CREATE",   "task": "Production",                                        "weeks_before_peak": 1},
+                {"label": "★ PEAK",   "task": "Public peak",                                       "weeks_before_peak": 0},
+                {"label": "REPORT",   "task": "Post-peak read",                                    "weeks_before_peak": -1},
+            ]
+        elif tier == "C-PIN":
+            raw_phases = [
+                {"label": "PLAN",     "task": "Light hook, light prep",                            "weeks_before_peak": 1},
+                {"label": "★ PEAK",   "task": "Public peak",                                       "weeks_before_peak": 0},
+            ]
+
     # Sort by weeks_before_peak DESCENDING — so phases CLOSEST to peak come first
     # Pre-peak with positive w: smallest first (earliest)
     # Post-peak with negative w: largest first (closest after peak)
@@ -43548,6 +44040,8 @@ def _enrich_event(event):
             "start": phase_start,
             "end": phase_end,
             "weeks_before_peak": w,
+            "verified": verified_phases,
+            "kind": "verified" if verified_phases else "suggested_planning_date",
         })
     # Return in chronological order: pre-peak (largest w first = earliest first),
     # then peak, then post-peak (most negative first = earliest after peak first).
@@ -43555,24 +44049,254 @@ def _enrich_event(event):
     # Actually simplest: sort ascending by start date
     phases_out.sort(key=lambda p: p.get("start") or "")
     enriched["phases"] = phases_out
+
+    # planning_state — derived from today's date vs the verified public_peak + phases.
+    # Operator-facing field. UI should render "NOT PLANNED" when this is "not_planned"
+    # and the runway is full of suggested phases.
+    if peak is None:
+        planning_state = "not_planned"
+    else:
+        today = _dt.date.today()
+        # Find earliest phase start + last phase end
+        first_start = None
+        last_end = None
+        for ph in phases_out:
+            if ph.get("start") and (first_start is None or ph["start"] < first_start):
+                first_start = ph["start"]
+            if ph.get("end") and (last_end is None or ph["end"] > last_end):
+                last_end = ph["end"]
+        if first_start and today < _dt.date.fromisoformat(first_start):
+            planning_state = "not_planned"  # planning hasn't started
+        elif last_end and today > _dt.date.fromisoformat(last_end):
+            planning_state = "completed"
+        else:
+            # In the planning / live window
+            if verified_phases:
+                planning_state = "in_flight"
+            else:
+                planning_state = "suggested_only"
+    enriched["planning_state"] = planning_state
+
     return enriched
 
 
 @app.route("/api/planning/<brand_id>/timeline", methods=["GET"])
 def planning_timeline(brand_id):
     """GET /api/planning/<brand>/timeline?year=2026
+                                  ?start=2026-09-28&end=2027-09-28
 
-    Returns the event spine (always-on pillars + A/B/C events) for the year.
-    Sorted by start date. Each event includes enriched phase dates so the
-    SPA can render horizontal bars.
+    Returns the event spine (always-on pillars + A/B/C events) for the year
+    (or a date range spanning multiple years).
+
+    Date-range mode (start + end) loads every spine file for the years that
+    the range intersects AND every canonical marketing_calendar record that
+    intersects the range, then dedupes by event_key (jsonl wins on conflict
+    — operator-initiated approvals supersede hand-curated rows).
+
+    Canonical store:
+      - SEED (read-only curated):
+          data/brand-planning/<brand>-events-<YYYY>.json
+      - OPERATOR APPROVALS (read+write, persistent):
+          marketing_calendar.upsert_event() → <DATA_DIR>/calendar/<brand>.jsonl
+      - AUDIT (append-only):
+          <DATA_DIR>/calendar-audit/<brand>-approvals.jsonl
+
+    Both seed + operator approvals are read by this endpoint so the spine
+    timeline reflects Christelle's manual promotions. Slice 3 (Add to Main
+    Calendar) writes to the operator store; this endpoint reads it back.
     """
+    from _lib import marketing_calendar as _mc_timeline_v23  # V2.3
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+
+    start_str = (request.args.get("start") or "").strip()
+    end_str = (request.args.get("end") or "").strip()
     year_str = (request.args.get("year") or "").strip()
+
+    # Cross-year range mode
+    if start_str and end_str:
+        try:
+            start_d = _dt.date.fromisoformat(start_str)
+            end_d = _dt.date.fromisoformat(end_str)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"invalid date range: {e}"}), 400
+        if end_d < start_d:
+            return jsonify({"ok": False, "error": "end must be >= start"}), 400
+        # V2.3 — wrap the entire pipeline in try/except so a 500 stops
+        # returning {"error":"internal server error"} with NO debugging
+        # signal. We log tracebacks to stderr and return a JSON trace.
+        import sys as _sys_main
+        import traceback as _tb_main
+        try:
+            years = list(range(start_d.year, end_d.year + 1))
+            combined_events: Dict[str, Any] = {}
+            seed_always_on: List[Dict[str, Any]] = []
+            sources: List[str] = []
+            print(f"[v23-timeline] start={start_str} end={end_str} years={years}", file=_sys_main.stderr, flush=True)
+
+            # 1. Spine seed
+            for yr in years:
+                try:
+                    spine, src = _load_events_for_year(brand_id, yr)
+                except Exception as sp_err:
+                    spine, src = None, None
+                    print(f"[v23-timeline] _load_events_for_year({yr}) EXC: {type(sp_err).__name__}: {sp_err}", file=_sys_main.stderr, flush=True)
+                if not spine:
+                    continue
+                if not seed_always_on:
+                    seed_always_on = spine.get("always_on_pillars") or []
+                try:
+                    sources.append(src)
+                except Exception:
+                    pass
+                for ev in (spine.get("events") or []):
+                    try:
+                        ev_start = _dt.date.fromisoformat(ev.get("start") or "")
+                        ev_end = _dt.date.fromisoformat(ev.get("end") or ev.get("public_peak") or "")
+                    except Exception:
+                        continue
+                    if ev_end >= start_d and ev_start <= end_d:
+                        ek_src = ev.get("event_key") or ev.get("id") or ev.get("name")
+                        ek = ek_src if isinstance(ek_src, str) and ek_src else None
+                        if ek:
+                            combined_events[ek] = ev
+            print(f"[v23-timeline] seed-events={len(combined_events)} sources={sources}", file=_sys_main.stderr, flush=True)
+
+            # 2. Operator approvals
+            mc_read_error = None
+            try:
+                mc_records = _mc_timeline_v23.list_records(brand_id) or []
+            except Exception as mc_err:
+                mc_records = []
+                mc_read_error = f"{type(mc_err).__name__}: {mc_err}"
+                print(f"[v23-timeline] list_records failed: {mc_read_error}", file=_sys_main.stderr, flush=True)
+            for record in mc_records:
+                ek = record.get("event_key")
+                if not ek:
+                    continue
+                try:
+                    r_start = _dt.date.fromisoformat(record.get("event_start") or "")
+                    r_end = _dt.date.fromisoformat(record.get("event_end") or record.get("event_start") or "")
+                except Exception:
+                    continue
+                if r_end >= start_d and r_start <= end_d:
+                    combined_events[ek] = record
+            try:
+                sources.append(f"marketing_calendar[{brand_id}].jsonl")
+            except Exception:
+                pass
+            print(f"[v23-timeline] after-merge events={len(combined_events)}", file=_sys_main.stderr, flush=True)
+
+            # 3. Enrichment (per-record fail-safe)
+            ordered: List[Dict[str, Any]] = []
+            for e in combined_events.values():
+                try:
+                    enriched = _enrich_event(e)
+                except Exception as enrich_err:
+                    print(
+                        f"[v23-timeline] _enrich_event failed for ek={e.get('event_key')}; passthrough: {enrich_err}",
+                        file=_sys_main.stderr, flush=True,
+                    )
+                    enriched = dict(e)
+                    enriched["phases"] = []
+                    enriched.setdefault("planning_state", "operator_record_no_phases")
+                # V2.3 — coerce start/end for both shapes (spine uses 'start'/'end',
+                # operator-store uses 'event_start'/'event_end'). Without this,
+                # ordered.sort(key=...) raises TypeError ('<' not supported
+                # between NoneType and str) when a mixed-shape corpus is present.
+                if not enriched.get("start"):
+                    enriched["start"] = enriched.get("event_start") or ""
+                if not enriched.get("end"):
+                    enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
+                ordered.append(enriched)
+            ordered.sort(key=lambda e: e.get("start") or "")
+
+            counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
+            for e in ordered:
+                counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
+            # V2.4 — normalise the entire payload before serialisation.
+            # We do NOT use default=str (the V2.3 workaround that hid
+            # any unknown objects). Instead we coerce every key that
+            # exists, normalise leaf types to a strict JSON-compatible
+            # set (str, int, float, bool, None, list, dict), and let
+            # Flask's normal jsonify() do the rest. If normalisation
+            # encounters an unserialisable object, the catch returns a
+            # traceback via stderr + degraded payload so the SPA still
+            # renders the spine.
+            try:
+                normalised = _normalize_for_json({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "start": start_str,
+                    "end": end_str,
+                    "years": years,
+                    "always_on_pillars": seed_always_on,
+                    "events": ordered,
+                    "tier_counts": counts,
+                    "source": sources[0] if sources else None,
+                    "sources": sources,
+                    "canonical_store": {
+                        "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
+                        "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl (via marketing_calendar.list_records)",
+                        "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
+                    },
+                    "event_count": len(ordered),
+                    "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
+                    "mode": "range",
+                    "mc_read_error": mc_read_error,
+                })
+                return jsonify(normalised), 200
+            except Exception as inner_serial_err:
+                import sys as _sys_se
+                import traceback as _tb_se
+                tb_se = _tb_se.format_exc()
+                print(
+                    f"[v23-timeline] serialize EXC: {type(inner_serial_err).__name__}: {inner_serial_err}\n{tb_se[-2000:]}",
+                    file=_sys_se.stderr, flush=True,
+                )
+                events_bare: List[Dict[str, Any]] = []
+                for e in ordered:
+                    events_bare.append({
+                        "event_key": str(e.get("event_key") or ""),
+                        "title": str(e.get("title") or e.get("name") or ""),
+                        "tier": str(e.get("tier") or ""),
+                        "start": str(e.get("start") or e.get("event_start") or ""),
+                        "end": str(e.get("end") or e.get("event_end") or e.get("public_peak") or ""),
+                        "phases": [],
+                        "planning_state": "serialize_fallback",
+                    })
+                return jsonify({
+                    "ok": True,
+                    "brand_id": brand_id,
+                    "start": start_str,
+                    "end": end_str,
+                    "events": events_bare,
+                    "event_count": len(events_bare),
+                    "mode": "range",
+                    "serialize_warning": f"{type(inner_serial_err).__name__}: {inner_serial_err}",
+                    "mc_read_error": mc_read_error,
+                }), 200
+        except Exception as outer_err:
+            tb = _tb_main.format_exc()
+            print(
+                f"[v23-timeline] OUTER EXC: {type(outer_err).__name__}: {outer_err}\n{tb[-2000:]}",
+                file=_sys_main.stderr, flush=True,
+            )
+            return jsonify({
+                "ok": False,
+                "error": "internal server error",
+                "type": type(outer_err).__name__,
+                "trace": tb[-1500:],
+            }), 500
+
+    # Single-year mode (legacy) — also includes operator-approved records for
+    # the year so the year-mode timeline (used by the calendar SPA when the
+    # range mode is not specified) reflects operator approvals too.
+    from _lib import marketing_calendar as _mc_timeline_v23yr  # V2.3
     if not year_str:
         year_str = str(_dt.date.today().year)
     try:
-        year = int(year_str)
+        year = int(year_str) if year_str else _dt.date.today().year
     except Exception:
         return jsonify({"ok": False, "error": f"invalid year: {year_str}"}), 400
 
@@ -43582,14 +44306,64 @@ def planning_timeline(brand_id):
                         "error": "no event spine for this brand/year",
                         "expected": f"data/brand-planning/{brand_id}-events-{year}.json"}), 404
 
-    events = [_enrich_event(e) for e in (spine.get("events") or [])]
-    events.sort(key=lambda e: e.get("start") or "")
+    combined_events: Dict[str, Any] = {}
+    for ev in (spine.get("events") or []):
+        ek_src = ev.get("event_key") or ev.get("id") or ev.get("name")
+        ek = ek_src if isinstance(ek_src, str) and ek_src else None
+        if ek:
+            combined_events[ek] = ev
+    # Operator-approved records for the year:
+    try:
+        mc_records_year = _mc_timeline_v23yr.list_records(brand_id) or []
+    except Exception as mc_err_yr:
+        mc_records_year = []
+        import sys as _sys_yr
+        print(
+            f"[v23-timeline-year] list_records failed: {type(mc_err_yr).__name__}: {mc_err_yr}",
+            file=_sys_yr.stderr,
+            flush=True,
+        )
+    for record in mc_records_year:
+        ek = record.get("event_key")
+        if not ek:
+            continue
+        try:
+            year_int = int(year_str)
+            rs = record.get("event_start") or ""
+            if not rs.startswith(str(year_int)):
+                continue
+        except Exception:
+            continue
+        combined_events[ek] = record  # operator wins on conflict
+    events_year: List[Dict[str, Any]] = []
+    for e in combined_events.values():
+        try:
+            enriched = _enrich_event(e)
+        except Exception as enrich_err:
+            import sys as _sys2
+            print(
+                f"[v23-timeline-year] _enrich_event failed for ek={e.get('event_key')}; "
+                f"passthrough: {enrich_err}",
+                file=_sys2.stderr,
+                flush=True,
+            )
+            enriched = dict(e)
+            enriched["phases"] = []
+            enriched.setdefault("planning_state", "operator_record_no_phases")
+        # V2.3 — same coercion as the range-mode branch.
+        if not enriched.get("start"):
+            enriched["start"] = enriched.get("event_start") or ""
+        if not enriched.get("end"):
+            enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
+        events_year.append(enriched)
+    events_year.sort(key=lambda e: e.get("start") or "")
+    events = events_year
 
     counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
     for e in events:
         counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
 
-    return jsonify({
+    return jsonify(_normalize_for_json({
         "ok": True,
         "brand_id": brand_id,
         "year": year,
@@ -43598,8 +44372,1432 @@ def planning_timeline(brand_id):
         "shopping_moments_summary": spine.get("shopping_moments_summary") or [],
         "tier_counts": counts,
         "source": source,
+        "canonical_store": {
+            "seed": "data/brand-planning/<brand>-events-<YYYY>.json",
+            "operator_approvals": "<DATA_DIR>/calendar/<brand>.jsonl",
+            "audit": "<DATA_DIR>/calendar-audit/<brand>-approvals.jsonl",
+        },
         "event_count": len(events),
         "shopping_moment_count": sum(1 for e in events if e.get("shopping_moment")),
+        "mode": "year",
+    })), 200
+
+
+@app.route("/api/planning/<brand_id>/candidates", methods=["GET"])
+def planning_candidates(brand_id):
+    """GET /api/planning/<brand>/candidates?start=…&end=…
+
+    Returns the broader intelligence universe — split into two layers per
+    Calendar V2.1 — Research & Source-of-Truth patch:
+
+      candidates[]     — Evidence-backed, dated opportunities. Displayed as
+                         dated "Calendar candidate" rows. Require verified
+                         event date + reachable source URL + venue. May be
+                         promoted to the spine by Christelle.
+      research_leads[] — Opportunities without verified dates. Displayed
+                         in a separate "Needs Verification" section. Cannot
+                         be promoted to spine — only after their date is
+                         verified do they graduate to candidates[].
+
+    Sourced from data/brand-planning/<brand>-candidates-YYYY[-YYYY].json
+    when present; otherwise 404.
+
+    Each row carries at minimum:
+      candidates[]:     id, name, category, start, end, public_peak,
+                        geography, source, source_date, relevance_to_<brand>,
+                        opportunity, suggested_tier, confidence,
+                        recommended_lead_time_weeks, why_it_matters,
+                        added_to_spine, spine_event_id?, verification_status
+      research_leads[]: id, name, category, geography, inferred_pattern,
+                        verification_action_needed,
+                        relevance_to_<brand>, opportunity_if_promoted,
+                        suggested_tier_if_promoted,
+                        recommended_lead_time_weeks, why_in_research,
+                        confidence
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    start_str = (request.args.get("start") or "").strip()
+    end_str = (request.args.get("end") or "").strip()
+
+    # Find candidate files for this brand
+    planning = _planning_dir()
+    candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+    if not candidates_files:
+        return jsonify({
+            "ok": False, "brand_id": brand_id, "error": "no candidates file for this brand",
+            "expected": f"data/brand-planning/{brand_id}-candidates-YYYY[-YYYY].json",
+        }), 404
+
+    # Optional date filtering
+    start_d = None
+    end_d = None
+    if start_str:
+        try:
+            start_d = _dt.date.fromisoformat(start_str)
+        except Exception:
+            return jsonify({"ok": False, "error": f"invalid start: {start_str}"}), 400
+    if end_str:
+        try:
+            end_d = _dt.date.fromisoformat(end_str)
+        except Exception:
+            return jsonify({"ok": False, "error": f"invalid end: {end_str}"}), 400
+
+    all_candidates = []
+    all_research_leads = []
+    schema = None
+    rules = None
+    sources = []
+    for cf in candidates_files:
+        try:
+            with open(cf, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+        except Exception:
+            continue
+        if not schema:
+            schema = payload.get("schema")
+            rules = payload.get("rules")
+        sources.append(cf)
+        for c in (payload.get("candidates") or []):
+            all_candidates.append(c)
+        for c in (payload.get("research_leads") or []):
+            all_research_leads.append(c)
+
+    # Date-filter candidates[] by date range. research_leads[] NEVER carry
+    # specific dates and are returned as-is.
+    if start_d or end_d:
+        filtered = []
+        for c in all_candidates:
+            try:
+                c_start = _dt.date.fromisoformat(c.get("start") or "")
+                c_end = _dt.date.fromisoformat(c.get("end") or c.get("public_peak") or c.get("start") or "")
+            except Exception:
+                continue
+            if start_d and c_end < start_d:
+                continue
+            if end_d and c_start > end_d:
+                continue
+            filtered.append(c)
+        all_candidates = filtered
+
+    # Confidence breakdown
+    confidence_count = {"high": 0, "medium": 0, "low": 0}
+    for c in all_candidates:
+        conf = c.get("confidence")
+        if conf in confidence_count:
+            confidence_count[conf] += 1
+    spine_added = sum(1 for c in all_candidates if c.get("added_to_spine"))
+
+    all_candidates.sort(key=lambda c: (c.get("public_peak") or c.get("start") or ""))
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "candidates": all_candidates,
+        "candidate_count": len(all_candidates),
+        "research_leads": all_research_leads,
+        "research_lead_count": len(all_research_leads),
+        "spine_added_count": spine_added,
+        "confidence_breakdown": confidence_count,
+        "rules": rules,
+        "schema": schema,
+        "sources": sources,
+        "start": start_str or None,
+        "end": end_str or None,
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.2 — Slice 3 endpoint: approve a candidate → marketing_calendar.
+# Idempotent. Writes one immutable audit row per call. NEVER approves a
+# research_lead (no date = raise 400). 401 if not authed.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/candidates/<candidate_id>/approve", methods=["POST"])
+def planning_approve_candidate(brand_id, candidate_id):
+    """POST /api/planning/<brand>/candidates/<id>/approve
+
+    Approve an intelligence candidate → marketing_calendar.upsert_event spine.
+    The candidate must come from data/brand-planning/<brand>-candidates-*.json.
+
+    - Idempotent (event_key is stable per candidate)
+    - Logs an immutable audit row to <DATA_DIR>/calendar-audit/<brand>-approvals.jsonl
+    - Refuses with 400 if the candidate has no start/public_peak date (research_lead)
+
+    V2.3 ACTOR IDENTITY (per operator directive — no fake reviewer names):
+      actor_id is a SHA256 cookie digest + IP /24 prefix fingerprint. The
+      Campaign OS auth model is single-factor password; there is no per-user
+      identity. We surface what we actually know: a stable session
+      fingerprint. Two operators on different IPs or browsers will produce
+      different actor_ids without claiming any person's name.
+    """
+    from _lib import _planning_events as _planevents  # V2.2
+    from _lib import marketing_calendar as _mc_approval  # V2.2
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    # Resolve brand directory
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": f"brand_id '{brand_id}' invalid"}), 400
+
+    # V2.3 actor identity. Stable, unspoofable, no fake name.
+    # Cookie + IP /24 produces a per-session fingerprint. Operator can
+    # self-declare an X-Actor-DISPLAY-NAME header in the future without
+    # any code change, and the value is logged separately — without
+    # becoming the default fallback that hides the lack of identity.
+    actor = _resolve_v23_actor()
+
+    # Load candidates file
+    planning = _planning_dir()
+    candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+    if not candidates_files:
+        return jsonify({"ok": False, "error": "no candidates file for this brand"}), 404
+
+    candidate: Optional[Dict[str, Any]] = None
+    research_lead: Optional[Dict[str, Any]] = None
+    source_file: Optional[str] = None
+    for cf in candidates_files:
+        try:
+            with open(cf, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            for c in (payload.get("candidates") or []):
+                if c.get("id") == candidate_id:
+                    candidate = c
+                    source_file = cf
+                    break
+            if not candidate:
+                # Search research_leads too — refuse them with the
+                # explicit verification_required flag.
+                for rl in (payload.get("research_leads") or []):
+                    if rl.get("id") == candidate_id:
+                        research_lead = rl
+                        source_file = cf
+                        break
+            if candidate or research_lead:
+                break
+        except Exception:
+            continue
+    if not candidate and not research_lead:
+        return jsonify({
+            "ok": False,
+            "error": f"candidate '{candidate_id}' not found in any {brand_id}-candidates-*.json",
+        }), 404
+    if research_lead:
+        # Slice 3 directive: research_leads without verified dates cannot be
+        # promoted. Tell the operator exactly which lead they need to verify.
+        return jsonify({
+            "ok": False,
+            "error": (
+                f"This entry is a research_lead without a verified date: "
+                f"'{research_lead.get('name')}'. Verify the date with "
+                f"'{research_lead.get('verification_action_needed','the source')}' "
+                "first, then move it into candidates[] and approve."
+            ),
+            "is_research_lead": True,
+            "verification_required": True,
+            "verification_action_needed": research_lead.get("verification_action_needed"),
+            "candidate_id": candidate_id,
+        }), 400
+
+    # Build the approval record via the helper — which enforces the
+    # 'no date, no approve' rule (raises ValueError for research_leads).
+    try:
+        if not isinstance(candidate, dict):
+            raise ValueError("candidate failed to load")
+        record = _planevents.build_approval_record(brand_id, candidate, actor=actor)
+    except ValueError as e:
+        # ValueError means: research_lead without a date. Surface as 400.
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "is_research_lead": True,
+            "verification_required": True,
+        }), 400
+
+    # Find existing record (before-state) for the audit row.
+    before: Dict[str, Any] | None = None
+    try:
+        existing = _mc_approval.list_records(brand_id)
+        for r in existing:
+            if r.get("event_key") == record["event_key"]:
+                before = {
+                    "event_key": r.get("event_key"),
+                    "title": r.get("title"),
+                    "tier": r.get("tier"),
+                    "event_start": r.get("event_start"),
+                    "event_end": r.get("event_end"),
+                    "revision": r.get("revision"),
+                    "status": r.get("status"),
+                }
+                break
+    except Exception:
+        before = None
+
+    # Upsert into the marketing_calendar store (single source of truth for
+    # the unified record layer — both Calendar V2 and existing
+    # work_due/morning-brief consumers read from this).
+    try:
+        upsert_result = _mc_approval.upsert_event(brand_id, record)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"upsert_event failed: {e}"}), 500
+
+    # Audit
+    try:
+        audit_entry = _planevents.write_audit_entry(
+            brand_id=brand_id,
+            action="approve_candidate",
+            actor=actor,
+            source_id=candidate_id,
+            before=before,
+            after={
+                "event_key": record["event_key"],
+                "title": record["title"],
+                "tier": record.get("tier"),
+                "event_start": record["event_start"],
+                "event_end": record["event_end"],
+                "source_origin": record.get("source_origin"),
+                "verification_status": record.get("verification_status"),
+                "upsert_action": upsert_result.get("action"),
+                "upsert_revision": upsert_result.get("revision"),
+                "source_candidate_file": source_file,
+            },
+        )
+    except Exception as e:
+        audit_entry = None
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "candidate_id": candidate_id,
+        "event_key": record["event_key"],
+        "upsert": upsert_result,
+        "was_created": before is None,
+        "audit_entry": audit_entry,
+        "actor": actor,
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/candidates/approval-status/<candidate_id>", methods=["GET"])
+def planning_candidate_approval_status(brand_id, candidate_id):
+    """GET /api/planning/<brand>/candidates/approval-status/<id>
+
+    Returns whether a candidate is already approved (event_key exists in
+    marketing_calendar records), and if so the event_key + revision.
+    Used by the React panel to show ✓ ON MAIN CALENDAR.
+    """
+    from _lib import _planning_events as _planevents_status  # V2.2
+    from _lib import marketing_calendar as _mc_status  # V2.2
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    # Try to derive the candidate's event_key
+    try:
+        # Pull candidate metadata to get the start date
+        planning = _planning_dir()
+        candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+        candidate = None
+        for cf in candidates_files:
+            try:
+                with open(cf, "r", encoding="utf-8") as f:
+                    payload = json.load(f)
+                for c in (payload.get("candidates") or []):
+                    if c.get("id") == candidate_id:
+                        candidate = c
+                        break
+                if candidate:
+                    break
+            except Exception:
+                continue
+        if not candidate:
+            return jsonify({"ok": False, "error": "candidate not found"}), 404
+        record = _planevents_status.build_approval_record(brand_id, candidate, actor="query")
+        event_key = record["event_key"]
+    except ValueError:
+        # Research lead — no date — so no approval possible.
+        return jsonify({
+            "ok": True,
+            "approved": False,
+            "is_research_lead": True,
+            "verification_required": True,
+            "candidate_id": candidate_id,
+        }), 200
+
+    # Look up by event_key
+    existing = _mc_status.list_records(brand_id)
+    for r in existing:
+        if r.get("event_key") == event_key:
+            return jsonify({
+                "ok": True,
+                "approved": True,
+                "candidate_id": candidate_id,
+                "event_key": event_key,
+                "title": r.get("title"),
+                "tier": r.get("tier"),
+                "revision": r.get("revision"),
+                "status": r.get("status"),
+                "event_start": r.get("event_start"),
+                "event_end": r.get("event_end"),
+            }), 200
+    return jsonify({
+        "ok": True,
+        "approved": False,
+        "candidate_id": candidate_id,
+        "event_key": event_key,
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.3 — Slice 3 visible planning context + existing-brief reuse.
+# Returns the full Slice-3 OPEN PLANNING context (matches every field the
+# operator directive listed) and surfaces the existing brief if one is
+# already attached to the candidate's event_key.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/candidates/<candidate_id>/planning-context", methods=["GET"])
+def planning_candidate_context(brand_id, candidate_id):
+    """GET /api/planning/<brand>/candidates/<id>/planning-context
+
+    Returns the Open Planning context for the candidate. Slice-3 fields:
+      - event (candidate title + dates + tier + venue)
+      - brand
+      - verified dates (start, end, public_peak)
+      - tier
+      - runway (recommended_lead_time_weeks)
+      - North Star (statement from data/strategy/<brand>.json)
+      - relevant operating goal(s)
+      - relevant always-on lane(s)
+      - evidence (source/url/source_date)
+      - planning_state (from enriched spine lookup, or 'not_yet_on_spine')
+      - existing_brief (if a brief exists for the candidate's event_key — V2.3 reuse)
+    """
+    from _lib import _planning_events as _planevents_ctx  # V2.3
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    # 1. Load candidate
+    planning = _planning_dir()
+    candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
+    candidate: Optional[Dict[str, Any]] = None
+    research_lead: Optional[Dict[str, Any]] = None
+    for cf in candidates_files:
+        try:
+            with open(cf, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            for c in (payload.get("candidates") or []):
+                if c.get("id") == candidate_id:
+                    candidate = c
+                    break
+            if not candidate:
+                for rl in (payload.get("research_leads") or []):
+                    if rl.get("id") == candidate_id:
+                        research_lead = rl
+                        break
+            if candidate or research_lead:
+                break
+        except Exception:
+            continue
+    if not candidate and not research_lead:
+        return jsonify({"ok": False, "error": "candidate not found"}), 404
+    if research_lead:
+        return jsonify({
+            "ok": True,
+            "candidate_id": candidate_id,
+            "is_research_lead": True,
+            "verification_required": True,
+            "verification_action_needed": research_lead.get("verification_action_needed"),
+            "context": {
+                "event": {
+                    "name": research_lead.get("name"),
+                    "category": research_lead.get("category"),
+                    "geography": research_lead.get("geography"),
+                    "verified_date": None,
+                },
+                "brand": brand_id,
+                "verified_dates": None,
+                "tier": None,
+                "runway": None,
+                "north_star": None,
+                "operating_goal_match": [],
+                "always_on_lane_match": [],
+                "evidence": {
+                    "source": None,
+                    "source_date": None,
+                    "verification_status": "unverified",
+                    "venue_status": None,
+                    "date_status": None,
+                },
+                "planning_state": "not_yet_on_spine",
+                "existing_brief": None,
+                "open_planning_action": "Verify the date with the listed source/contact first, then re-attempt OPEN PLANNING.",
+            },
+        }), 200
+
+    # 2. Compute event_key + check existing spine record (approval status).
+    event_key: Optional[str] = None
+    is_approved = False
+    try:
+        if isinstance(candidate, dict):
+            record = _planevents_ctx.build_approval_record(brand_id, candidate, actor="query")
+            event_key = record["event_key"]
+        from _lib import marketing_calendar as _mc_ctx
+        existing = _mc_ctx.list_records(brand_id) or []
+        for r in existing:
+            if r.get("event_key") == event_key:
+                is_approved = True
+                break
+    except ValueError:
+        pass
+
+    # 3. Look up an existing brief attached to this candidate's event_key.
+    # V2.3 reuse rule: do NOT create a new brief if one exists. Briefs are
+    # stored at <DATA_DIR>/briefs/<brand>/<brief_id>.json by the existing
+    # campaign_brief module.
+    existing_brief = None
+    brief_id_candidates: List[str] = []
+    if event_key:
+        # Standard slug form: event_key-derived id (kebab-case to under_score)
+        slug_id = event_key.replace(":", "-").replace(".", "-")
+        brief_id_candidates.append(slug_id)
+        brief_id_candidates.append(event_key.split(":")[-1])
+    # Also accept a brief id derived from the candidate id (the cand id is what
+    # the operator sees first; the new brief system uses snake_case).
+    candidate_id_candidate = candidate_id.replace("-", "_") if candidate_id else ""
+    if candidate_id_candidate:
+        brief_id_candidates.append(candidate_id_candidate)
+    try:
+        from _lib import campaign_brief as _cb
+        for bi in brief_id_candidates:
+            if bi and _cb._read_brief(brand_id, bi):
+                existing_brief = {
+                    "brief_id": bi,
+                    "exists": True,
+                    "is_research_lead": False,
+                }
+                break
+    except Exception:
+        pass
+
+    # 4. Pull North Star + operating_goals + operating_areas (Strategy-file
+    # fallback chain).
+    ns: Dict[str, Any] = {}
+    operating_goals: List[Dict[str, Any]] = []
+    operating_areas: List[Dict[str, Any]] = []
+    try:
+        strat_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "data", "strategy", f"{brand_id}.json"
+        )
+        if os.path.exists(strat_path):
+            with open(strat_path, "r", encoding="utf-8") as sf:
+                strat = json.load(sf)
+                ns = strat.get("north_star") or {}
+                operating_goals = strat.get("operating_goals") or []
+        brand_data = _read_planning(brand_id) or {}
+        operating_areas = brand_data.get("operating_areas") or []
+        if not operating_goals:
+            operating_goals = brand_data.get("operating_goals") or []
+    except Exception:
+        pass
+
+    # 5. Match relevant operating goal(s) — heuristic by event name keywords
+    #    (matches the Slice 5 heuristic in planning_planned_view).
+    tier = (candidate.get("suggested_tier") or "").upper()
+    heuristics = {
+        "A-PIN": ["coaching", "fit", "fitting", "revenue", "conversion"],
+        "B-PIN": ["coaching", "fitting", "engagement", "membership"],
+        "C-PIN": ["brand", "engagement", "membership"],
+    }.get(tier, ["brand", "engagement"])
+    op_goal_match: List[Dict[str, Any]] = []
+    for g in operating_goals:
+        joined = f"{g.get('label','')} {g.get('metric','')} {g.get('id','')}".lower()
+        if any(h in joined for h in heuristics):
+            op_goal_match.append({
+                "id": g.get("id"), "label": g.get("label"), "metric": g.get("metric"),
+            })
+    lane_match: List[Dict[str, Any]] = []
+    ev_name_l = (candidate.get("name") or "").lower()
+    for a in operating_areas:
+        lane_l = (a.get("lane") or "").lower()
+        if lane_l and (lane_l in ev_name_l or any(w in ev_name_l for w in lane_l.split("-"))):
+            lane_match.append({"key": a.get("key"), "lane": a.get("lane"), "tagline": a.get("tagline")})
+    # Swing Shack fallback lane match
+    if not lane_match and brand_id == "swing-shack":
+        lane_match = [{"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"}]
+
+    # 6. Compose Slice-3 OPEN PLANNING context per operator directive.
+    open_planning_action = (
+        "OPEN EXISTING BRIEF" if existing_brief
+        else "CREATE BRIEF (loading existing planning workflow)"
+        if is_approved
+        else "Verify the date and approve, then create a brief."
+    )
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "candidate_id": candidate_id,
+        "is_research_lead": False,
+        "is_approved": is_approved,
+        "event_key": event_key,
+        "context": {
+            "event": {
+                "name": candidate.get("name"),
+                "category": candidate.get("category"),
+                "verified_date": candidate.get("start"),
+                "public_peak": candidate.get("public_peak"),
+            },
+            "brand": brand_id,
+            "verified_dates": {
+                "start": candidate.get("start"),
+                "end": candidate.get("end"),
+                "public_peak": candidate.get("public_peak"),
+            },
+            "tier": candidate.get("suggested_tier"),
+            "recommended_tier": candidate.get("suggested_tier"),
+            "runway": {
+                "recommended_lead_time_weeks": candidate.get("recommended_lead_time_weeks"),
+            },
+            "north_star": ns.get("statement") if isinstance(ns.get("statement"), str) else None,
+            "operating_goal_match": op_goal_match,
+            "always_on_lane_match": lane_match,
+            "evidence": {
+                "source": candidate.get("source"),
+                "source_date": candidate.get("source_date"),
+                "geography": candidate.get("geography"),
+                "verification_status": candidate.get("verification_status"),
+                "venue_status": candidate.get("venue_status"),
+                "date_status": candidate.get("date_status"),
+                "opportunity": candidate.get("opportunity"),
+                "relevance": candidate.get("relevance_to_swing_shack") or candidate.get("relevance"),
+                "why_it_matters": candidate.get("why_it_matters"),
+            },
+            "planning_state": "on_spine" if is_approved else "not_yet_on_spine",
+            "existing_brief": existing_brief,
+            "open_planning_action": open_planning_action,
+        },
+    }), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.3 — Internal admin: revert test approvals.
+# Used to wipe SMOKE-TEST / operator-acceptance pollution from
+# production DATA_DIR while preserving audit history of the original
+# approval + the revert action.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/_internal/revert-test-approval", methods=["POST"])
+def planning_revert_test_approval(brand_id):
+    """POST /api/planning/<brand>/_internal/revert-test-approval
+
+    Body (JSON):
+      {"event_key": "...", "reason": "..."}   # single
+      {"event_keys": ["...", "..."], "since_iso": "...", "reason": "..."}  # bulk
+
+    Returns: {ok, removed_record, jsonl_before_lines, jsonl_after_lines, audit_entry,}
+    """
+    from _lib import _planning_events as _planevents_revert  # V2.3
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    body = request.get_json(silent=True) or {}
+    actor = _resolve_v23_actor()
+    reason = body.get("reason") or "test_approval_reverted"
+    if body.get("event_key"):
+        ek = body["event_key"]
+        if not isinstance(ek, str) or not ek:
+            return jsonify({"ok": False, "error": "event_key must be a non-empty string"}), 400
+        result = _planevents_revert.revert_event_approval(
+            brand_id=brand_id,
+            event_key=ek,
+            actor=actor,
+            reason=reason,
+        )
+        return jsonify(result), 200
+    # Bulk path
+    if body.get("event_keys") or body.get("since_iso"):
+        keys = body.get("event_keys") or []
+        if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
+            return jsonify({"ok": False, "error": "event_keys must be a list of strings"}), 400
+        result = _planevents_revert.bulk_revert_event_approvals(
+            brand_id=brand_id,
+            actor=actor,
+            since_iso=body.get("since_iso"),
+            match_event_keys=keys,
+            reason=reason,
+        )
+        return jsonify(result), 200
+    return jsonify({"ok": False, "error": "must supply event_key or event_keys or since_iso"}), 400
+
+
+@app.route("/api/planning/<brand_id>/_internal/audit-log", methods=["GET"])
+def planning_audit_log(brand_id):
+    """GET /api/planning/<brand>/_internal/audit-log?limit=N
+
+    Lists recent audit rows. Used by the operator to verify production
+    audit hygiene during V2.3 acceptance.
+
+    V2.4 — admin-only. The audit log contains actor identities and
+    timestamps; non-admin operators do not need to see it.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    limit = max(1, min(int(request.args.get("limit") or 200), 1000))
+    import os as _os
+    base = _os.environ.get("DATA_DIR") or "/data/campaign-os"
+    audit_file = _os.path.join(base, "calendar-audit", f"{brand_id}-approvals.jsonl")
+    rows = []
+    if _os.path.exists(audit_file):
+        with open(audit_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except Exception:
+                    continue
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "audit_file": audit_file,
+        "audit_file_exists": _os.path.exists(audit_file),
+        "row_count": len(rows),
+        "rows": rows[-limit:],
+    }), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/diagnose-timeline", methods=["GET"])
+def planning_diagnose_timeline(brand_id):
+    """GET /api/planning/<brand>/_internal/diagnose-timeline
+
+    V2.3 operator diagnostic for the timeline 500 incident on production.
+    Reports every step of the canonical-store read pipeline WITHOUT
+    raising an unhandled Exception — returns the actual exception text
+    so the operator can read it from a JSON payload.
+
+    V2.4 — gated behind _is_admin() so non-admin operators get a 404.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+    diag: Dict[str, Any] = {"brand_id": brand_id}
+    # 1. _read_brand_planning
+    try:
+        bp = _read_planning(brand_id)
+        diag["brand_planning_keys"] = list(bp.keys()) if isinstance(bp, dict) else None
+        diag["brand_planning_ok"] = True
+    except Exception as e:
+        diag["brand_planning_ok"] = False
+        diag["brand_planning_err"] = f"{type(e).__name__}: {e}"
+    # 2. spine seed per year (2026, 2027)
+    for yr in (2026, 2027):
+        try:
+            spine, src = _load_events_for_year(brand_id, yr)
+            diag[f"spine_{yr}"] = {
+                "ok": spine is not None,
+                "events": len((spine or {}).get("events") or []),
+                "source": src,
+            }
+        except Exception as e:
+            diag[f"spine_{yr}_err"] = f"{type(e).__name__}: {e}"
+    # 3. marketing_calendar.list_records
+    try:
+        from _lib import marketing_calendar as _mc_diag
+        records = _mc_diag.list_records(brand_id) or []
+        diag["marketing_calendar_records"] = len(records)
+        diag["marketing_calendar_first"] = records[0] if records else None
+        diag["marketing_calendar_ok"] = True
+    except Exception as e:
+        diag["marketing_calendar_ok"] = False
+        diag["marketing_calendar_err"] = f"{type(e).__name__}: {e}"
+    # 4. _enrich_event on each candidate (truncate at 3)
+    try:
+        from _lib import marketing_calendar as _mc_diag2
+        records = _mc_diag2.list_records(brand_id) or []
+        results = []
+        for r in records[:3]:
+            try:
+                enriched = _enrich_event(r)
+                results.append({
+                    "event_key": r.get("event_key"),
+                    "ok": True,
+                    "phase_count": len(enriched.get("phases") or []),
+                    "start": enriched.get("start"),
+                    "end": enriched.get("end"),
+                })
+            except Exception as e:
+                results.append({
+                    "event_key": r.get("event_key"),
+                    "ok": False,
+                    "err": f"{type(e).__name__}: {e}",
+                })
+        diag["enrich_event_first3"] = results
+    except Exception as e:
+        diag["enrich_event_err"] = f"{type(e).__name__}: {e}"
+    # 5. What's the working DATA_DIR right now?
+    diag["data_dir_env"] = os.environ.get("DATA_DIR")
+    diag["data_dir_default"] = DATA_DIR if "DATA_DIR" in globals() else None
+    return jsonify({"ok": True, "diag": diag}), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/diagnose-serialize", methods=["GET"])
+def planning_diagnose_serialize(brand_id):
+    """GET /api/planning/<brand>/_internal/diagnose-serialize
+
+    V2.4 operator diagnostic — walks every operator-store record through
+    the same serialization path the live timeline uses, but WITHOUT
+    default=str. Identifies the FIRST record whose enriched + serialized
+    payload would crash json.dumps().
+
+    Reports per-record:
+      failing_index (or null if all pass)
+      failing_event_key
+      failure_kind (TypeError | ValueError | KeyError | …)
+      failure_path (e.g. ".phases[3].weeks_before_peak")
+      failure_message
+      offending_subtree
+      sort_test_ok (sort_keys=True across the merged enriched list)
+      sort_test_err
+
+    V2.4 — admin-only. The serializer never uses default=str so this
+    endpoint measures the actual failure a normal Flask jsonify() call
+    would experience in production.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    import json as _json_diag
+    from _lib import marketing_calendar as _mc_diag_ser
+
+    records = _mc_diag_ser.list_records(brand_id) or []
+
+    failing_index = None
+    failing_event_key = None
+    failing_enriched_keys = None
+    failure_kind = None
+    failure_path = None
+    failure_message = None
+    offending_subtree = None
+    sample_pass_record_keys = None
+
+    for i, rec in enumerate(records):
+        try:
+            enriched = _enrich_event(rec)
+        except Exception as enrich_err:
+            # If enrichment itself fails, that record won't reach the
+            # JSON layer — the timeline wraps it in a passthrough. We
+            # still record it so we know.
+            enriched = dict(rec)
+            enriched["phases"] = []
+            enriched.setdefault("planning_state", "operator_record_no_phases")
+        # V2.3 coerce (the legitimate one — only sets start/end, not
+        # any nested fields).
+        if not enriched.get("start"):
+            enriched["start"] = enriched.get("event_start") or ""
+        if not enriched.get("end"):
+            enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
+
+        # V2.4 — Flask's default jsonify calls json.dumps(sort_keys=True).
+        # Run TWO checks: (1) the unsorted path, (2) the sorted path.
+        # Production's 500 was caused by a sort_keys=True crash on a
+        # dict with mixed-type keys (str + int).
+        # We replicate Flask's default config here.
+        try:
+            _json_diag.dumps(enriched, sort_keys=True)  # ← Flask's default
+        except Exception as json_err:
+            # Drill in. Mixed-key dicts will fail sort_keys=True.
+            offender, path = _find_json_offender(enriched, sort_keys=True)
+            failing_index = i
+            failing_event_key = rec.get("event_key")
+            failing_enriched_keys = sorted(list(enriched.keys()))
+            failure_kind = type(json_err).__name__
+            failure_path = path
+            failure_message = f"{type(json_err).__name__}: {json_err}"
+            offending_subtree = offender
+            break
+
+    # Also test sorting the full enriched list as the timeline does
+    sort_ok = True
+    sort_err = None
+    enriched_all: List[Dict[str, Any]] = []
+    try:
+        for rec in records:
+            try:
+                enriched_all.append(_enrich_event(rec))
+            except Exception:
+                pass
+        enriched_all.sort(key=lambda e: (e.get("start") or "", e.get("event_key") or ""))
+    except Exception as sort_exc:
+        sort_ok = False
+        sort_err = f"{type(sort_exc).__name__}: {sort_exc}"
+
+    # V2.4 — the timeline endpoint actually wraps the sorted events
+    # into a payload like:
+    #   { ok: True, brand_id, events: ordered, ... }
+    # and Flask's json.dumps then sort_keys=True walks THAT dict tree.
+    # Test the WHOLE payload here, not just individual records.
+    timeline_payload = {
+        "ok": True,
+        "brand_id": brand_id,
+        "events": enriched_all,
+        "event_count": len(enriched_all),
+        # Intentionally include a None-str mix to spot-check sort_keys.
+    }
+    full_payload_ok = True
+    full_payload_err = None
+    offender_full = None
+    path_full = None
+    try:
+        # Use Python stdlib json.dumps with sort_keys=True, identical
+        # to Flask's default behavior on this Provider.
+        _json_diag.dumps(timeline_payload, sort_keys=True)
+    except Exception as full_exc:
+        full_payload_ok = False
+        full_payload_err = f"{type(full_exc).__name__}: {full_exc}"
+        # Locate the offender in the payload tree
+        offender_full, path_full = _find_json_offender(timeline_payload, sort_keys=True)
+
+    # V2.4 — exhaustively scan every record for any nested dict that
+    # has mixed key types. If found, dump the offender.
+    nested_issues = []
+    for i, rec in enumerate(records[:134]):
+        def walk(o, path_str):
+            if isinstance(o, dict):
+                key_types = {type(k).__name__ for k in o.keys()}
+                if len(key_types) > 1:
+                    sample = list(o.keys())[:5]
+                    nested_issues.append({
+                        "record_index": i,
+                        "event_key": rec.get("event_key"),
+                        "path": path_str,
+                        "key_types": sorted(key_types),
+                        "sample_keys": [repr(k)[:60] for k in sample],
+                    })
+                for k, v in o.items():
+                    walk(v, f"{path_str}.{k}")
+            elif isinstance(o, (list, tuple)):
+                for idx, v in enumerate(o):
+                    walk(v, f"{path_str}[{idx}]")
+        walk(rec, "")
+
+    # Also scan the ENRICHED + V2.3-coerced version of every record.
+    enriched_nested_issues = []
+    for i, rec in enumerate(records[:134]):
+        try:
+            enr = _enrich_event(rec)
+        except Exception:
+            continue
+        if not enr.get("start"):
+            enr["start"] = enr.get("event_start") or ""
+        if not enr.get("end"):
+            enr["end"] = enr.get("event_end") or enr.get("public_peak") or ""
+
+        def walk2(o, path_str):
+            if isinstance(o, dict):
+                key_types = {type(k).__name__ for k in o.keys()}
+                if len(key_types) > 1:
+                    sample = list(o.keys())[:5]
+                    enriched_nested_issues.append({
+                        "record_index": i,
+                        "event_key": rec.get("event_key"),
+                        "path": path_str,
+                        "key_types": sorted(key_types),
+                        "sample_keys": [repr(k)[:60] for k in sample],
+                    })
+                for k, v in o.items():
+                    walk2(v, f"{path_str}.{k}")
+            elif isinstance(o, (list, tuple)):
+                for idx, v in enumerate(o):
+                    walk2(v, f"{path_str}[{idx}]")
+        walk2(enr, "")
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "record_count": len(records),
+        "failing_index": failing_index,
+        "failing_event_key": failing_event_key,
+        "failing_enriched_keys": failing_enriched_keys,
+        "failure_kind": failure_kind,
+        "failure_path": failure_path,
+        "failure_message": failure_message,
+        "offending_subtree": offending_subtree,
+        "sample_pass_record_keys": sample_pass_record_keys,
+        "sort_test_ok": sort_ok,
+        "sort_test_err": sort_err,
+        "full_payload_dumps_ok": full_payload_ok,
+        "full_payload_err": full_payload_err,
+        "full_payload_offender": offender_full if not full_payload_ok else None,
+        "full_payload_offender_path": path_full if not full_payload_ok else None,
+        "nested_mixed_key_dict_issues_found": len(nested_issues),
+        "nested_mixed_key_dict_issues_first3": nested_issues[:3],
+        "enriched_nested_mixed_key_dict_issues_found": len(enriched_nested_issues),
+        "enriched_nested_mixed_key_dict_issues_first3": enriched_nested_issues[:3],
+    }), 200
+
+
+def _find_json_offender(obj, path="", sort_keys=False):
+    """Recursively walk obj. Return the leaf that breaks json.dumps.
+
+    Returns (offender_value, dotted_path). The OFFEND is always a leaf
+    or container whose direct json.dumps fails — its TYPE is what's
+    broken (e.g. mixed key types in a dict, mixed types in a list,
+    non-serializable object). The returned offender is the SUBTREE
+    that contains the broken kind.
+
+    Implementation strategy: shrink obj by removing keys / items until
+    json.dumps succeeds. What remains is the minimal subtree that still
+    crashes — that is the offender.
+    """
+    import json as _json_off
+    # Base case
+    try:
+        _json_off.dumps(obj, sort_keys=sort_keys)
+        return None, ""
+    except Exception:
+        pass
+    # Dict → bisect by key
+    if isinstance(obj, dict):
+        if not obj:
+            return obj, path
+        # Try removing keys one at a time
+        items = list(obj.items())
+        for i in range(len(items)):
+            sub = {k: v for j, (k, v) in enumerate(items) if j != i}
+            try:
+                _json_off.dumps(sub, sort_keys=sort_keys)
+                k_v, v_v = items[i]
+                if isinstance(v_v, (dict, list, tuple)):
+                    return _find_json_offender(v_v, f"{path}.{k_v}", sort_keys=sort_keys)
+                return v_v, f"{path}.{k_v}"
+            except Exception:
+                continue
+        if len(items) <= 4:
+            key_types = {type(k).__name__ for k in obj.keys()}
+            if len(key_types) > 1:
+                return {"mixed_key_types": sorted(key_types), "sample_keys": [str(k) for k in list(obj.keys())[:5]]}, path
+            return obj, path
+        key_types = {type(k).__name__ for k in obj.keys()}
+        if len(key_types) > 1:
+            return {"mixed_key_types": sorted(key_types), "sample_keys": [str(k) for k in list(obj.keys())[:5]]}, path
+        return obj, path
+    # List → try removing items one at a time
+    if isinstance(obj, (list, tuple)):
+        if not obj:
+            return obj, path
+        items = list(obj)
+        for i in range(len(items)):
+            sub = items[:i] + items[i + 1:]
+            try:
+                _json_off.dumps(sub, sort_keys=sort_keys)
+                item = items[i]
+                if isinstance(item, (dict, list, tuple)):
+                    return _find_json_offender(item, f"{path}[{i}]", sort_keys=sort_keys)
+                return item, f"{path}[{i}]"
+            except Exception:
+                continue
+        if len(items) <= 4:
+            item_types = {type(it).__name__ for it in items}
+            if len(item_types) > 1:
+                return {"mixed_item_types": sorted(item_types), "sample": str(items[:3])}, path
+            return items[-1], f"{path}[*]"
+        return items[-1], f"{path}[*]"
+    # Leaf level: this is the broken value
+    return obj, path
+
+
+def _normalize_for_json(obj, _depth=0):
+    """V2.4 — recursively normalise an object into a strict JSON-compatible
+    form. We do this BEFORE json.dumps() so Flask's normal jsonify path
+    (which uses default=None — no fallback coercion) never sees anything
+    weird.
+
+    Rules:
+      - dict: keys coerced to str (mixed-type key safety → no sort_keys crash)
+      - values recursed
+      - list/tuple: items recursed
+      - None / str / int / float / bool: kept as-is (JSON natively supports)
+      - bytes: decoded as utf-8 with errors='replace'
+      - datetime/date/time: ISO 8601 string
+      - set/frozenset: converted to sorted list (if items comparable)
+      - decimal.Decimal: float
+      - uuid.UUID: string
+      - unknown object: best-effort str(obj); fallback to "[<class>]"
+    """
+    def _norm(v, depth):
+        if depth > 64:
+            return None  # cycle guard → JSON null
+        if v is None or isinstance(v, (str, int, float, bool)):
+            return v
+        if isinstance(v, dict):
+            return {
+                str(k) if not isinstance(k, str) else k: _norm(val, depth + 1)
+                for k, val in v.items()
+            }
+        if isinstance(v, (list, tuple)):
+            return [_norm(it, depth + 1) for it in v]
+        if isinstance(v, bytes):
+            try:
+                return v.decode("utf-8", errors="replace")
+            except Exception:
+                return repr(v)
+        try:
+            import datetime as _dt_cls
+            if isinstance(v, (_dt_cls.datetime, _dt_cls.date, _dt_cls.time)):
+                return v.isoformat()
+        except Exception:
+            pass
+        try:
+            import decimal as _decimal
+            if isinstance(v, _decimal.Decimal):
+                return float(v)
+        except Exception:
+            pass
+        try:
+            import uuid as _uuid
+            if isinstance(v, _uuid.UUID):
+                return str(v)
+        except Exception:
+            pass
+        if isinstance(v, (set, frozenset)):
+            try:
+                return sorted([_norm(x, depth + 1) for x in v])
+            except TypeError:
+                return [str(x) for x in v]
+        try:
+            return str(v)
+        except Exception:
+            return f"[{type(v).__name__}]"
+
+    return _norm(obj, _depth)
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.2 — Slice 5: Today-integration summary.
+# Reads the planned view and surfaces counts into a Today-friendly shape.
+# No duplicate tasks — Today reads Calendar state, does not own its own list.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/today/summary", methods=["GET"])
+def planning_today_summary():
+    """GET /api/planning/today/summary
+
+    Returns per-brand Today-integration rollups, e.g.:
+
+      "swing-shack": {
+        "briefs_due_this_week": 0,
+        "apins_needing_creative": 0,
+        "events_needing_planning": 7,
+        "overdue_count": 2,
+        "approved_count": 0,
+        "needs_attention_now": [...]
+      }
+
+    Does NOT create tasks. Pure read from /api/planning/<brand>/planned.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    brands = ("swing-shack", "stick", "bag-drop")
+    brand_filter = (request.args.get("brand") or "").strip()
+    out: Dict[str, Any] = {"ok": True, "brands": {}}
+    for brand_id in brands:
+        if brand_filter and brand_filter != brand_id:
+            continue
+        today_d = _date_cls.today()
+        start_d = today_d - _td(days=30)
+        end_d = today_d + _td(days=90)
+        spine_events: List[Dict[str, Any]] = []
+        for y in {today_d.year, end_d.year}:
+            for sf in sorted(glob.glob(os.path.join(_planning_dir(), f"{brand_id}-events-{y}.json"))):
+                try:
+                    with open(sf, "r", encoding="utf-8") as fp:
+                        spine_events.extend((json.load(fp)).get("events") or [])
+                except Exception:
+                    continue
+        from datetime import date as _date_x
+        waiting_planning = 0
+        overdue = 0
+        needs_attention: List[Dict[str, Any]] = []
+        for ev in spine_events:
+            try:
+                peak = _date_x.fromisoformat((ev.get("public_peak") or "")[:10])
+            except Exception:
+                continue
+            days = (peak - today_d).days
+            if days < 0:
+                overdue += 1
+                needs_attention.append({
+                    "event_id": ev.get("id"),
+                    "event_name": ev.get("name"),
+                    "tier": ev.get("tier"),
+                    "reason": "public_peak_passed",
+                    "public_peak": (ev.get("public_peak") or "")[:10],
+                    "days_overdue": -days,
+                })
+            elif days <= 21:
+                enriched = _enrich_event(dict(ev))
+                phases = enriched.get("phases") or []
+                if phases and all(not p.get("verified") for p in phases):
+                    waiting_planning += 1
+                    needs_attention.append({
+                        "event_id": ev.get("id"),
+                        "event_name": ev.get("name"),
+                        "tier": ev.get("tier"),
+                        "reason": "needs_planning_approval",
+                        "public_peak": (ev.get("public_peak") or "")[:10],
+                        "days_to_peak": days,
+                    })
+        needs_attention = needs_attention[:8]
+        out["brands"][brand_id] = {
+            "briefs_due_this_week": waiting_planning,
+            "apins_needing_creative": 0,
+            "events_needing_planning": waiting_planning,
+            "overdue_count": overdue,
+            "approved_count": 0,
+            "needs_attention_now": needs_attention,
+        }
+    return jsonify(out), 200
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Calendar V2.2 — Slice 5: Planned view (default TODAY → next 90 days).
+# Groups work by workflow stage and prioritises overdue work.
+# ──────────────────────────────────────────────────────────────────────
+
+@app.route("/api/planning/<brand_id>/planned", methods=["GET"])
+def planning_planned_view(brand_id):
+    """GET /api/planning/<brand>/planned
+
+    Returns items grouped by workflow stage:
+      NEEDS_BRIEF          — A-PIN/B-PIN public_peak in [T-21, T] with no planning_state beyond not_planned
+      BRIEF_READY          — public_peak in [T-21, T-14]
+      NEEDS_CREATE         — public_peak in [T-14, T-7]
+      IN_CREATE            — public_peak in [T-7, T-2]
+      NEEDS_REVIEW         — public_peak in [T-2, T-1]
+      APPROVED             — public_peak in [T-1, T] (within last day, ready to ship)
+      SCHEDULED_READY_FOR_PUBLISH — public_peak in [T, T+7] and lifecycle in active or live
+
+    Sorted priority within each stage:
+      OVERDUE items first (public_peak < today)
+      THEN due-this-week
+      THEN tier A-PIN
+      THEN tier B-PIN
+      THEN recommended_lead_time_weeks desc
+
+    Each item carries: event_id, event_name, brand, public_peak, tier,
+    recommended_runway_weeks, north_star, operating_goal_match (subset of
+    the brand's operating_goals), always_on_lane_match (subset of brand's
+    operating_areas), suggested_opportunity, evidence_source, planning_state.
+    """
+    from _lib import marketing_calendar as _mc_planned  # V2.2 Slice 5
+    from datetime import date as _dd  # local alias to avoid shadowing
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    # 90-day forward window from today (per Slice 5 directive)
+    today_d = _date_cls.today()
+    start_d = today_d
+    end_d = today_d + _td(days=90)
+
+    # Simplest path: read spine files directly, enrich, and bucket by phase.
+    brand_data = _read_planning(brand_id) or {}
+    big_idea = brand_data.get("big_brand_idea") or {}
+
+    # V2.1 — operating_goals and operating_areas may live in the strategy
+    # file rather than brand-planning/swing-shack.json post-refactor.
+    operating_goals: List[Dict[str, Any]] = list(brand_data.get("operating_goals") or [])
+    operating_areas: List[Dict[str, Any]] = list(brand_data.get("operating_areas") or [])
+    strat_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "data", "strategy", f"{brand_id}.json"
+    )
+    ns: Dict[str, Any] = {}
+    try:
+        if os.path.exists(strat_path):
+            with open(strat_path, "r", encoding="utf-8") as sf:
+                strat = json.load(sf)
+                ns = strat.get("north_star") or {}
+                if not operating_goals:
+                    operating_goals = strat.get("operating_goals") or []
+    except Exception:
+        pass
+
+    # Load spine events across the window
+    spine_events: List[Dict[str, Any]] = []
+    year_iter = {start_d.year, end_d.year}
+    for y in sorted(year_iter):
+        for sf in sorted(glob.glob(os.path.join(_planning_dir(), f"{brand_id}-events-{y}.json"))):
+            try:
+                with open(sf, "r", encoding="utf-8") as fp:
+                    spine_events.extend((json.load(fp)).get("events") or [])
+            except Exception:
+                continue
+
+    # Filter window: include past events up to 30 days ago (overdue),
+    # and forward events up to end_d.
+    past_window_d = today_d - _td(days=30)
+    windowed = []
+    for ev in spine_events:
+        try:
+            peak = _dd.fromisoformat((ev.get("public_peak") or "")[:10])
+        except Exception:
+            continue
+        if peak >= past_window_d and peak <= end_d:
+            enriched = _enrich_event(dict(ev))
+            windowed.append(enriched)
+
+    # Build per-event 'planned' item
+    def _stage_for(peak: _dd) -> str:
+        days_to_peak = (peak - today_d).days
+        if days_to_peak < 0:
+            return "OVERDUE"
+        if days_to_peak >= 21:
+            return "NEEDS_BRIEF"
+        if days_to_peak >= 14:
+            return "BRIEF_READY"
+        if days_to_peak >= 7:
+            return "NEEDS_CREATE"
+        if days_to_peak >= 2:
+            return "IN_CREATE"
+        if days_to_peak >= 1:
+            return "NEEDS_REVIEW"
+        if days_to_peak >= 0:
+            return "APPROVED"
+        if days_to_peak >= -7:
+            return "SCHEDULED_READY_FOR_PUBLISH"
+        return "OVERDUE"
+
+    # Surface relevant operating goal match (heuristic — by tier + category)
+    tier_to_goal_hint = {
+        "A-PIN": ["coaching", "fit", "fitting", "conversions", "revenue"],
+        "B-PIN": ["coaching", "fit", "fitting", "engagement", "membership"],
+        "C-PIN": ["brand", "membership", "engagement"],
+    }
+
+    items_by_stage: Dict[str, List[Dict[str, Any]]] = {
+        "NEEDS_BRIEF": [], "BRIEF_READY": [], "NEEDS_CREATE": [],
+        "IN_CREATE": [], "NEEDS_REVIEW": [], "APPROVED": [],
+        "SCHEDULED_READY_FOR_PUBLISH": [], "OVERDUE": [],
+    }
+
+    for ev in windowed:
+        try:
+            peak = _dd.fromisoformat((ev.get("public_peak") or "")[:10])
+        except Exception:
+            continue
+        stage = _stage_for(peak)
+        # Operating goal match (label contains any of the heuristic hints)
+        goals_match: List[Dict[str, Any]] = []
+        tier = (ev.get("tier") or "").upper()
+        hints = tier_to_goal_hint.get(tier, [])
+        for g in operating_goals:
+            label_l = (g.get("label") or "").lower() + " " + (g.get("metric") or "").lower() + " " + (g.get("id") or "").lower()
+            if any(h in label_l for h in hints):
+                goals_match.append({"id": g.get("id"), "label": g.get("label"), "metric": g.get("metric")})
+        # Always-on lane match: events on the spine map to lanes via the
+        # brand's operating_areas[].lane field. We pick all areas that
+        # have a non-empty tags list; for now surface the first matching
+        # one by name (Swing Shack uses FITTING/COACHING/etc. as keys).
+        ev_name_l = (ev.get("name") or "").lower()
+        lanes_match: List[Dict[str, Any]] = []
+        for a in operating_areas:
+            lane_l = (a.get("lane") or "").lower()
+            if lane_l and (lane_l in ev_name_l or any(w in ev_name_l for w in lane_l.split("-"))):
+                lanes_match.append({"key": a.get("key"), "lane": a.get("lane"), "tagline": a.get("tagline")})
+        # Fallback for Swing Shack: derive from phase label by tier (best guess)
+        if not lanes_match and not operating_areas and brand_id == "swing-shack":
+            hints_ss = {
+                "A-PIN": [{"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"}],
+                "B-PIN": [{"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"}],
+                "C-PIN": [{"key": "FITTING", "lane": "fitting", "tagline": "fit first, buy second"}],
+            }
+            lanes_match = hints_ss.get(tier, [{"key": "COACHING", "lane": "coaching"}])
+
+        planning_state = ev.get("planning_state") or ("not_planned" if peak >= today_d else "completed")
+        items_by_stage[stage].append({
+            "event_id": ev.get("id"),
+            "event_name": ev.get("name"),
+            "brand_id": brand_id,
+            "tier": ev.get("tier"),
+            "public_peak": (ev.get("public_peak") or "")[:10],
+            "start": (ev.get("start") or "")[:10],
+            "end": (ev.get("end") or "")[:10],
+            "stage": stage,
+            "days_to_peak": (peak - today_d).days,
+            "recommended_runway_weeks": ev.get("recommended_lead_time_weeks"),
+            "planning_state": planning_state,
+            "north_star_statement": (ns.get("statement") or "").split("\n")[0] if isinstance(ns.get("statement"), str) else None,
+            "operating_goal_match": goals_match,
+            "always_on_lane_match": lanes_match,
+            "opportunity": ev.get("opportunity") or ev.get("description"),
+            "evidence_source": (ev.get("evidence") or {}).get("source") if isinstance(ev.get("evidence"), dict) else None,
+            "phase_count": len(ev.get("phases") or []),
+            "phases_suggested": sum(1 for p in (ev.get("phases") or []) if not p.get("verified")),
+            "phases_verified": sum(1 for p in (ev.get("phases") or []) if p.get("verified")),
+        })
+
+    # Sort within each stage: tier A first, then B, then C, then by days_to_peak asc (closer first)
+    def _sort_key(it):
+        t_rank = 0 if (it.get("tier") or "").upper() == "A-PIN" else 1 if (it.get("tier") or "").upper() == "B-PIN" else 2
+        days = it.get("days_to_peak", 9999)
+        return (t_rank, abs(days), days)
+
+    for stage, items in items_by_stage.items():
+        items.sort(key=_sort_key)
+
+    # Counts per stage
+    counts = {stage: len(items) for stage, items in items_by_stage.items()}
+
+    # Today-integration summary lines:
+    #   "2 briefs due this week" — NEEDS_BRIEF + BRIEF_READY with public_peak <= today + 7
+    #   "1 A-PIN needs creative"  — A-PINs in NEEDS_CREATE / IN_CREATE
+    #   "3 events need planning"  — items in NEEDS_BRIEF without non-empty phases
+    today_integration = {
+        "briefs_due_this_week": sum(
+            1 for it in items_by_stage["NEEDS_BRIEF"] + items_by_stage["BRIEF_READY"]
+            if isinstance(it.get("days_to_peak"), int) and it["days_to_peak"] <= 7
+        ),
+        "apins_needing_creative": sum(
+            1 for it in items_by_stage["NEEDS_CREATE"] + items_by_stage["IN_CREATE"]
+            if (it.get("tier") or "").upper() == "A-PIN"
+        ),
+        "events_needing_planning": sum(
+            1 for it in items_by_stage["NEEDS_BRIEF"] if it.get("phases_suggested", 0) > 0
+        ),
+        "overdue_count": counts.get("OVERDUE", 0),
+        "approved_count": counts.get("APPROVED", 0),
+    }
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "window_start": start_d.isoformat(),
+        "window_end": end_d.isoformat(),
+        "today": today_d.isoformat(),
+        "today_integration": today_integration,
+        "stages": items_by_stage,
+        "counts": counts,
+        "north_star": ns.get("statement") if isinstance(ns.get("statement"), str) else None,
+        "operating_goals": operating_goals,
+        "operating_areas": operating_areas,
+        "big_brand_idea": big_idea,
     }), 200
 
 

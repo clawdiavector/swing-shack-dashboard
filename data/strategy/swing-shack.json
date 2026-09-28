@@ -1,6 +1,60 @@
 {
   "brand_id": "swing-shack",
-  "north_star": "Every serious golfer in South Africa has access to measurement-led improvement.",
+  "canonical_sources": {
+    "north_star": "self#north_star",
+    "operating_goals": "self#operating_goals",
+    "big_brand_idea": "data/brand-planning/swing-shack.json#big_brand_idea",
+    "operating_areas": "data/brand-planning/swing-shack.json#operating_areas",
+    "spine_events": "data/brand-planning/swing-shack-events-2026.json",
+    "bible": "data/brand/swing-shack-bible.json",
+    "supersedes_stale": "data/strategy/swing-shack.json (previous north_star value 'Every serious golfer in South Africa has access to measurement-led improvement' is no longer canonical — replaced 2026-09-28)"
+  },
+  "north_star": {
+    "statement": "Know the golfer better.\nMake golf more enjoyable.",
+    "source": "operator directive (Discord, 2026-09-28)",
+    "previous_value": "Every serious golfer in South Africa has access to measurement-led improvement.",
+    "set_at": "2026-09-28",
+    "do_not_merge_with_big_brand_idea": true,
+    "do_not_merge_with_strategic_ambition": true
+  },
+  "operating_goals": [
+    {
+      "id": "coaching_lessons_monthly",
+      "label": "Coaching",
+      "metric": "160 lessons / month",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Swing Shack coaching scheduling system not integrated with reporting",
+      "marketing_support_signal": "Coaching-page sessions + IG/FB engagement on coach content",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-28)"
+    },
+    {
+      "id": "on_course_coaching_monthly",
+      "label": "On-course coaching",
+      "metric": "20 lessons / month",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Swing Shack on-course booking system not integrated with reporting",
+      "marketing_support_signal": "On-course package page sessions + IG/FB engagement on course content",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-28)"
+    },
+    {
+      "id": "fitting_throughput_weekly",
+      "label": "Fittings",
+      "metric": "4 fittings / day × 6 days / week = 24 fittings / week",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Swing Shack fitting booking system not integrated with reporting",
+      "marketing_support_signal": "Fitting-booking page sessions + IG/FB engagement on fitting content",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-28)"
+    }
+  ],
   "headline_belief": "GOLF IS MORE FUN WHEN IT MAKES SENSE.",
   "mission": "We take your golf seriously so you can enjoy it more.",
   "version": "v3",

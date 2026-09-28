@@ -81,11 +81,23 @@ def _service_end_tagline(*, brand_id: str, moment_id: str, caption: str) -> str:
     return "Golf, made simpler."
 
 
+def _derive_service_label(*, brand_id: str, moment_id: str, caption: str, sidecar: dict[str, Any]) -> str:
+    """Label before the `@` logo on ss-service-promo (e.g. CLUB FITTING)."""
+    explicit = str(sidecar.get("compose_service_label") or "").strip()
+    if explicit:
+        return explicit.upper()
+    return _service_carousel_headline(
+        brand_id=brand_id,
+        moment_id=moment_id,
+        caption=caption,
+    )
+
+
 def _service_carousel_headline(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
     pillar = _pillar_id_from_context(ctx).lower()
     cap = (caption or "").lower()
-    if "fitting" in pillar or "club fitting" in cap or "club assessment" in cap:
+    if "fitting" in pillar or "fitting" in cap or "club fitting" in cap or "club assessment" in cap:
         return "CLUB FITTING"
     if "equipment" in pillar or "equipment" in cap:
         return "EQUIPMENT"
@@ -261,4 +273,11 @@ def visual_copy_for_archetype(
         sidecar=sidecar,
         headline=headline,
     )
+    if archetype_id == "ss-service-promo":
+        base["service_label"] = _derive_service_label(
+            brand_id=brand_id,
+            moment_id=mid,
+            caption=caption,
+            sidecar=sidecar,
+        )
     return {k: str(v) for k, v in base.items()}

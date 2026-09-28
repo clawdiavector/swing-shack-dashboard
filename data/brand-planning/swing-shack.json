@@ -1,8 +1,22 @@
 {
+  "_canonical_source": "data/strategy/swing-shack.json — read north_star + operating_goals from there.",
   "big_brand_idea": {
     "name": "Golf is more fun when it makes sense.",
     "belief": "Confusion kills the game. Clarity makes it fun.",
     "elevator": "Swing Shack is where golfers learn what's actually happening in their swing. Data, truth, no nonsense."
+  },
+  "operating_areas": [
+    {"key": "FITTING", "lane": "fitting", "tagline": "fit first, buy second"},
+    {"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"},
+    {"key": "LESSONS", "lane": "shack-sessions", "tagline": "the actual lesson moments"},
+    {"key": "ON-COURSE", "lane": "practice", "tagline": "where the data meets the grass"},
+    {"key": "HUMAN", "lane": "10-ball-truth", "tagline": "the real coaches, the real golfers"},
+    {"key": "MEASUREMENT", "lane": "swing-truth", "tagline": "TrackMan data, what the numbers actually mean"}
+  ],
+  "rules": {
+    "exact_only": "Always show the metric verbatim — do not derive progress percentages without real connector data",
+    "no_fabrication": "Until a connector is live, progress against each operating goal is NOT YET MEASURABLE",
+    "signal_substitute": "Show the marketing support signal instead (traffic, content, paid evidence) so the report is still useful"
   },
   "lane_system": [
     {

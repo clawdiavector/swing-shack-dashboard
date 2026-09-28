@@ -97,6 +97,11 @@ export type InboxItem = {
       platform?: string
       selected_because?: string
     }
+    template_id?: string
+    template_name?: string
+    template_label?: string
+    template_reference_urls?: string[]
+    archetype?: { id?: string; canvas?: string; schema?: string }
   }
 }
 
@@ -356,6 +361,36 @@ export function fetchPlanningTimeline(brand: string, year: string) {
   const q = new URLSearchParams({ year })
   return getJson<Record<string, unknown>>(
     `/api/planning/${encodeURIComponent(brand)}/timeline?${q}`,
+  )
+}
+
+/**
+ * Rolling cross-year timeline (Calendar V2 — Slice 6).
+ * Loads spine files for every year the range intersects and dedupes by event id.
+ * Required for 12M / 6M zooms where today crosses a year boundary.
+ */
+export function fetchPlanningTimelineRange(brand: string, startIso: string, endIso: string) {
+  const q = new URLSearchParams({ start: startIso, end: endIso })
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/timeline?${q}`,
+  )
+}
+
+/**
+ * Intelligence candidates (Calendar V2 — Slice 6).
+ * Evidence-backed, scored, NOT on the approved spine.
+ * Christelle decides what enters the spine.
+ */
+export function fetchPlanningCandidates(
+  brand: string,
+  opts?: { start?: string; end?: string },
+) {
+  const q = new URLSearchParams()
+  if (opts?.start) q.set('start', opts.start)
+  if (opts?.end) q.set('end', opts.end)
+  const suffix = q.toString() ? `?${q}` : ''
+  return getJson<Record<string, unknown>>(
+    `/api/planning/${encodeURIComponent(brand)}/candidates${suffix}`,
   )
 }
 
@@ -1100,12 +1135,19 @@ export function fetchCampaign(campaignId: string) {
   return getJson<Campaign>(`/api/campaigns/${encodeURIComponent(campaignId)}`)
 }
 
-const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/', 'brand-directory-media/']
+const MEDIA_ROOTS = [
+  'assets/',
+  'asset-media/',
+  'brand-images/',
+  'brand-directory/',
+  'brand-directory-media/',
+]
 
 export function resolveAssetUrl(raw?: string | null): string {
   const p = (raw || '').trim()
   if (!p) return ''
   if (/^(https?:|data:|blob:|file:)/i.test(p)) return p
+  if (p.startsWith('/brand-directory/')) return p
   let s = p.replace(/^\/+/, '')
   while (s.startsWith('assets/assets/')) s = s.slice('assets/'.length)
   if (MEDIA_ROOTS.some((root) => s.startsWith(root))) return `/${s}`

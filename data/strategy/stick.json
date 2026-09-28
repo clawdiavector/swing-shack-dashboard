@@ -1,6 +1,20 @@
 {
   "brand_id": "stick",
-  "north_star": "",
+  "canonical_sources": {
+    "north_star": "self#north_star (V2.1 — added 2026-09-28 from brand_promise/master_brand_line in data/brand-planning/stick.json)",
+    "operating_goals": "data/brand-directory/stick/north_stars.json#north_stars (existing canonical location)",
+    "big_brand_idea": "data/brand-planning/stick.json#big_brand_idea",
+    "operating_areas": "data/brand-planning/stick.json#operating_areas",
+    "supersedes_cleared": "data/strategy/stick.json was cleared 2026-08-25; north_star re-introduced 2026-09-28 from canonical stick.json values"
+  },
+  "north_star": {
+    "statement": "Better Begins Here.",
+    "source": "data/brand-planning/stick.json#big_brand_idea.name + brand_promise + master_brand_line (all three converge on the same text)",
+    "previous_value": null,
+    "set_at": "2026-09-28",
+    "do_not_merge_with_big_brand_idea": true,
+    "do_not_merge_with_strategic_ambition": true
+  },
   "market_moves": [],
   "bets": [],
   "lessons": [],

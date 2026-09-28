@@ -10,7 +10,7 @@ export function StageStepper({ stages }: { stages: Record<string, boolean> }) {
   const current = firstIncompleteStageFromStages(stages)
   return (
     <div
-      className="flex min-w-0 flex-nowrap items-end gap-0"
+      className="flex min-w-max flex-nowrap items-end gap-0 px-0.5"
       role="list"
       aria-label="Posting pipeline"
     >
@@ -24,15 +24,15 @@ export function StageStepper({ stages }: { stages: Record<string, boolean> }) {
           <div key={key} className="flex min-w-0 items-end" role="listitem">
             {index > 0 ? (
               <span
-                className={`mb-[5px] mx-px h-px w-2 shrink-0 sm:w-2.5 ${
+                className={`mb-[7px] mx-0.5 h-0.5 w-4 shrink-0 sm:w-5 ${
                   lineDone ? 'bg-ac/70' : 'bg-bd'
                 }`}
                 aria-hidden
               />
             ) : null}
-            <div className="flex w-[3.25rem] flex-col items-center gap-1 sm:w-[3.5rem]">
+            <div className="flex w-[4.25rem] flex-col items-center gap-1.5 sm:w-[4.75rem]">
               <span
-                className={`flex h-2.5 w-2.5 shrink-0 items-center justify-center rounded-full ${
+                className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full ${
                   done
                     ? 'bg-ac text-bg'
                     : isCurrent
@@ -41,10 +41,10 @@ export function StageStepper({ stages }: { stages: Record<string, boolean> }) {
                 }`}
                 aria-hidden
               >
-                {done ? <Check className="h-1.5 w-1.5" strokeWidth={3} /> : null}
+                {done ? <Check className="h-2 w-2" strokeWidth={3} /> : null}
               </span>
               <span
-                className={`max-w-[4.5rem] text-center text-[10px] leading-tight sm:text-xs ${
+                className={`max-w-[5rem] text-center text-[11px] leading-snug sm:text-xs ${
                   done ? 'font-medium text-tx' : isCurrent ? 'font-semibold text-tx' : 'text-tx3'
                 }`}
               >

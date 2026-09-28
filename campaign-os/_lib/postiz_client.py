@@ -203,8 +203,10 @@ def postiz_status(brand_id: str | None = None) -> dict:
     key = _read_api_key(brand_id=brand_id)
     cid = _read_oauth_client_id()
     secret = _read_oauth_client_secret()
+    configured = bool(key)
     return {
-        "ok": bool(key),
+        "ok": configured,
+        "configured": configured,
         "api_key_present": bool(key),
         "api_key_length": len(key) if key else 0,
         "api_key_prefix": (key[:6] + "…") if key else None,
@@ -243,6 +245,7 @@ def _request(
     form_data: Optional[dict] = None,
     timeout: int = 30,
     auth_header: bool = True,
+    brand_id: str | None = None,
 ) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     """Low-level Postiz call. Returns (data, (status_code, error_message)).
 
@@ -266,7 +269,7 @@ def _request(
         headers["Content-Type"] = "application/x-www-form-urlencoded"
         payload = urllib.parse.urlencode(form_data).encode("utf-8")
     if auth_header:
-        tok = _auth_header_value()
+        tok = _auth_header_value(brand_id)
         if tok:
             headers["Authorization"] = tok
 
@@ -345,7 +348,12 @@ def _request_oauth(
         raise
 
 
-def _request_multipart_upload(file_path: str, timeout: int = 60) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+def _request_multipart_upload(
+    file_path: str,
+    timeout: int = 60,
+    *,
+    brand_id: str | None = None,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     """Upload a file using multipart/form-data (Postiz /public/v1/upload).
 
     Uses urllib's built-in encoder rather than `requests` so we don't pull a
@@ -368,7 +376,7 @@ def _request_multipart_upload(file_path: str, timeout: int = 60) -> Tuple[Option
         "Content-Type": f"multipart/form-data; boundary={boundary}",
         "Accept": "application/json",
     }
-    tok = _auth_header_value()
+    tok = _auth_header_value(brand_id)
     if tok:
         headers["Authorization"] = tok
     req = urllib.request.Request(url, data=payload, method="POST", headers=headers)
@@ -385,20 +393,26 @@ def _request_multipart_upload(file_path: str, timeout: int = 60) -> Tuple[Option
 
 # ── Server-to-server: publication pipeline ────────────────────────────
 
-def upload_media(file_path: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+def upload_media(
+    file_path: str,
+    *,
+    brand_id: str | None = None,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     """Upload a file to Postiz. Returns (data, error).
 
     Per the existing fixtures: response shape is
     { id: "img-...", path: "https://..." }
     """
-    return _request_multipart_upload(file_path)
+    return _request_multipart_upload(file_path, brand_id=brand_id)
 
 
 def create_post(
     integration_id: str,
     content: str,
-    media_ids: list[str],
+    media: list[dict[str, str]] | None = None,
     *,
+    media_ids: list[str] | None = None,
+    brand_id: str | None = None,
     publish_date: Optional[str] = None,
     tiktok_privacy_level: str = "SELF_ONLY",
     tiktok_auto_add_music: str = "no",
@@ -417,8 +431,15 @@ def create_post(
     """
     import datetime as _dt
     effective_date = publish_date or _dt.datetime.now(_dt.timezone.utc).isoformat()
-    value = [{"content": content, "image": [{"id": m} for m in media_ids], "shortLink": False, "tags": []}]
-    settings = platform_settings or {}
+    images: list[dict[str, str]] = []
+    if media:
+        for item in media:
+            if isinstance(item, dict) and item.get("id") and item.get("path"):
+                images.append({"id": str(item["id"]), "path": str(item["path"])})
+    elif media_ids:
+        images = [{"id": str(m)} for m in media_ids]
+    value = [{"content": content, "image": images, "shortLink": False, "tags": []}]
+    settings = platform_settings or {"post_type": "post"}
     # Match the legacy _settings per platform by inferring from integration
     # providerIdentifier. Routes that call this can override via platform_settings.
     payload = {
@@ -438,7 +459,7 @@ def create_post(
     }
     if group_id:
         payload["group"] = group_id
-    return _request("POST", "/posts", json_body=payload)
+    return _request("POST", "/posts", json_body=payload, brand_id=brand_id)
 
 
 def list_posts(
@@ -470,7 +491,10 @@ def delete_post(post_id: str) -> Tuple[Optional[dict], Optional[Tuple[str, str]]
     return _request("DELETE", f"/posts/{post_id}")
 
 
-def list_integrations() -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
+def list_integrations(
+    *,
+    brand_id: str | None = None,
+) -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     """List connected platforms/integrations for the current auth context.
 
     Returns: { integrations: [ { id, name, providerIdentifier, picture, ... } ] }
@@ -478,7 +502,7 @@ def list_integrations() -> Tuple[Optional[dict], Optional[Tuple[str, str]]]:
     objects. Some endpoints wrap this in { integrations: [...] } or
     { identities: [...] } — we normalise both.
     """
-    return _request("GET", "/integrations")
+    return _request("GET", "/integrations", brand_id=brand_id)
 
 
 # ── OAuth round-trip helpers ──────────────────────────────────────────

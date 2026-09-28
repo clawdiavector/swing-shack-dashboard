@@ -334,6 +334,34 @@ def approve_item(idempotency_key: str) -> tuple[Optional[dict[str, Any]], Option
     return found, None
 
 
+def reschedule_item(
+    idempotency_key: str,
+    *,
+    would_publish_at: str,
+    event_date: str | None = None,
+) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    """Update schedule on a pending sandbox row (does not approve)."""
+    key = str(idempotency_key or "").strip()
+    if not key:
+        return None, "idempotency_key required"
+    when = str(would_publish_at or "").strip()
+    if not when:
+        return None, "would_publish_at required"
+    rows = _read_jsonl(_queue_path())
+    found: Optional[dict[str, Any]] = None
+    for row in rows:
+        if row.get("idempotency_key") == key and row.get("status") == "pending":
+            row["would_publish_at"] = when
+            if event_date:
+                row["event_date"] = str(event_date)[:32]
+            found = row
+            break
+    if not found:
+        return None, "queue item not found or not pending"
+    _rewrite_jsonl(_queue_path(), rows)
+    return found, None
+
+
 def dispatch_item(item: dict[str, Any]) -> tuple[dict[str, Any], Optional[str]]:
     """Write sandbox receipt for one approved item. Idempotent on idempotency_key."""
     if not item.get("human_approved"):

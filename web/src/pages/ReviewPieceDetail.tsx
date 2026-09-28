@@ -1,4 +1,7 @@
 import { ImageIcon, Pencil, RotateCcw } from 'lucide-react'
+import { templateMetaFromInbox } from '../lib/templateMeta'
+import { TemplateReferenceCompare } from '../components/TemplateReferenceCompare'
+import { TemplateReferenceTag } from '../components/TemplateReferenceTag'
 import { Tip } from '../components/ui'
 import type { CampaignAsset, InboxItem } from '../lib/api'
 
@@ -50,6 +53,7 @@ export function ReviewPieceDetail({
   onImgBroken,
 }: ReviewPieceDetailProps) {
   const brandLabel = item.brand_id || 'brand'
+  const templateMeta = templateMetaFromInbox(item)
 
   return (
     <div className="grid gap-6 md:grid-cols-2 md:items-start">
@@ -115,9 +119,12 @@ export function ReviewPieceDetail({
         ) : null}
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-semibold text-tx">Image</h2>
+      <div className="space-y-3 md:col-span-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-lg font-semibold text-tx">Image</h2>
+            <TemplateReferenceTag meta={templateMeta} preview="label-only" />
+          </div>
           <Tip text={regenerateTip} block>
             <button
               type="button"
@@ -135,16 +142,13 @@ export function ReviewPieceDetail({
         {assetLoading && !asset ? (
           <div className="h-48 animate-pulse rounded-2xl bg-bg3" />
         ) : visualUrl && !imgBroken ? (
-          <Tip text="Open the full-size image in a new tab." block>
-            <a href={visualUrl} target="_blank" rel="noreferrer" className="block">
-              <img
-                src={visualUrl}
-                alt={asset?.name || 'Asset visual'}
-                onError={onImgBroken}
-                className="max-h-80 w-full rounded-2xl border border-bd object-contain"
-              />
-            </a>
-          </Tip>
+          <TemplateReferenceCompare
+            draftUrl={visualUrl}
+            draftAlt={asset?.name || 'Asset visual'}
+            templateMeta={templateMeta}
+            draftBroken={imgBroken}
+            onDraftBroken={onImgBroken}
+          />
         ) : imgBroken ? (
           <div className="rounded-2xl border border-bd bg-bg2/50 px-4 py-3 text-sm text-tx3">
             <p>

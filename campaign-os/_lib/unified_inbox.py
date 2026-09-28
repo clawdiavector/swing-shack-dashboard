@@ -598,6 +598,14 @@ def _draft_items(*, brand: str | None, status: str, now: datetime) -> list[dict[
                 meta["composed"] = sidecar["composed"]
             if sidecar.get("archetype"):
                 meta["archetype"] = sidecar["archetype"]
+            from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
+
+            attach_template_fields(
+                brand_id,
+                meta,
+                archetype_meta=sidecar.get("archetype") if isinstance(sidecar.get("archetype"), dict) else None,
+                source_inbox_item_id=source_item or None,
+            )
             if sidecar.get("sections") or sidecar.get("negative_prompt"):
                 meta["brief"] = {
                     "sections": sidecar.get("sections") or [],
@@ -1210,6 +1218,15 @@ def post_state(
     }
     if needs_fix_reason:
         out["needs_fix_reason"] = needs_fix_reason
+    from _lib.template_catalog import attach_template_fields  # noqa: PLC0415
+
+    attach_template_fields(
+        index.brand_id,
+        out,
+        record=record,
+        archetype_meta=(draft or {}).get("archetype") if isinstance(draft, dict) else None,
+        source_inbox_item_id=inbox_item_id or None,
+    )
     return out
 
 

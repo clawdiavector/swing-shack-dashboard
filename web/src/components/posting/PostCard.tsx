@@ -1,7 +1,7 @@
 import { ImageIcon } from 'lucide-react'
 import { useState, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { inboxAction, releaseMoment } from '../../lib/api'
+import { inboxAction, releaseMoment, resolveAssetUrl } from '../../lib/api'
 import { BrandChip } from '../BrandChip'
 import { useBrand, useBrandScope } from '../BrandSwitch'
 import {
@@ -15,33 +15,52 @@ import {
   postStateTone,
   type PostingWeekPost,
 } from '../../lib/postingWeek'
+import { TemplateReferenceTag } from '../TemplateReferenceTag'
+import { templateMetaFromPost } from '../../lib/templateMeta'
 import { StageStepper } from './StageStepper'
 
 function PostCardThumb({ imageUrl, title }: { imageUrl?: string | null; title: string }) {
   const [broken, setBroken] = useState(false)
-  const src = postingWeekThumbUrl(imageUrl)
+  const raw = postingWeekThumbUrl(imageUrl)
+  const src = raw ? resolveAssetUrl(raw) : null
   const showImage = Boolean(src) && !broken
   return (
     <div
-      className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border ${
-        showImage ? 'border-bd bg-bg-2' : 'border-dashed border-bd bg-bg-2/50'
+      className={`relative flex w-[7.25rem] shrink-0 flex-col items-center gap-1 sm:w-[8rem] ${
+        showImage ? '' : ''
       }`}
     >
-      {showImage ? (
-        <img
-          src={src!}
-          alt=""
-          className="h-full w-full object-cover"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <span className="flex h-full w-full items-center justify-center text-tx3" aria-hidden>
-          <ImageIcon className="h-5 w-5" strokeWidth={1.75} />
-        </span>
-      )}
+      <div
+        className={`flex aspect-[4/5] w-full items-center justify-center overflow-hidden rounded-xl border ${
+          showImage ? 'border-bd bg-bg-2' : 'border-dashed border-bd bg-bg-2/50'
+        }`}
+      >
+        {showImage ? (
+          <img
+            src={src!}
+            alt=""
+            className="max-h-full max-w-full object-contain"
+            onError={() => setBroken(true)}
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-tx3" aria-hidden>
+            <ImageIcon className="h-6 w-6" strokeWidth={1.75} />
+          </span>
+        )}
+      </div>
+      {broken ? (
+        <span className="text-center text-[11px] font-semibold leading-tight text-red">Preview unavailable</span>
+      ) : null}
+      {!showImage && !broken && postStateNeedsImagePlaceholder(imageUrl) ? (
+        <span className="text-center text-[11px] font-medium leading-tight text-tx3">No preview yet</span>
+      ) : null}
       <span className="sr-only">{title}</span>
     </div>
   )
+}
+
+function postStateNeedsImagePlaceholder(imageUrl?: string | null) {
+  return !String(imageUrl ?? '').trim()
 }
 
 export function PostCard({
@@ -95,8 +114,13 @@ export function PostCard({
 
   const channel = postingChannelLabel(post.primary_channel)
   const nextAction = post.next_action || nextActionFromStages(post.stages)
+  const fixReason =
+    post.state === 'needs_fix'
+      ? post.needs_fix_reason || (nextAction !== 'Needs fix' ? nextAction : null) || 'Image or draft failed — open in Review'
+      : null
   const factLine = `${formatGoesOut(dayDate, weekday)} · ${nextAction}`
   const tone = postStateTone(post.state)
+  const templateMeta = templateMetaFromPost(post)
   const toneClass =
     tone === 'bad'
       ? 'border-red/40 text-red'
@@ -107,12 +131,13 @@ export function PostCard({
           : 'border-bd text-tx2'
 
   const inner = (
-    <div className="flex gap-3 md:gap-4">
-      <PostCardThumb imageUrl={post.image_url} title={post.title} />
-      <div className="flex min-w-0 flex-1 flex-col gap-2 xl:flex-row xl:items-start xl:justify-between xl:gap-4">
-        <div className="min-w-0 flex-1 space-y-1">
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-3 md:gap-4">
+        <PostCardThumb imageUrl={post.image_url} title={post.title} />
+        <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <BrandChip brandId={rowBrandId} show={isAll} />
+            <TemplateReferenceTag meta={templateMeta} onClickCapture={(e) => e.stopPropagation()} />
             <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClass}`}>
               {postStateLabel(post.state)}
             </span>
@@ -124,11 +149,13 @@ export function PostCard({
             {isCandidate ? (
               <span className="text-xs font-medium text-tx3">Candidate · no image yet</span>
             ) : null}
-            {post.state === 'needs_fix' && post.needs_fix_reason ? (
-              <span className="text-xs font-semibold text-red">{post.needs_fix_reason}</span>
-            ) : null}
           </div>
           <p className="font-display text-base font-semibold leading-snug">{post.title}</p>
+          {fixReason ? (
+            <p className="rounded-lg border border-red/35 bg-red/10 px-2.5 py-1.5 text-xs font-semibold leading-snug text-red">
+              {fixReason}
+            </p>
+          ) : null}
           <p className="text-xs text-tx3">{factLine}</p>
           {channel ? <p className="text-xs font-medium text-tx2">{channel}</p> : null}
           {isCandidate && !isHoliday ? (
@@ -172,12 +199,12 @@ export function PostCard({
             </p>
           ) : null}
         </div>
-        {!isHoliday ? (
-          <div className="shrink-0 xl:max-w-[min(100%,28rem)] xl:pt-1">
-            <StageStepper stages={post.stages} />
-          </div>
-        ) : null}
       </div>
+      {!isHoliday ? (
+        <div className="w-full overflow-x-auto border-t border-white/5 pt-3">
+          <StageStepper stages={post.stages} />
+        </div>
+      ) : null}
     </div>
   )
 

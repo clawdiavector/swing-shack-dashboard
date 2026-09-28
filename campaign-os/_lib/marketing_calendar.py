@@ -384,16 +384,32 @@ def compute_lead_time_schedule(
 
 def _ensure_calendar_dir() -> Path:
     """Lazy-create the calendar storage dir. Skips if the parent dir is
-    on a read-only filesystem (e.g. when running locally)."""
-    global _CALENDAR_DIR_READY
+    on a read-only filesystem (e.g. when running locally).
+
+    V2.3 — also tries the baked /app/data/calendar fallback for production
+    where the operator-controlled /data/campaign-os volume may be RO. The
+    same fallback chain as the brand-planning directory.
+    """
+    global _CALENDAR_DIR, _CALENDAR_DIR_READY
     if _CALENDAR_DIR_READY:
         return _CALENDAR_DIR
-    try:
-        _CALENDAR_DIR.mkdir(parents=True, exist_ok=True)
-        _CALENDAR_DIR_READY = True
-    except (OSError, PermissionError):
-        # Read-only filesystem — config-only runs still work
-        _CALENDAR_DIR_READY = True  # don't retry every call
+    candidates_dirs = [
+        _CALENDAR_DIR,  # DATA_DIR/calendar
+        Path(os.path.dirname(os.path.abspath(__file__))) / ".." / "data" / "calendar",  # baked
+    ]
+    # First try the existing _CALENDAR_DIR (the canonical DATA_DIR/intelligence/marketing-calendar)
+    for cand in candidates_dirs:
+        try:
+            cand.mkdir(parents=True, exist_ok=True)
+            # Mutate the module-global so _calendar_path picks it up
+            globals()["_CALENDAR_DIR"] = cand
+            _CALENDAR_DIR_READY = True
+            return _CALENDAR_DIR
+        except (OSError, PermissionError):
+            continue
+    # All candidates failed — go read-only mode but at least remember the
+    # preferred path so future calls don't churn.
+    _CALENDAR_DIR_READY = True
     return _CALENDAR_DIR
 
 
