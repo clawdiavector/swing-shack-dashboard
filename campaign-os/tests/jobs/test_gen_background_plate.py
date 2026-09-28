@@ -107,3 +107,27 @@ def test_krea_image_generate_strips_negative_prompt_extra(monkeypatch):
     inner = captured["params"]["arguments"]["input"]
     assert "negative_prompt" not in inner
     assert inner.get("seed") == 1
+
+
+def test_mcp_call_raises_on_tool_is_error(monkeypatch):
+    from _lib import krea_mcp
+
+    def fake_post(*_args, **_kwargs):
+        return {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+                "isError": True,
+                "content": [
+                    {"type": "text", "text": "Unknown parameter: negative_prompt"},
+                ],
+            },
+        }
+
+    monkeypatch.setattr(krea_mcp, "_post_json_rpc", fake_post)
+    monkeypatch.setattr(krea_mcp, "_ensure_initialized", lambda: None)
+    monkeypatch.setattr(krea_mcp, "_read_token_from_env", lambda: "tok")
+    monkeypatch.setattr(krea_mcp, "_read_token_from_disk", lambda: None)
+
+    with pytest.raises(krea_mcp.KreaUpstreamError, match="negative_prompt"):
+        krea_mcp.mcp_call("tools/call", {})
