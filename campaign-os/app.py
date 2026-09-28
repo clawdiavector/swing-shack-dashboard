@@ -14232,6 +14232,29 @@ def publish_sandbox_approve_route():
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@app.route('/api/publish/sandbox/reschedule', methods=['POST'])
+def publish_sandbox_reschedule_route():
+    """POST body: idempotency_key, would_publish_at (ISO), optional event_date YYYY-MM-DD."""
+    if not _is_job_authed():
+        return jsonify({"ok": False, "error": "authentication required"}), 401
+    body = request.get_json(silent=True) or {}
+    key = (body.get("idempotency_key") or "").strip()
+    when = (body.get("would_publish_at") or "").strip()
+    event_date = (body.get("event_date") or "").strip() or None
+    if not key or not when:
+        return jsonify({"ok": False, "error": "idempotency_key and would_publish_at required"}), 400
+    try:
+        from _lib.publish_sandbox import reschedule_item
+
+        item, err = reschedule_item(key, would_publish_at=when, event_date=event_date)
+        if err:
+            return jsonify({"ok": False, "error": err}), 404
+        return jsonify({"ok": True, "item": item}), 200
+    except Exception as exc:
+        _app_log.exception("publish sandbox reschedule failed")
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 def _safe_read_json(path: Path) -> Optional[dict]:
     try:
         return json.loads(path.read_text())
