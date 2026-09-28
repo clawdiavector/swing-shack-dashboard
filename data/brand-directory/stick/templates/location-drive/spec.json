@@ -1,0 +1,26 @@
+{
+  "id": "stick-location-drive",
+  "brand_id": "stick",
+  "pack": "templates/location-drive",
+  "archetype_id": "stick-location-drive",
+  "post_type": "location",
+  "reference_size": {"w": 1080, "h": 1351},
+  "measured_from": [
+    "references/ref-01.jpg",
+    "references/ref-02.jpg"
+  ],
+  "style": {
+    "default": "map-photo",
+    "values": ["map-photo", "route-line"]
+  },
+  "palette_tokens": {
+    "navy_deep": "#0b4372",
+    "accent_green": "#3ee089",
+    "white": "#FFFFFF"
+  },
+  "locked_headline": {
+    "line_1": "A SHORT TRIP",
+    "line_2": "FOR A LONG DRIVE",
+    "accent_on_words": ["LONG", "DRIVE"]
+  }
+}

@@ -17,18 +17,6 @@
     "images/Products/lab_post.jpg"
   ],
   "canvases": {
-    "ig_square": {
-      "w": 1080,
-      "h": 1080,
-      "aspect": "1:1",
-      "channels": [],
-      "safe_zone": {
-        "x0": 0.07,
-        "y0": 0.06,
-        "x1": 0.93,
-        "y1": 0.94
-      }
-    },
     "ig_post": {
       "w": 1080,
       "h": 1350,
@@ -1114,6 +1102,279 @@
         "y1": 0.94
       },
       "max_total_chars": 80
+    },
+    {
+      "id": "stick-location-drive",
+      "name": "Location drive — short-trip map pin post, navy + green accent, locked headline",
+      "description": "Western-Cape golf-course drive posts. Styles map-photo (franschoek) and route-line (greenpoint). Locked headline A SHORT TRIP / FOR A LONG DRIVE with green accent on LONG DRIVE.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "template_pack": "templates/location-drive",
+      "style": {
+        "kind": "enum",
+        "values": [
+          "map-photo",
+          "route-line"
+        ],
+        "default": "map-photo"
+      },
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen",
+          "campaign"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post",
+        "instagram_story": "ig_story"
+      },
+      "background": {
+        "kind": "solid",
+        "fill": "location_navy"
+      },
+      "palette_tokens": {
+        "navy_deep": "#0b4372",
+        "accent_green": "#3ee089",
+        "white": "#FFFFFF"
+      },
+      "accent_words": [
+        "LONG DRIVE"
+      ],
+      "locked_headline": {
+        "line_1": "A SHORT TRIP",
+        "line_2": "FOR A LONG DRIVE",
+        "accent_on_words": [
+          "LONG",
+          "DRIVE"
+        ]
+      },
+      "zones_map_photo": {
+        "stick_logo_pill": {
+          "rect": {
+            "x0": 0.5,
+            "y0": 0.05,
+            "x1": 0.97,
+            "y1": 0.18
+          },
+          "kind": "pill",
+          "fill": "accent_green",
+          "radius": 0.04
+        },
+        "map_block": {
+          "rect": {
+            "x0": 0.06,
+            "y0": 0.07,
+            "x1": 0.52,
+            "y1": 0.85
+          },
+          "kind": "image",
+          "source": "photo"
+        },
+        "copy_block": {
+          "rect": {
+            "x0": 0.55,
+            "y0": 0.28,
+            "x1": 0.97,
+            "y1": 0.62
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h3",
+          "max_lines": 5
+        },
+        "location_pill": {
+          "rect": {
+            "x0": 0.06,
+            "y0": 0.85,
+            "x1": 0.65,
+            "y1": 0.96
+          },
+          "kind": "pill",
+          "fill": "accent_green",
+          "radius": 0.04,
+          "text_source": "vendor_name"
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.04,
+            "y0": 0.66,
+            "x1": 0.97,
+            "y1": 0.86
+          },
+          "kind": "text",
+          "source": "locked_headline",
+          "font_role": "display",
+          "max_lines": 2
+        }
+      },
+      "zones_route_line": {
+        "pin_top": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.05,
+            "x1": 0.22,
+            "y1": 0.16
+          },
+          "kind": "glyph",
+          "glyph": "pin"
+        },
+        "location_label_top": {
+          "rect": {
+            "x0": 0.1,
+            "y0": 0.18,
+            "x1": 0.55,
+            "y1": 0.26
+          },
+          "kind": "text",
+          "source": "vendor_name",
+          "font_role": "h3"
+        },
+        "route_line": {
+          "rect": {
+            "x0": 0.3,
+            "y0": 0.07,
+            "x1": 0.85,
+            "y1": 0.78
+          },
+          "kind": "polyline",
+          "stroke": "accent_green",
+          "stroke_width_px": 8,
+          "segments": [
+            [
+              0.85,
+              0.1
+            ],
+            [
+              0.3,
+              0.4
+            ],
+            [
+              0.85,
+              0.55
+            ],
+            [
+              0.3,
+              0.78
+            ]
+          ]
+        },
+        "copy_kicker": {
+          "rect": {
+            "x0": 0.07,
+            "y0": 0.3,
+            "x1": 0.95,
+            "y1": 0.36
+          },
+          "kind": "text",
+          "source": "caption_kicker",
+          "font_role": "h3"
+        },
+        "copy_body": {
+          "rect": {
+            "x0": 0.07,
+            "y0": 0.43,
+            "x1": 0.95,
+            "y1": 0.55
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "h3",
+          "max_lines": 2
+        },
+        "stick_wordmark": {
+          "rect": {
+            "x0": 0.62,
+            "y0": 0.55,
+            "x1": 0.95,
+            "y1": 0.66
+          },
+          "kind": "logo",
+          "asset": "stick-wordmark-white.png"
+        },
+        "headline": {
+          "rect": {
+            "x0": 0.04,
+            "y0": 0.72,
+            "x1": 0.97,
+            "y1": 0.86
+          },
+          "kind": "text",
+          "source": "locked_headline",
+          "font_role": "display",
+          "max_lines": 2
+        }
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.04,
+            "y0": 0.66,
+            "x1": 0.97,
+            "y1": 0.86
+          },
+          "kind": "text",
+          "source": "static",
+          "text": "A SHORT TRIP",
+          "font_role": "display",
+          "max_lines": 2,
+          "align": "left",
+          "colour": "white",
+          "min_font_px": 36
+        },
+        "logo": {
+          "rect": {
+            "x0": 0.62,
+            "y0": 0.55,
+            "x1": 0.95,
+            "y1": 0.66
+          },
+          "kind": "logo"
+        }
+      },
+      "logo_anchor": {
+        "zone": "logo",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "right"
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "headline": {
+            "rect": {
+              "x0": 0.04,
+              "y0": 0.78,
+              "x1": 0.97,
+              "y1": 0.9
+            },
+            "kind": "text",
+            "source": "static",
+            "text": "A SHORT TRIP",
+            "font_role": "display"
+          }
+        }
+      },
+      "safe_zone": {
+        "x0": 0.04,
+        "y0": 0.04,
+        "x1": 0.96,
+        "y1": 0.96
+      },
+      "max_total_chars": 120,
+      "measured_from": [
+        "templates/location-drive/references/ref-01.jpg",
+        "templates/location-drive/references/ref-02.jpg"
+      ],
+      "reference_size": {
+        "w": 1080,
+        "h": 1351
+      }
     }
   ],
   "selection": {
@@ -1168,6 +1429,14 @@
           ]
         },
         "use": "stick-service-square"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "location"
+          ]
+        },
+        "use": "stick-location-drive"
       }
     ]
   }
