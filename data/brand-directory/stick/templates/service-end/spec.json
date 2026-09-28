@@ -1,7 +1,7 @@
 {
   "id": "stick-service-end",
-  "name": "Service end card — venue photo, navy service + @ stick, mint END panel",
-  "description": "Light venue photo full bleed upper frame. Navy uppercase service word and @ stick lockup. Large mint #24FFAF panel with static END display. Partial white frame (right + bottom). Measured coachingend.jpg / fittingend.jpg; equipment/apparel are layout copies. needs_photo true.",
+  "name": "Service end card — gradient, navy service word, @ stick lockup, mint tagline panel",
+  "description": "Vertical gradient background, partial white frame, navy service word, composited @ stick lockup asset, mint panel with service tagline from qualifier. No photo.",
   "canvas": "ig_story",
   "channel_canvas": {
     "facebook": "ig_story"
@@ -9,7 +9,9 @@
   "template_pack": "templates/service-end",
   "measured_from": [
     "templates/service-end/references/ref-01.jpg",
-    "templates/service-end/references/ref-02.jpg"
+    "templates/service-end/references/ref-02.jpg",
+    "templates/service-end/references/ref-03.jpg",
+    "templates/service-end/references/ref-04.jpg"
   ],
   "reference_size": {
     "w": 1081,

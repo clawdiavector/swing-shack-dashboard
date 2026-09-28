@@ -1,12 +1,18 @@
 [
   {
     "caption_hook": "COACHING",
-    "cta": "@ stick",
-    "photo_seed": "coaching"
+    "qualifier": "Coaching sessions that guide players toward better, more enjoyable golf."
   },
   {
-    "caption_hook": "CLUB FITTING",
-    "cta": "@ stick",
-    "photo_seed": "fitting"
+    "caption_hook": "FITTINGS",
+    "qualifier": "Brand-agnostic fittings guided by data and science."
+  },
+  {
+    "caption_hook": "EQUIPMENT",
+    "qualifier": "Curated brands selected for quality, value, and relevance."
+  },
+  {
+    "caption_hook": "APPAREL",
+    "qualifier": "Style that belongs."
   }
 ]

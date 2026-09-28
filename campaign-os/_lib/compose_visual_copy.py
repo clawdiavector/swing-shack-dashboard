@@ -66,6 +66,21 @@ def _pillar_id_from_context(ctx) -> str:
     return str(pid).strip() if pid else ""
 
 
+def _service_end_tagline(*, brand_id: str, moment_id: str, caption: str) -> str:
+    ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
+    pillar = _pillar_id_from_context(ctx).lower()
+    cap = (caption or "").lower()
+    if "coaching" in pillar or "trackman" in cap or "swing" in cap:
+        return "Coaching sessions that guide players toward better, more enjoyable golf."
+    if "fitting" in pillar or "club assessment" in cap:
+        return "Brand-agnostic fittings guided by data and science."
+    if "equipment" in pillar or "brands" in cap or "retail" in cap:
+        return "Curated brands selected for quality, value, and relevance."
+    if "apparel" in pillar or "clothing" in cap:
+        return "Style that belongs."
+    return "Golf, made simpler."
+
+
 def _service_carousel_headline(*, brand_id: str, moment_id: str, caption: str) -> str:
     ctx = build_image_draft_context(brand_id, moment_id or f"proposal:{brand_id}:compose")
     pillar = _pillar_id_from_context(ctx).lower()
@@ -144,7 +159,23 @@ def visual_copy_for_archetype(
             base[f"bio_{idx}"] = line
         return {k: str(v) for k, v in base.items()}
 
-    if needs_photo and archetype_id in ("stick-service-start", "stick-service-end"):
+    if archetype_id == "stick-service-end":
+        mid = moment_id or f"proposal:{brand_id}:compose"
+        ctx = build_image_draft_context(brand_id, mid)
+        base = _content_from_caption(caption, ctx)
+        headline = str(sidecar.get("compose_headline") or "").strip()
+        tagline = str(sidecar.get("compose_qualifier") or "").strip()
+        if not headline:
+            headline = _service_carousel_headline(brand_id=brand_id, moment_id=mid, caption=caption)
+        if headline == "CLUB FITTING":
+            headline = "FITTINGS"
+        if not tagline:
+            tagline = _service_end_tagline(brand_id=brand_id, moment_id=mid, caption=caption)
+        base["caption_hook"] = headline
+        base["qualifier"] = tagline
+        return {k: str(v) for k, v in base.items()}
+
+    if needs_photo and archetype_id == "stick-service-start":
         mid = moment_id or f"proposal:{brand_id}:compose"
         headline = str(sidecar.get("compose_headline") or "").strip()
         lockup = str(sidecar.get("compose_cta") or "").strip()
