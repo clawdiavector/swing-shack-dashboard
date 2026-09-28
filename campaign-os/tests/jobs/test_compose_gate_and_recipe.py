@@ -30,9 +30,13 @@ def tmp_data(monkeypatch, tmp_path):
 
 
 def _seed_approved_calendar(tmp_path: Path, item_id: str) -> None:
+    from _lib import marketing_calendar as mc
+
     _, brand, cal_id = item_id.split(":", 2)
-    cal_dir = tmp_path / "marketing-calendar"
+    cal_dir = tmp_path / "intelligence" / "marketing-calendar"
     cal_dir.mkdir(parents=True, exist_ok=True)
+    mc._CALENDAR_DIR = cal_dir
+    mc._CALENDAR_DIR_READY = True
     (cal_dir / f"{brand}.jsonl").write_text(
         json.dumps(
             {
@@ -162,6 +166,35 @@ def test_krea_finalize_enqueues_compose(tmp_data, monkeypatch):
     )
     assert enqueued["n"] == 1
     assert row["status"] == "done"
+
+
+def test_create_actions_lodge_then_image_gen_recipe(tmp_data):
+    from _lib import marketing_calendar as mc
+    from _lib.l5_create_enqueue import create_actions_for_moment
+
+    item_id = "calendar_candidate:stick:svc-hero-1"
+    cal_dir = tmp_data / "intelligence" / "marketing-calendar"
+    cal_dir.mkdir(parents=True, exist_ok=True)
+    mc._CALENDAR_DIR = cal_dir
+    mc._CALENDAR_DIR_READY = True
+    (cal_dir / "stick.jsonl").write_text(
+        json.dumps(
+            {
+                "calendar_id": "svc-hero-1",
+                "status": "approved",
+                "title": "Club fitting hero",
+                "pillars": ["stick-fitting"],
+                "post_type": "service_hero",
+                "template_id": "stick-service-hero-v1",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    lodge = create_actions_for_moment("stick", item_id, phase="lodge")
+    assert lodge == ["draft_caption"]
+    image = create_actions_for_moment("stick", item_id, phase="image")
+    assert image == ["draft_gen_slots", "compose_post"]
 
 
 def test_recipe_cache_hit(tmp_data, monkeypatch):

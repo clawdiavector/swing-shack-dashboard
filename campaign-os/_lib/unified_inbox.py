@@ -1533,7 +1533,7 @@ def _photo_equiv_queued(existing: set[tuple[str, str]]) -> bool:
 
 
 def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> list[str]:
-    """Enqueue draft_caption + draft_photo + compose_post (+ draft_gbp when intended) after lodge."""
+    """Enqueue draft_caption (+ draft_gbp); image pipeline follows after caption."""
     enqueued: list[str] = []
     if _l5_enqueue_suppressed():
         return enqueued
@@ -1543,7 +1543,9 @@ def _maybe_enqueue_l5_create(item_id: str, brand_id: str, item_type: str) -> lis
         from _lib.l5_create_enqueue import enqueue_create_actions  # noqa: PLC0415
 
         reason = item_type.replace("_", "-")[:32]
-        enqueued = enqueue_create_actions(item_id=item_id, brand_id=brand_id, reason=reason)
+        enqueued = enqueue_create_actions(
+            item_id=item_id, brand_id=brand_id, reason=reason, phase="lodge"
+        )
     except Exception:
         pass
     return enqueued

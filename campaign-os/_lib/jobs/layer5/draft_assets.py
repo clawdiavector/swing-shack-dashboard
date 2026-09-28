@@ -674,6 +674,70 @@ def _sidecar_for_moment(item_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _merge_moment_queue_rows(
+    rows: list[dict[str, Any]],
+    brand_id: str,
+    item_id: str,
+    rows_for_moment: list[tuple[dict[str, Any], str]],
+) -> list[tuple[dict[str, Any], str]]:
+    pref = f"inbox/{item_id}"
+    seen = {id(r) for r, _ in rows_for_moment}
+    merged = list(rows_for_moment)
+    for row in rows:
+        if id(row) in seen:
+            continue
+        if str(row.get("payload_ref") or "") != pref:
+            continue
+        if str(row.get("brand") or "") != brand_id:
+            continue
+        if str(row.get("status") or "").lower() != "pending":
+            continue
+        action = str(row.get("action") or "")
+        if action == "draft_image":
+            action = "draft_photo"
+        if action not in CREATE_ACTIONS:
+            continue
+        merged.append((row, action))
+        seen.add(id(row))
+    return merged
+
+
+def _maybe_enqueue_image_pipeline_after_caption(
+    *,
+    rows: list[dict[str, Any]],
+    brand_id: str,
+    item_id: str,
+    rows_for_moment: list[tuple[dict[str, Any], str]],
+) -> list[tuple[dict[str, Any], str]]:
+    """When caption exists but gen/photo/compose are missing, enqueue image phase."""
+    pref = f"inbox/{item_id}"
+    pending_image = False
+    for row in rows:
+        if str(row.get("payload_ref") or "") != pref:
+            continue
+        if str(row.get("status") or "").lower() != "pending":
+            continue
+        action = str(row.get("action") or "")
+        if action in ("draft_gen_slots", "draft_photo", "draft_image", "compose_post"):
+            pending_image = True
+            break
+    if pending_image:
+        return rows_for_moment
+    cap_asset_id, _ = _find_caption_draft_for_item(item_id)
+    if not cap_asset_id:
+        return rows_for_moment
+    from _lib.l5_create_enqueue import enqueue_create_actions  # noqa: PLC0415
+
+    enqueue_create_actions(
+        item_id=item_id,
+        brand_id=brand_id,
+        reason="after-caption",
+        rows=rows,
+        phase="image",
+    )
+    return _merge_moment_queue_rows(rows, brand_id, item_id, rows_for_moment)
+
+
 def _moment_photo_ready_for_compose(brand_id: str, item_id: str) -> bool:
     from _lib.archetypes import select_archetype  # noqa: PLC0415
 
@@ -1309,11 +1373,17 @@ def run(brand: str | None = None) -> dict[str, Any]:
             if halted or stop_cap or stop_auth:
                 break
 
+            draft_ctx = build_image_draft_context(brand_id, item_id)
+            rows_for_moment = _maybe_enqueue_image_pipeline_after_caption(
+                rows=rows,
+                brand_id=brand_id,
+                item_id=item_id,
+                rows_for_moment=rows_for_moment,
+            )
             caption_rows = [(r, a) for r, a in rows_for_moment if a in _CAPTION_QUEUE_ACTIONS]
             photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
             gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
             compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
-            draft_ctx = build_image_draft_context(brand_id, item_id)
 
             cap_asset_id, _cap_text = _find_caption_draft_for_item(item_id)
             if cap_asset_id is None and caption_rows:
@@ -1351,6 +1421,15 @@ def run(brand: str | None = None) -> dict[str, Any]:
                         if action in _CAPTION_QUEUE_ACTIONS:
                             row["status"] = "done"
                     drafted += 1
+                    rows_for_moment = _maybe_enqueue_image_pipeline_after_caption(
+                        rows=rows,
+                        brand_id=brand_id,
+                        item_id=item_id,
+                        rows_for_moment=rows_for_moment,
+                    )
+                    photo_rows = [(r, a) for r, a in rows_for_moment if a == "draft_photo"]
+                    gen_rows = [(r, a) for r, a in rows_for_moment if a == "draft_gen_slots"]
+                    compose_rows = [(r, a) for r, a in rows_for_moment if a == "compose_post"]
                 else:
                     skipped += 1
 
