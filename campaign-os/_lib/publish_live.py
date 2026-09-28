@@ -118,7 +118,7 @@ def dispatch_pending() -> dict[str, Any]:
     """Process human-approved pending queue rows via Postiz."""
     sandbox.ensure_sandbox_layout()
     st = postiz_status()
-    if not st.get("configured"):
+    if not (st.get("configured") or st.get("ok") or st.get("api_key_present")):
         return {
             "ok": False,
             "mode": "live",
