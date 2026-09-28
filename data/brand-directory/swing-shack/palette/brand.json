@@ -61,7 +61,12 @@
     "white": "#FFFFFF",
     "ss_orange_bright": "#F58E20",
     "ss_blue_bright": "#3B7FEE",
-    "ss_panel_black": "#070707"
+    "ss_panel_black": "#070707",
+    "ss_event_red": "#D32026",
+    "ss_event_blue": "#2172E8",
+    "ss_event_frame_top": "#1E4389",
+    "ss_event_frame_bottom": "#A91B27",
+    "ss_event_ink": "#070916"
   },
   "tokens_source": "measured 2026-09-27 from Content Bank Services/cf1–cf6 headline fills",
   "contrast_checks": [
