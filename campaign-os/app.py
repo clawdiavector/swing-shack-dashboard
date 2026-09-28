@@ -44177,9 +44177,17 @@ def planning_timeline(brand_id):
             counts = {"A-PIN": 0, "B-PIN": 0, "C-PIN": 0}
             for e in ordered:
                 counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
+            # V2.4 — normalise the entire payload before serialisation.
+            # We do NOT use default=str (the V2.3 workaround that hid
+            # any unknown objects). Instead we coerce every key that
+            # exists, normalise leaf types to a strict JSON-compatible
+            # set (str, int, float, bool, None, list, dict), and let
+            # Flask's normal jsonify() do the rest. If normalisation
+            # encounters an unserialisable object, the catch returns a
+            # traceback via stderr + degraded payload so the SPA still
+            # renders the spine.
             try:
-                import json as _json
-                payload = {
+                normalised = _normalize_for_json({
                     "ok": True,
                     "brand_id": brand_id,
                     "start": start_str,
@@ -44199,15 +44207,9 @@ def planning_timeline(brand_id):
                     "shopping_moment_count": sum(1 for e in ordered if e.get("shopping_moment")),
                     "mode": "range",
                     "mc_read_error": mc_read_error,
-                }
-                # default=str ensures any leftover None or unknown types
-                # become readable strings instead of crashing JSON encoder.
-                body = _json.dumps(payload, default=str, ensure_ascii=False)
-                from flask import Response as _Resp
-                return _Resp(body, status=200, mimetype="application/json")
+                })
+                return jsonify(normalised), 200
             except Exception as inner_serial_err:
-                # If serialization still fails, return a degraded payload
-                # so the SPA at least renders the spine-only view.
                 import sys as _sys_se
                 import traceback as _tb_se
                 tb_se = _tb_se.format_exc()
@@ -44215,9 +44217,7 @@ def planning_timeline(brand_id):
                     f"[v23-timeline] serialize EXC: {type(inner_serial_err).__name__}: {inner_serial_err}\n{tb_se[-2000:]}",
                     file=_sys_se.stderr, flush=True,
                 )
-                # Degraded payload — events list with only bare fields
-                # (no phases, no complex operators).
-                events_bare = []
+                events_bare: List[Dict[str, Any]] = []
                 for e in ordered:
                     events_bare.append({
                         "event_key": str(e.get("event_key") or ""),
@@ -44326,7 +44326,7 @@ def planning_timeline(brand_id):
     for e in events:
         counts[e.get("tier")] = counts.get(e.get("tier"), 0) + 1
 
-    return jsonify({
+    return jsonify(_normalize_for_json({
         "ok": True,
         "brand_id": brand_id,
         "year": year,
@@ -44343,7 +44343,7 @@ def planning_timeline(brand_id):
         "event_count": len(events),
         "shopping_moment_count": sum(1 for e in events if e.get("shopping_moment")),
         "mode": "year",
-    }), 200
+    })), 200
 
 
 @app.route("/api/planning/<brand_id>/candidates", methods=["GET"])
@@ -45377,6 +45377,72 @@ def _find_json_offender(obj, path="", sort_keys=False):
         return items[-1], f"{path}[*]"
     # Leaf level: this is the broken value
     return obj, path
+
+
+def _normalize_for_json(obj, _depth=0):
+    """V2.4 — recursively normalise an object into a strict JSON-compatible
+    form. We do this BEFORE json.dumps() so Flask's normal jsonify path
+    (which uses default=None — no fallback coercion) never sees anything
+    weird.
+
+    Rules:
+      - dict: keys coerced to str (mixed-type key safety → no sort_keys crash)
+      - values recursed
+      - list/tuple: items recursed
+      - None / str / int / float / bool: kept as-is (JSON natively supports)
+      - bytes: decoded as utf-8 with errors='replace'
+      - datetime/date/time: ISO 8601 string
+      - set/frozenset: converted to sorted list (if items comparable)
+      - decimal.Decimal: float
+      - uuid.UUID: string
+      - unknown object: best-effort str(obj); fallback to "[<class>]"
+    """
+    def _norm(v, depth):
+        if depth > 64:
+            return None  # cycle guard → JSON null
+        if v is None or isinstance(v, (str, int, float, bool)):
+            return v
+        if isinstance(v, dict):
+            return {
+                str(k) if not isinstance(k, str) else k: _norm(val, depth + 1)
+                for k, val in v.items()
+            }
+        if isinstance(v, (list, tuple)):
+            return [_norm(it, depth + 1) for it in v]
+        if isinstance(v, bytes):
+            try:
+                return v.decode("utf-8", errors="replace")
+            except Exception:
+                return repr(v)
+        try:
+            import datetime as _dt_cls
+            if isinstance(v, (_dt_cls.datetime, _dt_cls.date, _dt_cls.time)):
+                return v.isoformat()
+        except Exception:
+            pass
+        try:
+            import decimal as _decimal
+            if isinstance(v, _decimal.Decimal):
+                return float(v)
+        except Exception:
+            pass
+        try:
+            import uuid as _uuid
+            if isinstance(v, _uuid.UUID):
+                return str(v)
+        except Exception:
+            pass
+        if isinstance(v, (set, frozenset)):
+            try:
+                return sorted([_norm(x, depth + 1) for x in v])
+            except TypeError:
+                return [str(x) for x in v]
+        try:
+            return str(v)
+        except Exception:
+            return f"[{type(v).__name__}]"
+
+    return _norm(obj, _depth)
 
 
 # ──────────────────────────────────────────────────────────────────────
