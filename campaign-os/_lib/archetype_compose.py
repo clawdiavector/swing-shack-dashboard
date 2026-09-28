@@ -687,9 +687,30 @@ def _library_photo(brand_id: str, rel_dir: str, seed: str):
     return None
 
 
-def _photo_cover_background(base, archetype: dict[str, Any], brand_id: str, photo_bytes: bytes | None, seed: str) -> None:
-    """Full-bleed photo, centre-cropped to cover the canvas, then the scrim darkening."""
+def _background_for_canvas(archetype: dict[str, Any], canvas_id: str) -> dict[str, Any]:
     bg = archetype.get("background") if isinstance(archetype.get("background"), dict) else {}
+    overrides = archetype.get("canvas_overrides") if isinstance(archetype.get("canvas_overrides"), dict) else {}
+    patch = overrides.get(canvas_id) if isinstance(overrides.get(canvas_id), dict) else {}
+    extra = patch.get("background") if isinstance(patch.get("background"), dict) else None
+    if not extra:
+        return dict(bg)
+    merged = dict(bg)
+    for key, val in extra.items():
+        if key == "scrim" and isinstance(val, dict) and isinstance(merged.get("scrim"), dict):
+            merged["scrim"] = {**merged["scrim"], **val}
+        else:
+            merged[key] = val
+    return merged
+
+
+def _photo_cover_background(
+    base,
+    bg: dict[str, Any],
+    brand_id: str,
+    photo_bytes: bytes | None,
+    seed: str,
+) -> None:
+    """Full-bleed photo, centre-cropped to cover the canvas, then the scrim darkening."""
     photo = _load_image_from_bytes(photo_bytes) if photo_bytes else None
     library = bg.get("library")
     if photo is None and isinstance(library, str) and library.strip():
@@ -865,7 +886,7 @@ def compose_to_canvas(
     photo_cover = _uses_photo_cover(archetype)
     if photo_cover:
         seed = str(fields.get("photo_seed") or fields.get("caption_hook") or "")
-        _photo_cover_background(base, archetype, brand_id, photo_bytes, seed)
+        _photo_cover_background(base, _background_for_canvas(archetype, canvas_id), brand_id, photo_bytes, seed)
     elif bg_kind != "photo_full_bleed" or not photo_bytes:
         _background(base, archetype, brand_id)
     draw = ImageDraw.Draw(base)

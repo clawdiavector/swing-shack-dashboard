@@ -121,9 +121,15 @@
           },
           "canvas_overrides": {
             "type": "object",
-            "description": "Per-canvas zone overrides for archetypes whose geometry is not a pure re-anchor (Stick pair C). Keys are canvas ids; values are partial zone maps.",
+            "description": "Per-canvas zone overrides for archetypes whose geometry is not a pure re-anchor (Stick pair C). Keys are canvas ids; values are partial zone maps plus optional background tweaks.",
             "additionalProperties": {
               "type": "object",
+              "properties": {
+                "background": {
+                  "type": "object",
+                  "description": "Partial merge into archetype background (e.g. per-canvas scrim seam)."
+                }
+              },
               "additionalProperties": {
                 "$ref": "#/$defs/zone"
               }

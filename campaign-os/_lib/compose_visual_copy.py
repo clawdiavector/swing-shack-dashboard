@@ -223,6 +223,9 @@ def visual_copy_for_archetype(
         base["offer_subject"] = subject
     if expiry:
         base["offer_expiry"] = expiry
+    body = str(sidecar.get("compose_body") or "").strip()
+    if body:
+        base["caption_body"] = body
     base["service_lockup"] = _derive_service_lockup(
         brand_id=brand_id,
         moment_id=mid,

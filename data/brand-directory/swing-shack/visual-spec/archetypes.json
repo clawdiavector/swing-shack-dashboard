@@ -2,7 +2,7 @@
   "schema": "https://campaign-os/brand-directory/visual-archetypes/v2",
   "brand_id": "swing-shack",
   "version": "2.0",
-  "updated": "2026-09-27T00:00:00Z",
+  "updated": "2026-09-28T08:40:00Z",
   "source": "draft",
   "canvases": {
     "ig_post": {
@@ -2465,6 +2465,356 @@
         "y1": 0.98
       },
       "max_total_chars": 120
+    },
+    {
+      "id": "ss-social-lab",
+      "name": "Social Lab contest \u2014 black field, prize headline, product photo",
+      "description": "Measured from Content Bank Services/social_lab1_story copy + copy 2 (1081\u00d71921 story, 1081\u00d71201 feed crop). Contest/giveaway lockup: Montserrat Black Italic headline, orange subhead+CTA, green date line, price + ENTRY suffix, two-line ExtraLight fine print, full-bleed prize photo with top scrim.",
+      "canvas": "ig_post",
+      "block_anchor": "center",
+      "applies_to": {
+        "channels": [
+          "instagram",
+          "instagram_story",
+          "facebook"
+        ],
+        "record_types": [
+          "moment",
+          "evergreen"
+        ],
+        "needs_photo": false
+      },
+      "channel_canvas": {
+        "facebook": "ig_post"
+      },
+      "template_pack": "templates/social-lab",
+      "measured_from": [
+        "Services/social_lab1_story copy 2.jpg",
+        "Services/social_lab1_story copy.jpg"
+      ],
+      "reference_size": {
+        "ig_post": "1081\u00d71201",
+        "ig_story": "1081\u00d71921"
+      },
+      "background": {
+        "kind": "photo_full_bleed",
+        "cover": true,
+        "library": "templates/social-lab/photos",
+        "focus_y": 0.58,
+        "scrim": {
+          "rect": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 1,
+            "y1": 0.56
+          },
+          "from_alpha": 1,
+          "to_alpha": 0
+        }
+      },
+      "zones": {
+        "headline": {
+          "rect": {
+            "x0": 0.066,
+            "y0": 0.138,
+            "x1": 0.943,
+            "y1": 0.285
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_font_px": 118,
+          "min_font_px": 72,
+          "max_lines": 2,
+          "max_chars_per_line": 22,
+          "line_height": 0.92,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.846,
+          "wrap": "balanced"
+        },
+        "subhead": {
+          "rect": {
+            "x0": 0.491,
+            "y0": 0.229,
+            "x1": 0.936,
+            "y1": 0.272
+          },
+          "kind": "text",
+          "source": "offer_subject",
+          "font_role": "display",
+          "max_font_px": 50,
+          "min_font_px": 40,
+          "max_lines": 1,
+          "max_chars_per_line": 28,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "right",
+          "valign": "top",
+          "colour": "ss_orange",
+          "h_scale": 0.846
+        },
+        "date": {
+          "rect": {
+            "x0": 0.057,
+            "y0": 0.313,
+            "x1": 0.929,
+            "y1": 0.365
+          },
+          "kind": "text",
+          "source": "offer_expiry",
+          "font_role": "display",
+          "max_font_px": 64,
+          "min_font_px": 50,
+          "max_lines": 1,
+          "max_chars_per_line": 36,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "ss_green",
+          "h_scale": 0.846
+        },
+        "price": {
+          "rect": {
+            "x0": 0.052,
+            "y0": 0.373,
+            "x1": 0.404,
+            "y1": 0.422
+          },
+          "kind": "text",
+          "source": "price",
+          "text_suffix": " ENTRY",
+          "font_role": "display",
+          "max_font_px": 64,
+          "min_font_px": 50,
+          "max_lines": 1,
+          "max_chars_per_line": 16,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "h_scale": 0.846
+        },
+        "body": {
+          "rect": {
+            "x0": 0.052,
+            "y0": 0.445,
+            "x1": 0.801,
+            "y1": 0.545
+          },
+          "kind": "text",
+          "source": "caption_body",
+          "font_role": "h3",
+          "max_font_px": 50,
+          "min_font_px": 40,
+          "max_lines": 2,
+          "max_chars_per_line": 40,
+          "line_height": 1.05,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "top",
+          "colour": "white",
+          "wrap": "explicit"
+        },
+        "cta": {
+          "rect": {
+            "x0": 0.35,
+            "y0": 0.719,
+            "x1": 0.98,
+            "y1": 0.765
+          },
+          "kind": "text",
+          "source": "cta",
+          "font_role": "display",
+          "max_font_px": 50,
+          "min_font_px": 40,
+          "max_lines": 1,
+          "max_chars_per_line": 28,
+          "line_height": 1,
+          "text_transform": "uppercase",
+          "align": "right",
+          "valign": "top",
+          "colour": "ss_orange",
+          "h_scale": 0.846
+        }
+      },
+      "canvas_overrides": {
+        "ig_story": {
+          "headline": {
+            "rect": {
+              "x0": 0.066,
+              "y0": 0.144,
+              "x1": 0.943,
+              "y1": 0.205
+            },
+            "kind": "text",
+            "source": "caption_hook",
+            "font_role": "display",
+            "max_font_px": 118,
+            "min_font_px": 72,
+            "max_lines": 2,
+            "max_chars_per_line": 22,
+            "line_height": 0.92,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.846,
+            "wrap": "balanced"
+          },
+          "subhead": {
+            "rect": {
+              "x0": 0.491,
+              "y0": 0.201,
+              "x1": 0.936,
+              "y1": 0.228
+            },
+            "kind": "text",
+            "source": "offer_subject",
+            "font_role": "display",
+            "max_font_px": 50,
+            "min_font_px": 40,
+            "max_lines": 1,
+            "max_chars_per_line": 28,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "right",
+            "valign": "top",
+            "colour": "ss_orange",
+            "h_scale": 0.846
+          },
+          "date": {
+            "rect": {
+              "x0": 0.057,
+              "y0": 0.254,
+              "x1": 0.929,
+              "y1": 0.272
+            },
+            "kind": "text",
+            "source": "offer_expiry",
+            "font_role": "display",
+            "max_font_px": 64,
+            "min_font_px": 50,
+            "max_lines": 1,
+            "max_chars_per_line": 36,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "ss_green",
+            "h_scale": 0.846
+          },
+          "price": {
+            "rect": {
+              "x0": 0.052,
+              "y0": 0.291,
+              "x1": 0.404,
+              "y1": 0.312
+            },
+            "kind": "text",
+            "source": "price",
+            "text_suffix": " ENTRY",
+            "font_role": "display",
+            "max_font_px": 64,
+            "min_font_px": 50,
+            "max_lines": 1,
+            "max_chars_per_line": 16,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "h_scale": 0.846
+          },
+          "body": {
+            "rect": {
+              "x0": 0.052,
+              "y0": 0.336,
+              "x1": 0.801,
+              "y1": 0.4
+            },
+            "kind": "text",
+            "source": "caption_body",
+            "font_role": "h3",
+            "max_font_px": 50,
+            "min_font_px": 40,
+            "max_lines": 2,
+            "max_chars_per_line": 40,
+            "line_height": 1.05,
+            "text_transform": "uppercase",
+            "align": "left",
+            "valign": "top",
+            "colour": "white",
+            "wrap": "explicit"
+          },
+          "cta": {
+            "rect": {
+              "x0": 0.35,
+              "y0": 0.474,
+              "x1": 0.98,
+              "y1": 0.492
+            },
+            "kind": "text",
+            "source": "cta",
+            "font_role": "display",
+            "max_font_px": 50,
+            "min_font_px": 40,
+            "max_lines": 1,
+            "max_chars_per_line": 28,
+            "line_height": 1,
+            "text_transform": "uppercase",
+            "align": "right",
+            "valign": "top",
+            "colour": "ss_orange",
+            "h_scale": 0.846
+          },
+          "background": {
+            "focus_y": 0.58,
+            "scrim": {
+              "rect": {
+                "x0": 0,
+                "y0": 0,
+                "x1": 1,
+                "y1": 0.56
+              },
+              "from_alpha": 1,
+              "to_alpha": 0
+            }
+          }
+        },
+        "ig_post": {
+          "background": {
+            "focus_y": 0.72,
+            "scrim": {
+              "rect": {
+                "x0": 0,
+                "y0": 0,
+                "x1": 1,
+                "y1": 0.82
+              },
+              "from_alpha": 1,
+              "to_alpha": 1
+            }
+          }
+        }
+      },
+      "logo_anchor": {
+        "zone": "headline",
+        "variant": "mono_light",
+        "fit": "height",
+        "align": "left"
+      },
+      "safe_zone": {
+        "x0": 0.05,
+        "y0": 0.04,
+        "x1": 0.95,
+        "y1": 0.96
+      },
+      "max_total_chars": 160
     }
   ],
   "selection": {
@@ -2546,6 +2896,16 @@
           ]
         },
         "use": "ss-service-promo"
+      },
+      {
+        "when": {
+          "post_type_in": [
+            "contest",
+            "giveaway",
+            "challenge"
+          ]
+        },
+        "use": "ss-social-lab"
       },
       {
         "when": {
