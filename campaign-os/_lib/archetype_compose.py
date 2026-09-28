@@ -740,7 +740,20 @@ def _draw_rule(base, zone: dict[str, Any], brand_id: str) -> None:
     x0, y0, x1, y1 = _rect_px(rect, *base.size)
     stroke = int(zone.get("stroke_px") or 2)
     colour = _palette_colour(str(zone.get("colour") or "white"), brand_id)
-    alpha = int(float(zone.get("alpha", 1.0)) * 255)
+    a0 = float(zone.get("from_alpha", zone.get("alpha", 1.0)))
+    a1 = float(zone.get("to_alpha", a0))
+    bar_w = max(1, x1 - x0)
+    if a0 != a1:
+        ramp = Image.new("L", (bar_w, 1))
+        for i in range(bar_w):
+            t = i / max(1, bar_w - 1)
+            ramp.putpixel((i, 0), int(255 * (a0 * (1 - t) + a1 * t)))
+        mask = ramp.resize((bar_w, stroke))
+        layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        layer.paste(colour[:3] + (255,), (x0, y0), mask)
+        base.paste(layer, (0, 0), layer)
+        return
+    alpha = int(a0 * 255)
     layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
     ImageDraw.Draw(layer).rectangle(
         [x0, y0, x1 - 1, y0 + stroke - 1],

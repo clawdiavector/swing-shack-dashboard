@@ -786,8 +786,8 @@
     },
     {
       "id": "stick-service-end",
-      "name": "Service end card — venue photo, navy service + @ stick, mint END panel",
-      "description": "Light venue photo full bleed upper frame. Navy uppercase service word and @ stick lockup. Large mint #24FFAF panel with static END display. Partial white frame (right + bottom). Measured coachingend.jpg / fittingend.jpg; equipment/apparel are layout copies. needs_photo true.",
+      "name": "Service end card — gradient, navy service word, @ stick lockup, mint tagline panel",
+      "description": "Light vertical gradient (#D4DEDD→#FFFFFF), partial white frame (top fade + right). Navy uppercase service word, white @ behind the navy stick wordmark, large mint #24FFAF panel carrying a service-specific tagline from the qualifier field. Measured coachingend/fittingend/equipmentend/apparelend. No photo.",
       "canvas": "ig_story",
       "channel_canvas": {
         "facebook": "ig_story"
@@ -802,122 +802,108 @@
           "moment",
           "evergreen"
         ],
-        "needs_photo": true
+        "needs_photo": false
       },
       "background": {
-        "kind": "photo_full_bleed",
-        "cover": true,
-        "library": "templates/service-end/photos",
-        "focus_y": 0.28,
-        "scrim": {
-          "rect": {
-            "x0": 0,
-            "y0": 0,
-            "x1": 1,
-            "y1": 0.55
-          },
-          "from_alpha": 0,
-          "to_alpha": 0.12
+        "kind": "gradient",
+        "gradient": {
+          "direction": "vertical",
+          "from": "#D4DEDD",
+          "to": "#FFFFFF"
         }
       },
       "zones": {
-        "frame": {
+        "frame_top": {
           "rect": {
-            "x0": 0,
-            "y0": 0,
-            "x1": 1,
-            "y1": 1
+            "x0": 0.0,
+            "y0": 0.02135,
+            "x1": 0.9685,
+            "y1": 0.02448
           },
           "kind": "decorative",
-          "shape": "frame",
-          "inset_px": 35,
+          "shape": "rule",
           "stroke_px": 6,
           "colour": "white",
-          "alpha": 0.95
+          "from_alpha": 0.0,
+          "to_alpha": 1.0
         },
-        "service_word": {
+        "frame_right": {
           "rect": {
-            "x0": 0.08,
-            "y0": 0.22,
-            "x1": 0.92,
-            "y1": 0.32
-          },
-          "kind": "text",
-          "source": "caption_hook",
-          "font_role": "display",
-          "max_lines": 2,
-          "max_chars_per_line": 14,
-          "line_height": 1.05,
-          "text_transform": "uppercase",
-          "align": "left",
-          "valign": "bottom",
-          "colour": "navy_deep",
-          "min_font_px": 48,
-          "wrap": "balanced",
-          "optional": true
-        },
-        "lockup": {
-          "rect": {
-            "x0": 0.1,
-            "y0": 0.34,
-            "x1": 0.92,
-            "y1": 0.46
-          },
-          "kind": "text",
-          "source": "cta",
-          "font_role": "h1",
-          "max_lines": 2,
-          "max_chars_per_line": 12,
-          "line_height": 1.1,
-          "text_transform": "none",
-          "align": "center",
-          "valign": "middle",
-          "colour": "navy_deep",
-          "min_font_px": 40
-        },
-        "mint_panel": {
-          "rect": {
-            "x0": 0,
-            "y0": 0.518,
-            "x1": 0.914,
-            "y1": 0.834
-          },
-          "kind": "band",
-          "fill": "mint"
-        },
-        "end_word": {
-          "rect": {
-            "x0": 0.12,
-            "y0": 0.58,
-            "x1": 0.82,
-            "y1": 0.78
-          },
-          "kind": "text",
-          "source": "static",
-          "text": "END",
-          "font_role": "display",
-          "max_lines": 1,
-          "text_transform": "uppercase",
-          "align": "center",
-          "valign": "middle",
-          "colour": "navy_deep",
-          "min_font_px": 72,
-          "max_font_px": 130
-        },
-        "footer": {
-          "rect": {
-            "x0": 0,
-            "y0": 0.835,
-            "x1": 1,
-            "y1": 1
+            "x0": 0.963,
+            "y0": 0.02135,
+            "x1": 0.9685,
+            "y1": 1.0
           },
           "kind": "band",
           "fill": "white"
         },
+        "service_word": {
+          "rect": {
+            "x0": 0.087,
+            "y0": 0.21,
+            "x1": 0.9297,
+            "y1": 0.29792
+          },
+          "kind": "text",
+          "source": "caption_hook",
+          "font_role": "display",
+          "max_lines": 1,
+          "max_chars_per_line": 16,
+          "line_height": 1.0,
+          "text_transform": "uppercase",
+          "align": "left",
+          "valign": "bottom",
+          "colour": "navy_alt",
+          "min_font_px": 90,
+          "max_font_px": 153
+        },
+        "lockup": {
+          "rect": {
+            "x0": 0.4172,
+            "y0": 0.2724,
+            "x1": 0.914,
+            "y1": 0.4458
+          },
+          "kind": "image",
+          "source": "asset",
+          "asset": "templates/service-end/assets/lockup-at-stick.png",
+          "fit": "aspect_fit",
+          "align": "right",
+          "valign": "bottom"
+        },
+        "mint_panel": {
+          "rect": {
+            "x0": 0.0,
+            "y0": 0.5182,
+            "x1": 0.9139,
+            "y1": 0.8344
+          },
+          "kind": "band",
+          "fill": "mint"
+        },
+        "tagline": {
+          "rect": {
+            "x0": 0.1323,
+            "y0": 0.5182,
+            "x1": 0.8677,
+            "y1": 0.8344
+          },
+          "kind": "text",
+          "source": "qualifier",
+          "font_role": "display",
+          "max_lines": 4,
+          "max_chars_per_line": 24,
+          "line_height": 1.215,
+          "align": "left",
+          "valign": "middle",
+          "colour": "navy_alt",
+          "min_font_px": 40,
+          "max_font_px": 66
+        },
         "logo": {
           "rect": {
-            "x0": 0,
-            "y0": 0,
+            "x0": 0.0,
+            "y0": 0.0,
             "x1": 0.001,
             "y1": 0.001
           },
@@ -937,10 +923,12 @@
         "x1": 0.95,
         "y1": 0.96
       },
-      "max_total_chars": 48,
+      "max_total_chars": 140,
       "measured_from": [
         "templates/service-end/references/ref-01.jpg",
-        "templates/service-end/references/ref-02.jpg"
+        "templates/service-end/references/ref-02.jpg",
+        "templates/service-end/references/ref-03.jpg",
+        "templates/service-end/references/ref-04.jpg"
       ],
       "reference_size": {
         "w": 1081,
