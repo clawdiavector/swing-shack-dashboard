@@ -156,7 +156,11 @@ def process_draft_photo_row(
             }
         )
         atomic_write(f"draft-assets/{caption_asset_id}.json", merged)
-        return caption_asset_id, None
+        return process_compose_post_row(
+            row,
+            item_id=item_id,
+            brand_id=brand_id,
+        )
 
     size = ctx.aspect
     est = llm_spend.modelled_image_cost(size)

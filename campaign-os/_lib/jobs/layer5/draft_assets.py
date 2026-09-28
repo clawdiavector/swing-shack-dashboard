@@ -1219,12 +1219,9 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     )
                     continue
                 if err:
-                    stop_cap, stop_auth = _apply_stop_error(err, errors=errors, stop_cap=stop_cap, stop_auth=stop_auth)
+                    row["status"] = "skipped"
+                    row["note"] = f"gbp: {err}"[:240]
                     skipped += 1
-                    if stop_cap or stop_auth:
-                        halted = True
-                        skipped += _count_pending_rows(moment_items, idx)
-                        break
                     continue
                 if asset_id:
                     row["status"] = "done"
@@ -1335,11 +1332,9 @@ def run(brand: str | None = None) -> dict[str, Any]:
                     drafted += 1
 
             if not _moment_has_composed(brand_id, item_id):
-                skipped += _count_pending_rows(moment_items, idx)
-                halted = True
-                break
+                skipped += len(rows_for_moment)
 
-            break
+            continue
 
     except Exception as exc:  # noqa: BLE001
         label = _record_error(exc, context={"step": "run"})
