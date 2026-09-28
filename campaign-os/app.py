@@ -45173,14 +45173,16 @@ def planning_diagnose_serialize(brand_id):
         if not enriched.get("end"):
             enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
 
-        # Use the standard json.dumps path WITHOUT default=str, exactly as
-        # the unpatched Flask jsonify would. Walk the failure: figure out
-        # which sub-value is the trouble, by recursing into the structure.
+        # V2.4 — Flask's default jsonify calls json.dumps(sort_keys=True).
+        # Run TWO checks: (1) the unsorted path, (2) the sorted path.
+        # Production's 500 was caused by a sort_keys=True crash on a
+        # dict with mixed-type keys (str + int).
+        # We replicate Flask's default config here.
         try:
-            _json_diag.dumps(enriched)
+            _json_diag.dumps(enriched, sort_keys=True)  # ← Flask's default
         except Exception as json_err:
-            # Find the path inside `enriched` that crashed.
-            offender, path = _find_json_offender(enriched)
+            # Drill in. Mixed-key dicts will fail sort_keys=True.
+            offender, path = _find_json_offender(enriched, sort_keys=True)
             failing_index = i
             failing_event_key = rec.get("event_key")
             failing_enriched_keys = sorted(list(enriched.keys()))
@@ -45222,7 +45224,7 @@ def planning_diagnose_serialize(brand_id):
     }), 200
 
 
-def _find_json_offender(obj, path=""):
+def _find_json_offender(obj, path="", sort_keys=False):
     """Recursively walk obj. Return the leaf that breaks json.dumps.
 
     Returns (offender_value, dotted_path). The OFFEND is always a leaf
@@ -45238,37 +45240,34 @@ def _find_json_offender(obj, path=""):
     import json as _json_off
     # Base case
     try:
-        _json_off.dumps(obj)
+        _json_off.dumps(obj, sort_keys=sort_keys)
         return None, ""
     except Exception:
         pass
     # Dict → bisect by key
     if isinstance(obj, dict):
         if not obj:
-            return obj, path  # empty dict can't sort?
+            return obj, path
         # Try removing keys one at a time
         items = list(obj.items())
         for i in range(len(items)):
             sub = {k: v for j, (k, v) in enumerate(items) if j != i}
             try:
-                _json_off.dumps(sub)
-                # Removing key[k] made it pass — that key is broken
+                _json_off.dumps(sub, sort_keys=sort_keys)
                 k_v, v_v = items[i]
-                # Recurse into v_v to find the leaf
                 if isinstance(v_v, (dict, list, tuple)):
-                    return _find_json_offender(v_v, f"{path}.{k_v}")
+                    return _find_json_offender(v_v, f"{path}.{k_v}", sort_keys=sort_keys)
                 return v_v, f"{path}.{k_v}"
             except Exception:
                 continue
-        # Removing single keys didn't help. Try pairs.
         if len(items) <= 4:
-            # Last resort: return the whole dict
+            key_types = {type(k).__name__ for k in obj.keys()}
+            if len(key_types) > 1:
+                return {"mixed_key_types": sorted(key_types), "sample_keys": [str(k) for k in list(obj.keys())[:5]]}, path
             return obj, path
-        # Otherwise we have a complex mixed-key issue. Return current.
-        # Find the type collision by getting key types
         key_types = {type(k).__name__ for k in obj.keys()}
         if len(key_types) > 1:
-            return {"mixed_key_types": sorted(key_types), "sample_keys": [str(k) for k in list(obj.keys())[:3]]}, path
+            return {"mixed_key_types": sorted(key_types), "sample_keys": [str(k) for k in list(obj.keys())[:5]]}, path
         return obj, path
     # List → try removing items one at a time
     if isinstance(obj, (list, tuple)):
@@ -45278,16 +45277,14 @@ def _find_json_offender(obj, path=""):
         for i in range(len(items)):
             sub = items[:i] + items[i + 1:]
             try:
-                _json_off.dumps(sub)
-                # That item was the offender. Recurse to find leaf.
+                _json_off.dumps(sub, sort_keys=sort_keys)
                 item = items[i]
                 if isinstance(item, (dict, list, tuple)):
-                    return _find_json_offender(item, f"{path}[{i}]")
+                    return _find_json_offender(item, f"{path}[{i}]", sort_keys=sort_keys)
                 return item, f"{path}[{i}]"
             except Exception:
                 continue
         if len(items) <= 4:
-            # Find type collision
             item_types = {type(it).__name__ for it in items}
             if len(item_types) > 1:
                 return {"mixed_item_types": sorted(item_types), "sample": str(items[:3])}, path
