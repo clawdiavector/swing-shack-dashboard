@@ -102,6 +102,8 @@ export type InboxItem = {
     template_label?: string
     template_reference_urls?: string[]
     archetype?: { id?: string; canvas?: string; schema?: string }
+    compose_pending?: boolean
+    source_inbox_item_id?: string
   }
 }
 
