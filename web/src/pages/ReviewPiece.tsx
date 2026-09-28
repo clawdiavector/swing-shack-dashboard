@@ -392,7 +392,7 @@ export function ReviewPiece() {
       {rest.length ? (
         <section>
           <h2 className="mb-3 font-display text-xl font-semibold">Next in the queue</h2>
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {rest.map((row) => {
               const thumb = inboxItemThumbUrl(row)
               const media = inboxMediaTag(row)
@@ -402,14 +402,16 @@ export function ReviewPiece() {
               <QueueItem
                 key={row.id}
                 to={reviewPiecePath(row.id, row.brand_id)}
+                layout="vertical"
+                brandSlot={<BrandChip brandId={row.brand_id} show />}
                 badge={media.label}
                 tone={media.tone}
                 channelBadge={channel || undefined}
                 title={row.title || row.summary || row.id}
-                meta={[reviewType(row.type).label, !isAll ? row.brand_id : null]
+                meta={[reviewType(row.type).label, row.meta?.caption?.slice(0, 100)]
                   .filter(Boolean)
                   .join(' · ')}
-                footer={isAll ? <BrandChip brandId={row.brand_id} show /> : undefined}
+                hideImageFallbackBadge
                 stamp={goesOut || row.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}

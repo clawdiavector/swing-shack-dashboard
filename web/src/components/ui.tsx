@@ -304,6 +304,8 @@ export function QueueItem({
   typeBadge,
   stateBadge,
   hideImageFallbackBadge,
+  layout = 'horizontal',
+  brandSlot,
 }: {
   to?: string
   tip?: string
@@ -325,6 +327,9 @@ export function QueueItem({
   stateBadge?: string
   /** When true, a broken thumb does not show a “No image” badge (Review queue). */
   hideImageFallbackBadge?: boolean
+  layout?: 'horizontal' | 'vertical'
+  /** Brand chip or label rendered inside the card header row. */
+  brandSlot?: ReactNode
 }) {
   const [thumbBroken, setThumbBroken] = useState(false)
   useEffect(() => {
@@ -334,41 +339,64 @@ export function QueueItem({
   const showBadge =
     thumbBroken && !hideImageFallbackBadge ? 'No image' : badge || undefined
   const showTone = thumbBroken && !hideImageFallbackBadge ? ('mute' as const) : tone || 'mute'
+  const thumbClasses =
+    thumbClassName ??
+    (layout === 'vertical'
+      ? 'mx-auto aspect-[4/5] w-full max-w-[11rem] rounded-xl border border-bd object-contain bg-bg-2/40'
+      : 'h-12 w-12 shrink-0 rounded-xl border border-bd object-cover')
   const thumbNode = thumb ? (
     <QueueItemThumb
       src={thumb}
       alt={thumbAlt || title}
       onBroken={() => setThumbBroken(true)}
-      className={thumbClassName}
+      className={thumbClasses}
     />
   ) : null
-  const body = (
-    <>
-      {thumbNode}
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          {typeBadge ? <Badge tone="mute">{typeBadge}</Badge> : null}
-          {stateBadge ? (
-            <Badge tone={stateBadge.toLowerCase() === 'stale' ? 'gold' : 'blue'}>
-              {stateBadge}
-            </Badge>
-          ) : null}
-          {showBadge ? <Badge tone={showTone}>{showBadge}</Badge> : null}
-          {channelBadge ? (
-            <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
-          ) : null}
-          <span className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">
-            {stampLabel(stampKind)} {when}
-          </span>
-        </div>
-        <p className="mt-1.5 text-sm leading-snug font-medium">{title}</p>
-        {meta ? <p className="mt-0.5 text-xs text-tx3">{meta}</p> : null}
+  const textBlock = (
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        {brandSlot}
+        {typeBadge ? <Badge tone="mute">{typeBadge}</Badge> : null}
+        {stateBadge ? (
+          <Badge tone={stateBadge.toLowerCase() === 'stale' ? 'gold' : 'blue'}>
+            {stateBadge}
+          </Badge>
+        ) : null}
+        {showBadge ? <Badge tone={showTone}>{showBadge}</Badge> : null}
+        {channelBadge ? (
+          <Badge tone={channelTone || 'blue'}>{channelBadge}</Badge>
+        ) : null}
+        <span className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">
+          {stampLabel(stampKind)} {when}
+        </span>
       </div>
-      {action}
-    </>
+      <p className="mt-1.5 text-sm leading-snug font-medium">{title}</p>
+      {meta ? <p className="mt-0.5 text-xs text-tx3 line-clamp-3">{meta}</p> : null}
+      {thumbBroken && hideImageFallbackBadge ? (
+        <p className="mt-1 text-xs font-semibold text-red">Preview unavailable</p>
+      ) : null}
+    </div>
   )
+  const body =
+    layout === 'vertical' ? (
+      <div className="flex w-full flex-col gap-3">
+        <div className="flex items-start justify-between gap-2">
+          {textBlock}
+          {action}
+        </div>
+        {thumbNode}
+      </div>
+    ) : (
+      <>
+        {thumbNode}
+        {textBlock}
+        {action}
+      </>
+    )
   const cls =
-    'glass flex items-start justify-between gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl'
+    layout === 'vertical'
+      ? 'glass flex flex-col rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl'
+      : 'glass flex items-start justify-between gap-3 rounded-2xl border-[1.5px] border-white/10 px-4 py-3 backdrop-blur-xl'
   const tip = to ? tipText || 'Open this piece.' : undefined
   return (
     <li>

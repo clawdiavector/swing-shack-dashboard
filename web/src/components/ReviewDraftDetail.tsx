@@ -104,14 +104,23 @@ export function ReviewDraftDetail({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold tracking-wide text-tx3 uppercase">Next up</p>
-          <h2 className="font-display text-xl font-semibold leading-snug text-tx">
-            {item.title || item.summary || item.id}
-          </h2>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <BrandChip brandId={item.brand_id} show={showBrandChip} />
+            <h2 className="font-display text-xl font-semibold leading-snug text-tx">
+              {item.title || item.summary || item.id}
+            </h2>
+          </div>
         </div>
-        <BrandChip brandId={item.brand_id} show={showBrandChip} />
       </div>
 
       <div className="mt-4 space-y-4">
+        {item.meta?.caption ? (
+          <p className="rounded-2xl border border-bd bg-bg2/20 px-3 py-2 text-sm leading-relaxed text-tx2">
+            {String(item.meta.caption).slice(0, 420)}
+            {String(item.meta.caption).length > 420 ? '…' : ''}
+          </p>
+        ) : null}
+
         {channels.length > 1 ? (
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="Composed channels">
             {channels.map((ch) => (
@@ -133,24 +142,6 @@ export function ReviewDraftDetail({
             ))}
           </div>
         ) : null}
-
-        <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30">
-          {composedUrl ? (
-            <img
-              src={composedUrl}
-              alt={`Composed ${activeChannel}`}
-              className="min-h-[280px] w-full object-contain md:min-h-[480px]"
-              data-testid="composed-preview"
-            />
-          ) : (
-            <div
-              className="flex min-h-[280px] items-center justify-center text-sm text-tx3 md:min-h-[480px]"
-              data-testid="composed-preview-empty"
-            >
-              No composed preview yet
-            </div>
-          )}
-        </div>
 
         {candidates.length ? (
           <div>
@@ -239,6 +230,24 @@ export function ReviewDraftDetail({
           {qcReasons.length ? (
             <span className="text-xs text-tx3">{qcReasons.join(' · ')}</span>
           ) : null}
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30">
+          {composedUrl ? (
+            <img
+              src={composedUrl}
+              alt={`Composed ${activeChannel}`}
+              className="mx-auto max-h-[min(50vh,22rem)] w-full object-contain"
+              data-testid="composed-preview"
+            />
+          ) : (
+            <div
+              className="flex min-h-[10rem] items-center justify-center text-sm text-tx3"
+              data-testid="composed-preview-empty"
+            >
+              No composed preview yet
+            </div>
+          )}
         </div>
       </div>
 

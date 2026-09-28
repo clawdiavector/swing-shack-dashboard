@@ -256,7 +256,7 @@ function ReviewInbox({
           <h2 className="font-display text-xl font-semibold">Queue</h2>
           <Badge tone="gold">{shown.length}</Badge>
         </div>
-        <ul className="space-y-2">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shown.map((item) => {
             const thumb = inboxItemThumbUrl(item)
             const kind = reviewType(item.type).label
@@ -272,19 +272,19 @@ function ReviewInbox({
               <QueueItem
                 key={item.id}
                 to={reviewPiecePath(item.id, item.brand_id)}
+                layout="vertical"
+                brandSlot={<BrandChip brandId={item.brand_id} show />}
                 typeBadge={kind}
                 stateBadge={stateChip}
                 hideImageFallbackBadge
                 channelBadge={channel || undefined}
                 title={item.title || item.summary || item.id}
-                meta={[item.meta?.caption?.slice(0, 70)].filter(Boolean).join(' · ')}
-                footer={isAll ? <BrandChip brandId={item.brand_id} show /> : undefined}
+                meta={[item.meta?.caption?.slice(0, 140)].filter(Boolean).join(' · ')}
                 stamp={goesOut || item.created_at}
                 stampKind={goesOut ? 'goes_out' : 'created'}
                 dateOnly={Boolean(goesOut)}
                 thumb={thumb || undefined}
                 thumbAlt={item.title || item.id}
-                thumbClassName="h-[120px] w-[120px] shrink-0 rounded-xl border border-bd object-cover"
                 action={
                   <Tip text="Mark this approved. It will not go live.">
                     <button

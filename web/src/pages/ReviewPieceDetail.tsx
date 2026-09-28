@@ -141,7 +141,7 @@ export function ReviewPieceDetail({
                 src={visualUrl}
                 alt={asset?.name || 'Asset visual'}
                 onError={onImgBroken}
-                className="max-h-80 w-full rounded-2xl border border-bd object-contain"
+                className="mx-auto max-h-[min(50vh,22rem)] w-full rounded-2xl border border-bd object-contain"
               />
             </a>
           </Tip>
