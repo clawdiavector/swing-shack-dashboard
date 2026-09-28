@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from _lib import publish_sandbox as sandbox
+from _lib.brand_validate import validate_brand_id
 from _lib.postiz_client import create_post, list_integrations, postiz_status, upload_media
 from _lib.publish_image import resolve_queue_upload_path
 
@@ -37,7 +38,7 @@ def _normalize_integrations(raw: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _media_ids_for_row(row: dict[str, Any]) -> list[str]:
+def _media_ids_for_row(row: dict[str, Any], *, brand_id: str) -> list[str]:
     media_ids: list[str] = []
     resolved = resolve_queue_upload_path(row)
     if resolved is None:
@@ -51,7 +52,7 @@ def _media_ids_for_row(row: dict[str, Any]) -> list[str]:
             resolved = Path(upload_path)
     if resolved is None or not resolved.is_file():
         return media_ids
-    data, err = upload_media(str(resolved))
+    data, err = upload_media(str(resolved), brand_id=brand_id)
     if not err and isinstance(data, dict):
         mid = data.get("id") or data.get("mediaId")
         if mid:
@@ -59,7 +60,29 @@ def _media_ids_for_row(row: dict[str, Any]) -> list[str]:
     return media_ids
 
 
-def _dispatch_row_live(row: dict[str, Any], integrations: list[dict[str, Any]]) -> tuple[dict[str, Any], Optional[str]]:
+def _integrations_for_brand(
+    brand_id: str,
+    cache: dict[str, list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], Optional[str]]:
+    if brand_id in cache:
+        return cache[brand_id], None
+    st = postiz_status(brand_id=brand_id)
+    if not (st.get("configured") or st.get("ok") or st.get("api_key_present")):
+        return [], f"Postiz not configured for brand={brand_id!r}"
+    raw, int_err = list_integrations(brand_id=brand_id)
+    if int_err:
+        return [], f"list_integrations: {int_err[0]}"
+    integrations = _normalize_integrations(raw)
+    if not integrations:
+        return [], f"no Postiz integrations for brand={brand_id!r}"
+    cache[brand_id] = integrations
+    return integrations, None
+
+
+def _dispatch_row_live(
+    row: dict[str, Any],
+    integrations_cache: dict[str, list[dict[str, Any]]],
+) -> tuple[dict[str, Any], Optional[str]]:
     if not row.get("human_approved"):
         return {}, "human_approved required"
     key = str(row.get("idempotency_key") or "")
@@ -70,6 +93,11 @@ def _dispatch_row_live(row: dict[str, Any], integrations: list[dict[str, Any]]) 
     if existing:
         return existing, None
 
+    brand_id = validate_brand_id(row.get("brand_id") or "")
+    integrations, load_err = _integrations_for_brand(brand_id, integrations_cache)
+    if load_err:
+        return {}, load_err
+
     platform = str(row.get("platform") or "instagram")
     integration_id = _integration_for_platform(integrations, platform)
     if not integration_id:
@@ -79,7 +107,7 @@ def _dispatch_row_live(row: dict[str, Any], integrations: list[dict[str, Any]]) 
     if not caption:
         return {}, "empty caption"
 
-    media_ids = _media_ids_for_row(row)
+    media_ids = _media_ids_for_row(row, brand_id=brand_id)
     publish_date = row.get("would_publish_at")
     if publish_date and not str(publish_date).endswith("Z"):
         publish_date = str(publish_date)
@@ -88,6 +116,7 @@ def _dispatch_row_live(row: dict[str, Any], integrations: list[dict[str, Any]]) 
         integration_id=integration_id,
         content=caption,
         media_ids=media_ids,
+        brand_id=brand_id,
         publish_date=str(publish_date) if publish_date else None,
     )
     if err:
@@ -117,29 +146,41 @@ def _dispatch_row_live(row: dict[str, Any], integrations: list[dict[str, Any]]) 
     return receipt, None
 
 
-def dispatch_pending() -> dict[str, Any]:
+def dispatch_pending(*, brand: str | None = None) -> dict[str, Any]:
     """Process human-approved pending queue rows via Postiz."""
     sandbox.ensure_sandbox_layout()
-    st = postiz_status()
-    if not (st.get("configured") or st.get("ok") or st.get("api_key_present")):
-        return {
-            "ok": False,
-            "mode": "live",
-            "error": "Postiz not configured — connect via Connected Accounts / OAuth",
-        }
+    brand_filter = validate_brand_id(brand) if brand else None
 
-    raw, int_err = list_integrations()
-    if int_err:
-        return {"ok": False, "mode": "live", "error": f"list_integrations: {int_err[0]}"}
-    integrations = _normalize_integrations(raw)
-    if not integrations:
-        return {"ok": False, "mode": "live", "error": "no Postiz integrations connected"}
-
-    queue_view = sandbox.list_queue(limit=200)
+    queue_view = sandbox.list_queue(limit=200, brand=brand_filter)
     targets = [
         it for it in (queue_view.get("items") or [])
         if it.get("human_approved") and str(it.get("status") or "") == "pending"
     ]
+    if brand_filter:
+        targets = [t for t in targets if validate_brand_id(t.get("brand_id") or "") == brand_filter]
+
+    if not targets:
+        return {
+            "ok": True,
+            "mode": "live",
+            "dispatched": 0,
+            "refused": 0,
+            "skipped_unapproved": 0,
+            "errors": [],
+            "brand": brand_filter,
+            "writes": [],
+        }
+
+    brand_ids = {validate_brand_id(t.get("brand_id") or "") for t in targets}
+    for bid in brand_ids:
+        st = postiz_status(brand_id=bid)
+        if not (st.get("configured") or st.get("ok") or st.get("api_key_present")):
+            return {
+                "ok": False,
+                "mode": "live",
+                "error": f"Postiz not configured for brand={bid!r}",
+                "brand": brand_filter,
+            }
 
     rows = sandbox._read_jsonl(sandbox._queue_path())
     dispatched = 0
@@ -149,6 +190,7 @@ def dispatch_pending() -> dict[str, Any]:
 
     updated_rows: list[dict[str, Any]] = []
     target_keys = {str(t.get("idempotency_key") or "") for t in targets}
+    integrations_cache: dict[str, list[dict[str, Any]]] = {}
 
     for row in rows:
         if row.get("status") != "pending":
@@ -161,7 +203,7 @@ def dispatch_pending() -> dict[str, Any]:
             updated_rows.append(row)
             continue
         enriched = next((t for t in targets if str(t.get("idempotency_key") or "") == key), row)
-        receipt, err = _dispatch_row_live(enriched, integrations)
+        receipt, err = _dispatch_row_live(enriched, integrations_cache)
         if err:
             refused += 1
             errors.append(f"{key}: {err}")
@@ -179,5 +221,6 @@ def dispatch_pending() -> dict[str, Any]:
         "refused": refused,
         "skipped_unapproved": skipped,
         "errors": errors[:20],
+        "brand": brand_filter,
         "writes": ["publish-sandbox/queue.jsonl", "publish-sandbox/receipts.jsonl"],
     }
