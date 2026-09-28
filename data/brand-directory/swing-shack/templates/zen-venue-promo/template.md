@@ -7,7 +7,8 @@ accent question + optional benefit subline over a dark venue photo.
 
 ## Anatomy
 
-- Full-bleed venue photo, centre-cropped (no scrim on the reference photo)
+- Full-bleed venue photo, centre-cropped (no scrim on the reference photo). Library JPEG
+  is cropped below the reference typography band — do not replace with the full ref export.
 - Frame: 3px white at 55%, inset 34px
 - Kicker: `HAVE YOU TRIED THE` — Montserrat ExtraLight Italic, white, 21px above headline
 - Headline: feature name + `?` — Montserrat Black Italic, flat accent fill (no echo)

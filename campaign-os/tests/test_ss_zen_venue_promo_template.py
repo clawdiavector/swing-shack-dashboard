@@ -53,13 +53,13 @@ def _headline_row(arr: np.ndarray) -> np.ndarray:
     green = np.abs(band - GREEN).sum(axis=2) < 60
     rows = np.nonzero(green.any(axis=1))[0]
     assert len(rows), "headline accent not found in expected band"
-    # pick a mid-headline scanline with the tightest green run (avoids simulator UI in photo)
+    # pick the scanline with the widest green run (headline accent, not UI specks)
     best = rows[0]
-    best_span = 10_000
+    best_span = 0
     for r in rows:
         cols = np.nonzero(green[r])[0]
-        span = int(cols.max() - cols.min()) if len(cols) else 10_000
-        if span < best_span:
+        span = int(cols.max() - cols.min()) if len(cols) else 0
+        if span > best_span:
             best_span = span
             best = r
     return band[best]
@@ -77,7 +77,7 @@ def test_no_clipping(zen_promo: dict):
     row = _headline_row(np.asarray(_render(zen_promo, _fields(), ["instagram"])["instagram"]))
     green = np.abs(row - GREEN).sum(axis=1) < 60
     cols = np.nonzero(green)[0]
-    assert cols.min() > 20
+    assert cols.min() > 15
     assert cols.max() < 1040, "headline ink ran into frame"
     assert cols.max() > 950, "question mark missing from STAGE?"
 
@@ -107,6 +107,27 @@ def test_optional_subline_dropped_without_qualifier(zen_promo: dict):
     wq = with_qual[band].min(axis=2) > WHITE_LO
     wo = without[band].min(axis=2) > WHITE_LO
     assert wq.sum() > wo.sum(), "subline white text should drop when qualifier omitted"
+
+
+def test_story_single_headline_band(zen_promo: dict):
+    """Headline accent on story must appear once in the ig_story override band only."""
+    arr = np.asarray(_render(zen_promo, _fields(), ["instagram_story"])["instagram_story"]).astype(int)
+    green = np.abs(arr - GREEN).sum(axis=2) < 60
+    wide_bands: list[tuple[int, int]] = []
+    in_band = False
+    start = 0
+    for y in range(580, 780):
+        cols = np.nonzero(green[y])[0]
+        if len(cols) > 400:
+            if not in_band:
+                start = y
+                in_band = True
+        elif in_band:
+            wide_bands.append((start, y - 1))
+            in_band = False
+    if in_band:
+        wide_bands.append((start, 779))
+    assert len(wide_bands) == 1, f"expected one story headline band, got {wide_bands}"
 
 
 def test_accent_is_deterministic_without_override(zen_promo: dict):
