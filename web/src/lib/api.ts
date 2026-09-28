@@ -1105,12 +1105,13 @@ export function fetchCampaign(campaignId: string) {
   return getJson<Campaign>(`/api/campaigns/${encodeURIComponent(campaignId)}`)
 }
 
-const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/']
+const MEDIA_ROOTS = ['assets/', 'asset-media/', 'brand-images/', 'brand-directory/']
 
 export function resolveAssetUrl(raw?: string | null): string {
   const p = (raw || '').trim()
   if (!p) return ''
   if (/^(https?:|data:|blob:|file:)/i.test(p)) return p
+  if (p.startsWith('/brand-directory/')) return p
   let s = p.replace(/^\/+/, '')
   while (s.startsWith('assets/assets/')) s = s.slice('assets/'.length)
   if (MEDIA_ROOTS.some((root) => s.startsWith(root))) return `/${s}`

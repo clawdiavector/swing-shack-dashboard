@@ -278,10 +278,7 @@ function ReviewInbox({
                 brandSlot={
                   <>
                     <BrandChip brandId={item.brand_id} show />
-                    <TemplateReferenceTag
-                      meta={templateMetaFromInbox(item)}
-                      onClickCapture={(e) => e.stopPropagation()}
-                    />
+                    <TemplateReferenceTag meta={templateMetaFromInbox(item)} preview="label-only" />
                   </>
                 }
                 typeBadge={kind}

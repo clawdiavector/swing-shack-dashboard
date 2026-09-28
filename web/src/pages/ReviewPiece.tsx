@@ -408,10 +408,7 @@ export function ReviewPiece() {
                 brandSlot={
                   <>
                     <BrandChip brandId={row.brand_id} show />
-                    <TemplateReferenceTag
-                      meta={templateMetaFromInbox(row)}
-                      onClickCapture={(e) => e.stopPropagation()}
-                    />
+                    <TemplateReferenceTag meta={templateMetaFromInbox(row)} preview="label-only" />
                   </>
                 }
                 badge={media.label}

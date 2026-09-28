@@ -12,6 +12,7 @@ import {
 } from '../lib/reviewDraftMeta'
 import { templateMetaFromInbox } from '../lib/templateMeta'
 import { BrandChip } from './BrandChip'
+import { TemplateReferenceCompare } from './TemplateReferenceCompare'
 import { TemplateReferenceTag } from './TemplateReferenceTag'
 import { Badge, PressIcon, Tip } from './ui'
 
@@ -236,13 +237,12 @@ export function ReviewDraftDetail({
           ) : null}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30">
+        <div className="overflow-hidden rounded-2xl border border-bd bg-bg2/30 p-2">
           {composedUrl ? (
-            <img
-              src={composedUrl}
-              alt={`Composed ${activeChannel}`}
-              className="mx-auto max-h-[min(50vh,22rem)] w-full object-contain"
-              data-testid="composed-preview"
+            <TemplateReferenceCompare
+              draftUrl={composedUrl}
+              draftAlt={`Composed ${activeChannel}`}
+              templateMeta={templateMeta}
             />
           ) : (
             <div
