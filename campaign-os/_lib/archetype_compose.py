@@ -357,7 +357,9 @@ def _zone_colour(zone: dict[str, Any], brand_id: str, text: str, fields: dict[st
     if isinstance(options, list) and options:
         picked = str(fields.get("accent") or "").strip()
         if picked not in options:
-            picked = str(options[zlib.crc32(text.upper().encode("utf-8")) % len(options)])
+            seed_key = str(zone.get("colour_seed") or "")
+            seed = str(fields.get(seed_key) or "") if seed_key else ""
+            picked = str(options[zlib.crc32((seed or text).upper().encode("utf-8")) % len(options)])
         return _palette_colour(picked, brand_id)
     return _palette_colour(str(zone.get("colour") or "white"), brand_id)
 
@@ -464,7 +466,10 @@ def _draw_text_zone(
         )
     if layer is not None:
         if h_scale != 1.0:
-            pivot = origin_x if align == "left" else (x0 + x1) / 2
+            pivot_map = {"left": x0, "right": x1}
+            pivot = pivot_map.get(str(zone.get("h_scale_pivot") or "").lower())
+            if pivot is None:
+                pivot = origin_x if align == "left" else (x0 + x1) / 2
             scaled = layer.resize((max(1, int(layer_w * h_scale)), canvas_h), Image.LANCZOS)
             layer = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
             layer.paste(scaled, (int(round(pivot - pivot * h_scale)), 0))

@@ -40,6 +40,9 @@
     "ss_orange": "#E27123",
     "ss_blue": "#64A3F0",
     "ss_purple": "#8F4BFA",
+    "ss_orange_bright": "#F58E20",
+    "ss_blue_bright": "#3B7FEE",
+    "ss_panel_black": "#070707",
     "white": "#FFFFFF"
   },
   "tokens_source": "measured 2026-09-27 from Content Bank Services/cf1–cf6 headline fills",
