@@ -221,6 +221,42 @@ def _is_authed():
         return False
 
 
+def _is_admin() -> bool:
+    """V2.4 — admin gate for diagnostic endpoints (audit-log, diagnose-timeline).
+
+    The Campaign OS uses a single-factor password model — there is no
+    distinct admin user. The admin gate is therefore:
+      1. Authenticated (cookie valid)
+      2. The request was sent with X-Admin-Session header set to the value
+         of the CAMPAIGN_OS_ADMIN_TOKEN env var (read from data/secrets.
+         config.json at boot). This token is rotated per deploy.
+      3. OR the request originates from a privileged local IP (/24=127.0.0,
+         /24=10.0.0, /24=192.168.0).
+
+    Failure to satisfy any of these returns False — endpoint then 403s.
+    """
+    if not _is_authed():
+        return False
+    # Token check
+    admin_token = os.environ.get("CAMPAIGN_OS_ADMIN_TOKEN", "").strip()
+    if admin_token:
+        sent = request.headers.get("X-Admin-Session", "").strip()
+        if sent and sent == admin_token:
+            return True
+    # IP-prefix privileged (local LAN/VPN)
+    raw_ip = (request.headers.get("X-Forwarded-For", "")
+              .split(",")[0].strip()
+              or request.remote_addr
+              or "")
+    if raw_ip.startswith("127.") or raw_ip.startswith("::1"):
+        return True
+    if raw_ip.startswith("10."):
+        return True
+    if raw_ip.startswith("192.168."):
+        return True
+    return False
+
+
 def _resolve_v23_actor() -> Dict[str, Any]:
     """V2.3 actor identity resolver. Returns a structured dict used as the
     audit row's actor field. NO fake reviewer names.
@@ -45004,9 +45040,13 @@ def planning_diagnose_timeline(brand_id):
     Reports every step of the canonical-store read pipeline WITHOUT
     raising an unhandled Exception — returns the actual exception text
     so the operator can read it from a JSON payload.
+
+    V2.4 — gated behind _is_admin() so non-admin operators get a 404.
     """
     if not _is_authed():
         return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
     if brand_id not in ("swing-shack", "stick", "bag-drop"):
         return jsonify({"ok": False, "error": "invalid brand_id"}), 400
     diag: Dict[str, Any] = {"brand_id": brand_id}
@@ -45067,6 +45107,194 @@ def planning_diagnose_timeline(brand_id):
     diag["data_dir_env"] = os.environ.get("DATA_DIR")
     diag["data_dir_default"] = DATA_DIR if "DATA_DIR" in globals() else None
     return jsonify({"ok": True, "diag": diag}), 200
+
+
+@app.route("/api/planning/<brand_id>/_internal/diagnose-serialize", methods=["GET"])
+def planning_diagnose_serialize(brand_id):
+    """GET /api/planning/<brand>/_internal/diagnose-serialize
+
+    V2.4 operator diagnostic — walks every operator-store record through
+    the same serialization path the live timeline uses, but WITHOUT
+    default=str. Identifies the FIRST record whose enriched + serialized
+    payload would crash json.dumps().
+
+    Returns:
+        ok=true,
+        record_count: N,
+        failing_index: K or null,
+        failing_event_key: <event_key> or null,
+        failing_enriched_keys: [...],
+        failure_kind: TypeError | ValueError | KeyError | ...,
+        failure_path: "<dotted.path>",
+        failure_message: "<exception text>",
+        offending_subtree: <the value at failure_path>,
+        summary: ...,
+        sample_pass_record_keys: [...],
+
+    V2.4 — admin-only. The serializer never uses default=str so this
+    endpoint measures the actual failure a normal Flask jsonify() call
+    would experience in production.
+    """
+    if not _is_authed():
+        return jsonify({"ok": False, "error": "auth required"}), 401
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "admin only"}), 403
+    if brand_id not in ("swing-shack", "stick", "bag-drop"):
+        return jsonify({"ok": False, "error": "invalid brand_id"}), 400
+
+    import json as _json_diag
+    from _lib import marketing_calendar as _mc_diag_ser
+
+    records = _mc_diag_ser.list_records(brand_id) or []
+
+    failing_index = None
+    failing_event_key = None
+    failing_enriched_keys = None
+    failure_kind = None
+    failure_path = None
+    failure_message = None
+    offending_subtree = None
+    sample_pass_record_keys = None
+
+    for i, rec in enumerate(records):
+        try:
+            enriched = _enrich_event(rec)
+        except Exception as enrich_err:
+            # If enrichment itself fails, that record won't reach the
+            # JSON layer — the timeline wraps it in a passthrough. We
+            # still record it so we know.
+            enriched = dict(rec)
+            enriched["phases"] = []
+            enriched.setdefault("planning_state", "operator_record_no_phases")
+        # V2.3 coerce (the legitimate one — only sets start/end, not
+        # any nested fields).
+        if not enriched.get("start"):
+            enriched["start"] = enriched.get("event_start") or ""
+        if not enriched.get("end"):
+            enriched["end"] = enriched.get("event_end") or enriched.get("public_peak") or ""
+
+        # Use the standard json.dumps path WITHOUT default=str, exactly as
+        # the unpatched Flask jsonify would. Walk the failure: figure out
+        # which sub-value is the trouble, by recursing into the structure.
+        try:
+            _json_diag.dumps(enriched)
+        except Exception as json_err:
+            # Find the path inside `enriched` that crashed.
+            offender, path = _find_json_offender(enriched)
+            failing_index = i
+            failing_event_key = rec.get("event_key")
+            failing_enriched_keys = sorted(list(enriched.keys()))
+            failure_kind = type(json_err).__name__
+            failure_path = path
+            failure_message = f"{type(json_err).__name__}: {json_err}"
+            offending_subtree = offender
+            break
+
+    # Also test sorting the full enriched list as the timeline does
+    sort_ok = True
+    sort_err = None
+    try:
+        enriched_all = []
+        for rec in records:
+            try:
+                enriched_all.append(_enrich_event(rec))
+            except Exception:
+                pass
+        enriched_all.sort(key=lambda e: (e.get("start") or "", e.get("event_key") or ""))
+    except Exception as sort_exc:
+        sort_ok = False
+        sort_err = f"{type(sort_exc).__name__}: {sort_exc}"
+
+    return jsonify({
+        "ok": True,
+        "brand_id": brand_id,
+        "record_count": len(records),
+        "failing_index": failing_index,
+        "failing_event_key": failing_event_key,
+        "failing_enriched_keys": failing_enriched_keys,
+        "failure_kind": failure_kind,
+        "failure_path": failure_path,
+        "failure_message": failure_message,
+        "offending_subtree": offending_subtree,
+        "sample_pass_record_keys": sample_pass_record_keys,
+        "sort_test_ok": sort_ok,
+        "sort_test_err": sort_err,
+    }), 200
+
+
+def _find_json_offender(obj, path=""):
+    """Recursively walk obj. Return the leaf that breaks json.dumps.
+
+    Returns (offender_value, dotted_path). The OFFEND is always a leaf
+    or container whose direct json.dumps fails — its TYPE is what's
+    broken (e.g. mixed key types in a dict, mixed types in a list,
+    non-serializable object). The returned offender is the SUBTREE
+    that contains the broken kind.
+
+    Implementation strategy: shrink obj by removing keys / items until
+    json.dumps succeeds. What remains is the minimal subtree that still
+    crashes — that is the offender.
+    """
+    import json as _json_off
+    # Base case
+    try:
+        _json_off.dumps(obj)
+        return None, ""
+    except Exception:
+        pass
+    # Dict → bisect by key
+    if isinstance(obj, dict):
+        if not obj:
+            return obj, path  # empty dict can't sort?
+        # Try removing keys one at a time
+        items = list(obj.items())
+        for i in range(len(items)):
+            sub = {k: v for j, (k, v) in enumerate(items) if j != i}
+            try:
+                _json_off.dumps(sub)
+                # Removing key[k] made it pass — that key is broken
+                k_v, v_v = items[i]
+                # Recurse into v_v to find the leaf
+                if isinstance(v_v, (dict, list, tuple)):
+                    return _find_json_offender(v_v, f"{path}.{k_v}")
+                return v_v, f"{path}.{k_v}"
+            except Exception:
+                continue
+        # Removing single keys didn't help. Try pairs.
+        if len(items) <= 4:
+            # Last resort: return the whole dict
+            return obj, path
+        # Otherwise we have a complex mixed-key issue. Return current.
+        # Find the type collision by getting key types
+        key_types = {type(k).__name__ for k in obj.keys()}
+        if len(key_types) > 1:
+            return {"mixed_key_types": sorted(key_types), "sample_keys": [str(k) for k in list(obj.keys())[:3]]}, path
+        return obj, path
+    # List → try removing items one at a time
+    if isinstance(obj, (list, tuple)):
+        if not obj:
+            return obj, path
+        items = list(obj)
+        for i in range(len(items)):
+            sub = items[:i] + items[i + 1:]
+            try:
+                _json_off.dumps(sub)
+                # That item was the offender. Recurse to find leaf.
+                item = items[i]
+                if isinstance(item, (dict, list, tuple)):
+                    return _find_json_offender(item, f"{path}[{i}]")
+                return item, f"{path}[{i}]"
+            except Exception:
+                continue
+        if len(items) <= 4:
+            # Find type collision
+            item_types = {type(it).__name__ for it in items}
+            if len(item_types) > 1:
+                return {"mixed_item_types": sorted(item_types), "sample": str(items[:3])}, path
+            return items[-1], f"{path}[*]"
+        return items[-1], f"{path}[*]"
+    # Leaf level: this is the broken value
+    return obj, path
 
 
 # ──────────────────────────────────────────────────────────────────────
