@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   buildMonthGridCells,
+  clampPlanningTimelineYear,
   filterMonthItemsByLane,
   formatLocalIso,
+  formatTimelineWindowLabel,
   localTodayIso,
   monthlyThemeLabel,
+  shiftPlanningTimelineYear,
 } from './planning'
 import type { PlanningMonthItem } from './planningTypes'
 
@@ -82,5 +85,54 @@ describe('filterMonthItemsByLane', () => {
 
   it('narrows to one lane', () => {
     expect(filterMonthItemsByLane(items, 'fitting')).toHaveLength(2)
+  })
+})
+
+describe('formatTimelineWindowLabel', () => {
+  it('uses calendar year at 12M zoom instead of rolling offset', () => {
+    expect(
+      formatTimelineWindowLabel({
+        zoomDays: 365,
+        yearInt: 2026,
+        offsetDays: 365,
+        todayIso: '2026-09-29',
+      }),
+    ).toBe('Jan 1 → Dec 31 · 2026')
+  })
+
+  it('uses rolling window for sub-year zooms', () => {
+    expect(
+      formatTimelineWindowLabel({
+        zoomDays: 90,
+        yearInt: 2026,
+        offsetDays: 0,
+        todayIso: '2026-09-29',
+      }),
+    ).toBe('Sep 29 → Dec 28')
+  })
+
+  it('advances rolling window start when offset increases', () => {
+    expect(
+      formatTimelineWindowLabel({
+        zoomDays: 90,
+        yearInt: 2026,
+        offsetDays: 90,
+        todayIso: '2026-09-29',
+      }),
+    ).toBe('Dec 28 → Mar 28 \'27')
+  })
+})
+
+describe('shiftPlanningTimelineYear', () => {
+  it('clamps to supported planning years', () => {
+    expect(shiftPlanningTimelineYear(2026, -1)).toBeNull()
+    expect(shiftPlanningTimelineYear(2026, 1)).toBe(2027)
+    expect(shiftPlanningTimelineYear(2027, 1)).toBeNull()
+  })
+
+  it('clampPlanningTimelineYear keeps value in range', () => {
+    expect(clampPlanningTimelineYear(2025)).toBe(2026)
+    expect(clampPlanningTimelineYear(2028)).toBe(2027)
+    expect(clampPlanningTimelineYear(2026)).toBe(2026)
   })
 })

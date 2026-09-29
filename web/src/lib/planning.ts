@@ -101,6 +101,48 @@ export function localTodayIso(from: Date = new Date()): string {
   return formatLocalIso(from)
 }
 
+/** Matches Strategic Calendar year dropdown in Lanes.tsx */
+export const PLANNING_TIMELINE_YEAR_MIN = 2026
+export const PLANNING_TIMELINE_YEAR_MAX = 2027
+
+export function shiftPlanningTimelineYear(yearInt: number, delta: number): number | null {
+  const next = yearInt + delta
+  if (next < PLANNING_TIMELINE_YEAR_MIN || next > PLANNING_TIMELINE_YEAR_MAX) return null
+  return next
+}
+
+export function clampPlanningTimelineYear(yearInt: number): number {
+  return Math.min(
+    PLANNING_TIMELINE_YEAR_MAX,
+    Math.max(PLANNING_TIMELINE_YEAR_MIN, yearInt),
+  )
+}
+
+function timelineMonthShort(d: Date, refYear: number): string {
+  const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const ySuffix = d.getFullYear() !== refYear ? ` '${String(d.getFullYear()).slice(-2)}` : ''
+  return `${m[d.getMonth()]} ${d.getDate()}${ySuffix}`
+}
+
+/** Window caption for Event timeline — full-year zoom uses calendar year, not rolling offset. */
+export function formatTimelineWindowLabel(opts: {
+  zoomDays: number
+  yearInt: number
+  offsetDays: number
+  todayIso: string
+}): string {
+  const { zoomDays, yearInt, offsetDays, todayIso } = opts
+  if (zoomDays >= 365) {
+    return `Jan 1 → Dec 31 · ${yearInt}`
+  }
+  const todayDate = new Date(`${todayIso}T00:00:00`)
+  const visibleStart = new Date(todayDate)
+  visibleStart.setDate(visibleStart.getDate() + offsetDays)
+  const visibleEnd = new Date(visibleStart)
+  visibleEnd.setDate(visibleEnd.getDate() + zoomDays)
+  return `${timelineMonthShort(visibleStart, yearInt)} → ${timelineMonthShort(visibleEnd, yearInt)}`
+}
+
 export function shiftMonthParam(monthParam: string, delta: number): string {
   const [y, m] = monthParam.split('-').map(Number)
   const d = new Date(y, m - 1 + delta, 1)
