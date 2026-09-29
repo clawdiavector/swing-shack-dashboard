@@ -13,17 +13,28 @@ from _lib.publish_image import resolve_queue_upload_path
 
 
 def _integration_for_platform(integrations: list[dict[str, Any]], platform: str) -> Optional[str]:
+    """Pick the Postiz integration for a platform.
+
+    Hosted Postiz puts the channel on ``identifier`` (instagram, facebook)
+    while ``name`` is the account label ("Stick", "Stick Paarl"). Matching
+    name-only misses those and must not fall back to a different channel.
+    """
     want = (platform or "instagram").strip().lower()
     for it in integrations:
         if not isinstance(it, dict):
             continue
-        provider = str(it.get("providerIdentifier") or it.get("provider") or it.get("type") or "").lower()
+        provider = str(
+            it.get("providerIdentifier")
+            or it.get("provider")
+            or it.get("identifier")
+            or it.get("type")
+            or ""
+        ).lower()
         name = str(it.get("name") or "").lower()
         if want in (provider, name) or want in provider or want in name:
-            return str(it.get("id") or it.get("_id") or "") or None
-    if integrations:
-        first = integrations[0]
-        return str(first.get("id") or first.get("_id") or "") or None
+            iid = str(it.get("id") or it.get("_id") or "")
+            if iid:
+                return iid
     return None
 
 

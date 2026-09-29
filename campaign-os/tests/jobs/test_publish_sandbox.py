@@ -238,6 +238,18 @@ class PublishSandboxTests(unittest.TestCase):
         receipts = publish_sandbox._read_jsonl(publish_sandbox._receipts_path())
         self.assertEqual(receipts[0].get("postiz_post_id"), "postiz-123")
 
+    def test_integration_match_uses_identifier_not_first_channel(self) -> None:
+        from _lib.publish_live import _integration_for_platform
+
+        integrations = [
+            {"id": "tt", "name": "stick Paarl", "identifier": "tiktok-business"},
+            {"id": "ig", "name": "Stick", "identifier": "instagram"},
+            {"id": "fb", "name": "Stick Paarl", "identifier": "facebook"},
+        ]
+        self.assertEqual(_integration_for_platform(integrations, "instagram"), "ig")
+        self.assertEqual(_integration_for_platform(integrations, "facebook"), "fb")
+        self.assertIsNone(_integration_for_platform(integrations, "linkedin"))
+
 
 if __name__ == "__main__":
     unittest.main()
