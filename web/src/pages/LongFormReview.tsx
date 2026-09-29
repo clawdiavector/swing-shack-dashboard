@@ -137,6 +137,7 @@ type Article = {
   ok: boolean
   title?: string
   body?: string
+  body_markdown?: string
   cta?: string
   cta_url?: string
   source?: 'review' | 'writer'
@@ -635,7 +636,7 @@ function ArticleTab({
           customer-facing article · built from the writer artifact
         </p>
         <div className="prose prose-invert mt-6 max-w-none text-base leading-relaxed text-tx">
-          {(article?.body || '')
+          {(article?.body_markdown || article?.body || '')
             .split('\n')
             .map((line, i) => (
               <p
