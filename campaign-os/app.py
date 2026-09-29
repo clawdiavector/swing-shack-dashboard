@@ -50964,6 +50964,14 @@ if __name__ == '__main__':
         _v211_review_ingest()
     except Exception as _e:
         print(f'[boot] v2.11 review writer ingest failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — One-shot cleanup of acceptance-test fixture Review
+        # records + writer artifacts from before the fixture-* ingest guard
+        # shipped. Idempotent (marker file gates re-runs).
+        from patch_review_fixture_cleanup_v211 import main as _v211_fixture_cleanup
+        _v211_fixture_cleanup()
+    except Exception as _e:
+        print(f'[boot] v2.11 review fixture cleanup failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:
