@@ -50902,6 +50902,28 @@ if __name__ == '__main__':
         _v211_dates_main()
     except Exception as _e:
         print(f'[boot] v2.11 dates patch failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — Long-form content Review layer.
+        # Wire the existing _lib/review_routes.register_routes(app) so the
+        # campaign-os-writer pipeline ends in a human-review surface. The
+        # Writer artifact already exists in the canonical heidi outbox;
+        # Review routes will discover it lazily and surface it in the OS
+        # shell. This is Review-only: NO publishing routes are added.
+        from _lib.review_routes import register_routes as _register_review_routes
+        _register_review_routes(app)
+        print('[boot] review v1 routes registered', flush=True, file=_sys.stderr)
+    except Exception as _e:
+        print(f'[boot] review v1 routes failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — Ingest the canonical Writer artifact onto the Railway
+        # volume so the Review layer can find it. The Writer writes to the
+        # local heidi outbox (Mac); on Railway we ship it into the Docker
+        # image at /app/data/writer-artifacts/<brand>/<slug>.json and this
+        # script copies it onto the persistent volume.
+        from patch_review_writer_ingest_v211 import main as _v211_review_ingest
+        _v211_review_ingest()
+    except Exception as _e:
+        print(f'[boot] v2.11 review writer ingest failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:

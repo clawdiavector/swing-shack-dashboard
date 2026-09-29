@@ -340,7 +340,15 @@ export function Review() {
 
   return (
     <div className="space-y-6">
-      <PageIntro here="/review" title="Review — drafts">
+      <PageIntro
+        here="/review"
+        title="Review — drafts"
+        actions={
+          <Button icon={Sparkles} tone="ghost" to="/review/long-form" tip="Open the long-form (article) Review queue.">
+            Long-form Review
+          </Button>
+        }
+      >
         Draft-ready posts on your desk. Candidates live on{' '}
         <Link to="/inbox" className="font-semibold text-ac hover:underline">
           Inbox

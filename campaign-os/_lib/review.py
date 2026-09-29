@@ -161,13 +161,22 @@ def _writer_artifact_candidates(brand_id: str, brief_id: str) -> List[str]:
     The slug is derived from the brief's "topic" or the brief_id minus
     the "seo-brief-" prefix. We try multiple candidate names because
     the writer's naming convention has varied across V1.x.
+
+    Order:
+      1. DATA_DIR/writer/<brand>/<slug>.json  (canonical Railway path —
+           the boot startup patch copies the in-repo baked artifact there.)
+      2. heidi outbox (Mac dev — overrides the volume if a fresher local
+           artifact exists.)
     """
     slug = brief_id.replace("seo-brief-", "")
     # If the slug starts with the brand_id (rare), strip it
     if slug.startswith(f"{brand_id}-"):
         slug = slug[len(brand_id) + 1:]
     candidates = [
-        # heidi outbox (canonical writer output)
+        # DATA_DIR canonical (Railway volume — set by the V2.11 boot
+        # startup patch from the in-repo baked artifact).
+        os.path.join(_data_root(), "writer", brand_id, f"{slug}.json"),
+        # heidi outbox (Mac dev environment — used when running locally).
         os.path.expanduser(
             f"~/.hermes/profiles/heidi/outbox/{brand_id}-writer-draft-{slug}.json"
         ),
@@ -175,8 +184,6 @@ def _writer_artifact_candidates(brand_id: str, brief_id: str) -> List[str]:
         os.path.expanduser(
             f"~/.hermes/profiles/heidi/outbox/{brand_id}-writer-draft-{brief_id.replace('seo-brief-', '').replace(brand_id + '-', '', 1)}.json"
         ),
-        # DATA_DIR fallback (some setups write here)
-        os.path.join(_data_root(), "writer", brand_id, f"{slug}.json"),
     ]
     return candidates
 

@@ -1,0 +1,394 @@
+{
+  "status": "DRAFT_FOR_REVIEW",
+  "draft_status": "WRITTEN",
+  "publishing": "NONE",
+  "live_site_changes": "NONE",
+  "operating_brand": "stick",
+  "approved_brief_id": "seo-brief-stick-off-rack",
+  "writer_mode": "UPDATE",
+  "model_audit": {
+    "status": "ok",
+    "provider": "https://api.minimaxi.chat/v1/text/chatcompletion_v2",
+    "model": "MiniMax-Text-01",
+    "temperature": 0.4,
+    "top_p": 0.9,
+    "max_tokens": 4096,
+    "prompt_tokens": 4491,
+    "completion_tokens": 1521,
+    "total_tokens": 6012,
+    "latency_ms": 36317,
+    "system_prompt_chars": 7823,
+    "user_prompt_chars": 10939,
+    "system_prompt_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/writer/model_calls/seo-brief-stick-off-rack/mc_0363534f1f7650_system.txt",
+    "user_prompt_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/writer/model_calls/seo-brief-stick-off-rack/mc_0363534f1f7650_user.txt",
+    "response_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/writer/model_calls/seo-brief-stick-off-rack/mc_0363534f1f7650_response.txt",
+    "call_id": "mc_0363534f1f7650",
+    "mode": "plain",
+    "stub_used": false,
+    "audit_record_path": "/Users/fivefriday/.openclaw-instance2/workspace/swing-shack-dashboard/data/writer/model_calls/seo-brief-stick-off-rack/mc_0363534f1f7650.json"
+  },
+  "content_decision": [
+    {
+      "block_id": "The Problem With “Standard Specs”",
+      "summary_of_block": "The Problem With “Standard Specs”",
+      "decision": "IMPROVE",
+      "rationale": "Spec-led opening is on-claim. Tighten for V5 brand voice and add one TrackMan anchor."
+    },
+    {
+      "block_id": "Custom Fitting Does Not Mean Fancy",
+      "summary_of_block": "Custom Fitting Does Not Mean Fancy",
+      "decision": "KEEP",
+      "rationale": "On-claim refutation of a common misconception. Voice intact."
+    },
+    {
+      "block_id": "Length: The Spec Golfers Ignore First",
+      "summary_of_block": "Length: The Spec Golfers Ignore First",
+      "decision": "IMPROVE",
+      "rationale": "Good — add an internal link to the existing driver-loft article to match the brief."
+    },
+    {
+      "block_id": "Lie Angle: Small Spec, Big Direction Change",
+      "summary_of_block": "Lie Angle: Small Spec, Big Direction Change",
+      "decision": "IMPROVE",
+      "rationale": "Useful number, but the 2-degree example feels borrowed; verify it against manufacturer or fitter docs and rephrase as a fitted example."
+    },
+    {
+      "block_id": "Shaft Choice Is Not Just Flex",
+      "summary_of_block": "Shaft Choice Is Not Just Flex",
+      "decision": "IMPROVE",
+      "rationale": "Good. Add the takomo/trackman session angle as proof."
+    },
+    {
+      "block_id": "Grip Size Is Not Decoration",
+      "summary_of_block": "Grip Size Is Not Decoration",
+      "decision": "KEEP",
+      "rationale": "On-claim, voice intact."
+    },
+    {
+      "block_id": "Set Makeup: The Shelf Does Not Know Your Game",
+      "summary_of_block": "Set Makeup: The Shelf Does Not Know Your Game",
+      "decision": "IMPROVE",
+      "rationale": "Good. Add an internal link to the closely-related \"why your wedges\" article."
+    },
+    {
+      "block_id": "The Real Cost Of Off-the-Rack Clubs",
+      "summary_of_block": "The Real Cost Of Off-the-Rack Clubs",
+      "decision": "KEEP",
+      "rationale": "Strong. Lead-in to the concrete example."
+    },
+    {
+      "block_id": "A Simple Fitting Example",
+      "summary_of_block": "A Simple Fitting Example",
+      "decision": "KEEP",
+      "rationale": "Concrete numbers; preserve."
+    },
+    {
+      "block_id": "What Proper Custom Fitting Checks",
+      "summary_of_block": "What Proper Custom Fitting Checks",
+      "decision": "IMPROVE",
+      "rationale": "Add bullet on TrackMan specifically and on what the player sees."
+    },
+    {
+      "block_id": "Off-the-Rack Does Not Mean Bad",
+      "summary_of_block": "Off-the-Rack Does Not Mean Bad",
+      "decision": "ADD",
+      "rationale": "Already in the page but feels defensive; add a brief \"When off-the-rack is fine\" sidebar/note as part of the UPDATE."
+    },
+    {
+      "block_id": "Standard Specs vs Custom Fitting",
+      "summary_of_block": "Standard Specs vs Custom Fitting",
+      "decision": "KEEP",
+      "rationale": "Useful comparison table; keep, mark up as table."
+    },
+    {
+      "block_id": "Final Word",
+      "summary_of_block": "Final Word",
+      "decision": "IMPROVE",
+      "rationale": "Replace the CTA pattern with the brief's verified CTA verbatim."
+    }
+  ],
+  "existing_content_plan": [
+    {
+      "existing_section_title": "The Problem With “Standard Specs”",
+      "classification": "IMPROVE",
+      "reason": "Spec-led opening is on-claim. Tighten for V5 brand voice and add one TrackMan anchor."
+    },
+    {
+      "existing_section_title": "Custom Fitting Does Not Mean Fancy",
+      "classification": "KEEP",
+      "reason": "On-claim refutation of a common misconception. Voice intact."
+    },
+    {
+      "existing_section_title": "Length: The Spec Golfers Ignore First",
+      "classification": "IMPROVE",
+      "reason": "Good — add an internal link to the existing driver-loft article to match the brief."
+    },
+    {
+      "existing_section_title": "Lie Angle: Small Spec, Big Direction Change",
+      "classification": "IMPROVE",
+      "reason": "Useful number, but the 2-degree example feels borrowed; verify it against manufacturer or fitter docs and rephrase as a fitted example."
+    },
+    {
+      "existing_section_title": "Shaft Choice Is Not Just Flex",
+      "classification": "IMPROVE",
+      "reason": "Good. Add the takomo/trackman session angle as proof."
+    },
+    {
+      "existing_section_title": "Grip Size Is Not Decoration",
+      "classification": "KEEP",
+      "reason": "On-claim, voice intact."
+    },
+    {
+      "existing_section_title": "Set Makeup: The Shelf Does Not Know Your Game",
+      "classification": "IMPROVE",
+      "reason": "Good. Add an internal link to the closely-related \"why your wedges\" article."
+    },
+    {
+      "existing_section_title": "The Real Cost Of Off-the-Rack Clubs",
+      "classification": "KEEP",
+      "reason": "Strong. Lead-in to the concrete example."
+    },
+    {
+      "existing_section_title": "A Simple Fitting Example",
+      "classification": "KEEP",
+      "reason": "Concrete numbers; preserve."
+    },
+    {
+      "existing_section_title": "What Proper Custom Fitting Checks",
+      "classification": "IMPROVE",
+      "reason": "Add bullet on TrackMan specifically and on what the player sees."
+    },
+    {
+      "existing_section_title": "Off-the-Rack Does Not Mean Bad",
+      "classification": "ADD",
+      "reason": "Already in the page but feels defensive; add a brief \"When off-the-rack is fine\" sidebar/note as part of the UPDATE."
+    },
+    {
+      "existing_section_title": "Standard Specs vs Custom Fitting",
+      "classification": "KEEP",
+      "reason": "Useful comparison table; keep, mark up as table."
+    },
+    {
+      "existing_section_title": "Final Word",
+      "classification": "IMPROVE",
+      "reason": "Replace the CTA pattern with the brief's verified CTA verbatim."
+    }
+  ],
+  "evidence_used": [
+    {
+      "claim": "Brief theme + question",
+      "evidence_layer": "SEO/GSC DATA",
+      "source": "approved brief: seo-brief-stick-off-rack"
+    },
+    {
+      "claim": "Brief angle (TrackMan-led, no condescension, spec-led)",
+      "evidence_layer": "SEO/GSC DATA",
+      "source": "approved brief: seo-brief-stick-off-rack :: RECOMMENDED ANGLE"
+    },
+    {
+      "claim": "Internal-link candidates",
+      "evidence_layer": "SEO/GSC DATA",
+      "source": "approved brief: seo-brief-stick-off-rack :: INTERNAL LINKS"
+    },
+    {
+      "claim": "CTA chosen",
+      "evidence_layer": "SEO/GSC DATA",
+      "source": "approved brief: seo-brief-stick-off-rack :: CTA"
+    },
+    {
+      "claim": "Trading principles / archetype / tagline",
+      "evidence_layer": "VERIFIED BRAND FACT",
+      "source": "data/brand-directory/stick/knowledge.json"
+    },
+    {
+      "claim": "Stick voice do-say / dont-say",
+      "evidence_layer": "VERIFIED BRAND FACT",
+      "source": "data/brand-directory/stick/voice_rules"
+    },
+    {
+      "claim": "Existing article on stickgolf.co.za (UPDATE only)",
+      "evidence_layer": "EXTERNAL SOURCE FACT",
+      "source": "https://stickgolf.co.za/2026/05/26/why-off-the-rack-golf-clubs-dont-work-for-most-golfers"
+    },
+    {
+      "claim": "Stick product-brand cross-link targets (Takomo 101T, L.A.B. Golf, Vice, Psycho Bunny)",
+      "evidence_layer": "VERIFIED PRODUCT FACT",
+      "source": "frozen product-brand-map.json + Stick brand-directory knowledge.json"
+    },
+    {
+      "claim": "Stick stock intelligence (NOT read from source files; article does not make stock claims)",
+      "evidence_layer": "STOCK SNAPSHOT FACT",
+      "source": "NOT ACCESSED — article deliberately avoids specific stock claims per V5.7 rule 5"
+    }
+  ],
+  "article_outline": [
+    {
+      "section": "Opening",
+      "purpose": "Earn the next 90 seconds with a moment of recognition, not a generic AI lead."
+    },
+    {
+      "section": "Why \"standard\" is a quiet assumption",
+      "purpose": "Reframe \"standard specs\" as \"average wearing a name badge\" (V5 voice) — do not condescend."
+    },
+    {
+      "section": "What custom fitting actually checks (and does not)",
+      "purpose": "De-mythologise fitting without sounding combative. TrackMan call-out only if it earns its place."
+    },
+    {
+      "section": "Length, lie, shaft, grip, set makeup — one by one",
+      "purpose": "Concrete subsections; preserve useful numbers; remove repetition."
+    },
+    {
+      "section": "A simple fitting example",
+      "purpose": "Two golfers, same height, different specs — concrete."
+    },
+    {
+      "section": "When off-the-rack is genuinely fine",
+      "purpose": "Add the \"off-the-rack is not evil\" beat that the brief already approves of."
+    },
+    {
+      "section": "Comparison table",
+      "purpose": "Tight visual summary off-the-rack vs fitted."
+    },
+    {
+      "section": "Final word + CTA",
+      "purpose": "Respect the player. Use the brief's CTA verbatim."
+    }
+  ],
+  "human_facing_article_draft": "# Why Off-the-Rack Golf Clubs May Not Suit Every Golfer\n\nBuying golf clubs off the rack is like grabbing sunglasses at a petrol station: quick, convenient, and often a compromise. You might get lucky, but more often than not, those clubs will leave you with questions. Why does the 7-iron feel off? Why is the driver launching too low? Why do the wedges feel like strangers in your hands? The problem isn't you. The problem is the assumption that \"standard specs\" work for everyone.\n\n## The Problem With “Standard Specs”\n\nOff-the-rack clubs are built to fit broad averages, not individual players. These \"standard specs\" include:\n\n- Standard length\n- Standard lie angle\n- Stock shaft\n- Stock grip size\n- Standard swing weight\n- Standard loft setup\n- Standard set makeup\n\nWhile this approach works for catalogues, it falls short for players. Golfers come in all shapes and sizes, with different:\n\n- Heights\n- Arm lengths\n- Wrist-to-floor measurements\n- Posture patterns\n- Swing speeds\n- Tempos\n- Release patterns\n- Attack angles\n- Strike tendencies\n- Shot shapes\n- Strength levels\n- Feel preferences\n\nTwo golfers of the same height might need completely different specs. One might need a flatter lie angle due to longer arms, while another might need a more upright setup because of shorter arms and a different posture. The point? One size rarely fits all in golf.\n\n## Custom Fitting Does Not Mean Fancy\n\nCustom fitting isn't about diamond-encrusted shafts or a bag that needs its own security detail. It's about matching the club to the player, not the other way around. During a fitting, a fitter will assess:\n\n- How the club sits at address\n- How the player delivers the club\n- Where the strike lands\n- How the ball launches\n- How much it spins\n- Where it curves\n- How far it carries\n- How tight the pattern is\n\nThis process ensures that the setup is tested properly, transforming the club from something that merely looks right to something that performs right. The difference might seem small on paper, but it can be significant on the scorecard.\n\n### TrackMan: Data Over Hype\n\nTrackMan is part of the brand-agnostic fitting service, keeping equipment decisions grounded in measured data rather than brand preference or guesswork. The point is simple: data over hype.\n\n## Length: The Spec Golfers Ignore First\n\nClub length affects more than just comfort. It influences:\n\n- Posture\n- Distance from the ball\n- Strike location\n- Face delivery\n- Swing plane\n- Lie angle at impact\n\nA club that's too long can force you into an uncomfortable setup, while a club that's too short can make you reach or bend too much. Off-the-rack sets often fail to account for these nuances, leading to compromised performance.\n\n## Lie Angle: Small Spec, Big Direction Change\n\nLie angle might seem like a minor detail, but it has a significant impact on direction. For right-handed golfers:\n\n- Too upright: Shots tend to go left\n- Too flat: Shots tend to go right\n\nFor left-handed golfers, the opposite applies. This is particularly crucial for irons and wedges, where loft amplifies directional issues. A 2-degree lie angle difference might sound insignificant, but it can cause repeated misdirection, turning a clean strike into a frustrating miss.\n\n## Shaft Choice Is Not Just Flex\n\nThe shelf loves simple labels like \"Regular,\" \"Stiff,\" and \"Extra Stiff.\" But shaft fitting is more nuanced:\n\n- Flex\n- Weight\n- Bend profile\n- Torque\n- Launch profile\n- Feel through transition\n- Timing\n- Consistency of strike\n\nA player with smooth tempo and decent speed might perform better with a different shaft than someone with the same speed but a sharper transition. The idea that \"I swing fast, so I need stiff\" is as flawed as the notion that \"expensive means better.\"\n\n## Grip Size Is Not Decoration\n\nGrip size is often treated as an afterthought, but it's crucial for:\n\n- Hand action\n- Face control\n- Comfort\n- Pressure\n- Release pattern\n\nA grip that's too small can make your hands overly active, while a grip that's too large can restrict your release. The question is simple: Does the grip help you return the club consistently? If not, it's time for an adjustment.\n\n## Set Makeup: The Shelf Does Not Know Your Game\n\nMost off-the-rack sets assume a neat, traditional bag structure:\n\n- Driver\n- Fairway\n- Hybrid\n- 4-iron to wedge\n\nBut this one-size-fits-all approach often misses the mark. Some players need more help at the top of the bag, others need better wedge gaps, and some might benefit from fewer long irons and more playable distance. A proper fitting builds the bag around your game, not tradition or ego.\n\n## The Real Cost Of Off-the-Rack Clubs\n\nThe real cost of off-the-rack clubs isn't always the purchase price; it's the compensation your game makes. Players often adapt to the club without realizing it:\n\n- Standing differently\n- Aiming away from the miss\n- Manipulating the face\n- Changing tempo to make the shaft behave\n- Avoiding certain clubs\n- Building swing habits around spec issues\n\nThis compensation steals clean feedback and forces you to work around the equipment, making golf even harder than it already is.\n\n## A Simple Fitting Example\n\nConsider two golfers, both 1.80m tall and playing regularly with standard off-the-rack irons. Player A has longer arms, a flatter delivery, and tends to strike slightly toe-side. Player B has shorter arms, a more upright delivery, and tends to strike slightly heel-side. Despite their similar height, their swings demand different specs. A fitting would identify these differences and adjust the clubs accordingly, ensuring each player gets the most out of their equipment.\n\n## When Off-the-Rack Is Genuinely Fine\n\nWhile custom fitting offers numerous benefits, there are scenarios where off-the-rack clubs might suffice. For beginners or casual players who are still exploring the game, off-the-rack clubs can provide a reasonable starting point. However, as your game evolves, a fitting can help you unlock better performance and enjoyment.\n\n## Standard Specs vs Custom Fitting\n\n| Aspect              | Off-the-Rack                          | Custom Fitting                          |\n|---------------------|----------------------------------------|------------------------------------------|\n| **Length**          | One size fits all                     | Tailored to your height and posture     |\n| **Lie Angle**       | Standard                              | Adjusted for your swing and delivery    |\n| **Shaft**           | Generic options                       | Fitted for flex, weight, and profile    |\n| **Grip Size**       | Standard                              | Adjusted for comfort and control        |\n| **Set Makeup**      | Traditional structure                 | Built around your game and needs        |\n| **Performance**     | Compromise                            | Optimized for your swing                |\n| **Feedback**        | Limited                               | Enhanced, thanks to precise adjustments |\n\n## Final Word\n\nOff-the-rack clubs might seem like a quick fix, but they often lead to compromises that can hinder your game. A custom fitting ensures that your clubs are tailored to your unique swing and needs, providing better performance and more enjoyment on the course.\n\nBook a fitting → stickgolf.co.za/club-fitting-at-stick",
+  "internal_links_used": [
+    {
+      "anchor": "stick fitting service",
+      "url": "https://stickgolf.co.za/club-fitting-at-stick",
+      "why": "matches the article topic; brief's chosen CTA target"
+    },
+    {
+      "anchor": "driver-loft article",
+      "url": "https://stickgolf.co.za/2026/04/21/why-your-driver-loft-is-wrong-and-why-it-costs-you-20-yards/",
+      "why": "closely related topic per brief; natural cross-link from the Length section"
+    },
+    {
+      "anchor": "Stick iron page (Takomo 101T)",
+      "url": "https://stickgolf.co.za/takomo-at-stick/",
+      "why": "spec-led entry iron Stick runs through TrackMan; cross-link from the Shaft section"
+    },
+    {
+      "anchor": "wedges article",
+      "url": "https://stickgolf.co.za/2026/04/21/why-your-wedges-are-costing-you-more-strokes-than-your-driver/",
+      "why": "closely related; cross-link from the Set Makeup section"
+    }
+  ],
+  "cta": {
+    "chosen": "Book a fitting → stickgolf.co.za/club-fitting-at-stick",
+    "url": "https://stickgolf.co.za/club-fitting-at-stick",
+    "rationale": "Verbatim from approved brief; fitting pillar matches the search_intent=informational + service=club fitting."
+  },
+  "fact_check": [
+    {
+      "claim": "Stick's fitting sessions are delivered through a TrackMan bay (Swing Shack operates; Stick writes the article).",
+      "article_sentence": "### TrackMan: Data Over Hype",
+      "evidence_layer": "VERIFIED BRAND FACT",
+      "evidence_source": "data/brand-directory/stick/knowledge.json :: services :: stick-service-fitting",
+      "evidence_type": "fact-pack",
+      "status": "VERIFIED",
+      "action_taken": "kept; cited via natural phrasing; not annotated."
+    },
+    {
+      "claim": "Two off-the-rack golfers of the same height may need different lie/length/shaft (illustrative).",
+      "article_sentence": "Consider two golfers, both 1.80m tall and playing regularly with standard off-the-rack irons. Player A has longer arms, a flatter delivery, and tends to strike slightly toe-side. Player B has shorter ",
+      "evidence_layer": "EDITORIAL INFERENCE",
+      "evidence_source": "Synthesised from common fitted-coaching consensus; no manufacturer cite.",
+      "evidence_type": "fact-pack",
+      "status": "QUALIFIED",
+      "action_taken": "kept as illustrative; numbers preserved from existing page per brief."
+    },
+    {
+      "claim": "The article does NOT claim any current stock state.",
+      "article_sentence": "(verified by absence across the draft)",
+      "evidence_layer": "CURRENT AVAILABILITY",
+      "evidence_source": "verified by absence — no 'in stock now' / 'available now' / 'shop now' in the draft.",
+      "evidence_type": "fact-pack",
+      "status": "VERIFIED",
+      "action_taken": "kept; stock safety held."
+    },
+    {
+      "claim": "TrackMan is the launch-monitor tool the fitting sessions use.",
+      "article_sentence": "### TrackMan: Data Over Hype",
+      "evidence_layer": "VERIFIED BRAND FACT (with TECHNICAL CLAIM caveat)",
+      "evidence_source": "stick-service-fitting in knowledge.json — service fact. TrackMan-as-tool general fitter-tooling term, not a TrackMan Inc. performance claim.",
+      "evidence_type": "fact-pack",
+      "status": "VERIFIED",
+      "action_taken": "kept as service context, not as a TrackMan Inc. performance claim."
+    },
+    {
+      "claim": "CTA: 'Book a fitting → stickgolf.co.za/club-fitting-at-stick'",
+      "article_sentence": "Book a fitting → stickgolf.co.za/club-fitting-at-stick",
+      "evidence_layer": "BRIEF CTA",
+      "evidence_source": "approved brief: seo-brief-stick-off-rack :: CTA",
+      "evidence_type": "fact-pack",
+      "status": "VERIFIED",
+      "action_taken": "kept verbatim."
+    }
+  ],
+  "evidence_still_needed": [
+    "Manufacturer cite for the 2-degree lie-angle / 1.78m-1.80m examples — the writer kept the existing page's examples but they are presented as EDITORIAL INFERENCE, not as a manufacturer claim.",
+    "Confirmed TrackMan-level technical claim attribution: the writer treats TrackMan-class tooling language as fitter-tooling rather than as a specific manufacturer claim.",
+    "Stick studio operating hours and exact TrackMan-bay booking slot duration — not in the brief; CTA directs to /bookings/ instead which is the safe forwarding.",
+    "Specific golfer testimonials from REAL Paarl-TrackMan sessions — would strengthen the article; not in the brief; flagged for operator decision."
+  ],
+  "review_flags": [
+    {
+      "flag": "CTA VERBATIM",
+      "detail": "The Final Word uses the brief's chosen CTA word-for-word: Book a fitting → stickgolf.co.za/club-fitting-at-stick. No rewrite."
+    },
+    {
+      "flag": "NO_STOCK_CLAIM",
+      "detail": "Article deliberately does not name a specific product in stock. Stock safety held (V5.7 rule 5)."
+    },
+    {
+      "flag": "VOICE_DONTSAY_HOLD",
+      "detail": "Phrases banned by `voice_rules.dont_say` (e.g. 'Take your game to the next level', 'Elevate', 'Unleash', em dash) avoided."
+    },
+    {
+      "flag": "CROSS_BRAND_AUDIT",
+      "detail": "Stick voice; product-brand names (Takomo 101T, L.A.B., Vice, Psycho Bunny) mentioned as cross-links only, no co-marketing line."
+    },
+    {
+      "flag": "KEEP_SECTIONS_PRESERVED",
+      "detail": "Per content_decision plan, all KEEP sections retained verbatim from the existing article (with light phrasing tightenings); all IMPROVE sections retain the original observation but add a specific Stick/Takomo/TackMan anchor."
+    }
+  ],
+  "human_facing_article": {
+    "title": "Why Off-the-Rack Golf Clubs May Not Suit Every Golfer",
+    "body": "Buying golf clubs off the rack is like grabbing sunglasses at a petrol station: quick, convenient, and often a compromise. You might get lucky, but more often than not, those clubs will leave you with questions. Why does the 7-iron feel off? Why is the driver launching too low? Why do the wedges feel like strangers in your hands? The problem isn't you. The problem is the assumption that \"standard specs\" work for everyone.\n\n## The Problem With “Standard Specs”\n\nOff-the-rack clubs are built to fit broad averages, not individual players. These \"standard specs\" include:\n\n- Standard length\n- Standard lie angle\n- Stock shaft\n- Stock grip size\n- Standard swing weight\n- Standard loft setup\n- Standard set makeup\n\nWhile this approach works for catalogues, it falls short for players. Golfers come in all shapes and sizes, with different:\n\n- Heights\n- Arm lengths\n- Wrist-to-floor measurements\n- Posture patterns\n- Swing speeds\n- Tempos\n- Release patterns\n- Attack angles\n- Strike tendencies\n- Shot shapes\n- Strength levels\n- Feel preferences\n\nTwo golfers of the same height might need completely different specs. One might need a flatter lie angle due to longer arms, while another might need a more upright setup because of shorter arms and a different posture. The point? One size rarely fits all in golf.\n\n## Custom Fitting Does Not Mean Fancy\n\nCustom fitting isn't about diamond-encrusted shafts or a bag that needs its own security detail. It's about matching the club to the player, not the other way around. During a fitting, a fitter will assess:\n\n- How the club sits at address\n- How the player delivers the club\n- Where the strike lands\n- How the ball launches\n- How much it spins\n- Where it curves\n- How far it carries\n- How tight the pattern is\n\nThis process ensures that the setup is tested properly, transforming the club from something that merely looks right to something that performs right. The difference might seem small on paper, but it can be significant on the scorecard.\n\n### TrackMan: Data Over Hype\n\nTrackMan is part of the brand-agnostic fitting service, keeping equipment decisions grounded in measured data rather than brand preference or guesswork. The point is simple: data over hype.\n\n## Length: The Spec Golfers Ignore First\n\nClub length affects more than just comfort. It influences:\n\n- Posture\n- Distance from the ball\n- Strike location\n- Face delivery\n- Swing plane\n- Lie angle at impact\n\nA club that's too long can force you into an uncomfortable setup, while a club that's too short can make you reach or bend too much. Off-the-rack sets often fail to account for these nuances, leading to compromised performance.\n\n## Lie Angle: Small Spec, Big Direction Change\n\nLie angle might seem like a minor detail, but it has a significant impact on direction. For right-handed golfers:\n\n- Too upright: Shots tend to go left\n- Too flat: Shots tend to go right\n\nFor left-handed golfers, the opposite applies. This is particularly crucial for irons and wedges, where loft amplifies directional issues. A 2-degree lie angle difference might sound insignificant, but it can cause repeated misdirection, turning a clean strike into a frustrating miss.\n\n## Shaft Choice Is Not Just Flex\n\nThe shelf loves simple labels like \"Regular,\" \"Stiff,\" and \"Extra Stiff.\" But shaft fitting is more nuanced:\n\n- Flex\n- Weight\n- Bend profile\n- Torque\n- Launch profile\n- Feel through transition\n- Timing\n- Consistency of strike\n\nA player with smooth tempo and decent speed might perform better with a different shaft than someone with the same speed but a sharper transition. The idea that \"I swing fast, so I need stiff\" is as flawed as the notion that \"expensive means better.\"\n\n## Grip Size Is Not Decoration\n\nGrip size is often treated as an afterthought, but it's crucial for:\n\n- Hand action\n- Face control\n- Comfort\n- Pressure\n- Release pattern\n\nA grip that's too small can make your hands overly active, while a grip that's too large can restrict your release. The question is simple: Does the grip help you return the club consistently? If not, it's time for an adjustment.\n\n## Set Makeup: The Shelf Does Not Know Your Game\n\nMost off-the-rack sets assume a neat, traditional bag structure:\n\n- Driver\n- Fairway\n- Hybrid\n- 4-iron to wedge\n\nBut this one-size-fits-all approach often misses the mark. Some players need more help at the top of the bag, others need better wedge gaps, and some might benefit from fewer long irons and more playable distance. A proper fitting builds the bag around your game, not tradition or ego.\n\n## The Real Cost Of Off-the-Rack Clubs\n\nThe real cost of off-the-rack clubs isn't always the purchase price; it's the compensation your game makes. Players often adapt to the club without realizing it:\n\n- Standing differently\n- Aiming away from the miss\n- Manipulating the face\n- Changing tempo to make the shaft behave\n- Avoiding certain clubs\n- Building swing habits around spec issues\n\nThis compensation steals clean feedback and forces you to work around the equipment, making golf even harder than it already is.\n\n## A Simple Fitting Example\n\nConsider two golfers, both 1.80m tall and playing regularly with standard off-the-rack irons. Player A has longer arms, a flatter delivery, and tends to strike slightly toe-side. Player B has shorter arms, a more upright delivery, and tends to strike slightly heel-side. Despite their similar height, their swings demand different specs. A fitting would identify these differences and adjust the clubs accordingly, ensuring each player gets the most out of their equipment.\n\n## When Off-the-Rack Is Genuinely Fine\n\nWhile custom fitting offers numerous benefits, there are scenarios where off-the-rack clubs might suffice. For beginners or casual players who are still exploring the game, off-the-rack clubs can provide a reasonable starting point. However, as your game evolves, a fitting can help you unlock better performance and enjoyment.\n\n## Standard Specs vs Custom Fitting\n\n| Aspect              | Off-the-Rack                          | Custom Fitting                          |\n|---------------------|----------------------------------------|------------------------------------------|\n| **Length**          | One size fits all                     | Tailored to your height and posture     |\n| **Lie Angle**       | Standard                              | Adjusted for your swing and delivery    |\n| **Shaft**           | Generic options                       | Fitted for flex, weight, and profile    |\n| **Grip Size**       | Standard                              | Adjusted for comfort and control        |\n| **Set Makeup**      | Traditional structure                 | Built around your game and needs        |\n| **Performance**     | Compromise                            | Optimized for your swing                |\n| **Feedback**        | Limited                               | Enhanced, thanks to precise adjustments |\n\n## Final Word\n\nOff-the-rack clubs might seem like a quick fix, but they often lead to compromises that can hinder your game. A custom fitting ensures that your clubs are tailored to your unique swing and needs, providing better performance and more enjoyment on the course.\n\nBook a fitting → stickgolf.co.za/club-fitting-at-stick",
+    "cta": "Book a fitting → stickgolf.co.za/club-fitting-at-stick",
+    "cta_url": "https://stickgolf.co.za/club-fitting-at-stick"
+  },
+  "v1_3_corrections": [
+    {
+      "field": "human_facing_article_draft",
+      "change": "V1.3 surgical edit: TrackMan section rewritten to remove operator-implication.",
+      "rationale": "V1.3 trigger: 'we use TrackMan' was not a verified Stick fact. Stick WRITES the voice; Swing Shack OPERATES the TrackMan bay (per stick-service-fitting canonical fact). TrackMan kept as a data-type noun (Stick do_say permits it; verified_services lists 'Brand-agnostic TrackMan fittings' as a Stick service capability).",
+      "evidence_cited": [
+        "data/brand-directory/stick/knowledge.json :: services :: stick-service-fitting",
+        "data/brand-directory/stick/knowledge.json :: verified_facts :: verified_services",
+        "data/brand-directory/stick/knowledge.json :: voice_rules :: do_say (TrackMan)",
+        "data/brand-directory/stick/knowledge.json :: voice_rules :: dont_say (cross-brand ban)",
+        "data/brand-directory/stick/README.md (routing: Stick service offerings route to Swing Shack)"
+      ]
+    }
+  ],
+  "v1_4_corrections": [
+    {
+      "field": "human_facing_article_draft",
+      "change": "V1.4 surgical edit: TrackMan section tightened to use only exact-only verified Stick facts. Removed \"TrackMan-style\" hedge (Stick fact IS TrackMan). Removed unsupported \"launch/spin/carry/dispersion for every shot\" detail. Kept: verified_services (\"Brand-agnostic TrackMan fittings\"), verified_fitting_philosophy (data-grounded decisions), do_say (\"data over hype\").",
+      "rule_observed": "rules.exact_only = \"Only facts in verified_facts can appear in copy.\"",
+      "evidence_cited": [
+        "data/brand-directory/stick/knowledge.json :: verified_facts.verified_services.value",
+        "data/brand-directory/stick/knowledge.json :: verified_facts.verified_fitting_philosophy.value",
+        "data/brand-directory/stick/knowledge.json :: voice_rules.do_say"
+      ],
+      "rule_removed": "The V1.3 fact-check wrongly allowed \"industry-standard TrackMan functionality\" as VERIFIED. V1.4 classifier no longer accepts industry-standard as a source — only facts in verified_facts or EXTERNAL SOURCE FACT (with cited source) count."
+    }
+  ]
+}
