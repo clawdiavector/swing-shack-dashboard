@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inspiration Intelligence — Campaign OS</title>
+<style>
+:root {
+  --bg: #0a0c10;
+  --panel: #131720;
+  --panel-2: #1a1f2c;
+  --line: #2a3142;
+  --text: #e6e8eb;
+  --muted: #8a92a6;
+  --accent: #f5c842;
+  --accent-2: #5b8def;
+  --danger: #ef5350;
+  --success: #4caf50;
+  --chip: #2a3142;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header {
+  padding: 14px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+header h1 { margin: 0; font-size: 17px; font-weight: 700; color: var(--accent); }
+header .subtitle { color: var(--muted); font-size: 12px; margin-left: 10px; }
+.brand-select { display: flex; gap: 6px; align-items: center; }
+.brand-select label { font-size: 12px; color: var(--muted); }
+.brand-select select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+header .actions { display: flex; gap: 8px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  height: calc(100vh - 57px);
+  overflow: hidden;
+}
+
+/* ─── Sidebar ─────────────────────────── */
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar-header h3 { margin: 0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); }
+.sidebar-header .count { font-size: 11px; color: var(--muted); background: var(--panel-2); padding: 2px 7px; border-radius: 10px; }
+
+.sidebar-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+
+.profile-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.profile-card:hover { border-color: var(--accent); }
+.profile-card.active { border-color: var(--accent); background: rgba(245,200,66,0.07); }
+.profile-card .platform { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 2px; }
+.profile-card .handle { font-size: 13px; font-weight: 600; color: var(--text); }
+.profile-card .meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.profile-card .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+
+.chip { display: inline-block; padding: 2px 8px; background: var(--chip); color: var(--text); border-radius: 10px; font-size: 11px; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+.empty-state .icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
+
+.filter-bar { padding: 8px 16px; border-top: 1px solid var(--line); display: flex; gap: 6px; flex-wrap: wrap; }
+.filter-bar input {
+  flex: 1; min-width: 0;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px; font-size: 12px;
+}
+
+/* ─── Main ────────────────────────────── */
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--line);
+}
+.main-header {
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.main-header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.main-header h2 span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+.filters { display: flex; gap: 6px; align-items: center; }
+.platform-filter {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
+.platform-filter.active { background: var(--accent); color: #0a0c10; border-color: var(--accent); }
+
+.posts-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+.post-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.post-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+.post-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(245,200,66,0.2); }
+.post-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--muted);
+  overflow: hidden;
+}
+.post-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.post-thumb-placeholder { background: linear-gradient(135deg, var(--panel) 0%, var(--panel-2) 100%); }
+.post-card-body { padding: 8px 10px; }
+.post-card-body .platform-badge { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+.post-card-body .post-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.post-card-body .metrics { font-size: 11px; color: var(--muted); margin-top: 4px; display: flex; gap: 8px; }
+
+/* ─── Detail ─────────────────────────── */
+.detail {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.detail-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.detail-header h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+.detail-scroll { flex: 1; overflow-y: auto; padding: 16px; }
+.detail-section { margin-bottom: 20px; }
+.detail-section h4 { margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 600; }
+.detail-section p, .detail-section .value { font-size: 13px; color: var(--text); margin: 0 0 6px 0; }
+.detail-section a { font-size: 12px; word-break: break-all; }
+.detail-empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; }
+.detail-empty .icon { font-size: 36px; opacity: 0.3; margin-bottom: 10px; }
+
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.metric-box { background: var(--panel-2); border-radius: 6px; padding: 8px 10px; }
+.metric-box .label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.4px; }
+.metric-box .value { font-size: 16px; font-weight: 700; color: var(--text); }
+.metric-box .value.null { color: var(--muted); font-weight: 400; font-size: 13px; }
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-list .chip { background: var(--panel-2); }
+
+.analysis-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.analysis-row { display: flex; gap: 8px; align-items: baseline; background: var(--panel-2); border-radius: 5px; padding: 5px 8px; }
+.analysis-row .key { font-size: 11px; color: var(--muted); min-width: 80px; flex-shrink: 0; }
+.analysis-row .val { font-size: 12px; color: var(--text); }
+.analysis-row .val.null { color: var(--muted); font-style: italic; }
+
+.provenance-box { background: var(--panel-2); border-radius: 6px; padding: 10px; font-size: 12px; }
+.provenance-box .row { display: flex; gap: 8px; margin-bottom: 4px; }
+.provenance-box .label { color: var(--muted); min-width: 90px; }
+.provenance-box .value { color: var(--text); }
+.provenance-box .value.null { color: var(--muted); font-style: italic; }
+
+/* ─── Buttons ─────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--text); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; text-decoration: none;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: #0a0c10; border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.1); }
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); color: white; }
+.btn.sm { padding: 4px 10px; font-size: 12px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── Modals ─────────────────────────── */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-bg[hidden] { display: none; }
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  width: 90%; max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0;
+}
+.modal-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--accent); }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 2px 6px; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 16px 20px; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 7px 10px; font-size: 13px;
+  font-family: inherit;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.form-group .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-group.checkbox { display: flex; align-items: center; gap: 8px; }
+.form-group.checkbox input { width: auto; }
+.form-group.checkbox label { margin: 0; font-size: 13px; color: var(--text); }
+
+.used-in-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.used-in-tag { background: var(--accent); color: #0a0c10; border-radius: 10px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+
+/* ─── Toast ───────────────────────────── */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--success); color: white;
+  padding: 10px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  z-index: 300; animation: toastIn 0.2s ease;
+}
+.toast.error { background: var(--danger); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Tag input ───────────────────────── */
+.tag-input-wrap { display: flex; flex-wrap: wrap; gap: 4px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; cursor: text; }
+.tag-input-wrap:focus-within { border-color: var(--accent); }
+.tag-input-wrap .chip { background: var(--chip); }
+.tag-input-wrap input { border: none; background: none; color: var(--text); font-size: 13px; outline: none; min-width: 80px; flex: 1; }
+
+/* ─── Sections within modal ────────────── */
+.modal-tabs { display: flex; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.modal-tab { padding: 8px 14px; font-size: 13px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+.modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.modal-tab-content[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header>
+  <div style="display:flex;align-items:center;">
+    <h1>🔍 Inspiration Intelligence</h1>
+    <span class="subtitle" id="brand-label">Swing Shack</span>
+  </div>
+  <div class="brand-select">
+    <label for="brand-picker">Brand:</label>
+    <select id="brand-picker">
+      <option value="swing-shack">Swing Shack</option>
+      <option value="stick">Stick</option>
+      <option value="bag-drop">Bag Drop</option>
+    </select>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="add-profile-btn" onclick="openAddProfile()">+ Add Profile</button>
+    <button class="btn primary" id="add-post-btn" onclick="openAddPost()">+ Save Post</button>
+  </div>
+</header>
+
+<!-- ── 3-column layout ───────────────────────────────────────────────────── -->
+<div class="layout">
+
+  <!-- LEFT: Watchlist sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h3>Watchlist <span class="count" id="watchlist-count">0</span></h3>
+      <button class="btn sm" onclick="openAddProfile()">+ Add</button>
+    </div>
+    <div class="filter-bar">
+      <input type="text" id="watchlist-search" placeholder="Search profiles…" oninput="renderWatchlist()">
+    </div>
+    <div class="sidebar-scroll" id="watchlist-container">
+      <div class="empty-state" id="watchlist-empty">
+        <div class="icon">👀</div>
+        <div>No profiles yet</div>
+        <div style="margin-top:4px;font-size:12px;">Add accounts you admire to start collecting inspiration.</div>
+      </div>
+      <div id="watchlist-list"></div>
+    </div>
+  </aside>
+
+  <!-- CENTER: Saved posts grid -->
+  <main class="main">
+    <div class="main-header">
+      <h2>Saved Posts <span id="posts-count"></span></h2>
+      <div class="filters">
+        <button class="platform-filter active" data-platform="" onclick="setPlatformFilter('')">All</button>
+        <button class="platform-filter" data-platform="instagram" onclick="setPlatformFilter('instagram')">Instagram</button>
+        <button class="platform-filter" data-platform="tiktok" onclick="setPlatformFilter('tiktok')">TikTok</button>
+        <button class="platform-filter" data-platform="youtube" onclick="setPlatformFilter('youtube')">YouTube</button>
+        <button class="platform-filter" data-platform="facebook" onclick="setPlatformFilter('facebook')">Facebook</button>
+        <button class="platform-filter" data-platform="x" onclick="setPlatformFilter('x')">X</button>
+      </div>
+    </div>
+    <div class="posts-grid" id="posts-grid">
+      <div class="empty-state" id="posts-empty" style="grid-column:1/-1">
+        <div class="icon">📌</div>
+        <div>No saved posts yet</div>
+        <div style="margin-top:4px;font-size:12px;">Save posts from your watchlist to build your inspiration library.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: Post detail -->
+  <aside class="detail">
+    <div class="detail-header">
+      <h3>Post Detail</h3>
+      <button class="btn sm" id="edit-post-btn" onclick="openEditPost()" style="display:none">Edit</button>
+    </div>
+    <div class="detail-scroll" id="detail-container">
+      <div class="detail-empty" id="detail-empty">
+        <div class="icon">📋</div>
+        <div>Select a post to see its detail</div>
+        <div style="margin-top:4px;font-size:12px;">Tags, notes, and analysis fields are all editable.</div>
+      </div>
+      <div id="detail-content" hidden></div>
+    </div>
+  </aside>
+</div>
+
+<!-- ── Add Profile Modal ──────────────────────────────────────────────────── -->
+<div class="modal-bg" id="profile-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add to Watchlist</h2>
+      <button class="modal-close" onclick="closeProfileModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="p-platform">Platform *</label>
+          <select id="p-platform" required>
+            <option value="">Select…</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+            <option value="facebook">Facebook</option>
+            <option value="x">X</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="p-handle">Handle *</label>
+          <input id="p-handle" placeholder="@username">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="p-display-name">Display Name</label>
+        <input id="p-display-name" placeholder="Full name or brand name">
+      </div>
+      <div class="form-group">
+        <label for="p-url">Profile URL</label>
+        <input id="p-url" placeholder="https://instagram.com/username">
+      </div>
+      <div class="form-group">
+        <label for="p-why-tags">Why do you like them? (tags)</label>
+        <div class="tag-input-wrap" id="p-tags-wrap" onclick="document.getElementById('p-tag-input').focus()">
+          <input id="p-tag-input" placeholder="Type and press Enter" onkeydown="handleTagInput(event,'p')">
+        </div>
+        <div class="hint">Press Enter or comma to add a tag</div>
+      </div>
+      <div class="form-group">
+        <label for="p-notes">Notes</label>
+        <textarea id="p-notes" placeholder="Why is this account worth watching? What makes them effective?"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="p-metrics-followers">Followers (if known)</label>
+          <input id="p-metrics-followers" type="number" placeholder="e.g. 15000">
+        </div>
+        <div class="form-group">
+          <label for="p-metrics-avg-likes">Avg Likes (if known)</label>
+          <input id="p-metrics-avg-likes" type="number" placeholder="e.g. 1200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeProfileModal()">Cancel</button>
+      <button class="btn primary" id="save-profile-btn" onclick="saveProfile()">Add to Watchlist</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Save Post Modal ─────────────────────────────────────────────────────── -->
+<div class="modal-bg" id="post-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="post-modal-title">Save Post</h2>
+      <button class="modal-close" onclick="closePostModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="post-platform">Platform *</label>
+          <select id="post-platform" required>
+            <option value="">Select…</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+            <option value="facebook">Facebook</option>
+            <option value="x">X</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="post-source-type">Source Type</label>
+          <select id="post-source-type">
+            <option value="">Select…</option>
+            <option value="profile">From watchlist profile</option>
+            <option value="direct">Direct save</option>
+            <option value="agent">Agent scout</option>
+            <option value="api">API discovery</option>
+          </select>
+        </div>
+      </div>
+      <!-- Profile picker if from watchlist -->
+      <div class="form-group" id="post-profile-group">
+        <label for="post-profile-select">From Watchlist (optional)</label>
+        <select id="post-profile-select">
+          <option value="">— No linked profile —</option>
+        </select>
+        <div class="hint">Link this post to a watchlist profile for tracking</div>
+      </div>
+      <div class="form-group">
+        <label for="post-url">Post URL *</label>
+        <input id="post-url" placeholder="https://instagram.com/p/ABC123/">
+      </div>
+      <div class="form-group">
+        <label for="post-caption">Caption (copy if notable)</label>
+        <textarea id="post-caption" placeholder="Paste the post caption here…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="post-media-type">Media Type</label>
+          <select id="post-media-type">
+            <option value="">Unknown</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+            <option value="carousel">Carousel</option>
+            <option value="reel">Reel</option>
+            <option value="story">Story</option>
+            <option value="short">Short video</option>
+            <option value="long">Long video</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="post-published-at">Published At</label>
+          <input id="post-published-at" type="datetime-local">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Why does this post work? (tags)</label>
+        <div class="tag-input-wrap" id="post-tags-wrap" onclick="document.getElementById('post-tag-input').focus()">
+          <input id="post-tag-input" placeholder="Type and press Enter" onkeydown="handleTagInput(event,'post')">
+        </div>
+        <div class="hint">e.g. hook-structure, visual-layout, cta-placement, tone, stat</div>
+      </div>
+      <div class="form-group">
+        <label for="post-why-notes">Why Notes</label>
+        <textarea id="post-why-notes" placeholder="What makes this post effective for our brand? What should we replicate?"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="post-likes">Likes (if known)</label>
+          <input id="post-likes" type="number" placeholder="e.g. 4500">
+        </div>
+        <div class="form-group">
+          <label for="post-saves">Saves (if known)</label>
+          <input id="post-saves" type="number" placeholder="e.g. 320">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="post-comments">Comments (if known)</label>
+          <input id="post-comments" type="number" placeholder="e.g. 88">
+        </div>
+        <div class="form-group">
+          <label for="post-views">Views (if known)</label>
+          <input id="post-views" type="number" placeholder="e.g. 45000">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closePostModal()">Cancel</button>
+      <button class="btn primary" id="save-post-btn" onclick="savePost()">Save Post</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Post Modal ─────────────────────────────────────────────────────── -->
+<div class="modal-bg" id="edit-post-modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit Post</h2>
+      <button class="modal-close" onclick="closeEditPostModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <div class="modal-tab active" id="edit-tab-tags" onclick="switchEditTab('tags')">Tags & Notes</div>
+        <div class="modal-tab" id="edit-tab-analysis" onclick="switchEditTab('analysis')">Analysis Schema</div>
+        <div class="modal-tab" id="edit-tab-provenance" onclick="switchEditTab('provenance')">Provenance</div>
+      </div>
+
+      <!-- Tags & Notes tab -->
+      <div class="modal-tab-content" id="edit-content-tags">
+        <div class="form-group">
+          <label>Why does this post work? (tags)</label>
+          <div class="tag-input-wrap" id="edit-tags-wrap" onclick="document.getElementById('edit-tag-input').focus()">
+            <input id="edit-tag-input" placeholder="Type and press Enter" onkeydown="handleTagInput(event,'edit')">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="edit-why-notes">Why Notes</label>
+          <textarea id="edit-why-notes" placeholder="What makes this post effective?"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="edit-caption">Caption</label>
+          <textarea id="edit-caption" placeholder="Post caption…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Used In (campaign or content refs)</label>
+          <div class="tag-input-wrap" id="edit-usedin-wrap" onclick="document.getElementById('edit-usedin-input').focus()">
+            <input id="edit-usedin-input" placeholder="e.g. winter-golf-campaign" onkeydown="handleTagInput(event,'usedin')">
+          </div>
+          <div class="hint">These track which campaigns or ideas cited this post</div>
+        </div>
+      </div>
+
+      <!-- Analysis schema tab -->
+      <div class="modal-tab-content" id="edit-content-analysis" hidden>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="a-format">Format</label>
+            <select id="a-format">
+              <option value="">—</option>
+              <option>reel</option><option>carousel</option><option>static</option>
+              <option>story</option><option>short-form</option><option>long-form</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="a-content-type">Content Type</label>
+            <select id="a-content-type">
+              <option value="">—</option>
+              <option>educational</option><option>entertainment</option>
+              <option>testimonial</option><option>product</option><option>promo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="a-hook-type">Hook Type</label>
+            <select id="a-hook-type">
+              <option value="">—</option>
+              <option>question</option><option>stat</option><option>contrast</option>
+              <option>confession</option><option>shock</option><option>relatable</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="a-cta-type">CTA Type</label>
+            <select id="a-cta-type">
+              <option value="">—</option>
+              <option>link-in-bio</option><option>swipe-up</option><option>dm</option>
+              <option>comment</option><option>share</option><option>none</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="a-audio-type">Audio Type</label>
+            <select id="a-audio-type">
+              <option value="">—</option>
+              <option>trending-audio</option><option>original</option>
+              <option>voice-over</option><option>no-audio</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="a-text-overlay">Text Overlay</label>
+            <select id="a-text-overlay">
+              <option value="">—</option>
+              <option>caption</option><option>graphic</option><option>animated-text</option>
+              <option>none</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="a-confidence">Confidence</label>
+            <select id="a-confidence">
+              <option value="">—</option>
+              <option>low</option><option>medium</option><option>high</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Structural flags</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-human"> Human present</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-creator"> Creator visible</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-collab"> Collaboration</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-influencer"> Influencer</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-product"> Product shown</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-launch"> Product launch</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-edu"> Educational</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-humor"> Humour</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-offer"> Offer present</label>
+            <label class="form-group checkbox" style="margin:0"><input type="checkbox" id="a-question"> Question hook</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="a-summary">Summary</label>
+          <textarea id="a-summary" placeholder="Why this post may have worked…"></textarea>
+        </div>
+      </div>
+
+      <!-- Provenance tab -->
+      <div class="modal-tab-content" id="edit-content-provenance" hidden>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prov-source-type">Source Type</label>
+            <select id="prov-source-type">
+              <option value="">—</option>
+              <option>profile</option><option>direct</option><option>agent</option><option>api</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="prov-method">Collection Method</label>
+            <select id="prov-method">
+              <option value="">—</option>
+              <option>manual</option><option>scout</option><option>api</option><option>agent</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prov-analysed-by">Analysed By</label>
+            <input id="prov-analysed-by" placeholder="agent name or human">
+          </div>
+          <div class="form-group">
+            <label for="prov-version">Analysis Version</label>
+            <input id="prov-version" placeholder="e.g. v1, human-v1">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:8px;">
+          <div class="provenance-box" id="prov-readonly"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn danger" id="delete-post-btn" onclick="deleteSelectedPost()">Delete</button>
+      <button class="btn" onclick="closeEditPostModal()">Cancel</button>
+      <button class="btn primary" onclick="savePostEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────────────────────────────────
+// State
+// ────────────────────────────────────────────────────────────────────────────
+const STATE = {
+  brand: 'swing-shack',
+  watchlist: [],         // profiles array
+  posts: [],             // posts array
+  selectedProfile: null,  // profile_id
+  selectedPost: null,    // post_id
+  platformFilter: '',
+  editingPost: null,      // post object being edited
+  profileTags: [],        // tag input state for add-profile modal
+  postTags: [],          // tag input state for add-post modal
+  editTags: [],          // tag input state for edit modal
+  editUsedIn: [],        // used_in tags for edit modal
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Brand
+// ────────────────────────────────────────────────────────────────────────────
+function getBrandFromURL() {
+  const params = new URLSearchParams(location.search);
+  return params.get('brand') || 'swing-shack';
+}
+
+function setBrand(brand) {
+  STATE.brand = brand;
+  history.replaceState(null, '', `?brand=${brand}`);
+  document.getElementById('brand-picker').value = brand;
+  document.getElementById('brand-label').textContent = {
+    'swing-shack': 'Swing Shack',
+    'stick': 'Stick',
+    'bag-drop': 'Bag Drop',
+  }[brand] || brand;
+  loadAll();
+}
+
+document.getElementById('brand-picker').addEventListener('change', e => {
+  setBrand(e.target.value);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// API
+// ────────────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const resp = await fetch(`/api${path}`, {
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts,
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+    throw new Error(err.error || `HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+async function loadAll() {
+  try {
+    const [wl, ps] = await Promise.all([
+      api(`/inspiration/${STATE.brand}/watchlist`),
+      api(`/inspiration/${STATE.brand}/posts`),
+    ]);
+    STATE.watchlist = wl.profiles || [];
+    STATE.posts = ps.posts || [];
+    renderWatchlist();
+    renderPosts();
+    updatePostProfileSelect();
+    clearDetail();
+  } catch(e) {
+    toast('Failed to load: ' + e.message, true);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Watchlist render
+// ────────────────────────────────────────────────────────────────────────────
+function renderWatchlist() {
+  const q = document.getElementById('watchlist-search').value.toLowerCase();
+  const filtered = STATE.watchlist.filter(p =>
+    !q || (p.handle || '').toLowerCase().includes(q) ||
+    (p.display_name || '').toLowerCase().includes(q) ||
+    (p.why_tags || []).some(t => t.toLowerCase().includes(q))
+  );
+  const count = STATE.watchlist.length;
+  document.getElementById('watchlist-count').textContent = count;
+  document.getElementById('watchlist-empty').hidden = count > 0;
+
+  const list = document.getElementById('watchlist-list');
+  list.innerHTML = filtered.map(p => `
+    <div class="profile-card ${STATE.selectedProfile === p.profile_id ? 'active' : ''}"
+         onclick="selectProfile('${p.profile_id}')"
+         oncontextmenu="event.preventDefault(); openDeleteProfile('${p.profile_id}')">
+      <div class="platform">${p.platform || '—'}</div>
+      <div class="handle">${escHtml(p.handle || p.display_name || '—')}</div>
+      ${p.display_name ? `<div class="meta">${escHtml(p.display_name)}</div>` : ''}
+      ${(p.why_tags || []).length ? `<div class="tags">${p.why_tags.slice(0,4).map(t => `<span class="chip">${escHtml(t)}</span>`).join('')}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function selectProfile(profile_id) {
+  STATE.selectedProfile = profile_id === STATE.selectedProfile ? null : profile_id;
+  renderWatchlist();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Posts render
+// ────────────────────────────────────────────────────────────────────────────
+function renderPosts() {
+  const filtered = STATE.posts.filter(p => {
+    if (STATE.platformFilter && p.platform !== STATE.platformFilter) return false;
+    if (STATE.selectedProfile) {
+      if (p.source_profile?.profile_id !== STATE.selectedProfile) return false;
+    }
+    return true;
+  });
+  const total = STATE.posts.length;
+  document.getElementById('posts-count').textContent = total > 0 ? `(${filtered.length}${total !== filtered.length ? ` of ${total}` : ''})` : '';
+  document.getElementById('posts-empty').hidden = STATE.posts.length > 0;
+
+  const grid = document.getElementById('posts-grid');
+  // Keep the empty state div, only replace post cards
+  const cards = filtered.map(p => {
+    const tags = (p.why_tags || []).slice(0, 3);
+    const likes = p.captured_metrics?.likes;
+    const saves = p.captured_metrics?.saves;
+    const metricsStr = [likes != null ? `❤️ ${fmt(likes)}` : '', saves != null ? `🔖 ${fmt(saves)}` : ''].filter(Boolean).join(' · ');
+    const platformEmoji = { instagram: '📷', tiktok: '🎵', youtube: '▶️', facebook: '👥', x: '🐦' }[p.platform] || '📌';
+    return `
+      <div class="post-card ${STATE.selectedPost === p.post_id ? 'selected' : ''}" onclick="selectPost('${p.post_id}')">
+        <div class="post-thumb post-thumb-placeholder">${platformEmoji}</div>
+        <div class="post-card-body">
+          <div class="platform-badge">${(p.platform || '').toUpperCase()}</div>
+          ${tags.length ? `<div class="post-tags">${tags.map(t => `<span class="chip">${escHtml(t)}</span>`).join('')}</div>` : ''}
+          ${metricsStr ? `<div class="metrics">${metricsStr}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+  // Replace everything except the empty-state div
+  const emptyDiv = document.getElementById('posts-empty');
+  grid.innerHTML = '';
+  grid.appendChild(emptyDiv);
+  emptyDiv.hidden = STATE.posts.length > 0;
+  grid.insertAdjacentHTML('beforeend', cards);
+}
+
+function setPlatformFilter(platform) {
+  STATE.platformFilter = platform;
+  document.querySelectorAll('.platform-filter').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.platform === platform);
+  });
+  renderPosts();
+}
+
+function selectPost(post_id) {
+  STATE.selectedPost = post_id === STATE.selectedPost ? null : post_id;
+  renderPosts();
+  if (STATE.selectedPost) {
+    const post = STATE.posts.find(p => p.post_id === STATE.selectedPost);
+    renderDetail(post);
+    document.getElementById('edit-post-btn').style.display = '';
+  } else {
+    clearDetail();
+    document.getElementById('edit-post-btn').style.display = 'none';
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Detail panel
+// ────────────────────────────────────────────────────────────────────────────
+function renderDetail(post) {
+  document.getElementById('detail-empty').hidden = true;
+  const c = document.getElementById('detail-content');
+  c.hidden = false;
+  c.innerHTML = `
+    <div class="detail-section">
+      <h4>Source</h4>
+      <div class="value">${post.source_profile?.handle || '—'}</div>
+      <a href="${post.post_url || '#'}" target="_blank" rel="noopener">${post.post_url ? escHtml(post.post_url).slice(0,60) + (post.post_url.length > 60 ? '…' : '') : '—'}</a>
+    </div>
+    <div class="detail-section">
+      <h4>Platform</h4>
+      <div class="value">${(post.platform || '—').toUpperCase()} ${post.media_type ? `· ${post.media_type}` : ''}</div>
+      ${post.published_at ? `<div class="value" style="font-size:12px;color:var(--muted)">Published: ${fmtDate(post.published_at)}</div>` : ''}
+    </div>
+    ${post.caption ? `<div class="detail-section"><h4>Caption</h4><p style="font-size:12px;line-height:1.5">${escHtml(post.caption)}</p></div>` : ''}
+    ${(post.why_tags || []).length ? `
+    <div class="detail-section">
+      <h4>Why it works</h4>
+      <div class="tag-list">${post.why_tags.map(t => `<span class="chip">${escHtml(t)}</span>`).join('')}</div>
+    </div>` : ''}
+    ${post.why_notes ? `<div class="detail-section"><h4>Notes</h4><p style="font-size:12px">${escHtml(post.why_notes)}</p></div>` : ''}
+    <div class="detail-section">
+      <h4>Metrics</h4>
+      <div class="metrics-grid">
+        ${makeMetric('Likes', post.captured_metrics?.likes)}
+        ${makeMetric('Comments', post.captured_metrics?.comments)}
+        ${makeMetric('Saves', post.captured_metrics?.saves)}
+        ${makeMetric('Shares', post.captured_metrics?.shares)}
+        ${makeMetric('Views', post.captured_metrics?.views)}
+        ${makeMetric('Eng. Rate', post.captured_metrics?.engagement_rate != null ? post.captured_metrics.engagement_rate + '%' : null)}
+      </div>
+    </div>
+    ${(post.used_in || []).length ? `
+    <div class="detail-section">
+      <h4>Used In</h4>
+      <div class="used-in-tags">${post.used_in.map(u => `<span class="used-in-tag">${escHtml(u)}</span>`).join('')}</div>
+    </div>` : ''}
+    <div class="detail-section">
+      <h4>Analysis Schema <span style="font-weight:400;color:var(--muted);font-size:10px">— all fields null for Slice 1</span></h4>
+      <div class="analysis-grid">
+        ${Object.entries(post.analysis || {}).map(([k, v]) => `
+          <div class="analysis-row">
+            <span class="key">${escHtml(k)}</span>
+            <span class="val ${v == null || v === '' || (Array.isArray(v) && v.length === 0) ? 'null' : ''}">${fmtVal(v)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="detail-section">
+      <h4>Provenance</h4>
+      <div class="provenance-box">
+        <div class="row"><span class="label">Source Type</span><span class="value ${!post.provenance?.source_type ? 'null' : ''}">${post.provenance?.source_type || '—'}</span></div>
+        <div class="row"><span class="label">Method</span><span class="value">${post.provenance?.collection_method || '—'}</span></div>
+        <div class="row"><span class="label">Collected At</span><span class="value">${fmtDate(post.provenance?.collected_at)}</span></div>
+        <div class="row"><span class="label">Analysed By</span><span class="value ${!post.provenance?.analysed_by ? 'null' : ''}">${post.provenance?.analysed_by || '—'}</span></div>
+        <div class="row"><span class="label">Version</span><span class="value ${!post.provenance?.analysis_version ? 'null' : ''}">${post.provenance?.analysis_version || '—'}</span></div>
+      </div>
+    </div>
+    <div class="detail-section" style="margin-top:16px;">
+      <button class="btn danger btn-sm" onclick="deletePost('${post.post_id}')" style="width:100%">Delete Post</button>
+    </div>
+  `;
+}
+
+function clearDetail() {
+  document.getElementById('detail-empty').hidden = false;
+  document.getElementById('detail-content').hidden = true;
+  document.getElementById('edit-post-btn').style.display = 'none';
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Add Profile Modal
+// ────────────────────────────────────────────────────────────────────────────
+function openAddProfile() { closePostModal(); closeEditPostModal(); document.getElementById('profile-modal').hidden = false; }
+function closeProfileModal() { document.getElementById('profile-modal').hidden = true; resetProfileForm(); }
+function resetProfileForm() {
+  document.getElementById('p-platform').value = '';
+  document.getElementById('p-handle').value = '';
+  document.getElementById('p-display-name').value = '';
+  document.getElementById('p-url').value = '';
+  document.getElementById('p-notes').value = '';
+  document.getElementById('p-metrics-followers').value = '';
+  document.getElementById('p-metrics-avg-likes').value = '';
+  STATE.profileTags = [];
+  renderProfileTags();
+}
+
+function renderProfileTags() {
+  const wrap = document.getElementById('p-tags-wrap');
+  wrap.querySelectorAll('.chip').forEach(el => el.remove());
+  STATE.profileTags.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = tag;
+    chip.onclick = (e) => { e.stopPropagation(); STATE.profileTags.splice(i, 1); renderProfileTags(); };
+    wrap.insertBefore(chip, document.getElementById('p-tag-input'));
+  });
+}
+
+function handleTagInput(e, prefix) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const inp = document.getElementById(`${prefix}-tag-input`);
+    const val = inp.value.replace(',', '').trim();
+    if (val && !(prefix === 'post' ? STATE.postTags : prefix === 'edit' ? STATE.editTags : prefix === 'usedin' ? STATE.editUsedIn : STATE.profileTags).includes(val)) {
+      if (prefix === 'post') STATE.postTags.push(val);
+      else if (prefix === 'edit') STATE.editTags.push(val);
+      else if (prefix === 'usedin') STATE.editUsedIn.push(val);
+      else STATE.profileTags.push(val);
+    }
+    inp.value = '';
+    if (prefix === 'post') renderPostTags();
+    else if (prefix === 'edit') renderEditTags();
+    else if (prefix === 'usedin') renderUsedInTags();
+    else renderProfileTags();
+  }
+}
+
+async function saveProfile() {
+  const platform = document.getElementById('p-platform').value;
+  const handle = document.getElementById('p-handle').value.trim();
+  if (!platform || !handle) { toast('Platform and handle are required', true); return; }
+  try {
+    const profile = {
+      platform,
+      handle: handle.startsWith('@') ? handle : '@' + handle,
+      display_name: document.getElementById('p-display-name').value.trim(),
+      profile_url: document.getElementById('p-url').value.trim(),
+      notes: document.getElementById('p-notes').value.trim() || null,
+      why_tags: STATE.profileTags,
+      captured_metrics: {
+        followers: num(document.getElementById('p-metrics-followers').value),
+        avg_likes: num(document.getElementById('p-metrics-avg-likes').value),
+      },
+    };
+    const result = await api(`/inspiration/${STATE.brand}/watchlist`, {
+      method: 'POST',
+      body: JSON.stringify(profile),
+    });
+    STATE.watchlist.push(result);
+    renderWatchlist();
+    closeProfileModal();
+    toast('Profile added');
+  } catch(e) {
+    toast('Failed to add profile: ' + e.message, true);
+  }
+}
+
+async function openDeleteProfile(profile_id) {
+  if (!confirm('Remove this profile and all its saved posts?')) return;
+  try {
+    await api(`/inspiration/${STATE.brand}/watchlist/${profile_id}`, { method: 'DELETE' });
+    STATE.watchlist = STATE.watchlist.filter(p => p.profile_id !== profile_id);
+    STATE.posts = STATE.posts.filter(p => p.source_profile?.profile_id !== profile_id);
+    if (STATE.selectedProfile === profile_id) STATE.selectedProfile = null;
+    renderWatchlist();
+    renderPosts();
+    clearDetail();
+    toast('Profile removed');
+  } catch(e) {
+    toast('Failed to delete profile: ' + e.message, true);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Add Post Modal
+// ────────────────────────────────────────────────────────────────────────────
+function openAddPost() { closeProfileModal(); closeEditPostModal(); document.getElementById('post-modal').hidden = false; document.getElementById('post-modal-title').textContent = 'Save Post'; document.getElementById('save-post-btn').textContent = 'Save Post'; document.getElementById('save-post-btn').onclick = savePost; }
+function closePostModal() { document.getElementById('post-modal').hidden = true; resetPostForm(); }
+function resetPostForm() {
+  document.getElementById('post-platform').value = '';
+  document.getElementById('post-source-type').value = '';
+  document.getElementById('post-url').value = '';
+  document.getElementById('post-caption').value = '';
+  document.getElementById('post-media-type').value = '';
+  document.getElementById('post-published-at').value = '';
+  document.getElementById('post-why-notes').value = '';
+  document.getElementById('post-likes').value = '';
+  document.getElementById('post-saves').value = '';
+  document.getElementById('post-comments').value = '';
+  document.getElementById('post-views').value = '';
+  STATE.postTags = [];
+  renderPostTags();
+  // Reset profile select to first option
+  const sel = document.getElementById('post-profile-select');
+  if (sel.options.length > 0) sel.selectedIndex = 0;
+}
+
+function renderPostTags() {
+  const wrap = document.getElementById('post-tags-wrap');
+  wrap.querySelectorAll('.chip').forEach(el => el.remove());
+  STATE.postTags.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = tag;
+    chip.onclick = (e) => { e.stopPropagation(); STATE.postTags.splice(i, 1); renderPostTags(); };
+    wrap.insertBefore(chip, document.getElementById('post-tag-input'));
+  });
+}
+
+function updatePostProfileSelect() {
+  const sel = document.getElementById('post-profile-select');
+  sel.innerHTML = '<option value="">— No linked profile —</option>' +
+    STATE.watchlist.map(p => `<option value="${p.profile_id}">${escHtml(p.handle || p.display_name || p.profile_id)}</option>`).join('');
+}
+
+async function savePost() {
+  const platform = document.getElementById('post-platform').value;
+  const post_url = document.getElementById('post-url').value.trim();
+  if (!platform || !post_url) { toast('Platform and post URL are required', true); return; }
+  try {
+    const profile_id = document.getElementById('post-profile-select').value;
+    const profile = profile_id ? STATE.watchlist.find(p => p.profile_id === profile_id) : null;
+    const post = {
+      platform,
+      post_url,
+      source_profile: profile ? { profile_id: profile.profile_id, handle: profile.handle, display_name: profile.display_name } : null,
+      source_type: document.getElementById('post-source-type').value || null,
+      provenance: { source_type: document.getElementById('post-source-type').value || null },
+      caption: document.getElementById('post-caption').value.trim() || null,
+      media_type: document.getElementById('post-media-type').value || null,
+      published_at: document.getElementById('post-published-at').value || null,
+      why_tags: STATE.postTags,
+      why_notes: document.getElementById('post-why-notes').value.trim() || null,
+      captured_metrics: {
+        likes: num(document.getElementById('post-likes').value),
+        comments: num(document.getElementById('post-comments').value),
+        saves: num(document.getElementById('post-saves').value),
+        views: num(document.getElementById('post-views').value),
+      },
+    };
+    const result = await api(`/inspiration/${STATE.brand}/posts`, {
+      method: 'POST',
+      body: JSON.stringify(post),
+    });
+    STATE.posts.push(result);
+    renderPosts();
+    closePostModal();
+    toast('Post saved');
+    selectPost(result.post_id);
+  } catch(e) {
+    toast('Failed to save post: ' + e.message, true);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Edit Post Modal
+// ────────────────────────────────────────────────────────────────────────────
+function openEditPost() {
+  if (!STATE.selectedPost) return;
+  const post = STATE.posts.find(p => p.post_id === STATE.selectedPost);
+  if (!post) return;
+  STATE.editingPost = post;
+  STATE.editTags = [...(post.why_tags || [])];
+  STATE.editUsedIn = [...(post.used_in || [])];
+  document.getElementById('edit-why-notes').value = post.why_notes || '';
+  document.getElementById('edit-caption').value = post.caption || '';
+  document.getElementById('prov-readonly').innerHTML = `
+    <div class="row"><span class="label">Collected At</span><span class="value">${fmtDate(post.provenance?.collected_at)}</span></div>
+    <div class="row"><span class="label">Source URL</span><span class="value" style="word-break:break-all">${post.provenance?.source_url || '—'}</span></div>
+  `;
+  // Analysis
+  const a = post.analysis || {};
+  document.getElementById('a-format').value = a.format || '';
+  document.getElementById('a-content-type').value = a.content_type || '';
+  document.getElementById('a-hook-type').value = a.hook_type || '';
+  document.getElementById('a-cta-type').value = a.cta_type || '';
+  document.getElementById('a-audio-type').value = a.audio_type || '';
+  document.getElementById('a-text-overlay').value = a.text_overlay || '';
+  document.getElementById('a-confidence').value = a.analysis_confidence || '';
+  document.getElementById('a-summary').value = a.summary || '';
+  const bools = { 'a-human': 'human_presence', 'a-creator': 'creator_presence', 'a-collab': 'collaboration', 'a-influencer': 'influencer', 'a-product': 'product_presence', 'a-launch': 'product_launch', 'a-edu': 'educational', 'a-humor': 'humour', 'a-offer': 'offer', 'a-question': 'question' };
+  for (const [id, key] of Object.entries(bools)) {
+    document.getElementById(id).checked = a[key] === true;
+  }
+  // Provenance
+  document.getElementById('prov-source-type').value = post.provenance?.source_type || '';
+  document.getElementById('prov-method').value = post.provenance?.collection_method || '';
+  document.getElementById('prov-analysed-by').value = post.provenance?.analysed_by || '';
+  document.getElementById('prov-version').value = post.provenance?.analysis_version || '';
+  renderEditTags();
+  renderUsedInTags();
+  switchEditTab('tags');
+  document.getElementById('edit-post-modal').hidden = false;
+}
+
+function closeEditPostModal() { document.getElementById('edit-post-modal').hidden = true; STATE.editingPost = null; }
+function closePostModal() { document.getElementById('post-modal').hidden = true; resetPostForm(); }
+
+function switchEditTab(tab) {
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`edit-tab-${tab}`).classList.add('active');
+  document.querySelectorAll('.modal-tab-content').forEach(c => c.hidden = true);
+  document.getElementById(`edit-content-${tab}`).hidden = false;
+}
+
+function renderEditTags() {
+  const wrap = document.getElementById('edit-tags-wrap');
+  wrap.querySelectorAll('.chip').forEach(el => el.remove());
+  STATE.editTags.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = tag;
+    chip.onclick = (e) => { e.stopPropagation(); STATE.editTags.splice(i, 1); renderEditTags(); };
+    wrap.insertBefore(chip, document.getElementById('edit-tag-input'));
+  });
+}
+
+function renderUsedInTags() {
+  const wrap = document.getElementById('edit-usedin-wrap');
+  wrap.querySelectorAll('.used-in-tag-item').forEach(el => el.remove());
+  STATE.editUsedIn.forEach((tag, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip used-in-tag-item';
+    chip.textContent = tag;
+    chip.onclick = (e) => { e.stopPropagation(); STATE.editUsedIn.splice(i, 1); renderUsedInTags(); };
+    wrap.insertBefore(chip, document.getElementById('edit-usedin-input'));
+  });
+}
+
+async function savePostEdit() {
+  if (!STATE.editingPost) return;
+  const patch = {
+    why_tags: STATE.editTags,
+    why_notes: document.getElementById('edit-why-notes').value.trim() || null,
+    caption: document.getElementById('edit-caption').value.trim() || null,
+    used_in: STATE.editUsedIn,
+    analysis: {
+      format: document.getElementById('a-format').value || null,
+      content_type: document.getElementById('a-content-type').value || null,
+      hook_type: document.getElementById('a-hook-type').value || null,
+      cta_type: document.getElementById('a-cta-type').value || null,
+      audio_type: document.getElementById('a-audio-type').value || null,
+      text_overlay: document.getElementById('a-text-overlay').value || null,
+      analysis_confidence: document.getElementById('a-confidence').value || null,
+      summary: document.getElementById('a-summary').value.trim() || null,
+      human_presence: document.getElementById('a-human').checked || null,
+      creator_presence: document.getElementById('a-creator').checked || null,
+      collaboration: document.getElementById('a-collab').checked || null,
+      influencer: document.getElementById('a-influencer').checked || null,
+      product_presence: document.getElementById('a-product').checked || null,
+      product_launch: document.getElementById('a-launch').checked || null,
+      educational: document.getElementById('a-edu').checked || null,
+      humour: document.getElementById('a-humor').checked || null,
+      offer: document.getElementById('a-offer').checked || null,
+      question: document.getElementById('a-question').checked || null,
+    },
+    provenance: {
+      source_type: document.getElementById('prov-source-type').value || null,
+      collection_method: document.getElementById('prov-method').value || null,
+      analysed_by: document.getElementById('prov-analysed-by').value.trim() || null,
+      analysis_version: document.getElementById('prov-version').value.trim() || null,
+    },
+  };
+  try {
+    const result = await api(`/inspiration/${STATE.brand}/posts/${STATE.editingPost.post_id}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+    // Update local state
+    const idx = STATE.posts.findIndex(p => p.post_id === result.post_id);
+    if (idx !== -1) STATE.posts[idx] = result;
+    renderPosts();
+    renderDetail(result);
+    closeEditPostModal();
+    toast('Post updated');
+  } catch(e) {
+    toast('Failed to update: ' + e.message, true);
+  }
+}
+
+async function deletePost(post_id) {
+  if (!confirm('Delete this saved post?')) return;
+  try {
+    await api(`/inspiration/${STATE.brand}/posts/${post_id}`, { method: 'DELETE' });
+    STATE.posts = STATE.posts.filter(p => p.post_id !== post_id);
+    if (STATE.selectedPost === post_id) { STATE.selectedPost = null; clearDetail(); }
+    renderPosts();
+    toast('Post deleted');
+  } catch(e) {
+    toast('Failed to delete: ' + e.message, true);
+  }
+}
+
+async function deleteSelectedPost() {
+  if (STATE.selectedPost) await deletePost(STATE.selectedPost);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Utilities
+// ────────────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmt(v) {
+  if (v == null) return null;
+  if (v >= 1000000) return (v/1000000).toFixed(1)+'M';
+  if (v >= 1000) return (v/1000).toFixed(1)+'K';
+  return String(v);
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('en-ZA', { year:'numeric', month:'short', day:'numeric' }); }
+  catch { return iso; }
+}
+
+function num(v) { const n = parseFloat(v); return isNaN(n) ? undefined : n; }
+
+function fmtVal(v) {
+  if (v == null || v === '') return '—';
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
+  return String(v);
+}
+
+function makeMetric(label, val) {
+  return `<div class="metric-box"><div class="label">${label}</div><div class="value ${val == null ? 'null' : ''}">${fmt(val) ?? '—'}</div></div>`;
+}
+
+function toast(msg, isError = false) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Init
+// ────────────────────────────────────────────────────────────────────────────
+const initBrand = getBrandFromURL();
+document.getElementById('brand-picker').value = initBrand;
+document.getElementById('brand-label').textContent = {
+  'swing-shack': 'Swing Shack', 'stick': 'Stick', 'bag-drop': 'Bag Drop',
+}[initBrand] || initBrand;
+STATE.brand = initBrand;
+loadAll();
+</script>
+</body>
+</html>

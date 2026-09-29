@@ -45102,6 +45102,49 @@ def planning_search(brand_id):
     except Exception:
         pass
 
+    # V2.11 Layer 2.5 — operator-store records with status='candidate'
+    # (the Submit / Suggest Date flow). Without this layer, records
+    # like "TrackMan coaching — gen plate test" that the operator
+    # saved via the operator-store never appear in search results
+    # and have no "Add to Main Calendar" button. The approved rows
+    # are already covered by Layer 1; this is only for status=candidate.
+    try:
+        from _lib import marketing_calendar as _mc_search_25
+        mc_records_25 = _mc_search_25.list_records(brand_id) or []
+        for _r in mc_records_25:
+            if _r.get("status") != "candidate":
+                continue
+            _cid = _r.get("calendar_id") or _r.get("event_key")
+            if not _cid:
+                continue
+            if not matches(
+                _r.get("title"), _r.get("name"), _r.get("summary"),
+                _r.get("venue"), _r.get("location"), _r.get("category"),
+                _r.get("source"), _r.get("source_origin"),
+            ):
+                continue
+            results.append({
+                "state": "CANDIDATE",
+                "title": _r.get("title") or _r.get("name") or "(operator candidate)",
+                "date": _r.get("public_peak") or _r.get("event_start") or _r.get("start"),
+                "end_date": _r.get("event_end") or _r.get("end"),
+                "location": _r.get("venue") or _r.get("location"),
+                "source": "operator-store",
+                "source_url": None,
+                "confidence": _r.get("confidence"),
+                "why_it_matters": _r.get("summary") or _r.get("relevance_reason") or "(operator-saved candidate)",
+                "suggested_tier": _r.get("tier"),
+                "recommended_lead_time_weeks": _r.get("recommended_lead_time_weeks"),
+                "brand_id": brand_id,
+                "candidate_id": _cid,
+                "category": _r.get("category"),
+                "origin": "operator-store",
+                "evidence_kind": "OPERATOR_PROVIDED",
+                "is_suggested": True,
+            })
+    except Exception:
+        pass
+
     # Layer 5 — Existing Scout intelligence (intake store)
     try:
         if planning_dir:
