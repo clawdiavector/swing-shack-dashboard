@@ -1,0 +1,1108 @@
+{
+  "artifacts": {
+    "candidates": {
+      "bytes": 45985,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/candidates.json"
+    },
+    "clustered_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/clustered_candidates.json"
+    },
+    "coarse_relevance_decisions": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/coarse_relevance_decisions.json"
+    },
+    "commands": {
+      "bytes": 190,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/commands.log"
+    },
+    "detector_stderr": {
+      "bytes": 0,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/detector.stderr.log"
+    },
+    "detector_summary": {
+      "bytes": 34673,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/summary.json"
+    },
+    "final_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/final_report.md"
+    },
+    "origin_findings": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/origin_findings.json"
+    },
+    "relevant_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/relevant_candidates.json"
+    },
+    "run_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/run.md"
+    },
+    "scored_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/scored_candidates.json"
+    },
+    "targeted_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/targeted_candidates.json"
+    },
+    "triaged_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/triaged_candidates.json"
+    }
+  },
+  "clustered_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/clustered_candidates.json"
+  },
+  "coarse_relevance": {},
+  "coarse_relevance_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/coarse_relevance_decisions.json"
+  },
+  "counts": {
+    "debug_all_scored_rows": 19,
+    "debug_duplicate_scored_rows": 0,
+    "debug_selected_rows": 0,
+    "debug_unique_scored_signal_ids": 19,
+    "debug_unselected_rows": 19,
+    "selected_unique_signals": 0,
+    "source_errors": 0,
+    "total_emitted_signals": 0,
+    "total_scored_signals": 19
+  },
+  "deterministic_exclusions": {
+    "coarse_rejected_in_input": 0,
+    "safety_flagged_in_input": 0
+  },
+  "final_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/final_report.md"
+  },
+  "generated_at": "2026-09-28T04:30:51.326737Z",
+  "hygiene_rejections": {},
+  "input_path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/candidates.json",
+  "lanes": {
+    "dropped_debug": {
+      "major_news_unmatched": 19
+    },
+    "emitted": {},
+    "scored": {
+      "major_news_unmatched": 19
+    }
+  },
+  "monitor": {
+    "depth": "quick",
+    "feed_urls": [
+      "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+      "https://www.espn.com/espn/rss/golf/news",
+      "https://golf.com/feed",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "generated_at": "2026-09-28T04:30:46.471768Z",
+    "lookback_days": 1,
+    "max_age_hours": 24,
+    "mock": false,
+    "name": "swing-shack",
+    "profile_name": "map[brands:[swing-shack stick] geography:ZA name:Swing Shack one_sentence:TrackMan-powered indoor golf studio and custom-fitting shop — performance-led, measurement-first, in Paarl / Cape Town. website:https://swingshack.co.za]",
+    "queries": [],
+    "sources_requested": [],
+    "sources_used": [
+      "major_feed"
+    ]
+  },
+  "origin_findings_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/origin_findings.json"
+  },
+  "pipeline": [
+    {
+      "artifact": "candidates.json",
+      "stage": "detector",
+      "status": "done"
+    },
+    {
+      "artifact": "coarse_relevance_decisions.json",
+      "stage": "coarse_relevance",
+      "status": "pending"
+    },
+    {
+      "artifact": "relevant_candidates.json",
+      "stage": "relevance_apply",
+      "status": "pending"
+    },
+    {
+      "artifact": "clustered_candidates.json",
+      "stage": "clustering",
+      "status": "pending"
+    },
+    {
+      "artifact": "origin_findings.json",
+      "stage": "story_origin",
+      "status": "pending"
+    },
+    {
+      "artifact": "targeted_candidates.json",
+      "stage": "freshness_gate",
+      "status": "pending"
+    },
+    {
+      "artifact": "triaged_candidates.json",
+      "stage": "standing_triage",
+      "status": "pending"
+    },
+    {
+      "artifact": "final_report.md",
+      "stage": "final_report",
+      "status": "pending"
+    },
+    {
+      "artifact": "run.md",
+      "stage": "run_report",
+      "status": "pending"
+    }
+  ],
+  "relevant_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/relevant_candidates.json"
+  },
+  "run_dir": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z",
+  "run_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/run.md"
+  },
+  "selection": {
+    "limit": 20,
+    "min_major_news": 0.55,
+    "min_queue_priority": 40,
+    "mode": "mechanical_floor"
+  },
+  "sources": {
+    "evidence_by_source": {
+      "major_feed": 55
+    },
+    "source_errors": {},
+    "source_status": {
+      "major_feed": {
+        "attempted": true,
+        "available": true,
+        "evidence_count": 55,
+        "requested": true,
+        "status": "used"
+      }
+    }
+  },
+  "targeted_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/targeted_candidates.json"
+  },
+  "top_dropped_signals": [
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "BBC Sport",
+            "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "US complete thrilling comeback to retain Presidents Cup",
+          "url": "https://www.bbc.co.uk/sport/golf/articles/cr5yeng66de5o?at_medium=RSS\u0026at_campaign=rss"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "7fa3b784e5730ae3",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.011,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "US complete thrilling comeback to retain Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "BBC Sport",
+            "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Fitzpatrick wins in France for fourth title of season",
+          "url": "https://www.bbc.co.uk/sport/golf/articles/cky9z3d0978ro?at_medium=RSS\u0026at_campaign=rss"
+        },
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "England's Fitzpatrick eases to French Open win for 4th title of year",
+          "url": "https://www.espn.com/golf/story/_/id/50043111/matt-fitzpatrick-wins-french-open-4th-title-season"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "ec4fc1964b37fd6c",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.032,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Fitzpatrick wins in France for fourth title of season"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "BBC Sport",
+            "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Internationals hold three-point lead over US",
+          "url": "https://www.bbc.co.uk/sport/golf/articles/c64gvvjze807o?at_medium=RSS\u0026at_campaign=rss"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "80a585e92c8eea78",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.011,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Internationals hold three-point lead over US"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "How the U.S. won the Presidents Cup and what it means moving forward",
+          "url": "https://www.espn.com/golf/story/_/id/50047421/how-us-won-presidents-cup-means-moving-forward"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "4e5ec0185a69f150",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "How the U.S. won the Presidents Cup and what it means moving forward"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "U.S. phenom Koivun caps Presidents Cup debut by keying rally",
+          "url": "https://www.espn.com/golf/story/_/id/50048401/us-phenom-koivun-caps-presidents-cup-debut-keying-rally"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "165c78adf64eaf7d",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.032,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "U.S. phenom Koivun caps Presidents Cup debut by keying rally"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Japan's Nishimura cruises to first LPGA victory",
+          "url": "https://www.espn.com/golf/story/_/id/50046936/japan-yuna-nishimura-wins-lpga-tour-walmart-nw-arkansas"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "a8059406a88b324e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Japan's Nishimura cruises to first LPGA victory"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Tom Kim left the Presidents Cup early — for very good reason",
+          "url": "https://golf.com/news/tom-kim-left-presidents-cup-early/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "5e9d87ab40a80f76",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Tom Kim left the Presidents Cup early — for very good reason"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Scottie Scheffler’s ‘class act’ gesture earned him new admirer: his opponent",
+          "url": "https://golf.com/news/scottie-scheffler-class-act-gesture/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "e7ef6b0af9e4ada3",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Scottie Scheffler’s ‘class act’ gesture earned him new admirer: his opponent"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Think you want to be Team USA captain? Think again",
+          "url": "https://golf.com/news/team-usa-captaincy-presidents-cup-ryder-cup/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "73ae694c5c970ee7",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Think you want to be Team USA captain? Think again"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "How the Smithsonian became the latest front in Trump’s culture war",
+          "url": "https://arstechnica.com/tech-policy/2026/09/how-the-smithsonian-became-the-latest-front-in-trumps-culture-war/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "7a1af59dfba5d824",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "How the Smithsonian became the latest front in Trump’s culture war"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "U.S. rallies to win 11th straight Presidents Cup",
+          "url": "https://www.espn.com/golf/story/_/id/50046644/americans-rally-singles-win-11th-straight-presidents-cup"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "f9d98ac6f2eae67d",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "U.S. rallies to win 11th straight Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "www.espn.com - GOLF",
+            "feed_url": "https://www.espn.com/espn/rss/golf/news"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Scheffler saluted for sportsmanship, frustrated by fan's behavior",
+          "url": "https://www.espn.com/golf/story/_/id/50045136/scheffler-concedes-putt-echavarria-fan-interference"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "cfc2adb47aa1cfda",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.03,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Scheffler saluted for sportsmanship, frustrated by fan's behavior"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Grading every Presidents Cup performance from U.S. comeback at Medinah",
+          "url": "https://golf.com/news/presidents-cup-grades-us-comeback-medinah/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "428031582c3c3743",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.032,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Grading every Presidents Cup performance from U.S. comeback at Medinah"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Brandt Snedeker made 'mistakes.' But his biggest decision won the U.S. the Presidents Cup",
+          "url": "https://golf.com/news/jackson-koivun-presidents-cup-brandt-snedeker/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "a388b56fcf413272",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Brandt Snedeker made 'mistakes.' But his biggest decision won the U.S. the Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Why Presidents Cup's ending is an elixir for 'horrible' U.S. team memory",
+          "url": "https://golf.com/news/really-horrible-presidents-cup-elixir/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "4b4aeb84dc5663b5",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.033,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Why Presidents Cup's ending is an elixir for 'horrible' U.S. team memory"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 7,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "U.S.’s uneven play at Presidents Cup won’t suffice at Ryder Cup",
+          "url": "https://golf.com/news/us-uneven-play-presidents-cup/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "785374e56d8f4ce9",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "U.S.’s uneven play at Presidents Cup won’t suffice at Ryder Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Tour Confidential: Presidents Cup MVPs, hidden learnings, U.S. foursome woes",
+          "url": "https://golf.com/news/tour-confidential-us-presidents-cup-win/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "da597333606e0eb4",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Tour Confidential: Presidents Cup MVPs, hidden learnings, U.S. foursome woes"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 9,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "President Trump attended the Presidents Cup. Here's what that looked like",
+          "url": "https://golf.com/news/trump-attended-presidents-cup-what-saw/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "5813c4da392cd68c",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "President Trump attended the Presidents Cup. Here's what that looked like"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 10,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "U.S. storms back to win Presidents Cup with stunning Sunday singles charge",
+          "url": "https://golf.com/news/americans-storm-back-stun-internationals-win-presidents-cup/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "d92b799c614a3b74",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "U.S. storms back to win Presidents Cup with stunning Sunday singles charge"
+    }
+  ],
+  "top_signals": null,
+  "triaged_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260928T043046Z/triaged_candidates.json"
+  }
+}

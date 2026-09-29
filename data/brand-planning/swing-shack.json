@@ -7,12 +7,15 @@
   },
   "operating_areas": [
     {"key": "FITTING", "lane": "fitting", "tagline": "fit first, buy second"},
-    {"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers"},
-    {"key": "LESSONS", "lane": "shack-sessions", "tagline": "the actual lesson moments"},
+    {"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers — covers lessons, packages, junior coaching, and on-course coaching"},
     {"key": "ON-COURSE", "lane": "practice", "tagline": "where the data meets the grass"},
     {"key": "HUMAN", "lane": "10-ball-truth", "tagline": "the real coaches, the real golfers"},
     {"key": "MEASUREMENT", "lane": "swing-truth", "tagline": "TrackMan data, what the numbers actually mean"}
   ],
+  "language_rules": {
+    "use_coaching_never_lesson": "Per Swing Shack brand bible and operator directive (2026-09-29): always say 'Coaching' — never 'lesson' or 'lessons'. A coaching session is a coaching session. 'Lessons' is reserved only for historical record (calendar titles, OG social posts) where re-titling would be misleading.",
+    "coaching_subsumes_lessons": "The brand bible's brand-promise outcome 'a lesson, a fitting, better equipment choices' is collapsed under Coaching in operating_areas. The historic lane 'shack-sessions' is folded into Coaching."
+  },
   "rules": {
     "exact_only": "Always show the metric verbatim — do not derive progress percentages without real connector data",
     "no_fabrication": "Until a connector is live, progress against each operating goal is NOT YET MEASURABLE",

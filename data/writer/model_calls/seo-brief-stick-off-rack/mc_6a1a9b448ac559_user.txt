@@ -1,0 +1,261 @@
+## TASK
+Operating brand: stick
+Target topic / query: stick off rack
+Search intent: informational
+Writer mode: UPDATE
+Product brand context: (none — pure fitting article)
+
+## APPROVED STRATEGIC BRIEF (use as evidence pack; do not invent beyond it)
+Recommended angle:
+**Angle:** Brand-agnostic club fitting on TrackMan, with the spec-led, fitter-curious tone from the Stick Bible (no condescension, real numbers, why it's here), centred on the brand-agnostic TrackMan session at the Paarl fitting studio.
+
+**Why it could compete:**
+- GSC for `https://stickgolf.co.za/` confirms real golfer demand on this brand's site: top query 'stick paarl' has 52 clicks at position 1. NOTE: this query is on the BRAND's domain, not a competitor's.
+- Ubersuggest quick-wins: vice golf balls south africa currently rankable (sv=40, KD=36).
+- GA4 confirms audience already visits 21 pages on the brand's site; this article adds a new entry point.
+- Sitemap confirms 38 live pages on the brand's site; this article slots into the content hub cleanly.
+- Competitor research returned 3 competing pages — see competitor coverage section for the actual evidence.
+
+**Evidence supporting it:**
+- GSC live: True; GA4 live: True; Ubersuggest live: True; Sitemap live: True
+- Topic slug: why-off-the-rack-golf-clubs-may-not-suit-every-golfer
+- Search questions count (real): 51
+- Community questions count: 0
+- Sitemap page count for brand: 38
+- GA4 top landing sessions (sum top 5): 1865
+
+**Confidence:** `MEDIUM`
+
+Approved CTA: Book a fitting → stickgolf.co.za/club-fitting-at-stick
+Approved CTA URL: https://stickgolf.co.za/club-fitting-at-stick
+
+## CONTENT DECISION PLAN (per section)
+- **IMPROVE** — section 'The Problem With “Standard Specs”' — rationale: Spec-led opening is on-claim. Tighten for V5 brand voice and add one TrackMan anchor.
+- **KEEP** — section 'Custom Fitting Does Not Mean Fancy' — rationale: On-claim refutation of a common misconception. Voice intact.
+- **IMPROVE** — section 'Length: The Spec Golfers Ignore First' — rationale: Good — add an internal link to the existing driver-loft article to match the brief.
+- **IMPROVE** — section 'Lie Angle: Small Spec, Big Direction Change' — rationale: Useful number, but the 2-degree example feels borrowed; verify it against manufacturer or fitter docs and rephrase as a fitted example.
+- **IMPROVE** — section 'Shaft Choice Is Not Just Flex' — rationale: Good. Add the takomo/trackman session angle as proof.
+- **KEEP** — section 'Grip Size Is Not Decoration' — rationale: On-claim, voice intact.
+- **IMPROVE** — section 'Set Makeup: The Shelf Does Not Know Your Game' — rationale: Good. Add an internal link to the closely-related "why your wedges" article.
+- **KEEP** — section 'The Real Cost Of Off-the-Rack Clubs' — rationale: Strong. Lead-in to the concrete example.
+- **KEEP** — section 'A Simple Fitting Example' — rationale: Concrete numbers; preserve.
+- **IMPROVE** — section 'What Proper Custom Fitting Checks' — rationale: Add bullet on TrackMan specifically and on what the player sees.
+- **ADD** — section 'Off-the-Rack Does Not Mean Bad' — rationale: Already in the page but feels defensive; add a brief "When off-the-rack is fine" sidebar/note as part of the UPDATE.
+- **KEEP** — section 'Standard Specs vs Custom Fitting' — rationale: Useful comparison table; keep, mark up as table.
+- **IMPROVE** — section 'Final Word' — rationale: Replace the CTA pattern with the brief's verified CTA verbatim.
+
+
+## OUTLINE
+- Opening: Earn the next 90 seconds with a moment of recognition, not a generic AI lead.
+- Why "standard" is a quiet assumption: Reframe "standard specs" as "average wearing a name badge" (V5 voice) — do not condescend.
+- What custom fitting actually checks (and does not): De-mythologise fitting without sounding combative. TrackMan call-out only if it earns its place.
+- Length, lie, shaft, grip, set makeup — one by one: Concrete subsections; preserve useful numbers; remove repetition.
+- A simple fitting example: Two golfers, same height, different specs — concrete.
+- When off-the-rack is genuinely fine: Add the "off-the-rack is not evil" beat that the brief already approves of.
+- Comparison table: Tight visual summary off-the-rack vs fitted.
+- Final word + CTA: Respect the player. Use the brief's CTA verbatim.
+
+## EXISTING PAGE (UPDATE only — use as the source for KEEP sections)
+Why Off-the-Rack Golf Clubs Don’t Work | Standard Specs vs Custom Fitting
+Skip to main content
+Scroll Top
+Menu
+Menu
+Close
+Close
+Bookings
+Services
+Fitting
+Brands
+Club Fitting at Stick
+Articles
+Customer Panel
+Contact
+0
+0
+												
+
+By Stick
+Club Fitting
+May 26, 2026
+Golfers buy clubs the way people buy sunglasses at a petrol station.
+Quick look.
+Good shape.
+Feels fine.
+Swipe the card.
+Then the clubs arrive, the honeymoon lasts three range sessions, and the questions start.
+Why does the 7-iron sit funny?
+Why does the driver launch too low?
+Why do the wedges feel like strangers?
+Why does one club behave and the next one need supervision?
+The problem is not the player.
+The problem is often the word standard.
+Standard specs sound safe.
+In golf, standard is usually just average wearing a name badge.
+## The Problem With “Standard Specs”
+Off-the-rack clubs are built to suit broad averages.
+That usually means:
+standard length
+standard lie angle
+stock shaft
+stock grip size
+standard swing weight
+standard loft setup
+standard set makeup
+That works neatly for a catalogue.
+Players are less tidy.
+Golfers have different:
+heights
+arm lengths
+wrist-to-floor measurements
+posture patterns
+swing speeds
+tempos
+release patterns
+attack angles
+strike tendencies
+shot shapes
+strength levels
+feel preferences
+Two golfers can be the same height and need completely different specs.
+One player at 1.78m with long arms may need a flatter lie angle.
+Another player at 1.78m with shorter arms and a more upright posture may need standard or upright lie angles.
+Same height.
+Different delivery.
+Different fit.
+That is why buying clubs by “standard specs” gets messy quickly.
+## Custom Fitting Does Not Mean Fancy
+Custom fitting does not mean diamond-encrusted shafts and a bag that needs its own security detail.
+It means the club gets matched to the player.
+The fitter checks:
+how the club sits
+how the player delivers it
+where the strike lands
+how the ball launches
+how much it spins
+where it curves
+how far it carries
+how tight the pattern is
+Then the setup gets tested properly.
+That is the difference between buying what looks right and building what performs right.
+Small difference on paper.
+Big difference on the scorecard.
+## Length: The Spec Golfers Ignore First
+Club length changes more than comfort.
+It changes:
+posture
+distance from the ball
+strike location
+face delivery
+swing plane
+lie angle at impact
+A club that is too long can push the player into a setup that feels stretched or upright.
+A club that is too short can make the player reach, bend too much, or struggle to deliver the face cleanly.
+This is where off-the-rack sets often lose the plot.
+The club is not “wrong” in a universal sense.
+It is wrong for that player.
+Golf does not care what the sticker said.
+## Lie Angle: Small Spec, Big Direction Change
+Lie angle quietly affects direction.
+For a right-handed golfer:
+too upright can send shots left
+too flat can send shots right
+For a left-handed golfer, reverse that.
+This becomes even more important in irons and wedges because loft makes directional issues louder.
+A 2-degree lie issue sounds tiny.
+It is not tiny when a clean strike starts left of the target again and again.
+That is not a player problem.
+That is the club giving the ball instructions before the player gets a fair say.
+A custom fitting checks this dynamically, not only by measuring height and guessing politely.
+## Shaft Choice Is Not Just Flex
+The shelf loves simple labels.
+Regular.
+Stiff.
+Extra stiff.
+Nice and tidy.
+Also incomplete.
+Shaft fitting includes:
+flex
+weight
+bend profile
+torque
+launch profile
+feel through transition
+timing
+consistency of strike
+A player with smooth tempo and decent speed may perform better in a different shaft from a player with the same speed but a sharper transition.
+Same swing speed.
+Different shaft need.
+That is why “I swing fast, so I need stiff” belongs in the same drawer as “expensive means better”.
+Useful sometimes.
+Dangerous when treated as law.
+## Grip Size Is Not Decoration
+Grip size gets treated like an afterthought.
+It is not.
+Grip size affects:
+hand action
+face control
+comfort
+pressure
+release pattern
+Too small and the hands may become overactive.
+Too large and the release can feel restricted.
+Neither is automatically bad.
+The question is simple:
+Does the grip help the player return the club consistently?
+If the answer is no, the spec needs attention.
+The grip is the only part of the club the player actually holds.
+Tiny detail, apparently.
+## Set Makeup: The Shelf Does Not Know Your Game
+Most off-the-rack sets still assume a neat bag structure.
+Driver.
+Fairway.
+Hybrid.
+4-iron to wedge.
+Done.
+Very official.
+Often useless.
+Some players need more help at the top of the bag.
+Some need better wedge gaps.
+Some need fewer long irons and more playable distance.
+Some need a driving iron.
+Some need a hybrid that has an actual job, not a sympathy slot.
+A proper fitting builds the bag around use.
+Not tradition.
+Not ego.
+Not what came bundled in the box.
+The top of the bag needs a job description.
+The wedges need a distance plan.
+The irons need proper gaps.
+That is how a bag starts making sense.
+## The Real Cost Of Off-the-Rack Clubs
+The real cost is not always the purchase price.
+The real cost is the compensation.
+A player adapts to the club without noticing.
+They may:
+stand slightly differently
+aim away from the miss
+manipulate the face
+change tempo to make the shaft behave
+avoid certain clubs
+build a swing habit around a spec issue
+That is expensive.
+Not because it makes the player bad.
+Because it steals clean feedback.
+The player starts working around the equipment instead of working with it.
+Golf is already hard enough.
+The bag does not need to join the opposition.
+## A Simple Fitting Example
+Take two golfers.
+Both are 1.80m tall.
+Both play regularly.
+Both use standard off-the-rack irons.
+Player A has longer arms, a flatter delivery and tends to strike slightly toe-side.
+Player B has shorter arms, a more upright delivery a
+[truncated for length]
+
+## REMINDER
+- The article body is the entire response. The body alone —   no preamble, no 'Here is the draft:', no 'I will write...'.
+- All evidence stays out of the body. Internal evidence labels   belong in the reviewer metadata, NOT in the customer-facing   prose.
+- When a section is classified KEEP, you may keep the existing   prose for that section. When IMPROVE / ADD / RESTRUCTURE /   REMOVE, write fresh prose that obeys the rationale.
+- The CTA phrase at the end must be EXACTLY: 'Book a fitting → stickgolf.co.za/club-fitting-at-stick'.

@@ -1,0 +1,1859 @@
+{
+  "debug": {
+    "all_scored_signals": [
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "Jackson Koivun, 21, will play with Justin Thomas in the third match of Thursday's opening four-ball (best ball) session of the Presidents Cup at Medinah Country Club. They'll face off against Canada's Corey Conners and Colombia's Nico Echavarria.",
+            "metadata": {
+              "feed_position": 3,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Star rookie Koivun paired with Thomas in opening Presidents Cup matches",
+            "url": "https://www.espn.com/golf/story/_/id/50015870/koivun-thomas-opening-presidents-cup-pairings"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "210e3561682b2a6a",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.019,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Star rookie Koivun paired with Thomas in opening Presidents Cup matches"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "www.espn.com - GOLF",
+            "engagement": {},
+            "excerpt": "The Presidents Cup is a biennial team golf competition featuring 12 players from the United States taking on 12 players making up an International team.",
+            "metadata": {
+              "feed_position": 12,
+              "feed_title": "www.espn.com - GOLF",
+              "feed_url": "https://www.espn.com/espn/rss/golf/news"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "What is the Presidents Cup in golf?",
+            "url": "https://www.espn.com/golf/story/_/id/50008727/what-presidents-cup-pga-tournament"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "a54f6a58beca87dc",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.023,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "What is the Presidents Cup in golf?"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "The Presidents Cup hangs under the shadow of the Ryder Cup, but it absolutely nails one element of team golf better than its big brother. The post The Presidents Cup does 1 thing way better than the Ryder Cup appeared first on Golf .",
+            "metadata": {
+              "feed_position": 1,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "The Presidents Cup does 1 thing way better than the Ryder Cup",
+            "url": "https://golf.com/news/1-thing-presidents-cup-does-better-ryder-cup/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "c2cfcf9c7a5901a5",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.022,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "The Presidents Cup does 1 thing way better than the Ryder Cup"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "At the Presidents Cup this week at Medinah Country Club, who isn’t playing stands out. And the roster is ridiculous. The post At Presidents Cup, who ISN’T playing stands out. And the roster is ‘a beast’ appeared first on Golf .",
+            "metadata": {
+              "feed_position": 2,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "At Presidents Cup, who ISN’T playing stands out. And the roster is 'a beast'",
+            "url": "https://golf.com/news/at-presidents-cup-isnt-beast/"
+          },
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "2026 Presidents Cup pairings, matches and tee times for Thursday's opening day of play at Medinah Country Club in Chicago, Ill. The post 2026 Presidents Cup Thursday matches and tee times for Day 1 appeared first on Golf .",
+            "metadata": {
+              "feed_position": 8,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "2026 Presidents Cup Thursday matches and tee times for Day 1",
+            "url": "https://golf.com/news/2026-presidents-cup-thursday-matches-tee-times-day-1/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 2,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "a3a973ecbfc001d6",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.02,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "At Presidents Cup, who ISN’T playing stands out. And the roster is 'a beast'"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "GOLF.com game-improvement editor Zephyr Melton did a putting fundamentals bootcamp with Tour coach Stephen Sweeney to fix his putting. The post I asked a Tour coach to fix my putting. He made 2 simple fixes appeared first on Golf .",
+            "metadata": {
+              "feed_position": 3,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "I asked a Tour coach to fix my putting. He made 2 simple fixes",
+            "url": "https://golf.com/instruction/putting/stephen-sweeney-fixed-putting-two-simple-changes/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "75ea221f9f5cbd03",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.043,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "I asked a Tour coach to fix my putting. He made 2 simple fixes"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "The Garmin Approach Z10 provided a solution to everything that had previously given me pause about using a rangefinder. The post I had never used a handheld rangefinder before. This one is perfect in its simplicity | I Tried It appeared first on Golf .",
+            "metadata": {
+              "feed_position": 4,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "I had never used a handheld rangefinder before. This one is perfect in its simplicity | I Tried It",
+            "url": "https://golf.com/gear/golf-accessories/garmin-approach-z10-rangefinder-perfect-simplicity/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "518056f58172622c",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.02,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "I had never used a handheld rangefinder before. This one is perfect in its simplicity | I Tried It"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "Eva Rogers, a teaching pro at Medinah Country Club, explains how watching pros' tee balls at the Presidents Cup can be a learning experience. The post What you can learn from the pros’ tee shots at the Presidents Cup appeared first on Golf .",
+            "metadata": {
+              "feed_position": 5,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "What you can learn from the pros' tee shots at the Presidents Cup",
+            "url": "https://golf.com/instruction/what-you-can-learn-presidents-cup-tee-shots/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "389dd39aed84ee7c",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "What you can learn from the pros' tee shots at the Presidents Cup"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "He's a historically great World No. 1, good at everything, beloved by teammates. So why is pairing Scottie Scheffler a unique challenge? The post This counterintuitive Scottie Scheffler ‘challenge’ has U.S. team’s attention appeared first on Golf .",
+            "metadata": {
+              "feed_position": 6,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "This counterintuitive Scottie Scheffler 'challenge' has U.S. team's attention",
+            "url": "https://golf.com/news/scottie-scheffler-presidents-cup-pairing-challenge/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "0bdd19e314b45eb0",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "This counterintuitive Scottie Scheffler 'challenge' has U.S. team's attention"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "The golf-ball rollback is delayed for now, but governing bodies are considering near-term solutions for January 2028. The post Amid golf-ball rollback debate, USGA and R\u0026A propose 3 new rules appeared first on Golf .",
+            "metadata": {
+              "feed_position": 7,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Amid golf-ball rollback debate, USGA and R\u0026A propose 3 new rules",
+            "url": "https://golf.com/gear/rollback-debate-usga-ra-near-term-solutions/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "9c4713552937a8d9",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.022,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Amid golf-ball rollback debate, USGA and R\u0026A propose 3 new rules"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "One of two planned 18-holers at Wild Spring Dunes has just opened to public play — a Tom Doak design stitched through forests and meadows. The post WATCH: Tom Doak course at Wild Spring Dunes open for play appeared first on Golf .",
+            "metadata": {
+              "feed_position": 9,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "WATCH: Tom Doak course at Wild Spring Dunes open for play",
+            "url": "https://golf.com/travel/tom-doak-course-wild-spring-dunes-open/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "96ece89d0f53b42f",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "WATCH: Tom Doak course at Wild Spring Dunes open for play"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Golf.com - Top Stories",
+            "engagement": {},
+            "excerpt": "U.S. Presidents Cup captain Brandt Snedeker revealed his team has lost a big advantage at Medinah, just as it did at the Bethpage Ryder Cup. The post U.S. captain warns of lost advantage ‘eerily similar’ to Bethpage Ryder Cup appeared first on Golf .",
+            "metadata": {
+              "feed_position": 10,
+              "feed_title": "Golf.com - Top Stories",
+              "feed_url": "https://golf.com/feed"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "U.S. captain warns of lost advantage 'eerily similar' to Bethpage Ryder Cup",
+            "url": "https://golf.com/news/us-captain-lost-advantage-eerily-similar-ryder-cup/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "94e3b1f9239bc3ce",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.021,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "U.S. captain warns of lost advantage 'eerily similar' to Bethpage Ryder Cup"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "US health deptartment said it wants to ensure the vaccine orders are \"appropriate.\"",
+            "metadata": {
+              "feed_position": 1,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "RFK Jr.'s CDC isn’t letting states order COVID-19 shots for kids, blocking access",
+            "url": "https://arstechnica.com/health/2026/09/rfk-jr-s-cdc-isnt-letting-states-order-covid-19-shots-for-kids-blocking-access/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f81e70dad04c5cbf",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "RFK Jr.'s CDC isn’t letting states order COVID-19 shots for kids, blocking access"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "It's unclear what will happen if FBI misses ShinyHunters' deadline.",
+            "metadata": {
+              "feed_position": 2,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "FBI rushes to investigate if ShinyHunters hack of thousands of employees is real",
+            "url": "https://arstechnica.com/tech-policy/2026/09/fbi-rushes-to-investigate-if-shinyhunters-hack-of-thousands-of-employees-is-real/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "8da2b72742ba8f83",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.568,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": {
+            "band": "high",
+            "basis": "source_attention_signals",
+            "components": {
+              "major_action_terms": 1,
+              "major_entity_terms": 0,
+              "major_news": 0.568,
+              "social_momentum": 0,
+              "source_quality": 0.88
+            },
+            "confidence": "low",
+            "score": 56.8,
+            "signals": [
+              "major_feed_score=0.568",
+              "major_action_terms=1"
+            ]
+          },
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.568,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "FBI rushes to investigate if ShinyHunters hack of thousands of employees is real"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "The Disney+ ad-free plan is now more expensive than Netflix's.",
+            "metadata": {
+              "feed_position": 3,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Disney+ and Hulu raise prices by up to 13 percent after doubling profits",
+            "url": "https://arstechnica.com/gadgets/2026/09/disney-and-hulu-raise-prices-by-up-to-13-percent-after-doubling-profits/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "5d4701a484cfee02",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.524,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.9
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.524,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Disney+ and Hulu raise prices by up to 13 percent after doubling profits"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "It sounds like a V8, rides like a Flying Spur, but handles like a Continental GT.",
+            "metadata": {
+              "feed_position": 4,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Here's the Torcal, the first fully electric Bentley",
+            "url": "https://arstechnica.com/cars/2026/09/heres-the-torcal-the-first-fully-electric-bentley/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "8344f6afc99e7647",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Here's the Torcal, the first fully electric Bentley"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Trump focus on winning “AI race” may deter China from sharing safety intel.",
+            "metadata": {
+              "feed_position": 5,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Trump’s China rivalry and “AI race” delusion may endanger US, experts say",
+            "url": "https://arstechnica.com/tech-policy/2026/09/china-silent-as-us-touts-plan-for-ai-safety-alerts-that-omits-tech-experts/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "3c45590e32afeb65",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Trump’s China rivalry and “AI race” delusion may endanger US, experts say"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "$11M competition showed wildfire detection is still easier than stopping fires.",
+            "metadata": {
+              "feed_position": 6,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "XPRIZE Wildfire winners spotted fires within 10 min—but couldn’t stop them",
+            "url": "https://arstechnica.com/gadgets/2026/09/xprize-wildfire-winners-spotted-fires-within-10-min-but-couldnt-stop-them/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [
+            {
+              "note": "Review against tragedy and human-suffering newsjacking rules.",
+              "term": "wildfire",
+              "type": "hard_safety_term"
+            }
+          ],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "e4d1e8d7515f364d",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "XPRIZE Wildfire winners spotted fires within 10 min—but couldn’t stop them"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Discord will try to automatically estimate ages, require verification when it can't.",
+            "metadata": {
+              "feed_position": 7,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Discord age verification rolls out today with changes spurred by user backlash",
+            "url": "https://arstechnica.com/tech-policy/2026/09/discord-age-verification-rolls-out-today-with-changes-spurred-by-user-backlash/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "8e826d45e80617ae",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Discord age verification rolls out today with changes spurred by user backlash"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "YouTube's next year could change the content you see with a big focus on AI and livestreams.",
+            "metadata": {
+              "feed_position": 8,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "YouTube promises custom feeds and a lot more AI later this year",
+            "url": "https://arstechnica.com/gadgets/2026/09/youtube-promises-custom-feeds-and-a-lot-more-ai-later-this-year/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "b201f96774937026",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0.011,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "YouTube promises custom feeds and a lot more AI later this year"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "A bad press release makes a good excuse to look at how developmental biology works.",
+            "metadata": {
+              "feed_position": 9,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Contrary to some reports, you don't have two brains",
+            "url": "https://arstechnica.com/science/2026/09/contrary-to-some-reports-you-dont-have-two-brains/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "dcc59f006b9f5892",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Contrary to some reports, you don't have two brains"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "\"It’s film noir and a hard-boiled detective story, but it’s got a lot more comedy and a lot more action.\"",
+            "metadata": {
+              "feed_position": 10,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Netflix releases trailer for Brad Bird's Ray Gunn",
+            "url": "https://arstechnica.com/culture/2026/09/netflix-drops-trailer-for-brad-birds-ray-gunn/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "f80146fcd5212217",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.445,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 39.6
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.445,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Netflix releases trailer for Brad Bird's Ray Gunn"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "\"So absurd and embarrassing ...\"",
+            "metadata": {
+              "feed_position": 11,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Owners mourn spoiled food after firmware update bricks Samsung smart fridges",
+            "url": "https://arstechnica.com/gadgets/2026/09/owners-mourn-spoiled-food-after-firmware-update-bricks-samsung-smart-fridges/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "da99157e997b6cbf",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Owners mourn spoiled food after firmware update bricks Samsung smart fridges"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "\"Beijing's intended strategy is to dominate the high ground of the twenty-first century.\"",
+            "metadata": {
+              "feed_position": 12,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Former NASA chief sounds alarm on China's lunar \"exploration\" plans",
+            "url": "https://arstechnica.com/space/2026/09/former-nasa-chief-sounds-alarm-on-chinas-lunar-exploration-plans/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "a1c5037a02023fbe",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Former NASA chief sounds alarm on China's lunar \"exploration\" plans"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Feds know of 5 crashes where cars using comma.ai devices hit slow or stopped vehicles.",
+            "metadata": {
+              "feed_position": 13,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "After multiple deaths and injuries, NHTSA is investigating comma.ai",
+            "url": "https://arstechnica.com/cars/2026/09/aftermarket-driver-assist-under-federal-probe-following-fatal-crashes/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [
+            {
+              "note": "Review against tragedy and human-suffering newsjacking rules.",
+              "term": "deaths",
+              "type": "hard_safety_term"
+            }
+          ],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "3e78e040e7223b63",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "After multiple deaths and injuries, NHTSA is investigating comma.ai"
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Decades of cheaper imports left US dependent on China for crucial rare earth processing.",
+            "metadata": {
+              "feed_position": 14,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "America gave up its rare earth edge. China took full advantage.",
+            "url": "https://arstechnica.com/reviews/2026/09/how-the-us-handed-china-control-of-the-rare-earth-supply-chain/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "455cb274c1e17a61",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "America gave up its rare earth edge. China took full advantage."
+      },
+      {
+        "evidence": [
+          {
+            "author": null,
+            "container": "Ars Technica - All content",
+            "engagement": {},
+            "excerpt": "Post-eruption imaging of the Hunga caldera gives new details of its collapse.",
+            "metadata": {
+              "feed_position": 15,
+              "feed_title": "Ars Technica - All content",
+              "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+            },
+            "published_at": null,
+            "source": "major_feed",
+            "title": "Small undersea volcanoes may unleash outsized tsunamis",
+            "url": "https://arstechnica.com/science/2026/09/small-undersea-volcanoes-may-unleash-outsized-tsunamis/"
+          }
+        ],
+        "features": {
+          "decay_bucket": "unknown",
+          "evidence_count": 1,
+          "profile_matches": [],
+          "safety_flags": [],
+          "seen_before": false,
+          "seen_urls": {},
+          "source_count": 1
+        },
+        "id": "567ce686d6e51f5b",
+        "mechanical_scores": {
+          "freshness": 0.35,
+          "major_news": 0.366,
+          "momentum": 0,
+          "novelty": 1,
+          "profile_match": 0,
+          "source_agreement": 0.5,
+          "source_quality": 0.88
+        },
+        "query": "major_news_feed",
+        "routing": {
+          "demoted": true,
+          "lane": "major_news_unmatched",
+          "queue_priority": 38.2
+        },
+        "sources": [
+          "major_feed"
+        ],
+        "story_size": {
+          "attention_hint": null,
+          "band": "unknown",
+          "basis": "publication_metadata_missing",
+          "components": {
+            "major_news": 0.366,
+            "social_momentum": 0,
+            "source_quality": 0.88
+          },
+          "confidence": "low",
+          "known_authority_count": 0,
+          "known_outlet_count": 0,
+          "known_traffic_count": 0,
+          "score": null,
+          "top_outlets": []
+        },
+        "title": "Small undersea volcanoes may unleash outsized tsunamis"
+      }
+    ],
+    "dropped_signal_ids": [
+      "210e3561682b2a6a",
+      "a54f6a58beca87dc",
+      "c2cfcf9c7a5901a5",
+      "a3a973ecbfc001d6",
+      "75ea221f9f5cbd03",
+      "518056f58172622c",
+      "389dd39aed84ee7c",
+      "0bdd19e314b45eb0",
+      "9c4713552937a8d9",
+      "96ece89d0f53b42f",
+      "94e3b1f9239bc3ce",
+      "f81e70dad04c5cbf",
+      "8da2b72742ba8f83",
+      "5d4701a484cfee02",
+      "8344f6afc99e7647",
+      "3c45590e32afeb65",
+      "e4d1e8d7515f364d",
+      "8e826d45e80617ae",
+      "b201f96774937026",
+      "dcc59f006b9f5892",
+      "f80146fcd5212217",
+      "da99157e997b6cbf",
+      "a1c5037a02023fbe",
+      "3e78e040e7223b63",
+      "455cb274c1e17a61",
+      "567ce686d6e51f5b"
+    ],
+    "include_all_scored": true
+  },
+  "diagnostics": {
+    "emitted_by_lane": {},
+    "evidence_by_source": {
+      "major_feed": 55
+    },
+    "hygiene_rejections": {},
+    "lane_caps": null,
+    "selection": {
+      "limit": 20,
+      "min_major_news": 0.55,
+      "min_queue_priority": 40,
+      "mode": "mechanical_floor"
+    },
+    "signals_by_lane": {
+      "major_news_unmatched": 26
+    },
+    "source_status": {
+      "major_feed": {
+        "attempted": true,
+        "available": true,
+        "evidence_count": 55,
+        "requested": true,
+        "status": "used"
+      }
+    },
+    "total_emitted_signals": 0,
+    "total_scored_signals": 26
+  },
+  "monitor": {
+    "depth": "quick",
+    "feed_urls": [
+      "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+      "https://www.espn.com/espn/rss/golf/news",
+      "https://golf.com/feed",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "generated_at": "2026-09-24T04:30:53.811624Z",
+    "lookback_days": 1,
+    "max_age_hours": 24,
+    "mock": false,
+    "name": "swing-shack",
+    "new_only": true,
+    "profile": {
+      "company": "map[brands:[swing-shack stick] geography:ZA name:Swing Shack one_sentence:TrackMan-powered indoor golf studio and custom-fitting shop — performance-led, measurement-first, in Paarl / Cape Town. website:https://swingshack.co.za]",
+      "competitors": [
+        "Titleist",
+        "Callaway",
+        "TaylorMade",
+        "PING",
+        "Cobra Golf",
+        "XXIO"
+      ],
+      "exclusions": [
+        "map[no_human_suffering:true no_tragedy:true topics_never_pitch:[beginner golf tips golf fashion PGA Tour drama golf course architecture]]"
+      ],
+      "feed_urls": [
+        "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+        "https://www.espn.com/espn/rss/golf/news",
+        "https://golf.com/feed",
+        "https://feeds.arstechnica.com/arstechnica/index"
+      ],
+      "search_terms": [
+        "indoor golf studio",
+        "TrackMan fitting",
+        "driver fitting cost",
+        "custom golf club fitting",
+        "golf swing speed data",
+        "golf coaching Cape Town",
+        "indoor golf South Africa",
+        "golf fitting near me",
+        "golf simulator",
+        "golf launch monitor",
+        "golf performance data",
+        "attack angle golf"
+      ],
+      "spokespeople": [
+        "Christelle (operator / owner)",
+        "Dave (head coach / fitter)"
+      ],
+      "standing": [
+        "TrackMan-powered studio with 200+ verified members",
+        "Data-first fitting methodology (we measure before we prescribe)",
+        "Independent custom-fitter (no manufacturer payola)",
+        "Specialise in slice correction and game-improvement fitting"
+      ],
+      "topics": [
+        "indoor golf",
+        "custom fitting",
+        "TrackMan",
+        "golf swing data",
+        "driver fitting",
+        "golf coaching",
+        "golf retail",
+        "golf performance"
+      ],
+      "x_news": {
+        "enabled": true
+      },
+      "x_trends": {
+        "locations": [],
+        "mode": "none",
+        "woeids": []
+      }
+    },
+    "queries": [],
+    "sources_requested": [],
+    "sources_used": [
+      "major_feed"
+    ]
+  },
+  "signals": null,
+  "source_errors": {},
+  "store": {
+    "path": "/Users/fivefriday/.local/share/newsjack/monitor.db",
+    "run_id": 5,
+    "saved": true
+  }
+}

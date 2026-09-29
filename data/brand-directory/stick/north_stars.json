@@ -1,8 +1,11 @@
 {
   "schema": "https://campaign-os/brand-directory/north-stars/v1",
   "brand_id": "stick",
-  "updated": "2026-09-22",
-  "source": "operator directive (Discord, 2026-09-22)",
+  "updated": "2026-09-29",
+  "source": "operator directive (Discord, 2026-09-22; immediate goals added 2026-09-29)",
+  "language_rules": {
+    "use_coaching_never_lesson": "Per Stick brand bible + operator directive (2026-09-29): always say 'Coaching' — never 'lesson' or 'lessons'. A coaching session is a coaching session."
+  },
   "north_stars": [
     {
       "id": "retail_psycho_bunny_sales",
@@ -16,8 +19,21 @@
       "do_not_fabricate_progress": true
     },
     {
+      "id": "immediate_fittings_monthly",
+      "label": "Fittings (immediate goal)",
+      "metric": "100 fittings / month with 60% conversion rate",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Stick fitting booking system not integrated with reporting",
+      "marketing_support_signal": "Booking-page sessions from relevant traffic sources",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-29)",
+      "set_at": "2026-09-29"
+    },
+    {
       "id": "fitting_throughput",
-      "label": "Fitting",
+      "label": "Fittings (weekly)",
       "metric": "24 fittings/week",
       "category": "operational_throughput",
       "outcome_measurement": "PENDING",
@@ -25,6 +41,19 @@
       "missing_connector": "Stick fitting booking system not integrated with reporting",
       "marketing_support_signal": "Booking-page sessions from relevant traffic sources",
       "do_not_fabricate_progress": true
+    },
+    {
+      "id": "immediate_coaching_sessions_per_coach_per_week",
+      "label": "Coaching sessions per coach (immediate goal)",
+      "metric": "30–40 coaching sessions / week / coach",
+      "category": "operational_throughput",
+      "outcome_measurement": "PENDING",
+      "connector_status": "not_connected",
+      "missing_connector": "Stick coaching scheduling system not integrated with reporting",
+      "marketing_support_signal": "Coaching-page sessions + IG/FB engagement on coach content",
+      "do_not_fabricate_progress": true,
+      "source": "operator directive (Discord, 2026-09-29)",
+      "set_at": "2026-09-29"
     },
     {
       "id": "coaching_throughput",

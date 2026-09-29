@@ -1,0 +1,1154 @@
+{
+  "artifacts": {
+    "candidates": {
+      "bytes": 48006,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/candidates.json"
+    },
+    "clustered_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/clustered_candidates.json"
+    },
+    "coarse_relevance_decisions": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/coarse_relevance_decisions.json"
+    },
+    "commands": {
+      "bytes": 190,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/commands.log"
+    },
+    "detector_stderr": {
+      "bytes": 0,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/detector.stderr.log"
+    },
+    "detector_summary": {
+      "bytes": 36873,
+      "exists": true,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/summary.json"
+    },
+    "final_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/final_report.md"
+    },
+    "origin_findings": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/origin_findings.json"
+    },
+    "relevant_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/relevant_candidates.json"
+    },
+    "run_report": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/run.md"
+    },
+    "scored_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/scored_candidates.json"
+    },
+    "targeted_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/targeted_candidates.json"
+    },
+    "triaged_candidates": {
+      "bytes": 0,
+      "exists": false,
+      "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/triaged_candidates.json"
+    }
+  },
+  "clustered_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/clustered_candidates.json"
+  },
+  "coarse_relevance": {},
+  "coarse_relevance_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/coarse_relevance_decisions.json"
+  },
+  "counts": {
+    "debug_all_scored_rows": 20,
+    "debug_duplicate_scored_rows": 0,
+    "debug_selected_rows": 0,
+    "debug_unique_scored_signal_ids": 20,
+    "debug_unselected_rows": 20,
+    "selected_unique_signals": 0,
+    "source_errors": 0,
+    "total_emitted_signals": 0,
+    "total_scored_signals": 20
+  },
+  "deterministic_exclusions": {
+    "coarse_rejected_in_input": 0,
+    "safety_flagged_in_input": 0
+  },
+  "final_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/final_report.md"
+  },
+  "generated_at": "2026-09-29T04:30:53.494223Z",
+  "hygiene_rejections": {},
+  "input_path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/candidates.json",
+  "lanes": {
+    "dropped_debug": {
+      "major_news_unmatched": 20
+    },
+    "emitted": {},
+    "scored": {
+      "major_news_unmatched": 20
+    }
+  },
+  "monitor": {
+    "depth": "quick",
+    "feed_urls": [
+      "https://feeds.bbci.co.uk/sport/golf/rss.xml",
+      "https://www.espn.com/espn/rss/golf/news",
+      "https://golf.com/feed",
+      "https://feeds.arstechnica.com/arstechnica/index"
+    ],
+    "generated_at": "2026-09-29T04:30:50.48621Z",
+    "lookback_days": 1,
+    "max_age_hours": 24,
+    "mock": false,
+    "name": "swing-shack",
+    "profile_name": "map[brands:[swing-shack stick] geography:ZA name:Swing Shack one_sentence:TrackMan-powered indoor golf studio and custom-fitting shop — performance-led, measurement-first, in Paarl / Cape Town. website:https://swingshack.co.za]",
+    "queries": [],
+    "sources_requested": [],
+    "sources_used": [
+      "major_feed"
+    ]
+  },
+  "origin_findings_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/origin_findings.json"
+  },
+  "pipeline": [
+    {
+      "artifact": "candidates.json",
+      "stage": "detector",
+      "status": "done"
+    },
+    {
+      "artifact": "coarse_relevance_decisions.json",
+      "stage": "coarse_relevance",
+      "status": "pending"
+    },
+    {
+      "artifact": "relevant_candidates.json",
+      "stage": "relevance_apply",
+      "status": "pending"
+    },
+    {
+      "artifact": "clustered_candidates.json",
+      "stage": "clustering",
+      "status": "pending"
+    },
+    {
+      "artifact": "origin_findings.json",
+      "stage": "story_origin",
+      "status": "pending"
+    },
+    {
+      "artifact": "targeted_candidates.json",
+      "stage": "freshness_gate",
+      "status": "pending"
+    },
+    {
+      "artifact": "triaged_candidates.json",
+      "stage": "standing_triage",
+      "status": "pending"
+    },
+    {
+      "artifact": "final_report.md",
+      "stage": "final_report",
+      "status": "pending"
+    },
+    {
+      "artifact": "run.md",
+      "stage": "run_report",
+      "status": "pending"
+    }
+  ],
+  "relevant_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/relevant_candidates.json"
+  },
+  "run_dir": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z",
+  "run_report_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/run.md"
+  },
+  "selection": {
+    "limit": 20,
+    "min_major_news": 0.55,
+    "min_queue_priority": 40,
+    "mode": "mechanical_floor"
+  },
+  "sources": {
+    "evidence_by_source": {
+      "major_feed": 55
+    },
+    "source_errors": {},
+    "source_status": {
+      "major_feed": {
+        "attempted": true,
+        "available": true,
+        "evidence_count": 55,
+        "requested": true,
+        "status": "used"
+      }
+    }
+  },
+  "targeted_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/targeted_candidates.json"
+  },
+  "top_dropped_signals": [
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Adam Scott's latest Presidents Cup heartbreak ended with an uncomfortable truth",
+          "url": "https://golf.com/news/adam-scott-presidents-cup-heartbreak/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "51dbfd82ef99d355",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Adam Scott's latest Presidents Cup heartbreak ended with an uncomfortable truth"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Are you required to search for your ball? Here's what the rules say",
+          "url": "https://golf.com/instruction/rules/are-you-required-search-ball-rules/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "1bff94cb63e47e3c",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Are you required to search for your ball? Here's what the rules say"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Bridges Cup swag: Check out the U.S. and International team's ultra-cool gear",
+          "url": "https://golf.com/gear/bridges-cup-swag-us-international-team-ultra-cool-gear/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "a0e18f8229682091",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.02,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Bridges Cup swag: Check out the U.S. and International team's ultra-cool gear"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Boeing \"incredibly excited\" to serve as nation's only astronaut transportation",
+          "url": "https://arstechnica.com/space/2026/09/boeing-incredibly-excited-to-serve-as-nations-only-astronaut-transportation/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "8added126dabe006",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Boeing \"incredibly excited\" to serve as nation's only astronaut transportation"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 2,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Experts worry about Nvidia's AI chip sales in China and influence over Trump",
+          "url": "https://arstechnica.com/tech-policy/2026/09/nvidia-may-sell-more-chips-in-china-as-jensen-huangs-influence-over-trump-grows/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "dabc91c0b9977088",
+      "lane": "major_news_unmatched",
+      "major_news": 0.546,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.546,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Experts worry about Nvidia's AI chip sales in China and influence over Trump"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 3,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "SpaceX's Starship goes orbital, deploying first next-gen Starlinks",
+          "url": "https://arstechnica.com/space/2026/09/starships-first-orbital-launch-gives-lift-to-spacexs-next-gen-starlinks/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "c2d096372d0c497e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.546,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.546,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "SpaceX's Starship goes orbital, deploying first next-gen Starlinks"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Florida invokes extinction fears in legal bid to halt OpenAI development",
+          "url": "https://arstechnica.com/ai/2026/09/florida-asks-court-to-put-the-brakes-on-openais-frontier-ai-development/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "a7f746a30bdfda60",
+      "lane": "major_news_unmatched",
+      "major_news": 0.466,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.466,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Florida invokes extinction fears in legal bid to halt OpenAI development"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 9,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Google seemingly confirms plans to kill ChromeOS in 2034",
+          "url": "https://arstechnica.com/gadgets/2026/09/google-seemingly-confirms-plans-to-kill-chromeos-in-2034/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "f01e0b65e918e87d",
+      "lane": "major_news_unmatched",
+      "major_news": 0.466,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.9,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.466,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Google seemingly confirms plans to kill ChromeOS in 2034"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 4,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "The putters that powered Team USA's historic comeback at Presidents Cup",
+          "url": "https://golf.com/gear/putters/putters-powered-usa-presidents-cup/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "cfd048ce02e1fc42",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.021,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "The putters that powered Team USA's historic comeback at Presidents Cup"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Golf.com - Top Stories",
+            "feed_url": "https://golf.com/feed"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "How the Presidents Cup unraveled: 7 tipping points that cost the Internationals",
+          "url": "https://golf.com/news/presidents-cup-unraveled-7-matches/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "e550e41a337a36de",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0.022,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "How the Presidents Cup unraveled: 7 tipping points that cost the Internationals"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 5,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "New device captures carbon dioxide by pumping it across a battery",
+          "url": "https://arstechnica.com/science/2026/09/new-device-captures-carbon-dioxide-by-pumping-it-across-a-battery/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "fbf2bcf32d73a5ec",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "New device captures carbon dioxide by pumping it across a battery"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 6,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "To keep drug prices high, pharma has been piling up the patents",
+          "url": "https://arstechnica.com/health/2026/09/to-keep-drug-prices-high-pharma-has-been-piling-up-the-patents/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "43036b75f384cbaa",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "To keep drug prices high, pharma has been piling up the patents"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 7,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Trump cuts fuel economy standards back to 2014 levels",
+          "url": "https://arstechnica.com/cars/2026/09/trump-cuts-fuel-economy-standards-back-to-2014-levels/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "1765656258b3fa25",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Trump cuts fuel economy standards back to 2014 levels"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Kalshi loses again as judges rule prediction markets must obey gambling laws",
+          "url": "https://arstechnica.com/tech-policy/2026/09/another-court-rules-kalshi-sports-bets-arent-swaps-says-states-can-crack-down/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "26f38cb563c7133e",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Kalshi loses again as judges rule prediction markets must obey gambling laws"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 10,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Scientists solve 1840s space weather mystery",
+          "url": "https://arstechnica.com/science/2026/09/scientists-solve-1840s-space-weather-mystery/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "119d24f6ecd09ed3",
+      "lane": "major_news_unmatched",
+      "major_news": 0.445,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 39.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.445,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Scientists solve 1840s space weather mystery"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 12,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "OpenAI halts frontier-model training amid string of agent misalignment incidents",
+          "url": "https://arstechnica.com/ai/2026/09/openai-halts-frontier-model-training-amid-string-of-agent-misalignment-incidents/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "91821efedf146780",
+      "lane": "major_news_unmatched",
+      "major_news": 0.387,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 38.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.387,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "OpenAI halts frontier-model training amid string of agent misalignment incidents"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 14,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "Microsoft goes quiet after church groups ask for 1% of data center costs",
+          "url": "https://arstechnica.com/tech-policy/2026/09/microsoft-goes-quiet-after-church-groups-ask-for-1-of-data-center-costs/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "37569e688fa00064",
+      "lane": "major_news_unmatched",
+      "major_news": 0.387,
+      "momentum": 0,
+      "profile_match": 0.011,
+      "query": "major_news_feed",
+      "queue_priority": 38.6,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.387,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "Microsoft goes quiet after church groups ask for 1% of data center costs"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 11,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "F1 in Azerbaijan: That was almost a close-run thing",
+          "url": "https://arstechnica.com/cars/2026/09/f1-in-azerbaijan-that-was-almost-a-close-run-thing/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "cfef52280114da59",
+      "lane": "major_news_unmatched",
+      "major_news": 0.366,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 38.2,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.366,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "F1 in Azerbaijan: That was almost a close-run thing"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 13,
+            "feed_title": "Ars Technica - All content",
+            "feed_url": "https://feeds.arstechnica.com/arstechnica/index"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "NASA 'troubleshooting' transporter for space station's robotic arm [Updated]",
+          "url": "https://arstechnica.com/space/2026/09/nasa-for-the-time-being-is-unable-to-move-the-space-stations-large-robotic-armthe-large-robotic-arm-on-the-international-space-station-has-stopped-working/"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "8295766ae93de2c0",
+      "lane": "major_news_unmatched",
+      "major_news": 0.366,
+      "momentum": 0,
+      "profile_match": 0,
+      "query": "major_news_feed",
+      "queue_priority": 38.2,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.366,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "NASA 'troubleshooting' transporter for space station's robotic arm [Updated]"
+    },
+    {
+      "coarse_relevance": null,
+      "decay_bucket": null,
+      "evidence": [
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 1,
+            "feed_title": "BBC Sport",
+            "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "US complete thrilling comeback to retain Presidents Cup",
+          "url": "https://www.bbc.co.uk/sport/golf/articles/cr5yeng66de5o?at_medium=RSS\u0026at_campaign=rss"
+        },
+        {
+          "author": null,
+          "engagement": {},
+          "metadata": {
+            "feed_position": 8,
+            "feed_title": "BBC Sport",
+            "feed_url": "https://feeds.bbci.co.uk/sport/golf/rss.xml"
+          },
+          "published_at": null,
+          "source": "major_feed",
+          "title": "US retain Presidents Cup with final day comeback",
+          "url": "https://www.bbc.co.uk/sport/golf/videos/ck790pj7dd32o?at_medium=RSS\u0026at_campaign=rss"
+        }
+      ],
+      "freshness_gate": null,
+      "id": "398691be83debbb1",
+      "lane": "major_news_unmatched",
+      "major_news": 0.524,
+      "momentum": 0,
+      "profile_match": 0.011,
+      "query": "major_news_feed",
+      "queue_priority": 35.1,
+      "source_agreement": 0.5,
+      "story_origin": null,
+      "story_size": {
+        "attention_hint": null,
+        "band": "unknown",
+        "basis": "publication_metadata_missing",
+        "components": {
+          "major_news": 0.524,
+          "social_momentum": 0,
+          "source_quality": 0.88
+        },
+        "confidence": "low",
+        "known_authority_count": 0,
+        "known_outlet_count": 0,
+        "known_traffic_count": 0,
+        "score": null,
+        "top_outlets": []
+      },
+      "title": "US complete thrilling comeback to retain Presidents Cup"
+    }
+  ],
+  "top_signals": null,
+  "triaged_candidates_file": {
+    "exists": false,
+    "path": "/Users/fivefriday/.newsjack/monitors/swing-shack/runs/20260929T043050Z/triaged_candidates.json"
+  }
+}
