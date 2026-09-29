@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PIN_COLORS } from '../../../lib/planning'
-import { localTodayIso } from '../../../lib/planning'
+import {
+  PIN_COLORS,
+  PLANNING_TIMELINE_YEAR_MAX,
+  PLANNING_TIMELINE_YEAR_MIN,
+  clampPlanningTimelineYear,
+  formatTimelineWindowLabel,
+  localTodayIso,
+  shiftPlanningTimelineYear,
+} from '../../../lib/planning'
 import type { PlanningTimeline, PlanningTimelineEvent } from '../../../lib/planningTypes'
 import { EventDetail } from './EventDetail'
 import type { PlanningEventDetail } from '../../../lib/planningTypes'
@@ -21,12 +28,6 @@ type ZoomId = (typeof ZOOM_OPTIONS)[number]['id']
 function zoomIdToDays(z: string | null): number {
   const found = ZOOM_OPTIONS.find((o) => o.id === z)
   return found ? found.days : 90
-}
-
-function monthShort(d: Date, refYear: number): string {
-  const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const ySuffix = d.getFullYear() !== refYear ? ` '${String(d.getFullYear()).slice(-2)}` : ''
-  return `${m[d.getMonth()]} ${d.getDate()}${ySuffix}`
 }
 
 function timelineBarMetrics(
@@ -87,15 +88,48 @@ export function EventTimelinePanel({
     [params, setParams],
   )
 
-  const goPrev = useCallback(() => setOffsetDays((d) => d - zoomDays), [zoomDays])
-  const goNext = useCallback(() => setOffsetDays((d) => d + zoomDays), [zoomDays])
-  const goToday = useCallback(() => setOffsetDays(0), [])
-
   const [shoppingOnly, setShoppingOnly] = useState(false)
   const yearInt = parseInt(year, 10)
-
-  // Local "today" date (recomputed on mount; long-open panels bump on filter click).
   const todayIso = useMemo(() => localTodayIso(), [])
+  const isFullYearZoom = zoomDays >= 365
+  const canPrevYear = yearInt > PLANNING_TIMELINE_YEAR_MIN
+  const canNextYear = yearInt < PLANNING_TIMELINE_YEAR_MAX
+
+  const goPrev = useCallback(() => {
+    if (isFullYearZoom) {
+      const prev = shiftPlanningTimelineYear(yearInt, -1)
+      if (prev == null) return
+      const p = new URLSearchParams(params)
+      p.set('year', String(prev))
+      setParams(p, { replace: true })
+      return
+    }
+    setOffsetDays((d) => d - zoomDays)
+  }, [isFullYearZoom, yearInt, zoomDays, params, setParams])
+
+  const goNext = useCallback(() => {
+    if (isFullYearZoom) {
+      const next = shiftPlanningTimelineYear(yearInt, 1)
+      if (next == null) return
+      const p = new URLSearchParams(params)
+      p.set('year', String(next))
+      setParams(p, { replace: true })
+      return
+    }
+    setOffsetDays((d) => d + zoomDays)
+  }, [isFullYearZoom, yearInt, zoomDays, params, setParams])
+
+  const goToday = useCallback(() => {
+    setOffsetDays(0)
+    if (!isFullYearZoom) return
+    const p = new URLSearchParams(params)
+    p.set('year', String(clampPlanningTimelineYear(parseInt(todayIso.slice(0, 4), 10))))
+    setParams(p, { replace: true })
+  }, [isFullYearZoom, todayIso, params, setParams])
+
+  const navPrevDisabled = isFullYearZoom && !canPrevYear
+  const navNextDisabled = isFullYearZoom && !canNextYear
+
   const todayRef = useRef<HTMLDivElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
 
@@ -157,13 +191,12 @@ export function EventTimelinePanel({
     byTier[t].push(ev)
   }
 
-  // Visible window label (e.g. "Sep 28 → Dec 27"). Only meaningful for non-full-year zooms.
-  const todayDate = new Date(`${todayIso}T00:00:00`)
-  const visibleStart = new Date(todayDate)
-  visibleStart.setDate(visibleStart.getDate() + offsetDays)
-  const visibleEnd = new Date(visibleStart)
-  visibleEnd.setDate(visibleEnd.getDate() + zoomDays)
-  const windowLabel = `${monthShort(visibleStart, yearInt)} → ${monthShort(visibleEnd, yearInt)}`
+  const windowLabel = formatTimelineWindowLabel({
+    zoomDays,
+    yearInt,
+    offsetDays,
+    todayIso,
+  })
 
   // Canvas width as % of viewport. 30D = 1217%, 90D = 405%, 6M = 200%, 12M = 100%.
   const canvasWidthPct = (365 / zoomDays) * 100
@@ -225,8 +258,14 @@ export function EventTimelinePanel({
           <button
             type="button"
             onClick={goPrev}
+            disabled={navPrevDisabled}
+            title={
+              isFullYearZoom
+                ? 'Previous calendar year (matches Year selector)'
+                : 'Earlier window — scrolls timeline left'
+            }
             data-testid="nav-prev"
-            className="rounded border border-bd bg-bg1 px-2.5 py-1 text-sm font-semibold text-tx hover:border-yel/60"
+            className="rounded border border-bd bg-bg1 px-2.5 py-1 text-sm font-semibold text-tx hover:border-yel/60 disabled:cursor-not-allowed disabled:opacity-40"
           >
             ‹ Prev
           </button>
@@ -241,15 +280,23 @@ export function EventTimelinePanel({
           <button
             type="button"
             onClick={goNext}
+            disabled={navNextDisabled}
+            title={
+              isFullYearZoom
+                ? 'Next calendar year (matches Year selector)'
+                : 'Later window — scrolls timeline right'
+            }
             data-testid="nav-next"
-            className="rounded border border-bd bg-bg1 px-2.5 py-1 text-sm font-semibold text-tx hover:border-yel/60"
+            className="rounded border border-bd bg-bg1 px-2.5 py-1 text-sm font-semibold text-tx hover:border-yel/60 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Next ›
           </button>
         </div>
         <div className="text-[11px] font-semibold tracking-wider text-tx2 uppercase">
           Window: {windowLabel}{' '}
-          <span className="font-normal text-tx3">· {zoomDays} days</span>
+          <span className="font-normal text-tx3">
+            · {isFullYearZoom ? 'calendar year' : `${zoomDays} days`}
+          </span>
         </div>
       </div>
 
