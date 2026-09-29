@@ -17407,7 +17407,7 @@ def today_panel():
                 'type': 'longform_review',
                 'priority': 'medium',
                 'campaignId': 'Long-form Review',
-                'title': f"{len(pending_lf)} long-form draft{'s' if len(pending_lf) != 1 else ''} need review",
+                'title': f"{len(pending_lf)} long-form draft{'s' if len(pending_lf) != 1 else ''} need{'s' if len(pending_lf) == 1 else ''} review",
                 'subtitle': first_title,
                 'context_url': f"/review/long-form",
                 'cta_label': 'Open Long-form Review',
