@@ -132,21 +132,36 @@ def patch_swing_shack() -> bool:
         )
         changed = True
 
-    # 2) Collapse LESSONS into COACHING
+    # 2) Collapse LESSONS into COACHING (also rewrite the COACHING tagline
+    # unconditionally so the historic 'shack-sessions' framing is purged
+    # and the brand-bible-aligned tagline is the only one on the wire).
     areas = data.get("operating_areas") or []
-    if any(a.get("key") == "LESSONS" for a in areas):
+    has_lessons = any(a.get("key") == "LESSONS" for a in areas)
+    if has_lessons:
         new_areas = []
         for a in areas:
             if a.get("key") == "LESSONS":
                 continue  # drop
             if a.get("key") == "COACHING":
                 a["tagline"] = (
-                    "TrackMan-backed sessions, real numbers — covers lessons, "
-                    "packages, junior coaching, and on-course coaching"
+                    "TrackMan-backed sessions, real numbers — covers packages, "
+                    "junior coaching, and on-course coaching"
                 )
             new_areas.append(a)
         data["operating_areas"] = new_areas
         changed = True
+    else:
+        # Always refresh the COACHING tagline to the brand-bible-aligned
+        # form. Idempotent — only writes when the on-volume tagline
+        # diverges from the canonical one.
+        COACHING_TAGLINE = (
+            "TrackMan-backed sessions, real numbers — covers packages, "
+            "junior coaching, and on-course coaching"
+        )
+        for a in areas:
+            if a.get("key") == "COACHING" and a.get("tagline") != COACHING_TAGLINE:
+                a["tagline"] = COACHING_TAGLINE
+                changed = True
 
     # 3) operating_goals (read from strategy/swing-shack.json, not planning)
     svol, sbak = _resolve("swing-shack", "strategy")
@@ -225,28 +240,21 @@ def main() -> int:
     bootstrap_ss = _ensure_baked_to_volume("swing-shack", "brand-planning")
     bootstrap_stick = _ensure_baked_to_volume("stick", "brand-planning")
 
-    # The patch is also idempotent — skip if the v2.11 marker is set.
-    marker = os.path.join(DATA_DIR, ".patches", "v211_brand_bible.applied")
-    if os.path.exists(marker):
-        if bootstrap_ss or bootstrap_stick:
-            print(f"[v2.11] marker present but bootstrap copied files; OK")
-        else:
-            print(f"[v2.11] already applied ({marker}); skipping")
-        return 0
+    # The patch is also idempotent — every section only writes when the
+    # on-volume value diverges from the canonical brand-bible form.
+    # Run on every boot. The marker file is no longer a hard skip —
+    # kept only for audit / first-boot detection.
     ss = patch_swing_shack()
     sk = patch_stick()
-    if ss or sk:
-        # Write the marker so subsequent boots are no-ops.
+    if ss or sk or bootstrap_ss or bootstrap_stick:
+        # Refresh the marker so audit logs capture the latest activity.
+        marker = os.path.join(DATA_DIR, ".patches", "v211_brand_bible.applied")
         os.makedirs(os.path.dirname(marker), exist_ok=True)
         with open(marker, "w") as f:
             f.write("v2.11 brand-bible language patch + immediate-goal metrics\n")
             f.write(f"applied_at={os.environ.get('RAILWAY_DEPLOYMENT_ID', 'local')}\n")
-        print(f"[v2.11] patched — marker written to {marker}")
+        print(f"[v2.11] patched — marker refreshed at {marker}")
     else:
-        # No-op: also write the marker so we never re-walk the data files.
-        os.makedirs(os.path.dirname(marker), exist_ok=True)
-        with open(marker, "w") as f:
-            f.write("v2.11 brand-bible patch — already up to date\n")
         print("[v2.11] nothing to patch (already up to date)")
     return 0
 

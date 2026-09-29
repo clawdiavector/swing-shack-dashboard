@@ -7,7 +7,7 @@
   },
   "operating_areas": [
     {"key": "FITTING", "lane": "fitting", "tagline": "fit first, buy second"},
-    {"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers — covers lessons, packages, junior coaching, and on-course coaching"},
+    {"key": "COACHING", "lane": "coaching", "tagline": "TrackMan-backed sessions, real numbers — covers packages, junior coaching, and on-course coaching"},
     {"key": "ON-COURSE", "lane": "practice", "tagline": "where the data meets the grass"},
     {"key": "HUMAN", "lane": "10-ball-truth", "tagline": "the real coaches, the real golfers"},
     {"key": "MEASUREMENT", "lane": "swing-truth", "tagline": "TrackMan data, what the numbers actually mean"}
