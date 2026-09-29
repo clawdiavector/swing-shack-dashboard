@@ -45405,6 +45405,26 @@ def planning_approve_candidate(brand_id, candidate_id):
     except Exception as e:
         return jsonify({"ok": False, "error": f"upsert_event failed: {e}"}), 500
 
+    # V2.10 — if the source candidate was a record in the operator-store
+    # (the Suggest Date flow), transition the source record to status=approved
+    # so the operator-store count and status are consistent. Without this,
+    # the original record stays status=candidate forever and a duplicate
+    # approval would create yet another row.
+    if source_file == "operator-store" and candidate and candidate.get("calendar_id"):
+        try:
+            from _lib import marketing_calendar as _mc_transition
+            try:
+                _mc_transition.transition_status(
+                    brand_id,
+                    candidate["calendar_id"],
+                    "approved",
+                    reason=f"Approved via /candidates/{candidate_id}/approve — promoted to Main Calendar as event_key={record.get('event_key')}",
+                )
+            except Exception:
+                pass
+        except Exception:
+            pass
+
     # Audit
     try:
         audit_entry = _planevents.write_audit_entry(

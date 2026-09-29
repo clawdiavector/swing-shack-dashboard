@@ -580,6 +580,12 @@ def build_approval_record(
     record: Dict[str, Any] = {
         "event_key": _build_event_key_from_candidate(brand_id, candidate),
         "brand_id": brand_id,
+        # V2.10 — explicit approved status. Without this, the new
+        # event_key row in the operator-store is created with status=None
+        # and the timeline filter (`status == "approved"`) skips it.
+        # Result: the candidate is "approved in store but invisible in
+        # calendar" — the exact V2.10 §5 regression.
+        "status": "approved",
         "title": title,
         "type": "moment",
         "event_start": (start_d or _date.today()).isoformat(),
