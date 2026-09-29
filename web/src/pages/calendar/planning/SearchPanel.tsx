@@ -298,7 +298,7 @@ export function SearchPanel({
 }: {
   brand: string
   brandId: string
-  onAddToMainCalendar: (candidateId: string) => Promise<void>
+  onAddToMainCalendar: (candidateId: string) => Promise<{ ok: boolean; error?: string }>
   onOpenPlanning: (candidateId: string) => void
   onOpenIntelligence: (candidateId: string) => void
   onOpenSuggestDateModal: () => void
