@@ -16713,6 +16713,21 @@ def heroes_alias():
 def index():
     page = request.args.get('page')
     if page:
+        # V2.11 — Always redirect `?page=planning` (and the related
+        # `?page=calendar` / `?page=ideas`) to the React Calendar in
+        # the new shared Shell. The legacy campaign-os.html template
+        # has a hard-coded STICK STANDARD HERO block (1.3MB HTML,
+        # line 21537) that renders regardless of the brand selector
+        # — Swing Shack selected still shows RETAIL · ask Stick ·
+        # WORKSHOP · built at Stick · APPAREL · style that belongs.
+        # The only correct fix is to remove the legacy Calendar route
+        # entirely; HEROES_CUTOVER (Kyle's opt-in flag) only
+        # redirects when true, and default is false. We force-redirect
+        # the planning/calendar/ideas pages so this regression can
+        # never resurface even if the env flag is off.
+        if page in ("planning", "calendar", "ideas"):
+            native = _CLASSIC_TO_NATIVE.get(page, "/app/calendar/lanes")
+            return redirect(_merge_native_redirect(native, request.args))
         if _heroes_cutover_enabled():
             native = _CLASSIC_TO_NATIVE.get(page)
             if native:

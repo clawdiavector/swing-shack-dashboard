@@ -19731,13 +19731,16 @@ async function renderPlanning() {
   _planningRightNow = rightNow;
 
   renderHero(brand, bigIdea, timeline);
-  renderActiveNow(rightNow);
+  // V2.11 — pass bigIdea to renderActiveNow so the Right Now labels
+  // can be re-rendered from the canonical operating_areas[].key list
+  // rather than the hard-coded RETAIL / FITTING / COACHING.
+  renderActiveNow(rightNow, brand, bigIdea);
   renderTimeline(timeline, year);
   renderLaneLegend();
   renderPlanningCalendar(mv);
 }
 
-function renderActiveNow(rn) {
+function renderActiveNow(rn, brand, bigIdea) {
   const todayEl = document.getElementById('pl-right-now-today');
   const retailEl = document.getElementById('pl-now-retail');
   const fittingEl = document.getElementById('pl-now-fitting');
@@ -19760,9 +19763,35 @@ function renderActiveNow(rn) {
 
   if (todayEl) todayEl.textContent = rn.today || '';
   const rightNow = rn.right_now || {};
-  if (retailEl) retailEl.textContent = rightNow.retail || 'Steady new arrivals + walk-in retail.';
-  if (fittingEl) fittingEl.textContent = rightNow.fitting || 'Iron / wedge / putter fitting on-ramp.';
-  if (coachingEl) coachingEl.textContent = rightNow.coaching || 'Lessons + playing-coach sessions.';
+  if (retailEl) retailEl.textContent = rightNow.retail || '—';
+  if (fittingEl) fittingEl.textContent = rightNow.fitting || '—';
+  if (coachingEl) coachingEl.textContent = rightNow.coaching || '—';
+
+  // V2.11 — Right Now labels are brand-specific. The previous build
+  // hard-coded RETAIL / FITTING / COACHING in the HTML, which is
+  // correct for Stick but wrong for Swing Shack (which has no RETAIL
+  // area) and misleading for Bag Drop. Re-label from the canonical
+  // operating_areas[].key list (first 3 keys, falling back to the
+  // raw right_now object keys if no operating_areas are available).
+  const bi = bigIdea || window._plBigIdea || {};
+  const areas = bi.operating_areas || [];
+  let labels = null;
+  if (areas.length > 0) {
+    labels = areas.slice(0, 3).map(a => (a.key || '').toUpperCase());
+  } else {
+    labels = ['RETAIL', 'FITTING', 'COACHING'];
+    for (let i = 0; i < labels.length; i++) {
+      const k = labels[i].toLowerCase();
+      if (!rightNow[k]) {
+        const alt = Object.keys(rightNow).find(kk => rightNow[kk]);
+        if (alt) labels[i] = alt.toUpperCase();
+      }
+    }
+  }
+  const labelEls = document.querySelectorAll('#pl-right-now .pl-now-label');
+  for (let i = 0; i < labelEls.length && i < labels.length; i++) {
+    labelEls[i].textContent = labels[i] || '—';
+  }
 
   if (aCount) aCount.textContent = rn.active_a_count || 0;
   if (bCount) bCount.textContent = rn.active_b_count || 0;
@@ -20375,8 +20404,14 @@ function plShiftMonth(delta) {
 
 
 function renderHero(brand, bigIdea, timeline) {
-  // STICK STANDARD is permanent — does not change month to month.
-  // The big_brand_idea + belief live above everything.
+  // The big_brand_idea + belief live above everything. Operating
+  // areas below are populated from bi.operating_areas (V2.11) — no
+  // hard-coded brand copy.
+  // V2.11 — stash bigIdea + brand on window so renderActiveNow (which
+  // is called without args in the original flow) can re-label the
+  // Right Now cards from the canonical operating_areas list.
+  window._plBrand = brand;
+  window._plBigIdea = bigIdea || {};
   const idea = (bigIdea?.big_brand_idea) || {};
   // Fallback to the timeline's always-on pillars / campaign theme if bigIdea is empty
   const fallback = (timeline?.always_on_pillars || []);
@@ -20387,6 +20422,30 @@ function renderHero(brand, bigIdea, timeline) {
   document.getElementById('pl-hero-brand').textContent = brandName;
   document.getElementById('pl-hero-bigidea').textContent = bigIdeaName;
   document.getElementById('pl-hero-belief').textContent = belief ? '"' + belief + '"' : '';
+
+  // V2.11 — Populate the operating-areas container from the canonical
+  // /api/planning/<brand>/big-idea response. The previous hard-coded
+  // STICK STANDARD block leaked onto the Swing Shack view because
+  // the JS overwrote only the brand-name / big-idea / belief slots;
+  // the operating-areas row was static HTML. Now we clear the
+  // container and rebuild it from the API's `operating_areas[]`
+  // so the hero is brand-safe on every selection.
+  const areasEl = document.getElementById('pl-hero-areas');
+  if (areasEl) {
+    const areas = bi?.operating_areas || [];
+    if (areas.length === 0) {
+      areasEl.innerHTML = '';
+    } else {
+      areasEl.innerHTML = areas.map((row) => {
+        const k = (row.key || '').toUpperCase();
+        let color = '#94a3b8';
+        if (k === 'FITTING' || k === 'CONDITION' || k === 'MEASUREMENT') color = '#14b8a6';
+        else if (['COACHING','WORKSHOP','LESSONS','ON-COURSE','CURATED','DROP','RETAIL','PROOF','HUMAN','APPAREL'].includes(k)) color = '#f0a030';
+        const tagline = row.tagline ? ' · ' + esc(row.tagline) : '';
+        return '<div style="font-size:13px;color:#f5f5f0"><span style="color:' + color + ';font-weight:700">' + esc(row.key) + '</span>' + tagline + '</div>';
+      }).join('');
+    }
+  }
 }
 
 
@@ -21510,7 +21569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <section class="section" id="sec-planning">
       <div class="section-h">
         <h2>📅 Strategic Calendar</h2>
-        <span class="sub">Events / commercial pushes drive the calendar. Month grid lives below for ops. STICK STANDARD does not change month-to-month.</span>
+        <span class="sub">Events / commercial pushes drive the calendar. Month grid lives below for ops.</span>
         <div style="margin-left:auto;display:flex;gap:.5rem;align-items:center">
           <select id="pl-brand" onchange="renderPlanning()" style="font-size:12px;padding:6px 10px;border-radius:6px;background:var(--bg-2);color:var(--tx);border:1px solid var(--bd);font-weight:600">
             <option value="stick">Stick</option>
@@ -21545,16 +21604,18 @@ document.addEventListener('DOMContentLoaded', () => {
             <div id="pl-hero-bigidea" style="font-size:32px;font-weight:900;letter-spacing:-.02em;line-height:1.1;color:#f5f5f0"></div>
             <div id="pl-hero-belief" style="font-size:14px;font-style:italic;color:#8a8a8a;margin-top:.5rem"></div>
           </div>
+          <!-- V2.11 — Operating areas are populated dynamically by
+               renderPlanning() from /api/planning/<brand>/big-idea.
+               No hard-coded brand copy. The previous hard-coded
+               STICK STANDARD block (RETAIL · ask Stick · WORKSHOP ·
+               built at Stick · APPAREL · style that belongs) leaked
+               onto the Swing Shack view because the static markup
+               was rendered before the JS overwrote it. The new
+               container starts empty; renderPlanning() fills it
+               from the canonical data file for the selected brand. -->
           <div style="margin-top:1.25rem">
-            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.5rem">THE STICK STANDARD — runs every week, not just one month</div>
-            <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
-              <div style="font-size:13px;color:#f5f5f0"><span style="color:#f0a030;font-weight:700">RETAIL</span> · real stock only — earns its place</div>
-              <div style="font-size:13px;color:#f5f5f0"><span style="color:#14b8a6;font-weight:700">FITTING</span> · fit first, buy second</div>
-              <div style="font-size:13px;color:#f5f5f0"><span style="color:#f0a030;font-weight:700">COACHING</span> · ask Stick</div>
-              <div style="font-size:13px;color:#f5f5f0"><span style="color:#94a3b8;font-weight:700">WORKSHOP</span> · built at Stick</div>
-              <div style="font-size:13px;color:#f5f5f0"><span style="color:#94a3b8;font-weight:700">HUMAN</span> · the real people</div>
-              <div style="font-size:13px;color:#f5f5f0"><span style="color:#94a3b8;font-weight:700">APPAREL</span> · style that belongs</div>
-            </div>
+            <div style="font-size:11px;color:#f0a030;text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:.5rem">Always on</div>
+            <div id="pl-hero-areas" style="display:flex;gap:1.5rem;flex-wrap:wrap"></div>
           </div>
         </div>
       </div>
@@ -21567,15 +21628,15 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:1rem;margin-bottom:1rem">
           <div style="background:var(--bg-2);border-left:3px solid #f0a030;padding:.75rem 1rem;border-radius:6px">
-            <div style="font-size:10px;color:#f0a030;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.25rem">RETAIL</div>
+            <div class="pl-now-label" style="font-size:10px;color:#f0a030;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.25rem">RETAIL</div>
             <div id="pl-now-retail" style="font-size:13px;color:var(--tx);line-height:1.4"></div>
           </div>
           <div style="background:var(--bg-2);border-left:3px solid #14b8a6;padding:.75rem 1rem;border-radius:6px">
-            <div style="font-size:10px;color:#14b8a6;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.25rem">FITTING</div>
+            <div class="pl-now-label" style="font-size:10px;color:#14b8a6;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.25rem">FITTING</div>
             <div id="pl-now-fitting" style="font-size:13px;color:var(--tx);line-height:1.4"></div>
           </div>
           <div style="background:var(--bg-2);border-left:3px solid #f0a030;padding:.75rem 1rem;border-radius:6px">
-            <div style="font-size:10px;color:#f0a030;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.25rem">COACHING</div>
+            <div class="pl-now-label" style="font-size:10px;color:#f0a030;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:.25rem">COACHING</div>
             <div id="pl-now-coaching" style="font-size:13px;color:var(--tx);line-height:1.4"></div>
           </div>
         </div>
