@@ -45264,7 +45264,7 @@ def planning_approve_candidate(brand_id, candidate_id):
     planning = _planning_dir()
     candidates_files = sorted(glob.glob(os.path.join(planning, f"{brand_id}-candidates-*.json")))
     if not candidates_files:
-        return jsonify({"ok": False, "error": "no candidates file for this brand"}), 404
+        candidates_files = []  # V2.9 — empty list is OK; operator-store fallback covers it.
 
     candidate: Optional[Dict[str, Any]] = None
     research_lead: Optional[Dict[str, Any]] = None
@@ -45290,6 +45290,57 @@ def planning_approve_candidate(brand_id, candidate_id):
                 break
         except Exception:
             continue
+
+    # V2.9 — fallback to the operator-store. Suggest Date creates a
+    # record with status=candidate in the operator-store; its id is a
+    # calendar_id. Allow it to be approved through this endpoint by
+    # looking it up there if the candidates files did not contain it.
+    if not candidate and not research_lead:
+        try:
+            from _lib import marketing_calendar as _mc_approve_lookup
+            _records = _mc_approve_lookup.list_records(brand_id) or []
+            for r in _records:
+                if r.get("calendar_id") == candidate_id or r.get("event_key") == candidate_id:
+                    # Found in the operator-store. Already approved? Idempotent noop.
+                    if r.get("status") == "approved":
+                        return jsonify({
+                            "ok": True,
+                            "brand_id": brand_id,
+                            "candidate_id": candidate_id,
+                            "event_key": r.get("event_key"),
+                            "upsert": {"action": "noop", "revision": r.get("revision")},
+                            "was_created": False,
+                            "audit_entry": None,
+                            "actor": actor,
+                            "already_approved": True,
+                        }), 200
+                    # Surface as a candidate-shaped record so the build helper accepts it.
+                    candidate = {
+                        "id": candidate_id,
+                        "calendar_id": candidate_id,
+                        "name": r.get("title") or r.get("name"),
+                        "title": r.get("title") or r.get("name"),
+                        "category": r.get("category"),
+                        "start": r.get("event_start") or r.get("start"),
+                        "end": r.get("event_end") or r.get("end"),
+                        "public_peak": r.get("public_peak") or r.get("event_start") or r.get("start"),
+                        "geography": r.get("venue") or r.get("location"),
+                        "venue": r.get("venue") or r.get("location"),
+                        "location": r.get("location"),
+                        "source": r.get("source_origin") or r.get("source"),
+                        "source_url": r.get("source_url"),
+                        "confidence": r.get("confidence"),
+                        "suggested_tier": r.get("tier"),
+                        "recommended_lead_time_weeks": r.get("recommended_lead_time_weeks"),
+                        "relevance_to_swing_shack": r.get("summary") or r.get("relevance_reason"),
+                        "opportunity": r.get("summary"),
+                        "why_it_matters": r.get("summary") or r.get("relevance_reason"),
+                    }
+                    source_file = "operator-store"
+                    break
+        except Exception:
+            pass
+
     if not candidate and not research_lead:
         return jsonify({
             "ok": False,
