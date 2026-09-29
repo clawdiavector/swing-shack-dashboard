@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBrand } from '../../components/BrandSwitch'
 import { FilterChips, PageIntro } from '../../components/chrome'
-import { ClassicLink, Tip } from '../../components/ui'
+import { Tip } from '../../components/ui'
 import {
   fetchPlanningBigIdea,
   fetchPlanningCandidates,
@@ -246,7 +246,6 @@ export function Lanes() {
 
       <div className="flex flex-wrap items-center gap-3">
         {yearControl}
-        <ClassicLink href="/?page=planning" label="planning" />
       </div>
 
       <FilterChips options={TAB_OPTIONS} value={tab} onChange={setTab} />
