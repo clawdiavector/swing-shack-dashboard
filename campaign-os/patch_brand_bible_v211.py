@@ -218,10 +218,20 @@ def patch_stick() -> bool:
 
 
 def main() -> int:
-    # Idempotent: skip if the v2.11 marker is already on the volume.
+    # V2.11 bootstrap (idempotent file copy). Always run this — it
+    # backfills missing brand files onto the volume even if the patch
+    # marker is already set. This guards against volume snapshots that
+    # were taken before a brand was added.
+    bootstrap_ss = _ensure_baked_to_volume("swing-shack", "brand-planning")
+    bootstrap_stick = _ensure_baked_to_volume("stick", "brand-planning")
+
+    # The patch is also idempotent — skip if the v2.11 marker is set.
     marker = os.path.join(DATA_DIR, ".patches", "v211_brand_bible.applied")
     if os.path.exists(marker):
-        print(f"[v2.11] already applied ({marker}); skipping")
+        if bootstrap_ss or bootstrap_stick:
+            print(f"[v2.11] marker present but bootstrap copied files; OK")
+        else:
+            print(f"[v2.11] already applied ({marker}); skipping")
         return 0
     ss = patch_swing_shack()
     sk = patch_stick()
