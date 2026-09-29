@@ -103,9 +103,12 @@ def _credentials_present(brand_id: str | None = None) -> bool:
 
 
 def _read_api_key(brand_id: str | None = None) -> Optional[str]:
-    """Resolve the API key without echoing it. Returns None if missing."""
-    from _lib.brand_validate import POSTIZ_GLOBAL_FALLBACK_BRAND
+    """Resolve the API key without echoing it. Returns None if missing.
 
+    Per-brand env vars win; any brand may fall back to shared POSTIZ_API_KEY
+    (same as tenant_secrets() in app.py). Review push and legacy paths often
+    call with brand_id=None; live publish passes brand_id — both must agree.
+    """
     if brand_id:
         safe = _brand_env_suffix(brand_id)
         for key in (
@@ -116,8 +119,6 @@ def _read_api_key(brand_id: str | None = None) -> Optional[str]:
             env = os.environ.get(key)
             if env and env.strip():
                 return env.strip()
-        if brand_id != POSTIZ_GLOBAL_FALLBACK_BRAND:
-            return None
     env = os.environ.get("POSTIZ_API_KEY")
     if env and env.strip():
         return env.strip()

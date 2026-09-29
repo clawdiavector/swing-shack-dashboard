@@ -133,12 +133,12 @@ def test_post_outcomes_skips_receipt_without_brand_id(monkeypatch, tmp_path):
     assert doc.get("brand_id") == LEARN_BRAND
 
 
-def test_postiz_stick_does_not_use_global_key(monkeypatch):
+def test_postiz_stick_falls_back_to_global_postiz_key(monkeypatch):
     from _lib import postiz_client as pc
 
     monkeypatch.delenv("POSTIZ_API_KEY_STICK", raising=False)
-    monkeypatch.setenv("POSTIZ_API_KEY", "global-key-should-not-leak")
-    assert pc._read_api_key(brand_id="stick") is None
+    monkeypatch.setenv("POSTIZ_API_KEY", "global-key-on-railway")
+    assert pc._read_api_key(brand_id="stick") == "global-key-on-railway"
 
 
 def test_no_default_brand_in_post_outcomes_source():
