@@ -77,7 +77,7 @@ export type PlanningTimeline = {
 export type PlanningRightNow = {
   ok?: boolean
   today?: string
-  right_now?: { retail?: string; fitting?: string; coaching?: string }
+  right_now?: { [k: string]: string | undefined; retail?: string; fitting?: string; coaching?: string }
   active_a_pins?: PlanningTimelineEvent[]
   active_b_pins?: PlanningTimelineEvent[]
   active_a_count?: number

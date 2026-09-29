@@ -264,7 +264,7 @@ export function Lanes() {
             </p>
           ) : null}
           <PlanningHero brand={scopeBrand} bigIdea={bigIdea} />
-          <RightNowStrip brand={brandLabel} rightNow={rightNow} onOpenEvent={openEvent} />
+          <RightNowStrip brand={brandLabel} bigIdea={bigIdea} rightNow={rightNow} onOpenEvent={openEvent} />
           <SearchPanel
             brand={brandLabel}
             brandId={scopeBrand}
