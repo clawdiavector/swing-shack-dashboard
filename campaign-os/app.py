@@ -50893,6 +50893,15 @@ if __name__ == '__main__':
         _v211_patch_main()
     except Exception as _e:
         print(f'[boot] v2.11 bible patch failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — operator-supplied important-dates inventory.
+        # Adds ~50 SA-sport / public-holiday / retail / golf-event dates
+        # that the operator wants the OS to know about. Idempotent —
+        # dedupes by event_name, never overwrites an existing entry.
+        from patch_important_dates_v211 import main as _v211_dates_main
+        _v211_dates_main()
+    except Exception as _e:
+        print(f'[boot] v2.11 dates patch failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:
