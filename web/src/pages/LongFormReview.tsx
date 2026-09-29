@@ -408,7 +408,7 @@ function QueueView({
   brand,
 }: {
   queue: ReviewQueueItem[]
-  onPick: (id: string) => void
+  onPick: (briefId: string) => void
   brand: string
 }) {
   if (queue.length === 0) {
@@ -429,7 +429,7 @@ function QueueView({
         <button
           type="button"
           key={item.draft_id}
-          onClick={() => onPick(item.draft_id)}
+          onClick={() => onPick(item.brief_id)}
           className="glass block w-full rounded-2xl border border-white/10 p-4 text-left transition-colors hover:border-yel/40"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
