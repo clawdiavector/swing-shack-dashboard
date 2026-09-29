@@ -186,6 +186,23 @@ def register_routes(app):
         )
         return jsonify(r), 200 if r.get("ok") else 400
 
+    @bp.route("/api/review/v1/<brand_id>/<brief_id>/sections/<section_id>/restore",
+              methods=["POST"])
+    def review_section_restore(brand_id, brief_id, section_id):
+        """Reverse a previous REJECT_SECTION so the section is reviewable
+        again. Completion of Review V1, not a new V2. Idempotent on
+        non-rejected sections. Does NOT auto-approve; does NOT delete
+        comments/history; does NOT touch the Writer artifact."""
+        if not _is_authed(request):
+            return jsonify({"ok": False, "error": "auth required"}), 401
+        body = request.get_json(silent=True) or {}
+        actor = _resolve_reviewer_id(request)
+        r = _review.restore_section(
+            brand_id, f"r_{brief_id}", section_id, actor,
+            reason=body.get("reason"),
+        )
+        return jsonify(r), 200 if r.get("ok") else 400
+
     @bp.route("/api/review/v1/<brand_id>/<brief_id>/sections/<section_id>/request-rewrite",
               methods=["POST"])
     def review_section_request_rewrite(brand_id, brief_id, section_id):

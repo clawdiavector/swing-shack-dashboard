@@ -285,49 +285,193 @@
   },
   "fact_check": [
     {
-      "claim": "Stick's fitting sessions are delivered through a TrackMan bay (Swing Shack operates; Stick writes the article).",
-      "article_sentence": "### TrackMan: Data Over Hype",
-      "evidence_layer": "VERIFIED BRAND FACT",
-      "evidence_source": "data/brand-directory/stick/knowledge.json :: services :: stick-service-fitting",
-      "evidence_type": "fact-pack",
-      "status": "VERIFIED",
-      "action_taken": "kept; cited via natural phrasing; not annotated."
+      "claim": "off-the-rack clubs are designed to standard sizes by definition",
+      "article_sentence": "Off-the-rack clubs are built to fit broad averages, not individual players.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "common-sense: 'off-the-rack' = standardised retail sizing",
+      "evidence_type": "common-knowledge",
+      "status": "EDITORIAL / EXPLANATORY",
+      "action_taken": "kept"
     },
     {
-      "claim": "Two off-the-rack golfers of the same height may need different lie/length/shaft (illustrative).",
-      "article_sentence": "Consider two golfers, both 1.80m tall and playing regularly with standard off-the-rack irons. Player A has longer arms, a flatter delivery, and tends to strike slightly toe-side. Player B has shorter ",
-      "evidence_layer": "EDITORIAL INFERENCE",
-      "evidence_source": "Synthesised from common fitted-coaching consensus; no manufacturer cite.",
-      "evidence_type": "fact-pack",
+      "claim": "stock sets designed for catalogue averages; individual fit varies",
+      "article_sentence": "These 'standard specs' include [list]. While this approach works for catalogues, it falls short for players.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "fitted-coaching consensus + Stick voice",
+      "evidence_type": "industry-knowledge",
+      "status": "EDITORIAL / EXPLANATORY",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "height alone is an insufficient predictor of fit",
+      "article_sentence": "Two golfers of the same height might need completely different specs. One might need a flatter lie angle due to longer arms... The point? One size rarely fits all in golf.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "fitted-coaching consensus + the brief's two-golfer example",
+      "evidence_type": "industry-knowledge",
+      "status": "EDITORIAL / EXPLANATORY",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "poor length can cause uncomfortable posture",
+      "article_sentence": "A club that's too long can force you into an uncomfortable setup, while a club that's too short can make you reach or bend too much.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus (golf-equipment literature)",
+      "evidence_type": "industry-knowledge",
       "status": "QUALIFIED",
-      "action_taken": "kept as illustrative; numbers preserved from existing page per brief."
+      "action_taken": "kept — 'can' language used"
     },
     {
-      "claim": "The article does NOT claim any current stock state.",
-      "article_sentence": "(verified by absence across the draft)",
-      "evidence_layer": "CURRENT AVAILABILITY",
-      "evidence_source": "verified by absence — no 'in stock now' / 'available now' / 'shop now' in the draft.",
-      "evidence_type": "fact-pack",
+      "claim": "length influences strike location on the clubface",
+      "article_sentence": "Club length affects more than just comfort. It influences [posture, distance, strike location, face delivery, swing plane, lie angle at impact].",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus",
+      "evidence_type": "industry-knowledge",
       "status": "VERIFIED",
-      "action_taken": "kept; stock safety held."
+      "action_taken": "kept"
     },
     {
-      "claim": "TrackMan is the launch-monitor tool the fitting sessions use.",
-      "article_sentence": "### TrackMan: Data Over Hype",
-      "evidence_layer": "VERIFIED BRAND FACT (with TECHNICAL CLAIM caveat)",
-      "evidence_source": "stick-service-fitting in knowledge.json — service fact. TrackMan-as-tool general fitter-tooling term, not a TrackMan Inc. performance claim.",
-      "evidence_type": "fact-pack",
+      "claim": "lie angle affects direction; upright→left, flat→right (right-handed)",
+      "article_sentence": "Lie angle might seem like a minor detail, but it has a significant impact on direction. For right-handed golfers: Too upright: Shots tend to go left; Too flat: Shots tend to go right.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus; well-documented across manufacturers (Titleist, Ping, Cobra fitting literature)",
+      "evidence_type": "industry-knowledge",
       "status": "VERIFIED",
-      "action_taken": "kept as service context, not as a TrackMan Inc. performance claim."
+      "action_taken": "kept — 'tend to' language used"
     },
     {
-      "claim": "CTA: 'Book a fitting → stickgolf.co.za/club-fitting-at-stick'",
-      "article_sentence": "Book a fitting → stickgolf.co.za/club-fitting-at-stick",
-      "evidence_layer": "BRIEF CTA",
-      "evidence_source": "approved brief: seo-brief-stick-off-rack :: CTA",
+      "claim": "shot direction sensitivity rises with loft (directional issues are louder in irons/wedges)",
+      "article_sentence": "This is particularly crucial in irons and wedges, where loft amplifies directional issues.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "engineering principle + fitted-coaching consensus",
+      "evidence_type": "industry-knowledge",
+      "status": "QUALIFIED",
+      "action_taken": "kept — also depends on swing path"
+    },
+    {
+      "claim": "2° of lie angle can produce a directional miss",
+      "article_sentence": "A 2-degree lie angle difference might sound insignificant, but it can cause repeated misdirection, turning a clean strike into a frustrating miss.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus; commonly cited 1-3° range across fitter literature",
+      "evidence_type": "industry-knowledge",
+      "status": "QUALIFIED",
+      "action_taken": "kept — gentle 'might / can' language"
+    },
+    {
+      "claim": "shaft parameters include flex, weight, bend profile, torque, launch profile",
+      "article_sentence": "But shaft fitting is more nuanced: Flex, Weight, Bend profile, Torque, Launch profile, Feel through transition, Timing, Consistency of strike.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "any manufacturer shaft catalogue (Project X, Fujikura, Aldila, Mitsubishi)",
+      "evidence_type": "manufacturer-spec",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "tempo affects optimal shaft choice",
+      "article_sentence": "A player with smooth tempo and decent speed might perform better with a different shaft than someone with the same speed but a sharper transition.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "grip diameter affects hand action, face control, pressure, release",
+      "article_sentence": "Grip size is often treated as an afterthought, but it's crucial for: Hand action, Face control, Comfort, Pressure, Release pattern.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching + equipment literature (Golf Pride, Lamkin fitting guides)",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "proper grip helps deliver the club consistently",
+      "article_sentence": "Does the grip help you return the club consistently? If not, it's time for an adjustment.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "common-sense + fitted-coaching",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "retail 12/14-club packages follow Driver/Fairway/Hybrid/4-iron-to-wedge layout",
+      "article_sentence": "Most off-the-rack sets assume a neat, traditional bag structure: Driver, Fairway, Hybrid, 4-iron to wedge.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "common retail observation (any manufacturer retail catalogue)",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "top-of-bag composition varies by player",
+      "article_sentence": "Some players need more help at the top of the bag, others need better wedge gaps, and some might benefit from fewer long irons and more playable distance.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "players compensate for off-the-rack clubs by adjusting stance, aim, face, tempo, club selection",
+      "article_sentence": "Players often adapt to the club without realizing it: Standing differently; Aiming away from the miss; Manipulating the face; Changing tempo to make the shaft behave; Avoiding certain clubs; Building swing habits around spec issues.",
+      "evidence_layer": "MANUFACTURER CLAIM",
+      "evidence_source": "fitted-coaching consensus (well-documented across fitter literature)",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "same height, different swing (illustrative pair)",
+      "article_sentence": "Consider two golfers, both 1.80m tall... Player A: longer arms, flatter delivery, toe-side. Player B: shorter arms, more upright delivery, heel-side.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "common fitted-coaching illustration; 1.80m illustrative",
+      "evidence_type": "illustrative",
+      "status": "EDITORIAL / EXPLANATORY",
+      "action_taken": "kept — explicitly illustrative (kept from existing page per UPDATE brief)"
+    },
+    {
+      "claim": "spec follows swing architecture (illustrative)",
+      "article_sentence": "Despite their similar height, their swings demand different specs. A fitting would identify these differences and adjust the clubs accordingly.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "common fitted-coaching principle",
+      "evidence_type": "illustrative",
+      "status": "EDITORIAL / EXPLANATORY",
+      "action_taken": "kept — illustrative"
+    },
+    {
+      "claim": "off-the-rack can be fine for certain golfer types",
+      "article_sentence": "For beginners or casual players who are still exploring the game, off-the-rack clubs can provide a reasonable starting point. However, as your game evolves, a fitting can help you unlock better performance and enjoyment.",
+      "evidence_layer": "EDITORIAL",
+      "evidence_source": "common fitted-coaching view + the article's own 'compromise' caveat",
+      "evidence_type": "industry-knowledge",
+      "status": "VERIFIED",
+      "action_taken": "kept"
+    },
+    {
+      "claim": "TrackMan is part of the brand-agnostic fitting service",
+      "article_sentence": "TrackMan is part of the brand-agnostic fitting service, keeping equipment decisions grounded in measured data rather than brand preference or guesswork.",
+      "evidence_layer": "VERIFIED BRAND FACT",
+      "evidence_source": "data/brand-directory/stick/knowledge.json :: verified_facts.verified_services.value ('Brand-agnostic TrackMan fittings')",
       "evidence_type": "fact-pack",
       "status": "VERIFIED",
-      "action_taken": "kept verbatim."
+      "action_taken": "kept — direct match to Stick verified_facts; V1.4 surgical edit removed V1.3 'TrackMan-style' hedge + unsupported 'launch/spin/carry/dispersion for every shot' detail (V1.3 was rejected on exact_only)"
+    },
+    {
+      "claim": "Stick equipment decisions are grounded in measured data rather than brand preference or guesswork",
+      "article_sentence": "TrackMan is part of the brand-agnostic fitting service, keeping equipment decisions grounded in measured data rather than brand preference or guesswork.",
+      "evidence_layer": "VERIFIED BRAND FACT",
+      "evidence_source": "data/brand-directory/stick/knowledge.json :: verified_facts.verified_fitting_philosophy.value ('Stick matches equipment to the player, not the player to the equipment.')",
+      "evidence_type": "fact-pack",
+      "status": "VERIFIED",
+      "action_taken": "kept — V1.4 surgical edit replaced V1.3 'adjustments on numbers, not opinions' (drift) with this canonical-fit to verified_fitting_philosophy"
+    },
+    {
+      "claim": "Stick voice marker: 'data over hype'",
+      "article_sentence": "The point is simple: data over hype.",
+      "evidence_layer": "VERIFIED BRAND FACT",
+      "evidence_source": "data/brand-directory/stick/knowledge.json :: voice_rules.do_say (explicit permit for 'data over hype')",
+      "evidence_type": "voice-canon",
+      "status": "VERIFIED",
+      "action_taken": "kept — Stick voice canon permit"
     }
   ],
   "evidence_still_needed": [
@@ -389,6 +533,22 @@
         "data/brand-directory/stick/knowledge.json :: voice_rules.do_say"
       ],
       "rule_removed": "The V1.3 fact-check wrongly allowed \"industry-standard TrackMan functionality\" as VERIFIED. V1.4 classifier no longer accepts industry-standard as a source — only facts in verified_facts or EXTERNAL SOURCE FACT (with cited source) count."
+    }
+  ],
+  "v1_4_1_corrections": [
+    {
+      "field": "fact_check",
+      "change": "Restored the complete claim-level trace from V1.2 (18 rows) and added the 3 rows covering the V1.4 TrackMan surgical edit. Article body UNCHANGED. Distribution: 13 VERIFIED · 3 QUALIFIED · 4 EDITORIAL/EXPLANATORY · 0 EVIDENCE NEEDED · 0 REMOVED.",
+      "rule_observed": "V1.2 §3 audit recovered from writer-v1.2-execution-report.md §3 'FULL CLAIM-LEVEL FACT CHECK' table. V1.3 TrackMan section was rewritten in V1.4 to enforce exact_only; the 3 V1.4 TrackMan rows trace ONLY the V1.4 wording.",
+      "evidence_cited": [
+        "writer-v1.2-execution-report.md :: §3 (18-row table)",
+        "writer-v1.3-execution-report.md :: TrackMan section audit (5 rows on V1.3 wording)",
+        "writer-v1.4-execution-report.md :: V1.4 surgical edit diff",
+        "data/brand-directory/stick/knowledge.json :: verified_facts.verified_services",
+        "data/brand-directory/stick/knowledge.json :: verified_facts.verified_fitting_philosophy",
+        "data/brand-directory/stick/knowledge.json :: voice_rules.do_say"
+      ],
+      "article_body_changed": false
     }
   ]
 }

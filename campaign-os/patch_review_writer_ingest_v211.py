@@ -94,6 +94,8 @@ def main() -> int:
 
     # 4. Try the canonical in-repo writer-artifacts dir (baked into the
     #    Docker image at /app/data/writer-artifacts/<brand>/<slug>.json).
+    #    Skip any 'fixture-' slugs — they're operator-side test artifacts
+    #    that should never be copied onto the production volume.
     if os.path.isdir(SHIPPED_REPO_WRITER_ARTIFACTS):
         for brand in ALLOWED_BRANDS:
             bdir = SHIPPED_REPO_WRITER_ARTIFACTS / brand
@@ -101,6 +103,8 @@ def main() -> int:
                 continue
             for src in bdir.glob("*.json"):
                 slug = src.stem
+                if slug.startswith("fixture-"):
+                    continue
                 dst = Path(DATA_DIR) / "writer" / brand / f"{slug}.json"
                 if _copy_artifact(src, dst):
                     written += 1

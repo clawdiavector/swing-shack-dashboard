@@ -956,6 +956,25 @@ function SectionBlock({
           >
             Reject section
           </PillButton>
+          {section.rejected ? (
+            <PillButton
+              icon={RefreshCw}
+              tone="ghost"
+              disabled={busy === `restore:${section.section_id}`}
+              onClick={() => {
+                const reason = window.prompt(
+                  'Reason for restoring this section (optional):',
+                )
+                void callAction(
+                  `/api/review/v1/${brand}/${draftId}/sections/${section.section_id}/restore`,
+                  { reason: reason || null },
+                  `restore:${section.section_id}`,
+                )
+              }}
+            >
+              Restore section
+            </PillButton>
+          ) : null}
         </div>
       ) : null}
 

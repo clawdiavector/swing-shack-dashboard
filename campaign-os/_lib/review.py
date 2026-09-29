@@ -74,6 +74,7 @@ ACTION_EDIT_SECTION      = "HUMAN_EDIT"
 ACTION_REQUEST_REWRITE   = "REQUEST_REWRITE"
 ACTION_COMMENT           = "COMMENT"
 ACTION_REJECT_SECTION    = "REJECT_SECTION"
+ACTION_RESTORE_SECTION   = "RESTORE_SECTION"
 
 ALL_SECTION_ACTIONS = (
     ACTION_APPROVE_SECTION,
@@ -81,6 +82,7 @@ ALL_SECTION_ACTIONS = (
     ACTION_REQUEST_REWRITE,
     ACTION_COMMENT,
     ACTION_REJECT_SECTION,
+    ACTION_RESTORE_SECTION,
 )
 
 # Supported content types — V1 only handles long-form articles.
@@ -729,6 +731,56 @@ def reject_section(
     )
     record["revisions"].append(rev)
     record["status"] = STATUS_CHANGES_REQUESTED
+    _save_review(record)
+    return {"ok": True, "section": sec, "revision": rev}
+
+
+def restore_section(
+    brand_id: str, draft_id: str, section_id: str, actor: str,
+    reason: Optional[str] = None,
+) -> dict:
+    """Reverse a previous REJECT_SECTION so the section is reviewable again.
+
+    Smallest missing V1 operation — completion of Review V1, NOT a new
+    Review V2. Behaviour:
+      - sets rejected=False (section becomes reviewable)
+      - leaves approved unchanged (a fresh approve is required)
+      - leaves rewrite_pending unchanged
+      - preserves the original rejection in the revisions log
+      - appends a RESTORE_SECTION revision (action, actor, at, reason)
+      - does NOT auto-approve, does NOT delete comments/history
+      - does NOT touch the Writer artifact
+
+    Idempotent: restoring a non-rejected section is a no-op (returns ok=True,
+    no new revision) so a double-click does not pollute history.
+    """
+    record = _load_review(brand_id, draft_id)
+    if record is None:
+        return {"ok": False, "error": "review not found"}
+    sec = _find_section(record, section_id)
+    if sec is None:
+        return {"ok": False, "error": f"section not found: {section_id}"}
+    if not sec.get("rejected"):
+        return {
+            "ok": True,
+            "section": sec,
+            "noop": True,
+            "note": "section is not currently rejected; nothing to restore",
+        }
+    sec["rejected"] = False
+    sec["last_action"] = ACTION_RESTORE_SECTION
+    sec["last_action_at"] = _now_iso()
+    sec["last_actor"] = actor
+    rev = _new_revision(
+        record, ACTION_RESTORE_SECTION, actor, section_id,
+        before=None, after=None,
+        instruction=reason,
+        source="HUMAN_EDIT",
+    )
+    record["revisions"].append(rev)
+    # If this was the only blocker keeping the record in CHANGES_REQUESTED,
+    # the next _maybe_transition_to_ready call on the next action will
+    # surface READY_FOR_APPROVAL — we do not pre-empt it here.
     _save_review(record)
     return {"ok": True, "section": sec, "revision": rev}
 
