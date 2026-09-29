@@ -89,9 +89,32 @@ def _has_immediate_coaching(records: list) -> bool:
     return any(r.get("id") == "immediate_coaching_sessions_per_coach_per_week" for r in (records or []))
 
 
+def _ensure_baked_to_volume(brand_id: str, *parts: str) -> bool:
+    """Copy the baked /app/data/<...>/<brand>.json file to the volume
+    if the volume version is missing. This is the one-time bootstrap
+    for brands whose files were not in the original volume snapshot.
+
+    Returns True if a copy happened (volume write).
+    """
+    vol = os.path.join(DATA_DIR, *parts, f"{brand_id}.json")
+    bak = os.path.join(BAKED_DIR, *parts, f"{brand_id}.json")
+    if os.path.exists(vol):
+        return False
+    if not os.path.exists(bak):
+        return False
+    os.makedirs(os.path.dirname(vol), exist_ok=True)
+    with open(bak, "r", encoding="utf-8") as fp:
+        data = fp.read()
+    with open(vol, "w") as fp:
+        fp.write(data)
+    print(f"[bootstrap] copied {bak} -> {vol} ({len(data)} bytes)")
+    return True
+
+
 def patch_swing_shack() -> bool:
     """Swing Shack planning: language rule, LESSONS→COACHING merge, immediate goals."""
     vol, bak = _resolve("swing-shack", "brand-planning")
+    _ensure_baked_to_volume("swing-shack", "brand-planning")
     src = vol if os.path.exists(vol) else bak
     if not os.path.exists(src):
         print(f"[ss] source not found at {src}; skipping")
@@ -157,7 +180,10 @@ def patch_swing_shack() -> bool:
 
 
 def patch_stick() -> bool:
-    """Stick north_stars: language rule + immediate goals."""
+    """Stick north_stars + bootstrap brand-planning/stick.json onto the volume."""
+    # Bootstrap stick.json into the volume first so the big-idea endpoint
+    # can find it on this boot.
+    _ensure_baked_to_volume("stick", "brand-planning")
     vol = os.path.join(DATA_DIR, "brand-directory", "stick", "north_stars.json")
     bak = os.path.join(BAKED_DIR, "brand-directory", "stick", "north_stars.json")
     src = vol if os.path.exists(vol) else bak
