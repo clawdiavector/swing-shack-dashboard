@@ -17388,6 +17388,46 @@ def today_panel():
     if gbp_card is not None:
         cards.insert(0, gbp_card)
 
+    # V2.11 — Long-form Review queue (separate from Creative Review).
+    # Read the canonical Review V1 queue for the active brand and surface a
+    # single card if there are any DRAFT_FOR_REVIEW items.
+    longform_review_card = None
+    try:
+        from _lib import review as _review_module
+        lf_queue = _review_module.get_review_queue(active_brand_id) or []
+        pending_lf = [
+            q for q in lf_queue
+            if q.get('status') == 'DRAFT_FOR_REVIEW'
+        ]
+        if pending_lf:
+            first = pending_lf[0]
+            first_title = first.get('title') or first.get('brief_id') or 'Long-form draft'
+            longform_review_card = {
+                'id': f"longform-review-{first.get('draft_id', '')}",
+                'type': 'longform_review',
+                'priority': 'medium',
+                'campaignId': 'Long-form Review',
+                'title': f"{len(pending_lf)} long-form draft{'s' if len(pending_lf) != 1 else ''} need review",
+                'subtitle': first_title,
+                'context_url': f"/review/long-form",
+                'cta_label': 'Open Long-form Review',
+                'updatedAt': first.get('last_updated_at') or panel_ts,
+                'stamp': panel_ts,
+                'stampKind': 'as_of',
+                'brand_id': active_brand_id,
+                'meta': {
+                    'pending_count': len(pending_lf),
+                    'first_draft_id': first.get('draft_id'),
+                    'first_brief_id': first.get('brief_id'),
+                    'first_title': first_title,
+                },
+            }
+    except Exception as exc:
+        _app_log.warning("today_panel: longform review card build failed: %s", exc)
+
+    if longform_review_card is not None:
+        cards.insert(0, longform_review_card)
+
     return jsonify({
         'ok': True,
         'ts': panel_ts,
