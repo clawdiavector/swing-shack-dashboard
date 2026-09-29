@@ -50885,6 +50885,14 @@ if __name__ == '__main__':
         print('[boot] orphan job runs reaped', flush=True, file=_sys.stderr)
     except Exception as _e:
         print(f'[boot] orphan reap failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
+    try:
+        # V2.11 — brand-bible language patch + immediate-goal metrics.
+        # Idempotent: runs once and then leaves a marker so it skips on
+        # subsequent boots. See patch_brand_bible_v211.py for the rule.
+        from patch_brand_bible_v211 import main as _v211_patch_main
+        _v211_patch_main()
+    except Exception as _e:
+        print(f'[boot] v2.11 bible patch failed (non-fatal): {_e}', flush=True, file=_sys.stderr)
     port = int(os.environ.get('PORT', 8000))
     print(f'[boot] binding to 0.0.0.0:{port}', flush=True, file=_sys.stderr)
     try:
